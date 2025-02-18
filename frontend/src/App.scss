@@ -1,0 +1,70 @@
+// app.scss
+
+// Tailwind Directives
+@use "tailwindcss/base";
+@use "tailwindcss/components";
+@use "tailwindcss/utilities";
+
+
+
+
+// Reset/normalize styles for better cross-browser consistency
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box; // Ensures padding and border widths are included in element sizes
+}
+
+html, body {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased; // Improves rendering of fonts on macOS and iOS
+}
+
+// Set base font properties
+body, button, input, textarea, select {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; // Example generic font-family
+  font-size: 16px; // Establishes a base font size
+  color: #333; // Default text color
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-size: inherit;
+  font-weight: normal;
+}
+
+a {
+  color: inherit; // Links inherit text color from their parent
+  text-decoration: none; // Removes underline
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+ul, ol {
+  list-style: none; // Removes list styling
+}
+
+img {
+  max-width: 100%; // Ensures images are never wider than their container
+  height: auto; // Keeps the original aspect ratio
+}
+
+table {
+  border-collapse: collapse; // Collapses border spacing
+}
+
+textarea {
+  resize: vertical; // Allows vertical resizing only
+}
+
+#root {
+  padding-top: 60px; // Adjust this value to match the header height
+}
