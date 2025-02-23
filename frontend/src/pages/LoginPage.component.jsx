@@ -81,7 +81,7 @@ const LoginPage = () => {
 
   if (user) {
     // If already logged in, redirect to the dashboard.
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/#" replace />;
   }
 
   const handleChange = (e) => {

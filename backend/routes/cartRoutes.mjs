@@ -1,71 +1,137 @@
-// backend/routes/cartRoutes.js
 import express from 'express';
-import ShoppingCart from '../models/ShoppingCart.js';
-import CartItem from '../models/CartItem.js';
+import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
+import Session from '../models/Session.js';
+import User from '../models/User.js';
+import { Op } from 'sequelize';
+import stripe from 'stripe';
 
 const router = express.Router();
+const stripeInstance = stripe(process.env.STRIPE_SECRET_KEY);
 
 /**
- * GET /api/cart/:userId
- * Retrieves the active shopping cart for a user.
+ * ADMIN: Create Available Session Slots
+ * POST /api/sessions/admin/create
+ * Admins create open slots for booking.
  */
-router.get('/:userId', async (req, res) => {
+router.post('/admin/create', protect, adminOnly, async (req, res) => {
   try {
-    const { userId } = req.params;
-    let cart = await ShoppingCart.findOne({
-      where: { userId, status: 'active' },
-      include: [{ model: CartItem, as: 'items' }],
-    });
-    if (!cart) {
-      // If no active cart exists, create one.
-      cart = await ShoppingCart.create({ userId, status: 'active' });
+    const { sessionDate, notes } = req.body;
+
+    // Ensure sessionDate is in the future
+    if (new Date(sessionDate) < new Date()) {
+      return res.status(400).json({ message: 'Cannot create past session slots.' });
     }
-    res.json(cart);
+
+    // Create available session slot (unbooked)
+    const newSession = await Session.create({
+      sessionDate,
+      notes,
+      status: 'available',
+      userId: null, // Not booked yet
+    });
+
+    res.status(201).json({ message: 'Session slot created.', session: newSession });
   } catch (error) {
-    console.error('Error fetching cart:', error.message);
-    res.status(500).json({ message: 'Server error fetching cart.' });
+    console.error('Error creating session:', error.message);
+    res.status(500).json({ message: 'Server error creating session.' });
   }
 });
 
 /**
- * POST /api/cart/:userId/add
- * Adds an item to the user's cart.
+ * CLIENT: Book a Session Slot
+ * POST /api/sessions/book/:userId
+ * Clients book an available session.
  */
-router.post('/:userId/add', async (req, res) => {
+router.post('/book/:userId', protect, async (req, res) => {
   try {
     const { userId } = req.params;
-    const { storefrontItemId, quantity, price } = req.body;
-    // Retrieve or create an active cart.
-    let cart = await ShoppingCart.findOne({ where: { userId, status: 'active' } });
-    if (!cart) {
-      cart = await ShoppingCart.create({ userId, status: 'active' });
+    const { sessionId } = req.body;
+
+    // Find the available session
+    const session = await Session.findOne({ where: { id: sessionId, status: 'available' } });
+    if (!session) {
+      return res.status(400).json({ message: 'Session is not available for booking.' });
     }
-    // Create a new CartItem.
-    const newItem = await CartItem.create({
-      cartId: cart.id,
-      storefrontItemId,
-      quantity,
-      price,
-    });
-    res.status(201).json(newItem);
+
+    // Assign the session to the user and update status
+    session.userId = userId;
+    session.status = 'scheduled';
+    await session.save();
+
+    res.status(200).json({ message: 'Session booked successfully.', session });
   } catch (error) {
-    console.error('Error adding item to cart:', error.message);
-    res.status(500).json({ message: 'Server error adding item to cart.' });
+    console.error('Error booking session:', error.message);
+    res.status(500).json({ message: 'Server error booking session.' });
   }
 });
 
 /**
- * DELETE /api/cart/:userId/item/:itemId
- * Removes an item from the user's cart.
+ * STRIPE: Checkout for One-Time & Subscription Payments
+ * POST /api/sessions/checkout
  */
-router.delete('/:userId/item/:itemId', async (req, res) => {
+router.post('/checkout', protect, async (req, res) => {
   try {
-    const { itemId } = req.params;
-    await CartItem.destroy({ where: { id: itemId } });
-    res.json({ message: 'Item removed from cart.' });
+    const { sessionId, price, isSubscription } = req.body;
+    const session = await Session.findByPk(sessionId);
+    if (!session) {
+      return res.status(400).json({ message: 'Invalid session.' });
+    }
+
+    const paymentIntent = await stripeInstance.paymentIntents.create({
+      amount: price * 100, // Convert to cents
+      currency: 'usd',
+      payment_method_types: ['card'],
+      metadata: { sessionId, userId: req.user.id, isSubscription },
+    });
+
+    res.json({ clientSecret: paymentIntent.client_secret });
   } catch (error) {
-    console.error('Error removing item from cart:', error.message);
-    res.status(500).json({ message: 'Server error removing item from cart.' });
+    console.error('Error processing payment:', error.message);
+    res.status(500).json({ message: 'Payment processing failed.' });
+  }
+});
+
+/**
+ * GET Available Sessions (For Clients to View & Book)
+ * GET /api/sessions/available
+ */
+router.get('/available', protect, async (req, res) => {
+  try {
+    const sessions = await Session.findAll({ where: { status: 'available' } });
+    res.json(sessions);
+  } catch (error) {
+    console.error('Error fetching available sessions:', error.message);
+    res.status(500).json({ message: 'Server error fetching sessions.' });
+  }
+});
+
+/**
+ * GET User's Scheduled Sessions
+ * GET /api/sessions/:userId
+ */
+router.get('/:userId', protect, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const sessions = await Session.findAll({ where: { userId, status: 'scheduled' } });
+    res.json(sessions);
+  } catch (error) {
+    console.error('Error fetching sessions:', error.message);
+    res.status(500).json({ message: 'Server error fetching sessions.' });
+  }
+});
+
+/**
+ * ADMIN: Cancel a Scheduled Session
+ * DELETE /api/sessions/:id
+ */
+router.delete('/:id', protect, adminOnly, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Session.destroy({ where: { id } });
+    res.json({ message: 'Session canceled successfully.' });
+  } catch (error) {
+    console.error('Error deleting session:', error.message);
+    res.status(500).json({ message: 'Server error canceling session.' });
   }
 });
 

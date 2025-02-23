@@ -6,10 +6,9 @@ import { Velustro } from "uvcanvas";
 import HeroPageStore from './HeroPageStore';
 
 // -----------------------------------------------------------------
-// Data & Helper Functions
+// Data & Helper Functions (unchanged)
 // -----------------------------------------------------------------
 
-// Fixed-session packages (one-time purchase)
 const fixedPackages = [
   {
     id: 1,
@@ -34,7 +33,6 @@ const fixedPackages = [
   },
 ];
 
-// Monthly packages – including 3, 6, 9, and 12 month options
 const monthlyPackages = [
   { id: 1, months: 3, sessionsPerWeek: 2, pricePerSession: 165, name: 'Silver Start', description: '3 months at 2 sessions per week to kickstart your journey.' },
   { id: 2, months: 3, sessionsPerWeek: 3, pricePerSession: 160, name: 'Silver Surge', description: 'Accelerate progress with 3 months at 3 sessions per week.' },
@@ -50,21 +48,19 @@ const monthlyPackages = [
   { id: 12, months: 12, sessionsPerWeek: 4, pricePerSession: 135, name: 'Rhodium Reign', description: 'The ultimate value – 12 months at 4 sessions per week at an unbeatable rate.' },
 ];
 
-// Helper to calculate total sessions for monthly packages (assume 4 weeks per month)
 const calculateTotalSessions = (months: number, sessionsPerWeek: number) => months * 4 * sessionsPerWeek;
 
 // -----------------------------------------------------------------
 // Framer Motion Variants
 // -----------------------------------------------------------------
 
-// Variants for the PriceOverlay – hidden by default and visible on hover
 const priceOverlayVariants: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1 },
 };
 
 // -----------------------------------------------------------------
-// Styled Components
+// Styled Components (unchanged from your original code)
 // -----------------------------------------------------------------
 
 const LumiflexBackground = styled(Velustro)`
@@ -73,18 +69,16 @@ const LumiflexBackground = styled(Velustro)`
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: -2; /* Ensures it stays behind all content */
+  z-index: -2;
 `;
 
-// Main container with a solid, cheerful background color
 const StoreContainer = styled.div`
   position: relative;
   min-height: 100vh;
   overflow-x: hidden;
-  background: none; /* Remove solid white background */
+  background: none;
 `;
 
-// Optional: Background video that covers the entire page, with a fallback poster image
 const BackgroundVideo = styled.video`
   position: absolute;
   top: 0;
@@ -96,10 +90,9 @@ const BackgroundVideo = styled.video`
   opacity: 0.2;
 `;
 
-// Parallax section using a solid color (for separation with some depth)
 const ParallaxSection = styled.div`
   height: 150px;
-  background-color: #c0c0c0; /* Silver tone */
+  background-color: #c0c0c0;
   background-attachment: fixed;
   display: flex;
   align-items: center;
@@ -109,7 +102,6 @@ const ParallaxSection = styled.div`
   margin: 2rem 0;
 `;
 
-// Content overlay for the main page content
 const ContentOverlay = styled.div`
   position: relative;
   z-index: 1;
@@ -117,7 +109,6 @@ const ContentOverlay = styled.div`
   color: #333;
 `;
 
-// Section title styled with the primary theme color (neon blue)
 const SectionTitle = styled.h2`
   text-align: center;
   margin: 2rem 0 1rem;
@@ -125,7 +116,6 @@ const SectionTitle = styled.h2`
   color: var(--neon-blue, #00ffff);
 `;
 
-// Grid container for cards
 const Grid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -133,7 +123,6 @@ const Grid = styled.div`
   margin-bottom: 3rem;
 `;
 
-// Card component with depth-of-field and smooth animations
 const Card = styled(motion.div)`
   background: #fff;
   border-radius: 10px;
@@ -144,7 +133,6 @@ const Card = styled(motion.div)`
   flex-direction: column;
 `;
 
-// Media for the card: a video with a fallback poster image
 const CardMedia = styled.video`
   width: 100%;
   height: 150px;
@@ -152,7 +140,6 @@ const CardMedia = styled.video`
   background: #ddd;
 `;
 
-// Card content wrapper
 const CardContent = styled.div`
   padding: 1rem;
   flex-grow: 1;
@@ -161,7 +148,6 @@ const CardContent = styled.div`
   justify-content: space-between;
 `;
 
-// Card title and description styling
 const CardTitle = styled.h3`
   font-size: 1.75rem;
   margin-bottom: 0.5rem;
@@ -174,7 +160,6 @@ const CardDescription = styled.p`
   margin-bottom: 1rem;
 `;
 
-// Price container – holds the overlay that reveals the price
 const PriceContainer = styled.div`
   position: relative;
   text-align: center;
@@ -182,7 +167,6 @@ const PriceContainer = styled.div`
   min-height: 2rem;
 `;
 
-// Price overlay – hidden by default; shows on hover
 const PriceOverlay = styled(motion.div)`
   position: absolute;
   top: 0;
@@ -196,7 +180,6 @@ const PriceOverlay = styled(motion.div)`
   border-radius: 5px;
 `;
 
-// Button styling for card actions
 const CardButton = styled(motion.button)`
   padding: 0.75rem 1.5rem;
   background: var(--neon-blue, #00ffff);
@@ -211,118 +194,14 @@ const CardButton = styled(motion.button)`
   }
 `;
 
-// ----- Orientation Modal Styled Components -----
-const ModalOverlay = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.85);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-`;
-const ModalContainer = styled.div`
-  background: #fff;
-  padding: 2rem;
-  border-radius: 10px;
-  max-width: 500px;
-  width: 90%;
-  color: #333;
-`;
-const ModalTitle = styled.h2`
-  text-align: center;
-  margin-bottom: 1rem;
-  color: var(--neon-blue, #00ffff);
-`;
-const ModalField = styled.div`
-  margin-bottom: 1rem;
-  label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: bold;
-  }
-  input, textarea {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-  }
-`;
-const ModalButton = styled(CardButton)`
-  margin-top: 1rem;
-`;
+// OrientationForm is assumed to be defined elsewhere (you provided it earlier)
+import OrientationForm from '../../components/OrientationForm/orientationForm';
 
-// ----- Orientation Form Component -----
-const OrientationForm = ({ onClose }: { onClose: () => void }) => {
-  const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    phone: '',
-    healthInfo: '',
-    waiverInitials: '',
-  });
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Here you would send the orientation data to your backend.
-    setSubmitted(true);
-  };
-
-  return (
-    <ModalOverlay>
-      <ModalContainer>
-        <ModalTitle>Orientation Signup</ModalTitle>
-        <p style={{ textAlign: 'center', marginBottom: '1rem', color: '#7851a9' }}>
-          Orientation is FREE – group training available!
-        </p>
-        {submitted ? (
-          <p>Thank you for signing up! Your orientation is scheduled.</p>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <ModalField>
-              <label htmlFor="fullName">Full Name:</label>
-              <input type="text" id="fullName" name="fullName" value={formData.fullName} onChange={handleChange} required />
-            </ModalField>
-            <ModalField>
-              <label htmlFor="email">Email:</label>
-              <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} required />
-            </ModalField>
-            <ModalField>
-              <label htmlFor="phone">Phone:</label>
-              <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} required />
-            </ModalField>
-            <ModalField>
-              <label htmlFor="healthInfo">Health Information:</label>
-              <textarea id="healthInfo" name="healthInfo" value={formData.healthInfo} onChange={handleChange} required />
-            </ModalField>
-            <ModalField>
-              <label htmlFor="waiverInitials">Waiver Initials (Confirm):</label>
-              <input type="text" id="waiverInitials" name="waiverInitials" value={formData.waiverInitials} onChange={handleChange} required />
-            </ModalField>
-            <ModalButton type="submit" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              Submit Orientation
-            </ModalButton>
-          </form>
-        )}
-        <ModalButton onClick={onClose} style={{ marginTop: '1rem' }} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-          Close
-        </ModalButton>
-      </ModalContainer>
-    </ModalOverlay>
-  );
-};
 
 // -----------------------------------------------------------------
-// Main StoreFront Component
+// StoreFront Component
 // -----------------------------------------------------------------
+
 const StoreFront = () => {
   const { user } = useAuth();
   const [showOrientation, setShowOrientation] = useState(false);
@@ -330,10 +209,8 @@ const StoreFront = () => {
 
   return (
     <StoreContainer>
-      {/* Lumiflex Background (Canvas) */}
       <LumiflexBackground />
 
-      {/* Optional background video with fallback poster; solid background used if video fails */}
       <BackgroundVideo autoPlay loop muted poster="/assets/fallback.jpg">
         <source src="/assets/movie.mp4" type="video/mp4" />
         Your browser does not support the video tag.
@@ -341,7 +218,7 @@ const StoreFront = () => {
 
       <ContentOverlay>
         <HeroPageStore />
-        {/* Parallax sections using solid colors for spacing and visual interest */}
+
         <ParallaxSection>Get Ready to Elevate Your Game</ParallaxSection>
 
         <SectionTitle>Premium Training Packages</SectionTitle>
@@ -470,6 +347,26 @@ const StoreFront = () => {
             );
           })}
         </Grid>
+
+        {/* Orientation Signup Section – only available if the user is logged in */}
+        <SectionTitle>Orientation Signup</SectionTitle>
+        {user ? (
+          <CardButton
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowOrientation(true)}
+          >
+            Sign Up for Orientation
+          </CardButton>
+        ) : (
+          <CardButton
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => alert('Please log in to sign up for orientation.')}
+          >
+            Sign Up for Orientation
+          </CardButton>
+        )}
       </ContentOverlay>
 
       {showOrientation && <OrientationForm onClose={() => setShowOrientation(false)} />}

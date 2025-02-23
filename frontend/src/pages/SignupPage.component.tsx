@@ -5,12 +5,8 @@ import styled from "styled-components";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 
-/* 
-  ✅ ModalOverlay:
-  - Full-screen fixed container
-  - Removed transparency for a solid overlay
-*/
-const ModalOverlay = styled.div`
+// FullPageContainer covers the entire viewport with a modern gradient background.
+const FullPageContainer = styled.div`
   position: fixed;
   top: 0;
   left: 0;
@@ -18,13 +14,10 @@ const ModalOverlay = styled.div`
   height: 100vh;
   z-index: 1500;
   overflow: auto;
-  background: rgba(0, 0, 0, 0.9); /* ✅ Increased opacity to make background solid */
+  background: linear-gradient(45deg, rgba(0,255,255,0.5), rgba(120,81,169,0.5));
 `;
 
-/* 
-  ✅ VideoBackground:
-  - Background video with reduced opacity
-*/
+// VideoBackground: A dynamic background video layer (placeholder).
 const VideoBackground = styled.video`
   position: absolute;
   top: 0;
@@ -33,27 +26,25 @@ const VideoBackground = styled.video`
   height: 100%;
   object-fit: cover;
   z-index: 0;
-  opacity: 0.3; /* ✅ Reduced opacity for less visibility */
+  opacity: 0.6;
 `;
 
-/* 
-  ✅ ModalContent:
-  - Centered panel containing the signup form
-  - Solid dark background (removed transparency)
-*/
+// ModalContent: A centered container with smooth entrance animation.
 const ModalContent = styled(motion.div)`
   position: relative;
   z-index: 1;
-  margin: 50px auto; /* Adds spacing from the top */
+  margin: 50px auto;
   width: 90%;
   max-width: 500px;
-  background: #222; /* ✅ Solid dark background (no transparency) */
+  max-height: 90vh; /* Prevents the modal from exceeding 90% of viewport height */
+  overflow-y: auto; /* Enables vertical scrolling when content is tall */
+  background: #222;
   padding: 30px;
   border-radius: 10px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
 `;
 
-/* ✅ Close Button */
+// CloseButton: A dismiss button to exit the modal.
 const CloseButton = styled.button`
   position: absolute;
   top: 15px;
@@ -67,14 +58,13 @@ const CloseButton = styled.button`
   color: var(--neon-blue);
   cursor: pointer;
   transition: background 0.3s ease;
-
   &:hover {
     background: var(--neon-blue);
     color: #000;
   }
 `;
 
-/* ✅ Input Fields */
+// InputField: Uniform styling for text inputs.
 const InputField = styled.input`
   width: 100%;
   padding: 10px;
@@ -83,14 +73,13 @@ const InputField = styled.input`
   border-radius: 5px;
   background: #111;
   color: #fff;
-
   &:focus {
     outline: none;
     border-color: var(--neon-blue);
   }
 `;
 
-/* ✅ Label */
+// Label: Consistent label styling.
 const Label = styled.label`
   display: block;
   margin-bottom: 5px;
@@ -98,7 +87,7 @@ const Label = styled.label`
   color: var(--silver);
 `;
 
-/* ✅ Signup Button */
+// Button: Styled submission button.
 const Button = styled.button`
   width: 100%;
   padding: 10px;
@@ -109,13 +98,24 @@ const Button = styled.button`
   font-size: 1rem;
   cursor: pointer;
   transition: background 0.3s ease;
-
   &:hover {
     background: var(--royal-purple);
   }
 `;
 
-/* ✅ SignupModal Component */
+/**
+ * SignupModal Component
+ *
+ * This full-page signup modal is designed for both client and admin registrations.
+ * It features a video background, full-screen gradient, and a dismissible modal with an "X" button.
+ *
+ * Best Practices:
+ * - All sensitive data (passwords) are handled securely on the backend.
+ * - Input fields are controlled components, ensuring React state is the single source of truth.
+ * - Upon successful registration, the user is navigated to the client dashboard.
+ * - In production, additional security measures (e.g., HTTPS, rate limiting, input sanitization)
+ *   should be implemented on the backend.
+ */
 const SignupModal = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
@@ -138,42 +138,46 @@ const SignupModal = () => {
   });
   const [error, setError] = useState("");
 
-  // ✅ Close the modal by navigating back
+  // handleClose dismisses the modal.
   const handleClose = () => {
     navigate(-1);
   };
 
-  // ✅ Update form fields on input change
+  // handleChange updates the corresponding field in state.
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // ✅ Handle form submission for signup
+  // handleSubmit validates input and calls the register function.
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    // Client-side password confirmation check.
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
     }
     try {
+      // Exclude confirmPassword before sending to the backend.
       const { confirmPassword, ...registrationData } = formData;
       await register(registrationData);
-      navigate("/dashboard");
+      // On successful registration, navigate to the client dashboard.
+      navigate("/client-dashboard");
     } catch (err) {
       setError("Registration failed. Please try again.");
     }
   };
 
   return (
-    <ModalOverlay onClick={handleClose}>
-      {/* ✅ Video background */}
+    <FullPageContainer onClick={handleClose}>
+      {/* Video background for enhanced visuals */}
       <VideoBackground autoPlay loop muted>
         <source src="/assets/movie.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </VideoBackground>
 
-      {/* ✅ Signup Modal Content */}
+      {/* Modal content holds the signup form */}
       <ModalContent
         onClick={(e) => e.stopPropagation()}
         initial={{ opacity: 0, scale: 0.9 }}
@@ -250,10 +254,100 @@ const SignupModal = () => {
             required
           />
 
+          {/* Additional Fields */}
+          <Label htmlFor="phone">Phone Number</Label>
+          <InputField
+            type="tel"
+            id="phone"
+            name="phone"
+            placeholder="Enter your phone number"
+            value={formData.phone}
+            onChange={handleChange}
+          />
+
+          <Label htmlFor="dateOfBirth">Date of Birth</Label>
+          <InputField
+            type="date"
+            id="dateOfBirth"
+            name="dateOfBirth"
+            value={formData.dateOfBirth}
+            onChange={handleChange}
+          />
+
+          <Label htmlFor="gender">Gender</Label>
+          <InputField
+            type="text"
+            id="gender"
+            name="gender"
+            placeholder="Enter your gender"
+            value={formData.gender}
+            onChange={handleChange}
+          />
+
+          <Label htmlFor="weight">Weight (kg)</Label>
+          <InputField
+            type="number"
+            id="weight"
+            name="weight"
+            placeholder="Enter your weight"
+            value={formData.weight}
+            onChange={handleChange}
+          />
+
+          <Label htmlFor="height">Height (cm)</Label>
+          <InputField
+            type="number"
+            id="height"
+            name="height"
+            placeholder="Enter your height"
+            value={formData.height}
+            onChange={handleChange}
+          />
+
+          <Label htmlFor="fitnessGoal">Fitness Goal</Label>
+          <InputField
+            type="text"
+            id="fitnessGoal"
+            name="fitnessGoal"
+            placeholder="E.g., lose weight, build muscle"
+            value={formData.fitnessGoal}
+            onChange={handleChange}
+          />
+
+          <Label htmlFor="trainingExperience">Training Experience</Label>
+          <InputField
+            type="text"
+            id="trainingExperience"
+            name="trainingExperience"
+            placeholder="Describe your training experience"
+            value={formData.trainingExperience}
+            onChange={handleChange}
+          />
+
+          <Label htmlFor="healthConcerns">Health Concerns</Label>
+          <InputField
+            type="text"
+            id="healthConcerns"
+            name="healthConcerns"
+            placeholder="Any health issues or concerns"
+            value={formData.healthConcerns}
+            onChange={handleChange}
+          />
+
+          <Label htmlFor="emergencyContact">Emergency Contact</Label>
+          <InputField
+            type="text"
+            id="emergencyContact"
+            name="emergencyContact"
+            placeholder="Emergency contact name & phone"
+            value={formData.emergencyContact}
+            onChange={handleChange}
+          />
+
           <Button type="submit">Sign Up</Button>
         </form>
       </ModalContent>
-    </ModalOverlay>
+    </FullPageContainer>
   );
 };
 

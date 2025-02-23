@@ -5,12 +5,10 @@ import sequelize from './../database.js';
 /**
  * Orientation Model
  * Stores orientation signup information following NASM protocols.
- * Fields:
- *  - fullName: User's full name.
- *  - email: User's email address.
- *  - phone: User's phone number.
- *  - healthInfo: Important health details.
- *  - waiverInitials: User's initials as a waiver confirmation.
+ * Fields include:
+ *  - fullName, email, phone, healthInfo, waiverInitials: Essential signup data.
+ *  - trainingGoals, experienceLevel: Additional details from the orientation form.
+ *  - userId: Foreign key to associate this record with a registered user.
  */
 class Orientation extends Model {}
 
@@ -42,6 +40,18 @@ Orientation.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    trainingGoals: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    experienceLevel: {
+      type: DataTypes.ENUM('Beginner', 'Intermediate', 'Advanced'),
+      allowNull: true,
+    },
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+    },
   },
   {
     sequelize,
@@ -52,3 +62,4 @@ Orientation.init(
 );
 
 export default Orientation;
+

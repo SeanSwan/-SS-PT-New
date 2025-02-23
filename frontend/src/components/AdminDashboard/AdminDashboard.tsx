@@ -1,28 +1,21 @@
-// src/components/AdminDashboard/AdminDashboard.tsx
+/**
+ * AdminDashboard.tsx
+ * Provides an admin interface for managing clients, messages, schedules, and session prices.
+ * Uses a unified calendar component (react-big-calendar based) for scheduling.
+ */
+
 import React, { useState } from "react";
 import styled, { ThemeProvider } from "styled-components";
 import { AnimatePresence, motion } from "framer-motion";
 import Header from "../Header/header";
-import Sidebar from "../ClientDashboard/Sidebar";
 import { useAuth } from "../../context/AuthContext";
 import { Navigate } from "react-router-dom";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+import CalendarComponent from "../CalendarComponent/CalendarComponent";
 
-// Sample admin mock data (for demonstration)
-const adminMockData = {
-  clientList: [
-    { id: 1, name: "John Doe", progress: 75 },
-    { id: 2, name: "Jane Smith", progress: 60 },
-    { id: 3, name: "Alice Johnson", progress: 85 },
-  ],
-  messages: [
-    {
-      id: 1,
-      sender: "Admin",
-      text: "Remember to update your progress weekly.",
-    },
-  ],
-};
-
+// -----------------------------------------------------------------
+// Define theme for styling components
+// -----------------------------------------------------------------
 const theme = {
   colors: {
     neonBlue: "#00FFFF",
@@ -38,7 +31,59 @@ const theme = {
   },
 };
 
-// Shared layout components
+// -----------------------------------------------------------------
+// Interfaces for mock data (for type safety)
+// -----------------------------------------------------------------
+interface Client {
+  id: number;
+  name: string;
+  progress: number;
+}
+
+interface Message {
+  id: number;
+  sender: string;
+  text: string;
+}
+
+interface SessionPrice {
+  gold: number;
+  platinum: number;
+  rhodium: number;
+}
+
+interface AdminMockData {
+  clientList: Client[];
+  messages: Message[];
+  sessionPrices: SessionPrice;
+}
+
+// -----------------------------------------------------------------
+// Mock Data for Admin Dashboard (Replace with real API data)
+// -----------------------------------------------------------------
+const adminMockData: AdminMockData = {
+  clientList: [
+    { id: 1, name: "John Doe", progress: 75 },
+    { id: 2, name: "Jane Smith", progress: 60 },
+    { id: 3, name: "Alice Johnson", progress: 85 },
+  ],
+  messages: [
+    {
+      id: 1,
+      sender: "Admin",
+      text: "Remember to update your progress weekly.",
+    },
+  ],
+  sessionPrices: {
+    gold: 175,
+    platinum: 165,
+    rhodium: 150,
+  },
+};
+
+// -----------------------------------------------------------------
+// Styled Components for Layout and Reusable Elements
+// -----------------------------------------------------------------
 const DashboardContainer = styled.div`
   display: flex;
   background-color: ${({ theme }) => theme.colors.background};
@@ -54,6 +99,42 @@ const MainContent = styled.main`
   background-color: ${({ theme }) => theme.colors.lightBg};
 `;
 
+const SidebarContainer = styled.nav`
+  width: 250px;
+  background-color: ${({ theme }) => theme.colors.royalPurple};
+  padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    flex-direction: row;
+    justify-content: space-around;
+    padding: 0.5rem;
+  }
+`;
+
+const SidebarButton = styled(motion.button)<{ isActive: boolean }>`
+  background-color: ${({ isActive, theme }) =>
+    isActive ? theme.colors.neonBlue : "transparent"};
+  color: ${({ isActive, theme }) =>
+    isActive ? theme.colors.royalPurple : theme.colors.lightBg};
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s;
+
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.neonBlue};
+    color: ${({ theme }) => theme.colors.royalPurple};
+  }
+`;
+
 const SectionTitle = styled.h2`
   text-align: center;
   margin-bottom: 1.5rem;
@@ -61,74 +142,72 @@ const SectionTitle = styled.h2`
   color: ${({ theme }) => theme.colors.neonBlue};
 `;
 
-const ClientCard = styled(motion.div)`
-  background-color: #fff;
-  border: 2px solid ${({ theme }) => theme.colors.royalPurple};
-  border-radius: 10px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-`;
-
-const ClientName = styled.h3`
-  font-size: 1.2rem;
-  color: ${({ theme }) => theme.colors.royalPurple};
-`;
-
-const UpdateButton = styled(motion.button)`
+const PrimaryButton = styled.button`
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
   background: ${({ theme }) => theme.colors.neonBlue};
-  color: ${({ theme }) => theme.colors.royalPurple};
   border: none;
-  padding: 0.5rem 1rem;
   border-radius: 5px;
   cursor: pointer;
-  transition: background 0.3s ease;
+  color: ${({ theme }) => theme.colors.royalPurple};
+  transition: background 0.3s, color 0.3s;
+
   &:hover {
-    background: ${({ theme }) => theme.colors.royalPurple};
+    opacity: 0.9;
   }
 `;
 
-const MessagingContainer = styled.div`
-  margin-top: 2rem;
-`;
-
-const MessageInput = styled.textarea`
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid ${({ theme }) => theme.colors.silver};
-  border-radius: 5px;
-  resize: vertical;
-  margin-bottom: 1rem;
-`;
-
+/**
+ * AdminDashboard Component
+ * Renders the admin dashboard with multiple sections including client management,
+ * messaging, scheduling, and session price management.
+ */
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
-
-  // If user is not an admin, redirect to the Unauthorized page.
   if (!user || user.role !== "admin") {
     return <Navigate to="/unauthorized" />;
   }
 
+  // State to control active dashboard section ("clients", "messages", "schedule", "prices")
   const [activeSection, setActiveSection] = useState("clients");
-  const [newMessage, setNewMessage] = useState("");
-
-  const handleSendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Admin message:", newMessage);
-    setNewMessage("");
-  };
 
   return (
     <ThemeProvider theme={theme}>
       <Header />
       <DashboardContainer>
-        <Sidebar
-          activeSection={activeSection}
-          setActiveSection={setActiveSection}
-        />
+        {/* Sidebar Navigation */}
+        <SidebarContainer>
+          <SidebarButton
+            isActive={activeSection === "clients"}
+            onClick={() => setActiveSection("clients")}
+            whileTap={{ scale: 0.95 }}
+          >
+            Clients
+          </SidebarButton>
+          <SidebarButton
+            isActive={activeSection === "messages"}
+            onClick={() => setActiveSection("messages")}
+            whileTap={{ scale: 0.95 }}
+          >
+            Messages
+          </SidebarButton>
+          <SidebarButton
+            isActive={activeSection === "schedule"}
+            onClick={() => setActiveSection("schedule")}
+            whileTap={{ scale: 0.95 }}
+          >
+            Schedule
+          </SidebarButton>
+          <SidebarButton
+            isActive={activeSection === "prices"}
+            onClick={() => setActiveSection("prices")}
+            whileTap={{ scale: 0.95 }}
+          >
+            Prices
+          </SidebarButton>
+        </SidebarContainer>
+
+        {/* Main Content Area */}
         <MainContent>
           <AnimatePresence mode="wait">
             {activeSection === "clients" && (
@@ -141,17 +220,38 @@ const AdminDashboard: React.FC = () => {
               >
                 <SectionTitle>Client Management</SectionTitle>
                 {adminMockData.clientList.map((client) => (
-                  <ClientCard key={client.id} whileHover={{ scale: 1.02 }}>
-                    <ClientName>{client.name}</ClientName>
-                    <p>{client.progress}% Progress</p>
-                    <UpdateButton
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                  <motion.div
+                    key={client.id}
+                    style={{
+                      backgroundColor: "#fff",
+                      border: `2px solid ${theme.colors.royalPurple}`,
+                      borderRadius: "10px",
+                      padding: "1rem",
+                      marginBottom: "1rem",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      boxShadow: "0 4px 10px rgba(0, 0, 0, 0.2)",
+                    }}
+                    whileHover={{ scale: 1.02 }}
+                  >
+                    <div>
+                      <h3
+                        style={{
+                          fontSize: "1.2rem",
+                          color: theme.colors.royalPurple,
+                        }}
+                      >
+                        {client.name}
+                      </h3>
+                      <p>{client.progress}% Progress</p>
+                    </div>
+                    <PrimaryButton
                       onClick={() => alert(`Update ${client.name}'s data`)}
                     >
                       Update
-                    </UpdateButton>
-                  </ClientCard>
+                    </PrimaryButton>
+                  </motion.div>
                 ))}
               </motion.div>
             )}
@@ -165,29 +265,85 @@ const AdminDashboard: React.FC = () => {
                 transition={{ duration: 0.3 }}
               >
                 <SectionTitle>Admin Messaging</SectionTitle>
-                <MessagingContainer>
-                  {adminMockData.messages.map((msg) => (
-                    <ClientCard key={msg.id} whileHover={{ scale: 1.02 }}>
-                      <ClientName>{msg.sender}</ClientName>
-                      <p>{msg.text}</p>
-                    </ClientCard>
-                  ))}
-                </MessagingContainer>
-                <form onSubmit={handleSendMessage}>
-                  <MessageInput
-                    placeholder="Type your message here..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    required
-                  />
-                  <UpdateButton
-                    type="submit"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                {adminMockData.messages.map((msg) => (
+                  <motion.div
+                    key={msg.id}
+                    style={{
+                      backgroundColor: "#fff",
+                      border: `2px solid ${theme.colors.royalPurple}`,
+                      borderRadius: "10px",
+                      padding: "1rem",
+                      marginBottom: "1rem",
+                      boxShadow: "0 4px 10px rgba(0, 0, 0, 0.2)",
+                    }}
+                    whileHover={{ scale: 1.02 }}
                   >
-                    Send Message
-                  </UpdateButton>
-                </form>
+                    <h3
+                      style={{
+                        fontSize: "1.2rem",
+                        color: theme.colors.royalPurple,
+                      }}
+                    >
+                      {msg.sender}
+                    </h3>
+                    <p>{msg.text}</p>
+                  </motion.div>
+                ))}
+                {/* Additional messaging form or features can be added here */}
+              </motion.div>
+            )}
+
+            {activeSection === "schedule" && (
+              <motion.div
+                key="schedule"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <SectionTitle>Schedule Availability</SectionTitle>
+                {/* Use the unified calendar component */}
+                <CalendarComponent />
+              </motion.div>
+            )}
+
+            {activeSection === "prices" && (
+              <motion.div
+                key="prices"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <SectionTitle>Session Price Management</SectionTitle>
+                <div
+                  style={{
+                    backgroundColor: "#fff",
+                    padding: "1rem",
+                    borderRadius: "10px",
+                    boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
+                  }}
+                >
+                  <p>
+                    <strong>Gold Package:</strong> $
+                    {adminMockData.sessionPrices.gold}
+                  </p>
+                  <p>
+                    <strong>Platinum Package:</strong> $
+                    {adminMockData.sessionPrices.platinum}
+                  </p>
+                  <p>
+                    <strong>Rhodium Package:</strong> $
+                    {adminMockData.sessionPrices.rhodium}
+                  </p>
+                  <PrimaryButton
+                    onClick={() =>
+                      alert("Update prices functionality not implemented yet.")
+                    }
+                  >
+                    Update Prices
+                  </PrimaryButton>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

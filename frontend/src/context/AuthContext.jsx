@@ -2,50 +2,49 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 
-// Create the AuthContext
-export const AuthContext = createContext();
+// Use an environment variable for the API base URL if available.
+// In production, set REACT_APP_API_BASE_URL to your deployed backend URL.
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/auth';
 
-// Base URL for the backend API
-const API_BASE_URL = 'http://localhost:5000/api/auth';
+
+export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // On mount, check for a stored user and validate the token.
+  // On initial load, validate any stored token
   useEffect(() => {
     const initializeAuth = async () => {
-      try {
-        const storedUser = localStorage.getItem('user');
-        const token = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
 
-        if (storedUser && token) {
-          try {
-            const response = await axios.get(`${API_BASE_URL}/validate-token`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            setUser(response.data.user);
-          } catch (error) {
-            console.warn('Token validation failed, falling back to localStorage.');
-            setUser(JSON.parse(storedUser));
-          }
+      if (storedUser && token) {
+        try {
+          // Validate the token with the backend
+          const response = await axios.get(`${API_BASE_URL}/validate-token`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          setUser(response.data.user);
+        } catch (error) {
+          console.warn('Token validation failed. Using stored user data.');
+          // Optionally, you could clear the token here to force re-login.
+          setUser(JSON.parse(storedUser));
         }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
-
     initializeAuth();
   }, []);
 
-  // Registration function that sends a new user's data to the backend.
+  /**
+   * Registers a new user.
+   * Sends the complete user object to the backend.
+   * On success, stores the returned user and token.
+   */
   const register = async (newUser) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/register`, newUser);
-      console.log('Registration successful:', response.data.message);
-      // If the API returns a user object and a token, store them.
       if (response.data.user && response.data.token) {
         localStorage.setItem('user', JSON.stringify(response.data.user));
         localStorage.setItem('token', response.data.token);
@@ -53,61 +52,44 @@ export const AuthProvider = ({ children }) => {
       }
       return response.data;
     } catch (error) {
-      // Log full error details to help with debugging.
-      console.error(
-        'Registration failed:',
-        JSON.stringify(error.response?.data, null, 2) || error.message
-      );
+      console.error('Registration error:', error.response?.data || error.message);
       throw error;
     }
   };
 
-  // Login function using a username and password.
+  /**
+   * Logs in an existing user.
+   * Sends username and password to the backend.
+   * On success, stores the returned user and token.
+   */
   const login = async (username, password) => {
     try {
       const response = await axios.post(`${API_BASE_URL}/login`, { username, password });
-      const userData = response.data.user;
-      const token = response.data.token;
-
-      // Save user and token to localStorage.
-      localStorage.setItem('user', JSON.stringify(userData));
-      localStorage.setItem('token', token);
-
-      setUser(userData);
-      return userData;
+      if (response.data.user && response.data.token) {
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        localStorage.setItem('token', response.data.token);
+        setUser(response.data.user);
+      }
+      return response.data;
     } catch (error) {
-      console.error(
-        'Login failed:',
-        JSON.stringify(error.response?.data, null, 2) || error.message
-      );
+      console.error('Login error:', error.response?.data || error.message);
       throw error;
     }
   };
 
-  // Logout function to clear user data.
+  /**
+   * Logs out the current user.
+   * Clears local storage and resets the user state.
+   */
   const logout = async () => {
-    try {
-      const token = localStorage.getItem('token');
-
-      if (token) {
-        await axios.post(`${API_BASE_URL}/logout`, null, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-      }
-    } catch (error) {
-      console.error(
-        'Logout failed:',
-        JSON.stringify(error.response?.data, null, 2) || error.message
-      );
-    } finally {
-      setUser(null);
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
-    }
+    // Optionally, call a backend logout endpoint here if needed.
+    localStorage.removeItem('user');
+    localStorage.removeItem('token');
+    setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, register, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

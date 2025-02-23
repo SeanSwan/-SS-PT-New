@@ -1,5 +1,5 @@
 import { createGlobalStyle } from 'styled-components';
-
+import "react-big-calendar/lib/css/react-big-calendar.css";
 /*
   GlobalStyle
   -----------

@@ -5,25 +5,20 @@ import styled from "styled-components";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 
-/* 
-  ModalOverlay:
-  A full-screen fixed container with a solid overlay.
-*/
-const ModalOverlay = styled.div`
+// FullPageContainer covers the entire viewport with a cool gradient background.
+const FullPageContainer = styled.div`
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
+  background: linear-gradient(45deg, rgba(0,255,255,0.5), rgba(120,81,169,0.5));
   z-index: 1500;
   overflow: auto;
-  background: rgba(0, 0, 0, 0.9);
 `;
 
-/* 
-  VideoBackground:
-  A full-screen background video with reduced opacity.
-*/
+// VideoBackground provides a dynamic visual effect behind the login modal.
+// Replace the video source with your desired background video.
 const VideoBackground = styled.video`
   position: absolute;
   top: 0;
@@ -32,32 +27,25 @@ const VideoBackground = styled.video`
   height: 100%;
   object-fit: cover;
   z-index: 0;
-  opacity: 0.3;
+  opacity: 0.6;
 `;
 
-/* 
-  ModalContent:
-  A centered panel for the login form that allows vertical scrolling if needed.
-*/
+// ModalContent centers the login form and provides a modal-like appearance.
 const ModalContent = styled(motion.div)`
   position: relative;
   z-index: 1;
   margin: 50px auto;
   width: 90%;
   max-width: 400px;
-  max-height: 90vh;              /* Ensures the modal doesn't exceed 90% of viewport height */
-  overflow-y: auto;              /* Enables vertical scrolling */
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on mobile devices */
+  max-height: 90vh;  /* Ensures the modal doesn't exceed 90% of viewport height */
+  overflow-y: auto;  /* Enables vertical scrolling if content is too tall */
   background: #222;
   padding: 30px;
   border-radius: 10px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
 `;
 
-/* 
-  CloseButton:
-  A circular button to close the modal.
-*/
+// CloseButton allows dismissing the modal and returning to the underlying page.
 const CloseButton = styled.button`
   position: absolute;
   top: 15px;
@@ -71,17 +59,13 @@ const CloseButton = styled.button`
   color: var(--neon-blue);
   cursor: pointer;
   transition: background 0.3s ease;
-
   &:hover {
     background: var(--neon-blue);
     color: #000;
   }
 `;
 
-/* 
-  InputField:
-  Styled input field for the form.
-*/
+// InputField styles the text input fields uniformly.
 const InputField = styled.input`
   width: 100%;
   padding: 10px;
@@ -90,17 +74,13 @@ const InputField = styled.input`
   border-radius: 5px;
   background: #111;
   color: #fff;
-
   &:focus {
     outline: none;
     border-color: var(--neon-blue);
   }
 `;
 
-/* 
-  Button:
-  Styled button for the login action.
-*/
+// Button styles the submit button with a modern look.
 const Button = styled.button`
   width: 100%;
   padding: 10px;
@@ -111,74 +91,69 @@ const Button = styled.button`
   font-size: 1rem;
   cursor: pointer;
   transition: background 0.3s ease;
-
   &:hover {
     background: var(--royal-purple);
   }
 `;
 
-/* 
-  ForgotPasswordLink:
-  A text link that allows users to navigate to the forgot password flow.
-*/
-const ForgotPasswordLink = styled.div`
-  text-align: right;
-  margin-bottom: 15px;
-  font-size: 0.9rem;
-  color: var(--neon-blue);
-  cursor: pointer;
-
-  &:hover {
-    color: var(--royal-purple);
-  }
-`;
-
-/* 
-  LoginModal Component:
-  Implements the login modal with a forgot password option.
-*/
+/**
+ * LoginModal Component
+ *
+ * This full-page login modal is used by both clients and administrators.
+ * It features:
+ * - A full viewport gradient background with a video layer.
+ * - A dismissible modal form (click outside or use the X button).
+ * - On form submission, it calls the AuthContext's login method.
+ * - After login, it checks the user's role and redirects:
+ *   - Admin users → /admin-dashboard
+ *   - Client users → /client-dashboard
+ *
+ * Security Note: In production, ensure the backend properly hashes passwords,
+ * generates and validates JWTs, and uses HTTPS.
+ */
 const LoginModal = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [credentials, setCredentials] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
 
-  // Close the modal by navigating back
+  // handleClose dismisses the modal and returns to the previous page.
   const handleClose = () => {
     navigate(-1);
   };
 
-  // Update form fields as inputs change
+  // handleChange updates the login form state.
   const handleChange = (e) => {
     setCredentials((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // Handle form submission for login
+  // handleSubmit logs in the user, then checks their role to redirect accordingly.
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     try {
-      await login(credentials.username, credentials.password);
-      navigate("/dashboard");
+      const response = await login(credentials.username, credentials.password);
+      if (response.user) {
+        if (response.user.role === "admin") {
+          navigate("/admin-dashboard");
+        } else {
+          navigate("/client-dashboard");
+        }
+      }
     } catch (err) {
       setError("Invalid username or password");
     }
   };
 
-  // Handle navigation to the forgot password page/modal
-  const handleForgotPassword = () => {
-    navigate("/forgot-password");
-  };
-
   return (
-    <ModalOverlay onClick={handleClose}>
-      {/* Video background */}
+    <FullPageContainer onClick={handleClose}>
+      {/* Video background for dynamic visuals */}
       <VideoBackground autoPlay loop muted>
-        <source src="/assets/movie.mp4" type="video/mp4" />
+        <source src="/assets/power-background.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </VideoBackground>
 
-      {/* Login Modal Content */}
+      {/* ModalContent holds the login form */}
       <ModalContent
         onClick={(e) => e.stopPropagation()}
         initial={{ opacity: 0, scale: 0.9 }}
@@ -205,13 +180,10 @@ const LoginModal = () => {
             onChange={handleChange}
             required
           />
-          <ForgotPasswordLink onClick={handleForgotPassword}>
-            Forgot Password?
-          </ForgotPasswordLink>
           <Button type="submit">Login</Button>
         </form>
       </ModalContent>
-    </ModalOverlay>
+    </FullPageContainer>
   );
 };
 

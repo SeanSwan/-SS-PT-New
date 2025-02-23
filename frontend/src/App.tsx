@@ -1,4 +1,9 @@
-// src/App.tsx
+/**
+ * App.tsx
+ * Main entry point for the React application.
+ * Wraps the application in various context providers, error boundaries, and routing.
+ */
+
 import React from "react";
 import {
   BrowserRouter as Router,
@@ -9,7 +14,7 @@ import {
 import { Helmet, HelmetProvider } from "react-helmet-async";
 import "./App.scss";
 
-// Context Providers
+// Context Providers for authentication and toast notifications
 import { AuthProvider } from "./context/AuthContext";
 import { ToastProvider } from "@/context/ToastContext";
 
@@ -18,19 +23,17 @@ import Header from "./components/Header/header";
 import Footer from "./components/Footer/Footer";
 import ErrorBoundary from "./components/ErrorBoundary/error-boundry.component";
 
-// Pages (non‑modal routes)
+// Page Components (non‑modal routes)
 import HomePage from "./pages/HomePage.component";
 import About from "./pages/about/About";
 import ContactPage from "./pages/contactpage/ContactPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage.component";
-import Dashboard from "./pages/DashboardPage.component";
-import SchedulePage from "./pages/SchedulePage.component";
 
 // Feature Components
 import ObjectDetection from "./components/ObjectDetection/ObjectDetection.component";
 import ClientDashboard from "./components/ClientDashboard/ClientDashboard";
 import AdminDashboard from "./components/AdminDashboard/AdminDashboard";
-import ForgotPasswordModal from "./components/AdminDashboard/AdminDashboard";
+import ForgotPasswordModal from "./components/AdminDashboard/AdminDashboard"; // Consider refactoring if duplicate
 
 // Modal Components (full‑screen login and signup)
 import LoginModal from "./pages/LoginModal.component";
@@ -39,9 +42,11 @@ import SignupModal from "./pages/SignupModal.component";
 // StoreFront Component
 import StoreFront from "./pages/store/StoreFront.component";
 
-// --------------------------------------------------------
-// AppRoutes: Uses the background location technique for modal routes.
-const AppRoutes = () => {
+/**
+ * AppRoutes Component
+ * Implements the background location technique for modal routes.
+ */
+const AppRoutes: React.FC = () => {
   const location = useLocation();
   const state = location.state as { backgroundLocation?: Location };
 
@@ -55,18 +60,14 @@ const AppRoutes = () => {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
         <Route path="/object-detection" element={<ObjectDetection />} />
-        <Route path="/schedule" element={<SchedulePage />} />
-        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/client-dashboard" element={<ClientDashboard />} />
         <Route path="/forgot-password" element={<ForgotPasswordModal />} />
-
-        {/* Admin Dashboard Route */}
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
-        {/* Catch-all */}
+        {/* Catch-all route */}
         <Route path="*" element={<UnauthorizedPage />} />
       </Routes>
 
-      {/* Modal Routes – rendered on top of the background */}
+      {/* Modal Routes rendered on top of the background */}
       {state?.backgroundLocation && (
         <Routes>
           <Route path="/login" element={<LoginModal />} />
@@ -77,6 +78,9 @@ const AppRoutes = () => {
   );
 };
 
+/**
+ * Main App Component
+ */
 function App() {
   return (
     <HelmetProvider>
