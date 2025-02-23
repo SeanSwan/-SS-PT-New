@@ -5,7 +5,8 @@ import styled from "styled-components";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 
-// FullPageContainer covers the entire viewport with a cool gradient background.
+// ------------------- Styled Components -------------------
+
 const FullPageContainer = styled.div`
   position: fixed;
   top: 0;
@@ -17,8 +18,6 @@ const FullPageContainer = styled.div`
   overflow: auto;
 `;
 
-// VideoBackground provides a dynamic visual effect behind the login modal.
-// Replace the video source with your desired background video.
 const VideoBackground = styled.video`
   position: absolute;
   top: 0;
@@ -30,22 +29,20 @@ const VideoBackground = styled.video`
   opacity: 0.6;
 `;
 
-// ModalContent centers the login form and provides a modal-like appearance.
 const ModalContent = styled(motion.div)`
   position: relative;
   z-index: 1;
   margin: 50px auto;
   width: 90%;
   max-width: 400px;
-  max-height: 90vh;  /* Ensures the modal doesn't exceed 90% of viewport height */
-  overflow-y: auto;  /* Enables vertical scrolling if content is too tall */
+  max-height: 90vh;
+  overflow-y: auto;
   background: #222;
   padding: 30px;
   border-radius: 10px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
 `;
 
-// CloseButton allows dismissing the modal and returning to the underlying page.
 const CloseButton = styled.button`
   position: absolute;
   top: 15px;
@@ -65,7 +62,6 @@ const CloseButton = styled.button`
   }
 `;
 
-// InputField styles the text input fields uniformly.
 const InputField = styled.input`
   width: 100%;
   padding: 10px;
@@ -80,7 +76,6 @@ const InputField = styled.input`
   }
 `;
 
-// Button styles the submit button with a modern look.
 const Button = styled.button`
   width: 100%;
   padding: 10px;
@@ -96,20 +91,49 @@ const Button = styled.button`
   }
 `;
 
+const ForgotPasswordLink = styled.a`
+  display: block;
+  margin-top: 10px;
+  text-align: right;
+  color: var(--neon-blue);
+  text-decoration: underline;
+  cursor: pointer;
+`;
+
+const SocialMediaContainer = styled.div`
+  margin-top: 20px;
+  text-align: center;
+`;
+
+const SocialButton = styled.button`
+  margin: 0 10px;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  background: var(--royal-purple);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  &:hover {
+    background: var(--neon-blue);
+  }
+`;
+
+// ------------------- LoginModal Component -------------------
+
 /**
  * LoginModal Component
  *
  * This full-page login modal is used by both clients and administrators.
- * It features:
- * - A full viewport gradient background with a video layer.
- * - A dismissible modal form (click outside or use the X button).
- * - On form submission, it calls the AuthContext's login method.
- * - After login, it checks the user's role and redirects:
- *   - Admin users → /admin-dashboard
- *   - Client users → /client-dashboard
+ * When the user submits their credentials, the login logic is entirely handled
+ * by the backend. The backend will verify the password (including for admin users)
+ * using secure, server-side storage (e.g., environment variables or database).
  *
- * Security Note: In production, ensure the backend properly hashes passwords,
- * generates and validates JWTs, and uses HTTPS.
+ * Features:
+ * - Full viewport gradient background with video.
+ * - A dismissible modal form.
+ * - "Forgot Password?" link with placeholder logic.
+ * - Social media login buttons with placeholder logic.
  */
 const LoginModal = () => {
   const navigate = useNavigate();
@@ -117,17 +141,30 @@ const LoginModal = () => {
   const [credentials, setCredentials] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
 
-  // handleClose dismisses the modal and returns to the previous page.
+  // Dismiss the modal and return to the previous page.
   const handleClose = () => {
     navigate(-1);
   };
 
-  // handleChange updates the login form state.
+  // Update the form state.
   const handleChange = (e) => {
     setCredentials((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // handleSubmit logs in the user, then checks their role to redirect accordingly.
+  // Placeholder for forgot password functionality.
+  const handleForgotPassword = (e) => {
+    e.preventDefault();
+    alert("Forgot password functionality not implemented yet.");
+  };
+
+  // Placeholder for social media login functionality.
+  const handleSocialLogin = (provider) => (e) => {
+    e.preventDefault();
+    alert(`Social login with ${provider} not implemented yet.`);
+  };
+
+  // Handle form submission for login.
+  // Admin password verification is now handled on the backend.
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -147,13 +184,11 @@ const LoginModal = () => {
 
   return (
     <FullPageContainer onClick={handleClose}>
-      {/* Video background for dynamic visuals */}
       <VideoBackground autoPlay loop muted>
         <source src="/assets/power-background.mp4" type="video/mp4" />
         Your browser does not support the video tag.
       </VideoBackground>
 
-      {/* ModalContent holds the login form */}
       <ModalContent
         onClick={(e) => e.stopPropagation()}
         initial={{ opacity: 0, scale: 0.9 }}
@@ -182,6 +217,21 @@ const LoginModal = () => {
           />
           <Button type="submit">Login</Button>
         </form>
+        <ForgotPasswordLink onClick={handleForgotPassword}>
+          Forgot Password?
+        </ForgotPasswordLink>
+        <SocialMediaContainer>
+          <p>Or login with:</p>
+          <SocialButton onClick={handleSocialLogin("Facebook")}>
+            Facebook
+          </SocialButton>
+          <SocialButton onClick={handleSocialLogin("Google")}>
+            Google
+          </SocialButton>
+          <SocialButton onClick={handleSocialLogin("Twitter")}>
+            Twitter
+          </SocialButton>
+        </SocialMediaContainer>
       </ModalContent>
     </FullPageContainer>
   );
