@@ -1,4 +1,3 @@
-// backend/models/Session.js
 import { DataTypes, Model } from 'sequelize';
 import sequelize from './../database.js';
 import User from './User.js';
@@ -12,21 +11,33 @@ Session.init(
       primaryKey: true,
       autoIncrement: true,
     },
-    // Date/time when the session is scheduled.
+    // Date/time when the session is scheduled to start.
     sessionDate: {
       type: DataTypes.DATE,
       allowNull: false,
     },
-    // Status can be 'scheduled', 'completed', or 'cancelled'.
-    status: {
-      type: DataTypes.ENUM('scheduled', 'completed', 'cancelled'),
-      defaultValue: 'scheduled',
-      allowNull: false,
+    // Duration in minutes (optional).
+    duration: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 60,
     },
-    // Additional details (e.g., notes or type of session)
+    // Status includes: available, requested, scheduled, completed, cancelled.
+    status: {
+      type: DataTypes.ENUM('available', 'requested', 'scheduled', 'completed', 'cancelled'),
+      allowNull: false,
+      defaultValue: 'available',
+    },
+    // Additional session details (e.g., notes)
     notes: {
       type: DataTypes.TEXT,
       allowNull: true,
+    },
+    // Flag to indicate whether the session has been confirmed by admin.
+    confirmed: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
     },
   },
   {
@@ -37,7 +48,7 @@ Session.init(
   }
 );
 
-// Associate sessions with users.
+// Associations: A User can have many Sessions; a Session belongs to a User.
 User.hasMany(Session, { foreignKey: 'userId', as: 'sessions' });
 Session.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 

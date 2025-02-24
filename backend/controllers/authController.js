@@ -84,7 +84,6 @@ export const register = async (req, res) => {
       token,
     });
   } catch (error) {
-    // Detailed logging for debugging purposes
     console.error('Error in register:', error.message);
     console.error(error.stack);
     if (error.errors && Array.isArray(error.errors)) {
@@ -98,11 +97,13 @@ export const register = async (req, res) => {
  * Login Controller
  * - Authenticates a user based on provided credentials.
  * - Uses the model's checkPassword method to compare the input with the hashed password.
+ * - If an adminAccessCode is provided and it matches the environment variable,
+ *   upgrades the user role to "admin" and saves the change.
  * - Returns a JWT token along with sanitized user data.
  */
 export const login = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password, adminAccessCode } = req.body;
 
     // Find the user by username
     const user = await User.findOne({ where: { username } });
@@ -114,6 +115,15 @@ export const login = async (req, res) => {
     const isMatch = await user.checkPassword(password);
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials.' });
+    }
+
+    // If an adminAccessCode is provided and it matches, upgrade the user's role
+    if (adminAccessCode && adminAccessCode === process.env.ADMIN_ACCESS_CODE) {
+      // Only update if the user isn't already an admin
+      if (user.role !== 'admin') {
+        user.role = 'admin';
+        await user.save();
+      }
     }
 
     // Generate a JWT token with a default expiration of 1 hour (or as specified)
@@ -164,3 +174,4 @@ export const validateToken = async (req, res) => {
     res.status(401).json({ message: 'Invalid token.' });
   }
 };
+

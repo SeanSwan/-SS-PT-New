@@ -1,27 +1,52 @@
-import { createGlobalStyle } from 'styled-components';
+// src/styles/GlobalStyle.ts
+import { createGlobalStyle } from "styled-components";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-/*
-  GlobalStyle
-  -----------
-  This component sets up global CSS styles and variables for the entire app.
-  It defines our brand color variables and resets default browser styles.
-*/
+
+/**
+ * GlobalStyle
+ * -----------
+ * Global CSS resets and variable definitions using your original color scheme:
+ * - Neon Blue, Purple, Blue, Silver, Grey, and White.
+ */
 const GlobalStyle = createGlobalStyle`
   :root {
-    --neon-blue: #00FFFF;
-    --royal-purple: #7851A9;
+    --primary-color: #00FFFF;    /* Neon Blue */
+    --secondary-color: #7851A9;  /* Purple */
+    --accent-blue: #145dbf;      /* Blue */
     --grey: #808080;
     --silver: #C0C0C0;
-    --blue: #145dbf; /* Slightly darker than Facebook blue */
+    --background: #FFFFFF;       /* White background for main content */
+    --sidebar-bg: #7851A9;       /* Using Purple for the sidebar background */
+    --text: #333333;            /* Dark text for readability */
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
   }
 
   body {
-    margin: 0;
-    padding: 0;
     font-family: 'Roboto', sans-serif;
-    color: white;
+    background: var(--background);
+    color: var(--text);
     overflow-x: hidden;
-    background: #000;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  /* Optional scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--background);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--grey);
   }
 `;
 

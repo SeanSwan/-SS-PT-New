@@ -1,4 +1,3 @@
-// backend/models/StorefrontItem.js
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.js';
 
@@ -6,21 +5,9 @@ import sequelize from '../database.js';
  * StorefrontItem Model
  * 
  * This model represents a training package offered on the storefront.
- * It supports two types of packages:
+ * Supports two types of packages:
  *  - 'fixed': One-time purchase packages with a fixed number of sessions.
  *  - 'monthly': Recurring packages with details such as months and sessions per week.
- *
- * Fields:
- *  - id: Primary key.
- *  - packageType: ENUM('fixed', 'monthly') with a default of 'fixed'.
- *  - name: The name of the package.
- *  - description: A detailed description.
- *  - sessions: (optional) For fixed packages.
- *  - pricePerSession: The cost per session.
- *  - months: (optional) For monthly packages.
- *  - sessionsPerWeek: (optional) For monthly packages.
- *  - totalSessions: (optional) Pre-calculated total sessions.
- *  - totalCost: (optional) Pre-calculated total cost.
  */
 class StorefrontItem extends Model {}
 

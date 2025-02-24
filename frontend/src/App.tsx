@@ -22,6 +22,7 @@ import { ToastProvider } from "@/context/ToastContext";
 import Header from "./components/Header/header";
 import Footer from "./components/Footer/Footer";
 import ErrorBoundary from "./components/ErrorBoundary/error-boundry.component";
+import Schedule from "./components/Schedule/schedule";
 
 // Page Components (non‑modal routes)
 import HomePage from "./pages/HomePage.component";
@@ -59,10 +60,10 @@ const AppRoutes: React.FC = () => {
         <Route path="/store" element={<StoreFront />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
-        <Route path="/object-detection" element={<ObjectDetection />} />
         <Route path="/client-dashboard" element={<ClientDashboard />} />
         <Route path="/forgot-password" element={<ForgotPasswordModal />} />
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
+        <Route path="/schedule" element={<Schedule />} />
         {/* Catch-all route */}
         <Route path="*" element={<UnauthorizedPage />} />
       </Routes>

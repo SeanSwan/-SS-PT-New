@@ -1,4 +1,3 @@
-// backend/models/User.js
 import { DataTypes, Model } from 'sequelize';
 import sequelize from './../database.js';
 import bcrypt from 'bcryptjs';
@@ -14,7 +13,7 @@ class User extends Model {
    * @returns {Promise<boolean>} True if the password matches.
    */
   async checkPassword(password) {
-    return await bcrypt.compare(password, this.password);
+    return bcrypt.compare(password, this.password);
   }
 }
 
@@ -38,7 +37,9 @@ User.init(
     email: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true, // Must be unique
+      unique: {
+        msg: 'Email address already in use.',
+      },
       validate: {
         isEmail: { msg: 'Must be a valid email address.' },
       },
@@ -46,7 +47,9 @@ User.init(
     username: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true, // Must be unique
+      unique: {
+        msg: 'Username already in use.',
+      },
     },
     password: {
       type: DataTypes.STRING,
@@ -89,9 +92,17 @@ User.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    // Role field to distinguish between client and admin
+    // New field: photo URL (optional)
+    photo: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      // Optionally, you can set a defaultValue here, e.g.:
+      // defaultValue: 'https://example.com/default-avatar.png',
+    },
+    // Role field distinguishes between client and admin
     role: {
       type: DataTypes.ENUM('user', 'admin'),
+      allowNull: false,
       defaultValue: 'user',
     },
   },
@@ -104,7 +115,7 @@ User.init(
 );
 
 // Hook to hash the password before creating a new user.
-User.beforeCreate(async (user, options) => {
+User.beforeCreate(async (user) => {
   try {
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(user.password, salt);
@@ -114,8 +125,8 @@ User.beforeCreate(async (user, options) => {
   }
 });
 
-// Hook to hash the password before updating the user if the password has changed.
-User.beforeUpdate(async (user, options) => {
+// Hook to hash the password before updating if it has changed.
+User.beforeUpdate(async (user) => {
   try {
     if (user.changed('password')) {
       const salt = await bcrypt.genSalt(10);

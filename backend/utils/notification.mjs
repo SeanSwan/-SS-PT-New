@@ -21,7 +21,7 @@ if (
   process.exit(1);
 }
 
-// Initialize SendGrid
+// Initialize SendGrid with the API key
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 // Validate Twilio Account SID and Auth Token
@@ -54,7 +54,7 @@ const twilioClient = twilio(
 export const sendEmailNotification = async (toEmail, newDate, sessionDeducted) => {
   const msg = {
     to: toEmail,
-    from: process.env.SENDGRID_FROM_EMAIL,
+    from: process.env.SENDGRID_FROM_EMAIL, // Must be a verified sender
     subject: "Session Rescheduled",
     text: `Your session has been rescheduled to ${newDate}. ${
       sessionDeducted
@@ -65,7 +65,7 @@ export const sendEmailNotification = async (toEmail, newDate, sessionDeducted) =
 
   try {
     await sgMail.send(msg);
-    console.log("Email sent successfully.");
+    console.log("Email sent successfully to", toEmail);
   } catch (error) {
     console.error("Error sending email:", error);
   }
@@ -89,7 +89,7 @@ export const sendSMSNotification = async (toPhone, newDate, sessionDeducted) => 
       from: process.env.TWILIO_PHONE_NUMBER,
       to: toPhone,
     });
-    console.log("SMS sent successfully.");
+    console.log("SMS sent successfully to", toPhone);
   } catch (error) {
     console.error("Error sending SMS:", error);
   }

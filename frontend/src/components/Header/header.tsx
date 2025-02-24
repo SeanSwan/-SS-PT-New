@@ -13,6 +13,7 @@ import { useAuth } from "../../context/AuthContext";
 import ShoppingCart from "../ShoppingCart/ShoppingCart";
 
 // ===================== Styled Components =====================
+
 const HeaderContainer = styled.header`
   position: fixed;
   top: 0;
@@ -103,6 +104,20 @@ const MobileNavLink = styled(Link)`
   margin: 10px 0;
   color: #fff;
   text-decoration: none;
+  font-size: 1rem;
+`;
+
+const MobileLogoutButton = styled.button`
+  margin: 10px 0;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--neon-blue);
+  }
 `;
 
 const CartButton = styled.button`
@@ -138,6 +153,100 @@ const Header: React.FC = () => {
     navigate("/");
   };
 
+  /**
+   * Renders the desktop navigation links.
+   */
+  const renderDesktopLinks = () => {
+    if (user) {
+      return (
+        <>
+          <StyledNavLink to="/store">Training &amp; Store</StyledNavLink>
+          <StyledNavLink to="/client-dashboard">Client Dashboard</StyledNavLink>
+
+          {/* Visible to all logged-in users */}
+          <StyledNavLink to="/schedule">Schedule</StyledNavLink>
+
+          {/* Admin-only link */}
+          {user.role === "admin" && (
+            <StyledNavLink to="/admin-dashboard">Admin Dashboard</StyledNavLink>
+          )}
+
+          <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
+        </>
+      );
+    } else {
+      return (
+        <>
+          <StyledNavLink to="/login" state={{ backgroundLocation: location }}>
+            Login
+          </StyledNavLink>
+          <StyledNavLink to="/signup" state={{ backgroundLocation: location }}>
+            Sign Up
+          </StyledNavLink>
+        </>
+      );
+    }
+  };
+
+  /**
+   * Renders the mobile navigation links (mirroring the desktop).
+   */
+  const renderMobileLinks = () => {
+    if (user) {
+      return (
+        <>
+          <MobileNavLink to="/store" onClick={() => setMobileMenuOpen(false)}>
+            Training &amp; Store
+          </MobileNavLink>
+          <MobileNavLink
+            to="/client-dashboard"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Client Dashboard
+          </MobileNavLink>
+          <MobileNavLink to="/schedule" onClick={() => setMobileMenuOpen(false)}>
+            Schedule
+          </MobileNavLink>
+          {user.role === "admin" && (
+            <MobileNavLink
+              to="/admin-dashboard"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Admin Dashboard
+            </MobileNavLink>
+          )}
+          <MobileLogoutButton
+            onClick={() => {
+              setMobileMenuOpen(false);
+              handleLogout();
+            }}
+          >
+            Logout
+          </MobileLogoutButton>
+        </>
+      );
+    } else {
+      return (
+        <>
+          <MobileNavLink
+            to="/login"
+            state={{ backgroundLocation: location }}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Login
+          </MobileNavLink>
+          <MobileNavLink
+            to="/signup"
+            state={{ backgroundLocation: location }}
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Sign Up
+          </MobileNavLink>
+        </>
+      );
+    }
+  };
+
   return (
     <>
       <HeaderContainer>
@@ -149,44 +258,12 @@ const Header: React.FC = () => {
         {/* Desktop Navigation */}
         <Nav>
           <StyledNavLink to="/">Home</StyledNavLink>
-          {user && <StyledNavLink to="/store">Training & Store</StyledNavLink>}
-          {user ? (
-            <>
-              <StyledNavLink to="/client-dashboard">
-                Client Dashboard
-              </StyledNavLink>
-              {user.role === "admin" && (
-                <StyledNavLink to="/admin-dashboard">
-                  Admin Dashboard
-                </StyledNavLink>
-              )}
-              <StyledNavLink to="/schedule">Schedule</StyledNavLink>
-              <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
-            </>
-          ) : (
-            <>
-              <StyledNavLink
-                to="/login"
-                state={{ backgroundLocation: location }}
-              >
-                Login
-              </StyledNavLink>
-              <StyledNavLink
-                to="/signup"
-                state={{ backgroundLocation: location }}
-              >
-                Sign Up
-              </StyledNavLink>
-            </>
-          )}
+          {renderDesktopLinks()}
           <StyledNavLink to="/contact">Contact / Support</StyledNavLink>
           <StyledNavLink to="/about">About Us</StyledNavLink>
 
           {/* Shopping Cart Button */}
-          <CartButton
-            onClick={() => setCartOpen(true)}
-            aria-label="Open shopping cart"
-          >
+          <CartButton onClick={() => setCartOpen(true)} aria-label="Open shopping cart">
             🛒
           </CartButton>
         </Nav>
@@ -195,37 +272,27 @@ const Header: React.FC = () => {
         <MobileMenuButton onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
           ☰
         </MobileMenuButton>
-
-        {/* Mobile Dropdown Menu */}
-        {mobileMenuOpen && (
-          <MobileMenu
-            initial={{ x: 300 }}
-            animate={{ x: 0 }}
-            exit={{ x: 300 }}
-          >
-            <MobileNavLink
-              to="/"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Home
-            </MobileNavLink>
-            {user && (
-              <MobileNavLink
-                to="/schedule"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Schedule
-              </MobileNavLink>
-            )}
-            <MobileNavLink
-              to="/contact"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Contact / Support
-            </MobileNavLink>
-          </MobileMenu>
-        )}
       </HeaderContainer>
+
+      {/* Mobile Dropdown Menu */}
+      {mobileMenuOpen && (
+        <MobileMenu
+          initial={{ x: 300 }}
+          animate={{ x: 0 }}
+          exit={{ x: 300 }}
+        >
+          <MobileNavLink to="/" onClick={() => setMobileMenuOpen(false)}>
+            Home
+          </MobileNavLink>
+          {renderMobileLinks()}
+          <MobileNavLink to="/contact" onClick={() => setMobileMenuOpen(false)}>
+            Contact / Support
+          </MobileNavLink>
+          <MobileNavLink to="/about" onClick={() => setMobileMenuOpen(false)}>
+            About Us
+          </MobileNavLink>
+        </MobileMenu>
+      )}
 
       {/* Render Shopping Cart Modal when open */}
       {cartOpen && <ShoppingCart onClose={() => setCartOpen(false)} />}

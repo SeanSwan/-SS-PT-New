@@ -1,26 +1,21 @@
 'use strict';
 
-/**
- * Migration: Create StorefrontItems Table
- *
- * This table holds packages offered in the storefront.
- * It supports two types:
- *  - 'fixed': One-time purchase packages.
- *  - 'monthly': Recurring packages with details like months and sessions per week.
- *
- * This migration uses CommonJS syntax, so it works even with "type": "module" in package.json.
- */
 module.exports = {
-  up: async (queryInterface, Sequelize) => {
+  async up(queryInterface, Sequelize) {
+    // Create ENUM type for packageType
+    await queryInterface.sequelize.query(
+      `CREATE TYPE "enum_storefront_items_packageType" AS ENUM ('fixed', 'monthly');`
+    );
+
     await queryInterface.createTable('storefront_items', {
       id: {
-        allowNull: false,
-        autoIncrement: true,
-        primaryKey: true,
         type: Sequelize.INTEGER,
+        primaryKey: true,
+        autoIncrement: true,
+        allowNull: false,
       },
       packageType: {
-        type: Sequelize.ENUM('fixed', 'monthly'),
+        type: 'enum_storefront_items_packageType',
         allowNull: false,
         defaultValue: 'fixed',
       },
@@ -33,7 +28,6 @@ module.exports = {
         allowNull: true,
       },
       sessions: {
-        // For fixed packages only.
         type: Sequelize.INTEGER,
         allowNull: true,
       },
@@ -42,7 +36,6 @@ module.exports = {
         allowNull: false,
       },
       months: {
-        // For monthly packages only.
         type: Sequelize.INTEGER,
         allowNull: true,
       },
@@ -61,17 +54,20 @@ module.exports = {
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
       },
       updatedAt: {
         allowNull: false,
         type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
       },
     });
   },
 
-  down: async (queryInterface, Sequelize) => {
+  async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('storefront_items');
-    // Clean up the ENUM type if necessary.
-    await queryInterface.sequelize.query('DROP TYPE IF EXISTS "enum_storefront_items_packageType";');
-  }
+    await queryInterface.sequelize.query(
+      'DROP TYPE "enum_storefront_items_packageType";'
+    );
+  },
 };

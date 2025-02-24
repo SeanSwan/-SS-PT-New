@@ -4,7 +4,7 @@
  * Uses a unified calendar component (react-big-calendar based) for scheduling.
  */
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import styled, { ThemeProvider } from "styled-components";
 import { AnimatePresence, motion } from "framer-motion";
 import Header from "../Header/header";
@@ -12,17 +12,18 @@ import { useAuth } from "../../context/AuthContext";
 import { Navigate } from "react-router-dom";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import CalendarComponent from "../CalendarComponent/CalendarComponent";
+import axios from "axios";
 
-// -----------------------------------------------------------------
-// Define theme for styling components
-// -----------------------------------------------------------------
+// Adjust this to your actual admin routes base
+const ADMIN_BASE_URL = import.meta.env.VITE_ADMIN_API_URL || "http://localhost:5000/api/admin";
+
 const theme = {
   colors: {
     neonBlue: "#00FFFF",
     royalPurple: "#6A0DAD",
     grey: "#808080",
     silver: "#C0C0C0",
-    background: "#1A1A1A",
+    background: "#1A1A1A",                             
     lightBg: "#FFFFFF",
     text: "#333333",
   },
@@ -31,59 +32,6 @@ const theme = {
   },
 };
 
-// -----------------------------------------------------------------
-// Interfaces for mock data (for type safety)
-// -----------------------------------------------------------------
-interface Client {
-  id: number;
-  name: string;
-  progress: number;
-}
-
-interface Message {
-  id: number;
-  sender: string;
-  text: string;
-}
-
-interface SessionPrice {
-  gold: number;
-  platinum: number;
-  rhodium: number;
-}
-
-interface AdminMockData {
-  clientList: Client[];
-  messages: Message[];
-  sessionPrices: SessionPrice;
-}
-
-// -----------------------------------------------------------------
-// Mock Data for Admin Dashboard (Replace with real API data)
-// -----------------------------------------------------------------
-const adminMockData: AdminMockData = {
-  clientList: [
-    { id: 1, name: "John Doe", progress: 75 },
-    { id: 2, name: "Jane Smith", progress: 60 },
-    { id: 3, name: "Alice Johnson", progress: 85 },
-  ],
-  messages: [
-    {
-      id: 1,
-      sender: "Admin",
-      text: "Remember to update your progress weekly.",
-    },
-  ],
-  sessionPrices: {
-    gold: 175,
-    platinum: 165,
-    rhodium: 150,
-  },
-};
-
-// -----------------------------------------------------------------
-// Styled Components for Layout and Reusable Elements
-// -----------------------------------------------------------------
 const DashboardContainer = styled.div`
   display: flex;
   background-color: ${({ theme }) => theme.colors.background};
@@ -157,25 +105,62 @@ const PrimaryButton = styled.button`
   }
 `;
 
-/**
- * AdminDashboard Component
- * Renders the admin dashboard with multiple sections including client management,
- * messaging, scheduling, and session price management.
- */
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
+  const [activeSection, setActiveSection] = useState("clients");
+  const [clientList, setClientList] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [prices, setPrices] = useState({
+    gold: 175,
+    platinum: 165,
+    rhodium: 150,
+  });
+
+  // Only allow access for admin users
   if (!user || user.role !== "admin") {
     return <Navigate to="/unauthorized" />;
   }
 
-  // State to control active dashboard section ("clients", "messages", "schedule", "prices")
-  const [activeSection, setActiveSection] = useState("clients");
+  // Fetch admin data on mount
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const headers = { Authorization: `Bearer ${token}` };
+
+    // Fetch clients
+    axios
+      .get(`${ADMIN_BASE_URL}/clients`, { headers })
+      .then((res) => setClientList(res.data))
+      .catch((err) => console.error("Error fetching clients:", err));
+
+    // Fetch messages
+    axios
+      .get(`${ADMIN_BASE_URL}/messages`, { headers })
+      .then((res) => setMessages(res.data))
+      .catch((err) => console.error("Error fetching messages:", err));
+
+    // In real scenario, you might fetch prices from the DB
+  }, []);
+
+  // Example function to update prices
+  const handleUpdatePrices = async () => {
+    const token = localStorage.getItem("token");
+    const headers = { Authorization: `Bearer ${token}` };
+    try {
+      const res = await axios.put(
+        `${ADMIN_BASE_URL}/update-prices`,
+        prices,
+        { headers }
+      );
+      alert(res.data.message);
+    } catch (err) {
+      console.error("Error updating prices:", err);
+    }
+  };
 
   return (
     <ThemeProvider theme={theme}>
       <Header />
       <DashboardContainer>
-        {/* Sidebar Navigation */}
         <SidebarContainer>
           <SidebarButton
             isActive={activeSection === "clients"}
@@ -207,7 +192,6 @@ const AdminDashboard: React.FC = () => {
           </SidebarButton>
         </SidebarContainer>
 
-        {/* Main Content Area */}
         <MainContent>
           <AnimatePresence mode="wait">
             {activeSection === "clients" && (
@@ -219,7 +203,7 @@ const AdminDashboard: React.FC = () => {
                 transition={{ duration: 0.3 }}
               >
                 <SectionTitle>Client Management</SectionTitle>
-                {adminMockData.clientList.map((client) => (
+                {clientList.map((client: any) => (
                   <motion.div
                     key={client.id}
                     style={{
@@ -265,7 +249,7 @@ const AdminDashboard: React.FC = () => {
                 transition={{ duration: 0.3 }}
               >
                 <SectionTitle>Admin Messaging</SectionTitle>
-                {adminMockData.messages.map((msg) => (
+                {messages.map((msg: any) => (
                   <motion.div
                     key={msg.id}
                     style={{
@@ -289,7 +273,6 @@ const AdminDashboard: React.FC = () => {
                     <p>{msg.text}</p>
                   </motion.div>
                 ))}
-                {/* Additional messaging form or features can be added here */}
               </motion.div>
             )}
 
@@ -302,7 +285,6 @@ const AdminDashboard: React.FC = () => {
                 transition={{ duration: 0.3 }}
               >
                 <SectionTitle>Schedule Availability</SectionTitle>
-                {/* Use the unified calendar component */}
                 <CalendarComponent />
               </motion.div>
             )}
@@ -325,22 +307,15 @@ const AdminDashboard: React.FC = () => {
                   }}
                 >
                   <p>
-                    <strong>Gold Package:</strong> $
-                    {adminMockData.sessionPrices.gold}
+                    <strong>Gold Package:</strong> ${prices.gold}
                   </p>
                   <p>
-                    <strong>Platinum Package:</strong> $
-                    {adminMockData.sessionPrices.platinum}
+                    <strong>Platinum Package:</strong> ${prices.platinum}
                   </p>
                   <p>
-                    <strong>Rhodium Package:</strong> $
-                    {adminMockData.sessionPrices.rhodium}
+                    <strong>Rhodium Package:</strong> ${prices.rhodium}
                   </p>
-                  <PrimaryButton
-                    onClick={() =>
-                      alert("Update prices functionality not implemented yet.")
-                    }
-                  >
+                  <PrimaryButton onClick={handleUpdatePrices}>
                     Update Prices
                   </PrimaryButton>
                 </div>
