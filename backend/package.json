@@ -28,6 +28,7 @@
     "react-modal": "^3.16.3",
     "sequelize": "^6.37.3",
     "socket.io": "^4.7.5",
+    "swr": "^2.3.2",
     "twilio": "^5.4.5"
   },
   "devDependencies": {
