@@ -1,15 +1,38 @@
-import React from 'react';
-import styled from 'styled-components';
-import { motion } from 'framer-motion';
-import Header from '../../components/Header/header';
-import ContactForm from './ContactForm';
-import AdditionalInfo from './AdditionalInfo';
+import React from "react";
+import styled from "styled-components";
+import { motion } from "framer-motion";
+import Header from "../../components/Header/header";
+import ContactForm from "./ContactForm";
+import AdditionalInfo from "./AdditionalInfo";
 
+// -------------- VIDEO + PURPLE OVERLAY STYLING --------------
+const VideoBackground = styled.video`
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.4; /* Slight visibility of the video */
+  z-index: -2;
+`;
+
+const PurpleOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    to bottom right,
+    rgba(75, 0, 130, 0.8),
+    rgba(0, 0, 0, 0.7)
+  );
+`;
+
+// -------------- MAIN WRAPPER --------------
 const ContactPageWrapper = styled.div`
+  position: relative;
   min-height: 100vh;
-  background: linear-gradient(to bottom right, var(--dark-bg, #000000), var(--secondary-color, #4B0082));
-  color: #FFFFFF;
-  font-family: 'Arial', sans-serif;
+  color: #ffffff;
+  font-family: "Arial", sans-serif;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -48,6 +71,18 @@ const MaintenanceMessage = styled(motion.p)`
 const ContactPage: React.FC = () => {
   return (
     <ContactPageWrapper>
+      {/* VIDEO + PURPLE OVERLAY */}
+      <VideoBackground
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="video-bg"
+        // Replace with your actual video path or URL:
+        src="/videos/contact-bg.mp4"
+      />
+      <PurpleOverlay />
+
       <Header />
       <MainContent
         initial={{ opacity: 0, y: 20 }}
@@ -66,7 +101,8 @@ const ContactPage: React.FC = () => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.5 }}
         >
-          Please fill out the form below to contact us. We will respond via email and SMS.
+          Please fill out the form below to contact us. We will respond via email
+          and SMS.
         </MaintenanceMessage>
         <ContactForm />
         <AdditionalInfo />

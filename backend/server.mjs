@@ -4,6 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import http from "http";
 import { Server } from "socket.io";
+import sequelize from "./database.js";
 
 // Existing route imports
 import authRoutes from "./routes/authRoutes.mjs";
@@ -12,11 +13,10 @@ import orientationRoutes from "./routes/orientationRoutes.mjs";
 import cartRoutes from "./routes/cartRoutes.mjs";
 import sessionRoutes from "./routes/sessionRoutes.mjs";
 import checkoutRoutes from "./routes/checkoutRoutes.mjs";
-
-// IMPORTANT: Ensure scheduleRoutes.mjs physically exists with this exact name.
 import scheduleRoutes from "./routes/scheduleRoutes.mjs";
 
-import sequelize from "./database.js";
+// NEW: Import your contactRoutes (with SendGrid + Twilio logic)
+import contactRoutes from "./routes/contactRoutes.mjs";
 
 dotenv.config();
 
@@ -50,9 +50,10 @@ app.use("/api/orientation", orientationRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/checkout", checkoutRoutes);
-
-// NEW: Add schedule routes so /api/schedule works
 app.use("/api/schedule", scheduleRoutes);
+
+// NEW: Add contact route so /api/contact works (SendGrid + Twilio from previous answer)
+app.use("/api/contact", contactRoutes);
 
 // ================== SOCKET.IO ==================
 export const io = new Server(server, {

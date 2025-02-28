@@ -5,6 +5,7 @@ import Testimonial from "./Testimonial";
 // 1️⃣ Import local images from your assets folder
 import maleBlk from "../../assets/maleblk.jpg";
 import femaleLat from "../../assets/femalelat.jpg";
+import femalewht from "../../assets/femalewht.jpg";
 import femaleoldwht from "../../assets/femaleoldwht.jpg";
 import male1 from "../../assets/male1.jpg";
 import male2 from "../../assets/male2.jpg";
@@ -39,7 +40,7 @@ const testimonials = [
   {
     name: "Emily Carter",
     gender: "female",
-    image: femaleLat, // Uncomment to use local image
+    image: femalewht, // Uncomment to use local image
     text: "Before SwanStudios, I felt stuck—mentally and physically. Their training isn’t just about lifting weights; it’s about rebuilding confidence and strength from within. The trainers genuinely care, and for the first time, I feel empowered in my own body."
   },
   {
