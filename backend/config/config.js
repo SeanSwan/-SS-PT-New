@@ -11,9 +11,9 @@ const envPath = path.resolve(process.cwd(), '.env');
 config({ path: envPath });
 
 // Debug logging: Check that the environment variables are loaded correctly.
-console.log("PG_USER:", process.env.PG_USER);
-console.log("PG_PASSWORD:", process.env.PG_PASSWORD);
-console.log("PG_DB:", process.env.PG_DB);
+// console.log("PG_USER:", process.env.PG_USER);
+// console.log("PG_PASSWORD:", process.env.PG_PASSWORD);
+// console.log("PG_DB:", process.env.PG_DB);
 
 /**
  * Sequelize Configuration Object
