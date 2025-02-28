@@ -4,7 +4,7 @@ import Header from '../components/Header/header';
 import HeroSection from '../components/HeroSection/HeroSection';
 import ParallaxSection from '../components/ParallaxSection/ParallaxSection';
 import FeaturesSection from '../components/FeaturesSection/FeaturesSection';
-import TestimonialSection from "../components/TestimonialSection/Testimonial";
+import TestimonialSection from "../components/TestimonialSection/TestimonialSection";
 
 /*
   HomePage Component
@@ -24,7 +24,7 @@ const HomePage = () => {
       <Header />
       <HeroSection />
       <ParallaxSection />
-      <TestimonialSection />
+      
       <FeaturesSection />
 
       

@@ -1,35 +1,35 @@
-import React, { useState } from 'react';
-import styled from 'styled-components';
-import { motion, Variants } from 'framer-motion';
-import { useAuth } from '../../context/AuthContext';
+import React, { useState } from "react";
+import styled from "styled-components";
+import { motion, Variants } from "framer-motion";
+import { useAuth } from "../../context/AuthContext";
 import { Velustro } from "uvcanvas";
-import HeroPageStore from './HeroPageStore';
+import HeroPageStore from "./HeroPageStore";
+import OrientationForm from "../../components/OrientationForm/orientationForm";
 
 // -----------------------------------------------------------------
-// Data & Helper Functions (unchanged)
+// Data & Helper Functions
 // -----------------------------------------------------------------
-
 const fixedPackages = [
   {
     id: 1,
     sessions: 8,
     pricePerSession: 175,
-    name: 'Gold Glimmer',
-    description: 'An introductory 8-session package to ignite your transformation.',
+    name: "Gold Glimmer",
+    description: "An introductory 8-session package to ignite your transformation.",
   },
   {
     id: 2,
     sessions: 20,
     pricePerSession: 165,
-    name: 'Platinum Pulse',
-    description: 'Elevate your performance with 20 dynamic sessions.',
+    name: "Platinum Pulse",
+    description: "Elevate your performance with 20 dynamic sessions.",
   },
   {
     id: 3,
     sessions: 50,
     pricePerSession: 150,
-    name: 'Rhodium Rise',
-    description: 'Unleash your inner champion with 50 premium sessions.',
+    name: "Rhodium Rise",
+    description: "Unleash your inner champion with 50 premium sessions.",
   },
 ];
 
@@ -48,21 +48,25 @@ const monthlyPackages = [
   { id: 12, months: 12, sessionsPerWeek: 4, pricePerSession: 135, name: 'Rhodium Reign', description: 'The ultimate value – 12 months at 4 sessions per week at an unbeatable rate.' },
 ];
 
-const calculateTotalSessions = (months: number, sessionsPerWeek: number) => months * 4 * sessionsPerWeek;
+// Only show monthly packages with 4 sessions per week
+const filteredMonthlyPackages = monthlyPackages
+  .filter((pkg) => pkg.sessionsPerWeek === 4)
+  .sort((a, b) => a.months - b.months);
+
+const calculateTotalSessions = (months: number, sessionsPerWeek: number) =>
+  months * 4 * sessionsPerWeek;
 
 // -----------------------------------------------------------------
 // Framer Motion Variants
 // -----------------------------------------------------------------
-
 const priceOverlayVariants: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1 },
 };
 
 // -----------------------------------------------------------------
-// Styled Components (unchanged from your original code)
+// Styled Components
 // -----------------------------------------------------------------
-
 const LumiflexBackground = styled(Velustro)`
   position: absolute;
   top: 0;
@@ -90,6 +94,13 @@ const BackgroundVideo = styled.video`
   opacity: 0.2;
 `;
 
+const ContentOverlay = styled.div`
+  position: relative;
+  z-index: 1;
+  padding: 2rem;
+  color: #333;
+`;
+
 const ParallaxSection = styled.div`
   height: 150px;
   background-color: #c0c0c0;
@@ -100,13 +111,6 @@ const ParallaxSection = styled.div`
   color: #333;
   font-size: 1.5rem;
   margin: 2rem 0;
-`;
-
-const ContentOverlay = styled.div`
-  position: relative;
-  z-index: 1;
-  padding: 2rem;
-  color: #333;
 `;
 
 const SectionTitle = styled.h2`
@@ -148,6 +152,24 @@ const CardContent = styled.div`
   justify-content: space-between;
 `;
 
+const PriceBox = styled.div`
+  background: #f5f5f5;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  min-height: 3rem;
+`;
+
+const PriceOverlay = styled(motion.div)`
+  display: inline-block;
+  background: transparent;
+  color: #333;
+  font-weight: bold;
+  font-size: 1rem;
+`;
+
 const CardTitle = styled.h3`
   font-size: 1.75rem;
   margin-bottom: 0.5rem;
@@ -160,26 +182,6 @@ const CardDescription = styled.p`
   margin-bottom: 1rem;
 `;
 
-const PriceContainer = styled.div`
-  position: relative;
-  text-align: center;
-  margin-bottom: 1rem;
-  min-height: 2rem;
-`;
-
-const PriceOverlay = styled(motion.div)`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  padding: 0.5rem;
-  background: #ffffff;
-  color: #333;
-  font-weight: bold;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-`;
-
 const CardButton = styled(motion.button)`
   padding: 0.75rem 1.5rem;
   background: var(--neon-blue, #00ffff);
@@ -189,28 +191,47 @@ const CardButton = styled(motion.button)`
   color: #000;
   cursor: pointer;
   transition: background 0.3s ease;
+  margin-top: 1rem;
+
   &:hover {
     background: var(--royal-purple, #7851a9);
+    color: white;
   }
 `;
 
-// OrientationForm is assumed to be defined elsewhere (you provided it earlier)
-import OrientationForm from '../../components/OrientationForm/orientationForm';
+// Orientation button styled to match
+const OrientationButton = styled(motion.button)`
+  padding: 0.75rem 1.5rem;
+  background: var(--neon-blue, #00ffff);
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  color: #000;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  margin-top: 2rem;
 
+  &:hover {
+    background: var(--royal-purple, #7851a9);
+    color: white;
+  }
+`;
 
 // -----------------------------------------------------------------
 // StoreFront Component
 // -----------------------------------------------------------------
-
 const StoreFront = () => {
   const { user } = useAuth();
   const [showOrientation, setShowOrientation] = useState(false);
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
+  // Only clients and admins can see prices
+  const canViewPrices =
+    user && (user.role === "client" || user.role === "admin");
+
   return (
     <StoreContainer>
       <LumiflexBackground />
-
       <BackgroundVideo autoPlay loop muted poster="/assets/fallback.jpg">
         <source src="/assets/movie.mp4" type="video/mp4" />
         Your browser does not support the video tag.
@@ -239,8 +260,8 @@ const StoreFront = () => {
               <CardContent>
                 <CardTitle>{pkg.name}</CardTitle>
                 <CardDescription>{pkg.description}</CardDescription>
-                <PriceContainer>
-                  {user ? (
+                <PriceBox>
+                  {canViewPrices ? (
                     hoveredCard === pkg.id ? (
                       <PriceOverlay
                         variants={priceOverlayVariants}
@@ -251,25 +272,31 @@ const StoreFront = () => {
                         {pkg.sessions} Sessions @ ${pkg.pricePerSession.toFixed(2)} each
                       </PriceOverlay>
                     ) : (
-                      <PriceOverlay variants={priceOverlayVariants} initial="hidden" style={{ opacity: 0 }}>
-                        <span style={{ fontStyle: 'italic', fontSize: '0.9rem' }}>Hover to reveal price</span>
+                      <PriceOverlay
+                        variants={priceOverlayVariants}
+                        initial="hidden"
+                        style={{ opacity: 0 }}
+                      >
+                        Hover to reveal price
                       </PriceOverlay>
                     )
                   ) : (
                     <PriceOverlay variants={priceOverlayVariants} initial="visible">
-                      <span style={{ fontStyle: 'italic', fontSize: '0.9rem' }}>Login to see price</span>
+                      <span style={{ fontStyle: "italic", fontSize: "0.9rem" }}>
+                        Login as a client to see price
+                      </span>
                     </PriceOverlay>
                   )}
-                </PriceContainer>
+                </PriceBox>
                 <CardButton
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (user) {
+                    if (canViewPrices) {
                       alert(`Purchasing ${pkg.name} package`);
                     } else {
-                      alert('Please log in to purchase packages.');
+                      alert("Only clients can purchase packages. Please log in or upgrade.");
                     }
                   }}
                 >
@@ -284,7 +311,7 @@ const StoreFront = () => {
 
         <SectionTitle>Monthly Training Packages</SectionTitle>
         <Grid>
-          {monthlyPackages.map((pkg) => {
+          {filteredMonthlyPackages.map((pkg) => {
             const totalSessions = calculateTotalSessions(pkg.months, pkg.sessionsPerWeek);
             const totalCost = totalSessions * pkg.pricePerSession;
             return (
@@ -303,8 +330,8 @@ const StoreFront = () => {
                 <CardContent>
                   <CardTitle>{pkg.name}</CardTitle>
                   <CardDescription>{pkg.description}</CardDescription>
-                  <PriceContainer>
-                    {user ? (
+                  <PriceBox>
+                    {canViewPrices ? (
                       hoveredCard === pkg.id ? (
                         <PriceOverlay
                           variants={priceOverlayVariants}
@@ -318,25 +345,31 @@ const StoreFront = () => {
                           Total: ${totalCost.toFixed(2)}
                         </PriceOverlay>
                       ) : (
-                        <PriceOverlay variants={priceOverlayVariants} initial="hidden" style={{ opacity: 0 }}>
-                          <span style={{ fontStyle: 'italic', fontSize: '0.9rem' }}>Hover to reveal price</span>
+                        <PriceOverlay
+                          variants={priceOverlayVariants}
+                          initial="hidden"
+                          style={{ opacity: 0 }}
+                        >
+                          Hover to reveal price
                         </PriceOverlay>
                       )
                     ) : (
                       <PriceOverlay variants={priceOverlayVariants} initial="visible">
-                        <span style={{ fontStyle: 'italic', fontSize: '0.9rem' }}>Login to see price</span>
+                        <span style={{ fontStyle: "italic", fontSize: "0.9rem" }}>
+                          Login as a client to see price
+                        </span>
                       </PriceOverlay>
                     )}
-                  </PriceContainer>
+                  </PriceBox>
                   <CardButton
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (user) {
+                      if (canViewPrices) {
                         alert(`Purchasing ${pkg.name} package`);
                       } else {
-                        alert('Please log in to purchase packages.');
+                        alert("Only clients can purchase packages. Please log in or upgrade.");
                       }
                     }}
                   >
@@ -348,24 +381,24 @@ const StoreFront = () => {
           })}
         </Grid>
 
-        {/* Orientation Signup Section – only available if the user is logged in */}
+        {/* Orientation Signup within the "Step Up Your Game" container */}
         <SectionTitle>Orientation Signup</SectionTitle>
         {user ? (
-          <CardButton
+          <OrientationButton
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowOrientation(true)}
           >
             Sign Up for Orientation
-          </CardButton>
+          </OrientationButton>
         ) : (
-          <CardButton
+          <OrientationButton
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => alert('Please log in to sign up for orientation.')}
+            onClick={() => alert("Please log in to sign up for orientation.")}
           >
             Sign Up for Orientation
-          </CardButton>
+          </OrientationButton>
         )}
       </ContentOverlay>
 

@@ -1,26 +1,16 @@
 import React from "react";
 import styled from "styled-components";
-import { Link } from "react-router-dom"; // ✅ Import Link from React Router
+import { Link } from "react-router-dom";
+import { motion } from "framer-motion";
 
-/* ✅ Import Background Image & Video */
-// 🎥 Update this path to your actual video file in the assets folder
+// Fallback image and video paths
 import heroBackground from "../../assets/Logo.png";
-import heroVideo from "../../assets/forest.mp4"; // ✅ Video file for background
+import heroVideo from "../../assets/forest.mp4";
 
-/*
-  🌟 HeroSection Component
-  ------------------------
-  - Displays the landing page's hero section with a **video background**.
-  - Ensures the **Swan logo remains fully visible & centered**.
-  - Provides a **color overlay** for contrast.
-  - Contains a **title, subtitle, and a call-to-action button**.
-*/
-
-/* 📌 Hero Section Container */
 const HeroSectionContainer = styled.section`
   position: relative;
   width: 100%;
-  min-height: 100vh; /* Ensure full viewport height */
+  min-height: 100vh; /* Full viewport height */
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -28,22 +18,24 @@ const HeroSectionContainer = styled.section`
   text-align: center;
   overflow: hidden;
 
-  /* ✅ Swan Logo as Fallback Background */
-  background-image: url(${heroBackground});
-  background-size: contain; /* Keep full logo visible */
-  background-position: center center; /* Center horizontally & vertically */
+  /* Background fallback using a logo with a purple gradient overlay */
+  background: linear-gradient(
+      to bottom right,
+      rgba(75, 0, 130, 0.9),
+      rgba(0, 0, 0, 0.7)
+    ),
+    url(${heroBackground});
+  background-size: contain;
+  background-position: center;
   background-repeat: no-repeat;
-  background-attachment: fixed; /* Optional: Parallax effect */
+  background-attachment: fixed;
 
-  /* 📌 Adjustments for Mobile Screens */
   @media (max-width: 768px) {
-    background-size: 90%; /* Scale down slightly for smaller screens */
-    background-position: center center;
-    padding-top: 4rem; /* Push content down */
+    background-size: 90%;
+    padding-top: 4rem;
   }
 `;
 
-/* 🎥 Video Background */
 const VideoBackground = styled.video`
   position: absolute;
   top: 0;
@@ -51,42 +43,34 @@ const VideoBackground = styled.video`
   width: 100%;
   height: 100%;
   object-fit: cover;
-  z-index: -2; /* Ensure it's behind all content */
-
-  opacity: 0.9; /* 🔹 Adjust this value to control video opacity */
+  z-index: -2;
+  opacity: 0.9; /* Slightly visible */
 `;
 
-/* 🎨 Color Overlay for Contrast */
 const ColorOverlay = styled.div`
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(
-    45deg,
-    rgba(0, 255, 255, 0.3),
-    rgba(120, 81, 169, 0.3)
-  );
-  z-index: -1; /* ✅ Keep it above the video but behind content */
+  background: linear-gradient(45deg, rgba(0, 255, 255, 0.0), rgba(120, 81, 169, 0.0));
+  z-index: -1;
 `;
 
-/* 🔥 Main Content (Text & CTA) */
 const HeroContent = styled.div`
   position: relative;
   z-index: 2;
-  padding-top: 2rem; /* Ensure text doesn't interfere with swan logo */
+  padding: 2rem;
 
   @media (max-width: 768px) {
-    padding-top: 3rem; /* Adjust for smaller screens */
+    padding: 3rem 1rem;
   }
 `;
 
-/* 🎯 Hero Title */
-const HeroTitle = styled.h1`
+const HeroTitle = styled(motion.h1)`
   font-size: 3rem;
   margin-bottom: 1rem;
-  color: white;
+  color: #ffffff;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 
   @media (max-width: 768px) {
@@ -94,54 +78,79 @@ const HeroTitle = styled.h1`
   }
 `;
 
-/* ✨ Hero Subtitle */
-const HeroSubtitle = styled.p`
+const HeroSubtitle = styled(motion.p)`
   font-size: 1.5rem;
   margin-bottom: 2rem;
-  color: var(--silver);
+  color: var(--silver, #C0C0C0);
 
   @media (max-width: 768px) {
     font-size: 1rem;
   }
 `;
 
-/* 🟢 Call-to-Action Button */
-const CTAButton = styled(Link)`
+const CTAButton = styled(motion(Link))`
   display: inline-block;
   padding: 1rem 2rem;
-  background-color: var(--neon-blue);
+  background-color: var(--neon-blue, #00ffff);
   color: black;
   text-decoration: none;
   border-radius: 5px;
   font-weight: bold;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, transform 0.3s ease;
 
   &:hover {
-    background-color: var(--royal-purple);
+    background-color: var(--royal-purple, #7851a9);
     color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
   }
 `;
 
-/* ✅ HeroSection Component */
+// Animation Variants
+const titleVariants = {
+  hidden: { opacity: 0, y: -50 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.8 } },
+};
+
+const subtitleVariants = {
+  hidden: { opacity: 0, x: -50 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.8, delay: 0.2 } },
+};
+
+const buttonVariants = {
+  hidden: { opacity: 0, x: 50 },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.8, delay: 0.4 } },
+};
+
 const HeroSection: React.FC = () => {
   return (
     <HeroSectionContainer id="home">
-      {/* 🎥 Video Background */}
       <VideoBackground autoPlay loop muted playsInline>
-        <source src={heroVideo} type="video/mp4" /> 
-        {/* ❗ Ensure the path to your video file in assets is correct */}
+        <source src={heroVideo} type="video/mp4" />
         Your browser does not support the video tag.
       </VideoBackground>
 
-      {/* 🎨 Color Overlay for Visibility */}
       <ColorOverlay />
 
-      {/* 🚀 Main Hero Content */}
       <HeroContent>
-        <HeroTitle>Welcome to SwanStudios</HeroTitle>
-        <HeroSubtitle>Revolutionizing Personal Training</HeroSubtitle>
-        {/* ✅ Button Navigates to Contact Page */}
-        <CTAButton to="/contact">Get Started</CTAButton>
+        <HeroTitle initial="hidden" animate="visible" variants={titleVariants}>
+          Welcome to SwanStudios
+        </HeroTitle>
+        <HeroSubtitle
+          initial="hidden"
+          animate="visible"
+          variants={subtitleVariants}
+        >
+          Revolutionizing Personal Training
+        </HeroSubtitle>
+        <CTAButton
+          to="/contact"
+          initial="hidden"
+          animate="visible"
+          variants={buttonVariants}
+        >
+          Get Started
+        </CTAButton>
       </HeroContent>
     </HeroSectionContainer>
   );
