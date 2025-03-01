@@ -1,6 +1,6 @@
 // backend/models/AdminSettings.js
 import { DataTypes, Model } from 'sequelize';
-import sequelize from './../database.js';
+import sequelize from '../database.js';
 
 class AdminSettings extends Model {}
 

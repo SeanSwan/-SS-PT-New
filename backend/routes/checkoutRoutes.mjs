@@ -1,8 +1,8 @@
 // backend/routes/checkoutRoutes.mjs
 import express from 'express';
 import Stripe from 'stripe';
-import ShoppingCart from '../models/ShoppingCart.js';
-import CartItem from '../models/CartItem.js';
+import ShoppingCart from '../models/ShoppingCart.mjs';
+import CartItem from '../models/CartItem.mjs';
 
 const router = express.Router();
 
