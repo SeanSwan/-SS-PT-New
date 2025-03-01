@@ -1,6 +1,6 @@
 // backend/routes/storefrontRoutes.js
 import express from 'express';
-import StorefrontItem from '../models/StorefrontItem.js';
+import StorefrontItem from '../models/StorefrontItem.mjs';
 
 const router = express.Router();
 

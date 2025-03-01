@@ -1,6 +1,6 @@
 import express from "express";
 import { protect } from "../middleware/authMiddleware.mjs";
-import Session from "../models/Session.js";
+import Session from "../models/Session.mjs";
 import User from "../models/User.mjs"; // For including user details
 
 const router = express.Router();

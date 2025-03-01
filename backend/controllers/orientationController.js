@@ -1,5 +1,5 @@
 // backend/controllers/orientationController.js
-import Orientation from '../models/Orientation.js';
+import Orientation from '../models/Orientation.mjs';
 
 /**
  * orientationSignup Controller
