@@ -1,12 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
+import OrientationForm from "../../components/OrientationForm/orientationForm"; // Import the orientation modal component
 
 // Import Assets
 import heroBackground from "../../assets/Logo.png";
 import heroVideo from "../../assets/swan.mp4";
 
-// Container with the Logo as a Fallback Background
+// Container with the logo as a fallback background
 const HeroStoreContainer = styled.section`
   position: relative;
   width: 100%;
@@ -31,7 +32,6 @@ const HeroStoreContainer = styled.section`
   }
 `;
 
-/* Video Background */
 const VideoBackground = styled.video`
   position: absolute;
   top: 0;
@@ -39,11 +39,10 @@ const VideoBackground = styled.video`
   width: 100%;
   height: 100%;
   object-fit: cover;
-  z-index: -2; /* Behind everything */
+  z-index: -2;
   opacity: 0.5;
 `;
 
-/* Color Overlay for Contrast */
 const ColorOverlay = styled.div`
   position: absolute;
   top: 0;
@@ -58,7 +57,6 @@ const ColorOverlay = styled.div`
   z-index: -1;
 `;
 
-/* Main Content Container */
 const HeroContent = styled.div`
   position: relative;
   z-index: 2;
@@ -66,15 +64,15 @@ const HeroContent = styled.div`
   max-width: 800px;
   color: #fff;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  margin-top: 2rem;
 
   @media (max-width: 768px) {
     padding-top: 3rem;
   }
 `;
 
-/* Title Styling */
 const HeroTitle = styled.h1`
-  font-size: 3.5rem;
+  font-size: 3.2rem;
   margin-bottom: 1rem;
   font-weight: bold;
   color: #fff;
@@ -85,7 +83,6 @@ const HeroTitle = styled.h1`
   }
 `;
 
-/* Subtitle Styling */
 const HeroSubtitle = styled.h2`
   font-size: 1.75rem;
   margin-bottom: 1.5rem;
@@ -96,7 +93,6 @@ const HeroSubtitle = styled.h2`
   }
 `;
 
-/* Description Styling */
 const HeroDescription = styled.p`
   font-size: 1.125rem;
   margin-bottom: 2rem;
@@ -109,7 +105,7 @@ const HeroDescription = styled.p`
   }
 `;
 
-/* Call-to-Action Button */
+/* CTA Button now triggers Orientation Signup */
 const CTAButton = styled(motion.button)`
   display: inline-block;
   padding: 1rem 2rem;
@@ -121,7 +117,7 @@ const CTAButton = styled(motion.button)`
   cursor: pointer;
   transition: background-color 0.3s ease, transform 0.3s ease;
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
-  margin-top: 2rem; /* Clear separation from the description */
+  margin-top: 2rem;
 
   &:hover {
     background-color: var(--royal-purple, #7851a9);
@@ -130,41 +126,36 @@ const CTAButton = styled(motion.button)`
   }
 `;
 
-/* HeroPageStore Component */
-const HeroPageStore: React.FC = () => {
+const HeroPageStore = () => {
+  const [showOrientation, setShowOrientation] = useState(false);
+
   return (
     <HeroStoreContainer id="store-hero">
-      {/* Background Video */}
       <VideoBackground autoPlay loop muted playsInline>
         <source src={heroVideo} type="video/mp4" />
         Your browser does not support the video tag.
       </VideoBackground>
-
-      {/* Color Overlay */}
       <ColorOverlay />
-
-      {/* Main Content */}
       <HeroContent>
-        <HeroTitle>Elite Training by Sen Swan</HeroTitle>
-        <HeroSubtitle>
-          25+ Years of Experience & NASM-Approved Protocols
-        </HeroSubtitle>
+        <HeroTitle>Elite Training Designed by Sean Swan</HeroTitle>
+        <HeroSubtitle>25+ Years of Experience & NASM-Approved Protocols</HeroSubtitle>
         <HeroDescription>
-          Discover a revolutionary workout program created from thousands of hours
-          of hands-on training by elite trainer Sen Swan—merging cutting-edge fitness
-          science with proven NASM protocols. Our personalized approach caters to everyone,
-          from youth to seniors, ensuring you unlock your full potential.
+          Discover a revolutionary workout program created from thousands of hours of hands-on training by elite trainer Sean Swan—merging cutting-edge fitness science with proven NASM protocols. Our personalized approach caters to everyone—from children to seniors—ensuring you unlock your full potential.
         </HeroDescription>
         <CTAButton
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => alert("Explore our packages!")}
+          onClick={() => setShowOrientation(true)}
         >
-          Explore Packages
+          Orientation Signup
         </CTAButton>
       </HeroContent>
+      {showOrientation && (
+        <OrientationForm onClose={() => setShowOrientation(false)} />
+      )}
     </HeroStoreContainer>
   );
 };
 
 export default HeroPageStore;
+

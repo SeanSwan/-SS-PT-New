@@ -1,13 +1,36 @@
-import React from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
-import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-
-// Fallback image and video paths
+import OrientationForm from "../../components/OrientationForm/orientationForm";
 import heroBackground from "../../assets/Logo.png";
-import heroVideo from "../../assets/forest.mp4";
+import heroVideo from "../../assets/swan.mp4";
 
-const HeroSectionContainer = styled.section`
+// ---------------------------
+// OrientationButton Styled Component
+// ---------------------------
+const OrientationButton = styled(motion.button)`
+  padding: 1rem 2rem;
+  background: var(--neon-blue, #00ffff);
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  color: #000;
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.3s ease;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+  margin-top: 2rem;
+
+  &:hover {
+    background: var(--royal-purple, #7851a9);
+    color: #fff;
+    transform: translateY(-3px);
+  }
+`;
+
+// ---------------------------
+// HeroPageStore Styled Components
+// ---------------------------
+const HeroStoreContainer = styled.section`
   position: relative;
   width: 100%;
   min-height: 100vh; /* Full viewport height */
@@ -17,8 +40,6 @@ const HeroSectionContainer = styled.section`
   align-items: center;
   text-align: center;
   overflow: hidden;
-
-  /* Background fallback using a logo with a purple gradient overlay */
   background: linear-gradient(
       to bottom right,
       rgba(75, 0, 130, 0.9),
@@ -44,7 +65,7 @@ const VideoBackground = styled.video`
   height: 100%;
   object-fit: cover;
   z-index: -2;
-  opacity: 0.9; /* Slightly visible */
+  opacity: 0.9;
 `;
 
 const ColorOverlay = styled.div`
@@ -61,7 +82,6 @@ const HeroContent = styled.div`
   position: relative;
   z-index: 2;
   padding: 2rem;
-
   @media (max-width: 768px) {
     padding: 3rem 1rem;
   }
@@ -72,41 +92,34 @@ const HeroTitle = styled(motion.h1)`
   margin-bottom: 1rem;
   color: #ffffff;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-
   @media (max-width: 768px) {
     font-size: 2rem;
   }
 `;
 
-const HeroSubtitle = styled(motion.p)`
+const HeroSubtitle = styled(motion.h2)`
   font-size: 1.5rem;
   margin-bottom: 2rem;
   color: var(--silver, #C0C0C0);
-
   @media (max-width: 768px) {
     font-size: 1rem;
   }
 `;
 
-const CTAButton = styled(motion(Link))`
-  display: inline-block;
-  padding: 1rem 2rem;
-  background-color: var(--neon-blue, #00ffff);
-  color: black;
-  text-decoration: none;
-  border-radius: 5px;
-  font-weight: bold;
-  transition: background-color 0.3s ease, transform 0.3s ease;
-
-  &:hover {
-    background-color: var(--royal-purple, #7851a9);
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+const HeroDescription = styled(motion.p)`
+  font-size: 1.125rem;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+  color: #ffffff;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+  @media (max-width: 768px) {
+    font-size: 1rem;
   }
 `;
 
-// Animation Variants
+// ---------------------------
+// Framer Motion Variants
+// ---------------------------
 const titleVariants = {
   hidden: { opacity: 0, y: -50 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.8 } },
@@ -117,43 +130,58 @@ const subtitleVariants = {
   visible: { opacity: 1, x: 0, transition: { duration: 0.8, delay: 0.2 } },
 };
 
-const buttonVariants = {
+const descriptionVariants = {
   hidden: { opacity: 0, x: 50 },
   visible: { opacity: 1, x: 0, transition: { duration: 0.8, delay: 0.4 } },
 };
 
+const buttonVariants = {
+  hidden: { opacity: 0, scale: 0.8 },
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.8, delay: 0.6 } },
+};
+
+// ---------------------------
+// HeroPageStore Component
+// ---------------------------
 const HeroSection: React.FC = () => {
+  const [showOrientation, setShowOrientation] = useState(false);
+
   return (
-    <HeroSectionContainer id="home">
-      <VideoBackground autoPlay loop muted playsInline>
-        <source src={heroVideo} type="video/mp4" />
-        Your browser does not support the video tag.
-      </VideoBackground>
-
-      <ColorOverlay />
-
-      <HeroContent>
-        <HeroTitle initial="hidden" animate="visible" variants={titleVariants}>
-          Welcome to SwanStudios
-        </HeroTitle>
-        <HeroSubtitle
-          initial="hidden"
-          animate="visible"
-          variants={subtitleVariants}
-        >
-          Revolutionizing Personal Training
-        </HeroSubtitle>
-        <CTAButton
-          to="/contact"
-          initial="hidden"
-          animate="visible"
-          variants={buttonVariants}
-        >
-          Get Started
-        </CTAButton>
-      </HeroContent>
-    </HeroSectionContainer>
+    <>
+      <HeroStoreContainer id="store-hero">
+        <VideoBackground autoPlay loop muted playsInline>
+          <source src={heroVideo} type="video/mp4" />
+          Your browser does not support the video tag.
+        </VideoBackground>
+        <ColorOverlay />
+        <HeroContent>
+          <HeroTitle initial="hidden" animate="visible" variants={titleVariants}>
+            Excellence in Performance Training
+          </HeroTitle>
+          <HeroSubtitle initial="hidden" animate="visible" variants={subtitleVariants}>
+            Over 25 Years of Elite Coaching & NASM Certified Methods
+          </HeroSubtitle>
+          <HeroDescription initial="hidden" animate="visible" variants={descriptionVariants}>
+            Experience a transformative workout program meticulously crafted by Sean Swan.
+            Leveraging over 25 years of hands-on elite coaching and proven NASM protocols,
+            our personalized approach empowers you to achieve peak performance at every stage of life.
+          </HeroDescription>
+          <OrientationButton
+            initial="hidden"
+            animate="visible"
+            variants={buttonVariants}
+            onClick={() => setShowOrientation(true)}
+          >
+            Orientation Signup
+          </OrientationButton>
+        </HeroContent>
+      </HeroStoreContainer>
+      {showOrientation && (
+        <OrientationForm onClose={() => setShowOrientation(false)} />
+      )}
+    </>
   );
 };
 
 export default HeroSection;
+

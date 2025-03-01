@@ -4,12 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "concurrently \"npm run start-frontend\" \"npm run start-backend\"",
-    "start-frontend": "cd frontend && npm run dev",
-    "start-backend": "cd backend && npm run dev",
-    "install-all": "npm run install-frontend && npm run install-backend",
-    "install-frontend": "cd frontend && npm install",
-    "install-backend": "cd backend && npm install"
+  "start": "concurrently \"npm run start-frontend\" \"npm run start-backend\"",
+  "start-frontend": "cd frontend && npm run dev",
+  "start-backend": "cd backend && npm run dev",
+  "install-all": "npm run install-frontend && npm run install-backend",
+  "install-frontend": "cd frontend && npm install",
+  "install-backend": "cd backend && npm install",
+  "build": "cd frontend && npm install && npm run build"
   },
   "keywords": [],
   "author": "",

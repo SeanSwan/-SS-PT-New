@@ -1,13 +1,14 @@
-// src/pages/SignupModal.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 
-// ------------------- Styled Components -------------------
+// ✅ Import the logo from your assets folder
+import Logo from "../assets/Logo.png";
 
-// Full-screen overlay with a gradient background.
+/* ------------------ Styled Components ------------------ */
+
 const ModalOverlay = styled.div`
   position: fixed;
   top: 0;
@@ -16,10 +17,13 @@ const ModalOverlay = styled.div`
   height: 100vh;
   z-index: 1500;
   overflow: auto;
-  background: linear-gradient(45deg, rgba(0, 255, 255, 0.5), rgba(120, 81, 169, 0.5));
+  background: linear-gradient(
+    45deg,
+    rgba(0, 255, 255, 0.5),
+    rgba(120, 81, 169, 0.5)
+  );
 `;
 
-// Background video for visual effect.
 const VideoBackground = styled.video`
   position: absolute;
   top: 0;
@@ -31,7 +35,6 @@ const VideoBackground = styled.video`
   opacity: 0.8;
 `;
 
-// Container for the modal content.
 const ModalContent = styled(motion.div)`
   position: relative;
   z-index: 1;
@@ -47,7 +50,6 @@ const ModalContent = styled(motion.div)`
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
 `;
 
-// Close button to dismiss the modal.
 const CloseButton = styled.button`
   position: absolute;
   top: 15px;
@@ -68,7 +70,6 @@ const CloseButton = styled.button`
   }
 `;
 
-// Header container for logo and app name.
 const ModalHeader = styled.div`
   display: flex;
   flex-direction: column;
@@ -76,7 +77,6 @@ const ModalHeader = styled.div`
   margin-bottom: 20px;
 `;
 
-// Circular container for the logo image.
 const LogoCircle = styled.div`
   width: 80px;
   height: 80px;
@@ -88,21 +88,18 @@ const LogoCircle = styled.div`
   margin-bottom: 10px;
 `;
 
-// Logo image styled to fit within the circle.
 const LogoImage = styled.img`
-  width: 60%;
-  height: 60%;
+  width: 120%;
+  height: 120%;
   object-fit: contain;
 `;
 
-// Header text for the app name.
 const HeaderText = styled.h1`
   font-size: 1.5rem;
   color: var(--neon-blue);
   margin: 0;
 `;
 
-// Styled input field.
 const InputField = styled.input`
   width: 100%;
   padding: 8px;
@@ -118,7 +115,6 @@ const InputField = styled.input`
   }
 `;
 
-// Label for input fields.
 const Label = styled.label`
   display: block;
   margin-bottom: 5px;
@@ -126,7 +122,6 @@ const Label = styled.label`
   color: var(--silver);
 `;
 
-// Styled button for form submission.
 const Button = styled.button`
   width: 100%;
   padding: 10px;
@@ -143,7 +138,6 @@ const Button = styled.button`
   }
 `;
 
-// Styled link for forgot password.
 const ForgotPasswordLink = styled.a`
   display: block;
   margin-top: 10px;
@@ -153,13 +147,11 @@ const ForgotPasswordLink = styled.a`
   cursor: pointer;
 `;
 
-// Container for social media login buttons.
 const SocialMediaContainer = styled.div`
   margin-top: 20px;
   text-align: center;
 `;
 
-// Styled button for social media logins.
 const SocialButton = styled.button`
   margin: 0 10px;
   padding: 10px;
@@ -175,15 +167,8 @@ const SocialButton = styled.button`
   }
 `;
 
-// ------------------- SignupModal Component -------------------
+/* ------------------ SignupModal Component ------------------ */
 
-/**
- * SignupModal Component
- *
- * Renders a full-screen sign-up form with a video background.
- * At the top, a professional header displays the logo in a circle along with the app name ("SwanStudios").
- * The form includes standard fields for user registration along with placeholder logic for social login and forgot password.
- */
 const SignupModal = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
@@ -206,30 +191,25 @@ const SignupModal = () => {
   });
   const [error, setError] = useState("");
 
-  // Closes the modal.
   const handleClose = () => {
     navigate(-1);
   };
 
-  // Updates form state.
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // Handle form submission.
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    // Simple client-side check for matching passwords.
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
     }
     try {
-      // Remove confirmPassword before sending to backend.
       const { confirmPassword, ...registrationData } = formData;
-      const response = await register(registrationData);
+      await register(registrationData);
       navigate("/dashboard");
     } catch (err) {
       console.error("Error during registration:", err);
@@ -237,13 +217,11 @@ const SignupModal = () => {
     }
   };
 
-  // Placeholder for forgot password functionality.
   const handleForgotPassword = (e) => {
     e.preventDefault();
     alert("Forgot password functionality not implemented yet.");
   };
 
-  // Placeholder for social media login functionality.
   const handleSocialLogin = (provider) => (e) => {
     e.preventDefault();
     alert(`Social login with ${provider} not implemented yet.`);
@@ -251,11 +229,6 @@ const SignupModal = () => {
 
   return (
     <ModalOverlay onClick={handleClose}>
-      <VideoBackground autoPlay loop muted>
-        <source src="/assets/movie.mp4" type="video/mp4" />
-        Your browser does not support the video tag.
-      </VideoBackground>
-
       <ModalContent
         onClick={(e) => e.stopPropagation()}
         initial={{ opacity: 0, scale: 0.9 }}
@@ -263,15 +236,19 @@ const SignupModal = () => {
         transition={{ duration: 0.5 }}
       >
         <CloseButton onClick={handleClose}>&times;</CloseButton>
+
         {/* Modal Header with logo and app name */}
         <ModalHeader>
           <LogoCircle>
-            <LogoImage src="/assets/logo.png" alt="SwanStudios Logo" />
+            {/* ✅ Use the imported Logo instead of a relative string path */}
+            <LogoImage src={Logo} alt="SwanStudios Logo" />
           </LogoCircle>
           <HeaderText>SwanStudios</HeaderText>
         </ModalHeader>
+
         <h2 style={{ textAlign: "center", marginBottom: "20px" }}>Sign Up</h2>
         {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
+
         <form onSubmit={handleSubmit}>
           <Label htmlFor="firstName">First Name</Label>
           <InputField
@@ -433,18 +410,6 @@ const SignupModal = () => {
         <ForgotPasswordLink onClick={handleForgotPassword}>
           Forgot Password?
         </ForgotPasswordLink>
-        <SocialMediaContainer>
-          <p>Or sign up with:</p>
-          <SocialButton onClick={handleSocialLogin("Facebook")}>
-            Facebook
-          </SocialButton>
-          <SocialButton onClick={handleSocialLogin("Google")}>
-            Google
-          </SocialButton>
-          <SocialButton onClick={handleSocialLogin("Twitter")}>
-            Twitter
-          </SocialButton>
-        </SocialMediaContainer>
       </ModalContent>
     </ModalOverlay>
   );

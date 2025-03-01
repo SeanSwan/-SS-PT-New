@@ -1,99 +1,96 @@
-/**
- * OrientationForm.tsx
- * A responsive, modernized orientation signup form with improved styling
- * for both desktop and mobile. Aligns with your neon blue/purple/white theme.
- */
-
 import React, { useState } from "react";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 
-/**
- * OrientationFormProps:
- * onClose -> Called when the modal or form is closed.
- */
+// Import the logo (ensure the path is correct)
+import Logo from "../../assets/Logo.png";
+
 interface OrientationFormProps {
   onClose: () => void;
 }
 
-/* ===================== Styled Components ===================== */
+/* -------------------- Styled Components -------------------- */
 
-/** 
- * ModalOverlay 
- * Covers the entire viewport with a semi-transparent background.
- */
 const ModalOverlay = styled.div`
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.75);
-  z-index: 2000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* Ensure mobile devices handle overflow properly */
+  z-index: 1500;
   overflow-y: auto;
+  background: linear-gradient(45deg, rgba(0,255,255,0.5), rgba(120,81,169,0.5));
 `;
 
-/**
- * ModalContainer
- * The main content box for the orientation form.
- */
 const ModalContainer = styled.div`
-  background: var(--light-bg);
-  color: var(--text-dark);
+  background: #111;
+  color: #fff;
   width: 90%;
-  max-width: 600px; /* Slightly wider for a modern desktop layout */
+  max-width: 400px;
   border-radius: 10px;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
   position: relative;
-  margin: 2rem 1rem; /* Provide spacing for mobile */
+  margin: 2rem auto;
   padding: 2rem;
 
   @media (max-width: 768px) {
-    /* Mobile-friendly adjustments */
     padding: 1.5rem;
     margin: 1rem;
   }
 `;
 
-/**
- * CloseButton
- * Positioned in the top-right corner to allow easy dismissal on desktop/mobile.
- */
 const CloseButton = styled(motion.button)`
   position: absolute;
-  top: 1rem;
-  right: 1rem;
+  top: 15px;
+  right: 15px;
   background: transparent;
-  border: 2px solid var(--primary-color);
+  border: 2px solid #00ffff;
   border-radius: 50%;
-  width: 35px;
-  height: 35px;
-  font-size: 1.2rem;
-  color: var(--primary-color);
+  width: 40px;
+  height: 40px;
+  font-size: 1.5rem;
+  color: #00ffff;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   transition: background 0.3s ease;
 
   &:hover {
-    background: var(--primary-color);
-    color: var(--light-bg);
+    background: #00ffff;
+    color: #000;
   }
+`;
 
-  @media (max-width: 768px) {
-    width: 30px;
-    height: 30px;
-    font-size: 1rem;
-  }
+const ModalHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+`;
+
+const LogoCircle = styled.div`
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #00ffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+`;
+
+const LogoImage = styled.img`
+  width: 120%;
+  height: 120%;
+  object-fit: contain;
+`;
+
+const HeaderText = styled.h1`
+  font-size: 1.5rem;
+  color: #00ffff;
+  margin: 0;
 `;
 
 const ModalTitle = styled.h2`
   text-align: center;
   margin-bottom: 1.5rem;
-  color: var(--primary-color);
+  color: #00ffff;
   font-size: 1.5rem;
 `;
 
@@ -103,35 +100,20 @@ const ErrorMessage = styled.p`
   margin-bottom: 1rem;
 `;
 
-/**
- * Styled form and fields
- * We'll use a grid layout for more modern, flexible arrangement on larger screens.
- */
 const Form = styled.form`
   display: grid;
   grid-template-columns: 1fr;
-  grid-gap: 1rem;
-
-  @media (min-width: 768px) {
-    /* On tablets and up, display a two-column layout for certain fields if desired. */
-    grid-template-columns: 1fr 1fr;
-    grid-auto-rows: auto;
-  }
+  gap: 1rem;
 `;
 
-/**
- * FormGroup 
- * Each labeled input or select is grouped in a container.
- */
 const FormGroup = styled.div`
   display: flex;
   flex-direction: column;
-  grid-column: span 2; /* By default, span both columns unless overridden */
-  
+
   label {
     font-weight: bold;
     margin-bottom: 0.5rem;
-    color: var(--text-dark);
+    color: #fff;
   }
 
   input,
@@ -142,46 +124,51 @@ const FormGroup = styled.div`
     border: 1px solid #ccc;
     border-radius: 5px;
     font-size: 1rem;
+    background: #222;
+    color: #fff;
 
     &:focus {
       outline: none;
-      border-color: var(--primary-color);
-      box-shadow: 0 0 3px var(--primary-color);
+      border-color: #00ffff;
+      box-shadow: 0 0 3px #00ffff;
     }
   }
 
   small {
     margin-top: 0.3rem;
     font-size: 0.8rem;
-    color: var(--grey);
+    color: #ccc;
   }
 `;
 
-/**
- * ColumnSplit 
- * A helper class for certain fields we want side by side on larger screens.
- */
-const ColumnSplit = styled(FormGroup)`
-  @media (min-width: 768px) {
-    grid-column: span 1; /* Occupy only one column for side-by-side arrangement */
-  }
+/* New Waiver Section styled component */
+const WaiverSection = styled.div`
+  background: rgba(255, 255, 255, 0.2);
+  padding: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  max-height: 180px;
+  overflow-y: auto;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #fff;
+  margin-bottom: 1rem;
 `;
 
 const SubmitButton = styled(motion.button)`
-  grid-column: span 2; /* Submit button spans entire width */
   padding: 0.75rem 1.5rem;
-  background: var(--primary-color);
+  background: #00ffff;
   border: none;
   border-radius: 5px;
   font-size: 1rem;
-  color: var(--text-dark);
+  color: #000;
   cursor: pointer;
   transition: background 0.3s ease;
   margin: 0 auto;
 
   &:hover {
-    background: var(--secondary-color);
-    color: var(--light-bg);
+    background: #7851a9;
+    color: #fff;
   }
 `;
 
@@ -192,15 +179,13 @@ const ScheduleLinkContainer = styled.div`
 `;
 
 const ScheduleLink = styled(Link)`
-  color: var(--secondary-color);
+  color: #7851a9;
   font-weight: bold;
   text-decoration: underline;
 `;
 
-/**
- * OrientationForm
- * A modern, responsive orientation signup form that matches your neon blue/purple/white theme.
- */
+/* -------------------- OrientationForm Component -------------------- */
+
 const OrientationForm: React.FC<OrientationFormProps> = ({ onClose }) => {
   const [formData, setFormData] = useState({
     fullName: "",
@@ -214,6 +199,11 @@ const OrientationForm: React.FC<OrientationFormProps> = ({ onClose }) => {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
 
+  // Updated waiver text based on NASM and general legal recommendations.
+  const waiverText = `
+By participating in training sessions with SwanStudios, I acknowledge and understand that personal training involves inherent risks, including but not limited to physical injury. I represent that I am in good health, free of any condition that would impair my ability to participate in such physical activities. I voluntarily assume all risks associated with training in various environments (e.g., in-home, park, beach, or other outdoor locations). I hereby release and hold harmless SwanStudios, its trainers, employees, and agents from any and all liability for injuries, damages, or losses arising from my participation. I understand that this waiver does not waive any rights or remedies available to me under applicable law.
+`;
+
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -224,7 +214,7 @@ const OrientationForm: React.FC<OrientationFormProps> = ({ onClose }) => {
     e.preventDefault();
     setError("");
 
-    // Basic validation
+    // Basic validation: Ensure required fields are provided.
     if (
       !formData.fullName ||
       !formData.email ||
@@ -237,7 +227,7 @@ const OrientationForm: React.FC<OrientationFormProps> = ({ onClose }) => {
     }
 
     try {
-      // Simulate an API call
+      // Simulate an API call – replace with your actual API request.
       await new Promise((resolve) => setTimeout(resolve, 1000));
       console.log("Orientation form submitted:", formData);
       setSubmitted(true);
@@ -248,9 +238,8 @@ const OrientationForm: React.FC<OrientationFormProps> = ({ onClose }) => {
   };
 
   return (
-    <ModalOverlay>
-      <ModalContainer>
-        {/* Close Button in the top-right corner */}
+    <ModalOverlay onClick={onClose}>
+      <ModalContainer onClick={(e) => e.stopPropagation()}>
         <CloseButton
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
@@ -258,6 +247,13 @@ const OrientationForm: React.FC<OrientationFormProps> = ({ onClose }) => {
         >
           &times;
         </CloseButton>
+
+        <ModalHeader>
+          <LogoCircle>
+            <LogoImage src={Logo} alt="SwanStudios Logo" />
+          </LogoCircle>
+          <HeaderText>SwanStudios</HeaderText>
+        </ModalHeader>
 
         <ModalTitle>Orientation Signup</ModalTitle>
         {submitted ? (
@@ -315,8 +311,14 @@ const OrientationForm: React.FC<OrientationFormProps> = ({ onClose }) => {
                 required
               />
               <small>
-                Please include any pre‑existing conditions or injuries that may affect your training.
+                Include any pre‑existing conditions or injuries that may affect your training.
               </small>
+            </FormGroup>
+
+            {/* Waiver Section */}
+            <FormGroup>
+              <label>Training Waiver</label>
+              <WaiverSection>{waiverText}</WaiverSection>
             </FormGroup>
 
             <FormGroup>
@@ -327,11 +329,9 @@ const OrientationForm: React.FC<OrientationFormProps> = ({ onClose }) => {
                 name="waiverInitials"
                 value={formData.waiverInitials}
                 onChange={handleChange}
+                placeholder="Type your initials to confirm"
                 required
               />
-              <small>
-                Type your initials to confirm that you have read and agree to the waiver terms.
-              </small>
             </FormGroup>
 
             <FormGroup>
@@ -371,28 +371,15 @@ const OrientationForm: React.FC<OrientationFormProps> = ({ onClose }) => {
           </Form>
         )}
 
-        {!submitted && (
-          <ScheduleLinkContainer>
-            <ScheduleLink to="/schedule">
-              View My Schedule
-            </ScheduleLink>
-          </ScheduleLinkContainer>
-        )}
-
-        {/* Additional close button at the bottom for mobile */}
-        {!submitted && (
-          <SubmitButton
-            onClick={onClose}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            style={{ marginTop: "1rem", background: "#ccc", color: "#000" }}
-          >
-            Close
-          </SubmitButton>
-        )}
+        <ScheduleLinkContainer>
+          <ScheduleLink to="/schedule">View My Schedule</ScheduleLink>
+        </ScheduleLinkContainer>
       </ModalContainer>
     </ModalOverlay>
   );
 };
 
 export default OrientationForm;
+
+/* -------------------- Additional Styled Component -------------------- */
+

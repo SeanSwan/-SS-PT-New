@@ -1,11 +1,13 @@
-// src/pages/LoginModal.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 
-// ------------------- Styled Components -------------------
+// ✅ Import the same logo used in SignupModal
+import Logo from "../assets/Logo.png";
+
+/* ------------------ Styled Components ------------------ */
 
 const FullPageContainer = styled.div`
   position: fixed;
@@ -13,7 +15,7 @@ const FullPageContainer = styled.div`
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: linear-gradient(45deg, rgba(0,255,255,0.5), rgba(120,81,169,0.5));
+  background: linear-gradient(45deg, rgba(0, 255, 255, 0.5), rgba(120, 81, 169, 0.5));
   z-index: 1500;
   overflow: auto;
 `;
@@ -56,10 +58,42 @@ const CloseButton = styled.button`
   color: var(--neon-blue);
   cursor: pointer;
   transition: background 0.3s ease;
+
   &:hover {
     background: var(--neon-blue);
     color: #000;
   }
+`;
+
+/* -------- New Header Styles (same as SignupModal) -------- */
+const ModalHeader = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+`;
+
+const LogoCircle = styled.div`
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: var(--neon-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10px;
+`;
+
+const LogoImage = styled.img`
+  width: 120%;
+  height: 120%;
+  object-fit: contain;
+`;
+
+const HeaderText = styled.h1`
+  font-size: 1.5rem;
+  color: var(--neon-blue);
+  margin: 0;
 `;
 
 const InputField = styled.input`
@@ -70,6 +104,7 @@ const InputField = styled.input`
   border-radius: 5px;
   background: #111;
   color: #fff;
+
   &:focus {
     outline: none;
     border-color: var(--neon-blue);
@@ -86,6 +121,7 @@ const Button = styled.button`
   font-size: 1rem;
   cursor: pointer;
   transition: background 0.3s ease;
+
   &:hover {
     background: var(--royal-purple);
   }
@@ -100,41 +136,8 @@ const ForgotPasswordLink = styled.a`
   cursor: pointer;
 `;
 
-const SocialMediaContainer = styled.div`
-  margin-top: 20px;
-  text-align: center;
-`;
+/* ------------------ LoginModal Component ------------------ */
 
-const SocialButton = styled.button`
-  margin: 0 10px;
-  padding: 10px;
-  border: none;
-  border-radius: 5px;
-  background: var(--royal-purple);
-  color: #fff;
-  cursor: pointer;
-  transition: background 0.3s ease;
-  &:hover {
-    background: var(--neon-blue);
-  }
-`;
-
-// ------------------- LoginModal Component -------------------
-
-/**
- * LoginModal Component
- *
- * This full-page login modal is used by both clients and administrators.
- * When the user submits their credentials, the login logic is entirely handled
- * by the backend. The backend will verify the password (including for admin users)
- * using secure, server-side storage (e.g., environment variables or database).
- *
- * Features:
- * - Full viewport gradient background with video.
- * - A dismissible modal form.
- * - "Forgot Password?" link with placeholder logic.
- * - Social media login buttons with placeholder logic.
- */
 const LoginModal = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
@@ -157,14 +160,7 @@ const LoginModal = () => {
     alert("Forgot password functionality not implemented yet.");
   };
 
-  // Placeholder for social media login functionality.
-  const handleSocialLogin = (provider) => (e) => {
-    e.preventDefault();
-    alert(`Social login with ${provider} not implemented yet.`);
-  };
-
   // Handle form submission for login.
-  // Admin password verification is now handled on the backend.
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -196,8 +192,18 @@ const LoginModal = () => {
         transition={{ duration: 0.5 }}
       >
         <CloseButton onClick={handleClose}>&times;</CloseButton>
+
+        {/* ✅ Modal Header with Logo */}
+        <ModalHeader>
+          <LogoCircle>
+            <LogoImage src={Logo} alt="SwanStudios Logo" />
+          </LogoCircle>
+          <HeaderText>SwanStudios</HeaderText>
+        </ModalHeader>
+
         <h2 style={{ textAlign: "center", marginBottom: "20px" }}>Login</h2>
         {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
+
         <form onSubmit={handleSubmit}>
           <InputField
             type="text"
@@ -217,21 +223,10 @@ const LoginModal = () => {
           />
           <Button type="submit">Login</Button>
         </form>
+
         <ForgotPasswordLink onClick={handleForgotPassword}>
           Forgot Password?
         </ForgotPasswordLink>
-        <SocialMediaContainer>
-          <p>Or login with:</p>
-          <SocialButton onClick={handleSocialLogin("Facebook")}>
-            Facebook
-          </SocialButton>
-          <SocialButton onClick={handleSocialLogin("Google")}>
-            Google
-          </SocialButton>
-          <SocialButton onClick={handleSocialLogin("Twitter")}>
-            Twitter
-          </SocialButton>
-        </SocialMediaContainer>
       </ModalContent>
     </FullPageContainer>
   );
