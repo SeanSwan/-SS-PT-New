@@ -1,7 +1,7 @@
 import express from 'express';
 import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 import Session from '../models/Session.js';
-import User from '../models/user.js';
+import User from '../models/User.js';
 import { Op } from 'sequelize';
 import stripe from 'stripe';
 
