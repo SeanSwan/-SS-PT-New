@@ -4,13 +4,10 @@
   "description": "",
   "main": "server.mjs",
   "type": "module",
-
-  
   "scripts": {
     "start": "node server.mjs",
     "dev": "nodemon server.mjs",
     "migrate": "sequelize-cli db:migrate"
-    
   },
   "keywords": [],
   "author": "",
@@ -22,6 +19,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",
+    "express-validator": "^7.2.1",
     "jsonwebtoken": "^9.0.2",
     "llama-node": "^0.1.6",
     "moment": "^2.30.1",
