@@ -1,7 +1,7 @@
 // backend/controllers/auth.controller.js
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import User from '../models/User.js'; // Ensure the path/casing matches your project
+import User from '../models/User.mjs'; // Ensure the path/casing matches your project
 import { Op } from 'sequelize';
 
 // Ensure the JWT secret is set

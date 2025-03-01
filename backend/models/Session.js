@@ -1,6 +1,6 @@
 import { DataTypes, Model } from 'sequelize';
 import sequelize from './../database.js';
-import User from './User.js';
+import User from './User.mjs';
 
 class Session extends Model {}
 
