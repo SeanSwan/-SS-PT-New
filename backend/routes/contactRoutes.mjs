@@ -1,6 +1,6 @@
 // backend/routes/contactRoutes.mjs
 import express from "express";
-import Contact from "../models/Contact.js";
+import Contact from "../models/Contact.mjs";
 import sgMail from "@sendgrid/mail";
 import twilio from "twilio";
 
