@@ -30,6 +30,7 @@
     "react-modal": "^3.16.3",
     "sequelize": "^6.37.5",
     "socket.io": "^4.8.1",
+    "stripe": "^17.7.0",
     "swr": "^2.3.2",
     "twilio": "^5.4.5"
   },
