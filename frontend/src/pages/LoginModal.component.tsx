@@ -7,7 +7,7 @@ import { useAuth } from "../context/AuthContext";
 // Import the logo asset
 import Logo from "../assets/Logo.png";
 // Import the background video
-import powerBackground from "../assets/power-background.mp4";
+import powerBackground from "../assets/Swans.mp4";
 
 /* ------------------ Styled Components ------------------ */
 
