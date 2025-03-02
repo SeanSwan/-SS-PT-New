@@ -1,8 +1,7 @@
 // backend/routes/authRoutes.mjs
 import express from 'express';
-import { register, login, validateToken } from '../controllers/authController.js';
-// If you want to protect additional routes, import the protect middleware here
-// import { protect } from '../middleware/auth.middleware.js';
+import { register, login, validateToken, getProfile } from '../controllers/authController.mjs';
+import { protect } from '../middleware/authMiddleware.mjs';
 
 const router = express.Router();
 
@@ -26,5 +25,12 @@ router.post('/login', login);
  * @access  Public
  */
 router.get('/validate-token', validateToken);
+
+/**
+ * @route   GET /api/auth/profile
+ * @desc    Get current user profile (protected)
+ * @access  Private
+ */
+router.get('/profile', protect, getProfile);
 
 export default router;

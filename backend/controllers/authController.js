@@ -1,60 +1,68 @@
-// backend/controllers/auth.controller.js
-import bcrypt from 'bcryptjs';
+// backend/controllers/authController.mjs
 import jwt from 'jsonwebtoken';
-import User from '../models/User.mjs'; // Ensure the path/casing matches your project
-import { Op } from 'sequelize';
+import bcrypt from 'bcryptjs';
+import User from '../models/User.mjs';
+import sequelize, { Op } from '../database.mjs'; // Import Op from database.mjs
+import dotenv from 'dotenv';
 
-// Ensure the JWT secret is set
-if (!process.env.JWT_SECRET) {
-  throw new Error("JWT_SECRET environment variable is not set.");
-}
+dotenv.config();
+
+// Generate JWT Token
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN || '3h',
+  });
+};
 
 /**
- * Register Controller
- * - Validates required fields.
- * - Checks for an existing user by email or username.
- * - Creates a new user record (password hashing is handled via model hooks).
- * - Generates a JWT token for immediate authentication.
+ * @desc    Register a new user
+ * @route   POST /api/auth/register
+ * @access  Public
  */
 export const register = async (req, res) => {
-  try {
-    // Destructure the fields from the request body
-    const {
-      firstName,
-      lastName,
-      email,
-      username,
-      password,
-      phone,
-      dateOfBirth,
-      gender,
-      weight,
-      height,
-      fitnessGoal,
-      trainingExperience,
-      healthConcerns,
-      emergencyContact,
-      role, // optional; defaults to 'user'
-    } = req.body;
+  const { 
+    firstName, 
+    lastName, 
+    email, 
+    username, 
+    password,
+    // Optional fields
+    phone,
+    dateOfBirth,
+    gender,
+    weight,
+    height,
+    fitnessGoal,
+    trainingExperience,
+    healthConcerns,
+    emergencyContact
+  } = req.body;
 
-    // Check if a user with the same email or username already exists
-    const existingUser = await User.findOne({
-      where: {
-        [Op.or]: [{ email }, { username }],
-      },
+  try {
+    // Check if user already exists
+    const existingUser = await User.findOne({ 
+      where: { 
+        [Op.or]: [
+          { email },
+          { username }
+        ] 
+      } 
     });
+
     if (existingUser) {
-      return res.status(400).json({ message: 'User with this email or username already exists.' });
+      return res.status(409).json({ 
+        success: false,
+        message: 'User with this email or username already exists' 
+      });
     }
 
-    // Create the new user record.
-    // The password will be hashed automatically via model hooks.
-    const newUser = await User.create({
+    // Create new user
+    const user = await User.create({
       firstName,
       lastName,
       email,
       username,
-      password,
+      password, // will be hashed via User model hooks
       phone,
       dateOfBirth,
       gender,
@@ -64,114 +72,185 @@ export const register = async (req, res) => {
       trainingExperience,
       healthConcerns,
       emergencyContact,
-      role: role || 'user',
+      role: 'user' // default role
     });
-    console.log("New user created with ID:", newUser.id);
 
-    // Generate a JWT token. Use a sensible expiration (defaulting to 30 days if not specified)
-    const token = jwt.sign(
-      { id: newUser.id, role: newUser.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '30d' }
-    );
+    // Generate token
+    const token = generateToken(user.id);
 
-    // Exclude the password field before sending the user data back
-    const { password: pwd, ...userData } = newUser.toJSON();
-
+    // Return user data and token
     res.status(201).json({
-      message: 'User registered successfully.',
-      user: userData,
-      token,
+      success: true,
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        username: user.username,
+        role: user.role
+      },
+      token
     });
   } catch (error) {
-    console.error('Error in register:', error.message);
-    console.error(error.stack);
-    if (error.errors && Array.isArray(error.errors)) {
-      error.errors.forEach((err) => console.error('Sequelize error:', err.message));
-    }
-    res.status(500).json({ message: 'Server error during registration.' });
+    console.error('Registration error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error during registration',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
 /**
- * Login Controller
- * - Authenticates a user based on provided credentials.
- * - Uses the model's checkPassword method to compare the input with the hashed password.
- * - If an adminAccessCode is provided and it matches the environment variable,
- *   upgrades the user role to "admin" and saves the change.
- * - Returns a JWT token along with sanitized user data.
+ * @desc    Login user
+ * @route   POST /api/auth/login
+ * @access  Public
  */
 export const login = async (req, res) => {
+  const { username, password } = req.body;
+
   try {
-    const { username, password, adminAccessCode } = req.body;
+    // Log for debugging
+    console.log(`Login attempt for username: ${username}`);
 
-    // Find the user by username
+    // Find the user
     const user = await User.findOne({ where: { username } });
+
     if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials.' });
+      console.log(`User not found: ${username}`);
+      return res.status(401).json({ 
+        success: false,
+        message: 'Invalid credentials' 
+      });
     }
 
-    // Use the instance method on the User model to check the password
+    // Check password
     const isMatch = await user.checkPassword(password);
+    
     if (!isMatch) {
-      return res.status(401).json({ message: 'Invalid credentials.' });
+      console.log(`Invalid password for user: ${username}`);
+      return res.status(401).json({ 
+        success: false,
+        message: 'Invalid credentials' 
+      });
     }
 
-    // If an adminAccessCode is provided and it matches, upgrade the user's role
-    if (adminAccessCode && adminAccessCode === process.env.ADMIN_ACCESS_CODE) {
-      // Only update if the user isn't already an admin
-      if (user.role !== 'admin') {
-        user.role = 'admin';
-        await user.save();
-      }
-    }
+    console.log(`Successful login for user: ${username}, role: ${user.role}`);
 
-    // Generate a JWT token with a default expiration of 1 hour (or as specified)
-    const token = jwt.sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
-    );
+    // Generate token
+    const token = generateToken(user.id);
 
-    // Exclude the password field from the response
-    const { password: pwd, ...userData } = user.toJSON();
-
+    // Return user data and token
     res.status(200).json({
-      message: 'Login successful.',
-      user: userData,
-      token,
+      success: true,
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        username: user.username,
+        role: user.role
+      },
+      token
     });
   } catch (error) {
-    console.error('Error in login:', error.message);
-    console.error(error.stack);
-    res.status(500).json({ message: 'Server error during login.' });
+    console.error('Login error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error during login',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
 /**
- * Validate Token Controller
- * - Extracts the token from the Authorization header.
- * - Verifies the token using jwt.verify.
- * - Returns the associated user data if the token is valid.
+ * @desc    Get current user profile
+ * @route   GET /api/auth/profile
+ * @access  Private (requires token)
  */
-export const validateToken = async (req, res) => {
-  const token = req.header('Authorization')?.split(' ')[1];
-  if (!token) {
-    return res.status(401).json({ message: 'No token provided.' });
-  }
-
+export const getProfile = async (req, res) => {
   try {
-    // Verify the token. Decoded payload will contain the user id.
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findByPk(decoded.id);
+    // The user is already attached to req by the protect middleware
+    const user = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password'] }
+    });
+
     if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
     }
-    res.status(200).json({ user });
+
+    res.status(200).json({
+      success: true,
+      user
+    });
   } catch (error) {
-    console.error('Error validating token:', error.message);
-    console.error(error.stack);
-    res.status(401).json({ message: 'Invalid token.' });
+    console.error('Profile fetch error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error fetching profile',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
+/**
+ * @desc    Validate token and return user info
+ * @route   GET /api/auth/validate-token
+ * @access  Public
+ */
+export const validateToken = async (req, res) => {
+  try {
+    let token;
+    
+    // Get token from headers
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
+    if (!token) {
+      return res.status(401).json({ 
+        success: false,
+        message: 'No token provided' 
+      });
+    }
+
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Find user by ID
+    const user = await User.findByPk(decoded.id, {
+      attributes: { exclude: ['password'] }
+    });
+
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'User not found' 
+      });
+    }
+
+    // Return user data
+    res.status(200).json({
+      success: true,
+      user
+    });
+  } catch (error) {
+    console.error('Token validation error:', error);
+    
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ 
+        success: false,
+        message: 'Token expired' 
+      });
+    }
+    
+    res.status(401).json({ 
+      success: false,
+      message: 'Invalid token',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};

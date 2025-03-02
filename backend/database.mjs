@@ -49,12 +49,15 @@ if (process.env.NODE_ENV === 'production') {
       host: process.env.PG_HOST || 'localhost',
       port: process.env.PG_PORT || 5432,
       dialect: 'postgres',
-      logging: false, // Set to console.log for SQL query debugging if needed
+      logging: console.log, // Enable logging for development
     }
   );
   
   console.log('Using development database configuration');
 }
+
+// Export Sequelize Op (operators)
+export const Op = Sequelize.Op;
 
 /**
  * Tests the database connection and logs the result
