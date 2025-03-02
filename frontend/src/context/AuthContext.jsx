@@ -1,99 +1,180 @@
-// src/context/AuthContext.jsx
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import axios from 'axios';
+import React, { createContext, useState, useContext, useEffect } from "react";
+import axios from "axios";
 
-// Use an environment variable for the API base URL if available.
-// In production, set REACT_APP_API_BASE_URL to your deployed backend URL.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api/auth';
+// Create the context
+const AuthContext = createContext();
 
-
-export const AuthContext = createContext();
+// Get API base URL from environment variable
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [token, setToken] = useState(localStorage.getItem("token") || null);
 
-  // On initial load, validate any stored token
+  // Check token and load user on mount
   useEffect(() => {
-    const initializeAuth = async () => {
-      const storedUser = localStorage.getItem('user');
-      const token = localStorage.getItem('token');
-
-      if (storedUser && token) {
+    const loadUser = async () => {
+      if (token) {
         try {
-          // Validate the token with the backend
-          const response = await axios.get(`${API_BASE_URL}/validate-token`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          // Set axios default headers
+          axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+          
+          // Fetch user data
+          const response = await axios.get(`${API_BASE_URL}/api/auth/profile`);
           setUser(response.data.user);
         } catch (error) {
-          console.warn('Token validation failed. Using stored user data.');
-          // Optionally, you could clear the token here to force re-login.
-          setUser(JSON.parse(storedUser));
+          console.error("Error loading user:", error);
+          // Clear localStorage and state if token is invalid
+          localStorage.removeItem("token");
+          setToken(null);
+          setUser(null);
         }
       }
-      setLoading(false);
+      setIsLoading(false);
     };
-    initializeAuth();
-  }, []);
 
-  /**
-   * Registers a new user.
-   * Sends the complete user object to the backend.
-   * On success, stores the returned user and token.
-   */
-  const register = async (newUser) => {
-    try {
-      const response = await axios.post(`${API_BASE_URL}/register`, newUser);
-      if (response.data.user && response.data.token) {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        localStorage.setItem('token', response.data.token);
-        setUser(response.data.user);
-      }
-      return response.data;
-    } catch (error) {
-      console.error('Registration error:', error.response?.data || error.message);
-      throw error;
-    }
-  };
+    loadUser();
+  }, [token]);
 
-  /**
-   * Logs in an existing user.
-   * Sends username and password to the backend.
-   * On success, stores the returned user and token.
-   */
+  // Login function
   const login = async (username, password) => {
     try {
-      const response = await axios.post(`${API_BASE_URL}/login`, { username, password });
-      if (response.data.user && response.data.token) {
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-        localStorage.setItem('token', response.data.token);
-        setUser(response.data.user);
-      }
-      return response.data;
+      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
+        username,
+        password
+      });
+
+      const { token, user } = response.data;
+      
+      // Save token to localStorage and state
+      localStorage.setItem("token", token);
+      setToken(token);
+      setUser(user);
+      
+      // Set default authorization header
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      
+      return { success: true, user };
     } catch (error) {
-      console.error('Login error:', error.response?.data || error.message);
-      throw error;
+      console.error("Login error:", error);
+      
+      // Provide a user-friendly error message
+      if (error.response) {
+        // The server responded with an error status
+        throw new Error(error.response.data.message || "Login failed. Please check your credentials.");
+      } else if (error.request) {
+        // The request was made but no response was received
+        throw new Error("Network error. Please check your internet connection.");
+      } else {
+        // Something else caused the error
+        throw new Error("An unexpected error occurred. Please try again.");
+      }
     }
   };
 
-  /**
-   * Logs out the current user.
-   * Clears local storage and resets the user state.
-   */
-  const logout = async () => {
-    // Optionally, call a backend logout endpoint here if needed.
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    setUser(null);
+  // Register function
+  const register = async (userData) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/auth/register`, userData);
+      
+      const { token, user } = response.data;
+      
+      // Save token to localStorage and state
+      localStorage.setItem("token", token);
+      setToken(token);
+      setUser(user);
+      
+      // Set default authorization header
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      
+      return { success: true, user };
+    } catch (error) {
+      console.error("Registration error:", error);
+      
+      // Provide a user-friendly error message
+      if (error.response) {
+        // Check for specific error types
+        if (error.response.status === 409) {
+          throw new Error("Username or email already exists. Please try another.");
+        }
+        throw new Error(error.response.data.message || "Registration failed. Please try again.");
+      } else if (error.request) {
+        throw new Error("Network error. Please check your internet connection.");
+      } else {
+        throw new Error("An unexpected error occurred. Please try again.");
+      }
+    }
   };
 
-  return (
-    <AuthContext.Provider value={{ user, loading, register, login, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+  // Logout function
+  const logout = () => {
+    // Remove token from localStorage
+    localStorage.removeItem("token");
+    
+    // Reset auth state
+    setToken(null);
+    setUser(null);
+    
+    // Remove authorization header
+    delete axios.defaults.headers.common["Authorization"];
+  };
+
+  // Check if user is authenticated
+  const isAuthenticated = () => {
+    return !!token;
+  };
+
+  // Update user profile
+  const updateProfile = async (userData) => {
+    try {
+      const response = await axios.put(
+        `${API_BASE_URL}/api/auth/profile`, 
+        userData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      
+      setUser(response.data.user);
+      return { success: true, user: response.data.user };
+    } catch (error) {
+      console.error("Update profile error:", error);
+      
+      if (error.response) {
+        throw new Error(error.response.data.message || "Failed to update profile.");
+      } else if (error.request) {
+        throw new Error("Network error. Please check your internet connection.");
+      } else {
+        throw new Error("An unexpected error occurred. Please try again.");
+      }
+    }
+  };
+
+  // Provide the auth context value
+  const value = {
+    user,
+    isLoading,
+    token,
+    login,
+    register,
+    logout,
+    isAuthenticated,
+    updateProfile
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook for easy access to the AuthContext
-export const useAuth = () => useContext(AuthContext);
+// Custom hook to use the auth context
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
+
+export default AuthContext;

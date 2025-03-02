@@ -4,8 +4,9 @@ import styled from "styled-components";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 
-// ✅ Import the logo from your assets folder
+// Import assets
 import Logo from "../assets/Logo.png";
+import powerBackground from "../assets/power-background.mp4"; // Import the video asset
 
 /* ------------------ Styled Components ------------------ */
 
@@ -147,23 +148,19 @@ const ForgotPasswordLink = styled.a`
   cursor: pointer;
 `;
 
-const SocialMediaContainer = styled.div`
-  margin-top: 20px;
+const ErrorMessage = styled.p`
+  color: #ff5555;
   text-align: center;
+  margin-bottom: 15px;
 `;
 
-const SocialButton = styled.button`
-  margin: 0 10px;
-  padding: 10px;
-  border: none;
-  border-radius: 5px;
-  background: var(--royal-purple);
-  color: #fff;
-  cursor: pointer;
-  transition: background 0.3s ease;
-
-  &:hover {
-    background: var(--neon-blue);
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
   }
 `;
 
@@ -190,6 +187,7 @@ const SignupModal = () => {
     emergencyContact: "",
   });
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleClose = () => {
     navigate(-1);
@@ -207,13 +205,18 @@ const SignupModal = () => {
       setError("Passwords do not match");
       return;
     }
+    
+    setIsLoading(true);
+    
     try {
       const { confirmPassword, ...registrationData } = formData;
       await register(registrationData);
+      setIsLoading(false);
       navigate("/dashboard");
     } catch (err) {
+      setIsLoading(false);
       console.error("Error during registration:", err);
-      setError("Registration failed. Please try again.");
+      setError(err.message || "Registration failed. Please try again.");
     }
   };
 
@@ -222,13 +225,13 @@ const SignupModal = () => {
     alert("Forgot password functionality not implemented yet.");
   };
 
-  const handleSocialLogin = (provider) => (e) => {
-    e.preventDefault();
-    alert(`Social login with ${provider} not implemented yet.`);
-  };
-
   return (
     <ModalOverlay onClick={handleClose}>
+      <VideoBackground autoPlay loop muted>
+        <source src={powerBackground} type="video/mp4" />
+        Your browser does not support the video tag.
+      </VideoBackground>
+      
       <ModalContent
         onClick={(e) => e.stopPropagation()}
         initial={{ opacity: 0, scale: 0.9 }}
@@ -240,37 +243,44 @@ const SignupModal = () => {
         {/* Modal Header with logo and app name */}
         <ModalHeader>
           <LogoCircle>
-            {/* ✅ Use the imported Logo instead of a relative string path */}
             <LogoImage src={Logo} alt="SwanStudios Logo" />
           </LogoCircle>
           <HeaderText>SwanStudios</HeaderText>
         </ModalHeader>
 
         <h2 style={{ textAlign: "center", marginBottom: "20px" }}>Sign Up</h2>
-        {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
+        {error && <ErrorMessage>{error}</ErrorMessage>}
 
         <form onSubmit={handleSubmit}>
-          <Label htmlFor="firstName">First Name</Label>
-          <InputField
-            type="text"
-            id="firstName"
-            name="firstName"
-            placeholder="Enter your first name"
-            value={formData.firstName}
-            onChange={handleChange}
-            required
-          />
+          <FormGrid>
+            <div>
+              <Label htmlFor="firstName">First Name</Label>
+              <InputField
+                type="text"
+                id="firstName"
+                name="firstName"
+                placeholder="Enter your first name"
+                value={formData.firstName}
+                onChange={handleChange}
+                required
+                disabled={isLoading}
+              />
+            </div>
 
-          <Label htmlFor="lastName">Last Name</Label>
-          <InputField
-            type="text"
-            id="lastName"
-            name="lastName"
-            placeholder="Enter your last name"
-            value={formData.lastName}
-            onChange={handleChange}
-            required
-          />
+            <div>
+              <Label htmlFor="lastName">Last Name</Label>
+              <InputField
+                type="text"
+                id="lastName"
+                name="lastName"
+                placeholder="Enter your last name"
+                value={formData.lastName}
+                onChange={handleChange}
+                required
+                disabled={isLoading}
+              />
+            </div>
+          </FormGrid>
 
           <Label htmlFor="email">Email Address</Label>
           <InputField
@@ -281,6 +291,7 @@ const SignupModal = () => {
             value={formData.email}
             onChange={handleChange}
             required
+            disabled={isLoading}
           />
 
           <Label htmlFor="username">Username</Label>
@@ -292,29 +303,38 @@ const SignupModal = () => {
             value={formData.username}
             onChange={handleChange}
             required
+            disabled={isLoading}
           />
 
-          <Label htmlFor="password">Password</Label>
-          <InputField
-            type="password"
-            id="password"
-            name="password"
-            placeholder="Enter your password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-          />
+          <FormGrid>
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <InputField
+                type="password"
+                id="password"
+                name="password"
+                placeholder="Enter your password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                disabled={isLoading}
+              />
+            </div>
 
-          <Label htmlFor="confirmPassword">Confirm Password</Label>
-          <InputField
-            type="password"
-            id="confirmPassword"
-            name="confirmPassword"
-            placeholder="Confirm your password"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            required
-          />
+            <div>
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <InputField
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                placeholder="Confirm your password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                disabled={isLoading}
+              />
+            </div>
+          </FormGrid>
 
           <Label htmlFor="phone">Phone Number</Label>
           <InputField
@@ -324,46 +344,63 @@ const SignupModal = () => {
             placeholder="Enter your phone number"
             value={formData.phone}
             onChange={handleChange}
+            disabled={isLoading}
           />
 
-          <Label htmlFor="dateOfBirth">Date of Birth</Label>
-          <InputField
-            type="date"
-            id="dateOfBirth"
-            name="dateOfBirth"
-            value={formData.dateOfBirth}
-            onChange={handleChange}
-          />
+          <FormGrid>
+            <div>
+              <Label htmlFor="dateOfBirth">Date of Birth</Label>
+              <InputField
+                type="date"
+                id="dateOfBirth"
+                name="dateOfBirth"
+                value={formData.dateOfBirth}
+                onChange={handleChange}
+                disabled={isLoading}
+              />
+            </div>
 
-          <Label htmlFor="gender">Gender</Label>
-          <InputField
-            type="text"
-            id="gender"
-            name="gender"
-            placeholder="Enter your gender"
-            value={formData.gender}
-            onChange={handleChange}
-          />
+            <div>
+              <Label htmlFor="gender">Gender</Label>
+              <InputField
+                type="text"
+                id="gender"
+                name="gender"
+                placeholder="Enter your gender"
+                value={formData.gender}
+                onChange={handleChange}
+                disabled={isLoading}
+              />
+            </div>
+          </FormGrid>
 
-          <Label htmlFor="weight">Weight (kg)</Label>
-          <InputField
-            type="number"
-            id="weight"
-            name="weight"
-            placeholder="Enter your weight"
-            value={formData.weight}
-            onChange={handleChange}
-          />
+          <FormGrid>
+            <div>
+              <Label htmlFor="weight">Weight (kg)</Label>
+              <InputField
+                type="number"
+                id="weight"
+                name="weight"
+                placeholder="Enter your weight"
+                value={formData.weight}
+                onChange={handleChange}
+                disabled={isLoading}
+              />
+            </div>
 
-          <Label htmlFor="height">Height (cm)</Label>
-          <InputField
-            type="number"
-            id="height"
-            name="height"
-            placeholder="Enter your height"
-            value={formData.height}
-            onChange={handleChange}
-          />
+            <div>
+              <Label htmlFor="height">Height (cm)</Label>
+              <InputField
+                type="number"
+                id="height"
+                name="height"
+                placeholder="Enter your height"
+                value={formData.height}
+                onChange={handleChange}
+                disabled={isLoading}
+              />
+            </div>
+          </FormGrid>
 
           <Label htmlFor="fitnessGoal">Fitness Goal</Label>
           <InputField
@@ -373,6 +410,7 @@ const SignupModal = () => {
             placeholder="E.g., lose weight, build muscle"
             value={formData.fitnessGoal}
             onChange={handleChange}
+            disabled={isLoading}
           />
 
           <Label htmlFor="trainingExperience">Training Experience</Label>
@@ -383,6 +421,7 @@ const SignupModal = () => {
             placeholder="Describe your training experience"
             value={formData.trainingExperience}
             onChange={handleChange}
+            disabled={isLoading}
           />
 
           <Label htmlFor="healthConcerns">Health Concerns</Label>
@@ -393,6 +432,7 @@ const SignupModal = () => {
             placeholder="Any health issues or concerns"
             value={formData.healthConcerns}
             onChange={handleChange}
+            disabled={isLoading}
           />
 
           <Label htmlFor="emergencyContact">Emergency Contact</Label>
@@ -403,9 +443,12 @@ const SignupModal = () => {
             placeholder="Emergency contact name & phone"
             value={formData.emergencyContact}
             onChange={handleChange}
+            disabled={isLoading}
           />
 
-          <Button type="submit">Sign Up</Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? "Creating Account..." : "Sign Up"}
+          </Button>
         </form>
         <ForgotPasswordLink onClick={handleForgotPassword}>
           Forgot Password?

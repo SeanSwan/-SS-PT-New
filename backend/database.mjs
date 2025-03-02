@@ -14,28 +14,40 @@ let sequelize;
 
 // Determine which database configuration to use based on environment
 if (process.env.NODE_ENV === 'production') {
-  // PRODUCTION: Use Render's DATABASE_URL with SSL configuration
-  sequelize = new Sequelize(process.env.DATABASE_URL, {
-    dialect: 'postgres',
-    dialectOptions: {
-      ssl: {
-        require: true,
-        rejectUnauthorized: false // Required for Render PostgreSQL connections
-      }
-    },
-    logging: false
-  });
+  // Check if DATABASE_URL is set
+  const databaseUrl = process.env.DATABASE_URL;
   
-  console.log('Using production database configuration');
+  if (!databaseUrl) {
+    console.error('❌ CRITICAL ERROR: DATABASE_URL environment variable is not set in production!');
+    console.error('Please add DATABASE_URL to your environment variables in Render dashboard.');
+    // Provide a fallback to prevent immediate crash, though service won't work properly
+    sequelize = new Sequelize('postgres://fallback:fallback@localhost:5432/fallback', {
+      dialect: 'postgres',
+      logging: false
+    });
+  } else {
+    // PRODUCTION: Use Render's DATABASE_URL with SSL configuration
+    sequelize = new Sequelize(databaseUrl, {
+      dialect: 'postgres',
+      dialectOptions: {
+        ssl: {
+          require: true,
+          rejectUnauthorized: false // Required for Render PostgreSQL connections
+        }
+      },
+      logging: false
+    });
+    console.log('Using production database configuration');
+  }
 } else {
   // DEVELOPMENT: Use local PostgreSQL configuration
   sequelize = new Sequelize(
-    process.env.PG_DB,
-    process.env.PG_USER,
-    process.env.PG_PASSWORD,
+    process.env.PG_DB || 'swanstudios',
+    process.env.PG_USER || 'swanadmin',
+    process.env.PG_PASSWORD || '',
     {
-      host: process.env.PG_HOST,
-      port: process.env.PG_PORT,
+      host: process.env.PG_HOST || 'localhost',
+      port: process.env.PG_PORT || 5432,
       dialect: 'postgres',
       logging: false, // Set to console.log for SQL query debugging if needed
     }

@@ -36,18 +36,21 @@ const port = process.env.NODE_ENV === 'production'
   ? (process.env.PORT || 10000)
   : (process.env.BACKEND_PORT || 5000);
 
-// Set up CORS configuration
+// Set up CORS configuration with support for sswanstudios.com
 const allowedOrigins = process.env.NODE_ENV === 'production'
   ? [
-      // Add your production frontend URLs here
-      'https://swanstudios.onrender.com',  // Render-hosted frontend URL
-      'https://www.swanstudios.com',       // Add your custom domain if you have one
+      // Production frontend URLs
+      'https://ss-pt.onrender.com',
+      'https://sswanstudios.com',
+      'https://www.sswanstudios.com',
+      // Add frontend render URL
+      'https://swanstudios.onrender.com'
     ]
   : process.env.FRONTEND_ORIGINS
     ? process.env.FRONTEND_ORIGINS.split(",").map((origin) => origin.trim())
     : ["http://localhost:5173", "http://localhost:5174"];
 
-// Configure CORS options
+// Expanded CORS options to handle preflight requests properly
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps, curl, etc.)
@@ -61,15 +64,30 @@ const corsOptions = {
     }
   },
   credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Add OPTIONS for preflight
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"] // Specify allowed headers
 };
 
 // Apply middleware
 app.use(cors(corsOptions));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // Support URL-encoded bodies
+
+// Log all requests in development
+if (process.env.NODE_ENV !== 'production') {
+  app.use((req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    next();
+  });
+}
 
 // Simple health check route
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', environment: process.env.NODE_ENV });
+  res.status(200).json({ 
+    status: 'ok', 
+    environment: process.env.NODE_ENV,
+    allowedOrigins: allowedOrigins 
+  });
 });
 
 // ================== API ROUTES ================== 
@@ -81,6 +99,14 @@ app.use("/api/sessions", sessionRoutes);
 app.use("/api/checkout", checkoutRoutes);
 app.use("/api/schedule", scheduleRoutes);
 app.use("/api/contact", contactRoutes);
+
+// Default route to handle 404s for API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ 
+    success: false, 
+    message: 'API endpoint not found' 
+  });
+});
 
 // ================== SOCKET.IO SETUP ================== 
 export const io = new Server(server, {

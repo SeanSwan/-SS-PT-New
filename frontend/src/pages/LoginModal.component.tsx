@@ -4,8 +4,10 @@ import styled from "styled-components";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 
-// ✅ Import the same logo used in SignupModal
+// Import the logo asset
 import Logo from "../assets/Logo.png";
+// Import the background video
+import powerBackground from "../assets/power-background.mp4";
 
 /* ------------------ Styled Components ------------------ */
 
@@ -65,7 +67,6 @@ const CloseButton = styled.button`
   }
 `;
 
-/* -------- New Header Styles (same as SignupModal) -------- */
 const ModalHeader = styled.div`
   display: flex;
   flex-direction: column;
@@ -136,6 +137,12 @@ const ForgotPasswordLink = styled.a`
   cursor: pointer;
 `;
 
+const ErrorMessage = styled.p`
+  color: #ff5555;
+  text-align: center;
+  margin-bottom: 15px;
+`;
+
 /* ------------------ LoginModal Component ------------------ */
 
 const LoginModal = () => {
@@ -143,6 +150,7 @@ const LoginModal = () => {
   const { login } = useAuth();
   const [credentials, setCredentials] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   // Dismiss the modal and return to the previous page.
   const handleClose = () => {
@@ -164,8 +172,12 @@ const LoginModal = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
+    
     try {
       const response = await login(credentials.username, credentials.password);
+      setIsLoading(false);
+      
       if (response.user) {
         if (response.user.role === "admin") {
           navigate("/admin-dashboard");
@@ -174,14 +186,17 @@ const LoginModal = () => {
         }
       }
     } catch (err) {
-      setError("Invalid username or password");
+      setIsLoading(false);
+      console.error("Login error:", err);
+      setError(err.message || "Invalid username or password");
     }
   };
 
   return (
     <FullPageContainer onClick={handleClose}>
       <VideoBackground autoPlay loop muted>
-        <source src="/assets/power-background.mp4" type="video/mp4" />
+        {/* Use imported video instead of public path */}
+        <source src={powerBackground} type="video/mp4" />
         Your browser does not support the video tag.
       </VideoBackground>
 
@@ -193,7 +208,6 @@ const LoginModal = () => {
       >
         <CloseButton onClick={handleClose}>&times;</CloseButton>
 
-        {/* ✅ Modal Header with Logo */}
         <ModalHeader>
           <LogoCircle>
             <LogoImage src={Logo} alt="SwanStudios Logo" />
@@ -202,7 +216,7 @@ const LoginModal = () => {
         </ModalHeader>
 
         <h2 style={{ textAlign: "center", marginBottom: "20px" }}>Login</h2>
-        {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
+        {error && <ErrorMessage>{error}</ErrorMessage>}
 
         <form onSubmit={handleSubmit}>
           <InputField
@@ -212,6 +226,7 @@ const LoginModal = () => {
             value={credentials.username}
             onChange={handleChange}
             required
+            disabled={isLoading}
           />
           <InputField
             type="password"
@@ -220,8 +235,11 @@ const LoginModal = () => {
             value={credentials.password}
             onChange={handleChange}
             required
+            disabled={isLoading}
           />
-          <Button type="submit">Login</Button>
+          <Button type="submit" disabled={isLoading}>
+            {isLoading ? "Logging in..." : "Login"}
+          </Button>
         </form>
 
         <ForgotPasswordLink onClick={handleForgotPassword}>
