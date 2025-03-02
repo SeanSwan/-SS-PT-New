@@ -1,7 +1,7 @@
 // backend/models/CartItem.js
 import { DataTypes, Model } from 'sequelize';
-import sequelize from '../database.js';
-import ShoppingCart from './ShoppingCart.js';
+import sequelize from '../database.mjs';
+import ShoppingCart from './ShoppingCart.mjs';
 import StorefrontItem from './StorefrontItem.mjs';
 
 class CartItem extends Model {}

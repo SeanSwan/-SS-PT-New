@@ -4,7 +4,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import http from "http";
 import { Server } from "socket.io";
-import sequelize from "./database.js";
+import sequelize from "./database.mjs";
 
 // Existing route imports
 import authRoutes from "./routes/authRoutes.mjs";

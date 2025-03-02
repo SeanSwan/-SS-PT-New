@@ -1,6 +1,6 @@
 // backend/models/Contact.js
 import { DataTypes, Model } from "sequelize";
-import sequelize from "../database.js";
+import sequelize from "../database.mjs";
 
 class Contact extends Model {}
 
