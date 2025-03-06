@@ -1,9 +1,13 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import svgr from "vite-plugin-svgr"; // Add this import at the top
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    svgr() // Fix the syntax - no square brackets around svgr()
+  ],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"), // Main alias for src directory
@@ -18,11 +22,20 @@ export default defineConfig({
       "contexts": path.resolve(__dirname, "./src/BerryAdmin/contexts"),
       "menu-items": path.resolve(__dirname, "./src/BerryAdmin/menu-items"),
       "config": path.resolve(__dirname, "./src/BerryAdmin/config.js"),
+      // Add alias for assets to help with SVG imports
+      "assets": path.resolve(__dirname, "./src/BerryAdmin/assets"),
     },
   },
   server: {
     host: process.env.VITE_APP_HOST || "localhost",
     port: parseInt(process.env.VITE_APP_PORT, 10) || 5173,
     open: true,
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      loader: {
+        '.js': 'jsx',
+      },
+    },
   },
 });

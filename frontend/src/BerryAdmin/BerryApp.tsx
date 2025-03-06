@@ -1,56 +1,72 @@
 /**
  * BerryApp.tsx
- * Main entry for the Berry Admin (or Client) Dashboard
+ * Main entry for the Berry Admin Dashboard
  */
 import React from "react";
 import { useSelector } from "react-redux";
-import { RootState } from "@/store"; // Adjust if needed
-// Import MUI ThemeProvider (aliased below)
-import { ThemeProvider as MuiThemeProvider } from "@mui/material/styles";
-import { CssBaseline } from "@mui/material";
-// Import styled-components' ThemeProvider
-import { ThemeProvider as SCThemeProvider } from "styled-components";
+import { Routes, Route } from "react-router-dom";
+import { CssBaseline, StyledEngineProvider } from "@mui/material";
+import { ThemeProvider } from "@mui/material/styles";
 
-import GlobalStyle from "../styles/GlobalStyle"; 
-import ErrorBoundary from "@/components/ErrorBoundary/error-boundry.component";
-import AdminLayout from "./layout/MainLayout"; 
-import Header from "../components/Header/header"
+// Berry themes
+import themes from "./themes/berryDarkTheme";
 
-// Import your themes
-import berryDarkTheme from "./themes/berryDarkTheme";
-import berryLightTheme from "./themes/berryLightTheme";
-import berryOriginalTheme from "./themes/berryOriginalTheme";
+// Project imports - Layout components
+import NavigationScroll from "./layout/NavigationScroll";
+import MainLayout from "./layout/MainLayout";
+import MinimalLayout from "./layout/MinimalLayout";
 
+// Routes
+import MainRoutes from "./routes/MainRoutes";
+import AuthenticationRoutes from "./routes/AuthenticationRoutes";
+
+// Use ErrorBoundary from component
+import ErrorBoundary from "../components/ErrorBoundary/error-boundry.component";
+
+// Get the RootState type from your store
+import { RootState } from "../store";
+
+/**
+ * BerryApp - Main component for the Berry admin dashboard
+ * Handles theme selection, routing, and layout
+ */
 const BerryApp: React.FC = () => {
-  // Access the current theme mode from Redux
-  const currentMode = useSelector((state: RootState) => state.theme.mode);
-
-  // Decide which theme object to use
-  let activeTheme;
-  switch (currentMode) {
-    case "light":
-      activeTheme = berryLightTheme;
-      break;
-    case "original":
-      activeTheme = berryOriginalTheme;
-      break;
-    default:
-      activeTheme = berryDarkTheme;
-      break;
-  }
+  // Get customization settings from Redux store
+  const customization = useSelector((state: RootState) => state.customization);
 
   return (
-    <MuiThemeProvider theme={activeTheme}>
-      <SCThemeProvider theme={activeTheme}>
+    <StyledEngineProvider injectFirst>
+      <ThemeProvider theme={themes(customization)}>
         <CssBaseline />
-        <GlobalStyle />
-        <Header />
-        <ErrorBoundary>
-          
-          <AdminLayout />
-        </ErrorBoundary>
-      </SCThemeProvider>
-    </MuiThemeProvider>
+        <NavigationScroll>
+          <ErrorBoundary>
+            <Routes>
+              {/* Auth routes */}
+              <Route path="auth/*" element={<MinimalLayout />}>
+                {AuthenticationRoutes.map((route, index) => (
+                  <Route
+                    key={index}
+                    path={route.path}
+                    element={route.element}
+                  />
+                ))}
+              </Route>
+
+              {/* Main routes */}
+              <Route path="/*" element={<MainLayout />}>
+                {MainRoutes.children?.map((route, index) => (
+                  <Route
+                    key={index}
+                    path={route.path}
+                    element={route.element}
+                  />
+                ))}
+              </Route>
+            </Routes>
+          </ErrorBoundary>
+        </NavigationScroll>
+      </ThemeProvider>
+    </StyledEngineProvider>
   );
 };
 

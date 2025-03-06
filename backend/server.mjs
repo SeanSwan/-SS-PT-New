@@ -12,6 +12,7 @@ import dotenv from "dotenv";
 import http from "http";
 import { Server } from "socket.io";
 import sequelize from "./database.mjs";
+import setupAssociations from "./setupAssociations.mjs";
 
 // Route imports
 import authRoutes from "./routes/authRoutes.mjs";
@@ -22,6 +23,10 @@ import sessionRoutes from "./routes/sessionRoutes.mjs";
 import checkoutRoutes from "./routes/checkoutRoutes.mjs";
 import scheduleRoutes from "./routes/scheduleRoutes.mjs";
 import contactRoutes from "./routes/contactRoutes.mjs";
+
+import { errorHandler, notFound } from './middleware/errorMiddleware.mjs';
+
+
 
 // Load environment variables
 dotenv.config();
@@ -108,6 +113,10 @@ app.use('/api/*', (req, res) => {
   });
 });
 
+// Add after all your routes
+app.use(notFound);
+app.use(errorHandler);
+
 // ================== SOCKET.IO SETUP ================== 
 export const io = new Server(server, {
   cors: {
@@ -125,18 +134,61 @@ io.on("connection", (socket) => {
     console.log("A user disconnected");
   });
   
-  // Add additional socket event handlers here as needed
+  // Schedule update events
+  socket.on("join_schedule_room", (userId) => {
+    socket.join(`schedule_${userId}`);
+    console.log(`User ${userId} joined schedule room`);
+  });
+  
+  socket.on("leave_schedule_room", (userId) => {
+    socket.leave(`schedule_${userId}`);
+    console.log(`User ${userId} left schedule room`);
+  });
+  
+  // Session notification events
+  socket.on("session_updated", (data) => {
+    // Broadcast to all relevant users
+    if (data.clientId) {
+      io.to(`schedule_${data.clientId}`).emit("session_change", data);
+    }
+    if (data.trainerId) {
+      io.to(`schedule_${data.trainerId}`).emit("session_change", data);
+    }
+    // Also broadcast to admin room if exists
+    io.to("admin_schedule").emit("session_change", data);
+  });
+});
+
+// ================== ERROR HANDLING MIDDLEWARE ================== 
+// Global error handler - must be defined after routes
+app.use((err, req, res, next) => {
+  console.error('Server error:', err);
+  res.status(err.status || 500).json({
+    success: false,
+    message: process.env.NODE_ENV === 'production' 
+      ? 'Server error occurred' 
+      : err.message,
+    stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
+  });
 });
 
 // ================== DATABASE SYNC & SERVER START ==================
 // Safe database synchronization and server startup
 const startServer = async () => {
   try {
+    // Set up model associations
+    setupAssociations();
+    
+    // Check database connection
+    await sequelize.authenticate();
+    console.log('✅ Database connection established successfully');
+    
     // Synchronize database models with database
-    // Use { alter: true } to make non-destructive changes
-    // In production, consider using migrations instead of sync
-    await sequelize.sync({ alter: true });
-    console.log('✅ Database synchronized successfully');
+    // In production, use alter: false and rely on migrations
+    if (process.env.NODE_ENV !== 'production') {
+      await sequelize.sync({ alter: false });
+      console.log('✅ Database synchronized successfully');
+    }
     
     // Start the HTTP server
     server.listen(port, () => {
@@ -152,3 +204,6 @@ const startServer = async () => {
 
 // Start the server
 startServer();
+
+// Export for testing or importing in other modules
+export default app;

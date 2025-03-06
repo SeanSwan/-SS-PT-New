@@ -1,7 +1,11 @@
-// backend/routes/authRoutes.mjs
+/**
+ * authRoutes.mjs
+ * Routes for authentication and user management
+ */
 import express from 'express';
 import { register, login, validateToken, getProfile } from '../controllers/authController.mjs';
-import { protect } from '../middleware/authMiddleware.mjs';
+import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
+import User from '../models/User.mjs';
 
 const router = express.Router();
 
@@ -32,5 +36,49 @@ router.get('/validate-token', validateToken);
  * @access  Private
  */
 router.get('/profile', protect, getProfile);
+
+/**
+ * @route   GET /api/auth/users/trainers
+ * @desc    Get all trainers
+ * @access  Private
+ */
+router.get('/users/trainers', protect, async (req, res) => {
+  try {
+    const trainers = await User.findAll({
+      where: {
+        role: 'trainer',
+        isActive: true
+      },
+      attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'specialties']
+    });
+    
+    res.json(trainers);
+  } catch (error) {
+    console.error('Error fetching trainers:', error);
+    res.status(500).json({ message: 'Server error fetching trainers' });
+  }
+});
+
+/**
+ * @route   GET /api/auth/users/clients
+ * @desc    Get all clients
+ * @access  Private (Admin Only)
+ */
+router.get('/users/clients', protect, adminOnly, async (req, res) => {
+  try {
+    const clients = await User.findAll({
+      where: {
+        role: 'client',
+        isActive: true
+      },
+      attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo']
+    });
+    
+    res.json(clients);
+  } catch (error) {
+    console.error('Error fetching clients:', error);
+    res.status(500).json({ message: 'Server error fetching clients' });
+  }
+});
 
 export default router;

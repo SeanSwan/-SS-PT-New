@@ -1,55 +1,117 @@
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
-import User from './User.mjs';
 
 class Session extends Model {}
 
-Session.init(
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true,
-    },
-    // Date/time when the session is scheduled to start.
-    sessionDate: {
-      type: DataTypes.DATE,
-      allowNull: false,
-    },
-    // Duration in minutes (optional).
-    duration: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      defaultValue: 60,
-    },
-    // Status includes: available, requested, scheduled, completed, cancelled.
-    status: {
-      type: DataTypes.ENUM('available', 'requested', 'scheduled', 'completed', 'cancelled'),
-      allowNull: false,
-      defaultValue: 'available',
-    },
-    // Additional session details (e.g., notes)
-    notes: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
-    // Flag to indicate whether the session has been confirmed by admin.
-    confirmed: {
-      type: DataTypes.BOOLEAN,
-      allowNull: false,
-      defaultValue: false,
-    },
+Session.init({
+  sessionDate: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    comment: 'Start date and time of the session'
   },
-  {
-    sequelize,
-    modelName: 'Session',
-    tableName: 'sessions',
-    timestamps: true,
+  duration: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 60,
+    comment: 'Duration in minutes'
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    },
+    comment: 'Client who booked the session'
+  },
+  trainerId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    },
+    comment: 'Trainer assigned to the session'
+  },
+  location: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'Physical location for the session'
+  },
+  notes: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Additional notes for the session'
+  },
+  status: {
+    type: DataTypes.ENUM('available', 'requested', 'scheduled', 'confirmed', 'completed', 'cancelled'),
+    allowNull: false,
+    defaultValue: 'available',
+    comment: 'Current status of the session'
+  },
+  cancellationReason: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Reason for cancellation if applicable'
+  },
+  cancelledBy: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id'
+    },
+    comment: 'User who cancelled the session'
+  },
+  sessionDeducted: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    comment: 'Whether a session was deducted from client package'
+  },
+  deductionDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'When the session was deducted'
+  },
+  confirmed: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    comment: 'Whether the session is confirmed'
+  },
+  reminderSent: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    comment: 'Whether reminder notification was sent'
+  },
+  reminderSentDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'When the reminder was sent'
+  },
+  feedbackProvided: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    comment: 'Whether client provided feedback'
+  },
+  rating: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    comment: 'Client rating (1-5)'
+  },
+  feedback: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Client feedback text'
   }
-);
-
-// Associations: A User can have many Sessions; a Session belongs to a User.
-User.hasMany(Session, { foreignKey: 'userId', as: 'sessions' });
-Session.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+}, {
+  sequelize,
+  modelName: 'session',
+  tableName: 'sessions',
+  timestamps: true
+});
 
 export default Session;

@@ -1,19 +1,24 @@
+/**
+ * MainRoutes.jsx
+ * Defines the main routes for the Berry Admin dashboard
+ */
 import { lazy } from 'react';
+import MainLayout from '../layout/MainLayout';
+import Loadable from '../ui-component/Loadable';
 
-// project imports
-import MainLayout from 'layout/MainLayout';
-import Loadable from 'ui-component/Loadable';
+// Dashboard
+const DashboardDefault = Loadable(lazy(() => import('../views/dashboard/Default')));
 
-// dashboard routing
-const DashboardDefault = Loadable(lazy(() => import('views/dashboard/Default')));
+// Schedule Management
+const ScheduleManagement = Loadable(lazy(() => import('../views/ScheduleManagement')));
 
-// utilities routing
-const UtilsTypography = Loadable(lazy(() => import('views/utilities/Typography')));
-const UtilsColor = Loadable(lazy(() => import('views/utilities/Color')));
-const UtilsShadow = Loadable(lazy(() => import('views/utilities/Shadow')));
+// Sample page
+const SamplePage = Loadable(lazy(() => import('../views/sample-page')));
 
-// sample page routing
-const SamplePage = Loadable(lazy(() => import('views/sample-page')));
+// Utilities
+const UtilsTypography = Loadable(lazy(() => import('../views/berryUtilities/Typography')));
+const UtilsColor = Loadable(lazy(() => import('../views/berryUtilities/Color')));
+const UtilsShadow = Loadable(lazy(() => import('../views/berryUtilities/Shadow')));
 
 // ==============================|| MAIN ROUTING ||============================== //
 
@@ -22,7 +27,7 @@ const MainRoutes = {
   element: <MainLayout />,
   children: [
     {
-      path: '/',
+      path: '',
       element: <DashboardDefault />
     },
     {
@@ -33,6 +38,10 @@ const MainRoutes = {
           element: <DashboardDefault />
         }
       ]
+    },
+    {
+      path: 'schedule',
+      element: <ScheduleManagement />
     },
     {
       path: 'typography',
@@ -47,7 +56,7 @@ const MainRoutes = {
       element: <UtilsShadow />
     },
     {
-      path: '/sample-page',
+      path: 'sample-page',
       element: <SamplePage />
     }
   ]

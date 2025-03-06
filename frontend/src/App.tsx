@@ -36,7 +36,7 @@ import Header from "./components/Header/header";
 import Footer from "./components/Footer/Footer";
 import Schedule from "./components/Schedule/schedule";
 
-// Pages (non‑modal routes)
+// Pages (non-modal routes)
 import HomePage from "./pages/HomePage.component";
 import About from "./pages/about/About";
 import ContactPage from "./pages/contactpage/ContactPage";
@@ -49,14 +49,14 @@ import LoginModal from "./pages/LoginModal.component";
 import SignupModal from "./pages/SignupModal.component";
 
 // Berry Admin (the new dashboard)
-import BerryApp from "./BerryAdmin/BerryApp";
+import Berry from "./BerryAdmin/berryIndex"; // Import Berry index instead of BerryApp directly
 
 // Protected route component for admin routes
 const AdminRoute: React.FC<{ children: JSX.Element }> = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
 
   // While authentication is being verified, show a loading indicator
-  if (loading) return <div>Loading...</div>;
+  if (isLoading) return <div>Loading...</div>;
 
   // If user is not found or does not have admin privileges, redirect
   if (!user || user.role !== "admin") {
@@ -80,12 +80,12 @@ const AppRoutes: React.FC = () => {
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
         <Route path="/client-dashboard" element={<ClientDashboard />} />
 
-        {/* Protected Admin Dashboard route */}
+        {/* Protected Admin Dashboard route - Use the admin-dashboard/* pattern */}
         <Route
-          path="/admin-dashboard"
+          path="/admin-dashboard/*"
           element={
             <AdminRoute>
-              <BerryApp />
+              <Berry />
             </AdminRoute>
           }
         />
@@ -118,6 +118,7 @@ function App() {
               <Router>
                 <ErrorBoundary>
                   <div className="App">
+                    {/* Header will be conditionally rendered inside each route */}
                     <Header />
                     <main>
                       <Helmet>

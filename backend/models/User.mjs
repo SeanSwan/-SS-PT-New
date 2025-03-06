@@ -1,10 +1,11 @@
+// backend/models/User.mjs
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
 import bcrypt from 'bcryptjs';
 
 /**
- * User Model Definition
- * Supports both client and admin users.
+ * Enhanced User Model
+ * Supports clients, trainers, and admin roles with appropriate fields
  */
 class User extends Model {
   /**
@@ -19,11 +20,10 @@ class User extends Model {
 
 User.init(
   {
-    // Primary key: auto-incremented ID
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
+      defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
-      autoIncrement: true,
     },
     // Basic personal details
     firstName: {
@@ -55,11 +55,25 @@ User.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    // Optional fields for clients
+    // Contact information
     phone: {
       type: DataTypes.STRING,
       allowNull: true,
     },
+    // Profile photo
+    photo: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    // Role - now supports client, trainer, and admin
+    role: {
+      type: DataTypes.ENUM('client', 'trainer', 'admin'),
+      allowNull: false,
+      defaultValue: 'client',
+    },
+    
+    // ========== CLIENT-SPECIFIC FIELDS ==========
+    // Physical attributes
     dateOfBirth: {
       type: DataTypes.DATEONLY,
       allowNull: true,
@@ -76,6 +90,7 @@ User.init(
       type: DataTypes.FLOAT,
       allowNull: true,
     },
+    // Fitness information
     fitnessGoal: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -92,29 +107,100 @@ User.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    // New field: photo URL (optional)
-    photo: {
-      type: DataTypes.STRING,
+    // Purchased sessions
+    availableSessions: {
+      type: DataTypes.INTEGER,
       allowNull: true,
-      // Optionally, you can set a defaultValue here, e.g.:
-      // defaultValue: 'https://example.com/default-avatar.png',
+      defaultValue: 0,
+      comment: 'Number of pre-purchased sessions available'
     },
-    // Role field distinguishes between client and admin
-    role: {
-      type: DataTypes.ENUM('user', 'admin'),
+    
+    // ========== TRAINER-SPECIFIC FIELDS ==========
+    // Professional information
+    specialties: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'Trainer specialties/focus areas'
+    },
+    certifications: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'Trainer certifications'
+    },
+    bio: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'Trainer biography for client view'
+    },
+    // Scheduling information
+    availableDays: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'JSON string of days the trainer is typically available'
+    },
+    availableHours: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'JSON string of hours the trainer is typically available'
+    },
+    // Billing information
+    hourlyRate: {
+      type: DataTypes.FLOAT,
+      allowNull: true,
+      comment: 'Trainer hourly rate'
+    },
+    
+    // ========== ADMIN-SPECIFIC FIELDS ==========
+    // Administrative permissions
+    permissions: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'JSON string of specific admin permissions'
+    },
+    
+    // ========== COMMON FIELDS ==========
+    // Account status
+    isActive: {
+      type: DataTypes.BOOLEAN,
       allowNull: false,
-      defaultValue: 'user',
+      defaultValue: true,
+      comment: 'Whether the user account is active'
     },
+    lastLogin: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Timestamp of last login'
+    },
+    // Communication preferences
+    emailNotifications: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+      comment: 'Whether to send email notifications'
+    },
+    smsNotifications: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: true,
+      comment: 'Whether to send SMS notifications'
+    },
+    // Misc user settings
+    preferences: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'JSON string of user preferences'
+    }
   },
   {
     sequelize,
     modelName: 'User',
     tableName: 'users',
     timestamps: true,
+    paranoid: true // Soft deletes
   }
 );
 
-// Hook to hash the password before creating a new user.
+// Hash password before creating a new user
 User.beforeCreate(async (user) => {
   try {
     const salt = await bcrypt.genSalt(10);
@@ -125,7 +211,7 @@ User.beforeCreate(async (user) => {
   }
 });
 
-// Hook to hash the password before updating if it has changed.
+// Hash password before updating if it changed
 User.beforeUpdate(async (user) => {
   try {
     if (user.changed('password')) {

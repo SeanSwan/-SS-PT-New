@@ -1,12 +1,12 @@
 import { lazy } from 'react';
 
-// project imports
-import Loadable from 'ui-component/Loadable';
-import MinimalLayout from 'layout/MinimalLayout';
+// project imports - fixed import paths with relative references
+import Loadable from '../ui-component/Loadable';
+import MinimalLayout from '../layout/MinimalLayout';
 
 // maintenance routing
-const LoginPage = Loadable(lazy(() => import('views/pages/authentication/Login')));
-const RegisterPage = Loadable(lazy(() => import('views/pages/authentication/Register')));
+const LoginPage = Loadable(lazy(() => import('../views/pages/authentication/Login')));
+const RegisterPage = Loadable(lazy(() => import('../views/pages/authentication/Register')));
 
 // ==============================|| AUTHENTICATION ROUTING ||============================== //
 

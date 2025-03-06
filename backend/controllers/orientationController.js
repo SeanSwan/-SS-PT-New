@@ -1,5 +1,17 @@
 // backend/controllers/orientationController.js
+import logger from '../utils/logger.mjs';
 import Orientation from '../models/Orientation.mjs';
+
+export const exampleController = async (req, res) => {
+  try {
+    logger.info('Processing request', { path: req.path, method: req.method });
+    // Controller logic
+    res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error('Error in exampleController', { error: error.message, stack: error.stack });
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
 
 /**
  * orientationSignup Controller
