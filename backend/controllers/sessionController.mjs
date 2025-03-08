@@ -12,7 +12,7 @@ import {
   notifyLowSessionsRemaining
 } from '../utils/notification.mjs';
 
-export const exampleController = async (req, res) => {
+export const sessionController = async (req, res) => {
   try {
     logger.info('Processing request', { path: req.path, method: req.method });
     // Controller logic

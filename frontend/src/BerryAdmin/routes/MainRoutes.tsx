@@ -5,28 +5,28 @@ import { HelmetProvider } from 'react-helmet-async';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Context providers
-import { AuthProvider } from './context/AuthContext';
-import { useAuth } from './context/AuthContext';
-import { ToastProvider } from './context/ToastContext';
+import { AuthProvider } from '../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
+import { ToastProvider } from '../../context/ToastContext';
 
 // Components and pages
-import HomePage from './pages/HomePage.component';
-import LoginModal from './pages/LoginModal.component';
-import SignupModal from './pages/SignupModal.component';
-import ContactPage from './pages/contactpage/ContactPage';
-import AboutPage from './pages/about/About';
-import StoreFront from './pages/shop/StoreFront.component';
-import ClientDashboard from './components/ClientDashboard/ClientDashboard';
-import UnauthorizedPage from './pages/UnauthorizedPage.component';
+import HomePage from '../../pages/HomePage.component';
+import LoginModal from '../../pages/LoginModal.component';
+import SignupModal from '../../pages/SignupModal.component';
+import ContactPage from '../../pages/contactpage/ContactPage';
+import AboutPage from '../../pages/about/About';
+import StoreFront from '../../pages/shop/StoreFront.component';
+import ClientDashboard from '../../components/ClientDashboard/ClientDashboard';
+import UnauthorizedPage from '../../pages/UnauthorizedPage.component';
 
 // Error Boundary
-import ErrorBoundary from './components/ErrorBoundary/error-boundry.component';
+import ErrorBoundary from '../../components/ErrorBoundary/error-boundry.component';
 
 // BerryAdmin import - direct import to simplify integration
-import Berry from './BerryAdmin/berryIndex';
+import Berry from '../../BerryAdmin/berryIndex';
 
 // Store
-import store from './store';
+import store from '../../store';
 
 // Create React Query client
 const queryClient = new QueryClient();

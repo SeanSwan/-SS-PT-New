@@ -11,12 +11,12 @@ import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 
-// project imports
-import MainCard from 'ui-component/cards/MainCard';
-import SkeletonEarningCard from 'ui-component/cards/Skeleton/EarningCard';
+// project imports - fixed with relative imports
+import MainCard from '../../../ui-component/cards/MainCard';
+import SkeletonEarningCard from '../../../ui-component/cards/Skeleton/EarningCard';
 
-// assets
-import EarningIcon from '../../../assets/images/icons/earning.svg';
+// Using MUI icons instead of SVG for reliability
+import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import GetAppTwoToneIcon from '@mui/icons-material/GetAppOutlined';
@@ -88,7 +88,8 @@ export default function EarningCard({ isLoading }) {
                         mt: 1
                       }}
                     >
-                      <CardMedia sx={{ width: 24, height: 24 }} component="img" src={EarningIcon} alt="Notification" />
+                      {/* Replace SVG with MUI icon */}
+                      <AccountBalanceWalletOutlinedIcon />
                     </Avatar>
                   </Grid>
                   <Grid>

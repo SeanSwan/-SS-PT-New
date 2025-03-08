@@ -1,10 +1,15 @@
+/**
+ * AuthContext.jsx
+ * Provides authentication state and functions throughout the application
+ */
 import React, { createContext, useState, useContext, useEffect } from "react";
 import axios from "axios";
 
 // Create the context
 const AuthContext = createContext();
 
-// Get API base URL from environment variable
+// Get API base URL from environment variable or use default
+// IMPORTANT: Changed from 8080 to 5000 to match the backend port
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 export const AuthProvider = ({ children }) => {

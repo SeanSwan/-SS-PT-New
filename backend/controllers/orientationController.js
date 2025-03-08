@@ -2,7 +2,7 @@
 import logger from '../utils/logger.mjs';
 import Orientation from '../models/Orientation.mjs';
 
-export const exampleController = async (req, res) => {
+export const orientationController = async (req, res) => {
   try {
     logger.info('Processing request', { path: req.path, method: req.method });
     // Controller logic
@@ -23,7 +23,21 @@ export const exampleController = async (req, res) => {
  *
  * It also uses req.user (populated by the protect middleware)
  * to associate the signup with the logged-in user.
+ * 
+ * 
  */
+
+import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
+
+export const getUserProfile = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.user.id);
+    return successResponse(res, user, 'User profile retrieved successfully');
+  } catch (error) {
+    return errorResponse(res, 'Failed to retrieve user profile', 500);
+  }
+};
+
 export const orientationSignup = async (req, res) => {
   try {
     // Extract the logged-in user's id (set by protect middleware)

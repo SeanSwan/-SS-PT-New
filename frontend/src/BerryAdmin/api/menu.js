@@ -1,58 +1,68 @@
-import useSWR, { mutate } from 'swr';
-import { useMemo } from 'react';
+/**
+ * menu.js
+ * 
+ * API utilities for menu handling in Berry Admin
+ */
+import { useSelector } from 'react-redux';
 
-const initialState = {
-  openedItem: 'dashboard',
-  openedComponent: 'buttons',
-  openedHorizontalItem: null,
-  isDashboardDrawerOpened: false,
-  isComponentDrawerOpened: true
+// Default menu state
+const defaultMenuMaster = {
+  isDashboardDrawerOpened: true,
+  openedMenuItems: []
 };
 
-export const endpoints = {
-  key: 'api/menu',
-  master: 'master',
-  dashboard: '/dashboard' // server URL
+// Global menu master state (for persistence between hook calls)
+let menuMaster = { ...defaultMenuMaster };
+
+/**
+ * Set drawer open state
+ * 
+ * @param {boolean} isOpen - Whether drawer should be open
+ */
+export const handlerDrawerOpen = (isOpen) => {
+  menuMaster = {
+    ...menuMaster,
+    isDashboardDrawerOpened: isOpen
+  };
 };
 
-export function useGetMenuMaster() {
-  const { data, isLoading } = useSWR(endpoints.key + endpoints.master, () => initialState, {
-    revalidateIfStale: false,
-    revalidateOnFocus: false,
-    revalidateOnReconnect: false
-  });
+/**
+ * Toggle a menu item's open state
+ * 
+ * @param {string} id - ID of the menu item to toggle
+ */
+export const handlerMenuOpen = (id) => {
+  if (menuMaster.openedMenuItems.includes(id)) {
+    menuMaster = {
+      ...menuMaster,
+      openedMenuItems: menuMaster.openedMenuItems.filter(item => item !== id)
+    };
+  } else {
+    menuMaster = {
+      ...menuMaster,
+      openedMenuItems: [...menuMaster.openedMenuItems, id]
+    };
+  }
+};
 
-  const memoizedValue = useMemo(
-    () => ({
-      menuMaster: data,
-      menuMasterLoading: isLoading
-    }),
-    [data, isLoading]
-  );
-
-  return memoizedValue;
-}
-
-export function handlerDrawerOpen(isDashboardDrawerOpened) {
-  // to update local state based on key
-
-  mutate(
-    endpoints.key + endpoints.master,
-    (currentMenuMaster) => {
-      return { ...currentMenuMaster, isDashboardDrawerOpened };
-    },
-    false
-  );
-}
-
-export function handlerActiveItem(openedItem) {
-  // to update local state based on key
-
-  mutate(
-    endpoints.key + endpoints.master,
-    (currentMenuMaster) => {
-      return { ...currentMenuMaster, openedItem };
-    },
-    false
-  );
-}
+/**
+ * Hook to get the current menu state
+ * 
+ * @returns {Object} The current menu state
+ */
+export const useGetMenuMaster = () => {
+  // Get customization from Redux if available
+  const customization = useSelector((state) => state.customization || {});
+  
+  // Return loading state and menu master
+  return {
+    menuMasterLoading: false,
+    menuMaster: {
+      ...menuMaster,
+      // Override with customization from Redux if available
+      isDashboardDrawerOpened: customization.isDashboardDrawerOpened !== undefined 
+        ? customization.isDashboardDrawerOpened 
+        : menuMaster.isDashboardDrawerOpened
+    }
+  };
+};

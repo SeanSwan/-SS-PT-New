@@ -1,4 +1,4 @@
-import React from 'react';
+// import React from 'react';
 import GlobalStyle from '../styles/GlobalStyle';
 import Header from '../components/Header/header';
 import HeroSection from '../components/HeroSection/HeroSection';

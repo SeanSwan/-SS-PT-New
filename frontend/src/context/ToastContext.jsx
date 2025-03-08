@@ -1,3 +1,7 @@
+/**
+ * ToastContext.jsx
+ * Provides toast notification functionality throughout the application
+ */
 import React, { createContext, useContext, useState } from "react";
 
 // Create Toast Context
@@ -44,3 +48,5 @@ export const ToastProvider = ({ children }) => {
 export const useToast = () => {
   return useContext(ToastContext);
 };
+
+export default ToastContext;

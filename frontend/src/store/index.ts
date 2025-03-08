@@ -1,87 +1,79 @@
 /**
- * Update your store/index.ts file to include persister configuration
+ * STORE INDEX
+ * Main Redux store configuration file that sets up:
+ * - Redux store with Redux Toolkit
+ * - Redux Persist for persistent state between page refreshes
+ * - Combined reducers from multiple slices
  */
-
 import { configureStore } from '@reduxjs/toolkit';
-import { 
-  persistStore, 
-  persistReducer,
-  FLUSH,
-  REHYDRATE,
-  PAUSE,
-  PERSIST,
-  PURGE,
-  REGISTER
-} from 'redux-persist';
-import storage from 'redux-persist/lib/storage';
+import { persistStore, persistReducer } from 'redux-persist';
+import storage from 'redux-persist/lib/storage'; // Uses localStorage by default
+import { combineReducers } from 'redux';
 
-// Import your reducers
-import themeReducer from './themeSlice';
-// Import other reducers as needed
+// Import reducers
+import customizationReducer from './themeSlice';
 
-// Create persist configuration
+/**
+ * COMBINE REDUCERS
+ * Combines all separate reducer slices into a single root reducer
+ * Each slice manages a specific part of the application state
+ */
+const rootReducer = combineReducers({
+  customization: customizationReducer,
+  // Add other reducers here as needed
+});
+
+/**
+ * PERSIST CONFIGURATION
+ * Configure which parts of the state should be persisted
+ * - key: The key under which the state is stored in localStorage
+ * - storage: The storage engine (localStorage in this case)
+ * - whitelist: Only these reducers will be persisted
+ */
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['theme', 'customization'] // Specify which reducers to persist
+  whitelist: ['customization'], // Only persist these reducers
 };
 
-// Create a root reducer with all your reducers
-const rootReducer = {
-  theme: themeReducer,
-  // Add other reducers here
-  customization: (state = { isOpen: [], opened: true }, action) => {
-    let id;
-    switch (action.type) {
-      case 'SET_MENU':
-        return {
-          ...state,
-          opened: action.opened
-        };
-      case 'MENU_TOGGLE':
-        id = action.id;
-        return {
-          ...state,
-          isOpen: [id]
-        };
-      case 'SET_FONT_FAMILY':
-        return {
-          ...state,
-          fontFamily: action.fontFamily
-        };
-      case 'SET_BORDER_RADIUS':
-        return {
-          ...state,
-          borderRadius: action.borderRadius
-        };
-      default:
-        return state;
-    }
-  }
-};
+/**
+ * CREATE PERSISTED REDUCER
+ * Wraps the root reducer with persistence capabilities
+ */
+const persistedReducer = persistReducer(persistConfig, rootReducer);
 
-// Create persisted reducer
-const persistedReducer = persistReducer(persistConfig, (state, action) => {
-  return Object.keys(rootReducer).reduce((acc, key) => {
-    acc[key] = rootReducer[key](state ? state[key] : undefined, action);
-    return acc;
-  }, {} as any);
-});
-
-// Configure the store
-export const store = configureStore({
+/**
+ * CONFIGURE STORE
+ * Create the Redux store with the persisted reducer
+ * - Disable serializable check to allow Redux Persist to work
+ */
+const store = configureStore({
   reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: {
-        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-      },
+      serializableCheck: false, // Disable serializable check for persist
     }),
 });
 
-// Create persisted store
-export const persister = persistStore(store);
+/**
+ * CREATE PERSISTOR
+ * This is the object that handles persisting and rehydrating the store
+ */
+export const persister = persistStore(store); // Export as "persister" to match berryIndex.jsx import
 
-// Export types
+/**
+ * TYPE DEFINITIONS
+ * Export TypeScript types for the store state and dispatch function
+ */
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
+
+/**
+ * EXPORTS
+ * - Named export for the store to use with useSelector/useDispatch
+ * - Named export for the persister to use with PersistGate
+ */
+export { store }; // Export store as named export to match berryIndex.jsx import
+
+// Default export is the store (for backward compatibility)
+export default store;

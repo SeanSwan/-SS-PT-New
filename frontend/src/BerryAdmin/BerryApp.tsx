@@ -1,24 +1,27 @@
 /**
  * BerryApp.tsx
  * Main entry for the Berry Admin Dashboard
+ * Simplified to fix layout issues
  */
 import React from "react";
 import { useSelector } from "react-redux";
-import { Routes, Route } from "react-router-dom";
-import { CssBaseline, StyledEngineProvider } from "@mui/material";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { CssBaseline, StyledEngineProvider, Box } from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 
 // Berry themes
-import themes from "./themes/berryDarkTheme";
+import berryDarkTheme from "./themes/berryDarkTheme";
+import berryLightTheme from "./themes/berryLightTheme";
+import berryOriginalTheme from "./themes/berryOriginalTheme";
 
-// Project imports - Layout components
+// Project imports
 import NavigationScroll from "./layout/NavigationScroll";
 import MainLayout from "./layout/MainLayout";
-import MinimalLayout from "./layout/MinimalLayout";
 
-// Routes
-import MainRoutes from "./routes/MainRoutes";
-import AuthenticationRoutes from "./routes/AuthenticationRoutes";
+// Import dashboard views directly
+import Dashboard from './views/dashboard/Default';
+import ScheduleManagement from './views/ScheduleManagement';
+import SamplePage from './views/sample-page';
 
 // Use ErrorBoundary from component
 import ErrorBoundary from "../components/ErrorBoundary/error-boundry.component";
@@ -28,41 +31,54 @@ import { RootState } from "../store";
 
 /**
  * BerryApp - Main component for the Berry admin dashboard
- * Handles theme selection, routing, and layout
  */
-const BerryApp: React.FC = () => {
+const BerryApp = () => {
   // Get customization settings from Redux store
-  const customization = useSelector((state: RootState) => state.customization);
+  const customization = useSelector((state: RootState) => (state as any).customization || {});
+  
+  // Choose theme based on customization
+  const getTheme = () => {
+    const themeType = customization?.themeType || 'dark';
+    
+    switch(themeType) {
+      case 'light':
+        return berryLightTheme;
+      case 'original':
+        return berryOriginalTheme;
+      case 'dark':
+      default:
+        return berryDarkTheme;
+    }
+  };
+
+  // Get the appropriate theme
+  const theme = getTheme();
 
   return (
     <StyledEngineProvider injectFirst>
-      <ThemeProvider theme={themes(customization)}>
+      <ThemeProvider theme={theme}>
         <CssBaseline />
         <NavigationScroll>
           <ErrorBoundary>
-            <Routes>
-              {/* Auth routes */}
-              <Route path="auth/*" element={<MinimalLayout />}>
-                {AuthenticationRoutes.map((route, index) => (
-                  <Route
-                    key={index}
-                    path={route.path}
-                    element={route.element}
-                  />
-                ))}
-              </Route>
-
-              {/* Main routes */}
-              <Route path="/*" element={<MainLayout />}>
-                {MainRoutes.children?.map((route, index) => (
-                  <Route
-                    key={index}
-                    path={route.path}
-                    element={route.element}
-                  />
-                ))}
-              </Route>
-            </Routes>
+            <Box className="berry-admin-container">
+              <Routes>
+                {/* Main Layout with Dashboard */}
+                <Route element={<MainLayout withExternalHeader={true} />}>
+                  {/* Default route */}
+                  <Route index element={<Dashboard />} />
+                  
+                  {/* Dashboard route */}
+                  <Route path="dashboard" element={<Dashboard />} />
+                  
+                  {/* Other routes */}
+                  <Route path="schedule" element={<ScheduleManagement />} />
+                  <Route path="sample-page" element={<SamplePage />} />
+                  
+                  {/* Fallback route */}
+                  <Route path="*" element={<Dashboard />} />
+                </Route>
+              </Routes>
+            </Box>
           </ErrorBoundary>
         </NavigationScroll>
       </ThemeProvider>
