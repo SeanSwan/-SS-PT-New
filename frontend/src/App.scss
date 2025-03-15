@@ -6,7 +6,7 @@
 @use "tailwindcss/utilities";
 
 
-
+@import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 // Reset/normalize styles for better cross-browser consistency
 *, *::before, *::after {

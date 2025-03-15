@@ -1,3 +1,4 @@
+// src/App.tsx
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
@@ -10,6 +11,7 @@ import { useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 
 // Components and pages
+import Layout from './components/Layout/layout';
 import HomePage from './pages/HomePage.component';
 import LoginModal from './pages/LoginModal.component';
 import SignupModal from './pages/SignupModal.component';
@@ -22,8 +24,8 @@ import UnauthorizedPage from './pages/UnauthorizedPage.component';
 // Error Boundary
 import ErrorBoundary from './components/ErrorBoundary/error-boundry.component';
 
-// BerryAdmin import - direct import to simplify integration
-import Berry from './BerryAdmin/berryIndex';
+// Admin Dashboard (replacing BerryAdmin import)
+import AdminDashboard from './components/DashBoard/dashboard-view';
 
 // Store
 import store from './store';
@@ -39,7 +41,6 @@ const AdminRoute = ({ children }) => {
     return <div>Loading authentication...</div>;
   }
   
-  // For debugging - log why redirect happens
   if (!user) {
     console.log("Admin route blocked: No user logged in");
     return <Navigate to="/login" replace />;
@@ -50,7 +51,6 @@ const AdminRoute = ({ children }) => {
     return <Navigate to="/unauthorized" replace />;
   }
   
-  // User is authenticated as admin
   console.log("Admin access granted to:", user.username);
   return children;
 };
@@ -67,7 +67,6 @@ const ProtectedRoute = ({ children, requiredRole }) => {
     return <Navigate to="/login" replace />;
   }
   
-  // Allow admin to access all protected routes regardless of requiredRole
   if (requiredRole && user.role !== requiredRole && user.role !== 'admin') {
     console.log(`Access blocked: User is ${user.role}, needs ${requiredRole}`);
     return <Navigate to="/unauthorized" replace />;
@@ -79,34 +78,33 @@ const ProtectedRoute = ({ children, requiredRole }) => {
 const AppRoutes = () => {
   return (
     <Routes>
-      {/* Public routes */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/login" element={<LoginModal />} />
-      <Route path="/signup" element={<SignupModal />} />
-      <Route path="/contact" element={<ContactPage />} />
-      <Route path="/about" element={<AboutPage />} />
-      <Route path="/store" element={<StoreFront />} />
-      <Route path="/unauthorized" element={<UnauthorizedPage />} />
+      {/* Public routes with Layout */}
+      <Route path="/" element={<Layout><HomePage /></Layout>} />
+      <Route path="/login" element={<Layout><LoginModal /></Layout>} />
+      <Route path="/signup" element={<Layout><SignupModal /></Layout>} />
+      <Route path="/contact" element={<Layout><ContactPage /></Layout>} />
+      <Route path="/about" element={<Layout><AboutPage /></Layout>} />
+      <Route path="/store" element={<Layout><StoreFront /></Layout>} />
+      <Route path="/unauthorized" element={<Layout><UnauthorizedPage /></Layout>} />
       
       {/* Protected client routes */}
       <Route
         path="/client-dashboard/*"
         element={
           <ProtectedRoute requiredRole="client">
-            <ClientDashboard />
+            <Layout>
+              <ClientDashboard />
+            </Layout>
           </ProtectedRoute>
         }
       />
       
-      {/* 
-        Admin routes - Using Berry Admin Dashboard
-        The /* at the end is important to pass all nested routes to Berry 
-      */}
+      {/* Admin routes - uses the converted Admin Dashboard component */}
       <Route
         path="/admin-dashboard/*"
         element={
           <AdminRoute>
-            <Berry />
+            <AdminDashboard />
           </AdminRoute>
         }
       />

@@ -12,6 +12,7 @@ import { combineReducers } from 'redux';
 
 // Import reducers
 import customizationReducer from './themeSlice';
+import menuReducer from './menuSlice';
 
 /**
  * COMBINE REDUCERS
@@ -20,6 +21,7 @@ import customizationReducer from './themeSlice';
  */
 const rootReducer = combineReducers({
   customization: customizationReducer,
+  menu: menuReducer,
   // Add other reducers here as needed
 });
 
@@ -33,7 +35,7 @@ const rootReducer = combineReducers({
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['customization'], // Only persist these reducers
+  whitelist: ['customization', 'menu'], // Updated to persist menu state too
 };
 
 /**

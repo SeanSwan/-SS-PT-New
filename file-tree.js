@@ -1,16 +1,50 @@
-// # Basic usage with default settings (now shows 5 levels deep)
-// node file-tree.js
-
-// # Show all files regardless of depth
-// node file-tree.js . --showAllFiles=true
-
-// # Custom special folders with file sizes
-// node file-tree.js . --specialFolders=src,config --showFileSize=true
-
-// # Complete customization
-// node file-tree.js . --maxDepth=10 --specialFolders=important,critical 
-
-// --specialFoldersMaxDepth=30 --showFileSize=true --includeHidden=true --sortBy=size
+/**
+ * Enhanced File Tree Generator
+ * ===========================
+ * 
+ * DESCRIPTION:
+ * This script generates a detailed file tree visualization of a directory structure
+ * with advanced features like customizable depth levels, special folder handling,
+ * file size reporting, and flexible filtering options.
+ * 
+ * USAGE:
+ * Basic:
+ *   node file-tree.js [directory]
+ * 
+ * Advanced (with named arguments):
+ *   node file-tree.js [directory] --maxDepth=20 --showFileSize=true --sortBy=type
+ * 
+ * ARGUMENTS:
+ *   [directory]                 : Target directory (default: current directory)
+ *   --maxDepth=NUMBER           : Maximum directory depth to display (default: 20)
+ *   --specialFolders=FOLDER,... : Folders to explore at unlimited depth (default: berryAdmin,BerryAdmin)
+ *   --showAllFiles=BOOLEAN      : Show all files regardless of depth (default: false)
+ *   --showFileSize=BOOLEAN      : Show file sizes (default: true)
+ *   --sizeFormat=FORMAT         : Format for file sizes: 'auto', 'bytes', 'kb', 'mb' (default: auto)
+ *   --includeHidden=BOOLEAN     : Include hidden files (default: false)
+ *   --sortBy=TYPE               : Sort method: 'name', 'type', 'size' (default: type)
+ *   --minSizeToIgnore=NUMBER    : Ignore files larger than this size in MB (default: 10)
+ * 
+ * EXAMPLES:
+ *   # Show file tree of current directory (20 levels deep)
+ *   node file-tree.js
+ * 
+ *   # Show file tree of specific directory with custom depth
+ *   node file-tree.js /path/to/directory --maxDepth=15
+ * 
+ *   # Show all files including hidden ones
+ *   node file-tree.js --includeHidden=true
+ * 
+ *   # Ignore files larger than 5MB
+ *   node file-tree.js --minSizeToIgnore=5
+ * 
+ *   # Sort files by size (largest first)
+ *   node file-tree.js --sortBy=size
+ * 
+ * NOTE:
+ * The script automatically ignores node_modules, .git, and other common large directories.
+ * Add your own exclude patterns as needed in the excludePatterns array.
+ */
 
 const fs = require('fs');
 const path = require('path');
@@ -19,20 +53,21 @@ const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
 
 /**
- * Generate a file tree with enhanced depth settings
- * - Regular folders: increased default depth
- * - Special folders: unlimited depth
- * - Added size reporting and more configuration options
+ * Generate a file tree with enhanced depth settings and filtering options
+ * @param {string} startPath - Starting directory path (default: current directory)
+ * @param {Object} options - Configuration options
+ * @returns {Promise<string>} - The generated file tree as a string
  */
 async function generateEnhancedFileTree(startPath = '.', options = {}) {
   // Enhanced default options
   const config = {
-    maxDepth: 5,                    // Increased default max depth
-    specialFolders: ['berryAdmin'], // Folders that should go deeper
-    specialFoldersMaxDepth: 20,     // Greatly increased depth for special folders
+    maxDepth: 20,                   // Increased default max depth to 20 levels
+    specialFolders: ['berryAdmin', 'BerryAdmin'], // Special folders with case variations
+    specialFoldersMaxDepth: 100,    // Greatly increased depth for special folders
     showAllFiles: false,            // Option to show all files regardless of depth
     showFileSize: true,             // Show file sizes
     sizeFormat: 'auto',             // 'auto', 'bytes', 'kb', 'mb'
+    minSizeToIgnore: 10,            // Ignore files larger than this size in MB
     excludePatterns: [             
       /^node_modules$/,
       /^\.git$/,
@@ -45,14 +80,21 @@ async function generateEnhancedFileTree(startPath = '.', options = {}) {
       /^coverage$/,
       /^npm-debug\.log$/,
       /^yarn-debug\.log$/,
-      /^yarn-error\.log$/
+      /^yarn-error\.log$/,
+      /example.*\.(zip|tar|gz|rar)$/i, // Ignore example archive files
+      /sample_.*\.(json|csv|xml)$/i,   // Ignore sample data files
+      /demo.*data.*\.(json|csv|xml)$/i // Ignore demo data files
     ],
     includeHidden: false,           // Option to include hidden files
     sortBy: 'type',                 // 'name', 'type', 'size'
     ...options
   };
 
-  // Format file size
+  /**
+   * Format file size according to configuration
+   * @param {number} bytes - Size in bytes
+   * @returns {string} - Formatted size string
+   */
   function formatSize(bytes) {
     if (!config.showFileSize) return '';
     
@@ -65,8 +107,13 @@ async function generateEnhancedFileTree(startPath = '.', options = {}) {
     }
   }
 
-  // Function to check if a path should be excluded
-  function shouldExclude(itemPath) {
+  /**
+   * Check if a file or directory should be excluded based on patterns or size
+   * @param {string} itemPath - Path to check
+   * @param {fs.Stats} [itemStats] - File stats if available
+   * @returns {boolean} - True if the item should be excluded
+   */
+  async function shouldExclude(itemPath, itemStats = null) {
     const basename = path.basename(itemPath);
     
     // Skip hidden files unless includeHidden is true
@@ -74,24 +121,51 @@ async function generateEnhancedFileTree(startPath = '.', options = {}) {
       return true;
     }
     
-    return config.excludePatterns.some(pattern => pattern.test(basename));
+    // Check if name matches any exclude pattern
+    if (config.excludePatterns.some(pattern => pattern.test(basename))) {
+      return true;
+    }
+    
+    // Check file size if we have stats or can get them
+    if (config.minSizeToIgnore > 0) {
+      try {
+        const stats = itemStats || await stat(itemPath);
+        if (!stats.isDirectory()) {
+          const sizeInMB = stats.size / (1024 * 1024);
+          if (sizeInMB > config.minSizeToIgnore) {
+            return true; // Exclude large files
+          }
+        }
+      } catch (error) {
+        // If we can't access stats, don't exclude based on size
+      }
+    }
+    
+    return false;
   }
   
-  // Check if a path is or contains a special folder that should show all levels
-  function isSpecialPath(itemPath, currentDepth = 0) {
-    // If we're at the root level, special path detection doesn't apply yet
-    if (currentDepth === 0) return false;
-    
+  /**
+   * Check if a path is or contains a special folder that should show all levels
+   * @param {string} itemPath - Path to check
+   * @returns {boolean} - True if the path is special
+   */
+  function isSpecialPath(itemPath) {
     const relativePath = path.relative(startPath, itemPath);
     const pathParts = relativePath.split(path.sep);
     
-    // Check if any part of the path matches a special folder
+    // Check if any part of the path matches a special folder (case insensitive)
     return config.specialFolders.some(specialFolder => 
-      pathParts.some(part => part === specialFolder)
+      pathParts.some(part => part.toLowerCase() === specialFolder.toLowerCase())
     );
   }
   
-  // Sort items based on configuration
+  /**
+   * Sort items based on configuration
+   * @param {string[]} items - File/directory names
+   * @param {string[]} itemPaths - Full paths
+   * @param {fs.Stats[]} statsArray - Stats objects
+   * @returns {Array<Object>} - Sorted array of objects with name, path, and stats
+   */
   function sortItems(items, itemPaths, statsArray) {
     return items.map((item, index) => ({ 
       name: item, 
@@ -114,41 +188,48 @@ async function generateEnhancedFileTree(startPath = '.', options = {}) {
     });
   }
   
-  // Function to recursively build the file tree
+  /**
+   * Recursively build the file tree
+   * @param {string} currentPath - Current directory path
+   * @param {number} currentDepth - Current depth level
+   * @param {string} indent - Current indentation string
+   * @returns {Promise<string>} - Generated tree for the current path
+   */
   async function buildTree(currentPath, currentDepth = 0, indent = '') {
     let result = '';
     
     // Check if we've reached max depth for this path
-    const isSpecial = isSpecialPath(currentPath, currentDepth);
+    const isSpecial = isSpecialPath(currentPath);
+    
+    // If we're in a special folder or its descendants, use the special folder max depth
     const maxDepthForPath = isSpecial ? config.specialFoldersMaxDepth : config.maxDepth;
     
-    // Show all files regardless of depth if showAllFiles is true
-    if (currentDepth > maxDepthForPath && !config.showAllFiles) {
-      return result + `${indent}... (more files/folders not shown - use showAllFiles option to see all)\n`;
+    // Show all files regardless of depth if showAllFiles is true or if we're in a special folder
+    if (currentDepth > maxDepthForPath && !config.showAllFiles && !isSpecial) {
+      return result + `${indent}... (more files/folders not shown - use --showAllFiles=true to see all)\n`;
     }
     
     try {
       const items = await readdir(currentPath);
-      const filteredItems = items.filter(item => {
-        const itemPath = path.join(currentPath, item);
-        return !shouldExclude(itemPath);
-      });
       
       // Get all stats concurrently for efficiency
-      const itemPaths = filteredItems.map(item => path.join(currentPath, item));
+      const itemPaths = items.map(item => path.join(currentPath, item));
       const statsPromises = itemPaths.map(itemPath => stat(itemPath).catch(() => null));
       const statsArray = await Promise.all(statsPromises);
       
-      // Filter out any items where we couldn't get stats
+      // Filter out any items where we couldn't get stats or should be excluded
       const validItems = [];
       const validPaths = [];
       const validStats = [];
       
-      for (let i = 0; i < filteredItems.length; i++) {
+      for (let i = 0; i < items.length; i++) {
         if (statsArray[i]) {
-          validItems.push(filteredItems[i]);
-          validPaths.push(itemPaths[i]);
-          validStats.push(statsArray[i]);
+          const shouldExcludeItem = await shouldExclude(itemPaths[i], statsArray[i]);
+          if (!shouldExcludeItem) {
+            validItems.push(items[i]);
+            validPaths.push(itemPaths[i]);
+            validStats.push(statsArray[i]);
+          }
         }
       }
       
@@ -162,7 +243,10 @@ async function generateEnhancedFileTree(startPath = '.', options = {}) {
         const nextIndent = indent + (isLast ? '    ' : '│   ');
         
         // Special case: if this is a special folder or inside one, mark it
-        const isBerryAdmin = config.specialFolders.includes(name) || isSpecialPath(itemPath, currentDepth);
+        const isBerryAdmin = config.specialFolders.some(folder => 
+          folder.toLowerCase() === name.toLowerCase()
+        ) || isSpecialPath(itemPath);
+        
         const marker = isBerryAdmin ? ' 📌' : '';
         const sizeInfo = stats.isDirectory() ? '' : formatSize(stats.size);
         
@@ -190,7 +274,7 @@ async function generateEnhancedFileTree(startPath = '.', options = {}) {
   const headerLines = [
     `File tree for ${rootDir}:`,
     `- Regular folders: up to ${config.maxDepth} levels deep`,
-    `- Special folders (${config.specialFolders.join(', ')}): up to ${config.specialFoldersMaxDepth} levels deep 📌`,
+    `- Special folders (${config.specialFolders.join(', ')}): showing all files and folders 📌`,
   ];
   
   if (config.showAllFiles) {
@@ -199,6 +283,10 @@ async function generateEnhancedFileTree(startPath = '.', options = {}) {
   
   if (config.showFileSize) {
     headerLines.push(`- File sizes shown in ${config.sizeFormat === 'auto' ? 'appropriate units' : config.sizeFormat}`);
+  }
+  
+  if (config.minSizeToIgnore > 0) {
+    headerLines.push(`- Ignoring files larger than ${config.minSizeToIgnore} MB`);
   }
   
   headerLines.forEach(line => console.log(line));
@@ -236,10 +324,21 @@ if (process.argv.length > 3) {
     });
   } else {
     // Use positional arguments for backward compatibility
-    args.specialFolders = process.argv[3] ? process.argv[3].split(',') : ['berryAdmin'];
-    args.maxDepth = process.argv[4] ? parseInt(process.argv[4]) : 5;
+    args.specialFolders = process.argv[3] ? process.argv[3].split(',') : ['berryAdmin', 'BerryAdmin'];
+    args.maxDepth = process.argv[4] ? parseInt(process.argv[4]) : 20; // Default is now 20
     args.showAllFiles = process.argv[5] === 'true';
   }
+}
+
+// Ensure berryAdmin is in the special folders list (with both case variations)
+if (!args.specialFolders) {
+  args.specialFolders = ['berryAdmin', 'BerryAdmin'];
+} else if (Array.isArray(args.specialFolders)) {
+  if (!args.specialFolders.some(folder => folder.toLowerCase() === 'berryadmin')) {
+    args.specialFolders.push('berryAdmin', 'BerryAdmin');
+  }
+} else if (typeof args.specialFolders === 'string' && args.specialFolders.toLowerCase() !== 'berryadmin') {
+  args.specialFolders = [args.specialFolders, 'berryAdmin', 'BerryAdmin'];
 }
 
 // Run the function with the parsed options
