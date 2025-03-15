@@ -31,8 +31,8 @@ const SearchAvatar = styled(Avatar)`
   transition: all 0.2s ease-in-out;
   
   &:hover {
-    background-color: ${({ theme }) => theme.secondary.dark};
-    color: ${({ theme }) => theme.secondary.light};
+    background-color: ${({ theme }) => theme.palette?.secondary?.dark || '#1565c0'};
+    color: ${({ theme }) => theme.palette?.secondary?.light || '#90caf9'};
   }
 `;
 
@@ -40,7 +40,7 @@ const SearchInputMobile = styled(OutlinedInput)`
   width: 100%;
   margin-left: 4px;
   padding: 0 16px;
-  background-color: ${({ theme }) => theme.background.paper};
+  background-color: ${({ theme }) => theme.palette?.background?.paper || '#ffffff'};
   
   & input {
     background-color: transparent;

@@ -53,8 +53,8 @@ const NotificationBadge = styled(Avatar)`
   cursor: pointer;
   
   &:hover {
-    background-color: ${({ theme }) => theme.secondary.dark};
-    color: ${({ theme }) => theme.secondary.light};
+    background-color: ${({ theme }) => theme.palette?.secondary?.dark || '#1565c0'};
+    color: ${({ theme }) => theme.palette?.secondary?.light || '#90caf9'};
   }
 `;
 
