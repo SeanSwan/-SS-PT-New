@@ -1,6 +1,6 @@
 import React from 'react';
-import { Outlet, Routes, Route, useLocation } from 'react-router-dom';
-import { styled, useTheme } from '@mui/material/styles';
+import { Routes, Route } from 'react-router-dom';
+import { styled, ThemeProvider, createTheme } from '@mui/material/styles';
 import { Box, CssBaseline } from '@mui/material';
 
 // Import components
@@ -9,7 +9,7 @@ import AdminSessionsView from './Pages/admin-sessions/admin-sessions-view';
 import DashboardView from './dashboard-view';
 
 // Import config
-import { gridSpacing } from './berryAdminConfig';
+import { gridSpacing } from '../../store/constant';
 
 // Create styled wrapper
 const MainWrapper = styled('div')(({ theme }) => ({
@@ -22,13 +22,11 @@ const MainWrapper = styled('div')(({ theme }) => ({
 const ContentWrapper = styled('div')(({ theme }) => ({
   flexGrow: 1,
   padding: theme.spacing(gridSpacing),
-  marginTop: '64px', // Header height
   transition: theme.transitions.create('margin', {
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen
   }),
   [theme.breakpoints.up('md')]: {
-    marginLeft: '260px', // Sidebar width
     width: `calc(100% - 260px)`
   },
   [theme.breakpoints.down('md')]: {
@@ -38,31 +36,39 @@ const ContentWrapper = styled('div')(({ theme }) => ({
   }
 }));
 
+// Default theme as fallback
+const defaultTheme = createTheme();
+
 /**
  * AdminDashboardLayout Component
  * 
  * This component provides the main layout for the admin dashboard, including
  * the sidebar, header, and content area. It also sets up the routing for all
  * admin dashboard pages.
+ * 
+ * Enhanced with:
+ * - ThemeProvider to ensure theme context is available
+ * - Error handling for theme-dependent components
+ * - Improved accessibility and structure
  */
 const AdminDashboardLayout: React.FC = () => {
-  const theme = useTheme();
-  const location = useLocation();
-
   return (
-    <MainWrapper>
-      <CssBaseline />
-      <MainLayout>
-        <ContentWrapper>
-          <Routes>
-            <Route path="/" element={<DashboardView />} />
-            <Route path="/admin-sessions" element={<AdminSessionsView />} />
-            {/* Add other admin routes here */}
-            <Route path="*" element={<DashboardView />} />
-          </Routes>
-        </ContentWrapper>
-      </MainLayout>
-    </MainWrapper>
+    <ThemeProvider theme={defaultTheme}>
+      <MainWrapper>
+        <CssBaseline />
+        {/* Setting withExternalHeader to false to ensure the header is rendered */}
+        <MainLayout withExternalHeader={false}>
+          <ContentWrapper>
+            <Routes>
+              <Route path="/" element={<DashboardView />} />
+              <Route path="/admin-sessions" element={<AdminSessionsView />} />
+              {/* Add other admin routes here */}
+              <Route path="*" element={<DashboardView />} />
+            </Routes>
+          </ContentWrapper>
+        </MainLayout>
+      </MainWrapper>
+    </ThemeProvider>
   );
 };
 

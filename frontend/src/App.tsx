@@ -24,8 +24,8 @@ import UnauthorizedPage from './pages/UnauthorizedPage.component';
 // Error Boundary
 import ErrorBoundary from './components/ErrorBoundary/error-boundry.component';
 
-// Admin Dashboard (replacing BerryAdmin import)
-import AdminDashboard from './components/DashBoard/dashboard-view';
+// Admin Dashboard 
+import AdminDashboardLayout from './components/DashBoard/admin-dashboard-layout';
 
 // Store
 import store from './store';
@@ -99,12 +99,12 @@ const AppRoutes = () => {
         }
       />
       
-      {/* Admin routes - uses the converted Admin Dashboard component */}
+      {/* Admin routes - THIS IS THE KEY CHANGE */}
       <Route
         path="/admin-dashboard/*"
         element={
           <AdminRoute>
-            <AdminDashboard />
+            <AdminDashboardLayout />
           </AdminRoute>
         }
       />

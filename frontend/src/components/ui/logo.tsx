@@ -5,10 +5,10 @@
 import React from 'react';
 import { useTheme } from '@mui/material/styles';
 
-// Import logo files from assets
-import logoDark from '../assets/logo-dark.svg';
-import logoLight from '../assets/logo.svg';
-import logoPng from '../assets/Logo.png';
+// Import logo file from assets with the correct path
+// Based on your file tree, Logo.png is in src/assets/Logo.png
+// From components/ui/logo.tsx, we need to go up two levels
+import logoPng from '../../assets/Logo.png';
 
 interface LogoProps {
   /**
@@ -16,11 +16,6 @@ interface LogoProps {
    */
   width?: string | number;
   height?: string | number;
-  
-  /**
-   * Show the PNG version instead of SVG
-   */
-  usePng?: boolean;
   
   /**
    * Optional className for additional styling
@@ -45,23 +40,14 @@ interface LogoProps {
 const Logo: React.FC<LogoProps> = ({ 
   width = 'auto', 
   height = '40', 
-  usePng = false,
   className = '',
   alt = 'Swan Studios',
   onClick
 }) => {
-  const theme = useTheme();
-  
-  // Determine which logo to use based on theme and usePng prop
-  const logoSrc = usePng 
-    ? logoPng 
-    : theme.palette.mode === 'dark' 
-      ? logoDark 
-      : logoLight;
-
+  // Since we're using the same logo for all themes, no need for theme-based selection
   return (
     <img
-      src={logoSrc}
+      src={logoPng}
       alt={alt}
       width={width}
       height={height}

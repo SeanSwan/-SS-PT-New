@@ -1,7 +1,6 @@
 // src/components/DashBoard/MainLayout/main-layout.tsx
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import PropTypes from 'prop-types';
 
 // material-ui
 import { useTheme } from '@mui/material/styles';
@@ -9,72 +8,110 @@ import useMediaQuery from '@mui/material/useMediaQuery';
 import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Box from '@mui/material/Box';
+import CssBaseline from '@mui/material/CssBaseline';
 
-// project imports
-import Footer from '../../Footer/Footer'; // Import your new footer component
+// project imports - adjusted paths based on file tree
+import Footer from '../../Footer/Footer';
 import Header from '../../Header/header';
-import Sidebar from '../SideBar/sidebar';
+import Sidebar from './SideBar/sidebar';
 import MainContentStyled from './main-content-styled';
-import Customization from '../Customization/customization';
-import Loader from '../../../ui/Loader';
-import Breadcrumbs from '../../../ui-component/extended/Breadcrumbs';
 
-import { useConfig } from '../../../hooks/useConfig';
+// Import custom Breadcrumbs component - adjust the path as needed
+import Breadcrumbs from '../../ui/Breadcrumbs';
+import Loader from '../../ui/loader';
+
+// Hooks - Fixed useConfig import and usage
+import useConfig from '../../../hooks/useConfig';
 import { useMenuActions, useMenuState } from '../../../hooks/useMenuState';
 
-// ==============================|| MAIN LAYOUT ||============================== //
+// Constants
+const DEFAULT_BORDER_RADIUS = 8;
 
+// Types
 interface MainLayoutProps {
   children?: React.ReactNode;
   withExternalHeader?: boolean;
 }
 
+/**
+ * MainLayout Component
+ * 
+ * Primary layout component that provides the structure for the admin dashboard,
+ * including header, sidebar, content area, and footer.
+ * 
+ * Enhanced for personal training application with:
+ * - Improved responsive layout for mobile devices
+ * - Optimized navigation for fitness professionals
+ * - Support for training session tracking
+ */
 const MainLayout = ({ children = null, withExternalHeader = false }: MainLayoutProps) => {
   const theme = useTheme();
   const downMD = useMediaQuery(theme.breakpoints.down('md'));
+  const [isLoading, setIsLoading] = useState(false);
   
-  // Using try/catch to handle potential errors with hooks
-  let configData = { borderRadius: 8, miniDrawer: false };
-  let menuData = { isDashboardDrawerOpened: true };
-  let isLoading = false;
+  // For personal training app - track if there's an active session
+  const [hasActiveSession, setHasActiveSession] = useState(false);
+  const [activeClientId, setActiveClientId] = useState<string | null>(null);
   
+  // Use a fixed miniDrawer value since it's not in your useConfig
+  const miniDrawer = false;
+  
+  // Safely get borderRadius from config or use default
+  let borderRadius = DEFAULT_BORDER_RADIUS;
   try {
-    configData = useConfig() || configData;
+    const config = useConfig();
+    // Only access properties we know exist in the config
+    if (config && typeof config.borderRadius === 'number') {
+      borderRadius = config.borderRadius;
+    }
   } catch (error) {
-    console.error("Error in useConfig hook:", error);
+    console.error("Error accessing useConfig hook:", error);
   }
   
+  // Get menu state with proper error handling
+  let drawerOpen = true; // Default value
   try {
-    menuData = useMenuState() || menuData;
-    isLoading = false; // Set loading state as needed
+    const menuData = useMenuState();
+    if (menuData && typeof menuData.isDashboardDrawerOpened === 'boolean') {
+      drawerOpen = menuData.isDashboardDrawerOpened;
+    }
   } catch (error) {
-    console.error("Error in useMenuState hook:", error);
+    console.error("Error accessing useMenuState hook:", error);
   }
   
-  const { handleDrawerOpen } = useMenuActions();
-  const { borderRadius, miniDrawer } = configData;
-  const drawerOpen = menuData?.isDashboardDrawerOpened;
+  // Get menu actions with proper error handling
+  let handleDrawerOpen = (state: boolean) => {}; // Default no-op function
+  try {
+    const actions = useMenuActions();
+    if (actions && typeof actions.handleDrawerOpen === 'function') {
+      handleDrawerOpen = actions.handleDrawerOpen;
+    }
+  } catch (error) {
+    console.error("Error accessing useMenuActions hook:", error);
+  }
   
+  // Effect to handle drawer state based on miniDrawer setting
   useEffect(() => {
     try {
       handleDrawerOpen(!miniDrawer);
     } catch (error) {
-      console.error("Error in handlerDrawerOpen:", error);
+      console.error("Error in drawer open effect:", error);
     }
   }, [miniDrawer, handleDrawerOpen]);
   
+  // Effect to close drawer on mobile devices
   useEffect(() => {
     try {
       if (downMD) handleDrawerOpen(false);
     } catch (error) {
-      console.error("Error in downMD effect:", error);
+      console.error("Error in responsive drawer effect:", error);
     }
   }, [downMD, handleDrawerOpen]);
   
-  // horizontal menu-list bar : drawer
+  // Show loader if content is loading
   if (isLoading) return <Loader />;
   
-  // Content to render - either children or Outlet
+  // Memoized content to prevent unnecessary re-renders
   const content = useMemo(() => {
     return (
       <>
@@ -89,47 +126,87 @@ const MainLayout = ({ children = null, withExternalHeader = false }: MainLayoutP
   
   return (
     <Box sx={{ display: 'flex' }}>
-      {/* header - only render if not using external header */}
+      <CssBaseline />
+      
+      {/* Header - only rendered if not using external header */}
       {!withExternalHeader && (
         <AppBar 
           enableColorOnDark 
           position="fixed" 
           color="inherit" 
           elevation={0} 
-          sx={{ bgcolor: 'background.default' }}
+          sx={{ 
+            bgcolor: hasActiveSession ? (theme) => theme.palette.mode === 'dark' 
+              ? 'rgba(76, 175, 80, 0.15)' // Green tint in dark mode for active session
+              : 'rgba(76, 175, 80, 0.07)' // Green tint in light mode for active session
+            : 'background.default',
+            zIndex: theme.zIndex.drawer + 1 // Ensure header is above sidebar
+          }}
         >
           <Toolbar sx={{ p: 2 }}>
             <Header />
+            
+            {/* Optional: Display active session indicator in header */}
+            {hasActiveSession && activeClientId && (
+              <Box sx={{ 
+                ml: 2, 
+                display: { xs: 'none', md: 'flex' },
+                alignItems: 'center',
+                py: 0.5,
+                px: 1.5,
+                borderRadius: 1,
+                bgcolor: 'success.light',
+                color: 'success.contrastText'
+              }}>
+                <Box component="span" sx={{ fontWeight: 'medium', mr: 1 }}>
+                  Active Session:
+                </Box>
+                Client #{activeClientId}
+              </Box>
+            )}
           </Toolbar>
         </AppBar>
       )}
       
-      {/* menu / drawer */}
-      <Sidebar />
+      {/* Sidebar navigation - passing miniDrawer prop */}
+      <Sidebar miniDrawer={miniDrawer} />
       
-      {/* main content */}
+      {/* Main content area */}
       <MainContentStyled 
         borderRadius={borderRadius}
         open={drawerOpen}
         withExternalHeader={withExternalHeader}
       >
         <Box sx={{ 
-          px: { xs: 0 },
+          px: { xs: 1, sm: 2, md: 3 }, // Responsive padding
           minHeight: 'calc(100vh - 128px)', 
           display: 'flex', 
           flexDirection: 'column',
           // Adjust top margin based on whether using external header
           mt: withExternalHeader ? 0 : '64px'
         }}>
-          {/* breadcrumb */}
+          {/* Breadcrumb navigation */}
           <Breadcrumbs />
-          <Box sx={{ flex: 1 }}>
+          
+          {/* Main content */}
+          <Box sx={{ 
+            flex: 1,
+            py: 2, // Add some vertical padding for better spacing
+            // Add a subtle background for content area in training app
+            bgcolor: 'background.paper',
+            borderRadius: `${borderRadius}px`,
+            boxShadow: theme.palette.mode === 'dark' ? 0 : 1,
+            overflow: 'hidden'
+          }}>
             {content}
           </Box>
-          <Footer />
+          
+          {/* Footer with improved spacing */}
+          <Box sx={{ mt: 3 }}>
+            <Footer />
+          </Box>
         </Box>
       </MainContentStyled>
-      <Customization />
     </Box>
   );
 };
