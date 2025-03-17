@@ -12,7 +12,7 @@ import { ToastProvider } from './context/ToastContext';
 
 // Components and pages
 import Layout from './components/Layout/layout';
-import HomePage from './pages/HomePage.component';
+
 import LoginModal from './pages/LoginModal.component';
 import SignupModal from './pages/SignupModal.component';
 import ContactPage from './pages/contactpage/ContactPage';
@@ -20,6 +20,7 @@ import AboutPage from './pages/about/About';
 import StoreFront from './pages/shop/StoreFront.component';
 import ClientDashboard from './components/ClientDashboard/ClientDashboard';
 import UnauthorizedPage from './pages/UnauthorizedPage.component';
+import HomePage from './pages/homepage/components/HomePage.component';
 
 // Error Boundary
 import ErrorBoundary from './components/ErrorBoundary/error-boundry.component';
