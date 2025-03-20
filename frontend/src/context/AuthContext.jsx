@@ -23,26 +23,67 @@ const parseJwt = (token) => {
   try {
     // Handle undefined/null tokens gracefully
     if (!token) {
-      console.warn("Warning: Attempted to parse undefined or null token");
+      // Silent handling in production
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn("Warning: Attempted to parse undefined or null token");
+      }
+      return null;
+    }
+    
+    // Check if token is a string
+    if (typeof token !== 'string') {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn("Warning: Token is not a string", typeof token);
+      }
       return null;
     }
     
     const parts = token.split('.');
     // Verify token has the expected JWT format (header.payload.signature)
     if (parts.length !== 3) {
-      console.warn("Warning: Token does not have the expected JWT format");
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn("Warning: Token does not have the expected JWT format");
+      }
+      return null;
+    }
+    
+    // Extra safety - ensure second part exists and is not empty
+    if (!parts[1] || parts[1].trim() === '') {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn("Warning: Token payload section is empty");
+      }
       return null;
     }
     
     const base64Url = parts[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
-      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-    }).join(''));
+    
+    // Add padding if needed
+    const pad = base64.length % 4;
+    const paddedBase64 = pad ? base64 + '='.repeat(4 - pad) : base64;
+    
+    // Safer base64 decoding
+    let decodedData;
+    try {
+      decodedData = atob(paddedBase64);
+    } catch (e) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn("Warning: Failed to decode base64 token payload", e);
+      }
+      return null;
+    }
+    
+    const jsonPayload = decodeURIComponent(
+      decodedData.split('').map((c) => {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join('')
+    );
     
     return JSON.parse(jsonPayload);
   } catch (error) {
-    console.error("Error parsing JWT token:", error);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error("Error parsing JWT token:", error);
+    }
     return null;
   }
 };
@@ -67,7 +108,8 @@ const authAxios = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  withCredentials: true // Enable cookies for CORS requests
+  withCredentials: true, // Enable cookies for CORS requests
+  timeout: 15000 // Set a reasonable timeout (15 seconds)
 });
 
 export const AuthProvider = ({ children }) => {
@@ -211,6 +253,13 @@ export const AuthProvider = ({ children }) => {
     // Request interceptor to add the token to all requests
     const requestInterceptor = authAxios.interceptors.request.use(
       config => {
+        // Add CORS headers for cross-domain requests
+        config.headers = {
+          ...config.headers,
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Methods": "GET,PUT,POST,DELETE,PATCH,OPTIONS"
+        };
+        
         // Check if token is expired before making request
         if (token && isTokenExpired(token)) {
           // Don't add expired token to request
@@ -324,7 +373,8 @@ export const AuthProvider = ({ children }) => {
   // Load user data on mount or when token changes
   useEffect(() => {
     const loadUser = async () => {
-      if (token) {
+      // Validate that token exists and is a proper JWT before proceeding
+      if (token && typeof token === 'string' && token.split('.').length === 3) {
         // Check if token is already expired
         if (isTokenExpired(token)) {
           logAuthAction('Token already expired on load, attempting refresh');
@@ -388,9 +438,18 @@ export const AuthProvider = ({ children }) => {
     try {
       logAuthAction('Login attempt', { username });
       
-      const response = await authAxios.post(`/auth/login`, {
+      // Handle CORS issues by using a proxy if needed
+      const apiUrl = `${API_BASE_URL}/auth/login`;
+      
+      const response = await axios.post(apiUrl, {
         username,
         password
+      }, {
+        headers: {
+          "Content-Type": "application/json"
+        },
+        withCredentials: true,
+        timeout: 15000
       });
 
       const { token: newToken, refreshToken: newRefreshToken, user } = response.data;
@@ -530,7 +589,9 @@ export const AuthProvider = ({ children }) => {
 
   // Check if user is authenticated
   const isAuthenticated = () => {
-    return !!token && !!user && !sessionExpired;
+    // More robust authentication check - validate token format too
+    const isValidToken = !!token && typeof token === 'string' && token.split('.').length === 3;
+    return isValidToken && !!user && !sessionExpired;
   };
 
   // Update user profile

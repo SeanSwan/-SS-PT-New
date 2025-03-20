@@ -60,7 +60,7 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
 // Log allowed origins on startup
 console.log('Allowed origins:', allowedOrigins);
 
-// Expanded CORS options to handle preflight requests properly
+// Enhanced CORS options with improved preflight handling
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps, curl, etc.)
@@ -78,15 +78,31 @@ const corsOptions = {
     }
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"], // Add PATCH and OPTIONS
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"] // Extended headers
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
+  // Add new options for better CORS handling
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+  maxAge: 86400 // Cache preflight response for 24 hours
 };
 
 // Special raw body handling for Stripe webhooks - MUST come before other middleware!
 app.use('/api/cart/webhook', express.raw({ type: 'application/json' }));
 
-// Apply middleware
+// Apply CORS middleware first to ensure proper headers
 app.use(cors(corsOptions));
+
+// Add explicit handler for OPTIONS requests to improve CORS preflight handling
+app.options('*', (req, res) => {
+  // Set CORS headers manually for additional reliability
+  res.header('Access-Control-Allow-Origin', req.headers.origin);
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.status(204).end();
+});
+
+// Apply other middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // Support URL-encoded bodies
 
@@ -108,6 +124,22 @@ app.use((req, res, next) => {
   next();
 });
 
+// Add middleware to set CORS headers on every response
+// This ensures headers are set even if the cors middleware doesn't catch something
+app.use((req, res, next) => {
+  // Only set headers if they aren't already set
+  if (!res.getHeader('Access-Control-Allow-Origin')) {
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+      res.header('Access-Control-Allow-Credentials', 'true');
+    }
+  }
+  next();
+});
+
 // Simple health check route
 app.get('/health', (req, res) => {
   res.status(200).json({ 
@@ -117,9 +149,6 @@ app.get('/health', (req, res) => {
     serverTime: new Date().toISOString() 
   });
 });
-
-// Add CORS pre-flight response for all routes
-app.options('*', cors(corsOptions));
 
 // ================== API ROUTES ================== 
 app.use("/api/auth", authRoutes);
