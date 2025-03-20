@@ -146,7 +146,7 @@ export const AuthProvider = ({ children }) => {
           isRefreshing.current = true;
           logAuthAction('Proactive token refresh attempt');
           
-          const response = await authAxios.post(`/api/auth/refresh-token`, { refreshToken });
+          const response = await authAxios.post(`/auth/refresh-token`, { refreshToken });
           
           const { token: newToken, refreshToken: newRefreshToken } = response.data;
           
@@ -263,7 +263,7 @@ export const AuthProvider = ({ children }) => {
             throw new Error("No refresh token available");
           }
           
-          const response = await authAxios.post(`/api/auth/refresh-token`, { 
+          const response = await authAxios.post(`/auth/refresh-token`, { 
             refreshToken 
           });
           
@@ -274,10 +274,6 @@ export const AuthProvider = ({ children }) => {
           localStorage.setItem(AUTH_CONFIG.refreshTokenKey, newRefreshToken);
           setToken(newToken);
           setRefreshToken(newRefreshToken);
-          
-          // Update auth header for future requests
-          authAxios.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
-          originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
           
           // Process any queued requests
           processQueue(null, newToken);
@@ -347,7 +343,7 @@ export const AuthProvider = ({ children }) => {
           authAxios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
           
           // Fetch user data - using the proxy route
-          const response = await authAxios.get('/api/auth/profile');
+          const response = await authAxios.get('/auth/profile');
           setUser(response.data.user);
           
           // Reset session expired state if successful
@@ -392,7 +388,7 @@ export const AuthProvider = ({ children }) => {
     try {
       logAuthAction('Login attempt', { username });
       
-      const response = await authAxios.post(`/api/auth/login`, {
+      const response = await authAxios.post(`/auth/login`, {
         username,
         password
       });
@@ -448,7 +444,7 @@ export const AuthProvider = ({ children }) => {
     try {
       logAuthAction('Registration attempt');
       
-      const response = await authAxios.post(`/api/auth/register`, userData);
+      const response = await authAxios.post(`/auth/register`, userData);
       
       const { token: newToken, refreshToken: newRefreshToken, user } = response.data;
       
@@ -508,7 +504,7 @@ export const AuthProvider = ({ children }) => {
       
       // Call the backend to invalidate the refresh token if we have one
       if (token && refreshToken) {
-        await authAxios.post("/api/auth/logout");
+        await authAxios.post("/auth/logout");
       }
     } catch (error) {
       logAuthAction('Logout API error', { error: error.message });
@@ -540,7 +536,7 @@ export const AuthProvider = ({ children }) => {
   // Update user profile
   const updateProfile = async (userData) => {
     try {
-      const response = await authAxios.put("/api/auth/profile", userData);
+      const response = await authAxios.put("/auth/profile", userData);
       
       setUser(response.data.user);
       return { success: true, user: response.data.user };
@@ -562,7 +558,7 @@ export const AuthProvider = ({ children }) => {
   // Change user password
   const changePassword = async (currentPassword, newPassword) => {
     try {
-      await authAxios.put("/api/auth/password", {
+      await authAxios.put("/auth/password", {
         currentPassword,
         newPassword
       });

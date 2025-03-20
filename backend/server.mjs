@@ -42,27 +42,35 @@ const port = process.env.NODE_ENV === 'production'
   ? (process.env.PORT || 10000)
   : (process.env.BACKEND_PORT || 5000);
 
-// Set up CORS configuration with support for sswanstudios.com
+// Set up CORS configuration with support for all production domains
 const allowedOrigins = process.env.NODE_ENV === 'production'
   ? [
       // Production frontend URLs
       'https://ss-pt.onrender.com',
       'https://sswanstudios.com',
       'https://www.sswanstudios.com',
-      // Add frontend render URL
-      'https://swanstudios.onrender.com'
+      // Add frontend render URLs
+      'https://swanstudios.onrender.com',
+      'https://swan-studios-pt-new.onrender.com'
     ]
   : process.env.FRONTEND_ORIGINS
     ? process.env.FRONTEND_ORIGINS.split(",").map((origin) => origin.trim())
     : ["http://localhost:5173", "http://localhost:5174"];
 
+// Log allowed origins on startup
+console.log('Allowed origins:', allowedOrigins);
+
 // Expanded CORS options to handle preflight requests properly
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('Request with no origin allowed');
+      return callback(null, true);
+    }
     
     if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log(`Origin allowed by CORS: ${origin}`);
       callback(null, true);
     } else {
       console.warn(`Request from origin ${origin} blocked by CORS policy`);
@@ -74,30 +82,31 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"] // Extended headers
 };
 
+// Special raw body handling for Stripe webhooks - MUST come before other middleware!
+app.use('/api/cart/webhook', express.raw({ type: 'application/json' }));
+
 // Apply middleware
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // Support URL-encoded bodies
 
-// Enhanced request logger for development
-if (process.env.NODE_ENV !== 'production') {
-  app.use((req, res, next) => {
-    const start = Date.now();
-    
-    // Log the request
-    console.log(`→ ${req.method} ${req.url}`);
-    
-    // Log response when finished
-    res.on('finish', () => {
-      const duration = Date.now() - start;
-      const statusColor = res.statusCode >= 400 ? '\x1b[31m' : res.statusCode >= 300 ? '\x1b[33m' : '\x1b[32m';
-      const resetColor = '\x1b[0m';
-      console.log(`← ${statusColor}${res.statusCode}${resetColor} ${req.method} ${req.url} (${duration}ms)`);
-    });
-    
-    next();
+// Enhanced request logger for all environments
+app.use((req, res, next) => {
+  const start = Date.now();
+  
+  // Log the request
+  console.log(`→ ${req.method} ${req.url} from ${req.ip} (Origin: ${req.headers.origin || 'none'})`);
+  
+  // Log response when finished
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    const statusColor = res.statusCode >= 400 ? '\x1b[31m' : res.statusCode >= 300 ? '\x1b[33m' : '\x1b[32m';
+    const resetColor = '\x1b[0m';
+    console.log(`← ${statusColor}${res.statusCode}${resetColor} ${req.method} ${req.url} (${duration}ms)`);
   });
-}
+  
+  next();
+});
 
 // Simple health check route
 app.get('/health', (req, res) => {
@@ -108,6 +117,9 @@ app.get('/health', (req, res) => {
     serverTime: new Date().toISOString() 
   });
 });
+
+// Add CORS pre-flight response for all routes
+app.options('*', cors(corsOptions));
 
 // ================== API ROUTES ================== 
 app.use("/api/auth", authRoutes);
@@ -433,28 +445,6 @@ const initializeSessionsTable = async () => {
     return false;
   }
 };
-
-// ================== ERROR HANDLING MIDDLEWARE ================== 
-// Global error handler - must be defined after routes
-app.use((err, req, res, next) => {
-  console.error('Server error:', err);
-  res.status(err.status || 500).json({
-    success: false,
-    message: process.env.NODE_ENV === 'production' 
-      ? 'Server error occurred' 
-      : err.message,
-    stack: process.env.NODE_ENV === 'production' ? undefined : err.stack
-  });
-});
-
-// Special raw body handling for Stripe webhooks - MUST come before other middleware!
-app.use('/api/cart/webhook', express.raw({ type: 'application/json' }));
-
-// Apply standard middleware for other routes
-app.use(cors(corsOptions));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // Support URL-encoded bodies
-
 
 // ================== DATABASE SYNC & SERVER START ==================
 // Safe database synchronization and server startup

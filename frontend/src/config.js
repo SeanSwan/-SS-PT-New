@@ -6,7 +6,7 @@
 
 // Environment-specific API base URL
 export const API_BASE_URL = process.env.NODE_ENV === 'production'
-  ? 'https://swanstudios.onrender.com' // Production backend URL
+  ? 'https://swanstudios.onrender.com/api' // Production backend URL with /api path
   : ''; // Empty for development (using proxy)
 
 // Authentication configuration
