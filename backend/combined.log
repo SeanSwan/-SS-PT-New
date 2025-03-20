@@ -135,3 +135,10 @@
 {"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T21:14:34.099Z","userId":2}
 {"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T21:14:34.115Z","userId":2}
 {"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T21:14:35.326Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T22:15:26.616Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T22:15:26.618Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T22:15:26.642Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T22:15:26.808Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T22:23:15.752Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T22:23:15.770Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T22:23:15.933Z","userId":2}
