@@ -627,7 +627,7 @@ const EnhancedFooter = () => {
               <FaFacebook />
             </SocialIcon>
             <SocialIcon 
-              href="https://twitter.com" 
+              href="https://bsky.app/" 
               target="_blank" 
               rel="noopener noreferrer" 
               aria-label="Twitter"
@@ -743,7 +743,7 @@ const EnhancedFooter = () => {
           <FooterHeading variants={itemVariants}>Contact Us</FooterHeading>
           <ContactItem variants={contactVariants}>
             <FaMapMarkerAlt />
-            <span>123 Fitness Street, Wellness City, CA 94103</span>
+            <span>Anaheim Hills </span>
           </ContactItem>
           <ContactItem variants={contactVariants}>
             <FaPhone />
@@ -751,7 +751,7 @@ const EnhancedFooter = () => {
           </ContactItem>
           <ContactItem variants={contactVariants}>
             <FaEnvelope />
-            <span>info@swanstudios.com</span>
+            <span>loveswanstudios@protonmail.com</span>
           </ContactItem>
           
           <FooterHeading variants={itemVariants} style={{ marginTop: '2rem' }}>

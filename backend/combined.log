@@ -127,3 +127,11 @@
 {"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T21:08:32.836Z","userId":2}
 {"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T21:08:32.910Z","userId":2}
 {"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T21:08:32.954Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T21:13:27.501Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T21:13:27.540Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T21:13:27.962Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T21:13:42.955Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/checkout","role":"admin","timestamp":"2025-03-20T21:13:45.987Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T21:14:34.099Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T21:14:34.115Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T21:14:35.326Z","userId":2}
