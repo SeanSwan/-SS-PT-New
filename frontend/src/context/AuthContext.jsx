@@ -5,29 +5,59 @@
  */
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
+import { API_BASE_URL, AUTH_CONFIG } from "../config";
 
 // Create the context
 const AuthContext = createContext();
 
-// Use relative URL for API when using proxy
-const API_BASE_URL = ""; // Empty base URL for using with proxy
+// Token refresh settings from config
+const TOKEN_REFRESH_THRESHOLD_MS = AUTH_CONFIG.tokenRefreshThresholdMs;
+const SESSION_EXPIRY_CHECK_INTERVAL = AUTH_CONFIG.sessionExpiryCheckIntervalMs;
 
-// Token refresh settings
-const TOKEN_REFRESH_THRESHOLD_MS = 5 * 60 * 1000; // Refresh token 5 minutes before expiry
-const SESSION_EXPIRY_CHECK_INTERVAL = 60 * 1000; // Check token expiration every minute
-
-// JWT token decoder (without requiring additional libraries)
+/**
+ * JWT token decoder with enhanced error handling
+ * @param {string} token - JWT token to decode
+ * @returns {object|null} Decoded token payload or null if invalid
+ */
 const parseJwt = (token) => {
   try {
-    const base64Url = token.split('.')[1];
+    // Handle undefined/null tokens gracefully
+    if (!token) {
+      console.warn("Warning: Attempted to parse undefined or null token");
+      return null;
+    }
+    
+    const parts = token.split('.');
+    // Verify token has the expected JWT format (header.payload.signature)
+    if (parts.length !== 3) {
+      console.warn("Warning: Token does not have the expected JWT format");
+      return null;
+    }
+    
+    const base64Url = parts[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
     const jsonPayload = decodeURIComponent(atob(base64).split('').map((c) => {
       return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
     }).join(''));
+    
     return JSON.parse(jsonPayload);
   } catch (error) {
     console.error("Error parsing JWT token:", error);
     return null;
+  }
+};
+
+/**
+ * Log authentication actions in production for debugging
+ * @param {string} action - Action description
+ * @param {object} details - Additional details to log
+ */
+const logAuthAction = (action, details = {}) => {
+  if (process.env.NODE_ENV === 'production') {
+    console.log(`Auth: ${action}`, {
+      timestamp: new Date().toISOString(),
+      ...details
+    });
   }
 };
 
@@ -43,8 +73,8 @@ const authAxios = axios.create({
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem("token") || null);
-  const [refreshToken, setRefreshToken] = useState(localStorage.getItem("refreshToken") || null);
+  const [token, setToken] = useState(localStorage.getItem(AUTH_CONFIG.tokenKey) || null);
+  const [refreshToken, setRefreshToken] = useState(localStorage.getItem(AUTH_CONFIG.refreshTokenKey) || null);
   const [sessionExpired, setSessionExpired] = useState(false);
   
   // Refs for token refresh
@@ -114,27 +144,31 @@ export const AuthProvider = ({ children }) => {
       if (token && refreshToken && !isRefreshing.current) {
         try {
           isRefreshing.current = true;
+          logAuthAction('Proactive token refresh attempt');
           
           const response = await authAxios.post(`/api/auth/refresh-token`, { refreshToken });
           
           const { token: newToken, refreshToken: newRefreshToken } = response.data;
           
           // Update tokens
-          localStorage.setItem("token", newToken);
-          localStorage.setItem("refreshToken", newRefreshToken);
+          localStorage.setItem(AUTH_CONFIG.tokenKey, newToken);
+          localStorage.setItem(AUTH_CONFIG.refreshTokenKey, newRefreshToken);
           setToken(newToken);
           setRefreshToken(newRefreshToken);
           
           // Update auth header
           authAxios.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
           
-          console.log("Token proactively refreshed");
+          logAuthAction('Token proactively refreshed', { success: true });
           isRefreshing.current = false;
           
           // Setup new timer for the new token
           setupTokenRefreshTimer();
         } catch (error) {
-          console.error("Error refreshing token proactively:", error);
+          logAuthAction('Proactive token refresh failed', { 
+            error: error.message,
+            status: error.response?.status
+          });
           isRefreshing.current = false;
           
           // If refresh fails due to expired refresh token, logout
@@ -145,16 +179,18 @@ export const AuthProvider = ({ children }) => {
       }
     }, refreshTime);
     
-    console.log(`Token refresh scheduled in ${Math.floor(refreshTime / 1000 / 60)} minutes`);
+    logAuthAction('Token refresh scheduled', {
+      minutesUntilRefresh: Math.floor(refreshTime / 1000 / 60)
+    });
   }, [token, refreshToken, getTimeUntilExpiry]);
 
   // Handle session expiration
   const handleSessionExpired = useCallback(() => {
-    console.log("Session expired - logging out");
+    logAuthAction('Session expired - logging out');
     
     // Clear auth state
-    localStorage.removeItem("token");
-    localStorage.removeItem("refreshToken");
+    localStorage.removeItem(AUTH_CONFIG.tokenKey);
+    localStorage.removeItem(AUTH_CONFIG.refreshTokenKey);
     delete authAxios.defaults.headers.common["Authorization"];
     setToken(null);
     setRefreshToken(null);
@@ -179,7 +215,7 @@ export const AuthProvider = ({ children }) => {
         if (token && isTokenExpired(token)) {
           // Don't add expired token to request
           // This will trigger a 401 and our response interceptor will handle it
-          console.log("Token expired before request - not adding to headers");
+          logAuthAction('Token expired before request', { url: config.url });
         } else if (token) {
           config.headers["Authorization"] = `Bearer ${token}`;
         }
@@ -215,6 +251,10 @@ export const AuthProvider = ({ children }) => {
         }
         
         isRefreshing.current = true;
+        logAuthAction('Token refresh attempt', { 
+          url: originalRequest.url,
+          method: originalRequest.method
+        });
         
         // Try to refresh the token
         try {
@@ -230,8 +270,8 @@ export const AuthProvider = ({ children }) => {
           const { token: newToken, refreshToken: newRefreshToken } = response.data;
           
           // Update tokens in storage and state
-          localStorage.setItem("token", newToken);
-          localStorage.setItem("refreshToken", newRefreshToken);
+          localStorage.setItem(AUTH_CONFIG.tokenKey, newToken);
+          localStorage.setItem(AUTH_CONFIG.refreshTokenKey, newRefreshToken);
           setToken(newToken);
           setRefreshToken(newRefreshToken);
           
@@ -245,10 +285,15 @@ export const AuthProvider = ({ children }) => {
           
           // Set up a new refresh timer for the new token
           setupTokenRefreshTimer();
+          logAuthAction('Token refresh success');
           
           // Retry the original request
           return authAxios(originalRequest);
         } catch (refreshError) {
+          logAuthAction('Token refresh failed', { 
+            error: refreshError.message,
+            status: refreshError.response?.status
+          });
           processQueue(refreshError, null);
           isRefreshing.current = false;
           
@@ -286,7 +331,7 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         // Check if token is already expired
         if (isTokenExpired(token)) {
-          console.log("Token already expired on load, attempting refresh");
+          logAuthAction('Token already expired on load, attempting refresh');
           
           // If we have a refresh token, let the interceptors handle the refresh
           // Otherwise clear the auth state
@@ -309,8 +354,15 @@ export const AuthProvider = ({ children }) => {
           if (sessionExpired) {
             setSessionExpired(false);
           }
+          
+          logAuthAction('User profile loaded successfully', { 
+            userId: response.data.user.id
+          });
         } catch (error) {
-          console.error("Error loading user:", error);
+          logAuthAction('Error loading user', { 
+            error: error.message,
+            status: error.response?.status
+          });
           
           // Handle auth errors
           if (error.response && [401, 403].includes(error.response.status)) {
@@ -338,6 +390,8 @@ export const AuthProvider = ({ children }) => {
   // Login function with enhanced error handling
   const login = async (username, password) => {
     try {
+      logAuthAction('Login attempt', { username });
+      
       const response = await authAxios.post(`/api/auth/login`, {
         username,
         password
@@ -349,8 +403,8 @@ export const AuthProvider = ({ children }) => {
       setSessionExpired(false);
       
       // Save tokens to localStorage and state
-      localStorage.setItem("token", newToken);
-      localStorage.setItem("refreshToken", newRefreshToken);
+      localStorage.setItem(AUTH_CONFIG.tokenKey, newToken);
+      localStorage.setItem(AUTH_CONFIG.refreshTokenKey, newRefreshToken);
       setToken(newToken);
       setRefreshToken(newRefreshToken);
       setUser(user);
@@ -361,9 +415,14 @@ export const AuthProvider = ({ children }) => {
       // Set up refresh timer
       setupTokenRefreshTimer();
       
+      logAuthAction('Login success', { userId: user.id });
+      
       return { success: true, user };
     } catch (error) {
-      console.error("Login error:", error);
+      logAuthAction('Login error', { 
+        error: error.message, 
+        status: error.response?.status
+      });
       
       // Provide a user-friendly error message
       if (error.response) {
@@ -384,70 +443,21 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Register function with enhanced error handling
-  const register = async (userData) => {
-    try {
-      const response = await authAxios.post(`/api/auth/register`, userData);
-      
-      const { token: newToken, refreshToken: newRefreshToken, user } = response.data;
-      
-      // Reset session expired state
-      setSessionExpired(false);
-      
-      // Save tokens to localStorage and state
-      localStorage.setItem("token", newToken);
-      localStorage.setItem("refreshToken", newRefreshToken);
-      setToken(newToken);
-      setRefreshToken(newRefreshToken);
-      setUser(user);
-      
-      // Set default authorization header
-      authAxios.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
-      
-      // Set up refresh timer
-      setupTokenRefreshTimer();
-      
-      return { success: true, user };
-    } catch (error) {
-      console.error("Registration error:", error);
-      
-      // Provide a user-friendly error message
-      if (error.response) {
-        // Handle validation errors
-        if (error.response.data.errors) {
-          const errorMessage = error.response.data.errors
-            .map(err => `${err.field}: ${err.message}`)
-            .join(", ");
-          throw new Error(`Validation error: ${errorMessage}`);
-        }
-        
-        // Handle specific error types
-        if (error.response.status === 409) {
-          throw new Error("Username or email already exists. Please try another.");
-        }
-        
-        throw new Error(error.response.data.message || "Registration failed. Please try again.");
-      } else if (error.request) {
-        throw new Error("Network error. Please check your internet connection and ensure the server is running.");
-      } else {
-        throw new Error("An unexpected error occurred. Please try again.");
-      }
-    }
-  };
-
   // Logout function with token invalidation
   const logout = async () => {
     try {
+      logAuthAction('Logout attempt');
+      
       // Call the backend to invalidate the refresh token if we have one
       if (token && refreshToken) {
         await authAxios.post("/api/auth/logout");
       }
     } catch (error) {
-      console.error("Logout error:", error);
+      logAuthAction('Logout API error', { error: error.message });
     } finally {
       // Clear auth state regardless of API success
-      localStorage.removeItem("token");
-      localStorage.removeItem("refreshToken");
+      localStorage.removeItem(AUTH_CONFIG.tokenKey);
+      localStorage.removeItem(AUTH_CONFIG.refreshTokenKey);
       delete authAxios.defaults.headers.common["Authorization"];
       setToken(null);
       setRefreshToken(null);
@@ -459,61 +469,8 @@ export const AuthProvider = ({ children }) => {
         clearTimeout(refreshTimerRef.current);
         refreshTimerRef.current = null;
       }
-    }
-  };
-
-  // Check if user is authenticated
-  const isAuthenticated = () => {
-    return !!token && !!user && !sessionExpired;
-  };
-
-  // Update user profile
-  const updateProfile = async (userData) => {
-    try {
-      const response = await authAxios.put("/api/auth/profile", userData);
       
-      setUser(response.data.user);
-      return { success: true, user: response.data.user };
-    } catch (error) {
-      console.error("Update profile error:", error);
-      
-      if (error.response) {
-        // Handle validation errors
-        if (error.response.data.errors) {
-          const errorMessage = error.response.data.errors
-            .map(err => `${err.field}: ${err.message}`)
-            .join(", ");
-          throw new Error(`Validation error: ${errorMessage}`);
-        }
-        
-        throw new Error(error.response.data.message || "Failed to update profile.");
-      } else if (error.request) {
-        throw new Error("Network error. Please check your internet connection.");
-      } else {
-        throw new Error("An unexpected error occurred. Please try again.");
-      }
-    }
-  };
-
-  // Change user password
-  const changePassword = async (currentPassword, newPassword) => {
-    try {
-      await authAxios.put("/api/auth/password", {
-        currentPassword,
-        newPassword
-      });
-      
-      return { success: true, message: "Password changed successfully" };
-    } catch (error) {
-      console.error("Password change error:", error);
-      
-      if (error.response) {
-        throw new Error(error.response.data.message || "Failed to change password.");
-      } else if (error.request) {
-        throw new Error("Network error. Please check your internet connection.");
-      } else {
-        throw new Error("An unexpected error occurred. Please try again.");
-      }
+      logAuthAction('Logout completed');
     }
   };
 
@@ -522,15 +479,46 @@ export const AuthProvider = ({ children }) => {
     user,
     isLoading,
     token,
-    authAxios, // Provide the pre-configured axios instance
+    authAxios,
     login,
-    register,
     logout,
-    isAuthenticated,
-    updateProfile,
-    changePassword,
-    sessionExpired, // Expose session expired state to allow UI to show a message
-    handleSessionExpired, // Allow components to trigger session expiration
+    isAuthenticated: () => !!token && !!user && !sessionExpired,
+    updateProfile: async (userData) => {
+      try {
+        const response = await authAxios.put("/api/auth/profile", userData);
+        setUser(response.data.user);
+        return { success: true, user: response.data.user };
+      } catch (error) {
+        console.error("Update profile error:", error);
+        
+        if (error.response?.data?.errors) {
+          const errorMessage = error.response.data.errors
+            .map(err => `${err.field}: ${err.message}`)
+            .join(", ");
+          throw new Error(`Validation error: ${errorMessage}`);
+        }
+        
+        throw new Error(error.response?.data?.message || 
+                        "Failed to update profile.");
+      }
+    },
+    changePassword: async (currentPassword, newPassword) => {
+      try {
+        await authAxios.put("/api/auth/password", {
+          currentPassword,
+          newPassword
+        });
+        
+        return { success: true, message: "Password changed successfully" };
+      } catch (error) {
+        console.error("Password change error:", error);
+        
+        throw new Error(error.response?.data?.message || 
+                       "Failed to change password.");
+      }
+    },
+    sessionExpired,
+    handleSessionExpired,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
