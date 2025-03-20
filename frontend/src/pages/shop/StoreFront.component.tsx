@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import styled, { keyframes } from "styled-components";
-import { motion, useAnimation, useInView } from "framer-motion";
+import { motion, useAnimation, useInView, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 import GlowButton from "../../components/Button/glowButton";
@@ -41,10 +41,9 @@ const fixedPackages = [
     name: "Rhodium Rise",
     description: "Unleash your inner champion with 50 premium sessions.",
     theme: "emerald"
-  },
+  }
 ];
 
-// Filter monthly packages to show only those with 4 sessions per week
 const monthlyPackages = [
   { 
     id: 4, 
@@ -53,8 +52,8 @@ const monthlyPackages = [
     pricePerSession: 155, 
     totalSessions: 48,    // 3 * 4 * 4 
     totalCost: 7440,      // 48 x 155 
-    name: 'Silver Storm', 
-    description: 'High intensity 3-month program at 4 sessions per week.',
+    name: "Silver Storm", 
+    description: "High intensity 3-month program at 4 sessions per week.",
     theme: "cosmic"
   },
   { 
@@ -64,8 +63,8 @@ const monthlyPackages = [
     pricePerSession: 145, 
     totalSessions: 96,    // 6 * 4 * 4 
     totalCost: 13920,     // 96 x 145 
-    name: 'Gold Grandeur', 
-    description: 'Maximize your potential with 6 months at 4 sessions per week.',
+    name: "Gold Grandeur", 
+    description: "Maximize your potential with 6 months at 4 sessions per week.",
     theme: "purple"
   },
   { 
@@ -75,8 +74,8 @@ const monthlyPackages = [
     pricePerSession: 140, 
     totalSessions: 144,   // 9 * 4 * 4 
     totalCost: 20160,     // 144 x 140 
-    name: 'Platinum Prestige', 
-    description: 'The best value – 9 months at 4 sessions per week.',
+    name: "Platinum Prestige", 
+    description: "The best value – 9 months at 4 sessions per week.",
     theme: "ruby"
   },
   { 
@@ -86,10 +85,10 @@ const monthlyPackages = [
     pricePerSession: 135, 
     totalSessions: 192,   // 12 * 4 * 4 
     totalCost: 25920,     // 192 x 135 
-    name: 'Rhodium Reign', 
-    description: 'The ultimate value – 12 months at 4 sessions per week at an unbeatable rate.',
+    name: "Rhodium Reign", 
+    description: "The ultimate value – 12 months at 4 sessions per week at an unbeatable rate.",
     theme: "emerald"
-  },
+  }
 ];
 
 // -----------------------------------------------------------------
@@ -132,6 +131,12 @@ const slideGradient = keyframes`
   100% {
     background-position: 0% 50%;
   }
+`;
+
+const pulseAnimation = keyframes`
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(0, 255, 255, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 255, 255, 0); }
 `;
 
 // -----------------------------------------------------------------
@@ -315,7 +320,6 @@ const HeroDescription = styled(motion.p)`
   }
 `;
 
-// Improved ButtonsContainer to fix centered buttons
 const ButtonsContainer = styled(motion.div)`
   display: flex;
   gap: 1.5rem;
@@ -441,7 +445,6 @@ const SectionTitle = styled(motion.h2)`
   }
 `;
 
-// Updated Grid to ensure all cards are the same size
 const Grid = styled(motion.div)`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -453,7 +456,6 @@ const Grid = styled(motion.div)`
   }
 `;
 
-// Fixed CardContainer to ensure consistent sizing
 const CardContainer = styled(motion.div)`
   position: relative;
   border-radius: 15px;
@@ -647,18 +649,19 @@ const ScrollIndicator = styled(motion.div)`
   }
 `;
 
-const SuccessToast = styled(motion.div)`
+const PopupNotification = styled(motion.div)`
   position: fixed;
-  bottom: 1rem;
-  right: 1rem;
-  background: rgba(0, 255, 255, 0.2);
-  border: 1px solid rgba(0, 255, 255, 0.4);
+  bottom: 80px;
+  right: 20px;
+  background: linear-gradient(135deg, rgba(120, 81, 169, 0.9), rgba(0, 255, 255, 0.9));
   color: white;
-  padding: 1rem 1.5rem;
-  border-radius: 8px;
-  z-index: 1000;
+  padding: 15px 20px;
+  border-radius: 10px;
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(10px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  max-width: 300px;
 `;
 
 const CartButton = styled(motion.button)`
@@ -686,6 +689,10 @@ const CartButton = styled(motion.button)`
   }
 `;
 
+const PulsingCartButton = styled(CartButton)`
+  animation: ${pulseAnimation} 1.5s infinite;
+`;
+
 const CartCount = styled.span`
   position: absolute;
   top: -5px;
@@ -706,21 +713,19 @@ const CartCount = styled.span`
 // -----------------------------------------------------------------
 // Helper Functions
 // -----------------------------------------------------------------
-// Format price with commas
 const formatPrice = (price) => price.toLocaleString("en-US");
 
-// Get gradient colors based on theme
 const getGradientColors = (theme) => {
   switch (theme) {
-    case 'cosmic':
-      return { start: 'rgba(93, 63, 211, 0.3)', end: 'rgba(255, 46, 99, 0.3)' };
-    case 'ruby':
-      return { start: 'rgba(232, 0, 70, 0.3)', end: 'rgba(253, 0, 159, 0.3)' };
-    case 'emerald':
-      return { start: 'rgba(0, 232, 176, 0.3)', end: 'rgba(0, 253, 159, 0.3)' };
-    case 'purple':
+    case "cosmic":
+      return { start: "rgba(93, 63, 211, 0.3)", end: "rgba(255, 46, 99, 0.3)" };
+    case "ruby":
+      return { start: "rgba(232, 0, 70, 0.3)", end: "rgba(253, 0, 159, 0.3)" };
+    case "emerald":
+      return { start: "rgba(0, 232, 176, 0.3)", end: "rgba(0, 253, 159, 0.3)" };
+    case "purple":
     default:
-      return { start: 'rgba(120, 0, 245, 0.3)', end: 'rgba(200, 148, 255, 0.3)' };
+      return { start: "rgba(120, 0, 245, 0.3)", end: "rgba(200, 148, 255, 0.3)" };
   }
 };
 
@@ -734,6 +739,7 @@ const StoreFront = () => {
   const [animateScrollIndicator, setAnimateScrollIndicator] = useState(true);
   const [revealPrices, setRevealPrices] = useState({});
   const [successMessage, setSuccessMessage] = useState(null);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
   
   const heroRef = useRef(null);
   const isHeroInView = useInView(heroRef);
@@ -757,15 +763,12 @@ const StoreFront = () => {
     if (isHeroInView) {
       heroControls.start("visible");
     }
-    
     if (isParallaxInView) {
       parallaxControls.start("visible");
     }
-    
     if (isFixedPackagesInView) {
       fixedPackagesControls.start("visible");
     }
-    
     if (isMonthlyPackagesInView) {
       monthlyPackagesControls.start("visible");
     }
@@ -779,14 +782,14 @@ const StoreFront = () => {
       }
     };
     
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener("scroll", handleScroll);
     };
   }, [
-    isHeroInView, 
-    isParallaxInView, 
-    isFixedPackagesInView, 
+    isHeroInView,
+    isParallaxInView,
+    isFixedPackagesInView,
     isMonthlyPackagesInView,
     heroControls,
     parallaxControls,
@@ -841,33 +844,39 @@ const StoreFront = () => {
   
   // Toggle price visibility
   const togglePriceVisibility = (packageId) => {
-    setRevealPrices(prev => ({
+    setRevealPrices((prev) => ({
       ...prev,
       [packageId]: !prev[packageId]
     }));
   };
 
-  // Handle adding a package to cart
+  // Enhanced handleAddToCart function
   const handleAddToCart = async (packageId, packageType) => {
-    // Find the package details
-    const packageData = packageType === 'fixed' 
-      ? fixedPackages.find(pkg => pkg.id === packageId)
-      : monthlyPackages.find(pkg => pkg.id === packageId);
-      
+    const packageData =
+      packageType === "fixed"
+        ? fixedPackages.find((pkg) => pkg.id === packageId)
+        : monthlyPackages.find((pkg) => pkg.id === packageId);
     if (!packageData) return;
     
     try {
-      // In a real implementation, you would add the actual storefront item ID
-      // Here we're using the package ID as a placeholder
+      setIsAddingToCart(true);
       await addToCart(packageId);
       setSuccessMessage(`Added ${packageData.name} to cart`);
-      
-      // Clear success message after 3 seconds
       setTimeout(() => {
         setSuccessMessage(null);
       }, 3000);
     } catch (error) {
-      console.error('Error adding to cart:', error);
+      console.error("Error adding to cart:", error);
+      if (error.response?.data?.message) {
+        setSuccessMessage(`Error: ${error.response.data.message}`);
+      } else {
+        setSuccessMessage(`Error adding item to cart. Please try again.`);
+      }
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 5000);
+    } finally {
+      setIsAddingToCart(false);
     }
   };
 
@@ -882,7 +891,7 @@ const StoreFront = () => {
       <ContentOverlay>
         {/* Hero Section */}
         <HeroSection ref={heroRef}>
-          <PremiumBadge 
+          <PremiumBadge
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 1, duration: 0.8 }}
@@ -890,11 +899,7 @@ const StoreFront = () => {
             PREMIER
           </PremiumBadge>
           
-          <motion.div
-            initial="hidden"
-            animate={heroControls}
-            variants={containerVariants}
-          >
+          <motion.div initial="hidden" animate={heroControls} variants={containerVariants}>
             <LogoContainer variants={itemVariants}>
               <img src={logoImg} alt="Swan Studios" />
             </LogoContainer>
@@ -912,21 +917,19 @@ const StoreFront = () => {
                 Discover a revolutionary workout program created from thousands of hours of hands-on training by elite trainer Sean Swan—merging cutting-edge fitness science with proven NASM protocols. Our personalized approach caters to everyone—from children to seniors—ensuring you unlock your full potential.
               </HeroDescription>
               
-              {/* Fixed to ensure buttons are centered and in foreground */}
               <ButtonsContainer variants={itemVariants}>
-                <GlowButton 
-                  text="Book Consultation" 
-                  theme="cosmic" 
-                  size="large" 
-                  animateOnRender 
+                <GlowButton
+                  text="Book Consultation"
+                  theme="cosmic"
+                  size="large"
+                  animateOnRender
                   onClick={() => setShowOrientation(true)}
                 />
-                
-                <GlowButton 
-                  text="View Packages" 
-                  theme="purple" 
-                  size="large" 
-                  animateOnRender 
+                <GlowButton
+                  text="View Packages"
+                  theme="purple"
+                  size="large"
+                  animateOnRender
                   onClick={() => {
                     const packagesSection = document.getElementById("packages-section");
                     packagesSection?.scrollIntoView({ behavior: "smooth" });
@@ -936,7 +939,7 @@ const StoreFront = () => {
             </HeroContent>
             
             {animateScrollIndicator && (
-              <ScrollIndicator 
+              <ScrollIndicator
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1.5, duration: 0.8 }}
@@ -949,39 +952,29 @@ const StoreFront = () => {
         
         {/* Premium Packages Section */}
         <SectionContainer id="packages-section" ref={fixedPackagesRef}>
-          <SectionTitle
-            initial={{ opacity: 0, y: 20 }}
-            animate={fixedPackagesControls}
-            variants={itemVariants}
-          >
+          <SectionTitle initial={{ opacity: 0, y: 20 }} animate={fixedPackagesControls} variants={itemVariants}>
             Premium Training Packages
           </SectionTitle>
           
-          <Grid
-            initial="hidden"
-            animate={fixedPackagesControls}
-            variants={gridVariants}
-          >
+          <Grid initial="hidden" animate={fixedPackagesControls} variants={gridVariants}>
             {fixedPackages.map((pkg, index) => {
               const { start, end } = getGradientColors(pkg.theme);
-              
               return (
-                <motion.div 
-                  key={pkg.id} 
+                <motion.div
+                  key={pkg.id}
                   variants={cardVariants}
-                  style={{ 
+                  style={{
                     animationDelay: `${index * 0.2}s`,
                     animationName: pulseGlow.getName()
                   }}
                 >
-                  <CardContainer 
-                    whileHover="hover"
-                    onClick={() => togglePriceVisibility(pkg.id)}
-                  >
+                  <CardContainer whileHover="hover" onClick={() => togglePriceVisibility(pkg.id)}>
                     <CardMedia>
-                      <CardImage style={{ 
-                        background: `linear-gradient(135deg, ${start}, ${end})`
-                      }} />
+                      <CardImage
+                        style={{
+                          background: `linear-gradient(135deg, ${start}, ${end})`
+                        }}
+                      />
                       <CardBadge>{pkg.sessions} Sessions</CardBadge>
                     </CardMedia>
                     
@@ -994,28 +987,28 @@ const StoreFront = () => {
                           <PriceContent>
                             <PriceLabel>Investment</PriceLabel>
                             <Price>
-                              <span>$</span>{formatPrice(pkg.totalCost)}
+                              <span>$</span>
+                              {formatPrice(pkg.totalCost)}
                             </Price>
                             <PriceDetails>
                               ${formatPrice(pkg.pricePerSession)} per session
                             </PriceDetails>
                           </PriceContent>
                         ) : (
-                          <LoginMessage>
-                            Login as a client to view pricing
-                          </LoginMessage>
+                          <LoginMessage>Login as a client to view pricing</LoginMessage>
                         )}
                       </PriceBox>
                       
                       <CardActions>
-                        <GlowButton 
-                          text={canViewPrices ? "Add to Cart" : "Login to Purchase"} 
-                          theme={pkg.theme} 
+                        <GlowButton
+                          text={isAddingToCart ? "Adding..." : canViewPrices ? "Add to Cart" : "Login to Purchase"}
+                          theme={pkg.theme}
                           size="medium"
+                          disabled={isAddingToCart}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (canViewPrices) {
-                              handleAddToCart(pkg.id, 'fixed');
+                              handleAddToCart(pkg.id, "fixed");
                             } else {
                               alert("Only clients can purchase packages. Please log in or upgrade.");
                             }
@@ -1032,14 +1025,8 @@ const StoreFront = () => {
         
         {/* Parallax Section */}
         <ParallaxSection ref={parallaxRef}>
-          <ParallaxContent
-            initial="hidden"
-            animate={parallaxControls}
-            variants={containerVariants}
-          >
-            <ParallaxTitle variants={itemVariants}>
-              Elevate Your Performance
-            </ParallaxTitle>
+          <ParallaxContent initial="hidden" animate={parallaxControls} variants={containerVariants}>
+            <ParallaxTitle variants={itemVariants}>Elevate Your Performance</ParallaxTitle>
             <ParallaxSubtitle variants={itemVariants}>
               Our premium packages are designed to transform not just your body, but your entire approach to fitness and wellness.
             </ParallaxSubtitle>
@@ -1048,39 +1035,29 @@ const StoreFront = () => {
         
         {/* Monthly Packages Section */}
         <SectionContainer ref={monthlyPackagesRef}>
-          <SectionTitle
-            initial={{ opacity: 0, y: 20 }}
-            animate={monthlyPackagesControls}
-            variants={itemVariants}
-          >
+          <SectionTitle initial={{ opacity: 0, y: 20 }} animate={monthlyPackagesControls} variants={itemVariants}>
             Long-Term Excellence Programs
           </SectionTitle>
           
-          <Grid
-            initial="hidden"
-            animate={monthlyPackagesControls}
-            variants={gridVariants}
-          >
+          <Grid initial="hidden" animate={monthlyPackagesControls} variants={gridVariants}>
             {monthlyPackages.map((pkg, index) => {
               const { start, end } = getGradientColors(pkg.theme);
-              
               return (
-                <motion.div 
-                  key={pkg.id} 
+                <motion.div
+                  key={pkg.id}
                   variants={cardVariants}
-                  style={{ 
+                  style={{
                     animationDelay: `${index * 0.2}s`,
                     animationName: pulseGlow.getName()
                   }}
                 >
-                  <CardContainer 
-                    whileHover="hover"
-                    onClick={() => togglePriceVisibility(pkg.id)}
-                  >
+                  <CardContainer whileHover="hover" onClick={() => togglePriceVisibility(pkg.id)}>
                     <CardMedia>
-                      <CardImage style={{ 
-                        background: `linear-gradient(135deg, ${start}, ${end})`
-                      }} />
+                      <CardImage
+                        style={{
+                          background: `linear-gradient(135deg, ${start}, ${end})`
+                        }}
+                      />
                       <CardBadge>{pkg.months} Months</CardBadge>
                     </CardMedia>
                     
@@ -1093,29 +1070,30 @@ const StoreFront = () => {
                           <PriceContent>
                             <PriceLabel>Investment</PriceLabel>
                             <Price>
-                              <span>$</span>{formatPrice(pkg.totalCost)}
+                              <span>$</span>
+                              {formatPrice(pkg.totalCost)}
                             </Price>
                             <PriceDetails>
-                              {pkg.totalSessions} sessions ({pkg.sessionsPerWeek}/week)<br />
+                              {pkg.totalSessions} sessions ({pkg.sessionsPerWeek}/week)
+                              <br />
                               ${formatPrice(pkg.pricePerSession)} per session
                             </PriceDetails>
                           </PriceContent>
                         ) : (
-                          <LoginMessage>
-                            Login as a client to view pricing
-                          </LoginMessage>
+                          <LoginMessage>Login as a client to view pricing</LoginMessage>
                         )}
                       </PriceBox>
                       
                       <CardActions>
-                        <GlowButton 
-                          text={canViewPrices ? "Add to Cart" : "Login to Purchase"} 
-                          theme={pkg.theme} 
+                        <GlowButton
+                          text={isAddingToCart ? "Adding..." : canViewPrices ? "Add to Cart" : "Login to Purchase"}
+                          theme={pkg.theme}
                           size="medium"
+                          disabled={isAddingToCart}
                           onClick={(e) => {
                             e.stopPropagation();
                             if (canViewPrices) {
-                              handleAddToCart(pkg.id, 'monthly');
+                              handleAddToCart(pkg.id, "monthly");
                             } else {
                               alert("Only clients can purchase packages. Please log in or upgrade.");
                             }
@@ -1130,17 +1108,17 @@ const StoreFront = () => {
           </Grid>
           
           <motion.div
-            style={{ 
-              display: 'flex', 
-              justifyContent: 'center',
-              marginTop: '3rem'
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              marginTop: "3rem"
             }}
             initial={{ opacity: 0, y: 20 }}
             animate={monthlyPackagesControls}
             variants={itemVariants}
           >
-            <GlowButton 
-              text="Schedule Consultation" 
+            <GlowButton
+              text="Schedule Consultation"
               theme="cosmic"
               size="large"
               onClick={() => setShowOrientation(true)}
@@ -1149,40 +1127,42 @@ const StoreFront = () => {
         </SectionContainer>
       </ContentOverlay>
       
-      {/* Success message toast */}
-      {successMessage && (
-        <SuccessToast
-          initial={{ opacity: 0, y: 50 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 50 }}
-        >
-          {successMessage}
-        </SuccessToast>
-      )}
+      {/* Enhanced Success/Error message toast with AnimatePresence for smooth transitions */}
+      <AnimatePresence>
+        {successMessage && (
+          <PopupNotification
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+          >
+            {successMessage}
+          </PopupNotification>
+        )}
+      </AnimatePresence>
       
-      {/* Floating cart button */}
+      {/* Floating cart button with pulsing animation when items are added */}
       {user && (
-        <CartButton 
-          onClick={toggleCart}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
-        >
-          🛒
-          {cart && cart.itemCount > 0 && (
-            <CartCount>{cart.itemCount}</CartCount>
+        <>
+          {successMessage ? (
+            <PulsingCartButton onClick={toggleCart} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+              🛒
+              {cart && cart.itemCount > 0 && <CartCount>{cart.itemCount}</CartCount>}
+            </PulsingCartButton>
+          ) : (
+            <CartButton onClick={toggleCart} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+              🛒
+              {cart && cart.itemCount > 0 && <CartCount>{cart.itemCount}</CartCount>}
+            </CartButton>
           )}
-        </CartButton>
+        </>
       )}
       
       {/* Orientation Form Modal */}
-      {showOrientation && (
-        <OrientationForm onClose={() => setShowOrientation(false)} />
-      )}
+      {showOrientation && <OrientationForm onClose={() => setShowOrientation(false)} />}
       
       {/* Shopping Cart Modal */}
-      {showCart && (
-        <ShoppingCart onClose={hideCart} />
-      )}
+      {showCart && <ShoppingCart onClose={hideCart} />}
     </StoreContainer>
   );
 };

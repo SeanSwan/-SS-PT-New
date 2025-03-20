@@ -1,9 +1,10 @@
 /**
  * main-routes.tsx
- * Main application routes configuration
+ * Main application routes configuration for the live monitoring/patrol security service website.
  */
 import React from 'react';
-import { RouteObject, Navigate } from 'react-router-dom';
+import { RouteObject, Navigate, Outlet } from 'react-router-dom';
+
 import Layout from '../components/Layout/layout';
 import ErrorBoundary from './error-boundary';
 
@@ -20,44 +21,36 @@ import AboutPage from '../pages/about/About';
 import StoreFront from '../pages/shop/StoreFront.component';
 import UnauthorizedPage from '../pages/UnauthorizedPage.component';
 
+// Checkout pages
+import CheckoutSuccess from '../pages/checkout/CheckoutSuccess';
+import CheckoutCancel from '../pages/checkout/CheckoutCancel';
+
 // Dashboard components
 import ClientDashboard from '../components/ClientDashboard/ClientDashboard';
-import AdminDashboard from '../components/AdminDashboard/AdminDashboard';
+// AdminDashboard route is kept here if needed; otherwise remove AdminRoute usage if not required
+// import AdminDashboard from '../components/AdminDashboard/AdminDashboard';
 
-// Main routes configuration
 const MainRoutes: RouteObject = {
   path: '/',
-  element: <Layout />,
+  element: (
+    // Wrap Layout with Outlet to provide required children prop
+    <Layout>
+      <Outlet />
+    </Layout>
+  ),
   errorElement: <ErrorBoundary />,
   children: [
-    {
-      index: true,
-      element: <HomePage />
-    },
-    {
-      path: 'login',
-      element: <LoginModal />
-    },
-    {
-      path: 'signup',
-      element: <SignupModal />
-    },
-    {
-      path: 'contact',
-      element: <ContactPage />
-    },
-    {
-      path: 'about',
-      element: <AboutPage />
-    },
-    {
-      path: 'store',
-      element: <StoreFront />
-    },
-    {
-      path: 'unauthorized',
-      element: <UnauthorizedPage />
-    },
+    { index: true, element: <HomePage /> },
+    { path: 'login', element: <LoginModal /> },
+    { path: 'signup', element: <SignupModal /> },
+    { path: 'contact', element: <ContactPage /> },
+    { path: 'about', element: <AboutPage /> },
+    { path: 'store', element: <StoreFront /> },
+    { path: 'unauthorized', element: <UnauthorizedPage /> },
+    // Checkout routes
+    { path: 'checkout/success', element: <CheckoutSuccess /> },
+    { path: 'checkout/cancel', element: <CheckoutCancel /> },
+    // Protected client dashboard route
     {
       path: 'client-dashboard/*',
       element: (
@@ -66,18 +59,17 @@ const MainRoutes: RouteObject = {
         </ProtectedRoute>
       )
     },
+    // Optional Admin route (remove if not needed)
     {
       path: 'admin-dashboard/*',
       element: (
         <AdminRoute>
-          <AdminDashboard />
+          {/* <AdminDashboard /> */}
+          <div>Admin dashboard is not implemented</div>
         </AdminRoute>
       )
     },
-    {
-      path: '*',
-      element: <Navigate to="/" replace />
-    }
+    { path: '*', element: <Navigate to="/" replace /> }
   ]
 };
 

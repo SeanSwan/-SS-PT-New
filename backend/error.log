@@ -15,3 +15,7 @@
 {"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T06:21:11.149Z"}
 {"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T06:21:27.327Z"}
 {"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T06:21:27.344Z"}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T16:33:00.355Z"}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T16:33:00.392Z"}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T19:49:53.753Z"}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T19:49:53.769Z"}

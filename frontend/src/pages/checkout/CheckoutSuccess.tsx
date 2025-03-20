@@ -1,8 +1,8 @@
-// /frontend/src/pages/checkout/CheckoutSuccess.tsx
+// /frontend/src/pages/checkout/CheckoutSuccess.tsx - FIXED VERSION
 
 import React, { useState, useEffect } from "react";
 import styled, { keyframes } from "styled-components";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthContext";
@@ -23,6 +23,27 @@ const float = keyframes`
   100% { transform: translateY(0px); }
 `;
 
+const pulse = keyframes`
+  0% { transform: scale(1); box-shadow: 0 0 15px rgba(0, 255, 255, 0.5); }
+  50% { transform: scale(1.05); box-shadow: 0 0 25px rgba(0, 255, 255, 0.8); }
+  100% { transform: scale(1); box-shadow: 0 0 15px rgba(0, 255, 255, 0.5); }
+`;
+
+// Confetti animation
+const fallAnimation = keyframes`
+  0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+`;
+
+// TypeScript interfaces for styled-components props
+interface ConfettiProps {
+  left: number;
+  color: string;
+  type: string;
+  size: number;
+  duration: number;
+}
+
 // Styled Components
 const SuccessContainer = styled.div`
   position: relative;
@@ -35,6 +56,7 @@ const SuccessContainer = styled.div`
   padding: 2rem;
   text-align: center;
   color: white;
+  overflow: hidden; /* For confetti */
 `;
 
 const LogoContainer = styled(motion.div)`
@@ -86,10 +108,12 @@ const SuccessContent = styled.div`
   z-index: 1;
 `;
 
-const SuccessIcon = styled.div`
+const SuccessIcon = styled(motion.div)`
   font-size: 4rem;
   color: #00ffff;
   margin-bottom: 1.5rem;
+  animation: ${pulse} 2s infinite ease-in-out;
+  display: inline-block;
 `;
 
 const SuccessTitle = styled.h1`
@@ -159,16 +183,122 @@ const LoadingSpinner = styled.div`
   }
 `;
 
+// Countdown timer
+const CountdownContainer = styled.div`
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+`;
+
+// Confetti - with proper TypeScript prop interface
+const Confetti = styled.div<ConfettiProps>`
+  position: absolute;
+  width: ${props => props.size}px;
+  height: ${props => props.size}px;
+  background-color: ${props => props.color};
+  top: -20px;
+  left: ${props => props.left}%;
+  opacity: 0.8;
+  border-radius: ${props => props.type === 'circle' ? '50%' : '0'};
+  animation: ${fallAnimation} ${props => props.duration}s linear forwards;
+  z-index: 0;
+`;
+
+// Enhanced PackageInfo component
+const PackageInfo = styled(motion.div)`
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  text-align: left;
+`;
+
+const PackageTitle = styled.h4`
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: #00ffff;
+`;
+
+const PackageDetail = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+  
+  &:not(:last-child) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 0.5rem;
+  }
+`;
+
+// Confetti item interface
+interface ConfettiItem {
+  id: number;
+  left: number;
+  color: string;
+  type: string;
+  size: number;
+  duration: number;
+}
+
+// Order info interface
+interface OrderInfo {
+  packageName?: string;
+  totalSessions?: number;
+  validity?: string;
+  [key: string]: any;
+}
+
 const CheckoutSuccess: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, token } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState<number>(15); // 15 second countdown
+  const [orderInfo, setOrderInfo] = useState<OrderInfo | null>(null);
+  const [confetti, setConfetti] = useState<ConfettiItem[]>([]);
   
   // Extract session_id from URL query parameters
   const searchParams = new URLSearchParams(location.search);
   const sessionId = searchParams.get('session_id');
+  
+  // Generate confetti
+  useEffect(() => {
+    if (!loading && !error) {
+      const colors = ['#00ffff', '#0099ff', '#ffffff', '#ff9900', '#ff00ff'];
+      const types = ['circle', 'square'];
+      const newConfetti: ConfettiItem[] = [];
+      
+      for (let i = 0; i < 100; i++) {
+        newConfetti.push({
+          id: i,
+          left: Math.random() * 100,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          type: types[Math.floor(Math.random() * types.length)],
+          size: Math.random() * 10 + 5,
+          duration: Math.random() * 5 + 3
+        });
+      }
+      
+      setConfetti(newConfetti);
+    }
+  }, [loading, error]);
+  
+  // Countdown timer
+  useEffect(() => {
+    if (!loading && !error && countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    } else if (countdown === 0) {
+      // Auto redirect when countdown reaches zero
+      navigate('/client-dashboard');
+    }
+  }, [countdown, loading, error, navigate]);
   
   useEffect(() => {
     const completeCheckout = async (): Promise<void> => {
@@ -180,7 +310,7 @@ const CheckoutSuccess: React.FC = () => {
       
       try {
         // Call backend API to mark order as complete
-        await axios.post('/api/cart/checkout/success', 
+        const response = await axios.post('/api/cart/checkout/success', 
           { session_id: sessionId },
           {
             headers: { 
@@ -190,7 +320,28 @@ const CheckoutSuccess: React.FC = () => {
           }
         );
         
+        // Save order info
+        if (response.data && response.data.orderDetails) {
+          setOrderInfo(response.data.orderDetails);
+          // Also save to localStorage for future reference
+          localStorage.setItem('lastOrder', JSON.stringify({
+            id: sessionId,
+            date: new Date().toISOString(),
+            details: response.data.orderDetails
+          }));
+        }
+        
         setLoading(false);
+        
+        // Try to play success sound if available
+        try {
+          const audio = new Audio('/src/assets/success-sound.mp3');
+          audio.volume = 0.3;
+          audio.play().catch(e => console.log('Audio play prevented: ', e));
+        } catch (audioErr) {
+          console.log('Audio not available or autoplay prevented');
+        }
+        
       } catch (err: any) {
         console.error('Error completing checkout:', err);
         setLoading(false);
@@ -199,7 +350,7 @@ const CheckoutSuccess: React.FC = () => {
     };
     
     completeCheckout();
-  }, [sessionId, token]);
+  }, [sessionId, token, navigate]);
 
   const handleReturnToStore = (): void => {
     navigate('/store');
@@ -208,9 +359,39 @@ const CheckoutSuccess: React.FC = () => {
   const handleViewDashboard = (): void => {
     navigate('/client-dashboard');
   };
+  
+  // Animation variants
+  const iconVariants = {
+    initial: { scale: 0 },
+    animate: { 
+      scale: [0, 1.2, 1],
+      transition: { duration: 0.5, times: [0, 0.6, 1] }
+    }
+  };
+  
+  const packageVariants = {
+    initial: { opacity: 0, y: 20 },
+    animate: { 
+      opacity: 1, 
+      y: 0,
+      transition: { delay: 0.5, duration: 0.5 }
+    }
+  };
 
   return (
     <SuccessContainer>
+      {/* Confetti effect for success */}
+      {!loading && !error && confetti.map((item) => (
+        <Confetti
+          key={item.id}
+          left={item.left}
+          color={item.color}
+          type={item.type}
+          size={item.size}
+          duration={item.duration}
+        />
+      ))}
+      
       <LogoContainer
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -224,60 +405,103 @@ const CheckoutSuccess: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.2 }}
       >
-        {loading ? (
-          <LoadingSpinner />
-        ) : error ? (
-          <SuccessContent>
-            <SuccessIcon>❌</SuccessIcon>
-            <SuccessTitle>Something went wrong</SuccessTitle>
-            <SuccessMessage>{error}</SuccessMessage>
-            <ButtonsContainer>
-              <GlowButton 
-                text="Return to Store" 
-                theme="cosmic"
-                size="medium"
-                onClick={handleReturnToStore}
-              />
-              <GlowButton 
-                text="Contact Support" 
-                theme="purple"
-                size="medium"
-                onClick={() => navigate('/contact')}
-              />
-            </ButtonsContainer>
-          </SuccessContent>
-        ) : (
-          <SuccessContent>
-            <SuccessIcon>✓</SuccessIcon>
-            <SuccessTitle>Payment Successful!</SuccessTitle>
-            <SuccessMessage>
-              Thank you for your purchase. Your training package is now ready to use.
-              You can schedule your sessions through your dashboard.
-            </SuccessMessage>
-            
-            <OrderDetail>
-              <h3>Order Summary</h3>
-              <p>Order ID: <span className="highlight">{sessionId?.substring(0, 8)}...</span></p>
-              <p>Status: <span className="highlight">Completed</span></p>
-              <p>Customer: <span className="highlight">{user?.username || "Valued Client"}</span></p>
-            </OrderDetail>
-            
-            <ButtonsContainer>
-              <GlowButton 
-                text="Return to Store" 
-                theme="cosmic"
-                size="medium"
-                onClick={handleReturnToStore}
-              />
-              <GlowButton 
-                text="Go to Dashboard" 
-                theme="emerald"
-                size="medium"
-                onClick={handleViewDashboard}
-              />
-            </ButtonsContainer>
-          </SuccessContent>
-        )}
+        <AnimatePresence>
+          {loading ? (
+            <LoadingSpinner />
+          ) : error ? (
+            <SuccessContent>
+              <SuccessIcon
+                variants={iconVariants}
+                initial="initial"
+                animate="animate"
+              >❌</SuccessIcon>
+              <SuccessTitle>Something went wrong</SuccessTitle>
+              <SuccessMessage>{error}</SuccessMessage>
+              <ButtonsContainer>
+                <GlowButton 
+                  text="Return to Store" 
+                  theme="cosmic"
+                  size="medium"
+                  onClick={handleReturnToStore}
+                />
+                <GlowButton 
+                  text="Contact Support" 
+                  theme="purple"
+                  size="medium"
+                  onClick={() => navigate('/contact')}
+                />
+              </ButtonsContainer>
+            </SuccessContent>
+          ) : (
+            <SuccessContent>
+              <SuccessIcon
+                variants={iconVariants}
+                initial="initial"
+                animate="animate"
+              >✓</SuccessIcon>
+              <SuccessTitle>Payment Successful!</SuccessTitle>
+              <SuccessMessage>
+                Thank you for your purchase. Your training package is now ready to use.
+                You can schedule your sessions through your dashboard.
+              </SuccessMessage>
+              
+              <OrderDetail>
+                <h3>Order Summary</h3>
+                <p>Order ID: <span className="highlight">{sessionId?.substring(0, 8)}...</span></p>
+                <p>Date: <span className="highlight">{new Date().toLocaleDateString()}</span></p>
+                <p>Status: <span className="highlight">Completed</span></p>
+                <p>Customer: <span className="highlight">{user?.username || "Valued Client"}</span></p>
+              </OrderDetail>
+              
+              {/* Enhanced package information - will show if orderInfo is available */}
+              {orderInfo && (
+                <PackageInfo
+                  variants={packageVariants}
+                  initial="initial"
+                  animate="animate"
+                >
+                  <PackageTitle>Your Training Package</PackageTitle>
+                  <PackageDetail>
+                    <span>Package:</span>
+                    <span>{orderInfo.packageName}</span>
+                  </PackageDetail>
+                  {orderInfo.totalSessions && (
+                    <PackageDetail>
+                      <span>Sessions:</span>
+                      <span>{orderInfo.totalSessions}</span>
+                    </PackageDetail>
+                  )}
+                  {orderInfo.validity && (
+                    <PackageDetail>
+                      <span>Valid Until:</span>
+                      <span>{orderInfo.validity}</span>
+                    </PackageDetail>
+                  )}
+                </PackageInfo>
+              )}
+              
+              <ButtonsContainer>
+                <GlowButton 
+                  text="Return to Store" 
+                  theme="cosmic"
+                  size="medium"
+                  onClick={handleReturnToStore}
+                />
+                <GlowButton 
+                  text="Go to Dashboard" 
+                  theme="emerald"
+                  size="medium"
+                  onClick={handleViewDashboard}
+                />
+              </ButtonsContainer>
+              
+              {/* Countdown timer */}
+              <CountdownContainer>
+                Redirecting to your dashboard in {countdown} seconds...
+              </CountdownContainer>
+            </SuccessContent>
+          )}
+        </AnimatePresence>
       </SuccessCard>
     </SuccessContainer>
   );

@@ -76,3 +76,54 @@
 {"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T06:23:15.154Z","userId":2}
 {"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T06:23:16.385Z","userId":2}
 {"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T06:25:21.652Z","userId":2}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T16:33:00.355Z"}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T16:33:00.392Z"}
+{"level":"info","message":"Successful login for user: ogpswan, role: admin","timestamp":"2025-03-20T16:34:38.517Z"}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T16:34:38.590Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T16:34:38.601Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T16:34:38.884Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T16:34:49.215Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T16:54:11.564Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T17:34:53.215Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T17:34:53.255Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T17:34:53.368Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T17:34:53.424Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T17:35:12.708Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T17:35:12.731Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T17:35:13.062Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T17:35:34.105Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T17:35:47.987Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T18:33:33.674Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T18:33:33.698Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T18:33:33.976Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T18:33:34.071Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T18:33:47.175Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/checkout","role":"admin","timestamp":"2025-03-20T18:33:54.214Z","userId":2}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T19:49:53.753Z"}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T19:49:53.769Z"}
+{"level":"info","message":"Successful login for user: ogpswan, role: admin","timestamp":"2025-03-20T19:50:17.666Z"}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T19:50:17.728Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T19:50:17.739Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T19:50:17.932Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T19:50:34.666Z","userId":2}
+{"level":"info","message":"User authenticated","method":"PUT","path":"/update/1","role":"admin","timestamp":"2025-03-20T19:50:39.169Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/checkout","role":"admin","timestamp":"2025-03-20T19:50:41.477Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/checkout","role":"admin","timestamp":"2025-03-20T20:00:05.199Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/checkout","role":"admin","timestamp":"2025-03-20T20:00:07.133Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T20:00:39.759Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T20:00:39.782Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T20:00:40.086Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T20:02:12.012Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/checkout","role":"admin","timestamp":"2025-03-20T20:02:14.354Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T20:13:41.811Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T20:13:41.833Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T20:13:42.075Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T20:13:47.695Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/checkout","role":"admin","timestamp":"2025-03-20T20:13:50.694Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T20:20:57.935Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T20:20:57.948Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T20:20:59.056Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T21:08:32.803Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T21:08:32.836Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T21:08:32.910Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T21:08:32.954Z","userId":2}

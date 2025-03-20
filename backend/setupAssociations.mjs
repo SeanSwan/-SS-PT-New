@@ -6,6 +6,7 @@
  */
 
 // Import all models that need associations
+import { DataTypes } from 'sequelize';
 import User from './models/User.mjs';
 import Session from './models/Session.mjs';
 import ShoppingCart from './models/ShoppingCart.mjs';
@@ -28,12 +29,18 @@ const setupAssociations = () => {
   
   Session.belongsTo(User, { 
     as: 'client',
-    foreignKey: 'userId'
+    foreignKey: {
+      name: 'userId',
+      type: DataTypes.INTEGER
+    }
   });
   
   Session.belongsTo(User, { 
     as: 'trainer',
-    foreignKey: 'trainerId'
+    foreignKey: {
+      name: 'trainerId',
+      type: DataTypes.INTEGER
+    }
   });
   
   // ====================================
@@ -43,36 +50,54 @@ const setupAssociations = () => {
   // Sessions
   User.hasMany(Session, { 
     as: 'clientSessions',
-    foreignKey: 'userId'
+    foreignKey: {
+      name: 'userId',
+      type: DataTypes.INTEGER
+    }
   });
   
   User.hasMany(Session, { 
     as: 'trainerSessions',
-    foreignKey: 'trainerId'
+    foreignKey: {
+      name: 'trainerId',
+      type: DataTypes.INTEGER
+    }
   });
   
   // Shopping Carts
   User.hasMany(ShoppingCart, { 
     as: 'userCarts',
-    foreignKey: 'userId' 
+    foreignKey: {
+      name: 'userId',
+      type: DataTypes.INTEGER
+    }
   });
   
   // Orientation Requests
   User.hasMany(Orientation, { 
     as: 'orientations',
-    foreignKey: 'userId' 
+    foreignKey: {
+      name: 'userId',
+      type: DataTypes.INTEGER
+    }
   });
   
   // Contact Forms
   User.hasMany(Contact, { 
     as: 'contacts',
-    foreignKey: 'userId' 
+    foreignKey: {
+      name: 'userId',
+      type: DataTypes.INTEGER
+    }
   });
   
   // Admin Settings
   User.hasOne(AdminSettings, { 
     as: 'adminSettings',
-    foreignKey: 'userId' 
+    foreignKey: {
+      name: 'userId',
+      type: DataTypes.INTEGER  // Explicitly define INTEGER type to match users.id
+    }
   });
   
   // ====================================
@@ -81,12 +106,18 @@ const setupAssociations = () => {
   
   ShoppingCart.belongsTo(User, { 
     as: 'user',
-    foreignKey: 'userId' 
+    foreignKey: {
+      name: 'userId',
+      type: DataTypes.INTEGER
+    }
   });
   
   ShoppingCart.hasMany(CartItem, { 
     as: 'cartItems',
-    foreignKey: 'cartId' 
+    foreignKey: {
+      name: 'cartId',
+      type: DataTypes.INTEGER
+    }
   });
   
   // ====================================
@@ -95,12 +126,18 @@ const setupAssociations = () => {
   
   CartItem.belongsTo(ShoppingCart, { 
     as: 'shoppingCart',  // Changed from 'cart' to 'shoppingCart'
-    foreignKey: 'cartId' 
+    foreignKey: {
+      name: 'cartId',
+      type: DataTypes.INTEGER
+    }
   });
   
   CartItem.belongsTo(StorefrontItem, { 
     as: 'storefrontItem',
-    foreignKey: 'storefrontItemId' 
+    foreignKey: {
+      name: 'storefrontItemId',
+      type: DataTypes.INTEGER
+    }
   });
   
   // ====================================
@@ -109,7 +146,10 @@ const setupAssociations = () => {
   
   StorefrontItem.hasMany(CartItem, { 
     as: 'relatedCartItems',
-    foreignKey: 'storefrontItemId' 
+    foreignKey: {
+      name: 'storefrontItemId',
+      type: DataTypes.INTEGER
+    }
   });
   
   // ====================================
@@ -118,7 +158,10 @@ const setupAssociations = () => {
   
   Orientation.belongsTo(User, { 
     as: 'user',
-    foreignKey: 'userId' 
+    foreignKey: {
+      name: 'userId',
+      type: DataTypes.INTEGER
+    }
   });
   
   // ====================================
@@ -127,7 +170,10 @@ const setupAssociations = () => {
   
   Contact.belongsTo(User, { 
     as: 'user',
-    foreignKey: 'userId' 
+    foreignKey: {
+      name: 'userId',
+      type: DataTypes.INTEGER
+    }
   });
   
   // ====================================
@@ -136,7 +182,10 @@ const setupAssociations = () => {
   
   AdminSettings.belongsTo(User, { 
     as: 'admin',
-    foreignKey: 'userId' 
+    foreignKey: {
+      name: 'userId',
+      type: DataTypes.INTEGER  // Explicitly define INTEGER type to match users.id
+    }
   });
   
   console.log('✅ Model associations set up successfully');

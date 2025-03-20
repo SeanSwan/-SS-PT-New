@@ -21,6 +21,11 @@ module.exports = {
         type: Sequelize.TEXT,
         allowNull: true,
       },
+      // Add the price field that was missing
+      price: {
+        type: Sequelize.FLOAT,
+        allowNull: false,
+      },
       sessions: {
         type: Sequelize.INTEGER,
         allowNull: true,

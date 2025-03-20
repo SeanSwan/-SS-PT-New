@@ -31,6 +31,11 @@ StorefrontItem.init(
       type: DataTypes.TEXT,
       allowNull: true,
     },
+    // Price field required for cart functionality
+    price: {
+      type: DataTypes.FLOAT,
+      allowNull: false,
+    },
     sessions: {
       // Only applicable for fixed packages.
       type: DataTypes.INTEGER,
@@ -57,6 +62,14 @@ StorefrontItem.init(
       type: DataTypes.FLOAT,
       allowNull: true,
     },
+    imageUrl: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    type: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    }
   },
   {
     sequelize,

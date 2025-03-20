@@ -1,54 +1,33 @@
 // /frontend/src/pages/checkout/CheckoutCancel.tsx
 
 import React from "react";
-import styled, { keyframes } from "styled-components";
-import { motion } from "framer-motion";
+import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import GlowButton from "../../components/Button/glowButton";
 
 // Import assets
 import logoImg from "../../assets/Logo.png";
 
-// Animations
-const shimmer = keyframes`
-  0% { background-position: -100% 0; }
-  100% { background-position: 200% 0; }
-`;
-
-const float = keyframes`
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-15px); }
-  100% { transform: translateY(0px); }
-`;
-
 // Styled Components
 const CancelContainer = styled.div`
-  position: relative;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
   padding: 2rem;
   text-align: center;
   color: white;
 `;
 
-const LogoContainer = styled(motion.div)`
-  position: relative;
-  animation: ${float} 6s ease-in-out infinite;
-  filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.5));
-  margin-bottom: 2rem;
-  
-  img {
-    height: 140px;
-    max-width: 100%;
-    object-fit: contain;
-  }
+const Logo = styled.img`
+  height: 120px;
+  margin-bottom: 3rem;
+  opacity: 0.7;
 `;
 
-const CancelCard = styled(motion.div)`
+const CancelCard = styled.div`
   background: rgba(30, 30, 60, 0.3);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -56,38 +35,13 @@ const CancelCard = styled(motion.div)`
   padding: 2.5rem;
   max-width: 600px;
   width: 90%;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-  position: relative;
-  overflow: hidden;
-  
-  &:before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      45deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.05) 50%,
-      transparent 100%
-    );
-    background-size: 200% auto;
-    animation: ${shimmer} 5s linear infinite;
-    z-index: 0;
-  }
-`;
-
-const CancelContent = styled.div`
-  position: relative;
-  z-index: 1;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 `;
 
 const CancelIcon = styled.div`
   font-size: 4rem;
-  color: #ff6b6b;
   margin-bottom: 1.5rem;
+  color: #ff6b6b;
 `;
 
 const CancelTitle = styled.h1`
@@ -95,28 +49,13 @@ const CancelTitle = styled.h1`
   margin-bottom: 1rem;
   font-weight: 300;
   color: white;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
 `;
 
 const CancelMessage = styled.p`
   font-size: 1.1rem;
   margin-bottom: 2rem;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.9);
-`;
-
-const SupportMessage = styled.div`
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 0.95rem;
   color: rgba(255, 255, 255, 0.8);
-  
-  strong {
-    color: #00ffff;
-  }
 `;
 
 const ButtonsContainer = styled.div`
@@ -133,50 +72,40 @@ const ButtonsContainer = styled.div`
 const CheckoutCancel: React.FC = () => {
   const navigate = useNavigate();
 
+  const handleReturnToStore = (): void => {
+    navigate('/store');
+  };
+  
+  const handleGoHome = (): void => {
+    navigate('/');
+  };
+
   return (
     <CancelContainer>
-      <LogoContainer
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-      >
-        <img src={logoImg} alt="Swan Studios" />
-      </LogoContainer>
+      <Logo src={logoImg} alt="Swan Studios" />
       
-      <CancelCard
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.2 }}
-      >
-        <CancelContent>
-          <CancelIcon>⊗</CancelIcon>
-          <CancelTitle>Checkout Cancelled</CancelTitle>
-          <CancelMessage>
-            Your payment process was cancelled, and no charges have been made to your account.
-            Your cart items are still saved if you'd like to complete your purchase later.
-          </CancelMessage>
-          
-          <SupportMessage>
-            <strong>Need help with your purchase?</strong><br/>
-            Our team is available to assist you with any questions about our training packages
-            or payment options. Feel free to contact us anytime.
-          </SupportMessage>
-          
-          <ButtonsContainer>
-            <GlowButton 
-              text="Return to Cart" 
-              theme="cosmic"
-              size="medium"
-              onClick={() => navigate('/store')}
-            />
-            <GlowButton 
-              text="Contact Support" 
-              theme="purple"
-              size="medium"
-              onClick={() => navigate('/contact')}
-            />
-          </ButtonsContainer>
-        </CancelContent>
+      <CancelCard>
+        <CancelIcon>×</CancelIcon>
+        <CancelTitle>Checkout Cancelled</CancelTitle>
+        <CancelMessage>
+          Your checkout process was cancelled, and no payment has been processed.
+          If you encountered any issues, please feel free to contact our support team.
+        </CancelMessage>
+        
+        <ButtonsContainer>
+          <GlowButton 
+            text="Return to Store" 
+            theme="cosmic"
+            size="medium"
+            onClick={handleReturnToStore}
+          />
+          <GlowButton 
+            text="Go to Home" 
+            theme="purple"
+            size="medium"
+            onClick={handleGoHome}
+          />
+        </ButtonsContainer>
       </CancelCard>
     </CancelContainer>
   );
