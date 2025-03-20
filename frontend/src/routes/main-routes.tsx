@@ -12,7 +12,7 @@ import AdminRoute from './admin-route';
 import ProtectedRoute from './protected-route';
 
 // Pages
-import HomePage from '../pages/HomePage.component';
+import HomePage from '../pages/HomePage/components/HomePage.component';
 import LoginModal from '../pages/LoginModal.component';
 import SignupModal from '../pages/SignupModal.component';
 import ContactPage from '../pages/contactpage/ContactPage';

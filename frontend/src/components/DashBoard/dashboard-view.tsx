@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 // material-ui
 import Grid from '@mui/material/Grid2';
 
-// project imports - properly organized imports with renamed components
+// project imports - properly organized with fixed component names
 import TrainingSessionsCard from './training-sessions-card';
 import PopularWorkoutsCard from './popular-workouts-card';
 import ClientProgressChart from './client-progress-chart';

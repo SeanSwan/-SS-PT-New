@@ -7,7 +7,13 @@
   "scripts": {
     "start": "node server.mjs",
     "dev": "nodemon server.mjs",
-    "migrate": "sequelize-cli db:migrate"
+    "dev:with-migrations": "node scripts/start-with-migrations.js",
+    "migrate": "sequelize-cli db:migrate",
+    "migrate:undo": "sequelize-cli db:migrate:undo",
+    "seed": "sequelize-cli db:seed:all",
+    "seed:undo": "sequelize-cli db:seed:undo:all",
+    "db:setup": "npm run migrate && npm run seed",
+    "db:reset": "sequelize-cli db:drop && sequelize-cli db:create && npm run migrate && npm run seed"
   },
   "keywords": [],
   "author": "",
@@ -36,6 +42,7 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
+    "concurrently": "^8.2.2",
     "nodemon": "^3.1.4",
     "sequelize-cli": "^6.6.2"
   }

@@ -2,15 +2,17 @@ import React, { useState, useEffect, useRef } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, useAnimation, useInView } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
-import GlowButton from "./../../components/Button/glowButton";
+import { useCart } from "../../context/CartContext";
+import GlowButton from "../../components/Button/glowButton";
 import OrientationForm from "../../components/OrientationForm/orientationForm";
+import ShoppingCart from "../../components/ShoppingCart/ShoppingCart";
 
 // Import assets
 import wavesVideo from "../../assets/Swans.mp4";
 import logoImg from "../../assets/Logo.png";
 
 // -----------------------------------------------------------------
-// Hard-Coded Package Data (preserved from original)
+// Hard-Coded Package Data
 // -----------------------------------------------------------------
 const fixedPackages = [
   {
@@ -313,17 +315,30 @@ const HeroDescription = styled(motion.p)`
   }
 `;
 
+// Improved ButtonsContainer to fix centered buttons
 const ButtonsContainer = styled(motion.div)`
   display: flex;
   gap: 1.5rem;
   margin-top: 2rem;
-  flex-wrap: wrap;
   justify-content: center;
+  position: relative;
+  z-index: 10;
+  
+  & > button, & > div {
+    flex: 1;
+    min-width: 180px;
+    max-width: 250px;
+  }
   
   @media (max-width: 600px) {
     flex-direction: column;
     gap: 1rem;
     align-items: center;
+    
+    & > button, & > div {
+      width: 100%;
+      max-width: 100%;
+    }
   }
 `;
 
@@ -426,13 +441,19 @@ const SectionTitle = styled(motion.h2)`
   }
 `;
 
+// Updated Grid to ensure all cards are the same size
 const Grid = styled(motion.div)`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 2.5rem;
   margin-bottom: 4rem;
+  
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
 `;
 
+// Fixed CardContainer to ensure consistent sizing
 const CardContainer = styled(motion.div)`
   position: relative;
   border-radius: 15px;
@@ -443,6 +464,9 @@ const CardContainer = styled(motion.div)`
   transition: all 0.3s ease;
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
   cursor: pointer;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   
   &:hover {
     transform: translateY(-10px);
@@ -482,6 +506,9 @@ const CardImage = styled.div`
 const CardContent = styled.div`
   padding: 1.5rem;
   position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   
   &:before {
     content: "";
@@ -594,6 +621,12 @@ const LoginMessage = styled.div`
   font-size: 0.9rem;
 `;
 
+const CardActions = styled.div`
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+`;
+
 const ScrollIndicator = styled(motion.div)`
   position: absolute;
   bottom: 2rem;
@@ -612,6 +645,62 @@ const ScrollIndicator = styled(motion.div)`
     margin-top: 0.5rem;
     animation: ${float} 2s ease-in-out infinite;
   }
+`;
+
+const SuccessToast = styled(motion.div)`
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  background: rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(0, 255, 255, 0.4);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  z-index: 1000;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+`;
+
+const CartButton = styled(motion.button)`
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7851a9, #00ffff);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  }
+`;
+
+const CartCount = styled.span`
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ff4b6a;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: bold;
+  border: 2px solid rgba(20, 20, 40, 0.8);
 `;
 
 // -----------------------------------------------------------------
@@ -640,9 +729,11 @@ const getGradientColors = (theme) => {
 // -----------------------------------------------------------------
 const StoreFront = () => {
   const { user } = useAuth();
+  const { cart, showCart, toggleCart, hideCart, addToCart } = useCart();
   const [showOrientation, setShowOrientation] = useState(false);
   const [animateScrollIndicator, setAnimateScrollIndicator] = useState(true);
   const [revealPrices, setRevealPrices] = useState({});
+  const [successMessage, setSuccessMessage] = useState(null);
   
   const heroRef = useRef(null);
   const isHeroInView = useInView(heroRef);
@@ -756,6 +847,30 @@ const StoreFront = () => {
     }));
   };
 
+  // Handle adding a package to cart
+  const handleAddToCart = async (packageId, packageType) => {
+    // Find the package details
+    const packageData = packageType === 'fixed' 
+      ? fixedPackages.find(pkg => pkg.id === packageId)
+      : monthlyPackages.find(pkg => pkg.id === packageId);
+      
+    if (!packageData) return;
+    
+    try {
+      // In a real implementation, you would add the actual storefront item ID
+      // Here we're using the package ID as a placeholder
+      await addToCart(packageId);
+      setSuccessMessage(`Added ${packageData.name} to cart`);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+    }
+  };
+
   return (
     <StoreContainer>
       <VideoBackground>
@@ -797,6 +912,7 @@ const StoreFront = () => {
                 Discover a revolutionary workout program created from thousands of hours of hands-on training by elite trainer Sean Swan—merging cutting-edge fitness science with proven NASM protocols. Our personalized approach caters to everyone—from children to seniors—ensuring you unlock your full potential.
               </HeroDescription>
               
+              {/* Fixed to ensure buttons are centered and in foreground */}
               <ButtonsContainer variants={itemVariants}>
                 <GlowButton 
                   text="Book Consultation" 
@@ -813,7 +929,7 @@ const StoreFront = () => {
                   animateOnRender 
                   onClick={() => {
                     const packagesSection = document.getElementById("packages-section");
-                    packagesSection.scrollIntoView({ behavior: "smooth" });
+                    packagesSection?.scrollIntoView({ behavior: "smooth" });
                   }}
                 />
               </ButtonsContainer>
@@ -891,19 +1007,21 @@ const StoreFront = () => {
                         )}
                       </PriceBox>
                       
-                      <GlowButton 
-                        text="Select Package" 
-                        theme={pkg.theme} 
-                        size="medium"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (canViewPrices) {
-                            alert(`Purchasing ${pkg.name} package`);
-                          } else {
-                            alert("Only clients can purchase packages. Please log in or upgrade.");
-                          }
-                        }}
-                      />
+                      <CardActions>
+                        <GlowButton 
+                          text={canViewPrices ? "Add to Cart" : "Login to Purchase"} 
+                          theme={pkg.theme} 
+                          size="medium"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (canViewPrices) {
+                              handleAddToCart(pkg.id, 'fixed');
+                            } else {
+                              alert("Only clients can purchase packages. Please log in or upgrade.");
+                            }
+                          }}
+                        />
+                      </CardActions>
                     </CardContent>
                   </CardContainer>
                 </motion.div>
@@ -989,19 +1107,21 @@ const StoreFront = () => {
                         )}
                       </PriceBox>
                       
-                      <GlowButton 
-                        text="Select Package" 
-                        theme={pkg.theme} 
-                        size="medium"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (canViewPrices) {
-                            alert(`Purchasing ${pkg.name} package`);
-                          } else {
-                            alert("Only clients can purchase packages. Please log in or upgrade.");
-                          }
-                        }}
-                      />
+                      <CardActions>
+                        <GlowButton 
+                          text={canViewPrices ? "Add to Cart" : "Login to Purchase"} 
+                          theme={pkg.theme} 
+                          size="medium"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (canViewPrices) {
+                              handleAddToCart(pkg.id, 'monthly');
+                            } else {
+                              alert("Only clients can purchase packages. Please log in or upgrade.");
+                            }
+                          }}
+                        />
+                      </CardActions>
                     </CardContent>
                   </CardContainer>
                 </motion.div>
@@ -1029,9 +1149,39 @@ const StoreFront = () => {
         </SectionContainer>
       </ContentOverlay>
       
+      {/* Success message toast */}
+      {successMessage && (
+        <SuccessToast
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 50 }}
+        >
+          {successMessage}
+        </SuccessToast>
+      )}
+      
+      {/* Floating cart button */}
+      {user && (
+        <CartButton 
+          onClick={toggleCart}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          🛒
+          {cart && cart.itemCount > 0 && (
+            <CartCount>{cart.itemCount}</CartCount>
+          )}
+        </CartButton>
+      )}
+      
       {/* Orientation Form Modal */}
       {showOrientation && (
         <OrientationForm onClose={() => setShowOrientation(false)} />
+      )}
+      
+      {/* Shopping Cart Modal */}
+      {showCart && (
+        <ShoppingCart onClose={hideCart} />
       )}
     </StoreContainer>
   );

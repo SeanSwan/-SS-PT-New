@@ -29,3 +29,50 @@
 {"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-17T22:50:19.030Z","userId":2}
 {"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-17T22:52:42.752Z","userId":2}
 {"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-17T22:52:42.760Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-17T23:41:04.973Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-17T23:41:04.990Z","userId":2}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-18T14:13:52.016Z"}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-18T14:13:52.034Z"}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"POST","path":"/logout","timestamp":"2025-03-18T14:13:52.875Z"}
+{"level":"warn","message":"No token provided","method":"POST","path":"/logout","timestamp":"2025-03-18T14:13:53.019Z"}
+{"level":"info","message":"Successful login for user: ogpswan, role: admin","timestamp":"2025-03-18T14:15:02.929Z"}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-18T14:15:03.301Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-18T14:16:30.448Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-18T14:16:30.461Z","userId":2}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T02:45:32.428Z"}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T02:45:32.441Z"}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"POST","path":"/logout","timestamp":"2025-03-20T02:45:33.157Z"}
+{"level":"warn","message":"No token provided","method":"POST","path":"/logout","timestamp":"2025-03-20T02:45:33.209Z"}
+{"level":"info","message":"Successful login for user: ogpswan, role: admin","timestamp":"2025-03-20T02:47:03.694Z"}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T02:47:04.055Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T03:14:53.831Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T03:14:53.858Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T04:20:21.912Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T04:20:22.003Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T04:34:45.647Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T04:34:46.363Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T04:41:47.535Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T04:41:47.551Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T04:41:47.664Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T04:42:19.614Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T04:42:19.635Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T04:42:19.948Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T04:42:28.362Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T04:42:49.482Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T04:42:57.339Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T04:43:00.625Z","userId":2}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T06:15:50.655Z"}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T06:15:50.687Z"}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T06:21:11.137Z"}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T06:21:11.149Z"}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T06:21:27.327Z"}
+{"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T06:21:27.344Z"}
+{"level":"info","message":"Successful login for user: ogpswan, role: admin","timestamp":"2025-03-20T06:22:01.632Z"}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T06:22:01.730Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-03-20T06:22:01.733Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T06:22:02.187Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T06:22:44.967Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T06:23:13.855Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T06:23:15.154Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-03-20T06:23:16.385Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T06:25:21.652Z","userId":2}

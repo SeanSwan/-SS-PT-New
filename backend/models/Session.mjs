@@ -1,9 +1,25 @@
+// backend/models/Session.mjs
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
 
 class Session extends Model {}
 
+// Define session statuses as a separate constant
+const SESSION_STATUSES = [
+  'available',
+  'requested',
+  'scheduled',
+  'confirmed',
+  'completed',
+  'cancelled'
+];
+
 Session.init({
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
+  },
   sessionDate: {
     type: DataTypes.DATE,
     allowNull: false,
@@ -16,21 +32,14 @@ Session.init({
     comment: 'Duration in minutes'
   },
   userId: {
+    // Use INTEGER type - this will be properly handled by the manual table creation
     type: DataTypes.INTEGER,
     allowNull: true,
-    references: {
-      model: 'users',
-      key: 'id'
-    },
     comment: 'Client who booked the session'
   },
   trainerId: {
     type: DataTypes.INTEGER,
     allowNull: true,
-    references: {
-      model: 'users',
-      key: 'id'
-    },
     comment: 'Trainer assigned to the session'
   },
   location: {
@@ -43,11 +52,18 @@ Session.init({
     allowNull: true,
     comment: 'Additional notes for the session'
   },
+  // Use STRING instead of ENUM to avoid SQL generation issues
   status: {
-    type: DataTypes.ENUM('available', 'requested', 'scheduled', 'confirmed', 'completed', 'cancelled'),
+    type: DataTypes.STRING,
     allowNull: false,
     defaultValue: 'available',
-    comment: 'Current status of the session'
+    comment: 'Current status of the session',
+    validate: {
+      isIn: {
+        args: [SESSION_STATUSES],
+        msg: `Status must be one of: ${SESSION_STATUSES.join(', ')}`
+      }
+    }
   },
   cancellationReason: {
     type: DataTypes.TEXT,
@@ -57,10 +73,6 @@ Session.init({
   cancelledBy: {
     type: DataTypes.INTEGER,
     allowNull: true,
-    references: {
-      model: 'users',
-      key: 'id'
-    },
     comment: 'User who cancelled the session'
   },
   sessionDeducted: {
@@ -109,9 +121,10 @@ Session.init({
   }
 }, {
   sequelize,
-  modelName: 'session',
+  modelName: 'Session',
   tableName: 'sessions',
-  timestamps: true
+  timestamps: true,
+  paranoid: true
 });
 
 export default Session;

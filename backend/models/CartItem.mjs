@@ -1,8 +1,6 @@
 // backend/models/CartItem.js
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
-import ShoppingCart from './ShoppingCart.mjs';
-import StorefrontItem from './StorefrontItem.mjs';
 
 class CartItem extends Model {}
 
@@ -32,13 +30,7 @@ CartItem.init(
   }
 );
 
-// Define associations:
-// A shopping cart has many cart items.
-ShoppingCart.hasMany(CartItem, { foreignKey: 'cartId', as: 'items' });
-CartItem.belongsTo(ShoppingCart, { foreignKey: 'cartId', as: 'cart' });
-
-// Associate CartItem with a StorefrontItem so you can reference package details.
-StorefrontItem.hasMany(CartItem, { foreignKey: 'storefrontItemId', as: 'cartItems' });
-CartItem.belongsTo(StorefrontItem, { foreignKey: 'storefrontItemId', as: 'storefrontItem' });
+// IMPORTANT: Remove the associations from here since they're now in setupAssociations.mjs
+// This prevents circular dependencies and keeps all associations in one place
 
 export default CartItem;

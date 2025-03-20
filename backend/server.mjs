@@ -13,6 +13,9 @@ import http from "http";
 import { Server } from "socket.io";
 import sequelize from "./database.mjs";
 import setupAssociations from "./setupAssociations.mjs";
+import StorefrontItem from "./models/StorefrontItem.mjs";
+import ShoppingCart from "./models/ShoppingCart.mjs";
+import CartItem from "./models/CartItem.mjs";
 
 // Route imports
 import authRoutes from "./routes/authRoutes.mjs";
@@ -25,8 +28,6 @@ import scheduleRoutes from "./routes/scheduleRoutes.mjs";
 import contactRoutes from "./routes/contactRoutes.mjs";
 
 import { errorHandler, notFound } from './middleware/errorMiddleware.mjs';
-
-
 
 // Load environment variables
 dotenv.config();
@@ -69,8 +70,8 @@ const corsOptions = {
     }
   },
   credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Add OPTIONS for preflight
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"] // Specify allowed headers
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"], // Add PATCH and OPTIONS
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"] // Extended headers
 };
 
 // Apply middleware
@@ -78,10 +79,22 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // Support URL-encoded bodies
 
-// Log all requests in development
+// Enhanced request logger for development
 if (process.env.NODE_ENV !== 'production') {
   app.use((req, res, next) => {
-    console.log(`${req.method} ${req.url}`);
+    const start = Date.now();
+    
+    // Log the request
+    console.log(`→ ${req.method} ${req.url}`);
+    
+    // Log response when finished
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      const statusColor = res.statusCode >= 400 ? '\x1b[31m' : res.statusCode >= 300 ? '\x1b[33m' : '\x1b[32m';
+      const resetColor = '\x1b[0m';
+      console.log(`← ${statusColor}${res.statusCode}${resetColor} ${req.method} ${req.url} (${duration}ms)`);
+    });
+    
     next();
   });
 }
@@ -91,7 +104,8 @@ app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'ok', 
     environment: process.env.NODE_ENV,
-    allowedOrigins: allowedOrigins 
+    allowedOrigins: allowedOrigins,
+    serverTime: new Date().toISOString() 
   });
 });
 
@@ -109,7 +123,8 @@ app.use("/api/contact", contactRoutes);
 app.use('/api/*', (req, res) => {
   res.status(404).json({ 
     success: false, 
-    message: 'API endpoint not found' 
+    message: 'API endpoint not found',
+    path: req.originalUrl
   });
 });
 
@@ -128,10 +143,10 @@ export const io = new Server(server, {
 
 // Socket event handlers
 io.on("connection", (socket) => {
-  console.log("A user connected via Socket.IO");
+  console.log(`Socket connected: ${socket.id}`);
   
   socket.on("disconnect", () => {
-    console.log("A user disconnected");
+    console.log(`Socket disconnected: ${socket.id}`);
   });
   
   // Schedule update events
@@ -157,7 +172,143 @@ io.on("connection", (socket) => {
     // Also broadcast to admin room if exists
     io.to("admin_schedule").emit("session_change", data);
   });
+  
+  // Cart events
+  socket.on("join_cart_room", (userId) => {
+    socket.join(`cart_${userId}`);
+    console.log(`User ${userId} joined cart room`);
+  });
+  
+  socket.on("cart_updated", (data) => {
+    if (data.userId) {
+      io.to(`cart_${data.userId}`).emit("cart_change", data);
+    }
+  });
 });
+
+// ================== DATABASE SEEDING ================== 
+/**
+ * Initialize database with seed data
+ */
+const seedDatabase = async () => {
+  try {
+    // Seed storefront items
+    await StorefrontItem.seedPackages();
+    
+    // Add any other seed functions here
+    console.log('✅ Database seeding completed');
+  } catch (error) {
+    console.error('❌ Error seeding database:', error);
+  }
+};
+
+// ================== SESSIONS TABLE INITIALIZATION ================== 
+/**
+ * Enhanced function to properly initialize the sessions table with compatible types
+ * This fixes the type mismatch between sessions.cancelledBy and users.id columns
+ */
+const initializeSessionsTable = async () => {
+  try {
+    console.log('Initializing sessions table with compatible types...');
+
+    // First, check the actual data type of the users.id column
+    const [userIdTypeResult] = await sequelize.query(`
+      SELECT data_type, udt_name
+      FROM information_schema.columns 
+      WHERE table_name = 'users' AND column_name = 'id'
+    `);
+    
+    // Get the correct data type for foreign keys that reference users.id
+    let userIdType = 'INTEGER';
+    if (userIdTypeResult.length > 0) {
+      // PostgreSQL stores UUIDs as 'uuid' in udt_name
+      if (userIdTypeResult[0].udt_name === 'uuid') {
+        userIdType = 'UUID';
+      } else if (userIdTypeResult[0].data_type === 'integer') {
+        userIdType = 'INTEGER';
+      } else {
+        // Use whatever type is actually in the database
+        userIdType = userIdTypeResult[0].data_type.toUpperCase();
+      }
+    }
+    console.log(`Users.id column type detected as: ${userIdType}`);
+    
+    // Always drop the sessions table to ensure correct schema
+    console.log('Dropping existing sessions table if it exists...');
+    await sequelize.query(`DROP TABLE IF EXISTS sessions CASCADE;`);
+    
+    // Create enum type if it doesn't exist
+    console.log('Creating or verifying enum_sessions_status type...');
+    await sequelize.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_sessions_status') THEN
+          CREATE TYPE enum_sessions_status AS ENUM(
+            'available', 'requested', 'scheduled', 'confirmed', 'completed', 'cancelled'
+          );
+        END IF;
+      END
+      $$;
+    `);
+    
+    // Create the sessions table with the correct column types
+    console.log('Creating sessions table with correct column types...');
+    await sequelize.query(`
+      CREATE TABLE sessions (
+        id SERIAL PRIMARY KEY,
+        "sessionDate" TIMESTAMP WITH TIME ZONE NOT NULL,
+        duration INTEGER NOT NULL DEFAULT 60,
+        "userId" ${userIdType} REFERENCES users(id),
+        "trainerId" ${userIdType} REFERENCES users(id),
+        location VARCHAR(255),
+        notes TEXT,
+        status enum_sessions_status NOT NULL DEFAULT 'available',
+        "cancellationReason" TEXT,
+        "cancelledBy" ${userIdType} REFERENCES users(id),
+        "sessionDeducted" BOOLEAN NOT NULL DEFAULT false,
+        "deductionDate" TIMESTAMP WITH TIME ZONE,
+        confirmed BOOLEAN NOT NULL DEFAULT false,
+        "reminderSent" BOOLEAN NOT NULL DEFAULT false,
+        "reminderSentDate" TIMESTAMP WITH TIME ZONE,
+        "feedbackProvided" BOOLEAN NOT NULL DEFAULT false,
+        rating INTEGER,
+        feedback TEXT,
+        "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+        "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+        "deletedAt" TIMESTAMP WITH TIME ZONE
+      );
+    `);
+    
+    // Add comments to sessions table columns
+    console.log('Adding column comments to sessions table...');
+    await sequelize.query(`
+      COMMENT ON COLUMN sessions."sessionDate" IS 'Start date and time of the session';
+      COMMENT ON COLUMN sessions.duration IS 'Duration in minutes';
+      COMMENT ON COLUMN sessions."userId" IS 'Client who booked the session';
+      COMMENT ON COLUMN sessions."trainerId" IS 'Trainer assigned to the session';
+      COMMENT ON COLUMN sessions.location IS 'Physical location for the session';
+      COMMENT ON COLUMN sessions.notes IS 'Additional notes for the session';
+      COMMENT ON COLUMN sessions.status IS 'Current status of the session';
+      COMMENT ON COLUMN sessions."cancellationReason" IS 'Reason for cancellation if applicable';
+      COMMENT ON COLUMN sessions."cancelledBy" IS 'User who cancelled the session';
+      COMMENT ON COLUMN sessions."sessionDeducted" IS 'Whether a session was deducted from client package';
+      COMMENT ON COLUMN sessions."deductionDate" IS 'When the session was deducted';
+      COMMENT ON COLUMN sessions.confirmed IS 'Whether the session is confirmed';
+      COMMENT ON COLUMN sessions."reminderSent" IS 'Whether reminder notification was sent';
+      COMMENT ON COLUMN sessions."reminderSentDate" IS 'When the reminder was sent';
+      COMMENT ON COLUMN sessions."feedbackProvided" IS 'Whether client provided feedback';
+      COMMENT ON COLUMN sessions.rating IS 'Client rating (1-5)';
+      COMMENT ON COLUMN sessions.feedback IS 'Client feedback text';
+    `);
+    
+    console.log('✅ Sessions table created successfully with compatible column types');
+    return true;
+  } catch (error) {
+    console.error('❌ Error initializing sessions table:', error);
+    // Don't throw the error - continue server startup even if this fails
+    return false;
+  }
+};
 
 // ================== ERROR HANDLING MIDDLEWARE ================== 
 // Global error handler - must be defined after routes
@@ -178,29 +329,69 @@ const startServer = async () => {
   try {
     // Set up model associations
     setupAssociations();
+    console.log('✅ Model associations set up successfully');
     
     // Check database connection
     await sequelize.authenticate();
     console.log('✅ Database connection established successfully');
     
-    // Synchronize database models with database
+    // Synchronize database models with database, excluding the Session model
     // In production, use alter: false and rely on migrations
     if (process.env.NODE_ENV !== 'production') {
-      await sequelize.sync({ alter: false });
-      console.log('✅ Database synchronized successfully');
+      try {
+        // Always initialize the sessions table first to avoid foreign key issues
+        const sessionsInitialized = await initializeSessionsTable();
+        if (!sessionsInitialized) {
+          console.warn('⚠️ Sessions table initialization had issues - proceed with caution');
+        }
+      
+        // Then sync all other models EXCEPT Session
+        await sequelize.sync({ 
+          alter: true,
+          // Exclude the Session model from automatic syncing
+          exclude: ['Session']
+        });
+        console.log('✅ Database synchronized successfully (excluding sessions table)');
+      
+        // Seed the database with initial data
+        await seedDatabase();
+      } catch (syncError) {
+        console.error('❌ Error during database sync:', syncError);
+        console.log('Attempting to continue server startup despite sync error...');
+      }
     }
     
     // Start the HTTP server
     server.listen(port, () => {
+      console.log('\n==================================================');
+      console.log(`✅ Swan Studios API Server`);
       console.log(`✅ Server is running on port ${port}`);
       console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
-      console.log('✅ Allowed frontend origins:', allowedOrigins);
+      console.log(`✅ API URL: http://localhost:${port}/api`);
+      console.log(`✅ Health check: http://localhost:${port}/health`);
+      console.log('==================================================\n');
     });
   } catch (error) {
     console.error('❌ Error starting server:', error);
     process.exit(1); // Exit with failure code
   }
 };
+
+// Handling server shutdown gracefully
+process.on('SIGINT', async () => {
+  console.log('\n🛑 Shutting down server gracefully...');
+  try {
+    await sequelize.close();
+    console.log('✅ Database connection closed.');
+    server.close(() => {
+      console.log('✅ HTTP server closed.');
+      process.exit(0);
+    });
+  } catch (error) {
+    console.error('❌ Error during shutdown:', error);
+    process.exit(1);
+  }
+});
 
 // Start the server
 startServer();

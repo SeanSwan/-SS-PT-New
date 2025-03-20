@@ -30,6 +30,19 @@ export default defineConfig({
         }
         return null;
       }
+    },
+    // Add development debugging plugin
+    {
+      name: 'log-server-requests',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          // Log API requests to help with debugging
+          if (req.url.startsWith('/api')) {
+            console.log(`[Vite Proxy] ${req.method} ${req.url}`);
+          }
+          next();
+        });
+      }
     }
   ],
   optimizeDeps: {
@@ -82,6 +95,28 @@ export default defineConfig({
         target: 'http://localhost:5000',
         changeOrigin: true,
         secure: false,
+        rewrite: (path) => path,
+        configure: (proxy, options) => {
+          // Additional proxy configuration for debugging
+          proxy.on('error', (err, req, res) => {
+            console.error(`Proxy error: ${err.message}`);
+            if (!res.headersSent) {
+              res.writeHead(500, {
+                'Content-Type': 'application/json',
+              });
+              res.end(JSON.stringify({ 
+                message: 'Proxy error, please ensure the backend server is running at http://localhost:5000',
+                error: err.message
+              }));
+            }
+          });
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log(`[Proxy] Request: ${req.method} ${req.url}`);
+          });
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            console.log(`[Proxy] Response: ${proxyRes.statusCode} for ${req.method} ${req.url}`);
+          });
+        }
       },
     },
   },

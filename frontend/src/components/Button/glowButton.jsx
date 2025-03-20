@@ -190,8 +190,11 @@ const Gradient = styled.div`
   }
 `;
 
+// FIX: Modified ButtonSpan to prevent isAnimating prop from reaching the DOM
 // Button text with glow effect
-const ButtonSpan = styled.span`
+const ButtonSpan = styled.span.withConfig({
+  shouldForwardProp: (prop) => prop !== 'isAnimating'
+})`
   z-index: 1;
   position: relative;
   display: flex;

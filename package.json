@@ -7,6 +7,14 @@
     "start": "concurrently \"npm run start-frontend\" \"npm run start-backend\"",
     "start-frontend": "cd frontend && npm run dev",
     "start-backend": "cd backend && npm run dev",
+    "start-with-db": "concurrently \"npm run start-frontend\" \"npm run start-backend-with-db\"",
+    "start-backend-with-db": "cd backend && npm run dev:with-migrations",
+    
+    "db:migrate": "cd backend && npm run migrate",
+    "db:seed": "cd backend && npm run seed",
+    "db:setup": "cd backend && npm run db:setup",
+    "db:reset": "cd backend && npm run db:reset",
+    
     "install-all": "npm run install-frontend && npm run install-backend",
     "install-frontend": "cd frontend && npm install",
     "install-backend": "cd backend && npm install",

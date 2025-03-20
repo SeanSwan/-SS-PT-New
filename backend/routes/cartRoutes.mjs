@@ -1,137 +1,413 @@
+// /backend/routes/cartRoutes.mjs
+
 import express from 'express';
-import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
-import Session from '../models/Session.mjs';
+import { protect } from '../middleware/authMiddleware.mjs';
+import ShoppingCart from '../models/ShoppingCart.mjs';
+import CartItem from '../models/CartItem.mjs';
+import StorefrontItem from '../models/StorefrontItem.mjs';
 import User from '../models/User.mjs';
-import { Op } from 'sequelize';
 import stripe from 'stripe';
 
 const router = express.Router();
 const stripeInstance = stripe(process.env.STRIPE_SECRET_KEY);
 
 /**
- * ADMIN: Create Available Session Slots
- * POST /api/sessions/admin/create
- * Admins create open slots for booking.
+ * GET User's Active Cart
+ * GET /api/cart
+ * Retrieves the current user's active shopping cart with items
  */
-router.post('/admin/create', protect, adminOnly, async (req, res) => {
+router.get('/', protect, async (req, res) => {
   try {
-    const { sessionDate, notes } = req.body;
-
-    // Ensure sessionDate is in the future
-    if (new Date(sessionDate) < new Date()) {
-      return res.status(400).json({ message: 'Cannot create past session slots.' });
-    }
-
-    // Create available session slot (unbooked)
-    const newSession = await Session.create({
-      sessionDate,
-      notes,
-      status: 'available',
-      userId: null, // Not booked yet
+    // Find or create the user's active cart
+    let [cart, created] = await ShoppingCart.findOrCreate({
+      where: { 
+        userId: req.user.id,
+        status: 'active'
+      },
+      defaults: {
+        userId: req.user.id
+      }
     });
 
-    res.status(201).json({ message: 'Session slot created.', session: newSession });
+    // Get cart items with storefront item details
+    const cartItems = await CartItem.findAll({
+      where: { cartId: cart.id },
+      include: [{
+        model: StorefrontItem,
+        as: 'storefrontItem',
+        attributes: ['name', 'description', 'imageUrl', 'type']
+      }]
+    });
+
+    // Calculate cart total
+    const cartTotal = cartItems.reduce((total, item) => {
+      return total + (item.price * item.quantity);
+    }, 0);
+
+    res.status(200).json({
+      id: cart.id,
+      status: cart.status,
+      items: cartItems,  // Note: We keep this as 'items' in the response JSON since this is the API contract
+      total: cartTotal,
+      itemCount: cartItems.length
+    });
   } catch (error) {
-    console.error('Error creating session:', error.message);
-    res.status(500).json({ message: 'Server error creating session.' });
+    console.error('Error fetching cart:', error);
+    res.status(500).json({ message: 'Failed to fetch shopping cart', error: error.message });
   }
 });
 
 /**
- * CLIENT: Book a Session Slot
- * POST /api/sessions/book/:userId
- * Clients book an available session.
+ * Add Item to Cart
+ * POST /api/cart/add
+ * Adds a training package to the user's cart
  */
-router.post('/book/:userId', protect, async (req, res) => {
+router.post('/add', protect, async (req, res) => {
   try {
-    const { userId } = req.params;
-    const { sessionId } = req.body;
-
-    // Find the available session
-    const session = await Session.findOne({ where: { id: sessionId, status: 'available' } });
-    if (!session) {
-      return res.status(400).json({ message: 'Session is not available for booking.' });
+    const { storefrontItemId, quantity = 1 } = req.body;
+    
+    if (!storefrontItemId) {
+      return res.status(400).json({ message: 'Storefront item ID is required' });
     }
 
-    // Assign the session to the user and update status
-    session.userId = userId;
-    session.status = 'scheduled';
-    await session.save();
+    // Get the storefront item to check price
+    const storeFrontItem = await StorefrontItem.findByPk(storefrontItemId);
+    if (!storeFrontItem) {
+      return res.status(404).json({ message: 'Training package not found' });
+    }
 
-    res.status(200).json({ message: 'Session booked successfully.', session });
+    // Find or create the user's active cart
+    let [cart, created] = await ShoppingCart.findOrCreate({
+      where: { 
+        userId: req.user.id,
+        status: 'active'
+      },
+      defaults: {
+        userId: req.user.id
+      }
+    });
+
+    // Check if item already exists in cart
+    let cartItem = await CartItem.findOne({
+      where: {
+        cartId: cart.id,
+        storefrontItemId
+      }
+    });
+
+    if (cartItem) {
+      // Update quantity if item exists
+      cartItem.quantity += quantity;
+      await cartItem.save();
+    } else {
+      // Create new cart item
+      cartItem = await CartItem.create({
+        cartId: cart.id,
+        storefrontItemId,
+        quantity,
+        price: storeFrontItem.price
+      });
+    }
+
+    // Get updated cart with items
+    const updatedCartItems = await CartItem.findAll({
+      where: { cartId: cart.id },
+      include: [{
+        model: StorefrontItem,
+        as: 'storefrontItem',
+        attributes: ['name', 'description', 'imageUrl', 'type']
+      }]
+    });
+
+    // Calculate cart total
+    const cartTotal = updatedCartItems.reduce((total, item) => {
+      return total + (item.price * item.quantity);
+    }, 0);
+
+    res.status(200).json({
+      message: 'Item added to cart',
+      id: cart.id,
+      status: cart.status,
+      items: updatedCartItems,  // Note: We keep this as 'items' in the response JSON
+      total: cartTotal,
+      itemCount: updatedCartItems.length
+    });
   } catch (error) {
-    console.error('Error booking session:', error.message);
-    res.status(500).json({ message: 'Server error booking session.' });
+    console.error('Error adding item to cart:', error);
+    res.status(500).json({ message: 'Failed to add item to cart', error: error.message });
   }
 });
 
 /**
- * STRIPE: Checkout for One-Time & Subscription Payments
- * POST /api/sessions/checkout
+ * Update Cart Item Quantity
+ * PUT /api/cart/update/:itemId
+ * Updates the quantity of an item in the cart
+ */
+router.put('/update/:itemId', protect, async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    const { quantity } = req.body;
+    
+    if (quantity < 1) {
+      return res.status(400).json({ message: 'Quantity must be at least 1' });
+    }
+
+    // Get the cart item - UPDATED: 'cart' changed to 'shoppingCart'
+    const cartItem = await CartItem.findOne({
+      where: { id: itemId },
+      include: [{
+        model: ShoppingCart,
+        as: 'shoppingCart',  // CHANGED from 'cart' to 'shoppingCart'
+        where: { 
+          userId: req.user.id,
+          status: 'active'
+        }
+      }]
+    });
+
+    if (!cartItem) {
+      return res.status(404).json({ message: 'Cart item not found' });
+    }
+
+    // Update quantity
+    cartItem.quantity = quantity;
+    await cartItem.save();
+
+    // Get updated cart with items
+    const updatedCartItems = await CartItem.findAll({
+      where: { cartId: cartItem.cartId },
+      include: [{
+        model: StorefrontItem,
+        as: 'storefrontItem',
+        attributes: ['name', 'description', 'imageUrl', 'type']
+      }]
+    });
+
+    // Calculate cart total
+    const cartTotal = updatedCartItems.reduce((total, item) => {
+      return total + (item.price * item.quantity);
+    }, 0);
+
+    res.status(200).json({
+      message: 'Cart updated',
+      items: updatedCartItems,  // Note: We keep this as 'items' in the response JSON
+      total: cartTotal,
+      itemCount: updatedCartItems.length
+    });
+  } catch (error) {
+    console.error('Error updating cart item:', error);
+    res.status(500).json({ message: 'Failed to update cart item', error: error.message });
+  }
+});
+
+/**
+ * Remove Item from Cart
+ * DELETE /api/cart/remove/:itemId
+ * Removes an item from the cart
+ */
+router.delete('/remove/:itemId', protect, async (req, res) => {
+  try {
+    const { itemId } = req.params;
+
+    // Get the cart item - UPDATED: 'cart' changed to 'shoppingCart'
+    const cartItem = await CartItem.findOne({
+      where: { id: itemId },
+      include: [{
+        model: ShoppingCart,
+        as: 'shoppingCart',  // CHANGED from 'cart' to 'shoppingCart'
+        where: { 
+          userId: req.user.id,
+          status: 'active'
+        }
+      }]
+    });
+
+    if (!cartItem) {
+      return res.status(404).json({ message: 'Cart item not found' });
+    }
+
+    const cartId = cartItem.cartId;
+
+    // Delete the cart item
+    await cartItem.destroy();
+
+    // Get updated cart with items
+    const updatedCartItems = await CartItem.findAll({
+      where: { cartId },
+      include: [{
+        model: StorefrontItem,
+        as: 'storefrontItem',
+        attributes: ['name', 'description', 'imageUrl', 'type']
+      }]
+    });
+
+    // Calculate cart total
+    const cartTotal = updatedCartItems.reduce((total, item) => {
+      return total + (item.price * item.quantity);
+    }, 0);
+
+    res.status(200).json({
+      message: 'Item removed from cart',
+      items: updatedCartItems,  // Note: We keep this as 'items' in the response JSON
+      total: cartTotal,
+      itemCount: updatedCartItems.length
+    });
+  } catch (error) {
+    console.error('Error removing item from cart:', error);
+    res.status(500).json({ message: 'Failed to remove item from cart', error: error.message });
+  }
+});
+
+/**
+ * Clear Cart
+ * DELETE /api/cart/clear
+ * Removes all items from the user's cart
+ */
+router.delete('/clear', protect, async (req, res) => {
+  try {
+    // Find the user's active cart
+    const cart = await ShoppingCart.findOne({
+      where: { 
+        userId: req.user.id,
+        status: 'active'
+      }
+    });
+
+    if (!cart) {
+      return res.status(404).json({ message: 'Active cart not found' });
+    }
+
+    // Delete all cart items
+    await CartItem.destroy({
+      where: { cartId: cart.id }
+    });
+
+    res.status(200).json({
+      message: 'Cart cleared',
+      items: [],  // Note: We keep this as 'items' in the response JSON
+      total: 0,
+      itemCount: 0
+    });
+  } catch (error) {
+    console.error('Error clearing cart:', error);
+    res.status(500).json({ message: 'Failed to clear cart', error: error.message });
+  }
+});
+
+/**
+ * Create Stripe Checkout Session
+ * POST /api/cart/checkout
+ * Creates a Stripe checkout session for the cart items
  */
 router.post('/checkout', protect, async (req, res) => {
   try {
-    const { sessionId, price, isSubscription } = req.body;
-    const session = await Session.findByPk(sessionId);
-    if (!session) {
-      return res.status(400).json({ message: 'Invalid session.' });
-    }
-
-    const paymentIntent = await stripeInstance.paymentIntents.create({
-      amount: price * 100, // Convert to cents
-      currency: 'usd',
-      payment_method_types: ['card'],
-      metadata: { sessionId, userId: req.user.id, isSubscription },
+    // Find the user's active cart
+    const cart = await ShoppingCart.findOne({
+      where: { 
+        userId: req.user.id,
+        status: 'active'
+      }
     });
 
-    res.json({ clientSecret: paymentIntent.client_secret });
+    if (!cart) {
+      return res.status(404).json({ message: 'Active cart not found' });
+    }
+
+    // Get cart items with storefront item details
+    const cartItems = await CartItem.findAll({
+      where: { cartId: cart.id },
+      include: [{
+        model: StorefrontItem,
+        as: 'storefrontItem'
+      }]
+    });
+
+    if (cartItems.length === 0) {
+      return res.status(400).json({ message: 'Cart is empty' });
+    }
+
+    // Get user data for Stripe customer
+    const user = await User.findByPk(req.user.id);
+
+    // Format line items for Stripe
+    const lineItems = cartItems.map(item => {
+      const storefrontItem = item.storefrontItem;
+      return {
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: storefrontItem.name,
+            description: storefrontItem.description,
+            // You can add images if you have them
+            // images: [storefrontItem.imageUrl],
+          },
+          unit_amount: Math.round(item.price * 100), // Convert to cents
+        },
+        quantity: item.quantity,
+      };
+    });
+
+    // Create a Stripe checkout session
+    const session = await stripeInstance.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: lineItems,
+      mode: 'payment',
+      success_url: `${process.env.FRONTEND_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.FRONTEND_URL}/checkout/cancel`,
+      client_reference_id: cart.id.toString(),
+      customer_email: user.email,
+      metadata: {
+        cartId: cart.id,
+        userId: req.user.id
+      }
+    });
+
+    res.status(200).json({
+      checkoutUrl: session.url,
+      sessionId: session.id
+    });
   } catch (error) {
-    console.error('Error processing payment:', error.message);
-    res.status(500).json({ message: 'Payment processing failed.' });
+    console.error('Error creating checkout session:', error);
+    res.status(500).json({ message: 'Failed to create checkout session', error: error.message });
   }
 });
 
 /**
- * GET Available Sessions (For Clients to View & Book)
- * GET /api/sessions/available
+ * Handle Successful Checkout
+ * POST /api/cart/checkout/success
+ * Updates the cart status after successful payment
  */
-router.get('/available', protect, async (req, res) => {
+router.post('/checkout/success', async (req, res) => {
   try {
-    const sessions = await Session.findAll({ where: { status: 'available' } });
-    res.json(sessions);
-  } catch (error) {
-    console.error('Error fetching available sessions:', error.message);
-    res.status(500).json({ message: 'Server error fetching sessions.' });
-  }
-});
+    const { session_id } = req.body;
+    
+    if (!session_id) {
+      return res.status(400).json({ message: 'Session ID is required' });
+    }
 
-/**
- * GET User's Scheduled Sessions
- * GET /api/sessions/:userId
- */
-router.get('/:userId', protect, async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const sessions = await Session.findAll({ where: { userId, status: 'scheduled' } });
-    res.json(sessions);
-  } catch (error) {
-    console.error('Error fetching sessions:', error.message);
-    res.status(500).json({ message: 'Server error fetching sessions.' });
-  }
-});
+    // Verify the checkout session with Stripe
+    const session = await stripeInstance.checkout.sessions.retrieve(session_id);
+    
+    if (session.payment_status !== 'paid') {
+      return res.status(400).json({ message: 'Payment not completed' });
+    }
 
-/**
- * ADMIN: Cancel a Scheduled Session
- * DELETE /api/sessions/:id
- */
-router.delete('/:id', protect, adminOnly, async (req, res) => {
-  try {
-    const { id } = req.params;
-    await Session.destroy({ where: { id } });
-    res.json({ message: 'Session canceled successfully.' });
+    const cartId = session.metadata.cartId;
+    const userId = session.metadata.userId;
+
+    // Update cart status to completed
+    await ShoppingCart.update(
+      { status: 'completed' },
+      { where: { id: cartId, userId } }
+    );
+
+    // You might want to create training sessions or update user's balance based on purchased packages
+    // This would depend on your business logic
+
+    res.status(200).json({ message: 'Payment completed successfully' });
   } catch (error) {
-    console.error('Error deleting session:', error.message);
-    res.status(500).json({ message: 'Server error canceling session.' });
+    console.error('Error handling checkout success:', error);
+    res.status(500).json({ message: 'Failed to process successful checkout', error: error.message });
   }
 });
 

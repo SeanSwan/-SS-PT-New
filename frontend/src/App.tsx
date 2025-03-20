@@ -1,4 +1,5 @@
-// src/App.tsx
+// /frontend/src/App.tsx
+
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
@@ -9,6 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { CartProvider } from './context/CartContext'; // Import CartProvider (now .tsx)
 
 // Components and pages
 import Layout from './components/Layout/layout';
@@ -21,6 +23,10 @@ import StoreFront from './pages/shop/StoreFront.component';
 import ClientDashboard from './components/ClientDashboard/ClientDashboard';
 import UnauthorizedPage from './pages/UnauthorizedPage.component';
 import HomePage from './pages/homepage/components/HomePage.component';
+
+// Checkout pages
+import CheckoutSuccess from './pages/checkout/CheckoutSuccess';
+import CheckoutCancel from './pages/checkout/CheckoutCancel';
 
 // Error Boundary
 import ErrorBoundary from './components/ErrorBoundary/error-boundry.component';
@@ -88,6 +94,10 @@ const AppRoutes = () => {
       <Route path="/store" element={<Layout><StoreFront /></Layout>} />
       <Route path="/unauthorized" element={<Layout><UnauthorizedPage /></Layout>} />
       
+      {/* Checkout routes */}
+      <Route path="/checkout/success" element={<Layout><CheckoutSuccess /></Layout>} />
+      <Route path="/checkout/cancel" element={<Layout><CheckoutCancel /></Layout>} />
+      
       {/* Protected client routes */}
       <Route
         path="/client-dashboard/*"
@@ -100,7 +110,7 @@ const AppRoutes = () => {
         }
       />
       
-      {/* Admin routes - THIS IS THE KEY CHANGE */}
+      {/* Admin routes */}
       <Route
         path="/admin-dashboard/*"
         element={
@@ -123,13 +133,15 @@ const App = () => {
         <HelmetProvider>
           <AuthProvider>
             <ToastProvider>
-              <Router>
-                <ErrorBoundary>
-                  <div className="main" id="main-app-container">
-                    <AppRoutes />
-                  </div>
-                </ErrorBoundary>
-              </Router>
+              <CartProvider> {/* Add CartProvider */}
+                <Router>
+                  <ErrorBoundary>
+                    <div className="main" id="main-app-container">
+                      <AppRoutes />
+                    </div>
+                  </ErrorBoundary>
+                </Router>
+              </CartProvider>
             </ToastProvider>
           </AuthProvider>
         </HelmetProvider>

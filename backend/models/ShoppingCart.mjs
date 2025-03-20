@@ -31,4 +31,6 @@ ShoppingCart.init(
   }
 );
 
+// No associations here as they're all in setupAssociations.mjs
+
 export default ShoppingCart;
