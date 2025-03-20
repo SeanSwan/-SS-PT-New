@@ -51,7 +51,12 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
       'https://www.sswanstudios.com',
       // Add frontend render URLs
       'https://swanstudios.onrender.com',
-      'https://swan-studios-pt-new.onrender.com'
+      'https://swan-studios-pt-new.onrender.com',
+      // For local testing during development with production URLs
+      'http://localhost:5173',
+      'http://localhost:5174',
+      // More permissive for potential subdomain variations
+      'https://*.sswanstudios.com'
     ]
   : process.env.FRONTEND_ORIGINS
     ? process.env.FRONTEND_ORIGINS.split(",").map((origin) => origin.trim())
@@ -60,46 +65,44 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
 // Log allowed origins on startup
 console.log('Allowed origins:', allowedOrigins);
 
-// Enhanced CORS options with improved preflight handling
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) {
-      console.log('Request with no origin allowed');
-      return callback(null, true);
-    }
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      console.log(`Origin allowed by CORS: ${origin}`);
-      callback(null, true);
-    } else {
-      console.warn(`Request from origin ${origin} blocked by CORS policy`);
-      callback(new Error(`Origin ${origin} not allowed by CORS`));
-    }
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
-  // Add new options for better CORS handling
-  preflightContinue: false,
-  optionsSuccessStatus: 204,
-  maxAge: 86400 // Cache preflight response for 24 hours
-};
+// We'll use a custom middleware approach instead of corsOptions
+// The corsOptions object is no longer needed as we handle CORS manually
 
 // Special raw body handling for Stripe webhooks - MUST come before other middleware!
 app.use('/api/cart/webhook', express.raw({ type: 'application/json' }));
 
-// Apply CORS middleware first to ensure proper headers
-app.use(cors(corsOptions));
-
-// Add explicit handler for OPTIONS requests to improve CORS preflight handling
-app.options('*', (req, res) => {
-  // Set CORS headers manually for additional reliability
-  res.header('Access-Control-Allow-Origin', req.headers.origin);
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.status(204).end();
+// Create a simpler, more direct CORS middleware
+// This approach works better with hosting platforms like render.com
+app.use((req, res, next) => {
+  // Get origin from request headers
+  const origin = req.headers.origin;
+  
+  // Log the incoming request origin
+  console.log(`Incoming request from origin: ${origin || 'none'}`);
+  
+  // Check if origin is allowed
+  if (origin && allowedOrigins.includes(origin)) {
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
+    
+    // Log allowed origin
+    console.log(`CORS headers set for allowed origin: ${origin}`);
+  } else if (origin) {
+    console.warn(`Request from disallowed origin: ${origin}`);
+  }
+  
+  // Handle preflight OPTIONS requests immediately
+  if (req.method === 'OPTIONS') {
+    console.log('Responding to OPTIONS preflight request');
+    res.status(204).end();
+    return;
+  }
+  
+  next();
 });
 
 // Apply other middleware
@@ -121,22 +124,6 @@ app.use((req, res, next) => {
     console.log(`← ${statusColor}${res.statusCode}${resetColor} ${req.method} ${req.url} (${duration}ms)`);
   });
   
-  next();
-});
-
-// Add middleware to set CORS headers on every response
-// This ensures headers are set even if the cors middleware doesn't catch something
-app.use((req, res, next) => {
-  // Only set headers if they aren't already set
-  if (!res.getHeader('Access-Control-Allow-Origin')) {
-    const origin = req.headers.origin;
-    if (origin && allowedOrigins.includes(origin)) {
-      res.header('Access-Control-Allow-Origin', origin);
-      res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-      res.header('Access-Control-Allow-Credentials', 'true');
-    }
-  }
   next();
 });
 
@@ -176,9 +163,22 @@ app.use(errorHandler);
 // ================== SOCKET.IO SETUP ================== 
 export const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
-    methods: ["GET", "POST"],
+    origin: function(origin, callback) {
+      // Allow requests with no origin (like mobile apps, curl, socket testing tools)
+      if (!origin) {
+        return callback(null, true);
+      }
+      
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`Socket.io connection from disallowed origin: ${origin}`);
+        callback(null, true); // Still allow the connection for broader compatibility
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"]
   },
 });
 
