@@ -22,7 +22,8 @@ import AboutPage from './pages/about/About';
 import StoreFront from './pages/shop/StoreFront.component';
 import ClientDashboard from './components/ClientDashboard/ClientDashboard';
 import UnauthorizedPage from './pages/UnauthorizedPage.component';
-import HomePage from './pages/homepage/components/HomePage.component';
+// Fix the import path to match the actual file path and case
+import HomePage from './pages/HomePage/components/HomePage.component.jsx';
 
 // Checkout pages
 import CheckoutSuccess from './pages/checkout/CheckoutSuccess';
