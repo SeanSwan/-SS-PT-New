@@ -493,30 +493,44 @@ export const AuthProvider = ({ children }) => {
     try {
       logAuthAction('Login attempt', { username });
       
-      // Try testing the connection first to check for CORS issues
-      try {
-        await axios.options(`${API_BASE_URL}/auth/login`, {
-          headers: {
-            "Access-Control-Request-Method": "POST",
-            "Access-Control-Request-Headers": "content-type,authorization"
-          },
-          timeout: 5000
-        });
-      } catch (optionsError) {
-        console.warn("Preflight check failed, continuing with login attempt:", optionsError.message);
-      }
+      // We can't manually set CORS preflight headers as the browser controls this
+      // Remove the explicit OPTIONS request that was causing errors
       
       // Use direct axios instead of authAxios for login to avoid circular dependencies
-      const response = await axios.post(`${API_BASE_URL}/auth/login`, 
-        { username, password },
-        {
-          headers: {
-            "Content-Type": "application/json"
-          },
-          withCredentials: true,
-          timeout: 15000
-        }
-      );
+      // Try with a CORS proxy if direct requests fail
+      let response;
+      try {
+        // First attempt - direct request
+        response = await axios.post(`${API_BASE_URL}/auth/login`, 
+          { username, password },
+          {
+            headers: {
+              "Content-Type": "application/json"
+            },
+            withCredentials: true,
+            timeout: 15000
+          }
+        );
+      } catch (directError) {
+        console.error("Direct login request failed:", directError.message);
+        
+        // If the direct request fails, try using a CORS proxy as fallback
+        // This is just for development/testing - in production, fix the server CORS config
+        const corsProxyUrl = "https://cors-anywhere.herokuapp.com/";
+        console.log("Attempting login through CORS proxy...");
+        
+        response = await axios.post(`${corsProxyUrl}${API_BASE_URL}/auth/login`, 
+          { username, password },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "X-Requested-With": "XMLHttpRequest" // Required by some CORS proxies
+            },
+            // Don't use withCredentials with the proxy
+            timeout: 15000
+          }
+        );
+      }
 
       const { token: newToken, refreshToken: newRefreshToken, user } = response.data;
       
