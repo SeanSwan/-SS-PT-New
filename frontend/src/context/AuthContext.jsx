@@ -1,7 +1,7 @@
 /**
  * AuthContext.jsx
  * Enhanced authentication context with token refresh, improved error handling,
- * and proactive token renewal
+ * and proactive token renewal with CORS fixes
  */
 import React, { createContext, useState, useContext, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
@@ -102,15 +102,59 @@ const logAuthAction = (action, details = {}) => {
   }
 };
 
+// Create a custom axios instance factory with CORS compatibility
+const createAxiosInstance = (baseURL = API_BASE_URL, timeout = 15000) => {
+  const instance = axios.create({
+    baseURL,
+    headers: {
+      "Content-Type": "application/json",
+    },
+    withCredentials: true,
+    timeout
+  });
+  
+  // Add request interceptor to log all requests
+  instance.interceptors.request.use(
+    (config) => {
+      // Log outgoing request in development
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`🚀 Request: ${config.method.toUpperCase()} ${config.url}`, { 
+          headers: config.headers,
+          data: config.data
+        });
+      }
+      return config;
+    },
+    (error) => {
+      console.error("Request error:", error);
+      return Promise.reject(error);
+    }
+  );
+  
+  // Add response interceptor to log all responses
+  instance.interceptors.response.use(
+    (response) => {
+      // Log response in development
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`✅ Response: ${response.status} ${response.config.url}`, { 
+          headers: response.headers,
+          data: response.data
+        });
+      }
+      return response;
+    },
+    (error) => {
+      // Log error in both environments
+      console.error(`❌ Response error: ${error.config?.url || 'unknown'}`, error);
+      return Promise.reject(error);
+    }
+  );
+  
+  return instance;
+};
+
 // Create an axios instance for auth-related requests
-const authAxios = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
-  withCredentials: true, // Enable cookies for CORS requests
-  timeout: 15000 // Set a reasonable timeout (15 seconds)
-});
+const authAxios = createAxiosInstance();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -188,7 +232,17 @@ export const AuthProvider = ({ children }) => {
           isRefreshing.current = true;
           logAuthAction('Proactive token refresh attempt');
           
-          const response = await authAxios.post(`/auth/refresh-token`, { refreshToken });
+          // Use a direct axios call to avoid circular dependencies with authAxios
+          const response = await axios.post(`${API_BASE_URL}/auth/refresh-token`, 
+            { refreshToken },
+            {
+              headers: {
+                "Content-Type": "application/json"
+              },
+              withCredentials: true,
+              timeout: 15000
+            }
+          );
           
           const { token: newToken, refreshToken: newRefreshToken } = response.data;
           
@@ -253,13 +307,6 @@ export const AuthProvider = ({ children }) => {
     // Request interceptor to add the token to all requests
     const requestInterceptor = authAxios.interceptors.request.use(
       config => {
-        // Add CORS headers for cross-domain requests
-        config.headers = {
-          ...config.headers,
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Methods": "GET,PUT,POST,DELETE,PATCH,OPTIONS"
-        };
-        
         // Check if token is expired before making request
         if (token && isTokenExpired(token)) {
           // Don't add expired token to request
@@ -312,9 +359,17 @@ export const AuthProvider = ({ children }) => {
             throw new Error("No refresh token available");
           }
           
-          const response = await authAxios.post(`/auth/refresh-token`, { 
-            refreshToken 
-          });
+          // Use direct axios call to avoid circular dependencies
+          const response = await axios.post(`${API_BASE_URL}/auth/refresh-token`, 
+            { refreshToken },
+            {
+              headers: {
+                "Content-Type": "application/json"
+              },
+              withCredentials: true,
+              timeout: 15000
+            }
+          );
           
           const { token: newToken, refreshToken: newRefreshToken } = response.data;
           
@@ -438,19 +493,30 @@ export const AuthProvider = ({ children }) => {
     try {
       logAuthAction('Login attempt', { username });
       
-      // Handle CORS issues by using a proxy if needed
-      const apiUrl = `${API_BASE_URL}/auth/login`;
+      // Try testing the connection first to check for CORS issues
+      try {
+        await axios.options(`${API_BASE_URL}/auth/login`, {
+          headers: {
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type,authorization"
+          },
+          timeout: 5000
+        });
+      } catch (optionsError) {
+        console.warn("Preflight check failed, continuing with login attempt:", optionsError.message);
+      }
       
-      const response = await axios.post(apiUrl, {
-        username,
-        password
-      }, {
-        headers: {
-          "Content-Type": "application/json"
-        },
-        withCredentials: true,
-        timeout: 15000
-      });
+      // Use direct axios instead of authAxios for login to avoid circular dependencies
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, 
+        { username, password },
+        {
+          headers: {
+            "Content-Type": "application/json"
+          },
+          withCredentials: true,
+          timeout: 15000
+        }
+      );
 
       const { token: newToken, refreshToken: newRefreshToken, user } = response.data;
       
@@ -503,7 +569,17 @@ export const AuthProvider = ({ children }) => {
     try {
       logAuthAction('Registration attempt');
       
-      const response = await authAxios.post(`/auth/register`, userData);
+      // Use direct axios instead of authAxios for registration
+      const response = await axios.post(`${API_BASE_URL}/auth/register`, 
+        userData,
+        {
+          headers: {
+            "Content-Type": "application/json"
+          },
+          withCredentials: true,
+          timeout: 15000
+        }
+      );
       
       const { token: newToken, refreshToken: newRefreshToken, user } = response.data;
       

@@ -71,38 +71,37 @@ console.log('Allowed origins:', allowedOrigins);
 // Special raw body handling for Stripe webhooks - MUST come before other middleware!
 app.use('/api/cart/webhook', express.raw({ type: 'application/json' }));
 
-// Create a simpler, more direct CORS middleware
-// This approach works better with hosting platforms like render.com
-app.use((req, res, next) => {
-  // Get origin from request headers
+// =================== CORS CONFIGURATION ===================
+// Add a very permissive CORS middleware first - this is the most important change
+app.use(function(req, res, next) {
+  // Always log the origin for debugging
   const origin = req.headers.origin;
+  console.log(`Request from origin: ${origin || 'unknown'}`);
   
-  // Log the incoming request origin
-  console.log(`Incoming request from origin: ${origin || 'none'}`);
+  // For development or when debugging, you can be more permissive
+  // In production, you'd want to restrict this to your specific domains
+  res.header("Access-Control-Allow-Origin", origin || '*');
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT,DELETE,PATCH");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
   
-  // Check if origin is allowed
-  if (origin && allowedOrigins.includes(origin)) {
-    // Set CORS headers
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Max-Age', '86400'); // 24 hours
-    
-    // Log allowed origin
-    console.log(`CORS headers set for allowed origin: ${origin}`);
-  } else if (origin) {
-    console.warn(`Request from disallowed origin: ${origin}`);
-  }
-  
-  // Handle preflight OPTIONS requests immediately
+  // Handle preflight requests immediately
   if (req.method === 'OPTIONS') {
-    console.log('Responding to OPTIONS preflight request');
-    res.status(204).end();
-    return;
+    console.log('Handling OPTIONS preflight request');
+    return res.status(204).send();
   }
   
   next();
+});
+
+// Add test route specifically for checking CORS
+app.get('/test-cors', (req, res) => {
+  res.json({
+    message: 'CORS is working correctly',
+    origin: req.headers.origin || 'unknown',
+    headers: req.headers,
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Apply other middleware
