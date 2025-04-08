@@ -1,20 +1,35 @@
-// src/pages/homepage/components/InstagramFeed/InstagramFeed.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
-import { motion } from 'framer-motion';
+import { motion, HTMLMotionProps } from 'framer-motion';
 import { FaInstagram, FaHeart, FaComment, FaShare, FaPlay } from 'react-icons/fa';
 
-// Import dummy Instagram post images from assets
+// Import dummy Instagram post images from assets - Ensure paths are correct
 import post1 from "../../assets/image1.jpg";
 import post2 from "../../assets/image2.jpg";
 import post3 from "../../assets/image3.jpg";
 import post4 from '../../assets/femaleoldwht.jpg';
 import post5 from '../../assets/femalelat.jpg';
-import post6 from '../../assets/male1.jpg';
+import post6 from '../../assets/male1.jpg'; // Assuming this is the avatar
 import videoThumb1 from '../../assets/maleblk.jpg';
 import videoThumb2 from '../../assets/femalewht.jpg';
 
-// Styled Components
+// --- TypeScript Interfaces ---
+interface InstagramPost {
+  id: number;
+  image: string;
+  isVideo: boolean;
+  avatar: string;
+  author: string;
+  date: string;
+  caption: string;
+  hashtags: string;
+  likes: number;
+  comments: number;
+  shares: number;
+}
+
+// --- Styled Components ---
+// Main Instagram section container with a gradient background
 const InstagramSection = styled.section`
   padding: 5rem 0;
   background: linear-gradient(to bottom, #0a0a0a, #121212);
@@ -22,6 +37,7 @@ const InstagramSection = styled.section`
   overflow: hidden;
 `;
 
+// A decorative background shape for added visual interest
 const BackgroundShape = styled.div`
   position: absolute;
   width: 80%;
@@ -38,31 +54,40 @@ const BackgroundShape = styled.div`
   transform: translate(-50%, -50%);
   filter: blur(80px);
   z-index: 0;
+  pointer-events: none;
 `;
 
+// Container that centers content and provides proper horizontal padding
 const SectionContainer = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 2rem;
   position: relative;
   z-index: 1;
+  
+  @media (max-width: 768px) {
+    padding: 0 1rem;
+  }
 `;
 
+// Header for the section with title and subtitle centered
 const SectionHeader = styled.div`
   text-align: center;
   margin-bottom: 3rem;
 `;
 
+// Title with gradient text and underline styling
 const SectionTitle = styled(motion.h2)`
   font-size: 2.5rem;
   margin-bottom: 1rem;
   color: white;
   background: linear-gradient(90deg, #00ffff, #7851a9);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   position: relative;
   display: inline-block;
-
+  
   &::after {
     content: "";
     position: absolute;
@@ -73,16 +98,26 @@ const SectionTitle = styled(motion.h2)`
     background: linear-gradient(90deg, #00ffff, #7851a9);
     border-radius: 3px;
   }
+  
+  @media (max-width: 768px) {
+    font-size: 2rem;
+  }
 `;
 
+// Subtitle with lighter text for clarity
 const SectionSubtitle = styled(motion.p)`
   font-size: 1.2rem;
   color: #c0c0c0;
   max-width: 800px;
   margin: 0 auto;
   margin-top: 1.5rem;
+  
+  @media (max-width: 768px) {
+    font-size: 1rem;
+  }
 `;
 
+// Instagram handle link styled with a neon-blue color
 const InstagramHandle = styled(motion.a)`
   display: inline-flex;
   align-items: center;
@@ -97,6 +132,7 @@ const InstagramHandle = styled(motion.a)`
   }
 `;
 
+// Grid layout for the Instagram posts
 const PostsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -105,9 +141,13 @@ const PostsGrid = styled.div`
   @media (max-width: 768px) {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   }
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
 `;
 
-const PostCard = styled(motion.div)`
+// A container for each post card with hover effects
+const PostCardContainer = styled.div`
   background: rgba(25, 25, 35, 0.8);
   border-radius: 12px;
   overflow: hidden;
@@ -122,6 +162,7 @@ const PostCard = styled(motion.div)`
   }
 `;
 
+// Container for the post image and video overlay
 const PostImageContainer = styled.div`
   position: relative;
   height: 280px;
@@ -129,6 +170,7 @@ const PostImageContainer = styled.div`
   cursor: pointer;
 `;
 
+// The post image with a scale effect on hover
 const PostImage = styled.img`
   width: 100%;
   height: 100%;
@@ -140,6 +182,7 @@ const PostImage = styled.img`
   }
 `;
 
+// Overlay for video posts to show a play icon
 const VideoOverlay = styled.div`
   position: absolute;
   top: 0;
@@ -159,16 +202,19 @@ const VideoOverlay = styled.div`
   }
 `;
 
+// Container for the textual content of a post
 const PostContent = styled.div`
   padding: 1.5rem;
 `;
 
+// Header section of the post, including avatar and author info
 const PostHeader = styled.div`
   display: flex;
   align-items: center;
   margin-bottom: 1rem;
 `;
 
+// Avatar container with border styling
 const PostAvatar = styled.div`
   width: 40px;
   height: 40px;
@@ -176,6 +222,7 @@ const PostAvatar = styled.div`
   overflow: hidden;
   margin-right: 0.5rem;
   border: 2px solid var(--neon-blue, #00ffff);
+  flex-shrink: 0;
   
   img {
     width: 100%;
@@ -184,35 +231,54 @@ const PostAvatar = styled.div`
   }
 `;
 
+// Post information (author and date)
 const PostInfo = styled.div`
   flex: 1;
+  min-width: 0;
 `;
 
+// Author name styling
 const PostAuthor = styled.h4`
   font-size: 1rem;
   color: white;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
+// Date styling for each post
 const PostDate = styled.p`
   font-size: 0.8rem;
   color: #808080;
   margin: 0;
 `;
 
+// Caption styling with line clamping for consistency
 const PostCaption = styled.p`
   font-size: 0.9rem;
   color: #c0c0c0;
   margin-bottom: 1rem;
   line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: calc(1.5 * 0.9rem * 3);
 `;
 
+// Hashtags styling with neon-blue color
 const PostHashtags = styled.p`
   font-size: 0.9rem;
   color: var(--neon-blue, #00ffff);
   margin-bottom: 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
+// Stats styling (likes, comments, shares)
 const PostStats = styled.div`
   display: flex;
   align-items: center;
@@ -221,13 +287,15 @@ const PostStats = styled.div`
   color: #c0c0c0;
 `;
 
+// Individual stat item styling
 const StatItem = styled.div`
   display: flex;
   align-items: center;
   gap: 0.3rem;
 `;
 
-const InstagramButton = styled(motion.a)`
+// Button for showing more posts and following on Instagram
+const InstagramButtonContainer = styled.a`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -251,67 +319,45 @@ const InstagramButton = styled(motion.a)`
   }
 `;
 
-// Animation variants
+// --- Animation Variants ---
 const titleVariants = {
   hidden: { opacity: 0, y: -20 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: { duration: 0.5 } 
-  }
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
 };
 
 const subtitleVariants = {
   hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: { duration: 0.5, delay: 0.2 } 
-  }
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, delay: 0.2 } }
 };
 
 const handleVariants = {
   hidden: { opacity: 0, scale: 0.8 },
-  visible: { 
-    opacity: 1, 
-    scale: 1,
-    transition: { duration: 0.5, delay: 0.4 } 
-  }
+  visible: { opacity: 1, scale: 1, transition: { duration: 0.5, delay: 0.4 } }
 };
 
-const cardVariants = {
+const cardVariants: HTMLMotionProps<"div">["variants"] = {
   hidden: { opacity: 0, y: 30 },
-  visible: (index) => ({ 
-    opacity: 1, 
+  visible: (index: number) => ({
+    opacity: 1,
     y: 0,
-    transition: { 
+    transition: {
       duration: 0.5,
       delay: 0.1 * index,
       type: "spring",
       stiffness: 100
-    } 
+    }
   })
 };
 
-const buttonVariants = {
+const buttonVariants: HTMLMotionProps<"a">["variants"] = {
   hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: { duration: 0.5, delay: 0.6 } 
-  },
-  hover: {
-    scale: 1.05,
-    transition: { duration: 0.2 }
-  },
-  tap: {
-    scale: 0.95,
-    transition: { duration: 0.2 }
-  }
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, delay: 0.6 } },
+  hover: { scale: 1.05, transition: { duration: 0.2 } },
+  tap: { scale: 0.95, transition: { duration: 0.2 } }
 };
 
-// Sample Instagram posts data
-const instagramPosts = [
+// --- Sample Instagram Posts Data ---
+const instagramPosts: InstagramPost[] = [
   {
     id: 1,
     image: post1,
@@ -418,16 +464,16 @@ const instagramPosts = [
   }
 ];
 
-// Instagram Feed Component
-const InstagramFeed = () => {
-  const [visiblePosts, setVisiblePosts] = useState(6);
-  
+// --- Instagram Feed Component ---
+const InstagramFeed: React.FC = () => {
+  const [visiblePosts, setVisiblePosts] = useState<number>(6);
+
   const handleShowMore = () => {
     setVisiblePosts(instagramPosts.length);
   };
-  
+
   const displayedPosts = instagramPosts.slice(0, visiblePosts);
-  
+
   return (
     <InstagramSection id="instagram">
       <BackgroundShape />
@@ -447,7 +493,7 @@ const InstagramFeed = () => {
             whileInView="visible"
             viewport={{ once: true }}
           >
-            Get inspired by real transformations, workout tips, and behind-the-scenes content from our community
+            Get inspired by real transformations, workout tips, and behind-the-scenes content from our community.
           </SectionSubtitle>
           <InstagramHandle
             href="https://instagram.com/swanstudios"
@@ -461,81 +507,91 @@ const InstagramFeed = () => {
             <FaInstagram /> @swanstudios
           </InstagramHandle>
         </SectionHeader>
-        
+
         <PostsGrid>
           {displayedPosts.map((post, index) => (
-            <PostCard
-              key={post.id}
-              custom={index}
-              variants={cardVariants}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.3 }}
-            >
-              <PostImageContainer>
-                <PostImage src={post.image} alt={post.caption} />
-                {post.isVideo && (
-                  <VideoOverlay>
-                    <FaPlay />
-                  </VideoOverlay>
-                )}
-              </PostImageContainer>
-              <PostContent>
-                <PostHeader>
-                  <PostAvatar>
-                    <img src={post.avatar} alt={post.author} />
-                  </PostAvatar>
-                  <PostInfo>
-                    <PostAuthor>{post.author}</PostAuthor>
-                    <PostDate>{post.date}</PostDate>
-                  </PostInfo>
-                </PostHeader>
-                <PostCaption>{post.caption}</PostCaption>
-                <PostHashtags>{post.hashtags}</PostHashtags>
-                <PostStats>
-                  <StatItem>
-                    <FaHeart /> {post.likes}
-                  </StatItem>
-                  <StatItem>
-                    <FaComment /> {post.comments}
-                  </StatItem>
-                  <StatItem>
-                    <FaShare /> {post.shares}
-                  </StatItem>
-                </PostStats>
-              </PostContent>
-            </PostCard>
+            <PostCardContainer key={post.id}>
+              <motion.div
+                custom={index}
+                variants={cardVariants}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.3 }}
+              >
+                <PostImageContainer>
+                  <PostImage src={post.image} alt={post.caption} loading="lazy" />
+                  {post.isVideo && (
+                    <VideoOverlay>
+                      <FaPlay />
+                    </VideoOverlay>
+                  )}
+                </PostImageContainer>
+                <PostContent>
+                  <PostHeader>
+                    <PostAvatar>
+                      <img src={post.avatar} alt={post.author} loading="lazy" />
+                    </PostAvatar>
+                    <PostInfo>
+                      <PostAuthor>{post.author}</PostAuthor>
+                      <PostDate>{post.date}</PostDate>
+                    </PostInfo>
+                  </PostHeader>
+                  <PostCaption>{post.caption}</PostCaption>
+                  <PostHashtags>{post.hashtags}</PostHashtags>
+                  <PostStats>
+                    <StatItem>
+                      <FaHeart /> {post.likes}
+                    </StatItem>
+                    <StatItem>
+                      <FaComment /> {post.comments}
+                    </StatItem>
+                    <StatItem>
+                      <FaShare /> {post.shares}
+                    </StatItem>
+                  </PostStats>
+                </PostContent>
+              </motion.div>
+            </PostCardContainer>
           ))}
         </PostsGrid>
-        
+
         {visiblePosts < instagramPosts.length && (
-          <InstagramButton
+          <InstagramButtonContainer
             as="button"
             onClick={handleShowMore}
+            style={{ cursor: 'pointer' }}
+          >
+            <motion.div
+              variants={buttonVariants}
+              initial="hidden"
+              whileInView="visible"
+              whileHover="hover"
+              whileTap="tap"
+              viewport={{ once: true }}
+              style={{ display: 'contents' }}
+            >
+              Show More Posts
+            </motion.div>
+          </InstagramButtonContainer>
+        )}
+
+        <InstagramButtonContainer
+          href="https://instagram.com/swanstudios"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <motion.div
             variants={buttonVariants}
             initial="hidden"
             whileInView="visible"
             whileHover="hover"
             whileTap="tap"
             viewport={{ once: true }}
+            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
           >
-            Show More Posts
-          </InstagramButton>
-        )}
-        
-        <InstagramButton
-          href="https://instagram.com/swanstudios"
-          target="_blank"
-          rel="noopener noreferrer"
-          variants={buttonVariants}
-          initial="hidden"
-          whileInView="visible"
-          whileHover="hover"
-          whileTap="tap"
-          viewport={{ once: true }}
-        >
-          <FaInstagram /> Follow Us On Instagram
-        </InstagramButton>
+            <FaInstagram /> Follow Us On Instagram
+          </motion.div>
+        </InstagramButtonContainer>
       </SectionContainer>
     </InstagramSection>
   );

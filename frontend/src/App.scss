@@ -1,10 +1,9 @@
-// app.scss
+// src/App.scss
 
 // Tailwind Directives
 @use "tailwindcss/base";
 @use "tailwindcss/components";
 @use "tailwindcss/utilities";
-
 
 @import 'react-big-calendar/lib/css/react-big-calendar.css';
 
@@ -18,11 +17,16 @@
 html, body {
   height: 100%;
   width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased; // Improves rendering of fonts on macOS and iOS
+  overflow-x: hidden;
 }
 
 // Set base font properties
@@ -66,5 +70,9 @@ textarea {
 }
 
 #root {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
   padding-top: 60px; // Adjust this value to match the header height
+  margin: 0;
 }

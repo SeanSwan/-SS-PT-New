@@ -23,7 +23,7 @@ import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 
 // Hooks
 import useConfig from './../../hooks/useConfig';
-import { useAuth } from './../../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 // Constants from your theme
 import { THEME_CONFIG } from './../../store/constant';

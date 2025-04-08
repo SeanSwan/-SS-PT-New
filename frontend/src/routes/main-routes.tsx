@@ -1,75 +1,184 @@
 /**
  * main-routes.tsx
  * Main application routes configuration for the live monitoring/patrol security service website.
+ * Implements a type-safe routing structure with protected routes and proper error handling.
  */
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { RouteObject, Navigate, Outlet } from 'react-router-dom';
 
+// Layout and Error Handling
 import Layout from '../components/Layout/layout';
 import ErrorBoundary from './error-boundary';
 
-// Route protection components
+// Route Protection Components
 import AdminRoute from './admin-route';
 import ProtectedRoute from './protected-route';
 
-// Pages
-import HomePage from '../pages/HomePage/components/HomePage.component';
-import LoginModal from '../pages/LoginModal.component';
-import SignupModal from '../pages/SignupModal.component';
-import ContactPage from '../pages/contactpage/ContactPage';
-import AboutPage from '../pages/about/About';
-import StoreFront from '../pages/shop/StoreFront.component';
-import UnauthorizedPage from '../pages/UnauthorizedPage.component';
+// Types
+interface ProtectedRouteProps {
+  requiredRole?: string;
+  children: React.ReactNode;
+}
 
-// Checkout pages
-import CheckoutSuccess from '../pages/checkout/CheckoutSuccess';
-import CheckoutCancel from '../pages/checkout/CheckoutCancel';
+// Loading Component for Code Splitting
+const PageLoader: React.FC = () => (
+  <div className="page-loading-container">
+    <div className="page-loading-spinner"></div>
+  </div>
+);
 
-// Dashboard components
-import ClientDashboard from '../components/ClientDashboard/ClientDashboard';
-// AdminDashboard route is kept here if needed; otherwise remove AdminRoute usage if not required
-// import AdminDashboard from '../components/AdminDashboard/AdminDashboard';
+// Fallback component in case import fails - this is separate from ErrorBoundary
+const ComponentLoadError = () => (
+  <div className="error-container">
+    <h2>Component Failed to Load</h2>
+    <p>We're having trouble loading this page. Please try refreshing the browser.</p>
+  </div>
+);
 
+// Lazy-loaded Components with error handling
+// Public Pages - using dynamic import() with explicit file extensions
+const HomePage = lazy(() => 
+  import('../pages/HomePage/components/HomePage.component.jsx')
+    .catch(() => {
+      console.error('Failed to load HomePage component');
+      return { default: ComponentLoadError };
+    })
+);
+const LoginModal = lazy(() => import('../pages/LoginModal.component'));
+const SignupModal = lazy(() => import('../pages/SignupModal.component'));
+const ContactPage = lazy(() => import('../pages/contactpage/ContactPage'));
+const AboutPage = lazy(() => import('../pages/about/About'));
+const StoreFront = lazy(() => import('../pages/shop/StoreFront.component'));
+const UnauthorizedPage = lazy(() => import('../pages/UnauthorizedPage.component'));
+
+// Checkout Pages
+const CheckoutSuccess = lazy(() => import('../pages/checkout/CheckoutSuccess'));
+const CheckoutCancel = lazy(() => import('../pages/checkout/CheckoutCancel'));
+
+// Protected Pages
+const ClientDashboard = lazy(() => import('../components/ClientDashboard/ClientDashboard'));
+// AdminDashboard is commented out but kept for future implementation
+// const AdminDashboard = lazy(() => import('../components/AdminDashboard/AdminDashboard'));
+
+/**
+ * Main application routes configuration
+ * Organized by access level: public, protected, and admin routes
+ */
 const MainRoutes: RouteObject = {
   path: '/',
   element: (
-    // Wrap Layout with Outlet to provide required children prop
     <Layout>
       <Outlet />
     </Layout>
   ),
   errorElement: <ErrorBoundary />,
   children: [
-    { index: true, element: <HomePage /> },
-    { path: 'login', element: <LoginModal /> },
-    { path: 'signup', element: <SignupModal /> },
-    { path: 'contact', element: <ContactPage /> },
-    { path: 'about', element: <AboutPage /> },
-    { path: 'store', element: <StoreFront /> },
-    { path: 'unauthorized', element: <UnauthorizedPage /> },
-    // Checkout routes
-    { path: 'checkout/success', element: <CheckoutSuccess /> },
-    { path: 'checkout/cancel', element: <CheckoutCancel /> },
-    // Protected client dashboard route
+    // Public Routes
+    {
+      index: true,
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <HomePage />
+        </Suspense>
+      )
+    },
+    {
+      path: 'login',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <LoginModal />
+        </Suspense>
+      )
+    },
+    {
+      path: 'signup',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <SignupModal />
+        </Suspense>
+      )
+    },
+    {
+      path: 'contact',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <ContactPage />
+        </Suspense>
+      )
+    },
+    {
+      path: 'about',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <AboutPage />
+        </Suspense>
+      )
+    },
+    {
+      path: 'store',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <StoreFront />
+        </Suspense>
+      )
+    },
+    {
+      path: 'unauthorized',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <UnauthorizedPage />
+        </Suspense>
+      )
+    },
+    
+    // Checkout Routes
+    {
+      path: 'checkout/success',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <CheckoutSuccess />
+        </Suspense>
+      )
+    },
+    {
+      path: 'checkout/cancel',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <CheckoutCancel />
+        </Suspense>
+      )
+    },
+    
+    // Protected Client Routes
     {
       path: 'client-dashboard/*',
       element: (
         <ProtectedRoute requiredRole="client">
-          <ClientDashboard />
+          <Suspense fallback={<PageLoader />}>
+            <ClientDashboard />
+          </Suspense>
         </ProtectedRoute>
       )
     },
-    // Optional Admin route (remove if not needed)
+    
+    // Protected Admin Routes
     {
       path: 'admin-dashboard/*',
       element: (
         <AdminRoute>
-          {/* <AdminDashboard /> */}
-          <div>Admin dashboard is not implemented</div>
+          <Suspense fallback={<PageLoader />}>
+            {/* <AdminDashboard /> */}
+            <div>Admin dashboard is not implemented</div>
+          </Suspense>
         </AdminRoute>
       )
     },
-    { path: '*', element: <Navigate to="/" replace /> }
+    
+    // Fallback Route (404)
+    {
+      path: '*',
+      element: <Navigate to="/" replace />
+    }
   ]
 };
 

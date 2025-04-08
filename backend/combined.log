@@ -164,3 +164,5 @@
 {"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T22:35:36.374Z","userId":2}
 {"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T22:40:50.739Z","userId":2}
 {"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-03-20T22:40:50.757Z","userId":2}
+{"level":"info","message":"Successful login for user: ogpswan, role: admin","timestamp":"2025-04-03T19:47:46.782Z"}
+{"level":"info","message":"Successful login for user: ogpswan, role: admin","timestamp":"2025-04-03T19:48:24.060Z"}

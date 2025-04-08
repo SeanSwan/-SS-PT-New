@@ -1,0 +1,96 @@
+/* Frontend - src/index.css */
+
+:root {
+    /* Define custom properties for your theme colors */
+    --neon-blue: #00ffff;
+    --royal-purple: #7851a9;
+    --dark-bg: #0a0a0a;
+    --dark-bg-2: #1a1a2e;
+  }
+  
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent !important;
+  }
+  
+  html {
+    overflow-x: hidden;
+    width: 100vw;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: var(--dark-bg);
+    color: white;
+    overflow-x: hidden;
+    width: 100vw;
+    max-width: 100%;
+    height: 100%;
+    position: relative;
+  }
+  
+  #root {
+    width: 100vw;
+    max-width: 100%;
+    overflow-x: hidden;
+    position: relative;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+  
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+  
+  button {
+    cursor: pointer;
+  }
+  
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  /* Override any default margins that might cause horizontal scrollbars */
+  h1, h2, h3, h4, h5, h6, p, ul, ol {
+    margin: 0;
+  }
+  
+  /* Additional fix for container-related issues */
+  .container, 
+  section, 
+  main, 
+  div, 
+  header, 
+  footer {
+    max-width: 100vw;
+    box-sizing: border-box;
+  }
+  
+  /* Ensure main content containers don't overflow */
+  main, .content {
+    overflow-x: hidden;
+    width: 100%;
+  }
+  
+  /* Fix for certain frameworks that might add unwanted margins */
+  body > div,
+  #__next,
+  #root {
+    width: 100vw;
+    max-width: 100%;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+  }

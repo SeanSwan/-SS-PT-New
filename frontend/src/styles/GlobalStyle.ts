@@ -11,6 +11,14 @@ const GlobalStyle = createGlobalStyle`
     -webkit-tap-highlight-color: transparent !important;
   }
 
+  html, body {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
+  }
+
   body {
     background-color: ${({ theme }) =>
       theme?.palette?.background?.default || "#FFFFFF"};
@@ -19,6 +27,14 @@ const GlobalStyle = createGlobalStyle`
     font-family: ${({ theme }) =>
       theme?.typography?.fontFamily || "Roboto, sans-serif"};
     overflow-x: hidden;
+  }
+
+  #root {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    margin: 0;
+    padding: 0;
   }
 
   a {

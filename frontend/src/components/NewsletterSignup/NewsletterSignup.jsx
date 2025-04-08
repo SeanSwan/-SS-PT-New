@@ -1,8 +1,9 @@
-// src/pages/homepage/components/NewsletterSignup/NewsletterSignup.jsx
+// src/components/NewsletterSignup/NewsletterSignup.jsx
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaEnvelope, FaCheck, FaExclamationTriangle, FaLock, FaArrowRight, FaDumbbell, FaAppleAlt, FaBrain } from 'react-icons/fa';
+import SectionTitle from '../ui/SectionTitle';
 
 // Styled Components
 const NewsletterSection = styled.section`
@@ -10,6 +11,10 @@ const NewsletterSection = styled.section`
   padding: 6rem 0;
   background: linear-gradient(to right, #0a0a0a, #1a1a2e, #0a0a0a);
   overflow: hidden;
+  width: 100%;
+  max-width: 100vw;
+  margin: 0;
+  box-sizing: border-box;
 `;
 
 const BackgroundEffect = styled.div`
@@ -37,6 +42,7 @@ const GridLines = styled.div`
 
 const ContentContainer = styled.div`
   max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
   padding: 0 2rem;
   position: relative;
@@ -46,22 +52,18 @@ const ContentContainer = styled.div`
   align-items: center;
 `;
 
-const SectionTitle = styled(motion.h2)`
-  text-align: center;
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
-  color: white;
-  background: linear-gradient(90deg, #00ffff, #7851a9);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-`;
-
 const SectionSubtitle = styled(motion.p)`
   text-align: center;
   font-size: 1.2rem;
   color: #c0c0c0;
   margin-bottom: 3rem;
   max-width: 800px;
+  width: 100%;
+  
+  @media (max-width: 768px) {
+    font-size: 1rem;
+    margin-bottom: 2rem;
+  }
 `;
 
 const FormContainer = styled(motion.div)`
@@ -154,6 +156,7 @@ const PrivacyText = styled(motion.p)`
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  width: 100%;
 `;
 
 const ErrorMessage = styled(motion.div)`
@@ -165,11 +168,13 @@ const ErrorMessage = styled(motion.div)`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  width: 100%;
 `;
 
 const SuccessMessage = styled(motion.div)`
   text-align: center;
   padding: 2rem;
+  width: 100%;
   
   h3 {
     font-size: 1.8rem;
@@ -194,6 +199,7 @@ const BenefitsContainer = styled(motion.div)`
   gap: 2rem;
   justify-content: center;
   margin-top: 4rem;
+  width: 100%;
   
   @media (max-width: 768px) {
     gap: 1rem;
@@ -241,15 +247,6 @@ const BenefitText = styled.p`
 `;
 
 // Animation variants
-const titleVariants = {
-  hidden: { opacity: 0, y: -20 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: { duration: 0.5 } 
-  }
-};
-
 const subtitleVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: { 
@@ -356,14 +353,8 @@ const NewsletterSignup = () => {
       <BackgroundEffect />
       <GridLines />
       <ContentContainer>
-        <SectionTitle
-          variants={titleVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-        >
-          Join Our Fitness Community
-        </SectionTitle>
+        <SectionTitle>Join Our Fitness Community</SectionTitle>
+        
         <SectionSubtitle
           variants={subtitleVariants}
           initial="hidden"
