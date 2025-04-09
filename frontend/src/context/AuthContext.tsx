@@ -10,8 +10,8 @@ import React, {
 } from "react";
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from "axios";
 // API_BASE_URL is '' in dev, relies on proxy for paths starting with /api
-// API_BASE_URL is 'https://<your-backend-url>' in production
-import { API_BASE_URL, AUTH_CONFIG } from "../config";
+// API_BASE_URL is 'https://swanstudios.onrender.com' in production (verified from config below)
+import { API_BASE_URL, AUTH_CONFIG, DEV_BACKEND_URL } from "../config"; // Import DEV_BACKEND_URL
 
 // --- Interfaces ---
 interface User {
@@ -74,8 +74,7 @@ interface AuthProviderProps {
 
 // --- Constants ---
 const TOKEN_REFRESH_THRESHOLD_MS = AUTH_CONFIG.tokenRefreshThresholdMs || 5 * 60 * 1000;
-// Define the explicit backend URL for development for direct axios calls
-const DEV_BACKEND_URL = 'http://localhost:5000'; // Match vite proxy target
+// DEV_BACKEND_URL is imported from config now
 
 // --- Context Creation ---
 const defaultAuthContextValue: AuthContextType = {
@@ -139,8 +138,13 @@ const createAxiosInstance = (baseURL: string = API_BASE_URL, timeout: number = 1
     instance.interceptors.request.use(
         (config: InternalAxiosRequestConfig) => {
             if (process.env.NODE_ENV !== 'production') {
-                const displayUrl = config.url?.startsWith('/') ? config.url : `/${config.url}`; // Ensure leading slash for clarity
+                const displayUrl = config.url?.startsWith('/') ? config.url : `/${config.url}`;
                 console.log(`🚀 Request (via authAxios): ${config.method?.toUpperCase()} ${displayUrl}`);
+            }
+            // Ensure path starts with /api when using the proxied instance
+            if (config.url && !config.url.startsWith('/api')) {
+                console.warn(`AuthAxios request URL "${config.url}" is missing /api prefix for proxy. Prepending '/api'.`);
+                config.url = `/api${config.url.startsWith('/') ? config.url : '/' + config.url}`;
             }
             return config;
         },
@@ -199,14 +203,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (!tokenToCheck) return true;
         const decoded = parseJwt(tokenToCheck);
         if (!decoded?.exp) return true;
-        return decoded.exp * 1000 < Date.now();
+        // Add a small buffer (e.g., 5 seconds) to account for clock skew/latency
+        const bufferSeconds = 5;
+        return decoded.exp * 1000 < Date.now() + (bufferSeconds * 1000);
     }, []);
 
     const getTimeUntilExpiry = useCallback((tokenToCheck: string | null): number => {
         if (!tokenToCheck) return 0;
         const decoded = parseJwt(tokenToCheck);
         if (!decoded?.exp) return 0;
-        return (decoded.exp * 1000) - Date.now();
+        return Math.max(0, (decoded.exp * 1000) - Date.now()); // Ensure non-negative
     }, []);
 
     const handleSessionExpired = useCallback(() => {
@@ -222,24 +228,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         refreshTimerRef.current = null;
     }, []);
 
-    // Function to determine the correct base URL for direct calls
-    const getDirectApiUrl = useCallback((path: string) => {
+    // --- UPDATED getDirectApiUrl ---
+    // Function to determine the correct base URL for direct calls (login, register, refresh)
+    const getDirectApiUrl = useCallback((path: string): string => {
+        // Ensure path starts with a single slash
         if (!path.startsWith('/')) {
-            console.error(`Path "${path}" must start with /`);
             path = `/${path}`;
         }
-        if (!path.startsWith('/api')) {
-             console.error(`Direct API call path "${path}" should likely start with /api`);
-             // Decide whether to auto-prefix or throw error
-             path = `/api${path}`;
-        }
-        // Use explicit backend URL in dev, use configured API_BASE_URL (which includes /api) in prod
-        const base = process.env.NODE_ENV === 'production' ? API_BASE_URL : DEV_BACKEND_URL;
-        // Ensure base doesn't end with /api if path already starts with /api
-        const cleanBase = base.endsWith('/api') ? base.substring(0, base.length - 4) : base;
-        return `${cleanBase}${path}`;
-    }, []);
 
+        // ALWAYS ensure path starts with /api - this is critical
+        if (!path.startsWith('/api')) {
+            logAuthAction(`Prepending /api to direct API call path "${path}"`);
+            path = `/api${path}`; // UNCOMMENTED/ADDED this line
+        }
+
+        // Use the correct base URL depending on environment
+        // API_BASE_URL is '' in dev (uses proxy), 'https://backend-url' in prod
+        // DEV_BACKEND_URL is 'http://localhost:5000' (or your dev backend port)
+        const base = process.env.NODE_ENV === 'production'
+            ? API_BASE_URL // Production backend URL (e.g., https://swanstudios.onrender.com)
+            : DEV_BACKEND_URL; // Development backend URL (e.g., http://localhost:5000)
+
+        // Clean base URL: Remove trailing slash if present
+        const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+
+        // Ensure the final URL doesn't have double // or /api/api
+        const finalPath = path.startsWith('/api') && cleanBase.endsWith('/api')
+           ? path.substring(4) // Remove /api from path if base already ends with it
+           : path;
+
+        const fullUrl = `${cleanBase}${finalPath}`;
+        // logAuthAction('Constructed Direct API URL', { path, base, cleanBase, finalPath, fullUrl }); // Optional detailed log
+        return fullUrl;
+    }, []); // No external dependencies needed here as env vars/imports are constant within provider scope
+
+    // --- END UPDATED getDirectApiUrl ---
 
     const setupTokenRefreshTimer = useCallback(() => {
         if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
@@ -248,11 +271,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (!token || !refreshToken) return;
 
         const timeUntilExpiry = getTimeUntilExpiry(token);
-        if (timeUntilExpiry <= TOKEN_REFRESH_THRESHOLD_MS) {
+        // Refresh slightly earlier than the threshold to be safe
+        const safeRefreshThreshold = TOKEN_REFRESH_THRESHOLD_MS * 1.1;
+
+        if (timeUntilExpiry <= safeRefreshThreshold) {
              logAuthAction('Token expiry near or passed, rely on interceptor');
+             // Optionally trigger immediate refresh if needed and not already refreshing
+             // if (timeUntilExpiry <= 0 && !isRefreshing.current) { /* trigger refresh logic */ }
              return;
         }
-        const refreshTime = timeUntilExpiry - TOKEN_REFRESH_THRESHOLD_MS;
+        const refreshTime = Math.max(0, timeUntilExpiry - safeRefreshThreshold); // Ensure non-negative timeout
 
         refreshTimerRef.current = setTimeout(async () => {
             if (token && refreshToken && !isRefreshing.current) {
@@ -260,13 +288,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 isRefreshing.current = true;
                 try {
                     // Corrected: Use getDirectApiUrl for the explicit backend URL
-                    const refreshUrl = getDirectApiUrl('/auth/refresh-token');
+                    const refreshUrl = getDirectApiUrl('/api/auth/refresh-token'); // Path includes /api
                     logAuthAction('Proactive refresh URL', { url: refreshUrl });
 
                     const response = await axios.post<RefreshTokenResponse>(
                         refreshUrl,
                         { refreshToken },
-                        { withCredentials: true, timeout: 15000 }
+                        {
+                           withCredentials: true,
+                           timeout: 15000,
+                           headers: { // Add standard headers
+                              'Content-Type': 'application/json',
+                              'Accept': 'application/json'
+                           }
+                        }
                     );
                     const { token: newToken, refreshToken: newRefreshToken } = response.data;
                     localStorage.setItem(AUTH_CONFIG.tokenKey, newToken);
@@ -276,12 +311,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     authAxios.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
                     logAuthAction('Token proactively refreshed');
                     processQueue(null, newToken);
-                    setupTokenRefreshTimer();
+                    setupTokenRefreshTimer(); // Reschedule next refresh
                 } catch (error) {
                     const axiosError = error as AxiosError;
                     logAuthAction('Proactive token refresh failed', { error: axiosError.message, status: axiosError.response?.status });
                     processQueue(axiosError, null);
-                    if (axiosError.response?.status === 401) handleSessionExpired();
+                    // Only expire session on 401/403 during proactive refresh
+                    if (axiosError.response?.status === 401 || axiosError.response?.status === 403) {
+                        handleSessionExpired();
+                    }
                 } finally {
                     isRefreshing.current = false;
                 }
@@ -295,14 +333,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     useEffect(() => {
         const requestInterceptor = authAxios.interceptors.request.use(
             (config) => {
-                // URLs here should start with /api/
-                if (!config.url?.startsWith('/api')) {
-                     console.warn(`AuthAxios request URL "${config.url}" is missing /api prefix for proxy.`);
-                 }
+                // The createAxiosInstance interceptor already handles prepending /api if missing
                 if (token && !isTokenExpired(token)) {
                      config.headers.Authorization = `Bearer ${token}`;
                 } else if (token) {
                      logAuthAction('Token expired before request (authAxios), clearing header', { url: config.url });
+                     // Token is expired or invalid, remove header but let request proceed
+                     // Backend should handle unauthorized access
                      delete config.headers.Authorization;
                 }
                 return config;
@@ -315,61 +352,79 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             async (error: AxiosError) => { // Type error
                 const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
+                // Check if it's a 401, not already retried, and request config exists
                 if (error.response?.status !== 401 || originalRequest._retry || !originalRequest) {
                     return Promise.reject(error);
                 }
                 originalRequest._retry = true;
 
+                // If already refreshing, queue the request
                 if (isRefreshing.current) {
-                     logAuthAction('Request queued (authAxios)', { url: originalRequest.url });
+                     logAuthAction('Request queued due to ongoing refresh (authAxios)', { url: originalRequest.url });
                     return new Promise<string>((resolve, reject) => {
                         failedQueue.current.push({ resolve, reject });
                     }).then(newToken => {
                         originalRequest.headers.Authorization = `Bearer ${newToken}`;
-                        return authAxios(originalRequest);
-                    }).catch(err => Promise.reject(err));
+                        return authAxios(originalRequest); // Retry with new token
+                    }).catch(err => Promise.reject(err)); // If queue processing failed
                 }
 
+                // Start refreshing
                 isRefreshing.current = true;
-                logAuthAction('Attempting token refresh (authAxios)', { url: originalRequest.url });
+                logAuthAction('Attempting token refresh after 401 (authAxios)', { url: originalRequest.url });
 
+                // Ensure refresh token exists
                 if (!refreshToken) {
-                    logAuthAction('Refresh failed: No refresh token');
+                    logAuthAction('Refresh failed: No refresh token available after 401');
                     isRefreshing.current = false;
-                    handleSessionExpired();
-                    return Promise.reject(error);
+                    handleSessionExpired(); // Log out user
+                    return Promise.reject(error); // Reject original request
                 }
 
                 try {
                     // Corrected: Use getDirectApiUrl for the explicit backend URL
-                    const refreshUrl = getDirectApiUrl('/auth/refresh-token');
+                    const refreshUrl = getDirectApiUrl('/api/auth/refresh-token'); // Path includes /api
                     logAuthAction('401 refresh URL (authAxios)', { url: refreshUrl });
 
                     const response = await axios.post<RefreshTokenResponse>(
                          refreshUrl,
                          { refreshToken },
-                         { withCredentials: true, timeout: 15000 }
+                         {
+                            withCredentials: true,
+                            timeout: 15000,
+                            headers: { // Add standard headers
+                               'Content-Type': 'application/json',
+                               'Accept': 'application/json'
+                            }
+                         }
                      );
                     const { token: newToken, refreshToken: newRefreshToken } = response.data;
 
+                    // Update state and storage
                     localStorage.setItem(AUTH_CONFIG.tokenKey, newToken);
                     localStorage.setItem(AUTH_CONFIG.refreshTokenKey, newRefreshToken);
                     setToken(newToken);
                     setRefreshToken(newRefreshToken);
                     authAxios.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
 
+                    // Process any queued requests
                     processQueue(null, newToken);
+                    // Reschedule the proactive refresh timer
                     setupTokenRefreshTimer();
                     logAuthAction('Token refresh success after 401 (authAxios)');
 
+                    // Retry the original request with the new token
                     originalRequest.headers.Authorization = `Bearer ${newToken}`;
                     return authAxios(originalRequest);
 
                 } catch (refreshError) {
                     const axiosRefreshError = refreshError as AxiosError;
                     logAuthAction('Token refresh failed after 401 (authAxios)', { error: axiosRefreshError.message, status: axiosRefreshError.response?.status });
+                    // Reject queued requests
                     processQueue(axiosRefreshError, null);
+                    // Log out user
                     handleSessionExpired();
+                    // Reject the original request that triggered the refresh
                     return Promise.reject(error);
                 } finally {
                     isRefreshing.current = false;
@@ -386,83 +441,124 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     useEffect(() => {
          setupTokenRefreshTimer();
+         // Cleanup timer on unmount
          return () => { if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current); };
-    }, [setupTokenRefreshTimer]);
+    }, [setupTokenRefreshTimer]); // Rerun only if setupTokenRefreshTimer function identity changes
 
-    // Load user data
+    // Load user data on initial mount or when token changes
     useEffect(() => {
         const loadUser = async () => {
-            if (token && typeof token === 'string' && token.split('.').length === 3) {
+            // Check for valid token structure before attempting to load
+            if (token && typeof token === 'string' && token.split('.').length === 3 && !isTokenExpired(token)) {
                  setIsLoading(true);
                 try {
                     // Corrected: Use path starting with /api for proxied authAxios
                     const response = await authAxios.get<ProfileResponse>('/api/auth/profile');
                      if (response.data?.user) {
                          setUser(response.data.user);
+                         // Reset sessionExpired flag if profile load succeeds
                          if (sessionExpired) setSessionExpired(false);
                          logAuthAction('User profile loaded', { userId: response.data.user.id });
                      } else {
-                         logAuthAction('Profile loaded but no user data');
-                         handleSessionExpired();
+                         logAuthAction('Profile loaded but no user data returned');
+                         handleSessionExpired(); // Treat as session invalid
                      }
                 } catch (error) {
                     const axiosError = error as AxiosError;
-                     logAuthAction('Error loading user', { error: axiosError.message, status: axiosError.response?.status });
-                     if (isTokenExpired(token) && !isRefreshing.current) {
+                     logAuthAction('Error loading user profile', { error: axiosError.message, status: axiosError.response?.status });
+                     // If profile load fails (e.g., 401 even after potential refresh), expire session
+                     // Avoid expiring if it was just a network error and token is still technically valid
+                     if (axiosError.response?.status === 401 || axiosError.response?.status === 403) {
+                         handleSessionExpired();
+                     }
+                     // If token is definitely expired and not refreshing, expire session
+                     else if (isTokenExpired(token) && !isRefreshing.current) {
                          handleSessionExpired();
                      }
                 } finally {
                     setIsLoading(false);
                 }
             } else {
+                // No valid token found, ensure user is null and loading is false
                 setIsLoading(false);
-                setUser(null);
+                if (user) setUser(null); // Clear user if token becomes invalid
+                // Don't call handleSessionExpired here unless there was a token that just became invalid
+                if (token) { // If there was a token but it's now invalid/expired
+                  handleSessionExpired();
+                }
             }
         };
         loadUser();
-    }, [token, handleSessionExpired, isTokenExpired, sessionExpired]); // Rerun if token changes
+        // Dependencies: Rerun if token changes, or if sessionExpired state changes (to retry loading)
+    }, [token, handleSessionExpired, isTokenExpired, sessionExpired, user]); // Added `user` to dependencies
 
 
     // --- Auth Functions ---
+
+    // --- UPDATED login function ---
     const login = useCallback(async (username: string, password: string): Promise<{ success: boolean; user: User }> => {
         try {
             logAuthAction('Login attempt', { username });
-            // Corrected: Use getDirectApiUrl for direct axios call
-            const loginUrl = getDirectApiUrl('/auth/login');
+
+            // Fix the path to ensure it starts with /api
+            const loginUrl = getDirectApiUrl('/api/auth/login'); // Ensure /api prefix for consistency
+            console.log('Login URL:', loginUrl); // Debug log
+
             const response = await axios.post<LoginResponse>(
                 loginUrl,
                 { username, password },
-                { withCredentials: true, timeout: 15000 }
+                {
+                    withCredentials: true,
+                    timeout: 15000,
+                    headers: { // Explicitly add headers
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                }
             );
             const { token: newToken, refreshToken: newRefreshToken, user: loggedInUser } = response.data;
 
-            setSessionExpired(false);
+            setSessionExpired(false); // Reset session expired flag on successful login
             localStorage.setItem(AUTH_CONFIG.tokenKey, newToken);
             localStorage.setItem(AUTH_CONFIG.refreshTokenKey, newRefreshToken);
             setToken(newToken);
             setRefreshToken(newRefreshToken);
             setUser(loggedInUser);
-            authAxios.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+            authAxios.defaults.headers.common["Authorization"] = `Bearer ${newToken}`; // Update default header for future authAxios calls
 
             logAuthAction('Login success', { userId: loggedInUser.id });
+            setupTokenRefreshTimer(); // Setup timer after successful login
             return { success: true, user: loggedInUser };
+
         } catch (error) {
             const axiosError = error as AxiosError<{ message?: string }>;
             logAuthAction('Login error', { error: axiosError.message, status: axiosError.response?.status });
-            throw new Error(axiosError.response?.data?.message || "Login failed. Check credentials/network.");
+            // Provide a more specific error message if possible
+            throw new Error(axiosError.response?.data?.message || "Login failed. Please check username/password and network connection.");
         }
-    }, [getDirectApiUrl]); // Added getDirectApiUrl
+    }, [getDirectApiUrl, setupTokenRefreshTimer]); // Added dependencies
+    // --- END UPDATED login function ---
 
     const register = useCallback(async (userData: any): Promise<{ success: boolean; user: User }> => {
         try {
             logAuthAction('Registration attempt');
-            // Corrected: Use getDirectApiUrl for direct axios call
-            const registerUrl = getDirectApiUrl('/auth/register');
+            // Corrected: Use getDirectApiUrl for direct axios call, ensuring /api prefix
+            const registerUrl = getDirectApiUrl('/api/auth/register');
+            logAuthAction('Register URL:', { url: registerUrl });
+
             const response = await axios.post<RegisterResponse>(
                 registerUrl,
                 userData,
-                { withCredentials: true, timeout: 15000 }
+                {
+                   withCredentials: true, // Important if backend sets cookies
+                   timeout: 20000, // Allow slightly longer for registration
+                   headers: { // Explicitly add headers
+                      'Content-Type': 'application/json',
+                      'Accept': 'application/json'
+                   }
+                }
             );
+            // Assuming registration immediately logs the user in (returns tokens)
             const { token: newToken, refreshToken: newRefreshToken, user: registeredUser } = response.data;
 
             setSessionExpired(false);
@@ -474,69 +570,97 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             authAxios.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
 
             logAuthAction('Registration success', { userId: registeredUser.id });
+            setupTokenRefreshTimer(); // Setup timer after registration
             return { success: true, user: registeredUser };
         } catch (error) {
              const axiosError = error as AxiosError<{ message?: string; errors?: { field: string, message: string }[] }>;
-             logAuthAction('Registration error', { error: axiosError.message, status: axiosError.response?.status });
+             logAuthAction('Registration error', { error: axiosError.message, status: axiosError.response?.status, data: axiosError.response?.data });
+              // Handle validation errors from backend if available
               if (axiosError.response?.data?.errors) {
                  const errorMessage = axiosError.response.data.errors.map(err => `${err.field}: ${err.message}`).join(", ");
-                 throw new Error(`Validation error: ${errorMessage}`);
+                 throw new Error(`Registration failed: ${errorMessage}`);
              }
-             throw new Error(axiosError.response?.data?.message || "Registration failed.");
+             // Handle generic error message
+             throw new Error(axiosError.response?.data?.message || "Registration failed. Please check your input and try again.");
         }
-    }, [getDirectApiUrl]); // Added getDirectApiUrl
+    }, [getDirectApiUrl, setupTokenRefreshTimer]); // Added dependencies
 
     const logout = useCallback(async (): Promise<void> => {
         logAuthAction('Logout attempt');
-        try {
-             if (token && refreshToken) {
-                 // Corrected: Use path starting with /api for proxied authAxios
-                 await authAxios.post("/api/auth/logout");
+        const currentRefreshToken = refreshToken; // Capture refreshToken before clearing state
+
+        // Immediately clear local state and storage regardless of API call success
+        handleSessionExpired(); // Centralized cleanup
+        logAuthAction('Local state cleared for logout');
+
+        // Attempt to invalidate refresh token on backend (best effort)
+        if (currentRefreshToken) {
+             try {
+                 // Corrected: Use getDirectApiUrl for direct axios call
+                 const logoutUrl = getDirectApiUrl('/api/auth/logout');
+                 logAuthAction('Calling backend logout', { url: logoutUrl });
+                 await axios.post(logoutUrl,
+                    { refreshToken: currentRefreshToken }, // Send refresh token to invalidate
+                    { withCredentials: true, timeout: 10000 }
+                 );
+                 logAuthAction('Backend logout successful');
+             } catch (error) {
+                 const axiosError = error as AxiosError;
+                 logAuthAction('Backend logout API error (ignored)', { error: axiosError.message, status: axiosError.response?.status });
+                 // Do not block logout if backend call fails
              }
-        } catch (error) {
-            const axiosError = error as AxiosError;
-            logAuthAction('Logout API error', { error: axiosError.message, status: axiosError.response?.status });
-        } finally {
-            // Ensure local state is always cleared
-            handleSessionExpired(); // Use handleSessionExpired to centralize cleanup
-            logAuthAction('Logout completed');
+        } else {
+             logAuthAction('No refresh token, skipping backend logout call');
         }
-    }, [token, refreshToken, handleSessionExpired]); // Use handleSessionExpired
+    }, [refreshToken, handleSessionExpired, getDirectApiUrl]); // Updated dependencies
+
 
     const isAuthenticated = useCallback((): boolean => {
-        return !!token && typeof token === 'string' && token.split('.').length === 3 && !isTokenExpired(token) && !!user;
+        // Check for token existence, basic structure, non-expiry, and user object presence
+        const tokenValid = !!token && typeof token === 'string' && token.split('.').length === 3 && !isTokenExpired(token);
+        return tokenValid && !!user;
     }, [token, user, isTokenExpired]);
 
     const updateProfile = useCallback(async (userData: Partial<User>): Promise<{ success: boolean; user: User }> => {
         try {
-            // Corrected: Use path starting with /api for proxied authAxios
-            const response = await authAxios.put<ProfileResponse>("/api/auth/profile", userData);
-            setUser(response.data.user);
-            logAuthAction('Profile updated', { userId: response.data.user.id });
+            // Corrected: Ensure path starts with /api for proxied authAxios
+            // The interceptor in createAxiosInstance should handle this, but being explicit is safer
+            const profileUrl = "/api/auth/profile";
+            logAuthAction('Update profile attempt', { url: profileUrl });
+            const response = await authAxios.put<ProfileResponse>(profileUrl, userData);
+
+            if (!response.data?.user) {
+                 throw new Error("Profile update response did not contain user data.");
+            }
+            setUser(response.data.user); // Update local user state
+            logAuthAction('Profile updated successfully', { userId: response.data.user.id });
             return { success: true, user: response.data.user };
         } catch (error) {
              const axiosError = error as AxiosError<{ message?: string; errors?: { field: string, message: string }[] }>;
-             logAuthAction('Update profile error', { error: axiosError.message, status: axiosError.response?.status });
+             logAuthAction('Update profile error', { error: axiosError.message, status: axiosError.response?.status, data: axiosError.response?.data });
              if (axiosError.response?.data?.errors) {
                  const errorMessage = axiosError.response.data.errors.map(err => `${err.field}: ${err.message}`).join(", ");
                  throw new Error(`Validation error: ${errorMessage}`);
              }
              throw new Error(axiosError.response?.data?.message || "Failed to update profile.");
         }
-    }, []);
+    }, []); // authAxios instance is stable, no need to list as dependency
 
     const changePassword = useCallback(async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
         try {
-            // Corrected: Use path starting with /api for proxied authAxios
-            await authAxios.put("/api/auth/password", { currentPassword, newPassword });
+            // Corrected: Ensure path starts with /api for proxied authAxios
+            const passwordUrl = "/api/auth/password";
+            logAuthAction('Change password attempt', { url: passwordUrl });
+            // Use authAxios for authenticated request
+            await authAxios.put(passwordUrl, { currentPassword, newPassword });
             logAuthAction('Password changed successfully');
             return { success: true, message: "Password changed successfully" };
         } catch (error) {
              const axiosError = error as AxiosError<{ message?: string }>;
-             logAuthAction('Change password error', { error: axiosError.message, status: axiosError.response?.status });
+             logAuthAction('Change password error', { error: axiosError.message, status: axiosError.response?.status, data: axiosError.response?.data });
              throw new Error(axiosError.response?.data?.message || "Failed to change password.");
         }
-    }, []);
+    }, []); // authAxios instance is stable
 
 
     // --- Context Value ---
