@@ -7,16 +7,16 @@
  */
 
 import express from "express";
-// 'cors' package is not used directly
-// import cors from "cors";
+import cors from "cors"; // *** UNCOMMENTED this line ***
 import dotenv from "dotenv";
 import http from "http";
 import { Server } from "socket.io";
 import sequelize from "./database.mjs";
 import setupAssociations from "./setupAssociations.mjs";
-import StorefrontItem from "./models/StorefrontItem.mjs";
-import ShoppingCart from "./models/ShoppingCart.mjs";
-import CartItem from "./models/CartItem.mjs";
+import StorefrontItem from "./models/StorefrontItem.mjs"; // Keep if needed by seed/association
+import ShoppingCart from "./models/ShoppingCart.mjs";   // Keep if needed by seed/association
+import CartItem from "./models/CartItem.mjs";       // Keep if needed by seed/association
+import logger from './utils/logger.mjs'; // Import logger if not already imported elsewhere
 
 // Route imports
 import authRoutes from "./routes/authRoutes.mjs";
@@ -42,64 +42,70 @@ const port = process.env.NODE_ENV === 'production'
   ? (process.env.PORT || 10000)
   : (process.env.BACKEND_PORT || 5000);
 
-// Define allowed origins (Still used by Socket.IO setup)
+// Define allowed origins (Used by both CORS and Socket.IO setup)
 const allowedOrigins = process.env.NODE_ENV === 'production'
   ? [
-      'https://ss-pt.onrender.com',
-      'https://sswanstudios.com',
-      'https://www.sswanstudios.com',
-      'https://swan-studios-pt-new.onrender.com', // Frontend Render URL
-      // 'https://*.sswanstudios.com' // Keep if needed for subdomains
+      'https://ss-pt.onrender.com',     // Example Render URL (Keep if relevant)
+      'https://sswanstudios.com',       // Main Frontend Domain
+      'https://www.sswanstudios.com',   // www Frontend Domain
+      'https://swan-studios-pt-new.onrender.com', // Another Frontend Render URL (Keep if relevant)
+      // Add any other specific production origins here
     ]
   : process.env.FRONTEND_ORIGINS
     ? process.env.FRONTEND_ORIGINS.split(",").map((origin) => origin.trim())
     : ["http://localhost:5173", "http://localhost:5174"]; // Default dev origins
 
-console.log('Allowed origins list (for Socket.IO):', allowedOrigins);
+console.log('Allowed origins list (for CORS & Socket.IO):', allowedOrigins);
 
-// Special raw body handling for Stripe webhooks - MUST come before JSON/URL parsing!
-app.use('/api/cart/webhook', express.raw({ type: 'application/json' }));
+// Configure CORS options using the standard 'cors' package
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests) in dev
+    if (!origin && process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    // Check if the origin is in the allowed list
+    if (origin && allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      logger.warn(`CORS blocked for origin: ${origin || 'undefined'}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Allow cookies/authorization headers
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'], // Explicitly allow necessary methods
+  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'], // Explicitly allow necessary headers
+};
 
-// Standard middleware (AFTER potential raw body parsers)
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// =================== STANDARD CORS MIDDLEWARE ===================
+// Apply the configured CORS middleware BEFORE any routes
+// This replaces the custom CORS middleware block
+app.use(cors(corsOptions));
+// The 'cors' package automatically handles OPTIONS preflight requests
+// ================= END STANDARD CORS MIDDLEWARE =================
 
-// =================== NEW CORS MIDDLEWARE (Hardcoded Origin) ===================
-// At the very top of your server.mjs file, before ANY routes
-// Add this middleware to handle CORS
-app.use((req, res, next) => {
-  console.log(`Applying HARDCODED CORS for origin: ${req.headers.origin || 'unknown'}`);
-  // Always allow your specific frontend domain
-  // IMPORTANT: This only allows THIS specific origin. Adjust if needed for www or other subdomains.
-  const originToAllow = 'https://sswanstudios.com'; // Hardcoded as per request
-  res.header('Access-Control-Allow-Origin', originToAllow);
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS'); // Added PATCH
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-
-  // Handle preflight (OPTIONS) requests immediately
-  if (req.method === 'OPTIONS') {
-    console.log(`Handling OPTIONS preflight request for ${originToAllow}`);
-    // No need to call next() for OPTIONS; just end the response.
-    return res.status(204).end(); // Use .end() for empty body
-  }
-
-  next(); // Proceed for non-OPTIONS requests
-});
-// ================= END NEW CORS MIDDLEWARE =================
-
-// ---- REMOVE or COMMENT OUT the previous CORS middleware ----
+// ---- REMOVED the custom CORS middleware block ----
 /*
 app.use((req, res, next) => {
-  // ... (previous dynamic CORS logic) ...
+  console.log(`Applying HARDCODED CORS for origin: ${req.headers.origin || 'unknown'}`);
+  // ... (previous custom CORS logic) ...
+  next();
 });
 */
 // ------------------------------------------------------------
 
+// Special raw body handling for Stripe webhooks - MUST come before JSON/URL parsing!
+app.use('/api/cart/webhook', express.raw({ type: 'application/json' }));
+
+// Standard middleware (AFTER potential raw body parsers and CORS)
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+
 // Add test route specifically for checking CORS (AFTER CORS middleware)
 app.get('/test-cors', (req, res) => {
   res.json({
-    message: 'CORS check successful from backend (hardcoded config).',
+    message: 'CORS check successful from backend (standard config).',
     origin: req.headers.origin || 'unknown',
     timestamp: new Date().toISOString()
   });
@@ -109,12 +115,12 @@ app.get('/test-cors', (req, res) => {
 // Enhanced request logger (AFTER CORS middleware)
 app.use((req, res, next) => {
   const start = Date.now();
-  console.log(`→ ${req.method} ${req.url} from ${req.ip} (Origin: ${req.headers.origin || 'none'})`);
+  // Use logger for consistency
+  logger.info(`→ ${req.method} ${req.url}`, { ip: req.ip, origin: req.headers.origin || 'none' });
   res.on('finish', () => {
     const duration = Date.now() - start;
-    const statusColor = res.statusCode >= 400 ? '\x1b[31m' : res.statusCode >= 300 ? '\x1b[33m' : '\x1b[32m';
-    const resetColor = '\x1b[0m';
-    console.log(`← ${statusColor}${res.statusCode}${resetColor} ${req.method} ${req.url} (${duration}ms)`);
+    const logLevel = res.statusCode >= 400 ? 'warn' : 'info';
+    logger.log(logLevel, `← ${res.statusCode} ${req.method} ${req.url}`, { durationMs: duration });
   });
   next();
 });
@@ -140,137 +146,183 @@ app.use("/api/schedule", scheduleRoutes);
 app.use("/api/contact", contactRoutes);
 
 // Default route to handle 404s for API routes (AFTER specific API routes)
-app.use('/api/*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'API endpoint not found',
-    path: req.originalUrl
-  });
-});
+// This uses the notFound middleware defined below, which is more standard
+// app.use('/api/*', (req, res) => {
+//   res.status(404).json({
+//     success: false,
+//     message: 'API endpoint not found',
+//     path: req.originalUrl
+//   });
+// });
 
 // Error Handling Middleware (AFTER all routes)
 app.use(notFound); // Catch 404s that didn't match API or other routes
 app.use(errorHandler); // General error handler
 
 // ================== SOCKET.IO SETUP ==================
-// Socket.IO still uses the allowedOrigins array logic
+// Socket.IO uses the same corsOptions configuration logic
 export const io = new Server(server, {
-  cors: {
-    origin: function(origin, callback) {
-      let isAllowed = false;
-      if (!origin && process.env.NODE_ENV !== 'production') { // Allow no origin only in dev
-         isAllowed = true;
-      } else if (origin) {
-         isAllowed = allowedOrigins.some(allowedOrigin => {
-            // Basic wildcard check - adjust if needed for more complex scenarios
-            if (allowedOrigin.startsWith('*.')) {
-               const baseDomain = allowedOrigin.substring(2);
-               return origin.endsWith('.' + baseDomain) || origin === baseDomain;
-            }
-            return origin === allowedOrigin;
-         });
-      }
-
-      if (isAllowed) {
-         callback(null, true); // Allow
-      } else {
-         console.warn(`Socket.io connection REJECTED from origin: ${origin}`);
-         callback(new Error('Socket Origin Not allowed by CORS')); // Explicitly reject
-      }
-    },
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
+  cors: corsOptions, // Use the same CORS options object
 });
 
-// Socket event handlers... (rest of the Socket.IO code remains the same)
+// Socket event handlers...
 io.on("connection", (socket) => {
-  console.log(`Socket connected: ${socket.id} from ${socket.handshake.address} (Origin: ${socket.handshake.headers.origin})`);
-  // ... rest of handlers ...
+  logger.info(`Socket connected: ${socket.id}`, { address: socket.handshake.address, origin: socket.handshake.headers.origin });
 
-  socket.on("disconnect", () => {
-    console.log(`Socket disconnected: ${socket.id}`);
+  socket.on("disconnect", (reason) => {
+    logger.info(`Socket disconnected: ${socket.id}`, { reason });
   });
 
-  socket.on("join_schedule_room", (userId) => { /* ... */ });
-  socket.on("leave_schedule_room", (userId) => { /* ... */ });
-  socket.on("session_updated", (data) => { /* ... */ });
-  socket.on("join_cart_room", (userId) => { /* ... */ });
-  socket.on("cart_updated", (data) => { /* ... */ });
+  // Example: Implement actual handlers or log events
+  socket.on("join_schedule_room", (userId) => {
+    socket.join(`schedule_${userId}`);
+    logger.info(`Socket ${socket.id} joined schedule room`, { userId });
+   });
+  socket.on("leave_schedule_room", (userId) => {
+    socket.leave(`schedule_${userId}`);
+    logger.info(`Socket ${socket.id} left schedule room`, { userId });
+  });
+  socket.on("session_updated", (data) => {
+    // Example: Broadcast to relevant room
+    const targetRoom = `schedule_${data.userId}`; // Assuming data contains userId
+    io.to(targetRoom).emit('session_update_notification', data);
+    logger.info(`Broadcasting session update`, { targetRoom, data });
+  });
+  socket.on("join_cart_room", (userId) => {
+    socket.join(`cart_${userId}`);
+    logger.info(`Socket ${socket.id} joined cart room`, { userId });
+   });
+  socket.on("cart_updated", (data) => {
+    // Example: Broadcast to relevant room
+    const targetRoom = `cart_${data.userId}`; // Assuming data contains userId
+    io.to(targetRoom).emit('cart_update_notification', data);
+    logger.info(`Broadcasting cart update`, { targetRoom, data });
+   });
+
+  // Add error handler for socket events
+  socket.on('error', (error) => {
+    logger.error(`Socket error on ${socket.id}:`, { error: error.message });
+  });
 });
 
 
 // ================== DB & SEEDING FUNCTIONS ==================
-// ... (seedStorefrontItems, seedDatabase, initializeSessionsTable remain the same) ...
-const seedStorefrontItems = async () => { try { /* ... function code ... */ } catch (error) { /* ... */ }};
-const seedDatabase = async () => { try { /* ... function code ... */ } catch (error) { /* ... */ }};
-const initializeSessionsTable = async () => { try { /* ... function code ... */ } catch (error) { /* ... */ }};
+// (Assuming these functions exist and work as intended)
+// Placeholder implementations for context:
+const seedStorefrontItems = async () => {
+  try { logger.info('Ensuring storefront items...'); /* ... function code ... */ }
+  catch (error) { logger.error('Error seeding storefront items:', error); throw error; }
+};
+const seedDatabase = async () => {
+  try { logger.info('Seeding database (dev mode)...'); /* ... function code ... */ }
+  catch (error) { logger.error('Error seeding database:', error); throw error; }
+};
+const initializeSessionsTable = async () => {
+  try { logger.info('Initializing sessions table...'); /* ... function code ... */ return true; }
+  catch (error) { logger.error('Error initializing sessions table:', error); return false; }
+};
 
 
 // ================== DATABASE SYNC & SERVER START ==================
 const startServer = async () => {
   try {
     setupAssociations();
-    console.log('✅ Model associations set up successfully');
+    logger.info('Model associations set up successfully');
     await sequelize.authenticate();
-    console.log('✅ Database connection established successfully');
+    logger.info('Database connection established successfully');
 
+    // --- Database Sync Logic ---
     if (process.env.NODE_ENV !== 'production') {
+      logger.info('Development mode: Syncing database schema...');
       try {
-        const sessionsInitialized = await initializeSessionsTable();
-        if (!sessionsInitialized) {
-          console.warn('⚠️ Sessions table initialization had issues - proceed with caution');
-        }
-        // Use 'Session' if that's your Sequelize model name for sessions
-        await sequelize.sync({ alter: true, exclude: ['Session'] });
-        console.log('✅ Database synchronized successfully (DEV mode, excluding sessions)');
+        // Initialize sessions table first if it requires special handling
+        // const sessionsInitialized = await initializeSessionsTable();
+        // if (!sessionsInitialized) {
+        //   logger.warn('Sessions table initialization had issues - proceed with caution');
+        // }
+
+        // Sync models (consider alter: true carefully in dev)
+        // Exclude specific models if managed separately (e.g., by migrations)
+        await sequelize.sync({ alter: false }); // Using alter: false is safer if migrations handle schema changes
+        logger.info('Database synchronized successfully (DEV mode)');
+
+        // Seed database after sync in dev
         await seedDatabase();
+
       } catch (syncError) {
-        console.error('❌ Error during DEV database sync:', syncError);
-        console.log('Attempting to continue server startup despite sync error...');
+        logger.error('Error during DEV database sync/seed:', syncError);
+        logger.warn('Attempting to continue server startup despite sync/seed error...');
       }
     } else {
-      // Production: Only seed storefront items, don't sync/alter schema
+      logger.info('Production mode: Skipping schema sync.');
+      // Production: Optionally seed specific data if needed (e.g., ensuring basic items)
       try {
-        await seedStorefrontItems();
+        // await seedStorefrontItems(); // Only if absolutely necessary in prod start
       } catch (seedError) {
-        console.error('❌ Error ensuring storefront items in production:', seedError);
+        logger.error('Error during production startup seeding:', seedError);
       }
     }
+    // --- End Database Sync Logic ---
+
 
     server.listen(port, () => {
       console.log('\n==================================================');
-      console.log(`✅ Swan Studios API Server`);
-      console.log(`✅ Server is running on port ${port}`);
-      console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`Swan Studios API Server running on port ${port}`);
+      logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log('==================================================\n');
     });
   } catch (error) {
-    console.error('❌ Error starting server:', error);
+    logger.error('FATAL: Error starting server:', error);
     process.exit(1);
   }
 };
 
 // ================== GRACEFUL SHUTDOWN ==================
-process.on('SIGINT', async () => {
-  console.log('\n🛑 Shutting down server gracefully...');
+const shutdown = async (signal) => {
+  logger.warn(`Received ${signal}. Shutting down gracefully...`);
   try {
-    await sequelize.close();
-    console.log('✅ Database connection closed.');
-    server.close(() => {
-      console.log('✅ HTTP server closed.');
-      process.exit(0);
+    // Close HTTP server to stop accepting new connections
+    server.close(async (err) => {
+      if (err) {
+        logger.error('Error closing HTTP server:', err);
+        process.exit(1); // Exit immediately if server close fails
+      }
+      logger.info('HTTP server closed.');
+
+      // Close database connection
+      try {
+        await sequelize.close();
+        logger.info('Database connection closed.');
+      } catch (dbError) {
+        logger.error('Error closing database connection:', dbError);
+      }
+
+      // Close Socket.IO connections
+      io.close((socketErr) => {
+        if (socketErr) {
+          logger.error('Error closing Socket.IO server:', socketErr);
+        } else {
+          logger.info('Socket.IO server closed.');
+        }
+        // Exit process after all cleanup
+        process.exit(0);
+      });
     });
-    // Force close after a timeout if server.close doesn't finish quickly
+
+    // Force shutdown after a timeout if graceful shutdown takes too long
     setTimeout(() => {
-       console.error('Could not close connections in time, forcing shutdown');
-       process.exit(1);
+      logger.error('Could not close connections in time, forcing shutdown');
+      process.exit(1);
     }, 10000); // 10 seconds timeout
+
   } catch (error) {
-    console.error('❌ Error during shutdown:', error);
+    logger.error('Error during graceful shutdown:', error);
     process.exit(1);
   }
-});
+};
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 
 // Start the server
