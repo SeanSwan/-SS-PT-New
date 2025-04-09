@@ -182,7 +182,7 @@ const ParallaxSection: React.FC = () => {
   return (
     <ParallaxSectionContainer>
       <VideoBackground style={{ y: videoY }}>
-        <video autoPlay loop muted playsInline poster="/assets/video-poster.jpg">
+        <video autoPlay loop muted playsInline poster="/video-poster.jpg">
           <source src={wavesVideo} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
