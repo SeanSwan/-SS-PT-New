@@ -308,3 +308,5 @@
 {"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-04-09T01:02:50.398Z","userId":2}
 {"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-04-09T01:02:50.412Z","userId":2}
 {"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-04-09T01:02:50.500Z","userId":2}
+{"level":"warn","message":"No token provided","method":"GET","path":"/profile","timestamp":"2025-04-09T16:48:18.164Z"}
+{"level":"warn","message":"No token provided","method":"GET","path":"/profile","timestamp":"2025-04-09T16:48:18.183Z"}

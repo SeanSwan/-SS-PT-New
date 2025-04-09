@@ -17,8 +17,8 @@ import ShoppingCart from "../../components/ShoppingCart/ShoppingCart";     // Ve
 import { useToast } from "../../hooks/use-toast";               // Verify path
 
 // --- Asset Imports ---
-import wavesVideo from "../../assets/Swans.mp4";                 // Verify path
-import logoImg from "../../assets/Logo.png";                     // Verify path
+const wavesVideo = "/Waves.mp4"; // Note the file is actually called "Waves.mp4" in your public folder
+const logoImg = "/Logo.png";                   // Verify path
 
 // -----------------------------------------------------------------
 // Placeholder Utility Functions (Implement/Move these)
