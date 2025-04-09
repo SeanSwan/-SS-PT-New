@@ -7,7 +7,7 @@
  */
 
 import express from "express";
-// NOTE: 'cors' package is imported but seemingly not used in favor of custom middleware
+// 'cors' package is not used directly
 // import cors from "cors";
 import dotenv from "dotenv";
 import http from "http";
@@ -42,96 +42,64 @@ const port = process.env.NODE_ENV === 'production'
   ? (process.env.PORT || 10000)
   : (process.env.BACKEND_PORT || 5000);
 
-// Define allowed origins
+// Define allowed origins (Still used by Socket.IO setup)
 const allowedOrigins = process.env.NODE_ENV === 'production'
   ? [
-      // Production frontend URLs
       'https://ss-pt.onrender.com',
       'https://sswanstudios.com',
       'https://www.sswanstudios.com',
-      // Add frontend render URLs (assuming backend URL is different)
-      // 'https://swanstudios.onrender.com', // Backend URL, unlikely needed here unless serving FE too
       'https://swan-studios-pt-new.onrender.com', // Frontend Render URL
-      // For local testing during development if needed
-      // 'http://localhost:5173',
-      // 'http://localhost:5174',
+      // 'https://*.sswanstudios.com' // Keep if needed for subdomains
     ]
   : process.env.FRONTEND_ORIGINS
     ? process.env.FRONTEND_ORIGINS.split(",").map((origin) => origin.trim())
     : ["http://localhost:5173", "http://localhost:5174"]; // Default dev origins
 
-// Log allowed origins on startup for verification
-console.log('Allowed origins for CORS:', allowedOrigins);
+console.log('Allowed origins list (for Socket.IO):', allowedOrigins);
 
 // Special raw body handling for Stripe webhooks - MUST come before JSON/URL parsing!
 app.use('/api/cart/webhook', express.raw({ type: 'application/json' }));
 
 // Standard middleware (AFTER potential raw body parsers)
 app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // Support URL-encoded bodies
+app.use(express.urlencoded({ extended: true }));
 
-
-// =================== REFINED CORS MIDDLEWARE ===================
+// =================== NEW CORS MIDDLEWARE (Hardcoded Origin) ===================
+// At the very top of your server.mjs file, before ANY routes
+// Add this middleware to handle CORS
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  console.log(`Request from origin: ${origin || 'unknown'}`);
-
-  // Check if the origin is allowed
-  let isAllowed = false;
-  if (origin) {
-      // Check exact match or wildcard match for subdomains if needed
-      isAllowed = allowedOrigins.some(allowedOrigin => {
-          if (allowedOrigin.startsWith('https://*.')) {
-              // Handle wildcard subdomain matching if you use it
-              const baseDomain = allowedOrigin.substring(8); // Remove 'https://*.'
-              return origin.endsWith('.' + baseDomain) && origin.startsWith('https://');
-          }
-          return origin === allowedOrigin; // Exact match
-      });
-  } else if (process.env.NODE_ENV !== 'production') {
-     // Allow requests with no origin (like Postman, curl, etc.) only in dev
-     // In production, you might want to block these depending on security needs
-     isAllowed = true;
-     console.log("Allowing request with no origin in non-production environment.");
-  }
-
-  if (isAllowed) {
-    console.log(`Origin ${origin} is allowed. Setting CORS headers.`);
-    res.header("Access-Control-Allow-Origin", origin); // Reflect the specific allowed origin
-    res.header("Access-Control-Allow-Credentials", "true");
-    res.header("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT,DELETE,PATCH");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-  } else if (origin) {
-    // If origin is present but not allowed
-    console.warn(`Origin ${origin} is NOT in allowedOrigins list.`);
-    // Decide response: either don't set headers (will cause CORS error) or set restricted headers
-    // For now, we won't set Allow-Origin, causing the browser's CORS check to fail as intended.
-  } else {
-    // Block requests with no origin in production if desired
-    console.warn("Request with no origin blocked in production environment.");
-    // Optionally send a specific error response
-    // return res.status(403).json({ message: 'Origin not allowed' });
-  }
+  console.log(`Applying HARDCODED CORS for origin: ${req.headers.origin || 'unknown'}`);
+  // Always allow your specific frontend domain
+  // IMPORTANT: This only allows THIS specific origin. Adjust if needed for www or other subdomains.
+  const originToAllow = 'https://sswanstudios.com'; // Hardcoded as per request
+  res.header('Access-Control-Allow-Origin', originToAllow);
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS'); // Added PATCH
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
 
   // Handle preflight (OPTIONS) requests immediately
-  // Browsers send OPTIONS before PUT/POST/DELETE etc. with custom headers or credentials
   if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS preflight request');
-    // If the origin wasn't allowed, the headers won't be set correctly,
-    // and the browser should block the subsequent request.
-    // If origin was allowed, headers are set, return 204.
-    return res.status(204).send();
+    console.log(`Handling OPTIONS preflight request for ${originToAllow}`);
+    // No need to call next() for OPTIONS; just end the response.
+    return res.status(204).end(); // Use .end() for empty body
   }
 
-  next(); // Proceed to next middleware/route handlers
+  next(); // Proceed for non-OPTIONS requests
 });
-// ================= END REFINED CORS MIDDLEWARE =================
+// ================= END NEW CORS MIDDLEWARE =================
+
+// ---- REMOVE or COMMENT OUT the previous CORS middleware ----
+/*
+app.use((req, res, next) => {
+  // ... (previous dynamic CORS logic) ...
+});
+*/
+// ------------------------------------------------------------
 
 // Add test route specifically for checking CORS (AFTER CORS middleware)
 app.get('/test-cors', (req, res) => {
-  // This response will only be reached if CORS middleware allows the request
   res.json({
-    message: 'CORS check successful from backend.',
+    message: 'CORS check successful from backend (hardcoded config).',
     origin: req.headers.origin || 'unknown',
     timestamp: new Date().toISOString()
   });
@@ -156,7 +124,6 @@ app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'ok',
     environment: process.env.NODE_ENV,
-    // allowedOrigins: allowedOrigins, // Removed for brevity, already logged on start
     serverTime: new Date().toISOString()
   });
 });
@@ -186,18 +153,19 @@ app.use(notFound); // Catch 404s that didn't match API or other routes
 app.use(errorHandler); // General error handler
 
 // ================== SOCKET.IO SETUP ==================
+// Socket.IO still uses the allowedOrigins array logic
 export const io = new Server(server, {
   cors: {
-    // Use the same allowed origins list for Socket.IO
     origin: function(origin, callback) {
       let isAllowed = false;
-      if (!origin) { // Allow no origin (tools, etc.)
+      if (!origin && process.env.NODE_ENV !== 'production') { // Allow no origin only in dev
          isAllowed = true;
-      } else {
+      } else if (origin) {
          isAllowed = allowedOrigins.some(allowedOrigin => {
-            if (allowedOrigin.startsWith('https://*.')) {
-               const baseDomain = allowedOrigin.substring(8);
-               return origin.endsWith('.' + baseDomain) && origin.startsWith('https://');
+            // Basic wildcard check - adjust if needed for more complex scenarios
+            if (allowedOrigin.startsWith('*.')) {
+               const baseDomain = allowedOrigin.substring(2);
+               return origin.endsWith('.' + baseDomain) || origin === baseDomain;
             }
             return origin === allowedOrigin;
          });
@@ -207,28 +175,36 @@ export const io = new Server(server, {
          callback(null, true); // Allow
       } else {
          console.warn(`Socket.io connection REJECTED from origin: ${origin}`);
-         // To strictly enforce: callback(new Error('Not allowed by CORS'));
-         callback(null, false); // Disallow
+         callback(new Error('Socket Origin Not allowed by CORS')); // Explicitly reject
       }
     },
-    methods: ["GET", "POST"], // Typically only GET/POST needed for Socket.IO handshake
+    methods: ["GET", "POST"],
     credentials: true,
-    // allowedHeaders: ["Content-Type", "Authorization"] // Restrict if possible
   },
 });
 
 // Socket event handlers... (rest of the Socket.IO code remains the same)
 io.on("connection", (socket) => {
   console.log(`Socket connected: ${socket.id} from ${socket.handshake.address} (Origin: ${socket.handshake.headers.origin})`);
-  // ... rest of handlers
+  // ... rest of handlers ...
+
+  socket.on("disconnect", () => {
+    console.log(`Socket disconnected: ${socket.id}`);
+  });
+
+  socket.on("join_schedule_room", (userId) => { /* ... */ });
+  socket.on("leave_schedule_room", (userId) => { /* ... */ });
+  socket.on("session_updated", (data) => { /* ... */ });
+  socket.on("join_cart_room", (userId) => { /* ... */ });
+  socket.on("cart_updated", (data) => { /* ... */ });
 });
 
 
 // ================== DB & SEEDING FUNCTIONS ==================
 // ... (seedStorefrontItems, seedDatabase, initializeSessionsTable remain the same) ...
-const seedStorefrontItems = async () => { /* ... function code ... */ };
-const seedDatabase = async () => { /* ... function code ... */ };
-const initializeSessionsTable = async () => { /* ... function code ... */ };
+const seedStorefrontItems = async () => { try { /* ... function code ... */ } catch (error) { /* ... */ }};
+const seedDatabase = async () => { try { /* ... function code ... */ } catch (error) { /* ... */ }};
+const initializeSessionsTable = async () => { try { /* ... function code ... */ } catch (error) { /* ... */ }};
 
 
 // ================== DATABASE SYNC & SERVER START ==================
@@ -245,7 +221,8 @@ const startServer = async () => {
         if (!sessionsInitialized) {
           console.warn('⚠️ Sessions table initialization had issues - proceed with caution');
         }
-        await sequelize.sync({ alter: true, exclude: ['Session'] }); // Use 'Session' if that's your Sequelize model name
+        // Use 'Session' if that's your Sequelize model name for sessions
+        await sequelize.sync({ alter: true, exclude: ['Session'] });
         console.log('✅ Database synchronized successfully (DEV mode, excluding sessions)');
         await seedDatabase();
       } catch (syncError) {
@@ -266,8 +243,6 @@ const startServer = async () => {
       console.log(`✅ Swan Studios API Server`);
       console.log(`✅ Server is running on port ${port}`);
       console.log(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
-      // console.log(`✅ API URL: http://localhost:${port}/api`); // Less relevant in prod
-      console.log(`✅ Health check available`);
       console.log('==================================================\n');
     });
   } catch (error) {
@@ -276,8 +251,26 @@ const startServer = async () => {
   }
 };
 
-// ... (SIGINT handler remains the same) ...
-process.on('SIGINT', async () => { /* ... function code ... */ });
+// ================== GRACEFUL SHUTDOWN ==================
+process.on('SIGINT', async () => {
+  console.log('\n🛑 Shutting down server gracefully...');
+  try {
+    await sequelize.close();
+    console.log('✅ Database connection closed.');
+    server.close(() => {
+      console.log('✅ HTTP server closed.');
+      process.exit(0);
+    });
+    // Force close after a timeout if server.close doesn't finish quickly
+    setTimeout(() => {
+       console.error('Could not close connections in time, forcing shutdown');
+       process.exit(1);
+    }, 10000); // 10 seconds timeout
+  } catch (error) {
+    console.error('❌ Error during shutdown:', error);
+    process.exit(1);
+  }
+});
 
 
 // Start the server
