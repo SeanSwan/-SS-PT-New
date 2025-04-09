@@ -9,7 +9,7 @@ import OrientationForm from "../../../components/OrientationForm/orientationForm
 
 // Import assets (ensure paths are correct)
 import heroVideo from "/Swans.mp4";
-import logoImg from "/assets/Logo.png";
+import logoImg from "/Logo.png";
 
 // --- TypeScript Interfaces ---
 interface RippleProps {
