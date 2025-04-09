@@ -4,13 +4,11 @@ import React, { useState, useEffect, useRef } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, useAnimation, useInView } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-
-// Assuming GlowButton and OrientationForm are imported correctly
 import GlowButton from "../../../components/Button/glowButton";
 import OrientationForm from "../../../components/OrientationForm/orientationForm";
 
 // Import assets (ensure paths are correct)
-import heroVideo from "../../../assets/Swans.mp4"; // or swan.mp4 if that is desired
+import heroVideo from "../../../assets/Swans.mp4";
 import logoImg from "../../../assets/Logo.png";
 
 // --- TypeScript Interfaces ---
@@ -28,18 +26,17 @@ const shimmer = keyframes`
 `;
 
 const float = keyframes`
-  0% { transform: translateY(0px); }
+  0% { transform: translateY(0); }
   50% { transform: translateY(-15px); }
-  100% { transform: translateY(0px); }
+  100% { transform: translateY(0); }
 `;
 
 const glow = keyframes`
-  0% { filter: drop-shadow(0 0 5px rgba(0, 255, 255, 0.5)); }
-  50% { filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.8)); }
-  100% { filter: drop-shadow(0 0 5px rgba(0, 255, 255, 0.5)); }
+  0% { filter: drop-shadow(0 0 5px rgba(0,255,255,0.5)); }
+  50% { filter: drop-shadow(0 0 20px rgba(0,255,255,0.8)); }
+  100% { filter: drop-shadow(0 0 5px rgba(0,255,255,0.5)); }
 `;
 
-// Updated ripple animation variants – more subtle effect
 const rippleVariants = {
   hidden: { scale: 0, opacity: 0.6 },
   visible: {
@@ -51,13 +48,12 @@ const rippleVariants = {
 
 // --- Styled Components ---
 
-// Main Hero section container
 const HeroContainer = styled.section`
   position: relative;
   width: 100%;
   min-height: 100vh;
   padding: 2rem;
-  padding-top: 6rem; /* extra space for fixed header if any */
+  padding-top: 6rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -71,7 +67,7 @@ const HeroContainer = styled.section`
   }
 `;
 
-// Fullscreen video background wrapper
+// Video background with a light overlay for increased video brightness.
 const VideoBackground = styled.div`
   position: fixed;
   top: 0;
@@ -88,11 +84,12 @@ const VideoBackground = styled.div`
     left: 0;
     width: 100%;
     height: 100%;
+    /* Lighter overlay values for better video visibility */
     background: linear-gradient(
       to bottom,
-      rgba(0, 0, 0, 0.7),
-      rgba(10, 10, 30, 0.85),
-      rgba(20, 20, 50, 0.9)
+      rgba(0, 0, 0, 0.03),
+      rgba(10, 10, 30, 0.03),
+      rgba(20, 20, 50, 0.03)
     );
   }
 
@@ -103,7 +100,6 @@ const VideoBackground = styled.div`
   }
 `;
 
-// Mouse interaction layer for ripple effects
 const MouseInteractionArea = styled.div`
   position: absolute;
   top: 0;
@@ -115,26 +111,24 @@ const MouseInteractionArea = styled.div`
   overflow: hidden;
 `;
 
-// Ripple effect styled component with updated background (softer)
 const Ripple = styled(motion.div)<{ left: string; top: string; size: string }>`
   position: absolute;
-  left: ${props => props.left};
-  top: ${props => props.top};
-  width: ${props => props.size};
-  height: ${props => props.size};
+  left: ${(props) => props.left};
+  top: ${(props) => props.top};
+  width: ${(props) => props.size};
+  height: ${(props) => props.size};
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(0, 255, 255, 0.3) 0%,
-    rgba(120, 81, 169, 0.3) 50%,
-    rgba(120, 81, 169, 0) 70%
+    rgba(0,255,255,0.3) 0%,
+    rgba(120,81,169,0.3) 50%,
+    rgba(120,81,169,0) 70%
   );
   backdrop-filter: blur(2px);
-  box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+  box-shadow: 0 0 15px rgba(0,255,255,0.3);
   pointer-events: none;
 `;
 
-// Logo container – centered above the main header
 const LogoContainer = styled(motion.div)`
   margin: 0 auto;
   display: flex;
@@ -159,58 +153,21 @@ const LogoContainer = styled(motion.div)`
   }
 `;
 
-// Premium badge
-const PremiumBadge = styled(motion.div)`
-  position: absolute;
-  top: 6rem;
-  right: 1.5rem;
-  font-family: 'Playfair Display', serif;
-  font-size: 1rem;
-  padding: 8px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  background: rgba(10, 10, 30, 0.6);
-  backdrop-filter: blur(10px);
-  color: white;
-  z-index: 5;
-  letter-spacing: 3px;
-
-  &:before {
-    content: "★★★★★★★";
-    display: block;
-    font-size: 0.8rem;
-    letter-spacing: 2px;
-    color: gold;
-    text-align: center;
-    margin-bottom: 4px;
-  }
-
-  &:after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      45deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.2) 50%,
-      transparent 100%
-    );
-    background-size: 200% auto;
-    animation: ${shimmer} 3s linear infinite;
-  }
+// PremiumGlowButton is now fixed to the top-right corner of the viewport
+// and is non-interactive via pointer-events: none.
+const PremiumGlowButton = styled(GlowButton)`
+  position: fixed;
+  top: 80px; /* Adjust as needed */
+  right: 20px; /* Adjust as needed */
+  z-index: 100;
+  pointer-events: none;
 
   @media (max-width: 768px) {
-    top: 5rem;
-    right: 1rem;
-    font-size: 0.8rem;
-    padding: 6px 12px;
+    top: 60px;
+    right: 10px;
   }
 `;
 
-// Hero content container for header text and buttons
 const HeroContent = styled(motion.div)`
   position: relative;
   z-index: 2;
@@ -223,7 +180,6 @@ const HeroContent = styled(motion.div)`
   }
 `;
 
-// Title styling with animated gradient text
 const Title = styled(motion.h1)`
   font-size: 3.5rem;
   font-weight: 700;
@@ -248,7 +204,6 @@ const Title = styled(motion.h1)`
   }
 `;
 
-// Tagline container and text styling
 const TaglineContainer = styled(motion.div)`
   margin: 2rem 0;
   overflow: hidden;
@@ -292,7 +247,6 @@ const Tagline = styled(motion.h2)`
   }
 `;
 
-// Description styling
 const HeroDescription = styled(motion.p)`
   font-size: 1.125rem;
   margin-bottom: 2rem;
@@ -306,7 +260,6 @@ const HeroDescription = styled(motion.p)`
   }
 `;
 
-// Container for buttons
 const ButtonsContainer = styled(motion.div)`
   display: flex;
   gap: 1.5rem;
@@ -325,7 +278,6 @@ const ButtonsContainer = styled(motion.div)`
   }
 `;
 
-// Scroll indicator styling for prompting the user
 const ScrollIndicator = styled(motion.div)`
   position: absolute;
   bottom: 2rem;
@@ -352,13 +304,9 @@ const ScrollIndicator = styled(motion.div)`
   }
 `;
 
-// --- Animation Variants ---
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: { 
-    opacity: 1,
-    transition: { delayChildren: 0.3, staggerChildren: 0.2 }
-  }
+  visible: { opacity: 1, transition: { delayChildren: 0.3, staggerChildren: 0.2 } }
 };
 
 const itemVariants = {
@@ -366,7 +314,6 @@ const itemVariants = {
   visible: { y: 0, opacity: 1, transition: { duration: 0.7, ease: "easeOut" } }
 };
 
-// --- Component ---
 const HeroSection: React.FC = () => {
   const [showOrientation, setShowOrientation] = useState<boolean>(false);
   const [ripples, setRipples] = useState<RippleProps[]>([]);
@@ -382,39 +329,39 @@ const HeroSection: React.FC = () => {
       controls.start("visible");
     }
 
-    // Mouse move handler for subtle ripple effect
     const handleMouseMove = (e: MouseEvent) => {
-      if (Math.random() > 0.95) { // Lower frequency for subtler effect
+      if (Math.random() > 0.95) {
         const x = e.clientX;
         const y = e.clientY;
         const newRipple: RippleProps = {
           id: crypto.randomUUID(),
           x,
           y,
-          size: Math.random() * 100 + 30 // Smaller ripple size range
+          size: Math.random() * 100 + 30
         };
-        setRipples(prev => [...prev, newRipple]);
+        setRipples((prev) => [...prev, newRipple]);
         setTimeout(() => {
-          setRipples(prev => prev.filter(r => r.id !== newRipple.id));
+          setRipples((prev) => prev.filter((r) => r.id !== newRipple.id));
         }, 2500);
       }
     };
 
-    // Enhanced click effect (three smaller ripples)
     const handleClick = (e: MouseEvent) => {
       const x = e.clientX;
       const y = e.clientY;
-      const clickRipples = Array(3).fill(0).map((_, i) => ({
-        id: crypto.randomUUID(),
-        x,
-        y,
-        size: 70 + (i * 30)
-      }));
-      setRipples(prev => [...prev, ...clickRipples]);
+      const clickRipples = Array(3)
+        .fill(0)
+        .map((_, i) => ({
+          id: crypto.randomUUID(),
+          x,
+          y,
+          size: 70 + i * 30
+        }));
+      setRipples((prev) => [...prev, ...clickRipples]);
       clickRipples.forEach((ripple, i) => {
         setTimeout(() => {
-          setRipples(prev => prev.filter(r => r.id !== ripple.id));
-        }, 2500 + (i * 200));
+          setRipples((prev) => prev.filter((r) => r.id !== ripple.id));
+        }, 2500 + i * 200);
       });
     };
 
@@ -444,14 +391,14 @@ const HeroSection: React.FC = () => {
   return (
     <HeroContainer ref={containerRef} id="hero">
       <VideoBackground>
-        <video autoPlay loop muted playsInline poster="/assets/poster.jpg">
+        <video autoPlay loop muted playsInline poster="/assets/Swans.mp4">
           <source src={heroVideo} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
       </VideoBackground>
 
       <MouseInteractionArea>
-        {ripples.map(ripple => (
+        {ripples.map((ripple) => (
           <Ripple
             key={ripple.id}
             left={`${ripple.x}px`}
@@ -464,13 +411,14 @@ const HeroSection: React.FC = () => {
         ))}
       </MouseInteractionArea>
 
-      <PremiumBadge
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 1, duration: 0.8 }}
-      >
-        PREMIER
-      </PremiumBadge>
+      {/* Non-clickable Premium Glow Button placed fixed in the top-right corner */}
+      <PremiumGlowButton
+        text="★★★★★★★ PREMIUM"
+        theme="cosmic"
+        size="small"
+        animateOnRender={false}
+        onClick={() => {}}
+      />
 
       <motion.div initial="hidden" animate={controls} variants={containerVariants}>
         <LogoContainer variants={itemVariants}>
@@ -479,16 +427,19 @@ const HeroSection: React.FC = () => {
 
         <HeroContent>
           <Title variants={itemVariants}>SWAN STUDIOS</Title>
+
           <TaglineContainer variants={itemVariants}>
             <Tagline>
               Elite Performance Training For <span>Extraordinary</span> Results
             </Tagline>
           </TaglineContainer>
+
           <HeroDescription variants={itemVariants}>
             Experience a transformative workout program meticulously crafted by Sean Swan.
             Leveraging over 25 years of elite coaching and proven NASM protocols, our personalized
             approach empowers you to achieve peak performance at every stage of life.
           </HeroDescription>
+
           <ButtonsContainer variants={itemVariants}>
             <GlowButton
               text="Book Consultation"

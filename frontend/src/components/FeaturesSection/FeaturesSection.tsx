@@ -15,25 +15,25 @@ interface Feature {
   linkTo: string;
 }
 
-// Animation keyframes
-const shimmer = keyframes`
+// Animation keyframes - updated diagonal gradient animation
+const diagonalShimmer = keyframes`
   0% {
-    background-position: -100% 0;
+    background-position: 200% -200%;
   }
   100% {
-    background-position: 200% 0;
+    background-position: -200% 200%;
   }
 `;
 
 const float = keyframes`
   0% { transform: translateY(0px); }
-  50% { transform: translateY(-15px); }
+  50% { transform: translateY(-10px); }
   100% { transform: translateY(0px); }
 `;
 
 const glow = keyframes`
   0% { filter: drop-shadow(0 0 5px rgba(0, 255, 255, 0.5)); }
-  50% { filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.8)); }
+  50% { filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.8)); }
   100% { filter: drop-shadow(0 0 5px rgba(0, 255, 255, 0.5)); }
 `;
 
@@ -46,7 +46,7 @@ const pulseGlow = keyframes`
 // Styled components
 const SectionContainer = styled.section`
   padding: 6rem 2rem;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  background: linear-gradient(135deg, #09041e, #1a1a3c);
   position: relative;
   overflow: hidden;
   
@@ -115,19 +115,38 @@ const FeaturesGrid = styled(motion.div)`
   }
 `;
 
+// Enhanced 3D card with stronger contrast and depth
 const FeatureCard = styled(motion.div)<{ theme: string }>`
-  background: rgba(20, 20, 30, 0.8);
+  background: linear-gradient(135deg, rgba(25, 25, 45, 0.95), rgba(10, 10, 25, 0.95));
   border-radius: 15px;
   padding: 2rem;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
   position: relative;
   height: 100%;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.3s ease;
+  transition: all 0.5s ease;
   
+  /* Enhanced 3D effect with stronger shadow and depth */
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.5),
+    0 2px 5px rgba(255, 255, 255, 0.05) inset,
+    0 -2px 5px rgba(0, 0, 0, 0.3) inset;
+  
+  /* Subtle border glow based on theme */
+  border: 1px solid ${props => {
+    switch(props.theme) {
+      case 'cosmic':
+        return 'rgba(93, 63, 211, 0.3)';
+      case 'emerald':
+        return 'rgba(0, 232, 176, 0.3)';
+      case 'purple':
+      default:
+        return 'rgba(120, 0, 245, 0.3)';
+    }
+  }};
+  
+  /* Enhanced top border */
   &:before {
     content: "";
     position: absolute;
@@ -138,18 +157,28 @@ const FeatureCard = styled(motion.div)<{ theme: string }>`
     background: ${props => {
       switch(props.theme) {
         case 'cosmic':
-          return 'linear-gradient(90deg, #5d3fd3, #ff2e63)';
-        case 'ruby':
-          return 'linear-gradient(90deg, #e80046, #fd009f)';
+          return 'linear-gradient(135deg, #5d3fd3, #009FFD)';
         case 'emerald':
-          return 'linear-gradient(90deg, #00e8b0, #00fd9f)';
+          return 'linear-gradient(135deg, #00e8b0, #00fd9f)';
         case 'purple':
         default:
-          return 'linear-gradient(90deg, #7800f5, #c894ff)';
+          return 'linear-gradient(135deg, #7800f5, #c894ff)';
+      }
+    }};
+    box-shadow: 0 0 15px ${props => {
+      switch(props.theme) {
+        case 'cosmic':
+          return 'rgba(93, 63, 211, 0.6)';
+        case 'emerald':
+          return 'rgba(0, 232, 176, 0.6)';
+        case 'purple':
+        default:
+          return 'rgba(120, 0, 245, 0.6)';
       }
     }};
   }
   
+  /* Diagonal gradient animation (top-right to bottom-left) */
   &:after {
     content: "";
     position: absolute;
@@ -158,20 +187,34 @@ const FeatureCard = styled(motion.div)<{ theme: string }>`
     right: 0;
     bottom: 0;
     background: linear-gradient(
-      45deg,
+      135deg,
       transparent 0%,
       rgba(255, 255, 255, 0.03) 50%,
       transparent 100%
     );
-    background-size: 200% auto;
-    animation: ${shimmer} 3s linear infinite;
+    background-size: 400% 400%;
+    animation: ${diagonalShimmer} 6s linear infinite;
     pointer-events: none;
     border-radius: 15px;
   }
   
   &:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 
+      0 15px 35px rgba(0, 0, 0, 0.5),
+      0 2px 10px rgba(255, 255, 255, 0.1) inset,
+      0 -2px 10px rgba(0, 0, 0, 0.4) inset,
+      0 0 20px ${props => {
+        switch(props.theme) {
+          case 'cosmic':
+            return 'rgba(93, 63, 211, 0.2)';
+          case 'emerald':
+            return 'rgba(0, 232, 176, 0.2)';
+          case 'purple':
+          default:
+            return 'rgba(120, 0, 245, 0.2)';
+        }
+      }};
   }
 `;
 
@@ -189,8 +232,6 @@ const IconContainer = styled.div<{ theme: string }>`
     switch(props.theme) {
       case 'cosmic':
         return 'rgba(93, 63, 211, 0.2)';
-      case 'ruby':
-        return 'rgba(232, 0, 70, 0.2)';
       case 'emerald':
         return 'rgba(0, 232, 176, 0.2)';
       case 'purple':
@@ -201,9 +242,7 @@ const IconContainer = styled.div<{ theme: string }>`
   color: ${props => {
     switch(props.theme) {
       case 'cosmic':
-        return '#ff2e63';
-      case 'ruby':
-        return '#fd009f';
+        return '#46cdcf';
       case 'emerald':
         return '#00fd9f';
       case 'purple':
@@ -211,7 +250,10 @@ const IconContainer = styled.div<{ theme: string }>`
         return '#c894ff';
     }
   }};
-  animation: ${float} 6s ease-in-out infinite, ${glow} 4s ease-in-out infinite;
+  animation: ${float} 8s ease-in-out infinite, ${glow} 6s ease-in-out infinite;
+  
+  /* Enhanced glow effect */
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   
   &:before {
     content: "";
@@ -224,9 +266,7 @@ const IconContainer = styled.div<{ theme: string }>`
     border: 1px solid ${props => {
       switch(props.theme) {
         case 'cosmic':
-          return 'rgba(255, 46, 99, 0.5)';
-        case 'ruby':
-          return 'rgba(253, 0, 159, 0.5)';
+          return 'rgba(70, 205, 207, 0.5)';
         case 'emerald':
           return 'rgba(0, 253, 159, 0.5)';
         case 'purple':
@@ -234,15 +274,28 @@ const IconContainer = styled.div<{ theme: string }>`
           return 'rgba(200, 148, 255, 0.5)';
       }
     }};
-    animation: ${pulseGlow} 4s ease-in-out infinite;
+    animation: ${pulseGlow} 6s ease-in-out infinite;
   }
 `;
 
+// Enhanced title with subtle 3D effect
 const FeatureTitle = styled.h3`
   font-size: 1.5rem;
   margin-bottom: 1rem;
   color: white;
   font-weight: 600;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  position: relative;
+  
+  &:after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -5px;
+    width: 40px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.3);
+  }
 `;
 
 const FeatureDescription = styled.p`
@@ -257,13 +310,13 @@ const ButtonContainer = styled.div`
   margin-top: auto;
 `;
 
-// Animation variants
+// Animation variants - slowed down for more elegant transitions
 const subtitleVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: { 
     opacity: 1, 
     y: 0,
-    transition: { duration: 0.6, delay: 0.2 } 
+    transition: { duration: 0.8, delay: 0.3 } 
   }
 };
 
@@ -272,8 +325,8 @@ const gridVariants = {
   visible: { 
     opacity: 1,
     transition: { 
-      staggerChildren: 0.2,
-      delayChildren: 0.3
+      staggerChildren: 0.15,
+      delayChildren: 0.4
     }
   }
 };
@@ -285,14 +338,14 @@ const cardVariants = {
     opacity: 1,
     transition: { 
       type: "spring",
-      stiffness: 300,
-      damping: 20,
-      duration: 0.6
+      stiffness: 100,
+      damping: 15,
+      duration: 0.8
     }
   }
 };
 
-// Sample features data
+// Features data - using purple instead of ruby theme
 const features: Feature[] = [
   {
     id: 1,
@@ -323,7 +376,7 @@ const features: Feature[] = [
     title: "Recovery & Mobility",
     description: "Optimize your body's repair process with cutting-edge recovery techniques including mobility training, myofascial release, and specialized regeneration protocols.",
     icon: "🧘‍♂️",
-    theme: "ruby",
+    theme: "purple",
     linkTo: "/services/recovery"
   },
   {
@@ -355,7 +408,7 @@ const features: Feature[] = [
     title: "Corporate Wellness",
     description: "Boost team productivity and morale with our comprehensive corporate wellness programs including on-site fitness sessions, workshops, and wellness challenges.",
     icon: "🏢",
-    theme: "ruby",
+    theme: "purple",
     linkTo: "/services/corporate-wellness"
   }
 ];
@@ -404,7 +457,7 @@ const FeaturesSection: React.FC = () => {
                   text="Learn More" 
                   theme={feature.theme} 
                   size="small" 
-                  animateOnRender 
+                  animateOnRender={false}
                   onClick={() => window.location.href = feature.linkTo}
                 />
               </ButtonContainer>

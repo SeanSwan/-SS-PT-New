@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import styled, { keyframes } from "styled-components";
-import { motion, useInView, AnimationProps } from "framer-motion";
+import { motion, useInView, Variants } from "framer-motion";
 import { 
   FaTrophy, 
   FaUsers, 
@@ -22,8 +22,7 @@ import {
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell,
-  TooltipProps
+  Cell
 } from "recharts";
 
 // TypeScript interfaces
@@ -60,19 +59,24 @@ interface IconWrapperProps {
   color: string;
 }
 
-interface CustomTooltipProps extends TooltipProps<number, string> {
+// Fixed custom tooltip props
+interface CustomTooltipProps {
   active?: boolean;
-  payload?: any[];
+  payload?: Array<{
+    value: number;
+    unit?: string;
+    name?: string;
+  }>;
   label?: string;
 }
 
-// Animation keyframes
-const shimmer = keyframes`
+// Animation keyframes - SLOWED DOWN ANIMATIONS
+const diagonalShimmer = keyframes`
   0% {
-    background-position: -100% 0;
+    background-position: 200% -200%;
   }
   100% {
-    background-position: 200% 0;
+    background-position: -200% 200%;
   }
 `;
 
@@ -81,7 +85,7 @@ const pulse = keyframes`
     transform: scale(1);
   }
   50% {
-    transform: scale(1.05);
+    transform: scale(1.03);
   }
   100% {
     transform: scale(1);
@@ -103,7 +107,7 @@ const glow = keyframes`
 // Styled components
 const StatsSection = styled.section`
   padding: 6rem 2rem;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  background: linear-gradient(135deg, #09041e, #1a1a3c); // Adjusted to match theme 
   position: relative;
   overflow: hidden;
   
@@ -151,19 +155,31 @@ const SectionTitle = styled(motion.h2)`
   font-size: 2.5rem;
   margin-bottom: 1rem;
   color: white;
-  background: linear-gradient(90deg, var(--neon-blue, #00ffff), var(--royal-purple, #7851a9));
+  background: linear-gradient(
+    to right,
+    #a9f8fb,
+    #46cdcf,
+    #7b2cbf,
+    #c8b6ff,
+    #a9f8fb
+  );
+  background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
+  color: transparent;
+  animation: ${diagonalShimmer} 6s linear infinite;
   position: relative;
   
   &::after {
     content: "";
     position: absolute;
     bottom: -10px;
-    left: 0;
-    width: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 150px;
     height: 3px;
-    background: linear-gradient(90deg, var(--neon-blue, #00ffff), var(--royal-purple, #7851a9));
+    background: linear-gradient(90deg, #46cdcf, #7851a9);
     border-radius: 3px;
   }
   
@@ -195,8 +211,9 @@ const StatsGrid = styled(motion.div)`
   }
 `;
 
+// Enhanced 3D StatCard
 const StatCard = styled(motion.div)`
-  background: rgba(20, 20, 30, 0.7);
+  background: linear-gradient(135deg, rgba(25, 25, 45, 0.95), rgba(10, 10, 25, 0.95));
   border-radius: 15px;
   padding: 1.5rem;
   display: flex;
@@ -205,10 +222,18 @@ const StatCard = styled(motion.div)`
   text-align: center;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  
+  /* Enhanced 3D effect with stronger shadow and depth */
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.5),
+    0 2px 5px rgba(255, 255, 255, 0.05) inset,
+    0 -2px 5px rgba(0, 0, 0, 0.3) inset;
+  
   backdrop-filter: blur(5px);
   border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.5s ease, box-shadow 0.5s ease;
   
+  /* Diagonal gradient animation (top-right to bottom-left) */
   &:after {
     content: "";
     position: absolute;
@@ -217,23 +242,29 @@ const StatCard = styled(motion.div)`
     right: 0;
     bottom: 0;
     background: linear-gradient(
-      45deg,
+      135deg,
       transparent 0%,
       rgba(255, 255, 255, 0.03) 50%,
       transparent 100%
     );
-    background-size: 200% auto;
-    animation: ${shimmer} 3s linear infinite;
+    background-size: 400% 400%;
+    animation: ${diagonalShimmer} 8s linear infinite; // Slowed down
     pointer-events: none;
     border-radius: 15px;
   }
   
   &:hover {
-    animation: ${pulse} 2s ease infinite;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 
+      0 15px 35px rgba(0, 0, 0, 0.5),
+      0 2px 10px rgba(255, 255, 255, 0.1) inset,
+      0 -2px 10px rgba(0, 0, 0, 0.4) inset,
+      0 0 20px rgba(70, 205, 207, 0.2);
+    animation: ${pulse} 4s ease infinite; // Slowed down
   }
 `;
 
+// Enhanced IconWrapper with theme-aligned colors
 const IconWrapper = styled.div<IconWrapperProps>`
   width: 60px;
   height: 60px;
@@ -246,6 +277,7 @@ const IconWrapper = styled.div<IconWrapperProps>`
   background: ${props => `rgba(${hexToRgb(props.color)}, 0.15)`};
   color: ${props => props.color};
   position: relative;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
   
   &:before {
     content: '';
@@ -257,7 +289,7 @@ const IconWrapper = styled.div<IconWrapperProps>`
     border-radius: 50%;
     border: 1px solid ${props => props.color};
     opacity: 0.5;
-    animation: ${glow} 3s ease-in-out infinite;
+    animation: ${glow} 6s ease-in-out infinite; // Slowed down
   }
 `;
 
@@ -267,6 +299,7 @@ const StatValue = styled(motion.div)`
   color: white;
   margin-bottom: 0.5rem;
   line-height: 1;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); // Added shadow for depth
   
   @media (max-width: 768px) {
     font-size: 2rem;
@@ -277,13 +310,16 @@ const StatTitle = styled.div`
   font-size: 1rem;
   color: #c0c0c0;
   margin-bottom: 0.5rem;
+  font-weight: 500;
 `;
 
 const StatUnit = styled.div`
   font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.6);
+  font-style: italic;
 `;
 
+// Enhanced 3D ChartCard
 const ChartsContainer = styled(motion.div)`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -296,18 +332,26 @@ const ChartsContainer = styled(motion.div)`
 `;
 
 const ChartCard = styled(motion.div)`
-  background: rgba(20, 20, 30, 0.7);
+  background: linear-gradient(135deg, rgba(25, 25, 45, 0.95), rgba(10, 10, 25, 0.95));
   border-radius: 15px;
   padding: 1.5rem;
   position: relative;
   overflow: hidden;
   height: 350px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  
+  /* Enhanced 3D effect with stronger shadow and depth */
+  box-shadow: 
+    0 10px 30px rgba(0, 0, 0, 0.5),
+    0 2px 5px rgba(255, 255, 255, 0.05) inset,
+    0 -2px 5px rgba(0, 0, 0, 0.3) inset;
+    
   backdrop-filter: blur(5px);
   border: 1px solid rgba(255, 255, 255, 0.05);
   display: flex;
   flex-direction: column;
+  transition: transform 0.5s ease, box-shadow 0.5s ease;
   
+  /* Diagonal gradient animation (top-right to bottom-left) */
   &:after {
     content: "";
     position: absolute;
@@ -316,15 +360,24 @@ const ChartCard = styled(motion.div)`
     right: 0;
     bottom: 0;
     background: linear-gradient(
-      45deg,
+      135deg,
       transparent 0%,
       rgba(255, 255, 255, 0.03) 50%,
       transparent 100%
     );
-    background-size: 200% auto;
-    animation: ${shimmer} 3s linear infinite;
+    background-size: 400% 400%;
+    animation: ${diagonalShimmer} 8s linear infinite; // Slowed down
     pointer-events: none;
     border-radius: 15px;
+  }
+  
+  &:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 
+      0 15px 35px rgba(0, 0, 0, 0.5),
+      0 2px 10px rgba(255, 255, 255, 0.1) inset,
+      0 -2px 10px rgba(0, 0, 0, 0.4) inset,
+      0 0 20px rgba(70, 205, 207, 0.2);
   }
 `;
 
@@ -332,6 +385,18 @@ const ChartTitle = styled.h3`
   font-size: 1.3rem;
   color: white;
   margin-bottom: 0.5rem;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); // Added shadow for depth
+  position: relative;
+  
+  &:after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: -5px;
+    width: 40px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.3);
+  }
 `;
 
 const ChartDescription = styled.p`
@@ -346,7 +411,7 @@ const ChartContent = styled.div`
   height: 250px;
 `;
 
-// Custom tooltip styles
+// Enhanced tooltip styles
 const TooltipContainer = styled.div`
   background: rgba(20, 20, 30, 0.9);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -362,7 +427,7 @@ const TooltipLabel = styled.p`
 `;
 
 const TooltipValue = styled.p`
-  color: var(--neon-blue, #00ffff);
+  color: #46cdcf; // Updated to theme color
 `;
 
 // Helper function to convert hex to rgb
@@ -380,11 +445,13 @@ function hexToRgb(hex: string): string {
 
 // Custom tooltip component
 const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
+  if (active && payload && payload.length > 0) {
     return (
       <TooltipContainer>
         <TooltipLabel>{label}</TooltipLabel>
-        <TooltipValue>{payload[0].value} {payload[0].unit || ''}</TooltipValue>
+        <TooltipValue>
+          {payload[0].value} {payload[0].unit || ''}
+        </TooltipValue>
       </TooltipContainer>
     );
   }
@@ -393,61 +460,62 @@ const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label })
 };
 
 // Animation variants
-const sectionVariants: AnimationProps["variants"] = {
+const sectionVariants: Variants = {
   hidden: { opacity: 0 },
   visible: { 
     opacity: 1,
     transition: { 
-      duration: 0.6,
+      duration: 0.8, // Slowed down
       staggerChildren: 0.15
     }
   }
 };
 
-const titleVariants: AnimationProps["variants"] = {
+const titleVariants: Variants = {
   hidden: { opacity: 0, y: -20 },
   visible: { 
     opacity: 1, 
     y: 0,
-    transition: { duration: 0.6 } 
+    transition: { duration: 0.8 } // Slowed down
   }
 };
 
-const subtitleVariants: AnimationProps["variants"] = {
+const subtitleVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: { 
     opacity: 1, 
     y: 0,
-    transition: { duration: 0.6, delay: 0.2 } 
+    transition: { duration: 0.8, delay: 0.3 } // Slowed down
   }
 };
 
-const cardVariants: AnimationProps["variants"] = {
+const cardVariants: Variants = {
   hidden: { y: 20, opacity: 0 },
   visible: { 
     y: 0, 
     opacity: 1,
     transition: { 
       type: "spring",
-      stiffness: 300,
-      damping: 30
+      stiffness: 100, // Reduced for slower animation
+      damping: 15,
+      duration: 0.8 // Slowed down
     }
   }
 };
 
-const chartVariants: AnimationProps["variants"] = {
+const chartVariants: Variants = {
   hidden: { opacity: 0, scale: 0.95 },
   visible: { 
     opacity: 1, 
     scale: 1,
     transition: { 
-      duration: 0.6,
+      duration: 0.8, // Slowed down
       ease: "easeOut"
     } 
   }
 };
 
-// Sample data for stats
+// Updated sample data for stats - removed hot pink colors
 const statItems: StatItem[] = [
   {
     id: 1,
@@ -455,8 +523,8 @@ const statItems: StatItem[] = [
     value: 847,
     unit: "successful journeys",
     icon: <FaUsers />,
-    color: "#00ffff",
-    animation: { duration: 2.5, delay: 0 }
+    color: "#00ffff", // Kept teal
+    animation: { duration: 3.0, delay: 0 } // Slowed down
   },
   {
     id: 2,
@@ -464,8 +532,8 @@ const statItems: StatItem[] = [
     value: 12450,
     unit: "pounds collectively",
     icon: <FaWeight />,
-    color: "#ff2e63",
-    animation: { duration: 2.5, delay: 0.2 }
+    color: "#46cdcf", // Changed from pink to teal
+    animation: { duration: 3.0, delay: 0.2 } // Slowed down
   },
   {
     id: 3,
@@ -473,8 +541,8 @@ const statItems: StatItem[] = [
     value: 42810,
     unit: "hours of coaching",
     icon: <FaClock />,
-    color: "#c894ff",
-    animation: { duration: 2.5, delay: 0.4 }
+    color: "#c894ff", // Kept purple
+    animation: { duration: 3.0, delay: 0.4 } // Slowed down
   },
   {
     id: 4,
@@ -483,8 +551,8 @@ const statItems: StatItem[] = [
     unit: "million total",
     prefix: "",
     icon: <FaFireAlt />,
-    color: "#fd009f",
-    animation: { duration: 2.5, delay: 0.6 }
+    color: "#7851a9", // Changed from pink to purple
+    animation: { duration: 3.0, delay: 0.6 } // Slowed down
   },
   {
     id: 5,
@@ -492,8 +560,8 @@ const statItems: StatItem[] = [
     value: 6.3,
     unit: "points",
     icon: <FaHeartbeat />,
-    color: "#00fd9f",
-    animation: { duration: 2.5, delay: 0.8 }
+    color: "#00fd9f", // Kept emerald
+    animation: { duration: 3.0, delay: 0.8 } // Slowed down
   },
   {
     id: 6,
@@ -501,12 +569,12 @@ const statItems: StatItem[] = [
     value: 214,
     unit: "championships",
     icon: <FaTrophy />,
-    color: "#ffd700",
-    animation: { duration: 2.5, delay: 1 }
+    color: "#c8b6ff", // Changed from gold to lavender
+    animation: { duration: 3.0, delay: 1 } // Slowed down
   }
 ];
 
-// Sample chart data
+// Updated chart data - replaced hot pink with purple/teal
 const chartConfigs: ChartConfig[] = [
   {
     id: "weight-loss",
@@ -527,7 +595,7 @@ const chartConfigs: ChartConfig[] = [
       { name: "Week 11", value: 17.5 },
       { name: "Week 12", value: 19.2 }
     ],
-    colors: ["#00ffff", "#7851a9"]
+    colors: ["#00ffff", "#7851a9"] // Kept teal/purple
   },
   {
     id: "strength-gains",
@@ -540,7 +608,7 @@ const chartConfigs: ChartConfig[] = [
       { name: "Deadlift", value: 91 },
       { name: "Shoulder Press", value: 39 }
     ],
-    colors: ["#ff2e63", "#fd009f"]
+    colors: ["#46cdcf", "#7851a9"] // Changed from pink to teal/purple
   },
   {
     id: "client-goals",
@@ -554,7 +622,7 @@ const chartConfigs: ChartConfig[] = [
       { name: "Overall Health", value: 10 },
       { name: "Rehabilitation", value: 5 }
     ],
-    colors: ["#00ffff", "#7851a9", "#ff2e63", "#00fd9f", "#ffd700"]
+    colors: ["#00ffff", "#7851a9", "#46cdcf", "#00fd9f", "#c8b6ff"] // Updated colors to theme
   }
 ];
 
@@ -611,7 +679,7 @@ const FitnessStats: React.FC = () => {
     };
   }, [isInView]);
   
-  // Render the charts
+  // Render the charts - FIXED to handle TypeScript properly
   const renderChart = (config: ChartConfig): React.ReactNode => {
     const { type, data, colors, id } = config;
     
@@ -619,7 +687,8 @@ const FitnessStats: React.FC = () => {
       case 'line':
         return (
           <div style={{ width: '100%', height: '100%' }}>
-            <ResponsiveContainer>
+            {/* Fixed ResponsiveContainer by adding width and height props */}
+            <ResponsiveContainer width="100%" height="100%">
               <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                 <XAxis 
@@ -654,7 +723,8 @@ const FitnessStats: React.FC = () => {
       case 'bar':
         return (
           <div style={{ width: '100%', height: '100%' }}>
-            <ResponsiveContainer>
+            {/* Fixed ResponsiveContainer by adding width and height props */}
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                 <XAxis 
@@ -687,7 +757,8 @@ const FitnessStats: React.FC = () => {
       case 'pie':
         return (
           <div style={{ width: '100%', height: '100%' }}>
-            <ResponsiveContainer>
+            {/* Fixed ResponsiveContainer by adding width and height props */}
+            <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={data}

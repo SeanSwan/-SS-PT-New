@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion, HTMLMotionProps } from 'framer-motion';
 import { FaInstagram, FaHeart, FaComment, FaShare, FaPlay } from 'react-icons/fa';
+import GlowButton from "../Button/glowButton"; // Import your GlowButton component
 
 // Import dummy Instagram post images from assets - Ensure paths are correct
 import post1 from "../../assets/image1.jpg";
@@ -294,29 +295,11 @@ const StatItem = styled.div`
   gap: 0.3rem;
 `;
 
-// Button for showing more posts and following on Instagram
-const InstagramButtonContainer = styled.a`
+// Button container for centering GlowButtons
+const ButtonContainer = styled.div`
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  margin: 3rem auto 0;
-  padding: 1rem 2rem;
-  background: var(--neon-blue, #00ffff);
-  color: black;
-  border: none;
-  border-radius: 5px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-decoration: none;
-  transition: all 0.3s ease;
-  max-width: 300px;
-  
-  &:hover {
-    background: var(--royal-purple, #7851a9);
-    color: white;
-  }
+  margin-top: 3rem;
 `;
 
 // --- Animation Variants ---
@@ -347,13 +330,6 @@ const cardVariants: HTMLMotionProps<"div">["variants"] = {
       stiffness: 100
     }
   })
-};
-
-const buttonVariants: HTMLMotionProps<"a">["variants"] = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, delay: 0.6 } },
-  hover: { scale: 1.05, transition: { duration: 0.2 } },
-  tap: { scale: 0.95, transition: { duration: 0.2 } }
 };
 
 // --- Sample Instagram Posts Data ---
@@ -555,43 +531,30 @@ const InstagramFeed: React.FC = () => {
           ))}
         </PostsGrid>
 
+        {/* "Show More Posts" button - replaced with GlowButton */}
         {visiblePosts < instagramPosts.length && (
-          <InstagramButtonContainer
-            as="button"
-            onClick={handleShowMore}
-            style={{ cursor: 'pointer' }}
-          >
-            <motion.div
-              variants={buttonVariants}
-              initial="hidden"
-              whileInView="visible"
-              whileHover="hover"
-              whileTap="tap"
-              viewport={{ once: true }}
-              style={{ display: 'contents' }}
-            >
-              Show More Posts
-            </motion.div>
-          </InstagramButtonContainer>
+          <ButtonContainer>
+            <GlowButton
+              text="Show More Posts"
+              theme="cosmic"
+              size="medium"
+              onClick={handleShowMore}
+              animateOnRender={false}
+            />
+          </ButtonContainer>
         )}
 
-        <InstagramButtonContainer
-          href="https://instagram.com/swanstudios"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <motion.div
-            variants={buttonVariants}
-            initial="hidden"
-            whileInView="visible"
-            whileHover="hover"
-            whileTap="tap"
-            viewport={{ once: true }}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-          >
-            <FaInstagram /> Follow Us On Instagram
-          </motion.div>
-        </InstagramButtonContainer>
+        {/* "Follow Us On Instagram" button - replaced with GlowButton */}
+        <ButtonContainer>
+          <GlowButton
+            text="Follow Us On Instagram"
+            theme="purple"
+            size="medium"
+            leftIcon={<FaInstagram />}
+            onClick={() => window.open('https://instagram.com/swanstudios', '_blank')}
+            animateOnRender={false}
+          />
+        </ButtonContainer>
       </SectionContainer>
     </InstagramSection>
   );

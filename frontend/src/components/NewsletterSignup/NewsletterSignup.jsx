@@ -4,12 +4,20 @@ import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaEnvelope, FaCheck, FaExclamationTriangle, FaLock, FaArrowRight, FaDumbbell, FaAppleAlt, FaBrain } from 'react-icons/fa';
 import SectionTitle from '../ui/SectionTitle';
+import GlowButton from '../Button/glowButton'; // Import GlowButton component
+
+// Import background image
+import backgroundImage from '../../assets/swan-tile-big.png';
 
 // Styled Components
 const NewsletterSection = styled.section`
   position: relative;
   padding: 6rem 0;
-  background: linear-gradient(to right, #0a0a0a, #1a1a2e, #0a0a0a);
+  background: linear-gradient(to right, rgba(10, 10, 10, 0.9), rgba(26, 26, 46, 0.9), rgba(10, 10, 10, 0.9)),
+              url(${backgroundImage});
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
   overflow: hidden;
   width: 100%;
   max-width: 100vw;
@@ -69,7 +77,7 @@ const SectionSubtitle = styled(motion.p)`
 const FormContainer = styled(motion.div)`
   width: 100%;
   max-width: 600px;
-  background: rgba(25, 25, 35, 0.7);
+  background: rgba(25, 25, 35, 0.85);
   border-radius: 15px;
   padding: 3rem;
   backdrop-filter: blur(10px);
@@ -121,31 +129,7 @@ const Input = styled.input`
   }
 `;
 
-const SubscribeButton = styled(motion.button)`
-  padding: 1rem 2rem;
-  background: var(--neon-blue, #00ffff);
-  color: black;
-  border: none;
-  border-radius: 5px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    background: var(--royal-purple, #7851a9);
-    color: white;
-  }
-  
-  &:disabled {
-    background: #555;
-    cursor: not-allowed;
-  }
-`;
+// Removed SubscribeButton styled component as we'll use GlowButton instead
 
 const PrivacyText = styled(motion.p)`
   font-size: 0.8rem;
@@ -193,6 +177,12 @@ const SuccessMessage = styled(motion.div)`
   }
 `;
 
+const ButtonContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+`;
+
 const BenefitsContainer = styled(motion.div)`
   display: flex;
   flex-wrap: wrap;
@@ -207,7 +197,7 @@ const BenefitsContainer = styled(motion.div)`
 `;
 
 const BenefitCard = styled(motion.div)`
-  background: rgba(25, 25, 35, 0.5);
+  background: rgba(25, 25, 35, 0.7);
   padding: 1.5rem;
   border-radius: 10px;
   width: 280px;
@@ -215,6 +205,9 @@ const BenefitCard = styled(motion.div)`
   display: flex;
   flex-direction: column;
   align-items: center;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(5px);
   
   @media (max-width: 768px) {
     width: 100%;
@@ -383,17 +376,19 @@ const NewsletterSignup = () => {
                 <p>
                   Check your inbox for a confirmation email and your first exclusive workout guide.
                 </p>
-                <SubscribeButton
-                  onClick={() => {
-                    setIsSuccess(false);
-                    setEmail('');
-                    setName('');
-                  }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  Subscribe Another
-                </SubscribeButton>
+                <ButtonContainer>
+                  <GlowButton
+                    text="Subscribe Another"
+                    theme="cosmic"
+                    size="medium"
+                    onClick={() => {
+                      setIsSuccess(false);
+                      setEmail('');
+                      setName('');
+                    }}
+                    animateOnRender={false}
+                  />
+                </ButtonContainer>
               </SuccessMessage>
             ) : (
               <Form key="form" onSubmit={handleSubmit}>
@@ -432,14 +427,17 @@ const NewsletterSignup = () => {
                   )}
                 </AnimatePresence>
                 
-                <SubscribeButton
-                  type="submit"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? "Subscribing..." : "Subscribe Now"} <FaArrowRight />
-                </SubscribeButton>
+                <ButtonContainer>
+                  <GlowButton
+                    text={isSubmitting ? "Subscribing..." : "Subscribe Now"}
+                    theme="cosmic"
+                    size="medium"
+                    rightIcon={<FaArrowRight />}
+                    disabled={isSubmitting}
+                    onClick={handleSubmit}
+                    animateOnRender={false}
+                  />
+                </ButtonContainer>
                 
                 <PrivacyText
                   initial={{ opacity: 0 }}

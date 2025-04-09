@@ -1058,7 +1058,7 @@ const EnhancedPreviewPanel: React.FC<EnhancedPreviewPanelProps> = ({
 
       <PreviewContainer ref={previewRef} fontFamily={effectiveTheme.fontFamily}>
         {showPreviewMessage && (
-          <PreviewMessage data-preview-message="true">PREVIEW ONLY</PreviewMessage>
+          <PreviewMessage data-preview-message="true"></PreviewMessage>
         )}
 
         {shouldShowSection('header') && (

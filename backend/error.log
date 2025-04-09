@@ -19,3 +19,5 @@
 {"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T16:33:00.392Z"}
 {"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T19:49:53.753Z"}
 {"error":"jwt expired","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-03-20T19:49:53.769Z"}
+{"error":"invalid signature","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-04-08T22:55:51.358Z"}
+{"error":"invalid signature","level":"error","message":"Token verification error","method":"GET","path":"/profile","timestamp":"2025-04-08T22:55:51.388Z"}

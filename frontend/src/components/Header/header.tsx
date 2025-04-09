@@ -1,4 +1,3 @@
-// src/components/Header/EnhancedHeader.tsx
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import styled from "styled-components";
@@ -67,6 +66,7 @@ const Logo = styled(motion.div)`
   font-weight: bold;
   color: var(--neon-blue, #00ffff);
   position: relative;
+  margin-right: 40px; /* Added space between logo and navigation */
   
   .logo-text {
     font-size: 1.5rem;
@@ -123,10 +123,24 @@ const LogoGlow = styled.div`
   }
 `;
 
+const NavLinksContainer = styled.div`
+  display: flex;
+  align-items: center;
+  flex: 1;
+  justify-content: flex-start; /* Align links to the left */
+  margin-left: 20px; /* Add space after logo */
+  
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
 const Nav = styled(motion.nav)`
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: nowrap;
+  overflow-x: hidden;
   
   @media (max-width: 768px) {
     display: none;
@@ -145,6 +159,7 @@ const ActionsContainer = styled(motion.div)`
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-left: auto; /* Push to right */
 
   @media (min-width: 2560px) {
     gap: 20px;
@@ -161,6 +176,7 @@ const StyledNavLink = styled(motion(Link))`
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
+  white-space: nowrap; /* Prevent text wrapping */
   
   &:hover {
     color: var(--neon-blue, #00ffff);
@@ -216,6 +232,7 @@ const LogoutButton = styled(motion.button)`
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
+  white-space: nowrap; /* Prevent text wrapping */
   
   &:hover {
     color: var(--neon-blue, #00ffff);
@@ -692,15 +709,6 @@ const EnhancedHeader = () => {
               Admin Dashboard
             </StyledNavLink>
           )}
-
-          <LogoutButton 
-            onClick={handleLogout}
-            variants={itemVariants}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            Logout
-          </LogoutButton>
         </>
       );
     } else {
@@ -834,37 +842,39 @@ const EnhancedHeader = () => {
             <img src={logoImage} alt="SwanStudios Logo" />
           </Logo>
 
-          {/* Desktop Navigation */}
-          <Nav variants={containerVariants}>
-            <StyledNavLink 
-              to="/" 
-              className={location.pathname === "/" ? "active" : ""}
-              variants={itemVariants}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Home
-            </StyledNavLink>
-            {renderDesktopLinks()}
-            <StyledNavLink 
-              to="/contact" 
-              className={location.pathname === "/contact" ? "active" : ""}
-              variants={itemVariants}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              Contact
-            </StyledNavLink>
-            <StyledNavLink 
-              to="/about" 
-              className={location.pathname === "/about" ? "active" : ""}
-              variants={itemVariants}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              About Us
-            </StyledNavLink>
-          </Nav>
+          {/* Reorganized Navigation Layout */}
+          <NavLinksContainer>
+            <Nav variants={containerVariants}>
+              <StyledNavLink 
+                to="/" 
+                className={location.pathname === "/" ? "active" : ""}
+                variants={itemVariants}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Home
+              </StyledNavLink>
+              {renderDesktopLinks()}
+              <StyledNavLink 
+                to="/contact" 
+                className={location.pathname === "/contact" ? "active" : ""}
+                variants={itemVariants}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Contact
+              </StyledNavLink>
+              <StyledNavLink 
+                to="/about" 
+                className={location.pathname === "/about" ? "active" : ""}
+                variants={itemVariants}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                About Us
+              </StyledNavLink>
+            </Nav>
+          </NavLinksContainer>
 
           {/* Right Side Actions - Desktop */}
           <ActionsContainer variants={containerVariants}>
@@ -888,6 +898,18 @@ const EnhancedHeader = () => {
 
             {/* Berry Admin Profile Component - Only for logged in users */}
             {user && <ProfileSection />}
+            
+            {/* Logout Button - Only for logged-in users */}
+            {user && (
+              <LogoutButton 
+                onClick={handleLogout}
+                variants={itemVariants}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Logout
+              </LogoutButton>
+            )}
 
             {/* Mobile Navigation Button */}
             <MobileMenuButton 
