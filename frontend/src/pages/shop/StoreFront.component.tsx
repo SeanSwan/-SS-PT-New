@@ -17,7 +17,7 @@ import ShoppingCart from "../../components/ShoppingCart/ShoppingCart";     // Ve
 import { useToast } from "../../hooks/use-toast";               // Verify path
 
 // --- Asset Imports ---
-const wavesVideo = "/Waves.mp4"; // Note the file is actually called "Waves.mp4" in your public folder
+const wavesVideo = "/Swans.mp4"; // Note the file is actually called "Waves.mp4" in your public folder
 const logoImg = "/Logo.png";                   // Verify path
 
 // -----------------------------------------------------------------
