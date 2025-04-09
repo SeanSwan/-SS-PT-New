@@ -5,7 +5,7 @@ import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import GlowButton from "../../components/Button/glowButton";
 
 // Import correct video path
-import wavesVideo from "../../assets/Swans.mp4"; // Adjust path if needed
+import wavesVideo from "/Swans.mp4"; // Adjust path if needed
 
 // Keyframe animations
 const shimmer = keyframes`

@@ -8,8 +8,8 @@ import GlowButton from "../../../components/Button/glowButton";
 import OrientationForm from "../../../components/OrientationForm/orientationForm";
 
 // Import assets (ensure paths are correct)
-import heroVideo from "../../../assets/Swans.mp4";
-import logoImg from "../../../assets/Logo.png";
+import heroVideo from "/Swans.mp4";
+import logoImg from "/assets/Logo.png";
 
 // --- TypeScript Interfaces ---
 interface RippleProps {
@@ -391,7 +391,7 @@ const HeroSection: React.FC = () => {
   return (
     <HeroContainer ref={containerRef} id="hero">
       <VideoBackground>
-        <video autoPlay loop muted playsInline poster="/assets/Swans.mp4">
+        <video autoPlay loop muted playsInline poster="/Swans.mp4">
           <source src={heroVideo} type="video/mp4" />
           Your browser does not support the video tag.
         </video>
