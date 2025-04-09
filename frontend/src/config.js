@@ -16,6 +16,7 @@ export const AUTH_CONFIG = {
 };
 
 // Backend URL for direct API calls (only used in development)
+// This should match the proxy target in vite.config.js
 export const DEV_BACKEND_URL = 'http://localhost:5000';
 
 // Application settings
@@ -25,6 +26,24 @@ export const APP_CONFIG = {
   sessionTimeoutMinutes: 30,
   appName: 'Swan Studios',
   copyright: `© ${new Date().getFullYear()} Swan Studios LLC. All rights reserved.`
+};
+
+// Media asset paths (use these constants instead of hardcoding paths)
+export const MEDIA_PATHS = {
+  logo: '/Logo.png',
+  wavesVideo: '/Waves.mp4',
+  videoPosters: {
+    waves: '/video-poster.jpg'
+  },
+  profiles: {
+    male1: '/male1.jpg',
+    male2: '/male2.jpg',
+    maleBlk: '/maleblk.jpg',
+    femaleAsi: '/femaleasi.jpg',
+    femaleLat: '/femalelat.jpg',
+    femaleOldWht: '/femaleoldwht.jpg',
+    femaleWht: '/femalewht.jpg'
+  }
 };
 
 // Feature flags
