@@ -3,13 +3,13 @@ import styled, { keyframes } from "styled-components";
 import { motion, useAnimation, useInView } from "framer-motion";
 import Testimonial from "./Testimonial";
 
-// Import local images from your assets folder
-import maleBlk from "../../assets/maleblk.jpg";
-import femaleLat from "../../assets/femalelat.jpg";
-import femalewht from "../../assets/femalewht.jpg";
-import femaleoldwht from "../../assets/femaleoldwht.jpg";
-import male1 from "../../assets/male1.jpg";
-import male2 from "../../assets/male2.jpg";
+// Use direct paths to public folder
+const maleBlk = "/maleblk.jpg";
+const femaleLat = "/femalelat.jpg";
+const femalewht = "/femalewht.jpg";
+const femaleoldwht = "/femaleoldwht.jpg";
+const male1 = "/male1.jpg";
+const male2 = "/male2.jpg";
 
 /*
   🌟 Ultra-Premium TestimonialSection Component

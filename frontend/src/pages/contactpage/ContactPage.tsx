@@ -6,7 +6,7 @@ import ContactForm from "./ContactForm";
 import AdditionalInfo from "./AdditionalInfo";
 
 // Import asset for background video - update path if needed
-import securityVideo from "../../assets/swan.mp4"; 
+const swanVideo = "/swan.mp4"; 
 
 /*
   🌟 Premium Contact Page
@@ -393,7 +393,7 @@ const ContactPage = () => {
         playsInline 
         preload="auto"
       >
-        <source src={securityVideo} type="video/mp4" />
+        <source src={swanVideo} type="video/mp4" />
         Your browser does not support the video tag.
       </VideoBackground>
 

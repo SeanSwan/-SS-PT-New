@@ -4,9 +4,9 @@ import { motion, useAnimation, useInView } from "framer-motion";
 // Import GlowButton component
 import GlowButton from "../../components/Button/glowButton";
 
-// Properly import the video and logo
-import wavesVideo from "../../assets/Waves.mp4"; 
-import logoImage from "../../assets/Logo.png";
+// Use direct paths to public folder
+const wavesVideo = "/Waves.mp4"; // Make sure the file is actually named Waves.mp4 in public folder
+const logoImage = "/Logo.png";
 
 // ======================= 🎨 Animation Keyframes =======================
 const shimmer = keyframes`
@@ -420,7 +420,7 @@ export default function Hero() {
         
         {/* Enhanced tagline with highlighted text */}
         <Tagline variants={itemVariants}>
-          Revolutionizing <span>Personal Training</span> for the Modern Athlete
+          Achieve Your Best Self: <span>Training</span> Designed For You
         </Tagline>
         
         {/* Using GlowButton instead of custom button */}
