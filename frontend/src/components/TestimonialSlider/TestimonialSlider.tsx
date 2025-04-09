@@ -356,7 +356,7 @@ const TestimonialSlider: React.FC = () => {
       id: 1,
       name: "Sarah Johnson",
       details: "Lost 42 lbs in 7 months • Corporate Executive",
-      image: "/src/assets/femaleoldwht.jpg",
+      image: "/femaleoldwht.jpg",
       text: "Thanks to Swanstudios personal training, I achieved an incredible transformation! The tailored workouts and nutrition plan helped me lose 42 lbs, and I feel more energetic and confident than ever.",
       rating: 5,
       beforeAfterStats: {
@@ -371,7 +371,7 @@ const TestimonialSlider: React.FC = () => {
       id: 2,
       name: "Carlos Mendez",
       details: "Training for 1.5 years • Semi-Pro Soccer Player",
-      image: "/src/assets/male2.jpg",
+      image: "/male2.jpg",
       text: "Swanstudios coaching not only accelerated my recovery but also boosted my performance on the field. Their expert guidance and personalized approach made all the difference.",
       rating: 5,
       beforeAfterStats: {
@@ -386,7 +386,7 @@ const TestimonialSlider: React.FC = () => {
       id: 3,
       name: "David Chen",
       details: "Client for 8 months • Tech Entrepreneur",
-      image: "/src/assets/male1.jpg",
+      image: "/male1.jpg",
       text: "The personalized training at Swanstudios truly transformed my lifestyle. I built strength, improved my overall wellness, and gained the confidence to balance my busy schedule.",
       rating: 4.9,
       beforeAfterStats: {

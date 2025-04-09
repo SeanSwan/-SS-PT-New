@@ -5,15 +5,14 @@ import { FaInstagram, FaHeart, FaComment, FaShare, FaPlay } from 'react-icons/fa
 import GlowButton from "../Button/glowButton"; // Import your GlowButton component
 
 // Import dummy Instagram post images from assets - Ensure paths are correct
-import post1 from "../../assets/image1.jpg";
-import post2 from "../../assets/image2.jpg";
-import post3 from "../../assets/image3.jpg";
-import post4 from '../../assets/femaleoldwht.jpg';
-import post5 from '../../assets/femalelat.jpg';
-import post6 from '../../assets/male1.jpg'; // Assuming this is the avatar
-import videoThumb1 from '../../assets/maleblk.jpg';
-import videoThumb2 from '../../assets/femalewht.jpg';
-
+const post1 = "/image1.jpg";
+const post2 = "/image2.jpg";
+const post3 = "/image3.jpg";
+const post4 = '/femaleoldwht.jpg';
+const post5 = '/femalelat.jpg';
+const post6 = '/male1.jpg';
+const videoThumb1 = '/maleblk.jpg';
+const videoThumb2 = '/femalewht.jpg';
 // --- TypeScript Interfaces ---
 interface InstagramPost {
   id: number;
