@@ -365,3 +365,10 @@
 {"level":"info","message":"Environment: development","timestamp":"2025-04-09T22:51:26.516Z"}
 {"ip":"::1","level":"info","message":"→ POST /api/auth/refresh-token","origin":"http://localhost:5173","timestamp":"2025-04-09T22:58:06.560Z"}
 {"durationMs":232,"level":"warn","message":"← 401 POST /refresh-token","timestamp":"2025-04-09T22:58:06.792Z"}
+{"level":"info","message":"Model associations set up successfully","timestamp":"2025-04-09T23:19:16.963Z"}
+{"level":"info","message":"Database connection established successfully","timestamp":"2025-04-09T23:19:17.492Z"}
+{"level":"info","message":"Development mode: Syncing database schema...","timestamp":"2025-04-09T23:19:17.493Z"}
+{"level":"info","message":"Database synchronized successfully (DEV mode)","timestamp":"2025-04-09T23:19:17.551Z"}
+{"level":"info","message":"Seeding database (dev mode)...","timestamp":"2025-04-09T23:19:17.552Z"}
+{"level":"info","message":"Swan Studios API Server running on port 5000","timestamp":"2025-04-09T23:19:17.554Z"}
+{"level":"info","message":"Environment: development","timestamp":"2025-04-09T23:19:17.554Z"}
