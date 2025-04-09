@@ -329,3 +329,22 @@
 {"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-04-09T18:57:38.379Z","userId":2}
 {"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-04-09T18:57:38.643Z","userId":2}
 {"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-04-09T18:57:38.664Z","userId":2}
+{"level":"info","message":"Successful login for user: ogpswan, role: admin","timestamp":"2025-04-09T19:26:28.788Z"}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-04-09T19:26:28.875Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-04-09T19:26:28.896Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-04-09T19:26:28.946Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-04-09T19:31:11.024Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-04-09T19:31:11.043Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-04-09T19:31:11.127Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-04-09T19:46:34.660Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-04-09T19:46:34.668Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-04-09T19:46:34.768Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-04-09T19:48:04.187Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-04-09T19:48:04.204Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-04-09T19:48:04.288Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/logout","role":"admin","timestamp":"2025-04-09T19:58:59.791Z","userId":2}
+{"level":"info","message":"Successful login for user: ogpswan, role: admin","timestamp":"2025-04-09T20:03:06.686Z"}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-04-09T20:03:06.718Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/profile","role":"admin","timestamp":"2025-04-09T20:03:06.730Z","userId":2}
+{"level":"info","message":"User authenticated","method":"GET","path":"/","role":"admin","timestamp":"2025-04-09T20:03:06.785Z","userId":2}
+{"level":"info","message":"User authenticated","method":"POST","path":"/add","role":"admin","timestamp":"2025-04-09T20:04:09.982Z","userId":2}

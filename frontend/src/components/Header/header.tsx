@@ -7,22 +7,17 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import logoImage from "../../assets/Logo.png";
 import { useAuth } from "../../context/AuthContext";
 import ShoppingCart from "../ShoppingCart/ShoppingCart";
-
 // Material UI imports
 import { useMediaQuery, useTheme } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import CloseIcon from "@mui/icons-material/Close";
-
 // Import BerryAdmin components
 import NotificationSection from "./NotificationSection";
 import ProfileSection from "./ProfileSection";
-import SearchSection from "./SearchSection";
-
 // Register GSAP plugins
 gsap.registerPlugin(ScrollTrigger);
 
 // ===================== Styled Components =====================
-
 const HeaderContainer = styled(motion.header)`
   position: fixed;
   top: 0;
@@ -38,13 +33,11 @@ const HeaderContainer = styled(motion.header)`
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.5s ease-in-out;
-
+  transition: all 0.3s ease-in-out; /* Reduced animation time for better performance */
   @media (max-width: 480px) {
     padding: 0 12px;
     height: 70px;
   }
-
   @media (min-width: 2560px) {
     height: 100px;
     padding: 0 40px;
@@ -52,11 +45,11 @@ const HeaderContainer = styled(motion.header)`
 `;
 
 const HeaderContent = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  max-width: 1920px;
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  width: 100%; 
+  max-width: 1920px; 
   margin: 0 auto;
 `;
 
@@ -67,7 +60,6 @@ const Logo = styled(motion.div)`
   color: var(--neon-blue, #00ffff);
   position: relative;
   margin-right: 40px; /* Added space between logo and navigation */
-  
   .logo-text {
     font-size: 1.5rem;
     background: linear-gradient(to right, #00ffff, #7851a9);
@@ -76,33 +68,27 @@ const Logo = styled(motion.div)`
     position: relative;
     margin-right: 10px;
   }
-
   img {
     height: 50px;
     margin-left: 8px;
     filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.5));
     transition: all 0.3s ease;
   }
-
   &:hover img {
     filter: drop-shadow(0 0 12px rgba(0, 255, 255, 0.8));
   }
-
   @media (max-width: 480px) {
     .logo-text {
       font-size: 1.2rem;
     }
-    
     img {
       height: 40px;
     }
   }
-
   @media (min-width: 2560px) {
     .logo-text {
       font-size: 2rem;
     }
-    
     img {
       height: 70px;
     }
@@ -116,8 +102,7 @@ const LogoGlow = styled.div`
   background: radial-gradient(circle, rgba(0, 255, 255, 0.2) 0%, transparent 70%);
   filter: blur(15px);
   opacity: 0;
-  transition: opacity 0.5s ease;
-  
+  transition: opacity 0.3s ease; /* Reduced animation time */
   ${Logo}:hover & {
     opacity: 0.8;
   }
@@ -129,7 +114,6 @@ const NavLinksContainer = styled.div`
   flex: 1;
   justify-content: flex-start; /* Align links to the left */
   margin-left: 20px; /* Add space after logo */
-  
   @media (max-width: 768px) {
     display: none;
   }
@@ -140,16 +124,13 @@ const Nav = styled(motion.nav)`
   align-items: center;
   gap: 8px;
   flex-wrap: nowrap;
-  overflow-x: hidden;
-  
+  overflow-x: visible; /* Changed from hidden to ensure all links are visible */
   @media (max-width: 768px) {
     display: none;
   }
-
   @media (min-width: 1200px) {
     gap: 15px;
   }
-
   @media (min-width: 2560px) {
     gap: 30px;
   }
@@ -160,7 +141,6 @@ const ActionsContainer = styled(motion.div)`
   align-items: center;
   gap: 10px;
   margin-left: auto; /* Push to right */
-
   @media (min-width: 2560px) {
     gap: 20px;
   }
@@ -174,22 +154,19 @@ const StyledNavLink = styled(motion(Link))`
   border-radius: 8px;
   font-weight: 500;
   position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
+  overflow: visible; /* Changed from hidden to ensure visibility */
+  transition: all 0.3s ease; /* Reduced animation time */
   white-space: nowrap; /* Prevent text wrapping */
-  
   &:hover {
     color: var(--neon-blue, #00ffff);
     background: rgba(0, 255, 255, 0.1);
     box-shadow: 0 0 15px rgba(0, 255, 255, 0.15);
   }
-  
   &.active {
     color: var(--neon-blue, #00ffff);
     background: rgba(0, 255, 255, 0.15);
     box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
   }
-
   &::after {
     content: '';
     position: absolute;
@@ -198,20 +175,17 @@ const StyledNavLink = styled(motion(Link))`
     width: 0;
     height: 2px;
     background: var(--neon-blue, #00ffff);
-    transition: all 0.3s ease;
+    transition: all 0.3s ease; /* Reduced animation time */
     transform: translateX(-50%);
   }
-
   &:hover::after, &.active::after {
     width: 80%;
   }
-
   @media (min-width: 1200px) {
     margin: 0 10px;
     padding: 10px 15px;
     font-size: 1.05rem;
   }
-
   @media (min-width: 2560px) {
     margin: 0 15px;
     padding: 15px 20px;
@@ -230,16 +204,17 @@ const LogoutButton = styled(motion.button)`
   font-weight: 500;
   cursor: pointer;
   position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
+  overflow: visible; /* Changed from hidden to ensure visibility */
+  transition: all 0.3s ease; /* Reduced animation time */
   white-space: nowrap; /* Prevent text wrapping */
-  
+  display: flex; /* Ensure it's always visible */
+  align-items: center;
+  justify-content: center;
   &:hover {
     color: var(--neon-blue, #00ffff);
     background: rgba(0, 255, 255, 0.1);
     box-shadow: 0 0 15px rgba(0, 255, 255, 0.15);
   }
-  
   &::after {
     content: '';
     position: absolute;
@@ -248,20 +223,17 @@ const LogoutButton = styled(motion.button)`
     width: 0;
     height: 2px;
     background: var(--neon-blue, #00ffff);
-    transition: all 0.3s ease;
+    transition: all 0.3s ease; /* Reduced animation time */
     transform: translateX(-50%);
   }
-
   &:hover::after {
     width: 80%;
   }
-
   @media (min-width: 1200px) {
     margin: 0 10px;
     padding: 10px 15px;
     font-size: 1.05rem;
   }
-
   @media (min-width: 2560px) {
     margin: 0 15px;
     padding: 15px 20px;
@@ -284,26 +256,22 @@ const MobileMenuButton = styled(motion.button)`
   justify-content: center;
   cursor: pointer;
   position: relative;
-  overflow: hidden;
+  overflow: visible; /* Changed from hidden to ensure visibility */
   z-index: 10;
-  
   @media (max-width: 768px) {
     display: flex;
   }
-  
   &::before {
     content: '';
     position: absolute;
     inset: 0;
     background: radial-gradient(circle, rgba(0, 255, 255, 0.2) 0%, transparent 70%);
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease; /* Reduced animation time */
   }
-  
   &:hover::before {
     opacity: 1;
   }
-
   @media (max-width: 480px) {
     width: 40px;
     height: 40px;
@@ -316,8 +284,7 @@ const HamburgerIcon = styled.div`
   height: 18px;
   position: relative;
   transform: rotate(0deg);
-  transition: 0.5s ease-in-out;
-  
+  transition: 0.3s ease-in-out; /* Reduced animation time */
   span {
     display: block;
     position: absolute;
@@ -328,21 +295,17 @@ const HamburgerIcon = styled.div`
     opacity: 1;
     left: 0;
     transform: rotate(0deg);
-    transition: 0.25s ease-in-out;
-    
+    transition: 0.2s ease-in-out; /* Reduced animation time */
     &:nth-child(1) {
       top: 0px;
     }
-    
     &:nth-child(2), &:nth-child(3) {
       top: 8px;
     }
-    
     &:nth-child(4) {
       top: 16px;
     }
   }
-  
   &.open {
     span {
       &:nth-child(1) {
@@ -350,15 +313,12 @@ const HamburgerIcon = styled.div`
         width: 0%;
         left: 50%;
       }
-      
       &:nth-child(2) {
         transform: rotate(45deg);
       }
-      
       &:nth-child(3) {
         transform: rotate(-45deg);
       }
-      
       &:nth-child(4) {
         top: 18px;
         width: 0%;
@@ -369,17 +329,17 @@ const HamburgerIcon = styled.div`
 `;
 
 const MobileMenu = styled(motion.div)`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(9, 4, 30, 0.98);
-  backdrop-filter: blur(10px);
-  padding: 100px 40px 40px;
-  display: flex;
-  flex-direction: column;
-  z-index: 9;
+  position: fixed; 
+  top: 0; 
+  left: 0; 
+  right: 0; 
+  bottom: 0; 
+  background: rgba(9, 4, 30, 0.98); 
+  backdrop-filter: blur(10px); 
+  padding: 100px 40px 40px; 
+  display: flex; 
+  flex-direction: column; 
+  z-index: 9; 
   overflow-y: auto;
 `;
 
@@ -391,8 +351,7 @@ const MobileNavLink = styled(motion(Link))`
   font-weight: 500;
   position: relative;
   padding: 10px 0;
-  transition: color 0.3s ease;
-  
+  transition: color 0.3s ease; /* Reduced animation time */
   &::after {
     content: '';
     position: absolute;
@@ -401,21 +360,17 @@ const MobileNavLink = styled(motion(Link))`
     width: 0;
     height: 2px;
     background: var(--neon-blue, #00ffff);
-    transition: all 0.3s ease;
+    transition: all 0.3s ease; /* Reduced animation time */
   }
-  
   &:hover {
     color: var(--neon-blue, #00ffff);
   }
-  
   &:hover::after {
     width: 100%;
   }
-  
   &.active {
     color: var(--neon-blue, #00ffff);
   }
-  
   &.active::after {
     width: 100%;
   }
@@ -432,7 +387,6 @@ const MobileLogoutButton = styled(motion.button)`
   padding: 10px 0;
   text-align: left;
   position: relative;
-  
   &::after {
     content: '';
     position: absolute;
@@ -441,38 +395,35 @@ const MobileLogoutButton = styled(motion.button)`
     width: 0;
     height: 2px;
     background: var(--neon-blue, #00ffff);
-    transition: all 0.3s ease;
+    transition: all 0.3s ease; /* Reduced animation time */
   }
-  
   &:hover {
     color: var(--neon-blue, #00ffff);
   }
-  
   &:hover::after {
     width: 100%;
   }
 `;
 
 const MobileFooter = styled.div`
-  margin-top: auto;
-  padding-top: 30px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  flex-direction: column;
+  margin-top: auto; 
+  padding-top: 30px; 
+  border-top: 1px solid rgba(255, 255, 255, 0.1); 
+  display: flex; 
+  flex-direction: column; 
   gap: 15px;
 `;
 
 const MobileSocialContainer = styled.div`
-  display: flex;
-  gap: 20px;
+  display: flex; 
+  gap: 20px; 
   margin-top: 15px;
 `;
 
 const MobileSocialIcon = styled.a`
   color: #fff;
   font-size: 1.5rem;
-  transition: all 0.3s ease;
-  
+  transition: all 0.3s ease; /* Reduced animation time */
   &:hover {
     color: var(--neon-blue, #00ffff);
     transform: translateY(-3px);
@@ -489,102 +440,101 @@ const CartButton = styled(motion.button)`
   margin-right: 5px;
   padding: 10px;
   border-radius: 50%;
-  transition: all 0.3s ease;
-  
+  transition: all 0.3s ease; /* Reduced animation time */
   &:hover {
     color: var(--neon-blue, #00ffff);
     background: rgba(0, 255, 255, 0.1);
   }
-
   @media (min-width: 2560px) {
     font-size: 1.8rem;
   }
 `;
 
 const CartBadge = styled.span`
-  position: absolute;
-  top: 0;
-  right: 0;
-  background: var(--neon-blue, #00ffff);
-  color: #000;
-  font-size: 0.7rem;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
+  position: absolute; 
+  top: 0; 
+  right: 0; 
+  background: var(--neon-blue, #00ffff); 
+  color: #000; 
+  font-size: 0.7rem; 
+  width: 18px; 
+  height: 18px; 
+  border-radius: 50%; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  font-weight: bold; 
   box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
 `;
 
 // ===================== Animation Variants =====================
-
+// Simplified animations for better performance
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: { 
+  visible: {
     opacity: 1,
     transition: {
       when: "beforeChildren",
-      staggerChildren: 0.1
+      staggerChildren: 0.05, // Reduced stagger time
+      duration: 0.3 // Reduced duration
     }
   }
 };
 
 const itemVariants = {
-  hidden: { y: -20, opacity: 0 },
-  visible: { 
-    y: 0, 
+  hidden: { y: -10, opacity: 0 }, // Reduced movement distance
+  visible: {
+    y: 0,
     opacity: 1,
-    transition: { type: "spring", stiffness: 300, damping: 24 }
+    transition: { type: "spring", stiffness: 200, damping: 20, duration: 0.3 } // Optimized spring physics
   }
 };
 
 const logoVariants = {
-  hidden: { opacity: 0, scale: 0.8, y: -20 },
-  visible: { 
-    opacity: 1, 
-    scale: 1, 
+  hidden: { opacity: 0, scale: 0.9, y: -10 }, // Reduced movement
+  visible: {
+    opacity: 1,
+    scale: 1,
     y: 0,
-    transition: { type: "spring", stiffness: 300, damping: 15 }
+    transition: { type: "spring", stiffness: 200, damping: 15, duration: 0.3 } // Optimized spring physics
   }
 };
 
 const mobileMenuVariants = {
-  closed: { 
+  closed: {
     opacity: 0,
     y: "-100%",
     transition: {
-      duration: 0.5,
+      duration: 0.3, // Reduced duration
       ease: [0.76, 0, 0.24, 1],
-      staggerChildren: 0.1,
+      staggerChildren: 0.05, // Reduced stagger time
       staggerDirection: -1
     }
   },
-  open: { 
+  open: {
     opacity: 1,
     y: "0%",
     transition: {
-      duration: 0.5,
+      duration: 0.3, // Reduced duration
       ease: [0.76, 0, 0.24, 1],
       when: "beforeChildren",
-      staggerChildren: 0.1,
+      staggerChildren: 0.05, // Reduced stagger time
     }
   }
 };
 
 const mobileLinkVariants = {
-  closed: { 
-    opacity: 0, 
-    x: -50,
+  closed: {
+    opacity: 0,
+    x: -20, // Reduced movement distance
   },
-  open: { 
-    opacity: 1, 
+  open: {
+    opacity: 1,
     x: 0,
     transition: {
       type: "spring",
-      stiffness: 300,
-      damping: 24
+      stiffness: 200, // Optimized spring physics
+      damping: 20
     }
   }
 };
@@ -600,7 +550,7 @@ const EnhancedHeader = () => {
   // Refs
   const headerRef = useRef(null);
   const hamburgerRef = useRef(null);
-
+  
   // MUI theme and media query
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -609,39 +559,34 @@ const EnhancedHeader = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-
-  // Handle scroll effect
+  
+  // Handle scroll effect - optimized
   useEffect(() => {
     const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      if (scrollPosition > 50) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
+      setIsScrolled(window.scrollY > 50);
     };
-
-    window.addEventListener('scroll', handleScroll);
+    
+    window.addEventListener('scroll', handleScroll, { passive: true }); // Added passive for better performance
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  // GSAP animations
+  
+  // GSAP animations - simplified for better performance
   useEffect(() => {
     if (headerRef.current) {
       gsap.fromTo(
         headerRef.current,
-        { y: -100, opacity: 0 },
-        { 
-          y: 0, 
-          opacity: 1, 
-          duration: 1,
-          ease: "power3.out",
-          delay: 0.2
+        { y: -50, opacity: 0 }, // Reduced distance
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.5, // Reduced duration
+          ease: "power2.out", // Changed to simpler ease
+          delay: 0.1 // Reduced delay
         }
       );
     }
   }, []);
-
+  
   // Handle mobile menu animation
   useEffect(() => {
     if (hamburgerRef.current) {
@@ -671,7 +616,6 @@ const EnhancedHeader = () => {
    */
   const renderDesktopLinks = () => {
     const currentPath = location.pathname;
-    
     if (user) {
       return (
         <>
@@ -680,7 +624,7 @@ const EnhancedHeader = () => {
             className={currentPath === "/store" ? "active" : ""}
             variants={itemVariants}
           >
-            Training &amp; Store
+            Training & Store
           </StyledNavLink>
           <StyledNavLink 
             to="/client-dashboard" 
@@ -744,7 +688,6 @@ const EnhancedHeader = () => {
    */
   const renderMobileLinks = () => {
     const currentPath = location.pathname;
-    
     if (user) {
       return (
         <>
@@ -754,7 +697,7 @@ const EnhancedHeader = () => {
             className={currentPath === "/store" ? "active" : ""}
             variants={mobileLinkVariants}
           >
-            Training &amp; Store
+            Training & Store
           </MobileNavLink>
           <MobileNavLink
             to="/client-dashboard"
@@ -821,9 +764,9 @@ const EnhancedHeader = () => {
 
   return (
     <>
-      <HeaderContainer 
+      <HeaderContainer
         ref={headerRef}
-        style={{ 
+        style={{
           height: isScrolled ? '70px' : '80px',
           background: isScrolled ? 'rgba(9, 4, 30, 0.95)' : 'rgba(9, 4, 30, 0.85)'
         }}
@@ -832,16 +775,16 @@ const EnhancedHeader = () => {
         variants={containerVariants}
       >
         <HeaderContent>
-          <Logo 
+          <Logo
             variants={logoVariants}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.03 }} // Reduced scale effect
+            whileTap={{ scale: 0.97 }} // Reduced scale effect
           >
             <LogoGlow />
             <Link to="/" className="logo-text">SwanStudios</Link>
             <img src={logoImage} alt="SwanStudios Logo" />
           </Logo>
-
+          
           {/* Reorganized Navigation Layout */}
           <NavLinksContainer>
             <Nav variants={containerVariants}>
@@ -849,8 +792,8 @@ const EnhancedHeader = () => {
                 to="/" 
                 className={location.pathname === "/" ? "active" : ""}
                 variants={itemVariants}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.03 }} // Reduced scale effect
+                whileTap={{ scale: 0.97 }} // Reduced scale effect
               >
                 Home
               </StyledNavLink>
@@ -859,8 +802,8 @@ const EnhancedHeader = () => {
                 to="/contact" 
                 className={location.pathname === "/contact" ? "active" : ""}
                 variants={itemVariants}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.03 }} // Reduced scale effect
+                whileTap={{ scale: 0.97 }} // Reduced scale effect
               >
                 Contact
               </StyledNavLink>
@@ -868,8 +811,8 @@ const EnhancedHeader = () => {
                 to="/about" 
                 className={location.pathname === "/about" ? "active" : ""}
                 variants={itemVariants}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.03 }} // Reduced scale effect
+                whileTap={{ scale: 0.97 }} // Reduced scale effect
               >
                 About Us
               </StyledNavLink>
@@ -878,8 +821,7 @@ const EnhancedHeader = () => {
 
           {/* Right Side Actions - Desktop */}
           <ActionsContainer variants={containerVariants}>
-            {/* Berry Admin Search Component */}
-            <SearchSection />
+            {/* Search Section removed as requested */}
 
             {/* Berry Admin Notification Component - Only for logged in users */}
             {user && <NotificationSection />}
@@ -889,8 +831,8 @@ const EnhancedHeader = () => {
               onClick={() => setCartOpen(true)} 
               aria-label="Open shopping cart"
               variants={itemVariants}
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.05, rotate: 3 }} // Reduced effects
+              whileTap={{ scale: 0.95 }}
             >
               🛒
               {cartItems > 0 && <CartBadge>{cartItems}</CartBadge>}
@@ -899,13 +841,13 @@ const EnhancedHeader = () => {
             {/* Berry Admin Profile Component - Only for logged in users */}
             {user && <ProfileSection />}
             
-            {/* Logout Button - Only for logged-in users */}
+            {/* Logout Button - Only for logged-in users, now always visible */}
             {user && (
               <LogoutButton 
                 onClick={handleLogout}
                 variants={itemVariants}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileHover={{ scale: 1.03 }} // Reduced scale effect
+                whileTap={{ scale: 0.97 }} // Reduced scale effect
               >
                 Logout
               </LogoutButton>
@@ -914,8 +856,8 @@ const EnhancedHeader = () => {
             {/* Mobile Navigation Button */}
             <MobileMenuButton 
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
+              whileHover={{ scale: 1.05 }} // Reduced scale effect
+              whileTap={{ scale: 0.95 }}
             >
               <HamburgerIcon ref={hamburgerRef}>
                 <span></span>

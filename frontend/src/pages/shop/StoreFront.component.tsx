@@ -17,7 +17,8 @@ import ShoppingCart from "../../components/ShoppingCart/ShoppingCart";     // Ve
 import { useToast } from "../../hooks/use-toast";               // Verify path
 
 // --- Asset Imports ---
-const wavesVideo = "/Swans.mp4"; // Note the file is actually called "Waves.mp4" in your public folder
+// UPDATED: Renamed variable and changed path to Swans.mp4
+const swanVideo = "/Swans.mp4"; // Ensure this file exists in your public folder
 const logoImg = "/Logo.png";                   // Verify path
 
 // -----------------------------------------------------------------
@@ -94,6 +95,7 @@ const StoreContainer = styled.div`
   color: white;
 `;
 
+// --- VideoBackground Component (No changes needed here) ---
 const VideoBackground = styled.div`
   position: absolute;
   top: 0; left: 0; width: 100%; height: 100%;
@@ -295,8 +297,8 @@ const StoreFront: React.FC = () => {
     setIsAddingToCart(packageId);
     try {
         // --- FIX REQUIRED IN CartContext.tsx ---
-        // Ensure `addToCart` signature accepts `id: string`
-        await addToCart(packageId);
+        // Ensure addToCart signature accepts id: string
+        await addToCart(packageId); // Ensure your CartContext's addToCart accepts a string ID
 
         toast({ title: "Success!", description: `Added ${packageData.name} to cart.` });
         setShowPulse(true);
@@ -317,11 +319,15 @@ const StoreFront: React.FC = () => {
       <ContentOverlay>
 
         <HeroSection ref={heroRef}>
+           {/* --- UPDATED Video Section --- */}
            <VideoBackground>
              <video autoPlay loop muted playsInline key="hero-bg-video">
-               <source src={wavesVideo} type="video/mp4" />
+               {/* UPDATED: Using swanVideo constant for the source */}
+               <source src={swanVideo} type="video/mp4" />
+               Your browser does not support the video tag.
              </video>
            </VideoBackground>
+           {/* --- END UPDATED Video Section --- */}
 
            <PremiumBadge initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 1, duration: 0.8 }}> PREMIER </PremiumBadge>
 
@@ -332,7 +338,7 @@ const StoreFront: React.FC = () => {
              <HeroContent>
                <HeroTitle variants={itemVariants}> Elite Training Designed by{' '} <AnimatedName>Sean Swan</AnimatedName> </HeroTitle>
                <HeroSubtitle variants={itemVariants}> 25+ Years of Experience & NASM-Approved Protocols </HeroSubtitle>
-               <HeroDescription variants={itemVariants}> Discover a revolutionary workout program... </HeroDescription>
+               <HeroDescription variants={itemVariants}> Discover a revolutionary workout program tailored to your unique goals. Leveraging over two decades of expertise and cutting-edge techniques, Sean Swan delivers results that redefine your limits. </HeroDescription> {/* Example updated text */}
                <ButtonsContainer variants={itemVariants}>
                   <motion.div {...buttonMotionProps}> <GlowButton text="Book Consultation" theme="cosmic" size="large" onClick={() => setShowOrientation(true)} /> </motion.div>
                   <motion.div {...buttonMotionProps}> <GlowButton text="View Packages" theme="purple" size="large" onClick={() => document.getElementById("packages-section")?.scrollIntoView({ behavior: "smooth" })}/> </motion.div>
@@ -345,7 +351,7 @@ const StoreFront: React.FC = () => {
         <ParallaxSection ref={parallaxRef} initial="hidden" animate={parallaxControls} variants={containerVariants}>
           <ParallaxContent>
             <ParallaxTitle variants={itemVariants}>Elevate Your Performance</ParallaxTitle>
-            <ParallaxSubtitle variants={itemVariants}> Our premium packages are designed to transform... </ParallaxSubtitle>
+            <ParallaxSubtitle variants={itemVariants}> Our premium packages are designed to transform your body and mind, unlocking peak physical potential through scientifically-backed methods. </ParallaxSubtitle> {/* Example updated text */}
           </ParallaxContent>
         </ParallaxSection>
 
@@ -354,7 +360,7 @@ const StoreFront: React.FC = () => {
           <Grid initial="hidden" animate={fixedPackagesControls} variants={gridVariants}>
             {fixedPackages.map((pkg) => {
               const { start, end } = getGradientColors(pkg.theme);
-              const isLoading = isAddingToCart === pkg.id.toString(); // Ensure comparison is consistent
+              const isLoading = isAddingToCart === pkg.id.toString();
               return (
                 <motion.div key={pkg.id} variants={cardVariants}>
                   <CardContainer onClick={() => togglePriceVisibility(pkg.id.toString())}>
@@ -366,15 +372,23 @@ const StoreFront: React.FC = () => {
                       <CardTitle>{pkg.name}</CardTitle>
                       <CardDescription>{pkg.description}</CardDescription>
                       <PriceBox variants={itemVariants}>
+                       <AnimatePresence mode="wait">
                         {canViewPrices ? (
                           revealPrices[pkg.id.toString()] ? (
-                            <PriceContent key="price" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                            <PriceContent key="price" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
                               <PriceLabel>Investment</PriceLabel>
                               <Price><span>$</span>{formatPrice(pkg.totalCost)}</Price>
                               <PriceDetails>${formatPrice(pkg.pricePerSession)} per session</PriceDetails>
                             </PriceContent>
-                          ) : ( <motion.div key="reveal" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>Click to reveal price</motion.div> )
-                        ) : ( <LoginMessage>Login as a client to view pricing</LoginMessage> )}
+                          ) : (
+                            <motion.div key="reveal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'rgba(255,255,255,0.7)'}}>Click to reveal price</motion.div>
+                          )
+                        ) : (
+                          <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%'}}>
+                             <LoginMessage>Login as a client to view pricing</LoginMessage>
+                          </motion.div>
+                        )}
+                       </AnimatePresence>
                       </PriceBox>
                       <CardActions>
                          <motion.div {...buttonMotionProps} style={{ width: '100%'}}>
@@ -406,15 +420,23 @@ const StoreFront: React.FC = () => {
                        <CardTitle>{pkg.name}</CardTitle>
                        <CardDescription>{pkg.description}</CardDescription>
                        <PriceBox variants={itemVariants}>
+                        <AnimatePresence mode="wait">
                          {canViewPrices ? (
                            revealPrices[pkg.id.toString()] ? (
-                             <PriceContent key="price" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                             <PriceContent key="price" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
                                <PriceLabel>Investment</PriceLabel>
                                <Price><span>$</span>{formatPrice(pkg.totalCost)}</Price>
                                <PriceDetails> {pkg.totalSessions} sessions ({pkg.sessionsPerWeek}/week)<br/>${formatPrice(pkg.pricePerSession)} per session </PriceDetails>
                              </PriceContent>
-                           ) : ( <motion.div key="reveal" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>Click to reveal price</motion.div> )
-                         ) : ( <LoginMessage>Login as a client to view pricing</LoginMessage> )}
+                           ) : (
+                             <motion.div key="reveal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'rgba(255,255,255,0.7)'}}>Click to reveal price</motion.div>
+                            )
+                         ) : (
+                            <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%'}}>
+                             <LoginMessage>Login as a client to view pricing</LoginMessage>
+                           </motion.div>
+                         )}
+                        </AnimatePresence>
                        </PriceBox>
                        <CardActions>
                           <motion.div {...buttonMotionProps} style={{ width: '100%'}}>
