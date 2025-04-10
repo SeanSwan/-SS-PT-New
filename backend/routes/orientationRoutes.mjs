@@ -2,7 +2,7 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { protect } from '../middleware/authMiddleware.mjs';
-import { orientationSignup } from '../controllers/orientationController.js';
+import { orientationSignup } from '../controllers/orientationControlle.mjs';
 
 const router = express.Router();
 
