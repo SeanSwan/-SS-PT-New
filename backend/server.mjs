@@ -74,17 +74,36 @@ const corsOptions = {
 
 // =================== MIDDLEWARE ORDERING IS CRITICAL ===================
 
-// 1. CORS Middleware - Apply globally FIRST
+// *** UNCONVENTIONAL ORDERING FOR DIAGNOSTICS ***
+
+// 1. Explicit OPTIONS Handler for Login (with logging) - TRYING THIS FIRST
+// Ensure preflight requests for login are handled correctly using our CORS config
+app.options('/api/auth/login', (req, res, next) => {
+  // Log that this specific handler was hit and the origin
+  console.log(`>>> DIAGNOSTIC: Explicit OPTIONS /api/auth/login handler reached. Origin: ${req.headers.origin}`);
+  logger.info(`>>> DIAGNOSTIC: Explicit OPTIONS /api/auth/login handler reached`, { origin: req.headers.origin });
+
+  // Now, call the actual cors middleware configured with our options
+  // This function will handle validating the origin and sending the response headers
+  cors(corsOptions)(req, res, next);
+
+  // Log after to see if it completed execution within this handler.
+  console.log(`<<< DIAGNOSTIC: Explicit OPTIONS /api/auth/login handler finished processing.`);
+  logger.info(`<<< DIAGNOSTIC: Explicit OPTIONS /api/auth/login handler finished processing`, { origin: req.headers.origin, statusAfterCors: res.statusCode });
+
+});
+
+// 2. Global CORS Middleware - Apply globally AFTER the specific OPTIONS handler
 app.use(cors(corsOptions));
 
-// 2. Specific Raw Body Parsing (e.g., Stripe Webhooks)
+// 3. Specific Raw Body Parsing (e.g., Stripe Webhooks)
 app.use('/api/cart/webhook', express.raw({ type: 'application/json' }));
 
-// 3. Standard Body Parsers
+// 4. Standard Body Parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 4. Request Logger
+// 5. Request Logger
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
@@ -97,7 +116,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// 5. Basic Health Check & Root Route Handlers
+// 6. Basic Health Check & Root Route Handlers
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
@@ -113,28 +132,7 @@ app.get('/test-cors', (req, res) => {
 });
 
 
-// 6. API Routes
-
-// *** MODIFIED EXPLICIT OPTIONS HANDLER FOR LOGIN WITH LOGGING ***
-// Add logging to see if this specific handler is reached for the preflight
-app.options('/api/auth/login', (req, res, next) => {
-  // Log that this specific handler was hit and the origin
-  console.log(`>>> OPTIONS /api/auth/login handler reached. Origin: ${req.headers.origin}`);
-  logger.info(`>>> OPTIONS /api/auth/login handler reached`, { origin: req.headers.origin });
-
-  // Now, call the actual cors middleware configured with our options
-  // This function will handle validating the origin and sending the response headers
-  cors(corsOptions)(req, res, next);
-
-  // Note: The cors middleware (when called like this) should handle sending the
-  // 204 response if the origin is allowed. We don't explicitly call res.sendStatus(204) here.
-  // We add a log *after* to see if it completes.
-  console.log(`<<< OPTIONS /api/auth/login handler finished processing.`);
-  logger.info(`<<< OPTIONS /api/auth/login handler finished processing`, { origin: req.headers.origin, statusAfterCors: res.statusCode });
-
-});
-// *** END MODIFIED OPTIONS HANDLER ***
-
+// 7. API Routes
 app.use("/api/auth", authRoutes); // Mount the router containing POST /api/auth/login etc.
 app.use("/api/storefront", storefrontRoutes);
 app.use("/api/orientation", orientationRoutes);
@@ -144,7 +142,7 @@ app.use("/api/checkout", checkoutRoutes);
 app.use("/api/schedule", scheduleRoutes);
 app.use("/api/contact", contactRoutes);
 
-// 7. Error Handling Middleware (LAST)
+// 8. Error Handling Middleware (LAST)
 app.use(notFound); // Catches 404s for any routes not matched above
 app.use(errorHandler); // General error handler
 
