@@ -1,6 +1,6 @@
 import logger from '../utils/logger.mjs';
 
-import sequelize from '../database';
+import sequelize from '../database.mjs';
 
 export const getUsers = async (req, res) => {
   try {
