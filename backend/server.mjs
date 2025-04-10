@@ -69,7 +69,7 @@ const corsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
-  optionsSuccessStatus: 204 // Use 204 No Content for successful preflight OPTIONS requests
+  optionsSuccessStatus: 204
 };
 
 // =================== MIDDLEWARE ORDERING IS CRITICAL ===================
@@ -112,15 +112,30 @@ app.get('/test-cors', (req, res) => {
   });
 });
 
+
 // 6. API Routes
 
-// *** ADDED EXPLICIT OPTIONS HANDLER FOR LOGIN ***
-// Ensure preflight requests for login are handled correctly using our CORS config
-// This MUST come before the `authRoutes` are used.
-app.options('/api/auth/login', cors(corsOptions));
-// *** END EXPLICIT OPTIONS HANDLER ***
+// *** MODIFIED EXPLICIT OPTIONS HANDLER FOR LOGIN WITH LOGGING ***
+// Add logging to see if this specific handler is reached for the preflight
+app.options('/api/auth/login', (req, res, next) => {
+  // Log that this specific handler was hit and the origin
+  console.log(`>>> OPTIONS /api/auth/login handler reached. Origin: ${req.headers.origin}`);
+  logger.info(`>>> OPTIONS /api/auth/login handler reached`, { origin: req.headers.origin });
 
-app.use("/api/auth", authRoutes); // Now mount the router containing POST /api/auth/login etc.
+  // Now, call the actual cors middleware configured with our options
+  // This function will handle validating the origin and sending the response headers
+  cors(corsOptions)(req, res, next);
+
+  // Note: The cors middleware (when called like this) should handle sending the
+  // 204 response if the origin is allowed. We don't explicitly call res.sendStatus(204) here.
+  // We add a log *after* to see if it completes.
+  console.log(`<<< OPTIONS /api/auth/login handler finished processing.`);
+  logger.info(`<<< OPTIONS /api/auth/login handler finished processing`, { origin: req.headers.origin, statusAfterCors: res.statusCode });
+
+});
+// *** END MODIFIED OPTIONS HANDLER ***
+
+app.use("/api/auth", authRoutes); // Mount the router containing POST /api/auth/login etc.
 app.use("/api/storefront", storefrontRoutes);
 app.use("/api/orientation", orientationRoutes);
 app.use("/api/cart", cartRoutes);
