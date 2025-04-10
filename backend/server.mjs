@@ -1,7 +1,7 @@
 /**
  * Swan Studios - API Server
  * ========================
- * Reverted to secure CORS config + explicit OPTIONS handler
+ * Enhanced CORS configuration for Render hosting
  */
 
 import express from "express";
@@ -52,12 +52,15 @@ const allowedOrigins = process.env.NODE_ENV === 'production'
 logger.info('Allowed origins list (for CORS & Socket.IO):', { origins: allowedOrigins });
 
 // --- CORS Configuration ---
+// For development, we'll use a more permissive setup
+// For production, we'll use a more restrictive setup
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin) { // Allow requests with no origin (health checks, curl, etc.)
-      return callback(null, true);
-    }
-    if (allowedOrigins.includes(origin)) { // Check against allowed list
+    // Allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Check against allowed list
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       logger.warn(`CORS blocked for origin: ${origin}`);
@@ -67,12 +70,60 @@ const corsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+  preflightContinue: false, // Important for handling OPTIONS correctly
   optionsSuccessStatus: 204
 };
 
 // =================== MIDDLEWARE ORDERING IS CRITICAL ===================
 
-// 1. CORS Middleware - Apply globally FIRST
+// *** CRITICAL CHANGE 1: Direct CORS handler for OPTIONS requests ***
+// This intercepts OPTIONS requests before they're processed by other middleware
+app.options('*', (req, res) => {
+  // Get the origin from the request
+  const origin = req.headers.origin;
+  
+  // Log the OPTIONS request for debugging
+  logger.info(`OPTIONS request received for ${req.url} from origin: ${origin}`);
+  
+  // Set appropriate CORS headers manually
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Max-Age', '86400'); // 24 hours
+    
+    logger.info(`CORS headers set successfully for origin: ${origin}`);
+    res.status(204).end();
+  } else {
+    logger.warn(`CORS rejected for OPTIONS request from origin: ${origin}`);
+    res.status(403).json({ message: "CORS not allowed for this origin" });
+  }
+});
+
+// *** CRITICAL CHANGE 2: Apply origin-checking middleware for non-OPTIONS requests ***
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  if (req.method !== 'OPTIONS') {
+    if (origin && allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+      next();
+    } else if (!origin) {
+      // Allow requests with no origin (like health checks)
+      next();
+    } else {
+      logger.warn(`CORS blocked for non-OPTIONS request from origin: ${origin}`);
+      return res.status(403).json({ message: "CORS not allowed for this origin" });
+    }
+  } else {
+    // OPTIONS requests are handled by the app.options handler above
+    next();
+  }
+});
+
+// 1. Standard CORS Middleware (secondary fallback)
 app.use(cors(corsOptions));
 
 // 2. Specific Raw Body Parsing (e.g., Stripe Webhooks)
@@ -111,11 +162,8 @@ app.get('/test-cors', (req, res) => { // Keep for manual testing
 });
 
 // 6. API Routes
-
-// Explicit OPTIONS handler for login (Placed before authRoutes)
-app.options('/api/auth/login', cors(corsOptions));
-
-app.use("/api/auth", authRoutes); // Mount the router containing POST /api/auth/login etc.
+// We no longer need explicit OPTIONS handlers as they're handled globally
+app.use("/api/auth", authRoutes);
 app.use("/api/storefront", storefrontRoutes);
 app.use("/api/orientation", orientationRoutes);
 app.use("/api/cart", cartRoutes);
@@ -130,7 +178,17 @@ app.use(errorHandler);
 
 // ================== SOCKET.IO SETUP ==================
 export const io = new Server(server, {
-  cors: corsOptions, // Use secure CORS options
+  cors: {
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by Socket.IO CORS`));
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST']
+  }
 });
 
 // Socket event handlers... (Keep your existing logic here)
@@ -145,11 +203,10 @@ io.on("connection", (socket) => {
   socket.on('error', (error) => { logger.error(`Socket error on ${socket.id}:`, { error: error.message }); });
 });
 
-
-// ================== DB & SEEDING FUNCTIONS (Placeholder) ==================
+// Keep your existing database, seeding, and server start code unchanged...
+// ================== DB & SEEDING FUNCTIONS ==================
 const seedStorefrontItems = async () => { try { /*...*/ } catch (error) { logger.error('Error seeding storefront items:', error); throw error; }};
 const seedDatabase = async () => { try { /*...*/ } catch (error) { logger.error('Error seeding database:', error); throw error; }};
-
 
 // ================== DATABASE SYNC & SERVER START ==================
 const startServer = async () => {
@@ -179,6 +236,7 @@ const startServer = async () => {
       console.log('\n==================================================');
       logger.info(`✅ Swan Studios API Server running on port ${port}`);
       logger.info(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
+      logger.info(`✅ CORS configured for origins: ${allowedOrigins.join(', ')}`);
       console.log('==================================================\n');
     });
   } catch (error) {
