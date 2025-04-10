@@ -69,12 +69,12 @@ const corsOptions = {
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 204 // Use 204 No Content for successful preflight OPTIONS requests
 };
 
 // =================== MIDDLEWARE ORDERING IS CRITICAL ===================
 
-// 1. CORS Middleware
+// 1. CORS Middleware - Apply globally FIRST
 app.use(cors(corsOptions));
 
 // 2. Specific Raw Body Parsing (e.g., Stripe Webhooks)
@@ -90,7 +90,6 @@ app.use((req, res, next) => {
   res.on('finish', () => {
     const duration = Date.now() - start;
     const logLevel = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info';
-    // Avoid logging successful root/health check pings if too noisy
     if (!(req.path === '/' && res.statusCode < 400) && !(req.path === '/health' && res.statusCode < 400)) {
          logger.log(logLevel, `← ${res.statusCode} ${req.method} ${req.originalUrl}`, { durationMs: duration });
     }
@@ -102,15 +101,10 @@ app.use((req, res, next) => {
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
-
-// *** ADDED ROOT ROUTE HANDLER ***
-// Handles GET/HEAD requests to the base URL (e.g., Render health checks)
 app.get('/', (req, res) => {
   res.status(200).json({ message: 'Swan Studios API is running' });
 });
-// *** END ADDED ROOT ROUTE HANDLER ***
-
-app.get('/test-cors', (req, res) => { // Keep this for manual testing if needed
+app.get('/test-cors', (req, res) => {
   res.json({
     message: 'CORS check successful from backend (standard config).',
     origin: req.headers.origin || 'unknown',
@@ -118,9 +112,15 @@ app.get('/test-cors', (req, res) => { // Keep this for manual testing if needed
   });
 });
 
-
 // 6. API Routes
-app.use("/api/auth", authRoutes);
+
+// *** ADDED EXPLICIT OPTIONS HANDLER FOR LOGIN ***
+// Ensure preflight requests for login are handled correctly using our CORS config
+// This MUST come before the `authRoutes` are used.
+app.options('/api/auth/login', cors(corsOptions));
+// *** END EXPLICIT OPTIONS HANDLER ***
+
+app.use("/api/auth", authRoutes); // Now mount the router containing POST /api/auth/login etc.
 app.use("/api/storefront", storefrontRoutes);
 app.use("/api/orientation", orientationRoutes);
 app.use("/api/cart", cartRoutes);
@@ -168,7 +168,7 @@ const startServer = async () => {
     if (process.env.NODE_ENV !== 'production') {
       logger.info('Development mode: Syncing database schema...');
       try {
-        await sequelize.sync({ alter: false }); // Use alter: false if migrations handle schema
+        await sequelize.sync({ alter: false });
         logger.info('Database synchronized successfully (DEV mode)');
         await seedDatabase();
       } catch (syncError) {
@@ -177,7 +177,6 @@ const startServer = async () => {
       }
     } else {
       logger.info('Production mode: Skipping schema sync.');
-      // await seedStorefrontItems(); // Optional prod seeding
     }
 
     // Start HTTP server
