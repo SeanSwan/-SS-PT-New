@@ -1,17 +1,17 @@
 /**
  * Swan Studios - API Server
  * ========================
- * Enhanced CORS configuration for Render hosting
+ * Simplified and targeted CORS configuration for Render hosting
  */
 
 import express from "express";
-import cors from "cors"; // Standard CORS package
+import cors from "cors";
 import dotenv from "dotenv";
 import http from "http";
 import { Server } from "socket.io";
 import sequelize from "./database.mjs";
 import setupAssociations from "./setupAssociations.mjs";
-import logger from './utils/logger.mjs'; // Import logger
+import logger from './utils/logger.mjs';
 
 // Route imports
 import authRoutes from "./routes/authRoutes.mjs";
@@ -35,95 +35,45 @@ const server = http.createServer(app);
 
 // Determine port based on environment
 const port = process.env.NODE_ENV === 'production'
-  ? (process.env.PORT || 10000) // Render provides PORT
-  : (process.env.BACKEND_PORT || 5000); // Local dev port
+  ? (process.env.PORT || 10000)
+  : (process.env.BACKEND_PORT || 5000);
 
 // --- Allowed Origins Setup ---
+// For production, we're using a simpler, more permissive approach
 const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? [
-      'https://sswanstudios.com',
-      'https://www.sswanstudios.com',
-      // Add other relevant production frontend/service URLs if needed
-    ]
+  ? '*' // Temporarily allow all origins in production to test if Render's proxy is the issue
   : process.env.FRONTEND_ORIGINS
     ? process.env.FRONTEND_ORIGINS.split(",").map((origin) => origin.trim())
-    : ["http://localhost:5173", "http://localhost:5174"]; // Default dev origins
+    : ["http://localhost:5173", "http://localhost:5174"];
 
-logger.info('Allowed origins list (for CORS & Socket.IO):', { origins: allowedOrigins });
+logger.info('CORS configuration:', { 
+  environment: process.env.NODE_ENV || 'development',
+  origins: typeof allowedOrigins === 'string' ? allowedOrigins : allowedOrigins.join(', ')
+});
 
 // --- CORS Configuration ---
-// For development, we'll use a more permissive setup
-// For production, we'll use a more restrictive setup
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) return callback(null, true);
-    
-    // Check against allowed list
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      logger.warn(`CORS blocked for origin: ${origin}`);
-      callback(new Error(`Origin ${origin} not allowed by CORS`));
+// Simplified CORS setup that's more likely to work with Render
+const corsOptions = process.env.NODE_ENV === 'production'
+  ? {
+      // In production, temporarily allow all origins to test if this resolves the issue
+      origin: '*',
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+      optionsSuccessStatus: 204
     }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
-  preflightContinue: false, // Important for handling OPTIONS correctly
-  optionsSuccessStatus: 204
-};
+  : {
+      // In development, use the standard origin checking
+      origin: allowedOrigins,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+      optionsSuccessStatus: 204
+    };
 
 // =================== MIDDLEWARE ORDERING IS CRITICAL ===================
 
-// *** CRITICAL CHANGE 1: Direct CORS handler for OPTIONS requests ***
-// This intercepts OPTIONS requests before they're processed by other middleware
-app.options('*', (req, res) => {
-  // Get the origin from the request
-  const origin = req.headers.origin;
-  
-  // Log the OPTIONS request for debugging
-  logger.info(`OPTIONS request received for ${req.url} from origin: ${origin}`);
-  
-  // Set appropriate CORS headers manually
-  if (origin && allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Max-Age', '86400'); // 24 hours
-    
-    logger.info(`CORS headers set successfully for origin: ${origin}`);
-    res.status(204).end();
-  } else {
-    logger.warn(`CORS rejected for OPTIONS request from origin: ${origin}`);
-    res.status(403).json({ message: "CORS not allowed for this origin" });
-  }
-});
-
-// *** CRITICAL CHANGE 2: Apply origin-checking middleware for non-OPTIONS requests ***
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  if (req.method !== 'OPTIONS') {
-    if (origin && allowedOrigins.includes(origin)) {
-      res.header('Access-Control-Allow-Origin', origin);
-      res.header('Access-Control-Allow-Credentials', 'true');
-      next();
-    } else if (!origin) {
-      // Allow requests with no origin (like health checks)
-      next();
-    } else {
-      logger.warn(`CORS blocked for non-OPTIONS request from origin: ${origin}`);
-      return res.status(403).json({ message: "CORS not allowed for this origin" });
-    }
-  } else {
-    // OPTIONS requests are handled by the app.options handler above
-    next();
-  }
-});
-
-// 1. Standard CORS Middleware (secondary fallback)
+// 1. CORS Middleware - Apply globally FIRST, with simplified settings
 app.use(cors(corsOptions));
 
 // 2. Specific Raw Body Parsing (e.g., Stripe Webhooks)
@@ -139,8 +89,15 @@ app.use((req, res, next) => {
   res.on('finish', () => {
     const duration = Date.now() - start;
     const logLevel = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info';
-    if (!(req.path === '/' && res.statusCode < 400) && !(req.path === '/health' && res.statusCode < 400)) {
-         logger.log(logLevel, `← ${res.statusCode} ${req.method} ${req.originalUrl}`, { durationMs: duration });
+    // Log all requests in production to help diagnose CORS issues
+    if (process.env.NODE_ENV === 'production' || 
+        !(req.path === '/' && res.statusCode < 400) && 
+        !(req.path === '/health' && res.statusCode < 400)) {
+      logger.log(logLevel, `← ${res.statusCode} ${req.method} ${req.originalUrl}`, { 
+        durationMs: duration,
+        origin: req.headers.origin || 'none',
+        userAgent: req.headers['user-agent']
+      });
     }
   });
   next();
@@ -150,19 +107,25 @@ app.use((req, res, next) => {
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
 app.get('/', (req, res) => {
-  res.status(200).json({ message: 'Swan Studios API is running' });
-});
-app.get('/test-cors', (req, res) => { // Keep for manual testing
-  res.json({
-    message: 'CORS check successful from backend (standard config).',
-    origin: req.headers.origin || 'unknown',
-    timestamp: new Date().toISOString()
+  res.status(200).json({ 
+    message: 'Swan Studios API is running',
+    cors: process.env.NODE_ENV === 'production' ? 'All origins allowed (temporary)' : 'Limited origins',
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
-// 6. API Routes
-// We no longer need explicit OPTIONS handlers as they're handled globally
+app.get('/test-cors', (req, res) => {
+  res.json({
+    message: 'CORS check successful from backend.',
+    origin: req.headers.origin || 'unknown',
+    timestamp: new Date().toISOString(),
+    corsMode: process.env.NODE_ENV === 'production' ? 'permissive-temporary' : 'standard'
+  });
+});
+
+// 6. API Routes - Keep mounting structure unchanged
 app.use("/api/auth", authRoutes);
 app.use("/api/storefront", storefrontRoutes);
 app.use("/api/orientation", orientationRoutes);
@@ -178,17 +141,7 @@ app.use(errorHandler);
 
 // ================== SOCKET.IO SETUP ==================
 export const io = new Server(server, {
-  cors: {
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error(`Origin ${origin} not allowed by Socket.IO CORS`));
-      }
-    },
-    credentials: true,
-    methods: ['GET', 'POST']
-  }
+  cors: corsOptions // Use the same CORS settings for consistency
 });
 
 // Socket event handlers... (Keep your existing logic here)
@@ -204,11 +157,6 @@ io.on("connection", (socket) => {
 });
 
 // Keep your existing database, seeding, and server start code unchanged...
-// ================== DB & SEEDING FUNCTIONS ==================
-const seedStorefrontItems = async () => { try { /*...*/ } catch (error) { logger.error('Error seeding storefront items:', error); throw error; }};
-const seedDatabase = async () => { try { /*...*/ } catch (error) { logger.error('Error seeding database:', error); throw error; }};
-
-// ================== DATABASE SYNC & SERVER START ==================
 const startServer = async () => {
   try {
     setupAssociations();
@@ -222,7 +170,6 @@ const startServer = async () => {
       try {
         await sequelize.sync({ alter: false });
         logger.info('Database synchronized successfully (DEV mode)');
-        await seedDatabase();
       } catch (syncError) {
         logger.error('Error during DEV database sync/seed:', syncError);
         logger.warn('Attempting startup despite sync/seed error...');
@@ -236,7 +183,7 @@ const startServer = async () => {
       console.log('\n==================================================');
       logger.info(`✅ Swan Studios API Server running on port ${port}`);
       logger.info(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
-      logger.info(`✅ CORS configured for origins: ${allowedOrigins.join(', ')}`);
+      logger.info(`✅ CORS configured for origins: ${typeof allowedOrigins === 'string' ? allowedOrigins : allowedOrigins.join(', ')}`);
       console.log('==================================================\n');
     });
   } catch (error) {
@@ -247,6 +194,7 @@ const startServer = async () => {
 
 // ================== GRACEFUL SHUTDOWN ==================
 const shutdown = async (signal) => {
+  // Keep your existing shutdown code unchanged
   logger.warn(`Received ${signal}. Shutting down gracefully...`);
   try {
     server.close(async (err) => {
