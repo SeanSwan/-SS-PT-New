@@ -379,3 +379,11 @@
 {"level":"info","message":"Seeding database (dev mode)...","timestamp":"2025-04-09T23:20:13.595Z"}
 {"level":"info","message":"Swan Studios API Server running on port 5000","timestamp":"2025-04-09T23:20:13.597Z"}
 {"level":"info","message":"Environment: development","timestamp":"2025-04-09T23:20:13.598Z"}
+{"level":"info","message":"Allowed origins list (for CORS & Socket.IO):","origins":["http://localhost:5173","http://localhost:5174"],"timestamp":"2025-04-10T00:48:27.536Z"}
+{"level":"info","message":"Model associations set up successfully","timestamp":"2025-04-10T00:48:27.558Z"}
+{"level":"info","message":"Database connection established successfully","timestamp":"2025-04-10T00:48:28.090Z"}
+{"level":"info","message":"Development mode: Syncing database schema...","timestamp":"2025-04-10T00:48:28.090Z"}
+{"level":"info","message":"Database synchronized successfully (DEV mode)","timestamp":"2025-04-10T00:48:28.147Z"}
+{"level":"info","message":"Seeding database (dev mode)...","timestamp":"2025-04-10T00:48:28.148Z"}
+{"level":"info","message":"✅ Swan Studios API Server running on port 5000","timestamp":"2025-04-10T00:48:28.150Z"}
+{"level":"info","message":"✅ Environment: development","timestamp":"2025-04-10T00:48:28.151Z"}
