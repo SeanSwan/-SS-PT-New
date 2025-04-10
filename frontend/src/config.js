@@ -1,55 +1,50 @@
-// Configuration file for the Swan Studios application
-// This file defines key configuration values used throughout the application
+// Frontend config file - config.js
+const isProd = import.meta.env.PROD || import.meta.env.VITE_APP_ENV === 'production';
 
-// API Base URL configuration
-// In development, set to empty string to use the proxy defined in vite.config.js
-// In production, set to the actual backend URL
-export const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://swanstudios.onrender.com'  // Production backend URL
-  : '';  // Empty in development (will use proxy)
+// API URLs
+export const API_BASE_URL = ''; // Empty string relies on proxy for /api paths
+export const DEV_BACKEND_URL = 'http://localhost:5000';
+export const PROD_BACKEND_URL = 'https://swanstudios.onrender.com';
 
 // Auth configuration
 export const AUTH_CONFIG = {
-  tokenKey: 'swan_auth_token',
-  refreshTokenKey: 'swan_refresh_token',
-  tokenRefreshThresholdMs: 5 * 60 * 1000  // 5 minutes
+  tokenKey: 'swanstudios_token',
+  refreshTokenKey: 'swanstudios_refresh_token',
+  tokenRefreshThresholdMs: 10 * 60 * 1000, // 10 minutes
 };
-
-// Backend URL for direct API calls (only used in development)
-// This should match the proxy target in vite.config.js
-export const DEV_BACKEND_URL = 'http://localhost:5000';
 
 // Application settings
 export const APP_CONFIG = {
-  defaultPageSize: 10,
-  maxUploadSizeMB: 5,
-  sessionTimeoutMinutes: 30,
   appName: 'Swan Studios',
-  copyright: `© ${new Date().getFullYear()} Swan Studios LLC. All rights reserved.`
-};
-
-// Media asset paths (use these constants instead of hardcoding paths)
-export const MEDIA_PATHS = {
-  logo: '/Logo.png',
-  wavesVideo: '/Waves.mp4',
-  videoPosters: {
-    waves: '/video-poster.jpg'
-  },
-  profiles: {
-    male1: '/male1.jpg',
-    male2: '/male2.jpg',
-    maleBlk: '/maleblk.jpg',
-    femaleAsi: '/femaleasi.jpg',
-    femaleLat: '/femalelat.jpg',
-    femaleOldWht: '/femaleoldwht.jpg',
-    femaleWht: '/femalewht.jpg'
-  }
+  logoPath: '/Logo.png',
+  contactEmail: 'ogpswan@yahoo.com',
+  supportPhone: '+18777804236',
 };
 
 // Feature flags
 export const FEATURES = {
-  enableReports: true,
+  enableRegistration: true,
+  enablePasswordReset: true,
+  enableSocialLogin: false,
   enableNotifications: true,
-  enableScheduling: true,
-  enableChat: true
+};
+
+// Logging configuration
+export const LOGGING = {
+  enableDetailedLogs: !isProd,
+  logApiCalls: !isProd,
+  logAuthEvents: true,
+};
+
+console.log(`Running in ${isProd ? 'production' : 'development'} mode`);
+console.log(`API Base URL: ${API_BASE_URL || '(using proxy for /api)'}`);
+
+export default {
+  API_BASE_URL,
+  DEV_BACKEND_URL,
+  PROD_BACKEND_URL,
+  AUTH_CONFIG,
+  APP_CONFIG,
+  FEATURES,
+  LOGGING,
 };

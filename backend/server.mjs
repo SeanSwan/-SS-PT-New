@@ -1,235 +1,182 @@
-/**
- * Swan Studios - API Server
- * ========================
- * Simplified and targeted CORS configuration for Render hosting
- */
-
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import http from "http";
-import { Server } from "socket.io";
-import sequelize from "./database.mjs";
-import setupAssociations from "./setupAssociations.mjs";
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import morgan from 'morgan';
+import helmet from 'helmet';
+import compression from 'compression';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import apiRoutes from './routes/api.mjs';
+import authRoutes from './routes/authRoutes.mjs';
+import sessionRoutes from './routes/sessionRoutes.mjs';
+import cartRoutes from './routes/cartRoutes.mjs';
+import storefrontRoutes from './routes/storeFrontRoutes.mjs';
+import contactRoutes from './routes/contactRoutes.mjs';
+import orientationRoutes from './routes/orientationRoutes.mjs';
+import checkoutRoutes from './routes/checkoutRoutes.mjs';
+import messagesRoutes from './routes/messages.mjs';
+import scheduleRoutes from './routes/scheduleRoutes.mjs';
+import adminRoutes from './routes/adminRoutes.mjs';
+import errorMiddleware from './middleware/errorMiddleware.mjs';
 import logger from './utils/logger.mjs';
+import sequelize from './database.mjs';
+import setupAssociations from './setupAssociations.mjs';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 
-// Route imports
-import authRoutes from "./routes/authRoutes.mjs";
-import storefrontRoutes from "./routes/storeFrontRoutes.mjs";
-import orientationRoutes from "./routes/orientationRoutes.mjs";
-import cartRoutes from "./routes/cartRoutes.mjs";
-import sessionRoutes from "./routes/sessionRoutes.mjs";
-import checkoutRoutes from "./routes/checkoutRoutes.mjs";
-import scheduleRoutes from "./routes/scheduleRoutes.mjs";
-import contactRoutes from "./routes/contactRoutes.mjs";
+app.use('/api/debug', (await import('./routes/debug.mjs')).default);
 
-// Middleware imports
-import { errorHandler, notFound } from './middleware/errorMiddleware.mjs';
-
-// Load environment variables
-dotenv.config();
-
-// Initialize Express application and HTTP server
-const app = express();
-const server = http.createServer(app);
-
-// Determine port based on environment
-const port = process.env.NODE_ENV === 'production'
-  ? (process.env.PORT || 10000)
-  : (process.env.BACKEND_PORT || 5000);
-
-// --- Allowed Origins Setup ---
-// For production, we're using a simpler, more permissive approach
-const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? '*' // Temporarily allow all origins in production to test if Render's proxy is the issue
-  : process.env.FRONTEND_ORIGINS
-    ? process.env.FRONTEND_ORIGINS.split(",").map((origin) => origin.trim())
-    : ["http://localhost:5173", "http://localhost:5174"];
-
-logger.info('CORS configuration:', { 
-  environment: process.env.NODE_ENV || 'development',
-  origins: typeof allowedOrigins === 'string' ? allowedOrigins : allowedOrigins.join(', ')
+// Serve the test authentication page
+app.get('/test-auth', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'test-auth.html'));
 });
 
-// --- CORS Configuration ---
-// Simplified CORS setup that's more likely to work with Render
-const corsOptions = process.env.NODE_ENV === 'production'
-  ? {
-      // In production, temporarily allow all origins to test if this resolves the issue
-      origin: '*',
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
-      optionsSuccessStatus: 204
+// Initialize environment variables
+dotenv.config();
+
+// Set up __dirname equivalent in ES Module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Initialize Express app
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Create HTTP server
+const httpServer = createServer(app);
+
+// Initialize Socket.io
+const io = new Server(httpServer, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true
+  }
+});
+
+// Determine allowed origins based on environment
+const whitelist = process.env.FRONTEND_ORIGINS 
+  ? process.env.FRONTEND_ORIGINS.split(',') 
+  : ['http://localhost:5173', 'https://sswanstudios.com', 'https://www.sswanstudios.com'];
+
+// Debugging - log allowed origins
+logger.info(`Allowed CORS origins: ${JSON.stringify(whitelist)}`);
+
+// Configure CORS with proper options
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl requests)
+    if (!origin || whitelist.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      logger.warn(`CORS blocked request from origin: ${origin}`);
+      callback(null, true); // Allow all origins for now, but log warning
     }
-  : {
-      // In development, use the standard origin checking
-      origin: allowedOrigins,
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
-      optionsSuccessStatus: 204
-    };
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
 
-// =================== MIDDLEWARE ORDERING IS CRITICAL ===================
+// Enhanced Request Logging
+app.use(morgan(':remote-addr :method :url :status :response-time ms - :res[content-length]'));
 
-// 1. CORS Middleware - Apply globally FIRST, with simplified settings
-app.use(cors(corsOptions));
-
-// 2. Specific Raw Body Parsing (e.g., Stripe Webhooks)
-app.use('/api/cart/webhook', express.raw({ type: 'application/json' }));
-
-// 3. Standard Body Parsers
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// 4. Request Logger
+// Add explicit middleware to log all requests
 app.use((req, res, next) => {
-  const start = Date.now();
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    const logLevel = res.statusCode >= 500 ? 'error' : res.statusCode >= 400 ? 'warn' : 'info';
-    // Log all requests in production to help diagnose CORS issues
-    if (process.env.NODE_ENV === 'production' || 
-        !(req.path === '/' && res.statusCode < 400) && 
-        !(req.path === '/health' && res.statusCode < 400)) {
-      logger.log(logLevel, `← ${res.statusCode} ${req.method} ${req.originalUrl}`, { 
-        durationMs: duration,
-        origin: req.headers.origin || 'none',
-        userAgent: req.headers['user-agent']
-      });
-    }
-  });
+  logger.info(`[REQUEST] ${req.method} ${req.url} from ${req.ip}`);
   next();
 });
 
-// 5. Basic Health Check & Root Route Handlers
+// Apply security headers with careful configuration
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
+}));
+
+// Set up other middleware
+app.use(compression());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
+// Add explicit OPTIONS handler for authentication routes
+app.options('/api/auth/*', cors(corsOptions));
+
+// Apply routes
+app.use('/api/auth', authRoutes);
+app.use('/api/sessions', sessionRoutes);
+app.use('/api/cart', cartRoutes);
+app.use('/api/storefront', storefrontRoutes);
+app.use('/api/contact', contactRoutes);
+app.use('/api/orientation', orientationRoutes);
+app.use('/api/checkout', checkoutRoutes);
+app.use('/api/messages', messagesRoutes);
+app.use('/api/schedule', scheduleRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api', apiRoutes);
+
+// Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  logger.info(`Health check from ${req.ip} (${req.headers['user-agent']})`);
+  res.status(200).json({ status: 'ok', environment: process.env.NODE_ENV });
 });
 
-app.get('/', (req, res) => {
-  res.status(200).json({ 
-    message: 'Swan Studios API is running',
-    cors: process.env.NODE_ENV === 'production' ? 'All origins allowed (temporary)' : 'Limited origins',
-    environment: process.env.NODE_ENV || 'development'
+// Error handling middleware
+app.use(errorMiddleware);
+
+// Global error handler
+app.use((err, req, res, next) => {
+  logger.error(`Unhandled error: ${err.message}`, { stack: err.stack });
+  res.status(500).json({
+    success: false,
+    message: 'An unexpected error occurred',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
 });
 
-app.get('/test-cors', (req, res) => {
-  res.json({
-    message: 'CORS check successful from backend.',
-    origin: req.headers.origin || 'unknown',
-    timestamp: new Date().toISOString(),
-    corsMode: process.env.NODE_ENV === 'production' ? 'permissive-temporary' : 'standard'
-  });
-});
-
-// 6. API Routes - Keep mounting structure unchanged
-app.use("/api/auth", authRoutes);
-app.use("/api/storefront", storefrontRoutes);
-app.use("/api/orientation", orientationRoutes);
-app.use("/api/cart", cartRoutes);
-app.use("/api/sessions", sessionRoutes);
-app.use("/api/checkout", checkoutRoutes);
-app.use("/api/schedule", scheduleRoutes);
-app.use("/api/contact", contactRoutes);
-
-// 7. Error Handling Middleware (LAST)
-app.use(notFound);
-app.use(errorHandler);
-
-// ================== SOCKET.IO SETUP ==================
-export const io = new Server(server, {
-  cors: corsOptions // Use the same CORS settings for consistency
-});
-
-// Socket event handlers... (Keep your existing logic here)
-io.on("connection", (socket) => {
-  logger.info(`Socket connected: ${socket.id}`, { address: socket.handshake.address, origin: socket.handshake.headers.origin });
-  socket.on("disconnect", (reason) => { logger.info(`Socket disconnected: ${socket.id}`, { reason }); });
-  socket.on("join_schedule_room", (userId) => { socket.join(`schedule_${userId}`); logger.info(`Socket ${socket.id} joined schedule room`, { userId }); });
-  socket.on("leave_schedule_room", (userId) => { socket.leave(`schedule_${userId}`); logger.info(`Socket ${socket.id} left schedule room`, { userId }); });
-  socket.on("session_updated", (data) => { const userId = data?.userId; if (userId) { io.to(`schedule_${userId}`).emit('session_update_notification', data); logger.info(`Broadcasting session update`, { targetRoom: `schedule_${userId}` }); } else { logger.warn('Received session_updated event without userId'); } });
-  socket.on("join_cart_room", (userId) => { socket.join(`cart_${userId}`); logger.info(`Socket ${socket.id} joined cart room`, { userId }); });
-  socket.on("cart_updated", (data) => { const userId = data?.userId; if (userId) { io.to(`cart_${userId}`).emit('cart_update_notification', data); logger.info(`Broadcasting cart update`, { targetRoom: `cart_${userId}` }); } else { logger.warn('Received cart_updated event without userId'); } });
-  socket.on('error', (error) => { logger.error(`Socket error on ${socket.id}:`, { error: error.message }); });
-});
-
-// Keep your existing database, seeding, and server start code unchanged...
-const startServer = async () => {
+// Set up database and start server
+(async () => {
   try {
+    // Set up model associations
     setupAssociations();
-    logger.info('Model associations set up successfully');
+    
+    // Test database connection
     await sequelize.authenticate();
     logger.info('Database connection established successfully');
-
-    // Database Sync Logic
-    if (process.env.NODE_ENV !== 'production') {
-      logger.info('Development mode: Syncing database schema...');
-      try {
-        await sequelize.sync({ alter: false });
-        logger.info('Database synchronized successfully (DEV mode)');
-      } catch (syncError) {
-        logger.error('Error during DEV database sync/seed:', syncError);
-        logger.warn('Attempting startup despite sync/seed error...');
-      }
-    } else {
-      logger.info('Production mode: Skipping schema sync.');
-    }
-
-    // Start HTTP server
-    server.listen(port, () => {
-      console.log('\n==================================================');
-      logger.info(`✅ Swan Studios API Server running on port ${port}`);
-      logger.info(`✅ Environment: ${process.env.NODE_ENV || 'development'}`);
-      logger.info(`✅ CORS configured for origins: ${typeof allowedOrigins === 'string' ? allowedOrigins : allowedOrigins.join(', ')}`);
-      console.log('==================================================\n');
+    
+    // Start the server
+    httpServer.listen(PORT, () => {
+      logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
     });
-  } catch (error) {
-    logger.error('❌ FATAL: Error starting server:', error);
-    process.exit(1);
-  }
-};
-
-// ================== GRACEFUL SHUTDOWN ==================
-const shutdown = async (signal) => {
-  // Keep your existing shutdown code unchanged
-  logger.warn(`Received ${signal}. Shutting down gracefully...`);
-  try {
-    server.close(async (err) => {
-      if (err) logger.error('Error closing HTTP server:', err);
-      else logger.info('HTTP server closed.');
-
-      io.close((socketErr) => {
-        if (socketErr) logger.error('Error closing Socket.IO server:', socketErr);
-        else logger.info('Socket.IO server closed.');
-
-        sequelize.close().then(() => {
-          logger.info('Database connection closed.');
-          process.exit(0); // Success exit
-        }).catch(dbError => {
-          logger.error('Error closing database connection:', dbError);
-          process.exit(1); // Error exit
-        });
+    
+    // Socket.io connection handler
+    io.on('connection', (socket) => {
+      logger.info(`Socket connected: ${socket.id}`);
+      
+      socket.on('disconnect', () => {
+        logger.info(`Socket disconnected: ${socket.id}`);
       });
     });
-
-    setTimeout(() => {
-      logger.error('Graceful shutdown timed out, forcing exit.');
-      process.exit(1);
-    }, 15000);
-
   } catch (error) {
-    logger.error('Error during graceful shutdown initiation:', error);
+    logger.error(`Server initialization error: ${error.message}`, { stack: error.stack });
     process.exit(1);
   }
-};
+})();
 
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  logger.error(`Unhandled Promise Rejection: ${err.message}`, { stack: err.stack });
+});
 
-// Start the server
-startServer();
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  logger.error(`Uncaught Exception: ${err.message}`, { stack: err.stack });
+  process.exit(1);
+});
 
 export default app;
