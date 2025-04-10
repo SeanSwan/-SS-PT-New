@@ -1,9 +1,7 @@
 /**
  * Swan Studios - API Server
  * ========================
- * Main server file for the Swan Studios backend API.
- * Handles route setup, middleware configuration, database connection,
- * and Socket.IO integration.
+ * !! TEMPORARY DIAGNOSTIC VERSION - INSECURE CORS !!
  */
 
 import express from "express";
@@ -40,70 +38,34 @@ const port = process.env.NODE_ENV === 'production'
   ? (process.env.PORT || 10000) // Render provides PORT
   : (process.env.BACKEND_PORT || 5000); // Local dev port
 
-// --- Allowed Origins Setup ---
-const allowedOrigins = process.env.NODE_ENV === 'production'
-  ? [
-      'https://sswanstudios.com',
-      'https://www.sswanstudios.com',
-      // Add other relevant production frontend/service URLs if needed
-    ]
-  : process.env.FRONTEND_ORIGINS
-    ? process.env.FRONTEND_ORIGINS.split(",").map((origin) => origin.trim())
-    : ["http://localhost:5173", "http://localhost:5174"]; // Default dev origins
+logger.info(`Starting server in ${process.env.NODE_ENV || 'development'} mode`);
 
-logger.info('Allowed origins list (for CORS & Socket.IO):', { origins: allowedOrigins });
+// =================== !! TEMPORARY DIAGNOSTIC CORS !! ===================
+// Apply globally permissive CORS for testing.
+// This allows ANY origin. DO NOT LEAVE THIS IN PRODUCTION PERMANENTLY.
+logger.warn("!!! USING TEMPORARY PERMISSIVE CORS FOR DIAGNOSTICS !!!");
+app.use(cors({
+    origin: true, // Reflects the request origin - simplest way to allow specific client
+    // origin: '*', // Alternative: Allow literally any origin (less specific than origin:true)
+    credentials: true, // Still allow credentials
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
+    optionsSuccessStatus: 204
+}));
+// =======================================================================
 
-// --- CORS Configuration ---
-const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin) { // Allow requests with no origin (health checks, curl, etc.)
-      return callback(null, true);
-    }
-    if (allowedOrigins.includes(origin)) { // Check against allowed list
-      callback(null, true);
-    } else {
-      logger.warn(`CORS blocked for origin: ${origin}`);
-      callback(new Error(`Origin ${origin} not allowed by CORS`));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
-  optionsSuccessStatus: 204
-};
 
-// =================== MIDDLEWARE ORDERING IS CRITICAL ===================
+// --- REMOVED Specific OPTIONS handler ---
+// app.options('/api/auth/login', ... );
 
-// *** UNCONVENTIONAL ORDERING FOR DIAGNOSTICS ***
 
-// 1. Explicit OPTIONS Handler for Login (with logging) - TRYING THIS FIRST
-// Ensure preflight requests for login are handled correctly using our CORS config
-app.options('/api/auth/login', (req, res, next) => {
-  // Log that this specific handler was hit and the origin
-  console.log(`>>> DIAGNOSTIC: Explicit OPTIONS /api/auth/login handler reached. Origin: ${req.headers.origin}`);
-  logger.info(`>>> DIAGNOSTIC: Explicit OPTIONS /api/auth/login handler reached`, { origin: req.headers.origin });
-
-  // Now, call the actual cors middleware configured with our options
-  // This function will handle validating the origin and sending the response headers
-  cors(corsOptions)(req, res, next);
-
-  // Log after to see if it completed execution within this handler.
-  console.log(`<<< DIAGNOSTIC: Explicit OPTIONS /api/auth/login handler finished processing.`);
-  logger.info(`<<< DIAGNOSTIC: Explicit OPTIONS /api/auth/login handler finished processing`, { origin: req.headers.origin, statusAfterCors: res.statusCode });
-
-});
-
-// 2. Global CORS Middleware - Apply globally AFTER the specific OPTIONS handler
-app.use(cors(corsOptions));
-
-// 3. Specific Raw Body Parsing (e.g., Stripe Webhooks)
+// --- Standard Middleware ---
+// Specific Raw Body Parsing (e.g., Stripe Webhooks)
 app.use('/api/cart/webhook', express.raw({ type: 'application/json' }));
-
-// 4. Standard Body Parsers
+// Standard Body Parsers
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// 5. Request Logger
+// Request Logger
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
@@ -116,24 +78,19 @@ app.use((req, res, next) => {
   next();
 });
 
-// 6. Basic Health Check & Root Route Handlers
-app.get('/health', (req, res) => {
+// Basic Health Check & Root Route Handlers
+app.get('/health', (req, res) => { // Changed from /healthz in settings
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 app.get('/', (req, res) => {
   res.status(200).json({ message: 'Swan Studios API is running' });
 });
-app.get('/test-cors', (req, res) => {
-  res.json({
-    message: 'CORS check successful from backend (standard config).',
-    origin: req.headers.origin || 'unknown',
-    timestamp: new Date().toISOString()
-  });
-});
+// Test route removed as global permissive CORS makes it less relevant for testing CORS itself
+// app.get('/test-cors', ...);
 
 
-// 7. API Routes
-app.use("/api/auth", authRoutes); // Mount the router containing POST /api/auth/login etc.
+// API Routes
+app.use("/api/auth", authRoutes);
 app.use("/api/storefront", storefrontRoutes);
 app.use("/api/orientation", orientationRoutes);
 app.use("/api/cart", cartRoutes);
@@ -142,16 +99,23 @@ app.use("/api/checkout", checkoutRoutes);
 app.use("/api/schedule", scheduleRoutes);
 app.use("/api/contact", contactRoutes);
 
-// 8. Error Handling Middleware (LAST)
-app.use(notFound); // Catches 404s for any routes not matched above
-app.use(errorHandler); // General error handler
+// Error Handling Middleware (LAST)
+app.use(notFound);
+app.use(errorHandler);
 
 // ================== SOCKET.IO SETUP ==================
+// Socket.IO also uses permissive CORS for this test
 export const io = new Server(server, {
-  cors: corsOptions,
+  cors: {
+    origin: true, // Reflect origin
+    // origin: '*', // Allow all
+    credentials: true
+    // Note: methods/headers aren't directly applicable here like HTTP CORS
+  }
 });
 
 // Socket event handlers... (Keep your existing logic here)
+io.on("connection", (socket) => { /* ... */ });
 io.on("connection", (socket) => {
   logger.info(`Socket connected: ${socket.id}`, { address: socket.handshake.address, origin: socket.handshake.headers.origin });
   socket.on("disconnect", (reason) => { logger.info(`Socket disconnected: ${socket.id}`, { reason }); });
@@ -170,6 +134,7 @@ const seedDatabase = async () => { try { /*...*/ } catch (error) { logger.error(
 
 
 // ================== DATABASE SYNC & SERVER START ==================
+
 const startServer = async () => {
   try {
     setupAssociations();
@@ -205,7 +170,9 @@ const startServer = async () => {
   }
 };
 
+
 // ================== GRACEFUL SHUTDOWN ==================
+const shutdown = async (signal) => { /* ... Keep existing shutdown logic ... */ };
 const shutdown = async (signal) => {
   logger.warn(`Received ${signal}. Shutting down gracefully...`);
   try {
@@ -237,6 +204,7 @@ const shutdown = async (signal) => {
     process.exit(1);
   }
 };
+
 
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
