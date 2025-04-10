@@ -45,19 +45,13 @@ logger.info(`Starting server in ${process.env.NODE_ENV || 'development'} mode`);
 // This allows ANY origin. DO NOT LEAVE THIS IN PRODUCTION PERMANENTLY.
 logger.warn("!!! USING TEMPORARY PERMISSIVE CORS FOR DIAGNOSTICS !!!");
 app.use(cors({
-    origin: true, // Reflects the request origin - simplest way to allow specific client
-    // origin: '*', // Alternative: Allow literally any origin (less specific than origin:true)
-    credentials: true, // Still allow credentials
+    origin: true, // Reflects the request origin
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'Authorization'],
     optionsSuccessStatus: 204
 }));
 // =======================================================================
-
-
-// --- REMOVED Specific OPTIONS handler ---
-// app.options('/api/auth/login', ... );
-
 
 // --- Standard Middleware ---
 // Specific Raw Body Parsing (e.g., Stripe Webhooks)
@@ -79,15 +73,12 @@ app.use((req, res, next) => {
 });
 
 // Basic Health Check & Root Route Handlers
-app.get('/health', (req, res) => { // Changed from /healthz in settings
+app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 app.get('/', (req, res) => {
   res.status(200).json({ message: 'Swan Studios API is running' });
 });
-// Test route removed as global permissive CORS makes it less relevant for testing CORS itself
-// app.get('/test-cors', ...);
-
 
 // API Routes
 app.use("/api/auth", authRoutes);
@@ -104,18 +95,14 @@ app.use(notFound);
 app.use(errorHandler);
 
 // ================== SOCKET.IO SETUP ==================
-// Socket.IO also uses permissive CORS for this test
 export const io = new Server(server, {
   cors: {
-    origin: true, // Reflect origin
-    // origin: '*', // Allow all
+    origin: true, // Reflect origin for testing
     credentials: true
-    // Note: methods/headers aren't directly applicable here like HTTP CORS
   }
 });
 
-// Socket event handlers... (Keep your existing logic here)
-io.on("connection", (socket) => { /* ... */ });
+// Socket event handlers...
 io.on("connection", (socket) => {
   logger.info(`Socket connected: ${socket.id}`, { address: socket.handshake.address, origin: socket.handshake.headers.origin });
   socket.on("disconnect", (reason) => { logger.info(`Socket disconnected: ${socket.id}`, { reason }); });
@@ -134,7 +121,6 @@ const seedDatabase = async () => { try { /*...*/ } catch (error) { logger.error(
 
 
 // ================== DATABASE SYNC & SERVER START ==================
-
 const startServer = async () => {
   try {
     setupAssociations();
@@ -170,9 +156,8 @@ const startServer = async () => {
   }
 };
 
-
 // ================== GRACEFUL SHUTDOWN ==================
-const shutdown = async (signal) => { /* ... Keep existing shutdown logic ... */ };
+// *** REMOVED DUPLICATE DEFINITION ***
 const shutdown = async (signal) => {
   logger.warn(`Received ${signal}. Shutting down gracefully...`);
   try {
