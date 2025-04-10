@@ -236,32 +236,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             path = `/${path}`;
         }
 
-        // ALWAYS ensure path starts with /api - this is critical
+        // ALWAYS ensure path starts with /api - this is critical for proxy to work
         if (!path.startsWith('/api')) {
             logAuthAction(`Prepending /api to direct API call path "${path}"`);
-            path = `/api${path}`; // UNCOMMENTED/ADDED this line
+            path = `/api${path}`; 
         }
 
-        // Use the correct base URL depending on environment
-        // API_BASE_URL is '' in dev (uses proxy), 'https://backend-url' in prod
-        // DEV_BACKEND_URL is 'http://localhost:5000' (or your dev backend port)
-        const base = process.env.NODE_ENV === 'production'
-            ? API_BASE_URL // Production backend URL (e.g., https://swanstudios.onrender.com)
-            : DEV_BACKEND_URL; // Development backend URL (e.g., http://localhost:5000)
+        // Just return the relative path - no need for base URL anymore as we're using proxy
+        logAuthAction('Using relative API path for proxy', { path });
+        return path;
 
-        // Clean base URL: Remove trailing slash if present
-        const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
-
-        // Ensure the final URL doesn't have double // or /api/api
-        const finalPath = path.startsWith('/api') && cleanBase.endsWith('/api')
-           ? path.substring(4) // Remove /api from path if base already ends with it
-           : path;
-
-        const fullUrl = `${cleanBase}${finalPath}`;
-        // logAuthAction('Constructed Direct API URL', { path, base, cleanBase, finalPath, fullUrl }); // Optional detailed log
-        return fullUrl;
-    }, []); // No external dependencies needed here as env vars/imports are constant within provider scope
-
+    }, []); // No external dependencies needed
     // --- END UPDATED getDirectApiUrl ---
 
     const setupTokenRefreshTimer = useCallback(() => {
@@ -276,8 +261,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         if (timeUntilExpiry <= safeRefreshThreshold) {
              logAuthAction('Token expiry near or passed, rely on interceptor');
-             // Optionally trigger immediate refresh if needed and not already refreshing
-             // if (timeUntilExpiry <= 0 && !isRefreshing.current) { /* trigger refresh logic */ }
              return;
         }
         const refreshTime = Math.max(0, timeUntilExpiry - safeRefreshThreshold); // Ensure non-negative timeout
@@ -287,8 +270,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 logAuthAction('Proactive token refresh attempt');
                 isRefreshing.current = true;
                 try {
-                    // Corrected: Use getDirectApiUrl for the explicit backend URL
-                    const refreshUrl = getDirectApiUrl('/api/auth/refresh-token'); // Path includes /api
+                    // Use the relative path returned by getDirectApiUrl
+                    const refreshUrl = getDirectApiUrl('/api/auth/refresh-token'); 
                     logAuthAction('Proactive refresh URL', { url: refreshUrl });
 
                     const response = await axios.post<RefreshTokenResponse>(
@@ -297,7 +280,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                         {
                            withCredentials: true,
                            timeout: 15000,
-                           headers: { // Add standard headers
+                           headers: {
                               'Content-Type': 'application/json',
                               'Accept': 'application/json'
                            }
@@ -326,7 +309,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
         }, refreshTime);
         logAuthAction('Token refresh scheduled', { minutesUntilRefresh: Math.floor(refreshTime / 60000) });
-    }, [token, refreshToken, getTimeUntilExpiry, handleSessionExpired, getDirectApiUrl]); // Added getDirectApiUrl dependency
+    }, [token, refreshToken, getTimeUntilExpiry, handleSessionExpired, getDirectApiUrl]);
 
 
     // Setup Axios interceptors for authAxios (the proxied instance)
@@ -338,8 +321,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                      config.headers.Authorization = `Bearer ${token}`;
                 } else if (token) {
                      logAuthAction('Token expired before request (authAxios), clearing header', { url: config.url });
-                     // Token is expired or invalid, remove header but let request proceed
-                     // Backend should handle unauthorized access
                      delete config.headers.Authorization;
                 }
                 return config;
@@ -349,7 +330,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         const responseInterceptor = authAxios.interceptors.response.use(
             response => response,
-            async (error: AxiosError) => { // Type error
+            async (error: AxiosError) => {
                 const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
                 // Check if it's a 401, not already retried, and request config exists
@@ -382,8 +363,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 }
 
                 try {
-                    // Corrected: Use getDirectApiUrl for the explicit backend URL
-                    const refreshUrl = getDirectApiUrl('/api/auth/refresh-token'); // Path includes /api
+                    // Use the relative path returned by getDirectApiUrl
+                    const refreshUrl = getDirectApiUrl('/api/auth/refresh-token');
                     logAuthAction('401 refresh URL (authAxios)', { url: refreshUrl });
 
                     const response = await axios.post<RefreshTokenResponse>(
@@ -392,7 +373,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                          {
                             withCredentials: true,
                             timeout: 15000,
-                            headers: { // Add standard headers
+                            headers: {
                                'Content-Type': 'application/json',
                                'Accept': 'application/json'
                             }
@@ -436,14 +417,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             authAxios.interceptors.request.eject(requestInterceptor);
             authAxios.interceptors.response.eject(responseInterceptor);
         };
-    }, [token, refreshToken, isTokenExpired, handleSessionExpired, setupTokenRefreshTimer, getDirectApiUrl]); // Added getDirectApiUrl
+    }, [token, refreshToken, isTokenExpired, handleSessionExpired, setupTokenRefreshTimer, getDirectApiUrl]);
 
 
     useEffect(() => {
          setupTokenRefreshTimer();
          // Cleanup timer on unmount
          return () => { if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current); };
-    }, [setupTokenRefreshTimer]); // Rerun only if setupTokenRefreshTimer function identity changes
+    }, [setupTokenRefreshTimer]);
 
     // Load user data on initial mount or when token changes
     useEffect(() => {
@@ -452,7 +433,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             if (token && typeof token === 'string' && token.split('.').length === 3 && !isTokenExpired(token)) {
                  setIsLoading(true);
                 try {
-                    // Corrected: Use path starting with /api for proxied authAxios
+                    // Use path starting with /api for proxied authAxios
                     const response = await authAxios.get<ProfileResponse>('/api/auth/profile');
                      if (response.data?.user) {
                          setUser(response.data.user);
@@ -489,8 +470,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             }
         };
         loadUser();
-        // Dependencies: Rerun if token changes, or if sessionExpired state changes (to retry loading)
-    }, [token, handleSessionExpired, isTokenExpired, sessionExpired, user]); // Added `user` to dependencies
+        // Dependencies: Rerun if token changes, or if sessionExpired state changes
+    }, [token, handleSessionExpired, isTokenExpired, sessionExpired, user]);
 
 
     // --- Auth Functions ---
@@ -500,9 +481,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         try {
             logAuthAction('Login attempt', { username });
 
-            // Fix the path to ensure it starts with /api
-            const loginUrl = getDirectApiUrl('/api/auth/login'); // Ensure /api prefix for consistency
-            console.log('Login URL:', loginUrl); // Debug log
+            // Get relative path for login
+            const loginUrl = getDirectApiUrl('/api/auth/login');
+            logAuthAction('Login URL', { url: loginUrl });
 
             const response = await axios.post<LoginResponse>(
                 loginUrl,
@@ -510,7 +491,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 {
                     withCredentials: true,
                     timeout: 15000,
-                    headers: { // Explicitly add headers
+                    headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json'
                     }
@@ -524,7 +505,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setToken(newToken);
             setRefreshToken(newRefreshToken);
             setUser(loggedInUser);
-            authAxios.defaults.headers.common["Authorization"] = `Bearer ${newToken}`; // Update default header for future authAxios calls
+            authAxios.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
 
             logAuthAction('Login success', { userId: loggedInUser.id });
             setupTokenRefreshTimer(); // Setup timer after successful login
@@ -533,32 +514,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } catch (error) {
             const axiosError = error as AxiosError<{ message?: string }>;
             logAuthAction('Login error', { error: axiosError.message, status: axiosError.response?.status });
-            // Provide a more specific error message if possible
             throw new Error(axiosError.response?.data?.message || "Login failed. Please check username/password and network connection.");
         }
-    }, [getDirectApiUrl, setupTokenRefreshTimer]); // Added dependencies
+    }, [getDirectApiUrl, setupTokenRefreshTimer]);
     // --- END UPDATED login function ---
 
+    // --- UPDATED register function ---
     const register = useCallback(async (userData: any): Promise<{ success: boolean; user: User }> => {
         try {
             logAuthAction('Registration attempt');
-            // Corrected: Use getDirectApiUrl for direct axios call, ensuring /api prefix
+            
+            // Use the relative path for registration
             const registerUrl = getDirectApiUrl('/api/auth/register');
-            logAuthAction('Register URL:', { url: registerUrl });
+            logAuthAction('Register URL', { url: registerUrl });
 
             const response = await axios.post<RegisterResponse>(
                 registerUrl,
                 userData,
                 {
-                   withCredentials: true, // Important if backend sets cookies
-                   timeout: 20000, // Allow slightly longer for registration
-                   headers: { // Explicitly add headers
+                   withCredentials: true,
+                   timeout: 20000,
+                   headers: {
                       'Content-Type': 'application/json',
                       'Accept': 'application/json'
                    }
                 }
             );
-            // Assuming registration immediately logs the user in (returns tokens)
+            
             const { token: newToken, refreshToken: newRefreshToken, user: registeredUser } = response.data;
 
             setSessionExpired(false);
@@ -575,16 +557,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } catch (error) {
              const axiosError = error as AxiosError<{ message?: string; errors?: { field: string, message: string }[] }>;
              logAuthAction('Registration error', { error: axiosError.message, status: axiosError.response?.status, data: axiosError.response?.data });
-              // Handle validation errors from backend if available
-              if (axiosError.response?.data?.errors) {
+             
+             if (axiosError.response?.data?.errors) {
                  const errorMessage = axiosError.response.data.errors.map(err => `${err.field}: ${err.message}`).join(", ");
                  throw new Error(`Registration failed: ${errorMessage}`);
              }
-             // Handle generic error message
+             
              throw new Error(axiosError.response?.data?.message || "Registration failed. Please check your input and try again.");
         }
-    }, [getDirectApiUrl, setupTokenRefreshTimer]); // Added dependencies
+    }, [getDirectApiUrl, setupTokenRefreshTimer]);
+    // --- END UPDATED register function ---
 
+    // --- UPDATED logout function ---
     const logout = useCallback(async (): Promise<void> => {
         logAuthAction('Logout attempt');
         const currentRefreshToken = refreshToken; // Capture refreshToken before clearing state
@@ -596,13 +580,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         // Attempt to invalidate refresh token on backend (best effort)
         if (currentRefreshToken) {
              try {
-                 // Corrected: Use getDirectApiUrl for direct axios call
+                 // Use the relative path for logout
                  const logoutUrl = getDirectApiUrl('/api/auth/logout');
                  logAuthAction('Calling backend logout', { url: logoutUrl });
-                 await axios.post(logoutUrl,
-                    { refreshToken: currentRefreshToken }, // Send refresh token to invalidate
+                 
+                 await axios.post(
+                    logoutUrl,
+                    { refreshToken: currentRefreshToken },
                     { withCredentials: true, timeout: 10000 }
                  );
+                 
                  logAuthAction('Backend logout successful');
              } catch (error) {
                  const axiosError = error as AxiosError;
@@ -612,8 +599,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         } else {
              logAuthAction('No refresh token, skipping backend logout call');
         }
-    }, [refreshToken, handleSessionExpired, getDirectApiUrl]); // Updated dependencies
-
+    }, [refreshToken, handleSessionExpired, getDirectApiUrl]);
+    // --- END UPDATED logout function ---
 
     const isAuthenticated = useCallback((): boolean => {
         // Check for token existence, basic structure, non-expiry, and user object presence
@@ -623,8 +610,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const updateProfile = useCallback(async (userData: Partial<User>): Promise<{ success: boolean; user: User }> => {
         try {
-            // Corrected: Ensure path starts with /api for proxied authAxios
-            // The interceptor in createAxiosInstance should handle this, but being explicit is safer
+            // Ensure path starts with /api for proxied authAxios
             const profileUrl = "/api/auth/profile";
             logAuthAction('Update profile attempt', { url: profileUrl });
             const response = await authAxios.put<ProfileResponse>(profileUrl, userData);
@@ -644,11 +630,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
              }
              throw new Error(axiosError.response?.data?.message || "Failed to update profile.");
         }
-    }, []); // authAxios instance is stable, no need to list as dependency
+    }, []);
 
     const changePassword = useCallback(async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
         try {
-            // Corrected: Ensure path starts with /api for proxied authAxios
+            // Ensure path starts with /api for proxied authAxios
             const passwordUrl = "/api/auth/password";
             logAuthAction('Change password attempt', { url: passwordUrl });
             // Use authAxios for authenticated request
@@ -660,7 +646,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
              logAuthAction('Change password error', { error: axiosError.message, status: axiosError.response?.status, data: axiosError.response?.data });
              throw new Error(axiosError.response?.data?.message || "Failed to change password.");
         }
-    }, []); // authAxios instance is stable
+    }, []);
 
 
     // --- Context Value ---
