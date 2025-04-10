@@ -10,7 +10,7 @@ import { createServer } from 'http'; // For Socket.IO server
 import { Server } from 'socket.io'; // For Socket.IO
 
 // Correctly import named exports from errorMiddleware.mjs
-import { notFound, errorHandler } from './middleware/errorMiddleware.mjs'; // *** FIXED IMPORT ***
+import { notFound, errorHandler } from './middleware/errorMiddleware.mjs';
 import logger from './utils/logger.mjs';
 import sequelize from './database.mjs';
 import setupAssociations from './setupAssociations.mjs';
@@ -27,8 +27,7 @@ import checkoutRoutes from './routes/checkoutRoutes.mjs';
 import messagesRoutes from './routes/messages.mjs';
 import scheduleRoutes from './routes/scheduleRoutes.mjs';
 import adminRoutes from './routes/adminRoutes.mjs';
-// Note: debug route import moved below app initialization
-
+// debugRoutes will be imported dynamically
 
 // Initialize environment variables
 dotenv.config();
@@ -39,28 +38,17 @@ const __dirname = path.dirname(__filename);
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5000; // Use Render's PORT or 5000 locally
 
 // Create HTTP server using the Express app
 const httpServer = createServer(app);
 
-// --- Socket.IO Setup ---
-const io = new Server(httpServer, {
-  cors: {
-    // Consider using the same corsOptions logic as HTTP for consistency
-    // For now, keeping '*' as per your code, but stricter is better
-    origin: '*', // Or use the whitelist/corsOptions logic
-    methods: ['GET', 'POST'], // Socket.IO primarily uses WebSocket, GET/POST relevant for polling fallback
-    credentials: true
-  }
-});
-
 // --- CORS Configuration ---
 const whitelist = process.env.FRONTEND_ORIGINS
   ? process.env.FRONTEND_ORIGINS.split(',')
-  : ['http://localhost:5173', 'https://sswanstudios.com', 'https://www.sswanstudios.com'];
+  : ['http://localhost:5173', 'https://sswanstudios.com', 'https://www.sswanstudios.com']; // Add all valid frontend origins
 
-logger.info(`Allowed CORS origins: ${JSON.stringify(whitelist)}`);
+logger.info(`Allowed HTTP CORS origins: ${JSON.stringify(whitelist)}`);
 
 const corsOptions = {
   origin: function (origin, callback) {
@@ -68,63 +56,74 @@ const corsOptions = {
     if (!origin || whitelist.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      logger.warn(`CORS blocked request from origin: ${origin}`);
-      // Changed for stricter behavior: block if not whitelisted
-      // callback(null, true); // Your previous permissive setting
-      callback(new Error(`Origin ${origin} not allowed by CORS`)); // Stricter
+      logger.warn(`HTTP CORS blocked request from origin: ${origin}`);
+      callback(new Error(`Origin ${origin} not allowed by CORS`)); // Block non-whitelisted origins
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'], // Added common headers
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   credentials: true,
-  preflightContinue: false, // Let cors handle OPTIONS
+  preflightContinue: false, // Let cors handle OPTIONS response implicitly
   optionsSuccessStatus: 204 // Standard success for OPTIONS
 };
 
-// =================== MIDDLEWARE ===================
+// --- Socket.IO Setup ---
+const io = new Server(httpServer, {
+  cors: corsOptions // Use the same strict CORS options for Socket.IO
+});
+
+
+// =================== MIDDLEWARE ORDERING ===================
 
 // 1. Security Headers (Helmet) - Apply early
-// Consider reviewing Helmet defaults if specific policies cause issues
 app.use(helmet({
-  contentSecurityPolicy: false, // Be cautious disabling this, review if needed
+  contentSecurityPolicy: false, // Adjust if needed, disabling is less secure
   crossOriginResourcePolicy: { policy: 'cross-origin' },
-  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' } // Allows popups like OAuth
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
 }));
 
-// 2. CORS Middleware - Apply globally
+// 2. Global CORS Middleware - Apply globally
 app.use(cors(corsOptions));
 
 // 3. Response Compression
 app.use(compression());
 
 // 4. Body Parsers (JSON, URL-encoded)
-app.use(express.json({ limit: '50mb' })); // Increased limit, ensure it's necessary
+app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // 5. HTTP Request Logger (Morgan)
-app.use(morgan('dev')); // Use 'dev' format or customize as needed
+app.use(morgan('dev')); // Logs requests to console
 
-// 6. Custom Request Logger (Optional - Morgan might be sufficient)
-// app.use((req, res, next) => {
-//   logger.info(`[REQUEST] ${req.method} ${req.url} from ${req.ip}`);
-//   next();
-// });
+// 6. Static File Serving (for debug.html)
+// Serve files from the 'backend/public' directory
+app.use(express.static(path.join(__dirname, 'public')));
 
 
 // =================== ROUTES ===================
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  // logger.info(`Health check from ${req.ip} (${req.headers['user-agent']})`); // Optional logging
   res.status(200).json({ status: 'ok', environment: process.env.NODE_ENV });
 });
 
-// Explicit OPTIONS handler for specific auth routes (can help sometimes)
-// This path needs to be specific or use wildcards carefully
-// If global cors works, this might be redundant, but keeping as per your code
+// Debug HTML Page Route
+app.get('/debug', (req, res, next) => {
+  const debugHtmlPath = path.join(__dirname, 'public', 'debug.html');
+  logger.info(`Attempting to serve debug page from: ${debugHtmlPath}`);
+  res.sendFile(debugHtmlPath, (err) => {
+       if (err) {
+           logger.error(`Error sending debug.html: ${err.message}`);
+           // Pass to error handler if file not found or other error
+           next(err); // Use next(err) to trigger the main errorHandler
+       }
+  });
+});
+
+// Explicit OPTIONS handler for auth routes (kept for robustness, might be redundant with proxy)
 app.options('/api/auth/*', cors(corsOptions));
 
-// Apply API routes
+// Apply Regular API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/cart', cartRoutes);
@@ -138,28 +137,12 @@ app.use('/api/admin', adminRoutes);
 app.use('/api', apiRoutes); // General API routes
 
 
-// Dynamic import for debug routes (ensure this file exists and exports default)
-// Note: This needs to be inside an async function or use top-level await handling
-// Moving it inside the main async block below might be cleaner
-// For now, assuming it works as intended in your setup
-// app.use('/api/debug', (await import('./routes/debug.mjs')).default);
-
-
-// Serve the test authentication page (if needed)
-// app.get('/test-auth', (req, res) => {
-//   res.sendFile(path.join(__dirname, 'public', 'test-auth.html'));
-// });
-
-
-// =================== ERROR HANDLING (LAST!) ===================
+// =================== ERROR HANDLING (MUST BE LAST!) ===================
 // Apply 404 handler after all valid routes
-app.use(notFound); // *** CORRECTED USAGE ***
+app.use(notFound);
 
 // Apply the final global error handler
-app.use(errorHandler); // *** CORRECTED USAGE ***
-
-// --- REMOVED Redundant inline error handler ---
-// app.use((err, req, res, next) => { ... });
+app.use(errorHandler);
 
 
 // =================== SERVER & DB INITIALIZATION ===================
@@ -173,29 +156,32 @@ app.use(errorHandler); // *** CORRECTED USAGE ***
     await sequelize.authenticate();
     logger.info('Database connection established successfully');
 
+    // Dynamically apply debug routes (safer inside async block)
+    try {
+         const debugRoutes = await import('./routes/debug.mjs');
+         app.use('/api/debug', debugRoutes.default);
+         logger.info('Debug API routes applied (/api/debug).');
+    } catch(debugImportError) {
+         logger.warn('Could not load debug routes (/api/debug).', { error: debugImportError.message });
+    }
+
     // Start the HTTP server (which includes Socket.IO)
     httpServer.listen(PORT, () => {
       logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+      // Determine the correct base URL for logging the debug page link
+      const serverHostname = process.env.RENDER_EXTERNAL_HOSTNAME || `localhost:${PORT}`;
+      const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+      logger.info(`Access Debug Page at: ${protocol}://${serverHostname}/debug`);
     });
 
     // Socket.io connection handler
     io.on('connection', (socket) => {
-      logger.info(`Socket connected: ${socket.id}`);
+      logger.info(`Socket connected: ${socket.id} from origin ${socket.handshake.headers.origin}`);
       // Add your specific socket event listeners here...
-      socket.on('disconnect', () => {
-        logger.info(`Socket disconnected: ${socket.id}`);
+      socket.on('disconnect', (reason) => {
+        logger.info(`Socket disconnected: ${socket.id}`, { reason });
       });
     });
-
-    // Apply debug route if needed (safer inside async block)
-    try {
-         const debugRoutes = await import('./routes/debug.mjs');
-         app.use('/api/debug', debugRoutes.default);
-         logger.info('Debug routes applied.');
-    } catch(debugImportError) {
-         logger.warn('Could not load debug routes.', { error: debugImportError.message });
-    }
-
 
   } catch (error) {
     logger.error(`Server initialization error: ${error.message}`, { stack: error.stack });
@@ -204,47 +190,34 @@ app.use(errorHandler); // *** CORRECTED USAGE ***
 })();
 
 // =================== PROCESS EVENT HANDLERS ===================
-// Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
-  // Log the reason which might be an Error object or something else
   logger.error('Unhandled Promise Rejection:', { reason });
-  // Consider exiting process depending on severity? process.exit(1);
 });
-
-// Handle uncaught exceptions
 process.on('uncaughtException', (err, origin) => {
   logger.error(`Uncaught Exception: ${err.message}`, { stack: err.stack, origin: origin });
-  // It's generally recommended to exit gracefully after an uncaught exception
-  // as the application state might be corrupted.
-  process.exit(1);
+  process.exit(1); // Exit on uncaught exceptions
 });
 
-// Graceful shutdown logic (ensure httpServer.close is called)
 const gracefulShutdown = (signal) => {
     logger.warn(`Received ${signal}. Shutting down gracefully...`);
-    io.close(() => { // Close Socket.IO connections first
+    io.close(() => {
         logger.info('Socket.IO server closed.');
-        httpServer.close(() => { // Then close HTTP server
+        httpServer.close(() => {
             logger.info('HTTP server closed.');
-            sequelize.close().then(() => { // Then close DB connection
+            sequelize.close().then(() => {
                 logger.info('Database connection closed.');
-                process.exit(0); // Exit cleanly
+                process.exit(0);
             }).catch(dbErr => {
                 logger.error('Error closing database connection:', dbErr);
                 process.exit(1);
             });
         });
     });
-
     // Force shutdown after timeout
-    setTimeout(() => {
-        logger.error('Graceful shutdown timed out, forcing exit.');
-        process.exit(1);
-    }, 10000); // 10 second timeout
+    setTimeout(() => { logger.error('Graceful shutdown timed out, forcing exit.'); process.exit(1); }, 10000);
 };
 
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
-
-export default app; // Export app for potential testing
+export default app;

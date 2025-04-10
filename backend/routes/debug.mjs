@@ -1,63 +1,118 @@
+// backend/routes/debug.mjs
 import express from 'express';
+import bcrypt from 'bcryptjs';
+import { Op } from 'sequelize';
+import sequelize from '../database.mjs';
+import User from '../models/User.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+const BCRYPT_SALT_ROUNDS = 10; // Ensure this matches your authController
 
-// Debug endpoint to check if auth-related routes are accessible
-router.get('/auth-check', (req, res) => {
-  logger.info(`Auth check endpoint called from ${req.ip}`);
-  res.status(200).json({
-    success: true,
-    message: 'Auth routes are accessible',
-    headers: req.headers,
-    timestamp: new Date().toISOString()
-  });
+// --- Middleware for basic protection (optional, can be added later) ---
+// const allowOnlyInDev = (req, res, next) => {
+//   if (process.env.NODE_ENV !== 'production') {
+//     next();
+//   } else {
+//     res.status(403).json({ message: 'Debug routes are disabled in production' });
+//   }
+// };
+// router.use(allowOnlyInDev); // Apply to all debug routes
+
+// --- Debug Routes ---
+
+// 1. Check Database Connection via Sequelize
+router.get('/check-db', async (req, res, next) => {
+    logger.info('[Debug] /check-db called');
+    try {
+        await sequelize.authenticate();
+        res.status(200).json({ success: true, message: 'Database connection successful via Sequelize.' });
+    } catch (error) {
+        logger.error('[Debug] /check-db failed:', error);
+        // Pass error to the main error handler
+        next(new Error(`Database connection failed: ${error.message}`));
+    }
 });
 
-// Test endpoint with CORS headers
-router.options('/cors-test', (req, res) => {
-  logger.info(`CORS preflight check from ${req.ip}`);
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Content-Length, X-Requested-With');
-  res.status(204).send();
+// 2. Check User Existence
+router.get('/check-user/:identifier', async (req, res, next) => {
+    const identifier = req.params.identifier;
+    logger.info(`[Debug] /check-user called for: ${identifier}`);
+    try {
+        const isEmail = identifier.includes('@');
+        const whereClause = isEmail ? { email: identifier } : { username: identifier };
+        const user = await User.findOne({ where: whereClause, attributes: ['id', 'username', 'email', 'role', 'isActive'] }); // Exclude password hash
+
+        if (user) {
+            res.status(200).json({ success: true, found: true, user: user });
+        } else {
+            res.status(200).json({ success: true, found: false, message: `User not found with ${isEmail ? 'email' : 'username'} '${identifier}'.` });
+        }
+    } catch (error) {
+        logger.error(`[Debug] /check-user failed for ${identifier}:`, error);
+        next(new Error(`Error checking user: ${error.message}`));
+    }
 });
 
-router.get('/cors-test', (req, res) => {
-  logger.info(`CORS test endpoint called from ${req.ip}`);
-  res.status(200).json({
-    success: true,
-    message: 'CORS is working correctly',
-    origin: req.headers.origin || 'No origin header',
-    timestamp: new Date().toISOString()
-  });
+// 3. Verify Password for a User (using bcrypt.compare)
+router.post('/verify-password', async (req, res, next) => {
+    const { username, password } = req.body;
+    logger.info(`[Debug] /verify-password called for username: ${username}`);
+
+    if (!username || !password) {
+        return res.status(400).json({ success: false, message: 'Missing username or password in request body.' });
+    }
+
+    try {
+        const user = await User.findOne({ where: { username: username } });
+        if (!user) {
+            return res.status(200).json({ success: true, userFound: false, message: `User '${username}' not found.` });
+        }
+
+        // Adjust 'user.password' if your hash field name is different
+        const passwordField = user.password || user.passwordHash;
+        if (!passwordField) {
+             return res.status(500).json({ success: false, message: `Password field missing for user '${username}'. Check model.` });
+        }
+
+        const isMatch = await bcrypt.compare(password, passwordField);
+
+        res.status(200).json({
+            success: true,
+            userFound: true,
+            username: user.username,
+            passwordMatch: isMatch,
+            message: isMatch ? 'Password verification successful.' : 'Password verification failed.'
+        });
+
+    } catch (error) {
+        logger.error(`[Debug] /verify-password failed for ${username}:`, error);
+        next(new Error(`Error verifying password: ${error.message}`));
+    }
 });
 
-// Echo all request data for debugging
+// 4. Hash a Test Password (Use GET for simplicity here, POST is better practice)
+router.get('/hash-password/:password', async (req, res, next) => {
+    const password = req.params.password;
+    logger.info(`[Debug] /hash-password called.`);
+    try {
+        const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+        res.status(200).json({ success: true, original: password, hash: hashedPassword });
+    } catch (error) {
+        logger.error('[Debug] /hash-password failed:', error);
+        next(new Error(`Error hashing password: ${error.message}`));
+    }
+});
+
+// 5. Echo Request Details
 router.all('/echo', (req, res) => {
-  logger.info(`Echo endpoint called with ${req.method} from ${req.ip}`);
-  
-  // Capture key request information
+  logger.info(`[Debug] Echo endpoint called with ${req.method}`);
   const requestData = {
-    method: req.method,
-    url: req.url,
-    headers: req.headers,
-    query: req.query,
-    body: req.body,
-    cookies: req.cookies,
-    ip: req.ip,
-    timestamp: new Date().toISOString()
+    method: req.method, url: req.originalUrl, headers: req.headers,
+    query: req.query, body: req.body, cookies: req.cookies, ip: req.ip
   };
-  
-  // Log the request data
-  logger.info('Echo request data:', requestData);
-  
-  // Return the data to the client
-  res.status(200).json({
-    success: true,
-    message: 'Request echo',
-    request: requestData
-  });
+  res.status(200).json({ success: true, message: 'Request Echo', request: requestData });
 });
+
 
 export default router;
