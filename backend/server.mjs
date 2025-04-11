@@ -19,6 +19,8 @@ import logger from './utils/logger.mjs';
 import sequelize from './database.mjs';
 import setupAssociations from './setupAssociations.mjs';
 
+
+
 // Initialize environment variables
 dotenv.config();
 
@@ -57,6 +59,23 @@ const corsOptions = {
   preflightContinue: false,
   optionsSuccessStatus: 204
 };
+
+// Simple test route
+app.get('/test', (req, res) => {
+  res.send('Server is running correctly');
+});
+
+// API debug route
+app.get('/api/debug/auth-check', (req, res) => {
+  logger.info(`Auth check endpoint called from ${req.ip}`);
+  res.status(200).json({
+    success: true,
+    message: 'Auth routes are accessible',
+    headers: req.headers,
+    timestamp: new Date().toISOString()
+  });
+});
+
 
 // Enhanced request logging
 app.use((req, res, next) => {
