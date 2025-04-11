@@ -96,12 +96,6 @@ app.options('*', cors(corsOptions));
 // Enhanced request logging
 app.use((req, res, next) => {
   logger.info(`[REQUEST] ${req.method} ${req.url} from ${req.ip || 'unknown'}`);
-  if (req.method === 'POST' || req.method === 'PUT') {
-    const safeBody = {...req.body};
-    // Don't log passwords
-    if (safeBody.password) safeBody.password = '[REDACTED]';
-    logger.info(`Body: ${JSON.stringify(safeBody)}`);
-  }
   next();
 });
 
@@ -115,6 +109,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.send('SwanStudios API Server is running');
+});
+
 // Simple test route
 app.get('/test', (req, res) => {
   res.send('Server is running correctly');
@@ -126,185 +125,10 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', environment: process.env.NODE_ENV });
 });
 
-// API debug route
-app.get('/api/debug/auth-check', (req, res) => {
-  logger.info(`Auth check endpoint called from ${req.ip}`);
-  res.status(200).json({
-    success: true,
-    message: 'Auth routes are accessible',
-    headers: req.headers,
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Debug route for password verification
-app.post('/api/debug/verify-password', express.json(), async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    logger.info(`Password verification attempt for user: ${username}`);
-    
-    if (!username || !password) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Username and password are required' 
-      });
-    }
-    
-    // Import User model and bcrypt dynamically to avoid circular dependencies
-    const { default: User } = await import('./models/User.mjs');
-    const bcrypt = await import('bcryptjs');
-    
-    // Find user
-    const user = await User.findOne({ 
-      where: { username } 
-    });
-    
-    if (!user) {
-      logger.info(`User not found: ${username}`);
-      return res.status(400).json({ 
-        success: false, 
-        message: 'User not found' 
-      });
-    }
-    
-    // Check password
-    logger.info(`Comparing passwords for user: ${username}`);
-    const isMatch = await bcrypt.compare(password, user.password);
-    
-    if (!isMatch) {
-      logger.info(`Password mismatch for user: ${username}`);
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Password incorrect' 
-      });
-    }
-    
-    logger.info(`Password verified for user: ${username}`);
-    res.status(200).json({
-      success: true,
-      message: 'Password verified successfully'
-    });
-  } catch (error) {
-    logger.error(`Password verification error: ${error.message}`, { stack: error.stack });
-    res.status(500).json({
-      success: false,
-      message: 'Error verifying password',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
-  }
-});
-
-// Debug route to check user existence
-app.post('/api/debug/check-user', express.json(), async (req, res) => {
-  try {
-    const { username } = req.body;
-    logger.info(`User check for username: ${username}`);
-    
-    if (!username) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Username is required' 
-      });
-    }
-    
-    // Import User model dynamically
-    const { default: User } = await import('./models/User.mjs');
-    
-    // Find user
-    const user = await User.findOne({ 
-      where: { username },
-      attributes: ['id', 'username', 'email', 'role', 'createdAt'] // Exclude sensitive data
-    });
-    
-    if (!user) {
-      logger.info(`User not found: ${username}`);
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
-      });
-    }
-    
-    logger.info(`User found: ${username}`);
-    res.status(200).json({
-      success: true,
-      message: 'User found',
-      user
-    });
-  } catch (error) {
-    logger.error(`User check error: ${error.message}`, { stack: error.stack });
-    res.status(500).json({
-      success: false,
-      message: 'Error checking user',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
-  }
-});
-
-// Create a test user for debugging
-app.get('/api/debug/create-test-user', async (req, res) => {
-  try {
-    logger.info('Creating test user');
-    
-    // Import User model and bcrypt dynamically
-    const { default: User } = await import('./models/User.mjs');
-    const bcrypt = await import('bcryptjs');
-    
-    // Check if test user already exists
-    const existingUser = await User.findOne({ 
-      where: { username: 'testuser' } 
-    });
-    
-    if (existingUser) {
-      logger.info('Test user already exists');
-      return res.status(200).json({
-        success: true,
-        message: 'Test user already exists',
-        user: {
-          id: existingUser.id,
-          username: existingUser.username,
-          email: existingUser.email,
-          role: existingUser.role
-        }
-      });
-    }
-    
-    // Create salt and hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash('password123', salt);
-    
-    // Create test user
-    const testUser = await User.create({
-      username: 'testuser',
-      email: 'test@example.com',
-      password: hashedPassword,
-      firstName: 'Test',
-      lastName: 'User',
-      role: 'user'
-    });
-    
-    logger.info('Test user created successfully');
-    res.status(201).json({
-      success: true,
-      message: 'Test user created successfully',
-      user: {
-        id: testUser.id,
-        username: testUser.username,
-        email: testUser.email,
-        role: testUser.role
-      }
-    });
-  } catch (error) {
-    logger.error(`Create test user error: ${error.message}`, { stack: error.stack });
-    res.status(500).json({
-      success: false,
-      message: 'Error creating test user',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
-  }
-});
-
-// Create debug.html file in public folder
+// Debug page - directly serve the HTML without file access
 app.get('/debug', (req, res) => {
+  logger.info('Serving debug page');
+  
   const debugHtml = `
   <!DOCTYPE html>
   <html>
@@ -516,6 +340,183 @@ app.get('/debug', (req, res) => {
   res.status(200).send(debugHtml);
 });
 
+// API debug route
+app.get('/api/debug/auth-check', (req, res) => {
+  logger.info(`Auth check endpoint called from ${req.ip}`);
+  res.status(200).json({
+    success: true,
+    message: 'Auth routes are accessible',
+    headers: req.headers,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Debug route for password verification
+app.post('/api/debug/verify-password', express.json(), async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    logger.info(`Password verification attempt for user: ${username}`);
+    
+    if (!username || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Username and password are required' 
+      });
+    }
+    
+    // Import User model and bcrypt dynamically to avoid circular dependencies
+    const { default: User } = await import('./models/User.mjs');
+    const bcrypt = await import('bcryptjs');
+    
+    // Find user
+    const user = await User.findOne({ 
+      where: { username } 
+    });
+    
+    if (!user) {
+      logger.info(`User not found: ${username}`);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+    
+    // Check password
+    logger.info(`Comparing passwords for user: ${username}`);
+    const isMatch = await bcrypt.compare(password, user.password);
+    
+    if (!isMatch) {
+      logger.info(`Password mismatch for user: ${username}`);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password incorrect' 
+      });
+    }
+    
+    logger.info(`Password verified for user: ${username}`);
+    res.status(200).json({
+      success: true,
+      message: 'Password verified successfully'
+    });
+  } catch (error) {
+    logger.error(`Password verification error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({
+      success: false,
+      message: 'Error verifying password',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// Debug route to check user existence
+app.post('/api/debug/check-user', express.json(), async (req, res) => {
+  try {
+    const { username } = req.body;
+    logger.info(`User check for username: ${username}`);
+    
+    if (!username) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Username is required' 
+      });
+    }
+    
+    // Import User model dynamically
+    const { default: User } = await import('./models/User.mjs');
+    
+    // Find user
+    const user = await User.findOne({ 
+      where: { username },
+      attributes: ['id', 'username', 'email', 'role', 'createdAt'] // Exclude sensitive data
+    });
+    
+    if (!user) {
+      logger.info(`User not found: ${username}`);
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+    
+    logger.info(`User found: ${username}`);
+    res.status(200).json({
+      success: true,
+      message: 'User found',
+      user
+    });
+  } catch (error) {
+    logger.error(`User check error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({
+      success: false,
+      message: 'Error checking user',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// Create a test user for debugging
+app.get('/api/debug/create-test-user', async (req, res) => {
+  try {
+    logger.info('Creating test user');
+    
+    // Import User model and bcrypt dynamically
+    const { default: User } = await import('./models/User.mjs');
+    const bcrypt = await import('bcryptjs');
+    
+    // Check if test user already exists
+    const existingUser = await User.findOne({ 
+      where: { username: 'testuser' } 
+    });
+    
+    if (existingUser) {
+      logger.info('Test user already exists');
+      return res.status(200).json({
+        success: true,
+        message: 'Test user already exists',
+        user: {
+          id: existingUser.id,
+          username: existingUser.username,
+          email: existingUser.email,
+          role: existingUser.role
+        }
+      });
+    }
+    
+    // Create salt and hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash('password123', salt);
+    
+    // Create test user
+    const testUser = await User.create({
+      username: 'testuser',
+      email: 'test@example.com',
+      password: hashedPassword,
+      firstName: 'Test',
+      lastName: 'User',
+      role: 'user'
+    });
+    
+    logger.info('Test user created successfully');
+    res.status(201).json({
+      success: true,
+      message: 'Test user created successfully',
+      user: {
+        id: testUser.id,
+        username: testUser.username,
+        email: testUser.email,
+        role: testUser.role
+      }
+    });
+  } catch (error) {
+    logger.error(`Create test user error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({
+      success: false,
+      message: 'Error creating test user',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
 // Apply routes
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
@@ -544,6 +545,17 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Catch-all route handler for undefined routes
+app.use((req, res) => {
+  logger.warn(`Route not found: ${req.path} (${req.method})`);
+  res.status(404).json({
+    success: false,
+    message: 'Route not found',
+    path: req.path,
+    method: req.method
+  });
+});
+
 // Set up database and start server
 (async () => {
   try {
@@ -555,9 +567,23 @@ app.use((err, req, res, next) => {
     logger.info('Database connection established successfully');
     
     // Start the server
-    app.listen(PORT, () => {
-      logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
+    const server = app.listen(PORT, () => {
+      logger.info(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
     });
+    
+    // Handle graceful shutdown
+    process.on('SIGTERM', () => {
+      logger.warn('Received SIGTERM. Shutting down gracefully...');
+      server.close(() => {
+        logger.info('HTTP server closed.');
+        // Close database connection
+        sequelize.close().then(() => {
+          logger.info('Database connection closed.');
+          process.exit(0);
+        });
+      });
+    });
+    
   } catch (error) {
     logger.error(`Server initialization error: ${error.message}`, { stack: error.stack });
     console.error('Unable to start server:', error);
