@@ -14,13 +14,35 @@ import messagesRoutes from './routes/messages.mjs';
 import scheduleRoutes from './routes/scheduleRoutes.mjs';
 import adminRoutes from './routes/adminRoutes.mjs';
 import apiRoutes from './routes/api.mjs';
-import errorMiddleware from './middleware/errorMiddleware.mjs';
 import logger from './utils/logger.mjs';
 import sequelize from './database.mjs';
 import setupAssociations from './setupAssociations.mjs';
-import * as errorMiddlewareModule from './middleware/errorMiddleware.mjs';
-const errorMiddleware = errorMiddlewareModule.errorMiddleware;
 
+// Dynamically import errorMiddleware to avoid issues
+let errorMiddlewareHandler;
+try {
+  // Try to import the error middleware as a named export
+  const importedModule = await import('./middleware/errorMiddleware.mjs');
+  errorMiddlewareHandler = importedModule.errorMiddleware;
+  
+  // If that fails, try to access it as a property
+  if (!errorMiddlewareHandler && importedModule.default) {
+    errorMiddlewareHandler = importedModule.default;
+  }
+  
+  logger.info('Successfully imported error middleware');
+} catch (error) {
+  // Create a simple error middleware if import fails
+  logger.error(`Error importing middleware: ${error.message}`);
+  errorMiddlewareHandler = (err, req, res, next) => {
+    logger.error(`Error in fallback middleware: ${err.message}`);
+    res.status(500).json({
+      success: false,
+      message: 'Server error occurred',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  };
+}
 
 // Initialize environment variables
 dotenv.config();
@@ -61,27 +83,19 @@ const corsOptions = {
   optionsSuccessStatus: 204
 };
 
-// Simple test route
-app.get('/test', (req, res) => {
-  res.send('Server is running correctly');
-});
+// Apply middleware
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// API debug route
-app.get('/api/debug/auth-check', (req, res) => {
-  logger.info(`Auth check endpoint called from ${req.ip}`);
-  res.status(200).json({
-    success: true,
-    message: 'Auth routes are accessible',
-    headers: req.headers,
-    timestamp: new Date().toISOString()
-  });
-});
+// Apply CORS middleware
+app.use(cors(corsOptions));
 
+// Special handling for OPTIONS requests
+app.options('*', cors(corsOptions));
 
 // Enhanced request logging
 app.use((req, res, next) => {
   logger.info(`[REQUEST] ${req.method} ${req.url} from ${req.ip || 'unknown'}`);
-  logger.info(`Headers: ${JSON.stringify(req.headers)}`);
   if (req.method === 'POST' || req.method === 'PUT') {
     const safeBody = {...req.body};
     // Don't log passwords
@@ -101,17 +115,18 @@ app.use((req, res, next) => {
   next();
 });
 
-// Apply middleware
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// Simple test route
+app.get('/test', (req, res) => {
+  res.send('Server is running correctly');
+});
 
-// Apply CORS middleware
-app.use(cors(corsOptions));
+// Health check endpoint
+app.get('/health', (req, res) => {
+  logger.info(`Health check from ${req.ip} (${req.headers['user-agent']})`);
+  res.status(200).json({ status: 'ok', environment: process.env.NODE_ENV });
+});
 
-// Special handling for OPTIONS requests
-app.options('*', cors(corsOptions));
-
-// Debug route for auth
+// API debug route
 app.get('/api/debug/auth-check', (req, res) => {
   logger.info(`Auth check endpoint called from ${req.ip}`);
   res.status(200).json({
@@ -122,7 +137,7 @@ app.get('/api/debug/auth-check', (req, res) => {
   });
 });
 
-// Debug route for auth
+// Debug route for password verification
 app.post('/api/debug/verify-password', express.json(), async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -288,6 +303,219 @@ app.get('/api/debug/create-test-user', async (req, res) => {
   }
 });
 
+// Create debug.html file in public folder
+app.get('/debug', (req, res) => {
+  const debugHtml = `
+  <!DOCTYPE html>
+  <html>
+  <head>
+      <title>Auth Debug</title>
+      <style>
+          body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+          .button { background: #4CAF50; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+          .result { background: #f1f1f1; padding: 10px; margin-top: 10px; white-space: pre-wrap; }
+          input { padding: 8px; margin: 5px 0; display: block; width: 100%; box-sizing: border-box; }
+      </style>
+  </head>
+  <body>
+      <h1>SwanStudios Auth Debug</h1>
+      
+      <div>
+          <h2>1. Basic Endpoints</h2>
+          <button class="button" onclick="testEndpoint('/health')">Test Health</button>
+          <button class="button" onclick="testEndpoint('/api/debug/auth-check')">Test Auth Check</button>
+          <div id="debugResult" class="result">Results will appear here...</div>
+      </div>
+      
+      <div>
+          <h2>2. User Operations</h2>
+          <button class="button" onclick="testEndpoint('/api/debug/create-test-user')">Create Test User</button>
+          <div id="userResult" class="result">Results will appear here...</div>
+      </div>
+      
+      <div>
+          <h2>3. Check User</h2>
+          <input type="text" id="checkUsername" placeholder="Username">
+          <button class="button" onclick="checkUser()">Check User</button>
+          <div id="checkResult" class="result">Results will appear here...</div>
+      </div>
+      
+      <div>
+          <h2>4. Verify Password</h2>
+          <input type="text" id="verifyUsername" placeholder="Username">
+          <input type="password" id="verifyPassword" placeholder="Password">
+          <button class="button" onclick="verifyPassword()">Verify Password</button>
+          <div id="verifyResult" class="result">Results will appear here...</div>
+      </div>
+      
+      <div>
+          <h2>5. Debug Info</h2>
+          <button class="button" onclick="showEnvironment()">Show Environment</button>
+          <div id="environmentResult" class="result">Results will appear here...</div>
+      </div>
+      
+      <div>
+          <h2>6. Login</h2>
+          <input type="text" id="username" placeholder="Username">
+          <input type="password" id="password" placeholder="Password">
+          <button class="button" onclick="testLogin()">Test Login</button>
+          <div id="loginResult" class="result">Results will appear here...</div>
+      </div>
+      
+      <div>
+          <h2>7. Register</h2>
+          <input type="text" id="regUsername" placeholder="Username">
+          <input type="text" id="regEmail" placeholder="Email">
+          <input type="password" id="regPassword" placeholder="Password">
+          <input type="text" id="regFirstName" placeholder="First Name">
+          <input type="text" id="regLastName" placeholder="Last Name">
+          <button class="button" onclick="testRegister()">Test Register</button>
+          <div id="registerResult" class="result">Results will appear here...</div>
+      </div>
+      
+      <script>
+          async function testEndpoint(endpoint) {
+              const resultId = endpoint.includes('create-test-user') ? 'userResult' : 'debugResult';
+              document.getElementById(resultId).textContent = 'Testing...';
+              try {
+                  const response = await fetch(endpoint);
+                  const data = await response.json();
+                  document.getElementById(resultId).textContent = JSON.stringify(data, null, 2);
+              } catch (error) {
+                  document.getElementById(resultId).textContent = 'Error: ' + error.message;
+              }
+          }
+          
+          async function checkUser() {
+              document.getElementById('checkResult').textContent = 'Checking user...';
+              const username = document.getElementById('checkUsername').value;
+              
+              if (!username) {
+                  document.getElementById('checkResult').textContent = 'Please enter a username';
+                  return;
+              }
+              
+              try {
+                  const response = await fetch('/api/debug/check-user', {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ username })
+                  });
+                  
+                  const data = await response.json();
+                  document.getElementById('checkResult').textContent = JSON.stringify(data, null, 2);
+              } catch (error) {
+                  document.getElementById('checkResult').textContent = 'Error: ' + error.message;
+              }
+          }
+          
+          async function verifyPassword() {
+              document.getElementById('verifyResult').textContent = 'Verifying password...';
+              const username = document.getElementById('verifyUsername').value;
+              const password = document.getElementById('verifyPassword').value;
+              
+              if (!username || !password) {
+                  document.getElementById('verifyResult').textContent = 'Please enter both username and password';
+                  return;
+              }
+              
+              try {
+                  const response = await fetch('/api/debug/verify-password', {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ username, password })
+                  });
+                  
+                  const data = await response.json();
+                  document.getElementById('verifyResult').textContent = JSON.stringify(data, null, 2);
+              } catch (error) {
+                  document.getElementById('verifyResult').textContent = 'Error: ' + error.message;
+              }
+          }
+          
+          function showEnvironment() {
+              document.getElementById('environmentResult').textContent = 
+                  'Browser: ' + navigator.userAgent + '\\n' +
+                  'URL: ' + window.location.href + '\\n' +
+                  'Time: ' + new Date().toISOString();
+          }
+          
+          async function testLogin() {
+              document.getElementById('loginResult').textContent = 'Testing login...';
+              const username = document.getElementById('username').value;
+              const password = document.getElementById('password').value;
+              
+              if (!username || !password) {
+                  document.getElementById('loginResult').textContent = 'Please enter both username and password';
+                  return;
+              }
+              
+              try {
+                  const response = await fetch('/api/auth/login', {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ username, password })
+                  });
+                  
+                  const data = await response.json();
+                  document.getElementById('loginResult').textContent = 
+                      'Status: ' + response.status + ' ' + response.statusText + '\\n' + 
+                      JSON.stringify(data, null, 2);
+              } catch (error) {
+                  document.getElementById('loginResult').textContent = 'Error: ' + error.message;
+              }
+          }
+          
+          async function testRegister() {
+              document.getElementById('registerResult').textContent = 'Testing registration...';
+              const username = document.getElementById('regUsername').value;
+              const email = document.getElementById('regEmail').value;
+              const password = document.getElementById('regPassword').value;
+              const firstName = document.getElementById('regFirstName').value;
+              const lastName = document.getElementById('regLastName').value;
+              
+              if (!username || !email || !password || !firstName || !lastName) {
+                  document.getElementById('registerResult').textContent = 'Please fill in all fields';
+                  return;
+              }
+              
+              try {
+                  const response = await fetch('/api/auth/register', {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ 
+                          username, 
+                          email, 
+                          password, 
+                          firstName, 
+                          lastName 
+                      })
+                  });
+                  
+                  const data = await response.json();
+                  document.getElementById('registerResult').textContent = 
+                      'Status: ' + response.status + ' ' + response.statusText + '\\n' + 
+                      JSON.stringify(data, null, 2);
+              } catch (error) {
+                  document.getElementById('registerResult').textContent = 'Error: ' + error.message;
+              }
+          }
+      </script>
+  </body>
+  </html>
+  `;
+  
+  res.status(200).send(debugHtml);
+});
+
 // Apply routes
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
@@ -301,240 +529,10 @@ app.use('/api/schedule', scheduleRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api', apiRoutes);
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  logger.info(`Health check from ${req.ip} (${req.headers['user-agent']})`);
-  res.status(200).json({ status: 'ok', environment: process.env.NODE_ENV });
-});
-
-// Static files for debug
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Create debug.html file in public folder
-app.get('/debug', (req, res) => {
-  // Create debug page if it doesn't exist
-  const debugPath = path.join(__dirname, 'public', 'debug.html');
-  
-  // Just serve the file if it exists
-  res.sendFile(debugPath, (err) => {
-    if (err) {
-      // If the file doesn't exist, create a simple debug page
-      const debugHtml = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-          <title>Auth Debug</title>
-          <style>
-              body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-              .button { background: #4CAF50; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
-              .result { background: #f1f1f1; padding: 10px; margin-top: 10px; white-space: pre-wrap; }
-              input { padding: 8px; margin: 5px 0; display: block; width: 100%; box-sizing: border-box; }
-          </style>
-      </head>
-      <body>
-          <h1>SwanStudios Auth Debug</h1>
-          
-          <div>
-              <h2>1. Basic Endpoints</h2>
-              <button class="button" onclick="testEndpoint('/health')">Test Health</button>
-              <button class="button" onclick="testEndpoint('/api/debug/auth-check')">Test Auth Check</button>
-              <div id="debugResult" class="result">Results will appear here...</div>
-          </div>
-          
-          <div>
-              <h2>2. User Operations</h2>
-              <button class="button" onclick="testEndpoint('/api/debug/create-test-user')">Create Test User</button>
-              <div id="userResult" class="result">Results will appear here...</div>
-          </div>
-          
-          <div>
-              <h2>3. Check User</h2>
-              <input type="text" id="checkUsername" placeholder="Username">
-              <button class="button" onclick="checkUser()">Check User</button>
-              <div id="checkResult" class="result">Results will appear here...</div>
-          </div>
-          
-          <div>
-              <h2>4. Verify Password</h2>
-              <input type="text" id="verifyUsername" placeholder="Username">
-              <input type="password" id="verifyPassword" placeholder="Password">
-              <button class="button" onclick="verifyPassword()">Verify Password</button>
-              <div id="verifyResult" class="result">Results will appear here...</div>
-          </div>
-          
-          <div>
-              <h2>5. Debug Info</h2>
-              <button class="button" onclick="showEnvironment()">Show Environment</button>
-              <div id="environmentResult" class="result">Results will appear here...</div>
-          </div>
-          
-          <div>
-              <h2>6. Login</h2>
-              <input type="text" id="username" placeholder="Username">
-              <input type="password" id="password" placeholder="Password">
-              <button class="button" onclick="testLogin()">Test Login</button>
-              <div id="loginResult" class="result">Results will appear here...</div>
-          </div>
-          
-          <div>
-              <h2>7. Register</h2>
-              <input type="text" id="regUsername" placeholder="Username">
-              <input type="text" id="regEmail" placeholder="Email">
-              <input type="password" id="regPassword" placeholder="Password">
-              <input type="text" id="regFirstName" placeholder="First Name">
-              <input type="text" id="regLastName" placeholder="Last Name">
-              <button class="button" onclick="testRegister()">Test Register</button>
-              <div id="registerResult" class="result">Results will appear here...</div>
-          </div>
-          
-          <script>
-              async function testEndpoint(endpoint) {
-                  const resultId = endpoint.includes('create-test-user') ? 'userResult' : 'debugResult';
-                  document.getElementById(resultId).textContent = 'Testing...';
-                  try {
-                      const response = await fetch(endpoint);
-                      const data = await response.json();
-                      document.getElementById(resultId).textContent = JSON.stringify(data, null, 2);
-                  } catch (error) {
-                      document.getElementById(resultId).textContent = \`Error: \${error.message}\`;
-                  }
-              }
-              
-              async function checkUser() {
-                  document.getElementById('checkResult').textContent = 'Checking user...';
-                  const username = document.getElementById('checkUsername').value;
-                  
-                  if (!username) {
-                      document.getElementById('checkResult').textContent = 'Please enter a username';
-                      return;
-                  }
-                  
-                  try {
-                      const response = await fetch('/api/debug/check-user', {
-                          method: 'POST',
-                          headers: {
-                              'Content-Type': 'application/json'
-                          },
-                          body: JSON.stringify({ username })
-                      });
-                      
-                      const data = await response.json();
-                      document.getElementById('checkResult').textContent = JSON.stringify(data, null, 2);
-                  } catch (error) {
-                      document.getElementById('checkResult').textContent = \`Error: \${error.message}\`;
-                  }
-              }
-              
-              async function verifyPassword() {
-                  document.getElementById('verifyResult').textContent = 'Verifying password...';
-                  const username = document.getElementById('verifyUsername').value;
-                  const password = document.getElementById('verifyPassword').value;
-                  
-                  if (!username || !password) {
-                      document.getElementById('verifyResult').textContent = 'Please enter both username and password';
-                      return;
-                  }
-                  
-                  try {
-                      const response = await fetch('/api/debug/verify-password', {
-                          method: 'POST',
-                          headers: {
-                              'Content-Type': 'application/json'
-                          },
-                          body: JSON.stringify({ username, password })
-                      });
-                      
-                      const data = await response.json();
-                      document.getElementById('verifyResult').textContent = JSON.stringify(data, null, 2);
-                  } catch (error) {
-                      document.getElementById('verifyResult').textContent = \`Error: \${error.message}\`;
-                  }
-              }
-              
-              function showEnvironment() {
-                  document.getElementById('environmentResult').textContent = \`
-                  Browser: \${navigator.userAgent}
-                  URL: \${window.location.href}
-                  Time: \${new Date().toISOString()}
-                  \`;
-              }
-              
-              async function testLogin() {
-                  document.getElementById('loginResult').textContent = 'Testing login...';
-                  const username = document.getElementById('username').value;
-                  const password = document.getElementById('password').value;
-                  
-                  if (!username || !password) {
-                      document.getElementById('loginResult').textContent = 'Please enter both username and password';
-                      return;
-                  }
-                  
-                  try {
-                      const response = await fetch('/api/auth/login', {
-                          method: 'POST',
-                          headers: {
-                              'Content-Type': 'application/json'
-                          },
-                          body: JSON.stringify({ username, password })
-                      });
-                      
-                      const data = await response.json();
-                      document.getElementById('loginResult').textContent = 
-                          \`Status: \${response.status} \${response.statusText}\\n\` + 
-                          JSON.stringify(data, null, 2);
-                  } catch (error) {
-                      document.getElementById('loginResult').textContent = \`Error: \${error.message}\`;
-                  }
-              }
-              
-              async function testRegister() {
-                  document.getElementById('registerResult').textContent = 'Testing registration...';
-                  const username = document.getElementById('regUsername').value;
-                  const email = document.getElementById('regEmail').value;
-                  const password = document.getElementById('regPassword').value;
-                  const firstName = document.getElementById('regFirstName').value;
-                  const lastName = document.getElementById('regLastName').value;
-                  
-                  if (!username || !email || !password || !firstName || !lastName) {
-                      document.getElementById('registerResult').textContent = 'Please fill in all fields';
-                      return;
-                  }
-                  
-                  try {
-                      const response = await fetch('/api/auth/register', {
-                          method: 'POST',
-                          headers: {
-                              'Content-Type': 'application/json'
-                          },
-                          body: JSON.stringify({ 
-                              username, 
-                              email, 
-                              password, 
-                              firstName, 
-                              lastName 
-                          })
-                      });
-                      
-                      const data = await response.json();
-                      document.getElementById('registerResult').textContent = 
-                          \`Status: \${response.status} \${response.statusText}\\n\` + 
-                          JSON.stringify(data, null, 2);
-                  } catch (error) {
-                      document.getElementById('registerResult').textContent = \`Error: \${error.message}\`;
-                  }
-              }
-          </script>
-      </body>
-      </html>
-      `;
-      
-      res.status(200).send(debugHtml);
-    }
-  });
-});
-
-// Error handling middleware
-app.use(errorMiddleware);
+// Use the dynamically imported error middleware if available
+if (errorMiddlewareHandler) {
+  app.use(errorMiddlewareHandler);
+}
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -562,19 +560,20 @@ app.use((err, req, res, next) => {
     });
   } catch (error) {
     logger.error(`Server initialization error: ${error.message}`, { stack: error.stack });
-    process.exit(1);
+    console.error('Unable to start server:', error);
   }
 })();
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (err) => {
   logger.error(`Unhandled Promise Rejection: ${err.message}`, { stack: err.stack });
+  console.error('Unhandled Promise Rejection:', err);
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
   logger.error(`Uncaught Exception: ${err.message}`, { stack: err.stack });
-  process.exit(1);
+  console.error('Uncaught Exception:', err);
 });
 
 export default app;
