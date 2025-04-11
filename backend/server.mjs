@@ -18,7 +18,8 @@ import errorMiddleware from './middleware/errorMiddleware.mjs';
 import logger from './utils/logger.mjs';
 import sequelize from './database.mjs';
 import setupAssociations from './setupAssociations.mjs';
-
+import * as errorMiddlewareModule from './middleware/errorMiddleware.mjs';
+const errorMiddleware = errorMiddlewareModule.errorMiddleware;
 
 
 // Initialize environment variables
