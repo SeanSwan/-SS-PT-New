@@ -1,6 +1,53 @@
-// backend/scripts/test-auth-cli.mjs
+/**
+ * =============================================================
+ * Deployment & Testing Steps for Render
+ * =============================================================
+ *
+ * 1. Ensure Deployment:
+ *    - Verify the latest code (including this file and any scripts like test-auth-cli.mjs)
+ *      is deployed on Render.
+ *    - Confirm that all necessary dependencies (such as bcryptjs, sequelize, etc.) are
+ *      listed in package.json.
+ *
+ * 2. Open Render Shell:
+ *    - Log in to your Render Dashboard.
+ *    - Navigate to your backend Web Service (e.g., -SS-PT-New).
+ *    - Click the "Shell" tab to open a command prompt in your running container.
+ *
+ * 3. Navigate to Directory:
+ *    - The shell starts in /opt/render/project/src.
+ *    - Change to your backend scripts directory:
+ *          cd backend/scripts
+ *
+ * 4. Run the Script with Caution:
+ *    - For testing Login:
+ *          node test-auth-cli.mjs login your_username your_password
+ *      Example:
+ *          node test-auth-cli.mjs login ogpswan MyActualProdPassword123
+ *
+ *    - For testing Registration:
+ *          node test-auth-cli.mjs register newtestuser newtest@example.com complexpassword123 "New" "Test"
+ *
+ *    - To check a user's existence:
+ *          node test-auth-cli.mjs check-user ogpswan
+ *          node test-auth-cli.mjs check-user someone@example.com
+ *
+ * 5. Analyze Output:
+ *    - Look for logs in the Render shell indicating:
+ *         ✅ "Database connection successful." (DB access confirmation)
+ *         ✅ "User found..." or ⚠️ "User not found..."
+ *         ✅ "Password verification successful!" or ❌ "Password verification failed."
+ *         ✅ "User successfully created..." (registration) or any pertinent errors.
+ *
+ * Security Note: Be aware that passwords typed here may be visible in the shell history.
+ *
+ * =============================================================
+ */
+
+// Import necessary modules
 import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
+import path from 'path'; // Added for resolving .env path
 import { Op } from 'sequelize'; // Import Op for OR queries
 import sequelize from '../database.mjs'; // Adjust path if needed
 import User from '../models/User.mjs';   // Adjust path if needed
@@ -190,7 +237,6 @@ const handleCheckUser = async (identifier) => {
     return !!user; // Return true if found, false otherwise
 };
 
-
 // --- Main Execution ---
 const main = async () => {
     logger.info('===========================================');
@@ -257,6 +303,7 @@ try {
 // Add checks for other essential packages if needed
 
 // --- Load .env and Run ---
+// Verify .env configuration is correctly loaded with the relative path
 dotenv.config({ path: path.resolve(__dirname, '../.env') }); // Correct path relative to script
 
 // Verify DATABASE_URL is set (crucial for Render)

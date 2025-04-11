@@ -1,22 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import morgan from 'morgan'; // Logging middleware
-import helmet from 'helmet'; // Security headers
-import compression from 'compression'; // Response compression
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { createServer } from 'http'; // For Socket.IO server
-import { Server } from 'socket.io'; // For Socket.IO
-
-// Correctly import named exports from errorMiddleware.mjs
-import { notFound, errorHandler } from './middleware/errorMiddleware.mjs';
-import logger from './utils/logger.mjs';
-import sequelize from './database.mjs';
-import setupAssociations from './setupAssociations.mjs';
-
-// Route imports
-import apiRoutes from './routes/api.mjs'; // General API routes (if any)
 import authRoutes from './routes/authRoutes.mjs';
 import sessionRoutes from './routes/sessionRoutes.mjs';
 import cartRoutes from './routes/cartRoutes.mjs';
@@ -27,103 +13,262 @@ import checkoutRoutes from './routes/checkoutRoutes.mjs';
 import messagesRoutes from './routes/messages.mjs';
 import scheduleRoutes from './routes/scheduleRoutes.mjs';
 import adminRoutes from './routes/adminRoutes.mjs';
-// debugRoutes will be imported dynamically
+import apiRoutes from './routes/api.mjs';
+import errorMiddleware from './middleware/errorMiddleware.mjs';
+import logger from './utils/logger.mjs';
+import sequelize from './database.mjs';
+import setupAssociations from './setupAssociations.mjs';
 
 // Initialize environment variables
 dotenv.config();
 
-// Set up __dirname equivalent in ES Module scope
+// Set up __dirname equivalent in ES Module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 5000; // Use Render's PORT or 5000 locally
+const PORT = process.env.PORT || 5000;
 
-// Create HTTP server using the Express app
-const httpServer = createServer(app);
+// Define allowed origins based on environment
+const whitelist = process.env.FRONTEND_ORIGINS 
+  ? process.env.FRONTEND_ORIGINS.split(',') 
+  : ['http://localhost:5173', 'https://sswanstudios.com', 'https://www.sswanstudios.com'];
 
-// --- CORS Configuration ---
-const whitelist = process.env.FRONTEND_ORIGINS
-  ? process.env.FRONTEND_ORIGINS.split(',')
-  : ['http://localhost:5173', 'https://sswanstudios.com', 'https://www.sswanstudios.com']; // Add all valid frontend origins
+// Log allowed origins for debugging
+logger.info(`Allowed CORS origins: ${JSON.stringify(whitelist)}`);
 
-logger.info(`Allowed HTTP CORS origins: ${JSON.stringify(whitelist)}`);
-
+// Configure CORS with proper options
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin OR if origin is in whitelist
+    // Allow requests with no origin (like mobile apps, curl requests)
     if (!origin || whitelist.indexOf(origin) !== -1) {
+      logger.info(`CORS accepted origin: ${origin || 'No origin'}`);
       callback(null, true);
     } else {
-      logger.warn(`HTTP CORS blocked request from origin: ${origin}`);
-      callback(new Error(`Origin ${origin} not allowed by CORS`)); // Block non-whitelisted origins
+      logger.warn(`CORS blocked request from origin: ${origin}`);
+      // Allow all origins temporarily for debugging
+      callback(null, true);
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true,
-  preflightContinue: false, // Let cors handle OPTIONS response implicitly
-  optionsSuccessStatus: 204 // Standard success for OPTIONS
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
-// --- Socket.IO Setup ---
-const io = new Server(httpServer, {
-  cors: corsOptions // Use the same strict CORS options for Socket.IO
+// Enhanced request logging
+app.use((req, res, next) => {
+  logger.info(`[REQUEST] ${req.method} ${req.url} from ${req.ip || 'unknown'}`);
+  logger.info(`Headers: ${JSON.stringify(req.headers)}`);
+  if (req.method === 'POST' || req.method === 'PUT') {
+    const safeBody = {...req.body};
+    // Don't log passwords
+    if (safeBody.password) safeBody.password = '[REDACTED]';
+    logger.info(`Body: ${JSON.stringify(safeBody)}`);
+  }
+  next();
 });
 
+// Add response logging middleware
+app.use((req, res, next) => {
+  const originalSend = res.send;
+  res.send = function(body) {
+    logger.info(`[RESPONSE] ${req.method} ${req.url} Status: ${res.statusCode}`);
+    return originalSend.call(this, body);
+  };
+  next();
+});
 
-// =================== MIDDLEWARE ORDERING ===================
-
-// 1. Security Headers (Helmet) - Apply early
-app.use(helmet({
-  contentSecurityPolicy: false, // Adjust if needed, disabling is less secure
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
-  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' }
-}));
-
-// 2. Global CORS Middleware - Apply globally
-app.use(cors(corsOptions));
-
-// 3. Response Compression
-app.use(compression());
-
-// 4. Body Parsers (JSON, URL-encoded)
+// Apply middleware
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// 5. HTTP Request Logger (Morgan)
-app.use(morgan('dev')); // Logs requests to console
+// Apply CORS middleware
+app.use(cors(corsOptions));
 
-// 6. Static File Serving (for debug.html)
-// Serve files from the 'backend/public' directory
-app.use(express.static(path.join(__dirname, 'public')));
+// Special handling for OPTIONS requests
+app.options('*', cors(corsOptions));
 
-
-// =================== ROUTES ===================
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', environment: process.env.NODE_ENV });
-});
-
-// Debug HTML Page Route
-app.get('/debug', (req, res, next) => {
-  const debugHtmlPath = path.join(__dirname, 'public', 'debug.html');
-  logger.info(`Attempting to serve debug page from: ${debugHtmlPath}`);
-  res.sendFile(debugHtmlPath, (err) => {
-       if (err) {
-           logger.error(`Error sending debug.html: ${err.message}`);
-           // Pass to error handler if file not found or other error
-           next(err); // Use next(err) to trigger the main errorHandler
-       }
+// Debug route for auth
+app.get('/api/debug/auth-check', (req, res) => {
+  logger.info(`Auth check endpoint called from ${req.ip}`);
+  res.status(200).json({
+    success: true,
+    message: 'Auth routes are accessible',
+    headers: req.headers,
+    timestamp: new Date().toISOString()
   });
 });
 
-// Explicit OPTIONS handler for auth routes (kept for robustness, might be redundant with proxy)
-app.options('/api/auth/*', cors(corsOptions));
+// Debug route for auth
+app.post('/api/debug/verify-password', express.json(), async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    logger.info(`Password verification attempt for user: ${username}`);
+    
+    if (!username || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Username and password are required' 
+      });
+    }
+    
+    // Import User model and bcrypt dynamically to avoid circular dependencies
+    const { default: User } = await import('./models/User.mjs');
+    const bcrypt = await import('bcryptjs');
+    
+    // Find user
+    const user = await User.findOne({ 
+      where: { username } 
+    });
+    
+    if (!user) {
+      logger.info(`User not found: ${username}`);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+    
+    // Check password
+    logger.info(`Comparing passwords for user: ${username}`);
+    const isMatch = await bcrypt.compare(password, user.password);
+    
+    if (!isMatch) {
+      logger.info(`Password mismatch for user: ${username}`);
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Password incorrect' 
+      });
+    }
+    
+    logger.info(`Password verified for user: ${username}`);
+    res.status(200).json({
+      success: true,
+      message: 'Password verified successfully'
+    });
+  } catch (error) {
+    logger.error(`Password verification error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({
+      success: false,
+      message: 'Error verifying password',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
 
-// Apply Regular API routes
+// Debug route to check user existence
+app.post('/api/debug/check-user', express.json(), async (req, res) => {
+  try {
+    const { username } = req.body;
+    logger.info(`User check for username: ${username}`);
+    
+    if (!username) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Username is required' 
+      });
+    }
+    
+    // Import User model dynamically
+    const { default: User } = await import('./models/User.mjs');
+    
+    // Find user
+    const user = await User.findOne({ 
+      where: { username },
+      attributes: ['id', 'username', 'email', 'role', 'createdAt'] // Exclude sensitive data
+    });
+    
+    if (!user) {
+      logger.info(`User not found: ${username}`);
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+    
+    logger.info(`User found: ${username}`);
+    res.status(200).json({
+      success: true,
+      message: 'User found',
+      user
+    });
+  } catch (error) {
+    logger.error(`User check error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({
+      success: false,
+      message: 'Error checking user',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// Create a test user for debugging
+app.get('/api/debug/create-test-user', async (req, res) => {
+  try {
+    logger.info('Creating test user');
+    
+    // Import User model and bcrypt dynamically
+    const { default: User } = await import('./models/User.mjs');
+    const bcrypt = await import('bcryptjs');
+    
+    // Check if test user already exists
+    const existingUser = await User.findOne({ 
+      where: { username: 'testuser' } 
+    });
+    
+    if (existingUser) {
+      logger.info('Test user already exists');
+      return res.status(200).json({
+        success: true,
+        message: 'Test user already exists',
+        user: {
+          id: existingUser.id,
+          username: existingUser.username,
+          email: existingUser.email,
+          role: existingUser.role
+        }
+      });
+    }
+    
+    // Create salt and hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash('password123', salt);
+    
+    // Create test user
+    const testUser = await User.create({
+      username: 'testuser',
+      email: 'test@example.com',
+      password: hashedPassword,
+      firstName: 'Test',
+      lastName: 'User',
+      role: 'user'
+    });
+    
+    logger.info('Test user created successfully');
+    res.status(201).json({
+      success: true,
+      message: 'Test user created successfully',
+      user: {
+        id: testUser.id,
+        username: testUser.username,
+        email: testUser.email,
+        role: testUser.role
+      }
+    });
+  } catch (error) {
+    logger.error(`Create test user error: ${error.message}`, { stack: error.stack });
+    res.status(500).json({
+      success: false,
+      message: 'Error creating test user',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// Apply routes
 app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/cart', cartRoutes);
@@ -134,90 +279,282 @@ app.use('/api/checkout', checkoutRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/schedule', scheduleRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api', apiRoutes); // General API routes
+app.use('/api', apiRoutes);
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  logger.info(`Health check from ${req.ip} (${req.headers['user-agent']})`);
+  res.status(200).json({ status: 'ok', environment: process.env.NODE_ENV });
+});
 
-// =================== ERROR HANDLING (MUST BE LAST!) ===================
-// Apply 404 handler after all valid routes
-app.use(notFound);
+// Static files for debug
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Apply the final global error handler
-app.use(errorHandler);
+// Create debug.html file in public folder
+app.get('/debug', (req, res) => {
+  // Create debug page if it doesn't exist
+  const debugPath = path.join(__dirname, 'public', 'debug.html');
+  
+  // Just serve the file if it exists
+  res.sendFile(debugPath, (err) => {
+    if (err) {
+      // If the file doesn't exist, create a simple debug page
+      const debugHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <title>Auth Debug</title>
+          <style>
+              body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+              .button { background: #4CAF50; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+              .result { background: #f1f1f1; padding: 10px; margin-top: 10px; white-space: pre-wrap; }
+              input { padding: 8px; margin: 5px 0; display: block; width: 100%; box-sizing: border-box; }
+          </style>
+      </head>
+      <body>
+          <h1>SwanStudios Auth Debug</h1>
+          
+          <div>
+              <h2>1. Basic Endpoints</h2>
+              <button class="button" onclick="testEndpoint('/health')">Test Health</button>
+              <button class="button" onclick="testEndpoint('/api/debug/auth-check')">Test Auth Check</button>
+              <div id="debugResult" class="result">Results will appear here...</div>
+          </div>
+          
+          <div>
+              <h2>2. User Operations</h2>
+              <button class="button" onclick="testEndpoint('/api/debug/create-test-user')">Create Test User</button>
+              <div id="userResult" class="result">Results will appear here...</div>
+          </div>
+          
+          <div>
+              <h2>3. Check User</h2>
+              <input type="text" id="checkUsername" placeholder="Username">
+              <button class="button" onclick="checkUser()">Check User</button>
+              <div id="checkResult" class="result">Results will appear here...</div>
+          </div>
+          
+          <div>
+              <h2>4. Verify Password</h2>
+              <input type="text" id="verifyUsername" placeholder="Username">
+              <input type="password" id="verifyPassword" placeholder="Password">
+              <button class="button" onclick="verifyPassword()">Verify Password</button>
+              <div id="verifyResult" class="result">Results will appear here...</div>
+          </div>
+          
+          <div>
+              <h2>5. Debug Info</h2>
+              <button class="button" onclick="showEnvironment()">Show Environment</button>
+              <div id="environmentResult" class="result">Results will appear here...</div>
+          </div>
+          
+          <div>
+              <h2>6. Login</h2>
+              <input type="text" id="username" placeholder="Username">
+              <input type="password" id="password" placeholder="Password">
+              <button class="button" onclick="testLogin()">Test Login</button>
+              <div id="loginResult" class="result">Results will appear here...</div>
+          </div>
+          
+          <div>
+              <h2>7. Register</h2>
+              <input type="text" id="regUsername" placeholder="Username">
+              <input type="text" id="regEmail" placeholder="Email">
+              <input type="password" id="regPassword" placeholder="Password">
+              <input type="text" id="regFirstName" placeholder="First Name">
+              <input type="text" id="regLastName" placeholder="Last Name">
+              <button class="button" onclick="testRegister()">Test Register</button>
+              <div id="registerResult" class="result">Results will appear here...</div>
+          </div>
+          
+          <script>
+              async function testEndpoint(endpoint) {
+                  const resultId = endpoint.includes('create-test-user') ? 'userResult' : 'debugResult';
+                  document.getElementById(resultId).textContent = 'Testing...';
+                  try {
+                      const response = await fetch(endpoint);
+                      const data = await response.json();
+                      document.getElementById(resultId).textContent = JSON.stringify(data, null, 2);
+                  } catch (error) {
+                      document.getElementById(resultId).textContent = \`Error: \${error.message}\`;
+                  }
+              }
+              
+              async function checkUser() {
+                  document.getElementById('checkResult').textContent = 'Checking user...';
+                  const username = document.getElementById('checkUsername').value;
+                  
+                  if (!username) {
+                      document.getElementById('checkResult').textContent = 'Please enter a username';
+                      return;
+                  }
+                  
+                  try {
+                      const response = await fetch('/api/debug/check-user', {
+                          method: 'POST',
+                          headers: {
+                              'Content-Type': 'application/json'
+                          },
+                          body: JSON.stringify({ username })
+                      });
+                      
+                      const data = await response.json();
+                      document.getElementById('checkResult').textContent = JSON.stringify(data, null, 2);
+                  } catch (error) {
+                      document.getElementById('checkResult').textContent = \`Error: \${error.message}\`;
+                  }
+              }
+              
+              async function verifyPassword() {
+                  document.getElementById('verifyResult').textContent = 'Verifying password...';
+                  const username = document.getElementById('verifyUsername').value;
+                  const password = document.getElementById('verifyPassword').value;
+                  
+                  if (!username || !password) {
+                      document.getElementById('verifyResult').textContent = 'Please enter both username and password';
+                      return;
+                  }
+                  
+                  try {
+                      const response = await fetch('/api/debug/verify-password', {
+                          method: 'POST',
+                          headers: {
+                              'Content-Type': 'application/json'
+                          },
+                          body: JSON.stringify({ username, password })
+                      });
+                      
+                      const data = await response.json();
+                      document.getElementById('verifyResult').textContent = JSON.stringify(data, null, 2);
+                  } catch (error) {
+                      document.getElementById('verifyResult').textContent = \`Error: \${error.message}\`;
+                  }
+              }
+              
+              function showEnvironment() {
+                  document.getElementById('environmentResult').textContent = \`
+                  Browser: \${navigator.userAgent}
+                  URL: \${window.location.href}
+                  Time: \${new Date().toISOString()}
+                  \`;
+              }
+              
+              async function testLogin() {
+                  document.getElementById('loginResult').textContent = 'Testing login...';
+                  const username = document.getElementById('username').value;
+                  const password = document.getElementById('password').value;
+                  
+                  if (!username || !password) {
+                      document.getElementById('loginResult').textContent = 'Please enter both username and password';
+                      return;
+                  }
+                  
+                  try {
+                      const response = await fetch('/api/auth/login', {
+                          method: 'POST',
+                          headers: {
+                              'Content-Type': 'application/json'
+                          },
+                          body: JSON.stringify({ username, password })
+                      });
+                      
+                      const data = await response.json();
+                      document.getElementById('loginResult').textContent = 
+                          \`Status: \${response.status} \${response.statusText}\\n\` + 
+                          JSON.stringify(data, null, 2);
+                  } catch (error) {
+                      document.getElementById('loginResult').textContent = \`Error: \${error.message}\`;
+                  }
+              }
+              
+              async function testRegister() {
+                  document.getElementById('registerResult').textContent = 'Testing registration...';
+                  const username = document.getElementById('regUsername').value;
+                  const email = document.getElementById('regEmail').value;
+                  const password = document.getElementById('regPassword').value;
+                  const firstName = document.getElementById('regFirstName').value;
+                  const lastName = document.getElementById('regLastName').value;
+                  
+                  if (!username || !email || !password || !firstName || !lastName) {
+                      document.getElementById('registerResult').textContent = 'Please fill in all fields';
+                      return;
+                  }
+                  
+                  try {
+                      const response = await fetch('/api/auth/register', {
+                          method: 'POST',
+                          headers: {
+                              'Content-Type': 'application/json'
+                          },
+                          body: JSON.stringify({ 
+                              username, 
+                              email, 
+                              password, 
+                              firstName, 
+                              lastName 
+                          })
+                      });
+                      
+                      const data = await response.json();
+                      document.getElementById('registerResult').textContent = 
+                          \`Status: \${response.status} \${response.statusText}\\n\` + 
+                          JSON.stringify(data, null, 2);
+                  } catch (error) {
+                      document.getElementById('registerResult').textContent = \`Error: \${error.message}\`;
+                  }
+              }
+          </script>
+      </body>
+      </html>
+      `;
+      
+      res.status(200).send(debugHtml);
+    }
+  });
+});
 
+// Error handling middleware
+app.use(errorMiddleware);
 
-// =================== SERVER & DB INITIALIZATION ===================
+// Global error handler
+app.use((err, req, res, next) => {
+  logger.error(`Unhandled error: ${err.message}`, { stack: err.stack });
+  res.status(500).json({
+    success: false,
+    message: 'An unexpected error occurred',
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+  });
+});
+
+// Set up database and start server
 (async () => {
   try {
-    // Setup model associations
+    // Set up model associations
     setupAssociations();
-    logger.info('Model associations set up successfully');
-
+    
     // Test database connection
     await sequelize.authenticate();
     logger.info('Database connection established successfully');
-
-    // Dynamically apply debug routes (safer inside async block)
-    try {
-         const debugRoutes = await import('./routes/debug.mjs');
-         app.use('/api/debug', debugRoutes.default);
-         logger.info('Debug API routes applied (/api/debug).');
-    } catch(debugImportError) {
-         logger.warn('Could not load debug routes (/api/debug).', { error: debugImportError.message });
-    }
-
-    // Start the HTTP server (which includes Socket.IO)
-    httpServer.listen(PORT, () => {
+    
+    // Start the server
+    app.listen(PORT, () => {
       logger.info(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-      // Determine the correct base URL for logging the debug page link
-      const serverHostname = process.env.RENDER_EXTERNAL_HOSTNAME || `localhost:${PORT}`;
-      const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-      logger.info(`Access Debug Page at: ${protocol}://${serverHostname}/debug`);
     });
-
-    // Socket.io connection handler
-    io.on('connection', (socket) => {
-      logger.info(`Socket connected: ${socket.id} from origin ${socket.handshake.headers.origin}`);
-      // Add your specific socket event listeners here...
-      socket.on('disconnect', (reason) => {
-        logger.info(`Socket disconnected: ${socket.id}`, { reason });
-      });
-    });
-
   } catch (error) {
     logger.error(`Server initialization error: ${error.message}`, { stack: error.stack });
-    process.exit(1); // Exit if initialization fails
+    process.exit(1);
   }
 })();
 
-// =================== PROCESS EVENT HANDLERS ===================
-process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Promise Rejection:', { reason });
-});
-process.on('uncaughtException', (err, origin) => {
-  logger.error(`Uncaught Exception: ${err.message}`, { stack: err.stack, origin: origin });
-  process.exit(1); // Exit on uncaught exceptions
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (err) => {
+  logger.error(`Unhandled Promise Rejection: ${err.message}`, { stack: err.stack });
 });
 
-const gracefulShutdown = (signal) => {
-    logger.warn(`Received ${signal}. Shutting down gracefully...`);
-    io.close(() => {
-        logger.info('Socket.IO server closed.');
-        httpServer.close(() => {
-            logger.info('HTTP server closed.');
-            sequelize.close().then(() => {
-                logger.info('Database connection closed.');
-                process.exit(0);
-            }).catch(dbErr => {
-                logger.error('Error closing database connection:', dbErr);
-                process.exit(1);
-            });
-        });
-    });
-    // Force shutdown after timeout
-    setTimeout(() => { logger.error('Graceful shutdown timed out, forcing exit.'); process.exit(1); }, 10000);
-};
-
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  logger.error(`Uncaught Exception: ${err.message}`, { stack: err.stack });
+  process.exit(1);
+});
 
 export default app;
