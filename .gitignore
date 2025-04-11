@@ -11,4 +11,3 @@ backend/.env
 # Ignore build files
 frontend/dist/
 backend/build/
-backend/public/
