@@ -23,6 +23,11 @@ Contact.init(
       type: DataTypes.TEXT,
       allowNull: false,
     },
+    // UserID as foreign key to User model
+    userId: {
+      type: DataTypes.UUID,
+      allowNull: true, // Nullable since contacts might be from non-registered users
+    },
   },
   {
     sequelize,

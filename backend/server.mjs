@@ -55,6 +55,7 @@ import messagesRoutes from './routes/messages.mjs';
 import scheduleRoutes from './routes/scheduleRoutes.mjs';
 import adminRoutes from './routes/adminRoutes.mjs';
 import apiRoutes from './routes/api.mjs';
+import debugRoutes from './routes/debug.mjs';  // Import debug routes
 import logger from './utils/logger.mjs';
 import requestLogger from './middleware/debugMiddleware.mjs';
 import sequelize from './database.mjs';
@@ -507,6 +508,7 @@ app.use('/api/checkout', checkoutRoutes);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/schedule', scheduleRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/debug', debugRoutes);  // Added debug routes
 app.use('/api', apiRoutes); // General API routes, ensure no overlap
 
 // --- Error Handling ---

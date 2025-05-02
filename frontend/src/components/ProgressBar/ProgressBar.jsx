@@ -15,6 +15,7 @@ const ProgressBarWrapper = styled.div`
   position: relative;
 `;
 
+// Fixed: Using data-* attribute instead of camelCase prop
 const ProgressBarFill = styled.div`
   position: absolute;
   top: 0;
@@ -25,7 +26,7 @@ const ProgressBarFill = styled.div`
     #00ffff,
     #7851a9
   );
-  width: ${props => props.percentComplete || '0%'};
+  width: ${props => props['data-percent'] || '0%'};
   transition: width 0.5s ease;
 `;
 
@@ -40,7 +41,8 @@ const ProgressBar = ({ percent }) => {
   return (
     <ProgressContainer>
       <ProgressBarWrapper>
-        <ProgressBarFill percentComplete={`${percent}%`} />
+        {/* Fixed: Using data-percent instead of percentComplete */}
+        <ProgressBarFill data-percent={`${percent}%`} />
       </ProgressBarWrapper>
       <ProgressText>Profile Completion: {percent}%</ProgressText>
     </ProgressContainer>

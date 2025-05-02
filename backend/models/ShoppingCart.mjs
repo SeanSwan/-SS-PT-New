@@ -17,9 +17,31 @@ ShoppingCart.init(
       defaultValue: 'active',
       allowNull: false,
     },
-    // Associate the cart with a user via userId (foreign key)
+    // Updated userId to UUID to match User.id
     userId: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
+    // Add these fields needed for checkout
+    checkoutSessionId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    paymentStatus: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    completedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    lastActivityAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
+    checkoutSessionExpired: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
       allowNull: false,
     },
   },

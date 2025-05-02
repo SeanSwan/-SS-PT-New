@@ -15,6 +15,11 @@
     "db:reset": "node scripts/reset-db-sequelize.mjs",
     "db:reset-complete": "node scripts/setup-complete.mjs",
     "create-admin": "node scripts/create-admin-user.mjs",
+    "fix-admin": "node scripts/fix-admin-user.mjs",
+    "reset-admin-password": "node scripts/reset-admin-password.mjs",
+    "fix-cart": "node scripts/fix-cart-schema.mjs",
+    "migrate-cart": "node scripts/migrate-cart-data.mjs",
+    "seed-storefront": "node scripts/seed-storefront-items.mjs",
     "verify-admin": "node scripts/verify-admin.mjs"
   },
   "keywords": [],

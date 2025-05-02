@@ -1,4 +1,4 @@
-// backend/models/CartItem.js
+// backend/models/CartItem.mjs
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
 
@@ -15,12 +15,27 @@ CartItem.init(
       type: DataTypes.INTEGER,
       defaultValue: 1,
       allowNull: false,
+      validate: {
+        min: 1
+      }
     },
     // Store the price at the time of purchase.
     price: {
       type: DataTypes.FLOAT,
       allowNull: false,
+      validate: {
+        min: 0
+      }
     },
+    // These foreign keys are defined by the associations in setupAssociations.mjs
+    cartId: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    },
+    storefrontItemId: {
+      type: DataTypes.INTEGER,
+      allowNull: false
+    }
   },
   {
     sequelize,
@@ -30,7 +45,7 @@ CartItem.init(
   }
 );
 
-// IMPORTANT: Remove the associations from here since they're now in setupAssociations.mjs
+// IMPORTANT: Associations are handled in setupAssociations.mjs
 // This prevents circular dependencies and keeps all associations in one place
 
 export default CartItem;

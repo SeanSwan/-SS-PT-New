@@ -32,13 +32,13 @@ Session.init({
     comment: 'Duration in minutes'
   },
   userId: {
-    // Use INTEGER type - this will be properly handled by the manual table creation
-    type: DataTypes.INTEGER,
+    // Updated to UUID to match User.id primary key
+    type: DataTypes.UUID,
     allowNull: true,
     comment: 'Client who booked the session'
   },
   trainerId: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.UUID,
     allowNull: true,
     comment: 'Trainer assigned to the session'
   },
@@ -71,7 +71,7 @@ Session.init({
     comment: 'Reason for cancellation if applicable'
   },
   cancelledBy: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.UUID,
     allowNull: true,
     comment: 'User who cancelled the session'
   },

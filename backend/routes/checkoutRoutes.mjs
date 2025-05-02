@@ -56,11 +56,12 @@ router.post('/checkout', protect, async (req, res) => {
     }
 
     // Retrieve the active shopping cart along with its items
+    // FIXED: Changed 'items' to 'cartItems' to match setupAssociations.mjs
     const cart = await ShoppingCart.findOne({
       where: { userId, status: 'active' },
       include: [{ 
         model: CartItem, 
-        as: 'items',
+        as: 'cartItems', // Changed from 'items' to 'cartItems' to match setupAssociations.mjs
         include: [{ 
           model: StorefrontItem, 
           as: 'storefrontItem' 
@@ -68,7 +69,8 @@ router.post('/checkout', protect, async (req, res) => {
       }]
     });
 
-    if (!cart || !cart.items || cart.items.length === 0) {
+    // FIXED: Changed cart.items to cart.cartItems to match the association name
+    if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
       return res.status(400).json({ 
         success: false, 
         message: 'Your cart is empty' 
@@ -76,7 +78,8 @@ router.post('/checkout', protect, async (req, res) => {
     }
 
     // Build line items for the Stripe checkout session
-    const line_items = cart.items.map((item) => ({
+    // FIXED: Changed cart.items to cart.cartItems
+    const line_items = cart.cartItems.map((item) => ({
       price_data: {
         currency: 'usd',
         product_data: {
@@ -141,17 +144,20 @@ router.post('/create-session', async (req, res) => {
     }
 
     // Retrieve the active shopping cart along with its items
+    // FIXED: Changed 'items' to 'cartItems' to match setupAssociations.mjs
     const cart = await ShoppingCart.findOne({
       where: { userId, status: 'active' },
-      include: [{ model: CartItem, as: 'items' }],
+      include: [{ model: CartItem, as: 'cartItems' }], // Changed from 'items' to 'cartItems'
     });
 
-    if (!cart || !cart.items || cart.items.length === 0) {
+    // FIXED: Changed cart.items to cart.cartItems
+    if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
       return res.status(400).json({ message: 'Cart is empty.' });
     }
 
     // Build line items for the Stripe checkout session
-    const line_items = cart.items.map((item) => ({
+    // FIXED: Changed cart.items to cart.cartItems
+    const line_items = cart.cartItems.map((item) => ({
       price_data: {
         currency: 'usd',
         product_data: {

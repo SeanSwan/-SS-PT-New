@@ -16,6 +16,11 @@ AdminSettings.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
+    // UserID as foreign key to User model
+    userId: {
+      type: DataTypes.UUID,
+      allowNull: false,
+    },
   },
   {
     sequelize,

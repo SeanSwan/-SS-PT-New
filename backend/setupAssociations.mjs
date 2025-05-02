@@ -31,7 +31,7 @@ const setupAssociations = () => {
     as: 'client',
     foreignKey: {
       name: 'userId',
-      type: DataTypes.INTEGER
+      type: DataTypes.UUID  // Changed to UUID to match User.id
     }
   });
   
@@ -39,7 +39,7 @@ const setupAssociations = () => {
     as: 'trainer',
     foreignKey: {
       name: 'trainerId',
-      type: DataTypes.INTEGER
+      type: DataTypes.UUID  // Changed to UUID to match User.id
     }
   });
   
@@ -52,7 +52,7 @@ const setupAssociations = () => {
     as: 'clientSessions',
     foreignKey: {
       name: 'userId',
-      type: DataTypes.INTEGER
+      type: DataTypes.UUID  // Changed to UUID to match User.id
     }
   });
   
@@ -60,7 +60,7 @@ const setupAssociations = () => {
     as: 'trainerSessions',
     foreignKey: {
       name: 'trainerId',
-      type: DataTypes.INTEGER
+      type: DataTypes.UUID  // Changed to UUID to match User.id
     }
   });
   
@@ -69,7 +69,7 @@ const setupAssociations = () => {
     as: 'userCarts',
     foreignKey: {
       name: 'userId',
-      type: DataTypes.INTEGER
+      type: DataTypes.UUID  // Changed to UUID to match User.id
     }
   });
   
@@ -78,7 +78,7 @@ const setupAssociations = () => {
     as: 'orientations',
     foreignKey: {
       name: 'userId',
-      type: DataTypes.INTEGER
+      type: DataTypes.UUID  // Changed to UUID to match User.id
     }
   });
   
@@ -87,7 +87,7 @@ const setupAssociations = () => {
     as: 'contacts',
     foreignKey: {
       name: 'userId',
-      type: DataTypes.INTEGER
+      type: DataTypes.UUID  // Changed to UUID to match User.id
     }
   });
   
@@ -96,7 +96,7 @@ const setupAssociations = () => {
     as: 'adminSettings',
     foreignKey: {
       name: 'userId',
-      type: DataTypes.INTEGER  // Explicitly define INTEGER type to match users.id
+      type: DataTypes.UUID  // Changed to UUID to match User.id
     }
   });
   
@@ -108,7 +108,7 @@ const setupAssociations = () => {
     as: 'user',
     foreignKey: {
       name: 'userId',
-      type: DataTypes.INTEGER
+      type: DataTypes.UUID  // Changed to UUID to match User.id
     }
   });
   
@@ -160,7 +160,7 @@ const setupAssociations = () => {
     as: 'user',
     foreignKey: {
       name: 'userId',
-      type: DataTypes.INTEGER
+      type: DataTypes.UUID  // Changed to UUID to match User.id
     }
   });
   
@@ -172,7 +172,7 @@ const setupAssociations = () => {
     as: 'user',
     foreignKey: {
       name: 'userId',
-      type: DataTypes.INTEGER
+      type: DataTypes.UUID  // Changed to UUID to match User.id
     }
   });
   
@@ -184,7 +184,7 @@ const setupAssociations = () => {
     as: 'admin',
     foreignKey: {
       name: 'userId',
-      type: DataTypes.INTEGER  // Explicitly define INTEGER type to match users.id
+      type: DataTypes.UUID  // Changed to UUID to match User.id
     }
   });
   
