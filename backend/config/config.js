@@ -1,52 +1,60 @@
 // backend/config/config.js
 
-// Import dotenv and path to load environment variables.
 import { config } from 'dotenv';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Use process.cwd() to get the current working directory (which should be your project root).
-const envPath = path.resolve(process.cwd(), '.env');
+// Get the directory of the current file
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Construct path to the root .env file (assuming config.js is in backend/config/)
+const envPath = path.resolve(__dirname, '..', '..', '.env');
 
 // Load environment variables from the .env file located at the project root.
 config({ path: envPath });
 
-// Debug logging: Check that the environment variables are loaded correctly.
-// console.log("PG_USER:", process.env.PG_USER);
-// console.log("PG_PASSWORD:", process.env.PG_PASSWORD);
-// console.log("PG_DB:", process.env.PG_DB);
-
 /**
  * Sequelize Configuration Object
- * This object is used by Sequelize CLI to connect to your PostgreSQL database.
- * 
- * Make sure your .env file (located in the project root) includes:
- * 
- *   PG_USER=swanadmin
- *   PG_PASSWORD=your_actual_postgres_password
- *   PG_DB=swanstudios
- *   PG_HOST=localhost
- *   PG_PORT=5432
+ * Used by Sequelize CLI and the application to connect to PostgreSQL.
+ * Relies on environment variables defined in the root .env file.
  */
-export default {
+const dbConfig = {
   development: {
-    username: process.env.PG_USER || 'swanadmin',          // Use PG_USER from .env or default to 'swanadmin'
-    password: process.env.PG_PASSWORD || 'your_db_password',  // Use PG_PASSWORD from .env (must be set!)
-    database: process.env.PG_DB || 'your_db_name',            // Use PG_DB from .env
-    host: process.env.PG_HOST || 'localhost',                // Use PG_HOST from .env
-    dialect: 'postgres',                                     // Using PostgreSQL as the dialect
+    username: process.env.PG_USER,       // Read directly from .env
+    password: process.env.PG_PASSWORD,   // Read directly from .env
+    database: process.env.PG_DB,         // Read directly from .env
+    host: process.env.PG_HOST,           // Read directly from .env
+    port: process.env.PG_PORT || 5432,   // Read directly from .env or default
+    dialect: 'postgres',
+    logging: console.log, // Enable logging in development for debugging SQL
+    // Optional: Add dialectOptions if needed for specific local setups
+    // dialectOptions: {
+    //   // e.g., ssl: { require: true, rejectUnauthorized: false }
+    // }
   },
   test: {
-    username: process.env.PG_USER || 'swanadmin',
-    password: process.env.PG_PASSWORD || 'your_db_password',
-    database: process.env.PG_DB || 'your_db_name',
-    host: process.env.PG_HOST || 'localhost',
+    username: process.env.PG_USER_TEST || process.env.PG_USER,
+    password: process.env.PG_PASSWORD_TEST || process.env.PG_PASSWORD,
+    database: process.env.PG_DB_TEST || `${process.env.PG_DB}_test`, // Convention: main_db_test
+    host: process.env.PG_HOST_TEST || process.env.PG_HOST,
+    port: process.env.PG_PORT_TEST || process.env.PG_PORT || 5432,
     dialect: 'postgres',
+    logging: false, // Usually disable logging for tests
   },
   production: {
-    username: process.env.PG_USER || 'swanadmin',
-    password: process.env.PG_PASSWORD || 'your_db_password',
-    database: process.env.PG_DB || 'your_db_name',
-    host: process.env.PG_HOST || 'localhost',
+    // IMPORTANT: For Render, use the DATABASE_URL environment variable
+    use_env_variable: 'DATABASE_URL',
     dialect: 'postgres',
+    dialectOptions: {
+      ssl: {
+        require: true,
+        // Render requires rejectUnauthorized: false for their managed databases
+        rejectUnauthorized: false
+      }
+    },
+    logging: false, // Disable verbose SQL logging in production
   },
 };
+
+export default dbConfig;

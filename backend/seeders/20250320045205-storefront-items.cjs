@@ -1,5 +1,11 @@
 'use strict';
 
+/**
+ * Storefront Items Seeder
+ * This seeder creates initial product packages for the storefront.
+ * Updated to use FLOAT data types for all price-related fields
+ * to match the current StorefrontItem model configuration.
+ */
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     // First, check the table structure to see what columns exist
@@ -21,7 +27,7 @@ module.exports = {
       { type: Sequelize.QueryTypes.SELECT }
     );
     
-    // Fixed packages with EXPLICIT IDs matching frontend
+    // Fixed packages with EXPLICIT IDs matching frontend - using FLOAT types for price fields
     const fixedPackages = [
       {
         id: 1, // Explicit ID
@@ -61,7 +67,7 @@ module.exports = {
       },
     ];
 
-    // Monthly packages with EXPLICIT IDs matching frontend
+    // Monthly packages with EXPLICIT IDs matching frontend - using FLOAT types for price fields
     const monthlyPackages = [
       { 
         id: 4, // Explicit ID
@@ -150,6 +156,7 @@ module.exports = {
           console.log(`Created storefront item #${pkg.id}: ${pkg.name}`);
         } else {
           // Update existing item - we need to be careful with the columns we update
+          // FLOAT values used to align with the StorefrontItem model's FLOAT type
           const { id, ...updateData } = pkg;
           await queryInterface.bulkUpdate('storefront_items', updateData, { id });
           console.log(`Updated storefront item #${pkg.id}: ${pkg.name}`);

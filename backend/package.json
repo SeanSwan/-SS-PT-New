@@ -8,12 +8,13 @@
     "start": "node server.mjs",
     "dev": "nodemon server.mjs",
     "dev:with-migrations": "node scripts/start-with-migrations.js",
-    "migrate": "sequelize-cli db:migrate",
-    "migrate:undo": "sequelize-cli db:migrate:undo",
-    "seed": "sequelize-cli db:seed:all",
-    "seed:undo": "sequelize-cli db:seed:undo:all",
+    "migrate": "npx sequelize-cli db:migrate --config config/config.js --migrations-path migrations --models-path models --env development",
+    "migrate:undo": "npx sequelize-cli db:migrate:undo --config config/config.js --migrations-path migrations --models-path models --env development",
+    "db:reset-manual": "node scripts/reset-db.mjs && npm run migrate",
+    "seed": "npx sequelize-cli db:seed:all --config config/config.js --seeders-path seeders --models-path models --env development",
+    "seed:undo": "npx sequelize-cli db:seed:undo:all --config config/config.js --seeders-path seeders --models-path models --env development",
     "db:setup": "npm run migrate && npm run seed",
-    "db:reset": "sequelize-cli db:drop && sequelize-cli db:create && npm run migrate && npm run seed"
+    "db:reset": "npx sequelize-cli db:drop && npx sequelize-cli db:create && npm run migrate && npm run seed"
   },
   "keywords": [],
   "author": "",
