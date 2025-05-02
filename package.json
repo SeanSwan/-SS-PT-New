@@ -13,9 +13,11 @@
     "db:seed": "cd backend && npm run seed",
     "db:setup": "cd backend && npm run db:setup",
     "db:reset": "cd backend && npm run db:reset",
+    "db:reset-complete": "cd backend && npm run db:reset-complete",
     "install-all": "npm run install-frontend && npm run install-backend",
     "install-frontend": "cd frontend && npm install",
     "install-backend": "cd backend && npm install",
+    "setup": "node -e \"console.log('Running setup script based on your OS...'); require('child_process').execSync(process.platform === 'win32' ? '.\\\\setup.bat' : './setup.sh', {stdio: 'inherit'});\"",
     "build": "cd frontend && npm install && npm run build"
   },
   "keywords": [],

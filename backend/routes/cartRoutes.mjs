@@ -6,14 +6,28 @@ import ShoppingCart from '../models/ShoppingCart.mjs';
 import CartItem from '../models/CartItem.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
 import User from '../models/User.mjs';
-import stripe from 'stripe';
+import Stripe from 'stripe';
+import logger from '../utils/logger.mjs';
+import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 
 const router = express.Router();
 
-// Initialize Stripe with proper API version
-const stripeClient = stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2023-10-16'
-});
+// --- Conditionally initialize Stripe ---
+let stripeClient = null;
+if (isStripeEnabled()) {
+  try {
+    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2023-10-16' // Use a fixed, recent API version
+    });
+    logger.info('Stripe client initialized successfully.');
+  } catch (error) {
+      logger.error(`Failed to initialize Stripe: ${error.message}`);
+      // stripeClient remains null
+  }
+} else {
+    logger.warn('Stripe client NOT initialized due to missing/invalid API key.');
+}
+// --- End Conditional Initialization ---
 
 /**
  * GET User's Active Cart
@@ -54,11 +68,11 @@ router.get('/', protect, async (req, res) => {
       itemCount: cartItems.length
     });
   } catch (error) {
-    console.error('Error fetching cart:', error);
+    logger.error('Error fetching cart:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Failed to fetch shopping cart', 
-      error: error.message 
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined 
     });
   }
 });
@@ -144,11 +158,11 @@ router.post('/add', protect, async (req, res) => {
       itemCount: updatedCartItems.length
     });
   } catch (error) {
-    console.error('Error adding item to cart:', error);
+    logger.error('Error adding item to cart:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Failed to add item to cart', 
-      error: error.message 
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined 
     });
   }
 });
@@ -215,11 +229,11 @@ router.put('/update/:itemId', protect, async (req, res) => {
       itemCount: updatedCartItems.length
     });
   } catch (error) {
-    console.error('Error updating cart item:', error);
+    logger.error('Error updating cart item:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Failed to update cart item', 
-      error: error.message 
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined 
     });
   }
 });
@@ -279,11 +293,11 @@ router.delete('/remove/:itemId', protect, async (req, res) => {
       itemCount: updatedCartItems.length
     });
   } catch (error) {
-    console.error('Error removing item from cart:', error);
+    logger.error('Error removing item from cart:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Failed to remove item from cart', 
-      error: error.message 
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined 
     });
   }
 });
@@ -323,11 +337,11 @@ router.delete('/clear', protect, async (req, res) => {
       itemCount: 0
     });
   } catch (error) {
-    console.error('Error clearing cart:', error);
+    logger.error('Error clearing cart:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Failed to clear cart', 
-      error: error.message 
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined 
     });
   }
 });
@@ -336,19 +350,19 @@ router.delete('/clear', protect, async (req, res) => {
  * Create Stripe Checkout Session
  * POST /api/cart/checkout
  * Creates a Stripe checkout session for the cart items
- * FIX: Changed the association alias from "items" to "cartItems"
  */
 router.post('/checkout', protect, async (req, res) => {
-  try {
-    // Verify Stripe API key is available
-    if (!process.env.STRIPE_SECRET_KEY) {
-      console.error('Missing STRIPE_SECRET_KEY environment variable');
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Payment service configuration error'
-      });
-    }
+  // --- Add check for Stripe client ---
+  if (!stripeClient) {
+    logger.error('Attempted /api/cart/checkout but Stripe is not enabled/initialized.');
+    return res.status(503).json({ // 503 Service Unavailable
+      success: false,
+      message: 'Payment service is currently unavailable. Please try again later or contact support.',
+    });
+  }
+  // --- End check ---
 
+  try {
     console.log('Creating checkout session for user:', req.user.id);
     
     // Find the user's active cart with all related items using the correct alias "cartItems"
@@ -438,7 +452,7 @@ router.post('/checkout', protect, async (req, res) => {
       customerId = customer.id;
       // Update user record asynchronously (non-blocking)
       User.update({ stripeCustomerId: customerId }, { where: { id: userRecord.id } })
-        .catch(err => console.error('Failed to update user with Stripe customer ID:', err));
+        .catch(err => logger.error('Failed to update user with Stripe customer ID:', err));
     }
 
     // Generate an idempotency key to prevent duplicate checkout sessions
@@ -465,7 +479,7 @@ router.post('/checkout', protect, async (req, res) => {
     };
 
     const session = await stripeClient.checkout.sessions.create(sessionOptions, { idempotencyKey });
-    console.log('Stripe session created:', session.id);
+    logger.info('Stripe session created:', session.id);
 
     // Update cart with checkout session ID for reference
     await cart.update({
@@ -480,7 +494,7 @@ router.post('/checkout', protect, async (req, res) => {
       sessionId: session.id
     });
   } catch (error) {
-    console.error('Error creating checkout session:', error);
+    logger.error('Error creating checkout session:', error);
     let errorMessage = 'Failed to create checkout session. Please try again.';
     let statusCode = 500;
     
@@ -503,7 +517,7 @@ router.post('/checkout', protect, async (req, res) => {
           break;
         case 'StripeAuthenticationError':
           errorMessage = 'Payment service configuration error';
-          console.error('Stripe authentication failed - check API keys');
+          logger.error('Stripe authentication failed - check API keys');
           break;
         default:
           if (error.message) {
@@ -524,16 +538,19 @@ router.post('/checkout', protect, async (req, res) => {
  * Webhook handler for Stripe events
  * POST /api/cart/webhook
  * Processes async events from Stripe (payment confirmations, etc.)
- * 
- * NOTE: This route uses express.raw middleware in server.mjs.
- * Ensure that in server.mjs, you add:
- *   app.use('/api/cart/webhook', express.raw({type: 'application/json'}));
  */
-router.post('/webhook', async (req, res) => {
+router.post('/webhook', express.raw({type: 'application/json'}), async (req, res) => {
+  // --- Add check for Stripe client ---
+  if (!stripeClient) {
+    logger.error('Received Stripe webhook but Stripe is not enabled/initialized.');
+    return res.status(503).send('Webhook Error: Payment processing is not configured.');
+  }
+  // --- End check ---
+  
   const signature = req.headers['stripe-signature'];
   
   if (!signature || !process.env.STRIPE_WEBHOOK_SECRET) {
-    console.error('Missing Stripe webhook signature or secret');
+    logger.error('Missing Stripe webhook signature or secret');
     return res.status(400).send('Webhook Error: Missing signature or configuration');
   }
   
@@ -546,7 +563,7 @@ router.post('/webhook', async (req, res) => {
       process.env.STRIPE_WEBHOOK_SECRET
     );
   } catch (err) {
-    console.error(`Webhook signature verification failed: ${err.message}`);
+    logger.error(`Webhook signature verification failed: ${err.message}`);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
   
@@ -572,7 +589,7 @@ router.post('/webhook', async (req, res) => {
             );
             
             // Additional processing can be added here (e.g., create order record)
-            console.log(`✅ Payment completed for cart ${cartId} (User: ${userId})`);
+            logger.info(`✅ Payment completed for cart ${cartId} (User: ${userId})`);
           }
         }
         break;
@@ -588,7 +605,7 @@ router.post('/webhook', async (req, res) => {
             { checkoutSessionExpired: true },
             { where: { id: cartId } }
           );
-          console.log(`⚠️ Checkout session expired for cart ${cartId}`);
+          logger.info(`⚠️ Checkout session expired for cart ${cartId}`);
         }
         break;
       }
@@ -596,75 +613,13 @@ router.post('/webhook', async (req, res) => {
     
     res.json({ received: true });
   } catch (err) {
-    console.error(`Error processing webhook event: ${err.message}`);
+    logger.error(`Error processing webhook event: ${err.message}`);
     res.status(500).send(`Webhook processing error: ${err.message}`);
   }
 });
 
-/**
- * Handle Successful Checkout
- * POST /api/cart/checkout/success
- * Updates the cart status after successful payment
- */
-router.post('/checkout/success', protect, async (req, res) => {
-  try {
-    const { session_id } = req.body;
-    
-    if (!session_id) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Session ID is required' 
-      });
-    }
-
-    // Retrieve the checkout session from Stripe
-    const session = await stripeClient.checkout.sessions.retrieve(session_id);
-    
-    if (session.payment_status !== 'paid') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Payment not completed' 
-      });
-    }
-
-    const cartId = session.metadata.cartId;
-    const userId = session.metadata.userId;
-
-    if (userId !== req.user.id.toString()) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Unauthorized access to checkout session' 
-      });
-    }
-
-    // Update cart status to completed
-    await ShoppingCart.update(
-      { 
-        status: 'completed',
-        paymentStatus: 'paid',
-        completedAt: new Date()
-      },
-      { where: { id: cartId, userId } }
-    );
-
-    // Create a new empty cart for the user
-    await ShoppingCart.create({
-      userId: req.user.id,
-      status: 'active'
-    });
-
-    res.status(200).json({ 
-      success: true, 
-      message: 'Payment completed successfully' 
-    });
-  } catch (error) {
-    console.error('Error handling checkout success:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to process successful checkout', 
-      error: error.message 
-    });
-  }
-});
+// DELETE the /api/cart/checkout/success route - It's insecure
+// The backend should rely SOLELY on the 'checkout.session.completed' webhook event
+// to fulfill orders/update status, not a redirect from the frontend.
 
 export default router;

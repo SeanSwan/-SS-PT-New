@@ -6,7 +6,7 @@ import User from '../models/User.mjs';
 import sequelize, { Op } from '../database.mjs';
 import dotenv from 'dotenv';
 import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
-import { v4 as uuidv4 } from 'uuid'; // You'll need to add this dependency
+import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 
 dotenv.config();
 
@@ -261,9 +261,13 @@ export const register = async (req, res) => {
       { transaction }
     );
 
+    // Ensure ID is treated properly
+    const userId = user.id.toString();
+    logger.info(`User authenticated, generating tokens: userID type=${typeof userId} id=${userId}`);
+    
     // Generate tokens
-    const accessToken = generateAccessToken(user.id, user.role);
-    const refreshToken = generateRefreshToken(user.id);
+    const accessToken = generateAccessToken(userId, user.role);
+    const refreshToken = generateRefreshToken(userId);
 
     // Update user with refresh token hash
     await user.update(
@@ -314,6 +318,7 @@ export const register = async (req, res) => {
  */
 export const login = async (req, res) => {
   try {
+    logger.info(`Login attempt initiated`, { username: req.body.username ? req.body.username.substring(0, 3) + '***' : 'undefined' });
     const { username, password } = req.body;
     const ipAddress = req.ip;
     
@@ -408,10 +413,15 @@ export const login = async (req, res) => {
     });
   } catch (error) {
     logger.error('Login error:', { error: error.message, stack: error.stack });
+    // Provide more helpful error information in development
+    const errorDetails = process.env.NODE_ENV === 'development' 
+      ? { error: error.message, stack: error.stack, type: error.name } 
+      : undefined;
+    
     res.status(500).json({ 
       success: false,
       message: 'Server error during login',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      debug: errorDetails
     });
   }
 };

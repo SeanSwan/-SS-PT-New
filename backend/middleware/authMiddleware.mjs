@@ -5,6 +5,7 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.mjs';
 import logger from '../utils/logger.mjs';
+import { toStringId } from '../utils/idUtils.mjs';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -145,13 +146,20 @@ export const protect = async (req, res, next) => {
         });
       }
       
-      // Attach user to request
+      // Attach user to request - ensure ID is a string for consistent comparison
       req.user = {
-        id: user.id,
+        id: toStringId(user.id),
         role: user.role,
         username: user.username,
         email: user.email
       };
+      
+      // Debug log
+      logger.debug('User attached to request', {
+        userId: req.user.id,
+        role: req.user.role,
+        idType: typeof req.user.id
+      });
       
       // Log successful authentication
       logger.info('User authenticated', { 

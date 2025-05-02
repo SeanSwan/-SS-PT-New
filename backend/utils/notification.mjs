@@ -5,17 +5,42 @@ import dotenv from 'dotenv';
 import { format } from 'date-fns';
 import User from '../models/User.mjs';
 import { sendEmail } from '../emailService.mjs';
+import logger from './logger.mjs';
+import { isSendGridEnabled, isTwilioEnabled } from './apiKeyChecker.mjs';
 
 dotenv.config();
 
-// Initialize SendGrid
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+// --- Conditionally initialize SendGrid ---
+let sendgridReady = false;
+if (isSendGridEnabled()) {
+  try {
+    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    sendgridReady = true;
+    logger.info('SendGrid client configured successfully.');
+  } catch (error) {
+    logger.error(`Failed to configure SendGrid: ${error.message}`);
+  }
+} else {
+    logger.warn('SendGrid client NOT configured due to missing/invalid API key.');
+}
 
-// Initialize Twilio
-const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
+// --- Conditionally initialize Twilio ---
+let twilioClient = null;
+if (isTwilioEnabled()) {
+   try {
+        twilioClient = twilio(
+            process.env.TWILIO_ACCOUNT_SID,
+            process.env.TWILIO_AUTH_TOKEN
+        );
+        logger.info('Twilio client initialized successfully.');
+   } catch(error) {
+        logger.error(`Failed to initialize Twilio: ${error.message}`);
+        // twilioClient remains null
+   }
+} else {
+     logger.warn('Twilio client NOT initialized due to missing/invalid credentials.');
+}
+// --- End Conditional Initialization ---
 
 /**
  * Get formatted session time for notifications
@@ -44,9 +69,23 @@ const getFormattedSessionTime = (sessionDate, duration = 60) => {
  * @returns {Promise} - Promise that resolves with the response
  */
 export const sendEmailNotification = async (options) => {
+  // Check if emailService or SendGrid is ready before attempting to send
+  if (!sendgridReady && typeof sendEmail !== 'function') {
+    logger.error('Attempted to send email notification, but email service is not configured/ready.');
+    // For development, log what would have been sent
+    if (process.env.NODE_ENV !== 'production') {
+      logger.info('Email that would have been sent:', {
+        to: options.to,
+        subject: options.subject,
+        text: options.text ? options.text.substring(0, 100) + '...' : 'No text content',
+      });
+    }
+    return { success: false, error: new Error('Email service not configured') };
+  }
+
   try {
-    // If regular email (no template)
-    if (!options.templateId) {
+    // If regular email (no template) and using emailService
+    if (!options.templateId && typeof sendEmail === 'function') {
       return await sendEmail({
         to: options.to,
         subject: options.subject,
@@ -55,18 +94,34 @@ export const sendEmailNotification = async (options) => {
       });
     }
     
-    // If using SendGrid template
-    const msg = {
-      to: options.to,
-      from: process.env.EMAIL_FROM || process.env.SENDGRID_FROM_EMAIL,
-      templateId: options.templateId,
-      dynamic_template_data: options.dynamicData || {}
-    };
+    // If using SendGrid template or direct SendGrid API
+    if (sendgridReady) {
+      const msg = {
+        to: options.to,
+        from: process.env.EMAIL_FROM || process.env.SENDGRID_FROM_EMAIL || 'noreply@swanstudios.com',
+        subject: options.subject,
+        text: options.text,
+        html: options.html,
+        // Include template logic if provided
+        ...(options.templateId && { templateId: options.templateId }),
+        ...(options.dynamicData && { dynamic_template_data: options.dynamicData })
+      };
+      
+      // Validate 'from' address
+      if (!msg.from || !msg.from.includes('@')) {
+        logger.error(`Invalid 'from' address for SendGrid: ${msg.from}`);
+        throw new Error("Invalid sender email address configured.");
+      }
+      
+      await sgMail.send(msg);
+      logger.info(`Email sent via SendGrid to: ${options.to} | Subject: ${options.subject}`);
+      return { success: true };
+    }
     
-    await sgMail.send(msg);
-    return { success: true };
+    // If we get here and no email service is available, throw error
+    throw new Error('No email service available');
   } catch (error) {
-    console.error('Email notification error:', error);
+    logger.error('Email notification error:', error.response?.body || error.message);
     return { success: false, error };
   }
 };
@@ -79,18 +134,40 @@ export const sendEmailNotification = async (options) => {
  * @returns {Promise} - Promise that resolves with the response
  */
 export const sendSmsNotification = async (options) => {
+  // Check if Twilio is ready before attempting to send
+  if (!twilioClient) {
+    logger.error('Attempted to send SMS notification, but Twilio is not configured/ready.');
+    // For development, log what would have been sent
+    if (process.env.NODE_ENV !== 'production') {
+      logger.info('SMS that would have been sent:', {
+        to: options.to,
+        body: options.body
+      });
+    }
+    return { success: false, error: new Error('SMS service not configured') };
+  }
+  
+  if (!options.to) {
+    logger.error('SMS recipient phone number (options.to) is required.');
+    return { success: false, error: new Error('Recipient phone number is required')};
+  }
+  
+  if (!process.env.TWILIO_PHONE_NUMBER) {
+    logger.error('Twilio sender phone number (TWILIO_PHONE_NUMBER) is not configured.');
+    return { success: false, error: new Error('Sender phone number not configured')};
+  }
+
   try {
-    if (!options.to) throw new Error('Recipient phone number is required');
-    
-    const response = await twilioClient.messages.create({
+    const message = await twilioClient.messages.create({
       body: options.body,
       from: process.env.TWILIO_PHONE_NUMBER,
       to: options.to
     });
     
-    return { success: true, messageId: response.sid };
+    logger.info(`SMS sent via Twilio to: ${options.to} | SID: ${message.sid}`);
+    return { success: true, messageId: message.sid };
   } catch (error) {
-    console.error('SMS notification error:', error);
+    logger.error('SMS notification error:', error.message);
     return { success: false, error };
   }
 };
@@ -144,7 +221,7 @@ export const notifySessionBooked = async (session, client) => {
     
     return { success: true };
   } catch (error) {
-    console.error('Session booking notification error:', error);
+    logger.error('Session booking notification error:', error);
     return { success: false, error };
   }
 };
@@ -219,7 +296,7 @@ export const notifyAdminSessionBooked = async (session, client) => {
     
     return { success: true };
   } catch (error) {
-    console.error('Admin notification error:', error);
+    logger.error('Admin notification error:', error);
     return { success: false, error };
   }
 };
@@ -274,7 +351,7 @@ export const sendSessionReminder = async (session, client, hoursBeforeSession = 
     
     return { success: true };
   } catch (error) {
-    console.error('Session reminder error:', error);
+    logger.error('Session reminder error:', error);
     return { success: false, error };
   }
 };
@@ -379,7 +456,7 @@ export const notifySessionCancelled = async (session, client, cancelledBy, reaso
     
     return { success: true };
   } catch (error) {
-    console.error('Cancellation notification error:', error);
+    logger.error('Cancellation notification error:', error);
     return { success: false, error };
   }
 };
@@ -443,7 +520,7 @@ export const processSessionDeduction = async (session, client) => {
       remainingSessions: client.availableSessions
     };
   } catch (error) {
-    console.error('Session deduction error:', error);
+    logger.error('Session deduction error:', error);
     return { success: false, error };
   }
 };
@@ -491,7 +568,7 @@ export const notifyLowSessionsRemaining = async (client, remainingSessions) => {
     
     return { success: true, notified: true };
   } catch (error) {
-    console.error('Low sessions notification error:', error);
+    logger.error('Low sessions notification error:', error);
     return { success: false, error };
   }
 };
@@ -502,5 +579,7 @@ export default {
   sendSessionReminder,
   notifySessionCancelled,
   processSessionDeduction,
-  notifyLowSessionsRemaining
+  notifyLowSessionsRemaining,
+  sendEmailNotification,
+  sendSmsNotification
 };

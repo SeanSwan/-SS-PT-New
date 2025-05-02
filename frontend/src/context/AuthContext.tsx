@@ -13,19 +13,22 @@ import { API_BASE_URL, AUTH_CONFIG } from "../config"; // Assuming config.js exp
 
 // --- Interfaces ---
 interface User {
-    id: number | string;
+    id: string; // Always treat ID as string for consistent handling
     username: string;
     email: string;
     role: string;
     firstName?: string;
     lastName?: string;
+    photo?: string;
+    lastActive?: string;
     // Add other relevant user fields
 }
 
 interface DecodedJwtPayload {
-    id: number | string;
-    username: string;
+    id: string; // Always treat ID as string for consistent handling
     role: string;
+    tokenType: string;
+    tokenId: string;
     iat: number;
     exp: number;
 }

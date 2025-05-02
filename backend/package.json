@@ -7,14 +7,15 @@
   "scripts": {
     "start": "node server.mjs",
     "dev": "nodemon server.mjs",
-    "dev:with-migrations": "node scripts/start-with-migrations.js",
     "migrate": "npx sequelize-cli db:migrate --config config/config.js --migrations-path migrations --models-path models --env development",
     "migrate:undo": "npx sequelize-cli db:migrate:undo --config config/config.js --migrations-path migrations --models-path models --env development",
-    "db:reset-manual": "node scripts/reset-db.mjs && npm run migrate",
     "seed": "npx sequelize-cli db:seed:all --config config/config.js --seeders-path seeders --models-path models --env development",
     "seed:undo": "npx sequelize-cli db:seed:undo:all --config config/config.js --seeders-path seeders --models-path models --env development",
     "db:setup": "npm run migrate && npm run seed",
-    "db:reset": "npx sequelize-cli db:drop && npx sequelize-cli db:create && npm run migrate && npm run seed"
+    "db:reset": "node scripts/reset-db-sequelize.mjs",
+    "db:reset-complete": "node scripts/setup-complete.mjs",
+    "create-admin": "node scripts/create-admin-user.mjs",
+    "verify-admin": "node scripts/verify-admin.mjs"
   },
   "keywords": [],
   "author": "",

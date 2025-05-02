@@ -1,7 +1,7 @@
 // File: frontend/src/components/LoginModal/LoginModal.component.tsx
 // Note: Ensure this file path matches your project structure.
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 // Import motion directly
@@ -321,6 +321,9 @@ const LoginModal: React.FC = () => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
+    
+    console.log('Login attempt with:', { username: credentials.username });
+    
     try {
       const response = await login(credentials.username, credentials.password);
       if (response.user) {
@@ -338,8 +341,27 @@ const LoginModal: React.FC = () => {
     } catch (err: any) {
       setIsLoading(false);
       console.error("Login error:", err);
-      const message = err?.response?.data?.message || err?.message || "Invalid username or password";
-      setError(message);
+      // More robust error handling
+      let errorMessage = "An unknown error occurred";
+      
+      if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err?.message) {
+        errorMessage = err.message;
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
+      
+      // Log additional details in development
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Login error details:', {
+          status: err?.response?.status,
+          data: err?.response?.data,
+          message: errorMessage
+        });
+      }
+      
+      setError(errorMessage);
     }
   };
 
