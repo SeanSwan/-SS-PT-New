@@ -16,11 +16,15 @@
     "db:reset-complete": "node scripts/setup-complete.mjs",
     "create-admin": "node scripts/create-admin-user.mjs",
     "fix-admin": "node scripts/fix-admin-user.mjs",
-    "reset-admin-password": "node scripts/reset-admin-password.mjs",
+    "reset-password": "node scripts/reset-admin-password.mjs",
+    "emergency-fix": "node scripts/direct-password-fix.mjs",
+    "verify-password": "node scripts/verify-password.mjs",
+    "force-create-admin": "node scripts/force-create-admin.mjs",
     "fix-cart": "node scripts/fix-cart-schema.mjs",
     "migrate-cart": "node scripts/migrate-cart-data.mjs",
     "seed-storefront": "node scripts/seed-storefront-items.mjs",
-    "verify-admin": "node scripts/verify-admin.mjs"
+    "verify-admin": "node scripts/verify-admin.mjs",
+    "render-start": "npx sequelize-cli db:migrate --config config/config.js --migrations-path migrations --models-path models --env production && node server.mjs"
   },
   "keywords": [],
   "author": "",

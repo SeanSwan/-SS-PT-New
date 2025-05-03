@@ -48,12 +48,13 @@ router.get('/', protect, async (req, res) => {
     });
 
     // Get cart items with storefront item details
+    // FIXED: Removed 'type' field which doesn't exist in StorefrontItem model
     const cartItems = await CartItem.findAll({
       where: { cartId: cart.id },
       include: [{
         model: StorefrontItem,
         as: 'storefrontItem',
-        attributes: ['name', 'description', 'imageUrl', 'type']
+        attributes: ['name', 'description', 'imageUrl']
       }]
     });
 
@@ -131,17 +132,18 @@ router.post('/add', protect, async (req, res) => {
         cartId: cart.id,
         storefrontItemId,
         quantity,
-        price: storeFrontItem.totalCost || 0 // Use totalCost field if available
+        price: storeFrontItem.totalCost || storeFrontItem.price || 0 // Use totalCost field if available, fallback to price
       });
     }
 
     // Get updated cart with items
+    // FIXED: Removed 'type' field which doesn't exist in StorefrontItem model
     const updatedCartItems = await CartItem.findAll({
       where: { cartId: cart.id },
       include: [{
         model: StorefrontItem,
         as: 'storefrontItem',
-        attributes: ['name', 'description', 'imageUrl', 'type']
+        attributes: ['name', 'description', 'imageUrl']
       }]
     });
 
@@ -209,12 +211,13 @@ router.put('/update/:itemId', protect, async (req, res) => {
     await cartItem.save();
 
     // Get updated cart with items
+    // FIXED: Removed 'type' field which doesn't exist in StorefrontItem model
     const updatedCartItems = await CartItem.findAll({
       where: { cartId: cartItem.cartId },
       include: [{
         model: StorefrontItem,
         as: 'storefrontItem',
-        attributes: ['name', 'description', 'imageUrl', 'type']
+        attributes: ['name', 'description', 'imageUrl']
       }]
     });
 
@@ -273,12 +276,13 @@ router.delete('/remove/:itemId', protect, async (req, res) => {
     await cartItem.destroy();
 
     // Get updated cart with items
+    // FIXED: Removed 'type' field which doesn't exist in StorefrontItem model
     const updatedCartItems = await CartItem.findAll({
       where: { cartId },
       include: [{
         model: StorefrontItem,
         as: 'storefrontItem',
-        attributes: ['name', 'description', 'imageUrl', 'type']
+        attributes: ['name', 'description', 'imageUrl']
       }]
     });
 

@@ -214,9 +214,17 @@ User.beforeCreate(async (user) => {
 // Hash password before updating if it changed
 User.beforeUpdate(async (user) => {
   try {
+    // Only hash the password if it's changed AND is not already hashed
+    // This prevents double-hashing when updating users with model-based scripts
     if (user.changed('password')) {
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(user.password, salt);
+      // Simple check to detect if password is already hashed (bcrypt hashes start with $2a$, $2b$ or $2y$)
+      if (!user.password.startsWith('$2')) {
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(user.password, salt);
+        console.log('Password hashed during update');
+      } else {
+        console.log('Password already hashed, skipping rehash');
+      }
     }
   } catch (err) {
     console.error("Error in beforeUpdate hook:", err);

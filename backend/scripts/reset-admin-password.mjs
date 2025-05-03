@@ -4,102 +4,106 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
+import readline from 'readline/promises'; // Use promises interface for readline
 
-// Get directory name equivalent in ESM
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(__dirname, '..');
-const projectRootDir = path.resolve(rootDir, '..');
-
-// Load the .env file from the project root directory
+// --- Environment Loading ---
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const projectRootDir = path.resolve(__dirname, '..', '..'); // Go up two levels
 const envPath = path.resolve(projectRootDir, '.env');
+
 if (fs.existsSync(envPath)) {
   console.log(`Loading environment variables from: ${envPath}`);
   dotenv.config({ path: envPath });
 } else {
-  console.warn(`Warning: .env file not found at ${envPath}`);
-  dotenv.config(); // Try default location as a last resort
+  console.warn(`Warning: .env file not found at ${envPath}. Script might fail if DB requires env vars.`);
+  dotenv.config(); // Try default
 }
 
-// Import database and User model
-import sequelize from '../database.mjs';
-import User from '../models/User.mjs';
+// --- Imports (AFTER dotenv) ---
+import sequelize from '../database.mjs'; // Import configured sequelize instance
+import User from '../models/User.mjs'; // Import User model
 
-/**
- * Resets the admin user password to a known value
- */
+// --- Main Function ---
 async function resetAdminPassword() {
+  console.log('--- Admin Password Reset Script ---');
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  let adminUsername = '';
+  let newPassword = '';
+  let confirmPassword = '';
+
   try {
-    console.log('----- Admin Password Reset Script -----');
-    
-    // 1. Test database connection
-    console.log('1. Testing database connection...');
-    try {
-      await sequelize.authenticate();
-      console.log('✅ Database connection established successfully.');
-    } catch (error) {
-      console.error(`❌ Unable to connect to the database: ${error.message}`);
-      throw new Error(`Database connection failed: ${error.message}`);
+    // 1. Get Username
+    while (!adminUsername) {
+      adminUsername = await rl.question('Enter the username of the admin account to reset: ');
+      if (!adminUsername) console.log('Username cannot be empty.');
     }
-    
-    // 2. Find admin users
-    console.log('2. Looking for admin users...');
-    const adminUsers = await User.findAll({
-      where: { role: 'admin' }
-    });
-    
-    if (adminUsers.length === 0) {
-      console.warn('❌ No admin users found in the database!');
-      console.log('Please run the fix-admin script to create an admin user first.');
-      return;
+
+    // 2. Get New Password
+    while (!newPassword) {
+      newPassword = await rl.question(`Enter the NEW password for '${adminUsername}': `);
+      if (!newPassword) console.log('Password cannot be empty.');
+      // Optional: Add password strength check here if desired
     }
-    
-    console.log(`Found ${adminUsers.length} admin users:`);
-    for (const user of adminUsers) {
-      console.log(`- ${user.username} (${user.email})`);
+
+    // 3. Confirm New Password
+    while (!confirmPassword) {
+        confirmPassword = await rl.question(`Confirm the NEW password for '${adminUsername}': `);
+        if (!confirmPassword) console.log('Confirmation cannot be empty.');
     }
-    
-    // 3. Reset password for each admin user
-    console.log('3. Resetting admin passwords...');
-    
-    // Define a simple, known password - this will be the new admin password
-    const NEW_PASSWORD = 'admin123';
-    
-    // Generate password hash
+
+    if (newPassword !== confirmPassword) {
+        throw new Error('Passwords do not match. Please run the script again.');
+    }
+
+    rl.close(); // Close readline interface
+
+    // 4. Connect & Find User
+    console.log('\nConnecting to database...');
+    await sequelize.authenticate(); // Test connection
+    console.log('✅ Database connection successful.');
+
+    console.log(`Searching for user '${adminUsername}'...`);
+    const user = await User.findOne({ where: { username: adminUsername } });
+
+    if (!user) {
+      throw new Error(`User '${adminUsername}' not found in the database.`);
+    }
+    console.log(`✅ Found user: ${user.firstName} ${user.lastName} (ID: ${user.id})`);
+
+    // 5. Hash New Password
+    console.log('Hashing new password...');
     const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(NEW_PASSWORD, salt);
-    
-    // Update each admin user
-    for (const user of adminUsers) {
-      await user.update({ password: passwordHash });
-      console.log(`✅ Reset password for admin user: ${user.username}`);
-      console.log(`   New password is: '${NEW_PASSWORD}'`);
-    }
-    
-    console.log('\n✅ Admin password reset completed successfully!');
-    console.log(`Use these credentials to log in:`);
-    for (const user of adminUsers) {
-      console.log(`Username: ${user.username}`);
-      console.log(`Password: ${NEW_PASSWORD}`);
-      console.log('---');
-    }
-    
-    console.log('----- Admin Password Reset Complete -----');
-    
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    console.log('✅ Password hashed.');
+
+    // 6. Update User Password
+    console.log(`Updating password for '${adminUsername}'...`);
+    await user.update({ password: hashedPassword });
+    // Note: We directly update the hash. The beforeUpdate hook in User.mjs
+    // might re-hash it, but hashing an already hashed string is usually safe
+    // though slightly inefficient. Ideally, the hook would only hash if it's *not* already a hash.
+    // For this script's purpose, directly setting the intended hash is fine.
+
+    console.log(`✅ Password for '${adminUsername}' successfully updated in the database!`);
+    console.log('--- Script Complete ---');
+
   } catch (error) {
-    console.error(`❌ Admin password reset failed: ${error.message}`);
-    if (error.stack) {
-      console.error(`Stack trace: ${error.stack}`);
+    rl.close(); // Ensure readline is closed on error
+    console.error(`❌ Error during password reset: ${error.message}`);
+    if (error.stack && process.env.NODE_ENV !== 'production') {
+        console.error("Stack Trace:", error.stack);
     }
-    throw error;
+    process.exitCode = 1; // Indicate failure
   } finally {
-    // Close the database connection
     await sequelize.close();
     console.log('Database connection closed.');
   }
 }
 
-// Execute the admin password reset
-resetAdminPassword().catch(error => {
-  console.error(`Fatal error during admin password reset: ${error.message}`);
-  process.exit(1);
-});
+// Run the function
+resetAdminPassword();

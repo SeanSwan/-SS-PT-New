@@ -11,7 +11,7 @@ const router = express.Router();
  * Public
  * 
  * Query parameters:
- * - sortBy: Field to sort by (e.g., 'id', 'name', 'price', 'displayOrder')
+ * - sortBy: Field to sort by (e.g., 'id', 'name', 'price')
  * - sortOrder: 'ASC' or 'DESC'
  * - limit: Number of items to return
  * - offset: Number of items to skip
@@ -45,10 +45,15 @@ router.get('/', async (req, res) => {
       whereClause.isActive = isActive === 'true';
     }
     
+    // Check if the sortBy field exists in the model
+    // FIXED: Checking if the requested sort field exists, falling back to 'id' if not
+    const validColumns = Object.keys(StorefrontItem.rawAttributes);
+    const validSortBy = validColumns.includes(sortBy) ? sortBy : 'id';
+    
     // Execute the query with all parameters
     const items = await StorefrontItem.findAll({
       where: whereClause,
-      order: [[sortBy, validSortOrder]],
+      order: [[validSortBy, validSortOrder]],
       limit: parseInt(limit, 10),
       offset: parseInt(offset, 10)
     });
