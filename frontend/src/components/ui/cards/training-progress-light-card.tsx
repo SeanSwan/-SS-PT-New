@@ -1,144 +1,144 @@
 import React, { ReactNode } from 'react';
-import { Box, Grid, Skeleton, Typography, styled } from '@mui/material';
-import MainCard from '../MainCard';
-import { TrendingUp } from 'lucide-react';
+import { Card, CardContent, Typography, Box, CircularProgress, Skeleton } from '@mui/material';
 
-// Types - explicitly define the props interface
 interface TrainingProgressLightCardProps {
   isLoading?: boolean;
-  total?: number;
-  label?: string;
+  total: number;
+  label: string;
   icon?: ReactNode;
 }
 
-// Styled components
-const CardStyle = styled(MainCard)(({ theme }) => ({
-  backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
-  color: theme.palette.mode === 'dark' ? '#fff' : '#000',
-  overflow: 'hidden',
-  position: 'relative',
-  '&:after': {
-    content: '""',
-    position: 'absolute',
-    width: 210,
-    height: 210,
-    background: 'linear-gradient(140.9deg, #4CAF50 -14.02%, rgba(144, 202, 249, 0) 82.50%)',
-    borderRadius: '50%',
-    top: -30,
-    right: -180
-  },
-  '&:before': {
-    content: '""',
-    position: 'absolute',
-    width: 210,
-    height: 210,
-    background: 'linear-gradient(140.9deg, #4CAF50 -14.02%, rgba(144, 202, 249, 0) 82.50%)',
-    borderRadius: '50%',
-    top: -160,
-    right: -130
-  }
-}));
-
-// Component for displaying fitness achievements in a light theme card
-const TrainingProgressLightCard: React.FC<TrainingProgressLightCardProps> = ({
+/**
+ * Training Progress Light Card Component
+ * 
+ * Displays a single metric with a circular progress indicator in a light themed card.
+ * Can be used for various fitness and training metrics.
+ */
+const TrainingProgressLightCard: React.FC<TrainingProgressLightCardProps> = ({ 
   isLoading = false,
-  total = 28,
-  label = 'Active Clients',
+  total,
+  label,
   icon
 }) => {
+  // Calculate progress percentage - in a real app, this would be based on actual data
+  const progress = Math.min(85, Math.max(65, Math.floor(Math.random() * 20) + 65));
+
   return (
-    <CardStyle>
-      <Box sx={{ p: 2.25 }}>
-        <Grid container direction="column">
-          <Grid item>
-            <Grid container justifyContent="space-between">
-              <Grid item>
-                {/* Display passed icon or default to nothing */}
-                {icon}
-              </Grid>
-              <Grid item>
-                {isLoading ? (
-                  <Skeleton variant="rectangular" width={100} height={28} />
-                ) : (
-                  <Typography variant="h5" color="inherit">
-                    {label}
-                  </Typography>
-                )}
-              </Grid>
-            </Grid>
-          </Grid>
-          <Grid item sx={{ mb: 0.75 }}>
-            <Grid container alignItems="center">
-              <Grid item xs={6}>
-                <Grid container alignItems="center">
-                  <Grid item>
-                    {isLoading ? (
-                      <Skeleton variant="rectangular" width={80} height={40} sx={{ my: 1.5 }} />
-                    ) : (
-                      <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>
-                        87%
-                      </Typography>
-                    )}
-                  </Grid>
-                  <Grid item>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        color: '#4CAF50'
-                      }}
-                    >
-                      {isLoading ? (
-                        <Skeleton variant="rectangular" width={60} height={24} />
-                      ) : (
-                        <>
-                          <TrendingUp size={16} style={{ marginRight: '4px' }} />
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            +9%
-                          </Typography>
-                        </>
-                      )}
-                    </Box>
-                  </Grid>
-                </Grid>
-              </Grid>
-              <Grid item xs={6}>
+    <Card
+      sx={{
+        borderRadius: 3,
+        height: '100%',
+        bgcolor: 'background.paper',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+        position: 'relative',
+        overflow: 'hidden',
+        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+        '&:hover': {
+          transform: 'translateY(-5px)',
+          boxShadow: '0 6px 25px rgba(0, 0, 0, 0.12)'
+        }
+      }}
+    >
+      <CardContent sx={{ height: '100%' }}>
+        {isLoading ? (
+          <Box>
+            <Skeleton variant="text" height={25} width="60%" />
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1 }}>
+              <Skeleton variant="circular" width={80} height={80} />
+              <Skeleton variant="text" height={60} width="40%" />
+            </Box>
+          </Box>
+        ) : (
+          <Box sx={{ 
+            height: '100%', 
+            display: 'flex', 
+            flexDirection: 'column',
+            justifyContent: 'center'
+          }}>
+            {/* Fixed the issue by setting component="div" to prevent <p> wrapping */}
+            <Typography 
+              variant="body1" 
+              color="text.secondary"
+              fontWeight="medium"
+              component="div"
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                mb: 2
+              }}
+            >
+              {icon && (
+                <Box sx={{ mr: 1, display: 'flex', alignItems: 'center' }}>
+                  {icon}
+                </Box>
+              )}
+              {label}
+            </Typography>
+            
+            <Box sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between'
+            }}>
+              <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                <CircularProgress
+                  variant="determinate"
+                  value={progress}
+                  size={80}
+                  thickness={5}
+                  sx={{
+                    color: 'success.main',
+                    '& .MuiCircularProgress-circle': {
+                      strokeLinecap: 'round'
+                    }
+                  }}
+                />
                 <Box
                   sx={{
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    right: 0,
+                    position: 'absolute',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'flex-end'
+                    justifyContent: 'center'
                   }}
                 >
-                  {isLoading ? (
-                    <Skeleton variant="rectangular" width={90} height={28} />
-                  ) : (
-                    <Typography variant="body2">
-                      {label}: {total}
-                    </Typography>
-                  )}
+                  <Typography
+                    variant="h6"
+                    component="div"
+                    color="text.primary"
+                    fontWeight="bold"
+                  >
+                    {progress}%
+                  </Typography>
                 </Box>
-              </Grid>
-            </Grid>
-          </Grid>
-          <Grid item>
-            {isLoading ? (
-              <Skeleton variant="rectangular" width={200} height={20} />
-            ) : (
-              <Typography
-                sx={{
-                  fontSize: '1rem',
-                  fontWeight: 500,
-                  color: '#4CAF50'
-                }}
-              >
-                Weekly Goals Completion Rate
-              </Typography>
-            )}
-          </Grid>
-        </Grid>
-      </Box>
-    </CardStyle>
+              </Box>
+              
+              <Box sx={{ ml: 2 }}>
+                <Typography 
+                  variant="h3" 
+                  component="div" 
+                  fontWeight="bold"
+                  color="text.primary"
+                >
+                  {total}
+                </Typography>
+                
+                <Typography 
+                  variant="body2" 
+                  color="text.secondary"
+                  sx={{ mt: -0.5 }}
+                >
+                  total
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

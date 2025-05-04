@@ -36,7 +36,7 @@ const useConfig = () => {
       bmr = gender === 'male' ? bmr + 5 : bmr - 161;
       
       // Activity multipliers
-      const activityMultipliers = {
+      const activityMultipliers: {[key: string]: number} = {
         'sedentary': 1.2,
         'light': 1.375,
         'moderate': 1.55,
@@ -44,7 +44,7 @@ const useConfig = () => {
         'very_active': 1.9
       };
       
-      const multiplier = activityMultipliers[activityLevel as keyof typeof activityMultipliers] || 1.2;
+      const multiplier = activityMultipliers[activityLevel] || 1.2;
       return Math.round(bmr * multiplier);
     },
     

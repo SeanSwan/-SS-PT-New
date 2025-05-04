@@ -1,156 +1,134 @@
 import React from 'react';
-import { Box, Grid, Skeleton, Typography, styled } from '@mui/material';
-import MainCard from '../MainCard';
-import { Activity, ArrowUpRight, Medal, Trophy } from 'lucide-react';
+import { Card, CardContent, Typography, Box, LinearProgress, Stack, Skeleton } from '@mui/material';
+import { Award, TrendingUp } from 'lucide-react';
 
-// Types - explicitly define the props interface
 interface TrainingProgressDarkCardProps {
   isLoading?: boolean;
 }
 
-// Styled dark theme card for fitness metrics
-const CardStyle = styled(MainCard)(({ theme }) => ({
-  backgroundColor: '#1a2038', // Darker background for contrast
-  color: '#fff',
-  overflow: 'hidden',
-  position: 'relative',
-  '&:after': {
-    content: '""',
-    position: 'absolute',
-    width: 210,
-    height: 210,
-    background: 'linear-gradient(140.9deg, #ff5722 -14.02%, rgba(0, 0, 0, 0) 77.79%)',
-    borderRadius: '50%',
-    top: -30,
-    right: -180
-  },
-  '&:before': {
-    content: '""',
-    position: 'absolute',
-    width: 210,
-    height: 210,
-    background: 'linear-gradient(210.04deg, #ff5722 -50.94%, rgba(0, 0, 0, 0) 83.49%)',
-    borderRadius: '50%',
-    top: -160,
-    right: -130
-  }
-}));
-
-// Component for displaying personal training achievements with dark theme
+/**
+ * Training Progress Dark Card Component
+ * 
+ * Displays client achievements and progress metrics in a dark themed card.
+ * Highlights important training milestones and improvements.
+ */
 const TrainingProgressDarkCard: React.FC<TrainingProgressDarkCardProps> = ({ isLoading = false }) => {
+  // Sample data - in a real application, this would come from an API
+  const progressData = {
+    achievementsCompleted: 78,
+    averageImprovement: 24,
+    milestonesReached: 35
+  };
+
   return (
-    <CardStyle>
-      <Box sx={{ p: 2.25 }}>
-        <Grid container direction="column">
-          <Grid item>
-            <Grid container justifyContent="space-between">
-              <Grid item>
-                {isLoading ? (
-                  <Skeleton variant="circular" width={36} height={36} sx={{ bgcolor: 'rgba(255,255,255,0.2)' }} />
-                ) : (
-                  <Trophy size={36} color="#ff5722" />
-                )}
-              </Grid>
-              <Grid item>
-                {isLoading ? (
-                  <Skeleton variant="rectangular" width={120} height={28} sx={{ bgcolor: 'rgba(255,255,255,0.2)' }} />
-                ) : (
-                  <Typography variant="h5" color="inherit">
-                    Client Achievements
+    <Card
+      sx={{
+        borderRadius: 3,
+        height: '100%',
+        bgcolor: 'primary.dark',
+        color: 'primary.contrastText',
+        boxShadow: '0 8px 25px rgba(25, 118, 210, 0.25)',
+        position: 'relative',
+        overflow: 'hidden',
+        transition: 'transform 0.3s ease',
+        '&:hover': {
+          transform: 'translateY(-5px)'
+        }
+      }}
+    >
+      <CardContent>
+        {isLoading ? (
+          <Box>
+            <Skeleton variant="text" height={40} width="80%" sx={{ bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
+            <Skeleton variant="text" height={25} width="60%" sx={{ mt: 1, bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
+            <Skeleton variant="rectangular" height={100} sx={{ mt: 3, borderRadius: 1, bgcolor: 'rgba(255, 255, 255, 0.1)' }} />
+          </Box>
+        ) : (
+          <>
+            <Box sx={{ position: 'relative', zIndex: 1 }}>
+              <Stack direction="row" alignItems="center" spacing={1}>
+                <Award size={24} />
+                <Typography variant="h6" fontWeight="600">
+                  Achievements
+                </Typography>
+              </Stack>
+              
+              <Box sx={{ mt: 3 }}>
+                <Stack direction="row" justifyContent="space-between" mb={0.5}>
+                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                    Completed Goals
                   </Typography>
-                )}
-              </Grid>
-            </Grid>
-          </Grid>
-          <Grid item sx={{ mb: 0.75 }}>
-            <Grid container alignItems="center">
-              <Grid item xs={6}>
-                <Grid container alignItems="center">
-                  <Grid item>
-                    {isLoading ? (
-                      <Skeleton variant="rectangular" width={80} height={50} sx={{ bgcolor: 'rgba(255,255,255,0.2)', my: 1.5 }} />
-                    ) : (
-                      <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>
-                        189
-                      </Typography>
-                    )}
-                  </Grid>
-                  <Grid item>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        color: '#ff5722'
-                      }}
-                    >
-                      {isLoading ? (
-                        <Skeleton variant="rectangular" width={50} height={24} sx={{ bgcolor: 'rgba(255,255,255,0.2)' }} />
-                      ) : (
-                        <>
-                          <ArrowUpRight size={16} style={{ marginRight: '4px' }} />
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            +12%
-                          </Typography>
-                        </>
-                      )}
-                    </Box>
-                  </Grid>
-                </Grid>
-              </Grid>
-              <Grid item xs={6}>
-                <Grid container justifyContent="flex-end">
-                  <Grid item>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center'
-                      }}
-                    >
-                      {isLoading ? (
-                        <Skeleton variant="rectangular" width={120} height={24} sx={{ bgcolor: 'rgba(255,255,255,0.2)' }} />
-                      ) : (
-                        <>
-                          <Medal size={20} style={{ marginRight: '8px', color: '#ffc107' }} />
-                          <Typography variant="body2">
-                            23 PRs This Month
-                          </Typography>
-                        </>
-                      )}
-                    </Box>
-                  </Grid>
-                </Grid>
-              </Grid>
-            </Grid>
-          </Grid>
-          <Grid item>
+                  <Typography variant="body2" fontWeight="medium">
+                    {progressData.achievementsCompleted}%
+                  </Typography>
+                </Stack>
+                <LinearProgress
+                  variant="determinate"
+                  value={progressData.achievementsCompleted}
+                  sx={{
+                    height: 10,
+                    borderRadius: 5,
+                    bgcolor: 'rgba(255, 255, 255, 0.1)',
+                    '& .MuiLinearProgress-bar': {
+                      bgcolor: 'info.light'
+                    }
+                  }}
+                />
+              </Box>
+              
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                    Avg. Improvement
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
+                    <Typography variant="h6" mr={0.5}>
+                      {progressData.averageImprovement}%
+                    </Typography>
+                    <TrendingUp size={16} />
+                  </Box>
+                </Box>
+                
+                <Box>
+                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                    Milestones
+                  </Typography>
+                  <Typography variant="h6" mt={0.5}>
+                    {progressData.milestonesReached}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+            
+            {/* Decorative elements */}
             <Box
               sx={{
-                display: 'flex',
-                alignItems: 'center',
-                mt: 2
+                position: 'absolute',
+                top: -20,
+                right: -20,
+                width: 120,
+                height: 120,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 70%)',
+                zIndex: 0
               }}
-            >
-              {isLoading ? (
-                <Skeleton variant="rectangular" width={220} height={24} sx={{ bgcolor: 'rgba(255,255,255,0.2)' }} />
-              ) : (
-                <>
-                  <Activity size={18} style={{ marginRight: '8px', color: '#ff5722' }} />
-                  <Typography
-                    sx={{
-                      fontSize: '1rem',
-                      fontWeight: 500,
-                      color: '#ff5722'
-                    }}
-                  >
-                    Total Client Milestones Achieved
-                  </Typography>
-                </>
-              )}
-            </Box>
-          </Grid>
-        </Grid>
-      </Box>
-    </CardStyle>
+            />
+            <Box
+              sx={{
+                position: 'absolute',
+                bottom: -50,
+                left: -50,
+                width: 200,
+                height: 200,
+                borderRadius: '50%',
+                background: 'radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 70%)',
+                zIndex: 0
+              }}
+            />
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

@@ -30,13 +30,14 @@ import { THEME_CONFIG } from './../../store/constant';
 
 // Styled components
 const BreadcrumbsContainer = styled(Box)(({ theme }) => ({
-  marginBottom: theme.spacing(3),
-  padding: theme.spacing(1.5, 2),
+  marginBottom: theme.spacing(2), // Reduced bottom margin
+  padding: theme.spacing(1, 1.5), // Reduced padding
   borderRadius: THEME_CONFIG.borderRadius.medium,
   backgroundColor: theme.palette.mode === 'dark' 
     ? 'rgba(255, 255, 255, 0.05)' 
     : 'rgba(0, 0, 0, 0.02)',
-  transition: `all ${THEME_CONFIG.transitions.medium}ms ease-in-out`
+  transition: `all ${THEME_CONFIG.transitions.medium}ms ease-in-out`,
+  width: '100%' // Ensure full width usage
 }));
 
 const StyledBreadcrumbs = styled(MuiBreadcrumbs)(({ theme }) => ({

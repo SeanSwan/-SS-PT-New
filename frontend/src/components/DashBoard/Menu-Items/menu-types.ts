@@ -1,26 +1,28 @@
-/**
- * menu-types.ts
- * Type definitions for menu items
- */
-import { ReactNode, ComponentType } from 'react';
+import { ElementType } from 'react';
 
-// Type for icons that can be either a ReactNode or a component
-export type IconType = ReactNode | ComponentType<any>;
-
+// Types for menu items in the dashboard navigation
 export interface MenuItem {
   id: string;
   title: string;
-  type: 'group' | 'collapse' | 'item';
+  type: 'item' | 'group' | 'collapse';
   url?: string;
-  icon?: IconType;
+  icon?: ElementType;
   breadcrumbs?: boolean;
-  caption?: string;
-  target?: boolean;
   external?: boolean;
+  target?: boolean;
   children?: MenuItem[];
+  disabled?: boolean;
+  chip?: {
+    color: 'default' | 'primary' | 'secondary' | 'error' | 'success' | 'warning' | 'info';
+    label: string;
+    size?: 'small' | 'medium';
+    variant?: 'outlined' | 'filled';
+  };
 }
 
-export interface MenuGroup extends MenuItem {
+export interface MenuGroup {
+  id: string;
+  title: string;
   type: 'group';
   children: MenuItem[];
 }

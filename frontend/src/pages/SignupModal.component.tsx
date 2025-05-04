@@ -227,6 +227,44 @@ const InputField = styled.input`
   &:disabled { opacity: 0.7; cursor: not-allowed; }
 `;
 
+// SelectField for dropdowns
+const SelectField = styled.select`
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid rgba(120, 81, 169, 0.5);
+  border-radius: 8px;
+  background: rgba(30, 30, 60, 0.3);
+  color: white;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  appearance: none; /* Remove default arrow */
+  background-image: linear-gradient(45deg, transparent 50%, rgba(0, 255, 255, 0.7) 50%),
+                    linear-gradient(135deg, rgba(0, 255, 255, 0.7) 50%, transparent 50%);
+  background-position: calc(100% - 20px) calc(1em + 2px),
+                        calc(100% - 15px) calc(1em + 2px);
+  background-size: 5px 5px,
+                    5px 5px;
+  background-repeat: no-repeat;
+
+  &:focus {
+    outline: none;
+    border-color: var(--neon-blue, #00ffff);
+    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.2);
+    background: rgba(30, 30, 60, 0.5);
+  }
+  
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+  
+  /* Style for options - note: limited styling available */
+  option {
+    background-color: #1e1e3e;
+    color: white;
+  }
+`;
+
 // FormGrid doesn't need motion props
 const FormGrid = styled.div`
   display: grid;
@@ -297,8 +335,10 @@ const SignupModal: React.FC = () => {
     firstName: "", lastName: "", email: "", username: "", password: "",
     confirmPassword: "", phone: "", dateOfBirth: "", gender: "", weight: "",
     height: "", fitnessGoal: "", trainingExperience: "", healthConcerns: "",
-    emergencyContact: "",
+    emergencyContact: "", emergencyContactName: "", emergencyContactPhone: "",
+    role: "user", adminCode: ""
   });
+  const [showAdminCode, setShowAdminCode] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState(0);
@@ -324,8 +364,8 @@ const SignupModal: React.FC = () => {
     });
   };
 
-  // Added type for event
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle changes for both input and select elements
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
@@ -338,30 +378,81 @@ const SignupModal: React.FC = () => {
   };
 
   // Added type for event
+  // Adjusted to log more details for debugging
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+    console.log("Form submission data:", formData); // Debug log
 
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
       return;
     }
-    // Basic password strength check (example)
+    
+    // Password validation
+    const passwordErrors = [];
     if (formData.password.length < 8) {
-       setError("Password must be at least 8 characters long.");
-       return;
+      passwordErrors.push("Password must be at least 8 characters long");
+    }
+    if (!/[A-Z]/.test(formData.password)) {
+      passwordErrors.push("Password must contain at least one uppercase letter");
+    }
+    if (!/[a-z]/.test(formData.password)) {
+      passwordErrors.push("Password must contain at least one lowercase letter");
+    }
+    if (!/[0-9]/.test(formData.password)) {
+      passwordErrors.push("Password must contain at least one number");
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.password)) {
+      passwordErrors.push("Password must contain at least one special character");
+    }
+    
+    if (passwordErrors.length > 0) {
+      setError(passwordErrors[0]); // Show the first error
+      return;
+    }
+    
+    // Validate admin role requires admin code
+    if (formData.role === "admin" && !formData.adminCode) {
+      setError("Admin access code is required for admin accounts");
+      return;
+    }
+    
+    // Validate fitness goal format
+    if (formData.fitnessGoal && !["weight-loss", "muscle-gain", "endurance", "flexibility", "general-fitness", "sports-specific", "other"].includes(formData.fitnessGoal)) {
+      setError("Please select a valid fitness goal");
+      return;
+    }
+    
+    // Validate training experience format
+    if (formData.trainingExperience && !["beginner", "intermediate", "advanced", "professional"].includes(formData.trainingExperience)) {
+      setError("Please select a valid training experience level");
+      return;
+    }
+    
+    // Format emergency contact as a string, not an object
+    let formattedData = { ...formData };
+    if (formData.emergencyContactName || formData.emergencyContactPhone) {
+      // Combine the name and phone into a single string
+      const name = formData.emergencyContactName || '';
+      const phone = formData.emergencyContactPhone || '';
+      formattedData.emergencyContact = name && phone ? `${name} ${phone}` : (name || phone);
     }
 
     setIsLoading(true);
 
     try {
-      // Don't send confirmPassword to backend
-      const { confirmPassword, ...registrationData } = formData;
+      // Only send necessary fields to backend
+      const { 
+        confirmPassword, // Don't send confirmation
+        emergencyContactName, // Don't send separate emergency contact fields
+        emergencyContactPhone, // Don't send separate emergency contact fields
+        ...registrationData 
+      } = formattedData;
+      
       await register(registrationData);
-      // No need to set isLoading false if navigating
-      // navigate("/dashboard"); // Or maybe to a "check your email" page?
-      navigate("/login", { state: { message: "Registration successful! Please log in." } }); // Navigate to login with success message
-    } catch (err: any) { // Typed error
+      navigate("/login", { state: { message: "Registration successful! Please log in." } });
+    } catch (err: any) {
       setIsLoading(false);
       console.error("Error during registration:", err);
       const message = err?.response?.data?.message || err?.message || "Registration failed. Please try again.";
@@ -500,14 +591,64 @@ const SignupModal: React.FC = () => {
             </InputWrapper>
             <FormGrid>
               <InputWrapper>
-                <Label htmlFor="password">Password (min. 8 characters)</Label>
-                <InputField type="password" id="password" name="password" placeholder="Enter password" value={formData.password} onChange={handleChange} required disabled={isLoading} />
+                <Label htmlFor="password">Password</Label>
+                <InputField 
+                  type="password" 
+                  id="password" 
+                  name="password" 
+                  placeholder="Enter password" 
+                  value={formData.password} 
+                  onChange={handleChange} 
+                  required 
+                  disabled={isLoading} 
+                />
+                <div style={{ fontSize: '0.75rem', color: 'rgba(0, 255, 255, 0.7)', marginTop: '0.5rem' }}>
+                  Password must contain at least 8 characters, including uppercase & lowercase letters, numbers, and special characters (!@#$%^&*)
+                </div>
               </InputWrapper>
               <InputWrapper>
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <InputField type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm password" value={formData.confirmPassword} onChange={handleChange} required disabled={isLoading} />
               </InputWrapper>
             </FormGrid>
+            
+            <InputWrapper>
+              <Label htmlFor="role">Account Type</Label>
+              <SelectField 
+                id="role" 
+                name="role" 
+                value={formData.role} 
+                onChange={(e) => {
+                  handleChange(e);
+                  setShowAdminCode(e.target.value === "admin");
+                }} 
+                disabled={isLoading}
+              >
+                <option value="user">Regular User</option>
+                <option value="client">Client</option>
+                <option value="trainer">Trainer</option>
+                <option value="admin">Admin</option>
+              </SelectField>
+            </InputWrapper>
+
+            {showAdminCode && (
+              <InputWrapper>
+                <Label htmlFor="adminCode">Admin Access Code</Label>
+                <InputField 
+                  type="password" 
+                  id="adminCode" 
+                  name="adminCode" 
+                  placeholder="Enter admin access code" 
+                  value={formData.adminCode} 
+                  onChange={handleChange} 
+                  required={formData.role === "admin"}
+                  disabled={isLoading} 
+                />
+                <div style={{ fontSize: '0.75rem', color: 'rgba(0, 255, 255, 0.7)', marginTop: '0.5rem' }}>
+                  Required for admin accounts. Please contact system administrator if you don't have a code.
+                </div>
+              </InputWrapper>
+            )}
           </FormSection>
 
           <FormSection>
@@ -524,11 +665,38 @@ const SignupModal: React.FC = () => {
             </FormGrid>
             <InputWrapper>
               <Label htmlFor="fitnessGoal">Primary Fitness Goal</Label>
-              <InputField type="text" id="fitnessGoal" name="fitnessGoal" placeholder="e.g., Weight loss, Muscle gain, Endurance" value={formData.fitnessGoal} onChange={handleChange} disabled={isLoading} />
+              <SelectField 
+                id="fitnessGoal" 
+                name="fitnessGoal" 
+                value={formData.fitnessGoal} 
+                onChange={handleChange} 
+                disabled={isLoading}
+              >
+                <option value="">Select your primary fitness goal</option>
+                <option value="weight-loss">Weight Loss</option>
+                <option value="muscle-gain">Muscle Gain</option>
+                <option value="endurance">Endurance</option>
+                <option value="flexibility">Flexibility</option>
+                <option value="general-fitness">General Fitness</option>
+                <option value="sports-specific">Sports Specific</option>
+                <option value="other">Other</option>
+              </SelectField>
             </InputWrapper>
             <InputWrapper>
               <Label htmlFor="trainingExperience">Training Experience</Label>
-              <InputField type="text" id="trainingExperience" name="trainingExperience" placeholder="e.g., Beginner, Intermediate, Advanced" value={formData.trainingExperience} onChange={handleChange} disabled={isLoading} />
+              <SelectField 
+                id="trainingExperience" 
+                name="trainingExperience" 
+                value={formData.trainingExperience} 
+                onChange={handleChange} 
+                disabled={isLoading}
+              >
+                <option value="">Select your experience level</option>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+                <option value="professional">Professional</option>
+              </SelectField>
             </InputWrapper>
           </FormSection>
 
@@ -539,8 +707,50 @@ const SignupModal: React.FC = () => {
               <InputField type="text" id="healthConcerns" name="healthConcerns" placeholder="e.g., Knee pain, Asthma" value={formData.healthConcerns} onChange={handleChange} disabled={isLoading} />
             </InputWrapper>
             <InputWrapper>
-              <Label htmlFor="emergencyContact">Emergency Contact (Name & Phone)</Label>
-              <InputField type="text" id="emergencyContact" name="emergencyContact" placeholder="e.g., John Doe 555-987-6543" value={formData.emergencyContact} onChange={handleChange} disabled={isLoading} />
+              <Label htmlFor="emergencyContactName">Emergency Contact Name</Label>
+              <InputField 
+                type="text" 
+                id="emergencyContactName" 
+                name="emergencyContactName" 
+                placeholder="e.g., John Doe" 
+                value={formData.emergencyContactName || ''} 
+                onChange={(e) => {
+                  // Handle the emergency contact name separately
+                  setFormData(prev => ({
+                    ...prev,
+                    emergencyContactName: e.target.value,
+                    // Update the emergencyContact field for submission
+                    emergencyContact: JSON.stringify({
+                      name: e.target.value,
+                      phone: prev.emergencyContactPhone || ''
+                    })
+                  }));
+                }} 
+                disabled={isLoading} 
+              />
+            </InputWrapper>
+            <InputWrapper>
+              <Label htmlFor="emergencyContactPhone">Emergency Contact Phone</Label>
+              <InputField 
+                type="tel" 
+                id="emergencyContactPhone" 
+                name="emergencyContactPhone" 
+                placeholder="e.g., 555-987-6543" 
+                value={formData.emergencyContactPhone || ''} 
+                onChange={(e) => {
+                  // Handle the emergency contact phone separately
+                  setFormData(prev => ({
+                    ...prev,
+                    emergencyContactPhone: e.target.value,
+                    // Update the emergencyContact field for submission
+                    emergencyContact: JSON.stringify({
+                      name: prev.emergencyContactName || '',
+                      phone: e.target.value
+                    })
+                  }));
+                }} 
+                disabled={isLoading} 
+              />
             </InputWrapper>
           </FormSection>
 

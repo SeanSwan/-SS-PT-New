@@ -13,6 +13,7 @@
     "seed:undo": "npx sequelize-cli db:seed:undo:all --config config/config.js --seeders-path seeders --models-path models --env development",
     "db:setup": "npm run migrate && npm run seed",
     "db:reset": "node scripts/reset-db-sequelize.mjs",
+    "test:db": "node scripts/test-db.mjs",
     "db:reset-complete": "node scripts/setup-complete.mjs",
     "create-admin": "node scripts/create-admin-user.mjs",
     "fix-admin": "node scripts/fix-admin-user.mjs",
@@ -23,6 +24,10 @@
     "fix-cart": "node scripts/fix-cart-schema.mjs",
     "migrate-cart": "node scripts/migrate-cart-data.mjs",
     "seed-storefront": "node scripts/seed-storefront-items.mjs",
+    "add-user-role": "node scripts/add-user-role.mjs",
+    "update-role-enum": "node scripts/manual-update-role-enum.mjs",
+    "check-server": "node scripts/check-server-status.mjs",
+    "test-registration": "node scripts/test-registration.mjs",
     "verify-admin": "node scripts/verify-admin.mjs",
     "render-start": "npx sequelize-cli db:migrate --config config/config.js --migrations-path migrations --models-path models --env production && node server.mjs"
   },

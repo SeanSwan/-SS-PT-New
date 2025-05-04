@@ -81,7 +81,7 @@ const validationSchemas = {
     
     body('emergencyContact')
       .optional()
-      .isObject().withMessage('Emergency contact must be an object')
+      .isString().withMessage('Emergency contact must be a string')
   ],
   
   login: [
@@ -153,7 +153,7 @@ const validationSchemas = {
     
     body('emergencyContact')
       .optional()
-      .isObject().withMessage('Emergency contact must be an object')
+      .isString().withMessage('Emergency contact must be a string')
   ],
   
   changePassword: [

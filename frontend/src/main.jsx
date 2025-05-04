@@ -3,6 +3,9 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 
+// Import Font Awesome setup
+import '../fontawesome.setup';
+
 // Get the root element - remove the TypeScript non-null assertion (!)
 const rootElement = document.getElementById('root');
 

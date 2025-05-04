@@ -9,6 +9,7 @@ import React, {
     ReactNode
 } from "react";
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig, AxiosResponse } from "axios";
+import { createServices, Services } from '../services';
 import { API_BASE_URL, AUTH_CONFIG } from "../config"; // Assuming config.js exports these
 
 // --- Interfaces ---
@@ -55,16 +56,25 @@ interface FailedRequest {
     reject: (reason?: any) => void;
 }
 
+interface ProfilePhotoResponse {
+    success: boolean;
+    message: string;
+    photoUrl: string;
+    user: User;
+}
+
 interface AuthContextType {
     user: User | null;
     isLoading: boolean;
     token: string | null;
-    authAxios: AxiosInstance;
+    authAxios: AxiosInstance & { services: Services };
+    services: Services;
     login: (username: string, password: string) => Promise<{ success: boolean; user: User }>;
     register: (userData: any) => Promise<{ success: boolean; user: User }>; // TODO: Define specific type
     logout: () => Promise<void>;
     isAuthenticated: () => boolean;
     updateProfile: (userData: Partial<User>) => Promise<{ success: boolean; user: User }>;
+    uploadProfilePhoto: (file: File) => Promise<{ success: boolean; photoUrl: string; user: User }>;
     changePassword: (currentPassword: string, newPassword: string) => Promise<{ success: boolean; message: string }>;
     sessionExpired: boolean;
     handleSessionExpired: () => void;
@@ -78,16 +88,27 @@ interface AuthProviderProps {
 const TOKEN_REFRESH_THRESHOLD_MS = AUTH_CONFIG.tokenRefreshThresholdMs || 5 * 60 * 1000;
 
 // --- Context Creation ---
+// Create default axios instance for services
+const defaultAxios = axios.create();
+
+// Create services for the default axios instance
+const defaultServices = createServices(defaultAxios);
+
+// Attach services to the axios instance
+(defaultAxios as any).services = defaultServices;
+
 const defaultAuthContextValue: AuthContextType = {
     user: null,
     isLoading: true,
     token: null,
-    authAxios: axios.create(), // Placeholder, will be configured
+    authAxios: defaultAxios as AxiosInstance & { services: Services }, // Placeholder, will be configured
+    services: defaultServices, // Default services with placeholder axios
     login: async () => { throw new Error("AuthProvider not initialized"); },
     register: async () => { throw new Error("AuthProvider not initialized"); },
     logout: async () => { throw new Error("AuthProvider not initialized"); },
     isAuthenticated: () => false,
     updateProfile: async () => { throw new Error("AuthProvider not initialized"); },
+    uploadProfilePhoto: async () => { throw new Error("AuthProvider not initialized"); },
     changePassword: async () => { throw new Error("AuthProvider not initialized"); },
     sessionExpired: false,
     handleSessionExpired: () => { throw new Error("AuthProvider not initialized"); },
@@ -406,7 +427,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                  // Ensure token header is set correctly before making the call
                  authAxiosInstance.defaults.headers.common["Authorization"] = `Bearer ${currentToken}`;
                 try {
-                    const response = await authAxiosInstance.get<ProfileResponse>('/api/auth/profile');
+                    const response = await authAxiosInstance.get<ProfileResponse>('/api/profile');
                      if (response.data?.success && response.data?.user) {
                          setUser(response.data.user);
                          if (sessionExpired) setSessionExpired(false);
@@ -508,7 +529,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setupTokenRefreshTimer();
             return { success: true, user: registeredUser };
         } catch (error) {
-             const axiosError = error as AxiosError<{ message?: string; errors?: { field: string, message: string }[] }>;
+             const axiosError = error as AxiosError<{ message?: string; errors?: { field: string, message: string }[] }>;  
+             // Add more detailed logging for errors
+             console.error('Registration API Error Details:', { 
+                responseData: axiosError.response?.data,
+                status: axiosError.response?.status,
+                statusText: axiosError.response?.statusText,
+                message: axiosError.message,
+                config: {
+                  url: axiosError.config?.url,
+                  method: axiosError.config?.method,
+                  data: axiosError.config?.data
+                }
+             });
              logAuthAction('Registration error', { error: axiosError.message, status: axiosError.response?.status, data: axiosError.response?.data });
              if (axiosError.response?.data?.errors) {
                  const errorMessage = axiosError.response.data.errors.map(err => `${err.field}: ${err.message}`).join(", ");
@@ -549,7 +582,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     const updateProfile = useCallback(async (userData: Partial<User>): Promise<{ success: boolean; user: User }> => {
         try {
-            const profileUrl = "/api/auth/profile"; // Relative path uses proxy
+            const profileUrl = "/api/profile"; // Relative path uses proxy
             logAuthAction('Update profile attempt', { url: profileUrl });
             const response = await authAxiosInstance.put<ProfileResponse>(profileUrl, userData); // Use the instance
 
@@ -573,6 +606,68 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     }, [authAxiosInstance]); // Use instance ref
 
+    // New method to handle profile photo uploads
+    const uploadProfilePhoto = useCallback(async (file: File): Promise<{ success: boolean; photoUrl: string; user: User }> => {
+        try {
+            if (!file || !file.type.startsWith('image/')) {
+                throw new Error("Invalid file. Please upload an image file.");
+            }
+            
+            // Limit file size (5MB)
+            if (file.size > 5 * 1024 * 1024) {
+                throw new Error("File size exceeds 5MB limit. Please upload a smaller image.");
+            }
+            
+            // Create FormData to send the file
+            const formData = new FormData();
+            formData.append('profilePhoto', file);
+            
+            // Set the correct Content-Type for multipart/form-data
+            // Need to create a custom axios instance or config for this specific request
+            const uploadConfig = {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    // Don't forget to include the Authorization header
+                    'Authorization': `Bearer ${token || localStorage.getItem(AUTH_CONFIG.tokenKey)}`
+                }
+            };
+            
+            logAuthAction('Profile photo upload attempt', { fileName: file.name, fileType: file.type, fileSize: file.size });
+            
+            const response = await authAxiosInstance.post<ProfilePhotoResponse>(
+                '/api/profile/upload-profile-photo',
+                formData,
+                uploadConfig
+            );
+            
+            if (!response.data?.success || !response.data?.photoUrl || !response.data?.user) {
+                throw new Error(response.data?.message || "Profile photo upload response invalid.");
+            }
+            
+            // Update user state with the new photo URL
+            setUser(response.data.user);
+            
+            logAuthAction('Profile photo uploaded successfully', { 
+                userId: response.data.user.id, 
+                photoUrl: response.data.photoUrl 
+            });
+            
+            return { 
+                success: true, 
+                photoUrl: response.data.photoUrl,
+                user: response.data.user 
+            };
+        } catch (error) {
+            const axiosError = error as AxiosError<{ success: boolean; message?: string }>;
+            logAuthAction('Profile photo upload error', { 
+                error: axiosError.message, 
+                status: axiosError.response?.status, 
+                data: axiosError.response?.data 
+            });
+            throw new Error(axiosError.response?.data?.message || "Failed to upload profile photo.");
+        }
+    }, [token, authAxiosInstance]); // Dependencies
+
     const changePassword = useCallback(async (currentPassword: string, newPassword: string): Promise<{ success: boolean; message: string }> => {
         try {
             const passwordUrl = "/api/auth/password"; // Relative path uses proxy
@@ -592,16 +687,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }, [authAxiosInstance]); // Use instance ref
 
     // --- Context Value ---
+    // Create services with the configured authAxios instance
+    const services = createServices(authAxiosInstance);
+    
+    // Attach services to the authAxios instance for easier access
+    (authAxiosInstance as any).services = services;
+
     const value: AuthContextType = {
         user,
         isLoading,
         token,
         authAxios: authAxiosInstance, // Provide the configured instance
+        services, // Provide the services
         login,
         register,
         logout,
         isAuthenticated,
         updateProfile,
+        uploadProfilePhoto,
         changePassword,
         sessionExpired,
         handleSessionExpired,

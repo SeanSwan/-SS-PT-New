@@ -166,6 +166,7 @@ export const register = async (req, res) => {
   
   try {
     logger.info('Processing new user registration');
+    console.log('Registration request body:', JSON.stringify(req.body, null, 2));
     
     const { 
       firstName, 
@@ -237,6 +238,33 @@ export const register = async (req, res) => {
       });
     }
 
+    // Extract role and adminCode from request body
+    const { role = 'user', adminCode } = req.body;
+    
+    // Validate admin role requires a valid admin code
+    if (role === 'admin') {
+      if (!adminCode) {
+        await transaction.rollback();
+        logger.warn('Admin registration attempt without admin code');
+        return res.status(400).json({
+          success: false,
+          message: 'Admin access code is required for admin registration'
+        });
+      }
+      
+      if (adminCode !== process.env.ADMIN_ACCESS_CODE) {
+        await transaction.rollback();
+        logger.warn('Admin registration attempt with incorrect admin code');
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid admin access code'
+        });
+      }
+      
+      // Log successful admin code verification
+      logger.info('Valid admin code provided for admin registration');
+    }
+    
     // Create new user
     const user = await User.create(
       {
@@ -254,7 +282,7 @@ export const register = async (req, res) => {
         trainingExperience,
         healthConcerns,
         emergencyContact,
-        role: 'user', // default role
+        role: role, // Use the provided role or default to 'user'
         lastActive: new Date(),
         registrationIP: req.ip // Store IP for security monitoring (make sure your Express app has trust proxy enabled)
       },
@@ -292,7 +320,20 @@ export const register = async (req, res) => {
     });
   } catch (error) {
     await transaction.rollback();
-    logger.error('Registration error:', { error: error.message, stack: error.stack });
+    logger.error('Registration error:', { 
+      error: error.message, 
+      stack: error.stack,
+      name: error.name,
+      code: error.code 
+    });
+    
+    console.error('DETAILED REGISTRATION ERROR:', { 
+      message: error.message,
+      name: error.name,
+      code: error.code,
+      stack: error.stack,
+      transaction: transaction ? true : false
+    });
     
     // Handle specific database errors
     if (error.name === 'SequelizeValidationError') {

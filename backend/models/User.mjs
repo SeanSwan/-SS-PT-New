@@ -65,9 +65,9 @@ User.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
-    // Role - now supports client, trainer, and admin
+    // Role - now supports user, client, trainer, and admin
     role: {
-      type: DataTypes.ENUM('client', 'trainer', 'admin'),
+      type: DataTypes.ENUM('user', 'client', 'trainer', 'admin'),
       allowNull: false,
       defaultValue: 'client',
     },

@@ -1,109 +1,114 @@
-// backend/scripts/reset-admin-password.mjs
-import fs from 'fs';
+/**
+ * Admin Password Reset Script
+ * 
+ * This script resets the password for an admin user in the database.
+ * Run with: node reset-admin-password.mjs [username] [new-password]
+ * 
+ * Example: node reset-admin-password.mjs ogpswan NewPassword123!
+ */
+
+import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import dotenv from 'dotenv';
+import fs from 'fs';
 import bcrypt from 'bcryptjs';
-import readline from 'readline/promises'; // Use promises interface for readline
+import sequelize from '../database.mjs';
+import User from '../models/User.mjs';
 
-// --- Environment Loading ---
+// Get directory name
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const projectRootDir = path.resolve(__dirname, '..', '..'); // Go up two levels
-const envPath = path.resolve(projectRootDir, '.env');
+const projectRootDir = path.resolve(__dirname, '../..');
 
+// Load environment variables
+const envPath = path.resolve(projectRootDir, '.env');
 if (fs.existsSync(envPath)) {
   console.log(`Loading environment variables from: ${envPath}`);
   dotenv.config({ path: envPath });
 } else {
-  console.warn(`Warning: .env file not found at ${envPath}. Script might fail if DB requires env vars.`);
-  dotenv.config(); // Try default
+  console.warn(`Warning: .env file not found at ${envPath}`);
+  dotenv.config(); // Try default location
 }
 
-// --- Imports (AFTER dotenv) ---
-import sequelize from '../database.mjs'; // Import configured sequelize instance
-import User from '../models/User.mjs'; // Import User model
-
-// --- Main Function ---
-async function resetAdminPassword() {
-  console.log('--- Admin Password Reset Script ---');
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  let adminUsername = '';
-  let newPassword = '';
-  let confirmPassword = '';
-
+/**
+ * Reset the password for a specific user
+ * @param {string} username - The username to reset password for
+ * @param {string} newPassword - The new password
+ * @param {boolean} forceAdmin - If true, ensures the user has admin role
+ */
+async function resetPassword(username, newPassword, forceAdmin = false) {
   try {
-    // 1. Get Username
-    while (!adminUsername) {
-      adminUsername = await rl.question('Enter the username of the admin account to reset: ');
-      if (!adminUsername) console.log('Username cannot be empty.');
-    }
-
-    // 2. Get New Password
-    while (!newPassword) {
-      newPassword = await rl.question(`Enter the NEW password for '${adminUsername}': `);
-      if (!newPassword) console.log('Password cannot be empty.');
-      // Optional: Add password strength check here if desired
-    }
-
-    // 3. Confirm New Password
-    while (!confirmPassword) {
-        confirmPassword = await rl.question(`Confirm the NEW password for '${adminUsername}': `);
-        if (!confirmPassword) console.log('Confirmation cannot be empty.');
-    }
-
-    if (newPassword !== confirmPassword) {
-        throw new Error('Passwords do not match. Please run the script again.');
-    }
-
-    rl.close(); // Close readline interface
-
-    // 4. Connect & Find User
-    console.log('\nConnecting to database...');
-    await sequelize.authenticate(); // Test connection
-    console.log('✅ Database connection successful.');
-
-    console.log(`Searching for user '${adminUsername}'...`);
-    const user = await User.findOne({ where: { username: adminUsername } });
-
+    // Test database connection
+    await sequelize.authenticate();
+    console.log('Database connection established successfully');
+    
+    // Find the user
+    const user = await User.findOne({ where: { username } });
+    
     if (!user) {
-      throw new Error(`User '${adminUsername}' not found in the database.`);
+      console.error(`User "${username}" not found`);
+      process.exit(1);
     }
-    console.log(`✅ Found user: ${user.firstName} ${user.lastName} (ID: ${user.id})`);
-
-    // 5. Hash New Password
-    console.log('Hashing new password...');
+    
+    // Hash the new password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
-    console.log('✅ Password hashed.');
-
-    // 6. Update User Password
-    console.log(`Updating password for '${adminUsername}'...`);
-    await user.update({ password: hashedPassword });
-    // Note: We directly update the hash. The beforeUpdate hook in User.mjs
-    // might re-hash it, but hashing an already hashed string is usually safe
-    // though slightly inefficient. Ideally, the hook would only hash if it's *not* already a hash.
-    // For this script's purpose, directly setting the intended hash is fine.
-
-    console.log(`✅ Password for '${adminUsername}' successfully updated in the database!`);
-    console.log('--- Script Complete ---');
-
-  } catch (error) {
-    rl.close(); // Ensure readline is closed on error
-    console.error(`❌ Error during password reset: ${error.message}`);
-    if (error.stack && process.env.NODE_ENV !== 'production') {
-        console.error("Stack Trace:", error.stack);
+    
+    // Update user
+    const updates = { password: hashedPassword };
+    
+    // If forceAdmin is true, ensure the user has admin role
+    if (forceAdmin && user.role !== 'admin') {
+      updates.role = 'admin';
+      console.log(`Setting user role to admin`);
     }
-    process.exitCode = 1; // Indicate failure
-  } finally {
+    
+    await user.update(updates);
+    
+    console.log(`Password for ${username} (${user.firstName} ${user.lastName}) reset successfully`);
+    console.log(`User role: ${user.role}`);
+    
+    // Close the database connection
     await sequelize.close();
-    console.log('Database connection closed.');
+    console.log('Database connection closed');
+    
+  } catch (error) {
+    console.error('Error:', error.message);
+    process.exit(1);
   }
 }
 
-// Run the function
-resetAdminPassword();
+// Get arguments from command line
+const args = process.argv.slice(2);
+const username = args[0] || process.env.ADMIN_USERNAME || 'ogpswan';
+const newPassword = args[1] || 'SwanStudios2025!';
+const forceAdmin = true; // Default to forcing admin role
+
+// Validate input
+if (!username) {
+  console.error('Error: Username is required');
+  process.exit(1);
+}
+
+if (!newPassword) {
+  console.error('Error: New password is required');
+  process.exit(1);
+}
+
+// Password strength check
+if (newPassword.length < 8) {
+  console.warn('Warning: Password is less than 8 characters');
+}
+
+// Run the script
+console.log(`Resetting password for user: ${username}`);
+resetPassword(username, newPassword, forceAdmin)
+  .then(() => {
+    console.log('Password reset successful');
+    console.log(`New login credentials:\nUsername: ${username}\nPassword: ${newPassword}`);
+    process.exit(0);
+  })
+  .catch(err => {
+    console.error('Failed to reset password:', err);
+    process.exit(1);
+  });

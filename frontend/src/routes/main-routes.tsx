@@ -57,8 +57,10 @@ const CheckoutCancel = lazy(() => import('../pages/checkout/CheckoutCancel'));
 
 // Protected Pages
 const ClientDashboard = lazy(() => import('../components/ClientDashboard/ClientDashboard'));
-// AdminDashboard is commented out but kept for future implementation
-// const AdminDashboard = lazy(() => import('../components/AdminDashboard/AdminDashboard'));
+// Import the client dashboard view directly with file extension
+const ClientDashboardView = lazy(() => import('../components/DashBoard/Pages/client-dashboard/client-dashboard-view.tsx'));
+// Import the enhanced admin dashboard layout with file extension
+const AdminDashboardLayout = lazy(() => import('../components/DashBoard/admin-dashboard-layout.tsx'));
 
 /**
  * Main application routes configuration
@@ -151,24 +153,23 @@ const MainRoutes: RouteObject = {
     
     // Protected Client Routes
     {
-      path: 'client-dashboard/*',
+      path: 'client-dashboard',
       element: (
         <ProtectedRoute requiredRole="client">
           <Suspense fallback={<PageLoader />}>
-            <ClientDashboard />
+            <ClientDashboardView />
           </Suspense>
         </ProtectedRoute>
       )
     },
     
-    // Protected Admin Routes
+    // Enhanced Admin Dashboard Routes
     {
-      path: 'admin-dashboard/*',
+      path: 'dashboard/*',
       element: (
         <AdminRoute>
           <Suspense fallback={<PageLoader />}>
-            {/* <AdminDashboard /> */}
-            <div>Admin dashboard is not implemented</div>
+            <AdminDashboardLayout />
           </Suspense>
         </AdminRoute>
       )

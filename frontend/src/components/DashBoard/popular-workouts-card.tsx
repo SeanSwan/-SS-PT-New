@@ -1,190 +1,175 @@
 import React from 'react';
-import {
-  Avatar,
-  Button,
-  CardActions,
-  CardContent,
-  Chip,
-  Divider,
-  Grid,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemButton,
-  ListItemSecondaryAction,
-  ListItemText,
-  Skeleton,
-  Stack,
-  Typography,
-  useTheme
+import { 
+  Card, 
+  CardContent, 
+  Typography, 
+  Box, 
+  List, 
+  ListItem, 
+  ListItemText, 
+  ListItemAvatar, 
+  Avatar, 
+  Divider, 
+  Rating, 
+  Skeleton 
 } from '@mui/material';
-import MainCard from './../ui/MainCard';
-import { Activity, Dumbbell, Flame, Heart, Zap } from 'lucide-react';
+import { Dumbbell, Heart, Flame } from 'lucide-react';
+import { FaWalking, FaHeartbeat } from 'react-icons/fa';
 
-// Types - explicitly define the props interface
 interface PopularWorkoutsCardProps {
-  isLoading: boolean;
+  isLoading?: boolean;
 }
 
 /**
- * Popular Workouts Card (formerly PopularCard)
+ * Popular Workouts Card Component
  * 
- * Displays the most popular and effective workout routines based on client results
- * and satisfaction ratings. This helps trainers identify which workouts are resonating
- * with clients and producing the best outcomes.
+ * Displays a list of trending workout programs with effectiveness ratings and
+ * quick access for trainers to assign to clients.
  */
-const PopularWorkoutsCard: React.FC<PopularWorkoutsCardProps> = ({ isLoading }) => {
-  const theme = useTheme();
-
-  // Workout effectiveness rating component
-  const EffectivenessRating = ({ rating }: { rating: number }) => {
-    const icons = [];
-    const color = theme.palette.warning.main;
-    
-    for (let i = 0; i < 5; i++) {
-      if (i < rating) {
-        icons.push(<Flame key={i} size={16} color={color} fill={color} />);
-      } else {
-        icons.push(<Flame key={i} size={16} color={color} opacity={0.4} />);
-      }
+const PopularWorkoutsCard: React.FC<PopularWorkoutsCardProps> = ({ isLoading = false }) => {
+  // Sample data - in a real application, this would come from an API
+  const workoutData = [
+    { 
+      id: 1,
+      name: 'HIIT Circuit Training', 
+      category: 'Cardio & Strength',
+      rating: 4.9,
+      clients: 18,
+      icon: <Flame size={22} />
+    },
+    { 
+      id: 2,
+      name: 'Progressive Strength', 
+      category: 'Strength Training',
+      rating: 4.7,
+      clients: 15,
+      icon: <Dumbbell size={22} />
+    },
+    { 
+      id: 3,
+      name: 'Endurance Builder', 
+      category: 'Cardio',
+      rating: 4.5,
+      clients: 12,
+      icon: <FaWalking size={22} />
+    },
+    { 
+      id: 4,
+      name: 'Functional Mobility', 
+      category: 'Flexibility & Recovery',
+      rating: 4.6,
+      clients: 10,
+      icon: <FaWalking size={22} />
+    },
+    { 
+      id: 5,
+      name: 'Heart Rate Training', 
+      category: 'Cardio & Endurance',
+      rating: 4.8,
+      clients: 14,
+      icon: <FaHeartbeat size={22} />
     }
-    
-    return <Stack direction="row" spacing={0.5}>{icons}</Stack>;
+  ];
+
+  // Colors for workout category icons
+  const categoryColors = {
+    'Cardio & Strength': '#e91e63',
+    'Strength Training': '#673ab7',
+    'Cardio': '#2196f3',
+    'Flexibility & Recovery': '#009688',
+    'Cardio & Endurance': '#f44336'
   };
 
   return (
-    <MainCard>
+    <Card sx={{ 
+      borderRadius: 3, 
+      height: '100%',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+      '&:hover': {
+        transform: 'translateY(-5px)',
+        boxShadow: '0 6px 25px rgba(0, 0, 0, 0.12)'
+      }
+    }}>
       <CardContent>
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <Grid container alignContent="center" justifyContent="space-between">
-              <Grid item>
-                <Typography variant="h5">Popular Workout Routines</Typography>
-              </Grid>
-              <Grid item>
-                <Chip
-                  label="This Month"
-                  size="small"
-                  sx={{
-                    bgcolor: theme.palette.mode === 'dark' ? 'dark.main' : 'primary.light',
-                    color: 'primary.main'
-                  }}
-                />
-              </Grid>
-            </Grid>
-          </Grid>
-          <Grid item xs={12}>
-            {isLoading ? (
-              <Skeleton variant="rectangular" height={120} />
-            ) : (
-              <List
-                component="nav"
-                sx={{
-                  px: 0,
-                  py: 0,
-                  '& .MuiListItemButton-root': {
-                    py: 1.5,
-                    '& .MuiAvatar-root': {
-                      color: theme.palette.success.dark,
-                      bgcolor: theme.palette.success.light,
-                      borderRadius: '10px'
-                    },
-                    '&:hover': {
-                      bgcolor: 'transparent'
-                    },
-                    '& .MuiListItemSecondaryAction-root': {
-                      alignSelf: 'center',
-                      ml: 1
-                    }
-                  }
-                }}
-              >
-                <ListItemButton>
-                  <ListItemAvatar>
-                    <Avatar variant="rounded">
-                      <Dumbbell size={20} />
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={<Typography variant="subtitle1">HIIT Circuit Challenge</Typography>}
-                    secondary={
-                      <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                        Full body, 30-min interval training
-                      </Typography>
-                    }
-                  />
-                  <ListItemSecondaryAction>
-                    <EffectivenessRating rating={5} />
-                  </ListItemSecondaryAction>
-                </ListItemButton>
-                <Divider />
-                <ListItemButton>
-                  <ListItemAvatar>
-                    <Avatar variant="rounded">
-                      <Activity size={20} />
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={<Typography variant="subtitle1">Core Power Flow</Typography>}
-                    secondary={
-                      <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                        Core & stability, 25-min workout
-                      </Typography>
-                    }
-                  />
-                  <ListItemSecondaryAction>
-                    <EffectivenessRating rating={4} />
-                  </ListItemSecondaryAction>
-                </ListItemButton>
-                <Divider />
-                <ListItemButton>
-                  <ListItemAvatar>
-                    <Avatar variant="rounded">
-                      <Heart size={20} />
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={<Typography variant="subtitle1">Cardio Blast Series</Typography>}
-                    secondary={
-                      <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                        Endurance, 40-min progressive training
-                      </Typography>
-                    }
-                  />
-                  <ListItemSecondaryAction>
-                    <EffectivenessRating rating={4} />
-                  </ListItemSecondaryAction>
-                </ListItemButton>
-                <Divider />
-                <ListItemButton>
-                  <ListItemAvatar>
-                    <Avatar variant="rounded">
-                      <Zap size={20} />
-                    </Avatar>
-                  </ListItemAvatar>
-                  <ListItemText
-                    primary={<Typography variant="subtitle1">Strength Foundation</Typography>}
-                    secondary={
-                      <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary' }}>
-                        Progressive resistance, 45-min workout
-                      </Typography>
-                    }
-                  />
-                  <ListItemSecondaryAction>
-                    <EffectivenessRating rating={3} />
-                  </ListItemSecondaryAction>
-                </ListItemButton>
-              </List>
-            )}
-          </Grid>
-        </Grid>
+        {isLoading ? (
+          <Box>
+            <Skeleton variant="text" height={40} width="80%" />
+            <Skeleton variant="text" height={25} width="60%" sx={{ mt: 1 }} />
+            <Box sx={{ mt: 3 }}>
+              {[1, 2, 3, 4, 5].map(item => (
+                <React.Fragment key={item}>
+                  <Box sx={{ display: 'flex', py: 1.5 }}>
+                    <Skeleton variant="circular" width={40} height={40} />
+                    <Box sx={{ ml: 2, width: '100%' }}>
+                      <Skeleton variant="text" width="80%" height={24} />
+                      <Skeleton variant="text" width="60%" height={20} />
+                    </Box>
+                  </Box>
+                  {item < 5 && <Skeleton variant="text" height={1} />}
+                </React.Fragment>
+              ))}
+            </Box>
+          </Box>
+        ) : (
+          <>
+            <Typography variant="h5" fontWeight="600" mb={0.5}>
+              Popular Workouts
+            </Typography>
+            <Typography variant="body2" color="text.secondary" mb={2}>
+              Most assigned training programs
+            </Typography>
+            
+            <List disablePadding sx={{ mt: 2 }}>
+              {workoutData.map((workout, index) => (
+                <React.Fragment key={workout.id}>
+                  <ListItem sx={{ px: 0, py: 1.5 }} alignItems="flex-start">
+                    <ListItemAvatar>
+                      <Avatar 
+                        sx={{ 
+                          bgcolor: (categoryColors as any)[workout.category] + '20',
+                          color: (categoryColors as any)[workout.category]
+                        }}
+                      >
+                        {workout.icon}
+                      </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText
+                      primary={
+                        <Typography variant="subtitle1" fontWeight={500}>
+                          {workout.name}
+                        </Typography>
+                      }
+                      secondary={
+                        <Typography 
+                          variant="caption" 
+                          color="text.secondary"
+                          component="div" // Changed to div to avoid nesting issues
+                          sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}
+                        >
+                          <Rating 
+                            value={workout.rating} 
+                            precision={0.1} 
+                            size="small" 
+                            readOnly 
+                          />
+                          <Box component="span" sx={{ ml: 1 }}>
+                            ({workout.rating}) • {workout.clients} clients
+                          </Box>
+                        </Typography>
+                      }
+                    />
+                  </ListItem>
+                  {index < workoutData.length - 1 && (
+                    <Divider variant="fullWidth" component="li" />
+                  )}
+                </React.Fragment>
+              ))}
+            </List>
+          </>
+        )}
       </CardContent>
-      <CardActions sx={{ p: 1.25, pt: 0, justifyContent: 'center' }}>
-        <Button size="small" disableElevation>
-          View All Routines
-        </Button>
-      </CardActions>
-    </MainCard>
+    </Card>
   );
 };
 

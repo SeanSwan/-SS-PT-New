@@ -1,207 +1,160 @@
-import React, { useState } from 'react';
-import {
-  Box,
-  Button,
-  ButtonGroup,
-  Grid,
-  Skeleton,
-  Stack,
-  Typography,
-  useTheme
-} from '@mui/material';
-import MainCard from '../ui/MainCard';
-// Fix: Changed ArrowUpward to TrendingUp from lucide-react
-import { TrendingUp } from 'lucide-react';
+import React from 'react';
+import { Card, CardContent, Typography, Box, Skeleton } from '@mui/material';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-// Import chart components
-import Chart from 'react-apexcharts';
-import { ApexOptions } from 'apexcharts';
-
-// Types
 interface ClientProgressChartProps {
-  isLoading: boolean;
+  isLoading?: boolean;
 }
 
 /**
- * Client Progress Chart (formerly TotalOrderLineChartCard)
+ * Client Progress Chart Component
  * 
- * Displays client fitness progress over time with options to view different
- * time periods (weekly, monthly, yearly). The chart visualizes key metrics
- * like weight loss, strength gains, or cardiovascular improvements.
+ * Displays a line chart visualizing client fitness progress over time.
+ * Charts multiple metrics like weight training, cardio performance, and attendance.
  */
-const ClientProgressChart: React.FC<ClientProgressChartProps> = ({ isLoading }) => {
-  const theme = useTheme();
-  const [timeValue, setTimeValue] = useState('month');
+const ClientProgressChart: React.FC<ClientProgressChartProps> = ({ isLoading = false }) => {
+  // Sample data - in a real application, this would come from an API
+  const progressData = [
+    { month: 'Jan', strength: 65, cardio: 72, flexibility: 58 },
+    { month: 'Feb', strength: 68, cardio: 74, flexibility: 61 },
+    { month: 'Mar', strength: 72, cardio: 76, flexibility: 65 },
+    { month: 'Apr', strength: 75, cardio: 78, flexibility: 68 },
+    { month: 'May', strength: 79, cardio: 80, flexibility: 71 },
+    { month: 'Jun', strength: 82, cardio: 83, flexibility: 74 }
+  ];
 
-  // Chart data for different time periods
-  const chartData = {
-    week: [
-      {
-        name: 'Client Progress',
-        data: [10, 12, 14, 15, 16, 18, 20]
-      }
-    ],
-    month: [
-      {
-        name: 'Client Progress',
-        data: [8, 10, 12, 14, 16, 18, 20, 22, 24, 25, 26, 28]
-      }
-    ],
-    year: [
-      {
-        name: 'Client Progress',
-        data: [5, 8, 12, 15, 18, 22, 26, 30, 34, 38, 40, 42]
-      }
-    ]
-  };
-
-  // Chart options
-  const chartOptions: ApexOptions = {
-    chart: {
-      type: 'line',
-      height: 90,
-      sparkline: {
-        enabled: true
-      }
-    },
-    dataLabels: {
-      enabled: false
-    },
-    colors: [theme.palette.primary.main],
-    stroke: {
-      curve: 'smooth',
-      width: 3
-    },
-    yaxis: {
-      min: 0,
-      max: timeValue === 'week' ? 30 : timeValue === 'month' ? 40 : 50
-    },
-    tooltip: {
-      theme: theme.palette.mode === 'dark' ? 'dark' : 'light',
-      fixed: {
-        enabled: false
-      },
-      x: {
-        show: false
-      },
-      y: {
-        title: {
-          formatter: () => 'Progress'
-        }
-      },
-      marker: {
-        show: false
-      }
+  // Custom tooltip component
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <Box
+          sx={{
+            bgcolor: 'background.paper',
+            p: 1.5,
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 1,
+            boxShadow: 1
+          }}
+        >
+          <Typography variant="subtitle2" fontWeight="bold" mb={0.5}>
+            {label}
+          </Typography>
+          {payload.map((entry: any, index: number) => (
+            <Typography
+              key={`item-${index}`}
+              variant="body2"
+              display="block"
+              sx={{ 
+                color: entry.color,
+                display: 'flex',
+                alignItems: 'center',
+                mt: 0.5
+              }}
+            >
+              <Box 
+                component="span" 
+                sx={{ 
+                  width: 12, 
+                  height: 12, 
+                  borderRadius: '50%', 
+                  bgcolor: entry.color,
+                  mr: 1
+                }} 
+              />
+              {entry.name}: {entry.value}%
+            </Typography>
+          ))}
+        </Box>
+      );
     }
+    return null;
   };
-
-  // Sample data based on time period
-  const getTimeSeriesData = () => {
-    switch (timeValue) {
-      case 'week':
-        return {
-          value: '20%',
-          diff: 2.5,
-          label: 'Weekly Progress Rate'
-        };
-      case 'month':
-        return {
-          value: '28%',
-          diff: 4.6,
-          label: 'Monthly Progress Rate'
-        };
-      case 'year':
-        return {
-          value: '42%',
-          diff: 8.4,
-          label: 'Yearly Progress Rate'
-        };
-      default:
-        return {
-          value: '28%',
-          diff: 4.6,
-          label: 'Monthly Progress Rate'
-        };
-    }
-  };
-
-  const timeSeriesData = getTimeSeriesData();
 
   return (
-    <MainCard>
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Grid container alignItems="center" justifyContent="space-between">
-            <Grid item>
-              <Grid container direction="column" spacing={1}>
-                <Grid item>
-                  <Typography variant="subtitle2">Client Progress</Typography>
-                </Grid>
-                <Grid item>
-                  {isLoading ? (
-                    <Skeleton variant="rounded" width={60} height={30} />
-                  ) : (
-                    <Typography variant="h3">{timeSeriesData.value}</Typography>
-                  )}
-                </Grid>
-              </Grid>
-            </Grid>
-            <Grid item>
-              <ButtonGroup size="small" aria-label="time period button group">
-                <Button
-                  variant={timeValue === 'week' ? 'contained' : 'outlined'}
-                  onClick={() => setTimeValue('week')}
+    <Card
+      sx={{
+        borderRadius: 3,
+        height: '100%',
+        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+        '&:hover': {
+          transform: 'translateY(-5px)',
+          boxShadow: '0 6px 25px rgba(0, 0, 0, 0.12)'
+        }
+      }}
+    >
+      <CardContent>
+        {isLoading ? (
+          <Box>
+            <Skeleton variant="text" height={40} width="70%" />
+            <Skeleton variant="text" height={25} width="40%" sx={{ mt: 1 }} />
+            <Skeleton variant="rectangular" height={220} sx={{ mt: 3, borderRadius: 1 }} />
+          </Box>
+        ) : (
+          <>
+            <Typography variant="h5" fontWeight="600" mb={0.5}>
+              Client Progress
+            </Typography>
+            <Typography variant="body2" color="text.secondary" mb={2}>
+              6-month fitness metrics
+            </Typography>
+            
+            <Box sx={{ height: 300, mt: 2 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={progressData}
+                  margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
                 >
-                  Week
-                </Button>
-                <Button
-                  variant={timeValue === 'month' ? 'contained' : 'outlined'}
-                  onClick={() => setTimeValue('month')}
-                >
-                  Month
-                </Button>
-                <Button
-                  variant={timeValue === 'year' ? 'contained' : 'outlined'}
-                  onClick={() => setTimeValue('year')}
-                >
-                  Year
-                </Button>
-              </ButtonGroup>
-            </Grid>
-          </Grid>
-        </Grid>
-        <Grid item xs={12}>
-          {isLoading ? (
-            <Skeleton variant="rectangular" height={90} />
-          ) : (
-            <Chart
-              options={chartOptions}
-              series={chartData[timeValue as keyof typeof chartData]}
-              type="line"
-              height={90}
-            />
-          )}
-        </Grid>
-        <Grid item xs={12}>
-          <Grid container alignItems="center">
-            <Grid item>
-              <Stack direction="row" alignItems="center" spacing={0.5}>
-                {/* Fix: Changed ArrowUpward to TrendingUp */}
-                <TrendingUp color={theme.palette.success.main} size={16} />
-                <Typography variant="body2" color="success.main">
-                  {timeSeriesData.diff}%
-                </Typography>
-              </Stack>
-            </Grid>
-            <Grid item sx={{ ml: 1 }}>
-              <Typography variant="body2" color="textSecondary">
-                {timeSeriesData.label}
-              </Typography>
-            </Grid>
-          </Grid>
-        </Grid>
-      </Grid>
-    </MainCard>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                  <XAxis 
+                    dataKey="month" 
+                    tick={{ fontSize: 12 }} 
+                    tickLine={false} 
+                    axisLine={{ stroke: '#E0E0E0' }}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 12 }} 
+                    tickLine={false} 
+                    axisLine={{ stroke: '#E0E0E0' }}
+                    domain={[50, 100]}
+                    tickFormatter={(value) => `${value}%`}
+                  />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line
+                    type="monotone"
+                    dataKey="strength"
+                    name="Strength"
+                    stroke="#1976d2"
+                    strokeWidth={2}
+                    dot={{ r: 4, strokeWidth: 2 }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="cardio"
+                    name="Cardio"
+                    stroke="#2e7d32"
+                    strokeWidth={2}
+                    dot={{ r: 4, strokeWidth: 2 }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="flexibility"
+                    name="Flexibility"
+                    stroke="#ed6c02"
+                    strokeWidth={2}
+                    dot={{ r: 4, strokeWidth: 2 }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </Box>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

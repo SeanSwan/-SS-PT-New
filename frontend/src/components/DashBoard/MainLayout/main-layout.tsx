@@ -10,13 +10,11 @@ import Toolbar from '@mui/material/Toolbar';
 import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
 
-// project imports - adjusted paths based on file tree
-import Footer from '../../Footer/Footer';
+// project imports
 import Header from '../../Header/header';
 import Sidebar from './SideBar/sidebar';
-import MainContentStyled from './main-content-styled';
 
-// Import custom Breadcrumbs component - adjust the path as needed
+// Import custom Breadcrumbs component
 import Breadcrumbs from '../../ui/Breadcrumbs';
 import Loader from '../../ui/loader';
 
@@ -37,12 +35,14 @@ interface MainLayoutProps {
  * MainLayout Component
  * 
  * Primary layout component that provides the structure for the admin dashboard,
- * including header, sidebar, content area, and footer.
+ * including header, sidebar, content area. Footer has been removed to provide
+ * more space for widgets as per client request.
  * 
  * Enhanced for personal training application with:
  * - Improved responsive layout for mobile devices
  * - Optimized navigation for fitness professionals
  * - Support for training session tracking
+ * - Removed footer for more content space
  */
 const MainLayout = ({ children = null, withExternalHeader = false }: MainLayoutProps) => {
   const theme = useTheme();
@@ -72,9 +72,7 @@ const MainLayout = ({ children = null, withExternalHeader = false }: MainLayoutP
   let drawerOpen = true; // Default value
   try {
     const menuData = useMenuState();
-    if (menuData && typeof menuData.isDashboardDrawerOpened === 'boolean') {
-      drawerOpen = menuData.isDashboardDrawerOpened;
-    }
+    drawerOpen = menuData.isDashboardDrawerOpened;
   } catch (error) {
     console.error("Error accessing useMenuState hook:", error);
   }
@@ -83,9 +81,7 @@ const MainLayout = ({ children = null, withExternalHeader = false }: MainLayoutP
   let handleDrawerOpen = (state: boolean) => {}; // Default no-op function
   try {
     const actions = useMenuActions();
-    if (actions && typeof actions.handleDrawerOpen === 'function') {
-      handleDrawerOpen = actions.handleDrawerOpen;
-    }
+    handleDrawerOpen = actions.handleDrawerOpen;
   } catch (error) {
     console.error("Error accessing useMenuActions hook:", error);
   }
@@ -125,7 +121,7 @@ const MainLayout = ({ children = null, withExternalHeader = false }: MainLayoutP
   }, [children]);
   
   return (
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', width: '100%', height: '100vh', position: 'relative' }}>
       <CssBaseline />
       
       {/* Header - only rendered if not using external header */}
@@ -140,7 +136,8 @@ const MainLayout = ({ children = null, withExternalHeader = false }: MainLayoutP
               ? 'rgba(76, 175, 80, 0.15)' // Green tint in dark mode for active session
               : 'rgba(76, 175, 80, 0.07)' // Green tint in light mode for active session
             : 'background.default',
-            zIndex: theme.zIndex.drawer + 1 // Ensure header is above sidebar
+            zIndex: theme.zIndex.drawer + 1, // Ensure header is above sidebar
+            width: '100%'
           }}
         >
           <Toolbar sx={{ p: 2 }}>
@@ -171,15 +168,27 @@ const MainLayout = ({ children = null, withExternalHeader = false }: MainLayoutP
       {/* Sidebar navigation - passing miniDrawer prop */}
       <Sidebar miniDrawer={miniDrawer} />
       
-      {/* Main content area */}
-      <MainContentStyled 
-        borderRadius={borderRadius}
-        open={drawerOpen}
-        withExternalHeader={withExternalHeader}
+      {/* Main content area - using direct Box instead of styled component for better flexibility */}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          pt: withExternalHeader ? 0 : 0,
+          width: { xs: '100%', md: drawerOpen ? 'calc(100% - 220px)' : '100%' },
+          ml: { xs: 0, md: drawerOpen ? '220px' : 0 },
+          transition: theme => theme.transitions.create(['width', 'margin'], {
+            easing: theme.transitions.easing.easeOut,
+            duration: theme.transitions.duration.enteringScreen
+          }),
+          backgroundColor: theme.palette.background.default,
+          borderRadius: `${borderRadius}px`,
+          position: 'relative',
+          boxSizing: 'border-box'
+        }}
       >
         <Box sx={{ 
           px: { xs: 1, sm: 2, md: 3 }, // Responsive padding
-          minHeight: 'calc(100vh - 128px)', 
+          minHeight: 'calc(100vh - 64px)', // Adjusted without footer
           display: 'flex', 
           flexDirection: 'column',
           // Adjust top margin based on whether using external header
@@ -191,22 +200,23 @@ const MainLayout = ({ children = null, withExternalHeader = false }: MainLayoutP
           {/* Main content */}
           <Box sx={{ 
             flex: 1,
-            py: 2, // Add some vertical padding for better spacing
+            py: 1, // Minimal vertical padding
+            px: 0, // No horizontal padding to maximize width
             // Add a subtle background for content area in training app
             bgcolor: 'background.paper',
             borderRadius: `${borderRadius}px`,
             boxShadow: theme.palette.mode === 'dark' ? 0 : 1,
-            overflow: 'hidden'
+            overflow: 'hidden',
+            width: '100%', // Ensure full width usage
+            maxWidth: '100vw', // Use full viewport width
+            boxSizing: 'border-box' // Include padding in width calculation
           }}>
             {content}
           </Box>
           
-          {/* Footer with improved spacing */}
-          <Box sx={{ mt: 3 }}>
-            <Footer />
-          </Box>
+          {/* Footer removed to provide more space for widgets */}
         </Box>
-      </MainContentStyled>
+      </Box>
     </Box>
   );
 };

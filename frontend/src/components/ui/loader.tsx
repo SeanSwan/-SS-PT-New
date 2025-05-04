@@ -1,45 +1,40 @@
-/**
- * loader.tsx
- * Linear progress loader for suspense fallbacks and loading states
- */
 import React from 'react';
-import LinearProgress from '@mui/material/LinearProgress';
-import Box from '@mui/material/Box';
+import { Box, CircularProgress, Typography } from '@mui/material';
+import styled from 'styled-components';
+
+// Styled components
+const LoaderContainer = styled(Box)`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  min-height: 400px;
+  width: 100%;
+`;
+
+const StyledCircularProgress = styled(CircularProgress)`
+  margin-bottom: 16px;
+`;
 
 interface LoaderProps {
-  /**
-   * Optional color for the progress bar
-   * @default "primary"
-   */
-  color?: 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
-  
-  /**
-   * Optional custom styling
-   */
-  sx?: Record<string, any>;
+  message?: string;
 }
 
 /**
- * Loader component that displays a linear progress bar
- * Used for loading states and suspense fallbacks
+ * Loader Component
+ * 
+ * Displays a loading indicator with an optional customizable message.
+ * Used throughout the application for consistent loading states.
  */
-const Loader: React.FC<LoaderProps> = ({ 
-  color = 'primary',
-  sx
-}) => {
+const Loader: React.FC<LoaderProps> = ({ message = 'Loading...' }) => {
   return (
-    <Box 
-      sx={{ 
-        position: 'fixed', 
-        top: 0, 
-        left: 0, 
-        zIndex: 1301, 
-        width: '100%',
-        ...sx
-      }}
-    >
-      <LinearProgress color={color} />
-    </Box>
+    <LoaderContainer>
+      <StyledCircularProgress size={48} thickness={4} />
+      <Typography variant="body1" color="text.secondary" fontWeight="medium">
+        {message}
+      </Typography>
+    </LoaderContainer>
   );
 };
 

@@ -8,7 +8,8 @@
 // IMPORTANT: Load environment variables before any other imports
 // This ensures process.env is populated before other modules access it
 import dotenv from 'dotenv';
-import fs from 'fs';
+import fs from 'fs/promises';
+import { existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -19,7 +20,7 @@ const projectRootDir = path.resolve(__dirname, '..');
 
 // Load the .env file from the project root directory
 const envPath = path.resolve(projectRootDir, '.env');
-if (fs.existsSync(envPath)) {
+if (existsSync(envPath)) {
   console.log(`[Server] Loading environment variables from: ${envPath}`);
   dotenv.config({ path: envPath });
 } else {
@@ -45,7 +46,10 @@ import compression from 'compression'; // For production performance
 import helmet from 'helmet'; // For security headers
 import { checkApiKeys } from './utils/apiKeyChecker.mjs';
 import authRoutes from './routes/authRoutes.mjs';
+import profileRoutes from './routes/profileRoutes.mjs';
+import userManagementRoutes from './routes/userManagementRoutes.mjs';
 import sessionRoutes from './routes/sessionRoutes.mjs';
+import sessionPackageRoutes from './routes/sessionPackageRoutes.mjs';
 import cartRoutes from './routes/cartRoutes.mjs';
 import storefrontRoutes from './routes/storeFrontRoutes.mjs';
 import contactRoutes from './routes/contactRoutes.mjs';
@@ -56,8 +60,13 @@ import scheduleRoutes from './routes/scheduleRoutes.mjs';
 import adminRoutes from './routes/adminRoutes.mjs';
 import apiRoutes from './routes/api.mjs';
 import debugRoutes from './routes/debug.mjs';  // Import debug routes
+import healthRoutes from './routes/healthRoutes.mjs';  // Import health routes
+// profileRoutes already imported above
+// Import NASM protocol routes
+import clientProgressRoutes from './routes/clientProgressRoutes.mjs';
+import exerciseRoutes from './routes/exerciseRoutes.mjs';
 import logger from './utils/logger.mjs';
-import requestLogger from './middleware/debugMiddleware.mjs';
+import { requestLogger, dbHealthCheck } from './middleware/debugMiddleware.mjs';
 import sequelize from './database.mjs';
 import setupAssociations from './setupAssociations.mjs';
 
@@ -102,7 +111,7 @@ if (isProduction) {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'"], // Needed for some admin features
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", "data:", "https://cdn.example.com"], // Adjust as needed
+        imgSrc: ["'self'", "data:", "blob:", "https://cdn.example.com"], // Added blob: for generated images
         connectSrc: ["'self'", "https://api.stripe.com"], // Adjust for your API needs
       }
     },
@@ -209,6 +218,10 @@ app.use((req, res, next) => {
   next();
 });
 
+// --- Static File Serving ---
+// Serve uploaded profile photos
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // --- Public Routes ---
 
 // Root endpoint
@@ -227,11 +240,13 @@ app.get('/test', (req, res) => {
 });
 
 // Health check endpoint - crucial for Render and monitoring
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
+app.get('/health', dbHealthCheck, (req, res) => {
+  res.status(req.dbStatus && req.dbStatus.connected ? 200 : 500).json({
+    status: req.dbStatus && req.dbStatus.connected ? 'ok' : 'error',
     environment: process.env.NODE_ENV || 'development',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    dbStatus: req.dbStatus || { connected: false, message: 'Database status unknown' },
+    uptime: process.uptime()
   });
 });
 
@@ -498,8 +513,13 @@ if (!isProduction) {
 
 // --- Apply API Routes ---
 // All application API routes are prefixed with /api
+app.use('/api/health', healthRoutes);
 app.use('/api/auth', authRoutes);
+// Mount profile routes
+app.use('/api/profile', profileRoutes);
+app.use('/api/auth', userManagementRoutes); // User management routes (admin functions)
 app.use('/api/sessions', sessionRoutes);
+app.use('/api/session-packages', sessionPackageRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/storefront', storefrontRoutes);
 app.use('/api/contact', contactRoutes);
@@ -509,6 +529,9 @@ app.use('/api/messages', messagesRoutes);
 app.use('/api/schedule', scheduleRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/debug', debugRoutes);  // Added debug routes
+// Add NASM protocol routes
+app.use('/api/client-progress', clientProgressRoutes);
+app.use('/api/exercises', exerciseRoutes);
 app.use('/api', apiRoutes); // General API routes, ensure no overlap
 
 // --- Error Handling ---
@@ -519,25 +542,28 @@ if (errorMiddlewareHandler) {
   app.use(errorMiddlewareHandler);
 }
 
-// Global error handler (catches errors not handled by specific middleware)
-app.use((err, req, res, next) => {
-  logger.error(`Unhandled error: ${err.message}`, { stack: err.stack });
+// Function to handle uncaught errors
+const handleServerError = (error, req, res, next) => {
+  logger.error(`Unhandled error: ${error.message}`, { stack: error.stack });
   
   // In production, don't expose error details to clients
   const errorResponse = {
     success: false,
     message: isProduction 
       ? 'An unexpected error occurred. Our team has been notified.' 
-      : err.message || 'An unexpected error occurred',
+      : error.message || 'An unexpected error occurred',
   };
   
   // Only include error details in development
   if (!isProduction) {
-    errorResponse.error = err.stack;
+    errorResponse.error = error.stack;
   }
   
-  res.status(err.status || 500).json(errorResponse);
-});
+  res.status(error.status || 500).json(errorResponse);
+};
+
+// Global error handler (catches errors not handled by specific middleware)
+app.use(handleServerError);
 
 // Catch-all route handler for undefined routes (404)
 // This should be the *last* middleware/route handler
@@ -554,6 +580,9 @@ app.use((req, res) => {
 // --- Server Initialization ---
 (async () => {
   try {
+    // Create required directories
+    await createRequiredDirectories();
+    
     // Set up model associations
     setupAssociations(); // Ensure this runs before sync/authenticate if needed
 
@@ -570,6 +599,7 @@ app.use((req, res) => {
     // Start the server
     const server = app.listen(PORT, () => {
       console.log(`Server running in ${isProduction ? 'PRODUCTION' : 'development'} mode on port ${PORT}`);
+      console.log(`Server port available at: http://localhost:${PORT}/`);
       logger.info(`Server running in ${isProduction ? 'PRODUCTION' : 'development'} mode on port ${PORT}`);
       logger.info(`Server started at: ${new Date().toISOString()}`);
     });
@@ -605,6 +635,30 @@ app.use((req, res) => {
     process.exit(1); // Exit if server fails to start
   }
 })();
+
+/**
+ * Create required directories for file uploads
+ */
+async function createRequiredDirectories() {
+  const directories = [
+    path.join(__dirname, 'uploads'),
+    path.join(__dirname, 'uploads/profiles'),
+    path.join(__dirname, 'uploads/products'),
+    path.join(__dirname, 'uploads/temp')
+  ];
+  
+  for (const dir of directories) {
+    if (!existsSync(dir)) {
+      try {
+        await fs.mkdir(dir, { recursive: true });
+        logger.info(`Created directory: ${dir}`);
+      } catch (error) {
+        logger.error(`Error creating directory ${dir}:`, error);
+        throw error; // Rethrow to halt server startup
+      }
+    }
+  }
+}
 
 // --- Global Error Handlers ---
 

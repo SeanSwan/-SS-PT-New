@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import styled from 'styled-components';
 
 // material-ui
 import Grid from '@mui/material/Grid2';
@@ -17,6 +19,41 @@ import { gridSpacing } from '../../store/constant';
 // assets
 import { Dumbbell } from 'lucide-react';
 
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { 
+    opacity: 1, 
+    transition: { 
+      when: "beforeChildren",
+      staggerChildren: 0.1,
+      duration: 0.3
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: { 
+    y: 0, 
+    opacity: 1, 
+    transition: { 
+      type: "spring", 
+      stiffness: 100, 
+      damping: 10 
+    }
+  }
+};
+
+// Styled components
+const DashboardContainer = styled(motion.div)`
+  width: 100%;
+`;
+
+const DashboardSection = styled(motion.div)`
+  margin-bottom: 1.5rem;
+`;
+
 /**
  * Personal Training Dashboard Component
  * 
@@ -32,7 +69,10 @@ import { Dumbbell } from 'lucide-react';
  * - FitnessMetricsChart: Visualizes key performance indicators across training programs
  * - PopularWorkoutsCard: Lists trending workout routines with effectiveness ratings
  * 
- * The component implements a loading state during data fetching for better UX.
+ * Enhanced with:
+ * - Framer Motion animations for improved UX
+ * - Styled components for consistent theming
+ * - Loading state with skeleton display
  */
 const DashboardView: React.FC = () => {
   // Loading state to control skeleton display during data fetching
@@ -52,57 +92,79 @@ const DashboardView: React.FC = () => {
   }, []);
 
   return (
-    <Grid container spacing={gridSpacing}>
-      {/* Top row with training overview cards */}
-      <Grid size={12}>
-        <Grid container spacing={gridSpacing}>
-          {/* Sessions summary card - takes 1/3 of width on large screens */}
-          <Grid size={{ lg: 4, md: 6, sm: 6, xs: 12 }}>
-            <TrainingSessionsCard isLoading={isLoading} />
-          </Grid>
-          
-          {/* Client progress line chart - takes 1/3 of width on large screens */}
-          <Grid size={{ lg: 4, md: 6, sm: 6, xs: 12 }}>
-            <ClientProgressChart isLoading={isLoading} />
-          </Grid>
-          
-          {/* Container for training progress cards - takes 1/3 of width on large screens */}
-          <Grid size={{ lg: 4, md: 12, sm: 12, xs: 12 }}>
+    <DashboardContainer
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
+      <Grid container spacing={gridSpacing}>
+        {/* Top row with training overview cards */}
+        <Grid size={12}>
+          <DashboardSection variants={itemVariants}>
             <Grid container spacing={gridSpacing}>
-              {/* Client achievements card - full width on large screens, half width on medium */}
-              <Grid size={{ sm: 6, xs: 12, md: 6, lg: 12 }}>
-                <TrainingProgressDarkCard isLoading={isLoading} />
+              {/* Sessions summary card - takes 1/3 of width on large screens */}
+              <Grid size={{ lg: 4, md: 6, sm: 6, xs: 12 }}>
+                <motion.div variants={itemVariants}>
+                  <TrainingSessionsCard isLoading={isLoading} />
+                </motion.div>
               </Grid>
               
-              {/* Weekly goals completion card */}
-              <Grid size={{ sm: 6, xs: 12, md: 6, lg: 12 }}>
-                <TrainingProgressLightCard 
-                  isLoading={isLoading}
-                  total={28}
-                  label="Active Clients"
-                  icon={<Dumbbell size={24} />}
-                />
+              {/* Client progress line chart - takes 1/3 of width on large screens */}
+              <Grid size={{ lg: 4, md: 6, sm: 6, xs: 12 }}>
+                <motion.div variants={itemVariants}>
+                  <ClientProgressChart isLoading={isLoading} />
+                </motion.div>
+              </Grid>
+              
+              {/* Container for training progress cards - takes 1/3 of width on large screens */}
+              <Grid size={{ lg: 4, md: 12, sm: 12, xs: 12 }}>
+                <Grid container spacing={gridSpacing}>
+                  {/* Client achievements card - full width on large screens, half width on medium */}
+                  <Grid size={{ sm: 6, xs: 12, md: 6, lg: 12 }}>
+                    <motion.div variants={itemVariants}>
+                      <TrainingProgressDarkCard isLoading={isLoading} />
+                    </motion.div>
+                  </Grid>
+                  
+                  {/* Weekly goals completion card */}
+                  <Grid size={{ sm: 6, xs: 12, md: 6, lg: 12 }}>
+                    <motion.div variants={itemVariants}>
+                      <TrainingProgressLightCard 
+                        isLoading={isLoading}
+                        total={28}
+                        label="Active Clients"
+                        icon={<Dumbbell size={24} />}
+                      />
+                    </motion.div>
+                  </Grid>
+                </Grid>
               </Grid>
             </Grid>
-          </Grid>
+          </DashboardSection>
+        </Grid>
+        
+        {/* Bottom row with detailed charts */}
+        <Grid size={12}>
+          <DashboardSection variants={itemVariants}>
+            <Grid container spacing={gridSpacing}>
+              {/* Fitness metrics chart - takes 2/3 of width on medium screens and above */}
+              <Grid size={{ xs: 12, md: 8 }}>
+                <motion.div variants={itemVariants}>
+                  <FitnessMetricsChart isLoading={isLoading} />
+                </motion.div>
+              </Grid>
+              
+              {/* Popular workouts card - takes 1/3 of width on medium screens and above */}
+              <Grid size={{ xs: 12, md: 4 }}>
+                <motion.div variants={itemVariants}>
+                  <PopularWorkoutsCard isLoading={isLoading} />
+                </motion.div>
+              </Grid>
+            </Grid>
+          </DashboardSection>
         </Grid>
       </Grid>
-      
-      {/* Bottom row with detailed charts */}
-      <Grid size={12}>
-        <Grid container spacing={gridSpacing}>
-          {/* Fitness metrics chart - takes 2/3 of width on medium screens and above */}
-          <Grid size={{ xs: 12, md: 8 }}>
-            <FitnessMetricsChart isLoading={isLoading} />
-          </Grid>
-          
-          {/* Popular workouts card - takes 1/3 of width on medium screens and above */}
-          <Grid size={{ xs: 12, md: 4 }}>
-            <PopularWorkoutsCard isLoading={isLoading} />
-          </Grid>
-        </Grid>
-      </Grid>
-    </Grid>
+    </DashboardContainer>
   );
 };
 

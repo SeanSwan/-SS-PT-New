@@ -30,6 +30,36 @@ const stripeInstance = process.env.STRIPE_SECRET_KEY ?
   stripe(process.env.STRIPE_SECRET_KEY) : null;
 
 /**
+ * @route   GET /api/sessions
+ * @desc    Get all sessions with client and trainer info (admin view)
+ * @access  Private (Admin Only)
+ */
+router.get("/", protect, adminOnly, async (req, res) => {
+  try {
+    const sessions = await Session.findAll({
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions']
+        },
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'photo', 'specialties']
+        }
+      ],
+      order: [['sessionDate', 'ASC']]
+    });
+    
+    res.json(sessions);
+  } catch (error) {
+    console.error("Error fetching sessions:", error.message);
+    res.status(500).json({ message: "Server error fetching sessions." });
+  }
+});
+
+/**
  * @route   POST /api/sessions/admin/create
  * @desc    ADMIN: Create an available session slot.
  * @access  Private (Admin Only)
@@ -62,6 +92,145 @@ router.post("/admin/create", protect, adminOnly, async (req, res) => {
   } catch (error) {
     console.error("Error creating session:", error.message);
     res.status(500).json({ message: "Server error creating session." });
+  }
+});
+
+/**
+ * @route   POST /api/sessions
+ * @desc    Create a new session (admin version)
+ * @access  Private (Admin Only)
+ */
+router.post("/", protect, adminOnly, async (req, res) => {
+  try {
+    const { sessionDate, notes, duration, location, trainerId, userId, status } = req.body;
+
+    const newSession = await Session.create({
+      sessionDate,
+      notes: notes || '',
+      duration: duration || 60,
+      location: location || 'Main Studio',
+      trainerId: trainerId || null,
+      userId: userId || null,
+      status: status || 'available'
+    });
+
+    // Fetch the complete session with associated client and trainer
+    const createdSession = await Session.findByPk(newSession.id, {
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'photo', 'availableSessions']
+        },
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'photo']
+        }
+      ]
+    });
+
+    res.status(201).json({
+      message: "Session created successfully",
+      session: createdSession
+    });
+  } catch (error) {
+    console.error("Error creating session:", error.message);
+    res.status(500).json({ message: "Server error creating session." });
+  }
+});
+
+/**
+ * @route   PUT /api/sessions/:id
+ * @desc    Update a session (admin version)
+ * @access  Private (Admin Only)
+ */
+router.put("/:id", protect, adminOnly, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { sessionDate, notes, duration, location, trainerId, userId, status } = req.body;
+
+    const session = await Session.findByPk(id);
+    if (!session) {
+      return res.status(404).json({ message: "Session not found." });
+    }
+
+    // Update session fields
+    session.sessionDate = sessionDate || session.sessionDate;
+    session.notes = notes !== undefined ? notes : session.notes;
+    session.duration = duration || session.duration;
+    session.location = location || session.location;
+    session.trainerId = trainerId !== undefined ? trainerId : session.trainerId;
+    session.userId = userId !== undefined ? userId : session.userId;
+    session.status = status || session.status;
+
+    await session.save();
+
+    // Fetch the updated session with associated client and trainer
+    const updatedSession = await Session.findByPk(id, {
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'photo', 'availableSessions']
+        },
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'photo']
+        }
+      ]
+    });
+
+    res.status(200).json({
+      message: "Session updated successfully",
+      session: updatedSession
+    });
+  } catch (error) {
+    console.error("Error updating session:", error.message);
+    res.status(500).json({ message: "Server error updating session." });
+  }
+});
+
+/**
+ * @route   GET /api/sessions/clients
+ * @desc    Get all clients for dropdown selection in admin views
+ * @access  Private (Admin Only)
+ */
+router.get("/clients", protect, adminOnly, async (req, res) => {
+  try {
+    const clients = await User.findAll({
+      where: {
+        role: 'client'
+      },
+      attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions']
+    });
+    
+    res.json(clients);
+  } catch (error) {
+    console.error("Error fetching clients:", error.message);
+    res.status(500).json({ message: "Server error fetching clients." });
+  }
+});
+
+/**
+ * @route   GET /api/sessions/trainers
+ * @desc    Get all trainers for dropdown selection in admin views
+ * @access  Private (Admin Only)
+ */
+router.get("/trainers", protect, adminOnly, async (req, res) => {
+  try {
+    const trainers = await User.findAll({
+      where: {
+        role: 'trainer'
+      },
+      attributes: ['id', 'firstName', 'lastName', 'email', 'photo', 'specialties']
+    });
+    
+    res.json(trainers);
+  } catch (error) {
+    console.error("Error fetching trainers:", error.message);
+    res.status(500).json({ message: "Server error fetching trainers." });
   }
 });
 

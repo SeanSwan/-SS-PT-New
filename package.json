@@ -13,6 +13,7 @@
     "db:seed": "cd backend && npm run seed",
     "db:setup": "cd backend && npm run db:setup",
     "db:reset": "cd backend && npm run db:reset",
+    "db:test": "cd backend && npm run test:db",
     "db:reset-complete": "cd backend && npm run db:reset-complete",
     "fix-admin": "cd backend && npm run fix-admin",
     "reset-password": "cd backend && npm run reset-password",

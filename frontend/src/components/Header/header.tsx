@@ -146,6 +146,7 @@ const ActionsContainer = styled(motion.div)`
   }
 `;
 
+// Fix for deprecated motion() usage - using motion.create instead
 const StyledNavLink = styled(motion(Link))`
   color: #fff;
   text-decoration: none;
@@ -343,7 +344,10 @@ const MobileMenu = styled(motion.div)`
   overflow-y: auto;
 `;
 
-const MobileNavLink = styled(motion(Link))`
+// Fix for deprecated motion() usage
+const MotionLink = motion(Link);
+
+const MobileNavLink = styled(MotionLink)`
   margin: 15px 0;
   color: #fff;
   text-decoration: none;
@@ -405,30 +409,7 @@ const MobileLogoutButton = styled(motion.button)`
   }
 `;
 
-const MobileFooter = styled.div`
-  margin-top: auto; 
-  padding-top: 30px; 
-  border-top: 1px solid rgba(255, 255, 255, 0.1); 
-  display: flex; 
-  flex-direction: column; 
-  gap: 15px;
-`;
-
-const MobileSocialContainer = styled.div`
-  display: flex; 
-  gap: 20px; 
-  margin-top: 15px;
-`;
-
-const MobileSocialIcon = styled.a`
-  color: #fff;
-  font-size: 1.5rem;
-  transition: all 0.3s ease; /* Reduced animation time */
-  &:hover {
-    color: var(--neon-blue, #00ffff);
-    transform: translateY(-3px);
-  }
-`;
+// Mobile footer styles removed to avoid duplication with dashboard footer
 
 const CartButton = styled(motion.button)`
   background: transparent;
@@ -643,11 +624,11 @@ const EnhancedHeader = () => {
             Schedule
           </StyledNavLink>
 
-          {/* Admin-only link */}
+          {/* Admin-only link - Updated to point to enhanced dashboard */}
           {user.role === "admin" && (
             <StyledNavLink 
-              to="/admin-dashboard" 
-              className={currentPath.includes("/admin-dashboard") ? "active" : ""}
+              to="/dashboard/default" 
+              className={currentPath.includes("/dashboard") ? "active" : ""}
               variants={itemVariants}
             >
               Admin Dashboard
@@ -717,9 +698,9 @@ const EnhancedHeader = () => {
           </MobileNavLink>
           {user.role === "admin" && (
             <MobileNavLink
-              to="/admin-dashboard"
+              to="/dashboard/default"
               onClick={() => setMobileMenuOpen(false)}
-              className={currentPath.includes("/admin-dashboard") ? "active" : ""}
+              className={currentPath.includes("/dashboard") ? "active" : ""}
               variants={mobileLinkVariants}
             >
               Admin Dashboard
@@ -905,22 +886,7 @@ const EnhancedHeader = () => {
               About Us
             </MobileNavLink>
             
-            <MobileFooter>
-              <motion.p variants={mobileLinkVariants}>
-                © {new Date().getFullYear()} Swan Studios
-              </motion.p>
-              <MobileSocialContainer>
-                <MobileSocialIcon href="https://facebook.com" target="_blank" rel="noopener noreferrer">
-                  <motion.span variants={mobileLinkVariants}>📱</motion.span>
-                </MobileSocialIcon>
-                <MobileSocialIcon href="https://twitter.com" target="_blank" rel="noopener noreferrer">
-                  <motion.span variants={mobileLinkVariants}>🐦</motion.span>
-                </MobileSocialIcon>
-                <MobileSocialIcon href="https://instagram.com" target="_blank" rel="noopener noreferrer">
-                  <motion.span variants={mobileLinkVariants}>📷</motion.span>
-                </MobileSocialIcon>
-              </MobileSocialContainer>
-            </MobileFooter>
+            {/* Mobile footer removed to avoid duplication with dashboard footer */}
           </MobileMenu>
         )}
       </AnimatePresence>

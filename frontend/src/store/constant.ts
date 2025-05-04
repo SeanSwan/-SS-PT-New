@@ -6,7 +6,7 @@
  */
 
 // Grid spacing used for consistent layout throughout the application
-export const gridSpacing = 3;
+export const gridSpacing = 2; // Reduced from 3 to 2 for more compact and wider content layout
 
 // Theme configuration constants
 export const THEME_CONFIG = {

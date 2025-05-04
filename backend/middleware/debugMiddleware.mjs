@@ -1,10 +1,27 @@
 /**
+ * Middleware to check database connection health
+ * Used for health check endpoints and debugging
+ */
+export const dbHealthCheck = async (req, res, next) => {
+  try {
+    await sequelize.authenticate();
+    req.dbStatus = { connected: true, message: 'Database connection is healthy' };
+    next();
+  } catch (error) {
+    logger.error('Database health check failed:', { error: error.message, stack: error.stack });
+    req.dbStatus = { connected: false, message: 'Database connection failed', error: error.message };
+    next();
+  }
+};
+
+/**
  * Debug Middleware
  * =======================================
  * Provides detailed logging for debugging API calls
  */
 
 import logger from '../utils/logger.mjs';
+import sequelize from '../database.mjs';
 
 /**
  * Middleware to log request and response details
