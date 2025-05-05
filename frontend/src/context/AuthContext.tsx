@@ -77,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Check if user is authenticated on mount
+  // Check if user is authenticated on mount and set up periodic validation
   useEffect(() => {
     const checkAuth = async () => {
       const storedToken = localStorage.getItem('token');
@@ -93,13 +93,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Fetch user profile - using /api prefix to match backend routes
         const response = await api.get('/api/auth/me');
-        setUser(response.data);
-        setToken(storedToken);
+        
+        // Ensure we have a valid user object with role
+        if (response.data && response.data.id && response.data.role) {
+          setUser(response.data);
+          setToken(storedToken);
+          console.log('Authentication successful:', response.data.firstName, '('+response.data.role+')');
+        } else {
+          throw new Error('Invalid user data received');
+        }
       } catch (err) {
         console.error('Error fetching user profile:', err);
         // Clear invalid token
         localStorage.removeItem('token');
         setToken(null);
+        setUser(null);
         setError('Session expired. Please log in again.');
       } finally {
         setIsLoading(false);
@@ -107,6 +115,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     checkAuth();
+    
+    // Set up a periodic check to validate the token is still valid
+    // This helps prevent situations where the token expires during an active session
+    const intervalId = setInterval(() => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        console.log('Performing token validation check');
+        checkAuth();
+      }
+    }, 300000); // Check every 5 minutes
+    
+    return () => {
+      clearInterval(intervalId);
+    };
   }, []);
 
   // Add request interceptor to include auth token
@@ -148,9 +170,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Save token to localStorage
       localStorage.setItem('token', token);
       
-      // Update state
+      // Update state and log success
       setToken(token);
       setUser(user);
+      console.log('Login successful:', user.firstName, '('+user.role+')');
+      
+      // Store login timestamp for token expiration tracking
+      localStorage.setItem('login_timestamp', Date.now().toString());
       
       // Return the response data so the component can access it
       return response.data;
@@ -194,12 +220,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Logout function
   const logout = () => {
-    // Clear token from localStorage
+    if (user) {
+      console.log('Logging out user:', user.firstName, '('+user.role+')');
+    }
+    
+    // Clear token and login timestamp from localStorage
     localStorage.removeItem('token');
+    localStorage.removeItem('login_timestamp');
     
     // Update state
     setToken(null);
     setUser(null);
+    
+    // Clear any error messages
+    setError(null);
   };
 
   // Signup function

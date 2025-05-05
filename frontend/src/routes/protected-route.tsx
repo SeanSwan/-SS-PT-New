@@ -39,6 +39,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/unauthorized" replace />;
   }
   
+  // Log successful access
+  console.log(`Access granted: User ${user.firstName} (${user.role}) accessing ${requiredRole || 'protected'} route`);
+  
   // User is authenticated and has correct permissions
   return <>{children}</>;
 };

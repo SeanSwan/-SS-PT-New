@@ -20,12 +20,16 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   
   // Show loading state while authentication state is being determined
   if (isLoading) {
+    console.log("Admin route: Loading authentication state...");
     return <div className="loading-container">Loading authentication...</div>;
   }
   
   // Redirect if user is not logged in
   if (!user) {
-    console.log("Admin route blocked: No user logged in");
+    console.error("Admin route blocked: No user logged in - token issue detected");
+    // Clear any invalid session data to force a clean login
+    localStorage.removeItem('token');
+    localStorage.removeItem('login_timestamp');
     return <Navigate to="/login" replace />;
   }
   

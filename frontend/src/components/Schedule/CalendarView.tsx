@@ -91,7 +91,7 @@ const rotate = keyframes`
 const CalendarContainer = styled(motion.div)`
   display: flex;
   flex-direction: column;
-  background: rgba(30, 30, 60, 0.5);
+  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
   border-radius: 16px;
   padding: 1rem;
   position: relative;
@@ -104,7 +104,7 @@ const CalendarContainer = styled(motion.div)`
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   
-  /* Gradient border effect */
+  /* Gradient border effect - matching storefront styling */
   &:before {
     content: "";
     position: absolute;
@@ -129,11 +129,58 @@ const CalendarHeader = styled(motion.div)`
   align-items: center;
   margin-bottom: 1rem;
   padding: 0.5rem 1rem;
+  position: relative;
   
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
+  }
+`;
+
+const PremiumBadge = styled(motion.div)`
+  position: absolute;
+  top: 0.5rem;
+  right: 1.5rem;
+  font-family: 'Playfair Display', serif;
+  font-size: 0.9rem;
+  padding: 6px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background: rgba(10, 10, 30, 0.6);
+  backdrop-filter: blur(10px);
+  color: white;
+  z-index: 3;
+  letter-spacing: 3px;
+  
+  &:before {
+    content: "★★★★★★★";
+    display: block;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    color: gold;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  
+  &:after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
+    background-size: 200% auto;
+    animation: ${shimmer} 3s linear infinite;
+  }
+  
+  @media (max-width: 768px) {
+    top: auto;
+    bottom: -1.5rem;
+    right: 1rem;
+    font-size: 0.8rem;
+    padding: 4px 10px;
   }
 `;
 
@@ -155,6 +202,8 @@ const CalendarTitle = styled.h2`
   -webkit-background-clip: text;
   color: transparent;
   animation: ${shimmer} 4s linear infinite;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  letter-spacing: 1px;
   
   @media (max-width: 768px) {
     font-size: 1.5rem;
@@ -237,6 +286,7 @@ const StyledCalendarWrapper = styled.div`
   overflow: hidden;
   background: rgba(30, 30, 60, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
   
   /* Custom styling for react-big-calendar */
   .rbc-calendar {
@@ -421,7 +471,7 @@ const ModalContainer = styled(motion.div)`
   position: relative;
   overflow: hidden;
   
-  /* Gradient border effect */
+  /* Gradient border effect - matching storefront styling */
   &:before {
     content: "";
     position: absolute;
@@ -438,7 +488,7 @@ const ModalContainer = styled(motion.div)`
     z-index: -1;
   }
   
-  /* Background gradient animation */
+  /* Background gradient animation - enhanced for premium feel */
   &:after {
     content: "";
     position: absolute;
@@ -464,6 +514,17 @@ const ModalTitle = styled.h3`
   margin-bottom: 1.5rem;
   color: #00ffff;
   text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  letter-spacing: 1px;
+  background: linear-gradient(
+    to right,
+    #00ffff,
+    #7851a9
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  animation: ${shimmer} 4s linear infinite;
 `;
 
 const ModalText = styled.p`
@@ -471,10 +532,12 @@ const ModalText = styled.p`
   margin-bottom: 1.5rem;
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.9);
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
   
   span {
     color: #00ffff;
     font-weight: 500;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
   }
 `;
 
@@ -780,6 +843,9 @@ const CalendarView: React.FC<CalendarViewProps> = (props) => {
       {/* Calendar Header */}
       <CalendarHeader variants={itemVariants}>
         <CalendarTitle>Session Calendar</CalendarTitle>
+        <PremiumBadge initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6, delay: 0.5 }}>
+          PREMIUM
+        </PremiumBadge>
         
         <ActionsContainer>
           <Tooltip title="Go to Today">

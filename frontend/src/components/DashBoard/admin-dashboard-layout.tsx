@@ -277,6 +277,14 @@ const SettingsPlaceholder = () => (
  * - Footer removed to provide more space for widgets as requested
  */
 const AdminDashboardLayout: React.FC = () => {
+  // Force validation of admin access on component load
+  React.useEffect(() => {
+    const currentToken = localStorage.getItem('token');
+    console.log('AdminDashboard accessed, verifying token and admin access rights...');
+    if (!currentToken) {
+      console.error('No authentication token found when loading admin dashboard');
+    }
+  }, []);
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />

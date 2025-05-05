@@ -146,8 +146,8 @@ const ActionsContainer = styled(motion.div)`
   }
 `;
 
-// Fix for deprecated motion() usage - using motion.create instead
-const StyledNavLink = styled(motion(Link))`
+// Using motion.create() instead of motion() to fix deprecation warning
+const StyledNavLink = styled(motion.create(Link))`
   color: #fff;
   text-decoration: none;
   margin: 0 5px;
@@ -344,8 +344,8 @@ const MobileMenu = styled(motion.div)`
   overflow-y: auto;
 `;
 
-// Fix for deprecated motion() usage
-const MotionLink = motion(Link);
+// Using motion.create() instead of motion() to fix deprecation warning
+const MotionLink = motion.create(Link);
 
 const MobileNavLink = styled(MotionLink)`
   margin: 15px 0;

@@ -4,15 +4,14 @@
  * Main container component for the scheduling system that:
  * - Manages all state, data fetching, and business logic
  * - Passes data and handlers to the CalendarView component
- * - Handles role-based permissions and socket connections
- * - Manages all modals and forms
+ * - Handles role-based permissions and polling for real-time updates
+ * - Manages all modals and forms with premium styling consistent with the storefront
  */
+
 
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { SlotInfo, View } from "react-big-calendar";
 import moment from "moment";
-// Socket.io is commented out as backend doesn't have socket.io configured yet
-// import { io } from "socket.io-client";
 import { useAnimation } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 
@@ -135,9 +134,8 @@ const ScheduleContainer: React.FC = () => {
   // Animation controls
   const controls = useAnimation();
   
-  // Socket for real-time updates (currently disabled as backend socket.io is not configured)
-  // Will be replaced with polling mechanism
-  const socketRef = useRef<any>(null);
+  // Polling interval reference for cleanup
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Processed events for calendar
   const calendarEvents = useMemo(() => {
@@ -145,53 +143,41 @@ const ScheduleContainer: React.FC = () => {
     return scheduleService.formatEventsForCalendar(events);
   }, [events]);
   
-  // Connect to socket and load initial data
+  // Initialize data fetching and polling mechanism
   useEffect(() => {
     if (user) {
-      // Initialize socket connection with error handling
-      try {
-        // Disable socket connection for now since the backend doesn't support it yet
-        // Instead of trying to connect to a non-existent socket endpoint,
-        // we'll just fetch the data directly and handle updates with polling
-        
-        // Initial data fetch
-        fetchSessions();
-        
-        // Set up polling for updates every 30 seconds as a fallback for real-time socket updates
-        const pollingInterval = setInterval(() => {
-          fetchSessions(true); // true = background refresh (no loading indicator)
-        }, 30000);
-        
-        // Fetch trainers and clients if admin
-        if (user.role === 'admin') {
-          Promise.all([
-            fetchTrainers(),
-            fetchClients()
-          ]).catch(err => {
-            console.error('Error fetching users:', err);
-            setError('Error loading user data. Some features may be limited.');
-          });
-        }
-        
-        // Cleanup interval on unmount
-        return () => {
-          clearInterval(pollingInterval);
-          // Clear any pending loading timeouts
-          if (loadingTimeout) {
-            clearTimeout(loadingTimeout);
-          }
-        };
-      } catch (err) {
-        console.error('Initialization error:', err);
-        setError('Could not establish connection. Using offline mode.');
-        
-        // Still fetch data even if socket fails
-        fetchSessions();
-        if (user.role === 'admin') {
-          fetchTrainers().catch(console.error);
-          fetchClients().catch(console.error);
-        }
+      // Initial data fetch
+      fetchSessions();
+      
+      // Set up polling for updates every 30 seconds as a reliable alternative to real-time updates
+      // This ensures all users will see updates at regular intervals
+      pollingIntervalRef.current = setInterval(() => {
+        fetchSessions(true); // true = background refresh (no loading indicator)
+      }, 30000);
+      
+      // Fetch trainers and clients if admin
+      if (user.role === 'admin') {
+        Promise.all([
+          fetchTrainers(),
+          fetchClients()
+        ]).catch(err => {
+          console.error('Error fetching users:', err);
+          setError('Error loading user data. Some features may be limited.');
+        });
       }
+      
+      // Cleanup interval on unmount
+      return () => {
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+        
+        // Clear any pending loading timeouts
+        if (loadingTimeout) {
+          clearTimeout(loadingTimeout);
+        }
+      };
     } else {
       setLoading(false);
     }
