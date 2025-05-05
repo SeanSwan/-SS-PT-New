@@ -4,88 +4,46 @@ import svgr from 'vite-plugin-svgr';
 import path from 'path';
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => {
-  // Determine if we're in production mode
-  const isProd = mode === 'production';
-  
-  // Set the appropriate backend URL based on environment
-  const backendUrl = isProd 
-    ? 'https://swanstudios.onrender.com' 
-    : 'http://localhost:5000';
-  
-  console.log(`[Vite Config] Using backend URL: ${backendUrl} (${mode} mode)`);
-  
-  return {
-    plugins: [
-      react({
-        // Enable JSX in .js files
-        include: '**/*.{jsx,js,tsx,ts}',
-      }),
-      svgr(), // Handle SVG imports
-      // Enhanced development debugging plugin
-      {
-        name: 'log-server-requests',
-        configureServer(server) {
-          server.middlewares.use((req, res, next) => {
-            // Log API requests to help with debugging
-            if (req.url.startsWith('/api')) {
-              console.log(`[Vite Proxy] ${req.method} ${req.url}`);
-            }
-            next();
-          });
-        }
-      }
-    ],
-    server: {
-      port: 5173,
-      hmr: {
-        overlay: true,
-      },
-      // Enhanced proxy configuration with detailed logging
-      proxy: {
-        '/api': {
-          target: backendUrl,
-          changeOrigin: true,
-          secure: isProd,
-          ws: true,
-          xfwd: true,
-          proxyTimeout: 30000,
-          configure: (proxy, options) => {
-            // Log all proxy events for debugging
-            proxy.on('error', (err, req, res) => {
-              console.error(`[Proxy Error] ${req.method} ${req.url}:`, err.message);
-            });
-            
-            proxy.on('proxyReq', (proxyReq, req, res) => {
-              console.log(`[Proxy Request] ${req.method} ${req.url} → ${backendUrl}${req.url}`);
-            });
-            
-            proxy.on('proxyRes', (proxyRes, req, res) => {
-              console.log(`[Proxy Response] ${proxyRes.statusCode} for ${req.method} ${req.url}`);
-            });
-          }
-        }
+export default defineConfig({
+  plugins: [
+    react(),
+    svgr()
+  ],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+  server: {
+    port: 5173,
+    // Configure the proxy to handle API requests
+    proxy: {
+      // Main API prefix - all API requests should go through here
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false,
       },
     },
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, './src'),
+  },
+  // Improved build configuration for Render deployment
+  build: {
+    outDir: 'dist',
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: false, // Keep console.logs for now for debugging
       },
     },
-    build: {
-      sourcemap: true,
-      outDir: 'dist',
-      // Ensure the router works correctly with Render
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            vendor: ['react', 'react-dom', 'react-router-dom'],
-          }
-        }
-      }
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          router: ['react-router-dom'],
+          mui: ['@mui/material', '@mui/icons-material'],
+          styling: ['styled-components', 'framer-motion'],
+        },
+      },
     },
-    define: {
-      'import.meta.env.VITE_API_BASE_URL': JSON.stringify('/api'),
-    }
-  };
+  },
 });

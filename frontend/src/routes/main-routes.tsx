@@ -50,6 +50,8 @@ const ContactPage = lazy(() => import('../pages/contactpage/ContactPage'));
 const AboutPage = lazy(() => import('../pages/about/About'));
 const StoreFront = lazy(() => import('../pages/shop/StoreFront.component'));
 const UnauthorizedPage = lazy(() => import('../pages/UnauthorizedPage.component'));
+const ScheduleContainer = lazy(() => import('../components/Schedule/ScheduleContainer'));
+const ScheduleWrapper = lazy(() => import('../components/Schedule/ScheduleWrapper'));
 
 // Checkout Pages
 const CheckoutSuccess = lazy(() => import('../pages/checkout/CheckoutSuccess'));
@@ -179,6 +181,18 @@ const MainRoutes: RouteObject = {
     {
       path: '*',
       element: <Navigate to="/" replace />
+    },
+    
+    // Schedule Route (Protected)
+    {
+      path: 'schedule',
+      element: (
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <ScheduleWrapper />
+          </Suspense>
+        </ProtectedRoute>
+      )
     }
   ]
 };

@@ -326,7 +326,8 @@ const LoginModal: React.FC = () => {
     
     try {
       const response = await login(credentials.username, credentials.password);
-      if (response.user) {
+      // Check if response exists and has user data
+      if (response && response.user) {
          setTimeout(() => {
             if (response.user.role === "admin") {
               navigate("/admin-dashboard");
@@ -344,22 +345,21 @@ const LoginModal: React.FC = () => {
       // More robust error handling
       let errorMessage = "An unknown error occurred";
       
-      if (err?.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err?.message) {
+      // Handle structured error object from AuthContext
+      if (err?.message) {
         errorMessage = err.message;
+      } else if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message;
       } else if (typeof err === 'string') {
         errorMessage = err;
       }
       
       // Log additional details in development
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Login error details:', {
-          status: err?.response?.status,
-          data: err?.response?.data,
-          message: errorMessage
-        });
-      }
+      console.warn('Login error details:', {
+        status: err?.status || err?.response?.status,
+        data: err?.data || err?.response?.data,
+        message: errorMessage
+      });
       
       setError(errorMessage);
     }
@@ -468,6 +468,8 @@ const LoginModal: React.FC = () => {
               required
               disabled={isLoading}
               variants={itemVariants}
+              // Note: This field is sent as 'username' to the API
+              // even though it can accept either username or email
             />
             {/* InputField uses motion.input */}
             <InputField

@@ -10,7 +10,8 @@ import {
   logout,
   validateToken, 
   refreshToken,
-  getUserById
+  getUserById,
+  getProfile
 } from '../controllers/authController.mjs';
 import { 
   protect, 
@@ -77,6 +78,13 @@ router.post('/logout', protect, logout);
  * @access  Public
  */
 router.get('/validate-token', validateToken);
+
+/**
+ * @route   GET /api/auth/me
+ * @desc    Get current user profile
+ * @access  Private
+ */
+router.get('/me', protect, getProfile);
 
 /**
  * NOTE: Profile routes have been moved to profileRoutes.mjs

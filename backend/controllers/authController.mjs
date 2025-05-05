@@ -359,7 +359,14 @@ export const register = async (req, res) => {
  */
 export const login = async (req, res) => {
   try {
-    logger.info(`Login attempt initiated`, { username: req.body.username ? req.body.username.substring(0, 3) + '***' : 'undefined' });
+    // Enhanced debug logging
+    logger.info(`Login attempt initiated with request body:`, { 
+      body: JSON.stringify({
+        username: req.body.username ? req.body.username.substring(0, 3) + '***' : 'undefined',
+        hasPassword: !!req.body.password
+      })
+    });
+    console.log('LOGIN REQUEST BODY:', JSON.stringify(req.body, null, 2).replace(/"password":"[^"]+"/, '"password":"***"'));
     const { username, password } = req.body;
     const ipAddress = req.ip;
     
