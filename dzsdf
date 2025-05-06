@@ -1,0 +1,97 @@
+[33mdc55af6[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mtest[m[33m, [m[1;31morigin/test[m[33m)[m Remove sensitive API keys and update .gitignore
+[33m5eb61da[m created MCP server for gamificatiojn and workout logs
+[33mf1e7c05[m fixed login anadmin dashboard not loading
+[33m521bd55[m schdual logic and login logic as well as clientdashboard routes controllesr etc
+[33mc1bce3f[m fix: fixed admin dashboard and icons now working on client dashboard
+[33m4f9a62b[m fix: Prevent password double-hashing, add render-start script and deployment guides
+[33m3b644e2[m fixing login
+[33m4546cdd[m feat: Implement model sync DB reset, seeding, and verify P0
+[33me0fec0a[m fix: Align StorefrontItem migration and model, fix migrate script
+[33m45b2378[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmain[m[33m)[m deleted headers in render created a redirect in render changed authcontex and sever.mjs
+[33m9e415e6[m CREATED ADVANCED DEBUG-HTML SCRIPT IN THE BACKEND5
+[33mf0c72ff[m CREATED ADVANCED DEBUG-HTML SCRIPT IN THE BACKEND
+[33m50f0b9d[m fixinng incoorect name and pass login errors and server.mjs errors 3
+[33m64c3122[m fixinng incoorect name and pass login errors and server.mjs errors 2
+[33md425fff[m fixinng incoorect name and pass login errors and server.mjserrors
+[33m123cf3d[m fixinng incoorect name and pass login errors
+[33mb866dbc[m after renders reposnse about cors header just added updated server.mjs
+[33m362e061[m building logic to continue focusing on renders header errors 14 ugggghhhhh
+[33m0fcb8a5[m building logic to continue focusing on renders header errors 13 ugggghhhhh
+[33mbc1270c[m building logic to continue focusing on renders header errors 12 ugggghhhhh
+[33m1fa41cb[m building logic to continue focusing on renders header errors 11 ugggghhhhh
+[33mf2ad099[m building logic to continue focusing on renders header errors 10 ugggghhhhh
+[33m2b843c8[m building logic to continue focusing on renders header errors 9 ugggghhhhh
+[33m52765bd[m building logic to continue focusing on renders header errors 8 ugggghhhhh
+[33m094ab62[m building logic to continue focusing on renders header errors 7 ugggghhhhh
+[33mdf4ad51[m building logic to continue focusing on renders header errors 6 ugggghhhhh
+[33maa40116[m building logic to continue focusing on renders header errors 5 ugggghhhhh
+[33m267ca53[m building logic to continue focusing on renders header errors 4 ugggghhhhh
+[33madbfa75[m building logic to continue focusing on renders header errors 3 ugggghhhhh
+[33m2f90ad4[m building logic to continue focusing on renders header errors 3
+[33m2797ce4[m building logic to continue focusing on renders header errors 2
+[33m85ee226[m building logic to continue focusing on renders header errors
+[33mab13db4[m found out origin undefined error for server.mjs to fix cors issue on render 5
+[33meaa1596[m found out origin undefined error for server.mjs to fix cors issue on render 4 adding logs now
+[33md5d787f[m found out origin undefined error for server.mjs to fix cors issue on render 3
+[33m41d2a4a[m found out origin undefined error for server.mjs to fix cors issue on render 2
+[33m3c79ceb[m found out origin undefined error for server.mjs to fix cors issue on render
+[33mea893f9[m fix: Add date-fns dependency to backend
+[33me866831[m updated .env for production for render
+[33m9681e08[m updated server.mjs login errors with api paths 2
+[33mfa3a2cd[m updated server.mjs login errors with api paths
+[33m191f5c5[m authcontext update for login
+[33m16ae628[m more imports switched from assets to public folder 4
+[33m2441c60[m more imports switched from assets to public folder 3
+[33mcb3fc47[m more imports switched from assets to public folder again
+[33meeb4164[m more imports switched from assets to public folder
+[33m81accdc[m fixed imports giving issues for testimonial contact and about hero page
+[33me2e252a[m updated config.js
+[33mbbc7bce[m login modal fixed and signup needs to be fixed
+[33m43a6726[m vite.config config.js storefront.component updated
+[33maf74a0e[m right before we start fixing the live backend connection with login signup checkout etc
+[33m8d949b3[m feat(frontend): add recharts dependency
+[33m0c1f99a[m major changes to training store
+[33m03e185d[m major changes cleaning everything up on homepage going for shopping cart stripe next
+[33ma781ecb[m added render.yaml file and fixed authcontext again
+[33mfe541dc[m added render.yaml file and fixed authcontext
+[33mb71a232[m refactored server,js again responding to options request.
+[33me992840[m refactored server,js
+[33m607fb66[m fixed authcontext error for login fail
+[33m437b702[m fixed authcontext errors and config placed in correct folder
+[33mc493dd4[m fixed errors in backend not allowing backend to work we pushed to live jwt token authcontext and confi.js fronend
+[33medda653[m changed footer info a bit still changing
+[33m14e534c[m finshed cart and stripe setup for the training page cart and checkout is working
+[33m7e1b268[m fixed render error maybe
+[33mae984d9[m cart routes and context training page backend updated and created models and migrations
+[33m6108f50[m updated pages about home store with animations and better visuals fixed errors
+[33m58234d7[m admindashboard header and side bar fiked header and footer eveywhere.
+[33m16c58ea[m fixed notifcation menu errors
+[33me581ae2[m Holy crap ultimate berryapp admindashboard update and refactor to make seamless vs a file added to ser folder
+[33mc11a2a7[m fixed admindashboard nice
+[33mf4d0dbb[m frontend backend connected with no errors testing admin dashbord
+[33m16e52e3[m fixing admin seeder script to create admin2
+[33m12f31f6[m fixing admin seeder script to create admin
+[33ma90eaa7[m changed signup background to Swans
+[33m05dc934[m changed loginmodal background to Swans
+[33m5dcc57c[m finaliazing backend connecton and enviorments as wel as cors settings authcontext login siginup model refactor
+[33m876445a[m redid auth datadase created render postgresql database
+[33m50e040d[m added user.js fix part 8
+[33mb6a3cad[m added user.js fix part 7
+[33m5fb9506[m added user.js fix part 5
+[33m54982c8[m added user.js fix part 4
+[33mb5d205a[m added user.js fix part 3
+[33mcb69537[m added user.js fix part 2
+[33m9256167[m added user.js fix
+[33m38594cf[m added stripe
+[33m55fba59[m fix install errors for dependncies envolving expressjsvalidator
+[33m143beb1[m installed express validator fixing backend render errors
+[33ma67d564[m added build scrit to root package.json fixed small things in signup
+[33m010065a[m created script for migrations to upload back in on render
+[33m1ae19ba[m fixed trainig page
+[33ma07a3a8[m contact page working and sending text msg need to add my number to get out of test trail
+[33m0f71792[m added pictures to testimonial and fixing new admindashboard headers
+[33macbc550[m push before I add new admin and client dashboards
+[33m7924077[m added tons of backend code to get the schedule to work as well got admindashboard up and added myself to admin for my account fixing backend api errors connecting to database vise versa
+[33m377173c[m overhualed signup and login modal much better
+[33m755fffb[m overhualed backend signup login logic creatted session  and orientatin routes updated admindashboard. adding trello and sendgrid api to.env
+[33mabd70ce[m[33m ([m[1;31morigin/master[m[33m)[m Fresh start

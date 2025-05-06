@@ -62,7 +62,9 @@ import adminRoutes from './routes/adminRoutes.mjs';
 import apiRoutes from './routes/api.mjs';
 import debugRoutes from './routes/debug.mjs';  // Import debug routes
 import healthRoutes from './routes/healthRoutes.mjs';  // Import health routes
-// profileRoutes already imported above
+// Import workout plan and session routes
+import workoutPlanRoutes from './routes/workoutPlanRoutes.mjs';
+import workoutSessionRoutes from './routes/workoutSessionRoutes.mjs';
 // Import NASM protocol routes
 import clientProgressRoutes from './routes/clientProgressRoutes.mjs';
 import exerciseRoutes from './routes/exerciseRoutes.mjs';
@@ -71,6 +73,8 @@ import logger from './utils/logger.mjs';
 import { requestLogger, dbHealthCheck } from './middleware/debugMiddleware.mjs';
 import sequelize from './database.mjs';
 import setupAssociations from './setupAssociations.mjs';
+// Import MongoDB connection
+import { connectToMongoDB } from './mongodb-connect.mjs';
 
 // Dynamically import errorMiddleware to avoid issues
 let errorMiddlewareHandler;
@@ -441,76 +445,6 @@ if (!isProduction) {
       timestamp: new Date().toISOString()
     });
   });
-
-  app.post('/api/debug/verify-password', express.json(), async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      logger.info(`Password verification attempt for user: ${username}`);
-      if (!username || !password) {
-        return res.status(400).json({ success: false, message: 'Username and password are required' });
-      }
-      const { default: User } = await import('./models/User.mjs');
-      const bcrypt = await import('bcryptjs');
-      const user = await User.findOne({ where: { username } });
-      if (!user) {
-        logger.info(`User not found: ${username}`);
-        return res.status(400).json({ success: false, message: 'User not found' });
-      }
-      logger.info(`Comparing passwords for user: ${username}`);
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        logger.info(`Password mismatch for user: ${username}`);
-        return res.status(400).json({ success: false, message: 'Password incorrect' });
-      }
-      logger.info(`Password verified for user: ${username}`);
-      res.status(200).json({success: true, message: 'Password verified successfully'});
-    } catch (error) {
-      logger.error(`Password verification error: ${error.message}`, { stack: error.stack });
-      res.status(500).json({ success: false, message: 'Error verifying password', error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
-    }
-  });
-
-  app.post('/api/debug/check-user', express.json(), async (req, res) => {
-    try {
-      const { username } = req.body;
-      logger.info(`User check for username: ${username}`);
-      if (!username) {
-        return res.status(400).json({ success: false, message: 'Username is required' });
-      }
-      const { default: User } = await import('./models/User.mjs');
-      const user = await User.findOne({ where: { username }, attributes: ['id', 'username', 'email', 'role', 'createdAt'] });
-      if (!user) {
-        logger.info(`User not found: ${username}`);
-        return res.status(404).json({ success: false, message: 'User not found' });
-      }
-      logger.info(`User found: ${username}`);
-      res.status(200).json({ success: true, message: 'User found', user });
-    } catch (error) {
-      logger.error(`User check error: ${error.message}`, { stack: error.stack });
-      res.status(500).json({ success: false, message: 'Error checking user', error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
-    }
-  });
-
-  app.get('/api/debug/create-test-user', async (req, res) => {
-    try {
-      logger.info('Creating test user');
-      const { default: User } = await import('./models/User.mjs');
-      const bcrypt = await import('bcryptjs');
-      const existingUser = await User.findOne({ where: { username: 'testuser' } });
-      if (existingUser) {
-        logger.info('Test user already exists');
-        return res.status(200).json({ success: true, message: 'Test user already exists', user: { id: existingUser.id, username: existingUser.username, email: existingUser.email, role: existingUser.role }});
-      }
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash('password123', salt);
-      const testUser = await User.create({ username: 'testuser', email: 'test@example.com', password: hashedPassword, firstName: 'Test', lastName: 'User', role: 'client' });
-      logger.info('Test user created successfully');
-      res.status(201).json({ success: true, message: 'Test user created successfully', user: { id: testUser.id, username: testUser.username, email: testUser.email, role: testUser.role }});
-    } catch (error) {
-      logger.error(`Create test user error: ${error.message}`, { stack: error.stack });
-      res.status(500).json({ success: false, message: 'Error creating test user', error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error' });
-    }
-  });
 }
 
 // --- Apply API Routes ---
@@ -538,6 +472,9 @@ app.use('/api/exercises', exerciseRoutes);
 app.use('/api/gamification', gamificationRoutes);
 // Add workout routes
 app.use('/api/workout', workoutRoutes);
+// Add workout plan and session routes
+app.use('/api/workout/plans', workoutPlanRoutes);
+app.use('/api/workout/sessions', workoutSessionRoutes);
 app.use('/api', apiRoutes); // General API routes, ensure no overlap
 
 // --- Error Handling ---
@@ -592,9 +529,13 @@ app.use((req, res) => {
     // Set up model associations
     setupAssociations(); // Ensure this runs before sync/authenticate if needed
 
-    // Test database connection
+    // Test database connections
     await sequelize.authenticate();
-    logger.info('Database connection established successfully');
+    logger.info('PostgreSQL database connection established successfully');
+    
+    // Connect to MongoDB for workout tracking
+    await connectToMongoDB();
+    logger.info('MongoDB connection initialized for workout tracking');
 
     // In development, optionally sync database schema (NEVER in production)
     if (!isProduction && process.env.AUTO_SYNC === 'true') {

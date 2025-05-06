@@ -23,14 +23,18 @@ const UniversalAuthForm = () => {
     e.preventDefault();
     try {
       if (isLogin) {
+        // Use username as email since AuthContext expects email as 'username' parameter
         await login(formData.username, formData.password); // Call login from context
-        alert('Login successful!');
+        console.log('Login attempt with:', formData.username);
+        // Do not show alert as it blocks UI flow
       } else {
         await register(formData); // Call register from context
-        alert('Registration successful! Please log in.');
+        // Do not show alert as it blocks UI flow
+        setIsLogin(true); // Switch to login view after successful registration
       }
     } catch (error) {
-      alert(error.response?.data?.message || 'An error occurred.');
+      console.error('Login/Register error:', error);
+      alert(error.response?.data?.message || error.message || 'An error occurred during authentication.');
     }
   };
 

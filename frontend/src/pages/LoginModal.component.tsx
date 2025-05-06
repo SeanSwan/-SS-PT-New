@@ -322,12 +322,19 @@ const LoginModal: React.FC = () => {
     setError("");
     setIsLoading(true);
     
-    console.log('Login attempt with:', { username: credentials.username });
+    // Log the login attempt details to help debug
+    console.log('Login attempt with credentials:', {
+      usernameOrEmail: credentials.username,
+      passwordLength: credentials.password.length
+    });
     
     try {
+      // When calling login, pass the credentials directly without modification
       const response = await login(credentials.username, credentials.password);
+      
       // Check if response exists and has user data
       if (response && response.user) {
+         console.log('Login successful!', { role: response.user.role });
          setTimeout(() => {
             if (response.user.role === "admin") {
               navigate("/admin-dashboard");

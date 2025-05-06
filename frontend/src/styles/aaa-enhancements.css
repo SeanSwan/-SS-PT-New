@@ -1,0 +1,828 @@
+/* AAA-Level UI Enhancements for Swan Studios Website */
+
+/* ============= 1. NAVIGATION BAR ENHANCEMENTS ============= */
+
+/* Adding subtle depth to header */
+header, 
+.header, 
+.MuiAppBar-root, 
+.HeaderContainer {
+  background: rgba(10, 10, 30, 0.85) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Refine header content spacing */
+.header-content,
+header > div,
+.MuiToolbar-root {
+  padding: 0 2rem !important;
+  max-width: 1800px !important;
+  margin: 0 auto !important;
+  height: 80px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+/* Logo refinements */
+.logo-container,
+.header-logo,
+header a:first-child {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin-right: 2rem !important;
+}
+
+.logo-container img,
+.header-logo img,
+header img {
+  height: 45px !important;
+  filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.4)) !important;
+  transition: all 0.3s ease !important;
+}
+
+.logo-container:hover img,
+.header-logo:hover img,
+header a:hover img {
+  filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.7)) !important;
+  transform: scale(1.05) !important;
+}
+
+.logo-text,
+.header-logo span,
+header a span {
+  font-size: 1.4rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em !important;
+  background: linear-gradient(90deg, rgba(0, 255, 255, 1), rgba(120, 81, 169, 1)) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  text-shadow: 0 2px 10px rgba(0, 255, 255, 0.2) !important;
+}
+
+/* Navigation links refinements */
+nav,
+.nav-links,
+header ul {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+nav a,
+.nav-link,
+.StyledNavLink,
+header li a {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.02em !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  position: relative !important;
+  transition: all 0.3s ease !important;
+  margin: 0 2px !important;
+}
+
+/* Active link styling */
+nav a.active,
+.nav-link.active,
+.StyledNavLink.active,
+header li a.active {
+  color: var(--neon-blue, #00ffff) !important;
+  background: rgba(0, 255, 255, 0.08) !important;
+  font-weight: 600 !important;
+}
+
+/* Modern underline effect for nav links */
+nav a::after,
+.nav-link::after,
+.StyledNavLink::after,
+header li a::after {
+  content: "" !important;
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 50% !important;
+  width: 0 !important;
+  height: 2px !important;
+  background: linear-gradient(90deg, rgba(0, 255, 255, 0.8), rgba(120, 81, 169, 0.8)) !important;
+  transition: all 0.3s ease !important;
+  transform: translateX(-50%) !important;
+  opacity: 0 !important;
+  border-radius: 2px !important;
+}
+
+/* Hover and active state for link underline */
+nav a:hover::after,
+.nav-link:hover::after,
+.StyledNavLink:hover::after,
+header li a:hover::after,
+nav a.active::after,
+.nav-link.active::after,
+.StyledNavLink.active::after,
+header li a.active::after {
+  width: 70% !important;
+  opacity: 1 !important;
+}
+
+/* Hover effect for nav links */
+nav a:hover,
+.nav-link:hover,
+.StyledNavLink:hover,
+header li a:hover {
+  color: var(--neon-blue, #00ffff) !important;
+  background: rgba(0, 255, 255, 0.05) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Icon refinements */
+.icon-button,
+header button,
+.cart-button {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 50% !important;
+  width: 40px !important;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  transition: all 0.3s ease !important;
+  margin-left: 8px !important;
+}
+
+.icon-button:hover,
+header button:hover,
+.cart-button:hover {
+  background: rgba(0, 255, 255, 0.1) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2) !important;
+  border-color: rgba(0, 255, 255, 0.3) !important;
+  color: var(--neon-blue, #00ffff) !important;
+}
+
+/* ============= 2. HERO SECTION ENHANCEMENTS ============= */
+
+/* Hero section container */
+.hero-section,
+.HeroContainer,
+section:first-of-type {
+  position: relative !important;
+  height: calc(100vh - 80px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
+  overflow: hidden !important;
+}
+
+/* Video background overlay refinement */
+.hero-background::after,
+.VideoBackground::after,
+.hero-section > div:first-child::after,
+.video-container::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: radial-gradient(
+    circle at center,
+    rgba(10, 10, 30, 0.6),
+    rgba(10, 10, 30, 0.75)
+  ) !important;
+  z-index: 1 !important;
+}
+
+/* Add vignette effect */
+.hero-background::before,
+.VideoBackground::before,
+.hero-section > div:first-child::before,
+.video-container::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 0%,
+    rgba(0, 0, 0, 0.3) 100%
+  ) !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+}
+
+/* Hero content refinements */
+.hero-content,
+.hero-section > div:not(:first-child) {
+  position: relative !important;
+  z-index: 5 !important;
+  max-width: 1000px !important;
+  padding: 0 2rem !important;
+  margin: 0 auto !important;
+}
+
+/* Swan Studios logo in hero - more refined glow */
+.hero-logo,
+.hero-section img:not(header img) {
+  width: 150px !important;
+  height: auto !important;
+  margin-bottom: 2rem !important;
+  filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.4)) !important;
+  animation: pulseLogo 4s ease-in-out infinite !important;
+}
+
+@keyframes pulseLogo {
+  0% { filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.4)); }
+  50% { filter: drop-shadow(0 0 25px rgba(0, 255, 255, 0.7)); }
+  100% { filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.4)); }
+}
+
+/* Main title refinement */
+.hero-title,
+.hero-section h1,
+h1.main-title {
+  font-size: clamp(3.5rem, 8vw, 5rem) !important;
+  font-weight: 700 !important;
+  letter-spacing: -0.02em !important; /* Tighter letter spacing */
+  background: linear-gradient(
+    135deg,
+    #ffffff 0%,
+    #a9f8fb 30%,
+    #7b2cbf 60%,
+    #ffffff 100%
+  ) !important;
+  background-size: 200% auto !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  text-shadow: 0 5px 30px rgba(120, 81, 169, 0.5) !important;
+  margin-bottom: 1.5rem !important;
+  animation: gradientText 8s ease infinite !important;
+}
+
+@keyframes gradientText {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Tagline refinement */
+.hero-subtitle,
+.tagline,
+.hero-section h2 {
+  font-size: clamp(1.5rem, 4vw, 2.5rem) !important;
+  font-weight: 300 !important;
+  line-height: 1.3 !important;
+  color: rgba(255, 255, 255, 0.95) !important;
+  margin-bottom: 2rem !important;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Special emphasis for "Extraordinary" */
+.hero-subtitle span,
+.tagline span,
+.hero-section h2 span,
+.highlight {
+  font-weight: 600 !important;
+  color: var(--neon-blue, #00ffff) !important;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5) !important;
+}
+
+/* Hero description text */
+.hero-description,
+.hero-section p {
+  font-size: clamp(1.1rem, 2vw, 1.25rem) !important;
+  line-height: 1.7 !important;
+  max-width: 800px !important;
+  margin: 0 auto 3rem !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Button container refinements */
+.hero-buttons,
+.button-container {
+  display: flex !important;
+  gap: 20px !important;
+  justify-content: center !important;
+  flex-wrap: wrap !important;
+}
+
+/* Button styling refinements */
+.btn,
+button:not(.icon-button),
+.GlowButton {
+  padding: 14px 32px !important;
+  font-size: 1.1rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.02em !important;
+  border-radius: 8px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  transition: all 0.3s ease !important;
+  border: none !important;
+  cursor: pointer !important;
+  color: white !important;
+  min-width: 180px !important;
+  text-align: center !important;
+}
+
+/* Primary button style */
+.btn-primary,
+.GlowButton[theme="cosmic"],
+.hero-buttons button:first-child {
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.9), rgba(120, 81, 169, 0.9)) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2), 0 0 15px rgba(0, 255, 255, 0.3) !important;
+}
+
+/* Secondary button style */
+.btn-secondary,
+.GlowButton[theme="purple"],
+.hero-buttons button:nth-child(2) {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Button hover effect */
+.btn::before,
+button:not(.icon-button)::before,
+.GlowButton::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  ) !important;
+  transition: left 0.7s ease !important;
+}
+
+.btn:hover,
+button:not(.icon-button):hover,
+.GlowButton:hover {
+  transform: translateY(-3px) !important;
+}
+
+.btn-primary:hover,
+.GlowButton[theme="cosmic"]:hover,
+.hero-buttons button:first-child:hover {
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.25), 0 0 20px rgba(0, 255, 255, 0.4) !important;
+}
+
+.btn-secondary:hover,
+.GlowButton[theme="purple"]:hover,
+.hero-buttons button:nth-child(2):hover {
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.15) !important;
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.btn:hover::before,
+button:not(.icon-button):hover::before,
+.GlowButton:hover::before {
+  left: 100% !important;
+}
+
+/* ============= 3. FOOTER ENHANCEMENTS ============= */
+
+/* Footer container styling */
+footer,
+.footer,
+.FooterContainer {
+  background: linear-gradient(to bottom, rgba(10, 10, 30, 0.7), rgba(5, 5, 15, 0.95)) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.07) !important;
+  position: relative !important;
+  padding: 50px 2rem 25px !important;
+  font-size: 0.9rem !important; /* Smaller text as requested */
+}
+
+/* Add subtle pattern to footer */
+footer::before,
+.footer::before,
+.FooterContainer::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.03'%3E%3Cpath opacity='.5' d='M96 95h4v1h-4v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4h-9v4h-1v-4H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15v-9H0v-1h15V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h9V0h1v15h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9h4v1h-4v9zm-1 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm9-10v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-10 0v-9h-9v9h9zm-9-10h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9zm10 0h9v-9h-9v9z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") !important;
+  opacity: 0.4 !important;
+  z-index: -1 !important;
+}
+
+/* Add subtle glow to top of footer */
+footer::after,
+.footer::after,
+.FooterContainer::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 1px !important;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(0, 255, 255, 0.5),
+    rgba(120, 81, 169, 0.5),
+    transparent
+  ) !important;
+  z-index: 1 !important;
+}
+
+/* Footer content grid layout */
+.footer-content,
+footer > div,
+.FooterContainer > div {
+  display: grid !important;
+  grid-template-columns: 2fr 1fr 1fr 1fr !important;
+  gap: 30px !important;
+  max-width: 1400px !important;
+  margin: 0 auto !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+/* Footer headings */
+footer h4,
+.footer h4,
+.FooterHeading {
+  font-size: 1.1rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.05em !important;
+  margin-bottom: 1.2rem !important;
+  position: relative !important;
+  display: inline-block !important;
+  color: white !important;
+}
+
+/* Decorative underline for footer headings */
+footer h4::after,
+.footer h4::after,
+.FooterHeading::after {
+  content: "" !important;
+  position: absolute !important;
+  bottom: -5px !important;
+  left: 0 !important;
+  width: 30px !important;
+  height: 2px !important;
+  background: linear-gradient(to right, rgba(0, 255, 255, 0.8), rgba(120, 81, 169, 0.8)) !important;
+  transition: width 0.3s ease !important;
+}
+
+footer h4:hover::after,
+.footer h4:hover::after,
+.FooterHeading:hover::after {
+  width: 70% !important;
+}
+
+/* Footer link styling */
+footer a,
+.footer a,
+.FooterNav a {
+  color: rgba(255, 255, 255, 0.8) !important;
+  text-decoration: none !important;
+  transition: all 0.3s ease !important;
+  display: block !important;
+  margin-bottom: 0.6rem !important; /* Reduced spacing */
+  font-size: 0.9rem !important;
+  position: relative !important;
+  padding-left: 0 !important;
+}
+
+footer a:hover,
+.footer a:hover,
+.FooterNav a:hover {
+  color: var(--neon-blue, #00ffff) !important;
+  transform: translateX(5px) !important;
+}
+
+/* Contact items styling */
+.contact-info,
+.ContactItem,
+.contact-item {
+  display: flex !important;
+  align-items: center !important;
+  margin-bottom: 0.8rem !important; /* Reduced spacing */
+  font-size: 0.9rem !important;
+}
+
+.contact-info svg,
+.ContactItem svg,
+.contact-item svg {
+  color: var(--neon-blue, #00ffff) !important;
+  margin-right: 10px !important;
+  font-size: 1rem !important;
+}
+
+/* Footer company description */
+.company-description,
+footer p {
+  color: rgba(255, 255, 255, 0.7) !important;
+  line-height: 1.6 !important;
+  margin-bottom: 1.5rem !important;
+  font-size: 0.9rem !important;
+}
+
+/* Social icons styling */
+.social-icons,
+.SocialIcons {
+  display: flex !important;
+  gap: 12px !important;
+  margin-top: 1.5rem !important;
+}
+
+.social-icon,
+.SocialIcon {
+  width: 32px !important; /* Smaller as requested */
+  height: 32px !important; /* Smaller as requested */
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  transition: all 0.3s ease !important;
+  font-size: 0.9rem !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.social-icon:hover,
+.SocialIcon:hover {
+  background: rgba(0, 255, 255, 0.1) !important;
+  color: var(--neon-blue, #00ffff) !important;
+  transform: translateY(-3px) !important;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1) !important;
+  border-color: rgba(0, 255, 255, 0.3) !important;
+}
+
+/* Bottom footer with copyright */
+.copyright,
+.footer-bottom,
+.Copyright {
+  margin-top: 25px !important; /* Reduced */
+  padding-top: 15px !important; /* Reduced */
+  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  max-width: 1400px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-size: 0.8rem !important;
+}
+
+/* Footer bottom links */
+.footer-links-bottom,
+.footer-bottom a {
+  color: rgba(255, 255, 255, 0.6) !important;
+  text-decoration: none !important;
+  transition: color 0.3s ease !important;
+  margin-left: 15px !important;
+  font-size: 0.8rem !important;
+}
+
+.footer-links-bottom:hover,
+.footer-bottom a:hover {
+  color: var(--neon-blue, #00ffff) !important;
+}
+
+/* Responsive adjustments for footer */
+@media (max-width: 991px) {
+  .footer-content,
+  footer > div,
+  .FooterContainer > div {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 30px 40px !important;
+  }
+}
+
+@media (max-width: 767px) {
+  footer,
+  .footer,
+  .FooterContainer {
+    padding: 40px 1.5rem 20px !important;
+  }
+  
+  .footer-content,
+  footer > div,
+  .FooterContainer > div {
+    grid-template-columns: 1fr !important;
+    gap: 25px !important;
+  }
+  
+  .copyright,
+  .footer-bottom,
+  .Copyright {
+    flex-direction: column !important;
+    gap: 10px !important;
+    text-align: center !important;
+  }
+}
+
+/* ============= 4. GENERAL STYLING ENHANCEMENTS ============= */
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth !important;
+}
+
+/* Consistent animation timing */
+*, *::before, *::after {
+  transition-duration: 0.3s !important;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Better focus states for accessibility */
+a:focus, 
+button:focus, 
+input:focus, 
+select:focus, 
+textarea:focus {
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.4) !important;
+}
+
+/* Microinteractions on page load */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.hero-content > *,
+.hero-section > div > * {
+  animation: fadeUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+  opacity: 0 !important;
+}
+
+.hero-content > *:nth-child(1),
+.hero-section > div > *:nth-child(1) {
+  animation-delay: 0.1s !important;
+}
+
+.hero-content > *:nth-child(2),
+.hero-section > div > *:nth-child(2) {
+  animation-delay: 0.2s !important;
+}
+
+.hero-content > *:nth-child(3),
+.hero-section > div > *:nth-child(3) {
+  animation-delay: 0.3s !important;
+}
+
+.hero-content > *:nth-child(4),
+.hero-section > div > *:nth-child(4) {
+  animation-delay: 0.4s !important;
+}
+
+.hero-content > *:nth-child(5),
+.hero-section > div > *:nth-child(5) {
+  animation-delay: 0.5s !important;
+}
+
+/* Fade-in animation for sections as they become visible */
+.fade-in-section {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out !important;
+}
+
+.fade-in-section.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Consistent hover state for clickable items */
+a, 
+button, 
+.btn, 
+.icon, 
+.card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+a:hover, 
+button:hover, 
+.btn:hover, 
+.icon:hover, 
+.card:hover {
+  transform: translateY(-2px) !important;
+}
+
+/* Consistent active/clicked state */
+a:active, 
+button:active, 
+.btn:active, 
+.icon:active, 
+.card:active {
+  transform: translateY(1px) !important;
+  transition-duration: 0.1s !important;
+}
+
+/* Improve scrollbar styling */
+::-webkit-scrollbar {
+  width: 10px !important;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 255, 0.2) !important;
+  border-radius: 5px !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 255, 0.4) !important;
+}
+
+/* Media queries for responsive design */
+@media (max-width: 991px) {
+  .hero-title,
+  .hero-section h1,
+  h1.main-title {
+    font-size: clamp(2.5rem, 6vw, 4rem) !important;
+  }
+  
+  .hero-subtitle,
+  .tagline,
+  .hero-section h2 {
+    font-size: clamp(1.3rem, 3vw, 2rem) !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .header-content,
+  header > div,
+  .MuiToolbar-root {
+    padding: 0 1rem !important;
+  }
+  
+  .hero-content,
+  .hero-section > div:not(:first-child) {
+    padding: 0 1rem !important;
+  }
+  
+  .btn,
+  button:not(.icon-button),
+  .GlowButton {
+    padding: 12px 24px !important;
+    font-size: 1rem !important;
+    min-width: 160px !important;
+  }
+  
+  .hero-buttons,
+  .button-container {
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+}
+
+/* High-DPI screen optimizations */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  * {
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+  }
+}
+
+/* Reduced motion preference support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001s !important;
+    transition-duration: 0.001s !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+}

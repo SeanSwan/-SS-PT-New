@@ -1,0 +1,262 @@
+/**
+ * Dashboard Specific Styles
+ * Enhanced to match the StoreFront dark theme
+ * Updated with UI improvements for admin dashboard
+ */
+
+/* Overall dashboard container */
+.admin-dashboard-container,
+.dashboard-container,
+.sessions-container,
+.MuiPaper-root {
+  background-color: rgba(30, 30, 60, 0.3) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Fix white backgrounds in MUI components */
+.MuiDialog-paper,
+.MuiPopover-paper,
+.MuiDrawer-paper,
+.MuiMenu-paper,
+.MuiAlert-root,
+.MuiDataGrid-root,
+.MuiDataGrid-cell,
+.MuiDataGrid-columnHeaders,
+.MuiDataGrid-columnHeader,
+.MuiDataGrid-row,
+.MuiDataGrid-footer {
+  background-color: rgba(20, 20, 40, 0.7) !important;
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Fix white backgrounds on hover states */
+.MuiDataGrid-row:hover,
+.MuiTableRow-root:hover,
+.MuiMenuItem-root:hover,
+.MuiListItem-root:hover {
+  background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Fix input fields */
+.MuiInputBase-root,
+.MuiOutlinedInput-root,
+.MuiTextField-root,
+.MuiSelect-root,
+.MuiAutocomplete-root {
+  background-color: rgba(40, 40, 80, 0.4) !important;
+  color: white !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+.MuiInputBase-root input,
+.MuiOutlinedInput-root input,
+.MuiTextField-root input,
+.MuiSelect-root input,
+.MuiAutocomplete-root input {
+  color: white !important;
+}
+
+/* Make sure all labels are visible */
+.MuiInputLabel-root,
+.MuiFormLabel-root,
+.MuiFormControlLabel-label {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Fix button styling */
+.MuiButton-root,
+.MuiIconButton-root {
+  background-color: rgba(40, 40, 100, 0.4) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.MuiButton-root:hover,
+.MuiIconButton-root:hover {
+  background-color: rgba(60, 60, 140, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+/* Fix tab styling */
+.MuiTab-root {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.MuiTab-root.Mui-selected {
+  color: #00ffff !important;
+}
+
+/* Fix the Drawer sidebar background */
+.MuiDrawer-paper {
+  background: linear-gradient(135deg, #0a0a1a, #1e1e3f) !important;
+}
+
+/* Login form specific adjustments */
+.login-form .MuiPaper-root,
+.signup-form .MuiPaper-root {
+  background-color: rgba(30, 30, 60, 0.3) !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Fix chart backgrounds */
+.recharts-layer, 
+.recharts-surface,
+.recharts-wrapper,
+.recharts-legend-wrapper {
+  color: white !important;
+  background-color: transparent !important;
+}
+
+/* Make card content more readable */
+.MuiCardContent-root {
+  background-color: rgba(30, 30, 60, 0.5) !important;
+}
+
+/* Make table headers stand out */
+.MuiTableHead-root th {
+  background-color: rgba(20, 20, 50, 0.7) !important;
+  font-weight: bold !important;
+}
+
+/* Admin Dashboard Stats Card Styles */
+.admin-stats-card {
+  display: flex;
+  align-items: center;
+  background: rgba(30, 30, 60, 0.5);
+  border-radius: 12px;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+  height: 100%;
+}
+
+.admin-stats-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+}
+
+.admin-stats-card .stats-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+}
+
+.admin-stats-card .stats-content {
+  flex: 1;
+}
+
+.admin-stats-card .stats-title {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 0.25rem 0;
+}
+
+.admin-stats-card .stats-value {
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin: 0;
+  color: white;
+}
+
+.admin-stats-card .stats-trend {
+  font-size: 0.75rem;
+  margin: 0.25rem 0 0 0;
+  display: flex;
+  align-items: center;
+}
+
+.admin-stats-card .stats-trend.positive {
+  color: rgba(0, 230, 130, 1);
+}
+
+.admin-stats-card .stats-trend.negative {
+  color: rgba(255, 84, 84, 1);
+}
+
+.admin-stats-card .stats-trend.positive:before {
+  content: "↑";
+  margin-right: 4px;
+}
+
+.admin-stats-card .stats-trend.negative:before {
+  content: "↓";
+  margin-right: 4px;
+}
+
+/* Reduce sidebar gutter width */
+.dashboard-sidebar-gutter {
+  width: 1px !important; /* Reduced to 1px (75% thinner than 4px) */
+  background-color: rgba(128, 90, 213, 0.6) !important;
+  box-shadow: 0 0 10px rgba(128, 90, 213, 0.3) !important;
+}
+
+/* Compact footer styles */
+.dashboard-compact-footer {
+  padding: 0.75rem 1rem;
+  background: rgba(20, 20, 40, 0.6);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+  height: auto !important; /* Ensure compact height */
+  min-height: 0 !important; /* Override any minimum height */
+}
+
+/* Quick action card styles */
+.quick-action-card {
+  background: rgba(30, 30, 60, 0.5);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  height: 100%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.quick-action-card:hover {
+  transform: translateY(-5px);
+  background: rgba(40, 40, 80, 0.5);
+  border-color: rgba(0, 255, 255, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.quick-action-icon {
+  background-color: rgba(0, 255, 255, 0.15);
+  border-radius: 50%;
+  height: 56px;
+  width: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.quick-action-title {
+  font-size: 1rem;
+  font-weight: 500;
+  margin: 0 0 0.5rem 0;
+  color: white;
+}
+
+.quick-action-description {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0;
+}

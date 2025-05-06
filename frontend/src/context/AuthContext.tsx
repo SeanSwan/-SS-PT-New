@@ -326,15 +326,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [token]);
 
   // Login function with improved error handling
-  const login = async (email: string, password: string) => {
+  const login = async (usernameOrEmail: string, password: string) => {
     try {
       setIsLoading(true);
       setError(null);
 
       // Using the /api prefix to match backend routes
       console.log(`🔑 Attempting login to ${FORMATTED_API_URL}/api/auth/login`);
-      // Send email as username to match backend validation expectations
-      const response = await api.post('/api/auth/login', { username: email, password });
+      // Send username directly to match backend validation expectations
+      console.log(`Login attempt with username/email: ${usernameOrEmail}`);
+      const response = await api.post('/api/auth/login', { username: usernameOrEmail, password });
       
       // Validate response data
       if (!response.data || !response.data.token) {

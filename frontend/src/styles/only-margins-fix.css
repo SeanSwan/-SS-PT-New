@@ -1,0 +1,53 @@
+/* Simple fix to only restore the orange and green margin bars
+   without breaking the page layout or scroll functionality */
+
+/* Orange bar at the very top */
+body::before {
+  content: "";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 15px;
+  background-color: #fa6800;
+  z-index: 9999;
+}
+
+/* Green bar below the orange bar */
+body::after {
+  content: "";
+  display: block;
+  position: fixed;
+  top: 15px;
+  left: 0;
+  right: 0;
+  height: 15px;
+  background-color: #bada55;
+  z-index: 9999;
+}
+
+/* Push the header below the bars */
+header, 
+.MuiAppBar-root,
+.HeaderContainer,
+nav.navbar {
+  top: 30px !important;
+}
+
+/* Make sure the content is not hidden or blocked */
+body > div:first-child,
+#root > div:first-child,
+.app-root {
+  padding-top: 30px;
+}
+
+/* Prevent any changes to overflow properties that might break scrolling */
+body,
+html,
+#root,
+main,
+section {
+  overflow: visible !important;
+  max-height: none !important;
+}

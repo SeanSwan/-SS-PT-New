@@ -1,0 +1,201 @@
+/* Specific fixes for spacing issues in header and footer */
+
+/* ===== HEADER SPECIFIC FIXES ===== */
+
+/* SwanStudios logo spacing fix */
+.logo-container,
+.header-logo,
+header > div:first-child,
+.MuiToolbar-root > div:first-child {
+  margin-left: 20px !important;
+  padding-left: 10px !important;
+}
+
+/* Fix for header nav links - ensure proper underline alignment */
+nav a,
+.StyledNavLink,
+nav div a {
+  position: relative !important;
+  text-align: center !important;
+  padding: 8px 15px !important;
+  margin: 0 5px !important;
+}
+
+/* Ensure underlines are centered properly */
+nav a::after,
+.StyledNavLink::after,
+nav div a::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 50% !important;
+  width: 80% !important; /* Not full width for softer look */
+  height: 2px !important;
+  background: var(--neon-blue, #00ffff) !important;
+  transform: translateX(-50%) scaleX(0) !important; /* Center the underline */
+  transform-origin: center !important;
+  transition: transform 0.3s ease !important;
+}
+
+/* Show centered underline on hover and active state */
+nav a:hover::after,
+nav a.active::after,
+.StyledNavLink:hover::after,
+.StyledNavLink.active::after,
+nav div a:hover::after,
+nav div a.active::after {
+  transform: translateX(-50%) scaleX(1) !important; /* Centered animation */
+}
+
+/* Fix active state color */
+nav a.active,
+.StyledNavLink.active,
+nav div a.active {
+  color: var(--neon-blue, #00ffff) !important;
+}
+
+/* Apply consistent margins to header container */
+header,
+.header,
+.MuiAppBar-root {
+  padding: 0 !important;
+}
+
+/* Apply consistent height to header */
+header,
+.header,
+.MuiAppBar-root {
+  height: 80px !important;
+}
+
+/* Add subtle dropshadow to header */
+header,
+.header,
+.MuiAppBar-root {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* ===== FOOTER SPECIFIC FIXES ===== */
+
+/* Fix footer top cut-off issue */
+footer,
+.footer,
+.FooterContainer {
+  position: relative !important;
+  margin-top: 30px !important;
+  padding-top: 40px !important;
+  overflow: visible !important;
+}
+
+/* Add decorative element at the top of the footer */
+footer::before,
+.footer::before,
+.FooterContainer::before {
+  content: '' !important;
+  position: absolute !important;
+  top: -2px !important; /* Position it above the top edge */
+  left: 0 !important;
+  right: 0 !important;
+  height: 4px !important; /* Make it slightly thicker */
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(0, 255, 255, 0.7), 
+    rgba(120, 81, 169, 0.7),
+    transparent
+  ) !important;
+  z-index: 1 !important;
+}
+
+/* Add proper spacing to footer content */
+.footer-content,
+.footer > div,
+.FooterContainer > div {
+  padding: 0 30px !important;
+  margin: 0 auto !important;
+  max-width: 1400px !important;
+}
+
+/* ===== GENERAL SOFTENING AND SPACING ===== */
+
+/* Add subtle margins to all main containers */
+.container,
+section, 
+main,
+.content {
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Add subtle border radius to elements */
+.card,
+button,
+.btn,
+input,
+select,
+textarea,
+img,
+video {
+  border-radius: 8px !important;
+}
+
+/* Add subtle spacing to main content */
+main > *,
+.content > *,
+section > * {
+  margin-bottom: 20px !important;
+}
+
+/* Ensure hero section has proper spacing */
+.hero-section,
+.HeroSection,
+.HeroContainer {
+  padding: 30px 20px !important;
+}
+
+/* Properly space logo in header */
+.logo-text,
+.LogoText,
+.header-logo span {
+  margin-left: 8px !important;
+  margin-right: 10px !important;
+}
+
+/* Add subtle spacing to main app container */
+.app-root {
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Fix main content max width */
+main,
+.content,
+.MainContent {
+  max-width: 1600px !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+}
+
+/* Add subtle inner padding to main content */
+main > div,
+.content > div,
+.MainContent > div {
+  padding: 15px !important;
+}
+
+/* Ensure footer text is readable */
+footer,
+.footer {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Fix navbar links container spacing */
+.nav-links,
+.NavLinks,
+.nav {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important; /* Add consistent spacing between links */
+}

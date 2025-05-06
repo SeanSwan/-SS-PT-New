@@ -1,0 +1,177 @@
+/* Clean layout fix - removes colored margins, fixes header at top, locks footer at bottom */
+
+/* Reset any previous styles */
+html, body, #root {
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  width: 100% !important;
+  min-height: 100vh !important;
+}
+
+/* Remove the orange/green margins completely by overriding them */
+body::before,
+body::after {
+  display: none !important;
+  content: none !important;
+  height: 0 !important;
+}
+
+/* Fix the body and root layout */
+body {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 100vh !important;
+}
+
+#root, .app-root {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 0 auto !important;
+  min-height: 100vh !important;
+}
+
+/* Header fixed at the very top */
+header,
+.header,
+.MuiAppBar-root,
+.HeaderContainer,
+nav.navbar {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 1000 !important;
+  width: 100% !important;
+  height: 80px !important;
+  background: rgba(10, 10, 30, 0.85) !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Logo spacing in header */
+.logo-container,
+.LogoContainer,
+.header-logo {
+  margin-left: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Navigation links spacing */
+nav a,
+.StyledNavLink,
+.nav-link {
+  margin: 0 5px !important;
+  padding: 8px 12px !important;
+  position: relative !important;
+}
+
+/* Main content - push down from header */
+main,
+.content,
+.main-content {
+  margin-top: 80px !important; /* Match header height */
+  flex: 1 0 auto !important;
+  position: relative !important;
+  width: 100% !important;
+  display: block !important;
+}
+
+/* Make sure all content sections are visible and properly spaced */
+section {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  min-height: auto !important;
+  overflow: visible !important;
+  padding: 40px 20px !important; /* Add consistent padding */
+  box-sizing: border-box !important;
+}
+
+/* Hero section specific adjustments */
+.hero-section,
+.HeroContainer,
+section:first-of-type {
+  margin-top: 0 !important; /* No extra margin for first section since main already has margin-top */
+  padding-top: 0 !important;
+  min-height: calc(100vh - 80px) !important; /* Full height minus header */
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+}
+
+/* Footer locked at the bottom */
+footer,
+.footer,
+.FooterContainer {
+  position: relative !important; /* Not fixed to allow scrolling */
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  flex-shrink: 0 !important; /* Prevent footer from shrinking */
+  margin-top: auto !important; /* Push to bottom when content is short */
+  padding: 40px 20px 20px !important; /* Add proper padding */
+  z-index: 10 !important;
+  background: linear-gradient(to bottom, rgba(10, 10, 30, 0.7), rgba(10, 10, 30, 0.95)) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Footer content layout */
+.footer-content,
+footer > div,
+.FooterContainer > div {
+  max-width: 1400px !important;
+  margin: 0 auto !important;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
+  gap: 30px !important;
+}
+
+/* Ensure content is properly visible */
+h1, h2, h3, p, div, section {
+  overflow: visible !important;
+  max-height: none !important;
+}
+
+/* Fix any issues with container sizing */
+.container, section > div {
+  width: 100% !important;
+  max-width: 1400px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box !important;
+}
+
+/* Ensure proper spacing between sections */
+section + section {
+  margin-top: 20px !important;
+}
+
+/* Prevent fixed positioning except for header */
+.fixed,
+[style*="position: fixed"],
+.MuiDrawer-root {
+  position: absolute !important;
+}
+
+/* Only keep fixed positioning for header */
+header,
+.header,
+.MuiAppBar-root {
+  position: fixed !important;
+}
+
+/* Add a bit of spacing to the content */
+p, h1, h2, h3, h4, h5, h6 {
+  margin-bottom: 1em !important;
+}
+
+/* Fix any hidden overflow issues */
+.overflow-hidden {
+  overflow: visible !important;
+}
