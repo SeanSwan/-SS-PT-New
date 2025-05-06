@@ -153,20 +153,7 @@ const LogoContainer = styled(motion.div)`
   }
 `;
 
-// PremiumGlowButton is now fixed to the top-right corner of the viewport
-// and is non-interactive via pointer-events: none.
-const PremiumGlowButton = styled(GlowButton)`
-  position: fixed;
-  top: 80px; /* Adjust as needed */
-  right: 20px; /* Adjust as needed */
-  z-index: 100;
-  pointer-events: none;
-
-  @media (max-width: 768px) {
-    top: 60px;
-    right: 10px;
-  }
-`;
+// PremiumGlowButton has been removed
 
 const HeroContent = styled(motion.div)`
   position: relative;
@@ -411,14 +398,7 @@ const HeroSection: React.FC = () => {
         ))}
       </MouseInteractionArea>
 
-      {/* Non-clickable Premium Glow Button placed fixed in the top-right corner */}
-      <PremiumGlowButton
-        text="★★★★★★★ PREMIUM"
-        theme="cosmic"
-        size="small"
-        animateOnRender={false}
-        onClick={() => {}}
-      />
+      {/* Premium button removed */}
 
       <motion.div initial="hidden" animate={controls} variants={containerVariants}>
         <LogoContainer variants={itemVariants}>

@@ -27,7 +27,15 @@ import GlobalStyle from './styles/GlobalStyle';
 import theme from './styles/theme';
 
 // Create React Query client
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      staleTime: 60000, // 1 minute
+      retry: 1
+    },
+  },
+});
 
 // Create router from routes configuration
 const router = createBrowserRouter([MainRoutes]);
@@ -44,7 +52,6 @@ const App = () => {
                 <AuthProvider>
                   <ToastProvider>
                     <CartProvider>
-                      {/* Removed the div wrapper to prevent extra container that could cause margin issues */}
                       <RouterProvider router={router} />
                     </CartProvider>
                   </ToastProvider>

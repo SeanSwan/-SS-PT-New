@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from "../../../../hooks/use-toast";
 import GlowButton from '../../../Button/glowButton'; // Ensure path is correct
+import SessionTestControls from './session-test-controls';
 
 // Import Icons
 import {
@@ -188,25 +189,25 @@ const EnhancedAdminSessionsView: React.FC = () => {
     completionRate: 0
   });
 
-  // Fetch sessions from API using the correct API endpoint
+  // Fetch sessions from API using our session service
   const fetchSessions = async () => {
     setLoading(true);
     setError(null); // Reset error on new fetch
     try {
-      // Use the existing API endpoint for sessions
-      const response = await authAxios.get('/api/sessions');
+      // Use the session service to fetch sessions
+      const result = await services.session.getSessions();
 
-      if (response.data && Array.isArray(response.data)) {
-        setSessions(response.data);
+      if (result.success && result.data && Array.isArray(result.data)) {
+        setSessions(result.data);
 
         // Calculate stats
         const today = new Date().toLocaleDateString();
 
-        const todaySessionsCount = response.data.filter(session =>
+        const todaySessionsCount = result.data.filter(session =>
           new Date(session.sessionDate).toLocaleDateString() === today
         ).length;
 
-        const completedSessions = response.data.filter(session =>
+        const completedSessions = result.data.filter(session =>
           session.status === 'completed'
         );
 
@@ -215,12 +216,12 @@ const EnhancedAdminSessionsView: React.FC = () => {
         );
 
         const uniqueTrainers = new Set(
-          response.data
+          result.data
             .filter(session => session.trainerId)
             .map(session => session.trainerId)
         );
 
-        const relevantSessionsForRate = response.data.filter(session =>
+        const relevantSessionsForRate = result.data.filter(session =>
           ['scheduled', 'confirmed', 'completed'].includes(session.status)
         );
 
@@ -240,8 +241,8 @@ const EnhancedAdminSessionsView: React.FC = () => {
           description: "Sessions loaded successfully",
         });
       } else {
-        console.warn('Received unexpected data structure for sessions:', response.data);
-        setError('Failed to fetch sessions data: Invalid format');
+        console.warn('Received unexpected data structure for sessions:', result.data);
+        setError('Failed to fetch sessions data: ' + (result.message || 'Invalid format'));
         toast({
           title: "Error",
           description: "Failed to load sessions (invalid format)",
@@ -250,7 +251,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Error fetching sessions:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Error connecting to the server';
+      const errorMsg = err.message || 'Error connecting to the server';
       setError(errorMsg);
       toast({
         title: "Error",
@@ -262,11 +263,11 @@ const EnhancedAdminSessionsView: React.FC = () => {
     }
   };
 
-  // Fetch clients for adding sessions using the correct API endpoint
+  // Fetch clients for adding sessions
   const fetchClients = async () => {
     setLoadingClients(true);
     try {
-      // Use the existing API endpoint for clients
+      // Use the user service endpoint for clients
       const response = await authAxios.get('/api/auth/clients');
 
       if (response.data && Array.isArray(response.data)) {
@@ -563,7 +564,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
     }
   };
 
-  // Handle adding sessions to client (Admin action) using the correct API endpoint
+  // Handle adding sessions to client (Admin action) using our session service
   const handleAddSessions = async () => {
     if (!selectedClient) {
       toast({ title: "Error", description: "Please select a client.", variant: "destructive" });
@@ -575,14 +576,14 @@ const EnhancedAdminSessionsView: React.FC = () => {
     }
 
     try {
-      // Use the correct API endpoint for adding sessions
-      const response = await authAxios.post(`/api/session-packages/add-sessions`, {
-        clientId: selectedClient,
-        sessions: sessionsToAdd,
-        notes: addSessionsNote // Include admin notes
-      });
+      // Use the session service to add sessions
+      const result = await services.session.addSessionsToClient(
+        selectedClient,
+        sessionsToAdd,
+        addSessionsNote // Include admin notes
+      );
 
-      if (response.data?.success) {
+      if (result.success) {
         toast({
           title: "Success",
           description: `Added ${sessionsToAdd} session(s) to the client.`,
@@ -599,13 +600,13 @@ const EnhancedAdminSessionsView: React.FC = () => {
       } else {
         toast({
           title: "Error",
-          description: response.data?.message || "Failed to add sessions.",
+          description: result.message || "Failed to add sessions.",
           variant: "destructive",
         });
       }
     } catch (err: any) {
       console.error('Error adding sessions:', err);
-      const errorMsg = err.response?.data?.message || err.message || 'Server error adding sessions';
+      const errorMsg = err.message || 'Server error adding sessions';
       toast({
         title: "Error",
         description: errorMsg,
@@ -960,6 +961,13 @@ const EnhancedAdminSessionsView: React.FC = () => {
                   disabled={loading || filteredSessions.length === 0}
                 />
               </FooterActionsContainer>
+
+              {/* Development Testing Controls */}
+              {process.env.NODE_ENV !== 'production' && (
+                <Box sx={{ mt: 4 }}>
+                  <SessionTestControls />
+                </Box>
+              )}
             </CardContent>
           </StyledCard>
         </motion.div>

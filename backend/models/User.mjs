@@ -2,6 +2,7 @@
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
 import bcrypt from 'bcryptjs';
+import Achievement from './Achievement.mjs';
 
 /**
  * Enhanced User Model
@@ -174,13 +175,13 @@ User.init(
     // Communication preferences
     emailNotifications: {
       type: DataTypes.BOOLEAN,
-      allowNull: false,
+      allowNull: true,
       defaultValue: true,
       comment: 'Whether to send email notifications'
     },
     smsNotifications: {
       type: DataTypes.BOOLEAN,
-      allowNull: false,
+      allowNull: true,
       defaultValue: true,
       comment: 'Whether to send SMS notifications'
     },
@@ -189,6 +190,92 @@ User.init(
       type: DataTypes.TEXT,
       allowNull: true,
       comment: 'JSON string of user preferences'
+    },
+    
+    // ========== GAMIFICATION FIELDS ==========
+    points: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+      comment: 'Total points earned in the gamification system'
+    },
+    level: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 1,
+      comment: 'Current level in the gamification system'
+    },
+    tier: {
+      type: DataTypes.ENUM('bronze', 'silver', 'gold', 'platinum'),
+      allowNull: true,
+      defaultValue: 'bronze',
+      comment: 'Current tier in the gamification system'
+    },
+    streakDays: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+      comment: 'Current consecutive days with activity'
+    },
+    lastActivityDate: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Date of last recorded activity for streak calculation'
+    },
+    totalWorkouts: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+      comment: 'Total number of workouts completed'
+    },
+    totalExercises: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+      comment: 'Total number of exercises completed'
+    },
+    exercisesCompleted: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: {},
+      comment: 'JSON object tracking completed exercises by ID and count'
+    },
+    badgesPrimary: {
+      type: DataTypes.UUID,
+      allowNull: true,
+      references: {
+        model: 'achievements',
+        key: 'id'
+      },
+      comment: 'Primary badge displayed on profile'
+    },
+    
+    // Authentication fields
+    refreshTokenHash: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    failedLoginAttempts: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+    },
+    isLocked: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+    },
+    lastLoginIP: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    registrationIP: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    lastActive: {
+      type: DataTypes.DATE,
+      allowNull: true,
     }
   },
   {

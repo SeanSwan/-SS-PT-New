@@ -5,74 +5,66 @@
 @use "tailwindcss/components";
 @use "tailwindcss/utilities";
 
-@import 'react-big-calendar/lib/css/react-big-calendar.css';
-
-// Reset/normalize styles for better cross-browser consistency
-*, *::before, *::after {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box; // Ensures padding and border widths are included in element sizes
-}
-
-html, body {
-  height: 100%;
+/* Enhanced app loader with animated fade-in effect */
+.app-loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
   width: 100%;
-  max-width: 100vw;
-  overflow-x: hidden;
-  margin: 0;
-  padding: 0;
+  background: linear-gradient(to bottom, #0a0a0a, #1a1a2e);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  opacity: 0;
+  animation: fadeIn 0.3s ease-in-out forwards;
+  
+  &-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid rgba(0, 255, 255, 0.3);
+    border-top-color: rgba(0, 255, 255, 0.8);
+    border-radius: 50%;
+    animation: spin 1s linear infinite, pulse 2s ease-in-out infinite;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(0, 255, 255, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(0, 255, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(0, 255, 255, 0); }
+  }
 }
 
-body {
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased; // Improves rendering of fonts on macOS and iOS
-  overflow-x: hidden;
-}
-
-// Set base font properties
-body, button, input, textarea, select {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; // Example generic font-family
-  font-size: 16px; // Establishes a base font size
-  color: #333; // Default text color
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-size: inherit;
-  font-weight: normal;
-}
-
-a {
-  color: inherit; // Links inherit text color from their parent
-  text-decoration: none; // Removes underline
-}
-
-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-}
-
-ul, ol {
-  list-style: none; // Removes list styling
-}
-
-img {
-  max-width: 100%; // Ensures images are never wider than their container
-  height: auto; // Keeps the original aspect ratio
-}
-
-table {
-  border-collapse: collapse; // Collapses border spacing
-}
-
-textarea {
-  resize: vertical; // Allows vertical resizing only
-}
-
-#root {
+/* Page loading spinner */
+.page-loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
   width: 100%;
-  max-width: 100vw;
-  overflow-x: hidden;
-  padding-top: 60px; // Adjust this value to match the header height
-  margin: 0;
+  
+  .page-loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 3px solid rgba(0, 255, 255, 0.3);
+    border-top-color: rgba(0, 255, 255, 0.8);
+    border-radius: 50%;
+    animation: loader-spin 1s linear infinite;
+  }
+  
+  @keyframes loader-spin {
+    to { transform: rotate(360deg); }
+  }
 }

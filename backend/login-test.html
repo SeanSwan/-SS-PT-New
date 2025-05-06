@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .login-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4267B2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 10px 15px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #365899;
+        }
+        .error-message {
+            color: #f44336;
+            margin-top: 15px;
+        }
+        .success-message {
+            color: #4CAF50;
+            margin-top: 15px;
+        }
+        .debug-info {
+            margin-top: 20px;
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>Debug Login</h1>
+        
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" placeholder="Enter username" value="ogpswan">
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="Enter password" value="Password123!">
+        </div>
+        
+        <button id="loginBtn">Login</button>
+        <button id="debugLoginBtn" style="margin-top: 10px; background-color: #28a745;">Debug Login</button>
+        
+        <div id="message" class="error-message" style="display: none;"></div>
+        
+        <div id="debugInfo" class="debug-info" style="display: none;"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const messageElement = document.getElementById('message');
+            const debugInfoElement = document.getElementById('debugInfo');
+            
+            // Regular login
+            document.getElementById('loginBtn').addEventListener('click', function() {
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                if (!username || !password) {
+                    showError('Please enter both username and password');
+                    return;
+                }
+                
+                // Clear previous messages
+                messageElement.style.display = 'none';
+                debugInfoElement.style.display = 'none';
+                
+                // Show loading state
+                this.textContent = 'Logging in...';
+                this.disabled = true;
+                
+                // Make API request
+                fetch('http://localhost:5000/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                })
+                .then(response => {
+                    // Always convert to JSON to see error messages
+                    return response.json().then(data => {
+                        // Add status to the data object
+                        return { ...data, status: response.status };
+                    });
+                })
+                .then(data => {
+                    // Reset button
+                    document.getElementById('loginBtn').textContent = 'Login';
+                    document.getElementById('loginBtn').disabled = false;
+                    
+                    if (data.status >= 400) {
+                        // Show error message
+                        showError(data.message || 'Login failed');
+                        
+                        // Show debug info
+                        debugInfoElement.textContent = JSON.stringify(data, null, 2);
+                        debugInfoElement.style.display = 'block';
+                    } else {
+                        // Show success message
+                        showSuccess('Login successful! Redirecting...');
+                        
+                        // Store token and user data
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                        
+                        // Redirect after a short delay
+                        setTimeout(() => {
+                            window.location.href = 'http://localhost:5173/dashboard';
+                        }, 1500);
+                    }
+                })
+                .catch(error => {
+                    // Reset button
+                    document.getElementById('loginBtn').textContent = 'Login';
+                    document.getElementById('loginBtn').disabled = false;
+                    
+                    // Show error message
+                    showError('Network error: ' + error.message);
+                    console.error('Login error:', error);
+                });
+            });
+            
+            // Debug login
+            document.getElementById('debugLoginBtn').addEventListener('click', function() {
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                if (!username || !password) {
+                    showError('Please enter both username and password');
+                    return;
+                }
+                
+                // Clear previous messages
+                messageElement.style.display = 'none';
+                debugInfoElement.style.display = 'none';
+                
+                // Show loading state
+                this.textContent = 'Debugging...';
+                this.disabled = true;
+                
+                // Make API request to debug endpoint
+                fetch('http://localhost:3030/debug-login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                })
+                .then(response => {
+                    // Always convert to JSON to see error messages
+                    return response.json().then(data => {
+                        // Add status to the data object
+                        return { ...data, status: response.status };
+                    });
+                })
+                .then(data => {
+                    // Reset button
+                    document.getElementById('debugLoginBtn').textContent = 'Debug Login';
+                    document.getElementById('debugLoginBtn').disabled = false;
+                    
+                    // Show debug info regardless of success/failure
+                    debugInfoElement.textContent = JSON.stringify(data, null, 2);
+                    debugInfoElement.style.display = 'block';
+                    
+                    if (data.status >= 400) {
+                        // Show error message
+                        showError(data.message || 'Login failed');
+                    } else {
+                        // Show success message
+                        showSuccess('Debug login successful!');
+                        
+                        // Store token and user data
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('user', JSON.stringify(data.user));
+                    }
+                })
+                .catch(error => {
+                    // Reset button
+                    document.getElementById('debugLoginBtn').textContent = 'Debug Login';
+                    document.getElementById('debugLoginBtn').disabled = false;
+                    
+                    // Show error message
+                    showError('Network error: ' + error.message);
+                    console.error('Debug login error:', error);
+                });
+            });
+            
+            function showError(message) {
+                messageElement.className = 'error-message';
+                messageElement.textContent = message;
+                messageElement.style.display = 'block';
+            }
+            
+            function showSuccess(message) {
+                messageElement.className = 'success-message';
+                messageElement.textContent = message;
+                messageElement.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

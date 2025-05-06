@@ -55,6 +55,7 @@ import storefrontRoutes from './routes/storeFrontRoutes.mjs';
 import contactRoutes from './routes/contactRoutes.mjs';
 import orientationRoutes from './routes/orientationRoutes.mjs';
 import checkoutRoutes from './routes/checkoutRoutes.mjs';
+import workoutRoutes from './routes/workoutRoutes.mjs';
 import messagesRoutes from './routes/messages.mjs';
 import scheduleRoutes from './routes/scheduleRoutes.mjs';
 import adminRoutes from './routes/adminRoutes.mjs';
@@ -65,6 +66,7 @@ import healthRoutes from './routes/healthRoutes.mjs';  // Import health routes
 // Import NASM protocol routes
 import clientProgressRoutes from './routes/clientProgressRoutes.mjs';
 import exerciseRoutes from './routes/exerciseRoutes.mjs';
+import gamificationRoutes from './routes/gamificationRoutes.mjs';
 import logger from './utils/logger.mjs';
 import { requestLogger, dbHealthCheck } from './middleware/debugMiddleware.mjs';
 import sequelize from './database.mjs';
@@ -532,6 +534,10 @@ app.use('/api/debug', debugRoutes);  // Added debug routes
 // Add NASM protocol routes
 app.use('/api/client-progress', clientProgressRoutes);
 app.use('/api/exercises', exerciseRoutes);
+// Add gamification routes
+app.use('/api/gamification', gamificationRoutes);
+// Add workout routes
+app.use('/api/workout', workoutRoutes);
 app.use('/api', apiRoutes); // General API routes, ensure no overlap
 
 // --- Error Handling ---

@@ -7,6 +7,7 @@ import StorefrontItem from '../models/StorefrontItem.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
+import mockCheckoutService from '../services/mockCheckoutService.mjs';
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ if (isStripeEnabled()) {
       // stripeClient remains null
   }
 } else {
-    logger.warn('Stripe client NOT initialized in checkoutRoutes due to missing/invalid API key.');
+    logger.warn('Stripe client NOT initialized in checkoutRoutes due to missing/invalid API key. Using mock checkout service instead.');
 }
 // --- End Conditional Initialization ---
 
@@ -34,16 +35,6 @@ if (isStripeEnabled()) {
  * Returns a checkout URL for redirect.
  */
 router.post('/checkout', protect, async (req, res) => {
-  // --- Add check for Stripe client ---
-  if (!stripeClient) {
-    logger.error('Attempted /api/checkout/checkout but Stripe is not enabled/initialized.');
-    return res.status(503).json({ // 503 Service Unavailable
-      success: false,
-      message: 'Payment service is currently unavailable. Please try again later or contact support.',
-    });
-  }
-  // --- End check ---
-
   try {
     // Extract userId from authenticated request
     const userId = req.user.id;
@@ -77,7 +68,7 @@ router.post('/checkout', protect, async (req, res) => {
       });
     }
 
-    // Build line items for the Stripe checkout session
+    // Build line items for the checkout session
     // FIXED: Changed cart.items to cart.cartItems
     const line_items = cart.cartItems.map((item) => ({
       price_data: {
@@ -94,8 +85,8 @@ router.post('/checkout', protect, async (req, res) => {
     // Determine the frontend URLs for success and cancel pages
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     
-    // Create the Stripe checkout session
-    const session = await stripeClient.checkout.sessions.create({
+    // Session creation options for both Stripe and mock service
+    const sessionOptions = {
       payment_method_types: ['card'],
       line_items,
       mode: 'payment',
@@ -105,9 +96,21 @@ router.post('/checkout', protect, async (req, res) => {
       metadata: {
         cartId: cart.id.toString()
       }
-    });
+    };
 
-    // Return the checkout URL to redirect the user to Stripe
+    // Check if Stripe is available, otherwise use mock service
+    let session;
+    if (stripeClient) {
+      // Use real Stripe service
+      session = await stripeClient.checkout.sessions.create(sessionOptions);
+      logger.info(`Created Stripe checkout session ${session.id} for user ${userId}`);
+    } else {
+      // Use mock checkout service
+      logger.info(`Using mock checkout service for user ${userId}`);
+      session = mockCheckoutService.createSession(sessionOptions);
+    }
+
+    // Return the checkout URL to redirect the user
     res.status(200).json({ 
       success: true, 
       checkoutUrl: session.url 
@@ -126,16 +129,6 @@ router.post('/checkout', protect, async (req, res) => {
  * Creates a Stripe checkout session with userId provided in the request body.
  */
 router.post('/create-session', async (req, res) => {
-  // --- Add check for Stripe client ---
-  if (!stripeClient) {
-    logger.error('Attempted /api/checkout/create-session but Stripe is not enabled/initialized.');
-    return res.status(503).json({ // 503 Service Unavailable
-      success: false,
-      message: 'Payment service is currently unavailable. Please try again later or contact support.',
-    });
-  }
-  // --- End check ---
-
   try {
     const { userId } = req.body;
 
@@ -155,7 +148,7 @@ router.post('/create-session', async (req, res) => {
       return res.status(400).json({ message: 'Cart is empty.' });
     }
 
-    // Build line items for the Stripe checkout session
+    // Build line items for the checkout session
     // FIXED: Changed cart.items to cart.cartItems
     const line_items = cart.cartItems.map((item) => ({
       price_data: {
@@ -171,14 +164,30 @@ router.post('/create-session', async (req, res) => {
     // Determine frontend URL
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     
-    // Create the Stripe checkout session
-    const session = await stripeClient.checkout.sessions.create({
+    // Session creation options
+    const sessionOptions = {
       payment_method_types: ['card'],
       line_items,
       mode: 'payment',
       success_url: `${baseUrl}/checkout/CheckoutSuccess`,
       cancel_url: `${baseUrl}/checkout/CheckoutCancel`,
-    });
+      client_reference_id: userId.toString(),
+      metadata: {
+        cartId: cart.id.toString()
+      }
+    };
+
+    // Check if Stripe is available, otherwise use mock service
+    let session;
+    if (stripeClient) {
+      // Use real Stripe service
+      session = await stripeClient.checkout.sessions.create(sessionOptions);
+      logger.info(`Created Stripe checkout session ${session.id} for user ${userId}`);
+    } else {
+      // Use mock checkout service
+      logger.info(`Using mock checkout service for user ${userId}`);
+      session = mockCheckoutService.createSession(sessionOptions);
+    }
 
     res.status(200).json({ sessionId: session.id, url: session.url });
   } catch (error) {

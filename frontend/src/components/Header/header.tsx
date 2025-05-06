@@ -6,6 +6,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import logoImage from "../../assets/Logo.png";
 import { useAuth } from "../../context/AuthContext";
+import { useCart } from "../../context/CartContext";
 import ShoppingCart from "../ShoppingCart/ShoppingCart";
 // Material UI imports
 import { useMediaQuery, useTheme } from "@mui/material";
@@ -146,7 +147,8 @@ const ActionsContainer = styled(motion.div)`
   }
 `;
 
-// Using motion.create() instead of motion() to fix deprecation warning
+// Using motion.create() instead of deprecated motion() to fix warnings
+// This creates a motion component from a Link component with proper typing
 const StyledNavLink = styled(motion.create(Link))`
   color: #fff;
   text-decoration: none;
@@ -344,10 +346,9 @@ const MobileMenu = styled(motion.div)`
   overflow-y: auto;
 `;
 
-// Using motion.create() instead of motion() to fix deprecation warning
-const MotionLink = motion.create(Link);
-
-const MobileNavLink = styled(MotionLink)`
+// Using motion.create() instead of deprecated motion() to fix warnings
+// This creates a motion component from a Link component with proper typing
+const MobileNavLink = styled(motion.create(Link))`
   margin: 15px 0;
   color: #fff;
   text-decoration: none;
@@ -526,7 +527,9 @@ const EnhancedHeader = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [cartItems, setCartItems] = useState(3); // Sample cart items count
+  
+  // Get cart from context instead of using static state
+  const { cart } = useCart();
   
   // Refs
   const headerRef = useRef(null);
@@ -581,6 +584,28 @@ const EnhancedHeader = () => {
     }
   }, [mobileMenuOpen]);
 
+  // Simplified admin navigation - direct navigation instead of validation
+  const handleAdminNavigation = () => {
+    console.log('Attempting admin dashboard navigation as:', user?.role);
+    
+    // Log detailed info about the user for debugging
+    console.log('User object:', JSON.stringify({
+      id: user?.id,
+      role: user?.role,
+      firstName: user?.firstName,
+      email: user?.email
+    }));
+    
+    // Try direct navigation instead of validation
+    try {
+      // Force navigation directly to admin dashboard
+      navigate('/dashboard/default');
+    } catch (error) {
+      console.error('Navigation error:', error);
+      navigate('/login?returnUrl=/dashboard/default');
+    }
+  };
+
   /**
    * Handles user logout and redirects to home.
    */
@@ -615,6 +640,17 @@ const EnhancedHeader = () => {
             Client Dashboard
           </StyledNavLink>
 
+          {/* Workout tracking link */}
+          <StyledNavLink 
+            to="/workout" 
+            className={currentPath.includes("/workout") ? "active" : ""}
+            variants={itemVariants}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+          >
+            Workout Tracker
+          </StyledNavLink>
+
           {/* Visible to all logged-in users */}
           <StyledNavLink 
             to="/schedule" 
@@ -624,9 +660,9 @@ const EnhancedHeader = () => {
             Schedule
           </StyledNavLink>
 
-          {/* Admin-only link - Updated to point to enhanced dashboard */}
+          {/* Admin-only link - Using direct link instead of validation */}
           {user.role === "admin" && (
-            <StyledNavLink 
+            <StyledNavLink
               to="/dashboard/default" 
               className={currentPath.includes("/dashboard") ? "active" : ""}
               variants={itemVariants}
@@ -687,6 +723,16 @@ const EnhancedHeader = () => {
             variants={mobileLinkVariants}
           >
             Client Dashboard
+          </MobileNavLink>
+          <MobileNavLink
+            to="/workout"
+            onClick={() => setMobileMenuOpen(false)}
+            className={currentPath.includes("/workout") ? "active" : ""}
+            variants={mobileLinkVariants}
+            whileHover={{ x: 5 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            Workout Tracker
           </MobileNavLink>
           <MobileNavLink 
             to="/schedule" 
@@ -816,7 +862,7 @@ const EnhancedHeader = () => {
               whileTap={{ scale: 0.95 }}
             >
               🛒
-              {cartItems > 0 && <CartBadge>{cartItems}</CartBadge>}
+              {cart && cart.itemCount > 0 && <CartBadge>{cart.itemCount}</CartBadge>}
             </CartButton>
 
             {/* Berry Admin Profile Component - Only for logged in users */}

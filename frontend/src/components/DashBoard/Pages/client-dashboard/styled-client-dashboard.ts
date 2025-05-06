@@ -1,4 +1,4 @@
-import styled, { keyframes } from "styled-components";
+import styled, { keyframes, css } from "styled-components";
 import { motion } from "framer-motion";
 import { 
   Box, 
@@ -275,7 +275,7 @@ export const AchievementItem = styled(motion.div)<{ unlocked: boolean }>`
       'none'
     };
     
-    ${props => props.unlocked && `
+    ${props => props.unlocked && css`
       animation: ${pulse} 2s infinite ease-in-out;
     `}
     

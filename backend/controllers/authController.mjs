@@ -366,7 +366,12 @@ export const login = async (req, res) => {
         hasPassword: !!req.body.password
       })
     });
+    
+    // More detailed request logging
+    console.log('========== LOGIN ATTEMPT ==========');
     console.log('LOGIN REQUEST BODY:', JSON.stringify(req.body, null, 2).replace(/"password":"[^"]+"/, '"password":"***"'));
+    console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+    
     const { username, password } = req.body;
     const ipAddress = req.ip;
     
@@ -460,10 +465,49 @@ export const login = async (req, res) => {
       refreshToken: refreshToken
     });
   } catch (error) {
-    logger.error('Login error:', { error: error.message, stack: error.stack });
+    // Detailed error logging
+    logger.error('Login error:', { 
+      error: error.message, 
+      stack: error.stack,
+      name: error.name,
+      code: error.code || 'no_code'
+    });
+    
+    console.error('========== LOGIN ERROR DETAILS ==========');
+    console.error('Error message:', error.message);
+    console.error('Error name:', error.name);
+    console.error('Error code:', error.code || 'no_code');
+    console.error('Error stack:', error.stack);
+    
+    if (error.original) {
+      console.error('Original error:', error.original.message);
+    }
+    
+    // Database-specific errors
+    if (error.name === 'SequelizeConnectionError') {
+      return res.status(500).json({
+        success: false,
+        message: 'Database connection error',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+    
+    if (error.name === 'SequelizeDatabaseError') {
+      return res.status(500).json({
+        success: false,
+        message: 'Database query error',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+    
     // Provide more helpful error information in development
     const errorDetails = process.env.NODE_ENV === 'development' 
-      ? { error: error.message, stack: error.stack, type: error.name } 
+      ? { 
+          error: error.message, 
+          stack: error.stack, 
+          type: error.name,
+          code: error.code || 'no_code'
+        } 
       : undefined;
     
     res.status(500).json({ 

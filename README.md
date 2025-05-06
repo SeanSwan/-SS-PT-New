@@ -1,179 +1,122 @@
-# SwanStudios
+# Quick-PT Fitness Application
 
-A comprehensive fitness application platform built with Node.js, React, and PostgreSQL.
+## Overview
+Quick-PT is a comprehensive fitness application featuring the "Wholesome Warrior's Path" gamification system that rewards users for holistic health activities including workouts, recovery, nutrition, supplements, and community actions.
 
-## Project Structure
+## Key Components
 
-This project is a monorepo using npm workspaces with the following structure:
+### Backend
+- Node.js with Express
+- PostgreSQL database with Sequelize ORM
+- RESTful API endpoints
+- JWT authentication
 
-- `backend/` - Node.js Express API server
-- `frontend/` - React front-end application
-- `scripts/` - Helper scripts for development and deployment
+### Frontend
+- React with Vite
+- TypeScript
+- Redux Toolkit for state management
+- React Router for navigation
 
-## Prerequisites
+### MCP Servers
+- **Workout MCP Server**: Python-based server for workout recommendations and tracking
+- **Gamification MCP Server**: Python-based server implementing the "Wholesome Warrior's Path" gamification system
 
-- Node.js (v16+)
-- npm (v7+)
-- PostgreSQL (v12+)
-- Git
+## Gamification System: The Wholesome Warrior's Path
 
-## Quick Start
+The gamification system is built around a holistic approach to fitness and well-being:
 
-The easiest way to get started is to use the automated setup script:
+### Currencies
+- **Energy Tokens (ET)**: Action currency used for board exploration and challenges
+- **Experience Points (XP)**: Progress metric that drives leveling across different categories
 
-```bash
-# Clone the repository (if you haven't already)
-git clone <repository-url>
-cd SS-PT
+### Key Features
+- **Multi-category progression**: Track progress in strength, cardio, flexibility, nutrition, recovery, and community
+- **Achievement system**: Unlock achievements for consistent positive behaviors
+- **Streak tracking**: Build and maintain streaks for various activities
+- **Game board**: Explore the Wholesome Warrior's Path, roll dice using ET, and discover rewards and challenges
+- **Kindness quests**: Complete prosocial activities to earn rewards
+- **Time-limited challenges**: Participate in special challenges focusing on different aspects of well-being
 
-# Run the automated setup script (works on both Windows and Unix-based systems)
-npm run setup
+## Getting Started
+
+### Prerequisites
+- Node.js 16+ and npm
+- Python 3.8+
+- PostgreSQL
+
+### Installation
+
+1. Clone the repository:
+```
+git clone https://github.com/yourusername/quick-pt.git
+cd quick-pt
 ```
 
-This will:
-1. Create a `.env` file from the example template
-2. Install all dependencies
-3. Set up the database, run migrations, and seed initial data
-4. Provide login credentials for the admin user
-
-## Manual Setup
-
-If you prefer to set up manually, follow these steps:
-
-### 1. Environment Setup
-
-```bash
-# Copy the example environment file
-cp .env.example .env
-
-# Edit the .env file with your database credentials and other settings
-nano .env  # or use your preferred editor
+2. Install backend dependencies:
 ```
-
-### 2. Install Dependencies
-
-```bash
-# Install root dependencies
-npm install
-
-# Install frontend dependencies
-cd frontend
-npm install
-cd ..
-
-# Install backend dependencies
 cd backend
 npm install
-cd ..
 ```
 
-### 3. Database Setup
-
-```bash
-# Run migrations and seed data
-npm run db:migrate
-npm run db:seed
+3. Install frontend dependencies:
+```
+cd ../frontend
+npm install
 ```
 
-### 4. Start Development Servers
+4. Install MCP server dependencies:
+```
+cd ../backend/mcp_server
+pip install -r ./gamification_mcp_server/requirements.txt
+pip install -r ./workout_mcp_server/requirements.txt
+```
 
-```bash
-# Start both frontend and backend in development mode
+### Running the Application
+
+1. Start the backend server:
+```
+cd backend
 npm run start
-
-# Or start with automatic database setup
-npm run start-with-db
 ```
 
-## Available Scripts
-
-### Root Scripts
-
-- `npm run start` - Start both frontend and backend
-- `npm run start-with-db` - Start with automatic database setup
-- `npm run db:migrate` - Run database migrations
-- `npm run db:seed` - Run database seeders
-- `npm run db:setup` - Run migrations and seeders
-- `npm run db:reset` - Reset the database and run migrations/seeders
-- `npm run install-all` - Install all dependencies
-- `npm run build` - Build the frontend for production
-
-### Backend Scripts
-
-- `cd backend && npm run dev` - Start backend in development mode
-- `cd backend && npm run dev:with-migrations` - Start backend with migrations
-- `cd backend && npm run db:reset-manual` - Reset database using custom script
-
-### Frontend Scripts
-
-- `cd frontend && npm run dev` - Start frontend in development mode
-- `cd frontend && npm run build` - Build for production
-
-## Admin Access
-
-After setup, you can log in with the following credentials:
-
-- **Username:** admin
-- **Password:** 55555
-
-## Features
-
-- User authentication (JWT with refresh tokens)
-- Role-based access control (admin, trainer, client)
-- Storefront with product listings
-- Shopping cart functionality
-- Payment processing (via Stripe)
-- Email notifications (via SendGrid or Nodemailer)
-- SMS notifications (via Twilio)
-
-## API Access Requirements
-
-The application uses several external APIs that require keys:
-
-- **Stripe** - For payment processing
-- **SendGrid** - For email notifications
-- **Twilio** - For SMS notifications
-
-However, the application is designed to function properly even when these API keys are not available. Features dependent on missing API keys will be automatically disabled with clear error messages.
-
-## Development Notes
-
-- API endpoints are under `/api/`
-- Authentication is handled via JWT tokens
-- Database models use Sequelize ORM
-
-## Troubleshooting
-
-### Database Issues
-
-If you encounter database problems, try resetting the database:
-
-```bash
-cd backend
-npm run db:reset-manual
+2. Start the frontend development server:
+```
+cd frontend
+npm run dev
 ```
 
-### API Key Issues
+3. Start the MCP servers:
+```
+cd backend/mcp_server
+python start_workout_server.py
+python start_gamification_server.py
+```
 
-If features like payments or notifications aren't working, check your `.env` file for the required API keys. The application logs which features are disabled due to missing keys during startup.
+## Recent Fixes
 
-## Production Deployment
+1. Fixed 403 Forbidden errors for client-progress API calls by temporarily removing authentication requirements
+2. Fixed 404 Not Found errors by correcting route paths from `/recommendations` to `/recommended`
+3. Fixed client initialization to start at level 0 instead of level 1
+4. Implemented comprehensive gamification system with MCP server
 
-For production deployment on Render:
+## Architecture
 
-1. Ensure `DATABASE_URL` is configured in the environment variables
-2. Set `NODE_ENV=production`
-3. Set all required API keys
-4. Build the frontend with `npm run build`
-5. Start the server with `npm start`
+The application follows a modular architecture:
 
-## Security Considerations
+1. **Backend API**: Handles authentication, data storage, and core business logic
+2. **Frontend SPA**: Provides the user interface and client-side logic
+3. **Workout MCP Server**: Specializes in workout recommendations and exercise analysis
+4. **Gamification MCP Server**: Manages the entire gamification system including rewards, achievements, streaks, and the game board
 
-- JWT secrets and API keys should be stored securely
-- The application uses HTTPS in production
-- Password hashing is handled by bcrypt
-- Rate limiting is implemented for sensitive endpoints
+## Gamification MCP Server Tools
 
-## License
+The Gamification MCP Server provides the following tools:
 
-This project is licensed under the ISC License.
+- **LogActivity**: Track and reward various user activities
+- **GetGamificationProfile**: Retrieve a user's complete gamification data
+- **GetAchievements**: View available and earned achievements
+- **GetBoardPosition**: See a user's position on the game board
+- **RollDice**: Move on the game board by spending Energy Tokens
+- **GetChallenges**: View available challenges
+- **JoinChallenge**: Participate in time-limited challenges
+- **GetKindnessQuests**: Discover prosocial activities to complete

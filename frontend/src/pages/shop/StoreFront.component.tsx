@@ -164,8 +164,8 @@ const Price = styled.div` font-size: 1.8rem; font-weight: 300; color: white; dis
 const PriceDetails = styled.div` margin-top: 0.5rem; font-size: 0.9rem; color: rgba(255, 255, 255, 0.7); `;
 const LoginMessage = styled.div` font-style: italic; color: rgba(255, 255, 255, 0.7); font-size: 0.9rem; display: flex; align-items: center; justify-content: center; height: 100%;`; // Centering
 const CardActions = styled.div` margin-top: auto; display: flex; justify-content: center; padding-top: 1rem; position: relative; z-index: 5; & > div { width: 80%; max-width: 220px; } `;
-const CartButton = styled(motion.button)` position: fixed; bottom: 2rem; right: 2rem; width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #7851a9, #00ffff); border: none; color: white; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); z-index: 1000; transition: transform 0.3s ease, box-shadow 0.3s ease; &:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4); } `;
-const PulsingCartButton = styled(CartButton)` animation: ${pulseAnimation} 1.5s infinite; `;
+const CartButton = styled(motion.button)` position: fixed; bottom: 2rem; right: 2rem; width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #7851a9, #00ffff); border: none; color: white; font-size: 1.5rem; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 255, 255, 0.3); z-index: 1000; transition: transform 0.3s ease, box-shadow 0.3s ease; &:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 30px rgba(0, 255, 255, 0.5); } /* Fix for event bubbling issue */ outline: none; &:focus { outline: none; } `;
+const PulsingCartButton = styled(CartButton)` animation: ${pulseAnimation} 1.5s infinite; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 30px rgba(0, 255, 255, 0.6); /* Fix for event bubbling issue */ outline: none; &:focus { outline: none; } `;
 const CartCount = styled.span` position: absolute; top: -5px; right: -5px; background: #ff4b6a; color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; border: 2px solid rgba(20, 20, 40, 0.8); `;
 const LoadingSpinner = styled.div` border: 4px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top: 4px solid #00ffff; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 2rem auto; @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`;
 const ErrorMessage = styled.p` color: #ff4b6a; text-align: center; margin: 2rem; `;
@@ -174,7 +174,7 @@ const ErrorMessage = styled.p` color: #ff4b6a; text-align: center; margin: 2rem;
 // --- StoreFront Component ---
 const StoreFront: React.FC = () => {
   const { user, authAxios } = useAuth(); // Use authAxios from context
-  const { cart, addToCart } = useCart();
+  const { cart, addToCart, refreshCart } = useCart();
   const { toast } = useToast();
 
   // --- State ---
@@ -239,12 +239,62 @@ const StoreFront: React.FC = () => {
     if (isParallaxInView) parallaxControls.start("visible");
     if (isPackagesInView) packagesControls.start("visible");
   }, [isHeroInView, isParallaxInView, isPackagesInView, heroControls, parallaxControls, packagesControls]);
+  
+  // Handle cart refresh manually when UI shown
+  useEffect(() => {
+    // Refresh cart once when component mounts and user is authenticated
+    if (user && user.id) {
+      console.log('StoreFront mounted - refreshing cart');
+      // Small delay to avoid conflict with initial load
+      const timer = setTimeout(() => {
+        refreshCart();
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [user, refreshCart]);
 
   // Scroll indicator effect
+  // Enhanced scroll effects for cart button and scroll indicator
   useEffect(() => {
-    const handleScroll = () => setAnimateScrollIndicator(window.scrollY < 200);
+    const handleScroll = () => {
+      // Control scroll indicator animation
+      setAnimateScrollIndicator(window.scrollY < 200);
+      
+      // If we have cart items, ensure cart button follows scroll
+      const cartButton = document.querySelector('.cart-follow-button');
+      if (cartButton) {
+        // Add smooth transition based on scroll position
+        if (window.scrollY > 300) {
+          cartButton.classList.add('cart-elevated');
+        } else {
+          cartButton.classList.remove('cart-elevated');
+        }
+      }
+    };
+    
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+  
+  // Add global styles for cart button transitions
+  useEffect(() => {
+    // Create style element for cart button transitions
+    const styleEl = document.createElement('style');
+    styleEl.innerHTML = `
+      .cart-follow-button {
+        transition: transform 0.3s ease, box-shadow 0.3s ease, bottom 0.3s ease;
+      }
+      .cart-elevated {
+        bottom: 2.5rem;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5), 0 0 30px rgba(0, 255, 255, 0.4);
+      }
+    `;
+    document.head.appendChild(styleEl);
+    
+    return () => {
+      document.head.removeChild(styleEl);
+    };
   }, []);
 
   // --- Animation Variants (Original) ---
@@ -276,6 +326,10 @@ const StoreFront: React.FC = () => {
     setIsAddingToCart(item.id);
     try {
         await addToCart(cartItemData); // Pass the object to context function
+        
+        // Add a manual refresh to ensure cart is updated
+        setTimeout(() => refreshCart(), 500);
+        
         toast({ title: "Success!", description: `Added ${item.name} to cart.` });
         setShowPulse(true);
         setTimeout(() => setShowPulse(false), 1600); // Duration of pulse animation
@@ -286,7 +340,7 @@ const StoreFront: React.FC = () => {
     } finally {
         setIsAddingToCart(null);
     }
-  }, [canViewPrices, toast, addToCart]); // Dependencies
+  }, [canViewPrices, toast, addToCart, refreshCart]); // Dependencies
 
   // --- Render Helper for Cards ---
   const renderStoreItemCard = (item: StoreItem) => {
@@ -354,7 +408,7 @@ const StoreFront: React.FC = () => {
             <CardActions>
               <motion.div {...buttonMotionProps} style={{ width: '100%' }}>
                 <GlowButton
-                  text={isLoadingItem ? "Adding..." : (isSubscription ? "View Plan" : "Add to Cart")}
+                  text={isLoadingItem ? "Adding..." : "Add to Cart"}
                   theme={item.theme || 'purple'} // Use fetched theme or fallback
                   size="medium"
                   isLoading={isLoadingItem}
@@ -364,14 +418,10 @@ const StoreFront: React.FC = () => {
                   rightIcon={null}
                   onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                     e.stopPropagation();
-                    if (!isSubscription) {
-                      handleAddToCart(item);
-                    } else {
-                       toast({ title: "Info", description: "Subscription details coming soon!" }); // Placeholder
-                    }
+                    handleAddToCart(item);
                   }}
                   aria-busy={isLoadingItem}
-                  aria-label={`${isSubscription ? 'View' : 'Add'} ${item.name} ${isSubscription ? 'plan' : 'to cart'}`}
+                  aria-label={`Add ${item.name} to cart`}
                 />
               </motion.div>
             </CardActions>
@@ -435,16 +485,42 @@ const StoreFront: React.FC = () => {
         </SectionContainer>
       </ContentOverlay>
 
-      {/* Floating cart button - Restored original styling & logic */}
+      {/* Floating cart button - Fixed event handling */}
       {user && (
          <AnimatePresence>
             {showPulse ? (
-              <PulsingCartButton key="pulsing-cart" onClick={handleToggleCart} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} aria-label={`View Cart (${cart?.itemCount || 0} items)`}>
+              <PulsingCartButton 
+                className="cart-follow-button"
+                key="pulsing-cart" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleToggleCart();
+                }} 
+                initial={{ scale: 0.8, opacity: 0 }} 
+                animate={{ scale: 1, opacity: 1 }} 
+                exit={{ scale: 0.8, opacity: 0 }} 
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }} 
+                aria-label={`View Cart (${cart?.itemCount || 0} items)`}
+              >
                 🛒
                 {cart && cart.itemCount > 0 && <CartCount>{cart.itemCount}</CartCount>}
               </PulsingCartButton>
             ) : (
-              <CartButton key="static-cart" onClick={handleToggleCart} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }} transition={{ type: 'spring', stiffness: 500, damping: 30 }} aria-label={`View Cart (${cart?.itemCount || 0} items)`}>
+              <CartButton 
+                className="cart-follow-button"
+                key="static-cart" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleToggleCart();
+                }} 
+                initial={{ scale: 0.8, opacity: 0 }} 
+                animate={{ scale: 1, opacity: 1 }} 
+                exit={{ scale: 0.8, opacity: 0 }} 
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }} 
+                aria-label={`View Cart (${cart?.itemCount || 0} items)`}
+              >
                 🛒
                 {cart && cart.itemCount > 0 && <CartCount>{cart.itemCount}</CartCount>}
               </CartButton>

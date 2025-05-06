@@ -29,6 +29,10 @@
     "check-server": "node scripts/check-server-status.mjs",
     "test-registration": "node scripts/test-registration.mjs",
     "verify-admin": "node scripts/verify-admin.mjs",
+    "fix-server": "node fix-server.mjs",
+    "fix-models": "node fix-remaining-models.mjs",
+    "fix-all": "node fix-server.mjs && node fix-remaining-models.mjs",
+    "start-fixed": "node fix-server.mjs && node fix-remaining-models.mjs && npm run dev",
     "render-start": "npx sequelize-cli db:migrate --config config/config.js --migrations-path migrations --models-path models --env production && node server.mjs"
   },
   "keywords": [],

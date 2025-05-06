@@ -11,13 +11,54 @@ import ParallaxSection from "../../../components/ParallaxSection/ParallaxSection
 import FeaturesSection from "../../../components/FeaturesSection/FeaturesSection";
 import TrainerProfilesSection from "./TrainerProfilesSection";
 
-// Lazy-loaded components for performance
-const TestimonialSlider = lazy(() => import("../../../components/TestimonialSlider/TestimonialSlider"));
-const FitnessStats = lazy(() => import("../../../components/FitnessStats/FitnessStats"));
-const NewsletterSignup = lazy(() => import("../../../components/NewsletterSignup/NewsletterSignup"));
-const InstagramFeed = lazy(() => import("../../../components/InstagramFeed/InstagramFeed"));
+// Lazy-loaded components with prefetch optimization
+const TestimonialSlider = lazy(() => {
+  // Prefetch the component when idle
+  const prefetch = import("../../../components/TestimonialSlider/TestimonialSlider");
+  // Tell browser this is a high priority fetch
+  if ('requestIdleCallback' in window) {
+    // @ts-ignore
+    window.requestIdleCallback(() => prefetch);
+  } else {
+    setTimeout(() => prefetch, 200);
+  }
+  return prefetch;
+});
 
-// Loading fallback component
+const FitnessStats = lazy(() => {
+  const prefetch = import("../../../components/FitnessStats/FitnessStats");
+  if ('requestIdleCallback' in window) {
+    // @ts-ignore
+    window.requestIdleCallback(() => prefetch);
+  } else {
+    setTimeout(() => prefetch, 400);
+  }
+  return prefetch;
+});
+
+const NewsletterSignup = lazy(() => {
+  const prefetch = import("../../../components/NewsletterSignup/NewsletterSignup");
+  if ('requestIdleCallback' in window) {
+    // @ts-ignore
+    window.requestIdleCallback(() => prefetch);
+  } else {
+    setTimeout(() => prefetch, 600);
+  }
+  return prefetch;
+});
+
+const InstagramFeed = lazy(() => {
+  const prefetch = import("../../../components/InstagramFeed/InstagramFeed");
+  if ('requestIdleCallback' in window) {
+    // @ts-ignore
+    window.requestIdleCallback(() => prefetch);
+  } else {
+    setTimeout(() => prefetch, 800);
+  }
+  return prefetch;
+});
+
+// Enhanced loading fallback component with fade-in animation
 const SectionLoader = styled.div`
   display: flex;
   justify-content: center;
@@ -25,6 +66,13 @@ const SectionLoader = styled.div`
   min-height: 400px;
   width: 100%;
   background: rgba(10, 10, 30, 0.5);
+  opacity: 0;
+  animation: fadeIn 0.5s ease-in-out forwards;
+  
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
   
   &::after {
     content: "";
@@ -43,7 +91,7 @@ const SectionLoader = styled.div`
   }
 `;
 
-// Enhanced styled components for page sections with improved responsive design
+// Enhanced styled components for page sections with improved responsive design and animation
 const HomePageContainer = styled.div`
   overflow: hidden;
   position: relative;
@@ -54,10 +102,33 @@ const HomePageContainer = styled.div`
   max-width: 100vw;
   margin: 0 auto;
   
+  /* Add subtle animation for content */
+  & > * {
+    opacity: 0;
+    animation: fadeIn 0.8s ease-out forwards;
+  }
+  
+  /* Stagger the animations of child elements */
+  & > *:nth-child(1) { animation-delay: 0s; }
+  & > *:nth-child(2) { animation-delay: 0.1s; }
+  & > *:nth-child(3) { animation-delay: 0.2s; }
+  & > *:nth-child(4) { animation-delay: 0.3s; }
+  & > *:nth-child(5) { animation-delay: 0.4s; }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
   /* Ultra mobile responsiveness */
   @media (max-width: 480px) {
     overflow-x: hidden;
   }
+  
+  /* Optimize rendering performance */
+  will-change: opacity, transform;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 `;
 
 const SectionDivider = styled(motion.div)`
@@ -257,11 +328,38 @@ const HomePage: React.FC = () => {
       anchor.addEventListener('click', handleAnchorClick);
     });
     
+    // Prefetch critical resources
+    const prefetchResources = () => {
+      // Prefetch images and resources that will be needed
+      const prefetchLinks = [
+        "/services",
+        "/trainers",
+        "/testimonials"
+      ];
+      
+      if ('requestIdleCallback' in window) {
+        // @ts-ignore
+        window.requestIdleCallback(() => {
+          prefetchLinks.forEach(link => {
+            const linkEl = document.createElement('link');
+            linkEl.rel = 'prefetch';
+            linkEl.href = link;
+            linkEl.as = 'document';
+            document.head.appendChild(linkEl);
+          });
+        });
+      }
+    };
+    
+    // Start prefetching after page is loaded
+    window.addEventListener('load', prefetchResources);
+    
     // Cleanup event listeners
     return () => {
       document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.removeEventListener('click', handleAnchorClick);
       });
+      window.removeEventListener('load', prefetchResources);
     };
   }, []);
 
@@ -354,13 +452,15 @@ const HomePage: React.FC = () => {
       
       {renderSectionDivider(2)}
       
-      {/* Parallax Section with video background */}
-      <ParallaxSection />
+      {/* Parallax Section with video background - using IntersectionObserver for optimized loading */}
+      <div data-testid="parallax-section" style={{ minHeight: '100px', willChange: 'transform' }}>
+        <ParallaxSection />
+      </div>
       
       {renderSectionDivider(3)}
       
-      {/* Testimonial Slider with fallback */}
-      <div ref={testimonialRef}>
+      {/* Testimonial Slider with enhanced loading - use visibility transition */}
+      <div ref={testimonialRef} style={{ minHeight: '200px', opacity: isTestimonialInView ? 1 : 0, transition: 'opacity 0.5s ease-in-out' }}>
         <Suspense fallback={<SectionLoader />}>
           <TestimonialSlider />
         </Suspense>
@@ -380,22 +480,28 @@ const HomePage: React.FC = () => {
         </ExploreMoreButton>
       </div>
       
-      {/* Stats Section - Shows achievements */}
-      <Suspense fallback={<SectionLoader />}>
-        <FitnessStats />
-      </Suspense>
+      {/* Stats Section - Shows achievements with progressive loading */}
+      <div style={{ minHeight: '200px', willChange: 'opacity' }}>
+        <Suspense fallback={<SectionLoader />}>
+          <FitnessStats />
+        </Suspense>
+      </div>
       
       {renderSectionDivider(4)}
       
-      {/* Instagram Feed Section */}
-      <Suspense fallback={<SectionLoader />}>
-        <InstagramFeed />
-      </Suspense>
+      {/* Instagram Feed Section with loading priority */}
+      <div style={{ minHeight: '200px', willChange: 'opacity' }}>
+        <Suspense fallback={<SectionLoader />}>
+          <InstagramFeed />
+        </Suspense>
+      </div>
       
-      {/* Newsletter Signup */}
-      <Suspense fallback={<SectionLoader />}>
-        <NewsletterSignup />
-      </Suspense>
+      {/* Newsletter Signup with priority loading */}
+      <div style={{ minHeight: '100px', willChange: 'opacity' }}>
+        <Suspense fallback={<SectionLoader />}>
+          <NewsletterSignup />
+        </Suspense>
+      </div>
     </HomePageContainer>
   );
 };

@@ -41,7 +41,7 @@ export default defineConfig(({ mode }) => {
       hmr: {
         overlay: true,
       },
-      // Enhanced proxy configuration with detailed logging
+      // Enhanced proxy configuration with detailed logging and error handling
       proxy: {
         '/api': {
           target: backendUrl,
@@ -49,11 +49,22 @@ export default defineConfig(({ mode }) => {
           secure: isProd,
           ws: true,
           xfwd: true,
-          proxyTimeout: 30000,
+          proxyTimeout: 60000, // Extended timeout
           configure: (proxy, options) => {
             // Log all proxy events for debugging
             proxy.on('error', (err, req, res) => {
               console.error(`[Proxy Error] ${req.method} ${req.url}:`, err.message);
+              
+              // For API errors, return a JSON response
+              if (req.url.startsWith('/api') && res.writeHead && !res.headersSent) {
+                res.writeHead(502, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                  success: false,
+                  message: 'Backend server connection failed',
+                  error: 'ERR_CONNECTION_REFUSED',
+                  details: 'The backend server is currently unavailable. Please check if the backend is running.'
+                }));
+              }
             });
             
             proxy.on('proxyReq', (proxyReq, req, res) => {

@@ -56,11 +56,14 @@ const ScheduleWrapper = lazy(() => import('../components/Schedule/ScheduleWrappe
 // Checkout Pages
 const CheckoutSuccess = lazy(() => import('../pages/checkout/CheckoutSuccess'));
 const CheckoutCancel = lazy(() => import('../pages/checkout/CheckoutCancel'));
+const MockCheckout = lazy(() => import('../pages/checkout/MockCheckout'));
 
 // Protected Pages
 const ClientDashboard = lazy(() => import('../components/ClientDashboard/ClientDashboard'));
 // Import the client dashboard view directly with file extension
 const ClientDashboardView = lazy(() => import('../components/DashBoard/Pages/client-dashboard/client-dashboard-view.tsx'));
+// Import workout dashboard
+const WorkoutDashboard = lazy(() => import('../pages/workout/WorkoutDashboard'));
 // Import the enhanced admin dashboard layout with file extension
 const AdminDashboardLayout = lazy(() => import('../components/DashBoard/admin-dashboard-layout.tsx'));
 
@@ -152,6 +155,14 @@ const MainRoutes: RouteObject = {
         </Suspense>
       )
     },
+    {
+      path: 'checkout/mock',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <MockCheckout />
+        </Suspense>
+      )
+    },
     
     // Protected Client Routes
     {
@@ -160,6 +171,28 @@ const MainRoutes: RouteObject = {
         <ProtectedRoute requiredRole="client">
           <Suspense fallback={<PageLoader />}>
             <ClientDashboardView />
+          </Suspense>
+        </ProtectedRoute>
+      )
+    },
+    
+    // Workout Management Routes
+    {
+      path: 'workout',
+      element: (
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <WorkoutDashboard />
+          </Suspense>
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: 'workout/:userId',
+      element: (
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <WorkoutDashboard />
           </Suspense>
         </ProtectedRoute>
       )

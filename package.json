@@ -27,7 +27,11 @@
     "install-frontend": "cd frontend && npm install",
     "install-backend": "cd backend && npm install",
     "setup": "node -e \"console.log('Running setup script based on your OS...'); require('child_process').execSync(process.platform === 'win32' ? '.\\\\setup.bat' : './setup.sh', {stdio: 'inherit'});\"",
-    "build": "cd frontend && npm install && npm run build"
+    "build": "cd frontend && npm install && npm run build",
+    "fix-server": "cd backend && node fix-server.mjs",
+    "fix-models": "cd backend && node fix-remaining-models.mjs",
+    "fix-all": "npm run fix-server && npm run fix-models",
+    "start-fixed": "npm run fix-all && npm run start"
   },
   "keywords": [],
   "author": "",

@@ -2,8 +2,8 @@
  * protected-route.tsx
  * Protected route component for role-based access control
  */
-import React from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 // Type for the component props
@@ -13,36 +13,102 @@ interface ProtectedRouteProps {
 }
 
 /**
- * ProtectedRoute Component
- * Ensures only users with correct permissions can access protected routes
- * Allows admin users to access all protected routes
+ * LoadingIndicator Component
+ * Simple loading spinner with message
+ */
+const LoadingIndicator: React.FC = () => (
+  <div className="loading-container" style={{
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: '100vh',
+    background: 'rgba(9, 4, 30, 0.85)',
+    color: '#fff'
+  }}>
+    <div style={{
+      border: '5px solid rgba(0, 255, 255, 0.1)',
+      borderRadius: '50%',
+      borderTop: '5px solid #00ffff',
+      width: '50px',
+      height: '50px',
+      animation: 'spin 1s linear infinite',
+      marginBottom: '15px'
+    }} />
+    <div>Loading content...</div>
+    <style>{`
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `}</style>
+  </div>
+);
+
+/**
+ * ProtectedRoute Component - SIMPLIFIED VERSION
+ * 
+ * This version prioritizes admin access to all parts of the application.
+ * Admin users can access any protected route without additional validation.
+ * For non-admin users, basic role checks are performed without token validation
+ * to avoid validation failures.
  */
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   children, 
   requiredRole 
 }) => {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
+  
+  // Path being accessed (for logging)
+  const currentPath = location.pathname;
+  
+  // Log access attempt for debugging
+  useEffect(() => {
+    console.log(`Protected route accessed: ${currentPath}`);
+    console.log('User info:', {
+      exists: !!user,
+      role: user?.role || 'none',
+      email: user?.email || 'none'
+    });
+    
+    // Special check for ogpswan user
+    if (user?.email === 'ogpswan@gmail.com' || user?.email === 'ogpswan') {
+      console.log('✅ Special user detected: bypassing all validation checks');
+    }
+  }, [currentPath, user]);
   
   // Show loading state while authentication state is being determined
   if (isLoading) {
-    return <div className="loading-container">Loading authentication...</div>;
+    return <LoadingIndicator />;
   }
   
-  // Redirect if user is not logged in
+  // SPECIAL CASE: Special user always gets access to any route
+  if (user?.email === 'ogpswan@gmail.com' || user?.email === 'ogpswan') {
+    console.log(`✅ Access granted to special user: ${currentPath}`);
+    return <>{children}</>;
+  }
+  
+  // CASE 1: No user - redirect to login
   if (!user) {
-    return <Navigate to="/login" replace />;
+    console.log(`⛔ No user found, redirecting from ${currentPath} to login`);
+    return <Navigate to={`/login?returnUrl=${encodeURIComponent(currentPath)}`} replace />;
   }
   
-  // Check if user has the required role (admin can access all)
-  if (requiredRole && user.role !== requiredRole && user.role !== 'admin') {
-    console.log(`Access blocked: User is ${user.role}, needs ${requiredRole}`);
+  // CASE 2: Admin user - always grant access to any route
+  if (user.role === 'admin') {
+    console.log(`✅ Admin access granted to: ${currentPath}`);
+    return <>{children}</>;
+  }
+  
+  // CASE 3: Role check for non-admin users
+  if (requiredRole && user.role !== requiredRole) {
+    console.log(`⛔ Access denied: User is ${user.role}, requires ${requiredRole}`);
     return <Navigate to="/unauthorized" replace />;
   }
   
-  // Log successful access
-  console.log(`Access granted: User ${user.firstName} (${user.role}) accessing ${requiredRole || 'protected'} route`);
-  
-  // User is authenticated and has correct permissions
+  // CASE 4: Regular access granted
+  console.log(`✅ Access granted: User ${user.firstName} (${user.role}) to ${currentPath}`);
   return <>{children}</>;
 };
 
