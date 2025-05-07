@@ -208,3 +208,196 @@
 {"level":"error","message":"MongoDB connection error (Attempt 4/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:17.978Z"}
 {"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:17.978Z"}
 {"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:17.978Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:26.360Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:26.360Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:26.360Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:26.360Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:34.371Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:34.371Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:34.371Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:34.371Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 3/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:42.390Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 3/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:42.389Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:42.390Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:42.390Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 4/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:50.419Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 4/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:50.419Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:50.419Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:50.419Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 5/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:58.443Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 5/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:58.443Z"}
+{"level":"error","message":"Maximum MongoDB connection attempts reached. Giving up.","timestamp":"2025-05-06T21:58:58.443Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:58.444Z"}
+{"level":"error","message":"Maximum MongoDB connection attempts reached. Giving up.","timestamp":"2025-05-06T21:58:58.443Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T21:58:58.444Z"}
+{"level":"error","message":"Uncaught Exception: listen EADDRINUSE: address already in use :::5000","origin":"uncaughtException","stack":"Error: listen EADDRINUSE: address already in use :::5000\n    at Server.setupListenHandle [as _listen2] (node:net:1939:16)\n    at listenInCluster (node:net:1996:12)\n    at Server.listen (node:net:2101:7)\n    at Function.listen (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\application.js:635:24)\n    at file:///C:/Users/ogpsw/Desktop/quick-pt/SS-PT/backend/server.mjs:547:24","timestamp":"2025-05-06T21:58:58.444Z"}
+{"level":"error","message":"Error getting exercise recommendations: Cannot read properties of undefined (reading 'id')","stack":"TypeError: Cannot read properties of undefined (reading 'id')\n    at getExerciseRecommendations (file:///C:/Users/ogpsw/Desktop/quick-pt/SS-PT/backend/controllers/workoutController.mjs:226:50)\n    at Layer.handle [as handle_request] (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:284:15\n    at Function.process_params (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:346:12)\n    at next (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:280:10)\n    at Function.handle (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:175:3)\n    at router (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:47:12)","timestamp":"2025-05-06T22:02:41.140Z"}
+{"level":"error","message":"Error getting exercise recommendations: Cannot read properties of undefined (reading 'id')","stack":"TypeError: Cannot read properties of undefined (reading 'id')\n    at getExerciseRecommendations (file:///C:/Users/ogpsw/Desktop/quick-pt/SS-PT/backend/controllers/workoutController.mjs:226:50)\n    at Layer.handle [as handle_request] (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:284:15\n    at Function.process_params (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:346:12)\n    at next (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:280:10)\n    at Function.handle (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:175:3)\n    at router (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:47:12)","timestamp":"2025-05-06T22:02:41.144Z"}
+{"level":"error","message":"Error getting exercise recommendations: Cannot read properties of undefined (reading 'id')","stack":"TypeError: Cannot read properties of undefined (reading 'id')\n    at getExerciseRecommendations (file:///C:/Users/ogpsw/Desktop/quick-pt/SS-PT/backend/controllers/workoutController.mjs:226:50)\n    at Layer.handle [as handle_request] (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:284:15\n    at Function.process_params (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:346:12)\n    at next (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:280:10)\n    at Function.handle (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:175:3)\n    at router (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:47:12)","timestamp":"2025-05-06T22:04:04.865Z"}
+{"level":"error","message":"Error getting exercise recommendations: Cannot read properties of undefined (reading 'id')","stack":"TypeError: Cannot read properties of undefined (reading 'id')\n    at getExerciseRecommendations (file:///C:/Users/ogpsw/Desktop/quick-pt/SS-PT/backend/controllers/workoutController.mjs:226:50)\n    at Layer.handle [as handle_request] (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:284:15\n    at Function.process_params (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:346:12)\n    at next (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:280:10)\n    at Function.handle (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:175:3)\n    at router (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:47:12)","timestamp":"2025-05-06T22:04:04.875Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:09.402Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:09.402Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:09.432Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:09.432Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:28.444Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:28.445Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:28.445Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:28.445Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:36.454Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:36.454Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:36.454Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:36.455Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 3/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:44.472Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 3/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:44.472Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:44.472Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:44.472Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 4/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:52.483Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 4/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:52.483Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:52.483Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:15:52.483Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 5/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:16:00.505Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 5/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:16:00.505Z"}
+{"level":"error","message":"Maximum MongoDB connection attempts reached. Giving up.","timestamp":"2025-05-06T22:16:00.505Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:16:00.506Z"}
+{"level":"error","message":"Maximum MongoDB connection attempts reached. Giving up.","timestamp":"2025-05-06T22:16:00.505Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T22:16:00.506Z"}
+{"level":"error","message":"Uncaught Exception: listen EADDRINUSE: address already in use :::5000","origin":"uncaughtException","stack":"Error: listen EADDRINUSE: address already in use :::5000\n    at Server.setupListenHandle [as _listen2] (node:net:1939:16)\n    at listenInCluster (node:net:1996:12)\n    at Server.listen (node:net:2101:7)\n    at Function.listen (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\application.js:635:24)\n    at file:///C:/Users/ogpsw/Desktop/quick-pt/SS-PT/backend/server.mjs:549:24","timestamp":"2025-05-06T22:16:00.506Z"}
+{"level":"error","message":"Error getting exercise recommendations: Cannot read properties of undefined (reading 'id')","stack":"TypeError: Cannot read properties of undefined (reading 'id')\n    at getExerciseRecommendations (file:///C:/Users/ogpsw/Desktop/quick-pt/SS-PT/backend/controllers/workoutController.mjs:226:50)\n    at Layer.handle [as handle_request] (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:284:15\n    at Function.process_params (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:346:12)\n    at next (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:280:10)\n    at Function.handle (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:175:3)\n    at router (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:47:12)","timestamp":"2025-05-06T22:23:43.036Z"}
+{"level":"error","message":"Error getting exercise recommendations: Cannot read properties of undefined (reading 'id')","stack":"TypeError: Cannot read properties of undefined (reading 'id')\n    at getExerciseRecommendations (file:///C:/Users/ogpsw/Desktop/quick-pt/SS-PT/backend/controllers/workoutController.mjs:226:50)\n    at Layer.handle [as handle_request] (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at next (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\route.js:149:13)\n    at Route.dispatch (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\route.js:119:3)\n    at Layer.handle [as handle_request] (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\layer.js:95:5)\n    at C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:284:15\n    at Function.process_params (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:346:12)\n    at next (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:280:10)\n    at Function.handle (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:175:3)\n    at router (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\router\\index.js:47:12)","timestamp":"2025-05-06T22:23:43.038Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:04:50.524Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:04:50.524Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:04:50.524Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:04:50.525Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:04:58.544Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:04:58.544Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:04:58.544Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:04:58.544Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:08.674Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:08.674Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:08.675Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:08.674Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:17.348Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:17.348Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:17.348Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:17.349Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:30.152Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:30.152Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:30.153Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:30.152Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:38.173Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:38.174Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:38.174Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:38.174Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 3/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:46.198Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 3/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:46.198Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:46.198Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:46.198Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:57.693Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:57.694Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:57.693Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:05:57.694Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:05.718Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:05.717Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:05.717Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:05.718Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 3/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:13.749Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 3/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:13.749Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:13.749Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:13.749Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:22.259Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:22.259Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:22.365Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:22.365Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:30.271Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:30.272Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:30.380Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:30.380Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 3/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:38.284Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:38.285Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 3/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:38.393Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:38.393Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 4/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:46.312Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:46.313Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 4/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:46.421Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:46.421Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:57.723Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:57.723Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:57.723Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:06:57.723Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:11.564Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:11.564Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:11.564Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:11.564Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:19.583Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:19.583Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:19.583Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:19.583Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 3/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:27.592Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 3/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:27.592Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:27.592Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:27.592Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 4/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:35.614Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 4/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:35.614Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:35.614Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:35.614Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 5/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:43.636Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 5/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:43.637Z"}
+{"level":"error","message":"Maximum MongoDB connection attempts reached. Giving up.","timestamp":"2025-05-06T23:07:43.636Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:43.638Z"}
+{"level":"error","message":"Maximum MongoDB connection attempts reached. Giving up.","timestamp":"2025-05-06T23:07:43.637Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:07:43.638Z"}
+{"level":"error","message":"Uncaught Exception: listen EADDRINUSE: address already in use :::5000","origin":"uncaughtException","stack":"Error: listen EADDRINUSE: address already in use :::5000\n    at Server.setupListenHandle [as _listen2] (node:net:1939:16)\n    at listenInCluster (node:net:1996:12)\n    at Server.listen (node:net:2101:7)\n    at Function.listen (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\application.js:635:24)\n    at file:///C:/Users/ogpsw/Desktop/quick-pt/SS-PT/backend/server.mjs:549:24","timestamp":"2025-05-06T23:07:43.638Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:13.280Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:13.279Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:13.279Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:13.280Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:21.294Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:21.293Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:21.294Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:21.293Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 3/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:29.319Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 3/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:29.319Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:29.320Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:29.319Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 4/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:37.341Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 4/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:37.341Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:37.341Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:37.341Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 5/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:45.358Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 5/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:45.357Z"}
+{"level":"error","message":"Maximum MongoDB connection attempts reached. Giving up.","timestamp":"2025-05-06T23:14:45.357Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:45.359Z"}
+{"level":"error","message":"Maximum MongoDB connection attempts reached. Giving up.","timestamp":"2025-05-06T23:14:45.358Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:14:45.359Z"}
+{"level":"error","message":"Uncaught Exception: listen EADDRINUSE: address already in use :::5000","origin":"uncaughtException","stack":"Error: listen EADDRINUSE: address already in use :::5000\n    at Server.setupListenHandle [as _listen2] (node:net:1939:16)\n    at listenInCluster (node:net:1996:12)\n    at Server.listen (node:net:2101:7)\n    at Function.listen (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\application.js:635:24)\n    at file:///C:/Users/ogpsw/Desktop/quick-pt/SS-PT/backend/server.mjs:549:24","timestamp":"2025-05-06T23:14:45.360Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:24.106Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:24.106Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:24.121Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:24.121Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:32.117Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:32.117Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:32.132Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:32.132Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 3/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:40.122Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:40.122Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 3/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:40.137Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:40.138Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 4/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:48.135Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:48.135Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 4/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:48.151Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:48.151Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 5/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:56.154Z"}
+{"level":"error","message":"Maximum MongoDB connection attempts reached. Giving up.","timestamp":"2025-05-06T23:15:56.154Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:56.155Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 5/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:56.170Z"}
+{"level":"error","message":"Maximum MongoDB connection attempts reached. Giving up.","timestamp":"2025-05-06T23:15:56.170Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:15:56.171Z"}
+{"level":"error","message":"Uncaught Exception: listen EADDRINUSE: address already in use :::5000","origin":"uncaughtException","stack":"Error: listen EADDRINUSE: address already in use :::5000\n    at Server.setupListenHandle [as _listen2] (node:net:1939:16)\n    at listenInCluster (node:net:1996:12)\n    at Server.listen (node:net:2101:7)\n    at Function.listen (C:\\Users\\ogpsw\\Desktop\\quick-pt\\SS-PT\\backend\\node_modules\\express\\lib\\application.js:635:24)\n    at file:///C:/Users/ogpsw/Desktop/quick-pt/SS-PT/backend/server.mjs:549:24","timestamp":"2025-05-06T23:15:56.171Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:21:07.331Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:21:07.331Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 1/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:21:07.439Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:21:07.439Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:21:15.359Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:21:15.359Z"}
+{"level":"error","message":"MongoDB connection error (Attempt 2/5): connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:21:15.455Z"}
+{"level":"error","message":"🔴 MongoDB connection error: connect ECONNREFUSED 127.0.0.1:5001","timestamp":"2025-05-06T23:21:15.455Z"}

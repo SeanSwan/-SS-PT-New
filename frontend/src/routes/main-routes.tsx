@@ -49,6 +49,9 @@ const SignupModal = lazy(() => import('../pages/SignupModal.component'));
 const ContactPage = lazy(() => import('../pages/contactpage/ContactPage'));
 const AboutPage = lazy(() => import('../pages/about/About'));
 const StoreFront = lazy(() => import('../pages/shop/StoreFront.component'));
+const ShopPage = lazy(() => import('../pages/shop/ShopPage'));
+const ProductDetail = lazy(() => import('../components/Shop/ProductDetail'));
+const FoodScannerPage = lazy(() => import('../pages/FoodScanner/FoodScannerPage'));
 const UnauthorizedPage = lazy(() => import('../pages/UnauthorizedPage.component'));
 const ScheduleContainer = lazy(() => import('../components/Schedule/ScheduleContainer'));
 const ScheduleWrapper = lazy(() => import('../components/Schedule/ScheduleWrapper'));
@@ -118,6 +121,30 @@ const MainRoutes: RouteObject = {
       element: (
         <Suspense fallback={<PageLoader />}>
           <AboutPage />
+        </Suspense>
+      )
+    },
+    {
+      path: 'shop',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <ShopPage />
+        </Suspense>
+      )
+    },
+    {
+      path: 'shop/product/:id',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <ProductDetail />
+        </Suspense>
+      )
+    },
+    {
+      path: 'food-scanner',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <FoodScannerPage />
         </Suspense>
       )
     },

@@ -1,3 +1,4 @@
+import enhancedScheduleRoutes from './routes/enhancedScheduleRoutes.mjs';
 /**
  * Swan Studios - Main Server
  * =========================
@@ -55,6 +56,10 @@ import storefrontRoutes from './routes/storeFrontRoutes.mjs';
 import contactRoutes from './routes/contactRoutes.mjs';
 import orientationRoutes from './routes/orientationRoutes.mjs';
 import checkoutRoutes from './routes/checkoutRoutes.mjs';
+import orderRoutes from './routes/orderRoutes.mjs';
+import recommendationRoutes from './routes/recommendationRoutes.mjs';
+import stripeWebhookRouter from './webhooks/stripeWebhook.mjs';
+import foodScannerRoutes from './routes/foodScannerRoutes.mjs';
 import workoutRoutes from './routes/workoutRoutes.mjs';
 import messagesRoutes from './routes/messages.mjs';
 import scheduleRoutes from './routes/scheduleRoutes.mjs';
@@ -69,6 +74,7 @@ import workoutSessionRoutes from './routes/workoutSessionRoutes.mjs';
 import clientProgressRoutes from './routes/clientProgressRoutes.mjs';
 import exerciseRoutes from './routes/exerciseRoutes.mjs';
 import gamificationRoutes from './routes/gamificationRoutes.mjs';
+import socialRoutes from './routes/social/index.mjs';
 import logger from './utils/logger.mjs';
 import { requestLogger, dbHealthCheck } from './middleware/debugMiddleware.mjs';
 import sequelize from './database.mjs';
@@ -461,8 +467,13 @@ app.use('/api/storefront', storefrontRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/orientation', orientationRoutes);
 app.use('/api/checkout', checkoutRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/recommendations', recommendationRoutes);
+app.use('/api/food-scanner', foodScannerRoutes);
+app.use('/webhooks/stripe', stripeWebhookRouter);
 app.use('/api/messages', messagesRoutes);
-app.use('/api/schedule', scheduleRoutes);
+app.use('/api/schedule', enhancedScheduleRoutes);
+app.use('/api/sessions', enhancedScheduleRoutes);  // Add an alias route that matches frontend expectations
 app.use('/api/admin', adminRoutes);
 app.use('/api/debug', debugRoutes);  // Added debug routes
 // Add NASM protocol routes
@@ -470,6 +481,8 @@ app.use('/api/client-progress', clientProgressRoutes);
 app.use('/api/exercises', exerciseRoutes);
 // Add gamification routes
 app.use('/api/gamification', gamificationRoutes);
+// Add social features routes
+app.use('/api/social', socialRoutes);
 // Add workout routes
 app.use('/api/workout', workoutRoutes);
 // Add workout plan and session routes
