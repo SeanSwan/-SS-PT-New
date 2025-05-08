@@ -380,7 +380,7 @@ const AdminGamificationView: React.FC = () => {
       console.error('Error fetching achievements:', error);
       throw error;
     }
-  };
+  }, []);
   
   // Fetch rewards with performance optimization
   const fetchRewards = useCallback(async () => {
@@ -453,7 +453,7 @@ const AdminGamificationView: React.FC = () => {
       console.error('Error fetching rewards:', error);
       throw error;
     }
-  };
+  }, []);
   
   // Fetch settings with performance optimization
   const fetchSettings = useCallback(async () => {
@@ -511,7 +511,7 @@ const AdminGamificationView: React.FC = () => {
       console.error('Error fetching settings:', error);
       throw error;
     }
-  };
+  }, []);
   
   // Fetch leaderboard with performance optimization
   const fetchLeaderboard = useCallback(async () => {
@@ -584,7 +584,7 @@ const AdminGamificationView: React.FC = () => {
       console.error('Error fetching leaderboard:', error);
       throw error;
     }
-  };
+  }, []);
   
   // Achievement management handlers with performance optimization
   const handleCreateAchievement = useCallback(async (achievement: Omit<Achievement, 'id'>) => {
@@ -614,7 +614,7 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [achievements, toast]);
   
   const handleUpdateAchievement = useCallback(async (id: string, updatedFields: Partial<Achievement>) => {
     try {
@@ -641,7 +641,7 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [achievements, toast]);
   
   const handleDeleteAchievement = useCallback(async (id: string) => {
     try {
@@ -671,7 +671,7 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [achievements, toast]);
   
   const handleToggleAchievementStatus = useCallback(async (id: string, isActive: boolean) => {
     try {
@@ -698,7 +698,7 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [achievements, toast]);
   
   // Reward management handlers with performance optimization
   const handleCreateReward = useCallback(async (reward: Omit<Reward, 'id' | 'redemptionCount'>) => {
@@ -729,7 +729,7 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [rewards, toast]);
   
   const handleUpdateReward = useCallback(async (id: string, updatedFields: Partial<Reward>) => {
     try {
@@ -756,7 +756,7 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [rewards, toast]);
   
   const handleDeleteReward = useCallback(async (id: string) => {
     try {
@@ -786,7 +786,7 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [rewards, toast]);
   
   const handleToggleRewardStatus = useCallback(async (id: string, isActive: boolean) => {
     try {
@@ -813,7 +813,7 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [rewards, toast]);
   
   const handleUpdateRewardStock = useCallback(async (id: string, stock: number) => {
     try {
@@ -840,7 +840,7 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [rewards, toast]);
   
   // Settings management handlers with performance optimization
   const handleUpdatePointValues = useCallback(async (updatedPointValues: PointValue[]) => {
@@ -858,7 +858,7 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [toast]);
   
   const handleUpdateTierThresholds = useCallback(async (updatedTierThresholds: TierThreshold[]) => {
     try {
@@ -875,7 +875,7 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [toast]);
   
   const handleUpdateLevelSettings = useCallback(async (updatedLevelSettings: LevelSettings) => {
     try {
@@ -892,7 +892,7 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [toast]);
   
   const handleUpdateSystemSettings = useCallback(async (updatedSystemSettings: SystemSettings) => {
     try {
@@ -909,7 +909,7 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [toast]);
   
   const handleSaveSettings = useCallback(async () => {
     try {
@@ -935,7 +935,7 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [toast]);
   
   const handleRestoreDefaults = useCallback(async () => {
     try {
@@ -965,7 +965,7 @@ const AdminGamificationView: React.FC = () => {
         variant: "destructive"
       });
     }
-  };
+  }, [fetchSettings, toast]);
   
   if (loading) {
     return (

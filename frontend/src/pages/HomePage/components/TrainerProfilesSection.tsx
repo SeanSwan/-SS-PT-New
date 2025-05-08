@@ -41,12 +41,18 @@ interface Trainer {
 }
 
 // --- Animation Keyframes ---
-const shimmer = keyframes`
-  0% {
-    background-position: -100% 0;
+const diagonalGlimmer = keyframes`
+  0%, 85% {
+    background-position: -200% 200%;
+    opacity: 0;
+  }
+  90%, 95% {
+    background-position: 0% 0%;
+    opacity: 0.8;
   }
   100% {
-    background-position: 200% 0;
+    background-position: 200% -200%;
+    opacity: 0;
   }
 `;
 
@@ -157,15 +163,18 @@ const TrainerCard = styled(motion.div)`
     right: 0;
     bottom: 0;
     background: linear-gradient(
-      45deg,
+      135deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.03) 50%,
+      rgba(255, 255, 255, 0.05) 25%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 75%,
       transparent 100%
     );
-    background-size: 200% auto;
-    animation: ${shimmer} 3s linear infinite;
+    background-size: 200% 200%;
+    animation: ${diagonalGlimmer} 5s linear infinite;
     pointer-events: none;
     border-radius: 15px;
+    opacity: 0;
   }
 
   @media (max-width: 768px) {

@@ -14,6 +14,9 @@ import { CartProvider } from './context/CartContext';
 import { ConfigProvider } from './context/ConfigContext';
 import MenuStateProvider from './hooks/useMenuState';
 
+// Development Tools
+import { DevToolsProvider } from './components/DevTools';
+
 // Routes configuration
 import MainRoutes from './routes/main-routes';
 
@@ -52,7 +55,9 @@ const App = () => {
                 <AuthProvider>
                   <ToastProvider>
                     <CartProvider>
-                      <RouterProvider router={router} />
+                      <DevToolsProvider>
+                        <RouterProvider router={router} />
+                      </DevToolsProvider>
                     </CartProvider>
                   </ToastProvider>
                 </AuthProvider>

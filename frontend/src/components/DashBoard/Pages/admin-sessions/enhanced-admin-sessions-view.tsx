@@ -4,6 +4,7 @@ import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from "../../../../hooks/use-toast";
 import GlowButton from '../../../Button/glowButton'; // Ensure path is correct
 import SessionTestControls from './session-test-controls';
+import services from '../../../../services/index';
 
 // Import Icons
 import {
@@ -964,9 +965,9 @@ const EnhancedAdminSessionsView: React.FC = () => {
 
               {/* Development Testing Controls */}
               {process.env.NODE_ENV !== 'production' && (
-                <Box sx={{ mt: 4 }}>
+                <MuiBox sx={{ mt: 4 }}>
                   <SessionTestControls />
-                </Box>
+                </MuiBox>
               )}
             </CardContent>
           </StyledCard>

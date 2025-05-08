@@ -1,6 +1,6 @@
 import express from 'express';
 import { Friendship } from '../../models/social/index.mjs';
-import { User } from '../../models/User.mjs';
+import User from '../../models/User.mjs';
 import { authMiddleware } from '../../middleware/authMiddleware.mjs';
 
 const router = express.Router();

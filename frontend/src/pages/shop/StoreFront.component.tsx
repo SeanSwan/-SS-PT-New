@@ -146,9 +146,55 @@ const ParallaxSubtitle = styled(motion.p)` font-size: 1.2rem; color: rgba(255, 2
 const SectionContainer = styled.section` padding: 5rem 2rem; max-width: 1400px; margin: 0 auto; position: relative; z-index: 1; `;
 const SectionTitle = styled(motion.h2)` text-align: center; margin-bottom: 3rem; font-size: 2.5rem; font-weight: 300; position: relative; display: inline-block; padding-bottom: 15px; color: white; width: 100%; &:after { content: ""; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 150px; height: 2px; background: linear-gradient(to right, rgba(0, 255, 255, 0), rgba(0, 255, 255, 1), rgba(0, 255, 255, 0)); } `;
 const Grid = styled(motion.div)` display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2.5rem; margin-bottom: 4rem; @media (min-width: 1024px) { grid-template-columns: repeat(3, 1fr); } `;
+// Enhanced neon animation keyframes
+const neonPulse = keyframes`
+  0% { box-shadow: 0 0 5px rgba(0, 255, 255, 0.5), 0 0 10px rgba(0, 255, 255, 0.3), 0 0 15px rgba(120, 81, 169, 0.2); }
+  50% { box-shadow: 0 0 8px rgba(0, 255, 255, 0.8), 0 0 15px rgba(0, 255, 255, 0.5), 0 0 25px rgba(120, 81, 169, 0.3); }
+  100% { box-shadow: 0 0 5px rgba(0, 255, 255, 0.5), 0 0 10px rgba(0, 255, 255, 0.3), 0 0 15px rgba(120, 81, 169, 0.2); }
+`;
+
+const neonBorderEffect = keyframes`
+  0% { border-color: rgba(0, 255, 255, 0.5); }
+  50% { border-color: rgba(120, 81, 169, 0.7); }
+  100% { border-color: rgba(0, 255, 255, 0.5); }
+`;
+
 const CardContainer = styled(motion.div)`
-  position: relative; border-radius: 15px; overflow: hidden; background: rgba(30, 30, 60, 0.3); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.3s ease; box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3); cursor: pointer; height: 100%; display: flex; flex-direction: column;
-  &:hover { transform: translateY(-10px); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); }
+  position: relative; 
+  border-radius: 15px; 
+  overflow: hidden; 
+  background: rgba(30, 30, 60, 0.3); 
+  backdrop-filter: blur(10px); 
+  border: 0.5em solid rgba(0, 255, 255, 0.3); 
+  transition: all 0.3s ease; 
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3); 
+  cursor: pointer; 
+  height: 100%; 
+  display: flex; 
+  flex-direction: column;
+  animation: ${neonBorderEffect} 3s infinite ease-in-out, ${neonPulse} 4s infinite ease-in-out;
+  
+  &:hover { 
+    transform: translateY(-10px); 
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4), 0 0 30px rgba(0, 255, 255, 0.5);
+    border-color: rgba(0, 255, 255, 0.8);
+  }
+  
+  &:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 12px;
+    padding: 0.5em;
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.2));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
 `;
 const CardMedia = styled.div` width: 100%; height: 200px; position: relative; overflow: hidden; &:before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to bottom, rgba(0, 0, 0, 0), rgba(10, 10, 30, 0.8)); z-index: 1; } `;
 const CardImage = styled.div` width: 100%; height: 100%; background-size: cover; background-position: center; `;
@@ -351,14 +397,49 @@ const StoreFront: React.FC = () => {
     const isLoadingItem = isAddingToCart === item.id;
     const isSubscription = item.itemType?.includes("SUBSCRIPTION") ?? false; // Default to false if itemType undefined
     const outOfStock = !!item.trackInventory && (item.inventoryQuantity ?? 0) <= 0;
-
+    
+    // Enhanced session package information
     let badgeText = '';
-    if (item.category) badgeText = item.category;
-    else if (item.itemType === 'TRAINING_PACKAGE_FIXED' && item.sessions) badgeText = `${item.sessions} Sessions`;
-    else if (item.itemType === 'TRAINING_PACKAGE_SUBSCRIPTION' && item.months) badgeText = `${item.months} Months`;
-    else if (item.itemType === 'DIGITAL_ASSET') badgeText = `Digital`;
-    else if (item.itemType === 'PHYSICAL_GOOD') badgeText = `Gear`;
-    else if (item.itemType === 'SUPPLEMENT') badgeText = `Supplement`;
+    let sessionDetails = '';
+    const packageType = item.packageType || '';
+    
+    if (packageType === 'fixed') {
+      badgeText = item.sessions ? `${item.sessions} Sessions` : '';
+      if (item.sessions && item.pricePerSession) {
+        sessionDetails = `${item.sessions} sessions at ${item.pricePerSession} per session`;
+      }
+    } else if (packageType === 'monthly') {
+      badgeText = item.months ? `${item.months} Months` : '';
+      if (item.months && item.sessionsPerWeek && item.pricePerSession) {
+        sessionDetails = `${item.months} months, ${item.sessionsPerWeek} sessions/week at ${item.pricePerSession} per session`;
+      }
+    } else if (item.category) {
+      badgeText = item.category;
+    } else if (item.itemType === 'TRAINING_PACKAGE_FIXED' && item.sessions) {
+      badgeText = `${item.sessions} Sessions`;
+    } else if (item.itemType === 'TRAINING_PACKAGE_SUBSCRIPTION' && item.months) {
+      badgeText = `${item.months} Months`;
+    } else if (item.itemType === 'DIGITAL_ASSET') {
+      badgeText = `Digital`;
+    } else if (item.itemType === 'PHYSICAL_GOOD') {
+      badgeText = `Gear`;
+    } else if (item.itemType === 'SUPPLEMENT') {
+      badgeText = `Supplement`;
+    }
+    
+    // Get correct theme based on package name or assigned theme
+    let cardTheme = item.theme || 'purple';
+    if (item.name) {
+      if (item.name.includes('Gold')) {
+        cardTheme = 'cosmic';
+      } else if (item.name.includes('Platinum')) {
+        cardTheme = 'purple';
+      } else if (item.name.includes('Rhodium')) {
+        cardTheme = 'emerald';
+      } else if (item.name.includes('Silver')) {
+        cardTheme = 'ruby';
+      }
+    }
 
     return (
       <motion.div key={itemKey} variants={cardVariants}>
@@ -376,7 +457,9 @@ const StoreFront: React.FC = () => {
           </CardMedia>
           <CardContent>
             <CardTitle>{item.name}</CardTitle>
-            <CardDescription>{item.description || 'No description available.'}</CardDescription>
+            <CardDescription>
+  {sessionDetails || item.description || 'No description available.'}
+</CardDescription>
             {features.length > 0 && (
                 <FeaturesList aria-label="Included Features">
                     {features.slice(0, 3).map((feature, index) => <li key={index}>{feature}</li>)}
@@ -408,20 +491,20 @@ const StoreFront: React.FC = () => {
             <CardActions>
               <motion.div {...buttonMotionProps} style={{ width: '100%' }}>
                 <GlowButton
-                  text={isLoadingItem ? "Adding..." : "Add to Cart"}
-                  theme={item.theme || 'purple'} // Use fetched theme or fallback
-                  size="medium"
-                  isLoading={isLoadingItem}
-                  disabled={isLoadingItem || !canViewPrices || outOfStock}
-                  animateOnRender={false} // Keep original prop values
-                  leftIcon={null}
-                  rightIcon={null}
-                  onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-                    e.stopPropagation();
-                    handleAddToCart(item);
-                  }}
-                  aria-busy={isLoadingItem}
-                  aria-label={`Add ${item.name} to cart`}
+                text={isLoadingItem ? "Adding..." : "Add to Cart"}
+                theme={cardTheme} // Use the mapped theme based on package name
+                size="medium"
+                isLoading={isLoadingItem}
+                disabled={isLoadingItem || !canViewPrices || outOfStock}
+                animateOnRender={false} // Keep original prop values
+                leftIcon={null}
+                rightIcon={null}
+                onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+                e.stopPropagation();
+                handleAddToCart(item);
+                }}
+                aria-busy={isLoadingItem}
+                aria-label={`Add ${item.name} to cart`}
                 />
               </motion.div>
             </CardActions>

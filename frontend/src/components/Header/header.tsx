@@ -1,22 +1,52 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
-import { gsap } from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import logoImage from "../../assets/Logo.png";
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 import ShoppingCart from "../ShoppingCart/ShoppingCart";
+
 // Material UI imports
-import { useMediaQuery, useTheme } from "@mui/material";
-import NotificationsIcon from "@mui/icons-material/Notifications";
-import CloseIcon from "@mui/icons-material/Close";
+import { 
+  useMediaQuery, 
+  useTheme, 
+  Menu, 
+  MenuItem, 
+  Tooltip,
+  IconButton,
+  Badge,
+  Box
+} from "@mui/material";
+
+// Import icons
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
+import EventNoteIcon from '@mui/icons-material/EventNote';
+import LocalMallIcon from '@mui/icons-material/LocalMall';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import MenuIcon from '@mui/icons-material/Menu';
+import CloseIcon from '@mui/icons-material/Close';
+import PersonIcon from '@mui/icons-material/Person';
+
 // Import BerryAdmin components
 import NotificationSection from "./NotificationSection";
 import ProfileSection from "./ProfileSection";
-// Register GSAP plugins
-gsap.registerPlugin(ScrollTrigger);
+
+// ===================== Animation Keyframes =====================
+const float = keyframes`
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0); }
+`;
+
+const glow = keyframes`
+  0% { filter: drop-shadow(0 0 5px rgba(0,160,227,0.3)); }
+  50% { filter: drop-shadow(0 0 15px rgba(0,160,227,0.6)); }
+  100% { filter: drop-shadow(0 0 5px rgba(0,160,227,0.3)); }
+`;
 
 // ===================== Styled Components =====================
 const HeaderContainer = styled(motion.header)`
@@ -26,22 +56,17 @@ const HeaderContainer = styled(motion.header)`
   right: 0;
   z-index: 1000;
   padding: 0 20px;
-  height: 80px;
+  height: 56px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(9, 4, 30, 0.85);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  background: #0a0a1a;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  transition: all 0.3s ease-in-out; /* Reduced animation time for better performance */
+  transition: all 0.3s ease;
+  
   @media (max-width: 480px) {
     padding: 0 12px;
-    height: 70px;
-  }
-  @media (min-width: 2560px) {
-    height: 100px;
-    padding: 0 40px;
+    height: 56px;
   }
 `;
 
@@ -54,58 +79,58 @@ const HeaderContent = styled.div`
   margin: 0 auto;
 `;
 
-const Logo = styled(motion.div)`
+const LogoContainer = styled(motion.div)`
   display: flex;
   align-items: center;
-  font-weight: bold;
-  color: var(--neon-blue, #00ffff);
+  font-weight: 500;
+  color: #00a0e3;
   position: relative;
-  margin-right: 40px; /* Added space between logo and navigation */
-  .logo-text {
-    font-size: 1.5rem;
-    background: linear-gradient(to right, #00ffff, #7851a9);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    position: relative;
-    margin-right: 10px;
-  }
-  img {
-    height: 50px;
-    margin-left: 8px;
-    filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.5));
-    transition: all 0.3s ease;
-  }
-  &:hover img {
-    filter: drop-shadow(0 0 12px rgba(0, 255, 255, 0.8));
-  }
-  @media (max-width: 480px) {
-    .logo-text {
-      font-size: 1.2rem;
-    }
-    img {
-      height: 40px;
-    }
-  }
-  @media (min-width: 2560px) {
-    .logo-text {
-      font-size: 2rem;
-    }
-    img {
-      height: 70px;
-    }
-  }
+  margin-right: 20px;
+  cursor: pointer;
 `;
 
 const LogoGlow = styled.div`
   position: absolute;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle, rgba(0, 255, 255, 0.2) 0%, transparent 70%);
-  filter: blur(15px);
-  opacity: 0;
-  transition: opacity 0.3s ease; /* Reduced animation time */
-  ${Logo}:hover & {
-    opacity: 0.8;
+  background: radial-gradient(circle, rgba(0, 160, 227, 0.3) 0%, transparent 70%);
+  filter: blur(8px);
+  z-index: -1;
+`;
+
+const Logo = styled.div`
+  display: flex;
+  align-items: center;
+  position: relative;
+  animation: ${float} 6s ease-in-out infinite, ${glow} 4s ease-in-out infinite;
+  
+  .logo-text {
+    font-size: 1.15rem;
+    color: #00a0e3;
+    position: relative;
+    letter-spacing: 0.5px;
+    transition: color 0.3s ease;
+  }
+  
+  img {
+    height: 32px;
+    width: 32px;
+    transition: all 0.3s ease;
+    margin-right: 8px;
+  }
+  
+  &:hover .logo-text {
+    color: #10b5f0;
+  }
+  
+  @media (max-width: 480px) {
+    .logo-text {
+      font-size: 1.1rem;
+    }
+    img {
+      height: 28px;
+      width: 28px;
+    }
   }
 `;
 
@@ -113,8 +138,8 @@ const NavLinksContainer = styled.div`
   display: flex;
   align-items: center;
   flex: 1;
-  justify-content: flex-start; /* Align links to the left */
-  margin-left: 20px; /* Add space after logo */
+  justify-content: flex-start;
+  
   @media (max-width: 768px) {
     display: none;
   }
@@ -123,17 +148,11 @@ const NavLinksContainer = styled.div`
 const Nav = styled(motion.nav)`
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0;
   flex-wrap: nowrap;
-  overflow-x: visible; /* Changed from hidden to ensure all links are visible */
+  
   @media (max-width: 768px) {
     display: none;
-  }
-  @media (min-width: 1200px) {
-    gap: 15px;
-  }
-  @media (min-width: 2560px) {
-    gap: 30px;
   }
 `;
 
@@ -141,193 +160,90 @@ const ActionsContainer = styled(motion.div)`
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-left: auto; /* Push to right */
-  @media (min-width: 2560px) {
-    gap: 20px;
-  }
+  margin-left: auto;
 `;
 
-// Using motion.create() instead of deprecated motion() to fix warnings
-// This creates a motion component from a Link component with proper typing
+// Navigation links
 const StyledNavLink = styled(motion.create(Link))`
-  color: #fff;
+  color: white;
   text-decoration: none;
-  margin: 0 5px;
-  padding: 8px 12px;
-  border-radius: 8px;
+  margin: 0;
+  padding: 0 12px;
   font-weight: 500;
+  font-size: 0.95rem;
   position: relative;
-  overflow: visible; /* Changed from hidden to ensure visibility */
-  transition: all 0.3s ease; /* Reduced animation time */
-  white-space: nowrap; /* Prevent text wrapping */
-  &:hover {
-    color: var(--neon-blue, #00ffff);
-    background: rgba(0, 255, 255, 0.1);
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.15);
-  }
-  &.active {
-    color: var(--neon-blue, #00ffff);
-    background: rgba(0, 255, 255, 0.15);
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
-  }
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    width: 0;
-    height: 2px;
-    background: var(--neon-blue, #00ffff);
-    transition: all 0.3s ease; /* Reduced animation time */
-    transform: translateX(-50%);
-  }
-  &:hover::after, &.active::after {
-    width: 80%;
-  }
-  @media (min-width: 1200px) {
-    margin: 0 10px;
-    padding: 10px 15px;
-    font-size: 1.05rem;
-  }
-  @media (min-width: 2560px) {
-    margin: 0 15px;
-    padding: 15px 20px;
-    font-size: 1.3rem;
-  }
-`;
-
-const LogoutButton = styled(motion.button)`
-  background: transparent;
-  border: none;
-  color: #fff;
-  margin: 0 5px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 500;
-  cursor: pointer;
-  position: relative;
-  overflow: visible; /* Changed from hidden to ensure visibility */
-  transition: all 0.3s ease; /* Reduced animation time */
-  white-space: nowrap; /* Prevent text wrapping */
-  display: flex; /* Ensure it's always visible */
-  align-items: center;
-  justify-content: center;
-  &:hover {
-    color: var(--neon-blue, #00ffff);
-    background: rgba(0, 255, 255, 0.1);
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.15);
-  }
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    width: 0;
-    height: 2px;
-    background: var(--neon-blue, #00ffff);
-    transition: all 0.3s ease; /* Reduced animation time */
-    transform: translateX(-50%);
-  }
-  &:hover::after {
-    width: 80%;
-  }
-  @media (min-width: 1200px) {
-    margin: 0 10px;
-    padding: 10px 15px;
-    font-size: 1.05rem;
-  }
-  @media (min-width: 2560px) {
-    margin: 0 15px;
-    padding: 15px 20px;
-    font-size: 1.3rem;
-  }
-`;
-
-const MobileMenuButton = styled(motion.button)`
-  display: none;
-  background: none;
-  border: none;
-  color: #fff;
-  font-size: 1.5rem;
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  padding: 5px;
+  height: 56px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  transition: all 0.2s ease;
+  letter-spacing: 0.2px;
+  border-bottom: 2px solid transparent;
+  
+  &:hover {
+    color: #00a0e3;
+    border-bottom: 2px solid #00a0e3;
+  }
+  
+  &.active {
+    color: #00a0e3;
+    border-bottom: 2px solid #00a0e3;
+  }
+`;
+
+const StyledNavLinkWithDropdown = styled(StyledNavLink)`
   cursor: pointer;
-  position: relative;
-  overflow: visible; /* Changed from hidden to ensure visibility */
-  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+`;
+
+const StyledDropdownIcon = styled(KeyboardArrowDownIcon)`
+  font-size: 14px;
+  transition: transform 0.3s ease;
+  margin-left: 2px;
+`;
+
+const StyledMenuItem = styled(MenuItem)`
+  padding: 12px 16px;
+  min-width: 180px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  &:hover {
+    background: rgba(0, 160, 227, 0.05);
+  }
+`;
+
+const LogoutButton = styled.button`
+  background: transparent;
+  border: none;
+  color: white;
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    color: #00a0e3;
+  }
+`;
+
+const MobileMenuButton = styled(IconButton)`
+  display: none;
+  color: white;
+  padding: 8px;
+  
   @media (max-width: 768px) {
     display: flex;
   }
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle, rgba(0, 255, 255, 0.2) 0%, transparent 70%);
-    opacity: 0;
-    transition: opacity 0.3s ease; /* Reduced animation time */
-  }
-  &:hover::before {
-    opacity: 1;
-  }
-  @media (max-width: 480px) {
-    width: 40px;
-    height: 40px;
-    font-size: 1.3rem;
-  }
-`;
-
-const HamburgerIcon = styled.div`
-  width: 24px;
-  height: 18px;
-  position: relative;
-  transform: rotate(0deg);
-  transition: 0.3s ease-in-out; /* Reduced animation time */
-  span {
-    display: block;
-    position: absolute;
-    height: 2px;
-    width: 100%;
-    background: #fff;
-    border-radius: 9px;
-    opacity: 1;
-    left: 0;
-    transform: rotate(0deg);
-    transition: 0.2s ease-in-out; /* Reduced animation time */
-    &:nth-child(1) {
-      top: 0px;
-    }
-    &:nth-child(2), &:nth-child(3) {
-      top: 8px;
-    }
-    &:nth-child(4) {
-      top: 16px;
-    }
-  }
-  &.open {
-    span {
-      &:nth-child(1) {
-        top: 18px;
-        width: 0%;
-        left: 50%;
-      }
-      &:nth-child(2) {
-        transform: rotate(45deg);
-      }
-      &:nth-child(3) {
-        transform: rotate(-45deg);
-      }
-      &:nth-child(4) {
-        top: 18px;
-        width: 0%;
-        left: 50%;
-      }
-    }
+  
+  &:hover {
+    color: #00a0e3;
+    background: rgba(0, 160, 227, 0.05);
   }
 `;
 
@@ -337,116 +253,68 @@ const MobileMenu = styled(motion.div)`
   left: 0; 
   right: 0; 
   bottom: 0; 
-  background: rgba(9, 4, 30, 0.98); 
+  background: #0a0a1a;
   backdrop-filter: blur(10px); 
-  padding: 100px 40px 40px; 
+  padding: 80px 24px 24px; 
   display: flex; 
   flex-direction: column; 
   z-index: 9; 
   overflow-y: auto;
 `;
 
-// Using motion.create() instead of deprecated motion() to fix warnings
-// This creates a motion component from a Link component with proper typing
 const MobileNavLink = styled(motion.create(Link))`
-  margin: 15px 0;
-  color: #fff;
+  margin: 8px 0;
+  color: white;
   text-decoration: none;
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   font-weight: 500;
-  position: relative;
-  padding: 10px 0;
-  transition: color 0.3s ease; /* Reduced animation time */
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 0;
-    height: 2px;
-    background: var(--neon-blue, #00ffff);
-    transition: all 0.3s ease; /* Reduced animation time */
+  padding: 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: color 0.2s ease;
+  
+  &:hover, &.active {
+    color: #00a0e3;
   }
-  &:hover {
-    color: var(--neon-blue, #00ffff);
-  }
-  &:hover::after {
-    width: 100%;
-  }
-  &.active {
-    color: var(--neon-blue, #00ffff);
-  }
-  &.active::after {
-    width: 100%;
-  }
+`;
+
+const MobileSubMenu = styled(motion.div)`
+  margin-left: 20px;
+  display: flex;
+  flex-direction: column;
 `;
 
 const MobileLogoutButton = styled(motion.button)`
-  margin: 15px 0;
+  margin: 8px 0;
   background: none;
   border: none;
-  color: #fff;
-  font-size: 1.5rem;
+  color: white;
+  font-size: 1.1rem;
   font-weight: 500;
-  cursor: pointer;
-  padding: 10px 0;
+  padding: 12px 0;
   text-align: left;
-  position: relative;
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 0;
-    height: 2px;
-    background: var(--neon-blue, #00ffff);
-    transition: all 0.3s ease; /* Reduced animation time */
-  }
-  &:hover {
-    color: var(--neon-blue, #00ffff);
-  }
-  &:hover::after {
-    width: 100%;
-  }
-`;
-
-// Mobile footer styles removed to avoid duplication with dashboard footer
-
-const CartButton = styled(motion.button)`
-  background: transparent;
-  border: none;
-  color: #fff;
-  position: relative;
   cursor: pointer;
-  font-size: 1.5rem;
-  margin-right: 5px;
-  padding: 10px;
-  border-radius: 50%;
-  transition: all 0.3s ease; /* Reduced animation time */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: color 0.2s ease;
+  
   &:hover {
-    color: var(--neon-blue, #00ffff);
-    background: rgba(0, 255, 255, 0.1);
-  }
-  @media (min-width: 2560px) {
-    font-size: 1.8rem;
+    color: #00a0e3;
   }
 `;
 
-const CartBadge = styled.span`
-  position: absolute; 
-  top: 0; 
-  right: 0; 
-  background: var(--neon-blue, #00ffff); 
-  color: #000; 
-  font-size: 0.7rem; 
-  width: 18px; 
-  height: 18px; 
-  border-radius: 50%; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  font-weight: bold; 
-  box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+const NewBadge = styled.span`
+  background: #ec4899;
+  color: white;
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 5px;
+  font-weight: bold;
 `;
 
 // ===================== Animation Variants =====================
@@ -456,159 +324,109 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
+      duration: 0.3,
       when: "beforeChildren",
-      staggerChildren: 0.05, // Reduced stagger time
-      duration: 0.3 // Reduced duration
+      staggerChildren: 0.05
     }
   }
 };
 
 const itemVariants = {
-  hidden: { y: -10, opacity: 0 }, // Reduced movement distance
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: { type: "spring", stiffness: 200, damping: 20, duration: 0.3 } // Optimized spring physics
-  }
-};
-
-const logoVariants = {
-  hidden: { opacity: 0, scale: 0.9, y: -10 }, // Reduced movement
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    scale: 1,
-    y: 0,
-    transition: { type: "spring", stiffness: 200, damping: 15, duration: 0.3 } // Optimized spring physics
+    transition: { duration: 0.2 }
   }
 };
 
 const mobileMenuVariants = {
   closed: {
     opacity: 0,
-    y: "-100%",
+    x: "-100%",
     transition: {
-      duration: 0.3, // Reduced duration
-      ease: [0.76, 0, 0.24, 1],
-      staggerChildren: 0.05, // Reduced stagger time
-      staggerDirection: -1
+      duration: 0.3,
+      ease: "easeInOut"
     }
   },
   open: {
     opacity: 1,
-    y: "0%",
+    x: "0%",
     transition: {
-      duration: 0.3, // Reduced duration
-      ease: [0.76, 0, 0.24, 1],
-      when: "beforeChildren",
-      staggerChildren: 0.05, // Reduced stagger time
-    }
-  }
-};
-
-const mobileLinkVariants = {
-  closed: {
-    opacity: 0,
-    x: -20, // Reduced movement distance
-  },
-  open: {
-    opacity: 1,
-    x: 0,
-    transition: {
-      type: "spring",
-      stiffness: 200, // Optimized spring physics
-      damping: 20
+      duration: 0.3,
+      ease: "easeInOut"
     }
   }
 };
 
 // ===================== Header Component =====================
 const EnhancedHeader = () => {
-  // State to control mobile menu and shopping cart modal visibility
+  // State management
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileStoreExpanded, setMobileStoreExpanded] = useState(false);
+  const [storeAnchorEl, setStoreAnchorEl] = useState<null | HTMLElement>(null);
   
-  // Get cart from context instead of using static state
+  // Context hooks
   const { cart } = useCart();
-  
-  // Refs
-  const headerRef = useRef(null);
-  const hamburgerRef = useRef(null);
-  
-  // MUI theme and media query
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
-  // Authentication and navigation hooks
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   
-  // Handle scroll effect - optimized
+  // Material UI hooks
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // Refs
+  const headerRef = useRef(null);
+  
+  // Handle scroll effect
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      setIsScrolled(window.scrollY > 10);
     };
     
-    window.addEventListener('scroll', handleScroll, { passive: true }); // Added passive for better performance
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
-  // GSAP animations - simplified for better performance
+  // Handle mobile menu overflow
   useEffect(() => {
-    if (headerRef.current) {
-      gsap.fromTo(
-        headerRef.current,
-        { y: -50, opacity: 0 }, // Reduced distance
-        {
-          y: 0,
-          opacity: 1,
-          duration: 0.5, // Reduced duration
-          ease: "power2.out", // Changed to simpler ease
-          delay: 0.1 // Reduced delay
-        }
-      );
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
     }
-  }, []);
-  
-  // Handle mobile menu animation
-  useEffect(() => {
-    if (hamburgerRef.current) {
-      if (mobileMenuOpen) {
-        hamburgerRef.current.classList.add('open');
-        document.body.style.overflow = 'hidden';
-      } else {
-        hamburgerRef.current.classList.remove('open');
-        document.body.style.overflow = '';
-      }
-    }
+    
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [mobileMenuOpen]);
 
-  // Simplified admin navigation - direct navigation instead of validation
-  const handleAdminNavigation = () => {
-    console.log('Attempting admin dashboard navigation as:', user?.role);
-    
-    // Log detailed info about the user for debugging
-    console.log('User object:', JSON.stringify({
-      id: user?.id,
-      role: user?.role,
-      firstName: user?.firstName,
-      email: user?.email
-    }));
-    
-    // Try direct navigation instead of validation
-    try {
-      // Force navigation directly to admin dashboard
-      navigate('/dashboard/default');
-    } catch (error) {
-      console.error('Navigation error:', error);
-      navigate('/login?returnUrl=/dashboard/default');
+  // Handle store dropdown
+  const handleStoreClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    setStoreAnchorEl(event.currentTarget);
+  };
+
+  const handleStoreClose = () => {
+    setStoreAnchorEl(null);
+  };
+
+  // Handle mobile store toggle
+  const toggleMobileStore = () => {
+    setMobileStoreExpanded(!mobileStoreExpanded);
+  };
+
+  // Navigate to store section
+  const handleStoreNavigate = (path: string) => {
+    navigate(path);
+    handleStoreClose();
+    if (mobileMenuOpen) {
+      setMobileMenuOpen(false);
     }
   };
 
-  /**
-   * Handles user logout and redirects to home.
-   */
+  // Handle logout
   const handleLogout = () => {
     logout();
     navigate("/");
@@ -617,54 +435,59 @@ const EnhancedHeader = () => {
     }
   };
 
+  // Check if a route is active
+  const isActive = (path: string): boolean => {
+    if (path === '/' && location.pathname === '/') {
+      return true;
+    }
+    return location.pathname === path || location.pathname.startsWith(path);
+  };
+
   /**
-   * Renders the desktop navigation links.
+   * Renders desktop navigation links
    */
   const renderDesktopLinks = () => {
-    const currentPath = location.pathname;
     if (user) {
       return (
         <>
-          <StyledNavLink 
-            to="/store" 
-            className={currentPath === "/store" ? "active" : ""}
+          {/* Store Dropdown */}
+          <StyledNavLinkWithDropdown 
+            as="div"
+            onClick={handleStoreClick}
+            className={isActive('/store') ? "active" : ""}
             variants={itemVariants}
           >
-            Training & Store
-          </StyledNavLink>
+            Store <StyledDropdownIcon />
+          </StyledNavLinkWithDropdown>
+          
           <StyledNavLink 
             to="/client-dashboard" 
-            className={currentPath.includes("/client-dashboard") ? "active" : ""}
+            className={isActive('/client-dashboard') ? "active" : ""}
             variants={itemVariants}
           >
             Client Dashboard
           </StyledNavLink>
 
-          {/* Workout tracking link */}
           <StyledNavLink 
-            to="/workout" 
-            className={currentPath.includes("/workout") ? "active" : ""}
+            to="/workout-tracker" 
+            className={isActive('/workout-tracker') ? "active" : ""}
             variants={itemVariants}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
           >
             Workout Tracker
           </StyledNavLink>
 
-          {/* Visible to all logged-in users */}
           <StyledNavLink 
             to="/schedule" 
-            className={currentPath === "/schedule" ? "active" : ""}
+            className={isActive('/schedule') ? "active" : ""}
             variants={itemVariants}
           >
             Schedule
           </StyledNavLink>
 
-          {/* Admin-only link - Using direct link instead of validation */}
           {user.role === "admin" && (
             <StyledNavLink
               to="/dashboard/default" 
-              className={currentPath.includes("/dashboard") ? "active" : ""}
+              className={isActive('/dashboard') ? "active" : ""}
               variants={itemVariants}
             >
               Admin Dashboard
@@ -676,22 +499,25 @@ const EnhancedHeader = () => {
       return (
         <>
           <StyledNavLink 
-            to="/login" 
-            state={{ backgroundLocation: location }}
-            className={currentPath === "/login" ? "active" : ""}
+            to="/store" 
+            className={isActive('/store') ? "active" : ""}
             variants={itemVariants}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          >
+            Store
+          </StyledNavLink>
+          
+          <StyledNavLink 
+            to="/login" 
+            className={isActive('/login') ? "active" : ""}
+            variants={itemVariants}
           >
             Login
           </StyledNavLink>
+          
           <StyledNavLink 
             to="/signup" 
-            state={{ backgroundLocation: location }}
-            className={currentPath === "/signup" ? "active" : ""}
+            className={isActive('/signup') ? "active" : ""}
             variants={itemVariants}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
           >
             Sign Up
           </StyledNavLink>
@@ -701,63 +527,139 @@ const EnhancedHeader = () => {
   };
 
   /**
-   * Renders the mobile navigation links (mirroring the desktop).
+   * Renders mobile navigation links
    */
   const renderMobileLinks = () => {
-    const currentPath = location.pathname;
     if (user) {
       return (
         <>
-          <MobileNavLink 
-            to="/store" 
-            onClick={() => setMobileMenuOpen(false)}
-            className={currentPath === "/store" ? "active" : ""}
-            variants={mobileLinkVariants}
-          >
-            Training & Store
-          </MobileNavLink>
+          {/* Mobile Store Links */}
+          <motion.div variants={itemVariants}>
+            <MobileNavLink 
+              as="div"
+              onClick={toggleMobileStore}
+              className={isActive('/store') ? "active" : ""}
+            >
+              Store 
+              <KeyboardArrowDownIcon 
+                style={{ 
+                  marginLeft: 'auto', 
+                  transform: mobileStoreExpanded ? 'rotate(180deg)' : 'none', 
+                  transition: 'transform 0.3s ease'
+                }} 
+              />
+            </MobileNavLink>
+            
+            {mobileStoreExpanded && (
+              <MobileSubMenu
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <MobileNavLink 
+                  to="/store" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={isActive('/store') && !location.pathname.includes('/shop') ? "active" : ""}
+                >
+                  <ShoppingBagIcon fontSize="small" /> All Products
+                </MobileNavLink>
+                <MobileNavLink 
+                  to="/shop/training-packages" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={location.pathname.includes('/training-packages') ? "active" : ""}
+                >
+                  <FitnessCenterIcon fontSize="small" /> Training Packages
+                </MobileNavLink>
+                <MobileNavLink 
+                  to="/shop/apparel" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={location.pathname.includes('/apparel') ? "active" : ""}
+                >
+                  <LocalMallIcon fontSize="small" /> Apparel
+                </MobileNavLink>
+                <MobileNavLink 
+                  to="/shop/supplements" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={location.pathname.includes('/supplements') ? "active" : ""}
+                >
+                  <EventNoteIcon fontSize="small" /> 
+                  Supplements <NewBadge>NEW</NewBadge>
+                </MobileNavLink>
+              </MobileSubMenu>
+            )}
+          </motion.div>
+          
           <MobileNavLink
             to="/client-dashboard"
             onClick={() => setMobileMenuOpen(false)}
-            className={currentPath.includes("/client-dashboard") ? "active" : ""}
-            variants={mobileLinkVariants}
+            className={isActive('/client-dashboard') ? "active" : ""}
+            variants={itemVariants}
           >
             Client Dashboard
           </MobileNavLink>
+          
           <MobileNavLink
-            to="/workout"
+            to="/workout-tracker"
             onClick={() => setMobileMenuOpen(false)}
-            className={currentPath.includes("/workout") ? "active" : ""}
-            variants={mobileLinkVariants}
-            whileHover={{ x: 5 }}
-            whileTap={{ scale: 0.95 }}
+            className={isActive('/workout-tracker') ? "active" : ""}
+            variants={itemVariants}
           >
             Workout Tracker
           </MobileNavLink>
+          
           <MobileNavLink 
             to="/schedule" 
             onClick={() => setMobileMenuOpen(false)}
-            className={currentPath === "/schedule" ? "active" : ""}
-            variants={mobileLinkVariants}
+            className={isActive('/schedule') ? "active" : ""}
+            variants={itemVariants}
           >
             Schedule
           </MobileNavLink>
+          
+          <MobileNavLink 
+            to="/food-scanner" 
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/food-scanner') ? "active" : ""}
+            variants={itemVariants}
+          >
+            Food Scanner
+          </MobileNavLink>
+          
+          <MobileNavLink 
+            to="/contact" 
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/contact') ? "active" : ""}
+            variants={itemVariants}
+          >
+            Contact
+          </MobileNavLink>
+          
+          <MobileNavLink 
+            to="/about" 
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/about') ? "active" : ""}
+            variants={itemVariants}
+          >
+            About Us
+          </MobileNavLink>
+          
           {user.role === "admin" && (
             <MobileNavLink
               to="/dashboard/default"
               onClick={() => setMobileMenuOpen(false)}
-              className={currentPath.includes("/dashboard") ? "active" : ""}
-              variants={mobileLinkVariants}
+              className={isActive('/dashboard') ? "active" : ""}
+              variants={itemVariants}
             >
               Admin Dashboard
             </MobileNavLink>
           )}
+          
           <MobileLogoutButton
             onClick={() => {
-              setMobileMenuOpen(false);
               handleLogout();
             }}
-            variants={mobileLinkVariants}
+            variants={itemVariants}
           >
             Logout
           </MobileLogoutButton>
@@ -766,21 +668,56 @@ const EnhancedHeader = () => {
     } else {
       return (
         <>
+          <MobileNavLink 
+            to="/store" 
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/store') ? "active" : ""}
+            variants={itemVariants}
+          >
+            Store
+          </MobileNavLink>
+          
+          <MobileNavLink 
+            to="/food-scanner" 
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/food-scanner') ? "active" : ""}
+            variants={itemVariants}
+          >
+            Food Scanner
+          </MobileNavLink>
+          
+          <MobileNavLink 
+            to="/contact" 
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/contact') ? "active" : ""}
+            variants={itemVariants}
+          >
+            Contact
+          </MobileNavLink>
+          
+          <MobileNavLink 
+            to="/about" 
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/about') ? "active" : ""}
+            variants={itemVariants}
+          >
+            About Us
+          </MobileNavLink>
+          
           <MobileNavLink
             to="/login"
-            state={{ backgroundLocation: location }}
             onClick={() => setMobileMenuOpen(false)}
-            className={currentPath === "/login" ? "active" : ""}
-            variants={mobileLinkVariants}
+            className={isActive('/login') ? "active" : ""}
+            variants={itemVariants}
           >
             Login
           </MobileNavLink>
+          
           <MobileNavLink
             to="/signup"
-            state={{ backgroundLocation: location }}
             onClick={() => setMobileMenuOpen(false)}
-            className={currentPath === "/signup" ? "active" : ""}
-            variants={mobileLinkVariants}
+            className={isActive('/signup') ? "active" : ""}
+            variants={itemVariants}
           >
             Sign Up
           </MobileNavLink>
@@ -791,113 +728,243 @@ const EnhancedHeader = () => {
 
   return (
     <>
+      {/* Main Header */}
       <HeaderContainer
         ref={headerRef}
         style={{
-          height: isScrolled ? '70px' : '80px',
-          background: isScrolled ? 'rgba(9, 4, 30, 0.95)' : 'rgba(9, 4, 30, 0.85)'
+          boxShadow: isScrolled ? '0 5px 20px rgba(0, 0, 0, 0.3)' : 'none',
+          backdropFilter: isScrolled ? 'blur(10px)' : 'none',
         }}
         initial="hidden"
         animate="visible"
         variants={containerVariants}
       >
         <HeaderContent>
-          <Logo
-            variants={logoVariants}
-            whileHover={{ scale: 1.03 }} // Reduced scale effect
-            whileTap={{ scale: 0.97 }} // Reduced scale effect
+          {/* Logo Area with Glow Effect */}
+          <LogoContainer
+            onClick={() => navigate('/')}
+            variants={itemVariants}
           >
             <LogoGlow />
-            <Link to="/" className="logo-text">SwanStudios</Link>
-            <img src={logoImage} alt="SwanStudios Logo" />
-          </Logo>
+            <Logo>
+              <img src={logoImage} alt="SwanStudios Logo" />
+              <span className="logo-text">SwanStudios</span>
+            </Logo>
+          </LogoContainer>
           
-          {/* Reorganized Navigation Layout */}
+          {/* Navigation Area */}
           <NavLinksContainer>
             <Nav variants={containerVariants}>
               <StyledNavLink 
                 to="/" 
-                className={location.pathname === "/" ? "active" : ""}
+                className={isActive('/') ? "active" : ""}
                 variants={itemVariants}
-                whileHover={{ scale: 1.03 }} // Reduced scale effect
-                whileTap={{ scale: 0.97 }} // Reduced scale effect
               >
                 Home
               </StyledNavLink>
+              
               {renderDesktopLinks()}
+              
+              <StyledNavLink 
+                to="/food-scanner" 
+                className={isActive('/food-scanner') ? "active" : ""}
+                variants={itemVariants}
+              >
+                Food Scanner
+              </StyledNavLink>
+              
               <StyledNavLink 
                 to="/contact" 
-                className={location.pathname === "/contact" ? "active" : ""}
+                className={isActive('/contact') ? "active" : ""}
                 variants={itemVariants}
-                whileHover={{ scale: 1.03 }} // Reduced scale effect
-                whileTap={{ scale: 0.97 }} // Reduced scale effect
               >
                 Contact
               </StyledNavLink>
+              
               <StyledNavLink 
                 to="/about" 
-                className={location.pathname === "/about" ? "active" : ""}
+                className={isActive('/about') ? "active" : ""}
                 variants={itemVariants}
-                whileHover={{ scale: 1.03 }} // Reduced scale effect
-                whileTap={{ scale: 0.97 }} // Reduced scale effect
               >
                 About Us
               </StyledNavLink>
             </Nav>
           </NavLinksContainer>
 
-          {/* Right Side Actions - Desktop */}
+          {/* Actions Area */}
           <ActionsContainer variants={containerVariants}>
-            {/* Search Section removed as requested */}
-
-            {/* Berry Admin Notification Component - Only for logged in users */}
-            {user && <NotificationSection />}
-
-            {/* Shopping Cart Button */}
-            <CartButton 
-              onClick={() => setCartOpen(true)} 
-              aria-label="Open shopping cart"
-              variants={itemVariants}
-              whileHover={{ scale: 1.05, rotate: 3 }} // Reduced effects
-              whileTap={{ scale: 0.95 }}
-            >
-              🛒
-              {cart && cart.itemCount > 0 && <CartBadge>{cart.itemCount}</CartBadge>}
-            </CartButton>
-
-            {/* Berry Admin Profile Component - Only for logged in users */}
-            {user && <ProfileSection />}
-            
-            {/* Logout Button - Only for logged-in users, now always visible */}
+            {/* Notification Icon - Only for logged in users */}
             {user && (
-              <LogoutButton 
-                onClick={handleLogout}
-                variants={itemVariants}
-                whileHover={{ scale: 1.03 }} // Reduced scale effect
-                whileTap={{ scale: 0.97 }} // Reduced scale effect
+              <IconButton 
+                sx={{ 
+                  color: 'white',
+                  '&:hover': {
+                    color: '#00a0e3',
+                    backgroundColor: 'rgba(0, 160, 227, 0.05)'
+                  }
+                }}
               >
-                Logout
-              </LogoutButton>
+                <Badge 
+                  badgeContent={1} 
+                  color="error"
+                  sx={{ 
+                    '& .MuiBadge-badge': {
+                      backgroundColor: '#ec4899',
+                      fontSize: '0.65rem',
+                      minWidth: '18px',
+                      height: '18px'
+                    }
+                  }}
+                >
+                  <NotificationsIcon fontSize="small" />
+                </Badge>
+              </IconButton>
             )}
 
-            {/* Mobile Navigation Button */}
-            <MobileMenuButton 
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              whileHover={{ scale: 1.05 }} // Reduced scale effect
-              whileTap={{ scale: 0.95 }}
+            {/* Shopping Cart */}
+            <IconButton 
+              onClick={() => setCartOpen(true)}
+              sx={{ 
+                color: 'white',
+                '&:hover': {
+                  color: '#00a0e3',
+                  backgroundColor: 'rgba(0, 160, 227, 0.05)'
+                }
+              }}
             >
-              <HamburgerIcon ref={hamburgerRef}>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-              </HamburgerIcon>
+              <Badge 
+                badgeContent={cart?.itemCount || 0} 
+                color="error"
+                sx={{ 
+                  '& .MuiBadge-badge': {
+                    backgroundColor: '#ec4899',
+                    fontSize: '0.65rem',
+                    minWidth: '18px',
+                    height: '18px'
+                  }
+                }}
+              >
+                <ShoppingCartIcon fontSize="small" />
+              </Badge>
+            </IconButton>
+
+            {/* User Profile - Only for logged in users */}
+            {user ? (
+              <>
+                <IconButton
+                  sx={{ 
+                    bgcolor: '#00a0e3',
+                    width: 36,
+                    height: 36,
+                    fontSize: '0.9rem',
+                    ml: 0.5,
+                    '&:hover': {
+                      bgcolor: '#0090d0',
+                    }
+                  }}
+                >
+                  {user?.firstName?.[0] || 'U'}
+                </IconButton>
+                
+                {!isMobile && (
+                  <LogoutButton onClick={handleLogout}>
+                    Logout
+                  </LogoutButton>
+                )}
+              </>
+            ) : (
+              <>
+                {isMobile && (
+                  <IconButton
+                    onClick={() => navigate('/login')}
+                    sx={{ 
+                      color: 'white',
+                      '&:hover': {
+                        color: '#00a0e3',
+                        backgroundColor: 'rgba(0, 160, 227, 0.05)'
+                      }
+                    }}
+                  >
+                    <PersonIcon fontSize="small" />
+                  </IconButton>
+                )}
+              </>
+            )}
+
+            {/* Mobile Menu Button */}
+            <MobileMenuButton
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              size="medium"
+            >
+              {mobileMenuOpen ? <CloseIcon /> : <MenuIcon />}
             </MobileMenuButton>
           </ActionsContainer>
         </HeaderContent>
+        
+        {/* Store Dropdown Menu */}
+        <Menu
+          anchorEl={storeAnchorEl}
+          open={Boolean(storeAnchorEl)}
+          onClose={handleStoreClose}
+          anchorOrigin={{
+            vertical: 'bottom',
+            horizontal: 'center',
+          }}
+          transformOrigin={{
+            vertical: 'top',
+            horizontal: 'center',
+          }}
+          PaperProps={{
+            sx: {
+              mt: 0.5,
+              ml: -1,
+              bgcolor: '#0a0a1a',
+              color: 'white',
+              boxShadow: '0 8px 16px rgba(0,0,0,0.3)',
+              border: '1px solid rgba(255,255,255,0.05)',
+              borderRadius: '4px',
+              '& .MuiMenuItem-root': {
+                px: 2,
+                py: 1.5,
+                '&:hover': {
+                  bgcolor: 'rgba(0, 160, 227, 0.05)'
+                }
+              }
+            }
+          }}
+          MenuListProps={{
+            sx: {
+              py: 0.5
+            }
+          }}
+        >
+          <StyledMenuItem onClick={() => handleStoreNavigate('/store')}>
+            <ShoppingBagIcon fontSize="small" /> All Products
+          </StyledMenuItem>
+          <StyledMenuItem onClick={() => handleStoreNavigate('/shop/training-packages')}>
+            <FitnessCenterIcon fontSize="small" /> Training Packages
+          </StyledMenuItem>
+          <StyledMenuItem onClick={() => handleStoreNavigate('/shop/apparel')}>
+            <LocalMallIcon fontSize="small" /> Apparel
+          </StyledMenuItem>
+          <StyledMenuItem 
+            onClick={() => handleStoreNavigate('/shop/supplements')}
+            sx={{
+              '& .MuiListItemText-primary': {
+                display: 'flex',
+                alignItems: 'center'
+              }
+            }}
+          >
+            <EventNoteIcon fontSize="small" />
+            <Box component="span" sx={{ display: 'flex', alignItems: 'center' }}>
+              Supplements <NewBadge>NEW</NewBadge>
+            </Box>
+          </StyledMenuItem>
+        </Menu>
       </HeaderContainer>
 
-      {/* Mobile Dropdown Menu */}
+      {/* Mobile Menu */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <MobileMenu
@@ -909,35 +976,18 @@ const EnhancedHeader = () => {
             <MobileNavLink 
               to="/" 
               onClick={() => setMobileMenuOpen(false)}
-              className={location.pathname === "/" ? "active" : ""}
-              variants={mobileLinkVariants}
+              className={isActive('/') ? "active" : ""}
+              variants={itemVariants}
             >
               Home
             </MobileNavLink>
-            {renderMobileLinks()}
-            <MobileNavLink 
-              to="/contact" 
-              onClick={() => setMobileMenuOpen(false)}
-              className={location.pathname === "/contact" ? "active" : ""}
-              variants={mobileLinkVariants}
-            >
-              Contact
-            </MobileNavLink>
-            <MobileNavLink 
-              to="/about" 
-              onClick={() => setMobileMenuOpen(false)}
-              className={location.pathname === "/about" ? "active" : ""}
-              variants={mobileLinkVariants}
-            >
-              About Us
-            </MobileNavLink>
             
-            {/* Mobile footer removed to avoid duplication with dashboard footer */}
+            {renderMobileLinks()}
           </MobileMenu>
         )}
       </AnimatePresence>
 
-      {/* Render Shopping Cart Modal when open */}
+      {/* Shopping Cart Modal */}
       {cartOpen && <ShoppingCart onClose={() => setCartOpen(false)} />}
     </>
   );

@@ -1,8 +1,7 @@
-// backend/models/User.mjs
+// backend/models/User.simplified.mjs
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
 import bcrypt from 'bcryptjs';
-import Achievement from './Achievement.mjs';
 
 /**
  * Enhanced User Model
@@ -240,15 +239,8 @@ User.init(
       defaultValue: {},
       comment: 'JSON object tracking completed exercises by ID and count'
     },
-    badgesPrimary: {
-      type: DataTypes.UUID,
-      allowNull: true,
-      references: {
-        model: 'achievements',
-        key: 'id'
-      },
-      comment: 'Primary badge displayed on profile'
-    },
+    // Remove the problematic foreign key reference
+    // badgesPrimary field removed
     
     // Authentication fields
     refreshTokenHash: {

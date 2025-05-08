@@ -38,7 +38,7 @@ export const ContentContainer = styled.div`
 
 // Cards
 export const StyledCard = styled.div`
-  background-color: ${({ theme }) => theme.palette.background.paper};
+  background-color: ${({ theme }) => theme?.palette?.background?.paper || '#1e1e2f'};
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   overflow: hidden;
@@ -52,7 +52,7 @@ export const StyledCard = styled.div`
 
 export const CardHeader = styled.div`
   padding: 16px 20px;
-  border-bottom: 1px solid ${({ theme }) => theme.palette.divider};
+  border-bottom: 1px solid ${({ theme }) => theme?.palette?.divider || 'rgba(255, 255, 255, 0.1)'};
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -62,7 +62,7 @@ export const CardTitle = styled.h3`
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: ${({ theme }) => theme.palette.text.primary};
+  color: ${({ theme }) => theme?.palette?.text?.primary || '#ffffff'};
 `;
 
 export const CardContent = styled.div`
@@ -79,7 +79,7 @@ export const AchievementGrid = motion.create(styled.div`
 
 export const AchievementItem = motion.create(styled.div<{ tier: 'bronze' | 'silver' | 'gold' | 'platinum' }>`
   position: relative;
-  background-color: ${({ theme }) => theme.palette.background.paper};
+  background-color: ${({ theme }) => theme?.palette?.background?.paper || '#1e1e2f'};
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   padding: 24px;
@@ -128,20 +128,20 @@ export const AchievementName = styled.h3`
   margin: 0 0 8px 0;
   font-size: 18px;
   font-weight: 600;
-  color: ${({ theme }) => theme.palette.text.primary};
+  color: ${({ theme }) => theme?.palette?.text?.primary || '#ffffff'};
 `;
 
 export const AchievementDescription = styled.p`
   margin: 0 0 16px 0;
   font-size: 14px;
-  color: ${({ theme }) => theme.palette.text.secondary};
+  color: ${({ theme }) => theme?.palette?.text?.secondary || '#cccccc'};
   min-height: 40px;
 `;
 
 export const AchievementReward = styled.div`
   font-size: 14px;
   font-weight: 600;
-  color: ${({ theme }) => theme.palette.success.main};
+  color: ${({ theme }) => theme?.palette?.success?.main || '#4caf50'};
   display: flex;
   align-items: center;
   gap: 4px;
@@ -303,7 +303,7 @@ export const RewardGrid = motion.create(styled.div`
 
 export const RewardItem = motion.create(styled.div<{ tier: 'bronze' | 'silver' | 'gold' | 'platinum' }>`
   position: relative;
-  background-color: ${({ theme }) => theme.palette.background.paper};
+  background-color: ${({ theme }) => theme?.palette?.background?.paper || '#1e1e2f'};
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   padding: 16px 20px;
@@ -361,13 +361,13 @@ export const RewardName = styled.h3`
   margin: 0 0 4px 0;
   font-size: 18px;
   font-weight: 600;
-  color: ${({ theme }) => theme.palette.text.primary};
+  color: ${({ theme }) => theme?.palette?.text?.primary || '#ffffff'};
 `;
 
 export const RewardDescription = styled.p`
   margin: 0;
   font-size: 14px;
-  color: ${({ theme }) => theme.palette.text.secondary};
+  color: ${({ theme }) => theme?.palette?.text?.secondary || '#cccccc'};
   min-height: 40px;
 `;
 
@@ -377,7 +377,7 @@ export const RewardFooter = styled.div`
   justify-content: space-between;
   align-items: center;
   padding-top: 16px;
-  border-top: 1px solid ${({ theme }) => theme.palette.divider};
+  border-top: 1px solid ${({ theme }) => theme?.palette?.divider || 'rgba(255, 255, 255, 0.1)'};
 `;
 
 export const RewardPoints = styled.div<{ tier: 'bronze' | 'silver' | 'gold' | 'platinum' }>`

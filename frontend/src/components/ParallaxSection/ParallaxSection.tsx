@@ -8,11 +8,6 @@ import GlowButton from "../../components/Button/glowButton";
 import wavesVideo from "/Swans.mp4"; // Adjust path if needed
 
 // Keyframe animations
-const shimmer = keyframes`
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-`;
-
 const glow = keyframes`
   0% { filter: drop-shadow(0 0 5px rgba(0, 255, 255, 0.5)); }
   50% { filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.8)); }
@@ -58,7 +53,7 @@ const VideoBackground = styled(motion.div)`
   }
 `;
 
-// Content container - adjusted to match hero aesthetics
+// Content container - removed diagonal glimmer effect
 const ParallaxContent = styled(motion.div)`
   position: relative;
   z-index: 2;
@@ -75,10 +70,11 @@ const ParallaxContent = styled(motion.div)`
   animation: ${glow} 6s ease-in-out infinite;
 `;
 
-// Corrected ParallaxTitle: Match hero section styling
+// Corrected ParallaxTitle - removed animation
 const ParallaxTitle = styled(motion.h2)`
   font-size: clamp(2.2rem, 5.5vw, 3rem);
   margin-bottom: 1.2rem;
+  color: white;
   font-weight: 700;
   position: relative;
   z-index: 1;
@@ -96,7 +92,6 @@ const ParallaxTitle = styled(motion.h2)`
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  animation: ${shimmer} 4s linear infinite;
   
   /* Text shadow to match hero */
   text-shadow: 0 0 30px rgba(120, 81, 169, 0.8);

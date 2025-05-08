@@ -10,16 +10,18 @@ import axios from 'axios';
 import { createServices, Services } from '../services';
 
 // API base URL from environment variables
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-
-// Format the API URL: remove trailing slash if present
-const FORMATTED_API_URL = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+// In development mode, we use relative URLs to leverage Vite's proxy
+const isDevelopment = import.meta.env.MODE === 'development';
+const API_BASE_URL = '';  // Use empty string to rely on relative URLs
 
 // Token validation interval in milliseconds (5 minutes)
 const TOKEN_VALIDATION_INTERVAL = 5 * 60 * 1000;
 
 // Token expiry threshold in milliseconds (2 minutes before expiry)
 const TOKEN_EXPIRY_THRESHOLD = 2 * 60 * 1000;  
+
+// Development mode flag
+const isDevMode = import.meta.env.VITE_DEV_MODE === 'true' || isDevelopment;
 
 // User interface
 export interface User {
@@ -54,9 +56,9 @@ interface AuthContextType {
   services: Services; // Add services to the context
 }
 
-// Create axios instance with auth header and fixed URL path
+// Create axios instance with auth header
 const api = axios.create({
-  baseURL: FORMATTED_API_URL,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -101,6 +103,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Create ref for the validation interval to easily clear it
   const validationIntervalRef = useRef<number | null>(null);
 
+  /**
+   * Load user data from localStorage or create mock user if in development mode
+   */
+  const loadUserFromStorage = useCallback((): User | null => {
+    try {
+      const cachedUserData = localStorage.getItem('user_data');
+      
+      if (cachedUserData) {
+        const userData = JSON.parse(cachedUserData);
+        if (userData && userData.id && userData.role) {
+          console.log(`✅ Using cached user data: ${userData.firstName} (${userData.role})`);
+          return userData;
+        }
+      }
+    } catch (cacheError) {
+      console.warn('Error reading cached user data:', cacheError);
+    }
+    
+    // Create mock user in development mode
+    if (isDevMode) {
+      const mockUser: User = {
+        id: 'dev-user-id',
+        email: 'ogpswan@example.com',
+        firstName: 'Dev',
+        lastName: 'User',
+        username: 'ogpswan',
+        role: 'client',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Save to localStorage for consistent experience
+      localStorage.setItem('user_data', JSON.stringify(mockUser));
+      
+      console.log('🧪 Created mock development user');
+      return mockUser;
+    }
+    
+    return null;
+  }, []);
+
   // Define validateToken as a method that can be called explicitly
   const validateToken = useCallback(async (): Promise<boolean> => {
     const storedToken = localStorage.getItem('token');
@@ -115,69 +158,73 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
       
       // For development - skip validation and assume token is valid
-      // This prevents authentication errors during development
-      // IMPORTANT: Remove or modify this for production
-      console.log('Development mode: Skipping token validation and assuming token is valid');
-      if (storedToken) {
-        // Try to get user data from localStorage if available
-        try {
-          const cachedUserData = localStorage.getItem('user_data');
-          if (cachedUserData) {
-            const userData = JSON.parse(cachedUserData);
-            if (userData && userData.id && userData.role) {
-              setUser(userData);
-              setToken(storedToken);
-              console.log(`✅ Using cached user data: ${userData.firstName} (${userData.role})`);
-              return true;
-            }
-          }
-        } catch (cacheError) {
-          console.warn('Error reading cached user data:', cacheError);
+      if (isDevMode) {
+        console.log('🧪 Development mode: Skipping token validation and assuming token is valid');
+        
+        // Load user from storage or create mock user
+        const userData = loadUserFromStorage();
+        
+        if (userData) {
+          setUser(userData);
+          setToken(storedToken);
+          return true;
         }
         
-        // If no cached data, create a minimal user object
-        // This is only for development - remove for production
-        const defaultUser = {
-          id: 'temp-user-id',
-          email: 'temp@example.com',
-          firstName: 'Temp',
-          lastName: 'User',
-          role: 'client',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
+        // If we couldn't load or create a user, check if we have a token that looks like a dev token
+        if (storedToken.startsWith('dev-') || storedToken === 'mock-token-for-development-mode') {
+          // Create a default mock user
+          const defaultUser: User = {
+            id: 'mock-user-id',
+            username: 'ogpswan',
+            email: 'ogpswan@example.com',
+            firstName: 'Mock',
+            lastName: 'User',
+            role: 'client',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          
+          // Save to localStorage for future use
+          localStorage.setItem('user_data', JSON.stringify(defaultUser));
+          
+          setUser(defaultUser);
+          setToken(storedToken);
+          console.log('🧪 Created default mock user for development');
+          return true;
+        }
+      }
+      
+      // Try to validate with the server (only in production)
+      if (!isDevMode) {
+        // Fetch user profile
+        console.log('Validating token by fetching user profile...');
         
-        setUser(defaultUser);
-        setToken(storedToken);
-        return true;
+        // Use a timeout to prevent hanging
+        const timeoutPromise = new Promise<any>((_, reject) => {
+          setTimeout(() => reject(new Error('Profile fetch timeout')), 5000);
+        });
+        
+        const response = await Promise.race([
+          api.get('/api/auth/me'),
+          timeoutPromise
+        ]);
+        
+        // Ensure we have a valid user object with role
+        if (response && response.data && response.data.id && response.data.role) {
+          setUser(response.data);
+          setToken(storedToken);
+          // Save user data to localStorage for faster loading next time
+          localStorage.setItem('user_data', JSON.stringify(response.data));
+          console.log(`✅ Token valid: User ${response.data.firstName} (${response.data.role}) authenticated.`);
+          return true;
+        } else {
+          console.error('❌ Token validation failed: Invalid user data received');
+          throw new Error('Invalid user data received');
+        }
       }
       
-      // Disabled original validation code
-      /*
-      // Fetch user profile - using /api prefix to match backend routes
-      console.log('Validating token by fetching user profile...');
-      
-      // Use a timeout to prevent hanging
-      const timeoutPromise = new Promise<any>((_, reject) => {
-        setTimeout(() => reject(new Error('Profile fetch timeout')), 5000);
-      });
-      
-      const response = await Promise.race([
-        api.get('/api/auth/me'),
-        timeoutPromise
-      ]);
-      
-      // Ensure we have a valid user object with role
-      if (response && response.data && response.data.id && response.data.role) {
-        setUser(response.data);
-        setToken(storedToken);
-        console.log(`✅ Token valid: User ${response.data.firstName} (${response.data.role}) authenticated.`);
-        return true;
-      } else {
-        console.error('❌ Token validation failed: Invalid user data received');
-        throw new Error('Invalid user data received');
-      }
-      */
+      // Default return for development mode with no token or user data
+      return true;
     } catch (err: any) {
       console.error('❌ Token validation failed:', err?.response?.status || err.message);
       
@@ -189,14 +236,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       // For development - assume token is valid despite errors
-      // IMPORTANT: Remove this for production
-      console.log('Development mode: Ignoring validation error and proceeding anyway');
-      return true;
+      if (isDevMode) {
+        console.log('🧪 Development mode: Ignoring validation error and proceeding anyway');
+        
+        // Try to load user from storage
+        const userData = loadUserFromStorage();
+        
+        if (userData) {
+          setUser(userData);
+          setToken(storedToken);
+          return true;
+        }
+      }
       
-      // Original error handling - disabled for development
-      // return false;
+      return false;
     }
-  }, []);
+  }, [loadUserFromStorage]);
 
   // Comprehensive function to check authentication state
   const checkAuth = useCallback(async () => {
@@ -325,17 +380,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [token]);
 
-  // Login function with improved error handling
+  // Login function with improved error handling and development mode support
   const login = async (usernameOrEmail: string, password: string) => {
     try {
       setIsLoading(true);
       setError(null);
 
-      // Using the /api prefix to match backend routes
-      console.log(`🔑 Attempting login to ${FORMATTED_API_URL}/api/auth/login`);
-      // Send username directly to match backend validation expectations
+      console.log(`🔑 Attempting login to /api/auth/login`);
       console.log(`Login attempt with username/email: ${usernameOrEmail}`);
-      const response = await api.post('/api/auth/login', { username: usernameOrEmail, password });
+      
+      // In development mode, use mock login if configured
+      if (isDevMode) {
+        console.log('Development mode: Using mock login');
+        
+        // Create a mock user based on the username
+        const mockUser = {
+          id: 'mock-user-id',
+          username: usernameOrEmail,
+          email: `${usernameOrEmail}@example.com`,
+          firstName: usernameOrEmail === 'admin' ? 'Admin' : 'Mock',
+          lastName: 'User',
+          // If username contains "admin", make them an admin
+          role: usernameOrEmail.toLowerCase().includes('admin') ? 'admin' : 'client',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        // Set mock token in localStorage
+        const mockToken = 'mock-token-for-development-mode';
+        localStorage.setItem('token', mockToken);
+        localStorage.setItem('login_timestamp', Date.now().toString());
+        localStorage.setItem('user_data', JSON.stringify(mockUser));
+        
+        // Update state
+        setToken(mockToken);
+        setUser(mockUser);
+        setLoginTimestamp(Date.now());
+        
+        // Small delay to simulate API call
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Return mock response
+        return {
+          token: mockToken,
+          user: mockUser
+        };
+      }
+      
+      // Real API call for production
+      const response = await api.post('/api/auth/login', { 
+        username: usernameOrEmail, 
+        password 
+      });
       
       // Validate response data
       if (!response.data || !response.data.token) {
@@ -346,6 +442,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Save token to localStorage
       localStorage.setItem('token', token);
+      
+      // Save user data to localStorage for faster loading next time
+      localStorage.setItem('user_data', JSON.stringify(user));
       
       // Set login timestamp for token expiration tracking
       const timestamp = Date.now();
@@ -377,8 +476,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           errorMessage = err.response.data?.message || 'Authentication failed. Please try again.';
         }
       } else if (err.request) {
-        // Request was made but no response received
         errorMessage = 'No response from server. Please check your connection.';
+        
+        // In development mode, use mock login as fallback
+        if (isDevMode) {
+          console.log('Server connection issue detected. Using mock login for development.');
+          
+          // Create a mock user based on the username
+          const mockUser = {
+            id: 'dev-user-id',
+            username: usernameOrEmail,
+            email: `${usernameOrEmail}@example.com`,
+            firstName: 'Dev',
+            lastName: 'User',
+            role: usernameOrEmail.toLowerCase().includes('admin') ? 'admin' : 'client',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+          
+          // Set mock token in localStorage
+          const mockToken = 'dev-mock-token';
+          localStorage.setItem('token', mockToken);
+          localStorage.setItem('login_timestamp', Date.now().toString());
+          localStorage.setItem('user_data', JSON.stringify(mockUser));
+          
+          // Update state
+          setToken(mockToken);
+          setUser(mockUser);
+          setLoginTimestamp(Date.now());
+          
+          // Return mock response
+          return {
+            token: mockToken,
+            user: mockUser
+          };
+        }
       } else {
         // Something else caused the error
         errorMessage = err.message || 'Failed to log in. Please try again.';
@@ -407,6 +539,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Clear all auth-related items from localStorage
       localStorage.removeItem('token');
       localStorage.removeItem('login_timestamp');
+      localStorage.removeItem('user_data');
       
       // Clear any cached user preferences or session data
       // This prevents stale data from affecting a new login session
@@ -443,18 +576,57 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Signup function
+  // Signup function with development mode support
   const signup = async (userData: any) => {
     try {
       setIsLoading(true);
       setError(null);
 
       console.log('📝 Attempting user registration...');
+      
+      // In development mode, use mock signup if configured
+      if (isDevMode) {
+        console.log('Development mode: Using mock signup');
+        
+        // Create a mock user based on the provided data
+        const mockUser = {
+          id: 'mock-user-id',
+          username: userData.username,
+          email: userData.email,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          role: userData.role || 'client',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        // Set mock token in localStorage
+        const mockToken = 'mock-token-for-development-mode';
+        localStorage.setItem('token', mockToken);
+        localStorage.setItem('login_timestamp', Date.now().toString());
+        localStorage.setItem('user_data', JSON.stringify(mockUser));
+        
+        // Update state
+        setToken(mockToken);
+        setUser(mockUser);
+        setLoginTimestamp(Date.now());
+        
+        // Small delay to simulate API call
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // Return mock response
+        return;
+      }
+      
+      // Real API call for production
       const response = await api.post('/api/auth/register', userData);
       const { token, user } = response.data;
 
       // Save token to localStorage
       localStorage.setItem('token', token);
+      
+      // Save user data to localStorage for faster loading next time
+      localStorage.setItem('user_data', JSON.stringify(user));
       
       // Set login timestamp
       const timestamp = Date.now();
@@ -493,10 +665,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setError(null);
 
       console.log('🔄 Updating user profile...');
+      
+      // In development mode, use mock profile update if configured
+      if (isDevMode) {
+        console.log('Development mode: Using mock profile update');
+        
+        // Get current user data
+        const currentUser = user || loadUserFromStorage();
+        
+        if (!currentUser) {
+          throw new Error('No user found to update');
+        }
+        
+        // Create updated user
+        const updatedUser = {
+          ...currentUser,
+          ...userData,
+          updatedAt: new Date().toISOString()
+        };
+        
+        // Save to localStorage
+        localStorage.setItem('user_data', JSON.stringify(updatedUser));
+        
+        // Update state
+        setUser(updatedUser);
+        
+        // Small delay to simulate API call
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        console.log('✅ Profile updated successfully (mock)');
+        return;
+      }
+      
+      // Real API call for production
       const response = await api.patch('/api/auth/profile', userData);
       
       // Update state
       setUser(response.data);
+      
+      // Save updated user data to localStorage
+      localStorage.setItem('user_data', JSON.stringify(response.data));
+      
       console.log('✅ Profile updated successfully');
     } catch (err: any) {
       console.error('❌ Update user error:', err);

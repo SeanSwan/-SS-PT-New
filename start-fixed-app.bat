@@ -1,36 +1,53 @@
 @echo off
 echo.
-echo Starting application with all fixes applied...
+echo ===============================================
+echo SwanStudios Application Startup (Fixed Version)
+echo ===============================================
 echo.
 
-echo 1. Running fix-remaining-models.mjs (fixes missing model exports)...
-cd backend
-node fix-remaining-models.mjs
-if %ERRORLEVEL% neq 0 (
-  echo Error running fix-remaining-models.mjs
-  exit /b %ERRORLEVEL%
+REM Check if MongoDB is installed
+echo Checking MongoDB installation...
+mongod --version >nul 2>&1
+if %errorlevel% neq 0 (
+    echo MongoDB is not installed or not in PATH
+    echo Proceeding with SQLite fallback
+    set USE_SQLITE=true
+) else (
+    echo MongoDB found.
+    set USE_SQLITE=false
 )
 
-echo 2. Running fix-all.mjs (fixes admin user and database)...
-node fix-all.mjs
-if %ERRORLEVEL% neq 0 (
-  echo Error running fix-all.mjs
-  exit /b %ERRORLEVEL%
+REM Create MongoDB data directory if needed and SQLite is not used
+if "%USE_SQLITE%"=="false" (
+    echo Creating MongoDB data directory if needed...
+    if not exist "C:\data\db" mkdir "C:\data\db"
 )
 
-echo 3. Running fix-auth-routes.mjs (fixes authentication and API routes)...
-node fix-auth-routes.mjs
-if %ERRORLEVEL% neq 0 (
-  echo Error running fix-auth-routes.mjs
-  exit /b %ERRORLEVEL%
+REM Start MongoDB if available
+if "%USE_SQLITE%"=="false" (
+    echo Starting MongoDB...
+    start cmd /k "title MongoDB Server && mongod --port 5001 --dbpath C:/data/db"
+    echo Waiting for MongoDB to start...
+    timeout /t 5 /nobreak >nul
 )
 
-echo 4. Starting the application...
-cd ..
-npm run start
+REM Start frontend
+echo Starting frontend...
+start cmd /k "title Frontend Server && cd frontend && npm run dev"
+
+REM Start backend
+echo Starting backend...
+if "%USE_SQLITE%"=="true" (
+    start cmd /k "title Backend Server (SQLite) && cd backend && set USE_SQLITE_FALLBACK=true&& npm run dev"
+) else (
+    start cmd /k "title Backend Server && cd backend && npm run dev"
+)
 
 echo.
-echo If the application started successfully, you can log in with:
-echo Username: ogpswan
-echo Password: Password123!
+echo Application started!
 echo.
+echo Frontend: http://localhost:5175
+echo Backend: http://localhost:5000
+echo.
+echo Press any key to close this window...
+pause >nul

@@ -1,13 +1,11 @@
-import {
-  User,
-  Achievement,
-  Reward,
-  Milestone,
-  PointTransaction,
-  Exercise,
-  Gamification,
-  GamificationSettings
-} from '../models/associations.mjs';
+import User from '../models/User.mjs';
+import Achievement from '../models/Achievement.mjs';
+import Reward from '../models/Reward.mjs';
+import Milestone from '../models/Milestone.mjs';
+import PointTransaction from '../models/PointTransaction.mjs';
+import Exercise from '../models/Exercise.mjs';
+import Gamification from '../models/Gamification.mjs';
+import GamificationSettings from '../models/GamificationSettings.mjs';
 
 // These models aren't exported directly from associations but are created through Sequelize's associations
 import UserAchievement from '../models/UserAchievement.mjs';

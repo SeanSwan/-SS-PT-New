@@ -1,3 +1,9 @@
+// Re-import necessary components
+import EnhancedAdminSessionsView from './Pages/admin-sessions/enhanced-admin-sessions-view';
+import ModernUserManagementSystem from './Pages/user-management/modern-user-management';
+import ClientDashboardView from './Pages/client-dashboard/client-dashboard-view';
+import AdminClientProgressView from './Pages/admin-client-progress/admin-client-progress-view';
+import DashboardView from './dashboard-view';
 import React, { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { styled, ThemeProvider, createTheme } from '@mui/material/styles';
@@ -6,13 +12,8 @@ import { useAuth } from '../../context/AuthContext';
 
 // Import components
 import MainLayout from './MainLayout/main-layout';
-// Import enhanced components with better styling
-import EnhancedAdminSessionsView from './Pages/admin-sessions/enhanced-admin-sessions-view';
-import EnhancedUserManagementView from './Pages/user-management/enhanced-user-management-view';
-import ModernUserManagementSystem from './Pages/user-management/modern-user-management';
-import ClientDashboardView from './Pages/client-dashboard/client-dashboard-view';
-import AdminClientProgressView from './Pages/admin-client-progress/admin-client-progress-view';
-import DashboardView from './dashboard-view';
+// Import admin packages management view
+import AdminPackagesView from './Pages/admin-packages/admin-packages-view';
 
 // Import config
 import { gridSpacing } from '../../store/constant';
@@ -459,7 +460,7 @@ const AdminDashboardLayout: React.FC = () => {
               <Route path="/client-progress" element={<ClientDashboardView />} />
               <Route path="/client-management" element={<AdminClientProgressView />} />
               <Route path="/reports" element={<ReportsPlaceholder />} />
-              <Route path="/settings" element={<SettingsPlaceholder />} />
+              <Route path="/admin-packages" element={<AdminPackagesView />} />
               {/* Fallback route to default dashboard */}
               <Route path="*" element={<Navigate to="/dashboard/default" replace />} />
             </Routes>

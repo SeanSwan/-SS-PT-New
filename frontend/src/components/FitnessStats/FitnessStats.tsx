@@ -70,13 +70,19 @@ interface CustomTooltipProps {
   label?: string;
 }
 
-// Animation keyframes - SLOWED DOWN ANIMATIONS
-const diagonalShimmer = keyframes`
-  0% {
-    background-position: 200% -200%;
+// Animation keyframes - Single subtle diagonal glimmer animation every 5 seconds
+const diagonalGlimmer = keyframes`
+  0%, 85% {
+    background-position: -200% 200%;
+    opacity: 0;
+  }
+  90%, 95% {
+    background-position: 0% 0%;
+    opacity: 0.8;
   }
   100% {
-    background-position: -200% 200%;
+    background-position: 200% -200%;
+    opacity: 0;
   }
 `;
 
@@ -168,7 +174,7 @@ const SectionTitle = styled(motion.h2)`
   -webkit-text-fill-color: transparent;
   background-clip: text;
   color: transparent;
-  animation: ${diagonalShimmer} 6s linear infinite;
+  animation: ${diagonalGlimmer} 8s ease-in-out infinite;
   position: relative;
   
   &::after {
@@ -211,7 +217,7 @@ const StatsGrid = styled(motion.div)`
   }
 `;
 
-// Enhanced 3D StatCard
+// Enhanced 3D StatCard with improved diagonal glimmer
 const StatCard = styled(motion.div)`
   background: linear-gradient(135deg, rgba(25, 25, 45, 0.95), rgba(10, 10, 25, 0.95));
   border-radius: 15px;
@@ -233,7 +239,7 @@ const StatCard = styled(motion.div)`
   border: 1px solid rgba(255, 255, 255, 0.05);
   transition: transform 0.5s ease, box-shadow 0.5s ease;
   
-  /* Diagonal gradient animation (top-right to bottom-left) */
+  /* Natural diagonal glimmer effect (top-right to bottom-left) */
   &:after {
     content: "";
     position: absolute;
@@ -244,13 +250,16 @@ const StatCard = styled(motion.div)`
     background: linear-gradient(
       135deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.03) 50%,
+      rgba(255, 255, 255, 0.03) 25%,
+      rgba(255, 255, 255, 0.05) 50%,
+      rgba(255, 255, 255, 0.03) 75%,
       transparent 100%
     );
     background-size: 400% 400%;
-    animation: ${diagonalShimmer} 8s linear infinite; // Slowed down
+    animation: ${diagonalGlimmer} 12s ease-in-out infinite;
     pointer-events: none;
     border-radius: 15px;
+    opacity: 0.6;
   }
   
   &:hover {
@@ -260,7 +269,11 @@ const StatCard = styled(motion.div)`
       0 2px 10px rgba(255, 255, 255, 0.1) inset,
       0 -2px 10px rgba(0, 0, 0, 0.4) inset,
       0 0 20px rgba(70, 205, 207, 0.2);
-    animation: ${pulse} 4s ease infinite; // Slowed down
+    animation: ${pulse} 4s ease infinite;
+    
+    &:after {
+      opacity: 1;
+    }
   }
 `;
 
@@ -289,7 +302,7 @@ const IconWrapper = styled.div<IconWrapperProps>`
     border-radius: 50%;
     border: 1px solid ${props => props.color};
     opacity: 0.5;
-    animation: ${glow} 6s ease-in-out infinite; // Slowed down
+    animation: ${glow} 6s ease-in-out infinite;
   }
 `;
 
@@ -319,7 +332,7 @@ const StatUnit = styled.div`
   font-style: italic;
 `;
 
-// Enhanced 3D ChartCard
+// Enhanced 3D ChartCard with improved diagonal glimmer
 const ChartsContainer = styled(motion.div)`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -351,7 +364,7 @@ const ChartCard = styled(motion.div)`
   flex-direction: column;
   transition: transform 0.5s ease, box-shadow 0.5s ease;
   
-  /* Diagonal gradient animation (top-right to bottom-left) */
+  /* Single subtle diagonal glimmer effect (top-right to bottom-left) */
   &:after {
     content: "";
     position: absolute;
@@ -362,13 +375,17 @@ const ChartCard = styled(motion.div)`
     background: linear-gradient(
       135deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.03) 50%,
+      rgba(255, 255, 255, 0.05) 25%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 75%,
       transparent 100%
     );
-    background-size: 400% 400%;
-    animation: ${diagonalShimmer} 8s linear infinite; // Slowed down
+    background-size: 200% 200%;
+    animation: ${diagonalGlimmer} 5s linear infinite;
     pointer-events: none;
     border-radius: 15px;
+    opacity: 0;
+    z-index: 0;
   }
   
   &:hover {
@@ -378,6 +395,10 @@ const ChartCard = styled(motion.div)`
       0 2px 10px rgba(255, 255, 255, 0.1) inset,
       0 -2px 10px rgba(0, 0, 0, 0.4) inset,
       0 0 20px rgba(70, 205, 207, 0.2);
+      
+    &:after {
+      opacity: 1;
+    }
   }
 `;
 
@@ -387,6 +408,7 @@ const ChartTitle = styled.h3`
   margin-bottom: 0.5rem;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); // Added shadow for depth
   position: relative;
+  z-index: 1;
   
   &:after {
     content: "";
@@ -403,12 +425,16 @@ const ChartDescription = styled.p`
   font-size: 0.9rem;
   color: #c0c0c0;
   margin-bottom: 1rem;
+  position: relative;
+  z-index: 1;
 `;
 
 const ChartContent = styled.div`
   flex: 1;
   width: 100%;
   height: 250px;
+  position: relative;
+  z-index: 1;
 `;
 
 // Enhanced tooltip styles

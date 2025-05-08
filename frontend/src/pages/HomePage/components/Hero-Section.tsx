@@ -20,11 +20,6 @@ interface RippleProps {
 }
 
 // --- Animation Keyframes ---
-const shimmer = keyframes`
-  0% { background-position: -100% 0; }
-  100% { background-position: 200% 0; }
-`;
-
 const float = keyframes`
   0% { transform: translateY(0); }
   50% { transform: translateY(-15px); }
@@ -153,17 +148,20 @@ const LogoContainer = styled(motion.div)`
   }
 `;
 
-// PremiumGlowButton has been removed
-
+// Improved HeroContent with no animation
 const HeroContent = styled(motion.div)`
   position: relative;
   z-index: 2;
   max-width: 800px;
   width: 100%;
   margin: 0 auto;
+  padding: 2rem;
+  background: rgba(10, 10, 30, 0.2);
+  border-radius: 20px;
+  backdrop-filter: blur(5px);
 
   @media (max-width: 768px) {
-    padding: 0;
+    padding: 1.5rem;
   }
 `;
 
@@ -182,7 +180,6 @@ const Title = styled(motion.h1)`
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  animation: ${shimmer} 4s linear infinite;
   margin-bottom: 1rem;
   text-shadow: 0 0 30px rgba(120, 81, 169, 0.8);
 
@@ -222,7 +219,6 @@ const Tagline = styled(motion.h2)`
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
-    animation: ${shimmer} 4s linear infinite;
     display: inline-block;
     font-weight: 600;
     padding: 0 5px;
@@ -397,8 +393,6 @@ const HeroSection: React.FC = () => {
           />
         ))}
       </MouseInteractionArea>
-
-      {/* Premium button removed */}
 
       <motion.div initial="hidden" animate={controls} variants={containerVariants}>
         <LogoContainer variants={itemVariants}>

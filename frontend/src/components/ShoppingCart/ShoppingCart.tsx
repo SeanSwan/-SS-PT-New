@@ -349,11 +349,81 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
       // Log checkout attempt
       console.log('Initiating checkout process...');
       
+      // Process session packages - enhance cart items with detailed session info
+      const enhancedCartItems = cart.items.map(item => {
+        // Determine if this is a training package
+        const isTrainingPackage = item.storefrontItem?.name?.includes('Gold') || 
+                              item.storefrontItem?.name?.includes('Platinum') ||
+                              item.storefrontItem?.name?.includes('Rhodium') ||
+                              item.storefrontItem?.name?.includes('Silver');
+        
+        let sessionDetails = {};
+        
+        if (isTrainingPackage) {
+          if (item.storefrontItem?.name?.includes('Gold Glimmer')) {
+            sessionDetails = {
+              sessionCount: 8,
+              pricePerSession: 175,
+              packageType: 'fixed'
+            };
+          } else if (item.storefrontItem?.name?.includes('Platinum Pulse')) {
+            sessionDetails = {
+              sessionCount: 20,
+              pricePerSession: 165,
+              packageType: 'fixed'
+            };
+          } else if (item.storefrontItem?.name?.includes('Rhodium Rise')) {
+            sessionDetails = {
+              sessionCount: 50,
+              pricePerSession: 150,
+              packageType: 'fixed'
+            };
+          } else if (item.storefrontItem?.name?.includes('Silver Storm')) {
+            sessionDetails = {
+              months: 3,
+              sessionsPerWeek: 4,
+              sessionCount: 48, // 3 months × 4 weeks × 4 sessions/week
+              pricePerSession: 155,
+              packageType: 'monthly'
+            };
+          } else if (item.storefrontItem?.name?.includes('Gold Grandeur')) {
+            sessionDetails = {
+              months: 6,
+              sessionsPerWeek: 4,
+              sessionCount: 96, // 6 months × 4 weeks × 4 sessions/week
+              pricePerSession: 145,
+              packageType: 'monthly'
+            };
+          } else if (item.storefrontItem?.name?.includes('Platinum Prestige')) {
+            sessionDetails = {
+              months: 9,
+              sessionsPerWeek: 4,
+              sessionCount: 144, // 9 months × 4 weeks × 4 sessions/week
+              pricePerSession: 140,
+              packageType: 'monthly'
+            };
+          } else if (item.storefrontItem?.name?.includes('Rhodium Reign')) {
+            sessionDetails = {
+              months: 12,
+              sessionsPerWeek: 4,
+              sessionCount: 192, // 12 months × 4 weeks × 4 sessions/week
+              pricePerSession: 135,
+              packageType: 'monthly'
+            };
+          }
+        }
+        
+        return {
+          ...item,
+          sessionDetails
+        };
+      });
+      
       // HYBRID APPROACH: First try the API, then fallback to client-side if needed
       try {
         // Try the real API first (for future Stripe integration)
         const response = await Promise.race([
-          authAxios.post('/api/cart/checkout'),
+          authAxios.post('/api/cart/checkout', { enhancedCartItems }), // Send enhanced cart data
           // Timeout after 3 seconds to prevent hanging
           new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), 3000))
         ]) as any;
@@ -371,17 +441,31 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
       }
       
       // CLIENT-SIDE FALLBACK
-      // Save cart data for future server integration
+      // Save cart data with detailed session information for future server integration
       if (cart) {
         try {
+          // Save enhanced cart data with session details to localStorage
           localStorage.setItem('lastCheckoutData', JSON.stringify({
-            items: cart.items,
+            items: enhancedCartItems,
             total: cart.total,
             itemCount: cart.itemCount,
-            timestamp: new Date().toISOString()
+            userId: user?.id, // Store user ID for admin dashboard integration
+            userEmail: user?.email,
+            userName: user?.firstName + ' ' + (user?.lastName || ''),
+            timestamp: new Date().toISOString(),
+            status: 'completed',
+            paymentMethod: 'stripe' // Mock payment method
+          }));
+          
+          // Also save to sessionStorage for immediate admin dashboard availability
+          sessionStorage.setItem('recentPurchase', JSON.stringify({
+            items: enhancedCartItems,
+            userId: user?.id,
+            timestamp: new Date().toISOString(),
+            status: 'completed'
           }));
         } catch (e) {
-          console.warn('Failed to save cart data to localStorage:', e);
+          console.warn('Failed to save cart data to storage:', e);
         }
       }
       
@@ -391,7 +475,7 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
       // Simulate payment processing
       setTimeout(() => {
         // Redirect to success page with mock order details
-        window.location.href = `${window.location.origin}/checkout/success?session_id=${mockOrderId}&amount=${cart.total}`;
+        window.location.href = `${window.location.origin}/checkout/success?session_id=${mockOrderId}&amount=${cart.total}&client=${encodeURIComponent(user?.firstName || 'Client')}`;
       }, 800);
       
       return;
@@ -467,44 +551,94 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
                 <>
                   <CartItemsList>
                     <AnimatePresence>
-                      {cart.items.map((item) => (
-                        <CartItemContainer
-                          key={item.id}
-                          variants={itemVariants}
-                          initial="hidden"
-                          animate="visible"
-                          exit="exit"
-                        >
-                          <ItemDetails>
-                            <ItemName>{item.storefrontItem?.name || `Package #${item.storefrontItemId}`}</ItemName>
-                            <ItemDescription>
-                              {item.storefrontItem?.description || "Premium training package"}
-                            </ItemDescription>
-                          </ItemDetails>
-                          
-                          <PriceContainer>
-                            <ItemPrice>${formatPrice(item.price * item.quantity)}</ItemPrice>
-                            <QuantityControls>
-                              <QuantityButton 
-                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                disabled={item.quantity <= 1}
-                              >
-                                -
-                              </QuantityButton>
-                              <QuantityValue>{item.quantity}</QuantityValue>
-                              <QuantityButton 
-                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              >
-                                +
-                              </QuantityButton>
-                            </QuantityControls>
-                          </PriceContainer>
-                          
-                          <RemoveButton onClick={() => removeItem(item.id)}>
-                            ✕
-                          </RemoveButton>
-                        </CartItemContainer>
-                      ))}
+                      {cart.items.map((item) => {
+                        // Determine if this is a training package
+                        const isTrainingPackage = item.storefrontItem?.name?.includes('Gold') || 
+                                                  item.storefrontItem?.name?.includes('Platinum') ||
+                                                  item.storefrontItem?.name?.includes('Rhodium') ||
+                                                  item.storefrontItem?.name?.includes('Silver');
+                        
+                        // Get session details for training packages                    
+                        let sessionDetails = '';
+                        let pricePerSession = 0;
+                        let sessionCount = 0;
+                        
+                        if (isTrainingPackage) {
+                          if (item.storefrontItem?.name?.includes('Gold Glimmer')) {
+                            sessionDetails = '8 sessions at $175 per session';
+                            pricePerSession = 175;
+                            sessionCount = 8;
+                          } else if (item.storefrontItem?.name?.includes('Platinum Pulse')) {
+                            sessionDetails = '20 sessions at $165 per session';
+                            pricePerSession = 165;
+                            sessionCount = 20;
+                          } else if (item.storefrontItem?.name?.includes('Rhodium Rise')) {
+                            sessionDetails = '50 sessions at $150 per session';
+                            pricePerSession = 150;
+                            sessionCount = 50;
+                          } else if (item.storefrontItem?.name?.includes('Silver Storm')) {
+                            sessionDetails = '3 months, 4 sessions/week at $155 per session';
+                            pricePerSession = 155;
+                            sessionCount = 48; // 3 months × 4 weeks × 4 sessions/week
+                          } else if (item.storefrontItem?.name?.includes('Gold Grandeur')) {
+                            sessionDetails = '6 months, 4 sessions/week at $145 per session';
+                            pricePerSession = 145;
+                            sessionCount = 96; // 6 months × 4 weeks × 4 sessions/week
+                          } else if (item.storefrontItem?.name?.includes('Platinum Prestige')) {
+                            sessionDetails = '9 months, 4 sessions/week at $140 per session';
+                            pricePerSession = 140;
+                            sessionCount = 144; // 9 months × 4 weeks × 4 sessions/week
+                          } else if (item.storefrontItem?.name?.includes('Rhodium Reign')) {
+                            sessionDetails = '12 months, 4 sessions/week at $135 per session';
+                            pricePerSession = 135;
+                            sessionCount = 192; // 12 months × 4 weeks × 4 sessions/week
+                          }
+                        }
+                        
+                        return (
+                          <CartItemContainer
+                            key={item.id}
+                            variants={itemVariants}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
+                          >
+                            <ItemDetails>
+                              <ItemName>{item.storefrontItem?.name || `Package #${item.storefrontItemId}`}</ItemName>
+                              <ItemDescription>
+                                {isTrainingPackage ? sessionDetails : (item.storefrontItem?.description || "Premium training package")}
+                              </ItemDescription>
+                              {isTrainingPackage && (
+                                <span style={{ fontSize: '0.9rem', color: '#00ffff', marginTop: '0.5rem' }}>
+                                  {sessionCount} total sessions
+                                </span>
+                              )}
+                            </ItemDetails>
+                            
+                            <PriceContainer>
+                              <ItemPrice>${formatPrice(item.price * item.quantity)}</ItemPrice>
+                              <QuantityControls>
+                                <QuantityButton 
+                                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                                  disabled={item.quantity <= 1}
+                                >
+                                  -
+                                </QuantityButton>
+                                <QuantityValue>{item.quantity}</QuantityValue>
+                                <QuantityButton 
+                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                >
+                                  +
+                                </QuantityButton>
+                              </QuantityControls>
+                            </PriceContainer>
+                            
+                            <RemoveButton onClick={() => removeItem(item.id)}>
+                              ✕
+                            </RemoveButton>
+                          </CartItemContainer>
+                        );
+                      })}
                     </AnimatePresence>
                   </CartItemsList>
                   

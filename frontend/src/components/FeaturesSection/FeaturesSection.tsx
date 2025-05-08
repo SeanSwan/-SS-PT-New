@@ -15,13 +15,19 @@ interface Feature {
   linkTo: string;
 }
 
-// Animation keyframes - updated diagonal gradient animation
-const diagonalShimmer = keyframes`
-  0% {
-    background-position: 200% -200%;
+// Animation keyframes - single subtle diagonal glimmer animation every 5 seconds
+const diagonalGlimmer = keyframes`
+  0%, 85% {
+    background-position: -200% 200%;
+    opacity: 0;
+  }
+  90%, 95% {
+    background-position: 0% 0%;
+    opacity: 0.8;
   }
   100% {
-    background-position: -200% 200%;
+    background-position: 200% -200%;
+    opacity: 0;
   }
 `;
 
@@ -115,7 +121,7 @@ const FeaturesGrid = styled(motion.div)`
   }
 `;
 
-// Enhanced 3D card with stronger contrast and depth
+// Enhanced 3D card with improved natural diagonal glimmer effect
 const FeatureCard = styled(motion.div)<{ theme: string }>`
   background: linear-gradient(135deg, rgba(25, 25, 45, 0.95), rgba(10, 10, 25, 0.95));
   border-radius: 15px;
@@ -178,7 +184,7 @@ const FeatureCard = styled(motion.div)<{ theme: string }>`
     }};
   }
   
-  /* Diagonal gradient animation (top-right to bottom-left) */
+  /* Single subtle diagonal glimmer effect (top-right to bottom-left) */
   &:after {
     content: "";
     position: absolute;
@@ -189,13 +195,16 @@ const FeatureCard = styled(motion.div)<{ theme: string }>`
     background: linear-gradient(
       135deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.03) 50%,
+      rgba(255, 255, 255, 0.05) 25%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 75%,
       transparent 100%
     );
-    background-size: 400% 400%;
-    animation: ${diagonalShimmer} 6s linear infinite;
+    background-size: 200% 200%;
+    animation: ${diagonalGlimmer} 5s linear infinite;
     pointer-events: none;
     border-radius: 15px;
+    opacity: 0;
   }
   
   &:hover {

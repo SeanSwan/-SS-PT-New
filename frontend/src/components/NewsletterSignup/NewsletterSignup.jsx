@@ -1,6 +1,6 @@
 // src/components/NewsletterSignup/NewsletterSignup.jsx
 import React, { useState } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaEnvelope, FaCheck, FaExclamationTriangle, FaLock, FaArrowRight, FaDumbbell, FaAppleAlt, FaBrain } from 'react-icons/fa';
 import SectionTitle from '../ui/SectionTitle';
@@ -8,6 +8,23 @@ import GlowButton from '../Button/glowButton'; // Import GlowButton component
 
 // Import background image
 import backgroundImage from '../../assets/swan-tile-big.png';
+
+// Animation keyframes
+// Single subtle diagonal glimmer animation every 5 seconds
+const diagonalGlimmer = keyframes`
+  0%, 85% {
+    background-position: -200% 200%;
+    opacity: 0;
+  }
+  90%, 95% {
+    background-position: 0% 0%;
+    opacity: 0.8;
+  }
+  100% {
+    background-position: 200% -200%;
+    opacity: 0;
+  }
+`;
 
 // Styled Components
 const NewsletterSection = styled.section`
@@ -83,6 +100,32 @@ const FormContainer = styled(motion.div)`
   backdrop-filter: blur(10px);
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+  
+  /* Single subtle diagonal glimmer effect */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.05) 25%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 75%,
+      transparent 100%
+    );
+    background-size: 200% 200%;
+    animation: ${diagonalGlimmer} 5s linear infinite;
+    pointer-events: none;
+    opacity: 0;
+    z-index: -1;
+  }
+  
+  &:hover::before {
+    opacity: 0.8;
+  }
   
   @media (max-width: 768px) {
     padding: 2rem;
@@ -208,6 +251,33 @@ const BenefitCard = styled(motion.div)`
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(5px);
+  position: relative;
+  overflow: hidden;
+  
+  /* Natural diagonal glimmer effect */
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.03) 25%,
+      rgba(255, 255, 255, 0.05) 50%,
+      rgba(255, 255, 255, 0.03) 75%,
+      transparent 100%
+    );
+    background-size: 400% 400%;
+    animation: ${diagonalGlimmer} 12s ease-in-out infinite;
+    pointer-events: none;
+    border-radius: 10px;
+    opacity: 0.6;
+    z-index: 0;
+  }
+  
+  &:hover::before {
+    opacity: 1;
+  }
   
   @media (max-width: 768px) {
     width: 100%;
@@ -225,18 +295,24 @@ const BenefitIcon = styled.div`
   margin-bottom: 1rem;
   color: var(--neon-blue, #00ffff);
   font-size: 1.5rem;
+  position: relative;
+  z-index: 1;
 `;
 
 const BenefitTitle = styled.h3`
   font-size: 1.2rem;
   color: white;
   margin-bottom: 0.5rem;
+  position: relative;
+  z-index: 1;
 `;
 
 const BenefitText = styled.p`
   font-size: 0.9rem;
   color: #c0c0c0;
   line-height: 1.5;
+  position: relative;
+  z-index: 1;
 `;
 
 // Animation variants

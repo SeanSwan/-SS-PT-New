@@ -1,31 +1,35 @@
 @echo off
-echo ===================================================
-echo SWAN STUDIOS - CLEARING PORT PROCESSES
-echo ===================================================
+echo ===============================================
+echo SwanStudios Port Killer Utility
+echo ===============================================
 echo.
-echo Checking for processes using port 5000 (backend)...
 
-FOR /F "tokens=5" %%P IN ('netstat -ano ^| findstr :5000 ^| findstr LISTENING') DO (
-  echo Found process: %%P using port 5000
-  echo Attempting to terminate process %%P...
-  taskkill /F /PID %%P
-  if errorlevel 1 (
-    echo Failed to terminate process. You may need administrator privileges.
-  ) else (
-    echo Process terminated successfully.
-  )
+echo Checking for processes on ports...
+
+echo Checking port 5173 (Frontend)...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :5173') do (
+    echo Found process: %%a
+    taskkill /PID %%a /F
+    echo Terminated process %%a
+)
+
+echo Checking port 5000 (Backend)...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :5000') do (
+    echo Found process: %%a
+    taskkill /PID %%a /F
+    echo Terminated process %%a
+)
+
+echo Checking port 5001 (MongoDB)...
+for /f "tokens=5" %%a in ('netstat -ano ^| findstr :5001') do (
+    echo Found process: %%a
+    taskkill /PID %%a /F
+    echo Terminated process %%a
 )
 
 echo.
-echo Checking for processes using port 5173 (frontend)...
-
-FOR /F "tokens=5" %%P IN ('netstat -ano ^| findstr :5173 ^| findstr LISTENING') DO (
-  echo Found process: %%P using port 5173
-  echo Attempting to terminate process %%P...
-  taskkill /F /PID %%P
-)
-
+echo All ports have been cleared!
+echo You can now start the application with run-dev-mode.bat
 echo.
-echo Port clearing complete!
-echo ===================================================
-echo.
+echo Press any key to close this window...
+pause >nul

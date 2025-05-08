@@ -2,7 +2,7 @@
  * dashboard.ts
  * Dashboard menu item configuration for the fitness application
  */
-import { IconDashboard, IconCalendarEvent, IconUsers, IconReportAnalytics, IconSettings, IconChartLine, IconActivity, IconUserCheck } from '@tabler/icons-react';
+import { IconDashboard, IconCalendarEvent, IconUsers, IconReportAnalytics, IconSettings, IconChartLine, IconActivity, IconUserCheck, IconPackage } from '@tabler/icons-react';
 import { MenuGroup } from './menu-types';
 
 /**
@@ -49,6 +49,14 @@ const dashboard: MenuGroup[] = [
         type: 'item',
         url: '/dashboard/client-progress',
         icon: IconChartLine,
+        breadcrumbs: false
+      },
+      {
+        id: 'admin-packages',
+        title: 'Session Packages',
+        type: 'item',
+        url: '/dashboard/admin-packages',
+        icon: IconPackage,
         breadcrumbs: false
       },
       {

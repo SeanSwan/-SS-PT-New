@@ -1,4 +1,3 @@
-import enhancedScheduleRoutes from './routes/enhancedScheduleRoutes.mjs';
 /**
  * Swan Studios - Main Server
  * =========================
@@ -30,12 +29,15 @@ if (existsSync(envPath)) {
   dotenv.config(); // Try default location as a last resort
 }
 
+// Check for SQLite fallback mode
+const USE_SQLITE_FALLBACK = process.env.USE_SQLITE_FALLBACK === 'true';
+
 // Determine environment
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Log basic environment info (without sensitive values)
 console.log(`[Server] Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
-console.log(`[Server] Database: ${isProduction ? 'RENDER POSTGRES (via DATABASE_URL)' : (process.env.PG_DB || 'swanstudios')}`);
+console.log(`[Server] Database: ${USE_SQLITE_FALLBACK ? 'SQLITE (Fallback)' : (isProduction ? 'RENDER POSTGRES (via DATABASE_URL)' : 'MONGODB')}`);
 if (!isProduction) {
   console.log(`[Server] Database Host: ${process.env.PG_HOST || 'localhost'}`);
 }
@@ -63,8 +65,10 @@ import foodScannerRoutes from './routes/foodScannerRoutes.mjs';
 import workoutRoutes from './routes/workoutRoutes.mjs';
 import messagesRoutes from './routes/messages.mjs';
 import scheduleRoutes from './routes/scheduleRoutes.mjs';
+import enhancedScheduleRoutes from './routes/enhancedScheduleRoutes.mjs';
 import adminRoutes from './routes/adminRoutes.mjs';
 import apiRoutes from './routes/api.mjs';
+import devRoutes from './routes/dev-routes.mjs';
 import debugRoutes from './routes/debug.mjs';  // Import debug routes
 import healthRoutes from './routes/healthRoutes.mjs';  // Import health routes
 // Import workout plan and session routes
@@ -78,9 +82,12 @@ import socialRoutes from './routes/social/index.mjs';
 import logger from './utils/logger.mjs';
 import { requestLogger, dbHealthCheck } from './middleware/debugMiddleware.mjs';
 import sequelize from './database.mjs';
+
+// Import updated setupAssociations that uses dynamic imports
 import setupAssociations from './setupAssociations.mjs';
-// Import MongoDB connection
-import { connectToMongoDB } from './mongodb-connect.mjs';
+
+// Import MongoDB connection with fallback support
+import { connectToMongoDB, getMongoDBStatus } from './mongodb-connect.mjs';
 
 // Dynamically import errorMiddleware to avoid issues
 let errorMiddlewareHandler;
@@ -156,7 +163,7 @@ if (isProduction) {
 // Reads from Render Env Var FRONTEND_ORIGINS first, then falls back to defaults
 const whitelist = process.env.FRONTEND_ORIGINS
   ? process.env.FRONTEND_ORIGINS.split(',')
-  : ['http://localhost:5173', 'https://sswanstudios.com']; // Ensure your prod domain is here
+  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'https://sswanstudios.com']; // Ensure your prod domain is here and include all possible dev ports
 
 // In production, use stricter CORS policies
 const corsOptions = {
@@ -253,11 +260,22 @@ app.get('/test', (req, res) => {
 
 // Health check endpoint - crucial for Render and monitoring
 app.get('/health', dbHealthCheck, (req, res) => {
-  res.status(req.dbStatus && req.dbStatus.connected ? 200 : 500).json({
-    status: req.dbStatus && req.dbStatus.connected ? 'ok' : 'error',
+  // Get MongoDB status
+  const mongoStatus = getMongoDBStatus();
+  
+  // Combine with Sequelize status
+  const dbStatus = {
+    connected: (req.dbStatus && req.dbStatus.connected) || mongoStatus.connected,
+    sequelize: req.dbStatus || { connected: false, message: 'Sequelize status unknown' },
+    mongodb: mongoStatus,
+    usingSQLiteFallback: USE_SQLITE_FALLBACK
+  };
+  
+  res.status(dbStatus.connected ? 200 : 500).json({
+    status: dbStatus.connected ? 'ok' : 'error',
     environment: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString(),
-    dbStatus: req.dbStatus || { connected: false, message: 'Database status unknown' },
+    dbStatus: dbStatus,
     uptime: process.uptime()
   });
 });
@@ -485,7 +503,8 @@ app.use('/api/gamification', gamificationRoutes);
 app.use('/api/social', socialRoutes);
 // Add workout routes
 app.use('/api/workout', workoutRoutes);
-// Add workout plan and session routes
+// Add development routes (only enabled in development mode)
+app.use('/api/dev', devRoutes);
 app.use('/api/workout/plans', workoutPlanRoutes);
 app.use('/api/workout/sessions', workoutSessionRoutes);
 app.use('/api', apiRoutes); // General API routes, ensure no overlap
@@ -540,20 +559,42 @@ app.use((req, res) => {
     await createRequiredDirectories();
     
     // Set up model associations
-    setupAssociations(); // Ensure this runs before sync/authenticate if needed
+    await setupAssociations(); // Ensure this runs before sync/authenticate if needed
 
-    // Test database connections
-    await sequelize.authenticate();
-    logger.info('PostgreSQL database connection established successfully');
+    // Test database connections based on mode
+    try {
+      await sequelize.authenticate();
+      logger.info('PostgreSQL database connection established successfully');
+    } catch (sequelizeError) {
+      logger.error(`PostgreSQL connection error: ${sequelizeError.message}`);
+      if (USE_SQLITE_FALLBACK) {
+        logger.info('Using SQLite fallback as configured');
+      }
+    }
     
-    // Connect to MongoDB for workout tracking
-    await connectToMongoDB();
-    logger.info('MongoDB connection initialized for workout tracking');
+    // Connect to MongoDB for workout tracking if not using SQLite fallback
+    try {
+      const mongoResult = await connectToMongoDB();
+      if (mongoResult.db) {
+        logger.info('MongoDB connection established successfully');
+      } else if (USE_SQLITE_FALLBACK) {
+        logger.info('MongoDB connection skipped. Using SQLite fallback as configured.');
+      } else {
+        logger.warn('MongoDB connection failed but continuing with other databases');
+      }
+    } catch (mongoError) {
+      logger.error(`MongoDB connection error: ${mongoError.message}`);
+      logger.info('Continuing with other databases');
+    }
 
     // In development, optionally sync database schema (NEVER in production)
     if (!isProduction && process.env.AUTO_SYNC === 'true') {
-      await sequelize.sync({ alter: true }); 
-      logger.info('Database synchronized in development mode');
+      try {
+        await sequelize.sync({ alter: true }); 
+        logger.info('Database synchronized in development mode');
+      } catch (syncError) {
+        logger.error(`Error syncing database: ${syncError.message}`);
+      }
     }
 
     // Start the server
@@ -604,7 +645,8 @@ async function createRequiredDirectories() {
     path.join(__dirname, 'uploads'),
     path.join(__dirname, 'uploads/profiles'),
     path.join(__dirname, 'uploads/products'),
-    path.join(__dirname, 'uploads/temp')
+    path.join(__dirname, 'uploads/temp'),
+    path.join(__dirname, 'data') // For SQLite database
   ];
   
   for (const dir of directories) {

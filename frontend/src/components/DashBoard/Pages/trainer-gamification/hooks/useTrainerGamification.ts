@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { workoutMcpApi } from '../../../../../services/mcp/workoutMcpService';
+import { gamificationMcpApi } from '../../../../../services/mcp/gamificationMcpService';
 import { useAuth } from '../../../../../context/AuthContext';
 import { useToast } from '../../../../../hooks/use-toast';
 
@@ -48,6 +50,8 @@ export const useTrainerGamification = () => {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [filteredClients, setFilteredClients] = useState<Client[]>([]);
+  const [mcpStatus, setMcpStatus] = useState<{workout: boolean; gamification: boolean}>({workout: false, gamification: false});
+  const [mcpDataAvailable, setMcpDataAvailable] = useState<boolean>(false);
   
   // Point reasons
   const pointReasons: PointReason[] = [
@@ -76,6 +80,101 @@ export const useTrainerGamification = () => {
     
     setFilteredClients(filtered);
   }, [searchQuery, clients]);
+  
+  // Check MCP servers status
+  const checkMcpStatus = useCallback(async () => {
+    try {
+      // Check workout MCP server
+      const workoutStatus = await workoutMcpApi.checkServerStatus()
+        .then(() => true)
+        .catch(() => false);
+      
+      // Check gamification MCP server
+      const gamificationStatus = await gamificationMcpApi.checkServerStatus()
+        .then(() => true)
+        .catch(() => false);
+      
+      const newStatus = {
+        workout: workoutStatus,
+        gamification: gamificationStatus
+      };
+      
+      setMcpStatus(newStatus);
+      setMcpDataAvailable(workoutStatus || gamificationStatus);
+      
+      return newStatus;
+    } catch (error) {
+      console.error('[MCP] Error checking MCP servers status', error);
+      return { workout: false, gamification: false };
+    }
+  }, []);
+  
+  // Get client data from MCP servers
+  const fetchClientFromMcp = useCallback(async (clientId: string) => {
+    try {
+      let clientData: any = {};
+      let hasData = false;
+      
+      // Get workout data from workout MCP if available
+      if (mcpStatus.workout) {
+        try {
+          // Get client progress
+          const progressResponse = await workoutMcpApi.getClientProgress({
+            userId: clientId
+          });
+          
+          // Get workout statistics
+          const statsResponse = await workoutMcpApi.getWorkoutStatistics({
+            userId: clientId,
+            includeExerciseBreakdown: true,
+            includeMuscleGroupBreakdown: true
+          });
+          
+          if (progressResponse.data || statsResponse.data) {
+            clientData.workoutData = {
+              progress: progressResponse.data,
+              statistics: statsResponse.data
+            };
+            hasData = true;
+          }
+        } catch (error) {
+          console.error(`[MCP] Error fetching workout data for client ${clientId}`, error);
+        }
+      }
+      
+      // Get gamification data from gamification MCP if available
+      if (mcpStatus.gamification) {
+        try {
+          // Get gamification profile
+          const profileResponse = await gamificationMcpApi.getGamificationProfile({
+            userId: clientId
+          });
+          
+          // Get achievements
+          const achievementsResponse = await gamificationMcpApi.getAchievements({
+            userId: clientId,
+            includeCompleted: true,
+            includeInProgress: true
+          });
+          
+          if (profileResponse.data || achievementsResponse.data) {
+            clientData.gamificationData = {
+              profile: profileResponse.data,
+              achievements: achievementsResponse.data
+            };
+            hasData = true;
+          }
+        } catch (error) {
+          console.error(`[MCP] Error fetching gamification data for client ${clientId}`, error);
+        }
+      }
+      
+      return hasData ? clientData : null;
+    } catch (error) {
+      console.error(`[MCP] Error fetching data for client ${clientId}`, error);
+      return null;
+    }
+  }, [mcpStatus]);
   
   // Fetch clients
   const fetchClients = async () => {
@@ -345,6 +444,84 @@ export const useTrainerGamification = () => {
   const loadInitialData = async () => {
     setLoading(true);
     try {
+      // First check if MCP servers are available
+      await checkMcpStatus();
+      
+      if (mcpDataAvailable) {
+        console.log('[MCP] Attempting to fetch data from MCP servers');
+        try {
+          // For demo purposes, we'll use the same client IDs from mock data
+          // In a real app, we would fetch the actual client list first
+          const clientIds = ['1', '2', '3', '4', '5'];
+          const clientsWithMcpData = [];
+          
+          // Fetch MCP data for each client
+          for (const clientId of clientIds) {
+            const mcpData = await fetchClientFromMcp(clientId);
+            
+            if (mcpData) {
+              // We have MCP data for this client, create a combined client object
+              const gamProfile = mcpData.gamificationData?.profile;
+              const workoutProgress = mcpData.workoutData?.progress;
+              
+              // Use MCP data where available, fall back to mock data
+              const client: Client = {
+                id: clientId,
+                firstName: workoutProgress?.firstName || (clientId === '1' ? 'John' : clientId === '2' ? 'Jane' : clientId === '3' ? 'Bob' : clientId === '4' ? 'Alice' : 'Mike'),
+                lastName: workoutProgress?.lastName || (clientId === '1' ? 'Doe' : clientId === '2' ? 'Smith' : clientId === '3' ? 'Johnson' : clientId === '4' ? 'Williams' : 'Brown'),
+                username: workoutProgress?.username || (clientId === '1' ? 'johndoe' : clientId === '2' ? 'janesmith' : clientId === '3' ? 'bjohnson' : clientId === '4' ? 'awilliams' : 'mbrown'),
+                photo: workoutProgress?.photo,
+                points: gamProfile?.points || (clientId === '1' ? 4800 : clientId === '2' ? 2300 : clientId === '3' ? 750 : clientId === '4' ? 11500 : 450),
+                level: gamProfile?.level || (clientId === '1' ? 24 : clientId === '2' ? 15 : clientId === '3' ? 8 : clientId === '4' ? 36 : 5),
+                tier: gamProfile?.tier || (clientId === '1' ? 'silver' : clientId === '2' ? 'silver' : clientId === '3' ? 'bronze' : clientId === '4' ? 'gold' : 'bronze') as any,
+                streakDays: gamProfile?.streakDays || (clientId === '1' ? 8 : clientId === '2' ? 3 : clientId === '3' ? 0 : clientId === '4' ? 15 : 1),
+                mcpData: mcpData // Store the full MCP data for detailed views
+              };
+              
+              clientsWithMcpData.push(client);
+            }
+          }
+          
+          if (clientsWithMcpData.length > 0) {
+            // If we have data from MCP for at least some clients, use that
+            setClients(clientsWithMcpData);
+            setFilteredClients(clientsWithMcpData);
+            
+            // If we have gamification data, update achievements
+            const allAchievements = clientsWithMcpData
+              .flatMap(client => client.mcpData?.gamificationData?.achievements || [])
+              .filter((achievement, index, self) => 
+                // Filter out duplicates by ID
+                index === self.findIndex(a => a.id === achievement.id)
+              )
+              .map(mcpAchievement => ({
+                id: mcpAchievement.id,
+                name: mcpAchievement.name,
+                description: mcpAchievement.description,
+                icon: mcpAchievement.icon || 'Award',
+                pointValue: mcpAchievement.pointValue || 100,
+                requirementType: mcpAchievement.requirementType || 'custom',
+                requirementValue: mcpAchievement.requirementValue || 1,
+                tier: mcpAchievement.tier || 'bronze',
+                isActive: true
+              }));
+              
+            if (allAchievements.length > 0) {
+              setAchievements(allAchievements);
+            } else {
+              // Fall back to mock achievements if no MCP achievements
+              await fetchAchievements();
+            }
+            
+            return; // Successfully loaded data from MCP
+          }
+        } catch (error) {
+          console.error('[MCP] Error loading data from MCP servers, falling back to mock data', error);
+        }
+      }
+      
+      // If we couldn't get data from MCP or it wasn't available, fall back to mock data
+      console.log('[MCP] Using mock data as fallback');
       await Promise.all([
         fetchClients(),
         fetchAchievements()
@@ -361,6 +538,15 @@ export const useTrainerGamification = () => {
     }
   };
   
+  // Set up interval to check MCP status
+  useEffect(() => {
+    // Initial check
+    checkMcpStatus();
+    
+    const interval = setInterval(checkMcpStatus, 30000);
+    return () => clearInterval(interval);
+  }, [checkMcpStatus]);
+  
   return {
     loading,
     clients,
@@ -369,11 +555,15 @@ export const useTrainerGamification = () => {
     setSearchQuery,
     filteredClients,
     pointReasons,
+    mcpStatus,
+    mcpDataAvailable,
     fetchClients,
     fetchAchievements,
     awardPoints,
     awardAchievement,
-    loadInitialData
+    loadInitialData,
+    checkMcpStatus,
+    fetchClientFromMcp
   };
 };
 

@@ -4,6 +4,32 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FaQuoteLeft, FaQuoteRight, FaStar, FaArrowRight, FaArrowLeft } from "react-icons/fa";
 import SectionTitle from "../ui/SectionTitle";
 
+// --- Animation Keyframes ---
+// Single subtle diagonal glimmer animation every 5 seconds
+const diagonalGlimmer = keyframes`
+  0%, 85% {
+    background-position: -200% 200%;
+    opacity: 0;
+  }
+  90%, 95% {
+    background-position: 0% 0%;
+    opacity: 0.8;
+  }
+  100% {
+    background-position: 200% -200%;
+    opacity: 0;
+  }
+`;
+
+const pulseGlow = keyframes`
+  0%, 100% { 
+    filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.4)); 
+  } 
+  50% { 
+    filter: drop-shadow(0 0 16px rgba(0, 255, 255, 0.7)); 
+  }
+`;
+
 // --- Animation Variants ---
 const subheadingVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -47,7 +73,7 @@ interface Testimonial {
   relatedProgramId?: string | number;
 }
 
-// --- Styled Components (unchanged from your original definitions) ---
+// --- Styled Components ---
 const TestimonialSection = styled.section`
   position: relative;
   padding: 6rem 2rem 8rem;
@@ -111,6 +137,7 @@ const TestimonialCarousel = styled.div`
   }
 `;
 
+// Updated with single subtle diagonal glimmer effect
 const TestimonialCard = styled(motion.div)`
   position: absolute;
   top: 0; left: 0; right: 0;
@@ -124,21 +151,36 @@ const TestimonialCard = styled(motion.div)`
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   transition: border-color 0.4s ease;
-  &:hover { border-color: rgba(0, 255, 255, 0.3); }
+  
+  &:hover { 
+    border-color: rgba(0, 255, 255, 0.3); 
+  }
+  
+  /* Single subtle diagonal glimmer effect */
   &::before {
     content: "";
     position: absolute;
     inset: -1px;
-    background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
-    background-size: 300% auto;
-    animation: ${keyframes`0% { background-position: -200% 0; } 100% { background-position: 200% 0; }`} 5s linear infinite;
+    background: linear-gradient(
+      135deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.05) 25%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 75%,
+      transparent 100%
+    );
+    background-size: 200% 200%;
+    animation: ${diagonalGlimmer} 5s linear infinite;
     pointer-events: none;
     z-index: -1;
     border-radius: inherit;
     opacity: 0;
     transition: opacity 0.4s ease;
   }
-  &:hover::before { opacity: 1; }
+  
+  &:hover::before { 
+    opacity: 0.8; 
+  }
 `;
 
 const TestimonialContent = styled.div`
@@ -170,7 +212,7 @@ const ClientImage = styled.div<{ image: string }>`
   border: 4px solid var(--neon-blue, #00ffff);
   margin-right: 2rem;
   box-shadow: 0 8px 20px rgba(0, 255, 255, 0.35);
-  animation: ${keyframes`0%, 100% { filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.4)); } 50% { filter: drop-shadow(0 0 16px rgba(0, 255, 255, 0.7)); }`} 5s ease-in-out infinite;
+  animation: ${pulseGlow} 5s ease-in-out infinite;
   flex-shrink: 0;
   @media (max-width: 768px) {
     width: 90px;

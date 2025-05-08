@@ -2,7 +2,7 @@
 import React, { useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
-import { motion, useAnimation, useInView } from 'framer-motion';
+import { motion, useAnimation, useInView, animate } from 'framer-motion';
 import { gsap } from 'gsap';
 import { 
   FaFacebook, 
@@ -18,6 +18,7 @@ import {
   FaHeart
 } from 'react-icons/fa';
 import logoImage from '../../assets/Logo.png';
+import { defaultShouldForwardProp } from '../../utils/styled-component-helpers';
 
 // Styled Components
 const FooterContainer = styled.footer`
@@ -121,7 +122,10 @@ const FooterContent = styled.div`
   }
 `;
 
-const LogoSection = styled(motion.div)`
+// Fixed: Use motion.create() instead of direct motion() and use shouldForwardProp
+const LogoSection = styled(motion.div).withConfig({
+  shouldForwardProp: defaultShouldForwardProp
+})`
   display: flex;
   flex-direction: column;
   
@@ -131,7 +135,9 @@ const LogoSection = styled(motion.div)`
   }
 `;
 
-const LogoContainer = styled(motion.div)`
+const LogoContainer = styled(motion.div).withConfig({
+  shouldForwardProp: defaultShouldForwardProp
+})`
   display: flex;
   align-items: center;
   margin-bottom: 1.5rem;
@@ -163,7 +169,9 @@ const LogoTagline = styled.span`
   font-style: italic;
 `;
 
-const LogoImg = styled(motion.img)`
+const LogoImg = styled(motion.img).withConfig({
+  shouldForwardProp: defaultShouldForwardProp
+})`
   width: 80px;
   height: auto;
   margin-right: 1rem;
@@ -174,7 +182,9 @@ const LogoImg = styled(motion.img)`
   }
 `;
 
-const CompanyDescription = styled(motion.p)`
+const CompanyDescription = styled(motion.p).withConfig({
+  shouldForwardProp: defaultShouldForwardProp
+})`
   color: #e0e0e0;
   line-height: 1.7;
   margin-bottom: 1.5rem;
@@ -188,7 +198,9 @@ const CompanyDescription = styled(motion.p)`
   }
 `;
 
-const FooterSection = styled(motion.div)`
+const FooterSection = styled(motion.div).withConfig({
+  shouldForwardProp: defaultShouldForwardProp
+})`
   display: flex;
   flex-direction: column;
   
@@ -197,7 +209,9 @@ const FooterSection = styled(motion.div)`
   }
 `;
 
-const FooterHeading = styled(motion.h4)`
+const FooterHeading = styled(motion.h4).withConfig({
+  shouldForwardProp: defaultShouldForwardProp
+})`
   font-size: 1.2rem;
   margin-bottom: 1.5rem;
   font-weight: 600;
@@ -238,7 +252,13 @@ const FooterNav = styled.nav`
   }
 `;
 
-const AnimatedFooterLink = styled(motion(Link))`
+// Fixed: Create a proper motion component with create()
+const AnimatedLink = motion.create(Link, { 
+  forwardMotionProps: false,
+  shouldForwardProp: defaultShouldForwardProp
+});
+
+const AnimatedFooterLink = styled(AnimatedLink)`
   color: #e0e0e0;
   text-decoration: none;
   transition: all 0.3s ease;
@@ -267,7 +287,9 @@ const AnimatedFooterLink = styled(motion(Link))`
   }
 `;
 
-const SocialIcons = styled(motion.div)`
+const SocialIcons = styled(motion.div).withConfig({
+  shouldForwardProp: defaultShouldForwardProp
+})`
   display: flex;
   gap: 1rem;
   margin-top: 1rem;
@@ -277,7 +299,13 @@ const SocialIcons = styled(motion.div)`
   }
 `;
 
-const SocialIcon = styled(motion.a)`
+// Fixed: Create a proper motion component with create()
+const AnimatedA = motion.create('a', {
+  forwardMotionProps: false,
+  shouldForwardProp: defaultShouldForwardProp
+});
+
+const SocialIcon = styled(AnimatedA)`
   color: #fff;
   font-size: 1.5rem;
   transition: all 0.3s ease;
@@ -309,7 +337,9 @@ const SocialIcon = styled(motion.a)`
   }
 `;
 
-const ContactItem = styled(motion.div)`
+const ContactItem = styled(motion.div).withConfig({
+  shouldForwardProp: defaultShouldForwardProp
+})`
   display: flex;
   align-items: center;
   gap: 0.8rem;
@@ -364,7 +394,9 @@ const BottomFooter = styled.div`
   }
 `;
 
-const Copyright = styled(motion.div)`
+const Copyright = styled(motion.div).withConfig({
+  shouldForwardProp: defaultShouldForwardProp
+})`
   color: #e0e0e0;
   font-size: 0.9rem;
   display: flex;
@@ -407,7 +439,13 @@ const SmallFooterLink = styled(Link)`
   }
 `;
 
-const ScrollTopButton = styled(motion.button)`
+// Fixed: Use motion.create() properly
+const AnimatedButton = motion.create('button', {
+  forwardMotionProps: false,
+  shouldForwardProp: defaultShouldForwardProp
+});
+
+const ScrollTopButton = styled(AnimatedButton)`
   position: fixed;
   bottom: 30px;
   right: 30px;
@@ -514,7 +552,7 @@ const textTypingVariants = {
 
 const iconAnimation = {
   hidden: { scale: 0, opacity: 0 },
-  visible: index => ({
+  visible: (index: number) => ({
     scale: 1, 
     opacity: 1,
     transition: { 

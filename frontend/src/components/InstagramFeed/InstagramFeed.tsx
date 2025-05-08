@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styled from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import { motion, HTMLMotionProps } from 'framer-motion';
 import { FaInstagram, FaHeart, FaComment, FaShare, FaPlay } from 'react-icons/fa';
 import GlowButton from "../Button/glowButton"; // Import your GlowButton component
@@ -27,6 +27,23 @@ interface InstagramPost {
   comments: number;
   shares: number;
 }
+
+// --- Animation Keyframes ---
+// Single subtle diagonal glimmer animation every 5 seconds
+const diagonalGlimmer = keyframes`
+  0%, 85% {
+    background-position: -200% 200%;
+    opacity: 0;
+  }
+  90%, 95% {
+    background-position: 0% 0%;
+    opacity: 0.8;
+  }
+  100% {
+    background-position: 200% -200%;
+    opacity: 0;
+  }
+`;
 
 // --- Styled Components ---
 // Main Instagram section container with a gradient background
@@ -146,7 +163,7 @@ const PostsGrid = styled.div`
   }
 `;
 
-// A container for each post card with hover effects
+// A container for each post card with improved diagonal glimmer effect
 const PostCardContainer = styled.div`
   background: rgba(25, 25, 35, 0.8);
   border-radius: 12px;
@@ -155,10 +172,39 @@ const PostCardContainer = styled.div`
   backdrop-filter: blur(5px);
   border: 1px solid rgba(255, 255, 255, 0.05);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  
+  /* Single subtle diagonal glimmer effect (top-right to bottom-left) */
+  &:after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      135deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.05) 25%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 75%,
+      transparent 100%
+    );
+    background-size: 200% 200%;
+    animation: ${diagonalGlimmer} 5s linear infinite;
+    pointer-events: none;
+    border-radius: 12px;
+    opacity: 0;
+    z-index: 1;
+  }
   
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    
+    &:after {
+      opacity: 1;
+    }
   }
 `;
 
@@ -168,6 +214,7 @@ const PostImageContainer = styled.div`
   height: 280px;
   overflow: hidden;
   cursor: pointer;
+  z-index: 2;
 `;
 
 // The post image with a scale effect on hover
@@ -205,6 +252,8 @@ const VideoOverlay = styled.div`
 // Container for the textual content of a post
 const PostContent = styled.div`
   padding: 1.5rem;
+  position: relative;
+  z-index: 2;
 `;
 
 // Header section of the post, including avatar and author info

@@ -1,7 +1,8 @@
 // backend/routes/clientProgressRoutes.mjs
 import express from 'express';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
-import { ClientProgress, User } from '../models/associations.mjs';
+import ClientProgress from '../models/ClientProgress.mjs';
+import User from '../models/User.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();

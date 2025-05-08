@@ -1,7 +1,7 @@
 /**
  * main-routes.tsx
- * Main application routes configuration for the live monitoring/patrol security service website.
- * Implements a type-safe routing structure with protected routes and proper error handling.
+ * Main application routes configuration for SwanStudios fitness platform.
+ * Implements a type-safe routing structure with protected routes and improved error handling.
  */
 import React, { lazy, Suspense } from 'react';
 import { RouteObject, Navigate, Outlet } from 'react-router-dom';
@@ -27,48 +27,153 @@ const PageLoader: React.FC = () => (
   </div>
 );
 
-// Fallback component in case import fails - this is separate from ErrorBoundary
-const ComponentLoadError = () => (
-  <div className="error-container">
-    <h2>Component Failed to Load</h2>
-    <p>We're having trouble loading this page. Please try refreshing the browser.</p>
+// Enhanced error component with retry functionality
+const ComponentLoadError = ({ componentName = "Component", retryFn = null }) => (
+  <div className="error-container" style={{
+    padding: '2rem',
+    maxWidth: '800px',
+    margin: '0 auto',
+    textAlign: 'center',
+    background: 'rgba(30, 30, 60, 0.4)',
+    backdropFilter: 'blur(10px)',
+    borderRadius: '15px',
+    border: '1px solid rgba(255, 255, 255, 0.1)',
+    color: 'white'
+  }}>
+    <h2 style={{ color: '#ff416c' }}>Failed to Load {componentName}</h2>
+    <p>We're having trouble loading this page. This could be due to a network issue or a problem with the component.</p>
+    
+    {retryFn && (
+      <button 
+        onClick={retryFn}
+        style={{
+          background: 'linear-gradient(135deg, #00ffff, #00c8ff)',
+          border: 'none',
+          padding: '0.75rem 1.5rem',
+          borderRadius: '8px',
+          color: '#0a0a1a',
+          fontWeight: 500,
+          cursor: 'pointer',
+          marginTop: '1rem'
+        }}
+      >
+        Retry Loading
+      </button>
+    )}
+    
+    <p style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.7 }}>
+      If this issue persists, please try refreshing the browser or contact support.
+    </p>
   </div>
 );
 
-// Lazy-loaded Components with error handling
-// Public Pages - using dynamic import() with explicit file extensions
-const HomePage = lazy(() => 
-  import('../pages/HomePage/components/HomePage.component.jsx')
-    .catch(() => {
-      console.error('Failed to load HomePage component');
-      return { default: ComponentLoadError };
-    })
+// Enhanced lazy loading function with better error handling
+function lazyLoadWithErrorHandling(importFn, componentName) {
+  return lazy(() => 
+    importFn()
+      .catch(error => {
+        console.error(`Failed to load ${componentName}:`, error);
+        // Return a component that displays the error but allows retrying
+        return {
+          default: (props) => (
+            <ComponentLoadError 
+              componentName={componentName} 
+              retryFn={() => window.location.reload()}
+            />
+          )
+        };
+      })
+  );
+}
+
+// Lazy-loaded Components with enhanced error handling
+// Public Pages
+const HomePage = lazyLoadWithErrorHandling(
+  () => import('../pages/HomePage/components/HomePage.component.jsx'),
+  'Home Page'
 );
-const LoginModal = lazy(() => import('../pages/LoginModal.component'));
-const SignupModal = lazy(() => import('../pages/SignupModal.component'));
-const ContactPage = lazy(() => import('../pages/contactpage/ContactPage'));
-const AboutPage = lazy(() => import('../pages/about/About'));
-const StoreFront = lazy(() => import('../pages/shop/StoreFront.component'));
-const ShopPage = lazy(() => import('../pages/shop/ShopPage'));
-const ProductDetail = lazy(() => import('../components/Shop/ProductDetail'));
-const FoodScannerPage = lazy(() => import('../pages/FoodScanner/FoodScannerPage'));
-const UnauthorizedPage = lazy(() => import('../pages/UnauthorizedPage.component'));
-const ScheduleContainer = lazy(() => import('../components/Schedule/ScheduleContainer'));
-const ScheduleWrapper = lazy(() => import('../components/Schedule/ScheduleWrapper'));
+const LoginModal = lazyLoadWithErrorHandling(
+  () => import('../pages/LoginModal.component'),
+  'Login Modal'
+);
+const SignupModal = lazyLoadWithErrorHandling(
+  () => import('../pages/SignupModal.component'),
+  'Signup Modal'
+);
+const ContactPage = lazyLoadWithErrorHandling(
+  () => import('../pages/contactpage'),
+  'Contact Page'
+);
+const AboutPage = lazyLoadWithErrorHandling(
+  () => import('../pages/about/About'),
+  'About Page'
+);
+const StoreFront = lazyLoadWithErrorHandling(
+  () => import('../pages/shop/StoreFront.component'),
+  'Storefront'
+);
+const ShopPage = lazyLoadWithErrorHandling(
+  () => import('../pages/shop/ShopPage'),
+  'Shop Page'
+);
+const ProductDetail = lazyLoadWithErrorHandling(
+  () => import('../components/Shop/ProductDetail'),
+  'Product Detail'
+);
+const FoodScannerPage = lazyLoadWithErrorHandling(
+  () => import('../pages/FoodScanner/FoodScannerPage'),
+  'Food Scanner'
+);
+const UnauthorizedPage = lazyLoadWithErrorHandling(
+  () => import('../pages/UnauthorizedPage.component'),
+  'Unauthorized Page'
+);
+const ScheduleContainer = lazyLoadWithErrorHandling(
+  () => import('../components/Schedule/ScheduleContainer'),
+  'Schedule Container'
+);
+const ScheduleWrapper = lazyLoadWithErrorHandling(
+  () => import('../components/Schedule/ScheduleWrapper'),
+  'Schedule Wrapper'
+);
 
 // Checkout Pages
-const CheckoutSuccess = lazy(() => import('../pages/checkout/CheckoutSuccess'));
-const CheckoutCancel = lazy(() => import('../pages/checkout/CheckoutCancel'));
-const MockCheckout = lazy(() => import('../pages/checkout/MockCheckout'));
+const CheckoutSuccess = lazyLoadWithErrorHandling(
+  () => import('../pages/checkout/CheckoutSuccess'),
+  'Checkout Success'
+);
+const CheckoutCancel = lazyLoadWithErrorHandling(
+  () => import('../pages/checkout/CheckoutCancel'),
+  'Checkout Cancel'
+);
+const MockCheckout = lazyLoadWithErrorHandling(
+  () => import('../pages/checkout/MockCheckout'),
+  'Mock Checkout'
+);
 
 // Protected Pages
-const ClientDashboard = lazy(() => import('../components/ClientDashboard/ClientDashboard'));
-// Import the client dashboard view directly with file extension
-const ClientDashboardView = lazy(() => import('../components/DashBoard/Pages/client-dashboard/client-dashboard-view.tsx'));
-// Import workout dashboard
-const WorkoutDashboard = lazy(() => import('../pages/workout/WorkoutDashboard'));
-// Import the enhanced admin dashboard layout with file extension
-const AdminDashboardLayout = lazy(() => import('../components/DashBoard/admin-dashboard-layout.tsx'));
+const ClientDashboard = lazyLoadWithErrorHandling(
+  () => import('../components/ClientDashboard/ClientDashboard'),
+  'Client Dashboard'
+);
+const ClientDashboardView = lazyLoadWithErrorHandling(
+  () => import('../components/DashBoard/Pages/client-dashboard/client-dashboard-view'),
+  'Client Dashboard View'
+);
+const NewClientDashboard = lazyLoadWithErrorHandling(
+  () => import('../components/DashBoard/Pages/client-dashboard/new-client-dashboard'),
+  'Enhanced Client Dashboard'
+);
+const WorkoutDashboard = lazyLoadWithErrorHandling(
+  () => import('../pages/workout/WorkoutDashboard'),
+  'Workout Dashboard'
+);
+
+// Admin Dashboard Components - using direct imports to avoid path resolution issues
+const AdminDashboardLayout = lazyLoadWithErrorHandling(
+  () => import('../components/DashBoard/AdminDashboardLayout'),
+  'Admin Dashboard Layout'
+);
 
 /**
  * Main application routes configuration
@@ -129,6 +234,30 @@ const MainRoutes: RouteObject = {
       element: (
         <Suspense fallback={<PageLoader />}>
           <ShopPage />
+        </Suspense>
+      )
+    },
+    {
+      path: 'shop/apparel',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <StoreFront categoryFilter="apparel" />
+        </Suspense>
+      )
+    },
+    {
+      path: 'shop/training-packages',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <StoreFront categoryFilter="training" />
+        </Suspense>
+      )
+    },
+    {
+      path: 'shop/supplements',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <StoreFront categoryFilter="supplements" />
         </Suspense>
       )
     },
@@ -197,7 +326,7 @@ const MainRoutes: RouteObject = {
       element: (
         <ProtectedRoute requiredRole="client">
           <Suspense fallback={<PageLoader />}>
-            <ClientDashboardView />
+            <NewClientDashboard />
           </Suspense>
         </ProtectedRoute>
       )
