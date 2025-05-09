@@ -6,7 +6,6 @@ import { motion, useAnimation, useInView, animate } from 'framer-motion';
 import { gsap } from 'gsap';
 import { 
   FaFacebook, 
-  FaTwitter, 
   FaInstagram, 
   FaLinkedin, 
   FaYoutube,
@@ -15,8 +14,10 @@ import {
   FaMapMarkerAlt,
   FaChevronUp,
   FaCopyright,
-  FaHeart
+  FaHeart,
+  FaTiktok
 } from 'react-icons/fa';
+import { SiBluesky } from 'react-icons/si';
 import logoImage from '../../assets/Logo.png';
 import { defaultShouldForwardProp } from '../../utils/styled-component-helpers';
 
@@ -651,7 +652,7 @@ const EnhancedFooter = () => {
           
           <SocialIcons variants={containerVariants}>
             <SocialIcon 
-              href="https://facebook.com" 
+              href="https://facebook.com/seanswantech" 
               target="_blank" 
               rel="noopener noreferrer" 
               aria-label="Facebook"
@@ -665,10 +666,10 @@ const EnhancedFooter = () => {
               <FaFacebook />
             </SocialIcon>
             <SocialIcon 
-              href="https://bsky.app/" 
+              href="https://bsky.app/profile/swanstudios.bsky.social" 
               target="_blank" 
               rel="noopener noreferrer" 
-              aria-label="Twitter"
+              aria-label="Bluesky"
               className="social-icon"
               custom={1}
               variants={iconAnimation}
@@ -676,10 +677,10 @@ const EnhancedFooter = () => {
               animate="visible"
               whileHover={{ scale: 1.1 }}
             >
-              <FaTwitter />
+              <SiBluesky />
             </SocialIcon>
             <SocialIcon 
-              href="https://instagram.com" 
+              href="https://instagram.com/seanswantech" 
               target="_blank" 
               rel="noopener noreferrer" 
               aria-label="Instagram"
@@ -707,7 +708,7 @@ const EnhancedFooter = () => {
               <FaLinkedin />
             </SocialIcon>
             <SocialIcon 
-              href="https://youtube.com" 
+              href="https://www.youtube.com/@swanstudios2018" 
               target="_blank" 
               rel="noopener noreferrer" 
               aria-label="YouTube"
@@ -719,6 +720,20 @@ const EnhancedFooter = () => {
               whileHover={{ scale: 1.1 }}
             >
               <FaYoutube />
+            </SocialIcon>
+            <SocialIcon 
+              href="https://tiktok.com/@swanstudios2018" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              aria-label="TikTok"
+              className="social-icon"
+              custom={5}
+              variants={iconAnimation}
+              initial="hidden"
+              animate="visible"
+              whileHover={{ scale: 1.1 }}
+            >
+              <FaTiktok />
             </SocialIcon>
           </SocialIcons>
         </LogoSection>

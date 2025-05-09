@@ -35,6 +35,7 @@ import './styles/responsive-fixes.css';
 import './styles/enhanced-responsive.css';
 import './styles/auth-page-fixes.css';
 import './styles/signup-fixes.css';
+import './styles/aaa-enhancements.css';
 import ImprovedGlobalStyle from './styles/ImprovedGlobalStyle';
 import theme from './styles/theme';
 

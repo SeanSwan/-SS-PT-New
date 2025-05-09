@@ -1,6 +1,6 @@
 // frontend/src/pages/HomePage/components/Hero-Section.tsx
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, useAnimation, useInView } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -8,16 +8,10 @@ import GlowButton from "../../../components/Button/glowButton";
 import OrientationForm from "../../../components/OrientationForm/orientationForm";
 
 // Import assets (ensure paths are correct)
-import heroVideo from "/Swans.mp4";
-import logoImg from "/Logo.png";
+import heroVideo from "/Swans.mp4"; // Ensure this path is correct
+import logoImg from "/Logo.png"; // Ensure this path is correct
 
 // --- TypeScript Interfaces ---
-interface RippleProps {
-  id: string;
-  x: number;
-  y: number;
-  size: number;
-}
 
 // --- Animation Keyframes ---
 const float = keyframes`
@@ -26,20 +20,21 @@ const float = keyframes`
   100% { transform: translateY(0); }
 `;
 
+// Add a subtle rotation animation for extra visual interest
+const subtleRotate = keyframes`
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(0.5deg); }
+  75% { transform: rotate(-0.5deg); }
+  100% { transform: rotate(0deg); }
+`;
+
 const glow = keyframes`
   0% { filter: drop-shadow(0 0 5px rgba(0,255,255,0.5)); }
   50% { filter: drop-shadow(0 0 20px rgba(0,255,255,0.8)); }
   100% { filter: drop-shadow(0 0 5px rgba(0,255,255,0.5)); }
 `;
 
-const rippleVariants = {
-  hidden: { scale: 0, opacity: 0.6 },
-  visible: {
-    scale: 6,
-    opacity: 0,
-    transition: { duration: 2.5, ease: "easeOut" }
-  }
-};
+
 
 // --- Styled Components ---
 
@@ -79,64 +74,56 @@ const VideoBackground = styled.div`
     left: 0;
     width: 100%;
     height: 100%;
-    /* Lighter overlay values for better video visibility */
+    /* Updated gradient to match Transform section */
     background: linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0.03),
-      rgba(10, 10, 30, 0.03),
-      rgba(20, 20, 50, 0.03)
+      160deg, 
+      rgba(120, 81, 169, 0.4), 
+      rgba(9, 4, 30, 0.7), 
+      rgba(0, 159, 253, 0.3)
     );
+    z-index: 1;
   }
 
   video {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    will-change: transform; /* Performance optimization */
+  }
+  
+  /* Add a subtle vignette effect around the edges */
+  &:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+    z-index: 1;
   }
 `;
 
-const MouseInteractionArea = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  pointer-events: none;
-  overflow: hidden;
-`;
 
-const Ripple = styled(motion.div)<{ left: string; top: string; size: string }>`
-  position: absolute;
-  left: ${(props) => props.left};
-  top: ${(props) => props.top};
-  width: ${(props) => props.size};
-  height: ${(props) => props.size};
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(0,255,255,0.3) 0%,
-    rgba(120,81,169,0.3) 50%,
-    rgba(120,81,169,0) 70%
-  );
-  backdrop-filter: blur(2px);
-  box-shadow: 0 0 15px rgba(0,255,255,0.3);
-  pointer-events: none;
-`;
+
+
 
 const LogoContainer = styled(motion.div)`
   margin: 0 auto;
   display: flex;
   justify-content: center;
-  animation: ${float} 6s ease-in-out infinite, ${glow} 4s ease-in-out infinite;
+  animation: ${float} 6s ease-in-out infinite, ${glow} 4s ease-in-out infinite, ${subtleRotate} 10s ease-in-out infinite;
   margin-bottom: 1.5rem;
   margin-top: 2rem;
   z-index: 5;
+  transform-origin: center center;
 
   img {
     height: 160px;
     max-width: 100%;
     object-fit: contain;
+    filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.4));
   }
 
   @media (max-width: 768px) {
@@ -146,28 +133,53 @@ const LogoContainer = styled(motion.div)`
     margin-top: 1rem;
     margin-bottom: 1rem;
   }
+  
+  @media (max-width: 480px) {
+    img {
+      height: 100px;
+    }
+  }
 `;
 
-// Improved HeroContent with no animation
+// Improved HeroContent with enhanced styling
 const HeroContent = styled(motion.div)`
   position: relative;
   z-index: 2;
   max-width: 800px;
-  width: 100%;
+  width: 92%;
   margin: 0 auto;
-  padding: 2rem;
-  background: rgba(10, 10, 30, 0.2);
+  padding: 2.5rem 2rem;
+  background: rgba(10, 10, 30, 0.3);
   border-radius: 20px;
-  backdrop-filter: blur(5px);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  
+  /* Add subtle shine effect */
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  }
 
   @media (max-width: 768px) {
-    padding: 1.5rem;
+    padding: 1.8rem 1.5rem;
+    width: 95%;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 1.5rem 1.2rem;
+    width: 97%;
   }
 `;
 
 const Title = styled(motion.h1)`
   font-size: 3.5rem;
-  font-weight: 700;
+  font-weight: 800;
   background: linear-gradient(
     to right,
     #a9f8fb,
@@ -182,9 +194,22 @@ const Title = styled(motion.h1)`
   color: transparent;
   margin-bottom: 1rem;
   text-shadow: 0 0 30px rgba(120, 81, 169, 0.8);
+  letter-spacing: 1px;
+  text-align: center;
+  animation: textShine 8s linear infinite;
+  
+  @keyframes textShine {
+    to {
+      background-position: 200% center;
+    }
+  }
 
   @media (max-width: 768px) {
-    font-size: 2.2rem;
+    font-size: 2.5rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 2rem;
   }
 `;
 
@@ -205,6 +230,7 @@ const Tagline = styled(motion.h2)`
   margin-bottom: 2rem;
   text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
   letter-spacing: 1px;
+  text-align: center;
 
   span {
     background: linear-gradient(
@@ -220,12 +246,35 @@ const Tagline = styled(motion.h2)`
     -webkit-background-clip: text;
     color: transparent;
     display: inline-block;
-    font-weight: 600;
+    font-weight: 700;
     padding: 0 5px;
+    text-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+    position: relative;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -2px;
+      height: 2px;
+      background: linear-gradient(
+        to right,
+        rgba(169, 248, 251, 0.5),
+        rgba(70, 205, 207, 0.5),
+        rgba(123, 44, 191, 0.5)
+      );
+      border-radius: 2px;
+    }
   }
 
   @media (max-width: 768px) {
-    font-size: 1.5rem;
+    font-size: 1.6rem;
+    margin-bottom: 1.2rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 1.3rem;
     margin-bottom: 1rem;
   }
 `;
@@ -236,10 +285,25 @@ const HeroDescription = styled(motion.p)`
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.9);
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
+  text-align: center;
+  max-width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+
+  strong {
+    color: #46cdcf;
+    font-weight: 600;
+  }
 
   @media (max-width: 768px) {
     font-size: 1rem;
     margin-bottom: 1.5rem;
+    line-height: 1.5;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 0.95rem;
+    max-width: 100%;
   }
 `;
 
@@ -289,17 +353,38 @@ const ScrollIndicator = styled(motion.div)`
 
 const containerVariants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { delayChildren: 0.3, staggerChildren: 0.2 } }
+  visible: { 
+    opacity: 1, 
+    transition: { 
+      delayChildren: 0.3, 
+      staggerChildren: 0.2,
+      duration: 0.8,
+      ease: "easeOut"
+    } 
+  }
 };
 
 const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: { y: 0, opacity: 1, transition: { duration: 0.7, ease: "easeOut" } }
+  hidden: { y: 30, opacity: 0 },
+  visible: { 
+    y: 0, 
+    opacity: 1, 
+    transition: { 
+      duration: 0.7, 
+      ease: "easeOut",
+      type: "spring",
+      stiffness: 100,
+      damping: 12
+    } 
+  }
 };
 
 const HeroSection: React.FC = () => {
+  // Using useMemo for expensive component data calculation
+  const videoSource = useMemo(() => heroVideo, []);
+  const logoSource = useMemo(() => logoImg, []);
   const [showOrientation, setShowOrientation] = useState<boolean>(false);
-  const [ripples, setRipples] = useState<RippleProps[]>([]);
+
   const [showScrollIndicator, setShowScrollIndicator] = useState<boolean>(true);
 
   const controls = useAnimation();
@@ -312,52 +397,12 @@ const HeroSection: React.FC = () => {
       controls.start("visible");
     }
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (Math.random() > 0.95) {
-        const x = e.clientX;
-        const y = e.clientY;
-        const newRipple: RippleProps = {
-          id: crypto.randomUUID(),
-          x,
-          y,
-          size: Math.random() * 100 + 30
-        };
-        setRipples((prev) => [...prev, newRipple]);
-        setTimeout(() => {
-          setRipples((prev) => prev.filter((r) => r.id !== newRipple.id));
-        }, 2500);
-      }
-    };
-
-    const handleClick = (e: MouseEvent) => {
-      const x = e.clientX;
-      const y = e.clientY;
-      const clickRipples = Array(3)
-        .fill(0)
-        .map((_, i) => ({
-          id: crypto.randomUUID(),
-          x,
-          y,
-          size: 70 + i * 30
-        }));
-      setRipples((prev) => [...prev, ...clickRipples]);
-      clickRipples.forEach((ripple, i) => {
-        setTimeout(() => {
-          setRipples((prev) => prev.filter((r) => r.id !== ripple.id));
-        }, 2500 + i * 200);
-      });
-    };
-
     const handleScroll = () => {
       setShowScrollIndicator(window.scrollY <= 200);
     };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("click", handleClick);
     window.addEventListener("scroll", handleScroll);
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("click", handleClick);
+      
       window.removeEventListener("scroll", handleScroll);
     };
   }, [isInView, controls]);
@@ -374,29 +419,27 @@ const HeroSection: React.FC = () => {
   return (
     <HeroContainer ref={containerRef} id="hero">
       <VideoBackground>
-        <video autoPlay loop muted playsInline poster="/Swans.mp4">
-          <source src={heroVideo} type="video/mp4" />
+        <video 
+          autoPlay 
+          loop 
+          muted 
+          playsInline 
+          poster="/Swans.mp4"
+          loading="eager"
+          disablePictureInPicture
+          disableRemotePlayback
+        >
+          <source src={videoSource} type="video/mp4" />
+          <track kind="captions" srcLang="en" label="English captions" />
           Your browser does not support the video tag.
         </video>
       </VideoBackground>
 
-      <MouseInteractionArea>
-        {ripples.map((ripple) => (
-          <Ripple
-            key={ripple.id}
-            left={`${ripple.x}px`}
-            top={`${ripple.y}px`}
-            size={`${ripple.size}px`}
-            variants={rippleVariants}
-            initial="hidden"
-            animate="visible"
-          />
-        ))}
-      </MouseInteractionArea>
+
 
       <motion.div initial="hidden" animate={controls} variants={containerVariants}>
         <LogoContainer variants={itemVariants}>
-          <img src={logoImg} alt="Swan Studios Logo" />
+          <img src={logoSource} alt="Swan Studios Logo" loading="eager" />
         </LogoContainer>
 
         <HeroContent>
@@ -404,14 +447,15 @@ const HeroSection: React.FC = () => {
 
           <TaglineContainer variants={itemVariants}>
             <Tagline>
-              Elite Performance Training For <span>Extraordinary</span> Results
+              Elite Performance Training & <span>Creative Expression</span>
             </Tagline>
           </TaglineContainer>
 
           <HeroDescription variants={itemVariants}>
-            Experience a transformative workout program meticulously crafted by Sean Swan.
-            Leveraging over 25 years of elite coaching and proven NASM protocols, our personalized
-            approach empowers you to achieve peak performance at every stage of life.
+            Experience our <strong>elite performance training</strong> meticulously crafted by Sean Swan.
+            Leveraging over 25 years of championship coaching and proven NASM protocols, our personalized
+            approach empowers you to achieve <strong>peak physical condition</strong> while also nurturing
+            <strong> creative expression</strong> in a supportive community that values excellence.
           </HeroDescription>
 
           <ButtonsContainer variants={itemVariants}>
@@ -421,13 +465,15 @@ const HeroSection: React.FC = () => {
               size="large"
               animateOnRender={false}
               onClick={() => setShowOrientation(true)}
+              aria-label="Book a free consultation"
             />
             <GlowButton
-              text="View Programs"
+              text="Explore Classes"
               theme="purple"
               size="large"
               animateOnRender={false}
               onClick={() => navigate("/store")}
+              aria-label="Explore our fitness and creative classes"
             />
           </ButtonsContainer>
         </HeroContent>

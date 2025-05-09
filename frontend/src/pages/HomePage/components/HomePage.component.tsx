@@ -1,7 +1,7 @@
 // src/pages/homepage/HomePage.component.tsx
-import React, { useEffect, useRef, lazy, Suspense } from "react";
-import styled from "styled-components";
-import { motion, useScroll, useTransform, useInView } from "framer-motion";
+import React, { useEffect, useRef, lazy, Suspense, useState } from "react";
+import styled, { keyframes, css } from "styled-components";
+import { motion, useScroll, useTransform, useInView, AnimatePresence } from "framer-motion";
 import { Helmet } from "react-helmet-async";
 import GlowButton from "../../../components/Button/glowButton";
 
@@ -10,7 +10,26 @@ import HeroSection from "./Hero-Section";
 import ParallaxSection from "../../../components/ParallaxSection/ParallaxSection";
 import FeaturesSection from "../../../components/FeaturesSection/FeaturesSection";
 import TrainerProfilesSection from "./TrainerProfilesSection";
+import CreativeExpressionSection from "./CreativeExpressionSection";
 
+const FeaturedSection = styled.div`
+  position: relative;
+  z-index: 2;
+  margin: 10px 0;
+  padding: 5px;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(120, 81, 169, 0.15));
+    z-index: -1;
+  }
+`;
 // Lazy-loaded components with prefetch optimization
 const TestimonialSlider = lazy(() => {
   // Prefetch the component when idle
@@ -58,6 +77,22 @@ const InstagramFeed = lazy(() => {
   return prefetch;
 });
 
+// Enhanced animations with keyframes
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
+const spin = keyframes`
+  to { transform: rotate(360deg); }
+`;
+
+const pulse = keyframes`
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.8; }
+`;
+
 // Enhanced loading fallback component with fade-in animation
 const SectionLoader = styled.div`
   display: flex;
@@ -67,12 +102,8 @@ const SectionLoader = styled.div`
   width: 100%;
   background: rgba(10, 10, 30, 0.5);
   opacity: 0;
-  animation: fadeIn 0.5s ease-in-out forwards;
-  
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
+  animation: ${fadeIn} 0.5s ease-in-out forwards;
+  position: relative;
   
   &::after {
     content: "";
@@ -81,13 +112,17 @@ const SectionLoader = styled.div`
     border: 3px solid rgba(0, 255, 255, 0.3);
     border-top-color: rgba(0, 255, 255, 0.8);
     border-radius: 50%;
-    animation: loader-spin 1s linear infinite;
+    animation: ${spin} 1s linear infinite, ${pulse} 2s ease-in-out infinite;
   }
-  
-  @keyframes loader-spin {
-    to {
-      transform: rotate(360deg);
-    }
+`;
+
+// Diagonal shimmer animation
+const diagonalShimmer = keyframes`
+  0% {
+    background-position: -200% 200%;
+  }
+  100% {
+    background-position: 200% -200%;
   }
 `;
 
@@ -102,39 +137,21 @@ const HomePageContainer = styled.div`
   max-width: 100vw;
   margin: 0 auto;
   
-  /* Add subtle animation for content */
-  & > * {
-    opacity: 0;
-    animation: fadeIn 0.8s ease-out forwards;
-  }
-  
-  /* Stagger the animations of child elements */
-  & > *:nth-child(1) { animation-delay: 0s; }
-  & > *:nth-child(2) { animation-delay: 0.1s; }
-  & > *:nth-child(3) { animation-delay: 0.2s; }
-  & > *:nth-child(4) { animation-delay: 0.3s; }
-  & > *:nth-child(5) { animation-delay: 0.4s; }
-  
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
+  /* Optimize rendering performance */
+  will-change: opacity, transform;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   
   /* Ultra mobile responsiveness */
   @media (max-width: 480px) {
     overflow-x: hidden;
   }
-  
-  /* Optimize rendering performance */
-  will-change: opacity, transform;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
 `;
 
 const SectionDivider = styled(motion.div)`
   position: relative;
   height: 150px;
-  background: linear-gradient(to right, rgba(0, 255, 255, 0.1), rgba(120, 81, 169, 0.1));
+  background: linear-gradient(to right, rgba(0, 255, 255, 0.05), rgba(120, 81, 169, 0.05));
   margin: 0;
   overflow: hidden;
   display: flex;
@@ -149,6 +166,26 @@ const SectionDivider = styled(motion.div)`
     background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.8), rgba(120, 81, 169, 0.8), transparent);
   }
   
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      135deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.05) 25%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 75%,
+      transparent 100%
+    );
+    background-size: 200% 200%;
+    animation: ${diagonalShimmer} 5s linear infinite;
+    pointer-events: none;
+  }
+  
   /* Ultra mobile responsiveness */
   @media (max-width: 768px) {
     height: 120px;
@@ -160,13 +197,16 @@ const SectionDivider = styled(motion.div)`
 `;
 
 const FloatingText = styled(motion.div)`
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.9);
   font-size: 1.2rem;
   font-weight: 300;
   letter-spacing: 3px;
   text-transform: uppercase;
   text-align: center;
   padding: 0 15px;
+  position: relative;
+  z-index: 2;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
   
   /* Ultra mobile responsiveness */
   @media (max-width: 768px) {
@@ -191,23 +231,12 @@ const ScrollPrompt = styled(motion.div)`
   align-items: center;
   font-size: 0.8rem;
   opacity: 0.8;
+  cursor: pointer;
   
   &::after {
     content: "↓";
     font-size: 1.5rem;
-    animation: bounce 2s infinite;
-  }
-  
-  @keyframes bounce {
-    0%, 20%, 50%, 80%, 100% {
-      transform: translateY(0);
-    }
-    40% {
-      transform: translateY(-10px);
-    }
-    60% {
-      transform: translateY(-5px);
-    }
+    animation: ${pulse} 2s infinite;
   }
   
   /* Hide on smallest screens for better mobile experience */
@@ -226,6 +255,8 @@ const ExploreMoreButton = styled(motion.div)`
   display: flex;
   justify-content: center;
   margin: 2rem 0;
+  position: relative;
+  z-index: 2;
 `;
 
 // Animation variants with improved performance
@@ -254,8 +285,8 @@ const floatingTextVariants = {
 
 const scrollPromptVariants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 0.8 },
-  exit: { opacity: 0 }
+  visible: { opacity: 0.8, transition: { duration: 0.5 } },
+  exit: { opacity: 0, transition: { duration: 0.3 } }
 };
 
 const buttonVariants = {
@@ -267,6 +298,14 @@ const buttonVariants = {
       duration: 0.6,
       ease: "easeOut" 
     }
+  },
+  hover: {
+    scale: 1.05,
+    transition: { duration: 0.2 }
+  },
+  tap: {
+    scale: 0.95,
+    transition: { duration: 0.1 }
   }
 };
 
@@ -280,23 +319,44 @@ const useCustomInView = (threshold = 0.2) => {
 const HomePage: React.FC = () => {
   const { scrollY } = useScroll();
   const scrollPromptOpacity = useTransform(scrollY, [0, 300], [1, 0]);
+  const [showScrollPrompt, setShowScrollPrompt] = useState<boolean>(true);
   const [homeRef, isHomeInView] = useCustomInView(0.1);
   
   // Section refs for improved animations
   const [featuresRef, isFeaturesInView] = useCustomInView();
   const [trainersRef, isTrainersInView] = useCustomInView();
   const [testimonialRef, isTestimonialInView] = useCustomInView();
+  const [statsRef, isStatsInView] = useCustomInView();
+  const [instagramRef, isInstagramInView] = useCustomInView();
+  const [newsletterRef, isNewsletterInView] = useCustomInView();
   
   // Divider texts for each section
   const dividerTexts = [
     "Elevate Your Training",
+    "Express & Connect",
     "Expert Coaching",
     "Success Stories",
     "Measurable Results",
     "Join Our Community"
   ];
+  
+  // Add ids for scroll navigation
+  const sectionIds = {
+    hero: "hero",
+    features: "services",
+    creativeExpression: "creative-expression",
+    trainers: "trainers",
+    testimonials: "testimonials"
+  };
 
   useEffect(() => {
+    // Handle scroll visibility
+    const handleScroll = () => {
+      setShowScrollPrompt(window.scrollY <= 200);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    
     // Smooth scroll to element if hash is present in URL
     const hash = window.location.hash;
     if (hash) {
@@ -360,6 +420,7 @@ const HomePage: React.FC = () => {
         anchor.removeEventListener('click', handleAnchorClick);
       });
       window.removeEventListener('load', prefetchResources);
+      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
@@ -385,51 +446,79 @@ const HomePage: React.FC = () => {
   return (
     <HomePageContainer ref={homeRef}>
       <Helmet>
-        <title>SwanStudios | Elite Performance Training</title>
-        <meta name="description" content="Transform your fitness journey with SwanStudios' elite personal training. NASM-certified coaching with over 25 years of experience in performance training." />
-        <meta property="og:title" content="SwanStudios | Elite Performance Training" />
-        <meta property="og:description" content="Transform your fitness journey with SwanStudios' elite personal training. NASM-certified coaching with over 25 years of experience in performance training." />
+        <title>SwanStudios | Elite Performance Training & Creative Expression</title>
+        <meta name="description" content="Transform your fitness journey with SwanStudios' elite personal training. NASM-certified coaching with over 25 years of experience in performance, dance, and creative wellness training." />
+        <meta property="og:title" content="SwanStudios | Elite Performance Training & Creative Expression" />
+        <meta property="og:description" content="Transform your fitness journey with SwanStudios' elite personal training. NASM-certified coaching with over 25 years of experience in performance, dance, and creative wellness training." />
         <meta property="og:type" content="website" />
+        <meta property="og:image" content="/Logo.png" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+        <meta name="theme-color" content="#0a0a1a" />
+        <meta name="keywords" content="personal training, fitness, dance, creative expression, wellness, performance training, NASM certified" />
+        <link rel="canonical" href="https://swanstudios.com" />
       </Helmet>
       
       {/* Hero Section */}
       <HeroSection />
       
       {/* Scroll Prompt - only visible at top of page */}
-      <ScrollPrompt 
-        style={{ opacity: scrollPromptOpacity }}
-        variants={scrollPromptVariants}
-        initial="hidden"
-        animate="visible"
-        exit="exit"
-        aria-hidden="true"
-      >
-        Scroll
-      </ScrollPrompt>
+      <AnimatePresence>
+        {showScrollPrompt && (
+          <ScrollPrompt 
+            style={{ opacity: scrollPromptOpacity }}
+            variants={scrollPromptVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            onClick={() => {
+              const featuresElement = document.getElementById(sectionIds.features);
+              if (featuresElement) featuresElement.scrollIntoView({ behavior: 'smooth' });
+            }}
+            aria-label="Scroll down to explore content"
+          >
+            Scroll
+          </ScrollPrompt>
+        )}
+      </AnimatePresence>
       
       {renderSectionDivider(0)}
       
       {/* Features Section - Shows services */}
-      <div ref={featuresRef}>
-        <FeaturesSection />
-        
-        <ExploreMoreButton
-          variants={buttonVariants}
-          initial="hidden"
-          animate={isFeaturesInView ? "visible" : "hidden"}
-        >
-          <GlowButton 
-            text="Explore Services" 
-            theme="cosmic" 
-            size="medium" 
-            animateOnRender 
-            onClick={() => window.location.href = '/services'}
-          />
-        </ExploreMoreButton>
-      </div>
+      <FeaturedSection ref={featuresRef} className="primary-focus-label">
+        <div style={{
+          transform: isFeaturesInView ? 'scale(1)' : 'scale(0.95)',
+          opacity: isFeaturesInView ? 1 : 0.7,
+          transition: 'transform 0.8s ease-out, opacity 0.8s ease-out',
+          padding: '15px',
+          borderRadius: '8px'
+        }}>
+          <FeaturesSection />
+          
+          <ExploreMoreButton
+            variants={buttonVariants}
+            initial="hidden"
+            animate={isFeaturesInView ? "visible" : "hidden"}
+            whileHover="hover"
+            whileTap="tap"
+          >
+            <GlowButton 
+              text="Explore Services" 
+              theme="cosmic" 
+              size="medium" 
+              animateOnRender 
+              onClick={() => window.location.href = '/services'}
+              aria-label="Explore our services"
+            />
+          </ExploreMoreButton>
+        </div>
+      </FeaturedSection>
       
       {renderSectionDivider(1)}
+      
+      {/* Creative Expression Section */}
+      <CreativeExpressionSection />
+      
+      {renderSectionDivider(2)}
       
       {/* Trainer Profiles Section */}
       <div ref={trainersRef}>
@@ -439,6 +528,8 @@ const HomePage: React.FC = () => {
           variants={buttonVariants}
           initial="hidden"
           animate={isTrainersInView ? "visible" : "hidden"}
+          whileHover="hover"
+          whileTap="tap"
         >
           <GlowButton 
             text="Meet Our Trainers" 
@@ -446,18 +537,19 @@ const HomePage: React.FC = () => {
             size="medium" 
             animateOnRender 
             onClick={() => window.location.href = '/trainers'}
+            aria-label="Meet our professional trainers"
           />
         </ExploreMoreButton>
       </div>
       
-      {renderSectionDivider(2)}
+      {renderSectionDivider(3)}
       
       {/* Parallax Section with video background - using IntersectionObserver for optimized loading */}
       <div data-testid="parallax-section" style={{ minHeight: '100px', willChange: 'transform' }}>
         <ParallaxSection />
       </div>
       
-      {renderSectionDivider(3)}
+      {renderSectionDivider(4)}
       
       {/* Testimonial Slider with enhanced loading - use visibility transition */}
       <div ref={testimonialRef} style={{ minHeight: '200px', opacity: isTestimonialInView ? 1 : 0, transition: 'opacity 0.5s ease-in-out' }}>
@@ -469,6 +561,8 @@ const HomePage: React.FC = () => {
           variants={buttonVariants}
           initial="hidden"
           animate={isTestimonialInView ? "visible" : "hidden"}
+          whileHover="hover"
+          whileTap="tap"
         >
           <GlowButton 
             text="Read More Testimonials" 
@@ -476,12 +570,18 @@ const HomePage: React.FC = () => {
             size="medium" 
             animateOnRender 
             onClick={() => window.location.href = '/testimonials'}
+            aria-label="View more customer testimonials"
           />
         </ExploreMoreButton>
       </div>
       
       {/* Stats Section - Shows achievements with progressive loading */}
-      <div style={{ minHeight: '200px', willChange: 'opacity' }}>
+      <div ref={statsRef} style={{ 
+        minHeight: '200px', 
+        willChange: 'opacity',
+        opacity: isStatsInView ? 1 : 0.4,
+        transition: 'opacity 0.5s ease-in-out'
+      }}>
         <Suspense fallback={<SectionLoader />}>
           <FitnessStats />
         </Suspense>
@@ -490,14 +590,26 @@ const HomePage: React.FC = () => {
       {renderSectionDivider(4)}
       
       {/* Instagram Feed Section with loading priority */}
-      <div style={{ minHeight: '200px', willChange: 'opacity' }}>
+      <div ref={instagramRef} style={{ 
+        minHeight: '200px', 
+        willChange: 'opacity',
+        opacity: isInstagramInView ? 1 : 0.4,
+        transform: `translateY(${isInstagramInView ? '0' : '20px'})`,
+        transition: 'opacity 0.6s ease-in-out, transform 0.6s ease-out'
+      }}>
         <Suspense fallback={<SectionLoader />}>
           <InstagramFeed />
         </Suspense>
       </div>
       
       {/* Newsletter Signup with priority loading */}
-      <div style={{ minHeight: '100px', willChange: 'opacity' }}>
+      <div ref={newsletterRef} style={{ 
+        minHeight: '100px', 
+        willChange: 'opacity',
+        opacity: isNewsletterInView ? 1 : 0.4,
+        transform: `translateY(${isNewsletterInView ? '0' : '20px'})`,
+        transition: 'opacity 0.6s ease-in-out, transform 0.6s ease-out'
+      }}>
         <Suspense fallback={<SectionLoader />}>
           <NewsletterSignup />
         </Suspense>

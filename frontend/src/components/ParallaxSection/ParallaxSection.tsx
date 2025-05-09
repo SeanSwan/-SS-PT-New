@@ -5,7 +5,7 @@ import { motion, useScroll, useTransform, useInView } from "framer-motion";
 import GlowButton from "../../components/Button/glowButton";
 
 // Import correct video path
-import wavesVideo from "/Swans.mp4"; // Adjust path if needed
+import wavesVideo from "/smoke.mp4"; // Updated to smoke.mp4
 
 // Keyframe animations
 const glow = keyframes`
@@ -194,9 +194,7 @@ const ParallaxSection: React.FC = () => {
         </ParallaxTitle>
 
         <ParallaxText variants={textVariants}>
-          Our premium training programs combine cutting-edge science with over 25 years of
-          elite coaching experience. We don't just transform bodies—we elevate your entire
-          approach to fitness and wellness for extraordinary, lasting results.
+          Our elite personal training program is the cornerstone of SwanStudios, combining cutting-edge science with over 25 years of championship coaching experience. We focus on physical wellness through elite fitness training, complemented by creative expression and community connection to strengthen both body and spirit for extraordinary, lasting results.
         </ParallaxText>
 
         <ButtonContainer variants={buttonVariants}>

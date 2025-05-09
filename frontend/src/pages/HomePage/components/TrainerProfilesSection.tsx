@@ -1,4 +1,4 @@
-// frontend/src/pages/HomePage/components/TrainerProfilesSection.tsx
+import backgroundImage from "../../../assets/swan-tile-big.png"; // Import background image
 import React, { useState, useCallback, useEffect, useRef } from "react"; // Ensure useRef is imported
 import styled, { keyframes } from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
@@ -77,7 +77,11 @@ const pulseGlow = keyframes`
 // --- Styled Components ---
 const SectionContainer = styled.section`
   padding: 6rem 2rem;
-  background: linear-gradient(to bottom, #0a0a0a, #121212);
+  background: linear-gradient(to right, rgba(10, 10, 10, 0.9), rgba(26, 26, 46, 0.9), rgba(10, 10, 10, 0.9)),
+              url(${backgroundImage});
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
   position: relative;
   overflow: hidden;
   width: 100%;
@@ -90,18 +94,17 @@ const SectionContainer = styled.section`
   }
 `;
 
-const GlowEffect = styled.div`
+const GridLines = styled.div`
   position: absolute;
-  width: 60vh;
-  height: 60vh;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(0, 255, 255, 0.1) 0%, rgba(120, 81, 169, 0.05) 50%, transparent 70%);
-  top: 20%;
-  left: 30%;
-  filter: blur(60px);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 25px 25px;
   z-index: 0;
-  opacity: 0.6;
-  pointer-events: none; // Ensure it doesn't interfere with interactions
 `;
 
 const ContentWrapper = styled.div`
@@ -612,7 +615,7 @@ const TrainerProfilesSection: React.FC = () => {
 
   return (
     <SectionContainer id="trainers">
-      <GlowEffect />
+      <GridLines />
       <ContentWrapper>
         <SectionTitle>Meet Our Elite Coaching Team</SectionTitle>
         <SectionSubtitle
