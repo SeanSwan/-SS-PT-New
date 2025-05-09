@@ -232,7 +232,10 @@ const RatingContainer = styled.div`
   margin-bottom: 0.5rem;
 `;
 
-const Star = styled.span<{ filled: boolean; index: number }>`
+// Use shouldForwardProp to prevent 'filled' and 'index' from being forwarded to the DOM
+const Star = styled.span.withConfig({
+  shouldForwardProp: (prop) => prop !== 'filled' && prop !== 'index'
+})<{ filled: boolean; index: number }>`
   color: ${props => props.filled ? '#FFD700' : 'rgba(255, 255, 255, 0.2)'};
   font-size: 1.2rem;
   margin: 0 2px;

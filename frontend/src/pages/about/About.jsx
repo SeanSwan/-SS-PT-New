@@ -1,21 +1,24 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import styled, { keyframes, css } from "styled-components";
-import { motion, useAnimation } from "framer-motion";
+import { motion, useAnimation, useInView } from "framer-motion";
 import { Helmet } from "react-helmet-async";
 
 // Import enhanced components
 import Hero from "./Hero";
 import AboutContent from "./AboutContent";
-import TestimonialSection from "./TestimonialSection";
+import FixedTestimonialSection from "./FixedTestimonialSection";
+import GlowButton from "../../components/Button/glowButton";
 
 /*
-  🌟 Premium About Page
-  ---------------------
-  - Features **sophisticated animations** and **premium transitions**
-  - Implements **advanced SEO optimization** with metadata
-  - Includes **luxury scroll-to-top button** with glass-morphism effect
-  - Optimizes for **accessibility and performance**
-  - Delivers a **cohesive premium aesthetic** matching other components
+  ✨ Ultra-Premium About Page (2025 Enhancement)
+  ---------------------------------------------
+  - Features **sophisticated parallax animations** and **luxury transitions**
+  - Implements **advanced SEO optimization** with comprehensive metadata
+  - Includes **interactive scroll-to-section navigation**
+  - Optimizes for **accessibility and performance** with lazy-loading
+  - Delivers a **cohesive luxury aesthetic** matching other components
+  - Added **interactive journey timeline** showing SwanStudios evolution
+  - Enhanced **social proof elements** to increase conversion
 */
 
 // ======================= 🎨 Animations =======================
@@ -49,6 +52,17 @@ const float = keyframes`
 const spin = keyframes`
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+`;
+
+const breathe = keyframes`
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+`;
+
+const revealText = keyframes`
+  0% { width: 0; }
+  100% { width: 100%; }
 `;
 
 // ======================= 🎨 Styled Components =======================
@@ -97,7 +111,7 @@ const AboutPage = styled(motion.div)`
   }
 `;
 
-// Premium decorative orb elements - Fixed with proper animation styling
+// Premium decorative orb elements with improved animation styling
 const TopLeftOrb = styled.div`
   position: fixed;
   top: 10%;
@@ -126,6 +140,109 @@ const BottomRightOrb = styled.div`
   z-index: 0;
   pointer-events: none;
   animation: ${float} 18s infinite ease-in-out reverse;
+`;
+
+const CenterOrb = styled.div`
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    rgba(0, 255, 255, 0.03) 0%,
+    rgba(120, 81, 169, 0.03) 50%,
+    transparent 70%
+  );
+  filter: blur(50px);
+  opacity: 0.2;
+  z-index: 0;
+  pointer-events: none;
+  animation: ${breathe} 10s infinite ease-in-out;
+`;
+
+// Enhanced navigation dots for section scrolling
+const NavDotsContainer = styled.div`
+  position: fixed;
+  right: 2rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  
+  @media (max-width: 768px) {
+    right: 1rem;
+    gap: 1rem;
+  }
+`;
+
+const NavDot = styled.button`
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: none;
+  background: ${props => props.$active ? 'rgba(0, 255, 255, 0.8)' : 'rgba(255, 255, 255, 0.2)'};
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  
+  &:hover {
+    transform: scale(1.2);
+  }
+  
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.5);
+  }
+  
+  &:after {
+    content: "${props => props.label}";
+    position: absolute;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    white-space: nowrap;
+    color: white;
+    font-size: 0.85rem;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    background: rgba(10, 10, 30, 0.7);
+    padding: 5px 10px;
+    border-radius: 4px;
+    backdrop-filter: blur(5px);
+  }
+  
+  &:hover:after {
+    opacity: 1;
+    transform: translateY(-50%) translateX(-5px);
+  }
+  
+  ${props => props.$active && css`
+    &:before {
+      content: "";
+      position: absolute;
+      inset: -4px;
+      border-radius: 50%;
+      background: conic-gradient(
+        rgba(0, 255, 255, 0),
+        rgba(0, 255, 255, 0.8),
+        rgba(120, 81, 169, 0.8),
+        rgba(0, 255, 255, 0)
+      );
+      animation: ${spin} 4s linear infinite;
+      opacity: 0.6;
+    }
+  `}
+  
+  @media (max-width: 768px) {
+    width: 10px;
+    height: 10px;
+  }
 `;
 
 // Luxury scroll-to-top button with glass morphism effect
@@ -183,6 +300,11 @@ const ScrollToTopButton = styled(motion.button)`
       transform: translateY(-3px);
       text-shadow: 0 0 15px rgba(0, 255, 255, 0.8);
     }
+  }
+  
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.5);
   }
   
   @media (max-width: 768px) {
@@ -252,11 +374,81 @@ const LoadingSpinner = styled.div`
   height: 60px;
 `;
 
+// Enhanced CTA floating bar that appears on scroll
+const FloatingCTABar = styled(motion.div)`
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(10, 10, 26, 0.85);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0, 255, 255, 0.2);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 99;
+  transform: translateY(100%);
+  box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.2);
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+`;
+
+const FloatingCTAText = styled.div`
+  font-size: 1.1rem;
+  color: white;
+  display: flex;
+  align-items: center;
+  
+  span {
+    position: relative;
+    display: inline-block;
+    margin-left: 0.5rem;
+    color: #00ffff;
+    
+    &:after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 2px;
+      background: #00ffff;
+      animation: ${revealText} 2s ease-in-out;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 1rem;
+    text-align: center;
+  }
+`;
+
+const FloatingCTAButtons = styled.div`
+  display: flex;
+  gap: 1rem;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: center;
+  }
+`;
+
 // ======================= 🚀 Enhanced About Component =======================
 
 export default function About() {
   // Animation controls
   const controls = useAnimation();
+  const ctaBarControls = useAnimation();
+  
+  // Section refs for navigation
+  const heroRef = useRef(null);
+  const aboutRef = useRef(null);
+  const testimonialsRef = useRef(null);
   
   // State for scroll to top button
   const [showScrollButton, setShowScrollButton] = React.useState(false);
@@ -264,12 +456,55 @@ export default function About() {
   // State for page loading
   const [isLoading, setIsLoading] = React.useState(true);
   
-  // Handle scroll to show/hide scroll button
+  // State for active section
+  const [activeSection, setActiveSection] = React.useState('hero');
+  
+  // Handle scroll to show/hide elements and track active section
   const handleScroll = () => {
-    if (window.scrollY > 300) {
+    const scrollPosition = window.scrollY;
+    
+    // Show/hide scroll button
+    if (scrollPosition > 300) {
       setShowScrollButton(true);
     } else {
       setShowScrollButton(false);
+    }
+    
+    // Show/hide floating CTA bar
+    if (scrollPosition > window.innerHeight * 0.8) {
+      ctaBarControls.start({
+        y: 0,
+        transition: { duration: 0.5, ease: "easeOut" }
+      });
+    } else {
+      ctaBarControls.start({
+        y: "100%",
+        transition: { duration: 0.5, ease: "easeIn" }
+      });
+    }
+    
+    // Determine active section
+    const heroRect = heroRef.current?.getBoundingClientRect();
+    const aboutRect = aboutRef.current?.getBoundingClientRect();
+    const testimonialsRect = testimonialsRef.current?.getBoundingClientRect();
+    
+    if (heroRect && heroRect.top <= 100 && heroRect.bottom >= 0) {
+      setActiveSection('hero');
+    } else if (aboutRect && aboutRect.top <= 100 && aboutRect.bottom >= 0) {
+      setActiveSection('about');
+    } else if (testimonialsRect && testimonialsRect.top <= 100 && testimonialsRect.bottom >= 0) {
+      setActiveSection('testimonials');
+    }
+  };
+  
+  // Scroll to section function
+  const scrollToSection = (sectionId) => {
+    const section = document.getElementById(sectionId);
+    if (section) {
+      window.scrollTo({
+        top: section.offsetTop,
+        behavior: 'smooth'
+      });
     }
   };
   
@@ -323,14 +558,21 @@ export default function About() {
     <PageWrapper>
       {/* Enhanced SEO Optimization */}
       <Helmet>
-        <title>About Swan Studios | Luxury Personal Training Experience</title>
-        <meta name="description" content="Discover Swan Studios' revolutionary approach to elite personal training, featuring science-backed methods, premium coaching, and a proven track record of transformational results." />
-        <meta name="keywords" content="luxury personal training, elite fitness coaching, premium fitness studio, body transformation, Swan Studios" />
-        <meta property="og:title" content="About Swan Studios | Luxury Personal Training Experience" />
-        <meta property="og:description" content="Experience our revolutionary approach to fitness with elite-level coaching, science-backed methods, and a 7-star luxury training environment." />
+        <title>About Swan Studios | Elite Fitness & Personal Training Experience</title>
+        <meta name="description" content="Discover Swan Studios' revolutionary approach to elite personal training, featuring science-backed methods, premium coaching, and proven transformational results. Learn about our philosophy, team, and success stories." />
+        <meta name="keywords" content="luxury personal training, elite fitness coaching, premium fitness studio, body transformation, Swan Studios, fitness transformation" />
+        
+        <meta property="og:title" content="About Swan Studios | Elite Fitness & Personal Training Experience" />
+        <meta property="og:description" content="Experience our revolutionary approach to fitness with elite-level coaching, science-backed methods, and a 5-star luxury training environment." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://sswanstudios.com/about" />
         <meta property="og:image" content="https://sswanstudios.com/logo.png" />
+        
+        {/* Twitter Card data */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="About Swan Studios | Elite Fitness & Personal Training" />
+        <meta name="twitter:description" content="Elite fitness coaching with science-backed methods designed for transformational results. Join our community of success stories." />
+        <meta name="twitter:image" content="https://sswanstudios.com/logo.png" />
         
         {/* Essential styles to eliminate margins/padding */}
         <style type="text/css">{`
@@ -342,6 +584,7 @@ export default function About() {
             overflow-x: hidden !important;
             background: #0a0a1a;
             color: white;
+            scroll-behavior: smooth;
           }
           
           #root {
@@ -351,12 +594,18 @@ export default function About() {
             padding: 0 !important;
             overflow-x: hidden !important;
           }
+          
+          ::selection {
+            background: rgba(0, 255, 255, 0.3);
+            color: white;
+          }
         `}</style>
       </Helmet>
       
-      {/* Decorative Orbs - Fixed implementation */}
+      {/* Enhanced Decorative Orbs */}
       <TopLeftOrb />
       <BottomRightOrb />
+      <CenterOrb />
       
       {/* Enhanced Loading Overlay */}
       {isLoading && (
@@ -374,14 +623,47 @@ export default function About() {
         </LoadingOverlay>
       )}
       
+      {/* Section Navigation Dots */}
+      <NavDotsContainer>
+        <NavDot 
+          $active={activeSection === 'hero'} 
+          onClick={() => scrollToSection('hero-section')}
+          label="Welcome"
+          aria-label="Navigate to Welcome section"
+        />
+        <NavDot 
+          $active={activeSection === 'about'} 
+          onClick={() => scrollToSection('about-section')}
+          label="Our Story"
+          aria-label="Navigate to Our Story section"
+        />
+        <NavDot 
+          $active={activeSection === 'testimonials'} 
+          onClick={() => scrollToSection('testimonials-section')}
+          label="Success Stories"
+          aria-label="Navigate to Success Stories section"
+        />
+      </NavDotsContainer>
+      
       {/* Main Content */}
       <AboutPage 
         initial={{ opacity: 0, y: 20 }}
         animate={controls}
       >
-        <Hero />
-        <AboutContent />
-        <TestimonialSection />
+        {/* Hero Section */}
+        <div ref={heroRef} id="hero-section">
+          <Hero />
+        </div>
+        
+        {/* About Content Section */}
+        <div ref={aboutRef} id="about-section">
+          <AboutContent />
+        </div>
+        
+        {/* Testimonials Section */}
+        <div ref={testimonialsRef} id="testimonials-section">
+          <FixedTestimonialSection />
+        </div>
         
         {/* Enhanced Scroll to Top Button */}
         <ScrollToTopButton
@@ -395,7 +677,30 @@ export default function About() {
           transition={{ duration: 0.3 }}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
+          aria-label="Scroll to top"
         />
+        
+        {/* Floating CTA Bar */}
+        <FloatingCTABar
+          initial={{ y: "100%" }}
+          animate={ctaBarControls}
+        >
+          <FloatingCTAText>
+            Ready to transform your fitness journey? <span>Join SwanStudios today!</span>
+          </FloatingCTAText>
+          <FloatingCTAButtons>
+            <GlowButton 
+              text="Book a Consultation" 
+              theme="cosmic" 
+              size="medium"
+            />
+            <GlowButton 
+              text="View Pricing" 
+              theme="neon" 
+              size="medium"
+            />
+          </FloatingCTAButtons>
+        </FloatingCTABar>
       </AboutPage>
     </PageWrapper>
   );

@@ -12,6 +12,11 @@ import {
   preventOverflow_default
 } from "./chunk-E35HUR62.js";
 import {
+  Grid2_default,
+  getGrid2UtilityClass,
+  grid2Classes_default
+} from "./chunk-BFBFVDIB.js";
+import {
   Alert_default,
   ButtonBase_default,
   CircularProgress_default,
@@ -32,17 +37,12 @@ import {
   paperClasses_default,
   touchRippleClasses_default,
   useSlot
-} from "./chunk-AOFUR6IX.js";
+} from "./chunk-LAGWNAF3.js";
 import {
   Transition_default
 } from "./chunk-KSFED5KU.js";
 import "./chunk-DCETGWKN.js";
 import "./chunk-VPI4FCPN.js";
-import {
-  Grid2_default,
-  getGrid2UtilityClass,
-  grid2Classes_default
-} from "./chunk-BFBFVDIB.js";
 import {
   CssVarsProvider,
   Experimental_CssVarsProvider,

@@ -1,12 +1,12 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, useAnimation, useInView } from "framer-motion";
 // Import GlowButton component
 import GlowButton from "../../components/Button/glowButton";
 
 // Use direct paths to public folder
-const wavesVideo = "/Waves.mp4"; // Make sure the file is actually named Waves.mp4 in public folder
-const logoImage = "/Logo.png";
+import wavesVideo from "../../assets/Waves.mp4";
+import logoImage from "../../assets/Logo.png";
 
 // ======================= 🎨 Animation Keyframes =======================
 const shimmer = keyframes`
@@ -57,6 +57,21 @@ const scroll = keyframes`
     opacity: 0;
     transform: translateY(15px);
   }
+`;
+
+const reveal = keyframes`
+  0% { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+`;
+
+const fadeInUp = keyframes`
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: translateY(0); }
+`;
+
+const sparkle = keyframes`
+  0%, 100% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1); opacity: 1; }
 `;
 
 // Enhanced styled components with improved responsive design
@@ -193,17 +208,38 @@ const LogoContainer = styled(motion.div)`
   }
 `;
 
-// Enhanced logo styling
-const Logo = styled.img`
+// Enhanced logo styling with decorative elements
+const Logo = styled.div`
+  position: relative;
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.3));
-  transition: all 0.3s ease;
   
-  &:hover {
-    filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.5));
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.3));
+    transition: all 0.3s ease;
+    
+    &:hover {
+      filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.5));
+    }
   }
+`;
+
+// Decorative sparkles around the logo
+const Sparkle = styled.div`
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: white;
+  z-index: -1;
+  animation: ${sparkle} 2s infinite ease-out;
+  animation-delay: ${props => props.delay || "0s"};
+  top: ${props => props.top || "0"};
+  left: ${props => props.left || "0"};
+  opacity: 0;
 `;
 
 // Premium title with gradient animation
@@ -251,10 +287,26 @@ const Tagline = styled(motion.p)`
   margin: 0 auto 2rem;
   text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.7);
   color: rgba(255, 255, 255, 0.9);
+  position: relative;
   
   span {
     color: #00ffff;
     text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    position: relative;
+    display: inline-block;
+    
+    &:after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 100%;
+      height: 1px;
+      background: #00ffff;
+      transform-origin: left;
+      animation: ${reveal} 1.5s ease forwards;
+      animation-delay: 1.5s;
+    }
   }
 
   @media (max-width: 768px) {
@@ -268,9 +320,25 @@ const Tagline = styled(motion.p)`
   }
 `;
 
+// Enhanced tagline with staggered word reveal animation
+const TaglineWords = styled(motion.span)`
+  display: inline-block;
+  margin-right: 8px;
+  opacity: 0;
+  animation: ${fadeInUp} 0.5s forwards;
+  animation-delay: ${props => props.delay || "0s"};
+`;
+
 // Luxury button container for spacing
 const ButtonContainer = styled(motion.div)`
   margin-top: 2rem;
+  display: flex;
+  gap: 1rem;
+  
+  @media (max-width: 600px) {
+    flex-direction: column;
+    align-items: center;
+  }
 `;
 
 // Premium scroll indicator with glass morphism effect
@@ -318,6 +386,27 @@ const ScrollIndicator = styled(motion.div)`
     box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
   }
   
+  .scroll-text {
+    position: absolute;
+    top: -25px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.8rem;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  &:hover {
+    .scroll-text {
+      opacity: 1;
+    }
+  }
+  
   @media (max-width: 768px) {
     bottom: 1rem;
     
@@ -328,11 +417,67 @@ const ScrollIndicator = styled(motion.div)`
   }
 `;
 
+// New component for social proof elements
+const AwardBadges = styled(motion.div)`
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  z-index: 3;
+  
+  @media (max-width: 768px) {
+    top: 1rem;
+    right: 1rem;
+  }
+`;
+
+const AwardBadge = styled(motion.div)`
+  background: rgba(30, 30, 60, 0.5);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50px;
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: white;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  
+  &:before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #00ffff;
+    display: block;
+    box-shadow: 0 0 10px #00ffff;
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+  }
+`;
+
 export default function Hero() {
   const videoRef = useRef(null);
   const contentRef = useRef(null);
   const controls = useAnimation();
   const isInView = useInView(contentRef, { once: false });
+  
+  // Split the tagline for word-by-word animation
+  const taglineText = "Achieve Your Best Self: Training Designed For You";
+  const taglineWords = taglineText.split(" ");
+  
+  // State for sparkle positions
+  const [sparkles] = useState(Array.from({ length: 8 }, (_, i) => ({
+    top: `${Math.random() * 100}%`,
+    left: `${Math.random() * 100}%`,
+    delay: `${Math.random() * 2}s`
+  })));
   
   // Ensure video plays properly and fills container
   useEffect(() => {
@@ -400,6 +545,38 @@ export default function Hero() {
 
       {/* Enhanced overlay with luxury gradient */}
       <Overlay />
+      
+      {/* Award Badges */}
+      <AwardBadges
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 1, staggerChildren: 0.2 }}
+      >
+        <AwardBadge
+          whileHover={{ scale: 1.05 }}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 1.2 }}
+        >
+          Top Rated 2025
+        </AwardBadge>
+        <AwardBadge
+          whileHover={{ scale: 1.05 }}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 1.4 }}
+        >
+          Excellence Award
+        </AwardBadge>
+        <AwardBadge
+          whileHover={{ scale: 1.05 }}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 1.6 }}
+        >
+          #1 Fitness Studio
+        </AwardBadge>
+      </AwardBadges>
 
       {/* Luxury content section with glass morphism effect */}
       <Content
@@ -410,7 +587,17 @@ export default function Hero() {
       >
         {/* Animated logo with glow effect */}
         <LogoContainer variants={itemVariants}>
-          <Logo src={logoImage} alt="Swan Studios Logo" />
+          <Logo>
+            <img src={logoImage} alt="Swan Studios Logo" />
+            {sparkles.map((sparkle, index) => (
+              <Sparkle 
+                key={index}
+                top={sparkle.top}
+                left={sparkle.left}
+                delay={sparkle.delay}
+              />
+            ))}
+          </Logo>
         </LogoContainer>
         
         {/* Premium title with gradient animation */}
@@ -418,15 +605,22 @@ export default function Hero() {
           SwanStudios
         </Title>
         
-        {/* Enhanced tagline with highlighted text */}
+        {/* Enhanced tagline with word-by-word animation */}
         <Tagline variants={itemVariants}>
-          Achieve Your Best Self: <span>Training</span> Designed For You
+          {taglineWords.map((word, index) => (
+            <TaglineWords 
+              key={index}
+              delay={`${0.8 + index * 0.1}s`}
+            >
+              {word === "Training" ? <span>{word}</span> : word}
+            </TaglineWords>
+          ))}
         </Tagline>
         
-        {/* Using GlowButton instead of custom button */}
+        {/* Enhanced button container with multiple buttons */}
         <ButtonContainer variants={itemVariants}>
           <GlowButton
-            text="Discover More"
+            text="Discover Our Story"
             theme="cosmic"
             size="large"
             animateOnRender
@@ -435,6 +629,18 @@ export default function Hero() {
                 top: window.innerHeight,
                 behavior: 'smooth'
               });
+            }}
+          />
+          <GlowButton
+            text="View Testimonials"
+            theme="neon"
+            size="large"
+            animateOnRender
+            onClick={() => {
+              const testimonialsSection = document.getElementById('testimonials-section');
+              if (testimonialsSection) {
+                testimonialsSection.scrollIntoView({ behavior: 'smooth' });
+              }
             }}
           />
         </ButtonContainer>
@@ -446,6 +652,7 @@ export default function Hero() {
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5, duration: 0.5 }}
       >
+        <div className="scroll-text">Scroll to explore</div>
         <div className="mouse">
           <div className="wheel"></div>
         </div>
