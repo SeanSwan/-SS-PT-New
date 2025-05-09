@@ -1,11 +1,11 @@
 // /frontend/src/App.tsx
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
-import { Provider } from 'react-redux';
+import { Provider, useSelector } from 'react-redux';
 import { HelmetProvider } from 'react-helmet-async';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ThemeProvider } from 'styled-components';
+import { ThemeProvider, StyleSheetManager } from 'styled-components';
 
 // Context providers
 import { AuthProvider } from './context/AuthContext';
@@ -21,13 +21,29 @@ import { DevToolsProvider } from './components/DevTools';
 import MainRoutes from './routes/main-routes';
 
 // Store
-import store from './store';
+import store, { RootState } from './store';
+
+// Utilities
+import { setupNotifications } from './utils/notificationInitializer';
+import { initializeMockData } from './utils/mockDataHelper';
+import { initializeApiMonitoring } from './utils/apiConnectivityFixer';
 
 // Styles
 import './App.scss';
 import './index.css';
-import GlobalStyle from './styles/GlobalStyle';
+import './styles/responsive-fixes.css';
+import './styles/enhanced-responsive.css';
+import './styles/auth-page-fixes.css';
+import './styles/signup-fixes.css';
+import ImprovedGlobalStyle from './styles/ImprovedGlobalStyle';
 import theme from './styles/theme';
+
+// Custom shouldForwardProp function to filter out props that cause warnings
+const shouldForwardProp = (prop) => {
+  // Filter out common styling props that shouldn't be forwarded to DOM
+  const nonDOMProps = ['variants', 'sx', 'as', 'theme', 'variant'];
+  return !nonDOMProps.includes(prop);
+};
 
 // Create React Query client
 const queryClient = new QueryClient({
@@ -43,27 +59,64 @@ const queryClient = new QueryClient({
 // Create router from routes configuration
 const router = createBrowserRouter([MainRoutes]);
 
+/**
+ * AppContent Component
+ * Handles initialization of features like notifications after authentication
+ */
+const AppContent = () => {
+  // Get authentication state from Redux store
+  const { user, isAuthenticated } = useSelector((state: RootState) => state.auth || {});
+  
+  // Initialize mock data for fallback when backend is unavailable
+  useEffect(() => {
+    // Initialize mock data system
+    initializeMockData();
+    
+    // Start API connection monitoring
+    initializeApiMonitoring();
+  }, []);
+  
+  // Initialize notifications when user is authenticated
+  useEffect(() => {
+    let cleanupNotifications: (() => void) | null = null;
+    
+    if (isAuthenticated && user) {
+      cleanupNotifications = setupNotifications();
+    }
+    
+    return () => {
+      if (cleanupNotifications) {
+        cleanupNotifications();
+      }
+    };
+  }, [isAuthenticated, user]);
+  
+  return <RouterProvider router={router} />;
+};
+
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
         <HelmetProvider>
-          <ThemeProvider theme={theme.dark}>
-            <GlobalStyle />
-            <ConfigProvider>
-              <MenuStateProvider>
-                <AuthProvider>
-                  <ToastProvider>
-                    <CartProvider>
-                      <DevToolsProvider>
-                        <RouterProvider router={router} />
-                      </DevToolsProvider>
-                    </CartProvider>
-                  </ToastProvider>
-                </AuthProvider>
-              </MenuStateProvider>
-            </ConfigProvider>
-          </ThemeProvider>
+          <StyleSheetManager shouldForwardProp={shouldForwardProp}>
+            <ThemeProvider theme={theme.dark}>
+              <ImprovedGlobalStyle />
+              <ConfigProvider>
+                <MenuStateProvider>
+                  <AuthProvider>
+                    <ToastProvider>
+                      <CartProvider>
+                        <DevToolsProvider>
+                          <AppContent />
+                        </DevToolsProvider>
+                      </CartProvider>
+                    </ToastProvider>
+                  </AuthProvider>
+                </MenuStateProvider>
+              </ConfigProvider>
+            </ThemeProvider>
+          </StyleSheetManager>
         </HelmetProvider>
       </Provider>
     </QueryClientProvider>

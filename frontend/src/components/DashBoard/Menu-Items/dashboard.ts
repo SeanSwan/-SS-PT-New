@@ -2,7 +2,7 @@
  * dashboard.ts
  * Dashboard menu item configuration for the fitness application
  */
-import { IconDashboard, IconCalendarEvent, IconUsers, IconReportAnalytics, IconSettings, IconChartLine, IconActivity, IconUserCheck, IconPackage } from '@tabler/icons-react';
+import { IconDashboard, IconCalendarEvent, IconUsers, IconReportAnalytics, IconSettings, IconChartLine, IconActivity, IconUserCheck, IconPackage, IconClipboardCheck } from '@tabler/icons-react';
 import { MenuGroup } from './menu-types';
 
 /**
@@ -65,6 +65,14 @@ const dashboard: MenuGroup[] = [
         type: 'item',
         url: '/dashboard/client-management',
         icon: IconUserCheck,
+        breadcrumbs: false
+      },
+      {
+        id: 'client-orientation',
+        title: 'Client Orientation',
+        type: 'item',
+        url: '/dashboard/client-orientation',
+        icon: IconClipboardCheck,
         breadcrumbs: false
       },
       {

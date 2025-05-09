@@ -6,8 +6,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import Header from "../Header/header";
 import ClientSidebar from "./ClientSidebar";
 import ClientMainContent from "./ClientMainContent";
+import DevTools from "../DevTools/DevTools";
 
 // Import section components
+// Import all sections directly from their component files
 import OverviewSection from "./OverviewSection";
 import MyWorkoutsSection from "./sections/MyWorkoutsSection";
 import ProgressSection from "./ProgressSection";
@@ -212,6 +214,8 @@ const ClientLayout: React.FC = () => {
             </AnimatePresence>
           </MainContent>
         </MainContainer>
+        {/* Add DevTools accessible for debugging */}
+        <DevTools />
       </AppContainer>
     </ThemeProvider>
   );

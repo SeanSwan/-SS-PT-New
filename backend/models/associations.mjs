@@ -51,6 +51,8 @@ const setupAssociations = async () => {
 
     // Social Models
     const SocialModules = await import('./social/index.mjs');
+    const OrientationModule = await import('./Orientation.mjs');
+    const NotificationModule = await import('./Notification.mjs');
 
     // Extract default exports
     const User = UserModule.default;
@@ -98,6 +100,12 @@ const setupAssociations = async () => {
       SocialComment, 
       SocialLike 
     } = SocialModules;
+
+    // Orientation Model
+    const Orientation = OrientationModule.default;
+    
+    // Notification Model
+    const Notification = NotificationModule.default;
 
     // Define associations
     // User Associations
@@ -215,9 +223,20 @@ const setupAssociations = async () => {
 
     // Food Scanner Associations
     User.hasMany(FoodScanHistory, { foreignKey: 'userId', as: 'foodScans' });
+    User.hasMany(Orientation, { foreignKey: 'userId', as: 'orientations' });
     FoodProduct.hasMany(FoodScanHistory, { foreignKey: 'productId', as: 'scanHistory' });
     
     FoodScanHistory.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    // Orientation associations
+    User.hasMany(Orientation, { foreignKey: 'userId', as: 'orientations' });
+    Orientation.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    
+    // Notification associations
+    User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
+    Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    
+    User.hasMany(Notification, { foreignKey: 'senderId', as: 'sentNotifications' });
+    Notification.belongsTo(User, { foreignKey: 'senderId', as: 'sender' });
     FoodScanHistory.belongsTo(FoodProduct, { foreignKey: 'productId', as: 'product' });
 
     // Social Associations
@@ -303,7 +322,13 @@ const setupAssociations = async () => {
       Friendship,
       SocialPost,
       SocialComment,
-      SocialLike
+      SocialLike,
+      
+      // Orientation Model
+      Orientation,
+      
+      // Notification Model
+      Notification
     };
   } catch (error) {
     console.error('❌ Error setting up model associations:', error);

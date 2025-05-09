@@ -1,45 +1,51 @@
 /**
  * Auth Slice
- * =========
- * Redux slice for managing authentication state
+ * Manages authentication state in the Redux store
  */
-
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import api from '../../services/api';
-import { User } from '../../pages/workout/hooks/useClientManagement';
 
-// State interface
-interface AuthState {
+// Define user type
+export interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  role: 'user' | 'admin' | 'trainer';
+  profilePicture?: string;
+}
+
+// Define auth state
+export interface AuthState {
   user: User | null;
-  token: string | null;
-  clients: User[];
   isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
+  token: string | null;
 }
 
-// Initial state
+// Define initial state
 const initialState: AuthState = {
   user: null,
-  token: localStorage.getItem('token'),
-  clients: [],
-  isAuthenticated: !!localStorage.getItem('token'),
+  isAuthenticated: false,
   loading: false,
   error: null,
+  token: localStorage.getItem('authToken')
 };
 
-/**
- * Async thunk for user login
- */
-export const loginUser = createAsyncThunk(
+// Define async thunks
+export const login = createAsyncThunk(
   'auth/login',
   async (credentials: { email: string; password: string }, { rejectWithValue }) => {
     try {
       const response = await api.auth.login(credentials);
-      // Store token in localStorage
+      
+      // Save token to localStorage
       if (response.token) {
-        localStorage.setItem('token', response.token);
+        localStorage.setItem('authToken', response.token);
       }
+      
       return response;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Login failed');
@@ -47,121 +53,117 @@ export const loginUser = createAsyncThunk(
   }
 );
 
-/**
- * Async thunk for fetching user profile
- */
-export const fetchUserProfile = createAsyncThunk(
-  'auth/fetchUserProfile',
-  async (_, { rejectWithValue }) => {
+export const register = createAsyncThunk(
+  'auth/register',
+  async (userData: any, { rejectWithValue }) => {
     try {
-      const response = await api.auth.getProfile();
+      const response = await api.auth.register(userData);
+      
+      // Save token to localStorage
+      if (response.token) {
+        localStorage.setItem('authToken', response.token);
+      }
+      
       return response;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to fetch user profile');
+      return rejectWithValue(error.message || 'Registration failed');
     }
   }
 );
 
-/**
- * Async thunk for fetching clients (for trainers/admins)
- */
-export const fetchClients = createAsyncThunk(
-  'auth/fetchClients',
+export const checkAuth = createAsyncThunk(
+  'auth/checkAuth',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await api.auth.getClients();
+      const token = localStorage.getItem('authToken');
+      
+      if (!token) {
+        throw new Error('No token found');
+      }
+      
+      const response = await api.auth.checkAuth();
       return response;
     } catch (error: any) {
-      return rejectWithValue(error.message || 'Failed to fetch clients');
+      // Clear token if invalid
+      localStorage.removeItem('authToken');
+      return rejectWithValue(error.message || 'Authentication check failed');
     }
   }
 );
 
-// Create the auth slice
+// Create the slice
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    // Set the current user
-    setUser: (state, action: PayloadAction<User | null>) => {
-      state.user = action.payload;
-      state.isAuthenticated = !!action.payload;
-    },
-    
-    // Logout the user
     logout: (state) => {
-      localStorage.removeItem('token');
       state.user = null;
-      state.token = null;
       state.isAuthenticated = false;
-      state.clients = [];
+      state.token = null;
+      localStorage.removeItem('authToken');
     },
-    
-    // Clear error message
     clearError: (state) => {
       state.error = null;
     },
+    setUser: (state, action: PayloadAction<User>) => {
+      state.user = action.payload;
+      state.isAuthenticated = true;
+    }
   },
   extraReducers: (builder) => {
-    // Handle login actions
     builder
-      .addCase(loginUser.pending, (state) => {
+      // Login cases
+      .addCase(login.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(loginUser.fulfilled, (state, action) => {
+      .addCase(login.fulfilled, (state, action) => {
         state.loading = false;
         state.isAuthenticated = true;
         state.user = action.payload.user;
         state.token = action.payload.token;
       })
-      .addCase(loginUser.rejected, (state, action) => {
+      .addCase(login.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       })
       
-      // Handle fetch profile actions
-      .addCase(fetchUserProfile.pending, (state) => {
+      // Register cases
+      .addCase(register.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchUserProfile.fulfilled, (state, action) => {
+      .addCase(register.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = action.payload.user;
         state.isAuthenticated = true;
+        state.user = action.payload.user;
+        state.token = action.payload.token;
       })
-      .addCase(fetchUserProfile.rejected, (state, action) => {
+      .addCase(register.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
-        
-        // If profile fetch fails, likely token is invalid
-        if (state.token) {
-          localStorage.removeItem('token');
-          state.isAuthenticated = false;
-          state.token = null;
-        }
       })
       
-      // Handle fetch clients actions
-      .addCase(fetchClients.pending, (state) => {
+      // Check auth cases
+      .addCase(checkAuth.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchClients.fulfilled, (state, action) => {
+      .addCase(checkAuth.fulfilled, (state, action) => {
         state.loading = false;
-        if (action.payload && action.payload.clients) {
-          state.clients = action.payload.clients;
-        }
+        state.isAuthenticated = true;
+        state.user = action.payload.user;
       })
-      .addCase(fetchClients.rejected, (state, action) => {
+      .addCase(checkAuth.rejected, (state, action) => {
         state.loading = false;
+        state.isAuthenticated = false;
+        state.user = null;
+        state.token = null;
         state.error = action.payload as string;
       });
-  },
+  }
 });
 
-// Export actions
-export const { setUser, logout, clearError } = authSlice.actions;
+export const { logout, clearError, setUser } = authSlice.actions;
 
-// Export reducer
 export default authSlice.reducer;

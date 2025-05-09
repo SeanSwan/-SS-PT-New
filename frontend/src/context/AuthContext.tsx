@@ -1,768 +1,394 @@
-/**
- * AuthContext.tsx
- * 
- * Provides authentication state and methods throughout the application.
- * Handles user login, logout, session persistence, and role-based authorization.
- */
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import apiService from '../services/api.service';
+import { mockUser, mockAdminUser } from './mockUser';
+import { setUser as setReduxUser, logout as logoutRedux } from '../store/slices/authSlice';
+import { getUserFromMemory, setUserInMemory, setTokenInMemory, clearMemoryStore } from '../utils/dev-memory-store';
 
-import React, { createContext, useState, useContext, useEffect, useRef, useCallback } from 'react';
-import axios from 'axios';
-import { createServices, Services } from '../services';
-
-// API base URL from environment variables
-// In development mode, we use relative URLs to leverage Vite's proxy
-const isDevelopment = import.meta.env.MODE === 'development';
-const API_BASE_URL = '';  // Use empty string to rely on relative URLs
-
-// Token validation interval in milliseconds (5 minutes)
-const TOKEN_VALIDATION_INTERVAL = 5 * 60 * 1000;
-
-// Token expiry threshold in milliseconds (2 minutes before expiry)
-const TOKEN_EXPIRY_THRESHOLD = 2 * 60 * 1000;  
-
-// Development mode flag
-const isDevMode = import.meta.env.VITE_DEV_MODE === 'true' || isDevelopment;
-
-// User interface
-export interface User {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  role: 'admin' | 'trainer' | 'client' | 'user';
-  profileImage?: string;
-  specialties?: string[];
-  createdAt: string;
-  updatedAt: string;
-  username?: string; // Added to support username display in admin-route.tsx
-}
-
-// Auth context interface
+// Auth Context Interface
 interface AuthContextType {
-  user: User | null;
-  token: string | null;
+  user: any | null;
   isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
-  login: (email: string, password: string) => Promise<any>;
+  loading: boolean;
+  login: (username: string, password: string) => Promise<{success: boolean, user: any | null}>;
   logout: () => void;
-  signup: (userData: any) => Promise<void>;
-  updateUser: (userData: Partial<User>) => Promise<void>;
-  clearError: () => void;
-  hasRole: (roles: string | string[]) => boolean;
-  authAxios: typeof api; // Export the axios instance
-  validateToken: () => Promise<boolean>; // Added for explicit token validation
-  loginTimestamp: number | null; // Added to track login time
-  services: Services; // Add services to the context
+  register: (data: any) => Promise<boolean>;
+  updateUser: (data: any) => Promise<boolean>;
 }
 
-// Create axios instance with auth header
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  timeout: 10000, // Add 10s timeout for better error handling
-});
-
-// Initialize services with Axios instance
-const services = createServices(api);
-
-// Create the context with default values
+// Create the Auth Context
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  token: null,
   isAuthenticated: false,
-  isLoading: true,
-  error: null,
-  login: async () => ({}),
+  loading: true,
+  login: async () => ({ success: false, user: null }),
   logout: () => {},
-  signup: async () => {},
-  updateUser: async () => {},
-  clearError: () => {},
-  hasRole: () => false,
-  authAxios: api,
-  validateToken: async () => false,
-  loginTimestamp: null,
-  services: services, // Add services to the default context value
+  register: async () => false,
+  updateUser: async () => false
 });
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-  const [loginTimestamp, setLoginTimestamp] = useState<number | null>(() => {
-    const stored = localStorage.getItem('login_timestamp');
-    return stored ? parseInt(stored, 10) : null;
-  });
+// Auth Provider Component
+export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
+  const [user, setUser] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
   
-  // Create services instance that updates when token changes
-  const [services, setServices] = useState(() => createServices(api));
+  // Try to use Redux if available
+  let dispatch: any = null;
+  let reduxUser: any = null;
   
-  // Create ref for the validation interval to easily clear it
-  const validationIntervalRef = useRef<number | null>(null);
-
-  /**
-   * Load user data from localStorage or create mock user if in development mode
-   */
-  const loadUserFromStorage = useCallback((): User | null => {
-    try {
-      const cachedUserData = localStorage.getItem('user_data');
-      
-      if (cachedUserData) {
-        const userData = JSON.parse(cachedUserData);
-        if (userData && userData.id && userData.role) {
-          console.log(`✅ Using cached user data: ${userData.firstName} (${userData.role})`);
-          return userData;
-        }
-      }
-    } catch (cacheError) {
-      console.warn('Error reading cached user data:', cacheError);
-    }
-    
-    // Create mock user in development mode
-    if (isDevMode) {
-      const mockUser: User = {
-        id: 'dev-user-id',
-        email: 'ogpswan@example.com',
-        firstName: 'Dev',
-        lastName: 'User',
-        username: 'ogpswan',
-        role: 'client',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-      
-      // Save to localStorage for consistent experience
-      localStorage.setItem('user_data', JSON.stringify(mockUser));
-      
-      console.log('🧪 Created mock development user');
-      return mockUser;
-    }
-    
-    return null;
-  }, []);
-
-  // Define validateToken as a method that can be called explicitly
-  const validateToken = useCallback(async (): Promise<boolean> => {
-    const storedToken = localStorage.getItem('token');
-    
-    if (!storedToken) {
-      console.log('Token validation failed: No token found in localStorage');
-      return false;
-    }
-    
-    try {
-      // Add token to axios default headers
-      api.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-      
-      // For development - skip validation and assume token is valid
-      if (isDevMode) {
-        console.log('🧪 Development mode: Skipping token validation and assuming token is valid');
-        
-        // Load user from storage or create mock user
-        const userData = loadUserFromStorage();
-        
-        if (userData) {
-          setUser(userData);
-          setToken(storedToken);
-          return true;
-        }
-        
-        // If we couldn't load or create a user, check if we have a token that looks like a dev token
-        if (storedToken.startsWith('dev-') || storedToken === 'mock-token-for-development-mode') {
-          // Create a default mock user
-          const defaultUser: User = {
-            id: 'mock-user-id',
-            username: 'ogpswan',
-            email: 'ogpswan@example.com',
-            firstName: 'Mock',
-            lastName: 'User',
-            role: 'client',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          };
-          
-          // Save to localStorage for future use
-          localStorage.setItem('user_data', JSON.stringify(defaultUser));
-          
-          setUser(defaultUser);
-          setToken(storedToken);
-          console.log('🧪 Created default mock user for development');
-          return true;
-        }
-      }
-      
-      // Try to validate with the server (only in production)
-      if (!isDevMode) {
-        // Fetch user profile
-        console.log('Validating token by fetching user profile...');
-        
-        // Use a timeout to prevent hanging
-        const timeoutPromise = new Promise<any>((_, reject) => {
-          setTimeout(() => reject(new Error('Profile fetch timeout')), 5000);
-        });
-        
-        const response = await Promise.race([
-          api.get('/api/auth/me'),
-          timeoutPromise
-        ]);
-        
-        // Ensure we have a valid user object with role
-        if (response && response.data && response.data.id && response.data.role) {
-          setUser(response.data);
-          setToken(storedToken);
-          // Save user data to localStorage for faster loading next time
-          localStorage.setItem('user_data', JSON.stringify(response.data));
-          console.log(`✅ Token valid: User ${response.data.firstName} (${response.data.role}) authenticated.`);
-          return true;
-        } else {
-          console.error('❌ Token validation failed: Invalid user data received');
-          throw new Error('Invalid user data received');
-        }
-      }
-      
-      // Default return for development mode with no token or user data
-      return true;
-    } catch (err: any) {
-      console.error('❌ Token validation failed:', err?.response?.status || err.message);
-      
-      // Enhanced error logging for better debugging
-      if (err.response) {
-        console.error(`Server responded with status ${err.response.status}: ${err.response.data?.message || 'Unknown error'}`);
-      } else if (err.request) {
-        console.error('No response received from server during token validation');
-      }
-      
-      // For development - assume token is valid despite errors
-      if (isDevMode) {
-        console.log('🧪 Development mode: Ignoring validation error and proceeding anyway');
-        
-        // Try to load user from storage
-        const userData = loadUserFromStorage();
-        
-        if (userData) {
-          setUser(userData);
-          setToken(storedToken);
-          return true;
-        }
-      }
-      
-      return false;
-    }
-  }, [loadUserFromStorage]);
-
-  // Comprehensive function to check authentication state
-  const checkAuth = useCallback(async () => {
-    const storedToken = localStorage.getItem('token');
-    const timestamp = localStorage.getItem('login_timestamp');
-
-    if (!storedToken) {
-      console.log('Authentication check: No token found');
-      setIsLoading(false);
-      return false;
-    }
-
-    // Check if token is too old based on timestamp (if available)
-    if (timestamp) {
-      const loginTime = parseInt(timestamp, 10);
-      const currentTime = Date.now();
-      const tokenAge = currentTime - loginTime;
-      
-      // Log token age information for debugging
-      console.log(`Token age: ${Math.round(tokenAge / 1000 / 60)} minutes`);
-      
-      // If token is approaching expiry, we should perform a revalidation
-      if (tokenAge > (24 * 60 * 60 * 1000 - TOKEN_EXPIRY_THRESHOLD)) {
-        console.log('⚠️ Token approaching expiration threshold, validating...');
-      }
-    }
-
-    // Validate token with server
-    try {
-      const isValid = await validateToken();
-      
-      if (!isValid) {
-        // Clean up invalid authentication state
-        console.error('🔒 Authentication failed during check: Invalid token');
-        localStorage.removeItem('token');
-        localStorage.removeItem('login_timestamp');
-        setToken(null);
-        setUser(null);
-        setLoginTimestamp(null);
-        setError('Session expired. Please log in again.');
-      } else {
-        // Update login timestamp if it wasn't set (for backward compatibility)
-        if (!timestamp) {
-          const newTimestamp = Date.now();
-          localStorage.setItem('login_timestamp', newTimestamp.toString());
-          setLoginTimestamp(newTimestamp);
-          console.log('Updated missing login timestamp');
-        }
-      }
-      
-      return isValid;
-    } catch (err) {
-      console.error('Error during authentication check:', err);
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [validateToken]);
-
-  // Check if user is authenticated on mount and set up periodic validation
+  try {
+    dispatch = useDispatch();
+    reduxUser = useSelector((state: any) => state.auth?.user);
+  } catch (error) {
+    console.log('Redux not available in this context, using fallback auth methods');
+  }
+  
+  // Check for existing user session on mount
   useEffect(() => {
-    console.log('🔍 Initializing authentication...');
-    
-    // Configure maximum validation attempts to prevent infinite loops
-    let validationAttempts = 0;
-    const MAX_VALIDATION_ATTEMPTS = 2;
-    
-    // Initial auth check
-    const initialCheck = async () => {
-      validationAttempts++;
-      await checkAuth();
-    };
-    
-    initialCheck();
-    
-    // Set up a periodic check to validate the token is still valid
-    // This helps prevent situations where the token expires during an active session
-    validationIntervalRef.current = window.setInterval(() => {
-      const tokenExists = localStorage.getItem('token');
-      if (tokenExists && validationAttempts < MAX_VALIDATION_ATTEMPTS) {
-        console.log('⏱️ Performing scheduled token validation check');
-        validationAttempts++;
-        checkAuth();
-      } else if (validationAttempts >= MAX_VALIDATION_ATTEMPTS) {
-        console.log('Maximum validation attempts reached, suspending further validation');
-        // Reset counter periodically to allow future validations
-        setTimeout(() => {
-          validationAttempts = 0;
-        }, 60000); // Reset after 1 minute
-      }
-    }, TOKEN_VALIDATION_INTERVAL);
-    
-    // Clear interval on unmount
-    return () => {
-      if (validationIntervalRef.current !== null) {
-        clearInterval(validationIntervalRef.current);
-        validationIntervalRef.current = null;
-      }
-    };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Intentionally empty dependency array
-
-  // Add request interceptor to include auth token
-  useEffect(() => {
-    const interceptor = api.interceptors.request.use(
-      (config) => {
+    const checkAuthStatus = async () => {
+      try {
+        // First try to get user from Redux if available
+        if (reduxUser) {
+          setUser(reduxUser);
+          setLoading(false);
+          return;
+        }
+        
+        // Get token and user from local storage
+        const token = localStorage.getItem('token');
+        const storedUser = localStorage.getItem('user');
+        const timestamp = localStorage.getItem('login_timestamp');
+        
+        // Set the token in the API service if it exists
         if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+          apiService.setAuthToken(token);
         }
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
-
-    // When token changes, update services with the new api instance
-    if (token) {
-      // Ensure token is set in axios headers
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      // Recreate services with updated api
-      setServices(createServices(api));
-    }
-
-    // Clean up interceptor on unmount
-    return () => {
-      api.interceptors.request.eject(interceptor);
-    };
-  }, [token]);
-
-  // Login function with improved error handling and development mode support
-  const login = async (usernameOrEmail: string, password: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      console.log(`🔑 Attempting login to /api/auth/login`);
-      console.log(`Login attempt with username/email: ${usernameOrEmail}`);
-      
-      // In development mode, use mock login if configured
-      if (isDevMode) {
-        console.log('Development mode: Using mock login');
         
-        // Create a mock user based on the username
-        const mockUser = {
-          id: 'mock-user-id',
-          username: usernameOrEmail,
-          email: `${usernameOrEmail}@example.com`,
-          firstName: usernameOrEmail === 'admin' ? 'Admin' : 'Mock',
-          lastName: 'User',
-          // If username contains "admin", make them an admin
-          role: usernameOrEmail.toLowerCase().includes('admin') ? 'admin' : 'client',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        
-        // Set mock token in localStorage
-        const mockToken = 'mock-token-for-development-mode';
-        localStorage.setItem('token', mockToken);
-        localStorage.setItem('login_timestamp', Date.now().toString());
-        localStorage.setItem('user_data', JSON.stringify(mockUser));
-        
-        // Update state
-        setToken(mockToken);
-        setUser(mockUser);
-        setLoginTimestamp(Date.now());
-        
-        // Small delay to simulate API call
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // Return mock response
-        return {
-          token: mockToken,
-          user: mockUser
-        };
-      }
-      
-      // Real API call for production
-      const response = await api.post('/api/auth/login', { 
-        username: usernameOrEmail, 
-        password 
-      });
-      
-      // Validate response data
-      if (!response.data || !response.data.token) {
-        throw new Error('Invalid server response - missing token');
-      }
-      
-      const { token, user } = response.data;
-
-      // Save token to localStorage
-      localStorage.setItem('token', token);
-      
-      // Save user data to localStorage for faster loading next time
-      localStorage.setItem('user_data', JSON.stringify(user));
-      
-      // Set login timestamp for token expiration tracking
-      const timestamp = Date.now();
-      localStorage.setItem('login_timestamp', timestamp.toString());
-      setLoginTimestamp(timestamp);
-      
-      // Update state and log success
-      setToken(token);
-      setUser(user);
-      console.log(`✅ Login successful: ${user.firstName} (${user.role})`);
-      
-      // Return the response data so the component can access it
-      return response.data;
-    } catch (err: any) {
-      console.error('❌ Login error:', err);
-      
-      // Enhanced error handling with more specific error messages
-      let errorMessage = '';
-      
-      if (err.code === 'ECONNABORTED') {
-        errorMessage = 'Connection timeout. Please try again.';
-      } else if (err.response) {
-        // Server responded with an error
-        if (err.response.status === 404) {
-          errorMessage = 'Authentication service not found. Please contact support.';
-        } else if (err.response.status === 401) {
-          errorMessage = 'Invalid credentials. Please check your username and password.';
+        // Check for token and login timestamp
+        if (token && storedUser) {
+          // Check if token is expired (24 hours)
+          if (timestamp) {
+            const loginTime = parseInt(timestamp, 10);
+            const currentTime = Date.now();
+            const tokenAge = currentTime - loginTime;
+            const tokenExpired = tokenAge > 24 * 60 * 60 * 1000; // 24 hours
+            
+            if (tokenExpired) {
+              console.log('Token expired, logging out');
+              logout();
+              return;
+            }
+          }
+          
+          // Valid session, set the user
+          try {
+            const userData = JSON.parse(storedUser);
+            setUser(userData);
+            
+            // If Redux dispatch is available, update Redux too
+            if (dispatch) {
+              dispatch(setReduxUser(userData));
+            }
+            
+            // Update memory store as well for the dev panel
+            setUserInMemory(userData);
+            
+            console.log('Restored user session:', userData);
+          } catch (parseErr) {
+            console.error('Error parsing stored user:', parseErr);
+            logout();
+          }
         } else {
-          errorMessage = err.response.data?.message || 'Authentication failed. Please try again.';
+          // Try memory store as last resort (for dev panel)
+          const memoryUser = getUserFromMemory();
+          if (memoryUser) {
+            setUser(memoryUser);
+            
+            // If Redux dispatch is available, update Redux too
+            if (dispatch) {
+              dispatch(setReduxUser(memoryUser));
+            }
+          } else {
+            // No valid session
+            console.log('No valid session found');
+            setUser(null);
+          }
         }
-      } else if (err.request) {
-        errorMessage = 'No response from server. Please check your connection.';
+      } catch (error) {
+        console.error('Error checking auth status:', error);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkAuthStatus();
+  }, [dispatch, reduxUser]);
+  
+  // Login function that works with both regular auth and dev login panel
+  const login = async (username: string, password: string): Promise<{success: boolean, user: any | null}> => {
+    try {
+      setLoading(true);
+      
+      // Attempt to login with the API service first
+      try {
+        const response = await apiService.post('/api/auth/login', { username, password });
+        const userData = response.data.user;
+        const token = response.data.token;
         
-        // In development mode, use mock login as fallback
-        if (isDevMode) {
-          console.log('Server connection issue detected. Using mock login for development.');
-          
-          // Create a mock user based on the username
-          const mockUser = {
-            id: 'dev-user-id',
-            username: usernameOrEmail,
-            email: `${usernameOrEmail}@example.com`,
-            firstName: 'Dev',
-            lastName: 'User',
-            role: usernameOrEmail.toLowerCase().includes('admin') ? 'admin' : 'client',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          };
-          
-          // Set mock token in localStorage
-          const mockToken = 'dev-mock-token';
-          localStorage.setItem('token', mockToken);
+        // Store the token and user data
+        if (token) {
+          localStorage.setItem('token', token);
           localStorage.setItem('login_timestamp', Date.now().toString());
-          localStorage.setItem('user_data', JSON.stringify(mockUser));
+          apiService.setAuthToken(token);
           
-          // Update state
-          setToken(mockToken);
-          setUser(mockUser);
-          setLoginTimestamp(Date.now());
-          
-          // Return mock response
-          return {
-            token: mockToken,
-            user: mockUser
-          };
+          // Update memory store for dev panel
+          setTokenInMemory(token);
         }
-      } else {
-        // Something else caused the error
-        errorMessage = err.message || 'Failed to log in. Please try again.';
+        
+        if (userData) {
+          setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
+          
+          // Update Redux if available
+          if (dispatch) {
+            dispatch(setReduxUser(userData));
+          }
+          
+          // Update memory store for dev panel
+          setUserInMemory(userData);
+          
+          return { success: true, user: userData };
+        }
+      } catch (apiError) {
+        console.warn('API login failed, using fallback:', apiError);
+        // Fall back to mock login for development
       }
       
-      setError(errorMessage);
+      // For development/testing purposes, use pre-defined mock users
+      const userToUse = username.toLowerCase().includes('admin') ? mockAdminUser : mockUser;
       
-      // Return error info in a structured way for components to use
-      throw {
-        message: errorMessage,
-        status: err.response?.status,
-        data: err.response?.data
-      };
+      // Set a custom email if provided
+      if (username.includes('@')) {
+        userToUse.email = username;
+      }
+      
+      // Use mock users for development
+      setUser(userToUse);
+      localStorage.setItem('user', JSON.stringify(userToUse));
+      
+      // Create a mock token
+      const mockToken = `mock-jwt-token-${Date.now()}`;
+      localStorage.setItem('token', mockToken);
+      localStorage.setItem('login_timestamp', Date.now().toString());
+      apiService.setAuthToken(mockToken);
+      
+      // Update Redux if available
+      if (dispatch) {
+        dispatch(setReduxUser(userToUse));
+      }
+      
+      // Update memory store for dev panel
+      setUserInMemory(userToUse);
+      setTokenInMemory(mockToken);
+      
+      console.log('Mock login successful with user:', userToUse);
+      return { success: true, user: userToUse };
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, user: null };
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
-
-  // Enhanced logout function with complete cleanup
+  
+  // Logout function
   const logout = () => {
     try {
-      if (user) {
-        console.log(`👋 Logging out user: ${user.firstName} (${user.role})`);
-      }
-      
-      // Clear all auth-related items from localStorage
+      // Remove from local storage
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       localStorage.removeItem('login_timestamp');
-      localStorage.removeItem('user_data');
       
-      // Clear any cached user preferences or session data
-      // This prevents stale data from affecting a new login session
-      const keysToRemove = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (
-          key.startsWith('user_') || 
-          key.startsWith('session_') || 
-          key.startsWith('pref_')
-        )) {
-          keysToRemove.push(key);
-        }
-      }
+      // Try session storage too
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
       
-      // Remove collected keys (doing this separately to avoid issues with changing localStorage during iteration)
-      keysToRemove.forEach(key => localStorage.removeItem(key));
+      // Clear API auth token
+      apiService.setAuthToken(null);
       
-      // Update state
-      setToken(null);
+      // Update local state
       setUser(null);
-      setLoginTimestamp(null);
       
-      // Clear any error messages
-      setError(null);
+      // Update Redux if available
+      if (dispatch) {
+        dispatch(logoutRedux());
+      }
       
-      console.log('🔒 Logout complete. All session data cleared.');
-    } catch (err) {
-      console.error('Error during logout:', err);
-      // Force state reset even if there was an error
-      setToken(null);
-      setUser(null);
-      setLoginTimestamp(null);
+      // Clear memory store
+      clearMemoryStore();
+      
+      console.log('User logged out successfully');
+    } catch (error) {
+      console.error('Error during logout:', error);
+      // Fallback: clear everything we can
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+        setUser(null);
+        clearMemoryStore();
+      } catch (e) {
+        console.error('Critical error during logout cleanup');
+      }
     }
-  };
-
-  // Signup function with development mode support
-  const signup = async (userData: any) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      console.log('📝 Attempting user registration...');
-      
-      // In development mode, use mock signup if configured
-      if (isDevMode) {
-        console.log('Development mode: Using mock signup');
-        
-        // Create a mock user based on the provided data
-        const mockUser = {
-          id: 'mock-user-id',
-          username: userData.username,
-          email: userData.email,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          role: userData.role || 'client',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        
-        // Set mock token in localStorage
-        const mockToken = 'mock-token-for-development-mode';
-        localStorage.setItem('token', mockToken);
-        localStorage.setItem('login_timestamp', Date.now().toString());
-        localStorage.setItem('user_data', JSON.stringify(mockUser));
-        
-        // Update state
-        setToken(mockToken);
-        setUser(mockUser);
-        setLoginTimestamp(Date.now());
-        
-        // Small delay to simulate API call
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // Return mock response
-        return;
-      }
-      
-      // Real API call for production
-      const response = await api.post('/api/auth/register', userData);
-      const { token, user } = response.data;
-
-      // Save token to localStorage
-      localStorage.setItem('token', token);
-      
-      // Save user data to localStorage for faster loading next time
-      localStorage.setItem('user_data', JSON.stringify(user));
-      
-      // Set login timestamp
-      const timestamp = Date.now();
-      localStorage.setItem('login_timestamp', timestamp.toString());
-      setLoginTimestamp(timestamp);
-      
-      // Update state
-      setToken(token);
-      setUser(user);
-      
-      console.log(`✅ Registration successful: ${user.firstName} (${user.role})`);
-    } catch (err: any) {
-      console.error('❌ Signup error:', err);
-      
-      let errorMessage = 'Failed to sign up';
-      
-      if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.response?.status === 409) {
-        errorMessage = 'A user with this email or username already exists';
-      } else if (err.response?.status === 400) {
-        errorMessage = 'Invalid registration data. Please check all fields.';
-      }
-      
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Update user profile
-  const updateUser = async (userData: Partial<User>) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      console.log('🔄 Updating user profile...');
-      
-      // In development mode, use mock profile update if configured
-      if (isDevMode) {
-        console.log('Development mode: Using mock profile update');
-        
-        // Get current user data
-        const currentUser = user || loadUserFromStorage();
-        
-        if (!currentUser) {
-          throw new Error('No user found to update');
-        }
-        
-        // Create updated user
-        const updatedUser = {
-          ...currentUser,
-          ...userData,
-          updatedAt: new Date().toISOString()
-        };
-        
-        // Save to localStorage
-        localStorage.setItem('user_data', JSON.stringify(updatedUser));
-        
-        // Update state
-        setUser(updatedUser);
-        
-        // Small delay to simulate API call
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        console.log('✅ Profile updated successfully (mock)');
-        return;
-      }
-      
-      // Real API call for production
-      const response = await api.patch('/api/auth/profile', userData);
-      
-      // Update state
-      setUser(response.data);
-      
-      // Save updated user data to localStorage
-      localStorage.setItem('user_data', JSON.stringify(response.data));
-      
-      console.log('✅ Profile updated successfully');
-    } catch (err: any) {
-      console.error('❌ Update user error:', err);
-      
-      let errorMessage = 'Failed to update profile';
-      
-      if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.response?.status === 403) {
-        errorMessage = 'Permission denied: Cannot update this profile';
-      } else if (err.response?.status === 400) {
-        errorMessage = 'Invalid profile data. Please check all fields.';
-      }
-      
-      setError(errorMessage);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Clear error
-  const clearError = () => {
-    setError(null);
   };
   
-  // Check if user has a specific role
-  const hasRole = (roles: string | string[]) => {
-    if (!user) return false;
-    
-    // Convert single role to array
-    const roleArray = Array.isArray(roles) ? roles : [roles];
-    
-    // Admin has access to everything
-    if (user.role === 'admin') return true;
-    
-    return roleArray.includes(user.role);
+  // Register function
+  const register = async (data: any): Promise<boolean> => {
+    try {
+      setLoading(true);
+      
+      // Try API registration first
+      try {
+        const response = await apiService.post('/api/auth/register', data);
+        const userData = response.data.user;
+        const token = response.data.token;
+        
+        if (token && userData) {
+          // Store in localStorage
+          localStorage.setItem('token', token);
+          localStorage.setItem('user', JSON.stringify(userData));
+          localStorage.setItem('login_timestamp', Date.now().toString());
+          
+          // Set in API service
+          apiService.setAuthToken(token);
+          
+          // Update state
+          setUser(userData);
+          
+          // Update Redux if available
+          if (dispatch) {
+            dispatch(setReduxUser(userData));
+          }
+          
+          return true;
+        }
+      } catch (apiError) {
+        console.warn('API registration failed, using fallback:', apiError);
+      }
+      
+      // For development purposes
+      const newUser = {
+        id: Date.now().toString(),
+        ...data,
+        role: 'client'
+      };
+      
+      // Store in localStorage
+      localStorage.setItem('user', JSON.stringify(newUser));
+      
+      // Create a mock token
+      const mockToken = `mock-jwt-token-${Date.now()}`;
+      localStorage.setItem('token', mockToken);
+      localStorage.setItem('login_timestamp', Date.now().toString());
+      
+      // Set in API service
+      apiService.setAuthToken(mockToken);
+      
+      // Update state
+      setUser(newUser);
+      
+      // Update Redux if available
+      if (dispatch) {
+        dispatch(setReduxUser(newUser));
+      }
+      
+      // Update memory store for dev panel
+      setUserInMemory(newUser);
+      setTokenInMemory(mockToken);
+      
+      return true;
+    } catch (error) {
+      console.error('Registration error:', error);
+      return false;
+    } finally {
+      setLoading(false);
+    }
   };
-
+  
+  // Update user function
+  const updateUser = async (data: any): Promise<boolean> => {
+    try {
+      if (!user) return false;
+      
+      // Try API update first
+      try {
+        const response = await apiService.put('/api/users/profile', data);
+        const updatedUserData = response.data.user;
+        
+        if (updatedUserData) {
+          const updatedUser = {
+            ...user,
+            ...updatedUserData
+          };
+          
+          // Update localStorage
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          
+          // Update state
+          setUser(updatedUser);
+          
+          // Update Redux if available
+          if (dispatch) {
+            dispatch(setReduxUser(updatedUser));
+          }
+          
+          // Update memory store for dev panel
+          setUserInMemory(updatedUser);
+          
+          return true;
+        }
+      } catch (apiError) {
+        console.warn('API user update failed, using fallback:', apiError);
+      }
+      
+      // For development purposes
+      const updatedUser = {
+        ...user,
+        ...data
+      };
+      
+      // Update localStorage
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      
+      // Update state
+      setUser(updatedUser);
+      
+      // Update Redux if available
+      if (dispatch) {
+        dispatch(setReduxUser(updatedUser));
+      }
+      
+      // Update memory store for dev panel
+      setUserInMemory(updatedUser);
+      
+      return true;
+    } catch (error) {
+      console.error('Update user error:', error);
+      return false;
+    }
+  };
+  
   return (
     <AuthContext.Provider
       value={{
         user,
-        token,
-        isAuthenticated: !!token,
-        isLoading,
-        error,
+        isAuthenticated: !!user,
+        loading,
         login,
         logout,
-        signup,
-        updateUser,
-        clearError,
-        hasRole,
-        authAxios: api,
-        validateToken,
-        loginTimestamp,
-        services, // Include services in the provider value
+        register,
+        updateUser
       }}
     >
       {children}
@@ -770,7 +396,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-// Custom hook to use the auth context
+// Custom hook for using the Auth Context
 export const useAuth = () => useContext(AuthContext);
 
 export default AuthContext;

@@ -1,395 +1,435 @@
 import React from 'react';
 import { 
-  Trophy, 
-  Award, 
-  Star, 
-  Activity, 
-  Flame, 
-  Target, 
-  TrendingUp, 
-  Clock,
-  Users,
-  Share,
-  Heart
-} from 'lucide-react';
-import ClientMainContent, { 
-  Card, 
-  CardHeader, 
-  CardTitle, 
-  CardContent,
-  CardFooter, 
+  Box, 
+  Typography, 
+  Paper, 
   Grid, 
-  Flex,
-  ProgressBar,
-  Badge,
-  Button
-} from '../ClientMainContent';
+  Card, 
+  CardContent,
+  LinearProgress,
+  Avatar,
+  Chip,
+  Divider,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  Button,
+  IconButton,
+  Badge
+} from '@mui/material';
 
-// Mock achievements data
+// Icons
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import StarIcon from '@mui/icons-material/Star';
+import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
+import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
+import SelfImprovementIcon from '@mui/icons-material/SelfImprovement';
+import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
+import PeopleIcon from '@mui/icons-material/People';
+import DiamondIcon from '@mui/icons-material/Diamond';
+import QueryBuilderIcon from '@mui/icons-material/QueryBuilder';
+import WhatshotIcon from '@mui/icons-material/Whatshot';
+import LockIcon from '@mui/icons-material/Lock';
+import CardGiftcardIcon from '@mui/icons-material/CardGiftcard';
+
+// Placeholder user data
+const userData = {
+  name: 'John Doe',
+  level: 8,
+  points: 2450,
+  pointsToNextLevel: 3000,
+  tier: 'Gold',
+  streak: 14
+};
+
+// Achievement data
 const achievements = [
   {
     id: 1,
-    title: 'Consistent Athlete',
-    description: 'Complete 10 workouts in a row without missing a day',
-    progress: 7,
-    total: 10,
-    icon: Activity,
-    color: '#00FFFF',
+    name: 'Consistency Champion',
+    description: 'Complete workouts on 5 consecutive days',
+    icon: <WhatshotIcon fontSize="large" />,
+    progress: 100,
+    completed: true,
+    date: '3 days ago'
   },
   {
     id: 2,
-    title: 'Dance Master',
-    description: 'Participate in 5 different dance routines',
-    progress: 3,
-    total: 5,
-    icon: Star,
-    color: '#FFA500',
+    name: 'Strength Builder',
+    description: 'Complete 10 strength training workouts',
+    icon: <FitnessCenterIcon fontSize="large" />,
+    progress: 70,
+    completed: false
   },
   {
     id: 3,
-    title: 'Strength Builder',
-    description: 'Increase your strength score by 20%',
-    progress: 15,
-    total: 20,
-    icon: TrendingUp,
-    color: '#4CAF50',
+    name: 'Early Bird',
+    description: 'Complete 5 workouts before 8 AM',
+    icon: <QueryBuilderIcon fontSize="large" />,
+    progress: 60,
+    completed: false
   },
   {
     id: 4,
-    title: 'Creative Expressionist',
-    description: 'Share 3 creative works in the community',
-    progress: 1,
-    total: 3,
-    icon: Heart,
-    color: '#FF6B6B',
+    name: 'Social Butterfly',
+    description: 'Connect with 5 other members',
+    icon: <PeopleIcon fontSize="large" />,
+    progress: 40,
+    completed: false
   },
   {
     id: 5,
-    title: 'Social Butterfly',
-    description: 'Connect with 5 other community members',
-    progress: 2,
-    total: 5,
-    icon: Users,
-    color: '#7851A9',
+    name: 'Full Body Master',
+    description: 'Complete all full body workout programs',
+    icon: <SelfImprovementIcon fontSize="large" />,
+    progress: 100,
+    completed: true,
+    date: '2 weeks ago'
   },
+  {
+    id: 6,
+    name: 'Cardio King',
+    description: 'Burn 5000 calories in cardio workouts',
+    icon: <DirectionsRunIcon fontSize="large" />,
+    progress: 100,
+    completed: true,
+    date: '1 month ago'
+  }
 ];
 
-// Mock rewards data
+// Locked achievements
+const lockedAchievements = [
+  {
+    id: 7,
+    name: '30-Day Warrior',
+    description: 'Complete a workout every day for 30 days',
+    icon: <LockIcon fontSize="large" />,
+    progress: 0,
+    completed: false
+  },
+  {
+    id: 8,
+    name: 'Marathon Finisher',
+    description: 'Complete your first marathon',
+    icon: <LockIcon fontSize="large" />,
+    progress: 0,
+    completed: false
+  }
+];
+
+// Reward data
 const rewards = [
   {
     id: 101,
-    title: '15% Off Next Package',
-    description: 'Discount on your next training package purchase',
-    cost: 500,
-    icon: Trophy,
-    available: true,
+    name: 'Free Personal Training Session',
+    pointCost: 2000,
+    available: true
   },
   {
     id: 102,
-    title: 'Free Dance Workshop',
-    description: 'Attend a premium dance workshop at no cost',
-    cost: 750,
-    icon: Award,
-    available: false,
+    name: '15% Off Protein Supplements',
+    pointCost: 1000,
+    available: true
   },
   {
     id: 103,
-    title: 'Custom Workout Plan',
-    description: 'Receive a personalized workout plan based on your goals',
-    cost: 1000,
-    icon: Target,
-    available: true,
-  },
+    name: 'Premium Workout Plan Access',
+    pointCost: 3500,
+    available: false
+  }
 ];
 
-// Mock leaderboard data
+// Leaderboard data
 const leaderboard = [
-  { id: 201, name: 'Jessica T.', points: 1250, position: 1, avatar: null },
-  { id: 202, name: 'Michael R.', points: 1120, position: 2, avatar: null },
-  { id: 203, name: 'Sarah K.', points: 980, position: 3, avatar: null },
-  { id: 204, name: 'David L.', points: 870, position: 4, avatar: null },
-  { id: 205, name: 'Current User', points: 750, position: 5, avatar: null, isCurrentUser: true },
+  { id: 1, name: 'Sarah J.', points: 4120, level: 12 },
+  { id: 2, name: 'Michael T.', points: 3845, level: 11 },
+  { id: 3, name: 'John D.', points: 2450, level: 8 },
+  { id: 4, name: 'Emma W.', points: 2320, level: 7 },
+  { id: 5, name: 'Robert K.', points: 1980, level: 6 }
 ];
 
 /**
  * GamificationSection Component
  * 
- * Displays the client's achievements, rewards, challenges, and leaderboard.
- * Implements an engaging, game-like interface to encourage participation.
+ * A comprehensive gamification section that displays user progress,
+ * achievements, rewards, and leaderboard to enhance user engagement.
  */
 const GamificationSection: React.FC = () => {
-  // Current user's stats
-  const userStats = {
-    level: 12,
-    currentPoints: 750,
-    nextLevelPoints: 1000,
-    totalAchievements: 15,
-    completedAchievements: 8,
-  };
-
-  // Calculate progress percentage for level
-  const levelProgress = (userStats.currentPoints / userStats.nextLevelPoints) * 100;
-
   return (
-    <ClientMainContent
-      title="Achievements & Rewards"
-      actions={<Button variant="outline">View History</Button>}
-    >
-      {/* User Level Card */}
-      <Card>
-        <CardContent>
-          <Flex>
-            <div style={{ 
-              width: '80px', 
-              height: '80px', 
-              borderRadius: '50%', 
-              background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
-              display: 'flex',
-              alignItems: 'center',
+    <Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+        <EmojiEventsIcon sx={{ fontSize: 32, mr: 2, color: 'primary.main' }} />
+        <Typography variant="h4" component="h1">Achievements</Typography>
+      </Box>
+
+      {/* User Progress Card */}
+      <Paper sx={{ p: 3, mb: 4 }}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={8}>
+            <Box sx={{ mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Avatar 
+                  sx={{ 
+                    width: 80, 
+                    height: 80, 
+                    bgcolor: 'primary.main',
+                    color: 'primary.contrastText',
+                    mr: 2,
+                    fontSize: '2rem'
+                  }}
+                >
+                  {userData.level}
+                </Avatar>
+                <Box>
+                  <Typography variant="h5">{userData.name}</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
+                    <Chip 
+                      icon={<StarIcon />} 
+                      label={`Level ${userData.level}`} 
+                      color="primary"
+                    />
+                    <Chip 
+                      icon={<WorkspacePremiumIcon />} 
+                      label={userData.tier} 
+                      color="secondary"
+                    />
+                    <Chip 
+                      icon={<LocalFireDepartmentIcon />} 
+                      label={`${userData.streak} Day Streak`} 
+                      color="error"
+                      variant="outlined"
+                    />
+                  </Box>
+                </Box>
+              </Box>
+              
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Points to next level:
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <Box sx={{ flexGrow: 1, mr: 1 }}>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={(userData.points / userData.pointsToNextLevel) * 100} 
+                    color="primary"
+                    sx={{ height: 10, borderRadius: 5 }}
+                  />
+                </Box>
+                <Typography variant="body2" color="text.secondary">
+                  {userData.points} / {userData.pointsToNextLevel}
+                </Typography>
+              </Box>
+            </Box>
+          </Grid>
+          
+          <Grid item xs={12} md={4}>
+            <Box sx={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
               justifyContent: 'center',
-              color: 'white',
-              fontSize: '1.5rem',
-              fontWeight: 'bold',
-              marginRight: '1.5rem'
+              height: '100%',
+              textAlign: 'center',
+              p: 2,
+              bgcolor: 'background.default',
+              borderRadius: 2
             }}>
-              {userStats.level}
-            </div>
-            
-            <div style={{ flex: 1 }}>
-              <h2 style={{ margin: '0 0 0.5rem' }}>Level {userStats.level}</h2>
-              <p style={{ margin: '0 0 1rem', color: 'var(--text-muted)' }}>
-                {userStats.currentPoints} / {userStats.nextLevelPoints} XP to Level {userStats.level + 1}
-              </p>
-              
-              <ProgressBar value={userStats.currentPoints} max={userStats.nextLevelPoints} />
-              
-              <p style={{ textAlign: 'right', margin: '0.5rem 0 0', fontSize: '0.9rem' }}>
-                {Math.round(levelProgress)}% Complete
-              </p>
-            </div>
-          </Flex>
-          
-          <Flex style={{ marginTop: '1.5rem', justifyContent: 'space-around' }}>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>
-                {userStats.completedAchievements}
-              </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Achievements</div>
-            </div>
-            
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>
-                {userStats.currentPoints}
-              </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Total Points</div>
-            </div>
-            
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--primary-color)' }}>
-                5
-              </div>
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>Leaderboard Position</div>
-            </div>
-          </Flex>
-        </CardContent>
-      </Card>
-
-      {/* Two-column layout for achievements and rewards */}
-      <Grid columns={2}>
-        {/* Achievements Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Current Challenges</CardTitle>
-            <Badge color="var(--secondary-color)">
-              {userStats.completedAchievements}/{userStats.totalAchievements} Completed
-            </Badge>
-          </CardHeader>
-          
-          <CardContent>
-            {achievements.map((achievement) => (
-              <Flex 
-                key={achievement.id}
-                style={{
-                  padding: '0.75rem',
-                  borderBottom: '1px solid var(--border-color)',
-                  marginBottom: '0.5rem',
-                }}
-                align="flex-start"
+              <DiamondIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
+              <Typography variant="h4" color="primary" gutterBottom>
+                {userData.points}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Total Points Earned
+              </Typography>
+              <Button 
+                variant="outlined" 
+                size="small" 
+                startIcon={<CardGiftcardIcon />}
+                sx={{ mt: 2 }}
               >
-                <div style={{ 
-                  padding: '0.75rem', 
-                  borderRadius: '50%', 
-                  backgroundColor: `${achievement.color}22`,
-                  marginRight: '0.75rem'
-                }}>
-                  {React.createElement(achievement.icon, { 
-                    size: 20, 
-                    color: achievement.color 
-                  })}
-                </div>
-                
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem' }}>{achievement.title}</h3>
-                  <p style={{ margin: '0 0 0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                    {achievement.description}
-                  </p>
-                  
-                  <ProgressBar value={achievement.progress} max={achievement.total} color={achievement.color} />
-                  
-                  <p style={{ 
-                    textAlign: 'right', 
-                    margin: '0.25rem 0 0', 
-                    fontSize: '0.8rem',
-                    color: 'var(--text-muted)'
-                  }}>
-                    {achievement.progress} / {achievement.total}
-                  </p>
-                </div>
-              </Flex>
-            ))}
-          </CardContent>
-          
-          <CardFooter>
-            <Button variant="outline">View All Challenges</Button>
-          </CardFooter>
-        </Card>
+                Redeem Points
+              </Button>
+            </Box>
+          </Grid>
+        </Grid>
+      </Paper>
 
-        {/* Rewards Card */}
-        <div>
-          {/* Rewards */}
-          <Card style={{ marginBottom: '1rem' }}>
-            <CardHeader>
-              <CardTitle>Available Rewards</CardTitle>
-              <div style={{ color: 'var(--primary-color)', fontWeight: 'bold' }}>
-                {userStats.currentPoints} Points Available
-              </div>
-            </CardHeader>
-            
-            <CardContent>
-              {rewards.map((reward) => (
-                <Flex 
-                  key={reward.id}
-                  style={{
-                    padding: '0.75rem',
-                    borderBottom: '1px solid var(--border-color)',
-                    marginBottom: '0.5rem',
-                  }}
-                  align="flex-start"
-                >
-                  <div style={{ 
-                    padding: '0.75rem', 
-                    borderRadius: '50%', 
-                    backgroundColor: 'rgba(0, 255, 255, 0.1)',
-                    marginRight: '0.75rem'
-                  }}>
-                    {React.createElement(reward.icon, { 
-                      size: 20, 
-                      color: 'var(--primary-color)' 
-                    })}
-                  </div>
-                  
-                  <div style={{ flex: 1 }}>
-                    <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem' }}>{reward.title}</h3>
-                    <p style={{ margin: '0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                      {reward.description}
-                    </p>
-                  </div>
-                  
-                  <Button 
-                    variant={reward.available && userStats.currentPoints >= reward.cost ? "primary" : "outline"}
-                    disabled={!reward.available || userStats.currentPoints < reward.cost}
-                  >
-                    {reward.cost} Points
-                  </Button>
-                </Flex>
-              ))}
-            </CardContent>
-          </Card>
-          
-          {/* Leaderboard */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Community Leaderboard</CardTitle>
-              <Button variant="text">This Month</Button>
-            </CardHeader>
-            
-            <CardContent>
-              {leaderboard.map((user) => (
-                <Flex 
-                  key={user.id}
-                  style={{
-                    padding: '0.75rem',
-                    borderBottom: '1px solid var(--border-color)',
-                    marginBottom: '0.5rem',
-                    backgroundColor: user.isCurrentUser ? 'rgba(0, 255, 255, 0.05)' : 'transparent',
-                  }}
-                >
-                  <div style={{ 
-                    width: '24px', 
-                    height: '24px', 
-                    display: 'flex',
+      {/* Recent Achievements */}
+      <Typography variant="h6" gutterBottom>Recent Achievements</Typography>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {achievements
+          .filter(achievement => achievement.completed)
+          .slice(0, 3)
+          .map(achievement => (
+            <Grid item xs={12} sm={6} md={4} key={achievement.id}>
+              <Card sx={{ height: '100%' }}>
+                <CardContent>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: 'column',
                     alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 'bold',
-                    marginRight: '0.75rem',
-                    color: user.position <= 3 ? 'var(--primary-color)' : 'var(--text-muted)',
+                    textAlign: 'center'
                   }}>
-                    {user.position}
-                  </div>
-                  
-                  <div style={{ 
-                    width: '32px', 
-                    height: '32px', 
-                    borderRadius: '50%', 
-                    backgroundColor: 'var(--border-color)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginRight: '0.75rem',
-                  }}>
-                    {user.avatar ? (
-                      <img 
-                        src={user.avatar} 
-                        alt={user.name} 
-                        style={{ width: '100%', height: '100%', borderRadius: '50%' }}
-                      />
-                    ) : (
-                      user.name.charAt(0)
-                    )}
-                  </div>
-                  
-                  <div style={{ flex: 1 }}>
-                    <h3 style={{ 
-                      margin: '0', 
-                      fontSize: '0.9rem',
-                      fontWeight: user.isCurrentUser ? 'bold' : 'normal',
+                    <Box sx={{ 
+                      bgcolor: 'rgba(0, 255, 255, 0.1)', 
+                      borderRadius: '50%',
+                      p: 2,
+                      mb: 2,
+                      color: 'primary.main'
                     }}>
-                      {user.name}
-                      {user.isCurrentUser && (
-                        <span style={{ fontSize: '0.8rem', marginLeft: '0.5rem' }}>
-                          (You)
-                        </span>
-                      )}
-                    </h3>
-                  </div>
-                  
-                  <div style={{ 
-                    fontWeight: 'bold',
-                    color: user.position <= 3 ? 'var(--primary-color)' : 'var(--text)',
-                  }}>
-                    {user.points} pts
-                  </div>
-                </Flex>
-              ))}
-            </CardContent>
-            
-            <CardFooter>
-              <Button variant="outline">View Full Leaderboard</Button>
-            </CardFooter>
-          </Card>
-        </div>
+                      {achievement.icon}
+                    </Box>
+                    <Typography variant="h6">{achievement.name}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      {achievement.description}
+                    </Typography>
+                    
+                    <Chip 
+                      label={`Completed ${achievement.date}`} 
+                      color="success" 
+                      size="small"
+                    />
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+        ))}
       </Grid>
-    </ClientMainContent>
+
+      {/* Achievements In Progress */}
+      <Typography variant="h6" gutterBottom>Achievements In Progress</Typography>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {achievements
+          .filter(achievement => !achievement.completed)
+          .map(achievement => (
+            <Grid item xs={12} sm={6} md={4} key={achievement.id}>
+              <Card sx={{ height: '100%' }}>
+                <CardContent>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    textAlign: 'center'
+                  }}>
+                    <Box sx={{ 
+                      bgcolor: 'rgba(0, 255, 255, 0.1)', 
+                      borderRadius: '50%',
+                      p: 2,
+                      mb: 2,
+                      color: 'primary.main'
+                    }}>
+                      {achievement.icon}
+                    </Box>
+                    <Typography variant="h6" gutterBottom>{achievement.name}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      {achievement.description}
+                    </Typography>
+                    
+                    <Box sx={{ width: '100%', mb: 1 }}>
+                      <LinearProgress 
+                        variant="determinate" 
+                        value={achievement.progress} 
+                        color="primary"
+                        sx={{ height: 8, borderRadius: 4 }}
+                      />
+                    </Box>
+                    <Typography variant="body2" color="text.secondary">
+                      {achievement.progress}% Complete
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+        ))}
+      </Grid>
+
+      {/* Rewards */}
+      <Typography variant="h6" gutterBottom>Available Rewards</Typography>
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {rewards.map(reward => (
+          <Grid item xs={12} sm={6} md={4} key={reward.id}>
+            <Card sx={{ 
+              height: '100%',
+              opacity: reward.available ? 1 : 0.6
+            }}>
+              <CardContent>
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  height: '100%'
+                }}>
+                  <Typography variant="h6" gutterBottom>{reward.name}</Typography>
+                  
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mt: 'auto', 
+                    justifyContent: 'space-between' 
+                  }}>
+                    <Chip 
+                      icon={<DiamondIcon />} 
+                      label={`${reward.pointCost} Points`} 
+                      color="primary"
+                      variant="outlined"
+                    />
+                    <Button 
+                      variant="contained" 
+                      size="small"
+                      disabled={!reward.available || userData.points < reward.pointCost}
+                    >
+                      Redeem
+                    </Button>
+                  </Box>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+        ))}
+      </Grid>
+
+      {/* Leaderboard */}
+      <Paper sx={{ p: 3, mb: 4 }}>
+        <Typography variant="h6" gutterBottom>Leaderboard</Typography>
+        <List>
+          {leaderboard.map((user, index) => (
+            <React.Fragment key={user.id}>
+              <ListItem sx={{ 
+                py: 1.5,
+                bgcolor: user.name === userData.name ? 'rgba(0, 255, 255, 0.05)' : 'transparent',
+                borderRadius: 1
+              }}>
+                <ListItemAvatar>
+                  <Avatar sx={{ 
+                    bgcolor: index < 3 ? 
+                      index === 0 ? 'gold' : 
+                      index === 1 ? 'silver' : 
+                      'brown' : 'gray',
+                    color: 'text.primary',
+                    fontWeight: 'bold'
+                  }}>
+                    {index + 1}
+                  </Avatar>
+                </ListItemAvatar>
+                <ListItemText 
+                  primary={user.name}
+                  secondary={`Level ${user.level}`}
+                />
+                <Chip 
+                  icon={<StarIcon />} 
+                  label={`${user.points} pts`} 
+                  color={user.name === userData.name ? "primary" : "default"}
+                  variant={user.name === userData.name ? "filled" : "outlined"}
+                  size="small"
+                />
+              </ListItem>
+              {index < leaderboard.length - 1 && <Divider variant="inset" component="li" />}
+            </React.Fragment>
+          ))}
+        </List>
+      </Paper>
+    </Box>
   );
 };
 

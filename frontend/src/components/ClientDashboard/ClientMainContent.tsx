@@ -127,14 +127,17 @@ export default ClientMainContent;
 export const Card = styled(motion.div).attrs(() => ({
   variants: itemVariants
 }))`
-  background-color: ${({ theme }) => theme.colors.light};
+  background-color: #1d1f2b;
   border-radius: ${({ theme }) => theme.borderRadius.lg};
-  box-shadow: ${({ theme }) => theme.shadows.sm};
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   padding: ${({ theme }) => theme.spacing.lg};
   transition: ${({ theme }) => theme.transitions.medium};
+  border: 1px solid rgba(66, 70, 93, 0.5);
+  margin-bottom: ${({ theme }) => theme.spacing.md};
   
   &:hover {
-    box-shadow: ${({ theme }) => theme.shadows.md};
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(80, 87, 122, 0.6);
   }
   
   @media (max-width: ${({ theme }) => theme.breakpoints.md}) {
@@ -152,7 +155,7 @@ export const CardHeader = styled.div`
 export const CardTitle = styled.h2`
   font-size: 1.25rem;
   font-weight: 600;
-  color: ${({ theme }) => theme.colors.text};
+  color: #ffffff;
   margin: 0;
 `;
 
@@ -168,7 +171,7 @@ export const CardFooter = styled.div`
   align-items: center;
   margin-top: ${({ theme }) => theme.spacing.md};
   padding-top: ${({ theme }) => theme.spacing.md};
-  border-top: 1px solid ${({ theme }) => theme.colors.border};
+  border-top: 1px solid rgba(120, 81, 169, 0.5);
 `;
 
 export const Grid = styled.div<{ columns?: number }>`
@@ -200,7 +203,7 @@ export const Flex = styled.div<{ gap?: string, direction?: string, align?: strin
 export const ProgressBar = styled.div<{ value: number; max?: number; color?: string }>`
   width: 100%;
   height: 8px;
-  background-color: ${({ theme }) => theme.colors.border};
+  background-color: rgba(48, 51, 78, 0.5);
   border-radius: 4px;
   overflow: hidden;
   position: relative;
@@ -212,7 +215,7 @@ export const ProgressBar = styled.div<{ value: number; max?: number; color?: str
     left: 0;
     height: 100%;
     width: ${({ value, max = 100 }) => `${Math.min(100, (value / max) * 100)}%`};
-    background-color: ${({ theme, color }) => color || theme.colors.primary};
+    background-color: ${({ theme, color }) => color || '#00ffff'};
     border-radius: 4px;
     transition: width 0.5s ease;
   }
@@ -221,8 +224,8 @@ export const ProgressBar = styled.div<{ value: number; max?: number; color?: str
 export const Badge = styled.span<{ color?: string }>`
   display: inline-block;
   padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.sm}`};
-  background-color: ${({ theme, color }) => color ? `${color}22` : `${theme.colors.primary}22`};
-  color: ${({ theme, color }) => color || theme.colors.primary};
+  background-color: ${({ color }) => color ? `${color}22` : `rgba(0, 255, 255, 0.15)`};
+  color: ${({ color }) => color || '#00ffff'};
   border-radius: ${({ theme }) => theme.borderRadius.md};
   font-size: 0.8rem;
   font-weight: 500;
@@ -240,64 +243,64 @@ export const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'outli
   cursor: pointer;
   transition: ${({ theme }) => theme.transitions.short};
   
-  ${({ variant, theme }) => {
+  ${({ variant }) => {
     switch (variant) {
       case 'primary':
         return `
-          background-color: ${theme.colors.primary};
-          color: ${theme.colors.dark};
+          background-color: #00ffff;
+          color: #121212;
           border: none;
           
           &:hover, &:focus {
-            background-color: ${theme.colors.primary}dd;
+            background-color: #33ccff;
           }
         `;
       case 'secondary':
         return `
-          background-color: ${theme.colors.secondary};
-          color: ${theme.colors.textLight};
+          background-color: #7851a9;
+          color: #00ffff;
           border: none;
           
           &:hover, &:focus {
-            background-color: ${theme.colors.secondary}dd;
+            background-color: #8a62ba;
           }
         `;
       case 'outline':
         return `
           background-color: transparent;
-          color: ${theme.colors.primary};
-          border: 1px solid ${theme.colors.primary};
+          color: #00ffff;
+          border: 1px solid #00ffff;
           
           &:hover, &:focus {
-            background-color: ${theme.colors.primary}11;
+            background-color: rgba(0, 255, 255, 0.1);
           }
         `;
       case 'text':
         return `
           background-color: transparent;
-          color: ${theme.colors.primary};
+          color: #7851a9;
           border: none;
-          padding: ${theme.spacing.xs} ${theme.spacing.sm};
+          padding: ${({ theme }) => `${theme.spacing.xs} ${theme.spacing.sm}`};
           
           &:hover, &:focus {
-            background-color: ${theme.colors.primary}11;
+            background-color: rgba(0, 187, 255, 0.1);
           }
         `;
       default:
         return `
-          background-color: ${theme.colors.primary};
-          color: ${theme.colors.dark};
+          background-color: #7851a9;
+          color: #121212;
           border: none;
           
           &:hover, &:focus {
-            background-color: ${theme.colors.primary}dd;
+            background-color: #9068c0;
           }
         `;
     }
   }}
   
   &:focus {
-    outline: 2px solid ${({ theme }) => theme.colors.primary};
+    outline: 2px solid #00ffff;
     outline-offset: 2px;
   }
   

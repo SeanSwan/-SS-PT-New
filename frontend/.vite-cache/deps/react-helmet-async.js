@@ -1,14 +1,17 @@
 import {
+  require_browser
+} from "./chunk-UIBAVQOS.js";
+import {
   require_shallowequal
-} from "./chunk-BFRK6JRT.js";
+} from "./chunk-HUXDKL4R.js";
 import {
   require_react
-} from "./chunk-FXJVXTVJ.js";
+} from "./chunk-UVNPGZG7.js";
 import {
   __commonJS,
   __publicField,
   __toESM
-} from "./chunk-4B2QHNJT.js";
+} from "./chunk-OL46QLBJ.js";
 
 // node_modules/react-fast-compare/index.js
 var require_react_fast_compare = __commonJS({
@@ -84,40 +87,6 @@ var require_react_fast_compare = __commonJS({
         throw error;
       }
     };
-  }
-});
-
-// node_modules/invariant/browser.js
-var require_browser = __commonJS({
-  "node_modules/invariant/browser.js"(exports, module) {
-    "use strict";
-    var invariant2 = function(condition, format, a, b, c, d, e, f) {
-      if (true) {
-        if (format === void 0) {
-          throw new Error("invariant requires an error message argument");
-        }
-      }
-      if (!condition) {
-        var error;
-        if (format === void 0) {
-          error = new Error(
-            "Minified exception occurred; use the non-minified dev environment for the full error message and additional helpful warnings."
-          );
-        } else {
-          var args = [a, b, c, d, e, f];
-          var argIndex = 0;
-          error = new Error(
-            format.replace(/%s/g, function() {
-              return args[argIndex++];
-            })
-          );
-          error.name = "Invariant Violation";
-        }
-        error.framesToPop = 1;
-        throw error;
-      }
-    };
-    module.exports = invariant2;
   }
 });
 

@@ -80,6 +80,35 @@ const DevPanel = {
   }
 };
 
+// Enhanced safe try/catch for router hooks with better fallback behavior
+const useSafeNavigate = (): NavigateFunction => {
+  try {
+    // Attempt to use the standard useNavigate hook
+    return useNavigate();
+  } catch (error) {
+    console.warn('[DEV MODE] Router context not available for useNavigate hook');
+    
+    // Create a safer fallback function that properly implements NavigateFunction
+    const fallbackNavigate = ((to: string | { pathname: string }) => {
+      console.log(`[DEV MODE] Router not available. Using fallback navigation to: ${typeof to === 'string' ? to : to.pathname}`);
+      
+      // Extract the path from the argument
+      const path = typeof to === 'string' ? to : to.pathname;
+      
+      // Use window.location as a fallback
+      if (path && typeof path === 'string') {
+        // Small delay to ensure any state updates complete before navigation
+        setTimeout(() => {
+          window.location.href = path;
+        }, 50);
+        return;
+      }
+    }) as NavigateFunction;
+    
+    return fallbackNavigate;
+  }
+};
+
 /**
  * DevLoginPanel Component
  * 
@@ -93,24 +122,13 @@ const DevLoginPanel: React.FC = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [isPanelEnabled, setIsPanelEnabled] = useState(true);
   const [showInfo, setShowInfo] = useState(false);
-  const [routerAvailable, setRouterAvailable] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [reduxAvailable, setReduxAvailable] = useState(true);
   
-  // Safe navigation function
-  const [safeNavigate, setSafeNavigate] = useState<NavigateFunction | null>(null);
-  
-  // All hooks must be at the top level, but we'll wrap this in a try/catch
-  let navigate: NavigateFunction | null = null;
-  try {
-    navigate = useNavigate();
-    // If we got here without an error, the router is available
-    if (!routerAvailable) setRouterAvailable(true);
-    if (!safeNavigate) setSafeNavigate(() => navigate);
-  } catch (error) {
-    console.warn('[DEV MODE] Router context not available for useNavigate hook');
-    if (routerAvailable) setRouterAvailable(false);
-  }
+  // Get navigate function safely
+  const navigate = useSafeNavigate();
+  // Check if navigate is the actual router function, not our fallback
+  const routerAvailable = typeof navigate === 'function' && navigate.name !== 'navigate';
   
   // Redux store hooks with safety
   let store = null;
@@ -270,16 +288,16 @@ const DevLoginPanel: React.FC = () => {
       setTokenInMemory(`mock-token-${role}-${Date.now()}`);
       
       // Only navigate if router is available
-      if (routerAvailable && safeNavigate) {
+      if (navigate) {
         // Navigate to the appropriate dashboard based on role
         if (role === 'admin') {
-          safeNavigate('/dashboard');
+          navigate('/dashboard');
         } else if (role === 'trainer') {
-          safeNavigate('/trainer-dashboard');
+          navigate('/trainer-dashboard');
         } else if (role === 'client') {
-          safeNavigate('/client-dashboard');
+          navigate('/client-dashboard');
         } else if (role === 'user') {
-          safeNavigate('/social');
+          navigate('/social');
         }
       } else {
         // Router not available, show info that user needs to manually navigate
@@ -295,23 +313,54 @@ const DevLoginPanel: React.FC = () => {
     }
   };
   
-  // Handle logout
+  // Enhanced handleLogout with more robust cleanup and guaranteed page refresh
   const handleLogout = () => {
     try {
-      devLogout();
+      // First update UI state to show logged out immediately
       setCurrentUser(null);
       
-      if (routerAvailable && safeNavigate) {
-        safeNavigate('/');
-      } else {
-        setShowInfo(true);
-        setTimeout(() => setShowInfo(false), 5000);
-        console.log('[DEV MODE] Router not available. Please navigate manually to the home page.');
+      // Then clear all authentication data
+      devLogout();
+      
+      console.log('[DEV MODE] Successfully logged out, resetting application state');
+      
+      // Try to use the router navigate first if available
+      if (navigate && routerAvailable) {
+        try {
+          navigate('/');
+        } catch (navError) {
+          console.warn('[DEV MODE] Navigation error:', navError);
+        }
       }
+      
+      // Force page reload regardless of navigation success to ensure clean state
+      setTimeout(() => {
+        console.log('[DEV MODE] Forcing page reload to ensure clean state');
+        window.location.href = '/';
+        
+        // Double-check reload happened after a delay
+        setTimeout(() => {
+          console.log('[DEV MODE] Backup reload triggered');
+          window.location.reload();
+        }, 300);
+      }, 100);
+      
     } catch (error) {
       console.error('[DEV MODE] Error during logout:', error);
-      // Just clear the current user as a fallback
-      setCurrentUser(null);
+      
+      // Emergency fallbacks if the normal logout process fails
+      try {
+        // Clear all application storage forcefully
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Last resort: hard reload
+        window.location.href = '/';
+      } catch (criticalError) {
+        // If even that fails, log and try once more with reload()
+        console.error('[DEV MODE] Critical failure during logout:', criticalError);
+        window.location.reload();
+      }
     }
   };
   

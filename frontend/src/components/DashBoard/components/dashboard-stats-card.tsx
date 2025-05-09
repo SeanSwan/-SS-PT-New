@@ -36,10 +36,10 @@ const pulse = keyframes`
 
 // Styled components
 const StatsCardContainer = styled(Card)<{
-  colorScheme: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'purple'
+  $colorScheme: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'purple'
 }>`
   background: ${props => {
-    switch (props.colorScheme) {
+    switch (props.$colorScheme) {
       case 'primary':
         return 'linear-gradient(135deg, rgba(0, 109, 255, 0.1), rgba(0, 255, 255, 0.1))';
       case 'secondary':
@@ -61,7 +61,7 @@ const StatsCardContainer = styled(Card)<{
   backdrop-filter: blur(10px);
   border-radius: 15px;
   border: 1px solid ${props => {
-    switch (props.colorScheme) {
+    switch (props.$colorScheme) {
       case 'primary':
         return 'rgba(0, 255, 255, 0.2)';
       case 'secondary':
@@ -88,7 +88,7 @@ const StatsCardContainer = styled(Card)<{
     transform: translateY(-5px);
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
     border-color: ${props => {
-      switch (props.colorScheme) {
+      switch (props.$colorScheme) {
         case 'primary':
           return 'rgba(0, 255, 255, 0.4)';
         case 'secondary':
@@ -111,7 +111,7 @@ const StatsCardContainer = styled(Card)<{
 `;
 
 const IconContainer = styled.div<{
-  colorScheme: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'purple'
+  $colorScheme: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'purple'
 }>`
   width: 48px;
   height: 48px;
@@ -120,7 +120,7 @@ const IconContainer = styled.div<{
   align-items: center;
   justify-content: center;
   background: ${props => {
-    switch (props.colorScheme) {
+    switch (props.$colorScheme) {
       case 'primary':
         return 'linear-gradient(135deg, rgba(0, 109, 255, 0.2), rgba(0, 255, 255, 0.2))';
       case 'secondary':
@@ -141,7 +141,7 @@ const IconContainer = styled.div<{
   }};
   margin-right: 1rem;
   border: 1px solid ${props => {
-    switch (props.colorScheme) {
+    switch (props.$colorScheme) {
       case 'primary':
         return 'rgba(0, 255, 255, 0.3)';
       case 'secondary':
@@ -161,7 +161,7 @@ const IconContainer = styled.div<{
     }
   }};
   color: ${props => {
-    switch (props.colorScheme) {
+    switch (props.$colorScheme) {
       case 'primary':
         return 'rgba(0, 255, 255, 1)';
       case 'secondary':
@@ -183,13 +183,13 @@ const IconContainer = styled.div<{
 `;
 
 const ValueText = styled(Typography)<{
-  colorScheme: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'purple'
+  $colorScheme: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info' | 'purple'
 }>`
   font-size: 1.75rem !important;
   font-weight: 500 !important;
   margin-bottom: 0.25rem !important;
   color: ${props => {
-    switch (props.colorScheme) {
+    switch (props.$colorScheme) {
       case 'primary':
         return 'rgba(0, 255, 255, 1)';
       case 'secondary':
@@ -209,7 +209,7 @@ const ValueText = styled(Typography)<{
     }
   }};
   text-shadow: 0 0 10px ${props => {
-    switch (props.colorScheme) {
+    switch (props.$colorScheme) {
       case 'primary':
         return 'rgba(0, 255, 255, 0.5)';
       case 'secondary':
@@ -230,12 +230,12 @@ const ValueText = styled(Typography)<{
   }};
 `;
 
-const TrendContainer = styled.div<{ isPositive: boolean }>`
+const TrendContainer = styled.div<{ $isPositive: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.25rem;
   font-size: 0.75rem;
-  color: ${props => props.isPositive ? 'rgba(0, 200, 83, 0.9)' : 'rgba(244, 67, 54, 0.9)'};
+  color: ${props => props.$isPositive ? 'rgba(0, 200, 83, 0.9)' : 'rgba(244, 67, 54, 0.9)'};  
 `;
 
 const SkeletonShimmer = styled.div`
@@ -332,10 +332,10 @@ const DashboardStatsCard: React.FC<DashboardStatsCardProps> = ({
       }}
       style={{ height: '100%' }}
     >
-      <StatsCardContainer colorScheme={colorScheme}>
+      <StatsCardContainer $colorScheme={colorScheme}>
         <CardContent sx={{ p: 2, height: '100%' }}>
           <Box display="flex" alignItems="center" mb={1}>
-            <IconContainer colorScheme={colorScheme}>
+            <IconContainer $colorScheme={colorScheme}>
               {renderIcon()}
             </IconContainer>
             <Box>
@@ -355,11 +355,11 @@ const DashboardStatsCard: React.FC<DashboardStatsCardProps> = ({
                   >
                     {title}
                   </Typography>
-                  <ValueText variant="h4" colorScheme={colorScheme}>
+                  <ValueText variant="h4" $colorScheme={colorScheme}>
                     {value}
                   </ValueText>
                   {trend && (
-                    <TrendContainer isPositive={isPositive}>
+                    <TrendContainer $isPositive={isPositive}>
                       {isPositive ? (
                         <TrendingUp size={14} />
                       ) : (

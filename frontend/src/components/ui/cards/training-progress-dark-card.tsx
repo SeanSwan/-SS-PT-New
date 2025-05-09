@@ -25,9 +25,9 @@ const TrainingProgressDarkCard: React.FC<TrainingProgressDarkCardProps> = ({ isL
       sx={{
         borderRadius: 3,
         height: '100%',
-        bgcolor: 'primary.dark',
+        bgcolor: 'rgba(29, 31, 43, 0.8)',
         color: 'primary.contrastText',
-        boxShadow: '0 8px 25px rgba(25, 118, 210, 0.25)',
+        boxShadow: '0 8px 25px rgba(120, 81, 169, 0.25)',
         position: 'relative',
         overflow: 'hidden',
         transition: 'transform 0.3s ease',
@@ -70,7 +70,7 @@ const TrainingProgressDarkCard: React.FC<TrainingProgressDarkCardProps> = ({ isL
                     borderRadius: 5,
                     bgcolor: 'rgba(255, 255, 255, 0.1)',
                     '& .MuiLinearProgress-bar': {
-                      bgcolor: 'info.light'
+                      bgcolor: '#7851a9'
                     }
                   }}
                 />

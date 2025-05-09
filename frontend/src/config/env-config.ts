@@ -8,10 +8,10 @@
 // MCP Server URLs
 export const MCP_CONFIG = {
   // Workout MCP Server
-  WORKOUT_MCP_URL: process.env.REACT_APP_WORKOUT_MCP_URL || 'http://localhost:8000',
+  WORKOUT_MCP_URL: import.meta.env.VITE_WORKOUT_MCP_URL || 'http://localhost:8000',
   
   // Gamification MCP Server
-  GAMIFICATION_MCP_URL: process.env.REACT_APP_GAMIFICATION_MCP_URL || 'http://localhost:8001',
+  GAMIFICATION_MCP_URL: import.meta.env.VITE_GAMIFICATION_MCP_URL || 'http://localhost:8001',
   
   // Authentication settings
   AUTH_TOKEN_KEY: 'auth_token',
@@ -23,7 +23,7 @@ export const MCP_CONFIG = {
 // API URLs
 export const API_CONFIG = {
   // Base API URL
-  BASE_URL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  BASE_URL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   
   // Authentication endpoints
   AUTH: {
@@ -103,11 +103,11 @@ export const API_CONFIG = {
 
 // Feature flags
 export const FEATURE_FLAGS = {
-  ENABLE_GAMIFICATION: process.env.REACT_APP_ENABLE_GAMIFICATION === 'true' || true,
-  ENABLE_FOOD_TRACKER: process.env.REACT_APP_ENABLE_FOOD_TRACKER === 'true' || true,
-  ENABLE_SOCIAL_FEATURES: process.env.REACT_APP_ENABLE_SOCIAL_FEATURES === 'true' || false,
-  ENABLE_DANCE_WORKOUTS: process.env.REACT_APP_ENABLE_DANCE_WORKOUTS === 'true' || false,
-  ENABLE_CORPORATE_WELLNESS: process.env.REACT_APP_ENABLE_CORPORATE_WELLNESS === 'true' || false,
+  ENABLE_GAMIFICATION: import.meta.env.VITE_ENABLE_GAMIFICATION === 'true' || true,
+  ENABLE_FOOD_TRACKER: import.meta.env.VITE_ENABLE_FOOD_TRACKER === 'true' || true,
+  ENABLE_SOCIAL_FEATURES: import.meta.env.VITE_ENABLE_SOCIAL_FEATURES === 'true' || false,
+  ENABLE_DANCE_WORKOUTS: import.meta.env.VITE_ENABLE_DANCE_WORKOUTS === 'true' || false,
+  ENABLE_CORPORATE_WELLNESS: import.meta.env.VITE_ENABLE_CORPORATE_WELLNESS === 'true' || false,
 };
 
 // App configuration

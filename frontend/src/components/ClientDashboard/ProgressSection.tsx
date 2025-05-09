@@ -120,21 +120,21 @@ const ProgressSection: React.FC<any> = ({ data = {} }) => {
     
     if (change > 0) {
       return (
-        <Flex align="center" style={{ color: 'var(--success)' }}>
+        <Flex align="center" style={{ color: '#4CAF50' }}>
           <ArrowUp size={16} style={{ marginRight: '0.25rem' }} />
           <span>+{formattedChange}{unit}</span>
         </Flex>
       );
     } else if (change < 0) {
       return (
-        <Flex align="center" style={{ color: 'var(--error)' }}>
+        <Flex align="center" style={{ color: '#F44336' }}>
           <ArrowDown size={16} style={{ marginRight: '0.25rem' }} />
           <span>-{formattedChange}{unit}</span>
         </Flex>
       );
     } else {
       return (
-        <span style={{ color: 'var(--text-muted)' }}>No change</span>
+        <span style={{ color: '#757575' }}>No change</span>
       );
     }
   };
@@ -170,7 +170,7 @@ const ProgressSection: React.FC<any> = ({ data = {} }) => {
         textAlign: 'right', 
         margin: '0 0 1rem', 
         fontSize: '0.9rem', 
-        color: 'var(--text-muted)' 
+        color: '#757575' 
       }}>
         <CalendarIcon size={16} style={{ verticalAlign: 'middle', marginRight: '0.5rem' }} />
         Last updated: {formatDate(mockData.lastUpdated)}
@@ -194,20 +194,21 @@ const ProgressSection: React.FC<any> = ({ data = {} }) => {
                 width: '40px', 
                 height: '40px', 
                 borderRadius: '50%',
-                backgroundColor: 'var(--primary-color)11',
+                backgroundColor: 'rgba(0, 255, 255, 0.1)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 0.5rem',
               }}>
-                <Weight size={20} color="var(--primary-color)" />
+                <Weight size={20} color="#00ffff" />
               </div>
               
-              <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem' }}>Weight</h3>
+              <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem', color: '#ffffff' }}>Weight</h3>
               <div style={{ 
                 fontSize: '1.5rem', 
                 fontWeight: 'bold', 
-                marginBottom: '0.25rem' 
+                marginBottom: '0.25rem',
+                color: '#ffffff'
               }}>
                 {mockData.bodyStats.weight.current}{mockData.bodyStats.weight.unit}
               </div>
@@ -224,20 +225,21 @@ const ProgressSection: React.FC<any> = ({ data = {} }) => {
                 width: '40px', 
                 height: '40px', 
                 borderRadius: '50%',
-                backgroundColor: 'var(--secondary-color)11',
+                backgroundColor: 'rgba(120, 81, 169, 0.1)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 0.5rem',
               }}>
-                <Heart size={20} color="var(--secondary-color)" />
+                <Heart size={20} color="#7851a9" />
               </div>
               
-              <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem' }}>Body Fat</h3>
+              <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem', color: '#ffffff' }}>Body Fat</h3>
               <div style={{ 
                 fontSize: '1.5rem', 
                 fontWeight: 'bold', 
-                marginBottom: '0.25rem' 
+                marginBottom: '0.25rem',
+                color: '#ffffff'
               }}>
                 {mockData.bodyStats.bodyFat.current}{mockData.bodyStats.bodyFat.unit}
               </div>
@@ -254,20 +256,21 @@ const ProgressSection: React.FC<any> = ({ data = {} }) => {
                 width: '40px', 
                 height: '40px', 
                 borderRadius: '50%',
-                backgroundColor: 'var(--accent)11',
+                backgroundColor: 'rgba(255, 107, 107, 0.1)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 0.5rem',
               }}>
-                <Dumbbell size={20} color="var(--accent)" />
+                <Dumbbell size={20} color="#FF6B6B" />
               </div>
               
-              <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem' }}>Muscle Mass</h3>
+              <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem', color: '#ffffff' }}>Muscle Mass</h3>
               <div style={{ 
                 fontSize: '1.5rem', 
                 fontWeight: 'bold', 
-                marginBottom: '0.25rem' 
+                marginBottom: '0.25rem',
+                color: '#ffffff'
               }}>
                 {mockData.bodyStats.muscle.current}{mockData.bodyStats.muscle.unit}
               </div>
@@ -284,20 +287,21 @@ const ProgressSection: React.FC<any> = ({ data = {} }) => {
                 width: '40px', 
                 height: '40px', 
                 borderRadius: '50%',
-                backgroundColor: 'var(--success)11',
+                backgroundColor: 'rgba(76, 175, 80, 0.1)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 0.5rem',
               }}>
-                <Ruler size={20} color="var(--success)" />
+                <Ruler size={20} color="#4CAF50" />
               </div>
               
-              <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem' }}>BMI</h3>
+              <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem', color: '#ffffff' }}>BMI</h3>
               <div style={{ 
                 fontSize: '1.5rem', 
                 fontWeight: 'bold', 
-                marginBottom: '0.25rem' 
+                marginBottom: '0.25rem',
+                color: '#ffffff'
               }}>
                 {mockData.bodyStats.bmi.current}
               </div>
@@ -324,7 +328,7 @@ const ProgressSection: React.FC<any> = ({ data = {} }) => {
           <CardContent>
             <div style={{ 
               padding: '1.5rem 1rem',
-              backgroundColor: 'var(--primary-color)11',
+              backgroundColor: 'rgba(0, 255, 255, 0.1)',
               borderRadius: '8px',
               marginBottom: '1.5rem',
               display: 'flex',
@@ -336,29 +340,29 @@ const ProgressSection: React.FC<any> = ({ data = {} }) => {
                 width: '80px', 
                 height: '80px', 
                 borderRadius: '50%', 
-                backgroundColor: 'white',
+                backgroundColor: '#1d1f2b',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '1.5rem',
                 fontWeight: 'bold',
-                color: 'var(--primary-color)',
+                color: '#00ffff',
                 boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)',
                 marginBottom: '0.5rem',
               }}>
                 {mockData.nasmProtocol.overall}%
               </div>
-              <div style={{ fontWeight: 'bold' }}>Overall Progress</div>
+              <div style={{ fontWeight: 'bold', color: '#ffffff' }}>Overall Progress</div>
             </div>
             
             {mockData.nasmProtocol.categories.map((category, index) => (
               <div key={index} style={{ marginBottom: '1rem' }}>
                 <Flex justify="space-between" style={{ marginBottom: '0.25rem' }}>
                   <Flex gap="0.5rem" align="center">
-                    <span>{category.name}</span>
+                    <span style={{ color: '#ffffff' }}>{category.name}</span>
                     <Badge>Level {category.level}</Badge>
                   </Flex>
-                  <span>{category.progress}%</span>
+                  <span style={{ color: '#ffffff' }}>{category.progress}%</span>
                 </Flex>
                 <ProgressBar value={category.progress} max={100} />
               </div>
@@ -380,16 +384,16 @@ const ProgressSection: React.FC<any> = ({ data = {} }) => {
             {mockData.bodyParts.map((part, index) => (
               <div key={index} style={{ marginBottom: '1rem' }}>
                 <Flex justify="space-between" style={{ marginBottom: '0.25rem' }}>
-                  <span>{part.name}</span>
-                  <span>{part.progress}%</span>
+                  <span style={{ color: '#ffffff' }}>{part.name}</span>
+                  <span style={{ color: '#ffffff' }}>{part.progress}%</span>
                 </Flex>
                 <ProgressBar 
                   value={part.progress} 
                   max={100} 
                   color={
-                    index % 3 === 0 ? 'var(--primary-color)' : 
-                    index % 3 === 1 ? 'var(--secondary-color)' : 
-                    'var(--accent)'
+                    index % 3 === 0 ? '#00ffff' : 
+                    index % 3 === 1 ? '#7851a9' : 
+                    '#FF6B6B'
                   } 
                 />
               </div>
@@ -397,13 +401,13 @@ const ProgressSection: React.FC<any> = ({ data = {} }) => {
             
             <div style={{ 
               marginTop: '1.5rem',
-              backgroundColor: 'var(--secondary-color)11',
+              backgroundColor: 'rgba(120, 81, 169, 0.1)',
               borderRadius: '8px',
               padding: '1rem',
             }}>
-              <h3 style={{ margin: '0 0 0.5rem', fontSize: '1rem' }}>Training Focus Recommendation</h3>
-              <p style={{ margin: '0', fontSize: '0.9rem' }}>
-                Based on your progress, we recommend focusing on <strong>Shoulders</strong> and <strong>Arms</strong> in your upcoming workouts to create a more balanced physique.
+              <h3 style={{ margin: '0 0 0.5rem', fontSize: '1rem', color: '#ffffff' }}>Training Focus Recommendation</h3>
+              <p style={{ margin: '0', fontSize: '0.9rem', color: '#b0b0b0' }}>
+                Based on your progress, we recommend focusing on <strong style={{ color: '#ffffff' }}>Shoulders</strong> and <strong style={{ color: '#ffffff' }}>Arms</strong> in your upcoming workouts to create a more balanced physique.
               </p>
             </div>
           </CardContent>
@@ -422,10 +426,10 @@ const ProgressSection: React.FC<any> = ({ data = {} }) => {
               <div key={index} style={{ 
                 padding: '1rem',
                 borderRadius: '8px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: exercise.trend === 'up' ? 'var(--success)05' : 'transparent',
+                border: '1px solid rgba(66, 70, 93, 0.5)',
+                backgroundColor: exercise.trend === 'up' ? 'rgba(76, 175, 80, 0.05)' : 'transparent',
               }}>
-                <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.1rem' }}>{exercise.name}</h3>
+                <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.1rem', color: '#ffffff' }}>{exercise.name}</h3>
                 
                 <Flex justify="space-between" align="center">
                   <div>
@@ -433,11 +437,12 @@ const ProgressSection: React.FC<any> = ({ data = {} }) => {
                       fontSize: '1.5rem', 
                       fontWeight: 'bold', 
                       marginBottom: '0.25rem',
+                      color: '#ffffff'
                     }}>
                       {exercise.current} {exercise.unit}
                     </div>
                     
-                    <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: '0.9rem', color: '#757575' }}>
                       Previous: {exercise.previous} {exercise.unit}
                     </div>
                   </div>
@@ -467,8 +472,8 @@ const ProgressSection: React.FC<any> = ({ data = {} }) => {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'var(--text-muted)',
-            backgroundColor: 'var(--border-color)',
+            color: '#757575',
+            backgroundColor: '#2c2f3e',
             borderRadius: '8px',
           }}>
             Chart placeholder - Integrated with Chart.js or Recharts
@@ -477,7 +482,7 @@ const ProgressSection: React.FC<any> = ({ data = {} }) => {
           <p style={{ 
             margin: '1rem 0 0', 
             fontSize: '0.9rem', 
-            color: 'var(--text-muted)',
+            color: '#757575',
             fontStyle: 'italic',
             textAlign: 'center',
           }}>

@@ -4,13 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "concurrently \"npm run start-mongodb\" \"npm run start-frontend\" \"npm run start-backend-check\"",
+    "start": "concurrently \"npm run start-mongodb\" \"npm run start-frontend\" \"npm run start-backend-check\" \"npm run start-mcp-servers\"",
     "start-frontend": "cd frontend && npm run dev",
     "start-backend": "cd backend && npm run dev",
     "start-backend-check": "cd backend && npm run dev:mongodb",
     "start-mongodb": "node scripts/mongodb-setup.js",
     "start-with-db": "concurrently \"npm run start-frontend\" \"npm run start-backend-with-db\"",
     "start-backend-with-db": "cd backend && npm run dev:with-migrations",
+    "start-mcp-servers": "concurrently \"npm run start-workout-mcp\" \"npm run start-gamification-mcp\"",
+    "start-workout-mcp": "cd backend/mcp_server && python workout_launcher.py",
+    "start-gamification-mcp": "cd backend/mcp_server && python start_gamification_server.py",
     "db:migrate": "cd backend && npm run migrate",
     "db:seed": "cd backend && npm run seed",
     "db:setup": "cd backend && npm run db:setup",
@@ -38,7 +41,8 @@
     "fix-all": "npm run fix-server && npm run fix-models && npm run fix-client-progress && npm run fix-all-imports",
     "start-fixed": "npm run fix-all && npm run start",
     "fix-and-start": "node scripts/fix-and-start.js",
-    "start-full": "concurrently \"cd frontend && npm run dev\" \"cd backend && npm run dev\""
+    "start-core": "concurrently \"npm run start-mongodb\" \"npm run start-frontend\" \"npm run start-backend-check\"",
+    "start-full": "concurrently \"cd frontend && npm run dev\" \"cd backend && npm run dev\" \"npm run start-mcp-servers\""
   },
   "keywords": [],
   "author": "",

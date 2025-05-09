@@ -97,6 +97,18 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       'import.meta.env.VITE_API_BASE_URL': JSON.stringify('/api'),
+      'process.env': JSON.stringify({
+        // Define any process.env variables that are still needed here
+        NODE_ENV: mode,
+        REACT_APP_WORKOUT_MCP_URL: 'http://localhost:8000',
+        REACT_APP_GAMIFICATION_MCP_URL: 'http://localhost:8001',
+        REACT_APP_API_URL: '/api',
+        REACT_APP_ENABLE_GAMIFICATION: 'true',
+        REACT_APP_ENABLE_FOOD_TRACKER: 'true',
+        REACT_APP_ENABLE_SOCIAL_FEATURES: 'false',
+        REACT_APP_ENABLE_DANCE_WORKOUTS: 'false',
+        REACT_APP_ENABLE_CORPORATE_WELLNESS: 'false'
+      })
     }
   };
 });

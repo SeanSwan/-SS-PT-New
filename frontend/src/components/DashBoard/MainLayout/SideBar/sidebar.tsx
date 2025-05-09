@@ -22,6 +22,9 @@ import {
   Settings
 } from 'lucide-react';
 
+// Import MCP Status Dot
+import McpStatusDot from '../../../ui/McpStatusDot';
+
 // Import menu items
 import dashboard from '../../Menu-Items/dashboard';
 import { useAuth } from '../../../../context/AuthContext';
@@ -253,6 +256,13 @@ const Sidebar: React.FC<SidebarProps> = ({ miniDrawer }) => {
         </Box>
       )}
 
+      {/* MCP Server Status */}
+      {user?.role === 'admin' && (
+        <Box sx={{ mb: 1.5, pl: miniDrawer ? 0 : 2 }}>
+          <McpStatusDot miniMode={miniDrawer} />
+        </Box>
+      )}
+      
       {/* Menu Items */}
       <Box sx={{ flexGrow: 1, overflowY: 'auto' }}>
         {dashboard.map((group: MenuGroupType) => (

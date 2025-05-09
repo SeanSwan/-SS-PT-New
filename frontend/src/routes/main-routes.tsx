@@ -14,6 +14,9 @@ import ErrorBoundary from './error-boundary';
 import AdminRoute from './admin-route';
 import ProtectedRoute from './protected-route';
 
+// Custom Routes
+import DebugRoutes from './debug-routes';
+
 // Types
 interface ProtectedRouteProps {
   requiredRole?: string;
@@ -93,11 +96,11 @@ const HomePage = lazyLoadWithErrorHandling(
   'Home Page'
 );
 const LoginModal = lazyLoadWithErrorHandling(
-  () => import('../pages/LoginModal.component'),
+  () => import('../pages/EnhancedLoginModal'),
   'Login Modal'
 );
 const SignupModal = lazyLoadWithErrorHandling(
-  () => import('../pages/SignupModal.component'),
+  () => import('../pages/OptimizedSignupModal'),
   'Signup Modal'
 );
 const ContactPage = lazyLoadWithErrorHandling(
@@ -160,10 +163,18 @@ const ClientDashboardView = lazyLoadWithErrorHandling(
   () => import('../components/DashBoard/Pages/client-dashboard/client-dashboard-view'),
   'Client Dashboard View'
 );
+// Use the newer dashboard that correctly references all components
 const NewClientDashboard = lazyLoadWithErrorHandling(
-  () => import('../components/DashBoard/Pages/client-dashboard/new-client-dashboard'),
+  () => import('../components/ClientDashboard/NewDashboard.jsx'),
   'Enhanced Client Dashboard'
 );
+
+// Emergency dashboard for testing
+const EmergencyDashboard = lazyLoadWithErrorHandling(
+  () => import('../components/ClientDashboard/EmergencyDashboard.jsx'),
+  'Emergency Dashboard'
+);
+
 const WorkoutDashboard = lazyLoadWithErrorHandling(
   () => import('../pages/workout/WorkoutDashboard'),
   'Workout Dashboard'
@@ -331,8 +342,17 @@ const MainRoutes: RouteObject = {
         </ProtectedRoute>
       )
     },
+    // Emergency dashboard route for testing
+    {
+      path: 'emergency-dashboard',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <EmergencyDashboard />
+        </Suspense>
+      )
+    },
     
-    // Workout Management Routes
+
     {
       path: 'workout',
       element: (
@@ -364,6 +384,12 @@ const MainRoutes: RouteObject = {
           </Suspense>
         </AdminRoute>
       )
+    },
+    
+    // Debug Routes (Direct access)
+    {
+      path: 'debug/*',
+      element: <DebugRoutes />
     },
     
     // Fallback Route (404)

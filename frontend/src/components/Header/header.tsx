@@ -31,9 +31,8 @@ import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonIcon from '@mui/icons-material/Person';
 
-// Import BerryAdmin components
-import NotificationSection from "./NotificationSection";
-import ProfileSection from "./ProfileSection";
+// Import custom components
+import EnhancedNotificationSection from './EnhancedNotificationSection';
 
 // ===================== Animation Keyframes =====================
 const float = keyframes`
@@ -426,12 +425,47 @@ const EnhancedHeader = () => {
     }
   };
 
-  // Handle logout
+  // Enhanced handleLogout function with comprehensive cleanup
   const handleLogout = () => {
-    logout();
-    navigate("/");
-    if (mobileMenuOpen) {
-      setMobileMenuOpen(false);
+    try {
+      // First close mobile menu if open
+      if (mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+      
+      // Call the auth context logout function
+      logout();
+      
+      console.log('Successfully logged out, resetting application state');
+      
+      // For completeness, manually clear all possible auth storage
+      try {
+        // Clear specific auth entries
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('login_timestamp');
+        
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+      } catch (storageError) {
+        console.warn('Error clearing auth storage:', storageError);
+      }
+      
+      // Force page reload to ensure clean state
+      setTimeout(() => {
+        console.log('Forcing page reload to ensure clean state');
+        window.location.href = '/';
+        
+        // Backup reload in case the redirect fails
+        setTimeout(() => {
+          window.location.reload();
+        }, 300);
+      }, 100);
+    } catch (error) {
+      console.error('Error during logout:', error);
+      
+      // Emergency fallback - force reload
+      window.location.href = '/';
     }
   };
 
@@ -795,30 +829,7 @@ const EnhancedHeader = () => {
           <ActionsContainer variants={containerVariants}>
             {/* Notification Icon - Only for logged in users */}
             {user && (
-              <IconButton 
-                sx={{ 
-                  color: 'white',
-                  '&:hover': {
-                    color: '#00a0e3',
-                    backgroundColor: 'rgba(0, 160, 227, 0.05)'
-                  }
-                }}
-              >
-                <Badge 
-                  badgeContent={1} 
-                  color="error"
-                  sx={{ 
-                    '& .MuiBadge-badge': {
-                      backgroundColor: '#ec4899',
-                      fontSize: '0.65rem',
-                      minWidth: '18px',
-                      height: '18px'
-                    }
-                  }}
-                >
-                  <NotificationsIcon fontSize="small" />
-                </Badge>
-              </IconButton>
+              <EnhancedNotificationSection />
             )}
 
             {/* Shopping Cart */}

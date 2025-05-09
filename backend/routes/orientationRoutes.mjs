@@ -2,7 +2,7 @@
 import express from 'express';
 import { body, validationResult } from 'express-validator';
 import { protect } from '../middleware/authMiddleware.mjs';
-import { orientationSignup } from '../controllers/orientationControlle.mjs';
+import { orientationSignup, getOrientationData, getAllOrientations } from '../controllers/orientationController.mjs';
 
 const router = express.Router();
 
@@ -33,6 +33,22 @@ router.post(
     return orientationSignup(req, res);
   }
 );
+
+/**
+ * GET /api/orientation/user/:userId
+ *
+ * Protected route: Only accessible to logged-in users (must be admin or the user themselves).
+ * Retrieves orientation data for a specific user.
+ */
+router.get('/user/:userId', protect, getOrientationData);
+
+/**
+ * GET /api/orientation/all
+ *
+ * Protected route: Only accessible to admin users.
+ * Retrieves all orientation submissions.
+ */
+router.get('/all', protect, getAllOrientations);
 
 export default router;
 

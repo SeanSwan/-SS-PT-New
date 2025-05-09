@@ -1,694 +1,340 @@
 import React, { useState } from 'react';
 import { 
-  Users, 
-  MapPin, 
-  Calendar, 
-  Clock, 
-  MessageSquare, 
-  UserPlus,
-  Heart,
-  ThumbsUp,
-  Share,
-  Search,
-  Filter,
-  Bell,
-  UserCheck,
-  AlertCircle,
-  Check
-} from 'lucide-react';
-import ClientMainContent, { 
-  Card, 
-  CardHeader, 
-  CardTitle, 
-  CardContent,
-  CardFooter, 
+  Box, 
+  Typography, 
+  Paper, 
   Grid, 
-  Flex,
-  Badge,
-  Button
-} from '../ClientMainContent';
+  Card, 
+  CardContent, 
+  Avatar, 
+  Chip,
+  Button,
+  TextField,
+  Tabs,
+  Tab,
+  Divider,
+  List,
+  ListItem,
+  ListItemAvatar,
+  ListItemText,
+  IconButton
+} from '@mui/material';
 
-// Mock meetup data
-const meetups = [
+// Icons
+import GroupIcon from '@mui/icons-material/Group';
+import EventIcon from '@mui/icons-material/Event';
+import ChatIcon from '@mui/icons-material/Chat';
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
+import PeopleIcon from '@mui/icons-material/People';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import CommentIcon from '@mui/icons-material/Comment';
+import ShareIcon from '@mui/icons-material/Share';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
+
+// Placeholder data for community posts
+const placeholderPosts = [
   {
     id: 1,
-    title: 'Weekend Dance Jam',
-    description: 'Join us for a fun, all-levels dance session focusing on hip-hop and contemporary styles.',
-    category: 'Dance',
-    location: 'Central Park Studio',
-    date: '2025-05-15T10:00:00',
-    duration: 120,
-    attendees: 12,
-    maxAttendees: 20,
-    isRegistered: false,
+    user: {
+      name: 'Sarah Johnson',
+      avatar: '/placeholder-avatar-1.jpg'
+    },
+    content: 'Just completed my first 5K run! Thanks to my trainer for all the motivation and support.',
+    likes: 24,
+    comments: 8,
+    timeAgo: '2 hours ago'
   },
   {
     id: 2,
-    title: 'Art Therapy Workshop',
-    description: 'Express yourself through various art media with guidance from our wellness expert.',
-    category: 'Art',
-    location: 'Community Arts Center',
-    date: '2025-05-18T14:30:00',
-    duration: 90,
-    attendees: 8,
-    maxAttendees: 15,
-    isRegistered: true,
+    user: {
+      name: 'Michael Chen',
+      avatar: '/placeholder-avatar-2.jpg'
+    },
+    content: 'Looking for workout buddies in the downtown area. Anyone interested in meeting up on Saturdays?',
+    likes: 15,
+    comments: 12,
+    timeAgo: '5 hours ago'
   },
   {
     id: 3,
-    title: 'Group Vocal Session',
-    description: 'Practice singing techniques and harmonizing with fellow music enthusiasts.',
-    category: 'Singing',
-    location: 'Music Studio Downtown',
-    date: '2025-05-20T18:00:00',
-    duration: 60,
-    attendees: 5,
-    maxAttendees: 10,
-    isRegistered: false,
+    user: {
+      name: 'Emma Williams',
+      avatar: '/placeholder-avatar-3.jpg'
+    },
+    content: 'Here\'s my progress after 3 months of consistent training. So happy with the results!',
+    likes: 42,
+    comments: 7,
+    timeAgo: '1 day ago'
+  },
+];
+
+// Placeholder data for upcoming events
+const placeholderEvents = [
+  {
+    id: 1,
+    title: 'Group HIIT Session',
+    date: 'May 15, 2025',
+    time: '10:00 AM',
+    location: 'Central Park',
+    attendees: 12
   },
   {
-    id: 4,
-    title: 'Fitness & Dance Fusion',
-    description: 'Combine cardio workout with dance movements for a fun and effective session.',
-    category: 'Fitness/Dance',
-    location: 'Wellness Center',
-    date: '2025-05-17T09:00:00',
-    duration: 75,
-    attendees: 15,
-    maxAttendees: 20,
-    isRegistered: true,
+    id: 2,
+    title: 'Yoga & Meditation',
+    date: 'May 18, 2025',
+    time: '9:00 AM',
+    location: 'Beach Front',
+    attendees: 8
   }
 ];
 
-// Mock community feed
-const communityPosts = [
+// Placeholder data for group suggestions
+const placeholderGroups = [
   {
-    id: 101,
-    user: {
-      id: 1001,
-      name: 'Sarah J.',
-      avatar: null,
-    },
-    content: 'Just completed my first contemporary dance routine! Thanks to everyone who supported me along the way. 💃 #DanceProgress',
-    type: 'text',
-    category: 'Dance',
-    postedAt: '2025-05-06T15:30:00',
-    likes: 24,
-    comments: 7,
-    isLiked: true,
+    id: 1,
+    name: 'Morning Runners',
+    members: 56,
+    category: 'Fitness'
   },
   {
-    id: 102,
-    user: {
-      id: 1002,
-      name: 'Michael T.',
-      avatar: null,
-    },
-    content: 'Check out my latest painting from the watercolor workshop last weekend. Still learning but really enjoying the process!',
-    type: 'image',
-    category: 'Art',
-    postedAt: '2025-05-05T12:45:00',
-    likes: 18,
-    comments: 5,
-    isLiked: false,
+    id: 2,
+    name: 'Dance Enthusiasts',
+    members: 34,
+    category: 'Dance'
   },
   {
-    id: 103,
-    user: {
-      id: 1003,
-      name: 'Trainer Alex',
-      avatar: null,
-      isStaff: true,
-    },
-    content: 'New group HIIT session starting next week! Limited spots available. Sign up through the app or message me directly. #FitnessGoals',
-    type: 'announcement',
-    category: 'Fitness',
-    postedAt: '2025-05-04T09:15:00',
-    likes: 32,
-    comments: 11,
-    isLiked: true,
-  },
+    id: 3,
+    name: 'Wellness Warriors',
+    members: 89,
+    category: 'Wellness'
+  }
 ];
-
-// Mock friend suggestions
-const friendSuggestions = [
-  {
-    id: 201,
-    name: 'Jessica R.',
-    avatar: null,
-    mutualConnections: 3,
-    interests: ['Dance', 'Fitness'],
-  },
-  {
-    id: 202,
-    name: 'David L.',
-    avatar: null,
-    mutualConnections: 2,
-    interests: ['Art', 'Singing'],
-  },
-  {
-    id: 203,
-    name: 'Sophia M.',
-    avatar: null,
-    mutualConnections: 5,
-    interests: ['Dance', 'Art'],
-  },
-];
-
-// Mock friend requests
-const friendRequests = [
-  {
-    id: 301,
-    name: 'Robert K.',
-    avatar: null,
-    requestedAt: '2025-05-03T10:20:00',
-    mutualConnections: 1,
-  },
-  {
-    id: 302,
-    name: 'Emma S.',
-    avatar: null,
-    requestedAt: '2025-05-01T14:45:00',
-    mutualConnections: 4,
-  },
-];
-
-// Type for active tab
-type CommunityTab = 'feed' | 'meetups' | 'friends';
 
 /**
  * CommunitySection Component
  * 
- * Community hub for connecting with other users, finding meetups,
- * and participating in social activities related to fitness, dance, and creative expression.
+ * A comprehensive community hub for clients to connect with others,
+ * join groups, participate in events, and share their fitness journey.
  */
 const CommunitySection: React.FC = () => {
-  // State for active tab
-  const [activeTab, setActiveTab] = useState<CommunityTab>('feed');
-  
-  // Format date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-  
-  // Format relative time
-  const formatRelativeTime = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) return `${diffInHours}h ago`;
-    
-    const diffInDays = Math.floor(diffInHours / 24);
-    if (diffInDays < 7) return `${diffInDays}d ago`;
-    
-    return formatDate(dateString).split(',')[0]; // Just the date part
+  const [tabValue, setTabValue] = useState(0);
+  const [postText, setPostText] = useState('');
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
   };
 
-  // Render action buttons based on tab
-  const renderActionButtons = () => {
-    switch (activeTab) {
-      case 'feed':
-        return (
-          <Button variant="primary">
-            Create Post
-          </Button>
-        );
-      case 'meetups':
-        return (
-          <Button variant="primary">
-            Create Meetup
-          </Button>
-        );
-      case 'friends':
-        return (
-          <Button variant="primary">
-            Find Friends
-          </Button>
-        );
-      default:
-        return null;
-    }
+  const handlePostSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    alert(`Post submitted: ${postText}`);
+    setPostText('');
   };
 
   return (
-    <ClientMainContent
-      title="Community"
-      actions={renderActionButtons()}
-    >
-      {/* Tabs */}
-      <Flex style={{ borderBottom: '1px solid var(--border-color)' }}>
-        <Button 
-          variant={activeTab === 'feed' ? "text" : "text"}
-          style={{ 
-            borderBottom: activeTab === 'feed' ? '2px solid var(--primary-color)' : 'none',
-            borderRadius: 0,
-            padding: '0.5rem 1rem',
-            opacity: activeTab === 'feed' ? 1 : 0.7,
-          }}
-          onClick={() => setActiveTab('feed')}
+    <Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+        <GroupIcon sx={{ fontSize: 32, mr: 2, color: 'primary.main' }} />
+        <Typography variant="h4" component="h1">Community</Typography>
+      </Box>
+
+      <Paper sx={{ mb: 3 }}>
+        <Tabs 
+          value={tabValue} 
+          onChange={handleTabChange}
+          variant="fullWidth"
+          indicatorColor="primary"
+          textColor="primary"
         >
-          Community Feed
-        </Button>
-        <Button 
-          variant={activeTab === 'meetups' ? "text" : "text"}
-          style={{ 
-            borderBottom: activeTab === 'meetups' ? '2px solid var(--primary-color)' : 'none',
-            borderRadius: 0,
-            padding: '0.5rem 1rem',
-            opacity: activeTab === 'meetups' ? 1 : 0.7,
-          }}
-          onClick={() => setActiveTab('meetups')}
-        >
-          Meetups & Events
-        </Button>
-        <Button 
-          variant={activeTab === 'friends' ? "text" : "text"}
-          style={{ 
-            borderBottom: activeTab === 'friends' ? '2px solid var(--primary-color)' : 'none',
-            borderRadius: 0,
-            padding: '0.5rem 1rem',
-            opacity: activeTab === 'friends' ? 1 : 0.7,
-          }}
-          onClick={() => setActiveTab('friends')}
-        >
-          Connections
-        </Button>
-      </Flex>
+          <Tab label="Feed" icon={<ChatIcon />} iconPosition="start" />
+          <Tab label="Events" icon={<EventIcon />} iconPosition="start" />
+          <Tab label="Groups" icon={<GroupIcon />} iconPosition="start" />
+        </Tabs>
+      </Paper>
 
       {/* Feed Tab */}
-      {activeTab === 'feed' && (
+      {tabValue === 0 && (
         <>
-          {/* Create Post Card */}
-          <Card>
-            <CardContent>
-              <Flex style={{ padding: '0.5rem 0' }}>
-                <div style={{ 
-                  width: '40px', 
-                  height: '40px', 
-                  borderRadius: '50%', 
-                  backgroundColor: 'var(--border-color)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginRight: '0.75rem',
-                }}>
-                  U
-                </div>
-                
-                <div 
-                  style={{ 
-                    flex: 1, 
-                    padding: '0.5rem 1rem',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '24px',
-                    cursor: 'pointer',
-                    color: 'var(--text-muted)',
-                  }}
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>Share with the community</Typography>
+            <form onSubmit={handlePostSubmit}>
+              <TextField
+                fullWidth
+                multiline
+                rows={3}
+                placeholder="What's on your mind?"
+                value={postText}
+                onChange={(e) => setPostText(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button 
+                  variant="contained" 
+                  type="submit"
+                  disabled={!postText.trim()}
                 >
-                  What's on your mind?
-                </div>
-              </Flex>
+                  Post
+                </Button>
+              </Box>
+            </form>
+          </Paper>
+
+          {/* Community Posts */}
+          {placeholderPosts.map(post => (
+            <Paper key={post.id} sx={{ p: 3, mb: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                <Avatar 
+                  src={post.user.avatar} 
+                  alt={post.user.name}
+                  sx={{ mr: 2 }}
+                >
+                  {post.user.name[0]}
+                </Avatar>
+                <Box sx={{ flex: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      {post.user.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {post.timeAgo}
+                    </Typography>
+                  </Box>
+                </Box>
+                <IconButton size="small">
+                  <MoreVertIcon fontSize="small" />
+                </IconButton>
+              </Box>
               
-              <Flex style={{ marginTop: '0.75rem', justifyContent: 'space-around' }}>
-                <Button variant="text">
-                  <Users size={18} style={{ marginRight: '0.5rem' }} />
-                  Tag People
+              <Typography paragraph>
+                {post.content}
+              </Typography>
+              
+              <Divider sx={{ my: 2 }} />
+              
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Button 
+                  startIcon={<ThumbUpIcon />} 
+                  size="small"
+                >
+                  Like ({post.likes})
                 </Button>
-                <Button variant="text">
-                  <MapPin size={18} style={{ marginRight: '0.5rem' }} />
-                  Add Location
+                <Button 
+                  startIcon={<CommentIcon />} 
+                  size="small"
+                >
+                  Comment ({post.comments})
                 </Button>
-                <Button variant="text">
-                  <Heart size={18} style={{ marginRight: '0.5rem' }} />
-                  Feeling/Activity
+                <Button 
+                  startIcon={<ShareIcon />} 
+                  size="small"
+                >
+                  Share
                 </Button>
-              </Flex>
-            </CardContent>
-          </Card>
-          
-          {/* Community Feed Posts */}
-          {communityPosts.map((post) => (
-            <Card key={post.id}>
-              <CardContent>
-                <Flex style={{ marginBottom: '0.75rem' }}>
-                  <div style={{ 
-                    width: '40px', 
-                    height: '40px', 
-                    borderRadius: '50%', 
-                    backgroundColor: 'var(--border-color)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginRight: '0.75rem',
-                  }}>
-                    {post.user.avatar ? (
-                      <img 
-                        src={post.user.avatar} 
-                        alt={post.user.name} 
-                        style={{ width: '100%', height: '100%', borderRadius: '50%' }}
-                      />
-                    ) : (
-                      post.user.name.charAt(0)
-                    )}
-                  </div>
-                  
-                  <div style={{ flex: 1 }}>
-                    <Flex align="center">
-                      <h3 style={{ margin: '0', fontSize: '1rem' }}>
-                        {post.user.name}
-                      </h3>
-                      
-                      {post.user.isStaff && (
-                        <Badge 
-                          color="var(--primary-color)" 
-                          style={{ marginLeft: '0.5rem' }}
-                        >
-                          Staff
-                        </Badge>
-                      )}
-                    </Flex>
-                    
-                    <Flex align="center">
-                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        {formatRelativeTime(post.postedAt)}
-                      </span>
-                      
-                      {post.category && (
-                        <Badge 
-                          style={{ marginLeft: '0.5rem', fontSize: '0.7rem' }}
-                        >
-                          {post.category}
-                        </Badge>
-                      )}
-                    </Flex>
-                  </div>
-                </Flex>
-                
-                <p style={{ margin: '0 0 1rem' }}>{post.content}</p>
-                
-                {post.type === 'image' && (
-                  <div style={{
-                    height: '200px',
-                    backgroundColor: 'var(--border-color)',
-                    borderRadius: '8px',
-                    marginBottom: '1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    Image Placeholder
-                  </div>
-                )}
-                
-                <Flex style={{ borderTop: '1px solid var(--border-color)', paddingTop: '0.75rem' }}>
-                  <Button 
-                    variant="text" 
-                    style={{ flex: 1, justifyContent: 'center', color: post.isLiked ? 'var(--primary-color)' : undefined }}
-                  >
-                    <ThumbsUp size={18} style={{ marginRight: '0.5rem' }} />
-                    Like ({post.likes})
-                  </Button>
-                  
-                  <Button variant="text" style={{ flex: 1, justifyContent: 'center' }}>
-                    <MessageSquare size={18} style={{ marginRight: '0.5rem' }} />
-                    Comment ({post.comments})
-                  </Button>
-                  
-                  <Button variant="text" style={{ flex: 1, justifyContent: 'center' }}>
-                    <Share size={18} style={{ marginRight: '0.5rem' }} />
-                    Share
-                  </Button>
-                </Flex>
-              </CardContent>
-            </Card>
+              </Box>
+            </Paper>
           ))}
         </>
       )}
 
-      {/* Meetups Tab */}
-      {activeTab === 'meetups' && (
+      {/* Events Tab */}
+      {tabValue === 1 && (
         <>
-          {/* Search and Filter */}
-          <Flex gap="0.5rem" style={{ marginBottom: '1rem' }}>
-            <div style={{ 
-              flex: 1,
-              position: 'relative',
-            }}>
-              <input 
-                type="text" 
-                placeholder="Search meetups..."
-                style={{
-                  width: '100%',
-                  padding: '0.5rem 1rem 0.5rem 2.5rem',
-                  borderRadius: '8px',
-                  border: '1px solid var(--border-color)',
-                  fontSize: '0.9rem',
-                }}
-              />
-              <Search 
-                size={18} 
-                style={{
-                  position: 'absolute',
-                  left: '0.75rem',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)',
-                }}
-              />
-            </div>
-            
-            <Button variant="outline">
-              <Filter size={18} style={{ marginRight: '0.5rem' }} />
-              Filter
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h6">Upcoming Events</Typography>
+            <Button variant="outlined" startIcon={<EventIcon />}>
+              Create Event
             </Button>
-          </Flex>
-          
-          {/* Meetups Grid */}
-          <Grid columns={2}>
-            {meetups.map((meetup) => (
-              <Card key={meetup.id}>
-                <CardContent>
-                  <Flex gap="0.5rem" style={{ marginBottom: '0.5rem' }}>
-                    <Badge>{meetup.category}</Badge>
-                    {meetup.isRegistered && (
-                      <Badge color="var(--success)">Registered</Badge>
-                    )}
-                  </Flex>
-                  
-                  <h3 style={{ margin: '0 0 0.5rem', fontSize: '1.1rem' }}>{meetup.title}</h3>
-                  
-                  <p style={{ margin: '0 0 1rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                    {meetup.description}
-                  </p>
-                  
-                  <Flex style={{ marginBottom: '0.5rem' }}>
-                    <MapPin size={16} style={{ marginRight: '0.5rem', color: 'var(--text-muted)' }} />
-                    <span style={{ fontSize: '0.9rem' }}>{meetup.location}</span>
-                  </Flex>
-                  
-                  <Flex style={{ marginBottom: '0.5rem' }}>
-                    <Calendar size={16} style={{ marginRight: '0.5rem', color: 'var(--text-muted)' }} />
-                    <span style={{ fontSize: '0.9rem' }}>{formatDate(meetup.date)}</span>
-                  </Flex>
-                  
-                  <Flex style={{ marginBottom: '0.5rem' }}>
-                    <Clock size={16} style={{ marginRight: '0.5rem', color: 'var(--text-muted)' }} />
-                    <span style={{ fontSize: '0.9rem' }}>{meetup.duration} minutes</span>
-                  </Flex>
-                  
-                  <Flex style={{ marginBottom: '1rem' }}>
-                    <Users size={16} style={{ marginRight: '0.5rem', color: 'var(--text-muted)' }} />
-                    <span style={{ fontSize: '0.9rem' }}>{meetup.attendees}/{meetup.maxAttendees} Attendees</span>
-                  </Flex>
-                  
-                  <Button 
-                    variant={meetup.isRegistered ? "outline" : "primary"}
-                    style={{ width: '100%' }}
-                  >
-                    {meetup.isRegistered ? 'Cancel Registration' : 'Register Now'}
-                  </Button>
-                </CardContent>
-              </Card>
+          </Box>
+
+          <Grid container spacing={3}>
+            {placeholderEvents.map(event => (
+              <Grid item xs={12} sm={6} key={event.id}>
+                <Card sx={{ height: '100%' }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>{event.title}</Typography>
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <EventIcon sx={{ mr: 1, fontSize: 18, color: 'text.secondary' }} />
+                      <Typography variant="body2">
+                        {event.date} at {event.time}
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                      <PeopleIcon sx={{ mr: 1, fontSize: 18, color: 'text.secondary' }} />
+                      <Typography variant="body2">
+                        {event.attendees} attending
+                      </Typography>
+                    </Box>
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+                      <Chip 
+                        label={event.location} 
+                        size="small" 
+                        variant="outlined" 
+                      />
+                      <Button variant="contained" size="small">
+                        Join
+                      </Button>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
             ))}
           </Grid>
         </>
       )}
 
-      {/* Friends Tab */}
-      {activeTab === 'friends' && (
-        <Grid columns={1}>
-          {/* Friend Requests */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Friend Requests</CardTitle>
-              <Badge>{friendRequests.length}</Badge>
-            </CardHeader>
-            
-            <CardContent>
-              {friendRequests.length > 0 ? (
-                friendRequests.map((request) => (
-                  <Flex 
-                    key={request.id}
-                    style={{
-                      padding: '0.75rem',
-                      borderBottom: '1px solid var(--border-color)',
-                      marginBottom: '0.5rem',
-                    }}
-                  >
-                    <div style={{ 
-                      width: '50px', 
-                      height: '50px', 
-                      borderRadius: '50%', 
-                      backgroundColor: 'var(--border-color)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginRight: '1rem',
-                    }}>
-                      {request.avatar ? (
-                        <img 
-                          src={request.avatar} 
-                          alt={request.name} 
-                          style={{ width: '100%', height: '100%', borderRadius: '50%' }}
-                        />
-                      ) : (
-                        request.name.charAt(0)
-                      )}
-                    </div>
+      {/* Groups Tab */}
+      {tabValue === 2 && (
+        <>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h6">Suggested Groups</Typography>
+            <Button variant="outlined" startIcon={<GroupIcon />}>
+              Browse All
+            </Button>
+          </Box>
+
+          <Grid container spacing={3}>
+            {placeholderGroups.map(group => (
+              <Grid item xs={12} sm={6} md={4} key={group.id}>
+                <Card sx={{ height: '100%' }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom>{group.name}</Typography>
                     
-                    <div style={{ flex: 1 }}>
-                      <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem' }}>{request.name}</h3>
-                      
-                      <Flex align="center" gap="0.5rem">
-                        <Users size={14} style={{ color: 'var(--text-muted)' }} />
-                        <span style={{ fontSize: '0.85rem' }}>
-                          {request.mutualConnections} mutual {request.mutualConnections === 1 ? 'connection' : 'connections'}
-                        </span>
-                      </Flex>
-                      
-                      <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                        Requested {formatRelativeTime(request.requestedAt)}
-                      </span>
-                    </div>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                      <PeopleIcon sx={{ mr: 1, fontSize: 18, color: 'text.secondary' }} />
+                      <Typography variant="body2">
+                        {group.members} members
+                      </Typography>
+                    </Box>
                     
-                    <Flex gap="0.5rem">
-                      <Button variant="primary">
-                        <Check size={18} />
+                    <Chip 
+                      label={group.category} 
+                      size="small" 
+                      color="primary"
+                      variant="outlined"
+                      sx={{ mb: 2 }}
+                    />
+                    
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                      <Button 
+                        variant="contained" 
+                        size="small" 
+                        startIcon={<PersonAddIcon />}
+                        fullWidth
+                      >
+                        Join Group
                       </Button>
-                      <Button variant="outline">
-                        <AlertCircle size={18} />
-                      </Button>
-                    </Flex>
-                  </Flex>
-                ))
-              ) : (
-                <p style={{ margin: '0', color: 'var(--text-muted)', textAlign: 'center' }}>
-                  No pending friend requests
-                </p>
-              )}
-            </CardContent>
-          </Card>
-          
-          {/* Friend Suggestions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>People You May Know</CardTitle>
-            </CardHeader>
-            
-            <CardContent>
-              {friendSuggestions.map((suggestion) => (
-                <Flex 
-                  key={suggestion.id}
-                  style={{
-                    padding: '0.75rem',
-                    borderBottom: '1px solid var(--border-color)',
-                    marginBottom: '0.5rem',
-                  }}
-                >
-                  <div style={{ 
-                    width: '50px', 
-                    height: '50px', 
-                    borderRadius: '50%', 
-                    backgroundColor: 'var(--border-color)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginRight: '1rem',
-                  }}>
-                    {suggestion.avatar ? (
-                      <img 
-                        src={suggestion.avatar} 
-                        alt={suggestion.name} 
-                        style={{ width: '100%', height: '100%', borderRadius: '50%' }}
-                      />
-                    ) : (
-                      suggestion.name.charAt(0)
-                    )}
-                  </div>
-                  
-                  <div style={{ flex: 1 }}>
-                    <h3 style={{ margin: '0 0 0.25rem', fontSize: '1rem' }}>{suggestion.name}</h3>
-                    
-                    <Flex align="center" gap="0.5rem" style={{ marginBottom: '0.25rem' }}>
-                      <Users size={14} style={{ color: 'var(--text-muted)' }} />
-                      <span style={{ fontSize: '0.85rem' }}>
-                        {suggestion.mutualConnections} mutual {suggestion.mutualConnections === 1 ? 'connection' : 'connections'}
-                      </span>
-                    </Flex>
-                    
-                    <Flex gap="0.25rem">
-                      {suggestion.interests.map((interest, index) => (
-                        <Badge key={index} style={{ fontSize: '0.7rem' }}>
-                          {interest}
-                        </Badge>
-                      ))}
-                    </Flex>
-                  </div>
-                  
-                  <Button variant="outline">
-                    <UserPlus size={18} style={{ marginRight: '0.5rem' }} />
-                    Connect
-                  </Button>
-                </Flex>
-              ))}
-            </CardContent>
-            
-            <CardFooter>
-              <Button variant="text" style={{ margin: '0 auto' }}>
-                View More Suggestions
-              </Button>
-            </CardFooter>
-          </Card>
-          
-          {/* Your Connections */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Connections</CardTitle>
-              <Badge>24 Friends</Badge>
-            </CardHeader>
-            
-            <CardContent>
-              <Button variant="outline" style={{ width: '100%' }}>
-                <UserCheck size={18} style={{ marginRight: '0.5rem' }} />
-                View All Connections
-              </Button>
-            </CardContent>
-          </Card>
-        </Grid>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </>
       )}
-    </ClientMainContent>
+    </Box>
   );
 };
 

@@ -1,0 +1,297 @@
+/**
+ * responsive-fixes.css
+ * ===================
+ * 
+ * This file contains targeted fixes for specific responsive issues
+ * that might occur across the application. It addresses edge cases
+ * and provides pixel-perfect responsive behavior.
+ */
+
+/* Fix for overflow issues that cause horizontal scrollbars */
+html, body, #root {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+/* Fix for mobile viewport height calculation (addresses iOS Safari issues) */
+:root {
+  --vh: 1vh;
+}
+
+.full-height {
+  height: 100vh; /* Fallback */
+  height: calc(var(--vh, 1vh) * 100);
+}
+
+/* Fix for elements that might overflow their containers */
+img, video, iframe, object, embed {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Fix table responsiveness */
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix inputs on iOS to prevent zooming */
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Fix for buttons on touchscreens - ensure touch targets are large enough */
+@media (hover: none) and (pointer: coarse) {
+  button, 
+  .button, 
+  .MuiButton-root, 
+  a.button, 
+  .MuiIconButton-root,
+  [role="button"],
+  input[type="button"],
+  input[type="reset"],
+  input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 8px 16px;
+  }
+  
+  /* Increase tap target size for interactive elements */
+  a, 
+  input[type="checkbox"], 
+  input[type="radio"],
+  .MuiCheckbox-root,
+  .MuiSwitch-root,
+  .MuiRadio-root {
+    padding: 8px;
+    margin: -8px;
+  }
+}
+
+/* Fix for flex layouts that break on smaller screens */
+.responsive-flex-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.responsive-flex-item {
+  flex: 1 1 300px;
+}
+
+@media screen and (max-width: 767px) {
+  .responsive-flex-container {
+    flex-direction: column;
+  }
+  
+  .responsive-flex-item {
+    flex-basis: 100%;
+  }
+  
+  /* Stack elements on mobile */
+  .mobile-stack {
+    display: flex;
+    flex-direction: column !important;
+  }
+  
+  /* Center text on mobile */
+  .mobile-text-center {
+    text-align: center !important;
+  }
+  
+  /* Full width on mobile */
+  .mobile-full-width {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}
+
+/* Fix MUI dialog responsiveness */
+.MuiDialog-paper {
+  margin: 16px !important;
+  max-width: calc(100% - 32px) !important;
+}
+
+/* Fix for form inputs and buttons on mobile */
+@media screen and (max-width: 767px) {
+  /* Make form controls full width on mobile */
+  .MuiFormControl-root,
+  .MuiTextField-root,
+  .MuiButton-root,
+  form input,
+  form select,
+  form textarea,
+  form button {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Apply appropriate spacing for form fields */
+  form .MuiFormControl-root + .MuiFormControl-root,
+  form .MuiTextField-root + .MuiTextField-root {
+    margin-top: 16px !important;
+  }
+  
+  /* Form button container */
+  .form-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
+  }
+}
+
+/* Fix for charts and data visualization on mobile */
+@media screen and (max-width: 767px) {
+  .recharts-wrapper,
+  .recharts-surface,
+  .chart-container,
+  .apexcharts-canvas {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 300px !important;
+  }
+}
+
+/* Fix for footer content on smaller screens */
+@media screen and (max-width: 767px) {
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .footer-links,
+  .footer-social {
+    margin-top: 16px;
+  }
+}
+
+/* Fix for navigation menus on mobile */
+@media screen and (max-width: 767px) {
+  .desktop-menu {
+    display: none !important;
+  }
+  
+  .mobile-menu-button {
+    display: block !important;
+  }
+}
+
+@media screen and (min-width: 768px) {
+  .mobile-menu-button {
+    display: none !important;
+  }
+}
+
+/* Fix for card layouts on different screen sizes */
+.card-grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  }
+}
+
+/* Fix for admin dashboards on mobile */
+@media screen and (max-width: 767px) {
+  .admin-dashboard-container {
+    padding: 16px !important;
+  }
+  
+  .dashboard-stats {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .admin-card {
+    margin-bottom: 16px !important;
+  }
+}
+
+/* Fix for long words breaking layouts */
+.text-wrapper {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+  max-width: 100%;
+}
+
+/* Fix for calendar components on mobile */
+@media screen and (max-width: 767px) {
+  .react-calendar,
+  .react-big-calendar {
+    font-size: 14px !important;
+    width: 100% !important;
+  }
+  
+  .react-calendar__tile {
+    padding: 8px 6px !important;
+  }
+  
+  .react-big-calendar .rbc-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .react-big-calendar .rbc-toolbar-label {
+    margin: 8px 0;
+  }
+}
+
+/* Fix modal content scrolling on mobile */
+@media screen and (max-height: 700px) {
+  .MuiDialog-paper {
+    max-height: calc(100% - 32px) !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* Fix for floating action buttons on mobile */
+.floating-action-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+}
+
+@media screen and (max-width: 767px) {
+  .floating-action-button {
+    bottom: 16px;
+    right: 16px;
+  }
+}
+
+/* Fix content shifts when scrollbar appears */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* JS script to fix mobile viewport height calculation */
+/* Include this script in your index.html or main.jsx/ts file:
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Fix for iOS 100vh issue
+  function setVh() {
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
+  }
+  
+  // Set initially and on resize
+  setVh();
+  window.addEventListener('resize', setVh);
+});
+*/

@@ -13,6 +13,9 @@ import { combineReducers } from 'redux';
 // Import reducers
 import customizationReducer from './themeSlice';
 import menuReducer from './menuSlice';
+import orientationReducer from './slices/orientationSlice';
+import notificationReducer from './slices/notificationSlice';
+import authReducer from './slices/authSlice';
 
 /**
  * COMBINE REDUCERS
@@ -22,6 +25,9 @@ import menuReducer from './menuSlice';
 const rootReducer = combineReducers({
   customization: customizationReducer,
   menu: menuReducer,
+  orientation: orientationReducer,
+  notifications: notificationReducer,
+  auth: authReducer,
   // Add other reducers here as needed
 });
 
@@ -35,7 +41,8 @@ const rootReducer = combineReducers({
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['customization', 'menu'], // Updated to persist menu state too
+  whitelist: ['customization', 'menu', 'auth'], // Only these reducers will be persisted
+  blacklist: ['orientation', 'notifications'], // These reducers should be fetched fresh each time
 };
 
 /**

@@ -60,6 +60,21 @@ async function checkMongoDbConnection(port = 5001) {
   });
 }
 
+// Check if MongoDB is running on any common port
+async function checkMongoDbOnAnyPort() {
+  // Common MongoDB ports to try
+  const ports = [5001, 27017, 27018, 27019];
+  
+  for (const port of ports) {
+    const isRunning = await checkMongoDbConnection(port);
+    if (isRunning) {
+      return { running: true, port };
+    }
+  }
+  
+  return { running: false, port: null };
+}
+
 // Start MongoDB if not running
 async function startMongoDB() {
   console.log(`${colors.yellow}Attempting to start MongoDB...${colors.reset}`);
@@ -98,14 +113,44 @@ async function main() {
   console.log(`${colors.cyan}${colors.bold}MongoDB Connection Check${colors.reset}`);
   console.log(`${colors.cyan}=======================${colors.reset}`);
   
-  // Check if MongoDB is running
-  const isRunning = await checkMongoDbConnection();
+  // Check if MongoDB is running on any port
+  const mongoStatus = await checkMongoDbOnAnyPort();
   
-  if (isRunning) {
-    console.log(`${colors.green}${colors.bold}✓ MongoDB is running on port 5001${colors.reset}`);
+  if (mongoStatus.running) {
+    console.log(`${colors.green}${colors.bold}✓ MongoDB is running on port ${mongoStatus.port}${colors.reset}`);
+    
+    // If MongoDB is running on a port other than 5001, update the .env file
+    if (mongoStatus.port !== 5001) {
+      console.log(`${colors.yellow}MongoDB is running on port ${mongoStatus.port} instead of 5001${colors.reset}`);
+      console.log(`${colors.yellow}Updating MONGODB_PORT in .env file...${colors.reset}`);
+      
+      // Update .env file or create it if it doesn't exist
+      const envPath = path.resolve(rootDir, '.env');
+      let envContent = '';
+      
+      if (fs.existsSync(envPath)) {
+        envContent = fs.readFileSync(envPath, 'utf8');
+        
+        // Replace MONGODB_PORT if it exists
+        if (envContent.includes('MONGODB_PORT=')) {
+          envContent = envContent.replace(/MONGODB_PORT=\d+/, `MONGODB_PORT=${mongoStatus.port}`);
+        } else {
+          // Add MONGODB_PORT if it doesn't exist
+          envContent += `\nMONGODB_PORT=${mongoStatus.port}`;
+        }
+      } else {
+        // Create new .env file with MONGODB_PORT
+        envContent = `MONGODB_PORT=${mongoStatus.port}\n`;
+      }
+      
+      // Write updated .env file
+      fs.writeFileSync(envPath, envContent);
+      console.log(`${colors.green}Updated .env file with MONGODB_PORT=${mongoStatus.port}${colors.reset}`);
+    }
+    
     process.exit(0);
   } else {
-    console.log(`${colors.red}× MongoDB is not running on port 5001${colors.reset}`);
+    console.log(`${colors.red}× MongoDB is not running on any common port${colors.reset}`);
     
     // Try to start MongoDB
     const started = await startMongoDB();

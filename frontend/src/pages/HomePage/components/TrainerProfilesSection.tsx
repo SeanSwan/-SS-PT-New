@@ -134,7 +134,7 @@ const TrainerCarousel = styled.div`
   position: relative;
   width: 100%;
   margin: 0 auto;
-  min-height: 600px; // Ensure space for the card content
+  min-height: 650px; // Increased height to accommodate taller image container
 
   @media (max-width: 768px) {
     min-height: 700px; // Adjust if needed for mobile layout
@@ -150,7 +150,7 @@ const TrainerCard = styled(motion.div)`
   display: flex;
   flex-direction: column;
   position: relative; // Changed from absolute to relative for carousel logic
-  height: 600px; // Fixed height for consistent carousel appearance
+  height: 650px; // Increased fixed height for consistent carousel appearance
   max-width: 800px;
   margin: 0 auto; // Center the card
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -185,9 +185,18 @@ const TrainerCard = styled(motion.div)`
 
 const TrainerImageContainer = styled.div`
   position: relative;
-  height: 300px;
+  height: 350px; // Increased height to ensure faces aren't cropped
   overflow: hidden;
   flex-shrink: 0; // Prevent shrinking
+
+  /* Use different heights for different screen sizes to prevent face cropping */
+  @media (min-width: 1200px) {
+    height: 380px; // Taller for very large screens
+  }
+
+  @media (max-width: 768px) {
+    height: 300px; // Original height for mobile
+  }
 
   &::after {
     content: "";
@@ -204,12 +213,22 @@ const TrainerImage = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 20%; // Position to show faces better - center horizontally and slightly above center vertically
   transition: transform 0.5s ease;
   filter: brightness(0.9);
 
   ${TrainerCard}:hover & {
     transform: scale(1.05);
     filter: brightness(1);
+  }
+
+  /* Use different object-position for different screen sizes */
+  @media (min-width: 1200px) {
+    object-position: center 20%; // Adjusted for large screens
+  }
+
+  @media (max-width: 768px) {
+    object-position: center top; // Original position for mobile
   }
 `;
 

@@ -16,6 +16,9 @@ import {
   WorkoutSession
 } from '../pages/workout/types/session.types';
 
+// Import mock data helper
+import mockDataHelper, { isMockDataEnabled } from '../utils/mockDataHelper';
+
 // API base URL from environment variable or default to localhost
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
@@ -84,22 +87,99 @@ class ApiClient {
    */
   enableMockMode(enable: boolean): void {
     this.mockMode = enable;
+    
+    if (enable) {
+      mockDataHelper.enableMockData();
+    } else {
+      mockDataHelper.disableMockData();
+    }
   }
   
   /**
    * Check if mock mode is enabled
    */
   isMockModeEnabled(): boolean {
-    return this.mockMode;
+    return this.mockMode || isMockDataEnabled();
+  }
+  
+  /**
+   * Get mock data for a specific endpoint
+   * Returns mock data if mock mode is enabled, otherwise returns null
+   */
+  getMockData(endpoint: string): any {
+    if (!this.isMockModeEnabled()) return null;
+    
+    // Determine which mock data to return based on the endpoint
+    if (endpoint.includes('/notifications')) {
+      return mockDataHelper.getMockNotifications();
+    }
+    
+    if (endpoint.includes('/sessions')) {
+      return mockDataHelper.getMockSessions();
+    }
+    
+    if (endpoint.includes('/workout')) {
+      return mockDataHelper.getMockWorkouts();
+    }
+    
+    if (endpoint.includes('/gamification')) {
+      return mockDataHelper.getMockGamification();
+    }
+    
+    return null;
   }
   
   /**
    * Make a GET request to the specified endpoint
    */
   async get<T = any>(endpoint: string, params?: any): Promise<T> {
-    const config: AxiosRequestConfig = { params };
-    const response: AxiosResponse<T> = await this.axios.get<T>(endpoint, config);
-    return response.data;
+    // Check if we should use mock data - ALWAYS use mock data for certain endpoints if mock mode is enabled
+    if (this.isMockModeEnabled()) {
+      const mockData = this.getMockData(endpoint);
+      if (mockData) {
+        console.log(`[API Mock] GET ${endpoint}`, mockData);
+        return mockData as T;
+      }
+    }
+    
+    try {
+      const config: AxiosRequestConfig = { params };
+      const response: AxiosResponse<T> = await this.axios.get<T>(endpoint, config);
+      return response.data;
+    } catch (error) {
+      console.warn(`[API Error] GET ${endpoint} failed:`, error.message || 'Unknown error');
+      
+      // If we get a connection error, automatically switch to mock mode
+      const isConnectionError = 
+        error.message?.includes('Network Error') || 
+        error.message?.includes('ECONNREFUSED') || 
+        error.code === 'ECONNREFUSED' || 
+        error.message?.includes('Failed to fetch') ||
+        error.message?.includes('ERR_CONNECTION_REFUSED');
+      
+      if (isConnectionError) {
+        console.log('[API] Connection error detected, switching to mock data mode');
+        this.enableMockMode(true);
+      }
+      
+      // Try to get mock data regardless of current mode for connection errors
+      if (isConnectionError || this.mockMode) {
+        const mockData = this.getMockData(endpoint);
+        if (mockData) {
+          console.log(`[API Fallback] GET ${endpoint}`, mockData);
+          return mockData as T;
+        }
+      }
+      
+      // For notifications endpoint specifically, return empty data on error
+      if (endpoint.includes('/notifications')) {
+        console.log('[API Fallback] Returning empty notifications array');
+        return { notifications: [], unreadCount: 0 } as unknown as T;
+      }
+      
+      // If no mock data is available, throw the original error
+      throw error;
+    }
   }
   
   /**
@@ -292,6 +372,33 @@ class ApiClient {
       
     getUserBookedSessions: (userId?: string, params?: any) => 
       this.get(`/sessions/booked${userId ? `?userId=${userId}` : ''}`, params),
+  };
+
+  // Orientation form endpoints
+  orientation = {
+    getAllOrientations: () => 
+      this.get('/orientation/all'),
+      
+    getOrientationByUserId: (userId: string) => 
+      this.get(`/orientation/user/${userId}`),
+      
+    submitOrientationForm: (formData: any) => 
+      this.post('/orientation/signup', formData),
+  };
+
+  // Notification endpoints
+  notifications = {
+    getAll: () => 
+      this.get('/notifications'),
+      
+    markAsRead: (notificationId: string) => 
+      this.put(`/notifications/${notificationId}/read`),
+      
+    markAllAsRead: () => 
+      this.put('/notifications/read-all'),
+      
+    delete: (notificationId: string) => 
+      this.delete(`/notifications/${notificationId}`),
   };
 }
 

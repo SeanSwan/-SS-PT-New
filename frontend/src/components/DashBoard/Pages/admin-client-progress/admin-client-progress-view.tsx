@@ -86,7 +86,7 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ p: 3, bgcolor: '#0A0A0A', color: '#E0E0E0' }}>
           {children}
         </Box>
       )}
@@ -534,7 +534,7 @@ const AdminClientProgressView: React.FC = () => {
   const renderClientProgress = () => {
     if (!clientProgress) {
       return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px', color: '#A0A0A0' }}>
           <Typography>Select a client to view their progress</Typography>
         </Box>
       );
@@ -558,19 +558,19 @@ const AdminClientProgressView: React.FC = () => {
         <Grid container spacing={3}>
           {/* Overall Level Card */}
           <Grid item xs={12} md={6}>
-            <MainCard title="Overall Progress">
+            <MainCard title="Overall Progress" sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                 <Box 
                   sx={{ 
                     width: 80, 
                     height: 80, 
                     borderRadius: '50%', 
-                    backgroundColor: 'primary.main', 
+                    background: 'linear-gradient(135deg, #00ffff, #00B4D8)', 
                     display: 'flex', 
                     flexDirection: 'column',
                     alignItems: 'center', 
                     justifyContent: 'center', 
-                    color: 'white',
+                    color: '#1d1f2b',
                     mr: 2
                   }}
                 >
@@ -593,27 +593,27 @@ const AdminClientProgressView: React.FC = () => {
 
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 <Grid item xs={6} sm={3}>
-                  <Paper sx={{ p: 1, textAlign: 'center' }}>
+                  <Paper sx={{ p: 1, textAlign: 'center', bgcolor: '#1A1C33' }}>
                     <Typography variant="h6">{clientProgress.workoutsCompleted}</Typography>
-                    <Typography variant="body2" color="text.secondary">Workouts</Typography>
+                    <Typography variant="body2" sx={{ color: '#A0A0A0' }}>Workouts</Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={6} sm={3}>
-                  <Paper sx={{ p: 1, textAlign: 'center' }}>
+                  <Paper sx={{ p: 1, textAlign: 'center', bgcolor: '#1E1E1E' }}>
                     <Typography variant="h6">{clientProgress.streakDays}</Typography>
-                    <Typography variant="body2" color="text.secondary">Day Streak</Typography>
+                    <Typography variant="body2" sx={{ color: '#A0A0A0' }}>Day Streak</Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={6} sm={3}>
-                  <Paper sx={{ p: 1, textAlign: 'center' }}>
+                  <Paper sx={{ p: 1, textAlign: 'center', bgcolor: '#1E1E1E' }}>
                     <Typography variant="h6">{clientProgress.totalExercisesPerformed}</Typography>
-                    <Typography variant="body2" color="text.secondary">Exercises</Typography>
+                    <Typography variant="body2" sx={{ color: '#A0A0A0' }}>Exercises</Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={6} sm={3}>
-                  <Paper sx={{ p: 1, textAlign: 'center' }}>
+                  <Paper sx={{ p: 1, textAlign: 'center', bgcolor: '#1E1E1E' }}>
                     <Typography variant="h6">{clientProgress.totalMinutes}</Typography>
-                    <Typography variant="body2" color="text.secondary">Minutes</Typography>
+                    <Typography variant="body2" sx={{ color: '#A0A0A0' }}>Minutes</Typography>
                   </Paper>
                 </Grid>
               </Grid>
@@ -624,6 +624,7 @@ const AdminClientProgressView: React.FC = () => {
           <Grid item xs={12} md={6}>
             <MainCard 
               title="Achievements" 
+              sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}
               secondary={
                 <Chip 
                   label={`${clientProgress.achievements?.length || 0}/8`} 
@@ -632,7 +633,7 @@ const AdminClientProgressView: React.FC = () => {
                 />
               }
             >
-              <TableContainer component={Paper} elevation={0}>
+              <TableContainer component={Paper} elevation={0} sx={{ bgcolor: '#1d1f2b', borderRadius: 1 }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
@@ -683,8 +684,8 @@ const AdminClientProgressView: React.FC = () => {
 
           {/* NASM Category Levels */}
           <Grid item xs={12} md={6}>
-            <MainCard title="NASM Protocol Progress">
-              <TableContainer>
+            <MainCard title="NASM Protocol Progress" sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
+              <TableContainer sx={{ bgcolor: '#1d1f2b', borderRadius: 1 }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
@@ -725,8 +726,8 @@ const AdminClientProgressView: React.FC = () => {
 
           {/* Key Exercise Levels */}
           <Grid item xs={12} md={6}>
-            <MainCard title="Key Exercise Progress">
-              <TableContainer>
+            <MainCard title="Key Exercise Progress" sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
+              <TableContainer sx={{ bgcolor: '#1d1f2b', borderRadius: 1 }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
@@ -764,6 +765,7 @@ const AdminClientProgressView: React.FC = () => {
           <Grid item xs={12}>
             <MainCard 
               title="Recommended Exercises" 
+              sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}
               secondary={
                 <Button 
                   variant="text" 
@@ -774,7 +776,7 @@ const AdminClientProgressView: React.FC = () => {
                 </Button>
               }
             >
-              <TableContainer>
+              <TableContainer sx={{ bgcolor: '#1A1C33', borderRadius: 1 }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
@@ -805,7 +807,7 @@ const AdminClientProgressView: React.FC = () => {
 
           {/* Notes */}
           <Grid item xs={12}>
-            <MainCard title="Trainer Notes">
+            <MainCard title="Trainer Notes" sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
               <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
                 {clientProgress.progressNotes || 'No notes available.'}
               </Typography>
@@ -820,9 +822,9 @@ const AdminClientProgressView: React.FC = () => {
   const renderLeaderboard = () => {
     return (
       <Box>
-        <Typography variant="h5" sx={{ mb: 2 }}>Client Progress Leaderboard</Typography>
+        <Typography variant="h5" sx={{ mb: 2, color: '#E0E0E0' }}>Client Progress Leaderboard</Typography>
         
-        <TableContainer component={Paper}>
+        <TableContainer component={Paper} sx={{ bgcolor: '#1d1f2b', borderRadius: 1, boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
           <Table>
             <TableHead>
               <TableRow>
@@ -906,9 +908,9 @@ const AdminClientProgressView: React.FC = () => {
   // Render client list sidebar
   const renderClientList = () => {
     return (
-      <Paper sx={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>Clients</Typography>
+      <Paper sx={{ height: '100%', overflow: 'hidden', display: 'flex', flexDirection: 'column', bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
+        <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'rgba(255, 255, 255, 0.1)' }}>
+          <Typography variant="h6" sx={{ mb: 2, color: '#E0E0E0' }}>Clients</Typography>
           
           <TextField
             fullWidth
@@ -917,9 +919,10 @@ const AdminClientProgressView: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{
-              startAdornment: <Search size={18} style={{ marginRight: 8 }} />,
+              startAdornment: <Search size={18} style={{ marginRight: 8, color: '#A0A0A0' }} />,
+              sx: { bgcolor: '#1d1f2b', color: '#E0E0E0' }
             }}
-            sx={{ mb: 2 }}
+            sx={{ mb: 2, '& .MuiInputBase-root': { color: '#E0E0E0' }, '& .MuiInputLabel-root': { color: '#A0A0A0' } }}
           />
         </Box>
         
@@ -930,11 +933,11 @@ const AdminClientProgressView: React.FC = () => {
               sx={{ 
                 p: 2, 
                 borderBottom: '1px solid', 
-                borderColor: 'divider',
-                backgroundColor: selectedClientId === client.id ? 'action.selected' : 'transparent',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                backgroundColor: selectedClientId === client.id ? 'rgba(0, 255, 255, 0.1)' : 'transparent',
                 cursor: 'pointer',
                 '&:hover': {
-                  backgroundColor: 'action.hover',
+                  backgroundColor: 'rgba(0, 255, 255, 0.1)',
                 }
               }}
               onClick={() => setSelectedClientId(client.id)}
@@ -970,10 +973,10 @@ const AdminClientProgressView: React.FC = () => {
         maxWidth="md"
         fullWidth
       >
-        <DialogTitle>
+        <DialogTitle sx={{ bgcolor: '#121212', color: '#E0E0E0' }}>
           Edit Client Progress
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ bgcolor: '#121212', color: '#E0E0E0', pt: 3 }}>
           <Grid container spacing={3} sx={{ mt: 0 }}>
             {/* Overall Level */}
             <Grid item xs={12} md={6}>
@@ -1018,7 +1021,8 @@ const AdminClientProgressView: React.FC = () => {
                     value={editForm.workoutsCompleted || 0}
                     onChange={(e) => handleEditFormChange('workoutsCompleted', parseInt(e.target.value))}
                     InputProps={{
-                      inputProps: { min: 0 }
+                      inputProps: { min: 0 },
+                      sx: { bgcolor: '#1d1f2b' }
                     }}
                   />
                 </Grid>
@@ -1078,6 +1082,7 @@ const AdminClientProgressView: React.FC = () => {
                 ].map((category) => (
                   <Grid item xs={12} sm={6} md={4} key={category.field}>
                     <TextField
+                      sx={{ '& .MuiInputBase-root': { color: 'text.primary' }, '& .MuiInputLabel-root': { color: 'text.secondary' } }}
                       fullWidth
                       label={category.label}
                       type="number"
@@ -1104,6 +1109,7 @@ const AdminClientProgressView: React.FC = () => {
                 ].map((exercise) => (
                   <Grid item xs={12} sm={6} md={3} key={exercise.field}>
                     <TextField
+                      sx={{ '& .MuiInputBase-root': { color: 'text.primary' }, '& .MuiInputLabel-root': { color: 'text.secondary' } }}
                       fullWidth
                       label={exercise.label}
                       type="number"
@@ -1121,7 +1127,7 @@ const AdminClientProgressView: React.FC = () => {
             {/* Achievements */}
             <Grid item xs={12}>
               <Typography variant="subtitle1" gutterBottom>Achievements</Typography>
-              <TableContainer component={Paper} elevation={0}>
+              <TableContainer component={Paper} elevation={0} sx={{ bgcolor: '#1d1f2b', borderRadius: 1 }}>
                 <Table size="small">
                   <TableHead>
                     <TableRow>
@@ -1198,7 +1204,7 @@ const AdminClientProgressView: React.FC = () => {
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions>
+        <DialogActions sx={{ bgcolor: '#121212', borderTop: '1px solid rgba(255, 255, 255, 0.1)', p: 2 }}>
           <Button 
             variant="outlined" 
             color="error" 
@@ -1220,16 +1226,16 @@ const AdminClientProgressView: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 3 }}>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4">Client Progress Dashboard</Typography>
-        <Typography variant="body1" color="text.secondary">
-          Monitor and manage client progression through the NASM protocol system
-        </Typography>
+    <Box sx={{ p: 3, bgcolor: '#121420' }}>
+      <Box sx={{ mb: 3, bgcolor: '#1d1f2b', p: 2, borderRadius: 1, boxShadow: '0 4px 12px rgba(0, 255, 255, 0.1)' }}>
+      <Typography variant="h4" sx={{ color: '#E0E0E0' }}>Client Progress Dashboard</Typography>
+      <Typography variant="body1" sx={{ color: '#A0A0A0' }}>
+      Monitor and manage client progression through the NASM protocol system
+      </Typography>
       </Box>
 
       <Box sx={{ width: '100%', mb: 3 }}>
-        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'rgba(0, 255, 255, 0.3)' }}>
           <Tabs value={tabValue} onChange={handleTabChange} aria-label="client progress tabs">
             <Tab label="Client Progress" icon={<UserCheck size={18} />} iconPosition="start" {...a11yProps(0)} />
             <Tab label="Leaderboard" icon={<Trophy size={18} />} iconPosition="start" {...a11yProps(1)} />

@@ -16,7 +16,7 @@ import {
   AccordionDetails, Alert, Snackbar, Dialog, DialogTitle, DialogContent, DialogActions
 } from '@mui/material';
 import { 
-  Fitness, FitnessCenter, ExpandMore, Send, Save, Refresh,
+  FitnessCenter, ExpandMore, Send, Save, Refresh,
   ContentCopy, Download, Share, Print, Edit, FilterList, Close,
   Check, Delete, Add, PlaylistAdd, RestartAlt
 } from '@mui/icons-material';

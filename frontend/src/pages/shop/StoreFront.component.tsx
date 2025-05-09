@@ -9,6 +9,7 @@ import GlowButton from "../../components/Button/glowButton"; // Correct path
 import OrientationForm from "../../components/OrientationForm/orientationForm"; // Correct path
 import ShoppingCart from "../../components/ShoppingCart/ShoppingCart"; // Correct path
 import { useToast } from "../../hooks/use-toast";           // Correct path
+import axios from 'axios'; // Import regular axios for fallback
 
 // --- Asset Imports ---
 const swanVideo = "/Swans.mp4"; // Ensure '/public/Swans.mp4' exists
@@ -34,6 +35,7 @@ interface StoreItem {
     includedFeatures?: string | null; // Expecting JSON string or null
     trackInventory?: boolean;
     inventoryQuantity?: number | null;
+    packageType?: string; // Added package type
     // Add other fields your API might return
 }
 
@@ -251,8 +253,11 @@ const StoreFront: React.FC = () => {
       setIsLoading(true);
       setError(null);
       try {
-        // Use authAxios for the request
-        const response = await authAxios.get<ApiResponse>('/api/storefront?sortBy=displayOrder&sortOrder=ASC');
+        // Create a http client - use authAxios if available, otherwise use regular axios
+        // This allows the store to be viewed by non-authenticated users
+        const httpClient = authAxios || axios;
+        
+        const response = await httpClient.get<ApiResponse>('/api/storefront?sortBy=displayOrder&sortOrder=ASC');
         if (response.data && response.data.success && Array.isArray(response.data.items)) {
             // Assign a default theme if missing from API data
             const itemsWithTheme = response.data.items.map(item => ({
@@ -286,9 +291,8 @@ const StoreFront: React.FC = () => {
     if (isPackagesInView) packagesControls.start("visible");
   }, [isHeroInView, isParallaxInView, isPackagesInView, heroControls, parallaxControls, packagesControls]);
   
-  // Handle cart refresh manually when UI shown
+  // Handle cart refresh only when user is authenticated
   useEffect(() => {
-    // Refresh cart once when component mounts and user is authenticated
     if (user && user.id) {
       console.log('StoreFront mounted - refreshing cart');
       // Small delay to avoid conflict with initial load
@@ -354,6 +358,15 @@ const StoreFront: React.FC = () => {
   const togglePriceVisibility = (itemId: string | number) => setRevealPrices((prev) => ({ ...prev, [itemId.toString()]: !prev[itemId.toString()] }));
   const handleToggleCart = () => setShowCart(prev => !prev);
   const handleHideCart = () => setShowCart(false);
+  
+  // Handle orientation modal
+  const handleShowOrientation = () => {
+    setShowOrientation(true);
+  };
+  
+  const handleHideOrientation = () => {
+    setShowOrientation(false);
+  };
 
   const handleAddToCart = useCallback(async (item: StoreItem) => {
     if (!canViewPrices) {
@@ -532,7 +545,7 @@ const StoreFront: React.FC = () => {
                      <HeroSubtitle variants={itemVariants}> NASM Protocols | Subscriptions | Gear & More </HeroSubtitle>
                      <HeroDescription variants={itemVariants}> Explore our comprehensive offerings, from premier training subscriptions powered by decades of experience to curated gear and digital resources designed to maximize your results. </HeroDescription>
                      <ButtonsContainer variants={itemVariants}>
-                         <motion.div {...buttonMotionProps}><GlowButton text="Book Consultation" theme="cosmic" size="large" onClick={() => setShowOrientation(true)} isLoading={false} animateOnRender={false} leftIcon={null} rightIcon={null} disabled={false} /></motion.div>
+                         <motion.div {...buttonMotionProps}><GlowButton text="Book Consultation" theme="cosmic" size="large" onClick={handleShowOrientation} isLoading={false} animateOnRender={false} leftIcon={null} rightIcon={null} disabled={false} /></motion.div>
                          <motion.div {...buttonMotionProps}><GlowButton text="Explore Store" theme="purple" size="large" onClick={() => packagesRef.current?.scrollIntoView({ behavior: "smooth" })} isLoading={false} animateOnRender={false} leftIcon={null} rightIcon={null} disabled={false} /></motion.div>
                      </ButtonsContainer>
                  </HeroContent>
@@ -563,7 +576,7 @@ const StoreFront: React.FC = () => {
           )}
           {/* Pagination UI Placeholder */}
           <motion.div style={{ display: "flex", justifyContent: "center", marginTop: "4rem", position: 'relative', zIndex: 20 }} variants={itemVariants} initial="hidden" animate={packagesControls}>
-             <motion.div {...buttonMotionProps}> <GlowButton text="Schedule Consultation" theme="cosmic" size="large" onClick={() => setShowOrientation(true)} isLoading={false} animateOnRender={false} leftIcon={null} rightIcon={null} disabled={false} /> </motion.div>
+             <motion.div {...buttonMotionProps}> <GlowButton text="Schedule Consultation" theme="cosmic" size="large" onClick={handleShowOrientation} isLoading={false} animateOnRender={false} leftIcon={null} rightIcon={null} disabled={false} /> </motion.div>
           </motion.div>
         </SectionContainer>
       </ContentOverlay>
@@ -611,9 +624,15 @@ const StoreFront: React.FC = () => {
          </AnimatePresence>
        )}
 
-      {/* Modals (Original Structure) */}
-      <AnimatePresence>
-        {showOrientation && <OrientationForm key="orientation-modal" onClose={() => setShowOrientation(false)} />}
+      {/* Modals */}
+      <AnimatePresence mode="wait">
+        {showOrientation && (
+          <OrientationForm 
+            key="orientation-modal" 
+            onClose={handleHideOrientation} 
+            returnToStore={true} 
+          />
+        )}
         {showCart && <ShoppingCart key="cart-modal" onClose={handleHideCart} />}
       </AnimatePresence>
     </StoreContainer>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { Grid, Typography, Paper, Box, Card, CardContent, Button } from '@mui/material';
 import { styled } from '@mui/material/styles';
@@ -7,6 +8,7 @@ import AccessibilityNewIcon from '@mui/icons-material/AccessibilityNew';
 import PeopleIcon from '@mui/icons-material/People';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import BugReportIcon from '@mui/icons-material/BugReport';
 
 // Import dashboard components
 import ClientProgressChart from '../../client-progress-chart';
@@ -255,6 +257,30 @@ const AdminDashboardView: React.FC = () => {
           <FitnessMetricsChart />
         </Grid>
       </Grid>
+      
+      {/* Debugging Tools Section */}
+      <Box sx={{ mt: 4, p: 2, bgcolor: 'rgba(0, 255, 255, 0.05)', borderRadius: 2, border: '1px dashed #00ffff' }}>
+        <Typography variant="h6" sx={{ color: '#00ffff', display: 'flex', alignItems: 'center', mb: 2 }}>
+          <BugReportIcon sx={{ mr: 1 }} />
+          System Diagnostics
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 2 }}>
+          Use these tools to diagnose and fix issues with data sharing between client, admin, and trainer dashboards.
+        </Typography>
+        <Button
+          component={Link}
+          to="/dashboard/admin/debug"
+          variant="contained"
+          startIcon={<BugReportIcon />}
+          sx={{
+            bgcolor: '#00ffff',
+            color: '#1a1a2e',
+            '&:hover': { bgcolor: '#00cccc' }
+          }}
+        >
+          Open Debugging Dashboard
+        </Button>
+      </Box>
     </Box>
   );
 };

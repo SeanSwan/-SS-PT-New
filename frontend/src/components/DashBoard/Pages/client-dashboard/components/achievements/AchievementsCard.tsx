@@ -36,8 +36,8 @@ const AchievementsCard: React.FC<AchievementsCardProps> = ({ achievements }) => 
           label={`${unlockedCount}/${achievements.length}`} 
           size="small"
           sx={{ 
-            background: 'rgba(0, 255, 255, 0.15)',
-            color: 'white',
+            background: 'rgba(120, 81, 169, 0.15)',
+            color: '#7851a9',
             fontWeight: 500
           }}
         />

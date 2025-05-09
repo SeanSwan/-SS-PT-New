@@ -19,7 +19,10 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // MongoDB connection string
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:5001/swanstudios';
+// Allow fallback to default port 27017 if 5001 doesn't work
+const MONGODB_PORT = process.env.MONGODB_PORT || '5001';
+const MONGODB_URI = process.env.MONGODB_URI || `mongodb://localhost:${MONGODB_PORT}/swanstudios`;
+const MONGODB_FALLBACK_URI = `mongodb://localhost:27017/swanstudios`;
 
 // SQLite fallback flag
 const USE_SQLITE_FALLBACK = process.env.USE_SQLITE_FALLBACK === 'true';
@@ -66,8 +69,7 @@ export async function connectToMongoDB() {
     
     return { client, db };
   } catch (error) {
-    console.error(`MongoDB connection error: ${error.message}`);
-    console.log('Falling back to SQLite');
+    console.error(`MongoDB connection error with port ${MONGODB_PORT}: ${error.message}`);
     
     // Clean up any partial connection
     if (client) {
@@ -80,10 +82,22 @@ export async function connectToMongoDB() {
       db = null;
     }
     
-    // Enable SQLite fallback
-    process.env.USE_SQLITE_FALLBACK = 'true';
-    
-    return { client: null, db: null };
+    // Try connecting to default MongoDB port if custom port failed
+    try {
+      console.log('Attempting to connect to MongoDB on default port 27017...');
+      client = new MongoClient(MONGODB_FALLBACK_URI, MONGODB_OPTIONS);
+      await client.connect();
+      db = client.db();
+      console.log('MongoDB connection established successfully on default port');
+      return { client, db };
+    } catch (fallbackError) {
+      console.error(`MongoDB fallback connection also failed: ${fallbackError.message}`);
+      console.log('Falling back to SQLite');
+      
+      // Enable SQLite fallback
+      process.env.USE_SQLITE_FALLBACK = 'true';
+      return { client: null, db: null };
+    }
   }
 }
 

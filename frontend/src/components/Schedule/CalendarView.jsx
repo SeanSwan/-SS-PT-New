@@ -597,7 +597,7 @@ const TimeSlot = styled.div`
 
 const DashboardActionButton = styled(Button)`
   && {
-    background: ${props => props.highlight ? 'linear-gradient(90deg, #00ffff, #7851a9)' : 'rgba(30, 30, 60, 0.7)'};
+    background: ${props => props.ishighlight === 'true' ? 'linear-gradient(90deg, #00ffff, #7851a9)' : 'rgba(30, 30, 60, 0.7)'};
     color: white;
     border-radius: 8px;
     margin-right: 0.5rem;
@@ -607,7 +607,7 @@ const DashboardActionButton = styled(Button)`
     overflow: hidden;
     
     &:hover {
-      background: ${props => props.highlight ? 'linear-gradient(90deg, #00ffff, #7851a9)' : 'rgba(50, 50, 80, 0.7)'};
+      background: ${props => props.ishighlight === 'true' ? 'linear-gradient(90deg, #00ffff, #7851a9)' : 'rgba(50, 50, 80, 0.7)'};
       
       &:before {
         transform: translateX(100%);
@@ -893,40 +893,44 @@ const CalendarView = ({
           </Tooltip>
           
           <Tooltip title="Refresh">
-            <IconButton 
-              onClick={() => fetchSessions()}
-              disabled={loading || operationInProgress}
-              sx={{ 
-                color: '#00ffff', 
-                background: 'rgba(0, 255, 255, 0.1)',
-                '&:hover': { background: 'rgba(0, 255, 255, 0.2)' }
-              }}
-            >
-              <Refresh />
-            </IconButton>
+            <span>
+              <IconButton 
+                onClick={() => fetchSessions()}
+                disabled={loading || operationInProgress}
+                sx={{ 
+                  color: '#00ffff', 
+                  background: 'rgba(0, 255, 255, 0.1)',
+                  '&:hover': { background: 'rgba(0, 255, 255, 0.2)' }
+                }}
+              >
+                <Refresh />
+              </IconButton>
+            </span>
           </Tooltip>
           
           {/* Admin-only actions */}
           {isAdmin && (
             <>
               <Tooltip title="Create recurring sessions">
-                <IconButton 
-                  onClick={openRecurringModal}
-                  disabled={loading || operationInProgress}
-                  sx={{ 
-                    color: '#00ffff', 
-                    background: 'rgba(0, 255, 255, 0.1)',
-                    '&:hover': { background: 'rgba(0, 255, 255, 0.2)' }
-                  }}
-                >
-                  <Event />
-                </IconButton>
+                <span>
+                  <IconButton 
+                    onClick={openRecurringModal}
+                    disabled={loading || operationInProgress}
+                    sx={{ 
+                      color: '#00ffff', 
+                      background: 'rgba(0, 255, 255, 0.1)',
+                      '&:hover': { background: 'rgba(0, 255, 255, 0.2)' }
+                    }}
+                  >
+                    <Event />
+                  </IconButton>
+                </span>
               </Tooltip>
               
               <DashboardActionButton
                 variant="contained"
                 startIcon={<Add />}
-                highlight={true}
+                ishighlight="true"
                 onClick={openCreateModal}
                 disabled={loading || operationInProgress}
               >

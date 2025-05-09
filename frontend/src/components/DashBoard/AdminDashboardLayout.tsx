@@ -33,6 +33,7 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import LogoutIcon from '@mui/icons-material/Logout';
+import GroupIcon from '@mui/icons-material/Group';
 
 // Import the centralized internal routes component
 import AdminDashboardRoutes from './internal-routes';
@@ -330,6 +331,12 @@ const AdminDashboardLayout: React.FC = () => {
       ariaLabel: 'Configure gamification settings'
     },
     {
+      text: 'Community',
+      icon: <GroupIcon />,
+      path: '/dashboard/community',
+      ariaLabel: 'Manage community features'
+    },
+    {
       text: 'Users',
       icon: <PeopleIcon />,
       path: '/dashboard/user-management',
@@ -345,6 +352,7 @@ const AdminDashboardLayout: React.FC = () => {
     if (path.includes('admin-sessions')) return 'Training Sessions';
     if (path.includes('admin-packages')) return 'Training Packages';
     if (path.includes('gamification')) return 'Gamification';
+    if (path.includes('community')) return 'Community';
     if (path.includes('user-management')) return 'User Management';
     return 'Admin Dashboard';
   };

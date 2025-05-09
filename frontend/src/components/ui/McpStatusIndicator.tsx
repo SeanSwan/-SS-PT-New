@@ -168,43 +168,47 @@ const McpStatusIndicator: React.FC<McpStatusIndicatorProps> = ({
       }}
     >
       <Tooltip title={`Workout MCP Server: ${status.workout ? 'Online' : 'Offline'}`}>
-        <Paper 
-          elevation={2} 
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            padding: '5px 10px',
-            borderRadius: '20px',
-            bgcolor: getStatusBgColor(status.workout),
-            border: '1px solid',
-            borderColor: getStatusBorderColor(status.workout)
-          }}
-        >
-          <Server size={15} color={getStatusColor(status.workout)} />
-          <Typography variant="caption" sx={{ ml: 0.5, color: 'white', fontWeight: 'bold' }}>
-            Workout
-          </Typography>
-        </Paper>
+        <span>
+          <Paper 
+            elevation={2} 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              padding: '5px 10px',
+              borderRadius: '20px',
+              bgcolor: getStatusBgColor(status.workout),
+              border: '1px solid',
+              borderColor: getStatusBorderColor(status.workout)
+            }}
+          >
+            <Server size={15} color={getStatusColor(status.workout)} />
+            <Typography variant="caption" sx={{ ml: 0.5, color: 'white', fontWeight: 'bold' }}>
+              Workout
+            </Typography>
+          </Paper>
+        </span>
       </Tooltip>
       
       <Tooltip title={`Gamification MCP Server: ${status.gamification ? 'Online' : 'Offline'}`}>
-        <Paper 
-          elevation={2} 
-          sx={{ 
-            display: 'flex', 
-            alignItems: 'center', 
-            padding: '5px 10px',
-            borderRadius: '20px',
-            bgcolor: getStatusBgColor(status.gamification),
-            border: '1px solid',
-            borderColor: getStatusBorderColor(status.gamification)
-          }}
-        >
-          <Trophy size={15} color={getStatusColor(status.gamification)} />
-          <Typography variant="caption" sx={{ ml: 0.5, color: 'white', fontWeight: 'bold' }}>
-            Gamification
-          </Typography>
-        </Paper>
+        <span>
+          <Paper 
+            elevation={2} 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              padding: '5px 10px',
+              borderRadius: '20px',
+              bgcolor: getStatusBgColor(status.gamification),
+              border: '1px solid',
+              borderColor: getStatusBorderColor(status.gamification)
+            }}
+          >
+            <Trophy size={15} color={getStatusColor(status.gamification)} />
+            <Typography variant="caption" sx={{ ml: 0.5, color: 'white', fontWeight: 'bold' }}>
+              Gamification
+            </Typography>
+          </Paper>
+        </span>
       </Tooltip>
     </Box>
   );

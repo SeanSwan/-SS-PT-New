@@ -18,6 +18,12 @@ import gamificationService from './gamification/gamification-service';
 // Get API base URL from environment variables and fix formatting
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
 
+// Set mock data mode in development by default
+if (import.meta.env.DEV) {
+  localStorage.setItem('use_mock_data', 'true');
+  console.log('Development mode detected - Mock data mode activated by default');
+}
+
 // Remove trailing slash if present for consistent concatenation
 const FORMATTED_API_URL = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
 
@@ -107,6 +113,82 @@ api.interceptors.response.use(
   }
 );
 
+// Mock data for development use when server is unavailable
+const MOCK_SESSIONS = [
+  {
+    id: 'mock-session-1',
+    title: 'Available Session',
+    start: new Date(new Date().setHours(10, 0, 0, 0)),
+    end: new Date(new Date().setHours(11, 0, 0, 0)),
+    status: 'available',
+    location: 'Main Studio',
+    duration: 60
+  },
+  {
+    id: 'mock-session-2',
+    title: 'Booked Session',
+    start: new Date(new Date().setHours(14, 0, 0, 0)),
+    end: new Date(new Date().setHours(15, 0, 0, 0)),
+    status: 'booked',
+    location: 'Main Studio',
+    userId: '123',
+    client: { firstName: 'John', lastName: 'Doe' },
+    duration: 60
+  },
+  {
+    id: 'mock-session-3',
+    title: 'Confirmed Session',
+    start: new Date(new Date().setDate(new Date().getDate() + 1)),
+    end: new Date(new Date().setDate(new Date().getDate() + 1)),
+    status: 'confirmed',
+    location: 'Training Room A',
+    userId: '123',
+    trainerId: '456',
+    client: { firstName: 'John', lastName: 'Doe' },
+    trainer: { firstName: 'Jane', lastName: 'Smith' },
+    duration: 60
+  },
+  {
+    id: 'mock-session-4',
+    title: 'Completed Session',
+    start: new Date(new Date().setDate(new Date().getDate() - 1)),
+    end: new Date(new Date().setDate(new Date().getDate() - 1)),
+    status: 'completed',
+    location: 'Outdoor Area',
+    userId: '123',
+    trainerId: '456',
+    client: { firstName: 'John', lastName: 'Doe' },
+    trainer: { firstName: 'Jane', lastName: 'Smith' },
+    duration: 60
+  }
+];
+
+const MOCK_TRAINERS = [
+  { id: '456', firstName: 'Jane', lastName: 'Smith', role: 'trainer' },
+  { id: '789', firstName: 'Mike', lastName: 'Johnson', role: 'trainer' }
+];
+
+const MOCK_CLIENTS = [
+  { id: '123', firstName: 'John', lastName: 'Doe', role: 'client' },
+  { id: '234', firstName: 'Sarah', lastName: 'Wilson', role: 'client' }
+];
+
+const MOCK_STATS = {
+  totalSessions: 4,
+  bookedSessions: 1,
+  availableSessions: 1,
+  completedSessions: 1,
+  userBookedSessions: 2,
+  totalClients: 2,
+  totalTrainers: 2
+};
+
+// Helper function to check if we should use mock data
+const shouldUseMockData = () => {
+  // Use mock data in development mode or if server is unavailable
+  return import.meta.env.DEV && localStorage.getItem('use_mock_data') === 'true';
+};
+
 // Enhanced Schedule Service
 const enhancedScheduleService = {
   /**
@@ -115,6 +197,12 @@ const enhancedScheduleService = {
    */
   getSessions: async () => {
     try {
+      // Check if we should use mock data
+      if (shouldUseMockData()) {
+        console.log('Using mock session data');
+        return MOCK_SESSIONS;
+      }
+      
       // Validate token availability
       const token = localStorage.getItem('token');
       if (!token) {
@@ -143,6 +231,14 @@ const enhancedScheduleService = {
       });
     } catch (error) {
       console.error('Error fetching sessions:', error);
+      
+      // If in development mode, return mock data on error
+      if (import.meta.env.DEV) {
+        console.warn('API error - using mock session data');
+        localStorage.setItem('use_mock_data', 'true');
+        return MOCK_SESSIONS;
+      }
+      
       throw error;
     }
   },
@@ -153,10 +249,23 @@ const enhancedScheduleService = {
    */
   getScheduleStats: async () => {
     try {
+      // Check if we should use mock data
+      if (shouldUseMockData()) {
+        console.log('Using mock stats data');
+        return { stats: MOCK_STATS };
+      }
+      
       const response = await api.get('/api/sessions/stats');
       return response.data;
     } catch (error) {
       console.error('Error fetching schedule stats:', error);
+      
+      // If in development mode, return mock data on error
+      if (import.meta.env.DEV) {
+        console.warn('API error - using mock stats data');
+        return { stats: MOCK_STATS };
+      }
+      
       throw error;
     }
   },
@@ -167,6 +276,12 @@ const enhancedScheduleService = {
    */
   getTrainers: async () => {
     try {
+      // Check if we should use mock data
+      if (shouldUseMockData()) {
+        console.log('Using mock trainer data');
+        return MOCK_TRAINERS;
+      }
+      
       const response = await api.get('/api/sessions/users/trainers');
       
       // Validate response
@@ -177,6 +292,13 @@ const enhancedScheduleService = {
       return response.data;
     } catch (error) {
       console.error('Error fetching trainers:', error);
+      
+      // If in development mode, return mock data on error
+      if (import.meta.env.DEV) {
+        console.warn('API error - using mock trainer data');
+        return MOCK_TRAINERS;
+      }
+      
       throw error;
     }
   },
@@ -187,6 +309,12 @@ const enhancedScheduleService = {
    */
   getClients: async () => {
     try {
+      // Check if we should use mock data
+      if (shouldUseMockData()) {
+        console.log('Using mock client data');
+        return MOCK_CLIENTS;
+      }
+      
       const response = await api.get('/api/sessions/users/clients');
       
       // Validate response
@@ -197,6 +325,13 @@ const enhancedScheduleService = {
       return response.data;
     } catch (error) {
       console.error('Error fetching clients:', error);
+      
+      // If in development mode, return mock data on error
+      if (import.meta.env.DEV) {
+        console.warn('API error - using mock client data');
+        return MOCK_CLIENTS;
+      }
+      
       throw error;
     }
   },
@@ -211,6 +346,36 @@ const enhancedScheduleService = {
       // Input validation
       if (!sessionId) {
         throw new Error('Invalid session ID');
+      }
+      
+      // Check if we should use mock data
+      if (shouldUseMockData()) {
+        console.log('Using mock data for booking session');
+        // Find the session in mock data and update its status
+        const sessionIndex = MOCK_SESSIONS.findIndex(s => s.id === sessionId);
+        if (sessionIndex === -1) {
+          throw new Error('Session not found');
+        }
+        
+        // Update the session status
+        MOCK_SESSIONS[sessionIndex].status = 'booked';
+        MOCK_SESSIONS[sessionIndex].userId = '123'; // Mock user ID
+        MOCK_SESSIONS[sessionIndex].client = MOCK_CLIENTS[0]; // First mock client
+        
+        // Return mock response with gamification data
+        return {
+          success: true,
+          sessionId,
+          gamification: {
+            success: true,
+            pointsAwarded: 50,
+            newTotal: 250,
+            achievements: [{
+              id: 'first-booking',
+              title: 'First Booking Achievement'
+            }]
+          }
+        };
       }
       
       const response = await api.post(`/api/sessions/${sessionId}/book`);
@@ -233,6 +398,23 @@ const enhancedScheduleService = {
       return response.data;
     } catch (error) {
       console.error('Error booking session:', error);
+      
+      // If in development mode, use mock data on error
+      if (import.meta.env.DEV && !shouldUseMockData()) {
+        console.warn('API error - using mock data for booking');
+        localStorage.setItem('use_mock_data', 'true');
+        // Return a mock success response
+        return {
+          success: true,
+          sessionId,
+          gamification: {
+            success: true,
+            pointsAwarded: 50,
+            newTotal: 250
+          }
+        };
+      }
+      
       throw error;
     }
   },

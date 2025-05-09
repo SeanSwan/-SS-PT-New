@@ -7,6 +7,7 @@
  */
 
 import axios from 'axios';
+import { setupMockApiInterceptor } from '../services/mock-api-service';
 
 // API base URL from environment variables
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -73,6 +74,13 @@ authAxiosInstance.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Setup mock API interceptor for development environments
+if (process.env.NODE_ENV === 'development') {
+  setupMockApiInterceptor(axiosInstance);
+  setupMockApiInterceptor(authAxiosInstance);
+  console.log('🔄 Mock API interceptor enabled for development');
+}
 
 export default {
   axiosInstance,

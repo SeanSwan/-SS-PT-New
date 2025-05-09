@@ -9,6 +9,7 @@
 
 import { setUser } from '../store/slices/authSlice';
 import store from '../store';
+import { clearMemoryStore } from './dev-memory-store';
 
 // Create a manual setToken action since we might not have it exported from the authSlice
 const setToken = (token: string | null) => ({
@@ -82,18 +83,105 @@ export const devQuickLogin = (role: 'admin' | 'trainer' | 'client' | 'user') => 
 };
 
 /**
- * Clear the current authentication
+ * Clear the current authentication with comprehensive cleanup
+ * This enhanced version ensures all auth state is properly reset
  */
 export const devLogout = () => {
-  // 1. Clear Redux store
-  store.dispatch(setUser(null));
-  store.dispatch(setToken(null));
+  let reduxCleared = false;
+  let localStorageCleared = false;
+  let sessionStorageCleared = false;
+  let memoryStoreCleared = false;
   
-  // 2. Clear localStorage
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-  
-  console.log('[DEV MODE] Logged out');
+  try {
+    // 1. Clear Redux store first
+    try {
+      store.dispatch(setUser(null));
+      store.dispatch(setToken(null));
+      reduxCleared = true;
+      console.log('[DEV MODE] Redux auth state cleared');
+    } catch (reduxError) {
+      console.warn('[DEV MODE] Error clearing Redux state:', reduxError);
+    }
+    
+    // 2. Clear localStorage with more comprehensive key removal
+    try {
+      // Primary auth keys
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('login_timestamp');
+      
+      // Additional auth-related keys that might exist
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('auth_state');
+      localStorage.removeItem('auth_expiry');
+      localStorage.removeItem('user_preferences');
+      localStorage.removeItem('user_role');
+      localStorage.removeItem('session_id');
+      
+      localStorageCleared = true;
+      console.log('[DEV MODE] localStorage auth items cleared');
+    } catch (localStorageError) {
+      console.warn('[DEV MODE] Error clearing localStorage:', localStorageError);
+    }
+    
+    // 3. Clear sessionStorage with comprehensive key removal
+    try {
+      // Mirror the same keys from localStorage
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+      sessionStorage.removeItem('login_timestamp');
+      sessionStorage.removeItem('refresh_token');
+      sessionStorage.removeItem('auth_state');
+      sessionStorage.removeItem('auth_expiry');
+      sessionStorage.removeItem('user_preferences');
+      sessionStorage.removeItem('user_role');
+      sessionStorage.removeItem('session_id');
+      
+      sessionStorageCleared = true;
+      console.log('[DEV MODE] sessionStorage auth items cleared');
+    } catch (sessionStorageError) {
+      console.warn('[DEV MODE] Error clearing sessionStorage:', sessionStorageError);
+    }
+    
+    // 4. Clear memory store
+    try {
+      clearMemoryStore();
+      memoryStoreCleared = true;
+      console.log('[DEV MODE] Memory store cleared');
+    } catch (memoryError) {
+      console.warn('[DEV MODE] Error clearing memory store:', memoryError);
+    }
+    
+    // Log overall result
+    if (reduxCleared && localStorageCleared && sessionStorageCleared && memoryStoreCleared) {
+      console.log('[DEV MODE] Successfully logged out with all stores cleared');
+    } else {
+      console.warn('[DEV MODE] Partial logout success - some stores may not have been cleared');
+    }
+  } catch (error) {
+    console.error('[DEV MODE] Error during logout:', error);
+    
+    // Last-resort fallback: more aggressive clearing
+    try {
+      // Try completely clearing all storage
+      console.warn('[DEV MODE] Attempting aggressive storage clearing...');
+      
+      try { localStorage.clear(); } catch (e) { /* silent fail */ }
+      try { sessionStorage.clear(); } catch (e) { /* silent fail */ }
+      try { clearMemoryStore(); } catch (e) { /* silent fail */ }
+      
+      // Force null dispatch to Redux one more time
+      try {
+        store.dispatch({ type: 'auth/FORCE_LOGOUT' });
+        store.dispatch(setUser(null));
+        store.dispatch(setToken(null));
+      } catch (e) { /* silent fail */ }
+      
+      console.log('[DEV MODE] Emergency logout completed');
+    } catch (e) {
+      console.error('[DEV MODE] Complete failure clearing authentication');
+    }
+  }
 };
 
 /**

@@ -6,6 +6,12 @@ import './index.css';
 // Import Font Awesome setup
 import '../fontawesome.setup';
 
+// Import viewport fix utility
+import initViewportFixes from './utils/viewportFix';
+
+// Initialize viewport fixes for better mobile experience
+initViewportFixes();
+
 // Get the root element - remove the TypeScript non-null assertion (!)
 const rootElement = document.getElementById('root');
 

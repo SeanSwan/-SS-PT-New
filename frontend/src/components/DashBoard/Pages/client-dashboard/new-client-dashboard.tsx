@@ -1,240 +1,7 @@
-          {/* Gamification Section powered by MCP */}
-          <DashboardSection variants={itemVariants} style={{marginBottom: '1.5rem'}}>
-            <motion.div variants={itemVariants} style={{marginBottom: '1rem'}}>
-              <Typography variant="h5" component="h2" sx={{fontWeight: 400}}>
-                Achievements & Gamification
-              </Typography>
-            </motion.div>
-            
-            <motion.div variants={itemVariants}>
-              <GamificationDisplay 
-                variant="compact" 
-                onDataLoaded={(data) => {
-                  console.log('Gamification data loaded:', data);
-                }}
-              />
-              <Box display="flex" justifyContent="flex-end" mt={2}>
-                <GlowButton
-                  size="small"
-                  onClick={() => refreshData(true)}
-                >
-                  View Full Gamification Dashboard
-                </GlowButton>
-              </Box>
-            </motion.div>
-          </DashboardSection>
-          
-          {/* Food Intake Tracking Section */}
-          <DashboardSection variants={itemVariants} style={{marginBottom: '1.5rem'}}>
-            <motion.div variants={itemVariants} style={{marginBottom: '1rem'}}>
-              <Typography variant="h5" component="h2" sx={{fontWeight: 400}}>
-                Food Tracking
-              </Typography>
-            </motion.div>
-            
-            <motion.div variants={itemVariants}>
-              <FoodIntakeForm 
-                onDataSent={(success) => {
-                  if (success) {
-                    // Refresh data to update achievements and points
-                    refreshData(true);
-                  }
-                }}
-              />
-            </motion.div>
-          </DashboardSection>
-              // Update achievements when gamification data changes
-  useEffect(() => {
-    if (mcpGamificationData?.achievements) {
-      // Map the MCP data to our achievement format
-      const mappedAchievements = mcpGamificationData.achievements.map((achievement: any) => ({
-        id: achievement.id,
-        name: achievement.name,
-        description: achievement.description,
-        progress: achievement.progress,
-        total: achievement.totalRequired,
-        type: achievement.tier || 'bronze',
-        unlocked: achievement.completed,
-        icon: achievement.icon || 'award'
-      }));
-      
-      setAchievements(mappedAchievements);
-      
-      // Update client stats based on gamification profile
-      if (mcpGamificationData.profile) {
-        setClientStats(prevStats => ({
-          ...prevStats,
-          sessionsCompleted: mcpGamificationData.profile.attributes?.strength?.level || prevStats.sessionsCompleted,
-          daysActive: mcpGamificationData.profile.streak || prevStats.daysActive,
-          weeklyProgress: mcpGamificationData.profile.attributes?.cardio?.progress || prevStats.weeklyProgress
-        }));
-      }
-      
-      // Update progress data based on gamification profile
-      if (mcpGamificationData.profile) {
-        setProgressData({
-          overall: { 
-            level: mcpGamificationData.profile.level || 22, 
-            progress: mcpGamificationData.profile.attributes?.overall?.progress || 65 
-          },
-          strength: { 
-            level: mcpGamificationData.profile.attributes?.strength?.level || 24, 
-            progress: mcpGamificationData.profile.attributes?.strength?.progress || 70 
-          },
-          cardio: { 
-            level: mcpGamificationData.profile.attributes?.cardio?.level || 18, 
-            progress: mcpGamificationData.profile.attributes?.cardio?.progress || 45 
-          },
-          flexibility: { 
-            level: mcpGamificationData.profile.attributes?.flexibility?.level || 20, 
-            progress: mcpGamificationData.profile.attributes?.flexibility?.progress || 60 
-          },
-          balance: { 
-            level: mcpGamificationData.profile.attributes?.balance?.level || 19, 
-            progress: mcpGamificationData.profile.attributes?.balance?.progress || 50 
-          }
-        });
-      }
-    }
-    
-    // Update workout data
-    if (mcpWorkoutData) {
-      // Update recommended workouts if available
-      if (mcpWorkoutData.recommendations) {
-        setRecommendedWorkouts(mcpWorkoutData.recommendations.map((workout: any) => ({
-          id: workout.id,
-          name: workout.name,
-          type: workout.type || 'Strength',
-          duration: workout.duration || 30,
-          exercises: workout.exercises?.length || 5,
-          level: workout.level || 3
-        })));
-      }
-    }
-  }, [mcpGamificationData, mcpWorkoutData]);
-    // Mock achievements data (will be replaced by gamification MCP data)
-  const [achievements, setAchievements] = useState<any[]>([
-    {
-      id: '1',
-      name: 'Strength Master',
-      description: 'Complete 10 strength workouts',
-      progress: 8,
-      total: 10,
-      type: 'silver',
-      unlocked: false,
-      icon: 'dumbbell'
-    },
-    {
-      id: '2',
-      name: 'Consistency Champion',
-      description: 'Work out 5 days in a row',
-      progress: 5,
-      total: 5,
-      type: 'gold',
-      unlocked: true,
-      icon: 'award'
-    },
-    {
-      id: '3',
-      name: 'Flexibility Guru',
-      description: 'Reach level 10 in flexibility',
-      progress: 6,
-      total: 10,
-      type: 'bronze',
-      unlocked: false,
-      icon: 'activity'
-    }
-  ]);
-    // MCP Server Status Component using our new component
-  const renderMcpServerStatus = () => (
-    <McpStatusIndicator status={mcpServerStatus} variant="compact" position="floating" />
-  );
-
-  // Achievement card component
-  const AchievementCard = styled(motion.div)<{ isLocked?: boolean }>`
-    display: flex;
-    align-items: center;
-    padding: 0.75rem;
-    background: rgba(30, 30, 60, 0.4);
-    border-radius: 10px;
-    margin-bottom: 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    position: relative;
-    overflow: hidden;
-    
-    &:before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 5px;
-      height: 100%;
-      background: linear-gradient(to bottom, #00ffff, #7851a9);
-    }
-    
-    &:hover {
-      transform: translateY(-3px);
-      border-color: rgba(0, 255, 255, 0.3);
-      box-shadow: ${props => !props.isLocked ? 
-        '0 10px 25px rgba(0, 255, 255, 0.2)' : 
-        '0 10px 25px rgba(0, 0, 0, 0.3)'
-      };
-    }
-    
-    ${props => props.isLocked && `
-      filter: grayscale(100%);
-      opacity: 0.7;
-      
-      &:before {
-        background: linear-gradient(to bottom, #666, #999);
-      }
-    `}
-  `;
-
-  const AchievementIcon = styled.div<{ achievementType: 'gold' | 'silver' | 'bronze' }>`
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 0.75rem;
-    background: ${props => props.achievementType === 'gold' ? 
-      'linear-gradient(135deg, #FFD700, #FFA500)' : 
-      props.achievementType === 'silver' ? 
-      'linear-gradient(135deg, #E0E0E0, #C0C0C0)' : 
-      'linear-gradient(135deg, #CD7F32, #A0522D)'
-    };
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 0 10px ${props => props.achievementType === 'gold' ? 
-      'rgba(255, 215, 0, 0.5)' : 
-      props.achievementType === 'silver' ? 
-      'rgba(224, 224, 224, 0.5)' : 
-      'rgba(205, 127, 50, 0.5)'
-    };
-  `;
-  
-  const AchievementInfo = styled.div`
-    flex: 1;
-  `;
-  
-  const AchievementName = styled.div`
-    font-weight: 500;
-    font-size: 0.9rem;
-    margin-bottom: 0.25rem;
-  `;
-  
-  const AchievementDescription = styled.div`
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.7);
-  `;
-  
-  const AchievementProgress = styled.div`
-    width: 100%;
-    margin-top: 0.5rem;
-  `;
-  import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { workoutMcpApi, gamificationMcpApi } from '../../../../services/mcpApis';
 import { motion } from 'framer-motion';
+import { containerVariants, itemVariants } from './components/animation-variants';
 import { useAuth } from '../../../../context/AuthContext';
 import useClientDashboardMcp from '../../../../hooks/useClientDashboardMcp';
 import GamificationDisplay from '../../../../components/Gamification/GamificationDisplay';
@@ -289,32 +56,7 @@ import {
 
 // Custom components
 import DashboardStatsCard from '../../../DashBoard/components/dashboard-stats-card';
-
-// Animation variants
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { 
-    opacity: 1, 
-    transition: { 
-      when: "beforeChildren",
-      staggerChildren: 0.1,
-      duration: 0.3
-    }
-  }
-};
-
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: { 
-    y: 0, 
-    opacity: 1, 
-    transition: { 
-      type: "spring", 
-      stiffness: 100, 
-      damping: 10 
-    }
-  }
-};
+import DashboardSection from './components/DashboardSection';
 
 // Keyframe animations
 const shimmer = keyframes`
@@ -378,16 +120,6 @@ const VideoBackground = styled.div`
   }
 `;
 
-const DashboardSection = styled(motion.div)`
-  margin-bottom: 1.5rem;
-  padding: 1.5rem;
-  background: rgba(30, 30, 60, 0.3);
-  backdrop-filter: blur(10px);
-  border-radius: 15px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-`;
-
 const GlowButton = styled(Button)`
   background: linear-gradient(90deg, #00ffff 0%, #7851a9 100%);
   color: #fff;
@@ -418,6 +150,11 @@ const GlowButton = styled(Button)`
   
   &:hover:before {
     left: 100%;
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 `;
 
@@ -659,6 +396,90 @@ const WorkoutDetails = styled.div`
   gap: 0.75rem;
 `;
 
+// Achievement related components
+const AchievementCard = styled(motion.div)<{ $isLocked?: boolean }>`
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background: rgba(30, 30, 60, 0.4);
+  border-radius: 10px;
+  margin-bottom: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+  
+  &:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 5px;
+    height: 100%;
+    background: linear-gradient(to bottom, #00ffff, #7851a9);
+  }
+  
+  &:hover {
+    transform: translateY(-3px);
+    border-color: rgba(0, 255, 255, 0.3);
+    box-shadow: ${props => !props.$isLocked ? 
+      '0 10px 25px rgba(0, 255, 255, 0.2)' : 
+      '0 10px 25px rgba(0, 0, 0, 0.3)'
+    };
+  }
+  
+  ${props => props.$isLocked && `
+    filter: grayscale(100%);
+    opacity: 0.7;
+    
+    &:before {
+      background: linear-gradient(to bottom, #666, #999);
+    }
+  `}
+`;
+
+const AchievementIcon = styled.div<{ $achievementType: 'gold' | 'silver' | 'bronze' }>`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 0.75rem;
+  background: ${props => props.$achievementType === 'gold' ? 
+    'linear-gradient(135deg, #FFD700, #FFA500)' : 
+    props.$achievementType === 'silver' ? 
+    'linear-gradient(135deg, #E0E0E0, #C0C0C0)' : 
+    'linear-gradient(135deg, #CD7F32, #A0522D)'
+  };
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 10px ${props => props.$achievementType === 'gold' ? 
+    'rgba(255, 215, 0, 0.5)' : 
+    props.$achievementType === 'silver' ? 
+    'rgba(224, 224, 224, 0.5)' : 
+    'rgba(205, 127, 50, 0.5)'
+  };
+`;
+
+const AchievementInfo = styled.div`
+  flex: 1;
+`;
+
+const AchievementName = styled.div`
+  font-weight: 500;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+`;
+
+const AchievementDescription = styled.div`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+`;
+
+const AchievementProgress = styled.div`
+  width: 100%;
+  margin-top: 0.5rem;
+`;
+
 // Define Chat Message Type
 interface ChatMessage {
   id: string;
@@ -701,7 +522,13 @@ interface ClientStats {
  * Includes a real-time chat feature and client-specific stats
  */
 const NewClientDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  
+  // Log the auth state for debugging
+  useEffect(() => {
+    console.log('Dashboard auth state:', { user, isAuthenticated });
+  }, [user, isAuthenticated]);
+  
   const [isLoading, setLoading] = useState<boolean>(true);
   const [mcpStatus, setMcpStatus] = useState<{workout: boolean; gamification: boolean}>({workout: false, gamification: false});
   const [workoutData, setWorkoutData] = useState<any>(null);
@@ -709,8 +536,8 @@ const NewClientDashboard: React.FC = () => {
   
   // Use the custom MCP hook for dashboard
   const {
-  loading: mcpLoading,
-  mcpStatus: mcpServerStatus,
+    loading: mcpLoading,
+    mcpStatus: mcpServerStatus,
     workoutData: mcpWorkoutData,
     gamificationData: mcpGamificationData,
     refreshData,
@@ -735,6 +562,40 @@ const NewClientDashboard: React.FC = () => {
     weeklyProgress: 0
   });
   
+  // Mock achievements data (will be replaced by gamification MCP data)
+  const [achievements, setAchievements] = useState<any[]>([
+    {
+      id: '1',
+      name: 'Strength Master',
+      description: 'Complete 10 strength workouts',
+      progress: 8,
+      total: 10,
+      type: 'silver',
+      unlocked: false,
+      icon: 'dumbbell'
+    },
+    {
+      id: '2',
+      name: 'Consistency Champion',
+      description: 'Work out 5 days in a row',
+      progress: 5,
+      total: 5,
+      type: 'gold',
+      unlocked: true,
+      icon: 'award'
+    },
+    {
+      id: '3',
+      name: 'Flexibility Guru',
+      description: 'Reach level 10 in flexibility',
+      progress: 6,
+      total: 10,
+      type: 'bronze',
+      unlocked: false,
+      icon: 'activity'
+    }
+  ]);
+  
   // Progress data
   const [progressData, setProgressData] = useState({
     overall: { level: 0, progress: 0 },
@@ -748,6 +609,11 @@ const NewClientDashboard: React.FC = () => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+  
+  // MCP Server Status Component
+  const renderMcpServerStatus = () => (
+    <McpStatusIndicator status={mcpServerStatus} variant="compact" position="floating" />
+  );
   
   // Handle sending a message
   const handleSendMessage = () => {
@@ -809,8 +675,8 @@ const NewClientDashboard: React.FC = () => {
       if (mcpWorkoutData && Object.keys(mcpWorkoutData).length > 0) {
         setWorkoutData(mcpWorkoutData);
         
-        // Update UI with the fetched data
-        if (mcpWorkoutData.recommendations?.workouts) {
+        // Update UI with the fetched data - check data structure
+        if (mcpWorkoutData.recommendations?.workouts && Array.isArray(mcpWorkoutData.recommendations.workouts)) {
           setRecommendedWorkouts(mcpWorkoutData.recommendations.workouts.map((workout: any) => ({
             id: workout.id,
             name: workout.name,
@@ -852,109 +718,47 @@ const NewClientDashboard: React.FC = () => {
           });
         }
         
-        // No need to load mock data here, as the MCP hook handles fallbacks
         setLoading(false);
-      }
-      else {
-        // If we don't have MCP gamification data, fallback to mock data
-        loadMockData();
+      } else {
+        // If we don't have MCP gamification data, just update loading state
+        setLoading(false);
       }
     }
   }, [mcpLoading, mcpServerStatus, mcpWorkoutData, mcpGamificationData]);
   
-      // Initialize
-    useEffect(() => {
-      const initializeData = async () => {
-        // Check MCP server status first
-        await checkMcpStatus();
-        
-        // Try to fetch data from MCP servers
-        if (mcpServerStatus.workout) {
-        await fetchWorkoutData();
-        } else {
-        console.log('[MCP] Servers offline, using mock data');
-        loadMockData();
-        }
-      };
-      
-      initializeData();
-    }, [checkMcpStatus, fetchWorkoutData, loadMockData]);
-  
-  // Check MCP servers status
-  const checkMcpStatus = useCallback(async () => {
-    try {
-      // Check workout MCP server
-      const workoutStatus = await workoutMcpApi.checkServerStatus()
-        .then(() => true)
-        .catch(() => false);
-      
-      // Check gamification MCP server
-      const gamificationStatus = await gamificationMcpApi.checkServerStatus()
-        .then(() => true)
-        .catch(() => false);
-      
-      setMcpStatus({
-        workout: workoutStatus,
-        gamification: gamificationStatus
-      });
-      
-      return { workout: workoutStatus, gamification: gamificationStatus };
-    } catch (error) {
-      console.error('[MCP] Error checking MCP servers status', error);
-      return { workout: false, gamification: false };
-    }
-  }, []);
-  
-  // This effect handles MCP status checking with an interval
+  // Update achievements when gamification data changes
   useEffect(() => {
-    // Check on mount
-    checkMcpStatus();
+    if (mcpGamificationData?.achievements) {
+      // Map the MCP data to our achievement format
+      const mappedAchievements = mcpGamificationData.achievements.map((achievement: any) => ({
+        id: achievement.id,
+        name: achievement.name,
+        description: achievement.description,
+        progress: achievement.progress,
+        total: achievement.totalRequired,
+        type: achievement.tier || 'bronze',
+        unlocked: achievement.completed,
+        icon: achievement.icon || 'award'
+      }));
+      
+      setAchievements(mappedAchievements);
+      
+      // Update client stats based on gamification profile
+      if (mcpGamificationData.profile) {
+        setClientStats(prevStats => ({
+          ...prevStats,
+          sessionsCompleted: mcpGamificationData.profile.attributes?.strength?.level || prevStats.sessionsCompleted,
+          daysActive: mcpGamificationData.profile.streak || prevStats.daysActive,
+          weeklyProgress: mcpGamificationData.profile.attributes?.cardio?.progress || prevStats.weeklyProgress
+        }));
+      }
+    }
     
-    // Set up interval to check every 30 seconds
-    const interval = setInterval(checkMcpStatus, 30000);
-    
-    // Clean up interval on unmount
-    return () => clearInterval(interval);
-  }, [checkMcpStatus]);
-  
-  // Fetch data from workout MCP
-  const fetchWorkoutData = useCallback(async () => {
-    if (!user?.id) return;
-    
-    try {
-      // Get workout recommendations
-      const recommendationsResponse = await workoutMcpApi.getWorkoutRecommendations({
-        userId: user.id,
-        goal: 'strength', // Could be dynamic based on user preferences
-        difficulty: 'intermediate',
-        limit: 4
-      });
-      
-      // Get client progress
-      const progressResponse = await workoutMcpApi.getClientProgress({
-        userId: user.id
-      });
-      
-      // Get workout statistics
-      const statsResponse = await workoutMcpApi.getWorkoutStatistics({
-        userId: user.id,
-        includeExerciseBreakdown: true,
-        includeMuscleGroupBreakdown: true
-      });
-      
-      // Combine all workout data
-      const combinedWorkoutData = {
-        recommendations: recommendationsResponse.data,
-        progress: progressResponse.data,
-        statistics: statsResponse.data
-      };
-      
-      // Update state with real data
-      setWorkoutData(combinedWorkoutData);
-      
-      // Update UI with the fetched data
-      if (recommendationsResponse.data?.workouts) {
-        setRecommendedWorkouts(recommendationsResponse.data.workouts.map((workout: any) => ({
+    // Update workout data
+    if (mcpWorkoutData) {
+      // Update recommended workouts if available - check data structure
+      if (mcpWorkoutData.recommendations?.workouts && Array.isArray(mcpWorkoutData.recommendations.workouts)) {
+        setRecommendedWorkouts(mcpWorkoutData.recommendations.workouts.map((workout: any) => ({
           id: workout.id,
           name: workout.name,
           type: workout.type || 'Strength',
@@ -962,217 +766,102 @@ const NewClientDashboard: React.FC = () => {
           exercises: workout.exercises?.length || 5,
           level: workout.level || 3
         })));
+      } else if (mcpWorkoutData.recommendations && Array.isArray(mcpWorkoutData.recommendations)) {
+        // Handle case where recommendations is directly an array
+        setRecommendedWorkouts(mcpWorkoutData.recommendations.map((workout: any) => ({
+          id: workout.id || `workout-${Math.random().toString(36).substr(2, 9)}`,
+          name: workout.name || 'Workout',
+          type: workout.type || 'Strength',
+          duration: workout.duration || 30,
+          exercises: workout.exercises?.length || 5,
+          level: workout.level || 3
+        })));
       }
-      
-      // If gamification MCP is also available, send workout data there
-      if (mcpServerStatus.gamification) {
-        await updateGamificationData(combinedWorkoutData);
-      }
-      
-      setLoading(false);
-    } catch (error) {
-      console.error('[MCP] Error fetching workout data', error);
-      // Fall back to mock data
-      loadMockData();
     }
-  }, [user?.id, mcpServerStatus.gamification]);
+  }, [mcpGamificationData, mcpWorkoutData]);
   
-  // Update gamification data
-  const updateGamificationData = useCallback(async (workoutData: any) => {
-    if (!user?.id) return;
-    
-    try {
-      // Log activity to gamification server
-      await gamificationMcpApi.logActivity({
-        userId: user.id,
-        activityType: 'workout_data_sync',
-        activityData: {
-          workoutId: workoutData.recommendations?.id,
-          statistics: workoutData.statistics,
-          progress: workoutData.progress
-        }
-      });
-      
-      // Get updated gamification profile
-      const profileResponse = await gamificationMcpApi.getGamificationProfile({
-        userId: user.id
-      });
-      
-      // Get achievements
-      const achievementsResponse = await gamificationMcpApi.getAchievements({
-        userId: user.id,
-        includeCompleted: true,
-        includeInProgress: true
-      });
-      
-      // Get board position
-      const boardResponse = await gamificationMcpApi.getBoardPosition({
-        userId: user.id
-      });
-      
-      // Combine all gamification data
-      const combinedGamificationData = {
-        profile: profileResponse.data,
-        achievements: achievementsResponse.data,
-        boardPosition: boardResponse.data
-      };
-      
-      // Update state with real data
-      setGamificationData(combinedGamificationData);
-      
-      // Update progress data based on gamification levels
-      if (profileResponse.data) {
-        setProgressData({
-          overall: { 
-            level: profileResponse.data.level || 22, 
-            progress: profileResponse.data.progress || 65 
-          },
-          strength: { 
-            level: profileResponse.data.attributes?.strength?.level || 24, 
-            progress: profileResponse.data.attributes?.strength?.progress || 70 
-          },
-          cardio: { 
-            level: profileResponse.data.attributes?.cardio?.level || 18, 
-            progress: profileResponse.data.attributes?.cardio?.progress || 45 
-          },
-          flexibility: { 
-            level: profileResponse.data.attributes?.flexibility?.level || 20, 
-            progress: profileResponse.data.attributes?.flexibility?.progress || 60 
-          },
-          balance: { 
-            level: profileResponse.data.attributes?.balance?.level || 19, 
-            progress: profileResponse.data.attributes?.balance?.progress || 50 
-          }
-        });
-      }
-    } catch (error) {
-      console.error('[MCP] Error updating gamification data', error);
-    }
-  }, [user?.id]);
-  
-  // Load mock data as fallback
-  const loadMockData = useCallback(() => {
-    console.log('[MCP] Using mock data fallback');
-    
-    // Simulate loading time
-    setTimeout(() => {
-      // Mock chat messages
-      setMessages([
-        {
-          id: '1',
-          text: "Hi there! How can I help you with your fitness goals today?",
-          isUser: false,
-          timestamp: new Date(Date.now() - 36000000)
-        },
-        {
-          id: '2',
-          text: "I've been having some trouble with my squat form. Could you check it at our next session?",
-          isUser: true,
-          timestamp: new Date(Date.now() - 35000000)
-        },
-        {
-          id: '3',
-          text: "Absolutely! I'll make that a priority. In the meantime, try focusing on keeping your weight in your heels and chest up.",
-          isUser: false,
-          timestamp: new Date(Date.now() - 34000000)
-        },
-        {
-          id: '4',
-          text: "Also, I've reviewed your latest progress and added some new exercises to your plan. Check them out when you get a chance!",
-          isUser: false,
-          timestamp: new Date(Date.now() - 33000000)
-        }
-      ]);
-      
-      // Mock upcoming sessions
-      setUpcomingSessions([
-        {
-          id: '1',
-          title: 'Strength Training Session',
-          trainer: 'Alex Johnson',
-          dateTime: new Date(Date.now() + 86400000), // Tomorrow
-          isUpcoming: true,
-          isScheduled: true
-        },
-        {
-          id: '2',
-          title: 'Flexibility & Mobility',
-          trainer: 'Alex Johnson',
-          dateTime: new Date(Date.now() + 259200000), // 3 days from now
-          isUpcoming: true,
-          isScheduled: true
-        },
-        {
-          id: '3',
-          title: 'Progress Assessment',
-          trainer: 'Alex Johnson',
-          dateTime: new Date(Date.now() + 604800000), // 7 days from now
-          isUpcoming: true,
-          isScheduled: true
-        }
-      ]);
-      
-      // Mock recommended workouts
-      setRecommendedWorkouts([
-        {
-          id: '1',
-          name: 'Lower Body Strength',
-          type: 'Strength',
-          duration: 45,
-          exercises: 8,
-          level: 3
-        },
-        {
-          id: '2',
-          name: 'Core Stability',
-          type: 'Core',
-          duration: 30,
-          exercises: 6,
-          level: 2
-        },
-        {
-          id: '3',
-          name: 'Upper Body Power',
-          type: 'Strength',
-          duration: 40,
-          exercises: 7,
-          level: 3
-        },
-        {
-          id: '4',
-          name: 'HIIT Cardio',
-          type: 'Cardio',
-          duration: 25,
-          exercises: 5,
-          level: 4
-        }
-      ]);
-      
-      // Mock client stats
-      setClientStats({
-        sessionsCompleted: 12,
-        sessionsRemaining: 8,
-        daysActive: 24,
-        weeklyProgress: 85
-      });
-      
-      // Mock progress data
-      setProgressData({
-        overall: { level: 22, progress: 65 },
-        strength: { level: 24, progress: 70 },
-        cardio: { level: 18, progress: 45 },
-        flexibility: { level: 20, progress: 60 },
-        balance: { level: 19, progress: 50 }
-      });
-      
-      setLoading(false);
-    }, 1500);
-  }, []);
+  // Initialize
+  useEffect(() => {
+    // Use the custom MCP hook instead, which handles all of this logic
+    refreshData(true);
+  }, [refreshData]);
   
   // Scroll to bottom when messages change
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+  
+  // Effect to set default values when user data is loaded
+  useEffect(() => {
+    if (user) {
+      // Set client stats based on user data if available
+      if (user.stats) {
+        setClientStats(prev => ({
+          ...prev,
+          sessionsCompleted: user.stats.sessionsCompleted || prev.sessionsCompleted,
+          sessionsRemaining: user.stats.sessionsRemaining || prev.sessionsRemaining,
+          daysActive: user.stats.daysActive || prev.daysActive,
+          weeklyProgress: user.stats.weeklyProgress || prev.weeklyProgress
+        }));
+      }
+    }
+  }, [user]);
+  
+  // Initialize state with mock data for chat and upcoming sessions
+  useEffect(() => {
+    // Set initial mock chat messages
+    setMessages([
+      {
+        id: '1',
+        text: "Hi there! How can I help you with your fitness goals today?",
+        isUser: false,
+        timestamp: new Date(Date.now() - 36000000)
+      },
+      {
+        id: '2',
+        text: "I've been having some trouble with my squat form. Could you check it at our next session?",
+        isUser: true,
+        timestamp: new Date(Date.now() - 35000000)
+      },
+      {
+        id: '3',
+        text: "Absolutely! I'll make that a priority. In the meantime, try focusing on keeping your weight in your heels and chest up.",
+        isUser: false,
+        timestamp: new Date(Date.now() - 34000000)
+      }
+    ]);
+    
+    // Set initial mock upcoming sessions
+    setUpcomingSessions([
+      {
+        id: '1',
+        title: 'Strength Training Session',
+        trainer: 'Alex Johnson',
+        dateTime: new Date(Date.now() + 86400000), // Tomorrow
+        isUpcoming: true,
+        isScheduled: true
+      },
+      {
+        id: '2',
+        title: 'Flexibility & Mobility',
+        trainer: 'Alex Johnson',
+        dateTime: new Date(Date.now() + 259200000), // 3 days from now
+        isUpcoming: true,
+        isScheduled: true
+      }
+    ]);
+  }, []);
+  
+  // Dashboard data initialization effect - runs once when component mounts
+  useEffect(() => {
+    // Trigger initial data load from MCP hook
+    const initDashboard = () => {
+      refreshData(true);
+    };
+    
+    initDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array to run only once
   
   return (
     <DashboardContainer
@@ -1182,6 +871,7 @@ const NewClientDashboard: React.FC = () => {
     >
       {/* MCP Status Indicator */}
       {renderMcpServerStatus()}
+      
       {/* Video Background */}
       <VideoBackground>
         <video autoPlay loop muted playsInline>
@@ -1399,12 +1089,12 @@ const NewClientDashboard: React.FC = () => {
                 {achievements.map((achievement) => (
                 <AchievementCard 
                   key={achievement.id} 
-                  isLocked={!achievement.unlocked}
+                  $isLocked={!achievement.unlocked}
                   whileHover={{ y: -3 }}
                   role="listitem"
                   aria-label={`${achievement.name} achievement: ${achievement.description}`}
                 >
-                  <AchievementIcon achievementType={achievement.type as 'gold' | 'silver' | 'bronze'}>
+                  <AchievementIcon $achievementType={achievement.type as 'gold' | 'silver' | 'bronze'}>
                     {achievement.icon === 'dumbbell' && <Dumbbell size={20} aria-hidden="true" />}
                     {achievement.icon === 'award' && <Award size={20} aria-hidden="true" />}
                     {achievement.icon === 'activity' && <Activity size={20} aria-hidden="true" />}

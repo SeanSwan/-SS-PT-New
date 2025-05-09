@@ -359,20 +359,20 @@ const LoginModal: React.FC = () => {
       }
       
       // When calling login, pass the credentials directly
-      const response = await login(credentials.username, credentials.password);
+      const result = await login(credentials.username, credentials.password);
       
-      // Check if response exists and has user data
-      if (response && response.user) {
-        console.log('Login successful!', { role: response.user.role });
+      // Check if login was successful and has user data
+      if (result.success && result.user) {
+        console.log('Login successful!', { role: result.user.role });
         setTimeout(() => {
-          if (response.user.role === "admin") {
-            navigate("/admin-dashboard");
+          if (result.user.role === "admin") {
+            navigate("/dashboard/admin");
           } else {
             navigate("/client-dashboard");
           }
         }, 200);
       } else {
-        setError("Login successful but user data missing.");
+        setError("Login successful but user data missing. Please try again.");
         setIsLoading(false);
       }
     } catch (err: any) {
@@ -383,27 +383,16 @@ const LoginModal: React.FC = () => {
         // Create a mock login for development purposes
         console.warn("Server connection issue detected. Using mock login for development.");
         
-        // Create a mock login response
-        const mockUser = {
-          id: 'dev-user-id',
-          username: credentials.username,
-          email: `${credentials.username}@example.com`,
-          firstName: 'Dev',
-          lastName: 'User',
-          role: 'client',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
+        // Call our auth context login function with fallback behavior
+        const result = await login(credentials.username, credentials.password);
         
-        // Set mock token in localStorage
-        localStorage.setItem('token', 'dev-mock-token');
-        localStorage.setItem('login_timestamp', Date.now().toString());
-        localStorage.setItem('user_data', JSON.stringify(mockUser));
-        
-        // Redirect to dashboard after mock login
-        setTimeout(() => {
-          navigate("/client-dashboard");
-        }, 200);
+        if (result.success) {
+          setTimeout(() => {
+            navigate("/client-dashboard");
+          }, 200);
+        } else {
+          setError("Failed to create mock login. Please try again.");
+        }
         
         return;
       }

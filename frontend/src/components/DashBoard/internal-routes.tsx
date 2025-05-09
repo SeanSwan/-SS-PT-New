@@ -13,6 +13,9 @@ import EnhancedAdminSessionsView from './Pages/admin-sessions/enhanced-admin-ses
 import AdminPackagesView from './Pages/admin-packages/admin-packages-view';
 import ModernUserManagementSystem from './Pages/user-management/modern-user-management';
 import ClientDashboardView from './Pages/client-dashboard/client-dashboard-view';
+import OrientationDashboardView from './Pages/admin-dashboard/orientation-dashboard-view';
+import AdminDebugPage from './Pages/admin-dashboard/AdminDebugPage';
+import CommunityDashboard from './Pages/community/community-dashboard';
 
 // For components that might have issues, we create wrapped versions
 // with error handling to prevent the entire dashboard from crashing
@@ -90,6 +93,9 @@ const AdminDashboardRoutes: React.FC = () => {
       <Route path="/gamification" element={<GamificationComponent />} />
       <Route path="/user-management" element={<ModernUserManagementSystem />} />
       <Route path="/client-dashboard" element={<ClientDashboardView />} />
+      <Route path="/client-orientation" element={<OrientationDashboardView />} />
+      <Route path="/community" element={<CommunityDashboard />} />
+      <Route path="/admin/debug" element={<AdminDebugPage />} />
       <Route path="*" element={<Navigate to="/dashboard/default" replace />} />
     </Routes>
   );

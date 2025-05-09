@@ -9,7 +9,6 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View } from 'react-big-calendar';
 import moment from 'moment';
 import { useAnimation } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';

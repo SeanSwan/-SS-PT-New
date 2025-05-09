@@ -81,7 +81,7 @@ export const PageContainer = styled.div`
   position: relative;
   overflow-x: hidden;
   background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
-  color: white;
+  color: #7851a9;
   min-height: 100vh;
   width: 100%;
 `;
@@ -107,9 +107,9 @@ export const DashboardGrid = styled.div`
 export const StyledCard = styled(Card)`
   border-radius: 15px !important;
   overflow: hidden;
-  background: rgba(30, 30, 60, 0.3) !important;
+  background: #1d1f2b !important;
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(120, 81, 169, 0.3) !important;
   transition: all 0.3s ease;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
   height: 100%;
@@ -141,7 +141,7 @@ export const CardTitle = styled.h2`
   gap: 0.75rem;
   
   svg {
-    color: #00ffff;
+    color: #7851a9;
   }
 `;
 
@@ -670,17 +670,17 @@ export const HeatmapDay = styled(Box)<{ intensity: number }>`
   height: 18px;
   border-radius: 2px;
   background: ${props => {
-    if (props.intensity === 0) return 'rgba(255, 255, 255, 0.05)';
-    if (props.intensity === 1) return 'rgba(0, 255, 255, 0.2)';
-    if (props.intensity === 2) return 'rgba(0, 255, 255, 0.4)';
-    if (props.intensity === 3) return 'rgba(0, 255, 255, 0.6)';
-    return 'rgba(0, 255, 255, 0.8)';
+    if (props.intensity === 0) return 'rgba(29, 31, 43, 0.8)';
+    if (props.intensity === 1) return 'rgba(120, 81, 169, 0.2)';
+    if (props.intensity === 2) return 'rgba(120, 81, 169, 0.4)';
+    if (props.intensity === 3) return 'rgba(120, 81, 169, 0.6)';
+    return 'rgba(120, 81, 169, 0.8)';
   }};
   transition: all 0.2s ease;
   
   &:hover {
     transform: scale(1.2);
-    box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 8px rgba(120, 81, 169, 0.5);
   }
 `;
 
@@ -729,7 +729,7 @@ export const PulsingDot = styled.div`
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background-color: #00ffff;
+  background-color: #7851a9;
   position: relative;
   
   &:after {
@@ -740,7 +740,7 @@ export const PulsingDot = styled.div`
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    background-color: rgba(0, 255, 255, 0.4);
+    background-color: rgba(120, 81, 169, 0.4);
     z-index: -1;
     animation: pulse 1.5s infinite;
   }
@@ -772,7 +772,7 @@ export const ScheduleTimeline = styled(Box)`
     top: 0;
     height: 100%;
     width: 2px;
-    background: linear-gradient(to bottom, rgba(0, 255, 255, 0.2) 0%, rgba(120, 81, 169, 0.2) 100%);
+    background: linear-gradient(to bottom, rgba(120, 81, 169, 0.2) 0%, rgba(120, 81, 169, 0.2) 100%);
   }
 `;
 
@@ -790,7 +790,7 @@ export const ScheduleTimelineItem = styled(Box)<{ active?: boolean }>`
     height: 10px;
     border-radius: 50%;
     background: ${props => props.active 
-      ? '#00ffff'
+      ? '#7851a9'
       : 'rgba(255, 255, 255, 0.2)'};
     border: 2px solid rgba(0, 0, 0, 0.3);
   }
