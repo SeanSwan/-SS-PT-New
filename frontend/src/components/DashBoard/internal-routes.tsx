@@ -9,6 +9,8 @@ import { Route, Routes, Navigate } from 'react-router-dom';
 // Directly import views to avoid dynamic import errors
 import DashboardView from './dashboard-view';
 import AdminClientProgressView from './Pages/admin-client-progress/admin-client-progress-view';
+import AdminClientManagementView from './Pages/admin-clients/AdminClientManagementView';
+import ClientProgressDashboard from './Pages/client-progress/ClientProgressDashboard';
 import EnhancedAdminSessionsView from './Pages/admin-sessions/enhanced-admin-sessions-view';
 import AdminPackagesView from './Pages/admin-packages/admin-packages-view';
 import ModernUserManagementSystem from './Pages/user-management/modern-user-management';
@@ -16,6 +18,28 @@ import ClientDashboardView from './Pages/client-dashboard/client-dashboard-view'
 import OrientationDashboardView from './Pages/admin-dashboard/orientation-dashboard-view';
 import AdminDebugPage from './Pages/admin-dashboard/AdminDebugPage';
 import CommunityDashboard from './Pages/community/community-dashboard';
+
+// Create a placeholder for WorkoutProgramsView
+const WorkoutProgramsView = () => (
+  <div style={{ padding: '2rem' }}>
+    <h2>Workout Programs</h2>
+    <p>This section allows administrators to create and manage workout programs.</p>
+    <div style={{ 
+      padding: '1.5rem', 
+      background: 'rgba(0, 255, 255, 0.05)',
+      borderRadius: '8px',
+      marginTop: '1.5rem'
+    }}>
+      <h3>Features</h3>
+      <ul>
+        <li>Create new workout programs</li>
+        <li>Assign programs to clients</li>
+        <li>Track program completion</li>
+        <li>Analyze program effectiveness</li>
+      </ul>
+    </div>
+  </div>
+);
 
 // For components that might have issues, we create wrapped versions
 // with error handling to prevent the entire dashboard from crashing
@@ -81,13 +105,19 @@ const GamificationComponent = (props) => (
 /**
  * AdminDashboardRoutes Component
  * Central routing configuration for all admin dashboard views
+ * 
+ * Provides consistent routes that align with TrainerDashboardRoutes for
+ * seamless integration and synchronized functionality across user roles.
+ * Uses the same MCP hooks for data retrieval to ensure data consistency.
  */
 const AdminDashboardRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard/default" replace />} />
       <Route path="/default" element={<DashboardView />} />
-      <Route path="/client-progress" element={<AdminClientProgressView />} />
+      <Route path="/client-progress" element={<ClientProgressDashboard />} />
+      <Route path="/clients" element={<AdminClientManagementView />} />
+      <Route path="/workouts" element={<WorkoutProgramsView />} />
       <Route path="/admin-sessions" element={<EnhancedAdminSessionsView />} />
       <Route path="/admin-packages" element={<AdminPackagesView />} />
       <Route path="/gamification" element={<GamificationComponent />} />

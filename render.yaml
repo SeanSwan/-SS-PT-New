@@ -6,11 +6,10 @@ services:
     buildCommand: npm install && npm run build
     startCommand: npm run render-start
     healthCheckPath: /health
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 5000
       # Database URLs will be automatically set by Render for the attached services
       - key: DATABASE_URL
         fromDatabase:
@@ -24,8 +23,12 @@ services:
       # Add other environment variables from .env file
       - key: JWT_SECRET
         sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
       - key: JWT_EXPIRES_IN
         value: 3h
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
       - key: ADMIN_USERNAME
         value: ogpswan
       - key: ADMIN_FIRST_NAME
@@ -36,6 +39,12 @@ services:
         value: ogpswan@yahoo.com
       - key: ADMIN_PASSWORD
         sync: false
+      - key: FRONTEND_URL
+        value: https://swanstudios-app.onrender.com
+      - key: FRONTEND_ORIGINS
+        value: https://swanstudios-app.onrender.com,http://localhost:5173
+      - key: LOG_LEVEL
+        value: info
 
 databases:
   # PostgreSQL database

@@ -19,10 +19,12 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 // MongoDB connection string
-// Allow fallback to default port 27017 if 5001 doesn't work
-const MONGODB_PORT = process.env.MONGODB_PORT || '5001';
-const MONGODB_URI = process.env.MONGODB_URI || `mongodb://localhost:${MONGODB_PORT}/swanstudios`;
-const MONGODB_FALLBACK_URI = `mongodb://localhost:27017/swanstudios`;
+// For production: MONGO_URI is set by Render with full connection string
+// For development: Use environment variables or fallback to default
+const isProduction = process.env.NODE_ENV === 'production';
+const MONGODB_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/swanstudios';
+// Fallback connection in case the primary one fails
+const MONGODB_FALLBACK_URI = isProduction ? MONGODB_URI : 'mongodb://localhost:27017/swanstudios';
 
 // SQLite fallback flag
 const USE_SQLITE_FALLBACK = process.env.USE_SQLITE_FALLBACK === 'true';
@@ -31,7 +33,14 @@ const USE_SQLITE_FALLBACK = process.env.USE_SQLITE_FALLBACK === 'true';
 const MONGODB_OPTIONS = {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000
+  serverSelectionTimeoutMS: isProduction ? 10000 : 5000, // Longer timeout in production
+  connectTimeoutMS: isProduction ? 10000 : 5000,
+  socketTimeoutMS: 45000, // Longer socket timeout to prevent disconnects
+  maxPoolSize: 50, // Increase connection pool size for production
+  minPoolSize: isProduction ? 5 : 1, // Maintain minimum connections in production
+  maxIdleTimeMS: 60000, // Keep idle connections open longer
+  retryWrites: true,
+  retryReads: true
 };
 
 // MongoDB client instance

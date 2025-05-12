@@ -68,6 +68,7 @@ import scheduleRoutes from './routes/scheduleRoutes.mjs';
 import enhancedScheduleRoutes from './routes/enhancedScheduleRoutes.mjs';
 import adminRoutes from './routes/adminRoutes.mjs';
 import adminDebugRoutes from './routes/admin.mjs';
+import adminClientRoutes from './routes/adminClientRoutes.mjs';
 import apiRoutes from './routes/api.mjs';
 import devRoutes from './routes/dev-routes.mjs';
 import debugRoutes from './routes/debug.mjs';  // Import debug routes
@@ -164,7 +165,7 @@ if (isProduction) {
 // Reads from Render Env Var FRONTEND_ORIGINS first, then falls back to defaults
 const whitelist = process.env.FRONTEND_ORIGINS
   ? process.env.FRONTEND_ORIGINS.split(',')
-  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'https://sswanstudios.com']; // Ensure your prod domain is here and include all possible dev ports
+  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'https://swanstudios-app.onrender.com']; // Ensure all production and development domains are included
 
 // In production, use stricter CORS policies
 const corsOptions = {
@@ -495,6 +496,7 @@ app.use('/api/schedule', enhancedScheduleRoutes);
 app.use('/api/sessions', enhancedScheduleRoutes);  // Add an alias route that matches frontend expectations
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminDebugRoutes); // Add admin debugging routes for data synchronization
+app.use('/api/admin', adminClientRoutes); // Add enhanced admin client management routes
 app.use('/api/debug', debugRoutes);  // Added debug routes
 // Add NASM protocol routes
 app.use('/api/client-progress', clientProgressRoutes);
@@ -611,26 +613,57 @@ app.use((req, res) => {
     server.timeout = 60000; // 60 seconds
     
     // Handle graceful shutdown (important for Render)
-    process.on('SIGTERM', () => {
-      logger.warn('Received SIGTERM. Shutting down gracefully...');
-      server.close(() => {
-        logger.info('HTTP server closed.');
-        // Close database connection
-        sequelize.close().then(() => {
-          logger.info('Database connection closed.');
-          process.exit(0); // Exit successfully
-        }).catch(err => {
-          logger.error('Error closing database connection:', err);
-          process.exit(1); // Exit with error
-        });
-      });
+    const gracefulShutdown = async (signal) => {
+      logger.warn(`Received ${signal}. Shutting down gracefully...`);
       
-      // Force shutdown after 30 seconds if graceful shutdown fails
-      setTimeout(() => {
+      // Set a timeout for ungraceful termination (30 seconds)
+      const forceExitTimeout = setTimeout(() => {
         logger.error('Forced shutdown after timeout');
         process.exit(1);
       }, 30000);
-    });
+      
+      try {
+        // First close the HTTP server
+        await new Promise((resolve, reject) => {
+          server.close((err) => {
+            if (err) {
+              logger.error(`Error closing HTTP server: ${err.message}`);
+              reject(err);
+            } else {
+              logger.info('HTTP server closed.');
+              resolve();
+            }
+          });
+        });
+        
+        // Close MongoDB connection if it exists
+        if (typeof closeMongoDBConnection === 'function') {
+          try {
+            await closeMongoDBConnection();
+            logger.info('MongoDB connection closed.');
+          } catch (mongoErr) {
+            logger.error(`Error closing MongoDB connection: ${mongoErr.message}`);
+          }
+        }
+        
+        // Close Sequelize connection
+        await sequelize.close();
+        logger.info('PostgreSQL connection closed.');
+        
+        // Clear the force exit timeout as we're exiting cleanly
+        clearTimeout(forceExitTimeout);
+        logger.info('Graceful shutdown completed successfully.');
+        process.exit(0); // Exit successfully
+      } catch (error) {
+        logger.error(`Error during graceful shutdown: ${error.message}`);
+        clearTimeout(forceExitTimeout);
+        process.exit(1); // Exit with error
+      }
+    };
+    
+    // Listen for termination signals
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
   } catch (error) {
     logger.error(`Server initialization error: ${error.message}`, { stack: error.stack });

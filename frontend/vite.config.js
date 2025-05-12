@@ -42,6 +42,73 @@ const mockResponses = {
     });
   },
   
+  '/api/auth/clients': (req, res) => {
+    console.log('Mock clients request');
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify([
+      {
+        id: 'client-1',
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'john.doe@email.com',
+        phone: '555-0101',
+        photo: null,
+        availableSessions: 5
+      },
+      {
+        id: 'client-2',
+        firstName: 'Jane',
+        lastName: 'Smith',
+        email: 'jane.smith@email.com',
+        phone: '555-0102',
+        photo: null,
+        availableSessions: 3
+      },
+      {
+        id: 'client-3',
+        firstName: 'Mike',
+        lastName: 'Johnson',
+        email: 'mike.johnson@email.com',
+        phone: '555-0103',
+        photo: null,
+        availableSessions: 0
+      }
+    ]));
+  },
+  
+  '/api/auth/trainers': (req, res) => {
+    console.log('Mock trainers request');
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'application/json');
+    res.end(JSON.stringify([
+      {
+        id: 'trainer-1',
+        firstName: 'Alex',
+        lastName: 'Wilson',
+        email: 'alex.wilson@swanstudios.com',
+        photo: null,
+        specialties: 'Strength Training, HIIT'
+      },
+      {
+        id: 'trainer-2',
+        firstName: 'Sarah',
+        lastName: 'Brown',
+        email: 'sarah.brown@swanstudios.com',
+        photo: null,
+        specialties: 'Yoga, Flexibility'
+      },
+      {
+        id: 'trainer-3',
+        firstName: 'David',
+        lastName: 'Chen',
+        email: 'david.chen@swanstudios.com',
+        photo: null,
+        specialties: 'Olympic Lifting, Powerlifting'
+      }
+    ]));
+  },
+  
   '/api/storefront': (req, res) => {
     console.log('Mock storefront request');
     res.statusCode = 200;
@@ -159,6 +226,7 @@ export default defineConfig(({ mode }) => {
   // Load env variables
   const env = loadEnv(mode, process.cwd(), '');
   const isDevelopment = mode === 'development';
+  const isProduction = mode === 'production';
   const isDevMode = env.VITE_DEV_MODE === 'true';
   
   console.log(`Running in ${mode} mode, Dev Mode: ${isDevMode ? 'ENABLED' : 'DISABLED'}`);
@@ -254,7 +322,16 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       assetsDir: 'assets',
-      sourcemap: true,
+      sourcemap: isDevelopment, // Only generate sourcemaps in development
+      minify: isProduction ? 'esbuild' : false, // Minify in production
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom', 'react-router-dom', 'styled-components'],
+            ui: ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
+          }
+        }
+      }
     },
     optimizeDeps: {
       include: ['react', 'react-dom', 'react-router-dom', 'styled-components', 'axios'],
@@ -263,6 +340,10 @@ export default defineConfig(({ mode }) => {
       // Define environment variables accessible in frontend code
       __DEV_MODE__: isDevMode,
       __DEV__: isDevelopment,
+      // Inject actual backend API URL for production
+      'process.env.VITE_API_URL': isProduction 
+        ? JSON.stringify('https://swanstudios-app.onrender.com') 
+        : JSON.stringify('http://localhost:5000'),
     },
     // Cache settings to avoid build issues
     cacheDir: '.vite-cache',

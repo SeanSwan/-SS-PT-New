@@ -19,7 +19,9 @@ import {
   MenuItem,
   Tooltip
 } from '@mui/material';
-import { styled, ThemeProvider, createTheme, Theme, CSSObject } from '@mui/material/styles';
+import { styled, ThemeProvider as MuiThemeProvider, createTheme, Theme, CSSObject } from '@mui/material/styles';
+import { ThemeProvider as StyledComponentsThemeProvider } from 'styled-components';
+import dashboardTheme from '../../../styles/dashboardTheme';
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import DashboardIcon from '@mui/icons-material/Dashboard';
@@ -34,30 +36,15 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import GroupIcon from '@mui/icons-material/Group';
 import ArtTrackIcon from '@mui/icons-material/ArtTrack';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
-// Mock navigate if not available
-let useNavigate = () => {
-  const navigate = (path: string) => console.log(`Navigate to: ${path}`);
-  return navigate;
-};
 
-try {
-  useNavigate = require('react-router-dom').useNavigate;
-} catch (e) {
-  console.warn('react-router-dom not available, using mock navigate');
-}
+// Import context and user-related hooks properly
+import { useAuth } from '../../../context/AuthContext';
 
-// Import context and user-related hooks
-// try/catch for missing context
-let useAuth = () => ({
-  user: { name: 'Test User', email: 'test@example.com', profileImageUrl: undefined },
-  logout: () => console.log('Logout called')
-});
+// Import navigation properly  
+import { useNavigate } from 'react-router-dom';
 
-try {
-  useAuth = require('../../../context/AuthContext').useAuth;
-} catch (e) {
-  console.warn('AuthContext not available, using mock');
-}
+// Import sync notification for toast messages
+import SyncNotification from '../../FitnessStats/SyncNotification';
 
 // Import ClientDashboardContent component
 import ClientDashboardContent from './ClientDashboardContent';
@@ -303,7 +290,8 @@ const ClientDashboardLayout: React.FC = () => {
   // Determine the current page title based on the active section
   
   return (
-    <ThemeProvider theme={darkTheme}>
+    <StyledComponentsThemeProvider theme={dashboardTheme}>
+      <MuiThemeProvider theme={darkTheme}>
       <Box sx={{ display: 'flex' }}>
         <CssBaseline />
         
@@ -493,8 +481,12 @@ const ClientDashboardLayout: React.FC = () => {
             <ClientDashboardContent activeSection={activeSection} />
           </Container>
         </Box>
+        
+        {/* Global notification system for sync status */}
+        <SyncNotification />
       </Box>
-    </ThemeProvider>
+      </MuiThemeProvider>
+    </StyledComponentsThemeProvider>
   );
 };
 

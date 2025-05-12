@@ -4,7 +4,7 @@ FastAPI routes for MCP tools.
 
 from fastapi import APIRouter
 
-from ..models import (
+from models import (
     GetWorkoutRecommendationsInput,
     GetWorkoutRecommendationsOutput,
     GetClientProgressInput,
@@ -16,7 +16,7 @@ from ..models import (
     GenerateWorkoutPlanInput,
     GenerateWorkoutPlanOutput
 )
-from ..tools import (
+from tools import (
     get_workout_recommendations,
     get_client_progress,
     get_workout_statistics,

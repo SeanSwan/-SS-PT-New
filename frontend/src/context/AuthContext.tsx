@@ -1,9 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import apiService from '../services/api.service';
-import { mockUser, mockAdminUser } from './mockUser';
+import { mockUser, mockAdminUser, mockTrainerUser, mockRegularUser } from './mockUser';
 import { setUser as setReduxUser, logout as logoutRedux } from '../store/slices/authSlice';
 import { getUserFromMemory, setUserInMemory, setTokenInMemory, clearMemoryStore } from '../utils/dev-memory-store';
+import { createClientProgressService, ClientProgressServiceInterface } from '../services/client-progress-service';
+import { createExerciseService, ExerciseServiceInterface } from '../services/exercise-service';
+import { createAdminClientService, AdminClientServiceInterface } from '../services/adminClientService';
+import { AxiosInstance } from 'axios';
 
 // Auth Context Interface
 interface AuthContextType {
@@ -14,6 +18,13 @@ interface AuthContextType {
   logout: () => void;
   register: (data: any) => Promise<boolean>;
   updateUser: (data: any) => Promise<boolean>;
+  // Add services and authAxios
+  services: {
+    clientProgress: ClientProgressServiceInterface;
+    exercise: ExerciseServiceInterface;
+    adminClient: AdminClientServiceInterface;
+  };
+  authAxios: AxiosInstance;
 }
 
 // Create the Auth Context
@@ -24,13 +35,26 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => ({ success: false, user: null }),
   logout: () => {},
   register: async () => false,
-  updateUser: async () => false
+  updateUser: async () => false,
+  services: {
+    clientProgress: null as any,
+    exercise: null as any,
+    adminClient: null as any
+  },
+  authAxios: null as any
 });
 
 // Auth Provider Component
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
   const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Create services using apiService
+  const services = {
+    clientProgress: createClientProgressService(apiService),
+    exercise: createExerciseService(apiService),
+    adminClient: createAdminClientService(apiService)
+  };
   
   // Try to use Redux if available
   let dispatch: any = null;
@@ -166,11 +190,22 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       }
       
       // For development/testing purposes, use pre-defined mock users
-      const userToUse = username.toLowerCase().includes('admin') ? mockAdminUser : mockUser;
+      let userToUse;
+      
+      // Determine which mock user to use based on username
+      if (username.toLowerCase().includes('admin')) {
+        userToUse = mockAdminUser;
+      } else if (username.toLowerCase().includes('trainer')) {
+        userToUse = mockTrainerUser;
+      } else if (username.toLowerCase().includes('user')) {
+        userToUse = mockRegularUser;
+      } else {
+        userToUse = mockUser; // Default to client
+      }
       
       // Set a custom email if provided
       if (username.includes('@')) {
-        userToUse.email = username;
+        userToUse = { ...userToUse, email: username };
       }
       
       // Use mock users for development
@@ -388,7 +423,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         login,
         logout,
         register,
-        updateUser
+        updateUser,
+        services,
+        authAxios: apiService
       }}
     >
       {children}

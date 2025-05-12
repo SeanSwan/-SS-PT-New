@@ -44,7 +44,7 @@ export interface ExercisesListResponse {
 
 // Service interface
 export interface ExerciseServiceInterface {
-  getRecommendedExercises: () => Promise<RecommendedExercisesResponse>;
+  getRecommendedExercises: (clientId?: string) => Promise<RecommendedExercisesResponse>;
   getExerciseById: (id: string) => Promise<SingleExerciseResponse>;
   getExercisesByType: (type: string) => Promise<ExercisesListResponse>;
   getExercisesByMuscleGroup: (muscleGroup: string) => Promise<ExercisesListResponse>;
@@ -54,10 +54,11 @@ export interface ExerciseServiceInterface {
 // Create service
 export const createExerciseService = (axios: AxiosInstance): ExerciseServiceInterface => {
   return {
-    getRecommendedExercises: async () => {
+    getRecommendedExercises: async (clientId?: string) => {
       try {
-        console.log('Fetching recommended exercises from API...');
-        const response = await axios.get<RecommendedExercisesResponse>('/api/exercises/recommended');
+        console.log(`Fetching recommended exercises from API${clientId ? ` for client ${clientId}` : ''}...`);
+        const url = clientId ? `/api/exercises/recommended/${clientId}` : '/api/exercises/recommended';
+        const response = await axios.get<RecommendedExercisesResponse>(url);
         
         if (response.data && response.data.success) {
           console.log(`Received ${response.data.recommendedExercises.length} recommended exercises`);

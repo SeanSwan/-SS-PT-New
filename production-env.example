@@ -1,0 +1,45 @@
+# SwanStudios Production Environment Variables
+# Copy these to your Render Environment Variables section
+
+# Node Environment
+NODE_ENV=production
+
+# JWT Authentication (CRITICAL - GENERATE UNIQUE SECURE STRINGS)
+JWT_SECRET=REPLACE_WITH_SECURE_RANDOM_STRING_AT_LEAST_32_CHARS
+JWT_REFRESH_SECRET=REPLACE_WITH_DIFFERENT_SECURE_RANDOM_STRING_AT_LEAST_32_CHARS
+JWT_EXPIRES_IN=3h
+JWT_REFRESH_EXPIRES_IN=7d
+
+# Frontend Configuration
+FRONTEND_URL=https://swanstudios-app.onrender.com
+FRONTEND_ORIGINS=https://swanstudios-app.onrender.com,http://localhost:5173
+
+# Email Configuration (for Nodemailer)
+EMAIL_HOST=smtp.example.com
+EMAIL_PORT=587
+EMAIL_SECURE=true
+EMAIL_USER=your_email@example.com
+EMAIL_PASS=your_email_password
+EMAIL_FROM=noreply@swanstudios.com
+
+# SendGrid Configuration (if using)
+SENDGRID_API_KEY=your_sendgrid_api_key
+SENDGRID_FROM_EMAIL=noreply@swanstudios.com
+
+# Stripe Configuration (if using)
+STRIPE_SECRET_KEY=sk_live_your_stripe_secret_key
+STRIPE_WEBHOOK_SECRET=whsec_your_stripe_webhook_secret
+
+# Admin Configuration
+ADMIN_USERNAME=ogpswan
+ADMIN_FIRST_NAME=Sean
+ADMIN_LAST_NAME=Swan
+ADMIN_EMAIL=ogpswan@yahoo.com
+ADMIN_PASSWORD=REPLACE_WITH_SECURE_ADMIN_PASSWORD
+
+# Logging
+LOG_LEVEL=info
+
+# DO NOT SET THESE - Render will inject them automatically
+# DATABASE_URL - PostgreSQL connection string
+# MONGO_URI - MongoDB connection string

@@ -9,8 +9,14 @@ import '../fontawesome.setup';
 // Import viewport fix utility
 import initViewportFixes from './utils/viewportFix';
 
+// Import image error handler
+import { imageErrorHandler } from './utils/imageErrorHandler';
+
 // Initialize viewport fixes for better mobile experience
 initViewportFixes();
+
+// Initialize global image error handler to fix placeholder issues
+imageErrorHandler.initialize();
 
 // Get the root element - remove the TypeScript non-null assertion (!)
 const rootElement = document.getElementById('root');

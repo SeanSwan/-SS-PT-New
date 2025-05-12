@@ -2,14 +2,37 @@
  * MCP Services Index
  * 
  * Exports all MCP related services for easy import in components.
+ * This module serves as the central entry point for MCP (Model Context Protocol) services,
+ * providing access to the gamification and workout API interfaces.
+ * 
+ * @module services/mcp
  */
+
+// Type imports
+import type { GamificationMcpApi } from '../../types/mcp/gamification.types';
+import type { WorkoutMcpApi } from '../../types/mcp/workout.types';
 
 export { default as workoutMcpApi } from './workoutMcpService';
 export { default as gamificationMcpApi } from './gamificationMcpService';
 
-// Helper for checking MCP servers connectivity
-export const checkMcpServersStatus = async () => {
-  const results = {
+/**
+ * Interface for MCP server connectivity status
+ */
+export interface McpServersStatus {
+  workout: boolean;
+  gamification: boolean;
+}
+
+/**
+ * Helper function for checking MCP servers connectivity
+ * 
+ * This function dynamically imports both MCP services and checks their server status.
+ * It provides a convenient way to verify if all MCP services are available.
+ * 
+ * @returns Promise<McpServersStatus> Object with boolean status for each service
+ */
+export const checkMcpServersStatus = async (): Promise<McpServersStatus> => {
+  const results: McpServersStatus = {
     workout: false,
     gamification: false
   };

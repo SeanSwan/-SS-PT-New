@@ -13,6 +13,7 @@ import ErrorBoundary from './error-boundary';
 // Route Protection Components
 import AdminRoute from './admin-route';
 import ProtectedRoute from './protected-route';
+import { DashboardWrapper } from '../components/DashboardWrapper';
 
 // Custom Routes
 import DebugRoutes from './debug-routes';
@@ -182,8 +183,20 @@ const WorkoutDashboard = lazyLoadWithErrorHandling(
 
 // Admin Dashboard Components - using direct imports to avoid path resolution issues
 const AdminDashboardLayout = lazyLoadWithErrorHandling(
-  () => import('../components/DashBoard/AdminDashboardLayout'),
+  () => import('../components/DashBoard/AdminDashboardLayout.tsx'),
   'Admin Dashboard Layout'
+);
+
+// Trainer Dashboard
+const TrainerDashboard = lazyLoadWithErrorHandling(
+  () => import('../components/DashBoard/Pages/trainer-dashboard/trainer-dashboard.tsx'),
+  'Trainer Dashboard'
+);
+
+// User Dashboard
+const UserDashboard = lazyLoadWithErrorHandling(
+  () => import('../components/DashBoard/Pages/user-dashboard/user-dashboard'),
+  'User Dashboard'
 );
 
 /**
@@ -349,6 +362,30 @@ const MainRoutes: RouteObject = {
         <Suspense fallback={<PageLoader />}>
           <EmergencyDashboard />
         </Suspense>
+      )
+    },
+    
+    // Trainer Dashboard Route
+    {
+      path: 'trainer-dashboard',
+      element: (
+        <DashboardWrapper requiredRole={['admin', 'trainer']} fallbackRoute="/">
+          <Suspense fallback={<PageLoader />}>
+            <TrainerDashboard />
+          </Suspense>
+        </DashboardWrapper>
+      )
+    },
+    
+    // User Dashboard Route
+    {
+      path: 'user-dashboard',
+      element: (
+        <DashboardWrapper>
+          <Suspense fallback={<PageLoader />}>
+            <UserDashboard />
+          </Suspense>
+        </DashboardWrapper>
       )
     },
     

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
 import { 
   Box, 
   CssBaseline, 
@@ -34,13 +33,15 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import LogoutIcon from '@mui/icons-material/Logout';
 import GroupIcon from '@mui/icons-material/Group';
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
+
+import DashboardSelector from '../DashboardSelector/DashboardSelector';
 
 // Import the centralized internal routes component
 import AdminDashboardRoutes from './internal-routes';
 
 // Import contexts and state
 import { useAuth } from '../../context/AuthContext';
-import { RootState } from '../../store/store';
 
 // Import utils for accessibility
 import { accessibleLabelGenerator } from '../../utils/accessibility';
@@ -298,7 +299,7 @@ const AdminDashboardLayout: React.FC = () => {
     navigate('/login?returnUrl=/dashboard/default');
   };
   
-  // Navigation items
+  // Navigation items - Consistent with TrainerDashboard and ClientDashboard
   const mainNavItems: NavItem[] = [
     {
       text: 'Dashboard',
@@ -307,10 +308,22 @@ const AdminDashboardLayout: React.FC = () => {
       ariaLabel: 'Go to main dashboard'
     },
     {
+      text: 'Clients',
+      icon: <PeopleIcon />,
+      path: '/dashboard/clients',
+      ariaLabel: 'Manage clients'
+    },
+    {
       text: 'Client Progress',
       icon: <BarChartIcon />,
       path: '/dashboard/client-progress',
       ariaLabel: 'View client progress reports'
+    },
+    {
+      text: 'Workouts',
+      icon: <FitnessCenterIcon />,
+      path: '/dashboard/workouts',
+      ariaLabel: 'Manage workout programs'
     },
     {
       text: 'Sessions',
@@ -348,7 +361,9 @@ const AdminDashboardLayout: React.FC = () => {
   const getCurrentPageTitle = () => {
     const path = location.pathname;
     if (path.includes('default')) return 'Dashboard';
+    if (path.includes('clients')) return 'Client Management';
     if (path.includes('client-progress')) return 'Client Progress';
+    if (path.includes('workouts')) return 'Workout Programs';
     if (path.includes('admin-sessions')) return 'Training Sessions';
     if (path.includes('admin-packages')) return 'Training Packages';
     if (path.includes('gamification')) return 'Gamification';
@@ -387,14 +402,10 @@ const AdminDashboardLayout: React.FC = () => {
   // This is a temporary fix to ensure admin access works for testing
   if (user?.email === 'ogpswan@gmail.com' || user?.email === 'ogpswan') {
     console.log('Special user detected - bypassing role check');
-    // Clear any error
-    if (error) {
-      setError(null);
-    }
   }
   
   // Show error state if verification failed and not bypassed
-  if (error) {
+  if (error && user?.email !== 'ogpswan@gmail.com' && user?.email !== 'ogpswan') {
     return (
       <AdminDashboardError 
         error={error}
@@ -430,6 +441,11 @@ const AdminDashboardLayout: React.FC = () => {
             >
               {getCurrentPageTitle()}
             </Typography>
+            
+            {/* Dashboard Selector */}
+            <Box sx={{ mr: 2 }}>
+              <DashboardSelector />
+            </Box>
             
             {/* Profile Avatar & Menu */}
             <Tooltip title="Account settings">

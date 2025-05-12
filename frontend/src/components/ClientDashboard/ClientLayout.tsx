@@ -2,6 +2,9 @@ import React, { useState } from "react";
 import styled, { ThemeProvider } from "styled-components";
 import { AnimatePresence, motion } from "framer-motion";
 
+// Import dashboard selector
+import DashboardSelector from "../DashboardSelector/DashboardSelector";
+
 // Import components
 import Header from "../Header/header";
 import ClientSidebar from "./ClientSidebar";
@@ -128,6 +131,7 @@ export enum DashboardSection {
   OVERVIEW = "overview",
   WORKOUTS = "workouts",
   PROGRESS = "progress",
+  SESSIONS = "sessions",
   GAMIFICATION = "gamification",
   CREATIVE = "creative",
   COMMUNITY = "community",
@@ -172,6 +176,22 @@ const ClientLayout: React.FC = () => {
         return <MyWorkoutsSection />;
       case DashboardSection.PROGRESS:
         return <ProgressSection data={{}} />;
+      case DashboardSection.SESSIONS:
+        // Use SessionsSection or fallback to component below
+        return (
+          <div style={{ padding: '1rem' }}>
+            <h2>Training Sessions</h2>
+            <p>View and manage your scheduled and completed training sessions.</p>
+            <div style={{ 
+              padding: '1rem', 
+              background: 'rgba(0, 255, 255, 0.1)',
+              borderRadius: '8px',
+              marginTop: '1rem'
+            }}>
+              <p>This section will display your upcoming and past training sessions.</p>
+            </div>
+          </div>
+        );
       case DashboardSection.GAMIFICATION:
         return <GamificationSection />;
       case DashboardSection.CREATIVE:

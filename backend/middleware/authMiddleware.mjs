@@ -329,6 +329,18 @@ export const trainerOrAdminOnly = (req, res, next) => {
 };
 
 /**
+ * Alias for adminOnly middleware to maintain backwards compatibility
+ * Used in routes that import admin as a middleware
+ */
+export const admin = adminOnly;
+
+/**
+ * Alias for adminOnly middleware to maintain backwards compatibility  
+ * Used in routes that import isAdmin as a middleware
+ */
+export const isAdmin = adminOnly;
+
+/**
  * Resource owner or admin access middleware
  * For protecting resources that should only be accessed by the owner or an admin
  * @param {Function} getOwnerId - Function to extract owner ID from request

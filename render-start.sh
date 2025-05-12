@@ -1,30 +1,39 @@
 #!/bin/bash
 
-# Swan Studios Render Start Script
-# This script is designed to start the application on Render.com
+# Render Start Script
+# This script handles database migrations and server startup for production
 
-echo "==================================================="
-echo "SWAN STUDIOS - RENDER STARTUP SCRIPT"
-echo "==================================================="
-echo ""
+echo "Starting SwanStudios application in production mode"
 
-# Check if running on Render
-if [ -n "$RENDER" ]; then
-  echo "Running on Render.com platform"
-  
-  # Run database migrations (if needed)
-  echo "Running database migrations..."
-  cd backend
-  npx sequelize-cli db:migrate --config config/config.js --migrations-path migrations --models-path models --env production
-  
-  # Create admin account if needed
-  echo "Checking for admin account..."
-  node scripts/adminSeeder.mjs
-  
-  # Start the server
-  echo "Starting server..."
-  npm run render-start
-else
-  echo "Not running on Render.com platform. Use npm start instead."
-  exit 1
+# Set DATABASE_URL to use SSL (if not already set by Render)
+if [ -n "$DATABASE_URL" ]; then
+  echo "DATABASE_URL is set. Using Render PostgreSQL."
 fi
+
+# Check if we need to run migrations
+if [ "$SKIP_MIGRATIONS" != "true" ]; then
+  echo "Running database migrations..."
+  cd backend && npx sequelize-cli db:migrate --env production
+  
+  # Check the exit status of migrations
+  if [ $? -ne 0 ]; then
+    echo "Migration failed! Check database configuration."
+    exit 1
+  fi
+  
+  echo "Migrations completed successfully."
+else
+  echo "Skipping migrations as requested."
+fi
+
+# Ensure admin user exists
+echo "Ensuring admin user exists..."
+cd backend && node scripts/ensure-admin.mjs
+
+# Verify models are working
+echo "Verifying database models..."
+cd backend && node scripts/verify-models.mjs
+
+# Run the server
+echo "Starting server..."
+cd backend && node server.mjs

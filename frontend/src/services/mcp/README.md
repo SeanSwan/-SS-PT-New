@@ -12,9 +12,15 @@ The MCP integration follows a modular architecture:
 services/mcp/
 ├── workoutMcpService.ts        # Workout MCP API service
 ├── gamificationMcpService.ts   # Gamification MCP API service
+├── index.ts                    # Central entry point and utility functions
 ├── utils/
 │   └── mcp-error-handler.ts    # Centralized error handling
 └── README.md                   # Documentation
+
+types/mcp/
+├── workout.types.ts           # TypeScript interfaces for workout MCP API
+├── gamification.types.ts      # TypeScript interfaces for gamification MCP API
+└── index.ts                   # Type re-exports
 ```
 
 ## MCP Servers
@@ -37,6 +43,13 @@ The MCP integration consists of several key components:
 
 - **workoutMcpService.ts**: Handles all API calls to the Workout MCP server
 - **gamificationMcpService.ts**: Handles all API calls to the Gamification MCP server
+- **index.ts**: Central entry point that exports all MCP services and provides utility functions
+
+### Type Definitions
+
+- **workout.types.ts**: Comprehensive TypeScript interfaces for workout-related data and API methods
+- **gamification.types.ts**: Comprehensive TypeScript interfaces for gamification-related data and API methods
+- **index.ts**: Type re-exports for convenient importing
 
 ### Utilities
 
@@ -107,8 +120,12 @@ export const MCP_CONFIG = {
 ### Basic Usage
 
 ```typescript
-import { workoutMcpApi } from '../../services/mcp/workoutMcpService';
-import { gamificationMcpApi } from '../../services/mcp/gamificationMcpService';
+// Import API services from the central entry point
+import { workoutMcpApi, gamificationMcpApi } from '../../services/mcp';
+
+// Import type definitions for type safety
+import { WorkoutRecommendation, SuccessResponse } from '../../types/mcp/workout.types';
+import { GamificationProfile } from '../../types/mcp/gamification.types';
 
 // Check MCP server status
 const checkStatus = async () => {
@@ -189,6 +206,8 @@ const ClientDashboard = () => {
 3. **Use centralized error handling** to provide consistent user experience
 4. **Refresh data after mutations** to ensure UI is up to date
 5. **Use the specialized hooks** instead of direct API calls when possible
+6. **Leverage TypeScript interfaces** for better type safety and autocompletion
+7. **Use default imports consistently** when importing the MCP services directly (e.g., `import workoutMcpApi from '../../services/mcp/workoutMcpService'`) or named imports from the index file (e.g., `import { workoutMcpApi } from '../../services/mcp'`)
 
 ## Troubleshooting
 
@@ -207,3 +226,7 @@ Planned enhancements for the MCP integration:
 2. **Offline mode** with better data persistence
 3. **Enhanced sync mechanisms** between MCP servers
 4. **More granular error handling** for specific API endpoints
+5. **Expand TypeScript interfaces** to cover more complex data types and edge cases
+6. **Add validation with Zod** for runtime type checking of API responses
+7. **Generate documentation** automatically from TypeScript interfaces
+8. **Implement React Query integration** for better caching and state management with MCP services

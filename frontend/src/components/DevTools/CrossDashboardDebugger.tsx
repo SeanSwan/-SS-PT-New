@@ -36,8 +36,9 @@ import {
 import sessionService from '../../services/session-service';
 import api from '../../services/api';
 import { axiosInstance, authAxiosInstance } from '../../utils/axiosConfig';
-import { workoutMcpApi } from '../../services/mcp/workoutMcpService';
-import { gamificationMcpApi } from '../../services/mcp/gamificationMcpService';
+import workoutMcpApi from '../../services/mcp/workoutMcpService';
+import gamificationMcpApi from '../../services/mcp/gamificationMcpService';
+import { ServerStatus as McpServerStatus } from '../../types/mcp/workout.types';
 
 /**
  * CrossDashboardDebugger
@@ -53,7 +54,7 @@ const CrossDashboardDebugger: React.FC = () => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [apiStatus, setApiStatus] = useState<Record<string, any>>({});
-  const [mcpStatus, setMcpStatus] = useState<Record<string, boolean>>({
+  const [mcpStatus, setMcpStatus] = useState<{workout: boolean; gamification: boolean}>({
     workout: false,
     gamification: false
   });
@@ -202,6 +203,29 @@ const CrossDashboardDebugger: React.FC = () => {
       issues.push('Gamification MCP server is not accessible - achievements and rewards will not update');
     }
     
+    // Check progress data synchronization - new checks for consistency between client and admin dashboards
+    try {
+      // Check for client progress API endpoint
+      if (!apiStatus['/api/workouts']?.ok || !apiStatus['/api/gamification/profile']?.ok) {
+        issues.push('Client progress APIs are not accessible - progress data will not be synchronized between dashboards');
+      }
+      
+      // Verify the workout and gamification MCP servers are communicating correctly
+      if (mcpStatus.workout && mcpStatus.gamification) {
+        log('Verifying MCP server synchronization...');
+        // This is where we'd add more detailed checks between the two MCP services
+        // For now, just log that both servers are available
+        log('Both MCP servers are accessible - data can be synchronized');
+      } else if (mcpStatus.workout && !mcpStatus.gamification) {
+        issues.push('Workout data is available but gamification data is not - progress and achievements will be out of sync');
+      } else if (!mcpStatus.workout && mcpStatus.gamification) {
+        issues.push('Gamification data is available but workout data is not - achievements will not update based on workouts');
+      }
+    } catch (error) {
+      issues.push('Error checking progress data synchronization - dashboards may show inconsistent information');
+      log(`Error in synchronization check: ${error}`);
+    }
+    
     setDataFlowIssues(issues);
     log(`Analysis complete: Found ${issues.length} potential data flow issues`);
   };
@@ -275,6 +299,32 @@ const CrossDashboardDebugger: React.FC = () => {
       } catch (error: any) {
         fixResults['mcpConnections'] = `MCP reconnection failed: ${error.message}`;
       }
+    }
+    
+    // NEW: Attempt to fix client progress data synchronization
+    try {
+      log('Synchronizing client progress data between dashboards');
+      
+      // First check if both MCP servers are accessible
+      if (mcpStatus.workout && mcpStatus.gamification) {
+        // Try to synchronize client progress data through the admin API
+        await authAxiosInstance.post('/api/admin/sync-client-progress');
+        fixResults['progressDataSync'] = 'Client progress data synchronization successful';
+        
+        // Now verify that the workout and gamification data are properly linked
+        log('Verifying workout and gamification data integration');
+        await authAxiosInstance.post('/api/admin/verify-progress-integration');
+        
+        // Update achievements based on workout progress
+        log('Updating achievements based on workout progress');
+        await authAxiosInstance.post('/api/admin/update-achievements');
+        
+        fixResults['achievementSync'] = 'Achievement data updated successfully';
+      } else {
+        fixResults['progressDataSync'] = 'Cannot synchronize progress data - one or both MCP servers are offline';
+      }
+    } catch (error: any) {
+      fixResults['progressDataSync'] = `Client progress synchronization failed: ${error.message}`;
     }
     
     setFixAttempts(fixResults);

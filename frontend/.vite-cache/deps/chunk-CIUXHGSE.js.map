@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["../../node_modules/@mui/icons-material/esm/Diamond.js"],
-  "sourcesContent": ["\"use client\";\n\nimport createSvgIcon from \"./utils/createSvgIcon.js\";\nimport { jsx as _jsx } from \"react/jsx-runtime\";\nexport default createSvgIcon(/*#__PURE__*/_jsx(\"path\", {\n  d: \"M12.16 3h-.32L9.21 8.25h5.58zm4.3 5.25h5.16L19 3h-5.16zm4.92 1.5h-8.63V20.1zM11.25 20.1V9.75H2.62zM7.54 8.25 10.16 3H5L2.38 8.25z\"\n}), 'Diamond');"],
-  "mappings": ";;;;;;;;;;;AAGA,yBAA4B;AAC5B,IAAO,kBAAQ,kBAA2B,mBAAAA,KAAK,QAAQ;AAAA,EACrD,GAAG;AACL,CAAC,GAAG,SAAS;",
-  "names": ["_jsx"]
-}

@@ -43,4 +43,46 @@ export const mockAdminUser = {
   }
 };
 
+// NEW: Mock trainer user for testing trainer dashboard
+export const mockTrainerUser = {
+  id: 'mock-trainer-123',
+  email: 'trainer@swanstudios.dev',
+  username: 'traineruser',
+  firstName: 'John',
+  lastName: 'Trainer',
+  role: 'trainer',
+  profileImage: null,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  settings: {
+    theme: 'dark',
+    notifications: true,
+    language: 'en',
+  },
+  stats: {
+    totalClients: 15,
+    activeSessions: 8,
+    completedSessions: 145,
+    clientRetentionRate: 89
+  }
+};
+
+// Mock regular user for testing user dashboard
+export const mockRegularUser = {
+  id: 'mock-user-123',
+  email: 'user@swanstudios.dev',
+  username: 'regularuser',
+  firstName: 'Jane',
+  lastName: 'User',
+  role: 'user',
+  profileImage: null,
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  settings: {
+    theme: 'dark',
+    notifications: true,
+    language: 'en',
+  }
+};
+
 export default mockUser;

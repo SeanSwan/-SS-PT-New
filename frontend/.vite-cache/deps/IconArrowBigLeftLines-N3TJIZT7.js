@@ -1,0 +1,10 @@
+import {
+  IconArrowBigLeftLines
+} from "./chunk-UVC22MVH.js";
+import "./chunk-SJAGVRT3.js";
+import "./chunk-FXJVXTVJ.js";
+import "./chunk-4B2QHNJT.js";
+export {
+  IconArrowBigLeftLines as default
+};
+//# sourceMappingURL=IconArrowBigLeftLines-N3TJIZT7.js.map

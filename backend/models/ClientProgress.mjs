@@ -354,6 +354,27 @@ ClientProgress.init(
       allowNull: true,
       comment: 'Date of last formal assessment',
     },
+    
+    // Raw data from workout MCP server
+    workoutData: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'Raw JSON data from workout MCP server',
+    },
+    
+    // Raw data from gamification MCP server
+    gamificationData: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'Raw JSON data from gamification MCP server',
+    },
+    
+    // Last synchronization timestamp
+    lastSynced: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Timestamp of last synchronization with MCP servers',
+    },
   },
   {
     sequelize,

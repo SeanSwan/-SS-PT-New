@@ -423,8 +423,16 @@ const ClientSidebar: React.FC<ClientSidebarProps> = ({
             />
             
             <NavigationItem
+              icon={LineChart}
+              label="Progress"
+              section={DashboardSection.PROGRESS}
+              isActive={activeSection === DashboardSection.PROGRESS}
+              onClick={() => onSectionChange(DashboardSection.PROGRESS)}
+            />
+            
+            <NavigationItem
               icon={Dumbbell}
-              label="My Workouts"
+              label="Workouts"
               section={DashboardSection.WORKOUTS}
               isActive={activeSection === DashboardSection.WORKOUTS}
               onClick={() => onSectionChange(DashboardSection.WORKOUTS)}
@@ -436,13 +444,13 @@ const ClientSidebar: React.FC<ClientSidebarProps> = ({
                   onClick: () => onSectionChange(DashboardSection.WORKOUTS)
                 },
                 {
-                  label: "Dance Routines",
+                  label: "Session History",
                   section: DashboardSection.WORKOUTS,
                   isActive: false,
                   onClick: () => onSectionChange(DashboardSection.WORKOUTS)
                 },
                 {
-                  label: "Session History",
+                  label: "Exercise Library",
                   section: DashboardSection.WORKOUTS,
                   isActive: false,
                   onClick: () => onSectionChange(DashboardSection.WORKOUTS)
@@ -451,16 +459,16 @@ const ClientSidebar: React.FC<ClientSidebarProps> = ({
             />
             
             <NavigationItem
-              icon={LineChart}
-              label="Progress"
-              section={DashboardSection.PROGRESS}
-              isActive={activeSection === DashboardSection.PROGRESS}
-              onClick={() => onSectionChange(DashboardSection.PROGRESS)}
+              icon={CalendarIcon}
+              label="Sessions"
+              section={DashboardSection.SESSIONS}
+              isActive={activeSection === DashboardSection.SESSIONS}
+              onClick={() => onSectionChange(DashboardSection.SESSIONS)}
             />
             
             <NavigationItem
               icon={Trophy}
-              label="Achievements"
+              label="Gamification"
               section={DashboardSection.GAMIFICATION}
               isActive={activeSection === DashboardSection.GAMIFICATION}
               onClick={() => onSectionChange(DashboardSection.GAMIFICATION)}

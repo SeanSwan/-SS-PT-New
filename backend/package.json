@@ -43,7 +43,6 @@
   "license": "ISC",
   "dependencies": {
     "@sendgrid/mail": "^8.1.4",
-    "axios": "^1.7.9",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
     "compression": "^1.8.0",
@@ -76,8 +75,11 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "axios": "^1.9.0",
+    "chalk": "^5.4.1",
     "concurrently": "^8.2.2",
     "nodemon": "^3.1.4",
+    "ora": "^8.2.0",
     "sequelize-cli": "^6.6.2"
   }
 }

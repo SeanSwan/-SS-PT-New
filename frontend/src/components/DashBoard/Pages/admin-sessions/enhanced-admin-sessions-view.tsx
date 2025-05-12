@@ -5,6 +5,7 @@ import { useToast } from "../../../../hooks/use-toast";
 import GlowButton from '../../../Button/glowButton'; // Ensure path is correct
 import SessionTestControls from './session-test-controls';
 import services from '../../../../services/index';
+import apiService from '../../../../services/api.service'; // Import apiService directly
 
 // Import Icons
 import {
@@ -135,7 +136,7 @@ interface Session {
  * with improved styling, animations, and user experience.
  */
 const EnhancedAdminSessionsView: React.FC = () => {
-  const { authAxios } = useAuth();
+  const { user } = useAuth(); // Remove authAxios destructuring
   const { toast } = useToast();
 
   // State for data, loading and errors
@@ -269,7 +270,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
     setLoadingClients(true);
     try {
       // Use the user service endpoint for clients
-      const response = await authAxios.get('/api/auth/clients');
+      const response = await apiService.get('/api/auth/clients');
 
       if (response.data && Array.isArray(response.data)) {
         setClients(response.data);
@@ -299,7 +300,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
     setLoadingTrainers(true);
     try {
       // Use the existing API endpoint for trainers
-      const response = await authAxios.get('/api/auth/trainers');
+      const response = await apiService.get('/api/auth/trainers');
 
       if (response.data && Array.isArray(response.data)) {
         setTrainers(response.data);
@@ -329,8 +330,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
     fetchSessions();
     fetchClients();
     fetchTrainers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Assuming authAxios and toast are stable references
+  }, []); // Remove the authAxios dependency since we're using apiService
 
   // Handle pagination change
   const handleChangePage = (event: unknown, newPage: number) => {
@@ -464,7 +464,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
       };
 
       // Make the API call using the correct endpoint
-      const response = await authAxios.put(`/api/sessions/${selectedSession.id}`, updatedSessionData);
+      const response = await apiService.put(`/api/sessions/${selectedSession.id}`, updatedSessionData);
 
       if (response.status === 200) {
         toast({
@@ -527,7 +527,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
       };
 
       // Use the correct API endpoint for creating sessions
-      const response = await authAxios.post('/api/sessions', newSessionData);
+      const response = await apiService.post('/api/sessions', newSessionData);
 
       if (response.status === 201 || response.status === 200) {
         toast({

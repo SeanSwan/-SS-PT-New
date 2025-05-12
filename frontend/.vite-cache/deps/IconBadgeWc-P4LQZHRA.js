@@ -1,0 +1,10 @@
+import {
+  IconBadgeWc
+} from "./chunk-BFFPCBMF.js";
+import "./chunk-SJAGVRT3.js";
+import "./chunk-FXJVXTVJ.js";
+import "./chunk-4B2QHNJT.js";
+export {
+  IconBadgeWc as default
+};
+//# sourceMappingURL=IconBadgeWc-P4LQZHRA.js.map

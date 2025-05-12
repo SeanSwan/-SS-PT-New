@@ -1,6 +1,9 @@
 import express from 'express';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+import { getMongoDBStatus } from '../mongodb-connect.mjs';
+import os from 'os';
+import { version } from 'process';
 
 const router = express.Router();
 
@@ -11,17 +14,58 @@ const router = express.Router();
  */
 router.get('/', async (req, res) => {
   try {
-    // Check database connection
-    await sequelize.authenticate();
+    // Check PostgreSQL database connection
+    let postgresConnected = false;
+    try {
+      await sequelize.authenticate();
+      postgresConnected = true;
+    } catch (dbError) {
+      logger.error('PostgreSQL health check failed:', { error: dbError.message });
+    }
     
-    // Return basic system info
-    res.status(200).json({
-      success: true,
-      message: 'API is healthy',
+    // Get MongoDB status
+    const mongoStatus = getMongoDBStatus();
+    
+    // Get system information
+    const systemInfo = {
+      platform: os.platform(),
+      arch: os.arch(),
+      cpus: os.cpus().length,
+      totalMem: Math.round(os.totalmem() / (1024 * 1024)) + 'MB',
+      freeMem: Math.round(os.freemem() / (1024 * 1024)) + 'MB',
+      nodeVersion: version,
+    };
+    
+    // Determine overall health status
+    // In production, both databases must be connected
+    // In development, at least one database must be connected
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isHealthy = isProduction 
+      ? (postgresConnected && mongoStatus.connected)
+      : (postgresConnected || mongoStatus.connected);
+    
+    // Return comprehensive health information
+    res.status(isHealthy ? 200 : 503).json({
+      success: isHealthy,
+      message: isHealthy ? 'API is healthy' : 'API health check failed',
       environment: process.env.NODE_ENV || 'development',
       timestamp: new Date().toISOString(),
-      databaseConnected: true,
-      uptime: process.uptime()
+      databases: {
+        postgres: {
+          connected: postgresConnected,
+          type: 'primary'
+        },
+        mongodb: {
+          connected: mongoStatus.connected,
+          usingSQLite: mongoStatus.usingSQLite || false,
+          type: 'workout/gamification'
+        }
+      },
+      system: systemInfo,
+      uptime: {
+        seconds: Math.floor(process.uptime()),
+        formatted: formatUptime(process.uptime())
+      }
     });
   } catch (error) {
     logger.error('Health check failed:', { error: error.message });
@@ -29,13 +73,32 @@ router.get('/', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'API health check failed',
-      error: 'Database connection issue',
+      error: error.message,
       timestamp: new Date().toISOString(),
-      databaseConnected: false,
       uptime: process.uptime()
     });
   }
 });
+
+/**
+ * Format uptime in human-readable format
+ * @param {number} uptime - Uptime in seconds
+ * @returns {string} Formatted uptime string
+ */
+function formatUptime(uptime) {
+  const days = Math.floor(uptime / 86400);
+  const hours = Math.floor((uptime % 86400) / 3600);
+  const minutes = Math.floor((uptime % 3600) / 60);
+  const seconds = Math.floor(uptime % 60);
+  
+  let formatted = '';
+  if (days > 0) formatted += `${days}d `;
+  if (hours > 0 || days > 0) formatted += `${hours}h `;
+  if (minutes > 0 || hours > 0 || days > 0) formatted += `${minutes}m `;
+  formatted += `${seconds}s`;
+  
+  return formatted;
+}
 
 /**
  * @route   GET /api/health/database

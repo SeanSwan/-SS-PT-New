@@ -7,6 +7,9 @@ import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 import ShoppingCart from "../ShoppingCart/ShoppingCart";
 
+// Import dashboard selector
+import DashboardSelector from "../DashboardSelector/DashboardSelector";
+
 // Material UI imports
 import { 
   useMediaQuery, 
@@ -30,9 +33,12 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonIcon from '@mui/icons-material/Person';
+import { LayoutDashboard, Users } from 'lucide-react';
 
 // Import custom components
 import EnhancedNotificationSection from './EnhancedNotificationSection';
+import Debug from '../Debug/Debug';
+import { UserSwitcher } from '../UserSwitcher';
 
 // ===================== Animation Keyframes =====================
 const float = keyframes`
@@ -494,13 +500,10 @@ const EnhancedHeader = () => {
             Store <StyledDropdownIcon />
           </StyledNavLinkWithDropdown>
           
-          <StyledNavLink 
-            to="/client-dashboard" 
-            className={isActive('/client-dashboard') ? "active" : ""}
-            variants={itemVariants}
-          >
-            Client Dashboard
-          </StyledNavLink>
+          {/* Dashboard Selector - Always show for logged-in users */}
+          <Box sx={{ ml: 2, mr: 2 }}>
+            <DashboardSelector />
+          </Box>
 
           <StyledNavLink 
             to="/workout-tracker" 
@@ -517,16 +520,6 @@ const EnhancedHeader = () => {
           >
             Schedule
           </StyledNavLink>
-
-          {user.role === "admin" && (
-            <StyledNavLink
-              to="/dashboard/default" 
-              className={isActive('/dashboard') ? "active" : ""}
-              variants={itemVariants}
-            >
-              Admin Dashboard
-            </StyledNavLink>
-          )}
         </>
       );
     } else {
@@ -624,13 +617,43 @@ const EnhancedHeader = () => {
             )}
           </motion.div>
           
+          {/* Dashboard Links */}
+          <MobileNavLink
+            to="/dashboard/default" 
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/dashboard') ? "active" : ""}
+            variants={itemVariants}
+            style={{ opacity: user?.role === 'admin' ? 1 : 0.5 }}
+          >
+            <LayoutDashboard fontSize="small" /> Admin Dashboard
+          </MobileNavLink>
+          
+          <MobileNavLink
+            to="/trainer-dashboard"
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/trainer-dashboard') ? "active" : ""}
+            variants={itemVariants}
+            style={{ opacity: user?.role === 'admin' || user?.role === 'trainer' ? 1 : 0.5 }}
+          >
+            <Users fontSize="small" /> Trainer Dashboard
+          </MobileNavLink>
+          
           <MobileNavLink
             to="/client-dashboard"
             onClick={() => setMobileMenuOpen(false)}
             className={isActive('/client-dashboard') ? "active" : ""}
             variants={itemVariants}
           >
-            Client Dashboard
+            <PersonIcon fontSize="small" /> Client Dashboard
+          </MobileNavLink>
+          
+          <MobileNavLink
+            to="/user-dashboard"
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/user-dashboard') ? "active" : ""}
+            variants={itemVariants}
+          >
+            <PersonIcon fontSize="small" /> User Dashboard
           </MobileNavLink>
           
           <MobileNavLink
@@ -677,17 +700,6 @@ const EnhancedHeader = () => {
           >
             About Us
           </MobileNavLink>
-          
-          {user.role === "admin" && (
-            <MobileNavLink
-              to="/dashboard/default"
-              onClick={() => setMobileMenuOpen(false)}
-              className={isActive('/dashboard') ? "active" : ""}
-              variants={itemVariants}
-            >
-              Admin Dashboard
-            </MobileNavLink>
-          )}
           
           <MobileLogoutButton
             onClick={() => {
@@ -1000,6 +1012,12 @@ const EnhancedHeader = () => {
 
       {/* Shopping Cart Modal */}
       {cartOpen && <ShoppingCart onClose={() => setCartOpen(false)} />}
+      
+      {/* Debug Component for Development */}
+      <Debug />
+      
+      {/* User Switcher for Development */}
+      <UserSwitcher />
     </>
   );
 };

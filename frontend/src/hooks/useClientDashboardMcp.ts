@@ -1,359 +1,218 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { workoutMcpApi, gamificationMcpApi } from '../services/mcpApis';
+import workoutMcpApi from '../services/mcp/workoutMcpService';
+import gamificationMcpApi from '../services/mcp/gamificationMcpService';
+import { WorkoutProgress, TrainingProgramData } from '../types/mcp/workout.types';
+import { GamificationProfile, Achievement, Challenge } from '../types/mcp/gamification.types';
+
+// Interface for the gamification data structure
+interface GamificationData {
+  profile: GamificationProfile | null;
+  achievements: Achievement[];
+  challenges: Challenge[];
+}
 
 /**
- * Custom hook for managing Client Dashboard MCP integrations
- * Provides unified access to workout and gamification data
+ * Custom hook for integrating with the Client Dashboard MCP services
+ * 
+ * Provides data and functions for the client dashboard including:
+ * - Progress data (fitness metrics, body measurements, etc.)
+ * - Gamification data (achievements, leaderboard, etc.)
+ * - Training program data (workouts, schedules, etc.)
+ * 
+ * This hook serves as the central integration point between the client dashboard
+ * and the workout/gamification MCP servers, ensuring data synchronization between
+ * the client and admin views of progress data.
+ * 
+ * @returns {Object} An object containing progress data, gamification data, loading state,
+ *                  error state, and functions to refresh the data
  */
 const useClientDashboardMcp = () => {
   const { user } = useAuth();
+  const [progress, setProgress] = useState<WorkoutProgress | null>(null);
+  const [gamification, setGamification] = useState<GamificationData | null>(null);
+  const [trainingProgram, setTrainingProgram] = useState<TrainingProgramData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [mcpStatus, setMcpStatus] = useState<{workout: boolean; gamification: boolean}>({
-    workout: false,
-    gamification: false
-  });
-  const [workoutData, setWorkoutData] = useState<any>(null);
-  const [gamificationData, setGamificationData] = useState<any>(null);
-
-  // Check MCP server status
-  const checkMcpStatus = useCallback(async () => {
-    try {
-      // Check workout MCP server
-      const workoutStatus = await workoutMcpApi.checkServerStatus()
-        .then(() => true)
-        .catch(() => false);
-      
-      // Check gamification MCP server
-      const gamificationStatus = await gamificationMcpApi.checkServerStatus()
-        .then(() => true)
-        .catch(() => false);
-      
-      const status = {
-        workout: workoutStatus,
-        gamification: gamificationStatus
-      };
-      
-      setMcpStatus(status);
-      return status;
-    } catch (error) {
-      console.error('[MCP] Error checking MCP servers status', error);
-      const status = { workout: false, gamification: false };
-      setMcpStatus(status);
-      return status;
-    }
-  }, []);
-
-  // Load mock data as fallback
-  const loadMockData = useCallback(() => {
-    console.log('[MCP] Using mock data fallback');
-    
-    // Mock workout data
-    const mockWorkoutData = {
-      recommendations: {
-        workouts: [
-          {
-            id: '1',
-            name: 'Lower Body Strength',
-            type: 'Strength',
-            duration: 45,
-            exercises: 8,
-            level: 3
-          },
-          {
-            id: '2',
-            name: 'Core Stability',
-            type: 'Core',
-            duration: 30,
-            exercises: 6,
-            level: 2
-          },
-          {
-            id: '3',
-            name: 'Upper Body Power',
-            type: 'Strength',
-            duration: 40,
-            exercises: 7,
-            level: 3
-          },
-          {
-            id: '4',
-            name: 'HIIT Cardio',
-            type: 'Cardio',
-            duration: 25,
-            exercises: 5,
-            level: 4
-          }
-        ]
-      },
-      progress: {
-        sessionsCompleted: 12,
-        totalSessions: 20,
-        daysActive: 24,
-        weeklyProgress: 85
-      }
-    };
-    
-    // Mock gamification data
-    const mockGamificationData = {
-      profile: {
-        level: 22,
-        progress: 65,
-        points: 2250,
-        streak: 24,
-        attributes: {
-          strength: { level: 24, progress: 70 },
-          cardio: { level: 18, progress: 45 },
-          flexibility: { level: 20, progress: 60 },
-          balance: { level: 19, progress: 50 }
-        }
-      },
-      achievements: [
-        {
-          id: '1',
-          name: 'Strength Master',
-          description: 'Complete 10 strength workouts',
-          progress: 8,
-          totalRequired: 10,
-          tier: 'silver',
-          completed: false,
-          icon: 'dumbbell'
-        },
-        {
-          id: '2',
-          name: 'Consistency Champion',
-          description: 'Work out 5 days in a row',
-          progress: 5,
-          totalRequired: 5,
-          tier: 'gold',
-          completed: true,
-          icon: 'award'
-        },
-        {
-          id: '3',
-          name: 'Flexibility Guru',
-          description: 'Reach level 10 in flexibility',
-          progress: 6,
-          totalRequired: 10,
-          tier: 'bronze',
-          completed: false,
-          icon: 'activity'
-        }
-      ]
-    };
-    
-    setWorkoutData(mockWorkoutData);
-    setGamificationData(mockGamificationData);
-    setLoading(false);
-  }, []);
-
-  // Fetch data from workout MCP
-  const fetchWorkoutData = useCallback(async () => {
-    if (!user?.id) return null;
+  const [error, setError] = useState<string | null>(null);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
+  
+  /**
+   * Refresh progress data
+   */
+  const refreshProgress = useCallback(async () => {
+    if (!user?.id) return;
     
     try {
-      // Get workout recommendations
-      const recommendationsResponse = await workoutMcpApi.getWorkoutRecommendations({
-        userId: user.id,
-        goal: 'strength',
-        difficulty: 'intermediate',
-        limit: 4
-      });
-      
-      // Get client progress
-      const progressResponse = await workoutMcpApi.getClientProgress({
+      // Fetch progress data from MCP server
+      const response = await workoutMcpApi.getClientProgress({
         userId: user.id
       });
       
-      // Combine workout data
-      const combinedWorkoutData = {
-        recommendations: recommendationsResponse.data,
-        progress: progressResponse.data
-      };
+      if (response?.data?.progress) {
+        setProgress(response.data.progress);
+      }
       
-      setWorkoutData(combinedWorkoutData);
-      return combinedWorkoutData;
-    } catch (error) {
-      console.error('[MCP] Error fetching workout data', error);
+      return response?.data?.progress;
+    } catch (err) {
+      console.error('Error fetching progress data:', err);
+      setError('Failed to load progress data. Please try again later.');
       return null;
     }
   }, [user?.id]);
-
-  // Fetch gamification data
-  const fetchGamificationData = useCallback(async (workoutData = null) => {
-    if (!user?.id) return null;
+  
+  /**
+   * Refresh gamification data
+   */
+  const refreshGamification = useCallback(async () => {
+    if (!user?.id) return;
     
     try {
-      // If workout data is provided, log the activity
-      if (workoutData) {
-        await gamificationMcpApi.logActivity({
-          userId: user.id,
-          activityType: 'workout_data_sync',
-          activityData: workoutData
-        });
-      }
-      
-      // Get profile
+      // Fetch gamification profile data
       const profileResponse = await gamificationMcpApi.getGamificationProfile({
         userId: user.id
       });
       
-      // Get achievements
+      // Fetch achievements
       const achievementsResponse = await gamificationMcpApi.getAchievements({
         userId: user.id,
         includeCompleted: true,
         includeInProgress: true
       });
       
-      // Combine gamification data
-      const combinedGamificationData = {
-        profile: profileResponse.data,
-        achievements: achievementsResponse.data
+      // Fetch challenges
+      const challengesResponse = await gamificationMcpApi.getChallenges({
+        userId: user.id,
+        limit: 3
+      });
+      
+      // Combine all gamification data
+      const gamificationData = {
+        profile: profileResponse?.data?.profile || null,
+        achievements: achievementsResponse?.data?.achievements || [],
+        challenges: challengesResponse?.data?.challenges || []
       };
       
-      setGamificationData(combinedGamificationData);
-      return combinedGamificationData;
-    } catch (error) {
-      console.error('[MCP] Error fetching gamification data', error);
+      setGamification(gamificationData);
+      return gamificationData;
+    } catch (err) {
+      console.error('Error fetching gamification data:', err);
+      setError('Failed to load gamification data. Please try again later.');
       return null;
     }
   }, [user?.id]);
-
-  // Refresh all data
-  const refreshData = useCallback(async (forceRefresh = false) => {
+  
+  /**
+   * Refresh training program data
+   */
+  const refreshTrainingProgram = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      // Fetch training program data
+      const response = await workoutMcpApi.getClientTrainingProgram({
+        userId: user.id
+      });
+      
+      if (response?.data?.program) {
+        setTrainingProgram(response.data.program);
+      }
+      
+      return response?.data?.program;
+    } catch (err) {
+      console.error('Error fetching training program data:', err);
+      setError('Failed to load training program data. Please try again later.');
+      return null;
+    }
+  }, [user?.id]);
+  
+  /**
+   * Refresh all dashboard data
+   * 
+   * This function fetches data from both the workout and gamification MCP servers
+   * in parallel to ensure a consistent view of the client's progress data.
+   * 
+   * @returns {Promise<void>}
+   */
+  const refreshAll = useCallback(async () => {
+    if (!user?.id) return;
+    
     setLoading(true);
+    setError(null);
     
-    // Check MCP server status
-    const status = await checkMcpStatus();
-    
-    // If both servers are offline or forceRefresh is false, use mock data
-    if ((!status.workout && !status.gamification) || !forceRefresh) {
-      loadMockData();
-      return;
-    }
-    
-    // Fetch workout data if available
-    let workoutResult = null;
-    if (status.workout) {
-      workoutResult = await fetchWorkoutData();
-    }
-    
-    // Fetch gamification data if available
-    if (status.gamification) {
-      await fetchGamificationData(workoutResult);
-    }
-    
-    // If no data was fetched, use mock data
-    // Don't check workoutData and gamificationData state here as it creates a dependency loop
-    // Instead check if we got results from the API calls
-    if (!workoutResult && !status.gamification) {
-      loadMockData();
-    } else {
+    try {
+      // Fetch all data in parallel without using the other useCallback functions
+      const results = await Promise.allSettled([
+        // Fetch progress data
+        workoutMcpApi.getClientProgress({ userId: user.id }).then(response => {
+          if (response?.data?.progress) {
+            setProgress(response.data.progress);
+            return response.data.progress;
+          }
+          return null;
+        }),
+        
+        // Fetch gamification data
+        Promise.all([
+          gamificationMcpApi.getGamificationProfile({ userId: user.id }),
+          gamificationMcpApi.getAchievements({ userId: user.id, includeCompleted: true, includeInProgress: true }),
+          gamificationMcpApi.getChallenges({ userId: user.id, limit: 3 })
+        ]).then(([profileResponse, achievementsResponse, challengesResponse]) => {
+          const gamificationData = {
+            profile: profileResponse?.data?.profile || null,
+            achievements: achievementsResponse?.data?.achievements || [],
+            challenges: challengesResponse?.data?.challenges || []
+          };
+          setGamification(gamificationData);
+          return gamificationData;
+        }),
+        
+        // Fetch training program data
+        workoutMcpApi.getClientTrainingProgram({ userId: user.id }).then(response => {
+          if (response?.data?.program) {
+            setTrainingProgram(response.data.program);
+            return response.data.program;
+          }
+          return null;
+        })
+      ]);
+      
+      // Update last sync time
+      setLastSyncTime(new Date());
+      
+      // Log successful sync for debugging
+      console.log('Successfully synchronized data from MCP servers', {
+        progress: results[0].status === 'fulfilled' && results[0].value ? 'Success' : 'Failed',
+        gamification: results[1].status === 'fulfilled' && results[1].value ? 'Success' : 'Failed',
+        trainingProgram: results[2].status === 'fulfilled' && results[2].value ? 'Success' : 'Failed',
+        timestamp: new Date().toISOString()
+      });
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError('Failed to load dashboard data. Please try again later.');
+    } finally {
       setLoading(false);
     }
-  }, [checkMcpStatus, fetchWorkoutData, fetchGamificationData, loadMockData]);
-
-  // Log workout completion
-  const logWorkoutCompletion = useCallback(async (workoutId: string, data: any) => {
-    try {
-      if (mcpStatus.workout) {
-        // Log to workout MCP
-        // Implementation would go here
-      }
-      
-      if (mcpStatus.gamification) {
-        // Log to gamification MCP
-        await gamificationMcpApi.logActivity({
-          userId: user?.id,
-          activityType: 'workout_completed',
-          activityData: {
-            workoutId,
-            ...data
-          }
-        });
-        
-        // Refresh gamification data
-        await fetchGamificationData();
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('[MCP] Error logging workout completion', error);
-      return false;
-    }
-  }, [mcpStatus, user?.id, fetchGamificationData]);
-
-  // Log food intake
-  const logFoodIntake = useCallback(async (data: any) => {
-    try {
-      if (mcpStatus.gamification) {
-        // Log to gamification MCP
-        await gamificationMcpApi.logActivity({
-          userId: user?.id,
-          activityType: 'food_intake',
-          activityData: data
-        });
-        
-        // Refresh gamification data
-        await fetchGamificationData();
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('[MCP] Error logging food intake', error);
-      return false;
-    }
-  }, [mcpStatus, user?.id, fetchGamificationData]);
-
-  // Update game progress
-  const updateGameProgress = useCallback(async (data: any) => {
-    try {
-      if (mcpStatus.gamification) {
-        // Log to gamification MCP
-        await gamificationMcpApi.logActivity({
-          userId: user?.id,
-          activityType: 'progress_update',
-          activityData: data
-        });
-        
-        // Refresh gamification data
-        await fetchGamificationData();
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('[MCP] Error updating game progress', error);
-      return false;
-    }
-  }, [mcpStatus, user?.id, fetchGamificationData]);
-
-  // Initial data load
+  }, [user?.id]); // Now only depends on user.id
+  
+  // Initial data fetch
   useEffect(() => {
-    // Run refreshData only once during initialization
-    const initializeData = async () => {
-      await refreshData(false);
-    };
-    
-    initializeData();
-    
-    // Set up interval to check MCP status
-    const intervalId = setInterval(() => {
-      checkMcpStatus();
-    }, 30000);
-    
-    return () => clearInterval(intervalId);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array to run only once
-
+    refreshAll();
+  }, [refreshAll]);
+  
   return {
+    // Data
+    progress,
+    gamification,
+    trainingProgram,
     loading,
-    mcpStatus,
-    workoutData,
-    gamificationData,
-    refreshData,
-    logWorkoutCompletion,
-    logFoodIntake,
-    updateGameProgress
+    error,
+    lastSyncTime,
+    
+    // Refresh functions
+    refreshProgress,
+    refreshGamification,
+    refreshTrainingProgram,
+    refreshAll
   };
 };
 
