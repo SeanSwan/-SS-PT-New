@@ -161,7 +161,7 @@ const AdminPackagesView: React.FC = () => {
   const [editMonths, setEditMonths] = useState<number>(0);
   const [editSessionsPerWeek, setEditSessionsPerWeek] = useState<number>(0);
   const [editTheme, setEditTheme] = useState('cosmic');
-  const [editIsActive, setEditIsActive] = useState(true);
+  const [editIsActive, setEditIsActive] = useState<boolean>(true);
 
   // Form state for new package
   const [newPackageName, setNewPackageName] = useState('');
@@ -339,7 +339,7 @@ const AdminPackagesView: React.FC = () => {
     setEditMonths(pkg.months || 0);
     setEditSessionsPerWeek(pkg.sessionsPerWeek || 0);
     setEditTheme(pkg.theme || 'cosmic');
-    setEditIsActive(pkg.isActive);
+    setEditIsActive(pkg.isActive ?? true);
     setOpenEditDialog(true);
   };
 
@@ -1084,7 +1084,7 @@ const AdminPackagesView: React.FC = () => {
               <FormControlLabel
                 control={
                   <Switch
-                    checked={editIsActive}
+                    checked={editIsActive ?? false}
                     onChange={(e) => setEditIsActive(e.target.checked)}
                     color="success"
                   />

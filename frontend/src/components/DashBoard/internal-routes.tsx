@@ -7,7 +7,7 @@ import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 
 // Directly import views to avoid dynamic import errors
-import DashboardView from './dashboard-view';
+import MainDashboard from './Pages/admin-dashboard/admin-dashboard-view';
 import AdminClientProgressView from './Pages/admin-client-progress/admin-client-progress-view';
 import AdminClientManagementView from './Pages/admin-clients/AdminClientManagementView';
 import ClientProgressDashboard from './Pages/client-progress/ClientProgressDashboard';
@@ -114,7 +114,7 @@ const AdminDashboardRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/dashboard/default" replace />} />
-      <Route path="/default" element={<DashboardView />} />
+      <Route path="/default" element={<MainDashboard />} />
       <Route path="/client-progress" element={<ClientProgressDashboard />} />
       <Route path="/clients" element={<AdminClientManagementView />} />
       <Route path="/workouts" element={<WorkoutProgramsView />} />

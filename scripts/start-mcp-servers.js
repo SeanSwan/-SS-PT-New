@@ -1,7 +1,7 @@
 /**
  * MCP Servers Startup Script
  * 
- * This script starts both the Workout MCP Server and Gamification MCP Server.
+ * This script starts the Workout MCP Server, Gamification MCP Server, and YOLO MCP Server.
  * It provides better error handling and status reporting compared to direct invocation.
  */
 
@@ -14,6 +14,7 @@ const ROOT_DIR = path.resolve(__dirname, '..');
 const MCP_SERVER_DIR = path.join(ROOT_DIR, 'backend', 'mcp_server');
 const WORKOUT_SERVER_SCRIPT = path.join(MCP_SERVER_DIR, 'start_workout_server.py');
 const GAMIFICATION_SERVER_SCRIPT = path.join(MCP_SERVER_DIR, 'start_gamification_server.py');
+const YOLO_SERVER_SCRIPT = path.join(MCP_SERVER_DIR, 'yolo_mcp_server', 'start_yolo_server.py');
 
 // Colors for console output
 const COLORS = {
@@ -54,7 +55,7 @@ function startPythonServer(scriptPath, serverName, serverColor) {
 
   // Spawn the Python process
   const serverProcess = spawn(pythonExecutable, [scriptPath], {
-    cwd: MCP_SERVER_DIR,
+    cwd: path.dirname(scriptPath),
     stdio: ['ignore', 'pipe', 'pipe'],
     detached: false
   });
@@ -104,9 +105,10 @@ function startPythonServer(scriptPath, serverName, serverColor) {
 // Print startup banner
 console.log('\n' + COLORS.bright + '╔════════════════════════════════════════════════════════════╗');
 console.log('║                    SwanStudios MCP Servers                    ║');
+console.log('║         Workout • Gamification • YOLO AI Analysis           ║');
 console.log('╚════════════════════════════════════════════════════════════╝' + COLORS.reset + '\n');
 
-// Start both servers
+// Start all servers
 const workoutServer = startPythonServer(
   WORKOUT_SERVER_SCRIPT, 
   'Workout MCP', 
@@ -117,6 +119,12 @@ const gamificationServer = startPythonServer(
   GAMIFICATION_SERVER_SCRIPT, 
   'Gamification MCP', 
   COLORS.magenta
+);
+
+const yoloServer = startPythonServer(
+  YOLO_SERVER_SCRIPT, 
+  'YOLO MCP', 
+  COLORS.green
 );
 
 // Handle script termination
@@ -131,8 +139,16 @@ process.on('SIGINT', () => {
     gamificationServer.kill();
   }
   
+  if (yoloServer) {
+    yoloServer.kill();
+  }
+  
   process.exit(0);
 });
 
-logServerMessage('MCP Manager', 'MCP servers initialized.', COLORS.green);
-logServerMessage('MCP Manager', 'Press Ctrl+C to stop all servers.', COLORS.green);
+logServerMessage('MCP Manager', 'All MCP servers initialized.', COLORS.green);
+logServerMessage('MCP Manager', 'Servers running on:');
+logServerMessage('MCP Manager', '  - Workout MCP: http://localhost:8000');
+logServerMessage('MCP Manager', '  - Gamification MCP: http://localhost:8001');
+logServerMessage('MCP Manager', '  - YOLO MCP: http://localhost:8002');
+logServerMessage('MCP Manager', 'Press Ctrl+C to stop all servers.', COLORS.bright);
