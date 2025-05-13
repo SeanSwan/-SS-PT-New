@@ -191,7 +191,11 @@ const AdminPackagesView: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await authAxios.get('/api/storefront');
+      if (!authAxios.get) {
+        console.error('authAxios.get is not available');
+        return;
+      }
+      const response = await authAxios.get('/api/admin/storefront');
 
       if (response.data && response.data.success && Array.isArray(response.data.items)) {
         setPackages(response.data.items);

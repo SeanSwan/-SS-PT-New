@@ -320,6 +320,12 @@ const AdminDashboardLayout: React.FC = () => {
       ariaLabel: 'View client progress reports'
     },
     {
+      text: 'Client Orientation',
+      icon: <AccountCircleIcon />,
+      path: '/dashboard/client-orientation',
+      ariaLabel: 'Manage client orientations and consultations'
+    },
+    {
       text: 'Workouts',
       icon: <FitnessCenterIcon />,
       path: '/dashboard/workouts',
@@ -363,6 +369,7 @@ const AdminDashboardLayout: React.FC = () => {
     if (path.includes('default')) return 'Dashboard';
     if (path.includes('clients')) return 'Client Management';
     if (path.includes('client-progress')) return 'Client Progress';
+    if (path.includes('client-orientation')) return 'Client Orientation';
     if (path.includes('workouts')) return 'Workout Programs';
     if (path.includes('admin-sessions')) return 'Training Sessions';
     if (path.includes('admin-packages')) return 'Training Packages';

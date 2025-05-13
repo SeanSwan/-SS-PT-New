@@ -1,7 +1,9 @@
 import express from 'express';
-import { SocialPost, SocialComment, SocialLike } from '../../models/social/index.mjs';
-import { User } from '../../models/User.mjs';
-import { authMiddleware } from '../../middleware/authMiddleware.mjs';
+import { SocialPost, SocialComment, SocialLike, Friendship } from '../../models/social/index.mjs';
+import User from '../../models/User.mjs';
+import { protect } from '../../middleware/authMiddleware.mjs';
+import { Op } from 'sequelize';
+import sequelize from '../../database.mjs';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -10,7 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 const router = express.Router();
 
 // Apply auth middleware to all routes
-router.use(authMiddleware);
+router.use(protect);
 
 // Set up multer for file uploads
 const storage = multer.diskStorage({
@@ -53,9 +55,9 @@ router.get('/feed', async (req, res) => {
     const offset = parseInt(req.query.offset) || 0;
     
     // Get the current user's friends
-    const friendships = await req.db.models.Friendship.findAll({
+    const friendships = await Friendship.findAll({
       where: {
-        [req.db.Sequelize.Op.or]: [
+        [Op.or]: [
           { requesterId: req.user.id, status: 'accepted' },
           { recipientId: req.user.id, status: 'accepted' }
         ]
@@ -72,8 +74,8 @@ router.get('/feed', async (req, res) => {
     
     const posts = await SocialPost.findAll({
       where: {
-        [req.db.Sequelize.Op.or]: [
-          { userId: { [req.db.Sequelize.Op.in]: userIds } },
+        [Op.or]: [
+          { userId: { [Op.in]: userIds } },
           { visibility: 'public' } 
         ]
       },
@@ -96,9 +98,9 @@ router.get('/feed', async (req, res) => {
     const commentsCount = await SocialComment.findAll({
       attributes: [
         'postId', 
-        [req.db.Sequelize.fn('COUNT', req.db.Sequelize.col('id')), 'count']
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
       ],
-      where: { postId: { [req.db.Sequelize.Op.in]: postIds } },
+      where: { postId: { [Op.in]: postIds } },
       group: ['postId'],
       raw: true
     });
@@ -114,7 +116,7 @@ router.get('/feed', async (req, res) => {
       where: {
         userId: req.user.id,
         targetType: 'post',
-        targetId: { [req.db.Sequelize.Op.in]: postIds }
+        targetId: { [Op.in]: postIds }
       },
       attributes: ['targetId']
     });
@@ -143,8 +145,8 @@ router.get('/feed', async (req, res) => {
         offset,
         total: await SocialPost.count({
           where: {
-            [req.db.Sequelize.Op.or]: [
-              { userId: { [req.db.Sequelize.Op.in]: userIds } },
+            [Op.or]: [
+              { userId: { [Op.in]: userIds } },
               { visibility: 'public' }
             ]
           }
@@ -187,9 +189,9 @@ router.get('/user/:userId', async (req, res) => {
     let isFriend = false;
     
     if (userId !== req.user.id) {
-      friendship = await req.db.models.Friendship.findOne({
+      friendship = await Friendship.findOne({
         where: {
-          [req.db.Sequelize.Op.or]: [
+          [Op.or]: [
             { requesterId: req.user.id, recipientId: userId },
             { requesterId: userId, recipientId: req.user.id }
           ]
@@ -232,9 +234,9 @@ router.get('/user/:userId', async (req, res) => {
     const commentsCount = await SocialComment.findAll({
       attributes: [
         'postId', 
-        [req.db.Sequelize.fn('COUNT', req.db.Sequelize.col('id')), 'count']
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
       ],
-      where: { postId: { [req.db.Sequelize.Op.in]: postIds } },
+      where: { postId: { [Op.in]: postIds } },
       group: ['postId'],
       raw: true
     });
@@ -250,7 +252,7 @@ router.get('/user/:userId', async (req, res) => {
       where: {
         userId: req.user.id,
         targetType: 'post',
-        targetId: { [req.db.Sequelize.Op.in]: postIds }
+        targetId: { [Op.in]: postIds }
       },
       attributes: ['targetId']
     });
@@ -411,9 +413,9 @@ router.get('/:postId', async (req, res) => {
     
     if (post.visibility === 'friends' && post.userId !== req.user.id) {
       // Check if the current user is friends with the post owner
-      const friendship = await req.db.models.Friendship.findOne({
+      const friendship = await Friendship.findOne({
         where: {
-          [req.db.Sequelize.Op.or]: [
+          [Op.or]: [
             { requesterId: req.user.id, recipientId: post.userId, status: 'accepted' },
             { requesterId: post.userId, recipientId: req.user.id, status: 'accepted' }
           ]

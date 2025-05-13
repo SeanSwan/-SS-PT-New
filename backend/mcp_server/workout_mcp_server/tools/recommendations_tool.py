@@ -5,7 +5,7 @@ MCP tool for exercise recommendations.
 import logging
 from fastapi import HTTPException, status
 
-from ..models import (
+from models import (
     GetWorkoutRecommendationsInput,
     GetWorkoutRecommendationsOutput
 )

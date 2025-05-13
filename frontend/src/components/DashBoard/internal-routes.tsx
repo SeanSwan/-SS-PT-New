@@ -18,6 +18,7 @@ import ClientDashboardView from './Pages/client-dashboard/client-dashboard-view'
 import OrientationDashboardView from './Pages/admin-dashboard/orientation-dashboard-view';
 import AdminDebugPage from './Pages/admin-dashboard/AdminDebugPage';
 import CommunityDashboard from './Pages/community/community-dashboard';
+import AdminOrientation from './Pages/admin-orientation/AdminOrientation';
 
 // Create a placeholder for WorkoutProgramsView
 const WorkoutProgramsView = () => (
@@ -123,7 +124,7 @@ const AdminDashboardRoutes: React.FC = () => {
       <Route path="/gamification" element={<GamificationComponent />} />
       <Route path="/user-management" element={<ModernUserManagementSystem />} />
       <Route path="/client-dashboard" element={<ClientDashboardView />} />
-      <Route path="/client-orientation" element={<OrientationDashboardView />} />
+      <Route path="/client-orientation" element={<AdminOrientation />} />
       <Route path="/community" element={<CommunityDashboard />} />
       <Route path="/admin/debug" element={<AdminDebugPage />} />
       <Route path="*" element={<Navigate to="/dashboard/default" replace />} />

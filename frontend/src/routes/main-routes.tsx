@@ -113,7 +113,7 @@ const AboutPage = lazyLoadWithErrorHandling(
   'About Page'
 );
 const StoreFront = lazyLoadWithErrorHandling(
-  () => import('../pages/shop/StoreFront.component'),
+  () => import('../pages/shop/StoreFrontAPI.component'),
   'Storefront'
 );
 const ShopPage = lazyLoadWithErrorHandling(
@@ -187,10 +187,10 @@ const AdminDashboardLayout = lazyLoadWithErrorHandling(
   'Admin Dashboard Layout'
 );
 
-// Trainer Dashboard
-const TrainerDashboard = lazyLoadWithErrorHandling(
-  () => import('../components/DashBoard/Pages/trainer-dashboard/trainer-dashboard.tsx'),
-  'Trainer Dashboard'
+// Trainer Dashboard Layout (New)
+const TrainerDashboardLayout = lazyLoadWithErrorHandling(
+  () => import('../components/DashBoard/Pages/trainer-dashboard/TrainerDashboardLayout.tsx'),
+  'Trainer Dashboard Layout'
 );
 
 // User Dashboard
@@ -365,15 +365,15 @@ const MainRoutes: RouteObject = {
       )
     },
     
-    // Trainer Dashboard Route
+    // Trainer Dashboard Routes - Independent Layout with Sub-routes
     {
-      path: 'trainer-dashboard',
+      path: 'trainer-dashboard/*',
       element: (
-        <DashboardWrapper requiredRole={['admin', 'trainer']} fallbackRoute="/">
+        <ProtectedRoute requiredRole="trainer">
           <Suspense fallback={<PageLoader />}>
-            <TrainerDashboard />
+            <TrainerDashboardLayout />
           </Suspense>
-        </DashboardWrapper>
+        </ProtectedRoute>
       )
     },
     

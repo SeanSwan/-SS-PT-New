@@ -1,7 +1,9 @@
 import express from 'express';
 import { Challenge, ChallengeParticipant, ChallengeTeam } from '../../models/social/index.mjs';
-import { User } from '../../models/User.mjs';
-import { authMiddleware } from '../../middleware/authMiddleware.mjs';
+import User from '../../models/User.mjs';
+import { protect } from '../../middleware/authMiddleware.mjs';
+import { Op } from 'sequelize';
+import sequelize from '../../database.mjs';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -10,7 +12,7 @@ import { v4 as uuidv4 } from 'uuid';
 const router = express.Router();
 
 // Apply auth middleware to all routes
-router.use(authMiddleware);
+router.use(protect);
 
 // Set up multer for challenge image uploads
 const storage = multer.diskStorage({
@@ -53,10 +55,22 @@ router.get('/active', async (req, res) => {
     const offset = parseInt(req.query.offset) || 0;
     
     // Get active challenges
-    const challenges = await Challenge.getActive({
+    const challenges = await Challenge.findAll({
+      where: {
+        status: 'active',
+        startDate: { [Op.lte]: new Date() },
+        endDate: { [Op.gte]: new Date() }
+      },
       limit,
       offset,
-      userId: req.user.id
+      order: [['startDate', 'DESC']],
+      include: [
+        {
+          model: User,
+          as: 'creator',
+          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
+        }
+      ]
     });
     
     // Get challenge IDs
@@ -65,7 +79,7 @@ router.get('/active', async (req, res) => {
     // Get user participation for these challenges
     const participations = await ChallengeParticipant.findAll({
       where: {
-        challengeId: { [req.db.Sequelize.Op.in]: challengeIds },
+        challengeId: { [Op.in]: challengeIds },
         userId: req.user.id
       }
     });
@@ -100,8 +114,8 @@ router.get('/active', async (req, res) => {
         total: await Challenge.count({
           where: {
             status: 'active',
-            startDate: { [req.db.Sequelize.Op.lte]: new Date() },
-            endDate: { [req.db.Sequelize.Op.gte]: new Date() }
+            startDate: { [Op.lte]: new Date() },
+            endDate: { [Op.gte]: new Date() }
           }
         })
       }
@@ -126,10 +140,27 @@ router.get('/my-challenges', async (req, res) => {
     const status = req.query.status || 'active';
     
     // Get user's challenges
-    const participations = await ChallengeParticipant.getChallengesForUser(req.user.id, {
-      status,
+    const participations = await ChallengeParticipant.findAll({
+      where: {
+        userId: req.user.id,
+        status
+      },
       limit,
-      offset
+      offset,
+      include: [
+        {
+          model: Challenge,
+          as: 'challenge',
+          include: [
+            {
+              model: User,
+              as: 'creator',
+              attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+            }
+          ]
+        }
+      ],
+      order: [['createdAt', 'DESC']]
     });
     
     return res.status(200).json({
@@ -190,7 +221,21 @@ router.get('/:challengeId', async (req, res) => {
     });
     
     // Get leaderboard
-    const leaderboard = await ChallengeParticipant.getLeaderboard(challengeId, { limit: 10 });
+    const leaderboard = await ChallengeParticipant.findAll({
+      where: {
+        challengeId,
+        status: { [Op.in]: ['active', 'completed'] }
+      },
+      limit: 10,
+      order: [['progress', 'DESC']],
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+        }
+      ]
+    });
     
     // For team challenges, get teams
     let teams = [];
@@ -264,6 +309,7 @@ router.post('/', upload.single('image'), async (req, res) => {
     
     // Create challenge data
     const challengeData = {
+      creatorId: req.user.id,
       name,
       description,
       type,
@@ -294,7 +340,7 @@ router.post('/', upload.single('image'), async (req, res) => {
     }
     
     // Create the challenge
-    const challenge = await Challenge.createChallenge(challengeData, req.user.id);
+    const challenge = await Challenge.create(challengeData);
     
     return res.status(201).json({
       success: true,
@@ -354,20 +400,34 @@ router.post('/:challengeId/join', async (req, res) => {
       });
     }
     
-    // Join the challenge
-    const result = await challenge.join(req.user.id);
+    // Check if already participating
+    const existingParticipation = await ChallengeParticipant.findOne({
+      where: {
+        challengeId,
+        userId: req.user.id
+      }
+    });
     
-    if (!result.success) {
+    if (existingParticipation) {
       return res.status(400).json({
         success: false,
-        message: result.message
+        message: 'You are already participating in this challenge'
       });
     }
+    
+    // Join the challenge
+    const participation = await ChallengeParticipant.create({
+      challengeId,
+      userId: req.user.id,
+      status: 'active',
+      progress: 0,
+      pointsEarned: 0
+    });
     
     return res.status(200).json({
       success: true,
       message: 'Successfully joined the challenge',
-      participation: result.participant
+      participation
     });
   } catch (error) {
     console.error('Error joining challenge:', error);
@@ -396,15 +456,23 @@ router.post('/:challengeId/leave', async (req, res) => {
       });
     }
     
-    // Leave the challenge
-    const result = await challenge.leave(req.user.id);
+    // Find and remove participation
+    const participation = await ChallengeParticipant.findOne({
+      where: {
+        challengeId,
+        userId: req.user.id
+      }
+    });
     
-    if (!result.success) {
+    if (!participation) {
       return res.status(400).json({
         success: false,
-        message: result.message
+        message: 'You are not participating in this challenge'
       });
     }
+    
+    // Remove participation
+    await participation.destroy();
     
     return res.status(200).json({
       success: true,
@@ -451,21 +519,34 @@ router.post('/:challengeId/progress', async (req, res) => {
       });
     }
     
-    // Update progress
-    const updatedParticipation = await participation.updateProgress(parseFloat(progress), { overwrite });
-    
     // Get the challenge
     const challenge = await Challenge.findByPk(challengeId);
+    
+    // Update progress
+    const newProgress = overwrite ? parseFloat(progress) : participation.progress + parseFloat(progress);
+    participation.progress = Math.min(newProgress, challenge.goal);
+    
+    // Check if completed
+    if (participation.progress >= challenge.goal && participation.status === 'active') {
+      participation.status = 'completed';
+      participation.pointsEarned += challenge.bonusPoints;
+    }
+    
+    // Calculate points earned
+    const pointsFromProgress = Math.floor(participation.progress * challenge.pointsPerUnit);
+    participation.pointsEarned = pointsFromProgress + (participation.status === 'completed' ? challenge.bonusPoints : 0);
+    
+    await participation.save();
     
     return res.status(200).json({
       success: true,
       message: 'Progress updated successfully',
-      participation: updatedParticipation,
-      isCompleted: updatedParticipation.isCompleted,
-      pointsEarned: updatedParticipation.pointsEarned,
-      progress: updatedParticipation.progress,
+      participation,
+      isCompleted: participation.status === 'completed',
+      pointsEarned: participation.pointsEarned,
+      progress: participation.progress,
       goal: challenge.goal,
-      progressPercentage: Math.min(100, Math.round((updatedParticipation.progress / challenge.goal) * 100))
+      progressPercentage: Math.min(100, Math.round((participation.progress / challenge.goal) * 100))
     });
   } catch (error) {
     console.error('Error updating challenge progress:', error);
@@ -499,7 +580,19 @@ router.get('/:challengeId/leaderboard', async (req, res) => {
     // Get leaderboard based on challenge type
     if (challenge.type === 'team') {
       // Get team leaderboard
-      const teamLeaderboard = await ChallengeTeam.getLeaderboard(challengeId, { limit, offset });
+      const teamLeaderboard = await ChallengeTeam.findAll({
+        where: { challengeId },
+        limit,
+        offset,
+        order: [['totalProgress', 'DESC']],
+        include: [
+          {
+            model: User,
+            as: 'captain',
+            attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+          }
+        ]
+      });
       
       return res.status(200).json({
         success: true,
@@ -514,7 +607,22 @@ router.get('/:challengeId/leaderboard', async (req, res) => {
       });
     } else {
       // Get individual leaderboard
-      const individualLeaderboard = await ChallengeParticipant.getLeaderboard(challengeId, { limit, offset });
+      const individualLeaderboard = await ChallengeParticipant.findAll({
+        where: {
+          challengeId,
+          status: { [Op.in]: ['active', 'completed'] }
+        },
+        limit,
+        offset,
+        order: [['progress', 'DESC']],
+        include: [
+          {
+            model: User,
+            as: 'user',
+            attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
+          }
+        ]
+      });
       
       return res.status(200).json({
         success: true,
@@ -527,7 +635,7 @@ router.get('/:challengeId/leaderboard', async (req, res) => {
           total: await ChallengeParticipant.count({ 
             where: {
               challengeId,
-              status: { [req.db.Sequelize.Op.in]: ['active', 'completed'] }
+              status: { [Op.in]: ['active', 'completed'] }
             }
           })
         }
@@ -576,329 +684,24 @@ router.post('/:challengeId/teams', async (req, res) => {
     }
     
     // Create the team
-    try {
-      const team = await ChallengeTeam.createTeam(challengeId, req.user.id, {
-        name,
-        description,
-        logoUrl: null
-      });
-      
-      return res.status(201).json({
-        success: true,
-        message: 'Team created successfully',
-        team
-      });
-    } catch (teamError) {
-      return res.status(400).json({
-        success: false,
-        message: teamError.message
-      });
-    }
+    const team = await ChallengeTeam.create({
+      challengeId,
+      captainId: req.user.id,
+      name,
+      description,
+      logoUrl: null
+    });
+    
+    return res.status(201).json({
+      success: true,
+      message: 'Team created successfully',
+      team
+    });
   } catch (error) {
     console.error('Error creating team:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to create team',
-      error: error.message
-    });
-  }
-});
-
-/**
- * Join a team
- */
-router.post('/teams/:teamId/join', async (req, res) => {
-  try {
-    const { teamId } = req.params;
-    
-    // Find the team
-    const team = await ChallengeTeam.findByPk(teamId);
-    
-    if (!team) {
-      return res.status(404).json({
-        success: false,
-        message: 'Team not found'
-      });
-    }
-    
-    // Get the challenge
-    const challenge = await Challenge.findByPk(team.challengeId);
-    
-    if (!challenge) {
-      return res.status(404).json({
-        success: false,
-        message: 'Challenge not found'
-      });
-    }
-    
-    // Check if challenge is active or upcoming
-    if (challenge.status === 'completed' || challenge.status === 'cancelled') {
-      return res.status(400).json({
-        success: false,
-        message: 'This challenge is no longer available to join'
-      });
-    }
-    
-    // Add user to team
-    try {
-      const result = await team.addMember(req.user.id);
-      
-      if (!result.success) {
-        return res.status(400).json({
-          success: false,
-          message: result.message
-        });
-      }
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Successfully joined the team',
-        participation: result.participation
-      });
-    } catch (joinError) {
-      return res.status(400).json({
-        success: false,
-        message: joinError.message
-      });
-    }
-  } catch (error) {
-    console.error('Error joining team:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to join team',
-      error: error.message
-    });
-  }
-});
-
-/**
- * Leave a team
- */
-router.post('/teams/:teamId/leave', async (req, res) => {
-  try {
-    const { teamId } = req.params;
-    
-    // Find the team
-    const team = await ChallengeTeam.findByPk(teamId);
-    
-    if (!team) {
-      return res.status(404).json({
-        success: false,
-        message: 'Team not found'
-      });
-    }
-    
-    // Check if user is the captain
-    if (team.captainId === req.user.id) {
-      return res.status(400).json({
-        success: false,
-        message: 'Team captains cannot leave their team. You must disband the team or transfer captaincy first.'
-      });
-    }
-    
-    // Remove user from team
-    try {
-      const result = await team.removeMember(req.user.id);
-      
-      if (!result.success) {
-        return res.status(400).json({
-          success: false,
-          message: result.message
-        });
-      }
-      
-      return res.status(200).json({
-        success: true,
-        message: 'Successfully left the team'
-      });
-    } catch (leaveError) {
-      return res.status(400).json({
-        success: false,
-        message: leaveError.message
-      });
-    }
-  } catch (error) {
-    console.error('Error leaving team:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to leave team',
-      error: error.message
-    });
-  }
-});
-
-/**
- * Get team details
- */
-router.get('/teams/:teamId', async (req, res) => {
-  try {
-    const { teamId } = req.params;
-    
-    // Find the team
-    const team = await ChallengeTeam.findByPk(teamId, {
-      include: [
-        {
-          model: User,
-          as: 'captain',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
-        }
-      ]
-    });
-    
-    if (!team) {
-      return res.status(404).json({
-        success: false,
-        message: 'Team not found'
-      });
-    }
-    
-    // Get team members
-    const members = await ChallengeParticipant.findAll({
-      where: {
-        teamId,
-        status: { [req.db.Sequelize.Op.in]: ['active', 'completed'] }
-      },
-      include: [
-        {
-          model: User,
-          as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
-        }
-      ],
-      order: [['progress', 'DESC']]
-    });
-    
-    // Check if current user is in this team
-    const isMember = members.some(member => member.userId === req.user.id);
-    
-    // Get the challenge
-    const challenge = await Challenge.findByPk(team.challengeId, {
-      attributes: ['id', 'name', 'description', 'goal', 'unit', 'startDate', 'endDate', 'status']
-    });
-    
-    return res.status(200).json({
-      success: true,
-      team,
-      members,
-      isMember,
-      isAdmin: team.captainId === req.user.id || req.user.role === 'admin',
-      challenge
-    });
-  } catch (error) {
-    console.error('Error fetching team details:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to fetch team details',
-      error: error.message
-    });
-  }
-});
-
-/**
- * Transfer team captaincy
- */
-router.post('/teams/:teamId/transfer-captaincy/:newCaptainId', async (req, res) => {
-  try {
-    const { teamId, newCaptainId } = req.params;
-    
-    // Find the team
-    const team = await ChallengeTeam.findByPk(teamId);
-    
-    if (!team) {
-      return res.status(404).json({
-        success: false,
-        message: 'Team not found'
-      });
-    }
-    
-    // Check if current user is the captain
-    if (team.captainId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'You do not have permission to transfer captaincy'
-      });
-    }
-    
-    // Check if new captain is a member of the team
-    const newCaptainMembership = await ChallengeParticipant.findOne({
-      where: {
-        teamId,
-        userId: newCaptainId,
-        status: 'active'
-      }
-    });
-    
-    if (!newCaptainMembership) {
-      return res.status(400).json({
-        success: false,
-        message: 'The new captain must be an active member of the team'
-      });
-    }
-    
-    // Transfer captaincy
-    team.captainId = newCaptainId;
-    await team.save();
-    
-    return res.status(200).json({
-      success: true,
-      message: 'Team captaincy transferred successfully',
-      team
-    });
-  } catch (error) {
-    console.error('Error transferring team captaincy:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to transfer team captaincy',
-      error: error.message
-    });
-  }
-});
-
-/**
- * Disband a team
- */
-router.delete('/teams/:teamId', async (req, res) => {
-  try {
-    const { teamId } = req.params;
-    
-    // Find the team
-    const team = await ChallengeTeam.findByPk(teamId);
-    
-    if (!team) {
-      return res.status(404).json({
-        success: false,
-        message: 'Team not found'
-      });
-    }
-    
-    // Check if current user is the captain or admin
-    if (team.captainId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'You do not have permission to disband this team'
-      });
-    }
-    
-    // Update all team members to remove team association
-    await ChallengeParticipant.update(
-      { teamId: null },
-      {
-        where: { teamId }
-      }
-    );
-    
-    // Delete the team
-    await team.destroy();
-    
-    return res.status(200).json({
-      success: true,
-      message: 'Team disbanded successfully'
-    });
-  } catch (error) {
-    console.error('Error disbanding team:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to disband team',
       error: error.message
     });
   }

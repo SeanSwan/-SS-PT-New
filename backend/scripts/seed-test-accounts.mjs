@@ -14,9 +14,9 @@
  */
 
 import bcrypt from 'bcrypt';
-import { User, Profile, ClientProfile, TrainerProfile } from '../models/index.mjs';
+import { User } from '../models/index.mjs';
 import dotenv from 'dotenv';
-import { sequelize } from '../database.mjs';
+import sequelize from '../database.mjs';
 
 // Load environment variables
 dotenv.config();
@@ -24,65 +24,65 @@ dotenv.config();
 // Define test accounts with consistent IDs for easier tracking
 const TEST_ACCOUNTS = {
   admin: {
-    id: 'admin-test-id',
     email: 'admin@swanstudios.com',
+    username: 'admin',
     password: 'admin123', // Will be hashed
-    name: 'Admin Test',
+    firstName: 'Admin',
+    lastName: 'Test',
     role: 'admin',
-    permissions: ['manage_users', 'manage_content', 'manage_sessions', 'manage_packages', 'manage_gamification', 'view_analytics'],
-    profile: {
-      phone: '555-000-0000',
-      bio: 'Test admin account with full system access',
-      location: 'SwanStudios HQ'
-    }
+    permissions: JSON.stringify(['manage_users', 'manage_content', 'manage_sessions', 'manage_packages', 'manage_gamification', 'view_analytics']),
+    phone: '555-000-0000',
+    bio: 'Test admin account with full system access',
+    isActive: true
   },
   trainer: {
-    id: 'trainer-test-id',
     email: 'trainer@swanstudios.com',
+    username: 'trainer',
     password: 'trainer123', // Will be hashed
-    name: 'Trainer Test',
+    firstName: 'Trainer',
+    lastName: 'Test',
     role: 'trainer',
-    permissions: ['manage_sessions', 'view_clients', 'create_workouts'],
-    profile: {
-      phone: '555-000-0001',
-      bio: 'Test trainer account for development',
-      location: 'SwanStudios Gym',
-      specialties: ['Strength Training', 'Cardio', 'Nutrition']
-    }
+    permissions: JSON.stringify(['manage_sessions', 'view_clients', 'create_workouts']),
+    phone: '555-000-0001',
+    bio: 'Test trainer account for development',
+    specialties: JSON.stringify(['Strength Training', 'Cardio', 'Nutrition']),
+    hourlyRate: 150.00,
+    availableDays: JSON.stringify(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']),
+    availableHours: JSON.stringify(['09:00-17:00']),
+    isActive: true
   },
   client: {
-    id: 'client-test-id',
     email: 'client@test.com',
+    username: 'client',
     password: 'client123', // Will be hashed
-    name: 'Client Test',
+    firstName: 'Client',
+    lastName: 'Test',
     role: 'client',
-    permissions: ['access_workouts', 'access_store'],
-    profile: {
-      phone: '555-000-0002',
-      bio: 'Test client account for development',
-      emergency_contact: 'Emergency Contact',
-      emergency_phone: '555-999-9999',
-      membership: 'premium',
-      health_info: {
-        height: 175,
-        weight: 70,
-        medical_conditions: 'None',
-        fitness_goals: 'Testing the application'
-      }
-    }
+    phone: '555-000-0002',
+    dateOfBirth: '1990-01-01',
+    gender: 'Other',
+    weight: 70.0,
+    height: 175.0,
+    fitnessGoal: 'Testing the application',
+    trainingExperience: 'Beginner',
+    healthConcerns: 'None',
+    emergencyContact: 'Emergency Contact',
+    availableSessions: 5,
+    isActive: true,
+    points: 100,
+    level: 2,
+    tier: 'silver'
   },
   user: {
-    id: 'user-test-id',
     email: 'user@test.com',
+    username: 'user',
     password: 'user123', // Will be hashed
-    name: 'User Test',
+    firstName: 'User',
+    lastName: 'Test',
     role: 'user',
-    permissions: ['access_social', 'create_posts'],
-    profile: {
-      phone: '555-000-0003',
-      bio: 'Test user account for social features',
-      location: 'Internet'
-    }
+    phone: '555-000-0003',
+    bio: 'Test user account for social features',
+    isActive: true
   }
 };
 
@@ -104,107 +104,35 @@ async function seedTestAccounts() {
         // Check if the user already exists
         let user = await User.findOne({ 
           where: { 
-            id: accountData.id 
+            username: accountData.username 
           },
           transaction
         });
         
-        // Hash the password
-        const hashedPassword = await bcrypt.hash(accountData.password, 10);
+        // Prepare user data without the password initially
+        const { password, ...userDataWithoutPassword } = accountData;
         
         if (user) {
-          // Update existing user
-          await user.update({
-            email: accountData.email,
-            password: hashedPassword,
-            name: accountData.name,
-            role: accountData.role,
-            permissions: accountData.permissions
-          }, { transaction });
+          // Update existing user (but don't update password if it's already set)
+          const updateData = { ...userDataWithoutPassword };
           
+          // Only update password if it's not already hashed
+          if (password && !user.password.startsWith('$2')) {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            updateData.password = hashedPassword;
+          }
+          
+          await user.update(updateData, { transaction });
           console.log(`Updated existing ${role} account`);
         } else {
-          // Create new user
+          // Create new user with hashed password
+          const hashedPassword = await bcrypt.hash(password, 10);
           user = await User.create({
-            id: accountData.id,
-            email: accountData.email,
-            password: hashedPassword,
-            name: accountData.name,
-            role: accountData.role,
-            permissions: accountData.permissions
+            ...userDataWithoutPassword,
+            password: hashedPassword
           }, { transaction });
           
           console.log(`Created new ${role} account`);
-        }
-        
-        // Handle profile data based on role
-        if (role === 'admin' || role === 'trainer') {
-          // Find or create general profile
-          let profile = await Profile.findOne({ 
-            where: { userId: user.id },
-            transaction
-          });
-          
-          if (profile) {
-            await profile.update({
-              phone: accountData.profile.phone,
-              bio: accountData.profile.bio,
-              location: accountData.profile.location
-            }, { transaction });
-          } else {
-            await Profile.create({
-              userId: user.id,
-              phone: accountData.profile.phone,
-              bio: accountData.profile.bio,
-              location: accountData.profile.location
-            }, { transaction });
-          }
-          
-          // If trainer, add trainer-specific profile
-          if (role === 'trainer') {
-            let trainerProfile = await TrainerProfile.findOne({
-              where: { userId: user.id },
-              transaction
-            });
-            
-            if (trainerProfile) {
-              await trainerProfile.update({
-                specialties: accountData.profile.specialties
-              }, { transaction });
-            } else {
-              await TrainerProfile.create({
-                userId: user.id,
-                specialties: accountData.profile.specialties
-              }, { transaction });
-            }
-          }
-        } else if (role === 'client') {
-          // Handle client profile
-          let clientProfile = await ClientProfile.findOne({
-            where: { userId: user.id },
-            transaction
-          });
-          
-          if (clientProfile) {
-            await clientProfile.update({
-              phone: accountData.profile.phone,
-              bio: accountData.profile.bio,
-              emergency_contact: accountData.profile.emergency_contact,
-              emergency_phone: accountData.profile.emergency_phone,
-              membership: accountData.profile.membership,
-              health_info: accountData.profile.health_info
-            }, { transaction });
-          } else {
-            await ClientProfile.create({
-              userId: user.id,
-              phone: accountData.profile.phone,
-              bio: accountData.profile.bio,
-              emergency_contact: accountData.profile.emergency_contact,
-              emergency_phone: accountData.profile.emergency_phone,
-              membership: accountData.profile.membership,
-              health_info: accountData.profile.health_info
-            }, { transaction });
-          }
         }
       }
       
@@ -214,10 +142,10 @@ async function seedTestAccounts() {
       
       // Print login credentials for convenience
       console.log('\n===== TEST ACCOUNT CREDENTIALS =====');
-      console.log('Admin:   admin@swanstudios.com / admin123');
-      console.log('Trainer: trainer@swanstudios.com / trainer123');
-      console.log('Client:  client@test.com / client123');
-      console.log('User:    user@test.com / user123');
+      console.log('Admin:   admin@swanstudios.com / admin123 (username: admin)');
+      console.log('Trainer: trainer@swanstudios.com / trainer123 (username: trainer)');
+      console.log('Client:  client@test.com / client123 (username: client)');
+      console.log('User:    user@test.com / user123 (username: user)');
       console.log('====================================\n');
       
       return {
@@ -239,12 +167,15 @@ async function seedTestAccounts() {
 }
 
 // If this script is run directly (not imported)
-if (process.argv[1] === import.meta.url) {
+if (process.argv[1] === process.argv[1]) {
   seedTestAccounts()
     .then(result => {
+      console.log('Result:', result);
       if (result.success) {
+        console.log('✅ Success! Test accounts are ready.');
         process.exit(0);
       } else {
+        console.log('❌ Failed to create test accounts.');
         process.exit(1);
       }
     })

@@ -1,3 +1,13 @@
+import sys
+import os
+from pathlib import Path
+
+# Add the parent directory to sys.path for imports
+current_dir = Path(__file__).parent
+parent_dir = current_dir.parent
+sys.path.insert(0, str(current_dir))
+sys.path.insert(0, str(parent_dir))
+
 """
 Workout MCP Server
 =================

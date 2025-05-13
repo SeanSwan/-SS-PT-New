@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import StoreFront from './StoreFront.component';
+import StoreFront from './StoreFrontAPI.component';
 import OrderHistory from '../../components/Shop/OrderHistory';
 import ProductRecommendations from '../../components/Shop/ProductRecommendations';
 import { useNavigate, useLocation } from 'react-router-dom';

@@ -69,6 +69,7 @@ import enhancedScheduleRoutes from './routes/enhancedScheduleRoutes.mjs';
 import adminRoutes from './routes/adminRoutes.mjs';
 import adminDebugRoutes from './routes/admin.mjs';
 import adminClientRoutes from './routes/adminClientRoutes.mjs';
+import adminPackageRoutes from './routes/adminPackageRoutes.mjs';
 import apiRoutes from './routes/api.mjs';
 import devRoutes from './routes/dev-routes.mjs';
 import debugRoutes from './routes/debug.mjs';  // Import debug routes
@@ -497,6 +498,7 @@ app.use('/api/sessions', enhancedScheduleRoutes);  // Add an alias route that ma
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminDebugRoutes); // Add admin debugging routes for data synchronization
 app.use('/api/admin', adminClientRoutes); // Add enhanced admin client management routes
+app.use('/api/admin/storefront', adminPackageRoutes); // Add admin package management routes
 app.use('/api/debug', debugRoutes);  // Added debug routes
 // Add NASM protocol routes
 app.use('/api/client-progress', clientProgressRoutes);

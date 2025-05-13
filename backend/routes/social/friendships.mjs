@@ -1,12 +1,12 @@
 import express from 'express';
 import { Friendship } from '../../models/social/index.mjs';
 import User from '../../models/User.mjs';
-import { authMiddleware } from '../../middleware/authMiddleware.mjs';
+import { protect } from '../../middleware/authMiddleware.mjs';
 
 const router = express.Router();
 
 // Apply auth middleware to all routes
-router.use(authMiddleware);
+router.use(protect);
 
 /**
  * Get friends list for the current user

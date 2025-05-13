@@ -7,7 +7,7 @@
  */
 
 import axios from 'axios';
-import { setupMockApiInterceptor } from '../services/mock-api-service';
+import { setupEnhancedMockApiInterceptor } from '../services/enhanced-mock-api-service';
 
 // API base URL from environment variables
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -75,11 +75,11 @@ authAxiosInstance.interceptors.response.use(
   }
 );
 
-// Setup mock API interceptor for development environments
+// Setup enhanced mock API interceptor for development environments
 if (process.env.NODE_ENV === 'development') {
-  setupMockApiInterceptor(axiosInstance);
-  setupMockApiInterceptor(authAxiosInstance);
-  console.log('🔄 Mock API interceptor enabled for development');
+  setupEnhancedMockApiInterceptor(axiosInstance);
+  setupEnhancedMockApiInterceptor(authAxiosInstance);
+  console.log('🔄 Enhanced mock API interceptor enabled for development (includes storefront support)');
 }
 
 export default {

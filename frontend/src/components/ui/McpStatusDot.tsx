@@ -9,8 +9,8 @@ import React, { useEffect, useState } from 'react';
 import { Box, Tooltip, Typography } from '@mui/material';
 import { Activity } from 'lucide-react';
 
-// Import MCP server utilities 
-import { useMcpIntegration } from '../../hooks/useMcpIntegration';
+// Import MCP server utilities - FIXED: import as default export
+import useMcpIntegration from '../../hooks/useMcpIntegration';
 
 interface McpStatusDotProps {
   miniMode?: boolean;
@@ -21,28 +21,17 @@ interface McpStatusDotProps {
  * Shows the status of MCP servers in the sidebar with green/red dots
  */
 const McpStatusDot: React.FC<McpStatusDotProps> = ({ miniMode = false }) => {
-  const { mcpStatus, checkAllServers } = useMcpIntegration();
+  const { mcpStatus } = useMcpIntegration();
   const [isMounted, setIsMounted] = useState(false);
 
-  // Check server status on mount and periodically
+  // Set up mounting state
   useEffect(() => {
     setIsMounted(true);
     
-    // Initial check
-    checkAllServers();
-    
-    // Set up polling interval (every 30 seconds)
-    const interval = setInterval(() => {
-      if (isMounted) {
-        checkAllServers();
-      }
-    }, 30000);
-    
     return () => {
       setIsMounted(false);
-      clearInterval(interval);
     };
-  }, [checkAllServers]);
+  }, []);
 
   // Determine overall status - both servers need to be running
   const allServersRunning = mcpStatus.workout && mcpStatus.gamification;

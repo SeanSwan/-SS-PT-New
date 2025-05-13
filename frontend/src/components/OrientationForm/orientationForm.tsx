@@ -655,15 +655,31 @@ By participating in training sessions with SwanStudios, I acknowledge and unders
     }
 
     try {
-      // Simulate an API call – replace with your actual API request.
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log("Orientation form submitted:", formData);
+      // API call to submit orientation
+      const response = await fetch('/api/orientation/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          submittedAt: new Date().toISOString(),
+          status: 'pending',
+          source: 'website'
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit orientation');
+      }
+
+      const result = await response.json();
+      console.log("Orientation form submitted:", result);
       setSubmitted(true);
       
-      // Here you would also trigger the SendGrid and Twilio integration
-      // to send email and SMS
     } catch (apiError) {
-      setError("An error occurred while submitting the form. Please try again.");
+      setError(apiError.message || "An error occurred while submitting the form. Please try again.");
       console.error("Orientation form submission error:", apiError);
     }
   };

@@ -50,11 +50,33 @@ Orientation.init(
     },
     userId: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true, // Allow null for prospect submissions
       references: {
         model: 'users',
         key: 'id'
       }
+    },
+    status: {
+      type: DataTypes.ENUM('pending', 'scheduled', 'completed', 'cancelled'),
+      allowNull: false,
+      defaultValue: 'pending'
+    },
+    assignedTrainer: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    scheduledDate: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    completedDate: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
+    source: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'website'
     },
   },
   {
