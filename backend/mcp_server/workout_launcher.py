@@ -1,52 +1,100 @@
 #!/usr/bin/env python3
 """
-Direct Workout MCP Server Launcher
-This script correctly sets up the Python path and runs the server
+Simplified Workout MCP Server Launcher for npm start
+Ensures the server starts correctly in the npm environment
 """
 
 import os
 import sys
-import uvicorn
-import importlib.util
+import logging
 from pathlib import Path
 
-# Get absolute path to the workout_mcp_server directory
-current_dir = Path(__file__).parent.absolute()
-workout_dir = current_dir / "workout_mcp_server"
+# Set up logging first
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+logger = logging.getLogger("workout_mcp_launcher")
 
-# Add the parent directory to Python path so relative imports work
-sys.path.insert(0, str(current_dir))
+# Get the directory containing this script
+script_dir = Path(__file__).parent.absolute()
 
-# Add the workout_mcp_server directory to Python path
-sys.path.insert(0, str(workout_dir))
+# Try the modular server first, then fall back to the standalone server
+server_options = [
+    {
+        "name": "Modular Server", 
+        "path": script_dir / "workout_mcp_server" / "main.py",
+        "working_dir": script_dir / "workout_mcp_server"
+    },
+    {
+        "name": "Standalone Server",
+        "path": script_dir / "workout_mcp_server.py", 
+        "working_dir": script_dir
+    }
+]
 
-# Set environment variables
-os.environ["PORT"] = "8000"
-os.environ["DEBUG"] = "true"
-os.environ["LOG_LEVEL"] = "info"
-os.environ["MONGODB_HOST"] = "localhost" 
-os.environ["MONGODB_PORT"] = "27017"  # Updated to match the detected MongoDB port
-os.environ["MONGODB_DB"] = "swanstudios"
-
-# Change to the workout_mcp_server directory
-os.chdir(workout_dir)
-
-# Print startup message
-print("\n" + "="*80)
-print(" "*30 + "Direct Workout MCP Server Launcher")
-print("="*80 + "\n")
-
-print(f"Starting Workout MCP Server from {workout_dir}")
-print(f"Python path: {sys.path}")
+def start_server():
+    """Start the appropriate MCP server."""
+    logger.info("Starting Workout MCP Server...")
+    
+    for option in server_options:
+        if option["path"].exists():
+            logger.info(f"Found {option['name']} at {option['path']}")
+            try:
+                # Change to the appropriate working directory
+                os.chdir(option["working_dir"])
+                
+                # Set environment variables
+                os.environ["PORT"] = "8000"
+                os.environ["DEBUG"] = "true"
+                os.environ["MCP_WORKOUT_PORT"] = "8000"
+                
+                # Add Python path
+                sys.path.insert(0, str(option["working_dir"]))
+                
+                # Import and run the server
+                if option["name"] == "Modular Server":
+                    logger.info("Starting modular Workout MCP Server...")
+                    import uvicorn
+                    uvicorn.run("main:app", host="0.0.0.0", port=8000, log_level="info")
+                else:
+                    logger.info("Starting standalone Workout MCP Server...")
+                    import uvicorn
+                    # Import the app from workout_mcp_server.py
+                    spec = importlib.util.spec_from_file_location("workout_server", option["path"])
+                    workout_server = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(workout_server)
+                    # Run the server
+                    uvicorn.run(workout_server.app, host="0.0.0.0", port=8000, log_level="info")
+                
+                return  # Exit if server started successfully
+                
+            except Exception as e:
+                logger.error(f"Failed to start {option['name']}: {e}")
+                continue
+    
+    # If we get here, no server could be started
+    logger.error("Could not start any Workout MCP Server")
+    logger.info("Please ensure dependencies are installed: pip install fastapi uvicorn pydantic")
+    sys.exit(1)
 
 if __name__ == "__main__":
-    try:
-        # Run the server directly with the correct app module path
-        uvicorn.run("main:app", 
-                    host="0.0.0.0", 
-                    port=8000, 
-                    reload=True,
-                    log_level="info")
-    except Exception as e:
-        print(f"Error starting server: {e}")
+    import importlib.util
+    
+    # Check dependencies
+    required_modules = ['fastapi', 'uvicorn', 'pydantic']
+    missing_modules = []
+    
+    for module in required_modules:
+        try:
+            importlib.import_module(module)
+        except ImportError:
+            missing_modules.append(module)
+    
+    if missing_modules:
+        logger.error(f"Missing required modules: {missing_modules}")
+        logger.info("Please install them with: pip install " + " ".join(missing_modules))
         sys.exit(1)
+    
+    start_server()

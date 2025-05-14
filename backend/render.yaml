@@ -3,7 +3,7 @@ services:
     name: swan-studios-api
     env: node
     buildCommand: npm install
-    startCommand: node server.js
+    startCommand: npm run render-start
     envVars:
       - key: NODE_ENV
         value: production

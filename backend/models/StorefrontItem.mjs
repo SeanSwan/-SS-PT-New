@@ -46,10 +46,10 @@ StorefrontItem.init({
     allowNull: true,
   },
    price: {
-     type: DataTypes.FLOAT, // Changed to FLOAT to match migration
+     type: DataTypes.DECIMAL(10, 2), // Changed to DECIMAL for production precision
      allowNull: true,
      validate: {
-         isFloat: { msg: "Price must be a valid number"}, 
+         isDecimal: { msg: "Price must be a valid decimal number"}, 
          min: 0 // Optional: Ensure non-negative
      }
    },
@@ -62,10 +62,10 @@ StorefrontItem.init({
     }
   },
   pricePerSession: {
-    type: DataTypes.FLOAT, // Changed to FLOAT to match migration
+    type: DataTypes.DECIMAL(10, 2), // Changed to DECIMAL for production precision
     allowNull: false, // Required if applicable
      validate: {
-         isFloat: { msg: "Price per session must be a valid number"},
+         isDecimal: { msg: "Price per session must be a valid decimal number"},
          min: 0,
          notNull: { msg: "Price per session is required" } // Add notNull if always required
      }
@@ -95,10 +95,10 @@ StorefrontItem.init({
     }
   },
   totalCost: {
-    type: DataTypes.FLOAT, // Changed to FLOAT to match migration
+    type: DataTypes.DECIMAL(10, 2), // Changed to DECIMAL for production precision
     allowNull: true, // Calculated by hooks
      validate: {
-         isFloat: { msg: "Total cost must be a valid number"},
+         isDecimal: { msg: "Total cost must be a valid decimal number"},
          min: 0
      }
   },

@@ -36,7 +36,8 @@
     "start-fixed": "node fix-server.mjs && node fix-remaining-models.mjs && npm run dev",
     "render-start": "npx sequelize-cli db:migrate --config config/config.js --migrations-path migrations --models-path models --env production && node scripts/adminSeeder.mjs && node server.mjs",
     "render-build": "npm install",
-    "install-deps": "npm install mongoose"
+    "install-deps": "npm install mongoose",
+    "production-check": "node scripts/production-check.mjs"
   },
   "keywords": [],
   "author": "",

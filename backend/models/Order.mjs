@@ -25,7 +25,7 @@ Order.init(
       unique: true,
     },
     totalAmount: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
     status: {

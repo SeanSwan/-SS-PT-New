@@ -20,27 +20,8 @@ import AdminDebugPage from './Pages/admin-dashboard/AdminDebugPage';
 import CommunityDashboard from './Pages/community/community-dashboard';
 import AdminOrientation from './Pages/admin-orientation/AdminOrientation';
 
-// Create a placeholder for WorkoutProgramsView
-const WorkoutProgramsView = () => (
-  <div style={{ padding: '2rem' }}>
-    <h2>Workout Programs</h2>
-    <p>This section allows administrators to create and manage workout programs.</p>
-    <div style={{ 
-      padding: '1.5rem', 
-      background: 'rgba(0, 255, 255, 0.05)',
-      borderRadius: '8px',
-      marginTop: '1.5rem'
-    }}>
-      <h3>Features</h3>
-      <ul>
-        <li>Create new workout programs</li>
-        <li>Assign programs to clients</li>
-        <li>Track program completion</li>
-        <li>Analyze program effectiveness</li>
-      </ul>
-    </div>
-  </div>
-);
+// Import the new AdminWorkoutManagement component
+import AdminWorkoutManagement from '../WorkoutManagement/AdminWorkoutManagement';
 
 // For components that might have issues, we create wrapped versions
 // with error handling to prevent the entire dashboard from crashing
@@ -78,6 +59,10 @@ const withErrorBoundary = (Component: React.ComponentType, componentName: string
     }
   };
 };
+
+// Use the new AdminWorkoutManagement component
+// This replaces the placeholder with full MCP integration
+const WorkoutProgramsView = withErrorBoundary(AdminWorkoutManagement, 'Workout Management');
 
 // Create wrapped versions of potentially problematic components using proper React patterns
 const AdminGamificationView = React.lazy(() => 

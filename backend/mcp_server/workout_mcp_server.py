@@ -294,6 +294,121 @@ class GenerateWorkoutPlanOutput(BaseModel):
     plan: WorkoutPlan
     message: str
 
+# Global state for mock data mode
+USE_MOCK_DATA = True  # Set to True when backend is not available
+
+# Mock data for testing
+def get_mock_exercises(limit: int = 10):
+    """Return mock exercise data for testing."""
+    mock_exercises = [
+        {
+            "id": "ex-1",
+            "name": "Push-ups",
+            "description": "Classic bodyweight exercise for chest and triceps",
+            "difficulty": "beginner",
+            "category": "strength",
+            "exerciseType": "compound",
+            "muscleGroups": [{"id": "chest", "name": "Chest", "shortName": "Chest", "bodyRegion": "upper_body"}],
+            "equipment": [{"id": "bodyweight", "name": "Bodyweight", "category": "none"}]
+        },
+        {
+            "id": "ex-2",
+            "name": "Squats",
+            "description": "Fundamental lower body exercise",
+            "difficulty": "beginner",
+            "category": "strength",
+            "exerciseType": "compound",
+            "muscleGroups": [{"id": "legs", "name": "Legs", "shortName": "Legs", "bodyRegion": "lower_body"}],
+            "equipment": [{"id": "bodyweight", "name": "Bodyweight", "category": "none"}]
+        },
+        {
+            "id": "ex-3",
+            "name": "Plank",
+            "description": "Core stability exercise",
+            "difficulty": "beginner",
+            "category": "core",
+            "exerciseType": "isometric",
+            "muscleGroups": [{"id": "core", "name": "Core", "shortName": "Core", "bodyRegion": "core"}],
+            "equipment": [{"id": "bodyweight", "name": "Bodyweight", "category": "none"}]
+        },
+        {
+            "id": "ex-4",
+            "name": "Lunges",
+            "description": "Unilateral leg exercise",
+            "difficulty": "intermediate",
+            "category": "strength",
+            "exerciseType": "compound",
+            "muscleGroups": [{"id": "legs", "name": "Legs", "shortName": "Legs", "bodyRegion": "lower_body"}],
+            "equipment": [{"id": "bodyweight", "name": "Bodyweight", "category": "none"}]
+        },
+        {
+            "id": "ex-5",
+            "name": "Jumping Jacks",
+            "description": "Cardio exercise with full body movement",
+            "difficulty": "beginner",
+            "category": "cardio",
+            "exerciseType": "cardio",
+            "muscleGroups": [{"id": "full_body", "name": "Full Body", "shortName": "Full", "bodyRegion": "full_body"}],
+            "equipment": [{"id": "bodyweight", "name": "Bodyweight", "category": "none"}]
+        }
+    ]
+    return mock_exercises[:limit]
+
+def get_mock_client_progress(userId: str):
+    """Return mock client progress data."""
+    return {
+        "userId": userId,
+        "strengthLevel": 3,
+        "cardioLevel": 2,
+        "flexibilityLevel": 2,
+        "balanceLevel": 1,
+        "coreLevel": 3,
+        "totalWorkouts": 15,
+        "totalSets": 150,
+        "totalReps": 2250,
+        "totalWeight": 11250,
+        "totalExercises": 45,
+        "lastWorkoutDate": datetime.now().isoformat(),
+        "currentStreak": 3,
+        "personalRecords": {}
+    }
+
+def get_mock_workout_statistics(userId: str):
+    """Return mock workout statistics."""
+    return {
+        "totalWorkouts": 15,
+        "totalDuration": 900,  # 15 hours
+        "totalExercises": 45,
+        "totalSets": 150,
+        "totalReps": 2250,
+        "totalWeight": 11250,
+        "averageIntensity": 7.5,
+        "weekdayBreakdown": [3, 2, 3, 2, 3, 1, 1],  # Mon-Sun
+        "exerciseBreakdown": [
+            {"exerciseId": "ex-1", "name": "Push-ups", "count": 15},
+            {"exerciseId": "ex-2", "name": "Squats", "count": 12},
+            {"exerciseId": "ex-3", "name": "Plank", "count": 10}
+        ],
+        "muscleGroupBreakdown": [
+            {"muscleGroup": "Chest", "count": 15},
+            {"muscleGroup": "Legs", "count": 12},
+            {"muscleGroup": "Core", "count": 10}
+        ],
+        "intensityTrends": [
+            {"date": (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d"), "intensity": 7 + (i % 3)}
+            for i in range(7)
+        ],
+        "recentWorkouts": [
+            {
+                "id": f"workout-{i}",
+                "title": f"Workout {i+1}",
+                "date": (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d"),
+                "duration": 60 + (i * 5)
+            }
+            for i in range(5)
+        ]
+    }
+
 # API request helpers
 
 async def make_api_request(method: str, path: str, data: Optional[Dict] = None, token: Optional[str] = None):
@@ -359,6 +474,15 @@ async def get_workout_recommendations(input_data: GetWorkoutRecommendationsInput
     and difficulty level.
     """
     try:
+        # Check if we should use mock data
+        if USE_MOCK_DATA:
+            logger.info("Using mock data for workout recommendations")
+            exercises = get_mock_exercises(input_data.limit or 10)
+            return GetWorkoutRecommendationsOutput(
+                exercises=exercises,
+                message=f"Found {len(exercises)} recommended exercises (mock data)."
+            )
+        
         # Convert input data to API params
         params = {
             "goal": input_data.goal,
@@ -387,9 +511,12 @@ async def get_workout_recommendations(input_data: GetWorkoutRecommendationsInput
         )
     except Exception as e:
         logger.error(f"Error in GetWorkoutRecommendations: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get workout recommendations: {str(e)}"
+        # Fallback to mock data on error
+        logger.info("Falling back to mock data due to error")
+        exercises = get_mock_exercises(input_data.limit or 10)
+        return GetWorkoutRecommendationsOutput(
+            exercises=exercises,
+            message=f"Found {len(exercises)} recommended exercises (mock data - backend unavailable)."
         )
 
 @app.post("/tools/GetClientProgress", response_model=GetClientProgressOutput)
@@ -404,6 +531,15 @@ async def get_client_progress(input_data: GetClientProgressInput):
     - Personal records
     """
     try:
+        # Check if we should use mock data
+        if USE_MOCK_DATA:
+            logger.info("Using mock data for client progress")
+            progress = get_mock_client_progress(input_data.userId)
+            return GetClientProgressOutput(
+                progress=progress,
+                message="Retrieved client progress data successfully (mock data)."
+            )
+        
         # Make API request
         response = await make_api_request(
             "GET", 
@@ -425,9 +561,12 @@ async def get_client_progress(input_data: GetClientProgressInput):
         )
     except Exception as e:
         logger.error(f"Error in GetClientProgress: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get client progress: {str(e)}"
+        # Fallback to mock data on error
+        logger.info("Falling back to mock data due to error")
+        progress = get_mock_client_progress(input_data.userId)
+        return GetClientProgressOutput(
+            progress=progress,
+            message="Retrieved client progress data (mock data - backend unavailable)."
         )
 
 @app.post("/tools/GetWorkoutStatistics", response_model=GetWorkoutStatisticsOutput)
@@ -443,6 +582,15 @@ async def get_workout_statistics(input_data: GetWorkoutStatisticsInput):
     - Intensity trends over time
     """
     try:
+        # Check if we should use mock data
+        if USE_MOCK_DATA:
+            logger.info("Using mock data for workout statistics")
+            statistics = get_mock_workout_statistics(input_data.userId)
+            return GetWorkoutStatisticsOutput(
+                statistics=statistics,
+                message="Retrieved workout statistics successfully (mock data)."
+            )
+        
         # Convert input data to API params
         params = {
             "startDate": input_data.startDate,
@@ -484,9 +632,12 @@ async def get_workout_statistics(input_data: GetWorkoutStatisticsInput):
         )
     except Exception as e:
         logger.error(f"Error in GetWorkoutStatistics: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get workout statistics: {str(e)}"
+        # Fallback to mock data on error
+        logger.info("Falling back to mock data due to error")
+        statistics = get_mock_workout_statistics(input_data.userId)
+        return GetWorkoutStatisticsOutput(
+            statistics=statistics,
+            message="Retrieved workout statistics (mock data - backend unavailable)."
         )
 
 @app.post("/tools/LogWorkoutSession", response_model=LogWorkoutSessionOutput)

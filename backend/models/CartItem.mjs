@@ -21,7 +21,7 @@ CartItem.init(
     },
     // Store the price at the time of purchase.
     price: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
       validate: {
         min: 0

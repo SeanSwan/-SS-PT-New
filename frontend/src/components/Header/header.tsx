@@ -675,15 +675,6 @@ const EnhancedHeader = () => {
           </MobileNavLink>
           
           <MobileNavLink 
-            to="/food-scanner" 
-            onClick={() => setMobileMenuOpen(false)}
-            className={isActive('/food-scanner') ? "active" : ""}
-            variants={itemVariants}
-          >
-            Food Scanner
-          </MobileNavLink>
-          
-          <MobileNavLink 
             to="/contact" 
             onClick={() => setMobileMenuOpen(false)}
             className={isActive('/contact') ? "active" : ""}
@@ -721,15 +712,6 @@ const EnhancedHeader = () => {
             variants={itemVariants}
           >
             Store
-          </MobileNavLink>
-          
-          <MobileNavLink 
-            to="/food-scanner" 
-            onClick={() => setMobileMenuOpen(false)}
-            className={isActive('/food-scanner') ? "active" : ""}
-            variants={itemVariants}
-          >
-            Food Scanner
           </MobileNavLink>
           
           <MobileNavLink 
@@ -811,13 +793,7 @@ const EnhancedHeader = () => {
               
               {renderDesktopLinks()}
               
-              <StyledNavLink 
-                to="/food-scanner" 
-                className={isActive('/food-scanner') ? "active" : ""}
-                variants={itemVariants}
-              >
-                Food Scanner
-              </StyledNavLink>
+
               
               <StyledNavLink 
                 to="/contact" 

@@ -79,6 +79,8 @@ import aiMonitoringRoutes from './routes/aiMonitoringRoutes.mjs';  // Import AI 
 // Import workout plan and session routes
 import workoutPlanRoutes from './routes/workoutPlanRoutes.mjs';
 import workoutSessionRoutes from './routes/workoutSessionRoutes.mjs';
+// Import Master Prompt v26 routes
+import masterPromptRoutes from './routes/masterPrompt/index.mjs';
 // Import NASM protocol routes
 import clientProgressRoutes from './routes/clientProgressRoutes.mjs';
 import exerciseRoutes from './routes/exerciseRoutes.mjs';
@@ -481,6 +483,7 @@ if (!isProduction) {
 app.use('/api/health', healthRoutes);
 app.use('/api/mcp', mcpRoutes);  // Add MCP integration routes
 app.use('/api/ai-monitoring', aiMonitoringRoutes);  // Add AI monitoring routes
+app.use('/api/master-prompt', masterPromptRoutes);  // Add Master Prompt v26 routes
 app.use('/api/auth', authRoutes);
 // Mount profile routes
 app.use('/api/profile', profileRoutes);

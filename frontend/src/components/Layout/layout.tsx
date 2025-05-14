@@ -3,6 +3,7 @@ import React from 'react';
 import styled from 'styled-components';
 import Header from '../Header/header'; // Adjust the import path based on your project structure
 import Footer from '../Footer/Footer';
+import { ScrollToTop } from '../common';
 
 const MainContainer = styled.div`
   display: flex;
@@ -26,6 +27,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {children}
       </Content>
       <Footer />
+      <ScrollToTop 
+        theme="cosmic"
+        size="medium"
+        scrollThreshold={400}
+        onScrollToTop={() => {
+          // Optional: Add analytics tracking here
+          console.log('Scroll to top clicked');
+        }}
+      />
     </MainContainer>
   );
 };

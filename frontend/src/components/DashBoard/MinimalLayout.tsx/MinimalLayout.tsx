@@ -6,6 +6,7 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { styled } from '@mui/material/styles';
+import { ScrollToTop } from '../../common';
 
 // Styled component for minimal layout wrapper
 const MinimalLayoutWrapper = styled('div')(({ theme }) => ({
@@ -47,6 +48,16 @@ const MinimalLayout: React.FC<MinimalLayoutProps> = ({ children, hideWrapper = f
       
       {/* Outlet for nested routes */}
       <Outlet />
+      
+      {/* Scroll to top button for minimal layout */}
+      <ScrollToTop 
+        theme="purple"
+        size="small"
+        scrollThreshold={300}
+        onScrollToTop={() => {
+          console.log('Minimal layout scroll to top clicked');
+        }}
+      />
     </MinimalLayoutWrapper>
   );
 };

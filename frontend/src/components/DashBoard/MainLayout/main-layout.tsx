@@ -13,6 +13,7 @@ import CssBaseline from '@mui/material/CssBaseline';
 // project imports
 import Header from '../../Header/header';
 import Sidebar from './SideBar/sidebar';
+import { ScrollToTop } from '../../common';
 
 // Import custom Breadcrumbs component
 import Breadcrumbs from '../../ui/Breadcrumbs';
@@ -217,6 +218,17 @@ const MainLayout = ({ children = null, withExternalHeader = false }: MainLayoutP
           {/* Footer removed to provide more space for widgets */}
         </Box>
       </Box>
+      
+      {/* Scroll to top button */}
+      <ScrollToTop 
+        theme="cosmic"
+        size="medium"
+        scrollThreshold={500}
+        onScrollToTop={() => {
+          // Optional: Add analytics tracking for admin dashboard
+          console.log('Admin dashboard scroll to top clicked');
+        }}
+      />
     </Box>
   );
 };

@@ -4,6 +4,8 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 
 // Import trainer dashboard components
 import ClientProgressView from '../ClientProgress/ClientProgressView';
+// Import the trainer workout management component
+import TrainerWorkoutManagement from '../WorkoutManagement/TrainerWorkoutManagement';
 
 /**
  * Trainer Dashboard Home Component
@@ -34,40 +36,10 @@ const TrainerDashboardHome = () => (
 );
 
 /**
- * Workout Programs View Component
- * Manage and create workout programs for clients
+ * Workout Programs View Component with MCP Integration
+ * Full workout management system for trainers
  */
-const WorkoutsView = () => (
-  <Box sx={{ p: 3 }}>
-    <Typography variant="h4" gutterBottom>Workout Programs</Typography>
-    <Typography variant="body1" paragraph>
-      Create and manage workout programs for your clients.
-    </Typography>
-    
-    <Box sx={{ 
-      p: 3, 
-      bgcolor: 'rgba(0, 255, 255, 0.05)',
-      borderRadius: 2,
-      mt: 3
-    }}>
-      <Typography variant="h6" gutterBottom>Features</Typography>
-      <Box component="ul" sx={{ pl: 2 }}>
-        <Box component="li" sx={{ mb: 1 }}>
-          <Typography variant="body2">Create new workout programs</Typography>
-        </Box>
-        <Box component="li" sx={{ mb: 1 }}>
-          <Typography variant="body2">Assign programs to clients</Typography>
-        </Box>
-        <Box component="li" sx={{ mb: 1 }}>
-          <Typography variant="body2">Track program completion</Typography>
-        </Box>
-        <Box component="li" sx={{ mb: 1 }}>
-          <Typography variant="body2">Analyze program effectiveness</Typography>
-        </Box>
-      </Box>
-    </Box>
-  </Box>
-);
+const WorkoutsView = () => <TrainerWorkoutManagement />;
 
 /**
  * Training Sessions View Component
