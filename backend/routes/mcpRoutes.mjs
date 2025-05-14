@@ -8,6 +8,7 @@ import express from 'express';
 import axios from 'axios';
 import { authMiddleware } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
+import { updateMetrics } from './aiMonitoringRoutes.mjs';
 
 const router = express.Router();
 
@@ -78,6 +79,7 @@ router.get('/status', async (req, res) => {
  * POST /api/mcp/generate
  */
 router.post('/generate', authMiddleware, async (req, res) => {
+  const startTime = Date.now();
   try {
     const { 
       modelName = 'claude-3-5-sonnet',
@@ -114,10 +116,16 @@ router.post('/generate', authMiddleware, async (req, res) => {
     // Call the Workout MCP server
     const response = await workoutMcpApi.post('/generate', workoutRequest);
 
+    // Calculate response time and update metrics
+    const responseTime = Date.now() - startTime;
+    const tokensUsed = response.data.metadata?.tokensUsed || 0;
+    updateMetrics('workoutGeneration', true, responseTime, tokensUsed, req.user.id);
+
     // Log successful generation
     logger.info('Workout plan generated successfully', {
       userId: req.user.id,
-      responseLength: response.data.content?.length || 0
+      responseLength: response.data.content?.length || 0,
+      responseTime
     });
 
     res.json({
@@ -131,11 +139,16 @@ router.post('/generate', authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
+    // Update metrics for failed request
+    const responseTime = Date.now() - startTime;
+    updateMetrics('workoutGeneration', false, responseTime, 0, req.user?.id);
+
     logger.error('Workout generation error:', {
       userId: req.user?.id,
       error: error.message,
       stack: error.stack,
-      mcpResponse: error.response?.data
+      mcpResponse: error.response?.data,
+      responseTime
     });
 
     // Handle MCP server specific errors
@@ -161,6 +174,7 @@ router.post('/generate', authMiddleware, async (req, res) => {
  * POST /api/mcp/analyze
  */
 router.post('/analyze', authMiddleware, async (req, res) => {
+  const startTime = Date.now();
   try {
     const { 
       modelName = 'claude-3-5-sonnet',
@@ -190,6 +204,11 @@ router.post('/analyze', authMiddleware, async (req, res) => {
 
     const response = await workoutMcpApi.post('/analyze', analysisRequest);
 
+    // Calculate response time and update metrics
+    const responseTime = Date.now() - startTime;
+    const tokensUsed = response.data.metadata?.tokensUsed || 0;
+    updateMetrics('progressAnalysis', true, responseTime, tokensUsed, req.user.id);
+
     res.json({
       success: true,
       content: response.data.content,
@@ -201,10 +220,15 @@ router.post('/analyze', authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
+    // Update metrics for failed request
+    const responseTime = Date.now() - startTime;
+    updateMetrics('progressAnalysis', false, responseTime, 0, req.user?.id);
+
     logger.error('Progress analysis error:', {
       userId: req.user?.id,
       error: error.message,
-      mcpResponse: error.response?.data
+      mcpResponse: error.response?.data,
+      responseTime
     });
 
     res.status(500).json({
@@ -220,6 +244,7 @@ router.post('/analyze', authMiddleware, async (req, res) => {
  * POST /api/mcp/alternatives
  */
 router.post('/alternatives', authMiddleware, async (req, res) => {
+  const startTime = Date.now();
   try {
     const { 
       modelName = 'claude-3-5-sonnet',
@@ -249,6 +274,11 @@ router.post('/alternatives', authMiddleware, async (req, res) => {
 
     const response = await workoutMcpApi.post('/alternatives', alternativesRequest);
 
+    // Calculate response time and update metrics
+    const responseTime = Date.now() - startTime;
+    const tokensUsed = response.data.metadata?.tokensUsed || 0;
+    updateMetrics('exerciseAlternatives', true, responseTime, tokensUsed, req.user.id);
+
     res.json({
       success: true,
       content: response.data.content,
@@ -260,10 +290,15 @@ router.post('/alternatives', authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
+    // Update metrics for failed request
+    const responseTime = Date.now() - startTime;
+    updateMetrics('exerciseAlternatives', false, responseTime, 0, req.user?.id);
+
     logger.error('Exercise alternatives error:', {
       userId: req.user?.id,
       error: error.message,
-      mcpResponse: error.response?.data
+      mcpResponse: error.response?.data,
+      responseTime
     });
 
     res.status(500).json({
@@ -279,6 +314,7 @@ router.post('/alternatives', authMiddleware, async (req, res) => {
  * POST /api/mcp/nutrition
  */
 router.post('/nutrition', authMiddleware, async (req, res) => {
+  const startTime = Date.now();
   try {
     const { 
       modelName = 'claude-3-5-sonnet',
@@ -308,6 +344,11 @@ router.post('/nutrition', authMiddleware, async (req, res) => {
 
     const response = await workoutMcpApi.post('/nutrition', nutritionRequest);
 
+    // Calculate response time and update metrics
+    const responseTime = Date.now() - startTime;
+    const tokensUsed = response.data.metadata?.tokensUsed || 0;
+    updateMetrics('nutritionPlanning', true, responseTime, tokensUsed, req.user.id);
+
     res.json({
       success: true,
       content: response.data.content,
@@ -319,10 +360,15 @@ router.post('/nutrition', authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
+    // Update metrics for failed request
+    const responseTime = Date.now() - startTime;
+    updateMetrics('nutritionPlanning', false, responseTime, 0, req.user?.id);
+
     logger.error('Nutrition plan error:', {
       userId: req.user?.id,
       error: error.message,
-      mcpResponse: error.response?.data
+      mcpResponse: error.response?.data,
+      responseTime
     });
 
     res.status(500).json({
@@ -338,11 +384,13 @@ router.post('/nutrition', authMiddleware, async (req, res) => {
  * POST /api/mcp/gamification/:action
  */
 router.post('/gamification/:action', authMiddleware, async (req, res) => {
+  const startTime = Date.now();
   try {
     const { action } = req.params;
     const validActions = ['award-points', 'unlock-achievement', 'create-challenge', 'update-leaderboard'];
     
     if (!validActions.includes(action)) {
+      updateMetrics('gamification', false, Date.now() - startTime, 0, req.user?.id);
       return res.status(400).json({
         success: false,
         message: `Invalid action. Valid actions: ${validActions.join(', ')}`
@@ -363,6 +411,10 @@ router.post('/gamification/:action', authMiddleware, async (req, res) => {
 
     const response = await gamificationMcpApi.post(`/${action}`, gamificationRequest);
 
+    // Calculate response time and update metrics
+    const responseTime = Date.now() - startTime;
+    updateMetrics('gamification', true, responseTime, 0, req.user.id);
+
     res.json({
       success: true,
       data: response.data,
@@ -374,11 +426,16 @@ router.post('/gamification/:action', authMiddleware, async (req, res) => {
     });
 
   } catch (error) {
+    // Update metrics for failed request
+    const responseTime = Date.now() - startTime;
+    updateMetrics('gamification', false, responseTime, 0, req.user?.id);
+
     logger.error('Gamification action error:', {
       userId: req.user?.id,
       action: req.params.action,
       error: error.message,
-      mcpResponse: error.response?.data
+      mcpResponse: error.response?.data,
+      responseTime
     });
 
     res.status(500).json({

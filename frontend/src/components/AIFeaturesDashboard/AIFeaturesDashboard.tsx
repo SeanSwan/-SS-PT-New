@@ -25,6 +25,10 @@ import styled from 'styled-components';
 import { useAuth } from '../../context/AuthContext';
 import { useSnackbar } from 'notistack';
 import WorkoutGenerator from '../WorkoutGenerator/WorkoutGenerator';
+import ProgressAnalysis from '../ProgressAnalysis/ProgressAnalysis';
+import NutritionPlanning from '../NutritionPlanning/NutritionPlanning';
+import ExerciseAlternatives from '../ExerciseAlternatives/ExerciseAlternatives';
+import AIDashboard from '../AIDashboard/AIDashboard';
 
 // Styled Components
 const DashboardContainer = styled(Box)`
@@ -291,7 +295,14 @@ const AIFeaturesDashboard = () => {
     switch (selectedFeature.component) {
       case 'WorkoutGenerator':
         return <WorkoutGenerator onClose={handleCloseFeature} />;
-      // TODO: Add other feature components
+      case 'ProgressAnalysis':
+        return <ProgressAnalysis onClose={handleCloseFeature} />;
+      case 'NutritionPlanning':
+        return <NutritionPlanning onClose={handleCloseFeature} />;
+      case 'ExerciseAlternatives':
+        return <ExerciseAlternatives onClose={handleCloseFeature} />;
+      case 'AIDashboard':
+        return <AIDashboard />;
       default:
         return (
           <Box p={3} textAlign="center">
@@ -472,9 +483,23 @@ const AIFeaturesDashboard = () => {
       
       {/* Usage Statistics */}
       <Box sx={{ mt: 4 }}>
-        <Typography variant="h6" sx={{ color: '#00ffff', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <TrendingUp /> Usage Statistics
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6" sx={{ color: '#00ffff', display: 'flex', alignItems: 'center', gap: 1 }}>
+            <TrendingUp /> Usage Statistics
+          </Typography>
+          <Button
+            variant="outlined"
+            onClick={() => setSelectedFeature({ title: 'AI Monitoring Dashboard', component: 'AIDashboard' })}
+            sx={{ 
+              borderColor: '#00ffff', 
+              color: '#00ffff',
+              '&:hover': { backgroundColor: 'rgba(0, 255, 255, 0.1)' }
+            }}
+            startIcon={<Analytics />}
+          >
+            View Detailed Analytics
+          </Button>
+        </Box>
         
         <Grid container spacing={2}>
           {Object.entries(stats).map(([key, value]) => (

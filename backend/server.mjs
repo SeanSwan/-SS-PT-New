@@ -75,6 +75,7 @@ import devRoutes from './routes/dev-routes.mjs';
 import debugRoutes from './routes/debug.mjs';  // Import debug routes
 import healthRoutes from './routes/healthRoutes.mjs';  // Import health routes
 import mcpRoutes from './routes/mcpRoutes.mjs';  // Import MCP integration routes
+import aiMonitoringRoutes from './routes/aiMonitoringRoutes.mjs';  // Import AI monitoring routes
 // Import workout plan and session routes
 import workoutPlanRoutes from './routes/workoutPlanRoutes.mjs';
 import workoutSessionRoutes from './routes/workoutSessionRoutes.mjs';
@@ -479,6 +480,7 @@ if (!isProduction) {
 // All application API routes are prefixed with /api
 app.use('/api/health', healthRoutes);
 app.use('/api/mcp', mcpRoutes);  // Add MCP integration routes
+app.use('/api/ai-monitoring', aiMonitoringRoutes);  // Add AI monitoring routes
 app.use('/api/auth', authRoutes);
 // Mount profile routes
 app.use('/api/profile', profileRoutes);
