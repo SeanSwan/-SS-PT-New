@@ -6,6 +6,7 @@ import { Box, CircularProgress, Typography, Alert } from '@mui/material';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRole?: 'admin' | 'trainer' | 'client' | 'user';
+  allowedRoles?: ('admin' | 'trainer' | 'client' | 'user')[];
   requiredPermission?: string;
   fallbackPath?: string;
 }
@@ -107,6 +108,7 @@ const AccessDeniedScreen: React.FC<{
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredRole,
+  allowedRoles,
   requiredPermission,
   fallbackPath = '/login'
 }) => {
@@ -124,15 +126,32 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={`${fallbackPath}?returnUrl=${returnUrl}`} replace />;
   }
   
-  // Check specific role requirement
-  if (requiredRole && auth.user.role !== requiredRole) {
-    const message = `This area requires ${requiredRole} privileges. Your current role: ${auth.user.role}`;
-    return (
-      <AccessDeniedScreen 
-        message={message}
-        onRetry={() => window.location.reload()}
-      />
-    );
+  // Check allowed roles (new logic for multiple roles)
+  if (allowedRoles && allowedRoles.length > 0) {
+    if (!allowedRoles.includes(auth.user.role as any)) {
+      const message = `This area requires one of these roles: ${allowedRoles.join(', ')}. Your current role: ${auth.user.role}`;
+      return (
+        <AccessDeniedScreen 
+          message={message}
+          onRetry={() => window.location.reload()}
+        />
+      );
+    }
+  }
+  // Check specific role requirement (legacy single role check)
+  else if (requiredRole && auth.user.role !== requiredRole) {
+    // Special case: admin users can access trainer areas
+    if (requiredRole === 'trainer' && auth.user.role === 'admin') {
+      // Allow admin to access trainer dashboard
+    } else {
+      const message = `This area requires ${requiredRole} privileges. Your current role: ${auth.user.role}`;
+      return (
+        <AccessDeniedScreen 
+          message={message}
+          onRetry={() => window.location.reload()}
+        />
+      );
+    }
   }
   
   // Check specific permission requirement

@@ -366,10 +366,11 @@ const MainRoutes: RouteObject = {
     },
     
     // Trainer Dashboard Routes - Independent Layout with Sub-routes
+    // Allow both trainer and admin roles to access trainer dashboard
     {
       path: 'trainer-dashboard/*',
       element: (
-        <ProtectedRoute requiredRole="trainer">
+        <ProtectedRoute allowedRoles={['trainer', 'admin']}>
           <Suspense fallback={<PageLoader />}>
             <TrainerDashboardLayout />
           </Suspense>

@@ -241,33 +241,22 @@ const TrainerDashboardLayout: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   
-  // Simple verification - just check if user exists and has trainer role
+  // Simple verification - check if user exists and has trainer or admin role
   useEffect(() => {
-    console.log('TrainerDashboard: Checking user authorization...');
+    console.log('TrainerDashboard: Verifying access...');
     
-    // Log user info for debugging
-    console.log('User object:', {
-      exists: !!user,
-      role: user?.role || 'none',
-      email: user?.email || 'none',
-      id: user?.id || 'none'
-    });
+    if (!user) {
+      console.log('TrainerDashboard: No user found, access denied');
+      setError('Authentication required. Please log in.');
+    } else if (!['trainer', 'admin'].includes(user.role)) {
+      console.log(`TrainerDashboard: User role "${user.role}" is not trainer or admin`);
+      setError('You do not have permission to access this area.');
+    } else {
+      console.log(`TrainerDashboard: Access granted for ${user.role} user "${user.email}"`);
+      setError(null);
+    }
     
-    // Short verification delay to ensure authentication state is loaded
-    setTimeout(() => {
-      if (!user) {
-        console.error('TrainerDashboard: No user object found');
-        setError('Authentication required. Please log in with trainer credentials.');
-      } else if (user.role !== 'trainer' && user.role !== 'admin') {
-        console.error(`TrainerDashboard: User role "${user.role}" is not trainer or admin`);
-        setError('You do not have permission to access this area.');
-      } else {
-        console.log('TrainerDashboard: Access verified for trainer user');
-        setError(null);
-      }
-      
-      setIsVerifying(false);
-    }, 500);
+    setIsVerifying(false);
   }, [user]);
   
   // Handle drawer open/close
@@ -391,17 +380,7 @@ const TrainerDashboardLayout: React.FC = () => {
     );
   }
   
-  // BYPASSING ERROR CHECK FOR USER: ogpswan - allow direct access regardless of role
-  // This is a temporary fix to ensure trainer access works for testing
-  if (user?.email === 'ogpswan@gmail.com' || user?.email === 'ogpswan') {
-    console.log('Special user detected - bypassing role check');
-    // Clear any error
-    if (error) {
-      setError(null);
-    }
-  }
-  
-  // Show error state if verification failed and not bypassed
+  // Show error state if verification failed
   if (error) {
     return (
       <TrainerDashboardError 
