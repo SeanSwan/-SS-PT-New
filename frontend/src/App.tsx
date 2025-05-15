@@ -13,6 +13,7 @@ import { ToastProvider } from './context/ToastContext';
 import { CartProvider } from './context/CartContext';
 import { ConfigProvider } from './context/ConfigContext';
 import MenuStateProvider from './hooks/useMenuState';
+import { ConnectionStatusBanner, useBackendConnection } from './hooks/useBackendConnection.jsx';
 
 // Development Tools
 import { DevToolsProvider } from './components/DevTools';
@@ -27,6 +28,7 @@ import store, { RootState } from './store';
 import { setupNotifications } from './utils/notificationInitializer';
 import { initializeMockData } from './utils/mockDataHelper';
 import { initializeApiMonitoring } from './utils/apiConnectivityFixer';
+import clearMockTokens from './utils/clearMockTokens';
 
 // Styles
 import './App.scss';
@@ -68,8 +70,17 @@ const AppContent = () => {
   // Get authentication state from Redux store
   const { user, isAuthenticated } = useSelector((state: RootState) => state.auth || {});
   
+  // Backend connection state
+  const connection = useBackendConnection();
+  
   // Initialize mock data for fallback when backend is unavailable
   useEffect(() => {
+    // Clear any existing mock tokens that might interfere with real authentication
+    const hadMockTokens = clearMockTokens();
+    if (hadMockTokens) {
+      console.log('🔄 Cleared mock tokens, please login again with real credentials');
+    }
+    
     // Initialize mock data system
     initializeMockData();
     
@@ -92,7 +103,12 @@ const AppContent = () => {
     };
   }, [isAuthenticated, user]);
   
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <ConnectionStatusBanner connection={connection} />
+      <RouterProvider router={router} />
+    </>
+  );
 };
 
 const App = () => {

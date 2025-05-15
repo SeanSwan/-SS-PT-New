@@ -5,7 +5,9 @@ import { setUser as setReduxUser, logout as logoutRedux, setLoading as setReduxL
 import { createClientProgressService, ClientProgressServiceInterface } from '../services/client-progress-service';
 import { createExerciseService, ExerciseServiceInterface } from '../services/exercise-service';
 import { createAdminClientService, AdminClientServiceInterface } from '../services/adminClientService';
+import { useBackendConnection } from '../hooks/useBackendConnection.jsx';
 import { AxiosInstance } from 'axios';
+import tokenCleanup from '../utils/tokenCleanup';
 
 // Enhanced User Interface aligned with backend model
 export interface User {
@@ -77,6 +79,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Backend connection state
+  const connection = useBackendConnection();
+  
   // Redux integration (optional)
   let dispatch: any = null;
   let reduxUser: any = null;
@@ -98,7 +103,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   // Token refresh function
   const refreshToken = useCallback(async (): Promise<boolean> => {
     try {
-      const token = localStorage.getItem('token');
+      const token = tokenCleanup.getValidatedToken();
       if (!token) return false;
       
       const response = await apiService.post('/api/auth/refresh', {}, {
@@ -107,14 +112,14 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       
       if (response.data.token) {
         const newToken = response.data.token;
-        localStorage.setItem('token', newToken);
-        localStorage.setItem('tokenTimestamp', Date.now().toString());
+        tokenCleanup.storeToken(newToken);
         apiService.setAuthToken(newToken);
         return true;
       }
       return false;
     } catch (error) {
       console.error('Token refresh failed:', error);
+      tokenCleanup.handleTokenError(error);
       return false;
     }
   }, []);
@@ -130,6 +135,43 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     );
   }, [user]);
   
+  // Mock login function for development
+  const performMockLogin = async (username: string, password: string): Promise<{success: boolean, user: User | null, error?: string}> => {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Determine role from username
+    let role: User['role'] = 'user';
+    if (username.toLowerCase().includes('admin')) role = 'admin';
+    else if (username.toLowerCase().includes('trainer')) role = 'trainer';
+    else if (username.toLowerCase().includes('client')) role = 'client';
+    
+    const mockUser: User = {
+      id: `mock-${Date.now()}`,
+      email: username.includes('@') ? username : `${username}@example.com`,
+      username: username.includes('@') ? username.split('@')[0] : username,
+      firstName: 'Mock',
+      lastName: 'User',
+      role,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    const mockToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify({sub: mockUser.id, iat: Math.floor(Date.now()/1000), exp: Math.floor(Date.now()/1000) + (24*60*60)}))}.mock-signature`;
+    tokenCleanup.storeToken(mockToken, mockUser);
+    apiService.setAuthToken(mockToken);
+    
+    setUser(mockUser);
+    
+    if (dispatch) {
+      dispatch(setReduxUser(mockUser));
+    }
+    
+    console.log('Mock login successful:', mockUser.username, mockUser.role);
+    return { success: true, user: mockUser };
+  };
+  
   // Check authentication status on mount
   useEffect(() => {
     const checkAuthStatus = async () => {
@@ -137,18 +179,19 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       setError(null);
       
       try {
-        // Get token from localStorage
-        const token = localStorage.getItem('token');
+        // Get validated token from cleanup utility
+        const token = tokenCleanup.getValidatedToken();
         const tokenTimestamp = localStorage.getItem('tokenTimestamp');
         
         if (!token) {
-          console.log('No token found');
+          console.log('No valid token found');
           setUser(null);
           setLoading(false);
           return;
         }
         
-        // Check token age (24 hours)
+        // Check token age (24 hours) - this is already done in getValidatedToken
+        // but keeping this check as a backup
         if (tokenTimestamp) {
           const age = Date.now() - parseInt(tokenTimestamp);
           const maxAge = 24 * 60 * 60 * 1000; // 24 hours
@@ -232,6 +275,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     setLoading(true);
     setError(null);
     
+    // If backend is not connected, use mock data only in development
+    if (!connection.isConnected && connection.isMockMode && process.env.NODE_ENV === 'development') {
+      console.log('Backend not available, using mock login');
+      return await performMockLogin(username, password);
+    }
+    
     try {
       // Attempt real API login
       const response = await apiService.post('/api/auth/login', { 
@@ -241,11 +290,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       
       if (response.data?.user && response.data?.token) {
         const { user: userData, token } = response.data;
-        
-        // Store token
-        localStorage.setItem('token', token);
-        localStorage.setItem('tokenTimestamp', Date.now().toString());
-        apiService.setAuthToken(token);
         
         // Format user data
         const formattedUser: User = {
@@ -263,8 +307,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           clientInfo: userData.clientInfo
         };
         
+        // Store token and user using cleanup utility
+        tokenCleanup.storeToken(token, formattedUser);
+        apiService.setAuthToken(token);
+        
         setUser(formattedUser);
-        localStorage.setItem('user', JSON.stringify(formattedUser));
         
         // Update Redux if available
         if (dispatch) {
@@ -279,41 +326,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     } catch (error: any) {
       console.error('Login failed:', error);
       
-      // Development fallback - create mock user based on username
+      // Development fallback - use mock login
       if (process.env.NODE_ENV === 'development') {
-        console.log('Using development mock login');
-        
-        let role: User['role'] = 'user';
-        if (username.toLowerCase().includes('admin')) role = 'admin';
-        else if (username.toLowerCase().includes('trainer')) role = 'trainer';
-        else if (username.toLowerCase().includes('client')) role = 'client';
-        
-        const mockUser: User = {
-          id: `mock-${Date.now()}`,
-          email: username.includes('@') ? username : `${username}@example.com`,
-          username: username.includes('@') ? username.split('@')[0] : username,
-          firstName: 'Mock',
-          lastName: 'User',
-          role,
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        
-        const mockToken = `mock-token-${Date.now()}`;
-        localStorage.setItem('token', mockToken);
-        localStorage.setItem('user', JSON.stringify(mockUser));
-        localStorage.setItem('tokenTimestamp', Date.now().toString());
-        apiService.setAuthToken(mockToken);
-        
-        setUser(mockUser);
-        
-        if (dispatch) {
-          dispatch(setReduxUser(mockUser));
-        }
-        
-        console.log('Mock login successful:', mockUser.username, mockUser.role);
-        return { success: true, user: mockUser };
+        console.log('API login failed, using mock login');
+        return await performMockLogin(username, password);
       }
       
       const errorMessage = error.response?.data?.message || error.message || 'Login failed';
@@ -328,19 +344,16 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const logout = useCallback(() => {
     try {
       // Call logout API if authenticated
-      const token = localStorage.getItem('token');
-      if (token && token !== `mock-token-${Date.now()}`) {
+      const token = tokenCleanup.getValidatedToken();
+      if (token && !token.includes('mock-signature')) {
         apiService.post('/api/auth/logout').catch(console.error);
       }
     } catch (error) {
       console.error('Logout API error:', error);
     }
     
-    // Clear all stored data
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('tokenTimestamp');
-    sessionStorage.clear();
+    // Clear all stored data using cleanup utility
+    tokenCleanup.cleanupAllTokens();
     
     // Clear API auth
     apiService.setAuthToken(null);

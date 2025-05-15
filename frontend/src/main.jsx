@@ -12,6 +12,12 @@ import initViewportFixes from './utils/viewportFix';
 // Import image error handler
 import { imageErrorHandler } from './utils/imageErrorHandler';
 
+// Import token cleanup initialization
+import './utils/initTokenCleanup';
+
+// Import token debug tool (adds window.debugTokens() for debugging)
+import './utils/tokenDebugTool';
+
 // Initialize viewport fixes for better mobile experience
 initViewportFixes();
 

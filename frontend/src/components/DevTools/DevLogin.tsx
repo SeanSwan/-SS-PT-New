@@ -30,35 +30,63 @@ const DevLogin: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Handle login with role
+  // Handle login with role - now uses actual backend login
   const handleDevLogin = async () => {
     setLoading(true);
     setError(null);
     setSuccess(null);
 
     try {
-      // You would implement your dev login logic here
-      // This is just a mock implementation
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Clear any existing authentication first
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
       
-      const mockToken = `dev_${role}_${Math.random().toString(36).substring(2, 15)}`;
-      localStorage.setItem('token', mockToken);
-      localStorage.setItem('user_role', role);
+      // Get credentials for the selected role
+      const credentials = {
+        username: role === 'admin' ? 'admin' : 
+                 role === 'trainer' ? 'trainer@test.com' :
+                 'client@test.com',
+        password: role === 'admin' ? 'admin123' : 'password123'
+      };
       
-      setSuccess(`Successfully logged in as ${role} user`);
+      console.log(`DevTools: Attempting login as ${credentials.username}`);
       
-      // More robust page reload after successful login
-      setTimeout(() => {
-        // Force navigation to home page
-        window.location.href = '/';
+      // Make actual login request to backend
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(credentials)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Login failed:', errorData);
+        throw new Error(errorData.message || `Login failed with status ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Login response:', data);
+      
+      // Store the actual token from the backend
+      if (data.token && data.user) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('tokenTimestamp', Date.now().toString());
         
-        // Backup reload as failsafe
+        setSuccess(`✅ Successfully logged in as ${data.user.role} user (${data.user.username})`);
+        
+        // Reload to apply the new authentication state
         setTimeout(() => {
           window.location.reload();
-        }, 300);
-      }, 1500);
-    } catch (err) {
-      setError('Failed to perform dev login');
+        }, 1500);
+      } else {
+        throw new Error('Invalid response from server: missing token or user data');
+      }
+    } catch (err: any) {
+      console.error('Dev login error:', err);
+      setError(`❌ Failed to login: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -114,8 +142,19 @@ const DevLogin: React.FC = () => {
         </Typography>
         
         <Typography variant="body2" paragraph>
-          This tool allows you to quickly switch between user roles for testing without changing accounts.
+          This tool allows you to quickly login as different user roles for testing. It uses actual backend authentication.
         </Typography>
+        
+        <Alert severity="info" sx={{ mb: 2 }}>
+          <Typography variant="body2">
+            <strong>Available Credentials:</strong><br />
+            • Admin: username=admin, password=admin123<br />
+            • Trainer: username=trainer@test.com, password=password123<br />
+            • Client: username=client@test.com, password=password123<br />
+            <br />
+            <strong>Note:</strong> This connects to the real backend on port 10000
+          </Typography>
+        </Alert>
         
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>

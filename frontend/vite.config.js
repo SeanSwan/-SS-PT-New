@@ -1,352 +1,115 @@
-import { defineConfig, loadEnv } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import path from 'path';
 import svgr from 'vite-plugin-svgr';
-import fs from 'fs';
-
-// Mock API response handlers
-const mockResponses = {
-  '/api/auth/login': (req, res) => {
-    // Parse request body
-    let body = '';
-    req.on('data', chunk => {
-      body += chunk.toString();
-    });
-    
-    req.on('end', () => {
-      try {
-        const data = JSON.parse(body);
-        console.log('Mock login attempt:', data.username || data.email);
-        
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'application/json');
-        res.end(JSON.stringify({
-          token: 'mock-token-for-development-mode',
-          user: {
-            id: 'mock-user-id',
-            username: data.username || 'mockuser',
-            email: `${data.username || 'mock'}@example.com`,
-            firstName: 'Mock',
-            lastName: 'User',
-            role: data.username?.includes('admin') ? 'admin' : 'client',
-            profileImage: null,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          }
-        }));
-      } catch (err) {
-        console.error('Error parsing login request:', err);
-        res.statusCode = 400;
-        res.end(JSON.stringify({ error: 'Invalid request format' }));
-      }
-    });
-  },
-  
-  '/api/auth/clients': (req, res) => {
-    console.log('Mock clients request');
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify([
-      {
-        id: 'client-1',
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@email.com',
-        phone: '555-0101',
-        photo: null,
-        availableSessions: 5
-      },
-      {
-        id: 'client-2',
-        firstName: 'Jane',
-        lastName: 'Smith',
-        email: 'jane.smith@email.com',
-        phone: '555-0102',
-        photo: null,
-        availableSessions: 3
-      },
-      {
-        id: 'client-3',
-        firstName: 'Mike',
-        lastName: 'Johnson',
-        email: 'mike.johnson@email.com',
-        phone: '555-0103',
-        photo: null,
-        availableSessions: 0
-      }
-    ]));
-  },
-  
-  '/api/auth/trainers': (req, res) => {
-    console.log('Mock trainers request');
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify([
-      {
-        id: 'trainer-1',
-        firstName: 'Alex',
-        lastName: 'Wilson',
-        email: 'alex.wilson@swanstudios.com',
-        photo: null,
-        specialties: 'Strength Training, HIIT'
-      },
-      {
-        id: 'trainer-2',
-        firstName: 'Sarah',
-        lastName: 'Brown',
-        email: 'sarah.brown@swanstudios.com',
-        photo: null,
-        specialties: 'Yoga, Flexibility'
-      },
-      {
-        id: 'trainer-3',
-        firstName: 'David',
-        lastName: 'Chen',
-        email: 'david.chen@swanstudios.com',
-        photo: null,
-        specialties: 'Olympic Lifting, Powerlifting'
-      }
-    ]));
-  },
-  
-  '/api/storefront': (req, res) => {
-    console.log('Mock storefront request');
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({
-      success: true,
-      items: [
-        {
-          id: '1',
-          name: 'Personal Training Session',
-          description: 'One-on-one training session with a certified trainer',
-          price: 75.00,
-          category: 'sessions',
-          imageUrl: '/session-1.jpg',
-          inStock: true
-        },
-        {
-          id: '2',
-          name: '5-Session Package',
-          description: 'Bundle of 5 personal training sessions at a discount',
-          price: 350.00,
-          category: 'packages',
-          imageUrl: '/package-5.jpg',
-          inStock: true
-        },
-        {
-          id: '3',
-          name: '10-Session Package',
-          description: 'Bundle of 10 personal training sessions at a bigger discount',
-          price: 650.00,
-          category: 'packages',
-          imageUrl: '/package-10.jpg',
-          inStock: true
-        },
-        {
-          id: '4',
-          name: 'Premium Protein Powder',
-          description: 'High-quality protein supplement for muscle recovery',
-          price: 45.99,
-          category: 'supplements',
-          imageUrl: '/protein.jpg',
-          inStock: true
-        },
-        {
-          id: '5',
-          name: 'Training T-Shirt',
-          description: 'Comfortable, moisture-wicking training shirt',
-          price: 29.99,
-          category: 'apparel',
-          imageUrl: '/shirt.jpg',
-          inStock: true
-        }
-      ]
-    }));
-  },
-  
-  '/api/session-packages': (req, res) => {
-    console.log('Mock session packages request');
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'application/json');
-    res.end(JSON.stringify({
-      success: true,
-      packages: [
-        {
-          id: '1',
-          name: 'Starter Package',
-          description: '5 personal training sessions to get you started on your fitness journey',
-          sessionCount: 5,
-          price: 350.00,
-          discountPercentage: 10,
-          imageUrl: '/package-starter.jpg',
-          benefits: ['Personalized fitness assessment', 'Goal setting consultation', 'Customized workout plan'],
-          available: true
-        },
-        {
-          id: '2',
-          name: 'Transformation Package',
-          description: '10 sessions designed to transform your fitness level and habits',
-          sessionCount: 10,
-          price: 650.00,
-          discountPercentage: 15,
-          imageUrl: '/package-transform.jpg',
-          benefits: ['Body composition analysis', 'Nutrition guidance', 'Progress tracking', 'Form correction'],
-          available: true
-        },
-        {
-          id: '3',
-          name: 'Elite Package',
-          description: '20 sessions for those serious about reaching their peak fitness potential',
-          sessionCount: 20,
-          price: 1200.00,
-          discountPercentage: 20,
-          imageUrl: '/package-elite.jpg',
-          benefits: ['Advanced training techniques', 'Recovery strategies', 'Performance nutrition', 'Unlimited messaging support'],
-          available: true
-        },
-        {
-          id: '4',
-          name: 'Couples Package',
-          description: '8 partner training sessions - work out together!',
-          sessionCount: 8,
-          price: 560.00,
-          discountPercentage: 12,
-          imageUrl: '/package-couples.jpg',
-          benefits: ['Partner exercises', 'Shared fitness goals', 'Motivation boost', 'Fun competitive elements'],
-          available: true
-        }
-      ]
-    }));
-  }
-};
+import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // Load env variables
-  const env = loadEnv(mode, process.cwd(), '');
-  const isDevelopment = mode === 'development';
-  const isProduction = mode === 'production';
-  const isDevMode = env.VITE_DEV_MODE === 'true';
+  // Determine if we're in production mode
+  const isProd = mode === 'production';
   
-  console.log(`Running in ${mode} mode, Dev Mode: ${isDevMode ? 'ENABLED' : 'DISABLED'}`);
+  // Set the appropriate backend URL based on environment
+  const backendUrl = isProd 
+    ? 'https://swanstudios.onrender.com' 
+    : 'http://localhost:10000';
   
-  const serverConfig = isDevelopment
-    ? {
-        port: 5173,
-        strictPort: false,
-        open: true,
-        proxy: {
-          '/api': {
-            target: 'http://localhost:10000',
-            changeOrigin: true,
-            secure: false,
-            ws: true,
-            configure: (proxy, _options) => {
-              proxy.on('error', (err, req, res) => {
-                console.log('Proxy error:', err);
-                
-                // Get the path from URL
-                const url = new URL(req.url, 'http://localhost');
-                const path = url.pathname;
-                
-                // Check if we have a mock handler for this path
-                if (mockResponses[path]) {
-                  console.log(`Using mock handler for ${path}`);
-                  mockResponses[path](req, res);
-                } else if (path.startsWith('/api/')) {
-                  // Generic mock response for API endpoints
-                  console.log(`Using generic mock for ${path}`);
-                  res.statusCode = 200;
-                  res.setHeader('Content-Type', 'application/json');
-                  res.end(JSON.stringify({
-                    success: true,
-                    message: `Mock response for ${path}`,
-                    data: { mockData: true }
-                  }));
-                } else {
-                  // Default error response
-                  res.statusCode = 500;
-                  res.end(JSON.stringify({ error: 'Server error', mockMode: true }));
-                }
-              });
-              
-              proxy.on('proxyReq', (proxyReq, req, _res) => {
-                console.log('Sending Request:', req.method, req.url);
-              });
-              
-              proxy.on('proxyRes', (proxyRes, req, _res) => {
-                console.log('Received Response from backend:', proxyRes.statusCode, req.url);
-              });
-            },
-          },
-          '/health': {
-            target: 'http://localhost:10000',
-            changeOrigin: true,
-            secure: false,
-            configure: (proxy, _options) => {
-              proxy.on('error', (_err, _req, res) => {
-                // Create a mock response when backend is down
-                if (!res.headersSent) {
-                  res.statusCode = 200;
-                  res.setHeader('Content-Type', 'application/json');
-                  res.end(JSON.stringify({
-                    status: 'mock',
-                    message: 'Development mode active - using mock data',
-                    timestamp: new Date().toISOString(),
-                    dbStatus: {
-                      connected: true,
-                      mock: true,
-                      usingSQLiteFallback: false
-                    }
-                  }));
-                }
-              });
-            }
-          }
-        }
-      }
-    : {};
+  console.log(`[Vite Config] Using backend URL: ${backendUrl} (${mode} mode)`);
   
   return {
     plugins: [
-      react(),
-      svgr()
+      react({
+        // Enable JSX in .js files
+        include: '**/*.{jsx,js,tsx,ts}',
+      }),
+      svgr(), // Handle SVG imports
+      // Enhanced development debugging plugin
+      {
+        name: 'log-server-requests',
+        configureServer(server) {
+          server.middlewares.use((req, res, next) => {
+            // Log API requests to help with debugging
+            if (req.url?.startsWith('/api')) {
+              console.log(`[Vite Proxy] ${req.method} ${req.url}`);
+            }
+            next();
+          });
+        }
+      }
     ],
+    server: {
+      port: 5173,
+      open: false,  // Don't auto-open browser
+      hmr: {
+        overlay: true,
+      },
+      // Enhanced proxy configuration with detailed logging and error handling
+      proxy: {
+        '/api': {
+          target: backendUrl,
+          changeOrigin: true,
+          secure: isProd,
+          ws: true,
+          xfwd: true,
+          proxyTimeout: 60000, // Extended timeout
+          configure: (proxy, options) => {
+            // Log all proxy events for debugging
+            proxy.on('error', (err, req, res) => {
+              console.error(`[Proxy Error] ${req.method} ${req.url}:`, err.message);
+              
+              // For API errors, return a JSON response
+              if (req.url.startsWith('/api') && res.writeHead && !res.headersSent) {
+                res.writeHead(502, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({
+                  success: false,
+                  message: 'Backend server connection failed',
+                  error: 'ERR_CONNECTION_REFUSED',
+                  details: 'The backend server is currently unavailable. Please check if the backend is running on port 10000.'
+                }));
+              }
+            });
+            
+            proxy.on('proxyReq', (proxyReq, req, res) => {
+              console.log(`[Proxy Request] ${req.method} ${req.url} → ${backendUrl}${req.url}`);
+            });
+            
+            proxy.on('proxyRes', (proxyRes, req, res) => {
+              console.log(`[Proxy Response] ${proxyRes.statusCode} for ${req.method} ${req.url}`);
+            });
+          }
+        }
+      },
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
       },
     },
-    server: serverConfig,
     build: {
+      sourcemap: true,
       outDir: 'dist',
-      assetsDir: 'assets',
-      sourcemap: isDevelopment, // Only generate sourcemaps in development
-      minify: isProduction ? 'esbuild' : false, // Minify in production
+      // Ensure the router works correctly with Render
       rollupOptions: {
         output: {
           manualChunks: {
-            vendor: ['react', 'react-dom', 'react-router-dom', 'styled-components'],
-            ui: ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
+            vendor: ['react', 'react-dom', 'react-router-dom'],
           }
         }
       }
     },
-    optimizeDeps: {
-      include: ['react', 'react-dom', 'react-router-dom', 'styled-components', 'axios'],
-    },
     define: {
-      // Define environment variables accessible in frontend code
-      __DEV_MODE__: isDevMode,
-      __DEV__: isDevelopment,
-      // Inject actual backend API URL for production
-      'process.env.VITE_API_URL': isProduction 
-        ? JSON.stringify('https://swanstudios-app.onrender.com') 
-        : JSON.stringify('http://localhost:10000'),
-    },
-    // Cache settings to avoid build issues
-    cacheDir: '.vite-cache',
-    clearScreen: false,
+      'import.meta.env.VITE_API_BASE_URL': JSON.stringify('/api'),
+      'process.env': JSON.stringify({
+        // Define any process.env variables that are still needed here
+        NODE_ENV: mode,
+        REACT_APP_WORKOUT_MCP_URL: 'http://localhost:8000',
+        REACT_APP_GAMIFICATION_MCP_URL: 'http://localhost:8001',
+        REACT_APP_API_URL: '/api',
+        REACT_APP_ENABLE_GAMIFICATION: 'true',
+        REACT_APP_ENABLE_FOOD_TRACKER: 'true',
+        REACT_APP_ENABLE_SOCIAL_FEATURES: 'false',
+        REACT_APP_ENABLE_DANCE_WORKOUTS: 'false',
+        REACT_APP_ENABLE_CORPORATE_WELLNESS: 'false'
+      })
+    }
   };
 });

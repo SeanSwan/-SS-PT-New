@@ -6,6 +6,7 @@
  */
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import tokenCleanup from '../utils/tokenCleanup';
 
 // API URL from environment variables with fallbacks
 // NOTE: Using empty base URL to leverage Vite's proxy feature
@@ -30,7 +31,7 @@ export const createApiClient = (config?: AxiosRequestConfig): AxiosInstance => {
   // Add request interceptor for auth token
   instance.interceptors.request.use(
     (config) => {
-      const token = localStorage.getItem('token');
+      const token = tokenCleanup.getValidatedToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -43,6 +44,11 @@ export const createApiClient = (config?: AxiosRequestConfig): AxiosInstance => {
   instance.interceptors.response.use(
     (response) => response,
     (error: AxiosError) => {
+      // Check for token-related errors first
+      if (tokenCleanup.handleTokenError(error)) {
+        // Token error handled, let the error propagate for auth context to handle
+      }
+      
       // Enhanced error logging
       if (error.response) {
         // Server responded with error

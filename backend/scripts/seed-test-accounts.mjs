@@ -167,7 +167,7 @@ async function seedTestAccounts() {
 }
 
 // If this script is run directly (not imported)
-if (process.argv[1] === process.argv[1]) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   seedTestAccounts()
     .then(result => {
       console.log('Result:', result);

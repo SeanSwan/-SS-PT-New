@@ -42,6 +42,14 @@ if (!isProduction) {
   console.log(`[Server] Database Host: ${process.env.PG_HOST || 'localhost'}`);
 }
 
+// Apply Redis connection fix early
+import redisConnectionFix from './utils/redisConnectionFix.mjs';
+redisConnectionFix.preventRedisConnections();
+
+// Prevent unwanted Redis connections early
+import { preventRedisConnections, checkRedisAvailability } from './utils/redisConnectionPreventer.mjs';
+preventRedisConnections();
+
 // Now import other dependencies after environment variables are loaded
 import express from 'express';
 import cors from 'cors';
@@ -128,7 +136,7 @@ checkApiKeys();
 
 // Initialize Express app
 const app = express();
-const PORT = process.env.PORT || 5000; // Render sets the PORT env var
+const PORT = process.env.PORT || 10000; // Default to 10000 for development, Render sets the PORT env var
 
 // Apply security headers in production
 if (isProduction) {
@@ -571,6 +579,10 @@ app.use((req, res) => {
 // --- Server Initialization ---
 (async () => {
   try {
+    // Check Redis availability if enabled
+    const redisCheck = await checkRedisAvailability();
+    logger.info(`Redis availability check: ${redisCheck.reason}`);
+    
     // Create required directories
     await createRequiredDirectories();
     
