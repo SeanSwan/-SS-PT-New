@@ -1,0 +1,88 @@
+{
+  "name": "swanstudios",
+  "version": "1.0.0",
+  "description": "SwanStudios - Personal Training Platform with AI MCP Integration",
+  "private": true,
+  "scripts": {
+    "start": "concurrently \"npm run start-mongodb\" \"npm run start-backend\" \"npm run start-frontend\" \"npm run start-workout-mcp\" \"npm run start-gamification-mcp\" --names \"mongo,backend,frontend,workout-mcp,gamify-mcp\" --prefix-colors \"green,yellow,cyan,magenta,blue\"",
+    "start-dev": "npm run start",
+    "start-core": "concurrently \"npm run start-mongodb\" \"npm run start-backend\" \"npm run start-frontend\" --names \"mongo,backend,frontend\" --prefix-colors \"green,yellow,cyan\"",
+    "start-full": "concurrently \"npm run start-mongodb\" \"npm run start-backend\" \"npm run start-frontend\" \"npm run start-all-mcp\" --names \"mongo,backend,frontend,mcp-servers\" --prefix-colors \"green,yellow,cyan,purple\"",
+    
+    "start-backend": "cd backend && npm run dev",
+    "start-frontend": "cd frontend && npm run dev",
+    "start-mongodb": "node scripts/mongodb-setup.js",
+    
+    "start-workout-mcp": "cd backend/mcp_server && python workout_mcp_server.py",
+    "start-gamification-mcp": "cd backend/mcp_server && python start_gamification_server.py",
+    "start-enhanced-gamification-mcp": "cd backend/mcp_server && python start_enhanced_gamification_server.py",
+    "start-yolo-mcp": "cd backend/mcp_server/yolo_mcp_server && python yolo_mcp_server.py",
+    "start-all-mcp": "concurrently \"npm run start-workout-mcp\" \"npm run start-gamification-mcp\" --names \"workout,gamification\" --prefix-colors \"magenta,blue\"",
+    
+    "check-mcp-health": "node scripts/check-mcp-health.js",
+    "check-system-status": "node scripts/check-system-status.mjs",
+    "test-auth": "node scripts/test-auth-system.mjs",
+    "restart-backend": "node scripts/restart-backend.mjs",
+    "fix-malformed-files": "node scripts/fix-malformed-files.mjs",
+    "fix-all-syntax": "node scripts/fix-all-syntax.mjs",
+    "clear-cache-restart": "node scripts/clear-cache-restart.mjs",
+    
+    "build": "cd frontend && npm run build",
+    "build-frontend": "cd frontend && npm run build",
+    
+    "install-all": "npm install && npm run install-backend && npm run install-frontend && npm run install-mcp-deps",
+    "install-backend": "cd backend && npm install",
+    "install-frontend": "cd frontend && npm install",
+    "install-mcp-deps": "cd backend/mcp_server && pip install -r requirements.txt && pip install -r workout_requirements.txt",
+    
+    "db:migrate": "cd backend && npm run migrate",
+    "db:seed": "cd backend && npm run seed",
+    "db:setup": "cd backend && npm run db:setup",
+    "db:reset": "cd backend && npm run db:reset",
+    "db:reset-complete": "cd backend && npm run db:reset-complete",
+    
+    "fix-admin": "cd backend && npm run fix-admin",
+    "create-admin": "cd backend && npm run create-admin",
+    "force-create-admin": "cd backend && npm run force-create-admin",
+    "verify-admin": "cd backend && npm run verify-admin",
+    
+    "fix-all": "npm run fix-server && npm run fix-models",
+    "fix-server": "cd backend && npm run fix-server",
+    "fix-models": "cd backend && npm run fix-models",
+    "fix-and-start": "npm run fix-all && npm run start",
+    
+    "fix-dependencies": "cd backend && npm run fix-dependencies",
+    "install-missing-deps": "cd backend && npm run install-missing-deps",
+    "fix-all-and-restart": "npm run fix-all-syntax && npm run install-missing-deps && npm run clear-cache-restart",
+    
+    "production-check": "cd backend && npm run production-check",
+    "kill-ports": "node scripts/kill-ports.js",
+    "clean-start": "npm run kill-ports && npm run start",
+    
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "npm run start",
+    "monitor": "node scripts/monitor-servers.js"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "axios": "^1.9.0",
+    "chalk": "^5.4.1",
+    "ora": "^8.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0",
+    "python": ">=3.9.0"
+  },
+  "keywords": [
+    "personal-training",
+    "ai",
+    "mcp",
+    "full-stack",
+    "react",
+    "nodejs",
+    "python",
+    "mongodb",
+    "postgresql"
+  ]
+}

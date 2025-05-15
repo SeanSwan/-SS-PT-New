@@ -128,6 +128,9 @@ const DashboardSelector: React.FC = () => {
   const isEnabled = (requiredRole: string | string[]) => {
     if (!user || !user.role) return false;
     
+    // Admin can access everything
+    if (user.role === 'admin') return true;
+    
     if (Array.isArray(requiredRole)) {
       return requiredRole.includes(user.role);
     }
@@ -220,31 +223,31 @@ const DashboardSelector: React.FC = () => {
         <DropdownItem
           active={isClientDashboard}
           onClick={() => handleSelectDashboard('/client-dashboard')}
-          disabled={!isEnabled(['admin', 'trainer', 'client'])}
+          disabled={!isEnabled(['client'])}
         >
-          <ItemIcon disabled={!isEnabled(['admin', 'trainer', 'client'])}>
+          <ItemIcon disabled={!isEnabled(['client'])}>
             <User size={16} color="#FF6B6B" />
           </ItemIcon>
           <ItemContent>
             <ItemTitle>Client Dashboard</ItemTitle>
-            <ItemDescription>View your personal progress</ItemDescription>
+            <ItemDescription>Training progress and sessions</ItemDescription>
           </ItemContent>
-          {isEnabled(['admin', 'trainer', 'client']) && <RoleBadge>CLIENT</RoleBadge>}
+          {(user?.role === 'client' || user?.role === 'admin') && <RoleBadge>CLIENT</RoleBadge>}
         </DropdownItem>
         
         <DropdownItem
           active={isUserDashboard}
           onClick={() => handleSelectDashboard('/user-dashboard')}
-          disabled={!user}
+          disabled={false}
         >
-          <ItemIcon disabled={!user}>
+          <ItemIcon disabled={false}>
             <UserCircle size={16} color="#32CD32" />
           </ItemIcon>
           <ItemContent>
             <ItemTitle>User Dashboard</ItemTitle>
-            <ItemDescription>General user settings and profile</ItemDescription>
+            <ItemDescription>Social profile and community features</ItemDescription>
           </ItemContent>
-          {user && <RoleBadge>USER</RoleBadge>}
+          <RoleBadge>SOCIAL</RoleBadge>
         </DropdownItem>
       </DropdownMenu>
     </SelectorContainer>

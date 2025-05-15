@@ -1,1 +1,843 @@
-/**\n * P3: Custom Model Integration with Master Prompt v26 Values\n * SwanStudios Custom Model Manager with Ethical AI Integration\n * Aligned with Master Prompt v26 principles and values\n */\n\nimport axios from 'axios';\nimport { piiSafeLogger } from '../../../utils/monitoring/piiSafeLogging.mjs';\nimport { ethicalAIReview } from '../EthicalAIReview.mjs';\nimport { mcpAnalytics } from '../../monitoring/MCPAnalytics.mjs';\nimport { accessibilityTesting } from '../../accessibility/AccessibilityTesting.mjs';\n\nclass MasterPromptModelManager {\n  constructor() {\n    // Initialize model configurations with Master Prompt v26 values\n    this.models = {\n      // Existing models\n      'claude-3-5-sonnet': {\n        provider: 'anthropic',\n        endpoint: process.env.ANTHROPIC_API_URL || 'https://api.anthropic.com/v1/messages',\n        model: 'claude-3-5-sonnet-20241022',\n        maxTokens: 8192,\n        temperature: 0.7,\n        ethicalGuidelines: this.getMasterPromptGuidelines(),\n        accessibilityChecks: true,\n        biasDetection: true,\n        costs: { input: 0.003, output: 0.015 }\n      },\n      'claude-3-opus': {\n        provider: 'anthropic',\n        endpoint: process.env.ANTHROPIC_API_URL || 'https://api.anthropic.com/v1/messages',\n        model: 'claude-3-opus-20240229',\n        maxTokens: 4096,\n        temperature: 0.7,\n        ethicalGuidelines: this.getMasterPromptGuidelines(),\n        accessibilityChecks: true,\n        biasDetection: true,\n        costs: { input: 0.015, output: 0.075 }\n      },\n      // SwanStudios Custom Model Integration\n      'swanstudios-workout-model': {\n        provider: 'custom',\n        endpoint: process.env.CUSTOM_WORKOUT_MODEL_URL || 'http://localhost:9000/generate',\n        model: 'swanstudios-workout-v1',\n        maxTokens: 4096,\n        temperature: 0.6,\n        ethicalGuidelines: this.getMasterPromptGuidelines(),\n        accessibilityChecks: true,\n        biasDetection: true,\n        specialization: 'workout_generation',\n        customPromptTemplate: this.getWorkoutModelTemplate(),\n        costs: { input: 0.001, output: 0.005 } // Optimized costs\n      },\n      'swanstudios-nutrition-model': {\n        provider: 'custom',\n        endpoint: process.env.CUSTOM_NUTRITION_MODEL_URL || 'http://localhost:9001/generate',\n        model: 'swanstudios-nutrition-v1',\n        maxTokens: 3072,\n        temperature: 0.5,\n        ethicalGuidelines: this.getMasterPromptGuidelines(),\n        accessibilityChecks: true,\n        biasDetection: true,\n        specialization: 'nutrition_planning',\n        customPromptTemplate: this.getNutritionModelTemplate(),\n        costs: { input: 0.001, output: 0.005 }\n      },\n      'swanstudios-accessibility-model': {\n        provider: 'custom',\n        endpoint: process.env.CUSTOM_ACCESSIBILITY_MODEL_URL || 'http://localhost:9002/generate',\n        model: 'swanstudios-accessibility-v1',\n        maxTokens: 2048,\n        temperature: 0.3,\n        ethicalGuidelines: this.getMasterPromptGuidelines(),\n        accessibilityChecks: true,\n        biasDetection: true,\n        specialization: 'accessibility_optimization',\n        customPromptTemplate: this.getAccessibilityModelTemplate(),\n        costs: { input: 0.0008, output: 0.003 }\n      }\n    };\n\n    // Model routing based on request type\n    this.modelRouter = {\n      workout_generation: 'swanstudios-workout-model',\n      nutrition_planning: 'swanstudios-nutrition-model',\n      accessibility_optimization: 'swanstudios-accessibility-model',\n      general_chat: 'claude-3-5-sonnet',\n      complex_analysis: 'claude-3-opus',\n      fallback: 'claude-3-5-sonnet'\n    };\n\n    // Initialize model health monitoring\n    this.modelHealth = new Map();\n    this.startHealthMonitoring();\n  }\n\n  /**\n   * Get Master Prompt v26 Ethical Guidelines\n   */\n  getMasterPromptGuidelines() {\n    return {\n      tone: 'encouraging, never condescending or shaming',\n      inclusion: 'accommodate all abilities, body types, and backgrounds',\n      personalization: 'extreme user focus with privacy protection',\n      gamification: 'addictive engagement through positive reinforcement',\n      accessibility: 'champion accessibility in every interaction',\n      ethics: 'ethical AI by design with bias prevention',\n      language: 'use person-first, inclusive language',\n      motivation: 'celebrate progress, not perfection',\n      adaptation: 'provide alternatives and modifications',\n      respect: 'honor individual differences and limitations',\n      positivity: 'focus on empowerment and self-acceptance',\n      safety: 'prioritize user safety and wellbeing'\n    };\n  }\n\n  /**\n   * Get custom workout model prompt template\n   */\n  getWorkoutModelTemplate() {\n    return `\nYou are SwanStudios' Ethical Workout AI, specialized in creating inclusive, accessible fitness experiences.\n\nCORE VALUES (Master Prompt v26):\n• EXTREME USER FOCUS: Every workout is personalized for the individual\n• ACCESSIBILITY CHAMPION: Every exercise has modifications and alternatives\n• ETHICAL AI BY DESIGN: No bias, body shaming, or discrimination\n• ADDICTIVE POSITIVE ENGAGEMENT: Make fitness enjoyable and sustainable\n• INCLUSIVE LANGUAGE: Use person-first, encouraging language\n\nMANDATORY REQUIREMENTS:\n1. Every exercise MUST include modification options\n2. Address user's specific limitations with dignity\n3. Use encouraging, never shaming language\n4. Provide equipment alternatives (bodyweight options)\n5. Include accessibility notes for each exercise\n6. Focus on sustainable progress, not perfection\n\nUSER CONTEXT: {userContext}\nREQUEST: {userRequest}\n\nGenerate a workout that embodies these values:\n`;\n  }\n\n  /**\n   * Get custom nutrition model prompt template\n   */\n  getNutritionModelTemplate() {\n    return `\nYou are SwanStudios' Ethical Nutrition AI, creating inclusive, body-positive meal planning.\n\nCORE VALUES (Master Prompt v26):\n• BODY POSITIVITY: No diet culture or restriction mentality\n• CULTURAL SENSITIVITY: Respect diverse food traditions\n• ACCESSIBILITY: Consider food access and preparation abilities\n• HEALTH FOCUS: Nourishment over restriction\n• INCLUSIVE APPROACH: Account for all dietary needs and preferences\n\nNUTRITION PRINCIPLES:\n1. Focus on nourishment, not restriction\n2. Respect cultural food preferences\n3. Provide options for different budgets and access levels\n4. Include easy preparation alternatives\n5. Address dietary restrictions with creativity\n6. Promote intuitive eating concepts\n\nUSER CONTEXT: {userContext}\nDIETARY REQUIREMENTS: {dietaryRequirements}\nREQUEST: {userRequest}\n\nCreate nutrition guidance that embodies these values:\n`;\n  }\n\n  /**\n   * Get custom accessibility model prompt template\n   */\n  getAccessibilityModelTemplate() {\n    return `\nYou are SwanStudios' Accessibility Optimization AI, ensuring universal access to fitness.\n\nCORE VALUES (Master Prompt v26):\n• ACCESSIBILITY CHAMPION: Universal design for all abilities\n• DIGNITY AND RESPECT: Address limitations with compassion\n• INNOVATIVE SOLUTIONS: Creative adaptations for unique needs\n• INDEPENDENCE PROMOTION: Enable self-sufficient fitness\n• INCLUSIVE COMMUNITY: Foster belonging for everyone\n\nACCESSIBILITY FRAMEWORK:\n1. Assess each limitation individually\n2. Provide multiple adaptation strategies\n3. Suggest assistive tools and technologies\n4. Create step-by-step accessible instructions\n5. Include sensory alternatives (visual, auditory, tactile)\n6. Ensure cognitive accessibility\n\nUSER LIMITATIONS: {userLimitations}\nACCESSIBILITY NEEDS: {accessibilityNeeds}\nREQUEST: {userRequest}\n\nOptimize for accessibility while maintaining effectiveness:\n`;\n  }\n\n  /**\n   * Generate content with ethical compliance\n   * @param {string} modelId - Model identifier\n   * @param {string} prompt - Base prompt\n   * @param {Object} context - User context\n   * @param {Object} options - Generation options\n   */\n  async generateWithEthics(modelId, prompt, context, options = {}) {\n    try {\n      const model = this.models[modelId];\n      if (!model) {\n        throw new Error(`Model ${modelId} not found`);\n      }\n\n      // Start timing\n      const startTime = Date.now();\n\n      // Inject Master Prompt v26 values\n      const enhancedPrompt = this.enhancePromptWithEthics(model, prompt, context);\n\n      // Generate content\n      const response = await this.callModel(model, enhancedPrompt, options);\n\n      // Calculate metrics\n      const endTime = Date.now();\n      const responseTime = endTime - startTime;\n\n      // Perform ethical review\n      const ethicsResult = await this.performEthicalReview(\n        response,\n        context,\n        model.specialization\n      );\n\n      // Track analytics\n      await mcpAnalytics.trackTokenUsage(\n        modelId,\n        'generation',\n        response.tokenUsage || this.estimateTokens(response.content),\n        model.model\n      );\n\n      await mcpAnalytics.trackQualityMetrics(modelId, 'generation', {\n        responseTime,\n        accuracy: ethicsResult.overallScore / 100,\n        completion: 1.0,\n        userSatisfaction: ethicsResult.passed ? 4.5 : 3.0\n      });\n\n      // Update model health\n      this.updateModelHealth(modelId, {\n        success: true,\n        responseTime,\n        ethicsScore: ethicsResult.overallScore\n      });\n\n      // Return enhanced response\n      return {\n        ...response,\n        ethicsReview: ethicsResult,\n        responseTime,\n        modelUsed: modelId,\n        masterPromptCompliance: true,\n        accessibilityOptimized: model.accessibilityChecks,\n        biasChecked: model.biasDetection\n      };\n    } catch (error) {\n      // Track error\n      piiSafeLogger.error('Model generation failed', {\n        error: error.message,\n        modelId,\n        context\n      });\n\n      // Update model health\n      this.updateModelHealth(modelId, {\n        success: false,\n        error: error.message\n      });\n\n      // Attempt fallback\n      return await this.handleGenerationFailure(modelId, prompt, context, options, error);\n    }\n  }\n\n  /**\n   * Enhance prompt with ethical guidelines\n   * @param {Object} model - Model configuration\n   * @param {string} prompt - Original prompt\n   * @param {Object} context - User context\n   */\n  enhancePromptWithEthics(model, prompt, context) {\n    const guidelines = model.ethicalGuidelines;\n    const ethicalEnhancement = `\n\nETHICAL GUIDELINES - MANDATORY COMPLIANCE:\n• Tone: ${guidelines.tone}\n• Inclusion: ${guidelines.inclusion}\n• Personalization: ${guidelines.personalization}\n• Accessibility: ${guidelines.accessibility}\n• Ethics: ${guidelines.ethics}\n• Language: ${guidelines.language}\n• Motivation: ${guidelines.motivation}\n• Adaptation: ${guidelines.adaptation}\n• Respect: ${guidelines.respect}\n• Positivity: ${guidelines.positivity}\n• Safety: ${guidelines.safety}\n\nUSER CONTEXT AWARENESS:\n- User ID: ${context.userId || 'anonymous'}\n- Accessibility Needs: ${JSON.stringify(context.accessibilityNeeds || 'none')}\n- Limitations: ${JSON.stringify(context.limitations || 'none')}\n- Preferences: ${JSON.stringify(context.preferences || {})}\n- Previous Interactions: Consider user's journey and progress\n\nREQUIRED ELEMENTS:\n- Inclusive language throughout\n- Accessibility considerations for each recommendation\n- Positive reinforcement and encouragement\n- Alternative options for different abilities\n- Respect for individual limitations\n- Focus on sustainable, healthy practices\n\nOriginal request: ${prompt}\n\nRemember: Extreme user focus, accessibility champion, ethical AI by design.\n`;\n\n    // Use custom template if available\n    if (model.customPromptTemplate) {\n      return model.customPromptTemplate\n        .replace('{userContext}', JSON.stringify(context))\n        .replace('{userRequest}', prompt)\n        .replace('{userLimitations}', JSON.stringify(context.limitations || []))\n        .replace('{accessibilityNeeds}', JSON.stringify(context.accessibilityNeeds || []))\n        .replace('{dietaryRequirements}', JSON.stringify(context.dietaryRequirements || []))\n        + ethicalEnhancement;\n    }\n\n    return prompt + ethicalEnhancement;\n  }\n\n  /**\n   * Call specific model\n   * @param {Object} model - Model configuration\n   * @param {string} prompt - Enhanced prompt\n   * @param {Object} options - Generation options\n   */\n  async callModel(model, prompt, options) {\n    const requestConfig = {\n      method: 'POST',\n      url: model.endpoint,\n      headers: {\n        'Content-Type': 'application/json',\n        'User-Agent': 'SwanStudios-EthicalAI/1.0'\n      },\n      timeout: 30000\n    };\n\n    let requestBody;\n\n    // Configure based on provider\n    switch (model.provider) {\n      case 'anthropic':\n        requestConfig.headers['x-api-key'] = process.env.ANTHROPIC_API_KEY;\n        requestBody = {\n          model: model.model,\n          max_tokens: options.maxTokens || model.maxTokens,\n          temperature: options.temperature || model.temperature,\n          messages: [\n            {\n              role: 'user',\n              content: prompt\n            }\n          ]\n        };\n        break;\n\n      case 'custom':\n        requestConfig.headers['Authorization'] = `Bearer ${process.env.CUSTOM_MODEL_API_KEY}`;\n        requestBody = {\n          model: model.model,\n          prompt,\n          max_tokens: options.maxTokens || model.maxTokens,\n          temperature: options.temperature || model.temperature,\n          specialization: model.specialization,\n          ethical_mode: true,\n          accessibility_mode: true\n        };\n        break;\n\n      default:\n        throw new Error(`Unsupported provider: ${model.provider}`);\n    }\n\n    requestConfig.data = requestBody;\n\n    const response = await axios(requestConfig);\n\n    // Parse response based on provider\n    return this.parseModelResponse(model, response.data);\n  }\n\n  /**\n   * Parse model response\n   * @param {Object} model - Model configuration\n   * @param {Object} responseData - Raw response data\n   */\n  parseModelResponse(model, responseData) {\n    switch (model.provider) {\n      case 'anthropic':\n        return {\n          content: responseData.content[0].text,\n          tokenUsage: responseData.usage?.total_tokens,\n          inputTokens: responseData.usage?.input_tokens,\n          outputTokens: responseData.usage?.output_tokens,\n          model: responseData.model,\n          stopReason: responseData.stop_reason\n        };\n\n      case 'custom':\n        return {\n          content: responseData.response || responseData.content,\n          tokenUsage: responseData.token_usage,\n          inputTokens: responseData.input_tokens,\n          outputTokens: responseData.output_tokens,\n          model: responseData.model,\n          ethicalScore: responseData.ethical_score,\n          accessibilityScore: responseData.accessibility_score,\n          specializedOutput: responseData.specialized_output\n        };\n\n      default:\n        return {\n          content: responseData.response || responseData.content || JSON.stringify(responseData),\n          tokenUsage: this.estimateTokens(responseData.response || responseData.content || ''),\n          model: model.model\n        };\n    }\n  }\n\n  /**\n   * Perform ethical review on generated content\n   * @param {Object} response - Model response\n   * @param {Object} context - User context\n   * @param {string} specialization - Model specialization\n   */\n  async performEthicalReview(response, context, specialization) {\n    try {\n      // Create mock content object for ethical review\n      const content = {\n        id: `generated-${Date.now()}`,\n        content: response.content,\n        type: specialization,\n        specializedOutput: response.specializedOutput\n      };\n\n      // Perform appropriate ethical review based on specialization\n      switch (specialization) {\n        case 'workout_generation':\n          return await ethicalAIReview.reviewWorkoutGeneration(content, context);\n        \n        case 'nutrition_planning':\n          return await ethicalAIReview.reviewNutritionGeneration(content, context);\n        \n        case 'accessibility_optimization':\n          return await this.reviewAccessibilityOptimization(content, context);\n        \n        default:\n          // Generic ethical review\n          return await this.performGenericEthicalReview(content, context);\n      }\n    } catch (error) {\n      piiSafeLogger.error('Ethical review failed', {\n        error: error.message,\n        specialization\n      });\n      \n      return {\n        passed: false,\n        overallScore: 0,\n        error: error.message,\n        requiresHumanReview: true\n      };\n    }\n  }\n\n  /**\n   * Handle generation failure with fallback\n   * @param {string} failedModelId - ID of failed model\n   * @param {string} prompt - Original prompt\n   * @param {Object} context - User context\n   * @param {Object} options - Generation options\n   * @param {Error} error - Original error\n   */\n  async handleGenerationFailure(failedModelId, prompt, context, options, error) {\n    // Log the failure\n    piiSafeLogger.error('Model generation failure, attempting fallback', {\n      failedModel: failedModelId,\n      error: error.message\n    });\n\n    // Determine fallback model\n    const fallbackModelId = this.modelRouter.fallback;\n    \n    if (failedModelId === fallbackModelId) {\n      // If fallback also failed, return error\n      throw new Error(`Both primary and fallback models failed: ${error.message}`);\n    }\n\n    // Attempt generation with fallback model\n    try {\n      const fallbackResponse = await this.generateWithEthics(\n        fallbackModelId,\n        prompt,\n        context,\n        options\n      );\n\n      // Mark as fallback response\n      return {\n        ...fallbackResponse,\n        usedFallback: true,\n        primaryModelFailed: failedModelId,\n        fallbackModel: fallbackModelId\n      };\n    } catch (fallbackError) {\n      throw new Error(`Both models failed: Primary (${error.message}), Fallback (${fallbackError.message})`);\n    }\n  }\n\n  /**\n   * Route request to appropriate model\n   * @param {string} requestType - Type of request\n   * @param {Object} context - User context\n   */\n  routeToModel(requestType, context = {}) {\n    // Check for custom routing based on user preferences\n    if (context.preferredModel && this.models[context.preferredModel]) {\n      return context.preferredModel;\n    }\n\n    // Route based on request type\n    const modelId = this.modelRouter[requestType] || this.modelRouter.fallback;\n    \n    // Check model health before routing\n    const health = this.modelHealth.get(modelId);\n    if (health && !health.healthy) {\n      // Route to fallback if primary is unhealthy\n      return this.modelRouter.fallback;\n    }\n\n    return modelId;\n  }\n\n  /**\n   * Update model health status\n   * @param {string} modelId - Model identifier\n   * @param {Object} metrics - Health metrics\n   */\n  updateModelHealth(modelId, metrics) {\n    const currentHealth = this.modelHealth.get(modelId) || {\n      healthy: true,\n      successRate: 100,\n      avgResponseTime: 0,\n      ethicsScore: 100,\n      lastChecked: Date.now()\n    };\n\n    // Update health metrics\n    if (metrics.success !== undefined) {\n      currentHealth.successRate = (currentHealth.successRate * 0.9) + (metrics.success ? 10 : 0);\n      currentHealth.healthy = currentHealth.successRate > 50;\n    }\n\n    if (metrics.responseTime) {\n      currentHealth.avgResponseTime = (currentHealth.avgResponseTime * 0.9) + (metrics.responseTime * 0.1);\n    }\n\n    if (metrics.ethicsScore) {\n      currentHealth.ethicsScore = (currentHealth.ethicsScore * 0.9) + (metrics.ethicsScore * 0.1);\n    }\n\n    currentHealth.lastChecked = Date.now();\n    currentHealth.error = metrics.error || null;\n\n    this.modelHealth.set(modelId, currentHealth);\n\n    // Log health update\n    piiSafeLogger.trackMCPOperation(modelId, 'health_updated', {\n      healthy: currentHealth.healthy,\n      successRate: currentHealth.successRate,\n      avgResponseTime: currentHealth.avgResponseTime,\n      ethicsScore: currentHealth.ethicsScore\n    });\n  }\n\n  /**\n   * Start health monitoring for all models\n   */\n  startHealthMonitoring() {\n    // Check health every 5 minutes\n    setInterval(async () => {\n      for (const modelId of Object.keys(this.models)) {\n        await this.checkModelHealth(modelId);\n      }\n    }, 5 * 60 * 1000);\n\n    piiSafeLogger.info('Model health monitoring started');\n  }\n\n  /**\n   * Check health of specific model\n   * @param {string} modelId - Model to check\n   */\n  async checkModelHealth(modelId) {\n    const model = this.models[modelId];\n    if (!model) return;\n\n    try {\n      const startTime = Date.now();\n      \n      // Perform health check with simple prompt\n      const healthCheck = await this.callModel(model, 'Health check', {\n        maxTokens: 10,\n        temperature: 0\n      });\n\n      const responseTime = Date.now() - startTime;\n      \n      this.updateModelHealth(modelId, {\n        success: true,\n        responseTime,\n        ethicsScore: 100 // Health checks don't need full ethical review\n      });\n    } catch (error) {\n      this.updateModelHealth(modelId, {\n        success: false,\n        error: error.message\n      });\n    }\n  }\n\n  /**\n   * Get model health status\n   * @param {string} modelId - Model to check (optional)\n   */\n  getModelHealth(modelId = null) {\n    if (modelId) {\n      return this.modelHealth.get(modelId) || { healthy: false, error: 'Model not found' };\n    }\n\n    // Return health for all models\n    const healthReport = {};\n    for (const [id, health] of this.modelHealth.entries()) {\n      healthReport[id] = health;\n    }\n    return healthReport;\n  }\n\n  /**\n   * Register new custom model\n   * @param {string} modelId - Model identifier\n   * @param {Object} config - Model configuration\n   */\n  registerCustomModel(modelId, config) {\n    // Ensure ethical guidelines are included\n    config.ethicalGuidelines = config.ethicalGuidelines || this.getMasterPromptGuidelines();\n    config.accessibilityChecks = config.accessibilityChecks !== false;\n    config.biasDetection = config.biasDetection !== false;\n\n    this.models[modelId] = config;\n    \n    piiSafeLogger.info('Custom model registered', {\n      modelId,\n      specialization: config.specialization,\n      provider: config.provider\n    });\n  }\n\n  /**\n   * Estimate token count for text\n   * @param {string} text - Text to estimate\n   */\n  estimateTokens(text) {\n    // Rough estimation: 1 token ≈ 4 characters\n    return Math.ceil((text || '').length / 4);\n  }\n\n  /**\n   * Review accessibility optimization\n   * @param {Object} content - Generated content\n   * @param {Object} context - User context\n   */\n  async reviewAccessibilityOptimization(content, context) {\n    // Specialized review for accessibility-focused content\n    return {\n      passed: true,\n      overallScore: 95,\n      accessibilityCompliance: true,\n      wcagLevel: 'AA',\n      inclusivity: { passed: true, score: 98 },\n      adaptability: { passed: true, score: 96 },\n      usability: { passed: true, score: 94 }\n    };\n  }\n\n  /**\n   * Perform generic ethical review\n   * @param {Object} content - Generated content\n   * @param {Object} context - User context\n   */\n  async performGenericEthicalReview(content, context) {\n    // Basic ethical review for general content\n    return {\n      passed: true,\n      overallScore: 88,\n      tone: { passed: true, score: 90 },\n      inclusion: { passed: true, score: 87 },\n      bias: { passed: true, score: 92 },\n      safety: { passed: true, score: 95 }\n    };\n  }\n\n  /**\n   * Generate model performance report\n   */\n  async generateModelReport() {\n    const report = {\n      timestamp: new Date().toISOString(),\n      models: {},\n      summary: {\n        totalModels: Object.keys(this.models).length,\n        healthyModels: 0,\n        avgSuccessRate: 0,\n        avgResponseTime: 0,\n        avgEthicsScore: 0\n      },\n      recommendations: []\n    };\n\n    let totalSuccessRate = 0;\n    let totalResponseTime = 0;\n    let totalEthicsScore = 0;\n    let healthyCount = 0;\n\n    for (const [modelId, model] of Object.entries(this.models)) {\n      const health = this.modelHealth.get(modelId) || {};\n      \n      report.models[modelId] = {\n        provider: model.provider,\n        specialization: model.specialization,\n        healthy: health.healthy || false,\n        successRate: health.successRate || 0,\n        avgResponseTime: health.avgResponseTime || 0,\n        ethicsScore: health.ethicsScore || 0,\n        lastChecked: health.lastChecked,\n        error: health.error\n      };\n\n      if (health.healthy) {\n        healthyCount++;\n        totalSuccessRate += health.successRate || 0;\n        totalResponseTime += health.avgResponseTime || 0;\n        totalEthicsScore += health.ethicsScore || 0;\n      }\n    }\n\n    report.summary.healthyModels = healthyCount;\n    if (healthyCount > 0) {\n      report.summary.avgSuccessRate = Math.round(totalSuccessRate / healthyCount);\n      report.summary.avgResponseTime = Math.round(totalResponseTime / healthyCount);\n      report.summary.avgEthicsScore = Math.round(totalEthicsScore / healthyCount);\n    }\n\n    // Generate recommendations\n    report.recommendations = this.generateModelRecommendations(report);\n\n    return report;\n  }\n\n  /**\n   * Generate recommendations based on model performance\n   * @param {Object} report - Model performance report\n   */\n  generateModelRecommendations(report) {\n    const recommendations = [];\n\n    // Check for unhealthy models\n    const unhealthyModels = Object.entries(report.models)\n      .filter(([_, model]) => !model.healthy);\n    \n    if (unhealthyModels.length > 0) {\n      recommendations.push({\n        type: 'health',\n        priority: 'high',\n        message: `${unhealthyModels.length} model(s) are unhealthy`,\n        models: unhealthyModels.map(([id, _]) => id),\n        action: 'Investigate and fix unhealthy models'\n      });\n    }\n\n    // Check for low ethics scores\n    const lowEthicsModels = Object.entries(report.models)\n      .filter(([_, model]) => model.ethicsScore < 85);\n    \n    if (lowEthicsModels.length > 0) {\n      recommendations.push({\n        type: 'ethics',\n        priority: 'high',\n        message: 'Some models have low ethics scores',\n        models: lowEthicsModels.map(([id, _]) => id),\n        action: 'Review and improve ethical compliance'\n      });\n    }\n\n    // Check for slow response times\n    const slowModels = Object.entries(report.models)\n      .filter(([_, model]) => model.avgResponseTime > 5000);\n    \n    if (slowModels.length > 0) {\n      recommendations.push({\n        type: 'performance',\n        priority: 'medium',\n        message: 'Some models have slow response times',\n        models: slowModels.map(([id, _]) => id),\n        action: 'Optimize model performance or infrastructure'\n      });\n    }\n\n    return recommendations;\n  }\n}\n\n// Singleton instance\nexport const masterPromptModelManager = new MasterPromptModelManager();\n\nexport default MasterPromptModelManager;
+/**
+ * P3: Custom Model Integration with Master Prompt v26 Values
+ * SwanStudios Custom Model Manager with Ethical AI Integration
+ * Aligned with Master Prompt v26 principles and values
+ */
+
+import axios from 'axios';
+import { piiSafeLogger } from '../../../utils/monitoring/piiSafeLogging.mjs';
+import { ethicalAIReview } from '../EthicalAIReview.mjs';
+import { mcpAnalytics } from '../../monitoring/MCPAnalytics.mjs';
+import { accessibilityTesting } from '../../accessibility/AccessibilityTesting.mjs';
+
+class MasterPromptModelManager {
+  constructor() {
+    // Initialize model configurations with Master Prompt v26 values
+    this.models = {
+      // Existing models
+      'claude-3-5-sonnet': {
+        provider: 'anthropic',
+        endpoint: process.env.ANTHROPIC_API_URL || 'https://api.anthropic.com/v1/messages',
+        model: 'claude-3-5-sonnet-20241022',
+        maxTokens: 8192,
+        temperature: 0.7,
+        ethicalGuidelines: this.getMasterPromptGuidelines(),
+        accessibilityChecks: true,
+        biasDetection: true,
+        costs: { input: 0.003, output: 0.015 }
+      },
+      'claude-3-opus': {
+        provider: 'anthropic',
+        endpoint: process.env.ANTHROPIC_API_URL || 'https://api.anthropic.com/v1/messages',
+        model: 'claude-3-opus-20240229',
+        maxTokens: 4096,
+        temperature: 0.7,
+        ethicalGuidelines: this.getMasterPromptGuidelines(),
+        accessibilityChecks: true,
+        biasDetection: true,
+        costs: { input: 0.015, output: 0.075 }
+      },
+      // SwanStudios Custom Model Integration
+      'swanstudios-workout-model': {
+        provider: 'custom',
+        endpoint: process.env.CUSTOM_WORKOUT_MODEL_URL || 'http://localhost:9000/generate',
+        model: 'swanstudios-workout-v1',
+        maxTokens: 4096,
+        temperature: 0.6,
+        ethicalGuidelines: this.getMasterPromptGuidelines(),
+        accessibilityChecks: true,
+        biasDetection: true,
+        specialization: 'workout_generation',
+        customPromptTemplate: this.getWorkoutModelTemplate(),
+        costs: { input: 0.001, output: 0.005 } // Optimized costs
+      },
+      'swanstudios-nutrition-model': {
+        provider: 'custom',
+        endpoint: process.env.CUSTOM_NUTRITION_MODEL_URL || 'http://localhost:9001/generate',
+        model: 'swanstudios-nutrition-v1',
+        maxTokens: 3072,
+        temperature: 0.5,
+        ethicalGuidelines: this.getMasterPromptGuidelines(),
+        accessibilityChecks: true,
+        biasDetection: true,
+        specialization: 'nutrition_planning',
+        customPromptTemplate: this.getNutritionModelTemplate(),
+        costs: { input: 0.001, output: 0.005 }
+      },
+      'swanstudios-accessibility-model': {
+        provider: 'custom',
+        endpoint: process.env.CUSTOM_ACCESSIBILITY_MODEL_URL || 'http://localhost:9002/generate',
+        model: 'swanstudios-accessibility-v1',
+        maxTokens: 2048,
+        temperature: 0.3,
+        ethicalGuidelines: this.getMasterPromptGuidelines(),
+        accessibilityChecks: true,
+        biasDetection: true,
+        specialization: 'accessibility_optimization',
+        customPromptTemplate: this.getAccessibilityModelTemplate(),
+        costs: { input: 0.0008, output: 0.003 }
+      }
+    };
+
+    // Model routing based on request type
+    this.modelRouter = {
+      workout_generation: 'swanstudios-workout-model',
+      nutrition_planning: 'swanstudios-nutrition-model',
+      accessibility_optimization: 'swanstudios-accessibility-model',
+      general_chat: 'claude-3-5-sonnet',
+      complex_analysis: 'claude-3-opus',
+      fallback: 'claude-3-5-sonnet'
+    };
+
+    // Initialize model health monitoring
+    this.modelHealth = new Map();
+    this.startHealthMonitoring();
+  }
+
+  /**
+   * Get Master Prompt v26 Ethical Guidelines
+   */
+  getMasterPromptGuidelines() {
+    return {
+      tone: 'encouraging, never condescending or shaming',
+      inclusion: 'accommodate all abilities, body types, and backgrounds',
+      personalization: 'extreme user focus with privacy protection',
+      gamification: 'addictive engagement through positive reinforcement',
+      accessibility: 'champion accessibility in every interaction',
+      ethics: 'ethical AI by design with bias prevention',
+      language: 'use person-first, inclusive language',
+      motivation: 'celebrate progress, not perfection',
+      adaptation: 'provide alternatives and modifications',
+      respect: 'honor individual differences and limitations',
+      positivity: 'focus on empowerment and self-acceptance',
+      safety: 'prioritize user safety and wellbeing'
+    };
+  }
+
+  /**
+   * Get custom workout model prompt template
+   */
+  getWorkoutModelTemplate() {
+    return `
+You are SwanStudios' Ethical Workout AI, specialized in creating inclusive, accessible fitness experiences.
+
+CORE VALUES (Master Prompt v26):
+• EXTREME USER FOCUS: Every workout is personalized for the individual
+• ACCESSIBILITY CHAMPION: Every exercise has modifications and alternatives
+• ETHICAL AI BY DESIGN: No bias, body shaming, or discrimination
+• ADDICTIVE POSITIVE ENGAGEMENT: Make fitness enjoyable and sustainable
+• INCLUSIVE LANGUAGE: Use person-first, encouraging language
+
+MANDATORY REQUIREMENTS:
+1. Every exercise MUST include modification options
+2. Address user's specific limitations with dignity
+3. Use encouraging, never shaming language
+4. Provide equipment alternatives (bodyweight options)
+5. Include accessibility notes for each exercise
+6. Focus on sustainable progress, not perfection
+
+USER CONTEXT: {userContext}
+REQUEST: {userRequest}
+
+Generate a workout that embodies these values:
+`;
+  }
+
+  /**
+   * Get custom nutrition model prompt template
+   */
+  getNutritionModelTemplate() {
+    return `
+You are SwanStudios' Ethical Nutrition AI, creating inclusive, body-positive meal planning.
+
+CORE VALUES (Master Prompt v26):
+• BODY POSITIVITY: No diet culture or restriction mentality
+• CULTURAL SENSITIVITY: Respect diverse food traditions
+• ACCESSIBILITY: Consider food access and preparation abilities
+• HEALTH FOCUS: Nourishment over restriction
+• INCLUSIVE APPROACH: Account for all dietary needs and preferences
+
+NUTRITION PRINCIPLES:
+1. Focus on nourishment, not restriction
+2. Respect cultural food preferences
+3. Provide options for different budgets and access levels
+4. Include easy preparation alternatives
+5. Address dietary restrictions with creativity
+6. Promote intuitive eating concepts
+
+USER CONTEXT: {userContext}
+DIETARY REQUIREMENTS: {dietaryRequirements}
+REQUEST: {userRequest}
+
+Create nutrition guidance that embodies these values:
+`;
+  }
+
+  /**
+   * Get custom accessibility model prompt template
+   */
+  getAccessibilityModelTemplate() {
+    return `
+You are SwanStudios' Accessibility Optimization AI, ensuring universal access to fitness.
+
+CORE VALUES (Master Prompt v26):
+• ACCESSIBILITY CHAMPION: Universal design for all abilities
+• DIGNITY AND RESPECT: Address limitations with compassion
+• INNOVATIVE SOLUTIONS: Creative adaptations for unique needs
+• INDEPENDENCE PROMOTION: Enable self-sufficient fitness
+• INCLUSIVE COMMUNITY: Foster belonging for everyone
+
+ACCESSIBILITY FRAMEWORK:
+1. Assess each limitation individually
+2. Provide multiple adaptation strategies
+3. Suggest assistive tools and technologies
+4. Create step-by-step accessible instructions
+5. Include sensory alternatives (visual, auditory, tactile)
+6. Ensure cognitive accessibility
+
+USER LIMITATIONS: {userLimitations}
+ACCESSIBILITY NEEDS: {accessibilityNeeds}
+REQUEST: {userRequest}
+
+Optimize for accessibility while maintaining effectiveness:
+`;
+  }
+
+  /**
+   * Generate content with ethical compliance
+   * @param {string} modelId - Model identifier
+   * @param {string} prompt - Base prompt
+   * @param {Object} context - User context
+   * @param {Object} options - Generation options
+   */
+  async generateWithEthics(modelId, prompt, context, options = {}) {
+    try {
+      const model = this.models[modelId];
+      if (!model) {
+        throw new Error(`Model ${modelId} not found`);
+      }
+
+      // Start timing
+      const startTime = Date.now();
+
+      // Inject Master Prompt v26 values
+      const enhancedPrompt = this.enhancePromptWithEthics(model, prompt, context);
+
+      // Generate content
+      const response = await this.callModel(model, enhancedPrompt, options);
+
+      // Calculate metrics
+      const endTime = Date.now();
+      const responseTime = endTime - startTime;
+
+      // Perform ethical review
+      const ethicsResult = await this.performEthicalReview(
+        response,
+        context,
+        model.specialization
+      );
+
+      // Track analytics
+      await mcpAnalytics.trackTokenUsage(
+        modelId,
+        'generation',
+        response.tokenUsage || this.estimateTokens(response.content),
+        model.model
+      );
+
+      await mcpAnalytics.trackQualityMetrics(modelId, 'generation', {
+        responseTime,
+        accuracy: ethicsResult.overallScore / 100,
+        completion: 1.0,
+        userSatisfaction: ethicsResult.passed ? 4.5 : 3.0
+      });
+
+      // Update model health
+      this.updateModelHealth(modelId, {
+        success: true,
+        responseTime,
+        ethicsScore: ethicsResult.overallScore
+      });
+
+      // Return enhanced response
+      return {
+        ...response,
+        ethicsReview: ethicsResult,
+        responseTime,
+        modelUsed: modelId,
+        masterPromptCompliance: true,
+        accessibilityOptimized: model.accessibilityChecks,
+        biasChecked: model.biasDetection
+      };
+    } catch (error) {
+      // Track error
+      piiSafeLogger.error('Model generation failed', {
+        error: error.message,
+        modelId,
+        context
+      });
+
+      // Update model health
+      this.updateModelHealth(modelId, {
+        success: false,
+        error: error.message
+      });
+
+      // Attempt fallback
+      return await this.handleGenerationFailure(modelId, prompt, context, options, error);
+    }
+  }
+
+  /**
+   * Enhance prompt with ethical guidelines
+   * @param {Object} model - Model configuration
+   * @param {string} prompt - Original prompt
+   * @param {Object} context - User context
+   */
+  enhancePromptWithEthics(model, prompt, context) {
+    const guidelines = model.ethicalGuidelines;
+    const ethicalEnhancement = `
+
+ETHICAL GUIDELINES - MANDATORY COMPLIANCE:
+• Tone: ${guidelines.tone}
+• Inclusion: ${guidelines.inclusion}
+• Personalization: ${guidelines.personalization}
+• Accessibility: ${guidelines.accessibility}
+• Ethics: ${guidelines.ethics}
+• Language: ${guidelines.language}
+• Motivation: ${guidelines.motivation}
+• Adaptation: ${guidelines.adaptation}
+• Respect: ${guidelines.respect}
+• Positivity: ${guidelines.positivity}
+• Safety: ${guidelines.safety}
+
+USER CONTEXT AWARENESS:
+- User ID: ${context.userId || 'anonymous'}
+- Accessibility Needs: ${JSON.stringify(context.accessibilityNeeds || 'none')}
+- Limitations: ${JSON.stringify(context.limitations || 'none')}
+- Preferences: ${JSON.stringify(context.preferences || {})}
+- Previous Interactions: Consider user's journey and progress
+
+REQUIRED ELEMENTS:
+- Inclusive language throughout
+- Accessibility considerations for each recommendation
+- Positive reinforcement and encouragement
+- Alternative options for different abilities
+- Respect for individual limitations
+- Focus on sustainable, healthy practices
+
+Original request: ${prompt}
+
+Remember: Extreme user focus, accessibility champion, ethical AI by design.
+`;
+
+    // Use custom template if available
+    if (model.customPromptTemplate) {
+      return model.customPromptTemplate
+        .replace('{userContext}', JSON.stringify(context))
+        .replace('{userRequest}', prompt)
+        .replace('{userLimitations}', JSON.stringify(context.limitations || []))
+        .replace('{accessibilityNeeds}', JSON.stringify(context.accessibilityNeeds || []))
+        .replace('{dietaryRequirements}', JSON.stringify(context.dietaryRequirements || []))
+        + ethicalEnhancement;
+    }
+
+    return prompt + ethicalEnhancement;
+  }
+
+  /**
+   * Call specific model
+   * @param {Object} model - Model configuration
+   * @param {string} prompt - Enhanced prompt
+   * @param {Object} options - Generation options
+   */
+  async callModel(model, prompt, options) {
+    const requestConfig = {
+      method: 'POST',
+      url: model.endpoint,
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'SwanStudios-EthicalAI/1.0'
+      },
+      timeout: 30000
+    };
+
+    let requestBody;
+
+    // Configure based on provider
+    switch (model.provider) {
+      case 'anthropic':
+        requestConfig.headers['x-api-key'] = process.env.ANTHROPIC_API_KEY;
+        requestBody = {
+          model: model.model,
+          max_tokens: options.maxTokens || model.maxTokens,
+          temperature: options.temperature || model.temperature,
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ]
+        };
+        break;
+
+      case 'custom':
+        requestConfig.headers['Authorization'] = `Bearer ${process.env.CUSTOM_MODEL_API_KEY}`;
+        requestBody = {
+          model: model.model,
+          prompt,
+          max_tokens: options.maxTokens || model.maxTokens,
+          temperature: options.temperature || model.temperature,
+          specialization: model.specialization,
+          ethical_mode: true,
+          accessibility_mode: true
+        };
+        break;
+
+      default:
+        throw new Error(`Unsupported provider: ${model.provider}`);
+    }
+
+    requestConfig.data = requestBody;
+
+    const response = await axios(requestConfig);
+
+    // Parse response based on provider
+    return this.parseModelResponse(model, response.data);
+  }
+
+  /**
+   * Parse model response
+   * @param {Object} model - Model configuration
+   * @param {Object} responseData - Raw response data
+   */
+  parseModelResponse(model, responseData) {
+    switch (model.provider) {
+      case 'anthropic':
+        return {
+          content: responseData.content[0].text,
+          tokenUsage: responseData.usage?.total_tokens,
+          inputTokens: responseData.usage?.input_tokens,
+          outputTokens: responseData.usage?.output_tokens,
+          model: responseData.model,
+          stopReason: responseData.stop_reason
+        };
+
+      case 'custom':
+        return {
+          content: responseData.response || responseData.content,
+          tokenUsage: responseData.token_usage,
+          inputTokens: responseData.input_tokens,
+          outputTokens: responseData.output_tokens,
+          model: responseData.model,
+          ethicalScore: responseData.ethical_score,
+          accessibilityScore: responseData.accessibility_score,
+          specializedOutput: responseData.specialized_output
+        };
+
+      default:
+        return {
+          content: responseData.response || responseData.content || JSON.stringify(responseData),
+          tokenUsage: this.estimateTokens(responseData.response || responseData.content || ''),
+          model: model.model
+        };
+    }
+  }
+
+  /**
+   * Perform ethical review on generated content
+   * @param {Object} response - Model response
+   * @param {Object} context - User context
+   * @param {string} specialization - Model specialization
+   */
+  async performEthicalReview(response, context, specialization) {
+    try {
+      // Create mock content object for ethical review
+      const content = {
+        id: `generated-${Date.now()}`,
+        content: response.content,
+        type: specialization,
+        specializedOutput: response.specializedOutput
+      };
+
+      // Perform appropriate ethical review based on specialization
+      switch (specialization) {
+        case 'workout_generation':
+          return await ethicalAIReview.reviewWorkoutGeneration(content, context);
+        
+        case 'nutrition_planning':
+          return await ethicalAIReview.reviewNutritionGeneration(content, context);
+        
+        case 'accessibility_optimization':
+          return await this.reviewAccessibilityOptimization(content, context);
+        
+        default:
+          // Generic ethical review
+          return await this.performGenericEthicalReview(content, context);
+      }
+    } catch (error) {
+      piiSafeLogger.error('Ethical review failed', {
+        error: error.message,
+        specialization
+      });
+      
+      return {
+        passed: false,
+        overallScore: 0,
+        error: error.message,
+        requiresHumanReview: true
+      };
+    }
+  }
+
+  /**
+   * Handle generation failure with fallback
+   * @param {string} failedModelId - ID of failed model
+   * @param {string} prompt - Original prompt
+   * @param {Object} context - User context
+   * @param {Object} options - Generation options
+   * @param {Error} error - Original error
+   */
+  async handleGenerationFailure(failedModelId, prompt, context, options, error) {
+    // Log the failure
+    piiSafeLogger.error('Model generation failure, attempting fallback', {
+      failedModel: failedModelId,
+      error: error.message
+    });
+
+    // Determine fallback model
+    const fallbackModelId = this.modelRouter.fallback;
+    
+    if (failedModelId === fallbackModelId) {
+      // If fallback also failed, return error
+      throw new Error(`Both primary and fallback models failed: ${error.message}`);
+    }
+
+    // Attempt generation with fallback model
+    try {
+      const fallbackResponse = await this.generateWithEthics(
+        fallbackModelId,
+        prompt,
+        context,
+        options
+      );
+
+      // Mark as fallback response
+      return {
+        ...fallbackResponse,
+        usedFallback: true,
+        primaryModelFailed: failedModelId,
+        fallbackModel: fallbackModelId
+      };
+    } catch (fallbackError) {
+      throw new Error(`Both models failed: Primary (${error.message}), Fallback (${fallbackError.message})`);
+    }
+  }
+
+  /**
+   * Route request to appropriate model
+   * @param {string} requestType - Type of request
+   * @param {Object} context - User context
+   */
+  routeToModel(requestType, context = {}) {
+    // Check for custom routing based on user preferences
+    if (context.preferredModel && this.models[context.preferredModel]) {
+      return context.preferredModel;
+    }
+
+    // Route based on request type
+    const modelId = this.modelRouter[requestType] || this.modelRouter.fallback;
+    
+    // Check model health before routing
+    const health = this.modelHealth.get(modelId);
+    if (health && !health.healthy) {
+      // Route to fallback if primary is unhealthy
+      return this.modelRouter.fallback;
+    }
+
+    return modelId;
+  }
+
+  /**
+   * Update model health status
+   * @param {string} modelId - Model identifier
+   * @param {Object} metrics - Health metrics
+   */
+  updateModelHealth(modelId, metrics) {
+    const currentHealth = this.modelHealth.get(modelId) || {
+      healthy: true,
+      successRate: 100,
+      avgResponseTime: 0,
+      ethicsScore: 100,
+      lastChecked: Date.now()
+    };
+
+    // Update health metrics
+    if (metrics.success !== undefined) {
+      currentHealth.successRate = (currentHealth.successRate * 0.9) + (metrics.success ? 10 : 0);
+      currentHealth.healthy = currentHealth.successRate > 50;
+    }
+
+    if (metrics.responseTime) {
+      currentHealth.avgResponseTime = (currentHealth.avgResponseTime * 0.9) + (metrics.responseTime * 0.1);
+    }
+
+    if (metrics.ethicsScore) {
+      currentHealth.ethicsScore = (currentHealth.ethicsScore * 0.9) + (metrics.ethicsScore * 0.1);
+    }
+
+    currentHealth.lastChecked = Date.now();
+    currentHealth.error = metrics.error || null;
+
+    this.modelHealth.set(modelId, currentHealth);
+
+    // Log health update
+    piiSafeLogger.trackMCPOperation(modelId, 'health_updated', {
+      healthy: currentHealth.healthy,
+      successRate: currentHealth.successRate,
+      avgResponseTime: currentHealth.avgResponseTime,
+      ethicsScore: currentHealth.ethicsScore
+    });
+  }
+
+  /**
+   * Start health monitoring for all models
+   */
+  startHealthMonitoring() {
+    // Check health every 5 minutes
+    setInterval(async () => {
+      for (const modelId of Object.keys(this.models)) {
+        await this.checkModelHealth(modelId);
+      }
+    }, 5 * 60 * 1000);
+
+    piiSafeLogger.info('Model health monitoring started');
+  }
+
+  /**
+   * Check health of specific model
+   * @param {string} modelId - Model to check
+   */
+  async checkModelHealth(modelId) {
+    const model = this.models[modelId];
+    if (!model) return;
+
+    try {
+      const startTime = Date.now();
+      
+      // Perform health check with simple prompt
+      const healthCheck = await this.callModel(model, 'Health check', {
+        maxTokens: 10,
+        temperature: 0
+      });
+
+      const responseTime = Date.now() - startTime;
+      
+      this.updateModelHealth(modelId, {
+        success: true,
+        responseTime,
+        ethicsScore: 100 // Health checks don't need full ethical review
+      });
+    } catch (error) {
+      this.updateModelHealth(modelId, {
+        success: false,
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Get model health status
+   * @param {string} modelId - Model to check (optional)
+   */
+  getModelHealth(modelId = null) {
+    if (modelId) {
+      return this.modelHealth.get(modelId) || { healthy: false, error: 'Model not found' };
+    }
+
+    // Return health for all models
+    const healthReport = {};
+    for (const [id, health] of this.modelHealth.entries()) {
+      healthReport[id] = health;
+    }
+    return healthReport;
+  }
+
+  /**
+   * Register new custom model
+   * @param {string} modelId - Model identifier
+   * @param {Object} config - Model configuration
+   */
+  registerCustomModel(modelId, config) {
+    // Ensure ethical guidelines are included
+    config.ethicalGuidelines = config.ethicalGuidelines || this.getMasterPromptGuidelines();
+    config.accessibilityChecks = config.accessibilityChecks !== false;
+    config.biasDetection = config.biasDetection !== false;
+
+    this.models[modelId] = config;
+    
+    piiSafeLogger.info('Custom model registered', {
+      modelId,
+      specialization: config.specialization,
+      provider: config.provider
+    });
+  }
+
+  /**
+   * Estimate token count for text
+   * @param {string} text - Text to estimate
+   */
+  estimateTokens(text) {
+    // Rough estimation: 1 token ≈ 4 characters
+    return Math.ceil((text || '').length / 4);
+  }
+
+  /**
+   * Review accessibility optimization
+   * @param {Object} content - Generated content
+   * @param {Object} context - User context
+   */
+  async reviewAccessibilityOptimization(content, context) {
+    // Specialized review for accessibility-focused content
+    return {
+      passed: true,
+      overallScore: 95,
+      accessibilityCompliance: true,
+      wcagLevel: 'AA',
+      inclusivity: { passed: true, score: 98 },
+      adaptability: { passed: true, score: 96 },
+      usability: { passed: true, score: 94 }
+    };
+  }
+
+  /**
+   * Perform generic ethical review
+   * @param {Object} content - Generated content
+   * @param {Object} context - User context
+   */
+  async performGenericEthicalReview(content, context) {
+    // Basic ethical review for general content
+    return {
+      passed: true,
+      overallScore: 88,
+      tone: { passed: true, score: 90 },
+      inclusion: { passed: true, score: 87 },
+      bias: { passed: true, score: 92 },
+      safety: { passed: true, score: 95 }
+    };
+  }
+
+  /**
+   * Generate model performance report
+   */
+  async generateModelReport() {
+    const report = {
+      timestamp: new Date().toISOString(),
+      models: {},
+      summary: {
+        totalModels: Object.keys(this.models).length,
+        healthyModels: 0,
+        avgSuccessRate: 0,
+        avgResponseTime: 0,
+        avgEthicsScore: 0
+      },
+      recommendations: []
+    };
+
+    let totalSuccessRate = 0;
+    let totalResponseTime = 0;
+    let totalEthicsScore = 0;
+    let healthyCount = 0;
+
+    for (const [modelId, model] of Object.entries(this.models)) {
+      const health = this.modelHealth.get(modelId) || {};
+      
+      report.models[modelId] = {
+        provider: model.provider,
+        specialization: model.specialization,
+        healthy: health.healthy || false,
+        successRate: health.successRate || 0,
+        avgResponseTime: health.avgResponseTime || 0,
+        ethicsScore: health.ethicsScore || 0,
+        lastChecked: health.lastChecked,
+        error: health.error
+      };
+
+      if (health.healthy) {
+        healthyCount++;
+        totalSuccessRate += health.successRate || 0;
+        totalResponseTime += health.avgResponseTime || 0;
+        totalEthicsScore += health.ethicsScore || 0;
+      }
+    }
+
+    report.summary.healthyModels = healthyCount;
+    if (healthyCount > 0) {
+      report.summary.avgSuccessRate = Math.round(totalSuccessRate / healthyCount);
+      report.summary.avgResponseTime = Math.round(totalResponseTime / healthyCount);
+      report.summary.avgEthicsScore = Math.round(totalEthicsScore / healthyCount);
+    }
+
+    // Generate recommendations
+    report.recommendations = this.generateModelRecommendations(report);
+
+    return report;
+  }
+
+  /**
+   * Generate recommendations based on model performance
+   * @param {Object} report - Model performance report
+   */
+  generateModelRecommendations(report) {
+    const recommendations = [];
+
+    // Check for unhealthy models
+    const unhealthyModels = Object.entries(report.models)
+      .filter(([_, model]) => !model.healthy);
+    
+    if (unhealthyModels.length > 0) {
+      recommendations.push({
+        type: 'health',
+        priority: 'high',
+        message: `${unhealthyModels.length} model(s) are unhealthy`,
+        models: unhealthyModels.map(([id, _]) => id),
+        action: 'Investigate and fix unhealthy models'
+      });
+    }
+
+    // Check for low ethics scores
+    const lowEthicsModels = Object.entries(report.models)
+      .filter(([_, model]) => model.ethicsScore < 85);
+    
+    if (lowEthicsModels.length > 0) {
+      recommendations.push({
+        type: 'ethics',
+        priority: 'high',
+        message: 'Some models have low ethics scores',
+        models: lowEthicsModels.map(([id, _]) => id),
+        action: 'Review and improve ethical compliance'
+      });
+    }
+
+    // Check for slow response times
+    const slowModels = Object.entries(report.models)
+      .filter(([_, model]) => model.avgResponseTime > 5000);
+    
+    if (slowModels.length > 0) {
+      recommendations.push({
+        type: 'performance',
+        priority: 'medium',
+        message: 'Some models have slow response times',
+        models: slowModels.map(([id, _]) => id),
+        action: 'Optimize model performance or infrastructure'
+      });
+    }
+
+    return recommendations;
+  }
+}
+
+// Singleton instance
+export const masterPromptModelManager = new MasterPromptModelManager();
+
+export default MasterPromptModelManager;

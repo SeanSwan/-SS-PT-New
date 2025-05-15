@@ -4,7 +4,7 @@
  */
 
 import express from 'express';
-import { authMiddleware } from '../middleware/authMiddleware.mjs';
+import { protect as authMiddleware } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();

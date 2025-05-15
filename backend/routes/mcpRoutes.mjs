@@ -6,7 +6,7 @@
 
 import express from 'express';
 import axios from 'axios';
-import { authMiddleware } from '../middleware/authMiddleware.mjs';
+import { protect as authMiddleware } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
 import { updateMetrics } from './aiMonitoringRoutes.mjs';
 

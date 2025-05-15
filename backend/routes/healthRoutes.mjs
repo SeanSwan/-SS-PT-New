@@ -48,4 +48,398 @@ router.get('/', async (req, res) => {
       freeMem: Math.round(os.freemem() / (1024 * 1024)) + 'MB',
       nodeVersion: version,
       uptime: formatUptime(process.uptime())
-    };\n    \n    // Determine overall health status\n    const isProduction = process.env.NODE_ENV === 'production';\n    const dbHealthy = isProduction \n      ? (postgresConnected && mongoStatus.connected)\n      : (postgresConnected || mongoStatus.connected);\n    const mcpHealthy = mcpHealth.overallHealth >= 60; // At least 60% of MCP servers healthy\n    const isHealthy = dbHealthy && mcpHealthy;\n    \n    // Build comprehensive health response\n    const healthResponse = {\n      success: isHealthy,\n      status: isHealthy ? 'healthy' : 'degraded',\n      message: isHealthy ? 'All systems operational' : 'Some systems experiencing issues',\n      environment: process.env.NODE_ENV || 'development',\n      timestamp: new Date().toISOString(),\n      \n      // Database health\n      databases: {\n        postgres: {\n          connected: postgresConnected,\n          type: 'primary',\n          ...(postgresError && { error: postgresError })\n        },\n        mongodb: {\n          connected: mongoStatus.connected,\n          usingSQLite: mongoStatus.usingSQLite || false,\n          type: 'workout/gamification'\n        }\n      },\n      \n      // MCP health\n      mcp: {\n        status: mcpHealthy ? 'healthy' : 'degraded',\n        overallHealth: `${Math.round(mcpHealth.overallHealth)}%`,\n        healthyServers: `${mcpHealth.healthyServers}/${mcpHealth.totalServers}`,\n        averageLatency: `${Math.round(mcpHealth.averageLatency || 0)}ms`,\n        ...(mcpHealth.error && { error: mcpHealth.error })\n      },\n      \n      // System information\n      system: systemInfo,\n      \n      // Monitoring systems\n      monitoring: {\n        piiSafeLogging: 'enabled',\n        mcpHealthManager: 'enabled',\n        accessibilityAuth: 'enabled'\n      },\n      \n      // Uptime details\n      uptime: {\n        seconds: Math.floor(process.uptime()),\n        formatted: formatUptime(process.uptime())\n      }\n    };\n    \n    // Log health check access with PII safety\n    piiSafeLogger.trackUserAction('health_check', req.user?.id || 'anonymous', {\n      timestamp: new Date().toISOString(),\n      healthy: isHealthy\n    });\n    \n    res.status(isHealthy ? 200 : 503).json(healthResponse);\n  } catch (error) {\n    logger.error('Health check failed:', { error: error.message });\n    piiSafeLogger.error('Health check system error', { error: error.message });\n    \n    res.status(500).json({\n      success: false,\n      status: 'error',\n      message: 'Health check system error',\n      error: error.message,\n      timestamp: new Date().toISOString(),\n      uptime: process.uptime()\n    });\n  }\n});\n\n/**\n * @route   GET /api/health/detailed\n * @desc    Detailed system diagnostics with PII-safe logging\n * @access  Private (logged users)\n */\nrouter.get('/detailed', async (req, res) => {\n  try {\n    const diagnostics = {\n      timestamp: new Date().toISOString(),\n      \n      // System details\n      system: {\n        platform: process.platform,\n        version: process.version,\n        architecture: process.arch,\n        cpuUsage: process.cpuUsage(),\n        memoryUsage: process.memoryUsage(),\n        uptime: process.uptime(),\n        loadAverage: os.loadavg()\n      },\n      \n      // Environment details\n      environment: {\n        nodeEnv: process.env.NODE_ENV,\n        port: process.env.PORT,\n        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone\n      },\n      \n      // Database diagnostics\n      database: {\n        postgres: { status: 'unknown' },\n        mongodb: { status: 'unknown' }\n      },\n      \n      // MCP diagnostics\n      mcp: {\n        status: 'unknown',\n        servers: {}\n      },\n      \n      // Monitoring systems\n      monitoring: {\n        piiSafeLogging: 'enabled',\n        mcpHealthManager: 'enabled',\n        accessibilityAuth: 'enabled',\n        gamificationTracking: 'enabled',\n        aiGenerationMonitoring: 'enabled'\n      }\n    };\n\n    // PostgreSQL detailed diagnostics\n    try {\n      const startTime = Date.now();\n      await sequelize.authenticate();\n      const connectionTime = Date.now() - startTime;\n      \n      diagnostics.database.postgres = {\n        status: 'connected',\n        connectionTime: `${connectionTime}ms`,\n        dialect: sequelize.getDialect(),\n        version: await sequelize.databaseVersion(),\n        poolSize: sequelize.connectionManager.pool?.size || 'N/A'\n      };\n    } catch (error) {\n      diagnostics.database.postgres = {\n        status: 'error',\n        error: error.message\n      };\n    }\n\n    // MongoDB detailed diagnostics\n    try {\n      const mongoStatus = getMongoDBStatus();\n      diagnostics.database.mongodb = {\n        status: mongoStatus.connected ? 'connected' : 'disconnected',\n        database: mongoStatus.database,\n        lastConnectionAttempt: mongoStatus.lastConnectionAttempt,\n        usingSQLite: mongoStatus.usingSQLite\n      };\n    } catch (error) {\n      diagnostics.database.mongodb = {\n        status: 'error',\n        error: error.message\n      };\n    }\n\n    // MCP detailed diagnostics\n    try {\n      const mcpReport = await mcpHealthManager.generateHealthReport();\n      diagnostics.mcp = {\n        status: 'analyzed',\n        summary: mcpReport.summary,\n        servers: mcpReport.servers,\n        lastUpdated: mcpReport.timestamp\n      };\n    } catch (error) {\n      diagnostics.mcp = {\n        status: 'error',\n        error: error.message\n      };\n    }\n\n    // Log detailed health check access\n    piiSafeLogger.trackUserAction('health_check_detailed', req.user?.id || 'anonymous', {\n      timestamp: new Date().toISOString()\n    });\n\n    res.json({\n      success: true,\n      data: diagnostics\n    });\n  } catch (error) {\n    logger.error('Detailed health check failed:', { error: error.message });\n    piiSafeLogger.error('Detailed health check error', { error: error.message });\n    \n    res.status(500).json({\n      success: false,\n      message: 'Detailed health check failed',\n      error: error.message,\n      timestamp: new Date().toISOString()\n    });\n  }\n});\n\n/**\n * @route   GET /api/health/database\n * @desc    Database connectivity check with enhanced diagnostics\n * @access  Public\n */\nrouter.get('/database', async (req, res) => {\n  try {\n    // Test PostgreSQL connection\n    await sequelize.authenticate();\n    \n    // Get database information\n    const [results] = await sequelize.query('SELECT version();');\n    const dbVersion = results[0]?.version || 'Unknown';\n    \n    // Get MongoDB status\n    const mongoStatus = getMongoDBStatus();\n    \n    const databaseHealth = {\n      success: true,\n      message: 'Database connections successful',\n      timestamp: new Date().toISOString(),\n      postgres: {\n        connected: true,\n        version: dbVersion,\n        dialect: sequelize.getDialect()\n      },\n      mongodb: {\n        connected: mongoStatus.connected,\n        database: mongoStatus.database,\n        usingSQLite: mongoStatus.usingSQLite\n      }\n    };\n    \n    // Log database health check\n    piiSafeLogger.trackUserAction('database_health_check', req.user?.id || 'anonymous', {\n      postgresConnected: true,\n      mongodbConnected: mongoStatus.connected\n    });\n    \n    res.status(200).json(databaseHealth);\n  } catch (error) {\n    logger.error('Database health check failed:', { error: error.message, stack: error.stack });\n    piiSafeLogger.error('Database health check failed', { error: error.message });\n    \n    res.status(500).json({\n      success: false,\n      message: 'Database connection failed',\n      error: error.message,\n      timestamp: new Date().toISOString()\n    });\n  }\n});\n\n/**\n * @route   GET /api/health/mcp\n * @desc    MCP ecosystem health check\n * @access  Public\n */\nrouter.get('/mcp', async (req, res) => {\n  try {\n    const mcpHealth = await mcpHealthManager.getMCPEcosystemHealth();\n    \n    // Log MCP health check\n    piiSafeLogger.trackMCPOperation('health_system', 'ecosystem_check', {\n      overallHealth: mcpHealth.overallHealth,\n      healthyServers: mcpHealth.healthyServers,\n      totalServers: mcpHealth.totalServers\n    });\n    \n    res.json({\n      success: true,\n      message: 'MCP ecosystem health retrieved',\n      data: mcpHealth,\n      timestamp: new Date().toISOString()\n    });\n  } catch (error) {\n    logger.error('MCP health check failed:', { error: error.message });\n    piiSafeLogger.error('MCP health check failed', { error: error.message });\n    \n    res.status(500).json({\n      success: false,\n      message: 'Failed to retrieve MCP health information',\n      error: error.message,\n      timestamp: new Date().toISOString()\n    });\n  }\n});\n\n/**\n * @route   GET /api/health/mcp/:serverName\n * @desc    Individual MCP server health check\n * @access  Public\n */\nrouter.get('/mcp/:serverName', async (req, res) => {\n  const { serverName } = req.params;\n  \n  try {\n    const serverHealth = await mcpHealthManager.checkSingleMCPHealth(serverName);\n    const serverMetrics = mcpHealthManager.getServerMetrics(serverName);\n    \n    // Log individual server health check\n    piiSafeLogger.trackMCPOperation(serverName, 'individual_health_check', {\n      healthy: serverHealth.healthy,\n      latency: serverHealth.latency\n    });\n    \n    res.json({\n      success: true,\n      message: `Health check for ${serverName} completed`,\n      data: {\n        server: serverName,\n        health: serverHealth,\n        metrics: serverMetrics\n      },\n      timestamp: new Date().toISOString()\n    });\n  } catch (error) {\n    logger.error(`MCP server ${serverName} health check failed:`, { error: error.message });\n    piiSafeLogger.trackMCPOperation(serverName, 'health_check_failed', {\n      error: error.message\n    });\n    \n    res.status(404).json({\n      success: false,\n      message: `MCP server '${serverName}' not found or unreachable`,\n      error: error.message,\n      timestamp: new Date().toISOString()\n    });\n  }\n});\n\n/**\n * @route   GET /api/health/accessibility\n * @desc    Accessibility health check and feature status\n * @access  Public\n */\nrouter.get('/accessibility', async (req, res) => {\n  const accessibilityHealth = {\n    success: true,\n    status: 'healthy',\n    message: 'All accessibility features operational',\n    features: {\n      screenReaderSupport: 'enabled',\n      keyboardNavigation: 'enabled',\n      highContrastMode: 'enabled',\n      reducedMotion: 'enabled',\n      largeTextSupport: 'enabled',\n      voiceControl: 'enabled',\n      piiSafeLogging: 'enabled'\n    },\n    compliance: {\n      wcagLevel: 'AA',\n      standards: ['508 Compliance', 'ADA Compliance']\n    },\n    monitoring: {\n      usageTracking: 'enabled',\n      errorReporting: 'enabled',\n      accessibilityAuth: 'enabled'\n    },\n    timestamp: new Date().toISOString()\n  };\n  \n  // Log accessibility health check\n  piiSafeLogger.trackAccessibilityUsage('health_check', req.user?.id || 'anonymous', {\n    timestamp: new Date().toISOString()\n  });\n  \n  res.json(accessibilityHealth);\n});\n\n/**\n * Format uptime in human-readable format\n * @param {number} uptime - Uptime in seconds\n * @returns {string} Formatted uptime string\n */\nfunction formatUptime(uptime) {\n  const days = Math.floor(uptime / 86400);\n  const hours = Math.floor((uptime % 86400) / 3600);\n  const minutes = Math.floor((uptime % 3600) / 60);\n  const seconds = Math.floor(uptime % 60);\n  \n  let formatted = '';\n  if (days > 0) formatted += `${days}d `;\n  if (hours > 0 || days > 0) formatted += `${hours}h `;\n  if (minutes > 0 || hours > 0 || days > 0) formatted += `${minutes}m `;\n  formatted += `${seconds}s`;\n  \n  return formatted;\n}\n\nexport default router;
+    };
+    
+    // Determine overall health status
+    const isProduction = process.env.NODE_ENV === 'production';
+    const dbHealthy = isProduction 
+      ? (postgresConnected && mongoStatus.connected)
+      : (postgresConnected || mongoStatus.connected);
+    const mcpHealthy = mcpHealth.overallHealth >= 60; // At least 60% of MCP servers healthy
+    const isHealthy = dbHealthy && mcpHealthy;
+    
+    // Build comprehensive health response
+    const healthResponse = {
+      success: isHealthy,
+      status: isHealthy ? 'healthy' : 'degraded',
+      message: isHealthy ? 'All systems operational' : 'Some systems experiencing issues',
+      environment: process.env.NODE_ENV || 'development',
+      timestamp: new Date().toISOString(),
+      
+      // Database health
+      databases: {
+        postgres: {
+          connected: postgresConnected,
+          type: 'primary',
+          ...(postgresError && { error: postgresError })
+        },
+        mongodb: {
+          connected: mongoStatus.connected,
+          usingSQLite: mongoStatus.usingSQLite || false,
+          type: 'workout/gamification'
+        }
+      },
+      
+      // MCP health
+      mcp: {
+        status: mcpHealthy ? 'healthy' : 'degraded',
+        overallHealth: `${Math.round(mcpHealth.overallHealth)}%`,
+        healthyServers: `${mcpHealth.healthyServers}/${mcpHealth.totalServers}`,
+        averageLatency: `${Math.round(mcpHealth.averageLatency || 0)}ms`,
+        ...(mcpHealth.error && { error: mcpHealth.error })
+      },
+      
+      // System information
+      system: systemInfo,
+      
+      // Monitoring systems
+      monitoring: {
+        piiSafeLogging: 'enabled',
+        mcpHealthManager: 'enabled',
+        accessibilityAuth: 'enabled'
+      },
+      
+      // Uptime details
+      uptime: {
+        seconds: Math.floor(process.uptime()),
+        formatted: formatUptime(process.uptime())
+      }
+    };
+    
+    // Log health check access with PII safety
+    piiSafeLogger.trackUserAction('health_check', req.user?.id || 'anonymous', {
+      timestamp: new Date().toISOString(),
+      healthy: isHealthy
+    });
+    
+    res.status(isHealthy ? 200 : 503).json(healthResponse);
+  } catch (error) {
+    logger.error('Health check failed:', { error: error.message });
+    piiSafeLogger.error('Health check system error', { error: error.message });
+    
+    res.status(500).json({
+      success: false,
+      status: 'error',
+      message: 'Health check system error',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  }
+});
+
+/**
+ * @route   GET /api/health/detailed
+ * @desc    Detailed system diagnostics with PII-safe logging
+ * @access  Private (logged users)
+ */
+router.get('/detailed', async (req, res) => {
+  try {
+    const diagnostics = {
+      timestamp: new Date().toISOString(),
+      
+      // System details
+      system: {
+        platform: process.platform,
+        version: process.version,
+        architecture: process.arch,
+        cpuUsage: process.cpuUsage(),
+        memoryUsage: process.memoryUsage(),
+        uptime: process.uptime(),
+        loadAverage: os.loadavg()
+      },
+      
+      // Environment details
+      environment: {
+        nodeEnv: process.env.NODE_ENV,
+        port: process.env.PORT,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      },
+      
+      // Database diagnostics
+      database: {
+        postgres: { status: 'unknown' },
+        mongodb: { status: 'unknown' }
+      },
+      
+      // MCP diagnostics
+      mcp: {
+        status: 'unknown',
+        servers: {}
+      },
+      
+      // Monitoring systems
+      monitoring: {
+        piiSafeLogging: 'enabled',
+        mcpHealthManager: 'enabled',
+        accessibilityAuth: 'enabled',
+        gamificationTracking: 'enabled',
+        aiGenerationMonitoring: 'enabled'
+      }
+    };
+
+    // PostgreSQL detailed diagnostics
+    try {
+      const startTime = Date.now();
+      await sequelize.authenticate();
+      const connectionTime = Date.now() - startTime;
+      
+      diagnostics.database.postgres = {
+        status: 'connected',
+        connectionTime: `${connectionTime}ms`,
+        dialect: sequelize.getDialect(),
+        version: await sequelize.databaseVersion(),
+        poolSize: sequelize.connectionManager.pool?.size || 'N/A'
+      };
+    } catch (error) {
+      diagnostics.database.postgres = {
+        status: 'error',
+        error: error.message
+      };
+    }
+
+    // MongoDB detailed diagnostics
+    try {
+      const mongoStatus = getMongoDBStatus();
+      diagnostics.database.mongodb = {
+        status: mongoStatus.connected ? 'connected' : 'disconnected',
+        database: mongoStatus.database,
+        lastConnectionAttempt: mongoStatus.lastConnectionAttempt,
+        usingSQLite: mongoStatus.usingSQLite
+      };
+    } catch (error) {
+      diagnostics.database.mongodb = {
+        status: 'error',
+        error: error.message
+      };
+    }
+
+    // MCP detailed diagnostics
+    try {
+      const mcpReport = await mcpHealthManager.generateHealthReport();
+      diagnostics.mcp = {
+        status: 'analyzed',
+        summary: mcpReport.summary,
+        servers: mcpReport.servers,
+        lastUpdated: mcpReport.timestamp
+      };
+    } catch (error) {
+      diagnostics.mcp = {
+        status: 'error',
+        error: error.message
+      };
+    }
+
+    // Log detailed health check access
+    piiSafeLogger.trackUserAction('health_check_detailed', req.user?.id || 'anonymous', {
+      timestamp: new Date().toISOString()
+    });
+
+    res.json({
+      success: true,
+      data: diagnostics
+    });
+  } catch (error) {
+    logger.error('Detailed health check failed:', { error: error.message });
+    piiSafeLogger.error('Detailed health check error', { error: error.message });
+    
+    res.status(500).json({
+      success: false,
+      message: 'Detailed health check failed',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * @route   GET /api/health/database
+ * @desc    Database connectivity check with enhanced diagnostics
+ * @access  Public
+ */
+router.get('/database', async (req, res) => {
+  try {
+    // Test PostgreSQL connection
+    await sequelize.authenticate();
+    
+    // Get database information
+    const [results] = await sequelize.query('SELECT version();');
+    const dbVersion = results[0]?.version || 'Unknown';
+    
+    // Get MongoDB status
+    const mongoStatus = getMongoDBStatus();
+    
+    const databaseHealth = {
+      success: true,
+      message: 'Database connections successful',
+      timestamp: new Date().toISOString(),
+      postgres: {
+        connected: true,
+        version: dbVersion,
+        dialect: sequelize.getDialect()
+      },
+      mongodb: {
+        connected: mongoStatus.connected,
+        database: mongoStatus.database,
+        usingSQLite: mongoStatus.usingSQLite
+      }
+    };
+    
+    // Log database health check
+    piiSafeLogger.trackUserAction('database_health_check', req.user?.id || 'anonymous', {
+      postgresConnected: true,
+      mongodbConnected: mongoStatus.connected
+    });
+    
+    res.status(200).json(databaseHealth);
+  } catch (error) {
+    logger.error('Database health check failed:', { error: error.message, stack: error.stack });
+    piiSafeLogger.error('Database health check failed', { error: error.message });
+    
+    res.status(500).json({
+      success: false,
+      message: 'Database connection failed',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * @route   GET /api/health/mcp
+ * @desc    MCP ecosystem health check
+ * @access  Public
+ */
+router.get('/mcp', async (req, res) => {
+  try {
+    const mcpHealth = await mcpHealthManager.getMCPEcosystemHealth();
+    
+    // Log MCP health check
+    piiSafeLogger.trackMCPOperation('health_system', 'ecosystem_check', {
+      overallHealth: mcpHealth.overallHealth,
+      healthyServers: mcpHealth.healthyServers,
+      totalServers: mcpHealth.totalServers
+    });
+    
+    res.json({
+      success: true,
+      message: 'MCP ecosystem health retrieved',
+      data: mcpHealth,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('MCP health check failed:', { error: error.message });
+    piiSafeLogger.error('MCP health check failed', { error: error.message });
+    
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve MCP health information',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * @route   GET /api/health/mcp/:serverName
+ * @desc    Individual MCP server health check
+ * @access  Public
+ */
+router.get('/mcp/:serverName', async (req, res) => {
+  const { serverName } = req.params;
+  
+  try {
+    const serverHealth = await mcpHealthManager.checkSingleMCPHealth(serverName);
+    const serverMetrics = mcpHealthManager.getServerMetrics(serverName);
+    
+    // Log individual server health check
+    piiSafeLogger.trackMCPOperation(serverName, 'individual_health_check', {
+      healthy: serverHealth.healthy,
+      latency: serverHealth.latency
+    });
+    
+    res.json({
+      success: true,
+      message: `Health check for ${serverName} completed`,
+      data: {
+        server: serverName,
+        health: serverHealth,
+        metrics: serverMetrics
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error(`MCP server ${serverName} health check failed:`, { error: error.message });
+    piiSafeLogger.trackMCPOperation(serverName, 'health_check_failed', {
+      error: error.message
+    });
+    
+    res.status(404).json({
+      success: false,
+      message: `MCP server '${serverName}' not found or unreachable`,
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+/**
+ * @route   GET /api/health/accessibility
+ * @desc    Accessibility health check and feature status
+ * @access  Public
+ */
+router.get('/accessibility', async (req, res) => {
+  const accessibilityHealth = {
+    success: true,
+    status: 'healthy',
+    message: 'All accessibility features operational',
+    features: {
+      screenReaderSupport: 'enabled',
+      keyboardNavigation: 'enabled',
+      highContrastMode: 'enabled',
+      reducedMotion: 'enabled',
+      largeTextSupport: 'enabled',
+      voiceControl: 'enabled',
+      piiSafeLogging: 'enabled'
+    },
+    compliance: {
+      wcagLevel: 'AA',
+      standards: ['508 Compliance', 'ADA Compliance']
+    },
+    monitoring: {
+      usageTracking: 'enabled',
+      errorReporting: 'enabled',
+      accessibilityAuth: 'enabled'
+    },
+    timestamp: new Date().toISOString()
+  };
+  
+  // Log accessibility health check
+  piiSafeLogger.trackAccessibilityUsage('health_check', req.user?.id || 'anonymous', {
+    timestamp: new Date().toISOString()
+  });
+  
+  res.json(accessibilityHealth);
+});
+
+/**
+ * Format uptime in human-readable format
+ * @param {number} uptime - Uptime in seconds
+ * @returns {string} Formatted uptime string
+ */
+function formatUptime(uptime) {
+  const days = Math.floor(uptime / 86400);
+  const hours = Math.floor((uptime % 86400) / 3600);
+  const minutes = Math.floor((uptime % 3600) / 60);
+  const seconds = Math.floor(uptime % 60);
+  
+  let formatted = '';
+  if (days > 0) formatted += `${days}d `;
+  if (hours > 0 || days > 0) formatted += `${hours}h `;
+  if (minutes > 0 || hours > 0 || days > 0) formatted += `${minutes}m `;
+  formatted += `${seconds}s`;
+  
+  return formatted;
+}
+
+export default router;

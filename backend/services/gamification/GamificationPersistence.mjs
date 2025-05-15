@@ -1,1 +1,896 @@
-import Redis from 'ioredis';\nimport { MongoClient } from 'mongodb';\nimport { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';\nimport sequelize from '../../database.mjs';\n\n/**\n * P1: Enhanced Gamification Engine with Reliability\n * Dual persistence with Redis + MongoDB/PostgreSQL backup\n * Aligned with Master Prompt v26 Addictive Gamification Strategy\n */\n\nclass GamificationPersistence {\n  constructor() {\n    // Initialize Redis for fast operations\n    this.redis = new Redis({\n      host: process.env.REDIS_HOST || 'localhost',\n      port: process.env.REDIS_PORT || 6379,\n      password: process.env.REDIS_PASSWORD,\n      retryAttempts: 3,\n      retryDelayOnFailover: 100,\n      enableReadyCheck: true,\n      lazyConnect: true,\n      maxLoadingTimeout: 1000\n    });\n\n    // Fallback storage options\n    this.usePostgreSQL = true;\n    this.useMongoDB = process.env.MONGODB_URL || false;\n    \n    // MongoDB client (if available)\n    if (this.useMongoDB) {\n      this.mongoClient = new MongoClient(process.env.MONGODB_URL);\n      this.mongodb = null;\n      this.connectMongoDB();\n    }\n\n    // Achievement definitions\n    this.achievements = {\n      'first_workout': {\n        name: 'Getting Started',\n        description: 'Complete your first workout',\n        points: 50,\n        icon: '🏋️',\n        category: 'beginner'\n      },\n      'streak_7': {\n        name: '7-Day Warrior',\n        description: 'Complete workouts for 7 consecutive days',\n        points: 200,\n        icon: '🔥',\n        category: 'consistency'\n      },\n      'form_perfect': {\n        name: 'Perfect Form',\n        description: 'Achieve perfect form score on 10 exercises',\n        points: 150,\n        icon: '⭐',\n        category: 'technique'\n      },\n      'social_butterfly': {\n        name: 'Social Butterfly',\n        description: 'Share 5 workouts with the community',\n        points: 100,\n        icon: '🦋',\n        category: 'social'\n      },\n      'accessibility_champion': {\n        name: 'Accessibility Champion',\n        description: 'Use accessibility features regularly',\n        points: 75,\n        icon: '♿',\n        category: 'inclusive'\n      }\n    };\n\n    // Point categories with multipliers\n    this.pointCategories = {\n      'workout_completion': { base: 20, multiplier: 1.0 },\n      'perfect_form': { base: 15, multiplier: 1.2 },\n      'social_interaction': { base: 5, multiplier: 1.0 },\n      'accessibility_use': { base: 10, multiplier: 1.1 },\n      'streak_bonus': { base: 50, multiplier: 1.5 },\n      'challenge_completion': { base: 100, multiplier: 1.3 }\n    };\n\n    // Connect to Redis\n    this.connectRedis();\n  }\n\n  /**\n   * Connect to Redis with error handling\n   */\n  async connectRedis() {\n    try {\n      await this.redis.connect();\n      piiSafeLogger.info('Gamification Redis connected successfully');\n    } catch (error) {\n      piiSafeLogger.error('Redis connection failed, using fallback storage', {\n        error: error.message\n      });\n    }\n  }\n\n  /**\n   * Connect to MongoDB with error handling\n   */\n  async connectMongoDB() {\n    if (!this.useMongoDB) return;\n    \n    try {\n      await this.mongoClient.connect();\n      this.mongodb = this.mongoClient.db('swanstudios_gamification');\n      piiSafeLogger.info('Gamification MongoDB connected successfully');\n    } catch (error) {\n      piiSafeLogger.error('MongoDB connection failed for gamification', {\n        error: error.message\n      });\n      this.useMongoDB = false;\n    }\n  }\n\n  /**\n   * Award points to user with atomic operations\n   * @param {string} userId - User ID\n   * @param {number} points - Points to award\n   * @param {string} reason - Reason for points\n   * @param {Object} metadata - Additional metadata\n   */\n  async awardPoints(userId, points, reason, metadata = {}) {\n    try {\n      // Validate input\n      if (!userId || points <= 0) {\n        throw new Error('Invalid user ID or points value');\n      }\n\n      // Calculate final points with category multiplier\n      const category = this.pointCategories[reason] || this.pointCategories['workout_completion'];\n      const finalPoints = Math.round(points * category.multiplier);\n\n      // Redis atomic operations\n      const redisOps = this.redis.multi()\n        .hincrby(`user:${userId}:points`, 'total', finalPoints)\n        .zadd('leaderboard:daily', finalPoints, userId)\n        .zadd('leaderboard:weekly', finalPoints, userId)\n        .zadd('leaderboard:monthly', finalPoints, userId)\n        .lpush(`user:${userId}:point_history`, JSON.stringify({\n          points: finalPoints,\n          reason,\n          timestamp: Date.now(),\n          metadata\n        }))\n        .ltrim(`user:${userId}:point_history`, 0, 99) // Keep last 100 entries\n        .expire(`user:${userId}:points`, 86400 * 30) // 30 days expiry\n        .expire(`user:${userId}:point_history`, 86400 * 30);\n\n      await redisOps.exec();\n\n      // Persistent storage with backup (PostgreSQL or MongoDB)\n      await this.persistPointTransaction(userId, finalPoints, reason, metadata);\n      \n      // Check for achievements\n      await this.checkAchievements(userId, reason, metadata);\n\n      // Track gamification event\n      piiSafeLogger.trackGamificationEvent('points_awarded', userId, {\n        points: finalPoints,\n        reason,\n        category: category,\n        metadata\n      });\n\n      return {\n        success: true,\n        pointsAwarded: finalPoints,\n        totalPoints: await this.getTotalPoints(userId),\n        reason,\n        timestamp: Date.now()\n      };\n    } catch (error) {\n      // P1: Never lose gamification data - use fallback\n      piiSafeLogger.error('Points award failed, using fallback', {\n        error: error.message,\n        userId,\n        points,\n        reason\n      });\n      \n      return await this.fallbackPointStorage(userId, points, reason, metadata);\n    }\n  }\n\n  /**\n   * Persist point transaction to database\n   * @param {string} userId - User ID\n   * @param {number} points - Points awarded\n   * @param {string} reason - Reason for points\n   * @param {Object} metadata - Additional metadata\n   */\n  async persistPointTransaction(userId, points, reason, metadata) {\n    const pointRecord = {\n      userId,\n      points,\n      reason,\n      metadata: JSON.stringify(metadata),\n      timestamp: new Date(),\n      backedUp: false\n    };\n\n    try {\n      // Try PostgreSQL first\n      if (this.usePostgreSQL) {\n        await sequelize.models.UserPointsLedger.create(pointRecord);\n      }\n      // Fallback to MongoDB\n      else if (this.mongodb) {\n        await this.mongodb.collection('user_achievements').insertOne(pointRecord);\n      }\n    } catch (error) {\n      // Log error but don't fail the operation\n      piiSafeLogger.error('Failed to persist point transaction', {\n        error: error.message,\n        pointRecord\n      });\n    }\n  }\n\n  /**\n   * Fallback point storage when Redis fails\n   * @param {string} userId - User ID\n   * @param {number} points - Points to award\n   * @param {string} reason - Reason for points\n   * @param {Object} metadata - Additional metadata\n   */\n  async fallbackPointStorage(userId, points, reason, metadata) {\n    try {\n      // Use PostgreSQL as primary fallback\n      if (this.usePostgreSQL) {\n        const [userPoints, created] = await sequelize.models.UserPointsLedger.findOrCreate({\n          where: { userId, reason, timestamp: new Date() },\n          defaults: {\n            userId,\n            points,\n            reason,\n            metadata: JSON.stringify(metadata),\n            timestamp: new Date()\n          }\n        });\n\n        // Update user's total points\n        await sequelize.models.UserAchievements.increment('totalPoints', {\n          by: points,\n          where: { userId }\n        });\n\n        return {\n          success: true,\n          pointsAwarded: points,\n          fallbackUsed: 'postgresql',\n          reason,\n          timestamp: Date.now()\n        };\n      }\n\n      // MongoDB fallback\n      if (this.mongodb) {\n        await this.mongodb.collection('user_points_fallback').insertOne({\n          userId,\n          points,\n          reason,\n          metadata,\n          timestamp: new Date(),\n          fallbackStorage: true\n        });\n\n        return {\n          success: true,\n          pointsAwarded: points,\n          fallbackUsed: 'mongodb',\n          reason,\n          timestamp: Date.now()\n        };\n      }\n\n      throw new Error('No fallback storage available');\n    } catch (error) {\n      piiSafeLogger.error('All storage methods failed', {\n        error: error.message,\n        userId,\n        points,\n        reason\n      });\n      \n      return {\n        success: false,\n        error: 'Failed to store points',\n        reason,\n        timestamp: Date.now()\n      };\n    }\n  }\n\n  /**\n   * Check and unlock achievements\n   * @param {string} userId - User ID\n   * @param {string} reason - Action that triggered check\n   * @param {Object} metadata - Additional context\n   */\n  async checkAchievements(userId, reason, metadata) {\n    try {\n      const userStats = await this.getUserStatistics(userId);\n      const unlockedAchievements = [];\n\n      // Check each achievement\n      for (const [achievementId, achievement] of Object.entries(this.achievements)) {\n        const hasAchievement = await this.redis.sismember(`user:${userId}:achievements`, achievementId);\n        \n        if (!hasAchievement && await this.checkAchievementCondition(achievementId, userStats, reason, metadata)) {\n          await this.unlockAchievement(userId, achievementId);\n          unlockedAchievements.push({\n            id: achievementId,\n            ...achievement\n          });\n        }\n      }\n\n      return unlockedAchievements;\n    } catch (error) {\n      piiSafeLogger.error('Achievement check failed', {\n        error: error.message,\n        userId,\n        reason\n      });\n      return [];\n    }\n  }\n\n  /**\n   * Check specific achievement condition\n   * @param {string} achievementId - Achievement ID\n   * @param {Object} userStats - User statistics\n   * @param {string} reason - Action reason\n   * @param {Object} metadata - Additional context\n   */\n  async checkAchievementCondition(achievementId, userStats, reason, metadata) {\n    switch (achievementId) {\n      case 'first_workout':\n        return reason === 'workout_completion' && userStats.totalWorkouts === 1;\n      \n      case 'streak_7':\n        return userStats.currentStreak >= 7;\n      \n      case 'form_perfect':\n        return userStats.perfectFormCount >= 10;\n      \n      case 'social_butterfly':\n        return userStats.sharedWorkouts >= 5;\n      \n      case 'accessibility_champion':\n        return userStats.accessibilityUsage >= 10;\n      \n      default:\n        return false;\n    }\n  }\n\n  /**\n   * Unlock achievement for user\n   * @param {string} userId - User ID\n   * @param {string} achievementId - Achievement ID\n   */\n  async unlockAchievement(userId, achievementId) {\n    try {\n      const achievement = this.achievements[achievementId];\n      if (!achievement) return false;\n\n      // Add to Redis\n      await this.redis.sadd(`user:${userId}:achievements`, achievementId);\n      await this.redis.zadd('achievement_leaderboard', Date.now(), `${userId}:${achievementId}`);\n\n      // Award achievement points\n      await this.awardPoints(userId, achievement.points, `achievement_${achievementId}`, {\n        achievementName: achievement.name,\n        category: achievement.category\n      });\n\n      // Persist to database\n      if (this.usePostgreSQL) {\n        await sequelize.models.UserAchievements.create({\n          userId,\n          achievementId,\n          achievementName: achievement.name,\n          pointsAwarded: achievement.points,\n          unlockedAt: new Date()\n        });\n      }\n\n      // Track achievement unlock\n      piiSafeLogger.trackGamificationEvent('achievement_unlocked', userId, {\n        achievementId,\n        achievementName: achievement.name,\n        pointsAwarded: achievement.points,\n        category: achievement.category\n      });\n\n      return true;\n    } catch (error) {\n      piiSafeLogger.error('Achievement unlock failed', {\n        error: error.message,\n        userId,\n        achievementId\n      });\n      return false;\n    }\n  }\n\n  /**\n   * Get user's total points\n   * @param {string} userId - User ID\n   */\n  async getTotalPoints(userId) {\n    try {\n      const points = await this.redis.hget(`user:${userId}:points`, 'total');\n      return parseInt(points) || 0;\n    } catch (error) {\n      // Fallback to database\n      try {\n        const result = await sequelize.models.UserPointsLedger.sum('points', {\n          where: { userId }\n        });\n        return result || 0;\n      } catch (dbError) {\n        piiSafeLogger.error('Failed to get total points', {\n          error: dbError.message,\n          userId\n        });\n        return 0;\n      }\n    }\n  }\n\n  /**\n   * Get user statistics for achievement checking\n   * @param {string} userId - User ID\n   */\n  async getUserStatistics(userId) {\n    try {\n      // Try to get from Redis first\n      const stats = await this.redis.hmget(`user:${userId}:stats`,\n        'totalWorkouts', 'currentStreak', 'perfectFormCount', 'sharedWorkouts', 'accessibilityUsage'\n      );\n\n      return {\n        totalWorkouts: parseInt(stats[0]) || 0,\n        currentStreak: parseInt(stats[1]) || 0,\n        perfectFormCount: parseInt(stats[2]) || 0,\n        sharedWorkouts: parseInt(stats[3]) || 0,\n        accessibilityUsage: parseInt(stats[4]) || 0\n      };\n    } catch (error) {\n      // Fallback to calculating from database\n      return await this.calculateStatsFromDatabase(userId);\n    }\n  }\n\n  /**\n   * Calculate statistics from database\n   * @param {string} userId - User ID\n   */\n  async calculateStatsFromDatabase(userId) {\n    try {\n      // This would query the actual workout/progress tables\n      // For now, return default values\n      return {\n        totalWorkouts: 0,\n        currentStreak: 0,\n        perfectFormCount: 0,\n        sharedWorkouts: 0,\n        accessibilityUsage: 0\n      };\n    } catch (error) {\n      piiSafeLogger.error('Failed to calculate stats from database', {\n        error: error.message,\n        userId\n      });\n      return {\n        totalWorkouts: 0,\n        currentStreak: 0,\n        perfectFormCount: 0,\n        sharedWorkouts: 0,\n        accessibilityUsage: 0\n      };\n    }\n  }\n\n  /**\n   * Get leaderboard\n   * @param {string} period - daily, weekly, monthly\n   * @param {number} limit - Number of top users\n   */\n  async getLeaderboard(period = 'weekly', limit = 10) {\n    try {\n      const leaderboard = await this.redis.zrevrange(\n        `leaderboard:${period}`,\n        0,\n        limit - 1,\n        'WITHSCORES'\n      );\n\n      const result = [];\n      for (let i = 0; i < leaderboard.length; i += 2) {\n        const userId = leaderboard[i];\n        const points = parseInt(leaderboard[i + 1]);\n        \n        // Get user info (would normally fetch from user table)\n        result.push({\n          userId,\n          points,\n          rank: Math.floor(i / 2) + 1\n        });\n      }\n\n      return result;\n    } catch (error) {\n      piiSafeLogger.error('Failed to get leaderboard', {\n        error: error.message,\n        period\n      });\n      return [];\n    }\n  }\n\n  /**\n   * Get user's achievements\n   * @param {string} userId - User ID\n   */\n  async getUserAchievements(userId) {\n    try {\n      const achievementIds = await this.redis.smembers(`user:${userId}:achievements`);\n      const achievements = achievementIds.map(id => ({\n        id,\n        ...this.achievements[id]\n      }));\n\n      return achievements;\n    } catch (error) {\n      piiSafeLogger.error('Failed to get user achievements', {\n        error: error.message,\n        userId\n      });\n      return [];\n    }\n  }\n\n  /**\n   * Update user statistics\n   * @param {string} userId - User ID\n   * @param {Object} stats - Statistics to update\n   */\n  async updateUserStatistics(userId, stats) {\n    try {\n      const pipeline = this.redis.multi();\n      \n      for (const [key, value] of Object.entries(stats)) {\n        if (typeof value === 'number') {\n          pipeline.hincrby(`user:${userId}:stats`, key, value);\n        } else {\n          pipeline.hset(`user:${userId}:stats`, key, value);\n        }\n      }\n      \n      pipeline.expire(`user:${userId}:stats`, 86400 * 30); // 30 days\n      await pipeline.exec();\n\n      // Track statistics update\n      piiSafeLogger.trackGamificationEvent('stats_updated', userId, {\n        updatedStats: Object.keys(stats),\n        timestamp: Date.now()\n      });\n\n      return true;\n    } catch (error) {\n      piiSafeLogger.error('Failed to update user statistics', {\n        error: error.message,\n        userId,\n        stats\n      });\n      return false;\n    }\n  }\n\n  /**\n   * Close connections\n   */\n  async close() {\n    try {\n      await this.redis.disconnect();\n      if (this.mongoClient) {\n        await this.mongoClient.close();\n      }\n      piiSafeLogger.info('Gamification persistence connections closed');\n    } catch (error) {\n      piiSafeLogger.error('Error closing gamification connections', {\n        error: error.message\n      });\n    }\n  }\n}\n\n// Singleton instance\nexport const gamificationPersistence = new GamificationPersistence();\n\nexport default GamificationPersistence;
+import Redis from 'ioredis';
+import { MongoClient } from 'mongodb';
+import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
+import sequelize from '../../database.mjs';
+
+/**
+ * P1: Enhanced Gamification Engine with Reliability
+ * Dual persistence with Redis + MongoDB/PostgreSQL backup
+ * Aligned with Master Prompt v26 Addictive Gamification Strategy
+ */
+
+class GamificationPersistence {
+  constructor() {
+    // Initialize Redis for fast operations
+    this.redis = new Redis({
+      host: process.env.REDIS_HOST || 'localhost',
+      port: process.env.REDIS_PORT || 6379,
+      password: process.env.REDIS_PASSWORD,
+      retryAttempts: 3,
+      retryDelayOnFailover: 100,
+      enableReadyCheck: true,
+      lazyConnect: true,
+      maxLoadingTimeout: 1000
+    });
+
+    // Fallback storage options
+    this.usePostgreSQL = true;
+    this.useMongoDB = process.env.MONGODB_URL || false;
+    
+    // MongoDB client (if available)
+    if (this.useMongoDB) {
+      this.mongoClient = new MongoClient(process.env.MONGODB_URL);
+      this.mongodb = null;
+      this.connectMongoDB();
+    }
+
+    // Achievement definitions
+    this.achievements = {
+      'first_workout': {
+        name: 'Getting Started',
+        description: 'Complete your first workout',
+        points: 50,
+        icon: '🏋️',
+        category: 'beginner'
+      },
+      'streak_7': {
+        name: '7-Day Warrior',
+        description: 'Complete workouts for 7 consecutive days',
+        points: 200,
+        icon: '🔥',
+        category: 'consistency'
+      },
+      'form_perfect': {
+        name: 'Perfect Form',
+        description: 'Achieve perfect form score on 10 exercises',
+        points: 150,
+        icon: '⭐',
+        category: 'technique'
+      },
+      'social_butterfly': {
+        name: 'Social Butterfly',
+        description: 'Share 5 workouts with the community',
+        points: 100,
+        icon: '🦋',
+        category: 'social'
+      },
+      'accessibility_champion': {
+        name: 'Accessibility Champion',
+        description: 'Use accessibility features regularly',
+        points: 75,
+        icon: '♿',
+        category: 'inclusive'
+      }
+    };
+
+    // Point categories with multipliers
+    this.pointCategories = {
+      'workout_completion': { base: 20, multiplier: 1.0 },
+      'perfect_form': { base: 15, multiplier: 1.2 },
+      'social_interaction': { base: 5, multiplier: 1.0 },
+      'accessibility_use': { base: 10, multiplier: 1.1 },
+      'streak_bonus': { base: 50, multiplier: 1.5 },
+      'challenge_completion': { base: 100, multiplier: 1.3 }
+    };
+
+    // Connect to Redis
+    this.connectRedis();
+  }
+
+  /**
+   * Connect to Redis with error handling
+   */
+  async connectRedis() {
+    try {
+      await this.redis.connect();
+      piiSafeLogger.info('Gamification Redis connected successfully');
+    } catch (error) {
+      piiSafeLogger.error('Redis connection failed, using fallback storage', {
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Connect to MongoDB with error handling
+   */
+  async connectMongoDB() {
+    if (!this.useMongoDB) return;
+    
+    try {
+      await this.mongoClient.connect();
+      this.mongodb = this.mongoClient.db('swanstudios_gamification');
+      piiSafeLogger.info('Gamification MongoDB connected successfully');
+    } catch (error) {
+      piiSafeLogger.error('MongoDB connection failed for gamification', {
+        error: error.message
+      });
+      this.useMongoDB = false;
+    }
+  }
+
+  /**
+   * Award points to user with atomic operations
+   * @param {string} userId - User ID
+   * @param {number} points - Points to award
+   * @param {string} reason - Reason for points
+   * @param {Object} metadata - Additional metadata
+   */
+  async awardPoints(userId, points, reason, metadata = {}) {
+    try {
+      // Validate input
+      if (!userId || points <= 0) {
+        throw new Error('Invalid user ID or points value');
+      }
+
+      // Calculate final points with category multiplier
+      const category = this.pointCategories[reason] || this.pointCategories['workout_completion'];
+      const finalPoints = Math.round(points * category.multiplier);
+
+      // Redis atomic operations
+      const redisOps = this.redis.multi()
+        .hincrby(`user:${userId}:points`, 'total', finalPoints)
+        .zadd('leaderboard:daily', finalPoints, userId)
+        .zadd('leaderboard:weekly', finalPoints, userId)
+        .zadd('leaderboard:monthly', finalPoints, userId)
+        .lpush(`user:${userId}:point_history`, JSON.stringify({
+          points: finalPoints,
+          reason,
+          timestamp: Date.now(),
+          metadata
+        }))
+        .ltrim(`user:${userId}:point_history`, 0, 99) // Keep last 100 entries
+        .expire(`user:${userId}:points`, 86400 * 30) // 30 days expiry
+        .expire(`user:${userId}:point_history`, 86400 * 30);
+
+      await redisOps.exec();
+
+      // Persistent storage with backup (PostgreSQL or MongoDB)
+      await this.persistPointTransaction(userId, finalPoints, reason, metadata);
+      
+      // Check for achievements
+      await this.checkAchievements(userId, reason, metadata);
+
+      // Track gamification event
+      piiSafeLogger.trackGamificationEvent('points_awarded', userId, {
+        points: finalPoints,
+        reason,
+        category: category,
+        metadata
+      });
+
+      return {
+        success: true,
+        pointsAwarded: finalPoints,
+        totalPoints: await this.getTotalPoints(userId),
+        reason,
+        timestamp: Date.now()
+      };
+    } catch (error) {
+      // P1: Never lose gamification data - use fallback
+      piiSafeLogger.error('Points award failed, using fallback', {
+        error: error.message,
+        userId,
+        points,
+        reason
+      });
+      
+      return await this.fallbackPointStorage(userId, points, reason, metadata);
+    }
+  }
+
+  /**
+   * Persist point transaction to database
+   * @param {string} userId - User ID
+   * @param {number} points - Points awarded
+   * @param {string} reason - Reason for points
+   * @param {Object} metadata - Additional metadata
+   */
+  async persistPointTransaction(userId, points, reason, metadata) {
+    const pointRecord = {
+      userId,
+      points,
+      reason,
+      metadata: JSON.stringify(metadata),
+      timestamp: new Date(),
+      backedUp: false
+    };
+
+    try {
+      // Try PostgreSQL first
+      if (this.usePostgreSQL) {
+        await sequelize.models.UserPointsLedger.create(pointRecord);
+      }
+      // Fallback to MongoDB
+      else if (this.mongodb) {
+        await this.mongodb.collection('user_achievements').insertOne(pointRecord);
+      }
+    } catch (error) {
+      // Log error but don't fail the operation
+      piiSafeLogger.error('Failed to persist point transaction', {
+        error: error.message,
+        pointRecord
+      });
+    }
+  }
+
+  /**
+   * Fallback point storage when Redis fails
+   * @param {string} userId - User ID
+   * @param {number} points - Points to award
+   * @param {string} reason - Reason for points
+   * @param {Object} metadata - Additional metadata
+   */
+  async fallbackPointStorage(userId, points, reason, metadata) {
+    try {
+      // Use PostgreSQL as primary fallback
+      if (this.usePostgreSQL) {
+        const [userPoints, created] = await sequelize.models.UserPointsLedger.findOrCreate({
+          where: { userId, reason, timestamp: new Date() },
+          defaults: {
+            userId,
+            points,
+            reason,
+            metadata: JSON.stringify(metadata),
+            timestamp: new Date()
+          }
+        });
+
+        // Update user's total points
+        await sequelize.models.UserAchievements.increment('totalPoints', {
+          by: points,
+          where: { userId }
+        });
+
+        return {
+          success: true,
+          pointsAwarded: points,
+          fallbackUsed: 'postgresql',
+          reason,
+          timestamp: Date.now()
+        };
+      }
+
+      // MongoDB fallback
+      if (this.mongodb) {
+        await this.mongodb.collection('user_points_fallback').insertOne({
+          userId,
+          points,
+          reason,
+          metadata,
+          timestamp: new Date(),
+          fallbackStorage: true
+        });
+
+        return {
+          success: true,
+          pointsAwarded: points,
+          fallbackUsed: 'mongodb',
+          reason,
+          timestamp: Date.now()
+        };
+      }
+
+      throw new Error('No fallback storage available');
+    } catch (error) {
+      piiSafeLogger.error('All storage methods failed', {
+        error: error.message,
+        userId,
+        points,
+        reason
+      });
+      
+      return {
+        success: false,
+        error: 'Failed to store points',
+        reason,
+        timestamp: Date.now()
+      };
+    }
+  }
+
+  /**
+   * Check and unlock achievements
+   * @param {string} userId - User ID
+   * @param {string} reason - Action that triggered check
+   * @param {Object} metadata - Additional context
+   */
+  async checkAchievements(userId, reason, metadata) {
+    try {
+      const userStats = await this.getUserStatistics(userId);
+      const unlockedAchievements = [];
+
+      // Check each achievement
+      for (const [achievementId, achievement] of Object.entries(this.achievements)) {
+        const hasAchievement = await this.redis.sismember(`user:${userId}:achievements`, achievementId);
+        
+        if (!hasAchievement && await this.checkAchievementCondition(achievementId, userStats, reason, metadata)) {
+          await this.unlockAchievement(userId, achievementId);
+          unlockedAchievements.push({
+            id: achievementId,
+            ...achievement
+          });
+        }
+      }
+
+      return unlockedAchievements;
+    } catch (error) {
+      piiSafeLogger.error('Achievement check failed', {
+        error: error.message,
+        userId,
+        reason
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Check specific achievement condition
+   * @param {string} achievementId - Achievement ID
+   * @param {Object} userStats - User statistics
+   * @param {string} reason - Action reason
+   * @param {Object} metadata - Additional context
+   */
+  async checkAchievementCondition(achievementId, userStats, reason, metadata) {
+    switch (achievementId) {
+      case 'first_workout':
+        return reason === 'workout_completion' && userStats.totalWorkouts === 1;
+      
+      case 'streak_7':
+        return userStats.currentStreak >= 7;
+      
+      case 'form_perfect':
+        return userStats.perfectFormCount >= 10;
+      
+      case 'social_butterfly':
+        return userStats.sharedWorkouts >= 5;
+      
+      case 'accessibility_champion':
+        return userStats.accessibilityUsage >= 10;
+      
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Unlock achievement for user
+   * @param {string} userId - User ID
+   * @param {string} achievementId - Achievement ID
+   */
+  async unlockAchievement(userId, achievementId) {
+    try {
+      const achievement = this.achievements[achievementId];
+      if (!achievement) return false;
+
+      // Add to Redis
+      await this.redis.sadd(`user:${userId}:achievements`, achievementId);
+      await this.redis.zadd('achievement_leaderboard', Date.now(), `${userId}:${achievementId}`);
+
+      // Award achievement points
+      await this.awardPoints(userId, achievement.points, `achievement_${achievementId}`, {
+        achievementName: achievement.name,
+        category: achievement.category
+      });
+
+      // Persist to database
+      if (this.usePostgreSQL) {
+        await sequelize.models.UserAchievements.create({
+          userId,
+          achievementId,
+          achievementName: achievement.name,
+          pointsAwarded: achievement.points,
+          unlockedAt: new Date()
+        });
+      }
+
+      // Track achievement unlock
+      piiSafeLogger.trackGamificationEvent('achievement_unlocked', userId, {
+        achievementId,
+        achievementName: achievement.name,
+        pointsAwarded: achievement.points,
+        category: achievement.category
+      });
+
+      return true;
+    } catch (error) {
+      piiSafeLogger.error('Achievement unlock failed', {
+        error: error.message,
+        userId,
+        achievementId
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Get user's total points
+   * @param {string} userId - User ID
+   */
+  async getTotalPoints(userId) {
+    try {
+      const points = await this.redis.hget(`user:${userId}:points`, 'total');
+      return parseInt(points) || 0;
+    } catch (error) {
+      // Fallback to database
+      try {
+        const result = await sequelize.models.UserPointsLedger.sum('points', {
+          where: { userId }
+        });
+        return result || 0;
+      } catch (dbError) {
+        piiSafeLogger.error('Failed to get total points', {
+          error: dbError.message,
+          userId
+        });
+        return 0;
+      }
+    }
+  }
+
+  /**
+   * Get user statistics for achievement checking
+   * @param {string} userId - User ID
+   */
+  async getUserStatistics(userId) {
+    try {
+      // Try to get from Redis first
+      const stats = await this.redis.hmget(`user:${userId}:stats`,
+        'totalWorkouts', 'currentStreak', 'perfectFormCount', 'sharedWorkouts', 'accessibilityUsage'
+      );
+
+      return {
+        totalWorkouts: parseInt(stats[0]) || 0,
+        currentStreak: parseInt(stats[1]) || 0,
+        perfectFormCount: parseInt(stats[2]) || 0,
+        sharedWorkouts: parseInt(stats[3]) || 0,
+        accessibilityUsage: parseInt(stats[4]) || 0
+      };
+    } catch (error) {
+      // Fallback to calculating from database
+      return await this.calculateStatsFromDatabase(userId);
+    }
+  }
+
+  /**
+   * Calculate statistics from database
+   * @param {string} userId - User ID
+   */
+  async calculateStatsFromDatabase(userId) {
+    try {
+      // This would query the actual workout/progress tables
+      // For now, return default values
+      return {
+        totalWorkouts: 0,
+        currentStreak: 0,
+        perfectFormCount: 0,
+        sharedWorkouts: 0,
+        accessibilityUsage: 0
+      };
+    } catch (error) {
+      piiSafeLogger.error('Failed to calculate stats from database', {
+        error: error.message,
+        userId
+      });
+      return {
+        totalWorkouts: 0,
+        currentStreak: 0,
+        perfectFormCount: 0,
+        sharedWorkouts: 0,
+        accessibilityUsage: 0
+      };
+    }
+  }
+
+  /**
+   * Get leaderboard
+   * @param {string} period - daily, weekly, monthly
+   * @param {number} limit - Number of top users
+   */
+  async getLeaderboard(period = 'weekly', limit = 10) {
+    try {
+      const leaderboard = await this.redis.zrevrange(
+        `leaderboard:${period}`,
+        0,
+        limit - 1,
+        'WITHSCORES'
+      );
+
+      const result = [];
+      for (let i = 0; i < leaderboard.length; i += 2) {
+        const userId = leaderboard[i];
+        const points = parseInt(leaderboard[i + 1]);
+        
+        // Get user info (would normally fetch from user table)
+        result.push({
+          userId,
+          points,
+          rank: Math.floor(i / 2) + 1
+        });
+      }
+
+      return result;
+    } catch (error) {
+      piiSafeLogger.error('Failed to get leaderboard', {
+        error: error.message,
+        period
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Get user's achievements
+   * @param {string} userId - User ID
+   */
+  async getUserAchievements(userId) {
+    try {
+      const achievementIds = await this.redis.smembers(`user:${userId}:achievements`);
+      const achievements = achievementIds.map(id => ({
+        id,
+        ...this.achievements[id]
+      }));
+
+      return achievements;
+    } catch (error) {
+      piiSafeLogger.error('Failed to get user achievements', {
+        error: error.message,
+        userId
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Update user statistics
+   * @param {string} userId - User ID
+   * @param {Object} stats - Statistics to update
+   */
+  async updateUserStatistics(userId, stats) {
+    try {
+      const pipeline = this.redis.multi();
+      
+      for (const [key, value] of Object.entries(stats)) {
+        if (typeof value === 'number') {
+          pipeline.hincrby(`user:${userId}:stats`, key, value);
+        } else {
+          pipeline.hset(`user:${userId}:stats`, key, value);
+        }
+      }
+      
+      pipeline.expire(`user:${userId}:stats`, 86400 * 30); // 30 days
+      await pipeline.exec();
+
+      // Track statistics update
+      piiSafeLogger.trackGamificationEvent('stats_updated', userId, {
+        updatedStats: Object.keys(stats),
+        timestamp: Date.now()
+      });
+
+      return true;
+    } catch (error) {
+      piiSafeLogger.error('Failed to update user statistics', {
+        error: error.message,
+        userId,
+        stats
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Get user's current streak
+   * @param {string} userId - User ID
+   */
+  async getCurrentStreak(userId) {
+    try {
+      const streak = await this.redis.hget(`user:${userId}:stats`, 'currentStreak');
+      return parseInt(streak) || 0;
+    } catch (error) {
+      piiSafeLogger.error('Failed to get current streak', {
+        error: error.message,
+        userId
+      });
+      return 0;
+    }
+  }
+
+  /**
+   * Get user's leaderboard rank
+   * @param {string} userId - User ID
+   * @param {string} period - daily, weekly, monthly
+   */
+  async getUserLeaderboardRank(userId, period = 'weekly') {
+    try {
+      const rank = await this.redis.zrevrank(`leaderboard:${period}`, userId);
+      return rank !== null ? rank + 1 : null;
+    } catch (error) {
+      piiSafeLogger.error('Failed to get user leaderboard rank', {
+        error: error.message,
+        userId,
+        period
+      });
+      return null;
+    }
+  }
+
+  /**
+   * Check if user has achievement
+   * @param {string} userId - User ID
+   * @param {string} achievementId - Achievement ID
+   */
+  async hasAchievement(userId, achievementId) {
+    try {
+      return await this.redis.sismember(`user:${userId}:achievements`, achievementId);
+    } catch (error) {
+      piiSafeLogger.error('Failed to check achievement', {
+        error: error.message,
+        userId,
+        achievementId
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Award achievement to user
+   * @param {string} userId - User ID
+   * @param {string} achievementId - Achievement ID
+   */
+  async awardAchievement(userId, achievementId) {
+    try {
+      await this.redis.sadd(`user:${userId}:achievements`, achievementId);
+      
+      // Also store in database
+      if (this.usePostgreSQL) {
+        await sequelize.models.UserAchievements.create({
+          userId,
+          achievementId,
+          unlockedAt: new Date()
+        });
+      }
+      
+      return true;
+    } catch (error) {
+      piiSafeLogger.error('Failed to award achievement', {
+        error: error.message,
+        userId,
+        achievementId
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Get user workout count
+   * @param {string} userId - User ID
+   */
+  async getUserWorkoutCount(userId) {
+    try {
+      const count = await this.redis.hget(`user:${userId}:stats`, 'totalWorkouts');
+      return parseInt(count) || 0;
+    } catch (error) {
+      piiSafeLogger.error('Failed to get workout count', {
+        error: error.message,
+        userId
+      });
+      return 0;
+    }
+  }
+
+  /**
+   * Get action count for today
+   * @param {string} userId - User ID
+   * @param {string} action - Action type
+   */
+  async getActionCountToday(userId, action) {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const key = `user:${userId}:actions:${today}:${action}`;
+      const count = await this.redis.get(key);
+      return parseInt(count) || 0;
+    } catch (error) {
+      piiSafeLogger.error('Failed to get action count today', {
+        error: error.message,
+        userId,
+        action
+      });
+      return 0;
+    }
+  }
+
+  /**
+   * Get community help count
+   * @param {string} userId - User ID
+   */
+  async getCommunityHelpCount(userId) {
+    try {
+      const count = await this.redis.hget(`user:${userId}:stats`, 'sharedWorkouts');
+      return parseInt(count) || 0;
+    } catch (error) {
+      piiSafeLogger.error('Failed to get community help count', {
+        error: error.message,
+        userId
+      });
+      return 0;
+    }
+  }
+
+  /**
+   * Get active users count
+   */
+  async getActiveUsersCount() {
+    try {
+      const count = await this.redis.scard('active_users:today');
+      return count || 0;
+    } catch (error) {
+      piiSafeLogger.error('Failed to get active users count', {
+        error: error.message
+      });
+      return 0;
+    }
+  }
+
+  /**
+   * Get total points awarded across platform
+   */
+  async getTotalPointsAwarded() {
+    try {
+      // This would typically sum from database
+      const total = await this.redis.get('platform:total_points_awarded');
+      return parseInt(total) || 0;
+    } catch (error) {
+      piiSafeLogger.error('Failed to get total points awarded', {
+        error: error.message
+      });
+      return 0;
+    }
+  }
+
+  /**
+   * Get achievement completion rate
+   */
+  async getAchievementCompletionRate() {
+    try {
+      // Mock implementation - would calculate from actual data
+      return 75; // 75% completion rate
+    } catch (error) {
+      piiSafeLogger.error('Failed to get achievement completion rate', {
+        error: error.message
+      });
+      return 0;
+    }
+  }
+
+  /**
+   * Get average streak across users
+   */
+  async getAverageStreak() {
+    try {
+      // Mock implementation - would calculate from actual data
+      return 5.2; // Average streak of 5.2 days
+    } catch (error) {
+      piiSafeLogger.error('Failed to get average streak', {
+        error: error.message
+      });
+      return 0;
+    }
+  }
+
+  /**
+   * Get engagement metrics
+   * @param {Object} options - Options for metrics
+   */
+  async getEngagementMetrics(options = {}) {
+    try {
+      const { timeframe = '30d', segment } = options;
+      
+      // Mock implementation - would pull from actual analytics
+      return {
+        dailyActiveUsers: 1250,
+        weeklyActiveUsers: 5600,
+        monthlyActiveUsers: 18750,
+        averageSessionTime: 45, // minutes
+        pointsPerUser: 850,
+        achievementsPerUser: 3.2,
+        streakCompletionRate: 68.5
+      };
+    } catch (error) {
+      piiSafeLogger.error('Failed to get engagement metrics', {
+        error: error.message,
+        options
+      });
+      return {};
+    }
+  }
+
+  /**
+   * Get daily active users
+   */
+  async getDailyActiveUsers() {
+    try {
+      return await this.redis.scard('active_users:daily');
+    } catch (error) {
+      piiSafeLogger.error('Failed to get daily active users', {
+        error: error.message
+      });
+      return 0;
+    }
+  }
+
+  /**
+   * Get weekly active users
+   */
+  async getWeeklyActiveUsers() {
+    try {
+      return await this.redis.scard('active_users:weekly');
+    } catch (error) {
+      piiSafeLogger.error('Failed to get weekly active users', {
+        error: error.message
+      });
+      return 0;
+    }
+  }
+
+  /**
+   * Get average session length
+   */
+  async getAverageSessionLength() {
+    try {
+      // Mock implementation - would calculate from actual session data
+      return 38; // 38 minutes average
+    } catch (error) {
+      piiSafeLogger.error('Failed to get average session length', {
+        error: error.message
+      });
+      return 0;
+    }
+  }
+
+  /**
+   * Get engagement rate
+   */
+  async getEngagementRate() {
+    try {
+      // Mock implementation - would calculate from actual data
+      return 78.5; // 78.5% engagement rate
+    } catch (error) {
+      piiSafeLogger.error('Failed to get engagement rate', {
+        error: error.message
+      });
+      return 0;
+    }
+  }
+
+  /**
+   * Close connections
+   */
+  async close() {
+    try {
+      await this.redis.disconnect();
+      if (this.mongoClient) {
+        await this.mongoClient.close();
+      }
+      piiSafeLogger.info('Gamification persistence connections closed');
+    } catch (error) {
+      piiSafeLogger.error('Error closing gamification connections', {
+        error: error.message
+      });
+    }
+  }
+}
+
+// Singleton instance
+export const gamificationPersistence = new GamificationPersistence();
+
+export default GamificationPersistence;

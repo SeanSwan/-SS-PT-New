@@ -239,36 +239,43 @@ const AdminDashboardLayout: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const auth = useAuth();
+  const { user } = auth;
   
-  // Simple verification - just check if user exists and has admin role
+  // Comprehensive admin verification using proper auth context
   useEffect(() => {
-    console.log('AdminDashboard: Checking user authorization...');
-    
-    // Log user info for debugging
-    console.log('User object:', {
-      exists: !!user,
-      role: user?.role || 'none',
-      email: user?.email || 'none',
-      id: user?.id || 'none'
-    });
-    
-    // Short verification delay to ensure authentication state is loaded
-    setTimeout(() => {
-      if (!user) {
-        console.error('AdminDashboard: No user object found');
-        setError('Authentication required. Please log in with admin credentials.');
-      } else if (user.role !== 'admin') {
-        console.error(`AdminDashboard: User role "${user.role}" is not admin`);
-        setError('You do not have permission to access this area.');
-      } else {
-        console.log('AdminDashboard: Access verified for admin user');
-        setError(null);
+    const verifyAdminAccess = async () => {
+      console.log('AdminDashboard: Verifying admin access...');
+      
+      // Don't verify if still loading
+      if (auth.loading) {
+        return;
       }
       
+      // Check authentication
+      if (!auth.isAuthenticated || !auth.user) {
+        console.error('AdminDashboard: User not authenticated');
+        setError('Authentication required. Please log in with admin credentials.');
+        setIsVerifying(false);
+        return;
+      }
+      
+      // Check admin role
+      if (!auth.checkPermission('admin:all')) {
+        console.error(`AdminDashboard: User "${auth.user.username}" (${auth.user.role}) lacks admin permissions`);
+        setError('You do not have administrative privileges. Please contact an administrator for access.');
+        setIsVerifying(false);
+        return;
+      }
+      
+      // Success - user has admin access
+      console.log(`AdminDashboard: Access granted for admin user "${auth.user.username}"`);
+      setError(null);
       setIsVerifying(false);
-    }, 500);
-  }, [user]);
+    };
+    
+    verifyAdminAccess();
+  }, [auth.isAuthenticated, auth.user, auth.loading, auth.checkPermission]);
   
   // Handle drawer open/close
   const toggleDrawer = () => {
@@ -295,7 +302,7 @@ const AdminDashboardLayout: React.FC = () => {
   
   // Handle logout action
   const handleLogout = () => {
-    logout();
+    auth.logout();
     navigate('/login?returnUrl=/dashboard/default');
   };
   
@@ -405,14 +412,8 @@ const AdminDashboardLayout: React.FC = () => {
     );
   }
   
-  // BYPASSING ERROR CHECK FOR USER: ogpswan - allow direct access regardless of role
-  // This is a temporary fix to ensure admin access works for testing
-  if (user?.email === 'ogpswan@gmail.com' || user?.email === 'ogpswan') {
-    console.log('Special user detected - bypassing role check');
-  }
-  
-  // Show error state if verification failed and not bypassed
-  if (error && user?.email !== 'ogpswan@gmail.com' && user?.email !== 'ogpswan') {
+  // Show error state if verification failed
+  if (error) {
     return (
       <AdminDashboardError 
         error={error}

@@ -7,6 +7,7 @@ import User from '../models/User.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
+import { upgradeToClient } from '../services/roleService.mjs';
 
 const router = express.Router();
 
@@ -202,7 +203,10 @@ async function addSessionsToUserAccount(userId, sessions) {
     user.availableSessions = (user.availableSessions || 0) + sessions;
     await user.save();
     
-    logger.info(`Added ${sessions} sessions to user ${userId}`);
+    // Upgrade user to client role if they purchase training
+    await upgradeToClient(userId);
+    
+    logger.info(`Added ${sessions} sessions to user ${userId} and upgraded to client role if applicable`);
   } catch (error) {
     logger.error(`Error adding sessions to user account: ${error.message}`);
     throw error;

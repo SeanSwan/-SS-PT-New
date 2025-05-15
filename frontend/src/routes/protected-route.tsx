@@ -1,161 +1,152 @@
-/**
- * protected-route.tsx
- * Protected route component for role-based access control
- */
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { Box, CircularProgress, Typography, Alert } from '@mui/material';
 
-// Type for the component props
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: string;
+  requiredRole?: 'admin' | 'trainer' | 'client' | 'user';
+  requiredPermission?: string;
+  fallbackPath?: string;
 }
 
 /**
- * LoadingIndicator Component
- * Simple loading spinner with message
+ * Loading component for authentication checks
  */
-const LoadingIndicator: React.FC = () => (
-  <div className="loading-container" style={{
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '100vh',
-    background: 'rgba(9, 4, 30, 0.85)',
-    color: '#fff'
-  }}>
-    <div style={{
-      border: '5px solid rgba(0, 255, 255, 0.1)',
-      borderRadius: '50%',
-      borderTop: '5px solid #00ffff',
-      width: '50px',
-      height: '50px',
-      animation: 'spin 1s linear infinite',
-      marginBottom: '15px'
-    }} />
-    <div>Loading content...</div>
-    <style>{`
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    `}</style>
-  </div>
+const AuthLoadingScreen: React.FC = () => (
+  <Box
+    sx={{
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '100vh',
+      backgroundColor: '#0a0a1a',
+      color: '#e0e0e0'
+    }}
+  >
+    <CircularProgress 
+      size={60} 
+      thickness={4}
+      sx={{ 
+        color: '#00ffff',
+        mb: 3
+      }} 
+    />
+    <Typography variant="h6" align="center">
+      Verifying access...
+    </Typography>
+    <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 1 }}>
+      Please wait while we check your credentials
+    </Typography>
+  </Box>
 );
 
 /**
- * ProtectedRoute Component - ENHANCED VERSION
- * 
- * This version adds development mode support with mock user handling
+ * Error component for access denied
  */
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
-  children, 
-  requiredRole 
+const AccessDeniedScreen: React.FC<{ 
+  message: string; 
+  onRetry?: () => void;
+}> = ({ message, onRetry }) => (
+  <Box
+    sx={{
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minHeight: '100vh',
+      backgroundColor: '#0a0a1a',
+      color: '#e0e0e0',
+      padding: 3
+    }}
+  >
+    <Alert 
+      severity="error" 
+      sx={{ 
+        mb: 3,
+        maxWidth: 400,
+        bgcolor: 'rgba(244, 67, 54, 0.1)',
+        border: '1px solid rgba(244, 67, 54, 0.3)'
+      }}
+    >
+      <Typography variant="h6" gutterBottom>
+        Access Denied
+      </Typography>
+      <Typography variant="body2">
+        {message}
+      </Typography>
+    </Alert>
+    
+    {onRetry && (
+      <button
+        onClick={onRetry}
+        style={{
+          background: 'linear-gradient(135deg, #00ffff, #00c8ff)',
+          border: 'none',
+          padding: '12px 24px',
+          borderRadius: '8px',
+          color: '#0a0a1a',
+          fontWeight: 600,
+          cursor: 'pointer',
+          fontSize: '14px'
+        }}
+      >
+        Try Again
+      </button>
+    )}
+  </Box>
+);
+
+/**
+ * ProtectedRoute Component
+ * 
+ * Provides route protection based on authentication status and permissions.
+ * Integrates with the enhanced AuthContext for comprehensive access control.
+ */
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
+  requiredRole,
+  requiredPermission,
+  fallbackPath = '/login'
 }) => {
-  const { user, isLoading } = useAuth();
+  const auth = useAuth();
   const location = useLocation();
-  const [mockUser, setMockUser] = useState<any>(null);
-  const isDevelopment = import.meta.env.MODE === 'development';
   
-  // Path being accessed (for logging)
-  const currentPath = location.pathname;
-  
-  // Check for development mode mock user
-  useEffect(() => {
-    // Only in development mode
-    if (isDevelopment && !user) {
-      // Check for mock token in localStorage
-      const mockToken = localStorage.getItem('token');
-      const userData = localStorage.getItem('user_data');
-      
-      if (mockToken && mockToken.startsWith('dev-') || mockToken === 'mock-jwt-token') {
-        console.log('🧪 Development mode: Using mock user');
-        
-        // Try to load user data from localStorage
-        if (userData) {
-          try {
-            const parsedUser = JSON.parse(userData);
-            setMockUser(parsedUser);
-          } catch (e) {
-            console.error('Error parsing mock user data:', e);
-          }
-        }
-        
-        // If no user data, create a default mock user
-        if (!userData) {
-          const defaultMockUser = {
-            id: 'mock-user-id',
-            username: 'ogpswan',
-            email: 'ogpswan@example.com',
-            firstName: 'Mock',
-            lastName: 'User',
-            role: 'client',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          };
-          
-          // Save to localStorage for future use
-          localStorage.setItem('user_data', JSON.stringify(defaultMockUser));
-          setMockUser(defaultMockUser);
-        }
-      }
-    }
-  }, [isDevelopment, user]);
-  
-  // Log access attempt for debugging
-  useEffect(() => {
-    const effectiveUser = user || mockUser;
-    
-    console.log(`Protected route accessed: ${currentPath}`);
-    console.log('User info:', {
-      exists: !!effectiveUser,
-      role: effectiveUser?.role || 'none',
-      email: effectiveUser?.email || 'none',
-      isMock: !user && !!mockUser
-    });
-    
-    // Special check for ogpswan user
-    if (effectiveUser?.email?.includes('ogpswan')) {
-      console.log('✅ Special user detected: bypassing all validation checks');
-    }
-  }, [currentPath, user, mockUser]);
-  
-  // Show loading state while authentication state is being determined
-  if (isLoading && !mockUser) {
-    return <LoadingIndicator />;
+  // Show loading while authentication is being verified
+  if (auth.loading) {
+    return <AuthLoadingScreen />;
   }
   
-  // Get the effective user (real or mock)
-  const effectiveUser = user || mockUser;
-  
-  // SPECIAL CASE: Special user always gets access to any route
-  if (effectiveUser?.email?.includes('ogpswan')) {
-    console.log(`✅ Access granted to special user: ${currentPath}`);
-    return <>{children}</>;
+  // If not authenticated, redirect to login with return URL
+  if (!auth.isAuthenticated || !auth.user) {
+    const returnUrl = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`${fallbackPath}?returnUrl=${returnUrl}`} replace />;
   }
   
-  // CASE 1: No user - redirect to login
-  if (!effectiveUser) {
-    console.log(`⛔ No user found, redirecting from ${currentPath} to login`);
-    return <Navigate to={`/login?returnUrl=${encodeURIComponent(currentPath)}`} replace />;
+  // Check specific role requirement
+  if (requiredRole && auth.user.role !== requiredRole) {
+    const message = `This area requires ${requiredRole} privileges. Your current role: ${auth.user.role}`;
+    return (
+      <AccessDeniedScreen 
+        message={message}
+        onRetry={() => window.location.reload()}
+      />
+    );
   }
   
-  // CASE 2: Admin user - always grant access to any route
-  if (effectiveUser.role === 'admin') {
-    console.log(`✅ Admin access granted to: ${currentPath}`);
-    return <>{children}</>;
+  // Check specific permission requirement
+  if (requiredPermission && !auth.checkPermission(requiredPermission)) {
+    const message = `You don't have the required permission: ${requiredPermission}`;
+    return (
+      <AccessDeniedScreen 
+        message={message}
+        onRetry={() => window.location.reload()}
+      />
+    );
   }
   
-  // CASE 3: Role check for non-admin users
-  if (requiredRole && effectiveUser.role !== requiredRole) {
-    console.log(`⛔ Access denied: User is ${effectiveUser.role}, requires ${requiredRole}`);
-    return <Navigate to="/unauthorized" replace />;
-  }
-  
-  // CASE 4: Regular access granted
-  console.log(`✅ Access granted: User ${effectiveUser.firstName} (${effectiveUser.role}) to ${currentPath}`);
+  // User is authenticated and has required permissions
   return <>{children}</>;
 };
 

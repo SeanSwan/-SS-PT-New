@@ -22,7 +22,7 @@ import {
   Calendar as CalendarIcon
 } from 'lucide-react';
 import { useAuth } from '../../../../context/AuthContext';
-import MainLayout from '../../MainLayout/MainLayout';
+import MainLayout from '../../MainLayout/main-layout';
 
 // Styled Components
 const DashboardContainer = styled.div`

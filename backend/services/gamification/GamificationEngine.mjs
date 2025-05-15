@@ -4,7 +4,7 @@
  */
 
 import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
-import { GamificationPersistence } from './GamificationPersistence.mjs';
+import GamificationPersistence from './GamificationPersistence.mjs';
 
 export class GamificationEngine {
   constructor() {

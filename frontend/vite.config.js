@@ -238,7 +238,7 @@ export default defineConfig(({ mode }) => {
         open: true,
         proxy: {
           '/api': {
-            target: 'http://localhost:5000',
+            target: 'http://localhost:10000',
             changeOrigin: true,
             secure: false,
             ws: true,
@@ -281,7 +281,7 @@ export default defineConfig(({ mode }) => {
             },
           },
           '/health': {
-            target: 'http://localhost:5000',
+            target: 'http://localhost:10000',
             changeOrigin: true,
             secure: false,
             configure: (proxy, _options) => {
@@ -343,7 +343,7 @@ export default defineConfig(({ mode }) => {
       // Inject actual backend API URL for production
       'process.env.VITE_API_URL': isProduction 
         ? JSON.stringify('https://swanstudios-app.onrender.com') 
-        : JSON.stringify('http://localhost:5000'),
+        : JSON.stringify('http://localhost:10000'),
     },
     // Cache settings to avoid build issues
     cacheDir: '.vite-cache',

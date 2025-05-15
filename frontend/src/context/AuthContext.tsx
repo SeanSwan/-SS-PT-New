@@ -1,24 +1,40 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import apiService from '../services/api.service';
-import { mockUser, mockAdminUser, mockTrainerUser, mockRegularUser } from './mockUser';
-import { setUser as setReduxUser, logout as logoutRedux } from '../store/slices/authSlice';
-import { getUserFromMemory, setUserInMemory, setTokenInMemory, clearMemoryStore } from '../utils/dev-memory-store';
+import { setUser as setReduxUser, logout as logoutRedux, setLoading as setReduxLoading } from '../store/slices/authSlice';
 import { createClientProgressService, ClientProgressServiceInterface } from '../services/client-progress-service';
 import { createExerciseService, ExerciseServiceInterface } from '../services/exercise-service';
 import { createAdminClientService, AdminClientServiceInterface } from '../services/adminClientService';
 import { AxiosInstance } from 'axios';
 
+// Enhanced User Interface aligned with backend model
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  role: 'admin' | 'trainer' | 'client' | 'user';
+  profileImageUrl?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  trainerInfo?: any;
+  clientInfo?: any;
+}
+
 // Auth Context Interface
 interface AuthContextType {
-  user: any | null;
+  user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (username: string, password: string) => Promise<{success: boolean, user: any | null}>;
+  error: string | null;
+  login: (username: string, password: string) => Promise<{success: boolean, user: User | null, error?: string}>;
   logout: () => void;
-  register: (data: any) => Promise<boolean>;
-  updateUser: (data: any) => Promise<boolean>;
-  // Add services and authAxios
+  register: (data: any) => Promise<{success: boolean, user: User | null, error?: string}>;
+  updateUser: (data: any) => Promise<{success: boolean, user: User | null, error?: string}>;
+  refreshToken: () => Promise<boolean>;
+  checkPermission: (permission: string) => boolean;
   services: {
     clientProgress: ClientProgressServiceInterface;
     exercise: ExerciseServiceInterface;
@@ -32,10 +48,13 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   isAuthenticated: false,
   loading: true,
+  error: null,
   login: async () => ({ success: false, user: null }),
   logout: () => {},
-  register: async () => false,
-  updateUser: async () => false,
+  register: async () => ({ success: false, user: null }),
+  updateUser: async () => ({ success: false, user: null }),
+  refreshToken: async () => false,
+  checkPermission: () => false,
   services: {
     clientProgress: null as any,
     exercise: null as any,
@@ -44,19 +63,21 @@ const AuthContext = createContext<AuthContextType>({
   authAxios: null as any
 });
 
+// Permission mappings for roles
+const ROLE_PERMISSIONS = {
+  admin: ['admin:all', 'trainer:all', 'client:all', 'user:all'],
+  trainer: ['trainer:all', 'client:read', 'client:update'],
+  client: ['client:self'],
+  user: ['user:self']
+};
+
 // Auth Provider Component
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Create services using apiService
-  const services = {
-    clientProgress: createClientProgressService(apiService),
-    exercise: createExerciseService(apiService),
-    adminClient: createAdminClientService(apiService)
-  };
-  
-  // Try to use Redux if available
+  // Redux integration (optional)
   let dispatch: any = null;
   let reduxUser: any = null;
   
@@ -64,376 +85,403 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     dispatch = useDispatch();
     reduxUser = useSelector((state: any) => state.auth?.user);
   } catch (error) {
-    console.log('Redux not available in this context, using fallback auth methods');
+    console.log('Redux not available, using local state only');
   }
   
-  // Check for existing user session on mount
+  // Create services with authenticated axios instance
+  const services = {
+    clientProgress: createClientProgressService(apiService),
+    exercise: createExerciseService(apiService),
+    adminClient: createAdminClientService(apiService)
+  };
+  
+  // Token refresh function
+  const refreshToken = useCallback(async (): Promise<boolean> => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return false;
+      
+      const response = await apiService.post('/api/auth/refresh', {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data.token) {
+        const newToken = response.data.token;
+        localStorage.setItem('token', newToken);
+        localStorage.setItem('tokenTimestamp', Date.now().toString());
+        apiService.setAuthToken(newToken);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      return false;
+    }
+  }, []);
+  
+  // Check if user has permission
+  const checkPermission = useCallback((permission: string): boolean => {
+    if (!user) return false;
+    
+    const userPermissions = ROLE_PERMISSIONS[user.role] || [];
+    return userPermissions.some(p => 
+      p === permission || 
+      p.endsWith(':all') && permission.startsWith(p.split(':')[0])
+    );
+  }, [user]);
+  
+  // Check authentication status on mount
   useEffect(() => {
     const checkAuthStatus = async () => {
+      setLoading(true);
+      setError(null);
+      
       try {
-        // First try to get user from Redux if available
-        if (reduxUser) {
-          setUser(reduxUser);
+        // Get token from localStorage
+        const token = localStorage.getItem('token');
+        const tokenTimestamp = localStorage.getItem('tokenTimestamp');
+        
+        if (!token) {
+          console.log('No token found');
+          setUser(null);
           setLoading(false);
           return;
         }
         
-        // Get token and user from local storage
-        const token = localStorage.getItem('token');
-        const storedUser = localStorage.getItem('user');
-        const timestamp = localStorage.getItem('login_timestamp');
-        
-        // Set the token in the API service if it exists
-        if (token) {
-          apiService.setAuthToken(token);
-        }
-        
-        // Check for token and login timestamp
-        if (token && storedUser) {
-          // Check if token is expired (24 hours)
-          if (timestamp) {
-            const loginTime = parseInt(timestamp, 10);
-            const currentTime = Date.now();
-            const tokenAge = currentTime - loginTime;
-            const tokenExpired = tokenAge > 24 * 60 * 60 * 1000; // 24 hours
+        // Check token age (24 hours)
+        if (tokenTimestamp) {
+          const age = Date.now() - parseInt(tokenTimestamp);
+          const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+          
+          if (age > maxAge) {
+            console.log('Token expired, attempting refresh...');
+            const refreshed = await refreshToken();
             
-            if (tokenExpired) {
-              console.log('Token expired, logging out');
+            if (!refreshed) {
+              console.log('Token refresh failed, logging out');
               logout();
               return;
             }
           }
+        }
+        
+        // Set token in API service
+        apiService.setAuthToken(token);
+        
+        // Verify token with backend
+        const response = await apiService.get('/api/auth/me');
+        
+        if (response.data?.user) {
+          const userData = response.data.user;
           
-          // Valid session, set the user
+          // Ensure proper user structure
+          const formattedUser: User = {
+            id: userData.id,
+            email: userData.email,
+            username: userData.username || userData.email?.split('@')[0],
+            firstName: userData.firstName || '',
+            lastName: userData.lastName || '',
+            role: userData.role || 'user',
+            profileImageUrl: userData.profileImageUrl,
+            isActive: userData.isActive !== false,
+            createdAt: userData.createdAt,
+            updatedAt: userData.updatedAt,
+            trainerInfo: userData.trainerInfo,
+            clientInfo: userData.clientInfo
+          };
+          
+          setUser(formattedUser);
+          
+          // Update Redux if available
+          if (dispatch) {
+            dispatch(setReduxUser(formattedUser));
+          }
+          
+          console.log('Authentication restored:', formattedUser.username, formattedUser.role);
+        } else {
+          throw new Error('Invalid user data from server');
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        
+        // Try fallback to mock user for development
+        const storedUser = localStorage.getItem('user');
+        if (storedUser && process.env.NODE_ENV === 'development') {
           try {
             const userData = JSON.parse(storedUser);
+            console.log('Using fallback mock user:', userData);
             setUser(userData);
-            
-            // If Redux dispatch is available, update Redux too
-            if (dispatch) {
-              dispatch(setReduxUser(userData));
-            }
-            
-            // Update memory store as well for the dev panel
-            setUserInMemory(userData);
-            
-            console.log('Restored user session:', userData);
-          } catch (parseErr) {
-            console.error('Error parsing stored user:', parseErr);
+          } catch (parseError) {
+            console.error('Failed to parse stored user data');
             logout();
           }
         } else {
-          // Try memory store as last resort (for dev panel)
-          const memoryUser = getUserFromMemory();
-          if (memoryUser) {
-            setUser(memoryUser);
-            
-            // If Redux dispatch is available, update Redux too
-            if (dispatch) {
-              dispatch(setReduxUser(memoryUser));
-            }
-          } else {
-            // No valid session
-            console.log('No valid session found');
-            setUser(null);
-          }
+          setError('Authentication failed');
+          logout();
         }
-      } catch (error) {
-        console.error('Error checking auth status:', error);
-        setUser(null);
       } finally {
         setLoading(false);
       }
     };
     
     checkAuthStatus();
-  }, [dispatch, reduxUser]);
+  }, []);
   
-  // Login function that works with both regular auth and dev login panel
-  const login = async (username: string, password: string): Promise<{success: boolean, user: any | null}> => {
+  // Login function
+  const login = async (username: string, password: string): Promise<{success: boolean, user: User | null, error?: string}> => {
+    setLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
+      // Attempt real API login
+      const response = await apiService.post('/api/auth/login', { 
+        username, 
+        password 
+      });
       
-      // Attempt to login with the API service first
-      try {
-        const response = await apiService.post('/api/auth/login', { username, password });
-        const userData = response.data.user;
-        const token = response.data.token;
+      if (response.data?.user && response.data?.token) {
+        const { user: userData, token } = response.data;
         
-        // Store the token and user data
-        if (token) {
-          localStorage.setItem('token', token);
-          localStorage.setItem('login_timestamp', Date.now().toString());
-          apiService.setAuthToken(token);
-          
-          // Update memory store for dev panel
-          setTokenInMemory(token);
+        // Store token
+        localStorage.setItem('token', token);
+        localStorage.setItem('tokenTimestamp', Date.now().toString());
+        apiService.setAuthToken(token);
+        
+        // Format user data
+        const formattedUser: User = {
+          id: userData.id,
+          email: userData.email,
+          username: userData.username || username,
+          firstName: userData.firstName || '',
+          lastName: userData.lastName || '',
+          role: userData.role || 'user',
+          profileImageUrl: userData.profileImageUrl,
+          isActive: userData.isActive !== false,
+          createdAt: userData.createdAt,
+          updatedAt: userData.updatedAt,
+          trainerInfo: userData.trainerInfo,
+          clientInfo: userData.clientInfo
+        };
+        
+        setUser(formattedUser);
+        localStorage.setItem('user', JSON.stringify(formattedUser));
+        
+        // Update Redux if available
+        if (dispatch) {
+          dispatch(setReduxUser(formattedUser));
         }
         
-        if (userData) {
-          setUser(userData);
-          localStorage.setItem('user', JSON.stringify(userData));
-          
-          // Update Redux if available
-          if (dispatch) {
-            dispatch(setReduxUser(userData));
-          }
-          
-          // Update memory store for dev panel
-          setUserInMemory(userData);
-          
-          return { success: true, user: userData };
-        }
-      } catch (apiError) {
-        console.warn('API login failed, using fallback:', apiError);
-        // Fall back to mock login for development
-      }
-      
-      // For development/testing purposes, use pre-defined mock users
-      let userToUse;
-      
-      // Determine which mock user to use based on username
-      if (username.toLowerCase().includes('admin')) {
-        userToUse = mockAdminUser;
-      } else if (username.toLowerCase().includes('trainer')) {
-        userToUse = mockTrainerUser;
-      } else if (username.toLowerCase().includes('user')) {
-        userToUse = mockRegularUser;
+        console.log('Login successful:', formattedUser.username, formattedUser.role);
+        return { success: true, user: formattedUser };
       } else {
-        userToUse = mockUser; // Default to client
+        throw new Error('Invalid login response');
+      }
+    } catch (error: any) {
+      console.error('Login failed:', error);
+      
+      // Development fallback - create mock user based on username
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Using development mock login');
+        
+        let role: User['role'] = 'user';
+        if (username.toLowerCase().includes('admin')) role = 'admin';
+        else if (username.toLowerCase().includes('trainer')) role = 'trainer';
+        else if (username.toLowerCase().includes('client')) role = 'client';
+        
+        const mockUser: User = {
+          id: `mock-${Date.now()}`,
+          email: username.includes('@') ? username : `${username}@example.com`,
+          username: username.includes('@') ? username.split('@')[0] : username,
+          firstName: 'Mock',
+          lastName: 'User',
+          role,
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        const mockToken = `mock-token-${Date.now()}`;
+        localStorage.setItem('token', mockToken);
+        localStorage.setItem('user', JSON.stringify(mockUser));
+        localStorage.setItem('tokenTimestamp', Date.now().toString());
+        apiService.setAuthToken(mockToken);
+        
+        setUser(mockUser);
+        
+        if (dispatch) {
+          dispatch(setReduxUser(mockUser));
+        }
+        
+        console.log('Mock login successful:', mockUser.username, mockUser.role);
+        return { success: true, user: mockUser };
       }
       
-      // Set a custom email if provided
-      if (username.includes('@')) {
-        userToUse = { ...userToUse, email: username };
-      }
-      
-      // Use mock users for development
-      setUser(userToUse);
-      localStorage.setItem('user', JSON.stringify(userToUse));
-      
-      // Create a mock token
-      const mockToken = `mock-jwt-token-${Date.now()}`;
-      localStorage.setItem('token', mockToken);
-      localStorage.setItem('login_timestamp', Date.now().toString());
-      apiService.setAuthToken(mockToken);
-      
-      // Update Redux if available
-      if (dispatch) {
-        dispatch(setReduxUser(userToUse));
-      }
-      
-      // Update memory store for dev panel
-      setUserInMemory(userToUse);
-      setTokenInMemory(mockToken);
-      
-      console.log('Mock login successful with user:', userToUse);
-      return { success: true, user: userToUse };
-    } catch (error) {
-      console.error('Login error:', error);
-      return { success: false, user: null };
+      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
+      setError(errorMessage);
+      return { success: false, user: null, error: errorMessage };
     } finally {
       setLoading(false);
     }
   };
   
   // Logout function
-  const logout = () => {
+  const logout = useCallback(() => {
     try {
-      // Remove from local storage
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('login_timestamp');
-      
-      // Try session storage too
-      sessionStorage.removeItem('token');
-      sessionStorage.removeItem('user');
-      
-      // Clear API auth token
-      apiService.setAuthToken(null);
-      
-      // Update local state
-      setUser(null);
-      
-      // Update Redux if available
-      if (dispatch) {
-        dispatch(logoutRedux());
+      // Call logout API if authenticated
+      const token = localStorage.getItem('token');
+      if (token && token !== `mock-token-${Date.now()}`) {
+        apiService.post('/api/auth/logout').catch(console.error);
       }
-      
-      // Clear memory store
-      clearMemoryStore();
-      
-      console.log('User logged out successfully');
     } catch (error) {
-      console.error('Error during logout:', error);
-      // Fallback: clear everything we can
-      try {
-        localStorage.clear();
-        sessionStorage.clear();
-        setUser(null);
-        clearMemoryStore();
-      } catch (e) {
-        console.error('Critical error during logout cleanup');
-      }
+      console.error('Logout API error:', error);
     }
-  };
+    
+    // Clear all stored data
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('tokenTimestamp');
+    sessionStorage.clear();
+    
+    // Clear API auth
+    apiService.setAuthToken(null);
+    
+    // Update state
+    setUser(null);
+    setError(null);
+    
+    // Update Redux if available
+    if (dispatch) {
+      dispatch(logoutRedux());
+    }
+    
+    console.log('Logged out successfully');
+  }, [dispatch]);
   
   // Register function
-  const register = async (data: any): Promise<boolean> => {
+  const register = async (data: any): Promise<{success: boolean, user: User | null, error?: string}> => {
+    setLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
+      const response = await apiService.post('/api/auth/register', data);
       
-      // Try API registration first
-      try {
-        const response = await apiService.post('/api/auth/register', data);
-        const userData = response.data.user;
-        const token = response.data.token;
+      if (response.data?.user && response.data?.token) {
+        const { user: userData, token } = response.data;
         
-        if (token && userData) {
-          // Store in localStorage
-          localStorage.setItem('token', token);
-          localStorage.setItem('user', JSON.stringify(userData));
-          localStorage.setItem('login_timestamp', Date.now().toString());
-          
-          // Set in API service
-          apiService.setAuthToken(token);
-          
-          // Update state
-          setUser(userData);
-          
-          // Update Redux if available
-          if (dispatch) {
-            dispatch(setReduxUser(userData));
-          }
-          
-          return true;
+        // Store token
+        localStorage.setItem('token', token);
+        localStorage.setItem('tokenTimestamp', Date.now().toString());
+        apiService.setAuthToken(token);
+        
+        // Format user data
+        const formattedUser: User = {
+          id: userData.id,
+          email: userData.email,
+          username: userData.username || data.username,
+          firstName: userData.firstName || data.firstName || '',
+          lastName: userData.lastName || data.lastName || '',
+          role: userData.role || 'user',
+          profileImageUrl: userData.profileImageUrl,
+          isActive: userData.isActive !== false,
+          createdAt: userData.createdAt,
+          updatedAt: userData.updatedAt
+        };
+        
+        setUser(formattedUser);
+        localStorage.setItem('user', JSON.stringify(formattedUser));
+        
+        // Update Redux if available
+        if (dispatch) {
+          dispatch(setReduxUser(formattedUser));
         }
-      } catch (apiError) {
-        console.warn('API registration failed, using fallback:', apiError);
+        
+        console.log('Registration successful:', formattedUser.username);
+        return { success: true, user: formattedUser };
+      } else {
+        throw new Error('Invalid registration response');
       }
-      
-      // For development purposes
-      const newUser = {
-        id: Date.now().toString(),
-        ...data,
-        role: 'client'
-      };
-      
-      // Store in localStorage
-      localStorage.setItem('user', JSON.stringify(newUser));
-      
-      // Create a mock token
-      const mockToken = `mock-jwt-token-${Date.now()}`;
-      localStorage.setItem('token', mockToken);
-      localStorage.setItem('login_timestamp', Date.now().toString());
-      
-      // Set in API service
-      apiService.setAuthToken(mockToken);
-      
-      // Update state
-      setUser(newUser);
-      
-      // Update Redux if available
-      if (dispatch) {
-        dispatch(setReduxUser(newUser));
-      }
-      
-      // Update memory store for dev panel
-      setUserInMemory(newUser);
-      setTokenInMemory(mockToken);
-      
-      return true;
-    } catch (error) {
-      console.error('Registration error:', error);
-      return false;
+    } catch (error: any) {
+      console.error('Registration failed:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
+      setError(errorMessage);
+      return { success: false, user: null, error: errorMessage };
     } finally {
       setLoading(false);
     }
   };
   
   // Update user function
-  const updateUser = async (data: any): Promise<boolean> => {
+  const updateUser = async (data: any): Promise<{success: boolean, user: User | null, error?: string}> => {
+    if (!user) return { success: false, user: null, error: 'Not authenticated' };
+    
+    setLoading(true);
+    setError(null);
+    
     try {
-      if (!user) return false;
+      const response = await apiService.put('/api/auth/profile', data);
       
-      // Try API update first
-      try {
-        const response = await apiService.put('/api/users/profile', data);
-        const updatedUserData = response.data.user;
+      if (response.data?.user) {
+        const userData = response.data.user;
         
-        if (updatedUserData) {
-          const updatedUser = {
-            ...user,
-            ...updatedUserData
-          };
-          
-          // Update localStorage
-          localStorage.setItem('user', JSON.stringify(updatedUser));
-          
-          // Update state
-          setUser(updatedUser);
-          
-          // Update Redux if available
-          if (dispatch) {
-            dispatch(setReduxUser(updatedUser));
-          }
-          
-          // Update memory store for dev panel
-          setUserInMemory(updatedUser);
-          
-          return true;
+        const updatedUser: User = {
+          ...user,
+          ...userData,
+          updatedAt: new Date().toISOString()
+        };
+        
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        // Update Redux if available
+        if (dispatch) {
+          dispatch(setReduxUser(updatedUser));
         }
-      } catch (apiError) {
-        console.warn('API user update failed, using fallback:', apiError);
+        
+        console.log('User updated successfully');
+        return { success: true, user: updatedUser };
+      } else {
+        throw new Error('Invalid update response');
       }
-      
-      // For development purposes
-      const updatedUser = {
-        ...user,
-        ...data
-      };
-      
-      // Update localStorage
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      
-      // Update state
-      setUser(updatedUser);
-      
-      // Update Redux if available
-      if (dispatch) {
-        dispatch(setReduxUser(updatedUser));
-      }
-      
-      // Update memory store for dev panel
-      setUserInMemory(updatedUser);
-      
-      return true;
-    } catch (error) {
-      console.error('Update user error:', error);
-      return false;
+    } catch (error: any) {
+      console.error('User update failed:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Update failed';
+      setError(errorMessage);
+      return { success: false, user: null, error: errorMessage };
+    } finally {
+      setLoading(false);
     }
   };
   
+  // Context value
+  const contextValue: AuthContextType = {
+    user,
+    isAuthenticated: !!user,
+    loading,
+    error,
+    login,
+    logout,
+    register,
+    updateUser,
+    refreshToken,
+    checkPermission,
+    services,
+    authAxios: apiService
+  };
+  
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isAuthenticated: !!user,
-        loading,
-        login,
-        logout,
-        register,
-        updateUser,
-        services,
-        authAxios: apiService
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
 };
 
 // Custom hook for using the Auth Context
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
 export default AuthContext;

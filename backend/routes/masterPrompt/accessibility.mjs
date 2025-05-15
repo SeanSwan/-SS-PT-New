@@ -1,1 +1,313 @@
-/**\n * Accessibility Routes\n * API endpoints for accessibility testing and compliance\n */\n\nimport express from 'express';\nimport { accessibilityTesting } from '../../services/accessibility/AccessibilityTesting.mjs';\nimport { accessibilityAwareAuth } from '../../utils/monitoring/accessibilityAuth.mjs';\nimport { requirePermissionWithAccessibility } from '../../middleware/p0Monitoring.mjs';\nimport { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';\n\nconst router = express.Router();\n\n/**\n * @route   POST /api/master-prompt/accessibility/test-feature\n * @desc    Run accessibility test for specific feature\n * @access  Private\n */\nrouter.post('/test-feature', async (req, res) => {\n  try {\n    const { featureName, options = {} } = req.body;\n    \n    if (!featureName) {\n      return res.status(400).json({\n        success: false,\n        message: 'Feature name is required'\n      });\n    }\n    \n    const testResult = await accessibilityTesting.runAccessibilityTest(\n      featureName,\n      { ...options, userId: req.user?.id }\n    );\n    \n    // Track accessibility test\n    piiSafeLogger.trackAccessibilityUsage('feature_tested', req.user?.id, {\n      feature: featureName,\n      score: testResult.score,\n      status: testResult.status\n    });\n    \n    res.json({\n      success: true,\n      data: testResult,\n      timestamp: new Date().toISOString()\n    });\n  } catch (error) {\n    piiSafeLogger.error('Accessibility test failed', {\n      error: error.message,\n      feature: req.body.featureName\n    });\n    \n    res.status(500).json({\n      success: false,\n      message: 'Accessibility test failed',\n      error: error.message\n    });\n  }\n});\n\n/**\n * @route   GET /api/master-prompt/accessibility/report\n * @desc    Generate comprehensive accessibility report\n * @access  Private\n */\nrouter.get('/report', async (req, res) => {\n  try {\n    const { feature } = req.query;\n    \n    const report = await accessibilityTesting.generateAccessibilityReport(feature || null);\n    \n    // Track report generation\n    piiSafeLogger.trackAccessibilityUsage('report_generated', req.user?.id, {\n      feature: feature || 'all',\n      overallStatus: report.overallStatus,\n      averageScore: report.summary.averageScore\n    });\n    \n    res.json({\n      success: true,\n      data: report,\n      timestamp: new Date().toISOString()\n    });\n  } catch (error) {\n    piiSafeLogger.error('Accessibility report generation failed', {\n      error: error.message\n    });\n    \n    res.status(500).json({\n      success: false,\n      message: 'Failed to generate accessibility report',\n      error: error.message\n    });\n  }\n});\n\n/**\n * @route   POST /api/master-prompt/accessibility/validate-compliance\n * @desc    Validate accessibility compliance for CI/CD\n * @access  Private (Admin)\n */\nrouter.post('/validate-compliance',\n  requirePermissionWithAccessibility('system_monitoring'),\n  async (req, res) => {\n    try {\n      const { featureName, options = {} } = req.body;\n      \n      if (!featureName) {\n        return res.status(400).json({\n          success: false,\n          message: 'Feature name is required for compliance validation'\n        });\n      }\n      \n      const compliance = await accessibilityTesting.validateAccessibilityCompliance(\n        featureName,\n        { ...options, userId: req.user.id }\n      );\n      \n      res.json({\n        success: true,\n        data: compliance,\n        timestamp: new Date().toISOString()\n      });\n    } catch (error) {\n      piiSafeLogger.error('Accessibility compliance validation failed', {\n        error: error.message,\n        feature: req.body.featureName\n      });\n      \n      res.status(500).json({\n        success: false,\n        message: 'Compliance validation failed',\n        error: error.message\n      });\n    }\n  }\n);\n\n/**\n * @route   GET /api/master-prompt/accessibility/test-config\n * @desc    Get accessibility testing configuration\n * @access  Private\n */\nrouter.get('/test-config', async (req, res) => {\n  try {\n    const config = {\n      cypressConfig: accessibilityTesting.generateCypressA11yConfig(),\n      wcagLevel: 'AA',\n      rules: Object.keys(accessibilityTesting.accessibilityRules),\n      features: Object.keys(accessibilityTesting.aiFeatureRequirements),\n      complianceMatrix: accessibilityTesting.generateComplianceMatrix()\n    };\n    \n    res.json({\n      success: true,\n      data: config,\n      timestamp: new Date().toISOString()\n    });\n  } catch (error) {\n    piiSafeLogger.error('Failed to get accessibility test config', {\n      error: error.message\n    });\n    \n    res.status(500).json({\n      success: false,\n      message: 'Failed to retrieve accessibility configuration',\n      error: error.message\n    });\n  }\n});\n\n/**\n * @route   POST /api/master-prompt/accessibility/save-config\n * @desc    Save accessibility test configuration files\n * @access  Private (Admin)\n */\nrouter.post('/save-config',\n  requirePermissionWithAccessibility('system_monitoring'),\n  async (req, res) => {\n    try {\n      const { outputDir = './accessibility-tests' } = req.body;\n      \n      const result = await accessibilityTesting.saveTestConfiguration(outputDir);\n      \n      piiSafeLogger.trackUserAction('accessibility_config_saved', req.user.id, {\n        outputDir,\n        filesGenerated: result.testFiles.length\n      });\n      \n      res.json({\n        success: true,\n        data: result,\n        timestamp: new Date().toISOString()\n      });\n    } catch (error) {\n      piiSafeLogger.error('Failed to save accessibility config', {\n        error: error.message,\n        userId: req.user?.id\n      });\n      \n      res.status(500).json({\n        success: false,\n        message: 'Failed to save accessibility configuration',\n        error: error.message\n      });\n    }\n  }\n);\n\n/**\n * @route   GET /api/master-prompt/accessibility/user-permissions\n * @desc    Get user permissions with accessibility context\n * @access  Private\n */\nrouter.get('/user-permissions', async (req, res) => {\n  try {\n    const userRole = req.user?.role || 'user';\n    const permissions = accessibilityAwareAuth.getUserPermissions(userRole);\n    const navigation = accessibilityAwareAuth.generateAccessibleNavigation(\n      userRole,\n      req.user?.accessibilityPreferences || {}\n    );\n    \n    res.json({\n      success: true,\n      data: {\n        role: userRole,\n        permissions,\n        navigation,\n        accessibilitySupport: true\n      },\n      timestamp: new Date().toISOString()\n    });\n  } catch (error) {\n    piiSafeLogger.error('Failed to get user permissions', {\n      error: error.message,\n      userId: req.user?.id\n    });\n    \n    res.status(500).json({\n      success: false,\n      message: 'Failed to retrieve user permissions',\n      error: error.message\n    });\n  }\n});\n\n/**\n * @route   POST /api/master-prompt/accessibility/check-permission\n * @desc    Check specific permission with accessibility context\n * @access  Private\n */\nrouter.post('/check-permission', async (req, res) => {\n  try {\n    const { feature } = req.body;\n    \n    if (!feature) {\n      return res.status(400).json({\n        success: false,\n        message: 'Feature parameter is required'\n      });\n    }\n    \n    const userRole = req.user?.role || 'user';\n    const hasPermission = accessibilityAwareAuth.checkPermission(\n      feature,\n      userRole,\n      { userId: req.user?.id, accessibility: req.user?.accessibilityPreferences }\n    );\n    \n    if (!hasPermission) {\n      const error = accessibilityAwareAuth.generateAccessibilityError(\n        feature,\n        {\n          userId: req.user?.id,\n          userRole,\n          preferredLanguage: req.user?.preferredLanguage,\n          accessibilityPreferences: req.user?.accessibilityPreferences\n        }\n      );\n      \n      return res.status(403).json({\n        success: false,\n        message: 'Permission denied',\n        data: error\n      });\n    }\n    \n    res.json({\n      success: true,\n      data: {\n        hasPermission: true,\n        feature,\n        role: userRole\n      },\n      timestamp: new Date().toISOString()\n    });\n  } catch (error) {\n    piiSafeLogger.error('Permission check failed', {\n      error: error.message,\n      userId: req.user?.id\n    });\n    \n    res.status(500).json({\n      success: false,\n      message: 'Permission check failed',\n      error: error.message\n    });\n  }\n});\n\nexport default router;
+/**
+ * Accessibility Routes
+ * API endpoints for accessibility testing and compliance
+ */
+
+import express from 'express';
+import { accessibilityTesting } from '../../services/accessibility/AccessibilityTesting.mjs';
+import { accessibilityAwareAuth } from '../../utils/monitoring/accessibilityAuth.mjs';
+import { requirePermissionWithAccessibility } from '../../middleware/p0Monitoring.mjs';
+import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
+
+const router = express.Router();
+
+/**
+ * @route   POST /api/master-prompt/accessibility/test-feature
+ * @desc    Run accessibility test for specific feature
+ * @access  Private
+ */
+router.post('/test-feature', async (req, res) => {
+  try {
+    const { featureName, options = {} } = req.body;
+    
+    if (!featureName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Feature name is required'
+      });
+    }
+    
+    const testResult = await accessibilityTesting.runAccessibilityTest(
+      featureName,
+      { ...options, userId: req.user?.id }
+    );
+    
+    // Track accessibility test
+    piiSafeLogger.trackAccessibilityUsage('feature_tested', req.user?.id, {
+      feature: featureName,
+      score: testResult.score,
+      status: testResult.status
+    });
+    
+    res.json({
+      success: true,
+      data: testResult,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    piiSafeLogger.error('Accessibility test failed', {
+      error: error.message,
+      feature: req.body.featureName
+    });
+    
+    res.status(500).json({
+      success: false,
+      message: 'Accessibility test failed',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/master-prompt/accessibility/report
+ * @desc    Generate comprehensive accessibility report
+ * @access  Private
+ */
+router.get('/report', async (req, res) => {
+  try {
+    const { feature } = req.query;
+    
+    const report = await accessibilityTesting.generateAccessibilityReport(feature || null);
+    
+    // Track report generation
+    piiSafeLogger.trackAccessibilityUsage('report_generated', req.user?.id, {
+      feature: feature || 'all',
+      overallStatus: report.overallStatus,
+      averageScore: report.summary.averageScore
+    });
+    
+    res.json({
+      success: true,
+      data: report,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    piiSafeLogger.error('Accessibility report generation failed', {
+      error: error.message
+    });
+    
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate accessibility report',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/master-prompt/accessibility/validate-compliance
+ * @desc    Validate accessibility compliance for CI/CD
+ * @access  Private (Admin)
+ */
+router.post('/validate-compliance',
+  requirePermissionWithAccessibility('system_monitoring'),
+  async (req, res) => {
+    try {
+      const { featureName, options = {} } = req.body;
+      
+      if (!featureName) {
+        return res.status(400).json({
+          success: false,
+          message: 'Feature name is required for compliance validation'
+        });
+      }
+      
+      const compliance = await accessibilityTesting.validateAccessibilityCompliance(
+        featureName,
+        { ...options, userId: req.user.id }
+      );
+      
+      res.json({
+        success: true,
+        data: compliance,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      piiSafeLogger.error('Accessibility compliance validation failed', {
+        error: error.message,
+        feature: req.body.featureName
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Compliance validation failed',
+        error: error.message
+      });
+    }
+  }
+);
+
+/**
+ * @route   GET /api/master-prompt/accessibility/test-config
+ * @desc    Get accessibility testing configuration
+ * @access  Private
+ */
+router.get('/test-config', async (req, res) => {
+  try {
+    const config = {
+      cypressConfig: accessibilityTesting.generateCypressA11yConfig(),
+      wcagLevel: 'AA',
+      rules: Object.keys(accessibilityTesting.accessibilityRules),
+      features: Object.keys(accessibilityTesting.aiFeatureRequirements),
+      complianceMatrix: accessibilityTesting.generateComplianceMatrix()
+    };
+    
+    res.json({
+      success: true,
+      data: config,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    piiSafeLogger.error('Failed to get accessibility test config', {
+      error: error.message
+    });
+    
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve accessibility configuration',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/master-prompt/accessibility/save-config
+ * @desc    Save accessibility test configuration files
+ * @access  Private (Admin)
+ */
+router.post('/save-config',
+  requirePermissionWithAccessibility('system_monitoring'),
+  async (req, res) => {
+    try {
+      const { outputDir = './accessibility-tests' } = req.body;
+      
+      const result = await accessibilityTesting.saveTestConfiguration(outputDir);
+      
+      piiSafeLogger.trackUserAction('accessibility_config_saved', req.user.id, {
+        outputDir,
+        filesGenerated: result.testFiles.length
+      });
+      
+      res.json({
+        success: true,
+        data: result,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      piiSafeLogger.error('Failed to save accessibility config', {
+        error: error.message,
+        userId: req.user?.id
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to save accessibility configuration',
+        error: error.message
+      });
+    }
+  }
+);
+
+/**
+ * @route   GET /api/master-prompt/accessibility/user-permissions
+ * @desc    Get user permissions with accessibility context
+ * @access  Private
+ */
+router.get('/user-permissions', async (req, res) => {
+  try {
+    const userRole = req.user?.role || 'user';
+    const permissions = accessibilityAwareAuth.getUserPermissions(userRole);
+    const navigation = accessibilityAwareAuth.generateAccessibleNavigation(
+      userRole,
+      req.user?.accessibilityPreferences || {}
+    );
+    
+    res.json({
+      success: true,
+      data: {
+        role: userRole,
+        permissions,
+        navigation,
+        accessibilitySupport: true
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    piiSafeLogger.error('Failed to get user permissions', {
+      error: error.message,
+      userId: req.user?.id
+    });
+    
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve user permissions',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/master-prompt/accessibility/check-permission
+ * @desc    Check specific permission with accessibility context
+ * @access  Private
+ */
+router.post('/check-permission', async (req, res) => {
+  try {
+    const { feature } = req.body;
+    
+    if (!feature) {
+      return res.status(400).json({
+        success: false,
+        message: 'Feature parameter is required'
+      });
+    }
+    
+    const userRole = req.user?.role || 'user';
+    const hasPermission = accessibilityAwareAuth.checkPermission(
+      feature,
+      userRole,
+      { userId: req.user?.id, accessibility: req.user?.accessibilityPreferences }
+    );
+    
+    if (!hasPermission) {
+      const error = accessibilityAwareAuth.generateAccessibilityError(
+        feature,
+        {
+          userId: req.user?.id,
+          userRole,
+          preferredLanguage: req.user?.preferredLanguage,
+          accessibilityPreferences: req.user?.accessibilityPreferences
+        }
+      );
+      
+      return res.status(403).json({
+        success: false,
+        message: 'Permission denied',
+        data: error
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        hasPermission: true,
+        feature,
+        role: userRole
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    piiSafeLogger.error('Permission check failed', {
+      error: error.message,
+      userId: req.user?.id
+    });
+    
+    res.status(500).json({
+      success: false,
+      message: 'Permission check failed',
+      error: error.message
+    });
+  }
+});
+
+export default router;

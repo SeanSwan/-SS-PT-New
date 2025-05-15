@@ -69,7 +69,7 @@ User.init(
     role: {
       type: DataTypes.ENUM('user', 'client', 'trainer', 'admin'),
       allowNull: false,
-      defaultValue: 'client',
+      defaultValue: 'user',
     },
     
     // ========== CLIENT-SPECIFIC FIELDS ==========

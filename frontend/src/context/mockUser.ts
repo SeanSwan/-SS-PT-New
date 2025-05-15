@@ -71,8 +71,8 @@ export const mockTrainerUser = {
 export const mockRegularUser = {
   id: 'mock-user-123',
   email: 'user@swanstudios.dev',
-  username: 'regularuser',
-  firstName: 'Jane',
+  username: 'bob',
+  firstName: 'Bob',
   lastName: 'User',
   role: 'user',
   profileImage: null,

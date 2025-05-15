@@ -5,7 +5,9 @@ import GlowButton from '../Button/glowButton';
 import { FaArrowUp } from 'react-icons/fa';
 
 // Styled container for positioning the scroll button
-const ScrollButtonContainer = styled.div<{ visible: boolean }>`
+const ScrollButtonContainer = styled.div.withConfig({
+  shouldForwardProp: (prop) => prop !== 'visible',
+})<{ visible: boolean }>`
   position: fixed;
   bottom: 30px;
   right: 30px;

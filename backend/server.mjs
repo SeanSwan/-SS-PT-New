@@ -86,6 +86,7 @@ import clientProgressRoutes from './routes/clientProgressRoutes.mjs';
 import exerciseRoutes from './routes/exerciseRoutes.mjs';
 import gamificationRoutes from './routes/gamificationRoutes.mjs';
 import socialRoutes from './routes/social/index.mjs';
+import roleRoutes from './routes/roleRoutes.mjs';
 import logger from './utils/logger.mjs';
 import { requestLogger, dbHealthCheck } from './middleware/debugMiddleware.mjs';
 import sequelize from './database.mjs';
@@ -514,6 +515,8 @@ app.use('/api/exercises', exerciseRoutes);
 app.use('/api/gamification', gamificationRoutes);
 // Add social features routes
 app.use('/api/social', socialRoutes);
+// Add role management routes
+app.use('/api/roles', roleRoutes);
 // Add workout routes
 app.use('/api/workout', workoutRoutes);
 // Add development routes (only enabled in development mode)

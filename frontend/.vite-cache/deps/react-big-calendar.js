@@ -54,10 +54,10 @@ import {
   addClass,
   removeClass
 } from "./chunk-24ZBLMRT.js";
-import "./chunk-VPI4FCPN.js";
 import {
   _objectWithoutPropertiesLoose
 } from "./chunk-AVUONKA5.js";
+import "./chunk-VPI4FCPN.js";
 import {
   require_prop_types
 } from "./chunk-MVDVI5GP.js";

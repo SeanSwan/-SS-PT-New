@@ -193,9 +193,9 @@ const TrainerDashboardLayout = lazyLoadWithErrorHandling(
   'Trainer Dashboard Layout'
 );
 
-// User Dashboard
+// User Dashboard - Instagram-style social dashboard
 const UserDashboard = lazyLoadWithErrorHandling(
-  () => import('../components/DashBoard/Pages/user-dashboard/user-dashboard'),
+  () => import('../components/UserDashboard'),
   'User Dashboard'
 );
 
@@ -377,15 +377,15 @@ const MainRoutes: RouteObject = {
       )
     },
     
-    // User Dashboard Route
+    // User Dashboard Route - Open to all authenticated users
     {
       path: 'user-dashboard',
       element: (
-        <DashboardWrapper>
+        <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
             <UserDashboard />
           </Suspense>
-        </DashboardWrapper>
+        </ProtectedRoute>
       )
     },
     

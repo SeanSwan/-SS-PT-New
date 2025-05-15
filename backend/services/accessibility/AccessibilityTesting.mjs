@@ -1,1 +1,732 @@
-import { execSync } from 'child_process';\nimport fs from 'fs/promises';\nimport path from 'path';\nimport { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';\nimport { fileURLToPath } from 'url';\n\nconst __filename = fileURLToPath(import.meta.url);\nconst __dirname = path.dirname(__filename);\n\n/**\n * P1: Accessibility Testing Integration\n * Comprehensive accessibility testing with WCAG 2.1 AA compliance\n * Aligned with Master Prompt v26 Accessibility Champion principles\n */\n\nclass AccessibilityTesting {\n  constructor() {\n    this.wcagLevels = ['A', 'AA', 'AAA'];\n    this.currentLevel = 'AA'; // WCAG 2.1 AA compliance target\n    \n    // Core accessibility rules to test\n    this.accessibilityRules = {\n      'color-contrast': {\n        enabled: true,\n        level: 'AA',\n        impact: 'serious',\n        description: 'Ensures color contrast meets WCAG guidelines'\n      },\n      'keyboard-navigation': {\n        enabled: true,\n        level: 'A',\n        impact: 'serious',\n        description: 'Ensures all interactive elements are keyboard accessible'\n      },\n      'aria-labels': {\n        enabled: true,\n        level: 'A',\n        impact: 'serious',\n        description: 'Ensures proper ARIA labeling for screen readers'\n      },\n      'heading-order': {\n        enabled: true,\n        level: 'A',\n        impact: 'moderate',\n        description: 'Ensures proper heading hierarchy'\n      },\n      'image-alt': {\n        enabled: true,\n        level: 'A',\n        impact: 'critical',\n        description: 'Ensures all images have descriptive alt text'\n      },\n      'focus-order': {\n        enabled: true,\n        level: 'A',\n        impact: 'serious',\n        description: 'Ensures logical focus order for keyboard navigation'\n      },\n      'language': {\n        enabled: true,\n        level: 'A',\n        impact: 'serious',\n        description: 'Ensures page language is properly declared'\n      },\n      'link-purpose': {\n        enabled: true,\n        level: 'AA',\n        impact: 'serious',\n        description: 'Ensures link purposes are clear from link text'\n      },\n      'page-has-h1': {\n        enabled: true,\n        level: 'A',\n        impact: 'moderate',\n        description: 'Ensures page has exactly one h1 element'\n      },\n      'skip-link': {\n        enabled: true,\n        level: 'A',\n        impact: 'moderate',\n        description: 'Ensures skip navigation links are present'\n      }\n    };\n    \n    // AI feature accessibility requirements\n    this.aiFeatureRequirements = {\n      'workout-generator': {\n        screenReader: true,\n        keyboardNavigation: true,\n        alternativeText: true,\n        cognitiveLoad: 'low',\n        userControl: true\n      },\n      'progress-analysis': {\n        chartAccessibility: true,\n        dataTable: true,\n        voiceAnnouncements: true,\n        summaryText: true\n      },\n      'nutrition-planning': {\n        formAccessibility: true,\n        errorHandling: true,\n        progressIndicators: true,\n        simplifiedLanguage: true\n      },\n      'exercise-alternatives': {\n        multiModalOutput: true,\n        adaptiveInterface: true,\n        personalizedOptions: true,\n        clearInstructions: true\n      }\n    };\n    \n    this.testResults = new Map();\n  }\n\n  /**\n   * Configure accessibility testing for frontend\n   */\n  generateCypressA11yConfig() {\n    return {\n      setup: () => {\n        // Cypress configuration for accessibility testing\n        const cypressConfig = `\n// cypress/support/accessibility.js\nimport 'cypress-axe';\n\nCypress.Commands.add('setupAccessibilityTest', () => {\n  cy.injectAxe();\n  cy.configureAxe({\n    rules: ${JSON.stringify(this.accessibilityRules, null, 4)},\n    tags: ['wcag2a', 'wcag2aa', 'wcag21aa']\n  });\n});\n\nCypress.Commands.add('checkAccessibility', (context, options, callback) => {\n  cy.checkA11y(context, options, callback, true);\n});\n\nCypress.Commands.add('checkAIFeatureAccessibility', (featureName) => {\n  const requirements = ${JSON.stringify(this.aiFeatureRequirements)}[featureName];\n  \n  if (!requirements) {\n    throw new Error(\\`Unknown AI feature: \\${featureName}\\`);\n  }\n  \n  // Test specific AI feature requirements\n  if (requirements.screenReader) {\n    cy.get('[data-testid=\"\\${featureName}\"]').should('have.attr', 'aria-label');\n  }\n  \n  if (requirements.keyboardNavigation) {\n    cy.get('[data-testid=\"\\${featureName}\"] [tabindex]').should('exist');\n  }\n  \n  if (requirements.alternativeText) {\n    cy.get('[data-testid=\"\\${featureName}\"] img').each(($img) => {\n      cy.wrap($img).should('have.attr', 'alt');\n    });\n  }\n  \n  if (requirements.chartAccessibility) {\n    cy.get('[data-testid=\"\\${featureName}\"] [role=\"img\"][aria-label]').should('exist');\n  }\n  \n  // Check for WCAG compliance\n  cy.checkA11y(\\`[data-testid=\"\\${featureName}\"]\\`, null, (violations) => {\n    if (violations.length > 0) {\n      throw new Error(\\`\\${featureName} has \\${violations.length} accessibility violations\\`);\n    }\n  });\n});\n\nCypress.Commands.add('testKeyboardNavigation', (selector) => {\n  cy.get(selector).focus();\n  cy.focused().should('be.visible');\n  cy.focused().type('{enter}');\n});\n\nCypress.Commands.add('testScreenReaderContent', (selector) => {\n  cy.get(selector).should(($el) => {\n    const ariaLabel = $el.attr('aria-label');\n    const ariaDescribedBy = $el.attr('aria-describedby');\n    const textContent = $el.text();\n    \n    expect(ariaLabel || ariaDescribedBy || textContent).to.exist;\n  });\n});\n`;\n        return cypressConfig;\n      },\n      \n      testSuite: [\n        'workout-generator',\n        'progress-analysis',\n        'nutrition-planning',\n        'exercise-alternatives'\n      ].map(feature => ({\n        test: `${feature} accessibility`,\n        spec: this.generateFeatureTestSpec(feature)\n      }))\n    };\n  }\n\n  /**\n   * Generate test spec for specific AI feature\n   * @param {string} featureName - Name of the AI feature\n   */\n  generateFeatureTestSpec(featureName) {\n    const requirements = this.aiFeatureRequirements[featureName];\n    if (!requirements) {\n      throw new Error(`Unknown AI feature: ${featureName}`);\n    }\n\n    return `\n// cypress/e2e/accessibility/${featureName}-a11y.cy.js\ndescribe('${featureName} Accessibility Tests', () => {\n  beforeEach(() => {\n    cy.visit('/ai-features/${featureName}');\n    cy.setupAccessibilityTest();\n  });\n\n  it('should be fully accessible', () => {\n    cy.checkAIFeatureAccessibility('${featureName}');\n  });\n\n  it('should support keyboard navigation', () => {\n    cy.testKeyboardNavigation('[data-testid=\"${featureName}\"]');\n  });\n\n  it('should provide screen reader content', () => {\n    cy.testScreenReaderContent('[data-testid=\"${featureName}\"]');\n  });\n\n  ${requirements.chartAccessibility ? `\n  it('should make charts accessible', () => {\n    cy.get('[data-testid=\"${featureName}\"] [role=\"img\"]')\n      .should('have.attr', 'aria-label')\n      .should('have.attr', 'tabindex', '0');\n  });\n  ` : ''}\n\n  ${requirements.formAccessibility ? `\n  it('should have accessible forms', () => {\n    cy.get('[data-testid=\"${featureName}\"] form label')\n      .should('have.attr', 'for');\n    cy.get('[data-testid=\"${featureName}\"] form input')\n      .should('have.attr', 'id');\n  });\n  ` : ''}\n\n  it('should have no accessibility violations', () => {\n    cy.checkA11y('[data-testid=\"${featureName}\"]', {\n      includedImpacts: ['critical', 'serious']\n    });\n  });\n\n  it('should support high contrast mode', () => {\n    cy.get('body').invoke('addClass', 'high-contrast');\n    cy.checkA11y('[data-testid=\"${featureName}\"]');\n  });\n\n  it('should support reduced motion', () => {\n    cy.get('body').invoke('addClass', 'reduced-motion');\n    cy.checkA11y('[data-testid=\"${featureName}\"]');\n  });\n});\n`;\n  }\n\n  /**\n   * Run accessibility tests for specific feature\n   * @param {string} featureName - Name of the feature to test\n   * @param {Object} options - Test options\n   */\n  async runAccessibilityTest(featureName, options = {}) {\n    try {\n      piiSafeLogger.trackAccessibilityUsage('test_started', options.userId, {\n        feature: featureName,\n        testType: 'accessibility_compliance'\n      });\n\n      const testResult = {\n        feature: featureName,\n        timestamp: new Date().toISOString(),\n        status: 'running',\n        violations: [],\n        passes: [],\n        warnings: [],\n        incomplete: [],\n        wcagLevel: this.currentLevel,\n        score: 0\n      };\n\n      // Simulate accessibility testing (in a real implementation, this would run actual tests)\n      const violations = await this.simulateAccessibilityTest(featureName, options);\n      \n      testResult.violations = violations;\n      testResult.status = violations.length === 0 ? 'passed' : 'failed';\n      testResult.score = this.calculateAccessibilityScore(violations);\n\n      this.testResults.set(featureName, testResult);\n\n      // Log test completion\n      piiSafeLogger.trackAccessibilityUsage('test_completed', options.userId, {\n        feature: featureName,\n        status: testResult.status,\n        score: testResult.score,\n        violationCount: violations.length\n      });\n\n      return testResult;\n    } catch (error) {\n      piiSafeLogger.error('Accessibility test failed', {\n        error: error.message,\n        feature: featureName\n      });\n      \n      return {\n        feature: featureName,\n        status: 'error',\n        error: error.message,\n        timestamp: new Date().toISOString()\n      };\n    }\n  }\n\n  /**\n   * Simulate accessibility testing (placeholder for actual implementation)\n   * @param {string} featureName - Feature to test\n   * @param {Object} options - Test options\n   */\n  async simulateAccessibilityTest(featureName, options) {\n    const violations = [];\n    const requirements = this.aiFeatureRequirements[featureName];\n\n    if (!requirements) {\n      violations.push({\n        id: 'unknown-feature',\n        impact: 'critical',\n        description: `Unknown feature: ${featureName}`,\n        help: 'Feature must be defined in accessibility requirements'\n      });\n      return violations;\n    }\n\n    // Simulate various accessibility checks\n    const checks = [\n      {\n        rule: 'color-contrast',\n        required: true,\n        check: () => true // Placeholder\n      },\n      {\n        rule: 'keyboard-navigation',\n        required: requirements.keyboardNavigation,\n        check: () => true // Placeholder\n      },\n      {\n        rule: 'screen-reader',\n        required: requirements.screenReader,\n        check: () => true // Placeholder\n      },\n      {\n        rule: 'aria-labels',\n        required: true,\n        check: () => true // Placeholder\n      }\n    ];\n\n    for (const check of checks) {\n      if (check.required && !check.check()) {\n        violations.push({\n          id: check.rule,\n          impact: this.accessibilityRules[check.rule]?.impact || 'serious',\n          description: `Failed ${check.rule} check for ${featureName}`,\n          help: this.accessibilityRules[check.rule]?.description || 'Accessibility requirement not met',\n          nodes: [{\n            target: `[data-testid=\"${featureName}\"]`,\n            html: '<placeholder>',\n            failureSummary: `${check.rule} validation failed`\n          }]\n        });\n      }\n    }\n\n    return violations;\n  }\n\n  /**\n   * Calculate accessibility score based on violations\n   * @param {Array} violations - Array of accessibility violations\n   */\n  calculateAccessibilityScore(violations) {\n    if (violations.length === 0) return 100;\n\n    let score = 100;\n    const impactScores = {\n      'critical': -25,\n      'serious': -15,\n      'moderate': -10,\n      'minor': -5\n    };\n\n    for (const violation of violations) {\n      score += impactScores[violation.impact] || -10;\n    }\n\n    return Math.max(0, score);\n  }\n\n  /**\n   * Generate comprehensive accessibility report\n   * @param {string} featureName - Feature to report on (optional)\n   */\n  async generateAccessibilityReport(featureName = null) {\n    try {\n      const report = {\n        timestamp: new Date().toISOString(),\n        wcagLevel: this.currentLevel,\n        overallStatus: 'unknown',\n        summary: {\n          totalFeatures: 0,\n          passedFeatures: 0,\n          failedFeatures: 0,\n          averageScore: 0\n        },\n        features: {},\n        recommendations: [],\n        complianceMatrix: this.generateComplianceMatrix()\n      };\n\n      const featuresToReport = featureName \n        ? [featureName] \n        : Object.keys(this.aiFeatureRequirements);\n\n      for (const feature of featuresToReport) {\n        const testResult = this.testResults.get(feature) || \n          await this.runAccessibilityTest(feature);\n        \n        report.features[feature] = testResult;\n        report.summary.totalFeatures++;\n        \n        if (testResult.status === 'passed') {\n          report.summary.passedFeatures++;\n        } else if (testResult.status === 'failed') {\n          report.summary.failedFeatures++;\n        }\n        \n        report.summary.averageScore += testResult.score || 0;\n      }\n\n      if (report.summary.totalFeatures > 0) {\n        report.summary.averageScore = Math.round(\n          report.summary.averageScore / report.summary.totalFeatures\n        );\n      }\n\n      // Determine overall status\n      if (report.summary.passedFeatures === report.summary.totalFeatures) {\n        report.overallStatus = 'compliant';\n      } else if (report.summary.averageScore >= 80) {\n        report.overallStatus = 'mostly_compliant';\n      } else {\n        report.overallStatus = 'non_compliant';\n      }\n\n      // Generate recommendations\n      report.recommendations = this.generateRecommendations(report);\n\n      // Log report generation\n      piiSafeLogger.trackAccessibilityUsage('report_generated', 'system', {\n        featureCount: report.summary.totalFeatures,\n        averageScore: report.summary.averageScore,\n        overallStatus: report.overallStatus\n      });\n\n      return report;\n    } catch (error) {\n      piiSafeLogger.error('Failed to generate accessibility report', {\n        error: error.message,\n        featureName\n      });\n      throw error;\n    }\n  }\n\n  /**\n   * Generate compliance matrix for WCAG standards\n   */\n  generateComplianceMatrix() {\n    const matrix = {\n      level_a: {\n        required: 30,\n        implemented: 28,\n        percentage: 93\n      },\n      level_aa: {\n        required: 20,\n        implemented: 18,\n        percentage: 90\n      },\n      level_aaa: {\n        required: 28,\n        implemented: 15,\n        percentage: 54\n      }\n    };\n\n    matrix.overall = {\n      required: matrix.level_a.required + matrix.level_aa.required,\n      implemented: matrix.level_a.implemented + matrix.level_aa.implemented,\n      percentage: Math.round(\n        ((matrix.level_a.implemented + matrix.level_aa.implemented) / \n         (matrix.level_a.required + matrix.level_aa.required)) * 100\n      )\n    };\n\n    return matrix;\n  }\n\n  /**\n   * Generate recommendations based on test results\n   * @param {Object} report - Accessibility report\n   */\n  generateRecommendations(report) {\n    const recommendations = [];\n    \n    // Analyze common issues\n    const violationCounts = {};\n    for (const feature of Object.values(report.features)) {\n      if (feature.violations) {\n        for (const violation of feature.violations) {\n          violationCounts[violation.id] = (violationCounts[violation.id] || 0) + 1;\n        }\n      }\n    }\n\n    // Generate recommendations for most common issues\n    const sortedViolations = Object.entries(violationCounts)\n      .sort(([,a], [,b]) => b - a)\n      .slice(0, 5);\n\n    for (const [violationId, count] of sortedViolations) {\n      const rule = this.accessibilityRules[violationId];\n      if (rule) {\n        recommendations.push({\n          priority: rule.impact === 'critical' ? 'high' : \n                   rule.impact === 'serious' ? 'medium' : 'low',\n          issue: violationId,\n          description: rule.description,\n          affectedFeatures: count,\n          solution: this.getRecommendationForRule(violationId),\n          estimatedEffort: this.getEffortEstimate(violationId)\n        });\n      }\n    }\n\n    // Add general recommendations\n    if (report.summary.averageScore < 90) {\n      recommendations.push({\n        priority: 'high',\n        issue: 'overall_compliance',\n        description: 'Overall accessibility compliance needs improvement',\n        solution: 'Implement comprehensive accessibility testing in CI/CD pipeline',\n        estimatedEffort: 'Medium'\n      });\n    }\n\n    return recommendations;\n  }\n\n  /**\n   * Get recommendation for specific accessibility rule\n   * @param {string} ruleId - Rule identifier\n   */\n  getRecommendationForRule(ruleId) {\n    const recommendations = {\n      'color-contrast': 'Ensure all text has a contrast ratio of at least 4.5:1 (AA) or 7:1 (AAA)',\n      'keyboard-navigation': 'Add proper tabindex and keyboard event handlers to all interactive elements',\n      'aria-labels': 'Add descriptive aria-label or aria-labelledby attributes to all form controls and buttons',\n      'heading-order': 'Use proper heading hierarchy (h1 > h2 > h3, etc.) without skipping levels',\n      'image-alt': 'Add descriptive alt text to all informative images',\n      'focus-order': 'Ensure tab order follows logical page flow',\n      'language': 'Add lang attribute to html element and specify language for content',\n      'link-purpose': 'Make link purposes clear from link text alone or provide additional context',\n      'page-has-h1': 'Ensure each page has exactly one h1 element',\n      'skip-link': 'Add skip navigation links at the beginning of the page'\n    };\n\n    return recommendations[ruleId] || 'Review and fix accessibility issue according to WCAG guidelines';\n  }\n\n  /**\n   * Get effort estimate for fixing accessibility issue\n   * @param {string} ruleId - Rule identifier\n   */\n  getEffortEstimate(ruleId) {\n    const efforts = {\n      'color-contrast': 'Low',\n      'keyboard-navigation': 'Medium',\n      'aria-labels': 'Low',\n      'heading-order': 'Low',\n      'image-alt': 'Low',\n      'focus-order': 'Medium',\n      'language': 'Low',\n      'link-purpose': 'Low',\n      'page-has-h1': 'Low',\n      'skip-link': 'Low'\n    };\n\n    return efforts[ruleId] || 'Medium';\n  }\n\n  /**\n   * Save accessibility test configuration files\n   * @param {string} outputDir - Directory to save files\n   */\n  async saveTestConfiguration(outputDir) {\n    try {\n      await fs.mkdir(outputDir, { recursive: true });\n      \n      // Save Cypress configuration\n      const cypressConfig = this.generateCypressA11yConfig();\n      await fs.writeFile(\n        path.join(outputDir, 'cypress-a11y-config.js'),\n        cypressConfig.setup(),\n        'utf8'\n      );\n\n      // Save test specs\n      for (const testSpec of cypressConfig.testSuite) {\n        const fileName = `${testSpec.test.replace(/\\s+/g, '-').toLowerCase()}.spec.js`;\n        await fs.writeFile(\n          path.join(outputDir, fileName),\n          testSpec.spec,\n          'utf8'\n        );\n      }\n\n      piiSafeLogger.info('Accessibility test configuration saved', {\n        outputDir,\n        filesGenerated: cypressConfig.testSuite.length + 1\n      });\n\n      return {\n        success: true,\n        configFile: path.join(outputDir, 'cypress-a11y-config.js'),\n        testFiles: cypressConfig.testSuite.map(spec => \n          path.join(outputDir, `${spec.test.replace(/\\s+/g, '-').toLowerCase()}.spec.js`)\n        )\n      };\n    } catch (error) {\n      piiSafeLogger.error('Failed to save accessibility test configuration', {\n        error: error.message,\n        outputDir\n      });\n      throw error;\n    }\n  }\n\n  /**\n   * Validate accessibility compliance for CI/CD integration\n   * @param {string} featureName - Feature to validate\n   * @param {Object} options - Validation options\n   */\n  async validateAccessibilityCompliance(featureName, options = {}) {\n    try {\n      const testResult = await this.runAccessibilityTest(featureName, options);\n      const minScore = options.minScore || 85;\n      const maxViolations = options.maxViolations || 0;\n\n      const compliance = {\n        feature: featureName,\n        compliant: testResult.score >= minScore && testResult.violations.length <= maxViolations,\n        score: testResult.score,\n        violationCount: testResult.violations.length,\n        wcagLevel: this.currentLevel,\n        timestamp: new Date().toISOString()\n      };\n\n      // Log compliance check\n      piiSafeLogger.trackAccessibilityUsage('compliance_validated', options.userId, {\n        feature: featureName,\n        compliant: compliance.compliant,\n        score: compliance.score\n      });\n\n      return compliance;\n    } catch (error) {\n      piiSafeLogger.error('Accessibility compliance validation failed', {\n        error: error.message,\n        feature: featureName\n      });\n      \n      return {\n        feature: featureName,\n        compliant: false,\n        error: error.message,\n        timestamp: new Date().toISOString()\n      };\n    }\n  }\n\n  /**\n   * Get test results for a specific feature\n   * @param {string} featureName - Feature name\n   */\n  getTestResults(featureName) {\n    return this.testResults.get(featureName) || null;\n  }\n\n  /**\n   * Clear test results\n   */\n  clearTestResults() {\n    this.testResults.clear();\n    piiSafeLogger.info('Accessibility test results cleared');\n  }\n}\n\n// Singleton instance\nexport const accessibilityTesting = new AccessibilityTesting();\n\nexport default AccessibilityTesting;
+import { execSync } from 'child_process';
+import fs from 'fs/promises';
+import path from 'path';
+import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+/**
+ * P1: Accessibility Testing Integration
+ * Comprehensive accessibility testing with WCAG 2.1 AA compliance
+ * Aligned with Master Prompt v26 Accessibility Champion principles
+ */
+
+class AccessibilityTesting {
+  constructor() {
+    this.wcagLevels = ['A', 'AA', 'AAA'];
+    this.currentLevel = 'AA'; // WCAG 2.1 AA compliance target
+    
+    // Core accessibility rules to test
+    this.accessibilityRules = {
+      'color-contrast': {
+        enabled: true,
+        level: 'AA',
+        impact: 'serious',
+        description: 'Ensures color contrast meets WCAG guidelines'
+      },
+      'keyboard-navigation': {
+        enabled: true,
+        level: 'A',
+        impact: 'serious',
+        description: 'Ensures all interactive elements are keyboard accessible'
+      },
+      'aria-labels': {
+        enabled: true,
+        level: 'A',
+        impact: 'serious',
+        description: 'Ensures proper ARIA labeling for screen readers'
+      },
+      'heading-order': {
+        enabled: true,
+        level: 'A',
+        impact: 'moderate',
+        description: 'Ensures proper heading hierarchy'
+      },
+      'image-alt': {
+        enabled: true,
+        level: 'A',
+        impact: 'critical',
+        description: 'Ensures all images have descriptive alt text'
+      },
+      'focus-order': {
+        enabled: true,
+        level: 'A',
+        impact: 'serious',
+        description: 'Ensures logical focus order for keyboard navigation'
+      },
+      'language': {
+        enabled: true,
+        level: 'A',
+        impact: 'serious',
+        description: 'Ensures page language is properly declared'
+      },
+      'link-purpose': {
+        enabled: true,
+        level: 'AA',
+        impact: 'serious',
+        description: 'Ensures link purposes are clear from link text'
+      },
+      'page-has-h1': {
+        enabled: true,
+        level: 'A',
+        impact: 'moderate',
+        description: 'Ensures page has exactly one h1 element'
+      },
+      'skip-link': {
+        enabled: true,
+        level: 'A',
+        impact: 'moderate',
+        description: 'Ensures skip navigation links are present'
+      }
+    };
+    
+    // AI feature accessibility requirements
+    this.aiFeatureRequirements = {
+      'workout-generator': {
+        screenReader: true,
+        keyboardNavigation: true,
+        alternativeText: true,
+        cognitiveLoad: 'low',
+        userControl: true
+      },
+      'progress-analysis': {
+        chartAccessibility: true,
+        dataTable: true,
+        voiceAnnouncements: true,
+        summaryText: true
+      },
+      'nutrition-planning': {
+        formAccessibility: true,
+        errorHandling: true,
+        progressIndicators: true,
+        simplifiedLanguage: true
+      },
+      'exercise-alternatives': {
+        multiModalOutput: true,
+        adaptiveInterface: true,
+        personalizedOptions: true,
+        clearInstructions: true
+      }
+    };
+    
+    this.testResults = new Map();
+  }
+
+  /**
+   * Configure accessibility testing for frontend
+   */
+  generateCypressA11yConfig() {
+    return {
+      setup: () => {
+        // Generate Cypress configuration with proper string escaping
+        const rulesJson = JSON.stringify(this.accessibilityRules, null, 4);
+        const requirementsJson = JSON.stringify(this.aiFeatureRequirements);
+        
+        const cypressConfig = `
+// cypress/support/accessibility.js
+import 'cypress-axe';
+
+Cypress.Commands.add('setupAccessibilityTest', () => {
+  cy.injectAxe();
+  cy.configureAxe({
+    rules: ${rulesJson},
+    tags: ['wcag2a', 'wcag2aa', 'wcag21aa']
+  });
+});
+
+Cypress.Commands.add('checkAccessibility', (context, options, callback) => {
+  cy.checkA11y(context, options, callback, true);
+});
+
+Cypress.Commands.add('checkAIFeatureAccessibility', (featureName) => {
+  const requirements = ${requirementsJson}[featureName];
+  
+  if (!requirements) {
+    throw new Error(\`Unknown AI feature: \${featureName}\`);
+  }
+  
+  // Test specific AI feature requirements
+  if (requirements.screenReader) {
+    cy.get(\`[data-testid="\${featureName}"]\`).should('have.attr', 'aria-label');
+  }
+  
+  if (requirements.keyboardNavigation) {
+    cy.get(\`[data-testid="\${featureName}"] [tabindex]\`).should('exist');
+  }
+  
+  if (requirements.alternativeText) {
+    cy.get(\`[data-testid="\${featureName}"] img\`).each(($img) => {
+      cy.wrap($img).should('have.attr', 'alt');
+    });
+  }
+  
+  if (requirements.chartAccessibility) {
+    cy.get(\`[data-testid="\${featureName}"] [role="img"][aria-label]\`).should('exist');
+  }
+  
+  // Check for WCAG compliance
+  cy.checkA11y(\`[data-testid="\${featureName}"]\`, null, (violations) => {
+    if (violations.length > 0) {
+      throw new Error(\`\${featureName} has \${violations.length} accessibility violations\`);
+    }
+  });
+});
+
+Cypress.Commands.add('testKeyboardNavigation', (selector) => {
+  cy.get(selector).focus();
+  cy.focused().should('be.visible');
+  cy.focused().type('{enter}');
+});
+
+Cypress.Commands.add('testScreenReaderContent', (selector) => {
+  cy.get(selector).should(($el) => {
+    const ariaLabel = $el.attr('aria-label');
+    const ariaDescribedBy = $el.attr('aria-describedby');
+    const textContent = $el.text();
+    
+    expect(ariaLabel || ariaDescribedBy || textContent).to.exist;
+  });
+});
+`;
+        return cypressConfig;
+      },
+      
+      testSuite: [
+        'workout-generator',
+        'progress-analysis',
+        'nutrition-planning',
+        'exercise-alternatives'
+      ].map(feature => ({
+        test: `${feature} accessibility`,
+        spec: this.generateFeatureTestSpec(feature)
+      }))
+    };
+  }
+
+  /**
+   * Generate test spec for specific AI feature
+   * @param {string} featureName - Name of the AI feature
+   */
+  generateFeatureTestSpec(featureName) {
+    const requirements = this.aiFeatureRequirements[featureName];
+    if (!requirements) {
+      throw new Error(`Unknown AI feature: ${featureName}`);
+    }
+
+    const chartAccessibilityTest = requirements.chartAccessibility ? `
+  it('should make charts accessible', () => {
+    cy.get('[data-testid="${featureName}"] [role="img"]')
+      .should('have.attr', 'aria-label')
+      .should('have.attr', 'tabindex', '0');
+  });
+  ` : '';
+
+    const formAccessibilityTest = requirements.formAccessibility ? `
+  it('should have accessible forms', () => {
+    cy.get('[data-testid="${featureName}"] form label')
+      .should('have.attr', 'for');
+    cy.get('[data-testid="${featureName}"] form input')
+      .should('have.attr', 'id');
+  });
+  ` : '';
+
+    return `
+// cypress/e2e/accessibility/${featureName}-a11y.cy.js
+describe('${featureName} Accessibility Tests', () => {
+  beforeEach(() => {
+    cy.visit('/ai-features/${featureName}');
+    cy.setupAccessibilityTest();
+  });
+
+  it('should be fully accessible', () => {
+    cy.checkAIFeatureAccessibility('${featureName}');
+  });
+
+  it('should support keyboard navigation', () => {
+    cy.testKeyboardNavigation('[data-testid="${featureName}"]');
+  });
+
+  it('should provide screen reader content', () => {
+    cy.testScreenReaderContent('[data-testid="${featureName}"]');
+  });
+
+  ${chartAccessibilityTest}
+
+  ${formAccessibilityTest}
+
+  it('should have no accessibility violations', () => {
+    cy.checkA11y('[data-testid="${featureName}"]', {
+      includedImpacts: ['critical', 'serious']
+    });
+  });
+
+  it('should support high contrast mode', () => {
+    cy.get('body').invoke('addClass', 'high-contrast');
+    cy.checkA11y('[data-testid="${featureName}"]');
+  });
+
+  it('should support reduced motion', () => {
+    cy.get('body').invoke('addClass', 'reduced-motion');
+    cy.checkA11y('[data-testid="${featureName}"]');
+  });
+});
+`;
+  }
+
+  /**
+   * Run accessibility tests for specific feature
+   * @param {string} featureName - Name of the feature to test
+   * @param {Object} options - Test options
+   */
+  async runAccessibilityTest(featureName, options = {}) {
+    try {
+      piiSafeLogger.trackAccessibilityUsage('test_started', options.userId, {
+        feature: featureName,
+        testType: 'accessibility_compliance'
+      });
+
+      const testResult = {
+        feature: featureName,
+        timestamp: new Date().toISOString(),
+        status: 'running',
+        violations: [],
+        passes: [],
+        warnings: [],
+        incomplete: [],
+        wcagLevel: this.currentLevel,
+        score: 0
+      };
+
+      // Simulate accessibility testing (in a real implementation, this would run actual tests)
+      const violations = await this.simulateAccessibilityTest(featureName, options);
+      
+      testResult.violations = violations;
+      testResult.status = violations.length === 0 ? 'passed' : 'failed';
+      testResult.score = this.calculateAccessibilityScore(violations);
+
+      this.testResults.set(featureName, testResult);
+
+      // Log test completion
+      piiSafeLogger.trackAccessibilityUsage('test_completed', options.userId, {
+        feature: featureName,
+        status: testResult.status,
+        score: testResult.score,
+        violationCount: violations.length
+      });
+
+      return testResult;
+    } catch (error) {
+      piiSafeLogger.error('Accessibility test failed', {
+        error: error.message,
+        feature: featureName
+      });
+      
+      return {
+        feature: featureName,
+        status: 'error',
+        error: error.message,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  /**
+   * Simulate accessibility testing (placeholder for actual implementation)
+   * @param {string} featureName - Feature to test
+   * @param {Object} options - Test options
+   */
+  async simulateAccessibilityTest(featureName, options) {
+    const violations = [];
+    const requirements = this.aiFeatureRequirements[featureName];
+
+    if (!requirements) {
+      violations.push({
+        id: 'unknown-feature',
+        impact: 'critical',
+        description: `Unknown feature: ${featureName}`,
+        help: 'Feature must be defined in accessibility requirements'
+      });
+      return violations;
+    }
+
+    // Simulate various accessibility checks
+    const checks = [
+      {
+        rule: 'color-contrast',
+        required: true,
+        check: () => true // Placeholder
+      },
+      {
+        rule: 'keyboard-navigation',
+        required: requirements.keyboardNavigation,
+        check: () => true // Placeholder
+      },
+      {
+        rule: 'screen-reader',
+        required: requirements.screenReader,
+        check: () => true // Placeholder
+      },
+      {
+        rule: 'aria-labels',
+        required: true,
+        check: () => true // Placeholder
+      }
+    ];
+
+    for (const check of checks) {
+      if (check.required && !check.check()) {
+        violations.push({
+          id: check.rule,
+          impact: this.accessibilityRules[check.rule]?.impact || 'serious',
+          description: `Failed ${check.rule} check for ${featureName}`,
+          help: this.accessibilityRules[check.rule]?.description || 'Accessibility requirement not met',
+          nodes: [{
+            target: `[data-testid="${featureName}"]`,
+            html: '<placeholder>',
+            failureSummary: `${check.rule} validation failed`
+          }]
+        });
+      }
+    }
+
+    return violations;
+  }
+
+  /**
+   * Calculate accessibility score based on violations
+   * @param {Array} violations - Array of accessibility violations
+   */
+  calculateAccessibilityScore(violations) {
+    if (violations.length === 0) return 100;
+
+    let score = 100;
+    const impactScores = {
+      'critical': -25,
+      'serious': -15,
+      'moderate': -10,
+      'minor': -5
+    };
+
+    for (const violation of violations) {
+      score += impactScores[violation.impact] || -10;
+    }
+
+    return Math.max(0, score);
+  }
+
+  /**
+   * Generate comprehensive accessibility report
+   * @param {string} featureName - Feature to report on (optional)
+   */
+  async generateAccessibilityReport(featureName = null) {
+    try {
+      const report = {
+        timestamp: new Date().toISOString(),
+        wcagLevel: this.currentLevel,
+        overallStatus: 'unknown',
+        summary: {
+          totalFeatures: 0,
+          passedFeatures: 0,
+          failedFeatures: 0,
+          averageScore: 0
+        },
+        features: {},
+        recommendations: [],
+        complianceMatrix: this.generateComplianceMatrix()
+      };
+
+      const featuresToReport = featureName 
+        ? [featureName] 
+        : Object.keys(this.aiFeatureRequirements);
+
+      for (const feature of featuresToReport) {
+        const testResult = this.testResults.get(feature) || 
+          await this.runAccessibilityTest(feature);
+        
+        report.features[feature] = testResult;
+        report.summary.totalFeatures++;
+        
+        if (testResult.status === 'passed') {
+          report.summary.passedFeatures++;
+        } else if (testResult.status === 'failed') {
+          report.summary.failedFeatures++;
+        }
+        
+        report.summary.averageScore += testResult.score || 0;
+      }
+
+      if (report.summary.totalFeatures > 0) {
+        report.summary.averageScore = Math.round(
+          report.summary.averageScore / report.summary.totalFeatures
+        );
+      }
+
+      // Determine overall status
+      if (report.summary.passedFeatures === report.summary.totalFeatures) {
+        report.overallStatus = 'compliant';
+      } else if (report.summary.averageScore >= 80) {
+        report.overallStatus = 'mostly_compliant';
+      } else {
+        report.overallStatus = 'non_compliant';
+      }
+
+      // Generate recommendations
+      report.recommendations = this.generateRecommendations(report);
+
+      // Log report generation
+      piiSafeLogger.trackAccessibilityUsage('report_generated', 'system', {
+        featureCount: report.summary.totalFeatures,
+        averageScore: report.summary.averageScore,
+        overallStatus: report.overallStatus
+      });
+
+      return report;
+    } catch (error) {
+      piiSafeLogger.error('Failed to generate accessibility report', {
+        error: error.message,
+        featureName
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Generate compliance matrix for WCAG standards
+   */
+  generateComplianceMatrix() {
+    const matrix = {
+      level_a: {
+        required: 30,
+        implemented: 28,
+        percentage: 93
+      },
+      level_aa: {
+        required: 20,
+        implemented: 18,
+        percentage: 90
+      },
+      level_aaa: {
+        required: 28,
+        implemented: 15,
+        percentage: 54
+      }
+    };
+
+    matrix.overall = {
+      required: matrix.level_a.required + matrix.level_aa.required,
+      implemented: matrix.level_a.implemented + matrix.level_aa.implemented,
+      percentage: Math.round(
+        ((matrix.level_a.implemented + matrix.level_aa.implemented) / 
+         (matrix.level_a.required + matrix.level_aa.required)) * 100
+      )
+    };
+
+    return matrix;
+  }
+
+  /**
+   * Generate recommendations based on test results
+   * @param {Object} report - Accessibility report
+   */
+  generateRecommendations(report) {
+    const recommendations = [];
+    
+    // Analyze common issues
+    const violationCounts = {};
+    for (const feature of Object.values(report.features)) {
+      if (feature.violations) {
+        for (const violation of feature.violations) {
+          violationCounts[violation.id] = (violationCounts[violation.id] || 0) + 1;
+        }
+      }
+    }
+
+    // Generate recommendations for most common issues
+    const sortedViolations = Object.entries(violationCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5);
+
+    for (const [violationId, count] of sortedViolations) {
+      const rule = this.accessibilityRules[violationId];
+      if (rule) {
+        recommendations.push({
+          priority: rule.impact === 'critical' ? 'high' : 
+                   rule.impact === 'serious' ? 'medium' : 'low',
+          issue: violationId,
+          description: rule.description,
+          affectedFeatures: count,
+          solution: this.getRecommendationForRule(violationId),
+          estimatedEffort: this.getEffortEstimate(violationId)
+        });
+      }
+    }
+
+    // Add general recommendations
+    if (report.summary.averageScore < 90) {
+      recommendations.push({
+        priority: 'high',
+        issue: 'overall_compliance',
+        description: 'Overall accessibility compliance needs improvement',
+        solution: 'Implement comprehensive accessibility testing in CI/CD pipeline',
+        estimatedEffort: 'Medium'
+      });
+    }
+
+    return recommendations;
+  }
+
+  /**
+   * Get recommendation for specific accessibility rule
+   * @param {string} ruleId - Rule identifier
+   */
+  getRecommendationForRule(ruleId) {
+    const recommendations = {
+      'color-contrast': 'Ensure all text has a contrast ratio of at least 4.5:1 (AA) or 7:1 (AAA)',
+      'keyboard-navigation': 'Add proper tabindex and keyboard event handlers to all interactive elements',
+      'aria-labels': 'Add descriptive aria-label or aria-labelledby attributes to all form controls and buttons',
+      'heading-order': 'Use proper heading hierarchy (h1 > h2 > h3, etc.) without skipping levels',
+      'image-alt': 'Add descriptive alt text to all informative images',
+      'focus-order': 'Ensure tab order follows logical page flow',
+      'language': 'Add lang attribute to html element and specify language for content',
+      'link-purpose': 'Make link purposes clear from link text alone or provide additional context',
+      'page-has-h1': 'Ensure each page has exactly one h1 element',
+      'skip-link': 'Add skip navigation links at the beginning of the page'
+    };
+
+    return recommendations[ruleId] || 'Review and fix accessibility issue according to WCAG guidelines';
+  }
+
+  /**
+   * Get effort estimate for fixing accessibility issue
+   * @param {string} ruleId - Rule identifier
+   */
+  getEffortEstimate(ruleId) {
+    const efforts = {
+      'color-contrast': 'Low',
+      'keyboard-navigation': 'Medium',
+      'aria-labels': 'Low',
+      'heading-order': 'Low',
+      'image-alt': 'Low',
+      'focus-order': 'Medium',
+      'language': 'Low',
+      'link-purpose': 'Low',
+      'page-has-h1': 'Low',
+      'skip-link': 'Low'
+    };
+
+    return efforts[ruleId] || 'Medium';
+  }
+
+  /**
+   * Save accessibility test configuration files
+   * @param {string} outputDir - Directory to save files
+   */
+  async saveTestConfiguration(outputDir) {
+    try {
+      await fs.mkdir(outputDir, { recursive: true });
+      
+      // Save Cypress configuration
+      const cypressConfig = this.generateCypressA11yConfig();
+      await fs.writeFile(
+        path.join(outputDir, 'cypress-a11y-config.js'),
+        cypressConfig.setup(),
+        'utf8'
+      );
+
+      // Save test specs
+      for (const testSpec of cypressConfig.testSuite) {
+        const fileName = `${testSpec.test.replace(/\\s+/g, '-').toLowerCase()}.spec.js`;
+        await fs.writeFile(
+          path.join(outputDir, fileName),
+          testSpec.spec,
+          'utf8'
+        );
+      }
+
+      piiSafeLogger.info('Accessibility test configuration saved', {
+        outputDir,
+        filesGenerated: cypressConfig.testSuite.length + 1
+      });
+
+      return {
+        success: true,
+        configFile: path.join(outputDir, 'cypress-a11y-config.js'),
+        testFiles: cypressConfig.testSuite.map(spec => 
+          path.join(outputDir, `${spec.test.replace(/\\s+/g, '-').toLowerCase()}.spec.js`)
+        )
+      };
+    } catch (error) {
+      piiSafeLogger.error('Failed to save accessibility test configuration', {
+        error: error.message,
+        outputDir
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Validate accessibility compliance for CI/CD integration
+   * @param {string} featureName - Feature to validate
+   * @param {Object} options - Validation options
+   */
+  async validateAccessibilityCompliance(featureName, options = {}) {
+    try {
+      const testResult = await this.runAccessibilityTest(featureName, options);
+      const minScore = options.minScore || 85;
+      const maxViolations = options.maxViolations || 0;
+
+      const compliance = {
+        feature: featureName,
+        compliant: testResult.score >= minScore && testResult.violations.length <= maxViolations,
+        score: testResult.score,
+        violationCount: testResult.violations.length,
+        wcagLevel: this.currentLevel,
+        timestamp: new Date().toISOString()
+      };
+
+      // Log compliance check
+      piiSafeLogger.trackAccessibilityUsage('compliance_validated', options.userId, {
+        feature: featureName,
+        compliant: compliance.compliant,
+        score: compliance.score
+      });
+
+      return compliance;
+    } catch (error) {
+      piiSafeLogger.error('Accessibility compliance validation failed', {
+        error: error.message,
+        feature: featureName
+      });
+      
+      return {
+        feature: featureName,
+        compliant: false,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  /**
+   * Get test results for a specific feature
+   * @param {string} featureName - Feature name
+   */
+  getTestResults(featureName) {
+    return this.testResults.get(featureName) || null;
+  }
+
+  /**
+   * Clear test results
+   */
+  clearTestResults() {
+    this.testResults.clear();
+    piiSafeLogger.info('Accessibility test results cleared');
+  }
+}
+
+// Singleton instance
+export const accessibilityTesting = new AccessibilityTesting();
+
+export default AccessibilityTesting;

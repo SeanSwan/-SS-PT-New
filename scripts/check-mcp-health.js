@@ -1,56 +1,52 @@
 /**
- * MCP Server Health Check Script
- * Verifies that the Workout MCP Server is running and responding
+ * MCP Health Check Script
+ * Verifies that all MCP servers are running and accessible
  */
 
-const http = require('http');
+import axios from 'axios';
+import chalk from 'chalk';
 
-function checkMcpHealth() {
-  return new Promise((resolve, reject) => {
-    const req = http.get('http://localhost:8000/', (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const response = JSON.parse(data);
-          if (response.name === 'Workout MCP Server') {
-            console.log('✅ Workout MCP Server is running and healthy');
-            console.log(`   Version: ${response.version || 'unknown'}`);
-            console.log(`   Description: ${response.description || 'N/A'}`);
-            resolve(true);
-          } else {
-            console.log('⚠️  MCP Server responded but with unexpected format');
-            resolve(false);
-          }
-        } catch (e) {
-          console.log('⚠️  MCP Server responded but with invalid JSON');
-          resolve(false);
-        }
-      });
-    });
+const mcpServers = [
+  {
+    name: 'Workout MCP',
+    url: 'http://localhost:8000/health',
+    port: 8000
+  },
+  {
+    name: 'Gamification MCP',
+    url: 'http://localhost:8002/health',
+    port: 8002
+  }
+];
 
-    req.on('error', (err) => {
-      console.log('❌ Workout MCP Server is not responding');
-      console.log(`   Error: ${err.message}`);
-      console.log('   Make sure the server is running on http://localhost:8000');
-      resolve(false);
-    });
-
-    req.setTimeout(5000, () => {
-      req.destroy();
-      console.log('❌ MCP Server health check timed out');
-      resolve(false);
-    });
-  });
+async function checkMCPServer(server) {
+  try {
+    const response = await axios.get(server.url, { timeout: 5000 });
+    if (response.status === 200) {
+      console.log(chalk.green(`✅ ${server.name} - Running (Port ${server.port})`));
+      return true;
+    }
+  } catch (error) {
+    console.log(chalk.red(`❌ ${server.name} - Not running (Port ${server.port})`));
+    return false;
+  }
 }
 
-async function main() {
-  console.log('Checking Workout MCP Server health...');
-  await checkMcpHealth();
+async function checkAllMCPServers() {
+  console.log(chalk.blue('🔍 Checking MCP Server Health...\n'));
+  
+  const results = await Promise.all(mcpServers.map(checkMCPServer));
+  
+  const runningCount = results.filter(Boolean).length;
+  
+  console.log(chalk.blue(`\n📊 Summary: ${runningCount}/${mcpServers.length} MCP servers running`));
+  
+  if (runningCount === mcpServers.length) {
+    console.log(chalk.green('🎉 All MCP servers are healthy!'));
+  } else {
+    console.log(chalk.yellow('⚠️  Some MCP servers are not running'));
+    console.log(chalk.blue('💡 Run "npm run start-all-mcp" to start all MCP servers'));
+  }
 }
 
-if (require.main === module) {
-  main();
-}
-
-module.exports = { checkMcpHealth };
+checkAllMCPServers().catch(console.error);

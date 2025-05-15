@@ -1,1 +1,221 @@
-/**\n * Ethical AI Routes\n * API endpoints for ethical AI review and bias detection\n */\n\nimport express from 'express';\nimport { ethicalAIReview } from '../../services/ai/EthicalAIReview.mjs';\nimport { ethicalAIPipeline } from '../../services/ai/pipeline/EthicalAIPipeline.mjs';\nimport { requirePermissionWithAccessibility } from '../../middleware/p0Monitoring.mjs';\nimport { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';\n\nconst router = express.Router();\n\n/**\n * @route   POST /api/master-prompt/ethical-ai/review-workout\n * @desc    Review workout generation for ethical compliance\n * @access  Private\n */\nrouter.post('/review-workout', async (req, res) => {\n  try {\n    const { workoutPlan, clientProfile } = req.body;\n    \n    if (!workoutPlan || !clientProfile) {\n      return res.status(400).json({\n        success: false,\n        message: 'Workout plan and client profile are required'\n      });\n    }\n    \n    const ethicalReview = await ethicalAIReview.reviewWorkoutGeneration(\n      workoutPlan,\n      clientProfile\n    );\n    \n    // Track ethical review\n    piiSafeLogger.trackAIGeneration('workout_generation', clientProfile.userId, {\n      ethicalReview: ethicalReview,\n      passed: ethicalReview.passed,\n      score: ethicalReview.overallScore\n    });\n    \n    res.json({\n      success: true,\n      data: ethicalReview,\n      timestamp: new Date().toISOString()\n    });\n  } catch (error) {\n    piiSafeLogger.error('Ethical AI workout review failed', {\n      error: error.message\n    });\n    \n    res.status(500).json({\n      success: false,\n      message: 'Ethical review failed',\n      error: error.message\n    });\n  }\n});\n\n/**\n * @route   POST /api/master-prompt/ethical-ai/review-nutrition\n * @desc    Review nutrition plan for ethical compliance\n * @access  Private\n */\nrouter.post('/review-nutrition', async (req, res) => {\n  try {\n    const { nutritionPlan, clientProfile } = req.body;\n    \n    if (!nutritionPlan || !clientProfile) {\n      return res.status(400).json({\n        success: false,\n        message: 'Nutrition plan and client profile are required'\n      });\n    }\n    \n    const ethicalReview = await ethicalAIReview.reviewNutritionGeneration(\n      nutritionPlan,\n      clientProfile\n    );\n    \n    res.json({\n      success: true,\n      data: ethicalReview,\n      timestamp: new Date().toISOString()\n    });\n  } catch (error) {\n    piiSafeLogger.error('Ethical AI nutrition review failed', {\n      error: error.message\n    });\n    \n    res.status(500).json({\n      success: false,\n      message: 'Ethical review failed',\n      error: error.message\n    });\n  }\n});\n\n/**\n * @route   POST /api/master-prompt/ethical-ai/run-pipeline\n * @desc    Run comprehensive ethical AI pipeline\n * @access  Private (Admin)\n */\nrouter.post('/run-pipeline',\n  requirePermissionWithAccessibility('system_monitoring'),\n  async (req, res) => {\n    try {\n      const { config = {} } = req.body;\n      \n      const pipelineResults = await ethicalAIPipeline.runEthicalPipeline(config);\n      \n      // Track pipeline execution\n      piiSafeLogger.trackMCPOperation('ethical_pipeline', 'executed', {\n        passed: pipelineResults.passed,\n        score: pipelineResults.overallScore,\n        requiresHumanReview: pipelineResults.requiresHumanReview,\n        userId: req.user.id\n      });\n      \n      res.json({\n        success: true,\n        data: pipelineResults,\n        timestamp: new Date().toISOString()\n      });\n    } catch (error) {\n      piiSafeLogger.error('Ethical AI pipeline failed', {\n        error: error.message,\n        userId: req.user?.id\n      });\n      \n      res.status(500).json({\n        success: false,\n        message: 'Ethical AI pipeline failed',\n        error: error.message\n      });\n    }\n  }\n);\n\n/**\n * @route   GET /api/master-prompt/ethical-ai/pipeline-config\n * @desc    Get ethical AI pipeline configuration options\n * @access  Private (Admin)\n */\nrouter.get('/pipeline-config',\n  requirePermissionWithAccessibility('system_monitoring'),\n  async (req, res) => {\n    try {\n      const config = {\n        stages: ethicalAIPipeline.pipelineConfig.stages,\n        thresholds: ethicalAIPipeline.pipelineConfig.thresholds,\n        deployment: ethicalAIPipeline.pipelineConfig.deployment,\n        cicdTemplates: Object.keys(ethicalAIPipeline.cicdTemplates),\n        packageJsonScripts: ethicalAIPipeline.generatePackageJsonScripts()\n      };\n      \n      res.json({\n        success: true,\n        data: config,\n        timestamp: new Date().toISOString()\n      });\n    } catch (error) {\n      piiSafeLogger.error('Failed to get pipeline config', {\n        error: error.message\n      });\n      \n      res.status(500).json({\n        success: false,\n        message: 'Failed to retrieve pipeline configuration',\n        error: error.message\n      });\n    }\n  }\n);\n\n/**\n * @route   POST /api/master-prompt/ethical-ai/generate-pipeline\n * @desc    Generate CI/CD pipeline configuration for platform\n * @access  Private (Admin)\n */\nrouter.post('/generate-pipeline',\n  requirePermissionWithAccessibility('system_monitoring'),\n  async (req, res) => {\n    try {\n      const { platform, outputPath = './generated-pipelines' } = req.body;\n      \n      if (!platform) {\n        return res.status(400).json({\n          success: false,\n          message: 'Platform parameter is required'\n        });\n      }\n      \n      const result = await ethicalAIPipeline.savePipelineConfig(platform, outputPath);\n      \n      piiSafeLogger.trackUserAction('pipeline_generated', req.user.id, {\n        platform,\n        path: result.path\n      });\n      \n      res.json({\n        success: true,\n        data: result,\n        timestamp: new Date().toISOString()\n      });\n    } catch (error) {\n      piiSafeLogger.error('Pipeline generation failed', {\n        error: error.message,\n        userId: req.user?.id\n      });\n      \n      res.status(500).json({\n        success: false,\n        message: 'Pipeline generation failed',\n        error: error.message\n      });\n    }\n  }\n);\n\nexport default router;
+/**
+ * Ethical AI Routes
+ * API endpoints for ethical AI review and bias detection
+ */
+
+import express from 'express';
+import { ethicalAIReview } from '../../services/ai/EthicalAIReview.mjs';
+import { ethicalAIPipeline } from '../../services/ai/pipeline/EthicalAIPipeline.mjs';
+import { requirePermissionWithAccessibility } from '../../middleware/p0Monitoring.mjs';
+import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
+
+const router = express.Router();
+
+/**
+ * @route   POST /api/master-prompt/ethical-ai/review-workout
+ * @desc    Review workout generation for ethical compliance
+ * @access  Private
+ */
+router.post('/review-workout', async (req, res) => {
+  try {
+    const { workoutPlan, clientProfile } = req.body;
+    
+    if (!workoutPlan || !clientProfile) {
+      return res.status(400).json({
+        success: false,
+        message: 'Workout plan and client profile are required'
+      });
+    }
+    
+    const ethicalReview = await ethicalAIReview.reviewWorkoutGeneration(
+      workoutPlan,
+      clientProfile
+    );
+    
+    // Track ethical review
+    piiSafeLogger.trackAIGeneration('workout_generation', clientProfile.userId, {
+      ethicalReview: ethicalReview,
+      passed: ethicalReview.passed,
+      score: ethicalReview.overallScore
+    });
+    
+    res.json({
+      success: true,
+      data: ethicalReview,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    piiSafeLogger.error('Ethical AI workout review failed', {
+      error: error.message
+    });
+    
+    res.status(500).json({
+      success: false,
+      message: 'Ethical review failed',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/master-prompt/ethical-ai/review-nutrition
+ * @desc    Review nutrition plan for ethical compliance
+ * @access  Private
+ */
+router.post('/review-nutrition', async (req, res) => {
+  try {
+    const { nutritionPlan, clientProfile } = req.body;
+    
+    if (!nutritionPlan || !clientProfile) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nutrition plan and client profile are required'
+      });
+    }
+    
+    const ethicalReview = await ethicalAIReview.reviewNutritionGeneration(
+      nutritionPlan,
+      clientProfile
+    );
+    
+    res.json({
+      success: true,
+      data: ethicalReview,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    piiSafeLogger.error('Ethical AI nutrition review failed', {
+      error: error.message
+    });
+    
+    res.status(500).json({
+      success: false,
+      message: 'Ethical review failed',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/master-prompt/ethical-ai/run-pipeline
+ * @desc    Run comprehensive ethical AI pipeline
+ * @access  Private (Admin)
+ */
+router.post('/run-pipeline',
+  requirePermissionWithAccessibility('system_monitoring'),
+  async (req, res) => {
+    try {
+      const { config = {} } = req.body;
+      
+      const pipelineResults = await ethicalAIPipeline.runEthicalPipeline(config);
+      
+      // Track pipeline execution
+      piiSafeLogger.trackMCPOperation('ethical_pipeline', 'executed', {
+        passed: pipelineResults.passed,
+        score: pipelineResults.overallScore,
+        requiresHumanReview: pipelineResults.requiresHumanReview,
+        userId: req.user.id
+      });
+      
+      res.json({
+        success: true,
+        data: pipelineResults,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      piiSafeLogger.error('Ethical AI pipeline failed', {
+        error: error.message,
+        userId: req.user?.id
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Ethical AI pipeline failed',
+        error: error.message
+      });
+    }
+  }
+);
+
+/**
+ * @route   GET /api/master-prompt/ethical-ai/pipeline-config
+ * @desc    Get ethical AI pipeline configuration options
+ * @access  Private (Admin)
+ */
+router.get('/pipeline-config',
+  requirePermissionWithAccessibility('system_monitoring'),
+  async (req, res) => {
+    try {
+      const config = {
+        stages: ethicalAIPipeline.pipelineConfig.stages,
+        thresholds: ethicalAIPipeline.pipelineConfig.thresholds,
+        deployment: ethicalAIPipeline.pipelineConfig.deployment,
+        cicdTemplates: Object.keys(ethicalAIPipeline.cicdTemplates),
+        packageJsonScripts: ethicalAIPipeline.generatePackageJsonScripts()
+      };
+      
+      res.json({
+        success: true,
+        data: config,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      piiSafeLogger.error('Failed to get pipeline config', {
+        error: error.message
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve pipeline configuration',
+        error: error.message
+      });
+    }
+  }
+);
+
+/**
+ * @route   POST /api/master-prompt/ethical-ai/generate-pipeline
+ * @desc    Generate CI/CD pipeline configuration for platform
+ * @access  Private (Admin)
+ */
+router.post('/generate-pipeline',
+  requirePermissionWithAccessibility('system_monitoring'),
+  async (req, res) => {
+    try {
+      const { platform, outputPath = './generated-pipelines' } = req.body;
+      
+      if (!platform) {
+        return res.status(400).json({
+          success: false,
+          message: 'Platform parameter is required'
+        });
+      }
+      
+      const result = await ethicalAIPipeline.savePipelineConfig(platform, outputPath);
+      
+      piiSafeLogger.trackUserAction('pipeline_generated', req.user.id, {
+        platform,
+        path: result.path
+      });
+      
+      res.json({
+        success: true,
+        data: result,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      piiSafeLogger.error('Pipeline generation failed', {
+        error: error.message,
+        userId: req.user?.id
+      });
+      
+      res.status(500).json({
+        success: false,
+        message: 'Pipeline generation failed',
+        error: error.message
+      });
+    }
+  }
+);
+
+export default router;

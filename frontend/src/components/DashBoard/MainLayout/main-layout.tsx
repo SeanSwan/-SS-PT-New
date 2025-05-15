@@ -181,14 +181,13 @@ const MainLayout = ({ children = null, withExternalHeader = false }: MainLayoutP
             easing: theme.transitions.easing.easeOut,
             duration: theme.transitions.duration.enteringScreen
           }),
-          backgroundColor: theme.palette.background.default,
-          borderRadius: `${borderRadius}px`,
+          backgroundColor: 'transparent', // Remove background to eliminate color gap
           position: 'relative',
           boxSizing: 'border-box'
         }}
       >
         <Box sx={{ 
-          px: { xs: 1, sm: 2, md: 3 }, // Responsive padding
+          px: 0, // Remove horizontal padding to eliminate gap
           minHeight: 'calc(100vh - 64px)', // Adjusted without footer
           display: 'flex', 
           flexDirection: 'column',
@@ -201,12 +200,9 @@ const MainLayout = ({ children = null, withExternalHeader = false }: MainLayoutP
           {/* Main content */}
           <Box sx={{ 
             flex: 1,
-            py: 1, // Minimal vertical padding
+            py: 0, // Remove vertical padding to eliminate gaps
             px: 0, // No horizontal padding to maximize width
-            // Add a subtle background for content area in training app
-            bgcolor: 'background.paper',
-            borderRadius: `${borderRadius}px`,
-            boxShadow: theme.palette.mode === 'dark' ? 0 : 1,
+            bgcolor: 'transparent', // Remove background to eliminate color
             overflow: 'hidden',
             width: '100%', // Ensure full width usage
             maxWidth: '100vw', // Use full viewport width
