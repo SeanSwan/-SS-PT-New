@@ -128,8 +128,8 @@ class MCPHealthManager {
     }
 
     // Log overall health status
-    piiSafeLogger.trackMCPOperation('health_check', 'all_servers', {
-      results: healthResults,
+    piiSafeLogger.info('Health check completed for all MCP servers', {
+      serverCount: Object.keys(healthResults).length,
       timestamp: Date.now()
     });
 
@@ -187,7 +187,7 @@ class MCPHealthManager {
       };
 
       // Log successful health check
-      piiSafeLogger.trackMCPOperation(serverKey, 'health_check_success', {
+      piiSafeLogger.info(`Health check successful for ${serverKey}`, {
         latency,
         health: server.metrics.health
       });
@@ -225,7 +225,7 @@ class MCPHealthManager {
     piiSafeLogger.error(`MCP Server Failure: ${serverKey}`, alertData);
 
     // Track the failure
-    piiSafeLogger.trackMCPOperation(serverKey, 'server_failure', alertData);
+    await piiSafeLogger.trackMCPOperation(`MCP Server Failure: ${serverKey}`, alertData);
 
     // Here you could integrate with alerting systems like:
     // - Email notifications
@@ -335,7 +335,7 @@ class MCPHealthManager {
     const server = this.mcpServers[serverKey];
     if (server) {
       Object.assign(server.metrics, metrics);
-      piiSafeLogger.trackMCPOperation(serverKey, 'metrics_updated', metrics);
+      piiSafeLogger.info(`Metrics updated for ${serverKey}`, metrics);
     }
   }
 

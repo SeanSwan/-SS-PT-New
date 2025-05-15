@@ -968,6 +968,35 @@ async def schema():
     """Get the OpenAPI schema for this MCP server."""
     return app.openapi()
 
+@app.get("/health")
+async def health_check():
+    """Check the health of the server."""
+    return {
+        "status": "healthy",
+        "version": "1.0.0",
+        "environment": "Development" if os.environ.get("DEBUG", False) else "Production",
+        "server": "Workout MCP Server (Standalone)",
+        "backend_url": BACKEND_API_URL,
+        "mock_mode": USE_MOCK_DATA
+    }
+
+@app.get("/metrics")
+async def get_metrics():
+    """Get server metrics."""
+    import time
+    from datetime import datetime
+    
+    # Basic server metrics
+    return {
+        "server": "Workout MCP Server (Standalone)",
+        "timestamp": datetime.now().isoformat(),
+        "uptime_seconds": time.time() - (getattr(app, 'start_time', time.time())),
+        "version": "1.0.0",
+        "environment": "Development" if os.environ.get("DEBUG", False) else "Production",
+        "backend_url": BACKEND_API_URL,
+        "mock_mode": USE_MOCK_DATA
+    }
+
 # Error handler
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
@@ -985,6 +1014,14 @@ async def generic_exception_handler(request, exc):
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={"detail": f"Internal server error: {str(exc)}"}
     )
+
+# Startup event
+@app.on_event("startup")
+async def startup_event():
+    """Set startup time for metrics."""
+    import time
+    app.start_time = time.time()
+    logger.info("Standalone Workout MCP Server started")
 
 if __name__ == "__main__":
     # Run the server

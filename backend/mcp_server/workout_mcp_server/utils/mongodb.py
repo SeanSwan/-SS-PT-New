@@ -57,7 +57,7 @@ async def connect_to_mongodb() -> Dict[str, Any]:
     global _client, _db
     
     # If already connected, return existing connection
-    if _client and _db:
+    if _client is not None and _db is not None:
         return {"client": _client, "db": _db}
     
     # Get connection URIs
@@ -126,7 +126,7 @@ def get_collection(collection_name: str) -> Optional[pymongo.collection.Collecti
     Returns:
         MongoDB collection or None if not connected
     """
-    if _db:
+    if _db is not None:
         return _db[collection_name]
     return None
 
@@ -136,7 +136,7 @@ async def close_mongodb_connection() -> None:
     """
     global _client, _db
     
-    if _client:
+    if _client is not None:
         _client.close()
         _client = None
         _db = None
@@ -149,7 +149,7 @@ def is_connected() -> bool:
     Returns:
         True if connected, False otherwise
     """
-    if not _client or not _db:
+    if _client is None or _db is None:
         return False
     
     try:

@@ -5,6 +5,9 @@
  * It configures Express, routes, and middlewares.
  */
 
+// CRITICAL: Suppress Redis errors before any other imports
+import './utils/enhancedRedisErrorSuppressor.mjs';
+
 // IMPORTANT: Load environment variables before any other imports
 // This ensures process.env is populated before other modules access it
 import dotenv from 'dotenv';
@@ -46,7 +49,7 @@ if (!isProduction) {
 import redisConnectionFix from './utils/redisConnectionFix.mjs';
 redisConnectionFix.preventRedisConnections();
 
-// Prevent unwanted Redis connections early
+// Prevent unwanted Redis connections early (but not suppress errors anymore)
 import { preventRedisConnections, checkRedisAvailability } from './utils/redisConnectionPreventer.mjs';
 preventRedisConnections();
 

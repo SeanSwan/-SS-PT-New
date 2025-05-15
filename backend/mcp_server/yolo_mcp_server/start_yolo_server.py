@@ -93,22 +93,23 @@ def run_server():
     """Run the YOLO MCP server with production settings."""
     # Get configuration from environment
     host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", 8002))
+    port = int(os.getenv("PORT", 8005))
     workers = int(os.getenv("WORKERS", 1))
     log_level = os.getenv("LOG_LEVEL", "info").lower()
     
     # Configure uvicorn
     config = uvicorn.Config(
-        app,
-        host=host,
-        port=port,
-        log_level=log_level,
-        access_log=True,
-        reload=False,  # Never use reload in production
-        loop="uvloop",  # Use uvloop for better performance
-        ws_ping_interval=20,
+    app,
+    host=host,
+    port=port,
+    log_level=log_level,
+    access_log=True,
+    reload=False,  # Never use reload in production
+    # Remove uvloop for compatibility - not available on all systems
+    # loop="uvloop",  # Use uvloop for better performance
+    ws_ping_interval=20,
         ws_ping_timeout=10
-    )
+        )
     
     # Start server
     logger.info(f"Starting YOLO MCP Server on {host}:{port}")

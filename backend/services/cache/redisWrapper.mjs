@@ -3,15 +3,18 @@
  * ====================
  * Provides a Redis interface that respects the REDIS_ENABLED environment variable
  * If Redis is disabled, all operations are no-ops with in-memory fallback
+ * 
+ * IMPORTANT: This wrapper uses dynamic imports to prevent ioredis from being loaded
+ * when Redis is disabled, eliminating connection attempt errors.
  */
 
 import { EventEmitter } from 'events';
 import logger from '../../utils/logger.mjs';
 
-// Check Redis configuration immediately
+// Check Redis configuration immediately but don't import ioredis yet
 const REDIS_ENABLED = process.env.REDIS_ENABLED === 'true';
 if (!REDIS_ENABLED) {
-  logger.info('Redis is disabled in configuration - all operations will use memory cache');
+  logger.info('Redis is disabled in configuration - all operations will use memory cache only');
 }
 
 class RedisWrapper extends EventEmitter {
@@ -27,14 +30,14 @@ class RedisWrapper extends EventEmitter {
     this.memoryCache = new Map();
     this.memoryTTL = new Map();
     
-    // Always start with ready state for memory cache
+    // Always start with ready state for memory cache when Redis is disabled
     if (!this.enabled) {
       logger.info('Redis is disabled, using in-memory cache fallback');
       setTimeout(() => this.emit('ready'), 0); // Emit ready async
     }
     
-    // Clean up expired cache entries
-    setInterval(() => this.cleanupExpiredEntries(), 60000); // Every minute
+    // Clean up expired cache entries periodically
+    this.cleanupInterval = setInterval(() => this.cleanupExpiredEntries(), 60000); // Every minute
     
     // Log initialization
     logger.info(`RedisWrapper initialized - Redis enabled: ${this.enabled}`);
@@ -50,15 +53,14 @@ class RedisWrapper extends EventEmitter {
   }
   
   async initializeRedis() {
+    // First check: Is Redis actually enabled?
+    if (!this.enabled || process.env.REDIS_ENABLED !== 'true') {
+      logger.info('Redis initialization skipped - Redis is disabled in environment');
+      this.emit('ready');
+      return;
+    }
+    
     try {
-      // Triple-check that Redis is enabled
-      if (!this.enabled || process.env.REDIS_ENABLED !== 'true') {
-        logger.info('Redis initialization skipped - Redis is disabled in environment');
-        this.emit('ready');
-        return;
-      }
-      
-      // Log that we're about to attempt Redis connection
       logger.info('Redis is enabled - checking Redis server availability...');
       
       // Check if Redis server is reachable before importing ioredis
@@ -67,7 +69,7 @@ class RedisWrapper extends EventEmitter {
       const host = url.hostname || 'localhost';
       const port = parseInt(url.port) || 6379;
       
-      // Simple connectivity check
+      // Simple connectivity check using native Node.js net module
       const net = await import('net');
       const isReachable = await new Promise((resolve) => {
         const socket = new net.Socket();
@@ -94,11 +96,14 @@ class RedisWrapper extends EventEmitter {
         return;
       }
       
-      // Only import Redis if server is reachable
-      logger.info('Redis server is reachable - importing ioredis module');
-      const { default: Redis } = await import('ioredis');
+      // Only import Redis if server is reachable AND Redis is enabled
+      logger.info('Redis server is reachable - dynamically importing ioredis module...');
       
-      logger.info('Creating Redis connection', { url: redisUrl.replace(/\/\/.*@/, '//***:***@') });
+      // Dynamic import of ioredis - this prevents the module from being loaded when Redis is disabled
+      const redisModule = await import('ioredis');
+      const Redis = redisModule.default;
+      
+      logger.info('Creating Redis connection', { url: redisUrl.replace(/\\/\\/.*@/, '//***:***@') });
       
       this.client = new Redis(redisUrl, {
         retryDelayOnFailover: 100,
@@ -107,11 +112,10 @@ class RedisWrapper extends EventEmitter {
         retryDelayOnFailure: 100,
         connectTimeout: 5000,
         lazyConnect: true,
-        // Completely disable automatic reconnection
-        retryDelayOnClusterDown: 300,
-        retryDelayOnFailover: 100,
         autoResubscribe: false,
-        autoResendUnfulfilledCommands: false
+        autoResendUnfulfilledCommands: false,
+        enableAutoPipelining: false,
+        enableReadyCheck: true
       });
       
       this.client.on('connect', () => {
@@ -379,13 +383,19 @@ error:${error.message}`;
   }
   
   /**
-   * Close Redis connection
+   * Close Redis connection and cleanup
    */
   async disconnect() {
     if (this.client && this.connected) {
       await this.client.disconnect();
       this.connected = false;
       logger.info('Redis disconnected');
+    }
+    
+    // Clear cleanup interval
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
     }
   }
   

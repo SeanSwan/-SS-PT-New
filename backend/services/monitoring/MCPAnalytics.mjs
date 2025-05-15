@@ -1,15 +1,16 @@
+/**
+ * P2: Advanced MCP Analytics and Monitoring
+ * Deep analytics for MCP server performance, token usage, and quality metrics
+ * Aligned with Master Prompt v26 MCP-Centric Architecture
+ */
+
+// Import necessary modules
 import axios from 'axios';
 import { performance } from 'perf_hooks';
 import { EventEmitter } from 'events';
 import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
 import { mcpHealthManager } from '../../utils/monitoring/mcpHealthManager.mjs';
 import sequelize from '../../database.mjs';
-
-/**
- * P2: Advanced MCP Analytics and Monitoring
- * Deep analytics for MCP server performance, token usage, and quality metrics
- * Aligned with Master Prompt v26 MCP-Centric Architecture
- */
 
 class MCPAnalytics extends EventEmitter {
   constructor() {
@@ -88,7 +89,7 @@ class MCPAnalytics extends EventEmitter {
       await this.checkTokenUsageAlert(server, operation, tokens);
       
       // Log with PII safety
-      piiSafeLogger.trackMCPOperation(server, 'token_usage_tracked', {
+      piiSafeLogger.info(`Token usage tracked for ${server}`, {
         operation,
         tokens,
         cost,
@@ -165,7 +166,7 @@ class MCPAnalytics extends EventEmitter {
       // Check for quality degradation
       await this.checkQualityAlert(server, operation, qualityRecord);
       
-      piiSafeLogger.trackMCPOperation(server, 'quality_tracked', {
+      piiSafeLogger.info(`Quality tracked for ${server}`, {
         operation,
         qualityScore: qualityRecord.overallQuality,
         responseTime: metrics.responseTime
@@ -252,7 +253,7 @@ class MCPAnalytics extends EventEmitter {
       report.recommendations = this.generateRecommendations(report);
       
       // Log report generation
-      piiSafeLogger.trackMCPOperation('analytics', 'health_report_generated', {
+      piiSafeLogger.info('MCP health report generated', {
         timeframe,
         serverCount: servers.length,
         totalOperations: report.summary.serverHealth.totalOperations
@@ -798,7 +799,7 @@ class MCPAnalytics extends EventEmitter {
       }
       
       // Log alert
-      piiSafeLogger.trackMCPOperation(alert.server, 'alert_raised', {
+      piiSafeLogger.warn(`MCP Alert raised: ${alert.type} on ${alert.server}`, {
         type: alert.type,
         operation: alert.operation,
         severity: this.getAlertSeverity(alert)

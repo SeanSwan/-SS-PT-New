@@ -1,28 +1,78 @@
-"""
-FastAPI routes for MCP tools.
-"""
+"""FastAPI routes for MCP tools."""
 
+import sys
+import os
+from pathlib import Path
 from fastapi import APIRouter
 
-from models import (
-    GetWorkoutRecommendationsInput,
-    GetWorkoutRecommendationsOutput,
-    GetClientProgressInput,
-    GetClientProgressOutput,
-    GetWorkoutStatisticsInput,
-    GetWorkoutStatisticsOutput,
-    LogWorkoutSessionInput,
-    LogWorkoutSessionOutput,
-    GenerateWorkoutPlanInput,
-    GenerateWorkoutPlanOutput
-)
-from tools import (
-    get_workout_recommendations,
-    get_client_progress,
-    get_workout_statistics,
-    log_workout_session,
-    generate_workout_plan
-)
+# Set up import paths BEFORE any imports
+current_dir = Path(__file__).parent.parent
+if str(current_dir) not in sys.path:
+    sys.path.insert(0, str(current_dir))
+
+# Import models and tools using absolute imports only
+try:
+    # Use absolute imports directly
+    from models import (
+        GetWorkoutRecommendationsInput,
+        GetWorkoutRecommendationsOutput,
+        GetClientProgressInput,
+        GetClientProgressOutput,
+        GetWorkoutStatisticsInput,
+        GetWorkoutStatisticsOutput,
+        LogWorkoutSessionInput,
+        LogWorkoutSessionOutput,
+        GenerateWorkoutPlanInput,
+        GenerateWorkoutPlanOutput
+    )
+    from tools import (
+        get_workout_recommendations,
+        get_client_progress,
+        get_workout_statistics,
+        log_workout_session,
+        generate_workout_plan
+    )
+    IMPORTS_AVAILABLE = True
+    print("SUCCESS: Successfully imported workout modules using absolute imports")
+except ImportError as e:
+    print(f"Warning: Import failed: {e}")
+    # Create placeholder models and functions
+    from pydantic import BaseModel
+    
+    class GetWorkoutRecommendationsInput(BaseModel):
+        pass
+    class GetWorkoutRecommendationsOutput(BaseModel):
+        pass
+    class GetClientProgressInput(BaseModel):
+        pass
+    class GetClientProgressOutput(BaseModel):
+        pass
+    class GetWorkoutStatisticsInput(BaseModel):
+        pass
+    class GetWorkoutStatisticsOutput(BaseModel):
+        pass
+    class LogWorkoutSessionInput(BaseModel):
+        pass
+    class LogWorkoutSessionOutput(BaseModel):
+        pass
+    class GenerateWorkoutPlanInput(BaseModel):
+        pass
+    class GenerateWorkoutPlanOutput(BaseModel):
+        pass
+    
+    # Create placeholder functions
+    async def get_workout_recommendations(input_data):
+        return {"error": "Service not available - import failed"}
+    async def get_client_progress(input_data):
+        return {"error": "Service not available - import failed"}
+    async def get_workout_statistics(input_data):
+        return {"error": "Service not available - import failed"}
+    async def log_workout_session(input_data):
+        return {"error": "Service not available - import failed"}
+    async def generate_workout_plan(input_data):
+        return {"error": "Service not available - import failed"}
+    
+    IMPORTS_AVAILABLE = False
 
 router = APIRouter()
 
@@ -35,6 +85,8 @@ async def workout_recommendations_route(input_data: GetWorkoutRecommendationsInp
     preferences, and progress. It can filter by equipment, muscle groups,
     and difficulty level.
     """
+    if not IMPORTS_AVAILABLE:
+        return {"error": "Workout recommendations service is currently unavailable"}
     return await get_workout_recommendations(input_data)
 
 @router.post("/GetClientProgress", response_model=GetClientProgressOutput)
@@ -48,6 +100,8 @@ async def client_progress_route(input_data: GetClientProgressInput):
     - Streak information
     - Personal records
     """
+    if not IMPORTS_AVAILABLE:
+        return {"error": "Client progress service is currently unavailable"}
     return await get_client_progress(input_data)
 
 @router.post("/GetWorkoutStatistics", response_model=GetWorkoutStatisticsOutput)
@@ -62,6 +116,8 @@ async def workout_statistics_route(input_data: GetWorkoutStatisticsInput):
     - Workout schedule patterns (weekday breakdown)
     - Intensity trends over time
     """
+    if not IMPORTS_AVAILABLE:
+        return {"error": "Workout statistics service is currently unavailable"}
     return await get_workout_statistics(input_data)
 
 @router.post("/LogWorkoutSession", response_model=LogWorkoutSessionOutput)
@@ -78,6 +134,8 @@ async def log_workout_session_route(input_data: LogWorkoutSessionInput):
     
     The tool handles progress tracking and gamification updates automatically.
     """
+    if not IMPORTS_AVAILABLE:
+        return {"error": "Workout logging service is currently unavailable"}
     return await log_workout_session(input_data)
 
 @router.post("/GenerateWorkoutPlan", response_model=GenerateWorkoutPlanOutput)
@@ -92,4 +150,22 @@ async def generate_workout_plan_route(input_data: GenerateWorkoutPlanInput):
     The generated plan can be used as a starting point for trainers or can be
     directly assigned to clients.
     """
+    if not IMPORTS_AVAILABLE:
+        return {"error": "Workout plan generation service is currently unavailable"}
     return await generate_workout_plan(input_data)
+
+# Add health check for this module
+@router.get("/tools/health")
+async def tools_health():
+    """Check if the tools module is working correctly."""
+    return {
+        "status": "healthy" if IMPORTS_AVAILABLE else "degraded",
+        "imports_available": IMPORTS_AVAILABLE,
+        "tools": [
+            "get_workout_recommendations",
+            "get_client_progress", 
+            "get_workout_statistics",
+            "log_workout_session",
+            "generate_workout_plan"
+        ]
+    }

@@ -148,6 +148,25 @@ export class PIISafeLogger {
       console.log('LOG_ERROR:', String(message || ''));
     }
   }
+  
+  /**
+   * Track MCP operations (wrapper around info logging)
+   */
+  async trackMCPOperation(operation, meta = {}) {
+    try {
+      const trackingMeta = {
+        operation_type: 'mcp_operation',
+        operation_name: operation,
+        timestamp: new Date().toISOString(),
+        ...meta
+      };
+      
+      await this.info(`MCP Operation: ${operation}`, trackingMeta);
+    } catch (error) {
+      // Fallback to basic logging
+      console.info('MCP_OPERATION:', String(operation || ''));
+    }
+  }
 }
 
 // Export singleton instance

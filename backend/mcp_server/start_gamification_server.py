@@ -2,7 +2,7 @@
 Launcher script for the Gamification MCP Server.
 
 This script makes it easy to start the Gamification MCP Server.
-It runs on port 8001 by default.
+It runs on port 8002 by default.
 
 Usage:
     python start_gamification_server.py
@@ -35,13 +35,27 @@ def start_gamification_server():
         print("Please make sure you have pip installed and try again.")
         return
     
+    # Add the server directory to Python path
+    sys.path.insert(0, server_dir)
+    
+    # Also add the parent directory for better module resolution
+    sys.path.insert(0, script_dir)
+    
+    # Change to server directory
+    os.chdir(server_dir)
+    
+    # Set environment variable to help with imports
+    os.environ['PYTHONPATH'] = f"{server_dir}:{script_dir}"
+    
     # Start the server using uvicorn
     try:
         # Use sys.executable to get the correct Python interpreter
+        # Run from within the package directory
         subprocess.run(
-            [sys.executable, "-m", "uvicorn", "gamification_mcp_server.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"],
-            cwd=script_dir,
-            check=True
+            [sys.executable, "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002", "--reload"],
+            cwd=server_dir,
+            check=True,
+            env=dict(os.environ, PYTHONPATH=f"{server_dir}:{script_dir}")
         )
     except subprocess.CalledProcessError as e:
         print(f"Error starting the server: {e}")

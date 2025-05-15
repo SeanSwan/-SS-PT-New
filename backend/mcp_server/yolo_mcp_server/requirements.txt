@@ -1,57 +1,57 @@
 # YOLO AI Form/Posture Analysis MCP Server Requirements
-# Optimized for production deployment on Render
+# Updated for Python 3.13 compatibility
 
 # Core FastAPI dependencies
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
-python-multipart==0.0.6
-python-dotenv==1.0.0
+fastapi>=0.104.1
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+python-dotenv>=1.0.0
 
-# YOLO and Computer Vision
-ultralytics==8.0.220
-torch==2.1.0
-torchvision==0.16.0
-opencv-python-headless==4.8.1.78
-Pillow==10.0.1
+# YOLO and Computer Vision - Updated for Python 3.13
+# Use newer versions that support Python 3.13
+ultralytics>=8.1.0  # Newer version with Python 3.13 support
+torch>=2.6.0        # Available for Python 3.13
+torchvision>=0.20.0 # Compatible with newer torch
+opencv-python-headless>=4.8.1.78
+Pillow>=10.0.1
 
 # Data processing and analysis
-numpy==1.24.3
-pandas==2.0.3
+numpy>=1.24.3
+pandas>=2.0.3
 
 # WebSocket support
-websockets==12.0
-starlette==0.27.0
+websockets>=12.0
+starlette>=0.27.0
 
 # HTTP client for API calls
-requests==2.31.0
-httpx==0.25.2
+requests>=2.31.0
+httpx>=0.25.2
 
 # Validation and serialization
-pydantic==2.5.0
-pydantic-settings==2.0.3
+pydantic>=2.5.0
+pydantic-settings>=2.0.3
 
 # Logging and monitoring
-structlog==23.2.0
-python-json-logger==2.0.7
+structlog>=23.2.0
+python-json-logger>=2.0.7
 
 # Performance optimization
-orjson==3.9.10
+orjson>=3.9.10
 
 # Video processing (optional, for advanced features)
-# ffmpeg-python==0.2.0  # Uncomment if video file processing is needed
+# ffmpeg-python>=0.2.0  # Uncomment if video file processing is needed
 
 # Model caching and optimization
-diskcache==5.6.3
+diskcache>=5.6.3
 
 # Security
-PyJWT==2.8.0
-python-jose[cryptography]==3.3.0
+PyJWT>=2.8.0
+python-jose[cryptography]>=3.3.0
 
 # Environment and deployment
-gunicorn==21.2.0  # Alternative ASGI server for production
-python-telegram-bot==20.6  # If notifications are needed
+gunicorn>=21.2.0  # Alternative ASGI server for production
+uvloop>=0.19.0; sys_platform != "win32"  # High-performance event loop for Unix
 
 # Testing (optional, for development)
-pytest==7.4.3
-pytest-asyncio==0.21.1
-httpx==0.25.2
+# pytest>=7.4.3
+# pytest-asyncio>=0.21.1

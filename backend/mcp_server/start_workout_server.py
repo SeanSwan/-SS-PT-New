@@ -87,10 +87,18 @@ def start_server():
     logger.info("Starting Workout MCP Server...")
     try:
         # Use the directory of the server file as the working directory
-        os.chdir(server_path.parent)
+        server_dir = server_path.parent
+        script_dir = Path(__file__).parent
+        
+        # Set PYTHONPATH to include both server and parent directories
+        python_path = f"{server_dir}:{script_dir}"
+        env = dict(os.environ, PYTHONPATH=python_path)
+        
+        # Change to server directory
+        os.chdir(server_dir)
         
         # Execute the server module
-        subprocess.check_call([sys.executable, str(server_path)])
+        subprocess.check_call([sys.executable, str(server_path)], env=env)
     except subprocess.CalledProcessError as e:
         logger.error(f"Server failed to start: {e}")
         sys.exit(1)

@@ -1,12 +1,12 @@
 /**
  * Redis Connection Preventer
- * Ensures no Redis connections are attempted when Redis is disabled
+ * Simplified version - main prevention now handled by dynamic imports in redisWrapper
  */
 
 import logger from '../utils/logger.mjs';
 
 /**
- * Verify Redis configuration and prevent unwanted connections
+ * Basic Redis configuration check and logging
  */
 export function preventRedisConnections() {
   const redisEnabled = process.env.REDIS_ENABLED === 'true';
@@ -14,28 +14,18 @@ export function preventRedisConnections() {
   logger.info(`Redis Configuration Check - Enabled: ${redisEnabled}`);
   
   if (!redisEnabled) {
-    // Set environment flags to prevent Redis connections
-    process.env.REDIS_DISABLED = 'true';
-    process.env.NO_REDIS = 'true';
-    
-    // Set global flags if available
-    if (typeof global !== 'undefined') {
-      global.REDIS_DISABLED = true;
-      global.NO_REDIS = true;
-    }
-    
-    logger.info('Redis connection prevention measures active');
+    logger.info('Redis is disabled - wrapper will use memory cache fallback');
   } else {
-    logger.info('Redis is enabled - connections will be attempted');
+    logger.info('Redis is enabled - connections will be attempted if server is available');
   }
 }
 
 /**
- * Check if Redis server is actually available before attempting connection
+ * Check if Redis server is available (used by wrapper)
  */
 export async function checkRedisAvailability() {
   if (process.env.REDIS_ENABLED !== 'true') {
-    return { available: false, reason: 'Redis is disabled' };
+    return { available: false, reason: 'Redis is disabled in configuration' };
   }
   
   try {
