@@ -33,7 +33,12 @@ router.get('/', async (req, res) => {
     const validSortOrder = ['ASC', 'DESC'].includes(sortOrder) ? sortOrder : 'ASC';
     
     // Build the where clause for filtering
-    const whereClause = {};
+    const whereClause = {
+      // Ensure only packages with sessions priced at $140 or more are returned
+      pricePerSession: {
+        [StorefrontItem.sequelize.Sequelize.Op.gte]: 140
+      }
+    };
     
     // Add packageType filter if provided
     if (packageType) {
@@ -109,12 +114,20 @@ router.get('/', async (req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
-    const item = await StorefrontItem.findByPk(req.params.id);
+    const item = await StorefrontItem.findOne({
+      where: {
+        id: req.params.id,
+        // Ensure only packages with sessions priced at $140 or more are accessible
+        pricePerSession: {
+          [StorefrontItem.sequelize.Sequelize.Op.gte]: 140
+        }
+      }
+    });
     
     if (!item) {
       return res.status(404).json({ 
         success: false,
-        message: 'Item not found' 
+        message: 'Item not found or does not meet pricing requirements' 
       });
     }
     
@@ -170,6 +183,14 @@ router.post('/', protect, async (req, res) => {
       });
     }
     
+    // Validate that pricePerSession is at least $140
+    if (req.body.pricePerSession && parseFloat(req.body.pricePerSession) < 140) {
+      return res.status(400).json({
+        success: false,
+        message: 'Price per session must be at least $140'
+      });
+    }
+    
     const item = await StorefrontItem.create(req.body);
     
     logger.info(`Admin created new storefront item: ${item.name}`);
@@ -219,6 +240,14 @@ router.put('/:id', protect, async (req, res) => {
       return res.status(404).json({ 
         success: false,
         message: 'Item not found' 
+      });
+    }
+    
+    // Validate that pricePerSession is at least $140 if being updated
+    if (req.body.pricePerSession && parseFloat(req.body.pricePerSession) < 140) {
+      return res.status(400).json({
+        success: false,
+        message: 'Price per session must be at least $140'
       });
     }
     

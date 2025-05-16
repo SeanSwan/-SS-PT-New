@@ -22,7 +22,7 @@ const seedStorefrontItems = async () => {
     await sequelize.authenticate();
     console.log('Database connection established');
 
-    // Define fixed packages - graduated pricing from $175 down to $140/session
+    // Define fixed packages - All sessions priced at $140 or above
     const fixedPackages = [
       {
         id: 1,
@@ -62,7 +62,7 @@ const seedStorefrontItems = async () => {
       }
     ];
 
-    // Define monthly packages - graduated pricing from $160 down to $140/session
+    // Define monthly packages - All sessions priced at $140 or above
     const monthlyPackages = [
       { 
         id: 5,

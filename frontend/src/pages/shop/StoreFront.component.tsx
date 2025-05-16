@@ -1,5 +1,5 @@
 // File: frontend/src/pages/shop/StoreFront.component.tsx
-// Refactored and Enhanced StoreFront Component
+// Enhanced StoreFront Component
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import styled, { keyframes } from "styled-components";
@@ -24,7 +24,7 @@ interface StoreItem {
   id: number;
   name: string;
   description: string | null;
-  packageType: 'fixed' | 'monthly'; // Crucial for filtering
+  packageType: 'fixed' | 'monthly';
   pricePerSession?: number | null;
   sessions?: number | null;
   months?: number | null;
@@ -32,12 +32,12 @@ interface StoreItem {
   totalSessions?: number | null;
   totalCost?: number | null;
   price?: number | null;
-  displayPrice: number; // The price to show to the user
+  displayPrice: number;
   theme?: string | null;
   isActive: boolean;
   imageUrl: string | null;
-  displayOrder?: number; // For sorting items
-  includedFeatures?: string | null; // JSON string
+  displayOrder?: number;
+  includedFeatures?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -75,13 +75,10 @@ const safelyParseJson = (jsonString: string | null | undefined): string[] => {
   }
 };
 
-// Fallback images for packages
 const getPackageImage = (imageUrl: string | null, packageName: string): string => {
-  // If imageUrl exists and points to a valid path, use it
   if (imageUrl && imageUrl.startsWith('/assets/images/')) {
     return imageUrl;
   }
-  // Return fallback
   return '/marble-texture.png';
 };
 
@@ -114,7 +111,6 @@ const slideGradient = keyframes`
   100% { background-position: 0% 50%; }
 `;
 
-// Enhanced diagonal shimmer animation (right-top to left-bottom)
 const diagonalShimmer = keyframes`
   0% {
     background-position: 150% -50%;
@@ -124,19 +120,13 @@ const diagonalShimmer = keyframes`
   }
 `;
 
-// Card loading shimmer effect
-const cardShimmer = keyframes`
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-`;
-
 // --- Styled Components ---
 const StoreContainer = styled.div`
   position: relative;
   overflow-x: hidden;
   background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
   color: white;
-  z-index: 1; 
+  z-index: 1;
 `;
 
 const VideoBackground = styled.div`
@@ -157,7 +147,7 @@ const VideoBackground = styled.div`
 
 const ContentOverlay = styled.div`
   position: relative;
-  z-index: 5; 
+  z-index: 5;
   padding: 0;
 `;
 
@@ -236,20 +226,7 @@ const ScrollIndicator = styled(motion.div)`
   &:after { content: "↓"; font-size: 1.5rem; margin-top: 0.5rem; animation: ${float} 2s ease-in-out infinite; }
 `;
 
-const ParallaxSection = styled(motion.div)`
-  position: relative; height: 60vh; display: flex; align-items: center; justify-content: center;
-  overflow: hidden; margin: 0;
-  background: url('https://images.unsplash.com/photo-1517836357463-d25dfeac3438?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&ixlib=rb-1.2.1&q=80&w=1920') center/cover fixed no-repeat;
-  background-attachment: fixed; z-index: 1;
-  &:before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 10, 30, 0.65); z-index: 1; }
-  @media (max-width: 768px) { height: 45vh; }
-`;
-
-const ParallaxContent = styled(motion.div)` position: relative; z-index: 2; text-align: center; max-width: 750px; padding: 0 1rem; `;
-const ParallaxTitle = styled(motion.h2)` font-size: 3.5rem; font-weight: 300; color: white; text-transform: uppercase; letter-spacing: 10px; margin-bottom: 1rem; text-shadow: 0 2px 15px rgba(0, 0, 0, 0.7); @media (max-width: 768px) { font-size: 2.5rem; letter-spacing: 6px; } `;
-const ParallaxSubtitle = styled(motion.p)` font-size: 1.2rem; color: rgba(255, 255, 255, 0.8); max-width: 600px; margin: 0 auto; line-height: 1.7; @media (max-width: 768px) { font-size: 1rem; } `;
-
-const SectionContainer = styled.section` 
+const SectionContainer = styled.section`
   padding: 5rem 2rem;
   max-width: 1400px;
   margin: 0 auto;
@@ -265,7 +242,6 @@ const SectionContainer = styled.section`
   }
 `;
 
-// Package section containers
 const PackageSection = styled(motion.section)`
   margin-bottom: 5rem;
   
@@ -306,27 +282,24 @@ const SectionTitle = styled(motion.h2)`
   }
 `;
 
-const Grid = styled(motion.div)` 
-  display: grid; 
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
-  gap: 1.5rem; 
-  margin-bottom: 4rem; 
-  position: relative; 
+const Grid = styled(motion.div)`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 4rem;
+  position: relative;
   z-index: 15;
   
-  /* Mobile: Single column */
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     gap: 1.25rem;
   }
   
-  /* Tablet: Two columns */
   @media (min-width: 769px) and (max-width: 1023px) {
     grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 2rem;
   }
   
-  /* Desktop: Three columns max */
   @media (min-width: 1024px) { 
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     max-width: 1200px;
@@ -334,81 +307,52 @@ const Grid = styled(motion.div)`
     gap: 2.5rem;
   }
   
-  /* Large screens: Prevent cards from getting too wide */
   @media (min-width: 1400px) {
     grid-template-columns: repeat(3, 400px);
     justify-content: center;
   }
 `;
 
-const neonBorderEffect = keyframes`
-  0% { border-color: rgba(0, 255, 255, 0.5); }
-  50% { border-color: rgba(120, 81, 169, 0.7); }
-  100% { border-color: rgba(0, 255, 255, 0.5); }
-`;
-
 const CardContainer = styled(motion.div)`
-  position: relative; 
-  border-radius: 15px; 
-  overflow: hidden; 
-  background: rgba(30, 30, 60, 0.4); 
-  backdrop-filter: blur(15px); 
-  border: 1px solid rgba(0, 255, 255, 0.2); 
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); 
-  cursor: pointer; 
-  height: 100%; 
+  position: relative;
+  border-radius: 15px;
+  overflow: hidden;
+  background: rgba(30, 30, 60, 0.4);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  height: 100%;
   min-height: 400px;
-  display: flex; 
+  display: flex;
   flex-direction: column;
   isolation: isolate;
   z-index: 20;
   
-  /* Mobile optimizations */
   @media (max-width: 768px) {
     min-height: 380px;
     border-radius: 12px;
   }
   
-  /* Hover effects */
-  &:hover { 
-    transform: translateY(-8px) scale(1.02); 
+  &:hover {
+    transform: translateY(-8px) scale(1.02);
     box-shadow: 0 16px 64px rgba(0, 0, 0, 0.4), 0 0 40px rgba(0, 255, 255, 0.3);
     border-color: rgba(0, 255, 255, 0.6);
     background: rgba(30, 30, 60, 0.6);
     z-index: 25;
   }
   
-  /* Focus state for accessibility */
   &:focus {
     outline: 2px solid rgba(0, 255, 255, 0.8);
     outline-offset: 2px;
   }
-  
-  /* Subtle glow effect */
-  &:before {
-    content: "";
-    position: absolute;
-    top: -1px;
-    left: -1px;
-    right: -1px;
-    bottom: -1px;
-    border-radius: inherit;
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(120, 81, 169, 0.1));
-    z-index: -1;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-  
-  &:hover:before {
-    opacity: 1;
-  }
 `;
 
-const CardMedia = styled.div` 
-  width: 100%; 
-  height: 200px; 
-  position: relative; 
+const CardMedia = styled.div`
+  width: 100%;
+  height: 200px;
+  position: relative;
   overflow: hidden;
   border-radius: 15px 15px 0 0;
   
@@ -417,91 +361,71 @@ const CardMedia = styled.div`
     border-radius: 12px 12px 0 0;
   }
   
-  &:before { 
-    content: ""; 
-    position: absolute; 
-    top: 0; 
-    left: 0; 
-    width: 100%; 
-    height: 100%; 
+  &:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     background: linear-gradient(
       to bottom, 
       rgba(0, 0, 0, 0) 0%,
       rgba(10, 10, 30, 0.3) 60%,
       rgba(10, 10, 30, 0.8) 100%
-    ); 
-    z-index: 1; 
-  }
-  
-  /* Loading shimmer effect when image is loading */
-  &.loading {
-    &:after {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255, 255, 255, 0.1),
-        transparent
-      );
-      animation: ${cardShimmer} 1.5s infinite;
-    }
+    );
+    z-index: 1;
   }
 `;
 
-const CardImage = styled.div<{imageUrl?: string | null}>` 
-  width: 100%; 
-  height: 100%; 
-  background-image: ${props => props.imageUrl ? `url(${props.imageUrl})` : 'none'}; 
-  background-size: ${props => props.imageUrl ? 'cover' : '200% 200%'}; 
-  background-position: center; 
+const CardImage = styled.div<{imageUrl?: string | null}>`
+  width: 100%;
+  height: 100%;
+  background-image: ${props => props.imageUrl ? `url(${props.imageUrl})` : 'none'};
+  background-size: ${props => props.imageUrl ? 'cover' : '200% 200%'};
+  background-position: center;
   background-repeat: no-repeat;
   transition: transform 0.3s ease;
-  animation: ${props => !props.imageUrl && slideGradient} 5s ease infinite; 
+  animation: ${props => !props.imageUrl && slideGradient} 5s ease infinite;
   
-  /* Subtle zoom on container hover */
   ${CardContainer}:hover & {
     transform: scale(1.05);
   }
 `;
 
-const CardContent = styled.div` 
-  padding: 1.5rem; 
-  position: relative; 
-  flex: 1; 
-  display: flex; 
+const CardContent = styled.div`
+  padding: 1.5rem;
+  position: relative;
+  flex: 1;
+  display: flex;
   flex-direction: column;
   
   @media (max-width: 768px) {
     padding: 1.25rem;
   }
   
-  &:before { 
-    content: ""; 
-    position: absolute; 
-    top: 0; 
-    left: 50%; 
-    transform: translateX(-50%); 
-    width: 80%; 
-    height: 1px; 
+  &:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80%;
+    height: 1px;
     background: linear-gradient(
       to right, 
       rgba(255, 255, 255, 0), 
       rgba(255, 255, 255, 0.2), 
       rgba(255, 255, 255, 0)
-    ); 
+    );
   }
 `;
 
-const CardTitle = styled.h3` 
-  font-size: 1.5rem; 
-  margin-bottom: 0.75rem; 
-  color: white; 
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5); 
+const CardTitle = styled.h3`
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: white;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
   font-weight: 500;
   line-height: 1.3;
   
@@ -514,23 +438,23 @@ const CardTitle = styled.h3`
   }
 `;
 
-const CardBadge = styled.span` 
-  position: absolute; 
-  top: 1rem; 
-  right: 1rem; 
-  padding: 0.5rem 1rem; 
-  background: rgba(0, 0, 0, 0.6); 
-  border-radius: 20px; 
-  font-size: 0.8rem; 
-  color: white; 
-  z-index: 2; 
-  border: 1px solid rgba(255, 255, 255, 0.2); 
+const CardBadge = styled.span`
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.5rem 1rem;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 20px;
+  font-size: 0.8rem;
+  color: white;
+  z-index: 2;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 `;
 
-const CardDescription = styled.p` 
-  font-size: 0.95rem; 
-  color: rgba(255, 255, 255, 0.85); 
-  margin-bottom: 1.5rem; 
+const CardDescription = styled.p`
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 1.5rem;
   line-height: 1.6;
   font-weight: 300;
   
@@ -539,167 +463,167 @@ const CardDescription = styled.p`
     margin-bottom: 1.25rem;
   }
   
-  /* Prevent text overflow */
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 `;
 
-const FeaturesList = styled.ul` 
-  list-style: none; 
-  padding: 0 0 1rem 0; 
-  margin: 0; 
-  font-size: 0.9rem; 
-  color: rgba(255, 255, 255, 0.7); 
-  
-  li { 
-    margin-bottom: 0.4rem; 
-    position: relative; 
-    padding-left: 1.2rem; 
-    
-    &:before { 
-      content: '✓'; 
-      position: absolute; 
-      left: 0; 
-      color: #00ffff; 
-    } 
-  } 
-`;
-
-const PriceBox = styled(motion.div)` 
-  padding: 1rem; 
-  margin-bottom: 1.5rem; 
-  border-radius: 8px; 
-  background: rgba(30, 30, 60, 0.4); 
-  border: 1px solid rgba(255, 255, 255, 0.1); 
-  text-align: center; 
-  position: relative; 
-  overflow: hidden; 
-  min-height: 110px; 
-  
-  &:before { 
-    content: ""; 
-    position: absolute; 
-    top: 0; 
-    left: 0; 
-    width: 100%; 
-    height: 100%; 
-    background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%); 
-    background-size: 300% 300%; 
-    animation: ${diagonalShimmer} 5s ease infinite; 
-  } 
-`;
-
-const PriceContent = styled(motion.div)` position: relative; z-index: 1; `;
-
-const PriceLabel = styled.div` 
-  font-size: 0.9rem; 
-  color: rgba(255, 255, 255, 0.6); 
-  margin-bottom: 0.5rem; 
-`;
-
-const Price = styled.div` 
-  font-size: 1.8rem; 
-  font-weight: bold; 
-  color: white; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-`;
-
-const PriceDetails = styled.div` 
-  margin-top: 0.5rem; 
-  font-size: 0.9rem; 
+const FeaturesList = styled.ul`
+  list-style: none;
+  padding: 0 0 1rem 0;
+  margin: 0;
+  font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.7);
-  white-space: pre-line; /* For newlines in monthly details */
+  
+  li {
+    margin-bottom: 0.4rem;
+    position: relative;
+    padding-left: 1.2rem;
+    
+    &:before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: #00ffff;
+    }
+  }
+`;
+
+const PriceBox = styled(motion.div)`
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border-radius: 8px;
+  background: rgba(30, 30, 60, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  min-height: 110px;
+  
+  &:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%);
+    background-size: 300% 300%;
+    animation: ${diagonalShimmer} 5s ease infinite;
+  }
+`;
+
+const PriceContent = styled(motion.div)`
+  position: relative;
+  z-index: 1;
+`;
+
+const PriceLabel = styled.div`
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.5rem;
+`;
+
+const Price = styled.div`
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const PriceDetails = styled.div`
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: pre-line;
   
   .bold {
     font-weight: bold;
   }
 `;
 
-const LoginMessage = styled.div` 
-  font-style: italic; 
-  color: rgba(255, 255, 255, 0.7); 
-  font-size: 0.9rem; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
+const LoginMessage = styled.div`
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   height: 100%;
 `;
 
-const CardActions = styled.div` 
-  margin-top: auto; 
-  display: flex; 
-  justify-content: center; 
-  padding-top: 1rem; 
-  position: relative; 
-  z-index: 30; 
+const CardActions = styled.div`
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+  padding-top: 1rem;
+  position: relative;
+  z-index: 30;
   
-  & > div { 
-    width: 80%; 
-    max-width: 220px; 
-  } 
+  & > div {
+    width: 80%;
+    max-width: 220px;
+  }
 `;
 
-const CartButton = styled(motion.button)` 
-  position: fixed; 
-  bottom: 2rem; 
-  right: 2rem; 
-  width: 60px; 
-  height: 60px; 
-  border-radius: 50%; 
-  background: linear-gradient(135deg, #7851a9, #00ffff); 
-  border: none; 
-  color: white; 
-  font-size: 1.5rem; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  cursor: pointer; 
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 255, 255, 0.3); 
-  z-index: 1000; 
-  transition: transform 0.3s ease, box-shadow 0.3s ease; 
+const CartButton = styled(motion.button)`
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7851a9, #00ffff);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 255, 255, 0.3);
+  z-index: 1000;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   
-  &:hover { 
-    transform: scale(1.1); 
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 30px rgba(0, 255, 255, 0.5); 
-  } 
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4), 0 0 30px rgba(0, 255, 255, 0.5);
+  }
   
-  /* Fix for event bubbling issue */ 
-  outline: none; 
-  &:focus { 
-    outline: none; 
-  } 
+  outline: none;
+  &:focus {
+    outline: none;
+  }
 `;
 
-const PulsingCartButton = styled(CartButton)` 
-  animation: ${pulseAnimation} 1.5s infinite; 
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 30px rgba(0, 255, 255, 0.6); 
+const PulsingCartButton = styled(CartButton)`
+  animation: ${pulseAnimation} 1.5s infinite;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 30px rgba(0, 255, 255, 0.6);
   
-  /* Fix for event bubbling issue */ 
-  outline: none; 
-  &:focus { 
-    outline: none; 
-  } 
+  outline: none;
+  &:focus {
+    outline: none;
+  }
 `;
 
-const CartCount = styled.span` 
-  position: absolute; 
-  top: -5px; 
-  right: -5px; 
-  background: #ff4b6a; 
-  color: white; 
-  width: 24px; 
-  height: 24px; 
-  border-radius: 50%; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  font-size: 0.8rem; 
-  font-weight: bold; 
-  border: 2px solid rgba(20, 20, 40, 0.8); 
+const CartCount = styled.span`
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ff4b6a;
+  color: white;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: bold;
+  border: 2px solid rgba(20, 20, 40, 0.8);
 `;
 
 const LoadingContainer = styled.div`
@@ -711,17 +635,17 @@ const LoadingContainer = styled.div`
   gap: 1rem;
 `;
 
-const LoadingSpinner = styled.div` 
-  border: 4px solid rgba(255, 255, 255, 0.1); 
-  border-radius: 50%; 
-  border-top: 4px solid #00ffff; 
-  width: 50px; 
-  height: 50px; 
+const LoadingSpinner = styled.div`
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  border-top: 4px solid #00ffff;
+  width: 50px;
+  height: 50px;
   animation: spin 1s linear infinite;
   
-  @keyframes spin { 
-    0% { transform: rotate(0deg); } 
-    100% { transform: rotate(360deg); } 
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
 `;
 
@@ -741,9 +665,9 @@ const ErrorContainer = styled.div`
   max-width: 600px;
 `;
 
-const ErrorMessage = styled.p` 
-  color: #ff6b6b; 
-  text-align: center; 
+const ErrorMessage = styled.p`
+  color: #ff6b6b;
+  text-align: center;
   font-size: 1.1rem;
   margin-bottom: 1.5rem;
   line-height: 1.5;
@@ -777,21 +701,19 @@ const StoreFront: React.FC = () => {
 
   // --- Refs and Animation Controls ---
   const heroRef = useRef<HTMLDivElement>(null);
-  const parallaxRef = useRef<HTMLDivElement>(null);
   const fixedPackagesSectionRef = useRef<HTMLDivElement>(null);
   const monthlyPackagesSectionRef = useRef<HTMLDivElement>(null);
 
   const heroControls = useAnimation();
-  const parallaxControls = useAnimation();
   const fixedPackagesControls = useAnimation();
   const monthlyPackagesControls = useAnimation();
 
   const isHeroInView = useInView(heroRef, { once: true, amount: 0.3 });
-  const isParallaxInView = useInView(parallaxRef, { once: true, amount: 0.3 });
   const isFixedPackagesInView = useInView(fixedPackagesSectionRef, { once: true, amount: 0.1 });
   const isMonthlyPackagesInView = useInView(monthlyPackagesSectionRef, { once: true, amount: 0.1 });
 
-  const canViewPrices = !!user && (user.role === "client" || user.role === "admin");
+  // Allow admins, clients, and trainers to view prices and purchase
+  const canViewPrices = !!user && (user.role === "client" || user.role === "admin" || user.role === "trainer");
 
   // --- Fetch Packages from API ---
   const fetchPackages = useCallback(async () => {
@@ -807,9 +729,9 @@ const StoreFront: React.FC = () => {
       if (response.data && response.data.success && Array.isArray(response.data.items)) {
         const processedItems = response.data.items.map(item => ({
           ...item,
-          theme: item.theme || 'purple', // Default theme
-          displayPrice: item.displayPrice || item.price || 0, // Ensure displayPrice
-          displayOrder: item.displayOrder || 0 // Ensure displayOrder
+          theme: item.theme || 'purple',
+          displayPrice: item.displayPrice || item.price || 0,
+          displayOrder: item.displayOrder || 0
         }));
         
         // Filter packages by type and sort by displayOrder
@@ -847,12 +769,11 @@ const StoreFront: React.FC = () => {
 
   useEffect(() => {
     if (isHeroInView) heroControls.start("visible");
-    if (isParallaxInView) parallaxControls.start("visible");
     if (isFixedPackagesInView) fixedPackagesControls.start("visible");
     if (isMonthlyPackagesInView) monthlyPackagesControls.start("visible");
   }, [
-    isHeroInView, isParallaxInView, isFixedPackagesInView, isMonthlyPackagesInView,
-    heroControls, parallaxControls, fixedPackagesControls, monthlyPackagesControls
+    isHeroInView, isFixedPackagesInView, isMonthlyPackagesInView,
+    heroControls, fixedPackagesControls, monthlyPackagesControls
   ]);
 
   useEffect(() => {
@@ -863,17 +784,17 @@ const StoreFront: React.FC = () => {
 
   useEffect(() => {
     if (user?.id) {
-      console.log('StoreFrontAPI mounted - refreshing cart');
+      console.log('StoreFront mounted - refreshing cart');
       const timer = setTimeout(() => refreshCart(), 1000);
       return () => clearTimeout(timer);
     }
   }, [user, refreshCart]);
 
-  // --- Animation Variants ---
-  const containerVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { delayChildren: 0.3, staggerChildren: 0.2 } } };
-  const itemVariants = { hidden: { y: 20, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { duration: 0.7, ease: "easeOut" } } };
-  const gridVariants = { hidden: { opacity: 0 }, visible: { opacity: 1, transition: { delayChildren: 0.3, staggerChildren: 0.15 } } };
-  const cardVariants = { hidden: { y: 30, opacity: 0 }, visible: { y: 0, opacity: 1, transition: { duration: 0.6, ease: "easeOut" } } };
+  // --- Animation Variants (Fixed - No Opacity Issues) ---
+  const containerVariants = { hidden: { opacity: 1 }, visible: { opacity: 1, transition: { delayChildren: 0.1, staggerChildren: 0.1 } } };
+  const itemVariants = { hidden: { y: 0, opacity: 1 }, visible: { y: 0, opacity: 1, transition: { duration: 0.3, ease: "easeOut" } } };
+  const gridVariants = { hidden: { opacity: 1 }, visible: { opacity: 1, transition: { delayChildren: 0.1, staggerChildren: 0.05 } } };
+  const cardVariants = { hidden: { y: 0, opacity: 1 }, visible: { y: 0, opacity: 1, transition: { duration: 0.3, ease: "easeOut" } } };
   const buttonMotionProps = { whileHover:{ scale: 1.05, transition: { type: "spring", stiffness: 400, damping: 10 } }, whileTap:{ scale: 0.95 } };
 
   // --- Event Handlers ---
@@ -883,7 +804,10 @@ const StoreFront: React.FC = () => {
 
   const handleAddToCart = useCallback(async (pkg: StoreItem) => {
     if (!canViewPrices) {
-      toast({ title: "Login Required", description: "Please log in as a client to purchase.", variant: "destructive" });
+      const roleMessage = user ? 
+        "Please ensure you have the appropriate role to purchase." : 
+        "Please log in to purchase packages.";
+      toast({ title: "Access Required", description: roleMessage, variant: "destructive" });
       return;
     }
 
@@ -897,7 +821,7 @@ const StoreFront: React.FC = () => {
     setIsAddingToCart(pkg.id);
     try {
       await addToCart(cartItemData);
-      setTimeout(() => refreshCart(), 500); // Ensure cart updates
+      setTimeout(() => refreshCart(), 500);
       toast({ title: "Success!", description: `Added ${pkg.name} to cart.` });
       setShowPulse(true);
       setTimeout(() => setShowPulse(false), 1600);
@@ -976,7 +900,7 @@ const StoreFront: React.FC = () => {
               <AnimatePresence mode="wait">
                 {canViewPrices ? (
                   revealPrices[pkg.id] ? (
-                    <PriceContent key="price" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
+                    <PriceContent key="price" initial={{ opacity: 1, y: 0 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
                       <PriceLabel>Total Investment</PriceLabel>
                       <Price>{formatPrice(pkg.displayPrice)}</Price>
                       {priceDetailText && <PriceDetails>{priceDetailText}</PriceDetails>}
@@ -992,11 +916,11 @@ const StoreFront: React.FC = () => {
                       )}
                     </PriceContent>
                   ) : (
-                    <motion.div key="reveal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'rgba(255,255,255,0.7)'}}>Click to reveal price</motion.div>
+                    <motion.div key="reveal" initial={{ opacity: 1 }} animate={{ opacity: 1 }} exit={{ opacity: 1 }} transition={{ duration: 0.3 }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'rgba(255,255,255,0.7)'}}>Click to reveal price</motion.div>
                   )
                 ) : (
-                  <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%'}}>
-                    <LoginMessage>Login as client to view prices</LoginMessage>
+                  <motion.div key="login" initial={{ opacity: 1 }} animate={{ opacity: 1 }} exit={{ opacity: 1 }} transition={{ duration: 0.3 }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%'}}>
+                    <LoginMessage>Login to view prices and purchase</LoginMessage>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1041,8 +965,8 @@ const StoreFront: React.FC = () => {
           </PremiumBadge>
 
           <motion.div 
-            initial="hidden" 
-            animate={heroControls} 
+            initial={{ opacity: 1 }} 
+            animate={{ opacity: 1 }} 
             variants={containerVariants} 
             style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2 }}
           >
@@ -1092,16 +1016,6 @@ const StoreFront: React.FC = () => {
           )}
         </HeroSection>
 
-        {/* Parallax Section */}
-        <ParallaxSection ref={parallaxRef} initial="hidden" animate={parallaxControls} variants={containerVariants}>
-          <ParallaxContent variants={itemVariants}>
-            <ParallaxTitle variants={itemVariants}>Elevate Your Performance</ParallaxTitle>
-            <ParallaxSubtitle variants={itemVariants}>
-              Our premium packages are designed to transform your body and mind, unlocking peak physical potential through scientifically-backed methods.
-            </ParallaxSubtitle>
-          </ParallaxContent>
-        </ParallaxSection>
-
         {/* Loading, Error, or Package Content */}
         {isLoading ? (
           <SectionContainer style={{ minHeight: '300px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -1131,11 +1045,11 @@ const StoreFront: React.FC = () => {
             {/* Fixed Packages Section */}
             {fixedPackages.length > 0 && (
               <PackageSection id="packages-section" ref={fixedPackagesSectionRef}>
-                <motion.div initial="hidden" animate={fixedPackagesControls} variants={containerVariants}>
-                  <SectionTitle initial="hidden" animate={fixedPackagesControls} variants={itemVariants}>
+                <motion.div initial={{ opacity: 1 }} animate={{ opacity: 1 }} variants={containerVariants}>
+                  <SectionTitle initial={{ opacity: 1 }} animate={{ opacity: 1 }} variants={itemVariants}>
                     Premium Training Packages
                   </SectionTitle>
-                  <Grid initial="hidden" animate={fixedPackagesControls} variants={gridVariants} aria-label="Session packages">
+                  <Grid initial={{ opacity: 1 }} animate={{ opacity: 1 }} variants={gridVariants} aria-label="Session packages">
                     {fixedPackages.map(renderPackageCard)}
                   </Grid>
                 </motion.div>
@@ -1145,11 +1059,11 @@ const StoreFront: React.FC = () => {
             {/* Monthly Packages Section */}
             {monthlyPackages.length > 0 && (
               <PackageSection ref={monthlyPackagesSectionRef} style={fixedPackages.length > 0 ? { marginTop: '0rem' } : {}}>
-                <motion.div initial="hidden" animate={monthlyPackagesControls} variants={containerVariants}>
-                   <SectionTitle initial="hidden" animate={monthlyPackagesControls} variants={itemVariants}>
+                <motion.div initial={{ opacity: 1 }} animate={{ opacity: 1 }} variants={containerVariants}>
+                   <SectionTitle initial={{ opacity: 1 }} animate={{ opacity: 1 }} variants={itemVariants}>
                     Long-Term Excellence Programs
                   </SectionTitle>
-                  <Grid initial="hidden" animate={monthlyPackagesControls} variants={gridVariants} aria-label="Monthly packages">
+                  <Grid initial={{ opacity: 1 }} animate={{ opacity: 1 }} variants={gridVariants} aria-label="Monthly packages">
                     {monthlyPackages.map(renderPackageCard)}
                   </Grid>
                 </motion.div>
@@ -1162,8 +1076,8 @@ const StoreFront: React.FC = () => {
                     <motion.div 
                         style={{ display: "flex", justifyContent: "center", marginTop: "1rem", position: 'relative', zIndex: 20 }} 
                         variants={itemVariants} 
-                        initial="hidden" 
-                        animate={monthlyPackages.length > 0 ? monthlyPackagesControls : fixedPackagesControls}
+                        initial={{ opacity: 1 }} 
+                        animate={{ opacity: 1 }}
                     >
                         <motion.div {...buttonMotionProps}>
                         <GlowButton 

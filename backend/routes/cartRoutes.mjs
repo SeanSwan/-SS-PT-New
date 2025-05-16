@@ -1,4 +1,5 @@
 // /backend/routes/cartRoutes.mjs
+// Enhanced cart routes with role-based access control and user role upgrade logic
 
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
@@ -11,6 +12,40 @@ import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 
 const router = express.Router();
+
+// Role validation middleware
+const validatePurchaseRole = (req, res, next) => {
+  const userRole = req.user?.role;
+  const allowedRoles = ['admin', 'client', 'trainer'];
+  
+  if (!allowedRoles.includes(userRole)) {
+    return res.status(403).json({ 
+      success: false, 
+      message: 'You do not have permission to access cart functionality. Please ensure you have the appropriate role.' 
+    });
+  }
+  
+  next();
+};
+
+// Check if user role should be upgraded after adding training packages
+const checkUserRoleUpgrade = async (user, cartItems) => {
+  // If user has 'user' role and adds training sessions, they should be upgraded to 'client'
+  if (user.role === 'user') {
+    const hasTrainingPackages = cartItems.some(item => {
+      const itemName = item.storefrontItem?.name || '';
+      return itemName.includes('Gold') || itemName.includes('Platinum') || 
+             itemName.includes('Rhodium') || itemName.includes('Silver');
+    });
+    
+    if (hasTrainingPackages) {
+      console.log(`Upgrading user ${user.id} from 'user' to 'client' role`);
+      await User.update({ role: 'client' }, { where: { id: user.id } });
+      return true;
+    }
+  }
+  return false;
+};
 
 // --- Conditionally initialize Stripe ---
 let stripeClient = null;
@@ -81,9 +116,10 @@ router.get('/', protect, async (req, res) => {
 /**
  * Add Item to Cart
  * POST /api/cart/add
- * Adds a security service package to the user's cart
+ * Adds a training package to the user's cart
+ * Supports role-based access and automatic user role upgrade
  */
-router.post('/add', protect, async (req, res) => {
+router.post('/add', protect, validatePurchaseRole, async (req, res) => {
   try {
     const { storefrontItemId, quantity = 1 } = req.body;
     
@@ -99,9 +135,11 @@ router.post('/add', protect, async (req, res) => {
     if (!storeFrontItem) {
       return res.status(404).json({ 
         success: false, 
-        message: 'Security service package not found' 
+        message: 'Training package not found' 
       });
     }
+    
+    console.log(`User ${req.user.username} (${req.user.role}) adding item ${storeFrontItem.name} to cart`);
 
     // Find or create the user's active cart
     let [cart, created] = await ShoppingCart.findOrCreate({
@@ -147,6 +185,19 @@ router.post('/add', protect, async (req, res) => {
       }]
     });
 
+    // Check if user role should be upgraded
+    let userRoleUpgraded = false;
+    try {
+      const user = await User.findByPk(req.user.id);
+      userRoleUpgraded = await checkUserRoleUpgrade(user, updatedCartItems);
+      if (userRoleUpgraded) {
+        console.log(`User ${req.user.username} role upgraded from user to client`);
+      }
+    } catch (roleUpgradeError) {
+      console.error('Error checking user role upgrade:', roleUpgradeError);
+      // Don't fail the request if role upgrade fails
+    }
+
     // Calculate cart total
     const cartTotal = updatedCartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
 
@@ -157,7 +208,8 @@ router.post('/add', protect, async (req, res) => {
       status: cart.status,
       items: updatedCartItems,
       total: cartTotal,
-      itemCount: updatedCartItems.length
+      itemCount: updatedCartItems.length,
+      userRoleUpgrade: userRoleUpgraded // Inform frontend about role upgrade
     });
   } catch (error) {
     logger.error('Error adding item to cart:', error);
@@ -174,7 +226,7 @@ router.post('/add', protect, async (req, res) => {
  * PUT /api/cart/update/:itemId
  * Updates the quantity of an item in the cart
  */
-router.put('/update/:itemId', protect, async (req, res) => {
+router.put('/update/:itemId', protect, validatePurchaseRole, async (req, res) => {
   try {
     const { itemId } = req.params;
     const { quantity } = req.body;
@@ -246,7 +298,7 @@ router.put('/update/:itemId', protect, async (req, res) => {
  * DELETE /api/cart/remove/:itemId
  * Removes an item from the cart
  */
-router.delete('/remove/:itemId', protect, async (req, res) => {
+router.delete('/remove/:itemId', protect, validatePurchaseRole, async (req, res) => {
   try {
     const { itemId } = req.params;
 
@@ -311,7 +363,7 @@ router.delete('/remove/:itemId', protect, async (req, res) => {
  * DELETE /api/cart/clear
  * Removes all items from the user's cart
  */
-router.delete('/clear', protect, async (req, res) => {
+router.delete('/clear', protect, validatePurchaseRole, async (req, res) => {
   try {
     // Find the user's active cart
     const cart = await ShoppingCart.findOne({
@@ -355,7 +407,7 @@ router.delete('/clear', protect, async (req, res) => {
  * POST /api/cart/checkout
  * Creates a Stripe checkout session for the cart items
  */
-router.post('/checkout', protect, async (req, res) => {
+router.post('/checkout', protect, validatePurchaseRole, async (req, res) => {
   // --- Add check for Stripe client ---
   if (!stripeClient) {
     logger.error('Attempted /api/cart/checkout but Stripe is not enabled/initialized.');

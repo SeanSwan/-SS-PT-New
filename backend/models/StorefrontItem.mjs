@@ -66,7 +66,10 @@ StorefrontItem.init({
     allowNull: false, // Required if applicable
      validate: {
          isDecimal: { msg: "Price per session must be a valid decimal number"},
-         min: 0,
+         min: {
+           args: 140,
+           msg: "Price per session must be at least $140"
+         },
          notNull: { msg: "Price per session is required" } // Add notNull if always required
      }
   },

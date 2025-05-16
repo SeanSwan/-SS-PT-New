@@ -1,7 +1,7 @@
 // /frontend/src/context/CartContext.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-// Removed direct axios import, using authAxios from AuthContext
-import { useAuth } from './AuthContext'; // Verify path
+// Using authAxios from AuthContext for consistent authentication
+import { useAuth } from './AuthContext';
 
 // Define types for TypeScript
 interface CartItem {
@@ -82,6 +82,13 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     if (!isAuthenticated || !token) {
       // Don't attempt to fetch if not authenticated
       console.log('Not authenticated, skipping cart fetch');
+      setCart(null);
+      return;
+    }
+
+    // Allow all authenticated users to have a cart, but restrict purchasing based on role
+    if (!user) {
+      console.log('User data not available yet, waiting...');
       return;
     }
 
@@ -193,11 +200,18 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   }, [isAuthenticated, token]);
 
-  // Add item to cart - Updated signature
+  // Add item to cart - Enhanced with role upgrade logic
   const addToCart = useCallback(async (itemData: AddToCartPayload): Promise<void> => {
     if (!isAuthenticated || !token) {
       setError("Please login to add items to cart");
       return Promise.reject(new Error("User not logged in"));
+    }
+
+    // Check if user has permission to purchase
+    const canPurchase = user && (user.role === 'admin' || user.role === 'client' || user.role === 'trainer');
+    if (!canPurchase) {
+      setError("You need appropriate permissions to purchase items.");
+      return Promise.reject(new Error("Insufficient permissions"));
     }
 
     const storefrontItemId = typeof itemData.id === 'string' ? parseInt(itemData.id, 10) : itemData.id;
@@ -216,13 +230,22 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       const headers = { Authorization: `Bearer ${token}` };
       
       // Use authAxios instance with explicit headers
-      const response = await authAxios.post('/api/cart/add', { storefrontItemId, quantity }, { headers }); // Explicit headers
+      const response = await authAxios.post('/api/cart/add', { storefrontItemId, quantity }, { headers });
       
       console.log('Add to cart response:', response.status, response.statusText);
       
       if (response.data && typeof response.data === 'object' && Array.isArray(response.data.items)) {
           setCart(response.data);
           setShowCart(true); // Show cart after adding an item
+          
+          // Check if user role should be upgraded
+          // If user is 'user' role and they add training sessions, upgrade to 'client'
+          if (user?.role === 'user' && response.data.userRoleUpgrade) {
+            console.log('User role upgraded to client after adding training sessions');
+            // Note: The actual role update should be handled by the backend during checkout
+            // This is just a UI notification
+          }
+          
           return Promise.resolve();
       } else {
           console.warn("Invalid cart data received after add:", response.data);
@@ -236,7 +259,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, token, authAxios]); // Use isAuthenticated instead of user
+  }, [isAuthenticated, token, authAxios, user]);
 
   // Update item quantity
   const updateQuantity = useCallback(async (itemId: number, quantity: number): Promise<void> => {

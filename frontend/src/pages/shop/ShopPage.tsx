@@ -3,8 +3,8 @@ import { useAuth } from '../../context/AuthContext';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import StoreFront from './StoreFront.component';
-import OrderHistory from '../../components/Shop/OrderHistory';
 import ProductRecommendations from '../../components/Shop/ProductRecommendations';
+import OrderHistory from '../../components/Shop/OrderHistory';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 // Styled components

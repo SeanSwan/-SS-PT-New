@@ -269,7 +269,7 @@ const MainRoutes: RouteObject = {
       path: 'shop',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <ShopPage />
+          <StoreFront />
         </Suspense>
       )
     },
@@ -277,7 +277,7 @@ const MainRoutes: RouteObject = {
       path: 'shop/apparel',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <StoreFrontFixed />
+          <StoreFront />
         </Suspense>
       )
     },
@@ -285,7 +285,7 @@ const MainRoutes: RouteObject = {
       path: 'shop/training-packages',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <StoreFrontFixed />
+          <StoreFront />
         </Suspense>
       )
     },
@@ -293,7 +293,7 @@ const MainRoutes: RouteObject = {
       path: 'shop/supplements',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <StoreFrontFixed />
+          <StoreFront />
         </Suspense>
       )
     },
@@ -317,7 +317,7 @@ const MainRoutes: RouteObject = {
       path: 'store',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <StoreFrontFixed />
+          <StoreFront />
         </Suspense>
       )
     },
@@ -351,7 +351,7 @@ const MainRoutes: RouteObject = {
       path: 'fixed-store',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <StoreFrontFixed />
+          <StoreFront />
         </Suspense>
       )
     },

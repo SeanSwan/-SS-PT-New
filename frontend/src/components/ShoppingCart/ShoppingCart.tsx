@@ -1,4 +1,5 @@
 // /frontend/src/components/ShoppingCart/ShoppingCart.tsx
+// Enhanced shopping cart with role-based access and user upgrade notifications
 
 import React, { useState } from "react";
 import styled, { keyframes } from "styled-components";
@@ -7,6 +8,7 @@ import { useCart } from "../../context/CartContext";
 import GlowButton from "../Button/glowButton";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "../../hooks/use-toast";
 
 // Animations
 const shimmer = keyframes`
@@ -297,8 +299,9 @@ interface ShoppingCartProps {
 
 const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
   const { cart, loading, error, updateQuantity, removeItem, clearCart } = useCart();
-  const { authAxios } = useAuth();
+  const { user, authAxios } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [checkoutLoading, setCheckoutLoading] = useState<boolean>(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
 
@@ -444,6 +447,22 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
       // Save cart data with detailed session information for future server integration
       if (cart) {
         try {
+          // Check if user role should be upgraded
+          const hasTrainingPackages = enhancedCartItems.some(item => {
+            const itemName = item.storefrontItem?.name || '';
+            return itemName.includes('Gold') || itemName.includes('Platinum') || 
+                   itemName.includes('Rhodium') || itemName.includes('Silver');
+          });
+          
+          // If user was 'user' role and purchased training, notify about upgrade
+          if (user?.role === 'user' && hasTrainingPackages) {
+            toast({
+              title: "Role Upgraded!",
+              description: "Your account has been upgraded to Client status after purchasing training packages.",
+              duration: 5000,
+            });
+          }
+          
           // Save enhanced cart data with session details to localStorage
           localStorage.setItem('lastCheckoutData', JSON.stringify({
             items: enhancedCartItems,
@@ -454,7 +473,8 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
             userName: user?.firstName + ' ' + (user?.lastName || ''),
             timestamp: new Date().toISOString(),
             status: 'completed',
-            paymentMethod: 'stripe' // Mock payment method
+            paymentMethod: 'stripe', // Mock payment method
+            userRoleUpgrade: user?.role === 'user' && hasTrainingPackages
           }));
           
           // Also save to sessionStorage for immediate admin dashboard availability
@@ -462,7 +482,8 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
             items: enhancedCartItems,
             userId: user?.id,
             timestamp: new Date().toISOString(),
-            status: 'completed'
+            status: 'completed',
+            userRoleUpgrade: user?.role === 'user' && hasTrainingPackages
           }));
         } catch (e) {
           console.warn('Failed to save cart data to storage:', e);
