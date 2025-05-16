@@ -22,19 +22,28 @@ const seedStorefrontItems = async () => {
     await sequelize.authenticate();
     console.log('Database connection established');
 
-    // Define fixed packages
+    // Define fixed packages - graduated pricing from $175 down to $140/session
     const fixedPackages = [
       {
         id: 1,
         packageType: 'fixed',
-        name: "Gold Glimmer",
-        description: "An introductory 8-session package to ignite your transformation.",
-        sessions: 8,
+        name: "Single Session",
+        description: "Try a single session to experience our premium training.",
+        sessions: 1,
         pricePerSession: 175,
-        totalCost: 1400
+        totalCost: 175
       },
       {
         id: 2,
+        packageType: 'fixed',
+        name: "Gold Glimmer",
+        description: "An introductory 8-session package to ignite your transformation.",
+        sessions: 8,
+        pricePerSession: 170,
+        totalCost: 1360
+      },
+      {
+        id: 3,
         packageType: 'fixed',
         name: "Platinum Pulse",
         description: "Elevate your performance with 20 dynamic sessions.",
@@ -43,28 +52,28 @@ const seedStorefrontItems = async () => {
         totalCost: 3300
       },
       {
-        id: 3,
+        id: 4,
         packageType: 'fixed',
         name: "Rhodium Rise",
         description: "Unleash your inner champion with 50 premium sessions.",
         sessions: 50,
-        pricePerSession: 150,
-        totalCost: 7500
+        pricePerSession: 158,
+        totalCost: 7900
       }
     ];
 
-    // Define monthly packages
+    // Define monthly packages - graduated pricing from $160 down to $140/session
     const monthlyPackages = [
       { 
-        id: 4,
+        id: 5,
         packageType: 'monthly',
         name: 'Silver Storm',
         description: 'High intensity 3-month program at 4 sessions per week.',
         months: 3,
         sessionsPerWeek: 4,
-        pricePerSession: 155,
+        pricePerSession: 160,
         totalSessions: 48,
-        totalCost: 7440
+        totalCost: 7680
       },
       { 
         id: 6,
@@ -73,31 +82,31 @@ const seedStorefrontItems = async () => {
         description: 'Maximize your potential with 6 months at 4 sessions per week.',
         months: 6,
         sessionsPerWeek: 4,
-        pricePerSession: 145,
+        pricePerSession: 150,
         totalSessions: 96,
-        totalCost: 13920
+        totalCost: 14400
       },
       { 
-        id: 9,
+        id: 7,
         packageType: 'monthly',
         name: 'Platinum Prestige',
         description: 'The best value – 9 months at 4 sessions per week.',
         months: 9,
         sessionsPerWeek: 4,
-        pricePerSession: 140,
+        pricePerSession: 145,
         totalSessions: 144,
-        totalCost: 20160
+        totalCost: 20880
       },
       { 
-        id: 12,
+        id: 8,
         packageType: 'monthly',
         name: 'Rhodium Reign',
         description: 'The ultimate value – 12 months at 4 sessions per week at an unbeatable rate.',
         months: 12,
         sessionsPerWeek: 4,
-        pricePerSession: 135,
+        pricePerSession: 140,
         totalSessions: 192,
-        totalCost: 25920
+        totalCost: 26880
       }
     ];
 

@@ -128,14 +128,14 @@ const TrainerDashboardRoutes: React.FC = () => {
   return (
     <Suspense fallback={<LoadingFallback />}>
       <Routes>
-        <Route path="/" element={<Navigate to="/trainer/dashboard" replace />} />
+        <Route path="/" element={<TrainerDashboardHome />} />
         <Route path="/dashboard" element={<TrainerDashboardHome />} />
         <Route path="/clients" element={<MyClientsView />} />
         <Route path="/workouts" element={<WorkoutPlansView />} />
         <Route path="/sessions" element={<TrainingSessionsView />} />
         <Route path="/client-progress" element={<ClientProgressView />} />
         <Route path="/messages" element={<MessagesView />} />
-        <Route path="*" element={<Navigate to="/trainer/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/trainer-dashboard" replace />} />
       </Routes>
     </Suspense>
   );

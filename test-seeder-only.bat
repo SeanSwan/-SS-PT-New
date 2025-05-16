@@ -1,0 +1,1 @@
+@echo off\necho Testing StoreFront Seeder Only...\n\ncd backend\n\necho Running seeder test...\nnode test-seeder-only.mjs\n\necho.\necho Test completed. Check the output above.\necho.\npause

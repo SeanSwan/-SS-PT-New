@@ -108,6 +108,9 @@ import setupAssociations from './setupAssociations.mjs';
 // Import MongoDB connection with fallback support
 import { connectToMongoDB, getMongoDBStatus } from './mongodb-connect.mjs';
 
+// Import storefront seeder
+import seedStorefrontItems from './seedStorefrontItems.mjs';
+
 // Dynamically import errorMiddleware to avoid issues
 let errorMiddlewareHandler;
 try {
@@ -626,6 +629,16 @@ app.use((req, res) => {
       } catch (syncError) {
         logger.error(`Error syncing database: ${syncError.message}`);
       }
+    }
+
+    // Seed storefront items (training packages) if they don't exist
+    try {
+      logger.info('Seeding storefront items (training packages)...');
+      await seedStorefrontItems();
+      logger.info('Storefront items seeding completed successfully');
+    } catch (seedError) {
+      logger.error(`Error seeding storefront items: ${seedError.message}`);
+      // Don't fail server startup if seeding fails, but log the error
     }
 
     // Start the server

@@ -46,32 +46,34 @@ async function seedStorefrontItems() {
     
     if (existingItems.length > 0) {
       console.log(`✅ ${existingItems.length} storefront items already exist.`);
-      console.log('   Do you want to delete existing items and reseed? (y/n)');
+      console.log('   Deleting existing items and reseeding...');
       
-      // Simulating confirmation since this is a script (would use readline in a real scenario)
-      const deleteExisting = true; // Change to false if you don't want to delete
-      
-      if (deleteExisting) {
-        console.log('   Deleting existing storefront items...');
-        await StorefrontItem.destroy({ where: {} });
-        console.log('   ✅ Existing storefront items deleted.');
-      } else {
-        console.log('   Keeping existing storefront items. Exiting script.');
-        return;
-      }
+      await StorefrontItem.destroy({ where: {} });
+      console.log('   ✅ Existing storefront items deleted.');
     }
     
     // 3. Create storefront items
     console.log('3. Creating storefront items...');
     
-    // Fixed packages
+    // Fixed packages - graduated pricing from $175 down to $140/session
     const fixedPackages = [
       {
         packageType: 'fixed',
-        sessions: 8,
+        sessions: 1,
         pricePerSession: 175,
-        totalCost: 1400,
-        price: 1400,
+        totalCost: 175,
+        price: 175,
+        name: "Single Session",
+        description: "Try a single session to experience our premium training.",
+        theme: 'cosmic',
+        isActive: true
+      },
+      {
+        packageType: 'fixed',
+        sessions: 8,
+        pricePerSession: 170,
+        totalCost: 1360,
+        price: 1360,
         name: "Gold Glimmer",
         description: "An introductory 8-session package to ignite your transformation.",
         theme: 'cosmic',
@@ -91,9 +93,9 @@ async function seedStorefrontItems() {
       {
         packageType: 'fixed',
         sessions: 50,
-        pricePerSession: 150,
-        totalCost: 7500,
-        price: 7500,
+        pricePerSession: 158,
+        totalCost: 7900,
+        price: 7900,
         name: "Rhodium Rise",
         description: "Unleash your inner champion with 50 premium sessions.",
         theme: 'emerald',
@@ -101,16 +103,16 @@ async function seedStorefrontItems() {
       },
     ];
 
-    // Monthly packages
+    // Monthly packages - graduated pricing from $160 down to $140/session
     const monthlyPackages = [
       { 
         packageType: 'monthly',
         months: 3, 
         sessionsPerWeek: 4, 
-        pricePerSession: 155,
+        pricePerSession: 160,
         totalSessions: 48,
-        totalCost: 7440,
-        price: 7440,
+        totalCost: 7680,
+        price: 7680,
         name: 'Silver Storm', 
         description: 'High intensity 3-month program at 4 sessions per week.',
         theme: 'cosmic',
@@ -120,10 +122,10 @@ async function seedStorefrontItems() {
         packageType: 'monthly',
         months: 6, 
         sessionsPerWeek: 4, 
-        pricePerSession: 145,
+        pricePerSession: 150,
         totalSessions: 96,
-        totalCost: 13920,
-        price: 13920,
+        totalCost: 14400,
+        price: 14400,
         name: 'Gold Grandeur', 
         description: 'Maximize your potential with 6 months at 4 sessions per week.',
         theme: 'purple',
@@ -133,10 +135,10 @@ async function seedStorefrontItems() {
         packageType: 'monthly',
         months: 9, 
         sessionsPerWeek: 4, 
-        pricePerSession: 140,
+        pricePerSession: 145,
         totalSessions: 144,
-        totalCost: 20160,
-        price: 20160,
+        totalCost: 20880,
+        price: 20880,
         name: 'Platinum Prestige', 
         description: 'The best value – 9 months at 4 sessions per week.',
         theme: 'ruby',
@@ -146,10 +148,10 @@ async function seedStorefrontItems() {
         packageType: 'monthly',
         months: 12, 
         sessionsPerWeek: 4, 
-        pricePerSession: 135,
+        pricePerSession: 140,
         totalSessions: 192,
-        totalCost: 25920,
-        price: 25920,
+        totalCost: 26880,
+        price: 26880,
         name: 'Rhodium Reign', 
         description: 'The ultimate value – 12 months at 4 sessions per week at an unbeatable rate.',
         theme: 'emerald',

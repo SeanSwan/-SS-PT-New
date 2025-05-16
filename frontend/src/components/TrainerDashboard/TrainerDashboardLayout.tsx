@@ -1,9 +1,6 @@
-/**
- * TrainerDashboardLayout.tsx
- * Layout wrapper for trainer dashboard with internal navigation and routing
- */
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate, Routes, Route, Navigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { 
   Box, 
   CssBaseline, 
@@ -31,23 +28,24 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import LogoutIcon from '@mui/icons-material/Logout';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import LogoutIcon from '@mui/icons-material/Logout';
+import GroupIcon from '@mui/icons-material/Group';
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 
-import { useAuth } from '../../../../context/AuthContext';
-import DashboardSelector from '../../../DashboardSelector/DashboardSelector';
+import DashboardSelector from '../DashboardSelector/DashboardSelector';
+import TrainerDashboardRoutes from './routes/TrainerDashboardRoutes';
 
-// Import trainer dashboard views
-import TrainerMainDashboard from './trainer-dashboard';
-import TrainerClients from './TrainerClients';
-import TrainerSessions from './TrainerSessions';
-import TrainerOrientation from './TrainerOrientation';
+// Import contexts
+import { useAuth } from '../../context/AuthContext';
 
 // Constants
 const drawerWidth = 240;
 
-// Custom dark theme
+// Custom dark theme that aligns with storefront styling
 const darkTheme = createTheme({
   palette: {
     mode: 'dark',
@@ -60,6 +58,21 @@ const darkTheme = createTheme({
       main: '#7851a9',
       light: '#a67dd4',
       dark: '#5e3d90',
+    },
+    error: {
+      main: '#ff416c',
+      light: '#ff7a9d',
+      dark: '#e5274e',
+    },
+    warning: {
+      main: '#ffb700',
+      light: '#ffd95c',
+      dark: '#cc9200',
+    },
+    success: {
+      main: '#00bf8f',
+      light: '#5ce0b9',
+      dark: '#00996f',
     },
     background: {
       default: '#0a0a1a',
@@ -78,7 +91,7 @@ const darkTheme = createTheme({
   }
 });
 
-// Styled components
+// Styled components for the dashboard layout
 const openedMixin = (theme: Theme): CSSObject => ({
   width: drawerWidth,
   transition: theme.transitions.create('width', {
@@ -105,6 +118,7 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   alignItems: 'center',
   justifyContent: 'flex-end',
   padding: theme.spacing(0, 1),
+  // necessary for content to be below app bar
   ...theme.mixins.toolbar,
 }));
 
@@ -143,7 +157,7 @@ const StyledDrawer = styled(Drawer, { shouldForwardProp: (prop) => prop !== 'ope
   }),
 );
 
-// Navigation item type
+// Type for navigation items
 interface NavItem {
   text: string;
   icon: React.ReactNode;
@@ -152,8 +166,67 @@ interface NavItem {
 }
 
 /**
+ * Error state component for trainer dashboard
+ */
+const TrainerDashboardError: React.FC<{
+  error: string;
+  onRetry: () => void;
+  onLogout: () => void;
+}> = ({ error, onRetry, onLogout }) => (
+  <Box sx={{
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '100vh',
+    backgroundColor: 'rgba(9, 4, 30, 0.95)',
+    padding: 3,
+    textAlign: 'center'
+  }}>
+    <Typography variant="h4" color="error.main" gutterBottom>
+      Trainer Dashboard Access Error
+    </Typography>
+    
+    <Box sx={{ 
+      borderRadius: '50%',
+      backgroundColor: 'rgba(255, 65, 108, 0.1)',
+      p: 2,
+      mb: 3
+    }}>
+      <Typography fontSize="3rem">⚠️</Typography>
+    </Box>
+    
+    <Typography variant="h6" color="text.primary" gutterBottom>
+      {error}
+    </Typography>
+    
+    <Typography variant="body1" color="text.secondary" sx={{ maxWidth: '600px', mb: 4, mt: 2 }}>
+      This may be due to an expired session, insufficient permissions, or network connectivity issues.
+      Please try refreshing your session or contact support if the problem persists.
+    </Typography>
+    
+    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+      <MenuItem 
+        onClick={onRetry}
+        sx={{ minWidth: '120px' }}
+      >
+        Retry
+      </MenuItem>
+      
+      <MenuItem 
+        onClick={onLogout}
+        sx={{ minWidth: '120px' }}
+      >
+        Logout
+      </MenuItem>
+    </Box>
+  </Box>
+);
+
+/**
  * TrainerDashboardLayout Component
- * Independent layout for trainer dashboard with its own navigation
+ * Main layout for the trainer dashboard with navigation drawer and routes
+ * Uses the same structure and navigation categories as AdminDashboard for consistency
  */
 const TrainerDashboardLayout: React.FC = () => {
   const [open, setOpen] = useState(true);
@@ -164,24 +237,22 @@ const TrainerDashboardLayout: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   
-  // Verify trainer access
+  // Simple verification - check if user exists and has trainer or admin role
   useEffect(() => {
-    console.log('TrainerDashboard: Checking user authorization...');
+    console.log('TrainerDashboard: Verifying access...');
     
-    setTimeout(() => {
-      if (!user) {
-        console.error('TrainerDashboard: No user object found');
-        setError('Authentication required. Please log in.');
-      } else if (user.role !== 'trainer' && user.role !== 'admin') {
-        console.error(`TrainerDashboard: User role "${user.role}" is not authorized`);
-        setError('You do not have permission to access this area.');
-      } else {
-        console.log('TrainerDashboard: Access verified for trainer user');
-        setError(null);
-      }
-      
-      setIsVerifying(false);
-    }, 500);
+    if (!user) {
+      console.log('TrainerDashboard: No user found, access denied');
+      setError('Authentication required. Please log in.');
+    } else if (!['trainer', 'admin'].includes(user.role)) {
+      console.log(`TrainerDashboard: User role "${user.role}" is not trainer or admin`);
+      setError('You do not have permission to access this area.');
+    } else {
+      console.log(`TrainerDashboard: Access granted for ${user.role} user "${user.email}"`);
+      setError(null);
+    }
+    
+    setIsVerifying(false);
   }, [user]);
   
   // Handle drawer open/close
@@ -189,7 +260,7 @@ const TrainerDashboardLayout: React.FC = () => {
     setOpen(!open);
   };
   
-  // Handle profile menu
+  // Handle profile menu open/close
   const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
@@ -198,58 +269,73 @@ const TrainerDashboardLayout: React.FC = () => {
     setAnchorEl(null);
   };
   
-  // Handle logout
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  // Handle retry action
+  const handleRetry = () => {
+    setIsVerifying(true);
+    setError(null);
+    
+    // Force refresh to ensure fresh authentication state
+    window.location.reload();
   };
   
-  // Navigation items for trainer
-  const trainerNavItems: NavItem[] = [
+  // Handle logout action
+  const handleLogout = () => {
+    logout();
+    navigate('/login?returnUrl=/trainer/dashboard');
+  };
+  
+  // Navigation items - Trainer-specific functionality only (no admin features)
+  const mainNavItems: NavItem[] = [
     {
       text: 'Dashboard',
       icon: <DashboardIcon />,
       path: '/trainer-dashboard',
-      ariaLabel: 'Go to trainer main dashboard'
+      ariaLabel: 'Go to main dashboard'
     },
     {
       text: 'My Clients',
       icon: <PeopleIcon />,
       path: '/trainer-dashboard/clients',
-      ariaLabel: 'Manage my clients'
+      ariaLabel: 'View and manage your clients'
     },
     {
-      text: 'Sessions',
+      text: 'Workout Plans',
+      icon: <FitnessCenterIcon />,
+      path: '/trainer-dashboard/workouts',
+      ariaLabel: 'Create and manage workout plans for clients'
+    },
+    {
+      text: 'Training Sessions',
       icon: <CalendarMonthIcon />,
       path: '/trainer-dashboard/sessions',
-      ariaLabel: 'View and manage sessions'
+      ariaLabel: 'Schedule and manage training sessions'
     },
     {
-      text: 'Client Orientation',
-      icon: <AccountCircleIcon />,
-      path: '/trainer-dashboard/orientation',
-      ariaLabel: 'Manage client orientations'
-    },
-    {
-      text: 'Reports',
+      text: 'Client Progress',
       icon: <BarChartIcon />,
-      path: '/trainer-dashboard/reports',
-      ariaLabel: 'View training reports'
+      path: '/trainer-dashboard/client-progress',
+      ariaLabel: 'Track client progress and analytics'
+    },
+    {
+      text: 'Messages',
+      icon: <GroupIcon />,
+      path: '/trainer-dashboard/messages',
+      ariaLabel: 'Client communications and messaging'
     }
   ];
   
-  // Get current page title
+  // Determine the current page title based on the location
   const getCurrentPageTitle = () => {
     const path = location.pathname;
-    if (path === '/trainer-dashboard') return 'Trainer Dashboard';
-    if (path.includes('clients')) return 'My Clients';
-    if (path.includes('sessions')) return 'Training Sessions';
-    if (path.includes('orientation')) return 'Client Orientation';
-    if (path.includes('reports')) return 'Reports';
+    if (path.includes('/trainer-dashboard/clients')) return 'My Clients';
+    if (path.includes('/trainer-dashboard/workouts')) return 'Workout Plans';
+    if (path.includes('/trainer-dashboard/sessions')) return 'Training Sessions';
+    if (path.includes('/trainer-dashboard/client-progress')) return 'Client Progress';
+    if (path.includes('/trainer-dashboard/messages')) return 'Messages';
     return 'Trainer Dashboard';
   };
   
-  // Show loading state
+  // Show loading state while verifying trainer access
   if (isVerifying) {
     return (
       <Box sx={{
@@ -275,34 +361,14 @@ const TrainerDashboardLayout: React.FC = () => {
     );
   }
   
-  // Show error state
+  // Show error state if verification failed
   if (error) {
     return (
-      <Box sx={{
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-        backgroundColor: 'rgba(9, 4, 30, 0.95)',
-        padding: 3,
-        textAlign: 'center'
-      }}>
-        <Typography variant="h4" color="error.main" gutterBottom>
-          Trainer Dashboard Access Error
-        </Typography>
-        <Typography variant="h6" color="text.primary" gutterBottom>
-          {error}
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
-          <MenuItem onClick={() => window.location.reload()}>
-            Retry
-          </MenuItem>
-          <MenuItem onClick={handleLogout}>
-            Logout
-          </MenuItem>
-        </Box>
-      </Box>
+      <TrainerDashboardError 
+        error={error}
+        onRetry={handleRetry}
+        onLogout={handleLogout}
+      />
     );
   }
   
@@ -344,9 +410,12 @@ const TrainerDashboardLayout: React.FC = () => {
                 onClick={handleMenuOpen}
                 size="small" 
                 sx={{ ml: 2 }}
+                aria-controls={Boolean(anchorEl) ? 'account-menu' : undefined}
+                aria-haspopup="true"
+                aria-expanded={Boolean(anchorEl) ? 'true' : undefined}
               >
                 <Avatar 
-                  alt={user?.name || 'Trainer'} 
+                  alt={user?.name || 'User'} 
                   src={user?.profileImageUrl || undefined}
                   sx={{ width: 32, height: 32 }}
                 />
@@ -355,6 +424,7 @@ const TrainerDashboardLayout: React.FC = () => {
             
             <Menu
               anchorEl={anchorEl}
+              id="account-menu"
               open={Boolean(anchorEl)}
               onClose={handleMenuClose}
               PaperProps={{
@@ -363,6 +433,12 @@ const TrainerDashboardLayout: React.FC = () => {
                   overflow: 'visible',
                   filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
                   mt: 1.5,
+                  '& .MuiAvatar-root': {
+                    width: 32,
+                    height: 32,
+                    ml: -0.5,
+                    mr: 1,
+                  },
                 },
               }}
               transformOrigin={{ horizontal: 'right', vertical: 'top' }}
@@ -393,15 +469,15 @@ const TrainerDashboardLayout: React.FC = () => {
               component="div"
               sx={{ flexGrow: 1, textAlign: 'center', fontWeight: 'bold' }}
             >
-              Trainer Portal
+              Swan Studios
             </Typography>
           </DrawerHeader>
           
           <Divider />
           
-          {/* Navigation Links */}
+          {/* Main Navigation Links */}
           <List>
-            {trainerNavItems.map((item) => (
+            {mainNavItems.map((item) => (
               <ListItem 
                 key={item.text} 
                 disablePadding 
@@ -412,7 +488,7 @@ const TrainerDashboardLayout: React.FC = () => {
                     minHeight: 48,
                     justifyContent: open ? 'initial' : 'center',
                     px: 2.5,
-                    backgroundColor: location.pathname === item.path ? 'rgba(0, 255, 255, 0.1)' : 'transparent',
+                    backgroundColor: location.pathname === item.path ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
                   }}
                   onClick={() => navigate(item.path)}
                   aria-label={item.ariaLabel}
@@ -422,17 +498,13 @@ const TrainerDashboardLayout: React.FC = () => {
                       minWidth: 0,
                       mr: open ? 3 : 'auto',
                       justifyContent: 'center',
-                      color: location.pathname === item.path ? '#00ffff' : 'inherit',
                     }}
                   >
                     {item.icon}
                   </ListItemIcon>
                   <ListItemText 
                     primary={item.text} 
-                    sx={{ 
-                      opacity: open ? 1 : 0,
-                      color: location.pathname === item.path ? '#00ffff' : 'inherit'
-                    }} 
+                    sx={{ opacity: open ? 1 : 0 }} 
                   />
                 </ListItemButton>
               </ListItem>
@@ -440,18 +512,11 @@ const TrainerDashboardLayout: React.FC = () => {
           </List>
         </StyledDrawer>
         
-        {/* Main Content Area with Routes */}
+        {/* Main Content Area */}
         <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-          <DrawerHeader />
+          <DrawerHeader /> {/* Spacer to push content below app bar */}
           <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-            <Routes>
-              <Route path="/" element={<TrainerMainDashboard />} />
-              <Route path="/clients" element={<TrainerClients />} />
-              <Route path="/sessions" element={<TrainerSessions />} />
-              <Route path="/orientation" element={<TrainerOrientation />} />
-              <Route path="/reports" element={<div>Trainer Reports - Coming Soon</div>} />
-              <Route path="*" element={<Navigate to="/trainer-dashboard" replace />} />
-            </Routes>
+            <TrainerDashboardRoutes />
           </Container>
         </Box>
       </Box>

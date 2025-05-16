@@ -113,8 +113,20 @@ const AboutPage = lazyLoadWithErrorHandling(
   'About Page'
 );
 const StoreFront = lazyLoadWithErrorHandling(
-  () => import('../pages/shop/StoreFrontAPI.component'),
+  () => import('../pages/shop/StoreFront.component'),
   'Storefront'
+);
+const StoreFrontFixed = lazyLoadWithErrorHandling(
+  () => import('../pages/shop/StoreFrontFixed.component'),
+  'Fixed Storefront'
+);
+const DebugStoreFront = lazyLoadWithErrorHandling(
+  () => import('../pages/shop/DebugStoreFront.component'),
+  'Debug Storefront'
+);
+const SimplifiedStoreFront = lazyLoadWithErrorHandling(
+  () => import('../pages/shop/SimplifiedStoreFront.component'),
+  'Simplified Storefront'
 );
 const ShopPage = lazyLoadWithErrorHandling(
   () => import('../pages/shop/ShopPage'),
@@ -265,7 +277,7 @@ const MainRoutes: RouteObject = {
       path: 'shop/apparel',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <StoreFront categoryFilter="apparel" />
+          <StoreFrontFixed />
         </Suspense>
       )
     },
@@ -273,7 +285,7 @@ const MainRoutes: RouteObject = {
       path: 'shop/training-packages',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <StoreFront categoryFilter="training" />
+          <StoreFrontFixed />
         </Suspense>
       )
     },
@@ -281,7 +293,7 @@ const MainRoutes: RouteObject = {
       path: 'shop/supplements',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <StoreFront categoryFilter="supplements" />
+          <StoreFrontFixed />
         </Suspense>
       )
     },
@@ -305,7 +317,7 @@ const MainRoutes: RouteObject = {
       path: 'store',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <StoreFront />
+          <StoreFrontFixed />
         </Suspense>
       )
     },
@@ -314,6 +326,32 @@ const MainRoutes: RouteObject = {
       element: (
         <Suspense fallback={<PageLoader />}>
           <UnauthorizedPage />
+        </Suspense>
+      )
+    },
+    
+    // Debug routes for StoreFront troubleshooting
+    {
+      path: 'debug-store',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <DebugStoreFront />
+        </Suspense>
+      )
+    },
+    {
+      path: 'simple-store',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <SimplifiedStoreFront />
+        </Suspense>
+      )
+    },
+    {
+      path: 'fixed-store',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <StoreFrontFixed />
         </Suspense>
       )
     },

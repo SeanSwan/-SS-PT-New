@@ -106,7 +106,17 @@ StorefrontItem.init({
     type: DataTypes.STRING,
     allowNull: true,
     validate: {
-        isUrl: { msg: "Image URL must be a valid URL"}
+      // Custom validator that allows relative paths starting with / or full URLs
+      customUrl: function(value) {
+        if (value === null || value === undefined || value === '') {
+          return; // Allow null/empty values
+        }
+        // Allow relative paths starting with / or full URLs
+        if (value.startsWith('/') || /^https?:\/\/.+/.test(value)) {
+          return;
+        }
+        throw new Error('Image URL must be a valid URL or relative path starting with /');
+      }
     }
   },
   theme: {
@@ -133,6 +143,15 @@ StorefrontItem.init({
     type: DataTypes.BOOLEAN,
     defaultValue: true,
     allowNull: false,
+  },
+  displayOrder: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0,
+    validate: {
+      isInt: { msg: "Display order must be an integer" },
+      min: 0
+    }
   },
   // createdAt and updatedAt are managed by Sequelize because timestamps: true
 }, {

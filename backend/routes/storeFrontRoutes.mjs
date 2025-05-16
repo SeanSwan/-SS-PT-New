@@ -81,7 +81,8 @@ router.get('/', async (req, res) => {
       itemType: item.packageType === 'fixed' ? 'TRAINING_PACKAGE_FIXED' : 'TRAINING_PACKAGE_SUBSCRIPTION',
       includedFeatures: null, // Add if you have this field
       packageType: item.packageType,
-      isActive: item.isActive
+      isActive: item.isActive,
+      displayOrder: item.displayOrder || 0
     }));
 
     logger.info(`Retrieved ${items.length} storefront items`);
@@ -136,7 +137,8 @@ router.get('/:id', async (req, res) => {
       totalSessions: item.totalSessions,
       itemType: item.packageType === 'fixed' ? 'TRAINING_PACKAGE_FIXED' : 'TRAINING_PACKAGE_SUBSCRIPTION',
       packageType: item.packageType,
-      isActive: item.isActive
+      isActive: item.isActive,
+      displayOrder: item.displayOrder || 0
     };
 
     res.json({

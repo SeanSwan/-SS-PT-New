@@ -3,7 +3,7 @@ const isProd = import.meta.env.PROD || import.meta.env.VITE_APP_ENV === 'product
 
 // API URLs
 export const API_BASE_URL = ''; // Empty string relies on proxy for /api paths
-export const DEV_BACKEND_URL = 'http://localhost:5000';
+export const DEV_BACKEND_URL = 'http://localhost:10000';
 export const PROD_BACKEND_URL = 'https://swanstudios.onrender.com';
 
 // Auth configuration

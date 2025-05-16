@@ -75,11 +75,14 @@ authAxiosInstance.interceptors.response.use(
   }
 );
 
-// Setup enhanced mock API interceptor for development environments
-if (process.env.NODE_ENV === 'development') {
+// Setup enhanced mock API interceptor for development environments - DISABLED FOR REAL BACKEND
+// Only enable if explicitly needed for testing
+if (process.env.NODE_ENV === 'development' && import.meta.env.VITE_FORCE_MOCK_MODE === 'true') {
   setupEnhancedMockApiInterceptor(axiosInstance);
   setupEnhancedMockApiInterceptor(authAxiosInstance);
   console.log('🔄 Enhanced mock API interceptor enabled for development (includes storefront support)');
+} else {
+  console.log('🔄 Mock API interceptor DISABLED - using real backend');
 }
 
 export default {
