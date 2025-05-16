@@ -189,7 +189,7 @@ const AdminDashboardLayout = lazyLoadWithErrorHandling(
 
 // Trainer Dashboard Layout (New)
 const TrainerDashboardLayout = lazyLoadWithErrorHandling(
-  () => import('../components/DashBoard/Pages/trainer-dashboard/TrainerDashboardLayout.tsx'),
+  () => import('../components/TrainerDashboard/TrainerDashboardLayout.tsx'),
   'Trainer Dashboard Layout'
 );
 

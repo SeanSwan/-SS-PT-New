@@ -4,6 +4,7 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 
 // Import trainer dashboard components
 import ClientProgressView from '../ClientProgress/ClientProgressView';
+import TrainerDashboard from '../TrainerDashboard';
 // Import the trainer workout management component
 import TrainerWorkoutManagement from '../WorkoutManagement/TrainerWorkoutManagement';
 
@@ -11,41 +12,46 @@ import TrainerWorkoutManagement from '../WorkoutManagement/TrainerWorkoutManagem
  * Trainer Dashboard Home Component
  * Central dashboard view for trainers showing key metrics and navigation
  */
-const TrainerDashboardHome = () => (
+const TrainerDashboardHome = () => <TrainerDashboard />;
+
+/**
+ * My Clients View Component
+ * View and manage assigned clients
+ */
+const MyClientsView = () => (
   <Box sx={{ p: 3 }}>
-    <Typography variant="h4" gutterBottom>Trainer Dashboard</Typography>
+    <Typography variant="h4" gutterBottom>My Clients</Typography>
     <Typography variant="body1" paragraph>
-      Welcome to the trainer dashboard. Manage your clients, workouts, and more from here.
+      View and manage your assigned clients.
     </Typography>
     
     <Box sx={{ 
       p: 3, 
       bgcolor: 'rgba(0, 255, 255, 0.05)',
       borderRadius: 2,
-      mt: 3,
-      mb: 4
+      mt: 3
     }}>
-      <Typography variant="h6" gutterBottom>Quick Navigation</Typography>
+      <Typography variant="h6" gutterBottom>Client Dashboard</Typography>
       <Typography variant="body2">
-        Use the navigation menu to access client progress tracking, workout program management,
-        session scheduling, and more. All client data is synchronized with the MCP server for
-        real-time updates and sharing with the admin dashboard.
+        Access detailed profiles of your assigned clients. View their progress,
+        workout history, and current training programs. Add notes and track their
+        fitness journey. All client data is securely synchronized with the MCP server.
       </Typography>
     </Box>
   </Box>
 );
 
 /**
- * Workout Programs View Component with MCP Integration
- * Full workout management system for trainers
+ * Workout Plans View Component with MCP Integration
+ * Create and manage workout plans for clients
  */
-const WorkoutsView = () => <TrainerWorkoutManagement />;
+const WorkoutPlansView = () => <TrainerWorkoutManagement />;
 
 /**
  * Training Sessions View Component
  * Schedule and manage client training sessions
  */
-const SessionsView = () => (
+const TrainingSessionsView = () => (
   <Box sx={{ p: 3 }}>
     <Typography variant="h4" gutterBottom>Training Sessions</Typography>
     <Typography variant="body1" paragraph>
@@ -58,10 +64,10 @@ const SessionsView = () => (
       borderRadius: 2,
       mt: 3
     }}>
-      <Typography variant="h6" gutterBottom>Calendar Integration</Typography>
+      <Typography variant="h6" gutterBottom>Session Calendar</Typography>
       <Typography variant="body2">
-        This section will display a calendar view of all scheduled sessions with clients.
-        You can add, edit, or cancel sessions directly from the calendar interface.
+        View your training schedule in calendar format. Book new sessions with clients,
+        reschedule existing appointments, and track session completion.
         Sessions are synchronized with the MCP server for client visibility.
       </Typography>
     </Box>
@@ -69,14 +75,14 @@ const SessionsView = () => (
 );
 
 /**
- * Training Packages View Component
- * Manage training packages and offerings
+ * Messages View Component
+ * Manage client communications
  */
-const PackagesView = () => (
+const MessagesView = () => (
   <Box sx={{ p: 3 }}>
-    <Typography variant="h4" gutterBottom>Training Packages</Typography>
+    <Typography variant="h4" gutterBottom>Messages</Typography>
     <Typography variant="body1" paragraph>
-      Manage training packages for clients.
+      Communicate with your clients and manage conversations.
     </Typography>
     
     <Box sx={{ 
@@ -85,92 +91,11 @@ const PackagesView = () => (
       borderRadius: 2,
       mt: 3
     }}>
-      <Typography variant="h6" gutterBottom>Package Management</Typography>
+      <Typography variant="h6" gutterBottom>Client Communications</Typography>
       <Typography variant="body2">
-        This section will allow you to create and manage different training package offerings.
-        Track client purchases, session usage, and package expirations.
-        All package data is synced with the admin dashboard via MCP integration.
-      </Typography>
-    </Box>
-  </Box>
-);
-
-/**
- * Gamification View Component
- * Manage gamification features for clients
- */
-const GamificationView = () => (
-  <Box sx={{ p: 3 }}>
-    <Typography variant="h4" gutterBottom>Gamification</Typography>
-    <Typography variant="body1" paragraph>
-      Manage gamification features for your clients.
-    </Typography>
-    
-    <Box sx={{ 
-      p: 3, 
-      bgcolor: 'rgba(0, 255, 255, 0.05)',
-      borderRadius: 2,
-      mt: 3
-    }}>
-      <Typography variant="h6" gutterBottom>Gamification Tools</Typography>
-      <Typography variant="body2">
-        Create challenges, achievements, and reward systems to increase client engagement.
-        Set up custom badges, milestones, and leaderboards.
-        All gamification data is synchronized with the admin dashboard through MCP integration.
-      </Typography>
-    </Box>
-  </Box>
-);
-
-/**
- * Community View Component
- * Manage community features and interactions
- */
-const CommunityView = () => (
-  <Box sx={{ p: 3 }}>
-    <Typography variant="h4" gutterBottom>Community</Typography>
-    <Typography variant="body1" paragraph>
-      Manage community features and interactions.
-    </Typography>
-    
-    <Box sx={{ 
-      p: 3, 
-      bgcolor: 'rgba(0, 255, 255, 0.05)',
-      borderRadius: 2,
-      mt: 3
-    }}>
-      <Typography variant="h6" gutterBottom>Community Management</Typography>
-      <Typography variant="body2">
-        Create and manage discussion groups, challenges, and events for your clients.
-        Monitor community engagement and foster a supportive environment.
-        All community data syncs with the admin dashboard for comprehensive oversight.
-      </Typography>
-    </Box>
-  </Box>
-);
-
-/**
- * Clients View Component
- * Manage client list and details
- */
-const ClientsView = () => (
-  <Box sx={{ p: 3 }}>
-    <Typography variant="h4" gutterBottom>Client Management</Typography>
-    <Typography variant="body1" paragraph>
-      View and manage your client list.
-    </Typography>
-    
-    <Box sx={{ 
-      p: 3, 
-      bgcolor: 'rgba(0, 255, 255, 0.05)',
-      borderRadius: 2,
-      mt: 3
-    }}>
-      <Typography variant="h6" gutterBottom>Client Database</Typography>
-      <Typography variant="body2">
-        Access detailed client profiles, manage client information, and track client status.
-        Add new clients, update client details, and manage client permissions.
-        All client data is securely stored and synchronized with the admin dashboard via MCP integration.
+        Send messages to your clients, share workout feedback, provide motivation,
+        and answer questions. All messages are stored securely and synchronized
+        across the platform for seamless communication.
       </Typography>
     </Box>
   </Box>
@@ -196,7 +121,7 @@ const LoadingFallback = () => (
  * 
  * Provides routing configuration for the trainer dashboard
  * Ensures that routes match the NavItems in TrainerDashboardLayout
- * Uses the same route structure as AdminDashboardRoutes for consistency
+ * Focused on trainer-specific functionality without admin features
  * Integrates with MCP services for synchronized data across user roles
  */
 const TrainerDashboardRoutes: React.FC = () => {
@@ -205,13 +130,11 @@ const TrainerDashboardRoutes: React.FC = () => {
       <Routes>
         <Route path="/" element={<Navigate to="/trainer/dashboard" replace />} />
         <Route path="/dashboard" element={<TrainerDashboardHome />} />
+        <Route path="/clients" element={<MyClientsView />} />
+        <Route path="/workouts" element={<WorkoutPlansView />} />
+        <Route path="/sessions" element={<TrainingSessionsView />} />
         <Route path="/client-progress" element={<ClientProgressView />} />
-        <Route path="/workouts" element={<WorkoutsView />} />
-        <Route path="/sessions" element={<SessionsView />} />
-        <Route path="/packages" element={<PackagesView />} />
-        <Route path="/gamification" element={<GamificationView />} />
-        <Route path="/community" element={<CommunityView />} />
-        <Route path="/clients" element={<ClientsView />} />
+        <Route path="/messages" element={<MessagesView />} />
         <Route path="*" element={<Navigate to="/trainer/dashboard" replace />} />
       </Routes>
     </Suspense>
