@@ -1,0 +1,355 @@
+/**
+ * Enhanced Responsive Styles
+ * =========================
+ * 
+ * This file provides comprehensive responsive design improvements
+ * across the entire application, ensuring pixel-perfect display
+ * on all device sizes from mobile to ultra-wide screens.
+ */
+
+/* Base responsive viewport settings */
+@viewport {
+  width: device-width;
+  zoom: 1.0;
+  min-zoom: 0.5;
+  max-zoom: 3.0;
+  user-zoom: fixed;
+}
+
+/* Mobile-first responsive grid system */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+/* Fluid typography - scales text size based on viewport width */
+html {
+  font-size: clamp(14px, calc(0.875rem + 0.5vw), 18px);
+}
+
+h1 { font-size: clamp(1.75rem, calc(1.5rem + 2vw), 3rem); }
+h2 { font-size: clamp(1.5rem, calc(1.25rem + 1.5vw), 2.5rem); }
+h3 { font-size: clamp(1.25rem, calc(1.125rem + 1vw), 2rem); }
+h4 { font-size: clamp(1.125rem, calc(1rem + 0.75vw), 1.75rem); }
+h5 { font-size: clamp(1rem, calc(0.875rem + 0.5vw), 1.5rem); }
+
+/* Responsive spacing classes */
+.responsive-margin {
+  margin: clamp(16px, calc(1rem + 1vw), 32px);
+}
+
+.responsive-padding {
+  padding: clamp(16px, calc(1rem + 1vw), 32px);
+}
+
+/* Enhanced container behavior */
+.container {
+  width: 100%;
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: clamp(16px, 5vw, 40px);
+  padding-right: clamp(16px, 5vw, 40px);
+}
+
+/* Fluid sizing utilities */
+.fluid-width {
+  width: clamp(280px, 100%, 1440px);
+}
+
+.fluid-height {
+  height: clamp(200px, 50vh, 600px);
+}
+
+/* Responsive flex layouts */
+.responsive-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: clamp(16px, 3vw, 32px);
+}
+
+.responsive-flex > * {
+  flex: 1 1 clamp(280px, 45%, 100%);
+}
+
+/* Improved image responsiveness */
+.responsive-img {
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+  width: 100%;
+}
+
+/* Enhanced media queries for targeted device support */
+/* Mobile devices */
+@media screen and (max-width: 767px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
+  
+  .mobile-stack {
+    flex-direction: column !important;
+  }
+  
+  .mobile-text-center {
+    text-align: center !important;
+  }
+  
+  .mobile-full-width {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  
+  /* Adjust navigation for mobile */
+  .nav-container {
+    padding: 8px 16px !important;
+  }
+  
+  /* Reduce padding for containers on mobile */
+  .container {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  
+  /* Adjust form elements for better touch targets */
+  input, 
+  select, 
+  button {
+    min-height: 44px; /* Touch-friendly */
+  }
+  
+  /* Ensure table layouts are scrollable on mobile */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Tablets */
+@media screen and (min-width: 768px) and (max-width: 1023px) {
+  .hide-on-tablet {
+    display: none !important;
+  }
+  
+  .tablet-stack {
+    flex-direction: column !important;
+  }
+  
+  /* Adjust grid for tablets */
+  .responsive-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+}
+
+/* Desktops */
+@media screen and (min-width: 1024px) and (max-width: 1439px) {
+  .responsive-grid {
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  }
+}
+
+/* Large screens */
+@media screen and (min-width: 1440px) {
+  .responsive-grid {
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  }
+  
+  /* Enhance readability on large screens */
+  .container {
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+}
+
+/* Ultra-wide screens */
+@media screen and (min-width: 1920px) {
+  html {
+    font-size: 18px; /* Cap font size on ultra-wide screens */
+  }
+  
+  .container {
+    max-width: 1800px; /* Wider container for ultra-wide screens */
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .theme-sensitive-box {
+    background-color: rgba(30, 30, 60, 0.3);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* High contrast mode improvements */
+@media (prefers-contrast: high) {
+  :root {
+    --neon-blue: #00ccff;  /* More visible in high contrast */
+    --royal-purple: #9370db;
+  }
+  
+  body {
+    line-height: 1.7;  /* Improved readability */
+  }
+  
+  a:focus {
+    outline: 3px solid yellow !important;
+  }
+}
+
+/* Portrait/landscape orientation handling */
+@media (orientation: portrait) {
+  .orientation-specific {
+    flex-direction: column;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .compact-header {
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+  }
+  
+  /* Enhance landscape mobile experience */
+  .landscape-mobile-adjust {
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+}
+
+/* Print styles for better paper output */
+@media print {
+  body {
+    font-size: 12pt;
+    color: #000;
+    background: #fff;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  a[href]:after {
+    content: " (" attr(href) ")";
+  }
+}
+
+/* Device-specific fixes */
+/* iPhone SE and other small devices */
+@media screen and (max-width: 375px) {
+  .xs-device-adjust {
+    font-size: 0.875rem !important;
+  }
+  
+  .xs-button {
+    padding: 6px 12px !important;
+    font-size: 0.875rem !important;
+  }
+}
+
+/* Handle older browsers that don't support newer CSS features */
+@supports not (display: grid) {
+  .responsive-grid {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  
+  .responsive-grid > * {
+    flex: 0 0 100%;
+    margin-bottom: 16px;
+  }
+  
+  @media screen and (min-width: 768px) {
+    .responsive-grid > * {
+      flex: 0 0 calc(50% - 16px);
+      margin-right: 16px;
+    }
+  }
+  
+  @media screen and (min-width: 1024px) {
+    .responsive-grid > * {
+      flex: 0 0 calc(33.333% - 16px);
+    }
+  }
+}
+
+/* Helper classes for flexbox layouts */
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.justify-center {
+  justify-content: center;
+}
+
+.align-center {
+  align-items: center;
+}
+
+.space-between {
+  justify-content: space-between;
+}
+
+.gap-small {
+  gap: 8px;
+}
+
+.gap-medium {
+  gap: 16px;
+}
+
+.gap-large {
+  gap: 24px;
+}
+
+/* MUI integration enhancements */
+/* Help MUI components behave better in responsive layouts */
+.MuiDialog-paper {
+  width: calc(100% - 32px) !important;
+  max-width: 600px !important;
+  max-height: calc(100% - 64px) !important;
+  margin: 16px !important;
+}
+
+@media screen and (max-width: 599px) {
+  .MuiDialog-paper {
+    margin: 8px !important;
+    width: calc(100% - 16px) !important;
+  }
+}
+
+.MuiDataGrid-root .MuiDataGrid-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Fix for responsive tables */
+.responsive-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}

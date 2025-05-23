@@ -1,0 +1,25 @@
+GET http://localhost:5000/api/auth/validate-token
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwicm9sZSI6InVzZXIiLCJpYXQiOjE3MzkzNDM0ODQsImV4cCI6MTczOTM1NDI4NH0.Zya4LnKqV75UwQl3cDrkjRIdxUMM9Q5xkTK24_UBHEU
+
+### Submit Orientation Form
+POST http://localhost:5000/api/orientation/signup
+Content-Type: application/json
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+{
+  "fullName": "John Doe",
+  "email": "johndoe@example.com",
+  "phone": "555-123-4567",
+  "healthInfo": "No significant health issues. Occasional back pain.",
+  "waiverInitials": "JD",
+  "trainingGoals": "Weight loss and muscle toning",
+  "experienceLevel": "Beginner"
+}
+
+### Get Orientation Data for User
+GET http://localhost:5000/api/orientation/user/USER_ID_HERE
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### Get All Orientations (Admin Only)
+GET http://localhost:5000/api/orientation/all
+Authorization: Bearer YOUR_JWT_TOKEN_HERE

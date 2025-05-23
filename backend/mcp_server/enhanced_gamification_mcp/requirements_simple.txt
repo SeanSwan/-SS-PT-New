@@ -1,0 +1,22 @@
+# Enhanced Gamification MCP Server Requirements - Python 3.13 Compatible
+# Core web framework
+fastapi
+uvicorn[standard]
+
+# HTTP client
+requests
+
+# Data processing and ML
+numpy
+scikit-learn
+joblib
+
+# Redis for caching (optional)
+redis
+
+# Database support  
+pydantic
+
+# Additional dependencies
+python-multipart
+python-dotenv

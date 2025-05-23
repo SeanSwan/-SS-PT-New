@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwanStudios Auth Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-card {
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .result {
+            background-color: #f5f5f5;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        input {
+            padding: 8px;
+            margin: 5px 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+    <h1>SwanStudios Auth Test Page</h1>
+    <p>Use this page to test API connectivity and authentication.</p>
+    
+    <div class="test-card">
+        <h2>1. Health Check</h2>
+        <button onclick="checkHealth()">Test Health Endpoint</button>
+        <div id="health-result" class="result">Results will appear here...</div>
+    </div>
+    
+    <div class="test-card">
+        <h2>2. CORS Test</h2>
+        <button onclick="testCORS()">Test CORS</button>
+        <div id="cors-result" class="result">Results will appear here...</div>
+    </div>
+    
+    <div class="test-card">
+        <h2>3. Auth Debug</h2>
+        <button onclick="testAuthDebug()">Test Auth Debug</button>
+        <div id="auth-debug-result" class="result">Results will appear here...</div>
+    </div>
+    
+    <div class="test-card">
+        <h2>4. Login Test</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="testLogin()">Test Login</button>
+        <div id="login-result" class="result">Results will appear here...</div>
+    </div>
+    
+    <div class="test-card">
+        <h2>5. Registration Test</h2>
+        <input type="text" id="reg-username" placeholder="Username">
+        <input type="text" id="reg-email" placeholder="Email">
+        <input type="password" id="reg-password" placeholder="Password">
+        <input type="text" id="reg-firstName" placeholder="First Name">
+        <input type="text" id="reg-lastName" placeholder="Last Name">
+        <button onclick="testRegistration()">Test Registration</button>
+        <div id="registration-result" class="result">Results will appear here...</div>
+    </div>
+    
+    <div class="test-card">
+        <h2>6. Echo Test</h2>
+        <button onclick="testEcho()">Test Echo Endpoint</button>
+        <div id="echo-result" class="result">Results will appear here...</div>
+    </div>
+
+    <script>
+        // Base URL for API requests
+        const API_BASE_URL = window.location.origin;
+        
+        async function makeRequest(url, method = 'GET', data = null) {
+            const options = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include'
+            };
+            
+            if (data && (method === 'POST' || method === 'PUT')) {
+                options.body = JSON.stringify(data);
+            }
+            
+            try {
+                console.log(`Making ${method} request to ${url}`);
+                const startTime = Date.now();
+                const response = await fetch(url, options);
+                const endTime = Date.now();
+                
+                let responseData;
+                try {
+                    responseData = await response.json();
+                } catch (e) {
+                    responseData = { error: 'Failed to parse JSON response' };
+                }
+                
+                return {
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: responseData,
+                    headers: Object.fromEntries([...response.headers.entries()]),
+                    time: endTime - startTime
+                };
+            } catch (error) {
+                console.error('Request error:', error);
+                return {
+                    error: error.message,
+                    stack: error.stack
+                };
+            }
+        }
+        
+        function formatResult(result) {
+            return JSON.stringify(result, null, 2);
+        }
+        
+        async function checkHealth() {
+            const resultElement = document.getElementById('health-result');
+            resultElement.textContent = 'Testing...';
+            
+            const result = await makeRequest(`${API_BASE_URL}/health`);
+            resultElement.textContent = formatResult(result);
+        }
+        
+        async function testCORS() {
+            const resultElement = document.getElementById('cors-result');
+            resultElement.textContent = 'Testing...';
+            
+            const result = await makeRequest(`${API_BASE_URL}/api/debug/cors-test`);
+            resultElement.textContent = formatResult(result);
+        }
+        
+        async function testAuthDebug() {
+            const resultElement = document.getElementById('auth-debug-result');
+            resultElement.textContent = 'Testing...';
+            
+            const result = await makeRequest(`${API_BASE_URL}/api/debug/auth-check`);
+            resultElement.textContent = formatResult(result);
+        }
+        
+        async function testLogin() {
+            const resultElement = document.getElementById('login-result');
+            resultElement.textContent = 'Testing...';
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                resultElement.textContent = 'Please enter both username and password';
+                return;
+            }
+            
+            const result = await makeRequest(`${API_BASE_URL}/api/auth/login`, 'POST', {
+                username,
+                password
+            });
+            
+            resultElement.textContent = formatResult(result);
+        }
+        
+        async function testRegistration() {
+            const resultElement = document.getElementById('registration-result');
+            resultElement.textContent = 'Testing...';
+            
+            const username = document.getElementById('reg-username').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            const firstName = document.getElementById('reg-firstName').value;
+            const lastName = document.getElementById('reg-lastName').value;
+            
+            if (!username || !email || !password || !firstName || !lastName) {
+                resultElement.textContent = 'Please fill in all registration fields';
+                return;
+            }
+            
+            const result = await makeRequest(`${API_BASE_URL}/api/auth/register`, 'POST', {
+                username,
+                email,
+                password,
+                firstName,
+                lastName
+            });
+            
+            resultElement.textContent = formatResult(result);
+        }
+        
+        async function testEcho() {
+            const resultElement = document.getElementById('echo-result');
+            resultElement.textContent = 'Testing...';
+            
+            const result = await makeRequest(`${API_BASE_URL}/api/debug/echo`, 'POST', {
+                testData: 'This is a test',
+                timestamp: new Date().toISOString()
+            });
+            
+            resultElement.textContent = formatResult(result);
+        }
+    </script>
+</body>
+</html>

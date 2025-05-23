@@ -1,0 +1,168 @@
+/* Visual softening to add appropriate spacing throughout the site */
+
+/* Add subtle margins to all main containers */
+.container,
+section,
+main,
+.content,
+.page-container {
+  padding: 0 20px !important;
+  margin: 0 auto !important;
+  max-width: 1600px !important;
+}
+
+/* Add subtle rounded corners to many elements */
+button,
+.btn,
+.card,
+input,
+select,
+textarea,
+.menu-item,
+.dropdown-content,
+img {
+  border-radius: 8px !important;
+}
+
+/* Add subtle box shadows for depth */
+.card,
+button:hover,
+.btn:hover,
+.dropdown-content,
+.menu {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Soften the background with a subtle gradient overlay */
+#root::before,
+.app-root::before {
+  content: '' !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: radial-gradient(circle at top right, rgba(0, 255, 255, 0.05), transparent 70%),
+              radial-gradient(circle at bottom left, rgba(120, 81, 169, 0.05), transparent 70%) !important;
+  pointer-events: none !important;
+  z-index: -1 !important;
+}
+
+/* Add smooth transitions to all interactive elements */
+a, button, input, select, textarea, .card, .menu-item {
+  transition: all 0.3s ease !important;
+}
+
+/* General content spacing */
+p {
+  margin-bottom: 1em !important;
+  line-height: 1.6 !important;
+}
+
+/* Add subtle spacing between sections */
+section + section {
+  margin-top: 40px !important;
+}
+
+/* Make sure content has breathing room */
+.content-container,
+.page-content {
+  padding: 20px !important;
+}
+
+/* Hero section improvements */
+.hero-section,
+.HeroContainer {
+  padding: 40px 20px !important; /* Add horizontal padding */
+}
+
+/* Make images and videos have subtle rounded corners */
+img, video {
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+/* Add subtle borders to cards and containers */
+.card,
+.container-with-border {
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Button styles with proper padding */
+.btn, 
+button {
+  padding: 10px 20px !important;
+  margin: 5px !important;
+}
+
+/* General margin for all block elements */
+h1, h2, h3, h4, h5, h6, p, ul, ol, figure {
+  margin-bottom: 0.8em !important;
+}
+
+/* Soften edges of the main content area */
+main, .main-content {
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  background: rgba(10, 10, 30, 0.2) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  margin: 15px !important;
+}
+
+/* Add subtle padding to the overall container */
+.app-root {
+  padding: 15px !important;
+  box-sizing: border-box !important;
+}
+
+/* Make the main content have proper vertical spacing */
+.main-content > * + * {
+  margin-top: 20px !important;
+}
+
+/* Better spacing for card groups */
+.card-group {
+  display: grid !important;
+  gap: 20px !important;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
+  padding: 15px !important;
+}
+
+/* Add subtle separators between sections */
+.section-separator {
+  height: 1px !important;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.1), transparent) !important;
+  margin: 40px 0 !important;
+}
+
+/* Form field spacing */
+form > * + * {
+  margin-top: 15px !important;
+}
+
+/* Container width limits for better readability */
+.container {
+  max-width: 1400px !important;
+  margin: 0 auto !important;
+}
+
+.container-sm {
+  max-width: 768px !important;
+  margin: 0 auto !important;
+}
+
+.container-md {
+  max-width: 992px !important;
+  margin: 0 auto !important;
+}
+
+.container-lg {
+  max-width: 1200px !important;
+  margin: 0 auto !important;
+}
+
+/* Text block max width for improved readability */
+p, .text-block {
+  max-width: 70ch !important; /* Approximately 70 characters per line */
+}

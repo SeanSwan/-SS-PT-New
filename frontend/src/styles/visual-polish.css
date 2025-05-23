@@ -1,0 +1,294 @@
+/* Visual polish to achieve an Apple-like UI refinement */
+
+/* Consistent spacing scale */
+:root {
+  --space-xs: 0.25rem;  /* 4px */
+  --space-sm: 0.5rem;   /* 8px */
+  --space-md: 1rem;     /* 16px */
+  --space-lg: 1.5rem;   /* 24px */
+  --space-xl: 2rem;     /* 32px */
+  --space-xxl: 3rem;    /* 48px */
+  
+  /* Refined color palette */
+  --neon-blue: rgba(0, 255, 255, 1);
+  --neon-blue-soft: rgba(0, 255, 255, 0.8);
+  --neon-blue-glow: rgba(0, 255, 255, 0.2);
+  --royal-purple: rgba(120, 81, 169, 1);
+  --royal-purple-soft: rgba(120, 81, 169, 0.8);
+  --royal-purple-glow: rgba(120, 81, 169, 0.2);
+  
+  /* Background gradients */
+  --bg-gradient-primary: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  --bg-gradient-card: linear-gradient(135deg, rgba(15, 15, 35, 0.7), rgba(30, 30, 60, 0.7));
+  
+  /* Box-shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.3), 0 6px 12px rgba(0, 0, 0, 0.2);
+  --shadow-glow-blue: 0 0 15px rgba(0, 255, 255, 0.4);
+  --shadow-glow-purple: 0 0 15px rgba(120, 81, 169, 0.4);
+  
+  /* Border-radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+}
+
+/* Refined container spacing */
+.container {
+  padding: var(--space-md);
+  margin: 0 auto;
+}
+
+/* Section spacing */
+section {
+  padding: var(--space-xl) 0;
+  position: relative;
+}
+
+/* Card styling */
+.card {
+  background: var(--bg-gradient-card);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-md);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: var(--space-lg);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Button refinements */
+.btn {
+  padding: var(--space-sm) var(--space-lg);
+  border-radius: var(--radius-md);
+  border: none;
+  background: linear-gradient(135deg, var(--neon-blue), var(--royal-purple));
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    to bottom right,
+    rgba(255, 255, 255, 0.2),
+    rgba(255, 255, 255, 0)
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.btn:hover {
+  box-shadow: var(--shadow-glow-blue);
+  transform: translateY(-2px);
+}
+
+.btn:hover:before {
+  opacity: 1;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+/* Secondary button variant */
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Icon refinements */
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+/* Icon button */
+.icon-btn {
+  border-radius: var(--radius-full);
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  box-shadow: var(--shadow-glow-blue);
+  transform: translateY(-2px);
+}
+
+/* Dividers */
+.divider {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.1), transparent);
+  margin: var(--space-lg) 0;
+}
+
+/* Improved image styling */
+img {
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+
+/* Logo container */
+.logo-container {
+  display: flex;
+  align-items: center;
+}
+
+.logo-container img {
+  filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.4));
+}
+
+/* Footer refinements */
+footer {
+  background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
+  padding: var(--space-xl) 0 var(--space-lg);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Header refinements */
+header {
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+/* Navigation links */
+nav a {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  transition: all 0.3s ease;
+}
+
+nav a:hover, nav a.active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Motion refinements (subtle animations) */
+.fade-in {
+  animation: fadeIn 0.6s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Hero section polish */
+.hero-section {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+/* Add subtle grain texture overlay */
+.grain-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 2000;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 800 800' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+}
+
+/* Section dividers with enhanced visual style */
+.section-divider {
+  position: relative;
+  height: 100px;
+  margin: var(--space-xl) 0;
+  overflow: hidden;
+}
+
+.section-divider:before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--neon-blue-soft), var(--royal-purple-soft), transparent);
+}
+
+.section-divider:after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  background: var(--neon-blue);
+  border-radius: 50%;
+  box-shadow: 0 0 15px 5px var(--neon-blue-glow);
+}
+
+/* Container max-widths with proper spacing */
+@media (min-width: 576px) {
+  .container {
+    max-width: 540px;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 720px;
+  }
+}
+
+@media (min-width: 992px) {
+  .container {
+    max-width: 960px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .container {
+    max-width: 1140px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .container {
+    max-width: 1320px;
+  }
+}

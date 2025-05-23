@@ -1,0 +1,95 @@
+/* Fix for header spacing and alignment issues */
+
+/* Add proper spacing around the header and logo */
+.header-container,
+header {
+  padding: 0 20px !important;
+  box-sizing: border-box !important;
+}
+
+/* Fix logo spacing */
+.logo-container,
+.logo-text,
+.header-logo {
+  margin-left: 15px !important;
+  padding-left: 5px !important;
+}
+
+/* Center align navigation links with proper spacing */
+.nav-link,
+.StyledNavLink,
+nav a {
+  position: relative !important;
+  margin: 0 10px !important;
+  padding: 8px 12px !important;
+  text-align: center !important;
+}
+
+/* Add proper underline positioning for links */
+.nav-link::after,
+.StyledNavLink::after,
+nav a::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: 100% !important; /* Make underline full width of text */
+  height: 2px !important;
+  background: var(--neon-blue, #00ffff) !important;
+  transform: scaleX(0) !important; /* Initially hidden */
+  transform-origin: center !important;
+  transition: transform 0.3s ease !important;
+}
+
+/* Show underline on hover and active state */
+.nav-link:hover::after,
+.nav-link.active::after,
+.StyledNavLink:hover::after,
+.StyledNavLink.active::after,
+nav a:hover::after,
+nav a.active::after {
+  transform: scaleX(1) !important; /* Show full underline */
+}
+
+/* Add proper spacing to the overall header */
+.MuiToolbar-root,
+.Toolbar,
+.header-content {
+  padding: 0 15px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  height: 100% !important;
+}
+
+/* Fix for header logo and text spacing */
+.logo-text,
+.LogoText,
+.header-logo span {
+  margin-left: 8px !important;
+  margin-right: 15px !important;
+}
+
+/* Add soft drop shadow to header for visual separation */
+.HeaderContainer,
+.MuiAppBar-root,
+header {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Header container overall spacing */
+.HeaderContainer,
+.MuiAppBar-root,
+header {
+  height: 80px !important;
+  display: flex !important;
+  align-items: center !important;
+  padding: 0 20px !important;
+}
+
+/* Add slight padding to the page content below header */
+main,
+.content,
+.MainContent {
+  padding-top: 15px !important;
+}

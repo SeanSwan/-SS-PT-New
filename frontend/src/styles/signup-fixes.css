@@ -1,0 +1,100 @@
+/**
+ * signup-fixes.css
+ * ===============
+ * 
+ * Specific fixes for the signup form to ensure proper display
+ * and scrolling behavior across all devices.
+ */
+
+/* Fix for overall viewport height issues */
+html, body {
+  height: 100%;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Add padding to the top of auth content */
+.auth-layout-content {
+  padding-top: 30px !important;
+}
+
+/* Fix iOS 100vh bug */
+@supports (-webkit-touch-callout: none) {
+  .auth-layout-container {
+    min-height: -webkit-fill-available;
+    max-height: -webkit-fill-available;
+  }
+  
+  .auth-layout-content {
+    height: calc(-webkit-fill-available - 40px);
+  }
+}
+
+/* Form container adjustments */
+.form-wrapper {
+  width: 95%;
+  max-width: 500px;
+  margin: 30px auto 0; /* Added top margin */
+  padding: 20px 15px 30px;
+  background: rgba(18, 18, 35, 0.85);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+  position: relative;
+}
+
+/* Make form fields touch-friendly on mobile */
+@media (max-width: 768px) {
+  input, select, button {
+    font-size: 16px !important; /* Prevents iOS zoom */
+    min-height: 44px; /* Ensures touch targets are large enough */
+  }
+  
+  /* Adjust vertical spacing */
+  .form-section {
+    margin-bottom: 15px;
+    padding: 15px;
+  }
+  
+  .input-wrapper {
+    margin-bottom: 12px;
+  }
+  
+  /* Make sure units are visible on iOS */
+  .unit-label {
+    padding: 10px 8px !important;
+    font-size: 14px !important;
+  }
+  
+  /* Ensure full visibility of height input group */
+  .height-input-group {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+  }
+  
+  /* Better tap targets for close button */
+  .close-button {
+    width: 44px !important;
+    height: 44px !important;
+  }
+  
+  /* Make sure everything fits */
+  .form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+/* Fix for extra space at the bottom on some browsers */
+.auth-layout-container {
+  padding-bottom: 0 !important;
+}
+
+/* Fix for scrolling on older browsers */
+@supports not (overflow-y: overlay) {
+  .auth-layout-content {
+    padding-right: 10px;
+  }
+}

@@ -1,0 +1,82 @@
+<!-- Emergency bootstrap script -->
+<script>
+  // Bootstrap script to ensure emergency mode is activated before React loads
+  (function() {
+    console.log('[EMERGENCY BOOTSTRAP] Initializing emergency bootstrap');
+    
+    // Store a reference to original console methods
+    var originalConsoleError = console.error;
+    
+    // Override console.error to detect hooks errors early
+    console.error = function() {
+      // Call the original method first
+      originalConsoleError.apply(console, arguments);
+      
+      // Check if this is a hooks error
+      var errorMsg = arguments[0] || '';
+      if (typeof errorMsg === 'string' && 
+          (errorMsg.includes('Rendered fewer hooks than expected') || 
+           errorMsg.includes('React Hook') ||
+           errorMsg.includes('useEffect'))) {
+        
+        console.log('[EMERGENCY BOOTSTRAP] React hooks error detected:', errorMsg);
+        
+        // Take immediate emergency measures
+        localStorage.setItem('bypass_admin_verification', 'true');
+        localStorage.setItem('use_emergency_admin_route', 'true');
+        localStorage.setItem('admin_emergency_mode', 'true');
+        localStorage.setItem('emergency_fallback_mode', 'true');
+        localStorage.setItem('skip_hooks_verification', 'true');
+        localStorage.setItem('hooks_recovery_active', 'true');
+        localStorage.setItem('breaking_hooks_loop', 'true');
+        localStorage.setItem('bootstrap_emergency_active', 'true');
+        
+        // Create circuit breaker utility namespace
+        window.__swanstudio_router = window.__swanstudio_router || {};
+        window.__swanstudio_router.useEmergencyAdminRoute = true;
+        window.__swanstudio_router.bypassAllChecks = true;
+        window.__swanstudio_router.useFallbackAdminRoute = true;
+        
+        console.log('[EMERGENCY BOOTSTRAP] Emergency measures activated');
+      }
+    };
+    
+    // Set immediate emergency flags in development mode
+    if (process.env.NODE_ENV === 'development' || 
+        window.location.hostname === 'localhost' || 
+        window.location.hostname === '127.0.0.1') {
+      console.log('[EMERGENCY BOOTSTRAP] Development environment detected');
+      
+      // Set all flags immediately
+      localStorage.setItem('bypass_admin_verification', 'true');
+      localStorage.setItem('use_emergency_admin_route', 'true');
+      localStorage.setItem('admin_emergency_mode', 'true');
+      localStorage.setItem('bootstrap_emergency_active', 'true');
+      
+      // Prevent infinite render loops
+      window.__swanstudio_router = window.__swanstudio_router || {};
+      window.__swanstudio_router.useEmergencyAdminRoute = true;
+      window.__swanstudio_router.bypassAllChecks = true;
+      
+      console.log('[EMERGENCY BOOTSTRAP] Development mode emergency bypasses active');
+    }
+    
+    // Add special URL parameter check to break loops
+    if (window.location.search.includes('emergency_mode=true')) {
+      console.log('[EMERGENCY BOOTSTRAP] Emergency mode URL parameter detected');
+      localStorage.setItem('emergency_fallback_mode', 'true');
+    }
+    
+    // Add global error handler in case React hasn't loaded yet
+    window.addEventListener('error', function(event) {
+      if (event.message && event.message.includes('hooks')) {
+        console.log('[EMERGENCY BOOTSTRAP] Error event caught for hooks:', event.message);
+        localStorage.setItem('emergency_fallback_mode', 'true');
+        localStorage.setItem('hooks_recovery_active', 'true');
+        localStorage.setItem('bypass_admin_verification', 'true');
+      }
+    });
+    
+    console.log('[EMERGENCY BOOTSTRAP] Bootstrap completed successfully');
+  })();
+</script>

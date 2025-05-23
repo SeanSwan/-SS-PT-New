@@ -1,0 +1,120 @@
+/* Fix for footer spacing and cut-off issues */
+
+/* Add proper spacing to the footer top to avoid cut-off */
+footer,
+.FooterContainer,
+.footer {
+  margin-top: 30px !important;
+  position: relative !important;
+  padding-top: 40px !important; /* Increase top padding to avoid content being cut off */
+  width: 100% !important;
+  overflow: visible !important; /* Ensure content isn't cut off */
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important; /* Add a subtle top border */
+}
+
+/* Add a decorative element at the top of the footer for visual separation */
+footer::before,
+.FooterContainer::before,
+.footer::before {
+  content: '' !important;
+  position: absolute !important;
+  top: -1px !important; /* Position it right at the top edge */
+  left: 0 !important;
+  right: 0 !important;
+  height: 1px !important;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(0, 255, 255, 0.5), 
+    rgba(120, 81, 169, 0.5),
+    transparent
+  ) !important;
+  z-index: 1 !important;
+}
+
+/* Add top margin to footer sections so they don't touch the top border */
+.footer-section,
+.FooterContent > div,
+.footer-column {
+  margin-top: 15px !important;
+}
+
+/* Footer content overall spacing */
+.footer-content,
+.FooterContent,
+footer > div {
+  padding: 0 30px !important;
+  box-sizing: border-box !important;
+  max-width: 1400px !important;
+  margin: 0 auto !important;
+}
+
+/* Footer overall layout */
+footer {
+  background: linear-gradient(to bottom, rgba(10, 10, 30, 0.7), rgba(10, 10, 30, 0.95)) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+/* Footer headings */
+footer h4,
+.footer-column h4,
+.FooterHeading {
+  margin-bottom: 20px !important;
+  position: relative !important;
+}
+
+/* Add decorative underline to footer headings */
+footer h4::after,
+.footer-column h4::after,
+.FooterHeading::after {
+  content: '' !important;
+  position: absolute !important;
+  bottom: -8px !important;
+  left: 0 !important;
+  width: 40px !important;
+  height: 2px !important;
+  background: linear-gradient(to right, #00ffff, #7851a9) !important;
+}
+
+/* Footer links improved spacing */
+footer a,
+.footer-links a,
+.FooterNav a {
+  display: block !important;
+  margin-bottom: 10px !important;
+  position: relative !important;
+  padding-left: 0 !important;
+  transition: all 0.3s ease !important;
+}
+
+/* Footer contact info spacing */
+.contact-item,
+.ContactItem,
+.contact-info {
+  margin-bottom: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Copyright section */
+.copyright,
+.Copyright,
+.footer-bottom {
+  margin-top: 30px !important;
+  padding-top: 20px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Make sure footer doesn't have any hidden overflow */
+#root,
+body,
+html {
+  overflow-x: visible !important;
+  min-height: 100vh !important;
+}
+
+/* Add a subtle shadow to the bottom of the main content section */
+main, .content {
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1) !important;
+}

@@ -1,0 +1,203 @@
+/* Final layout fixes for SwanStudios site */
+
+/* ====== HEADER FIXES ====== */
+/* Make header flush with top of viewport */
+header, 
+.header, 
+.MuiAppBar-root, 
+.HeaderContainer {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100vw !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* ====== HERO SECTION FIXES ====== */
+/* Make video full width */
+.hero-section,
+.HeroContainer,
+section:first-of-type {
+  width: 100vw !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  position: relative !important;
+}
+
+/* Ensure video background fills the entire width */
+.hero-background,
+.VideoBackground,
+.hero-section > div:first-child,
+.video-container {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  z-index: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Make video element fill the container */
+.hero-background video,
+.VideoBackground video,
+.hero-section video,
+.video-container video {
+  width: 100vw !important;
+  max-width: none !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+}
+
+/* ====== FOOTER FIXES ====== */
+/* Make footer full width and reduce size */
+footer,
+.footer,
+.FooterContainer {
+  width: 100vw !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 30px 20px 20px !important; /* Reduced top padding */
+  box-sizing: border-box !important;
+  font-size: 0.9em !important; /* Reduce overall font size */
+}
+
+/* Make all footer text smaller */
+footer *,
+.footer *,
+.FooterContainer * {
+  font-size: 0.9em !important; /* 2px smaller text */
+}
+
+/* Footer headings - slightly larger than other text but still smaller overall */
+footer h4,
+.footer h4,
+.FooterHeading {
+  font-size: 1em !important; /* Slightly larger than regular footer text */
+  margin-bottom: 0.8em !important; /* Reduced margin */
+}
+
+/* Footer content grid with reduced spacing */
+.footer-content,
+footer > div,
+.FooterContainer > div {
+  gap: 20px !important; /* Reduced gap */
+  padding: 0 !important;
+}
+
+/* Footer links with reduced spacing */
+.footer-links a,
+footer a,
+.FooterNav a,
+.contact-info,
+.ContactItem {
+  margin-bottom: 8px !important; /* Reduced spacing between items */
+}
+
+/* Social icons smaller */
+.social-icons,
+.SocialIcons {
+  gap: 10px !important;
+}
+
+.social-icon,
+.SocialIcon {
+  width: 32px !important;
+  height: 32px !important;
+}
+
+/* Footer bottom section with copyright - reduce spacing */
+.copyright,
+.footer-bottom,
+.Copyright {
+  margin-top: 25px !important;
+  padding-top: 15px !important;
+}
+
+/* ====== GLOBAL FIXES ====== */
+/* Remove all margins/padding at top of page */
+html, 
+body, 
+#root {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100vw !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+/* Remove any traces of the color bars */
+body::before,
+body::after,
+html::before,
+html::after {
+  display: none !important;
+  content: none !important;
+  height: 0 !important;
+}
+
+/* Ensure content sits below fixed header */
+main,
+.content,
+.main-content {
+  margin-top: 80px !important; /* Header height */
+  width: 100vw !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+}
+
+/* Fix any remaining width issues */
+.container,
+section,
+.MuiContainer-root {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Fix for any horizontal scrolling issues */
+* {
+  max-width: 100vw !important;
+  box-sizing: border-box !important;
+}
+
+/* Ensure all content is visible - fix any overflow issues */
+.overflow-hidden,
+[style*="overflow: hidden"],
+[style*="overflow:hidden"] {
+  overflow-y: visible !important;
+}
+
+/* Ensure footer stays at bottom even with little content */
+#root,
+.app-root {
+  min-height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+main,
+.content,
+.main-content {
+  flex: 1 0 auto !important;
+}
+
+footer,
+.footer,
+.FooterContainer {
+  flex-shrink: 0 !important;
+}

@@ -1,0 +1,44 @@
+/**
+ * auth-page-fixes.css
+ * ==================
+ * 
+ * Fixes for authentication pages to improve layout and spacing
+ */
+
+/* Remove extra bottom margin that creates white space */
+body {
+  margin-bottom: 0 !important;
+}
+
+/* Ensure auth container takes full height but not more */
+.auth-layout-container {
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Ensure content doesn't overflow and create scrollbars */
+.auth-layout-content {
+  height: calc(100vh - 40px); /* 40px for the compact footer */
+  overflow-y: auto;
+  padding: 40px 0 20px; /* Increased top padding */
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Ensure compact footer sticks to bottom without extra space */
+.compact-footer {
+  margin-top: auto !important;
+  padding: 10px 20px !important;
+  height: 40px !important;
+}
+
+/* Fix for signup/login forms */
+.auth-form-wrapper {
+  margin: 0 auto;
+  max-height: calc(100vh - 60px); /* Account for compact footer */
+  overflow-y: auto;
+}
