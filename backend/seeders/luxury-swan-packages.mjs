@@ -1,6 +1,9 @@
 /**
  * SwanStudios Session Packages - Luxury Swan & Rare Elements Theme
  * =============================================================
+ * ⚠️  WARNING: This seeder is for DEVELOPMENT ONLY
+ * ⚠️  For PRODUCTION, use luxury-swan-packages-production.mjs instead
+ * ⚠️  Theme field has been removed for database compatibility
  * Creates 8 session packages with elegant names that combine rare elements
  * with swan themes, creating subtle aspiration toward higher tiers.
  * 
@@ -50,7 +53,7 @@ async function seedLuxuryPackages() {
         pricePerSession: 175.00,
         totalCost: 175.00,
         price: 175.00,
-        theme: 'cosmic',
+        // theme: 'cosmic', // Removed for production compatibility
         isActive: true,
         displayOrder: 1
       },
@@ -62,7 +65,7 @@ async function seedLuxuryPackages() {
         pricePerSession: 170.00,
         totalCost: 1360.00,
         price: 1360.00,
-        theme: 'purple',
+        // theme: 'purple', // Removed for production compatibility
         isActive: true,
         displayOrder: 2
       },
@@ -74,7 +77,7 @@ async function seedLuxuryPackages() {
         pricePerSession: 165.00,
         totalCost: 3300.00,
         price: 3300.00,
-        theme: 'emerald',
+        // theme: 'emerald', // Removed for production compatibility
         isActive: true,
         displayOrder: 3
       },
@@ -86,7 +89,7 @@ async function seedLuxuryPackages() {
         pricePerSession: 160.00,
         totalCost: 8000.00,
         price: 8000.00,
-        theme: 'ruby',
+        // theme: 'ruby', // Removed for production compatibility
         isActive: true,
         displayOrder: 4
       },
@@ -100,7 +103,7 @@ async function seedLuxuryPackages() {
         pricePerSession: 155.00,
         totalCost: 8060.00,
         price: 8060.00,
-        theme: 'cosmic',
+        // theme: 'cosmic', // Removed for production compatibility
         isActive: true,
         displayOrder: 5
       },
@@ -114,7 +117,7 @@ async function seedLuxuryPackages() {
         pricePerSession: 150.00,
         totalCost: 15600.00,
         price: 15600.00,
-        theme: 'purple',
+        // theme: 'purple', // Removed for production compatibility
         isActive: true,
         displayOrder: 6
       },
@@ -128,7 +131,7 @@ async function seedLuxuryPackages() {
         pricePerSession: 145.00,
         totalCost: 22620.00,
         price: 22620.00,
-        theme: 'emerald',
+        // theme: 'emerald', // Removed for production compatibility
         isActive: true,
         displayOrder: 7
       },
@@ -142,7 +145,7 @@ async function seedLuxuryPackages() {
         pricePerSession: 140.00,
         totalCost: 29120.00,
         price: 29120.00,
-        theme: 'ruby',
+        // theme: 'ruby', // Removed for production compatibility
         isActive: true,
         displayOrder: 8
       }
@@ -192,7 +195,7 @@ async function seedLuxuryPackages() {
       
       console.log(`${index + 1}. 💎 ${pkg.name}`);
       console.log(`   💰 $${pkg.totalCost} • ${sessionsText} @ $${pkg.pricePerSession}/session`);
-      console.log(`   🎨 ${pkg.theme} theme • ✨ ${element} elegance`);
+      console.log(`   ✨ ${element} elegance • 🎯 Premium positioning`);
       console.log('');
     });
     
