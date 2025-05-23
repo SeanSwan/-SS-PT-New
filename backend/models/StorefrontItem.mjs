@@ -3,9 +3,12 @@ import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
 
 /**
- * StorefrontItem Model (Updated to match migration)
- * Uses STRING for ENUM types with validation, FLOAT for currency.
+ * StorefrontItem Model (Production-Compatible)
+ * Uses STRING for ENUM types with validation, DECIMAL for currency precision.
  * Includes Stripe and isActive fields.
+ * 
+ * NOTE: theme field removed for production compatibility
+ * Production database doesn't have theme column - removed to prevent seeding errors
  */
 class StorefrontItem extends Model {
    // NOTE: Seeding logic is best handled by dedicated seeder files in `backend/seeders/`
@@ -122,17 +125,8 @@ StorefrontItem.init({
       }
     }
   },
-  theme: {
-    type: DataTypes.STRING, // Model uses STRING
-    allowNull: true,
-    defaultValue: 'cosmic',
-    validate: {
-      isIn: {
-        args: [['cosmic', 'purple', 'ruby', 'emerald']], // Enforced by model
-        msg: "Invalid theme specified"
-      }
-    }
-  },
+  // theme field removed for production compatibility
+  // Production database doesn't have theme column
   // Added Fields
   stripeProductId: {
     type: DataTypes.STRING,
