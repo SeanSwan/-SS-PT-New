@@ -6,7 +6,7 @@
  */
 
 import logger from './utils/logger.mjs';
-import seedLuxuryPackages from './seeders/luxury-swan-packages.mjs';
+import seedLuxuryPackagesProduction from './seeders/luxury-swan-packages-production.mjs';
 
 /**
  * Production-safe seeder that creates the SwanStudios luxury package collection
@@ -16,8 +16,8 @@ async function seedStorefrontItems() {
   try {
     logger.info('🦢 Starting SwanStudios luxury package collection seeding...');
     
-    // Use the luxury package seeder with elegant branding
-    const result = await seedLuxuryPackages();
+    // Use the production-compatible luxury package seeder with elegant branding
+    const result = await seedLuxuryPackagesProduction();
     
     if (result.success) {
       logger.info(`✅ Successfully seeded ${result.packagesCreated} luxury packages`);

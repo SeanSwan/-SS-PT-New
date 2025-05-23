@@ -50,6 +50,7 @@
     "seed-debug-packages": "node seeders/20250523-correct-session-packages-debug.mjs",
     "seed-ultra-simple": "node seeders/ultra-simple-seeder.mjs",
     "seed-luxury-packages": "node seeders/luxury-swan-packages.mjs",
+    "seed-luxury-production": "node seeders/luxury-swan-packages-production.mjs",
     "verify-session-packages": "node scripts/verify-session-packages.mjs",
     "verify-luxury-packages": "node scripts/verify-luxury-packages.mjs",
     "reset-and-seed-packages": "npm run seed-correct-packages && npm run verify-session-packages",
