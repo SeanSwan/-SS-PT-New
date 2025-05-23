@@ -1,0 +1,266 @@
+/* Premium hero section fixes */
+
+/* Ensure the hero content fills the screen properly */
+.hero-section,
+.HeroContainer,
+.HeroSection,
+section:first-of-type {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: calc(100vh - 80px) !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Fix the hero content positioning */
+.hero-content,
+.HeroContent,
+.hero-section > div {
+  z-index: 2 !important;
+  position: relative !important;
+  width: 100% !important;
+  max-width: 1400px !important;
+  padding: 0 40px !important;
+  margin: 0 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Fix hero title and tagline */
+.hero-title, 
+h1.main-title,
+.hero-section h1 {
+  font-size: clamp(3rem, 8vw, 5rem) !important;
+  line-height: 1.1 !important;
+  margin-bottom: 1.5rem !important;
+  text-align: center !important;
+  width: 100% !important;
+  padding: 0 !important;
+  max-width: 1200px !important;
+  background: linear-gradient(135deg, #a9f8fb 0%, #46cdcf 25%, #7b2cbf 50%, #c8b6ff 75%, #a9f8fb 100%) !important;
+  background-size: 300% auto !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  animation: gradientText 10s ease infinite !important;
+  text-shadow: 0 5px 30px rgba(120, 81, 169, 0.5) !important;
+}
+
+@keyframes gradientText {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Fix subtitle/tagline styling */
+.hero-subtitle,
+.Tagline,
+.tagline,
+.hero-section h2 {
+  font-size: clamp(1.5rem, 4vw, 2.5rem) !important;
+  line-height: 1.3 !important;
+  font-weight: 300 !important;
+  margin-bottom: 2rem !important;
+  text-align: center !important;
+  width: 100% !important;
+  max-width: 1000px !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  justify-content: center !important;
+}
+
+/* Fix the cut-off on "Extraordinary" text */
+.tagline span,
+.hero-section h2 span,
+.highlight {
+  white-space: normal !important;
+  overflow: visible !important;
+  display: inline !important;
+  color: var(--neon-blue, #00ffff) !important;
+  font-weight: 500 !important;
+}
+
+/* Ensure description text is visible and properly formatted */
+.hero-description,
+.hero-section p {
+  font-size: clamp(1.1rem, 2vw, 1.25rem) !important;
+  line-height: 1.7 !important;
+  max-width: 900px !important;
+  text-align: center !important;
+  margin-bottom: 3rem !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Fix video background to fill the entire hero section */
+.hero-background,
+.VideoBackground {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 0 !important;
+}
+
+.hero-background video,
+.VideoBackground video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+/* Add premium dark overlay to video */
+.hero-background::after,
+.VideoBackground::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: linear-gradient(
+    to bottom,
+    rgba(10, 10, 30, 0.65),
+    rgba(10, 10, 30, 0.75)
+  ) !important;
+  z-index: 1 !important;
+}
+
+/* Enhance the hero buttons container */
+.hero-buttons,
+.button-container {
+  display: flex !important;
+  gap: 20px !important;
+  justify-content: center !important;
+  margin-top: 2rem !important;
+  width: 100% !important;
+  z-index: 3 !important;
+  position: relative !important;
+}
+
+/* Fix any button styling within the hero section */
+.hero-section button,
+.hero-section .btn,
+.hero-section .GlowButton {
+  padding: 16px 36px !important;
+  font-size: 1.1rem !important;
+  border-radius: 8px !important;
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.9), rgba(120, 81, 169, 0.9)) !important;
+  border: none !important;
+  color: white !important;
+  position: relative !important;
+  overflow: hidden !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 0 20px rgba(0, 255, 255, 0.3) !important;
+  transition: all 0.3s ease !important;
+  cursor: pointer !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.5px !important;
+  min-width: 200px !important;
+  text-align: center !important;
+}
+
+.hero-section button::before,
+.hero-section .btn::before,
+.hero-section .GlowButton::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  ) !important;
+  transition: left 0.7s ease !important;
+}
+
+.hero-section button:hover,
+.hero-section .btn:hover,
+.hero-section .GlowButton:hover {
+  transform: translateY(-5px) !important;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 30px rgba(0, 255, 255, 0.5) !important;
+}
+
+.hero-section button:hover::before,
+.hero-section .btn:hover::before,
+.hero-section .GlowButton:hover::before {
+  left: 100% !important;
+}
+
+/* Fix hero elements for responsive design */
+@media (max-width: 768px) {
+  .hero-section,
+  .HeroContainer,
+  .HeroSection {
+    min-height: 100vh !important;
+  }
+  
+  .hero-content {
+    padding: 90px 20px 60px !important; /* Account for header */
+  }
+  
+  .hero-buttons,
+  .button-container {
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+  
+  .hero-buttons button,
+  .hero-buttons .btn,
+  .button-container button,
+  .button-container .btn {
+    width: 100% !important;
+    max-width: 300px !important;
+  }
+}
+
+/* Fix for ultra-wide screens */
+@media (min-width: 2000px) {
+  .hero-content {
+    max-width: 1800px !important;
+  }
+}
+
+/* Fix for very small mobile screens */
+@media (max-width: 380px) {
+  .hero-title,
+  h1.main-title,
+  .hero-section h1 {
+    font-size: 2.5rem !important;
+  }
+  
+  .hero-subtitle,
+  .Tagline,
+  .tagline,
+  .hero-section h2 {
+    font-size: 1.3rem !important;
+  }
+}
+
+/* Fix SWAN STUDIOS main logo in hero section */
+.hero-logo,
+.logo-image,
+.HeroLogo,
+.hero-section img {
+  max-width: 150px !important;
+  width: 100% !important;
+  height: auto !important;
+  margin-bottom: 2rem !important;
+  filter: drop-shadow(0 0 20px rgba(0, 255, 255, 0.5)) !important;
+  animation: pulseLogo 3s ease-in-out infinite !important;
+}
+
+@keyframes pulseLogo {
+  0% { filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.5)); }
+  50% { filter: drop-shadow(0 0 25px rgba(0, 255, 255, 0.8)); }
+  100% { filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.5)); }
+}

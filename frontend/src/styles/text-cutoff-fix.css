@@ -1,0 +1,93 @@
+/* Fix for text cutoff issues */
+
+/* Fix for "Extraordinary Results" cutoff */
+.hero-title,
+.main-title,
+h1, h2, h3,
+.tagline,
+.Tagline {
+  max-width: 100% !important;
+  overflow: visible !important;
+  white-space: normal !important; /* Ensure text wraps properly */
+  word-break: keep-all !important; /* Prevent words from being broken */
+  padding: 0 20px !important; /* Add horizontal padding */
+  box-sizing: border-box !important;
+}
+
+/* Fix for hero section content wrapper */
+.hero-content,
+.HeroContent,
+.hero-section > div {
+  width: 100% !important;
+  max-width: 1200px !important;
+  padding: 0 20px !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+}
+
+/* Fix spacing in title container */
+.title-container,
+.hero-section h1,
+.hero-section h2 {
+  margin-bottom: 20px !important;
+}
+
+/* Add negative right margin for specific cases like "Extraordinary Results" */
+.tagline span,
+.highlight,
+h1 span,
+h2 span {
+  margin-right: -5px !important; /* Prevent cutoff by adding negative margin */
+  display: inline-block !important;
+}
+
+/* Ensure paragraphs don't get cut off */
+p {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  padding: 0 !important;
+}
+
+/* Fix button positioning */
+.button-container {
+  margin-top: 30px !important;
+  width: 100% !important;
+  display: flex !important;
+  justify-content: center !important;
+  gap: 20px !important;
+}
+
+/* Ensure "Extraordinary" text is visible */
+.hero-text-highlight,
+.highlight,
+span[style*="color"] {
+  display: inline-block !important;
+  overflow: visible !important;
+  white-space: normal !important;
+}
+
+/* Fix for any other text wrapper that might be cut off */
+[class*="text"], 
+[class*="Text"], 
+[class*="title"], 
+[class*="Title"],
+[class*="heading"],
+[class*="Heading"] {
+  overflow: visible !important;
+  max-width: 100% !important;
+  white-space: normal !important;
+}
+
+/* Ensure text doesn't clip at viewport edges */
+.container, 
+.content,
+section,
+.hero-section,
+main,
+.main {
+  overflow-x: visible !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 0 20px !important;
+}

@@ -1,0 +1,26 @@
+# Minimal YOLO MCP Server Requirements for Python 3.13
+# This file contains only the essential dependencies needed to run the server
+
+# Core web framework
+fastapi
+uvicorn[standard]
+python-multipart
+python-dotenv
+
+# Essential ML/CV libraries
+torch>=2.6.0
+torchvision>=0.20.0
+opencv-python-headless
+ultralytics
+Pillow
+
+# Core data processing
+numpy
+requests
+pydantic
+
+# WebSocket support for real-time features
+websockets
+
+# Basic logging
+structlog

@@ -1,0 +1,528 @@
+/* Premium AAA-level layout refinements */
+
+/* Ensure full viewport coverage */
+html, body, #root {
+  width: 100vw !important;
+  max-width: 100% !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+}
+
+.app-root {
+  min-height: 100vh !important;
+  width: 100vw !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  position: relative !important;
+}
+
+/* Enhanced header styling for AAA appearance */
+header, .header, .MuiAppBar-root {
+  height: 80px !important;
+  padding: 0 40px !important; /* Increased horizontal padding */
+  background: rgba(10, 10, 30, 0.85) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  z-index: 1000 !important;
+  display: flex !important;
+  align-items: center !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* Premium header content layout */
+.header-content, .MuiToolbar-root {
+  width: 100% !important;
+  max-width: 1800px !important;
+  margin: 0 auto !important;
+  padding: 0 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+/* Hero section AAA styling - fills screen properly */
+.hero-section, .HeroContainer, section:first-of-type {
+  min-height: calc(100vh - 80px) !important; /* Full screen minus header */
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Video background scaling */
+.hero-background video,
+.VideoBackground video,
+.hero-section video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+/* Ensure hero content is properly centered and sized */
+.hero-content {
+  max-width: 1200px !important;
+  width: 100% !important;
+  padding: 0 60px !important; /* Increased horizontal padding */
+  margin: 0 auto !important;
+  text-align: center !important;
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+/* Hero title premium styling */
+.hero-title, h1 {
+  font-size: clamp(2.5rem, 8vw, 5rem) !important;
+  font-weight: 700 !important;
+  margin-bottom: 1.5rem !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.02em !important;
+  background: linear-gradient(135deg, #a9f8fb 0%, #46cdcf 25%, #7b2cbf 50%, #c8b6ff 75%, #a9f8fb 100%) !important;
+  background-size: 300% auto !important;
+  background-clip: text !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  animation: gradient 10s ease infinite !important;
+  text-shadow: 0 5px 30px rgba(120, 81, 169, 0.5) !important;
+}
+
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Hero subtitle premium styling */
+.hero-subtitle, .tagline, h2 {
+  font-size: clamp(1.25rem, 4vw, 2.5rem) !important;
+  font-weight: 300 !important;
+  margin-bottom: 2rem !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  line-height: 1.4 !important;
+  max-width: 900px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Hero description enhanced styling */
+.hero-description, p {
+  font-size: clamp(1rem, 2vw, 1.25rem) !important;
+  line-height: 1.7 !important;
+  margin-bottom: 2.5rem !important;
+  color: rgba(255, 255, 255, 0.8) !important;
+  max-width: 800px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Enhanced button styling */
+.btn, button, .GlowButton {
+  padding: 16px 32px !important;
+  font-size: 1.1rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.5px !important;
+  border-radius: 8px !important;
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.9), rgba(120, 81, 169, 0.9)) !important;
+  border: none !important;
+  color: white !important;
+  cursor: pointer !important;
+  position: relative !important;
+  overflow: hidden !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2), 0 0 15px rgba(0, 255, 255, 0.3) !important;
+  transition: all 0.3s ease !important;
+  margin: 0 10px !important;
+  text-transform: none !important;
+}
+
+.btn::before, button::before, .GlowButton::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: -100% !important;
+  width: 100% !important;
+  height: 100% !important;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  ) !important;
+  transition: left 0.7s ease !important;
+}
+
+.btn:hover, button:hover, .GlowButton:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 255, 255, 0.5) !important;
+}
+
+.btn:hover::before, button:hover::before, .GlowButton:hover::before {
+  left: 100% !important;
+}
+
+.btn:active, button:active, .GlowButton:active {
+  transform: translateY(1px) !important;
+}
+
+/* Button container styling */
+.button-container, .hero-buttons, .cta-buttons {
+  display: flex !important;
+  gap: 20px !important;
+  justify-content: center !important;
+  margin-top: 3rem !important;
+  flex-wrap: wrap !important;
+}
+
+/* Premium footer styling */
+footer, .footer, .FooterContainer {
+  background: linear-gradient(to bottom, rgba(10, 10, 30, 0.6), rgba(10, 10, 30, 1)) !important;
+  padding: 80px 60px 40px !important; /* Increased padding */
+  position: relative !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  z-index: 10 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Create premium gradient line at top of footer */
+footer::before, .footer::before, .FooterContainer::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 1px !important;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(0, 255, 255, 0.7),
+    rgba(120, 81, 169, 0.7),
+    transparent
+  ) !important;
+}
+
+/* Footer content premium layout */
+.footer-content, footer > div, .FooterContainer > div {
+  max-width: 1400px !important;
+  margin: 0 auto !important;
+  display: grid !important;
+  grid-template-columns: 2fr 1fr 1fr 1fr !important;
+  gap: 60px !important; /* Increased gap between columns */
+}
+
+/* Footer heading enhanced styling */
+footer h4, .footer h4, .FooterHeading {
+  font-size: 1.2rem !important;
+  font-weight: 600 !important;
+  margin-bottom: 1.5rem !important;
+  color: white !important;
+  position: relative !important;
+  display: inline-block !important;
+  letter-spacing: 0.05em !important;
+}
+
+/* Add premium underline effect to footer headings */
+footer h4::after, .footer h4::after, .FooterHeading::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  bottom: -8px !important;
+  width: 40px !important;
+  height: 2px !important;
+  background: linear-gradient(to right, rgba(0, 255, 255, 0.8), rgba(120, 81, 169, 0.8)) !important;
+  transition: width 0.3s ease !important;
+}
+
+footer h4:hover::after, .footer h4:hover::after, .FooterHeading:hover::after {
+  width: 100% !important;
+}
+
+/* Enhanced footer links styling */
+.footer-links a, footer a, .FooterNav a {
+  color: rgba(255, 255, 255, 0.8) !important;
+  text-decoration: none !important;
+  transition: all 0.3s ease !important;
+  display: block !important;
+  margin-bottom: 12px !important;
+  font-size: 1rem !important;
+  position: relative !important;
+  padding-left: 0 !important;
+}
+
+.footer-links a:hover, footer a:hover, .FooterNav a:hover {
+  color: var(--neon-blue, #00ffff) !important;
+  transform: translateX(5px) !important;
+}
+
+/* Footer logo premium styling */
+.footer-logo, footer img, .FooterLogo {
+  max-width: 80px !important;
+  filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.4)) !important;
+}
+
+/* Contact section premium styling */
+.contact-info, .ContactItem, .contact-item {
+  display: flex !important;
+  align-items: center !important;
+  margin-bottom: 15px !important;
+}
+
+.contact-info svg, .ContactItem svg, .contact-item svg {
+  color: var(--neon-blue, #00ffff) !important;
+  margin-right: 12px !important;
+  font-size: 1.2rem !important;
+}
+
+/* Social icons premium styling */
+.social-icons, .SocialIcons {
+  display: flex !important;
+  gap: 15px !important;
+  margin-top: 25px !important;
+}
+
+.social-icon, .SocialIcon {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.1) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: white !important;
+  transition: all 0.3s ease !important;
+  font-size: 1.2rem !important;
+}
+
+.social-icon:hover, .SocialIcon:hover {
+  background: rgba(0, 255, 255, 0.2) !important;
+  transform: translateY(-5px) !important;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2) !important;
+  color: var(--neon-blue, #00ffff) !important;
+}
+
+/* Copyright section premium styling */
+.copyright, .footer-bottom, .Copyright {
+  margin-top: 50px !important;
+  padding-top: 25px !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  max-width: 1400px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* Footer bottom links */
+.footer-links-bottom a, .footer-bottom a {
+  color: rgba(255, 255, 255, 0.6) !important;
+  text-decoration: none !important;
+  margin-left: 20px !important;
+  font-size: 0.9rem !important;
+  transition: color 0.3s ease !important;
+}
+
+.footer-links-bottom a:hover, .footer-bottom a:hover {
+  color: var(--neon-blue, #00ffff) !important;
+}
+
+/* Ensure content fills space between header and footer */
+main, .content, .main-content {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+}
+
+/* Ensure all sections have proper spacing and fill width */
+section {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 80px 40px !important; /* Increased padding */
+}
+
+/* Add premium background effects */
+.app-root::before {
+  content: "" !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(0, 255, 255, 0.1), transparent 40%),
+    radial-gradient(circle at 80% 80%, rgba(120, 81, 169, 0.1), transparent 40%) !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+}
+
+/* Apply subtle gradient tint to video background */
+.video-overlay, .VideoBackground::after, .hero-background::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: linear-gradient(
+    to bottom,
+    rgba(10, 10, 30, 0.6),
+    rgba(10, 10, 30, 0.7)
+  ) !important;
+  z-index: 1 !important;
+}
+
+/* Ensure navigation links have premium styling */
+nav a, .nav-link, .StyledNavLink {
+  color: white !important;
+  text-decoration: none !important;
+  font-size: 1rem !important;
+  font-weight: 500 !important;
+  padding: 10px 20px !important;
+  position: relative !important;
+  transition: all 0.3s ease !important;
+  letter-spacing: 0.03em !important;
+}
+
+nav a::after, .nav-link::after, .StyledNavLink::after {
+  content: "" !important;
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 50% !important;
+  width: 0 !important;
+  height: 2px !important;
+  background: var(--neon-blue, #00ffff) !important;
+  transition: all 0.3s ease !important;
+  transform: translateX(-50%) !important;
+}
+
+nav a:hover, .nav-link:hover, .StyledNavLink:hover,
+nav a.active, .nav-link.active, .StyledNavLink.active {
+  color: var(--neon-blue, #00ffff) !important;
+}
+
+nav a:hover::after, .nav-link:hover::after, .StyledNavLink:hover::after,
+nav a.active::after, .nav-link.active::after, .StyledNavLink.active::after {
+  width: 80% !important;
+}
+
+/* Enhanced logo styling */
+.logo-container, .LogoContainer, .header-logo {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.logo-text, .LogoText, .header-logo span {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  background: linear-gradient(to right, #00ffff, #7851a9) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  margin-left: 12px !important;
+}
+
+.logo-container img, .LogoContainer img, .header-logo img {
+  height: 50px !important;
+  filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.5)) !important;
+  transition: all 0.3s ease !important;
+}
+
+.logo-container:hover img, .LogoContainer:hover img, .header-logo:hover img {
+  filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.8)) !important;
+  transform: scale(1.05) !important;
+}
+
+/* Apply premium overlay to background video */
+.hero-background, .VideoBackground {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Responsive adjustments - maintain premium feel at all screen sizes */
+@media (max-width: 1200px) {
+  .footer-content, footer > div, .FooterContainer > div {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 40px !important;
+  }
+  
+  header, .header, .MuiAppBar-root {
+    padding: 0 30px !important;
+  }
+  
+  .hero-content {
+    padding: 0 40px !important;
+  }
+  
+  section {
+    padding: 60px 30px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer-content, footer > div, .FooterContainer > div {
+    grid-template-columns: 1fr !important;
+    gap: 30px !important;
+  }
+  
+  header, .header, .MuiAppBar-root {
+    padding: 0 20px !important;
+  }
+  
+  .hero-content {
+    padding: 0 20px !important;
+  }
+  
+  .btn, button, .GlowButton {
+    padding: 14px 28px !important;
+    font-size: 1rem !important;
+  }
+  
+  .button-container, .hero-buttons, .cta-buttons {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 15px !important;
+  }
+  
+  .button-container > *, .hero-buttons > *, .cta-buttons > * {
+    width: 100% !important;
+    max-width: 300px !important;
+  }
+  
+  footer, .footer, .FooterContainer {
+    padding: 50px 30px 30px !important;
+  }
+  
+  section {
+    padding: 50px 20px !important;
+  }
+}
+
+/* Ensure everything appears properly on ultra-wide screens */
+@media (min-width: 1800px) {
+  .hero-content, 
+  .footer-content, 
+  .container, 
+  section > div, 
+  .header-content {
+    max-width: 1800px !important;
+  }
+}

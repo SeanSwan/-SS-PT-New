@@ -1,0 +1,3 @@
+"""
+Workout MCP Server package.
+"""

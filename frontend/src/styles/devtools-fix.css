@@ -1,0 +1,57 @@
+/* Special fix for ReactDevTools and browser developer tools bars */
+.__react_devtools_tooltip {
+  display: none !important;
+}
+
+#react-devtools-root, 
+#devtools-root,
+#devtools,
+.devtools-wrapper,
+div[id^='devtools'],
+div[class^='devtools'],
+div[id*='devtools'],
+div[class*='devtools'] {
+  display: none !important;
+  height: 0 !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  z-index: -9999 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Fix for Chrome DevTools Element overlay */
+body > div:first-child:not(#root) {
+  display: none !important;
+}
+
+/* Fix specifically for the orange/green bar seen in the screenshot */
+body::before,
+html::before {
+  content: none !important;
+  display: none !important;
+}
+
+body > div:not(#root):first-child {
+  display: none !important;
+  height: 0 !important;
+  max-height: 0 !important;
+}
+
+/* Target the topmost element that might create the space */
+body > div:first-child,
+body > *:first-child:not(#root) {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  border-top: 0 !important;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* Extra aggressive approach to force-hide any element at the top */
+*:not(#root):first-child {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
