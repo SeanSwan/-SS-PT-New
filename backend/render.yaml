@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: swan-studios-api
+    env: node
+    buildCommand: npm install
+    startCommand: npm run render-start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: FRONTEND_ORIGINS
+        value: "https://sswanstudios.com,https://www.sswanstudios.com,http://localhost:5173,http://localhost:5174"
+    headers:
+      - path: /*
+        name: Access-Control-Allow-Origin
+        value: "*"
+      - path: /*
+        name: Access-Control-Allow-Methods
+        value: "GET,POST,PUT,DELETE,OPTIONS,PATCH"
+      - path: /*
+        name: Access-Control-Allow-Headers
+        value: "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+      - path: /*
+        name: Access-Control-Allow-Credentials
+        value: "true"
+      - path: /*
+        name: Access-Control-Max-Age
+        value: "86400"

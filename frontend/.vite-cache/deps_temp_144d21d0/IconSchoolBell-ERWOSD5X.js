@@ -1,0 +1,10 @@
+import {
+  IconSchoolBell
+} from "./chunk-NIIJKHGN.js";
+import "./chunk-VGMI3IZW.js";
+import "./chunk-UVNPGZG7.js";
+import "./chunk-OL46QLBJ.js";
+export {
+  IconSchoolBell as default
+};
+//# sourceMappingURL=IconSchoolBell-ERWOSD5X.js.map

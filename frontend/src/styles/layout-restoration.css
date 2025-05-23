@@ -1,0 +1,64 @@
+/* This file undoes any unwanted layout changes to restore scrolling
+   and proper content display while keeping the orange/green margin bars */
+
+/* Ensure proper scrolling */
+html, body {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  height: auto !important;
+  min-height: 100% !important;
+}
+
+/* Restore proper positioning */
+#root, .app-root, main {
+  position: relative !important;
+  height: auto !important;
+  min-height: 100vh !important;
+}
+
+/* Make sure all content is visible */
+section, .hero-section, .content {
+  display: block !important;
+  height: auto !important;
+  min-height: auto !important;
+  position: relative !important;
+  overflow: visible !important;
+}
+
+/* Ensure footer displays properly */
+footer {
+  position: relative !important;
+  bottom: auto !important;
+  display: block !important;
+}
+
+/* Fix any flex layout issues */
+.flex-container {
+  display: flex !important;
+}
+
+/* Make sure content doesn't have fixed heights that might clip */
+h1, h2, p, div {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Restore any hidden elements */
+.hidden, [hidden], [style*="display: none"] {
+  display: block !important;
+}
+
+/* Fix any absolute positioning issues */
+[style*="position: absolute"] {
+  position: relative !important;
+}
+
+/* Only keep fixed positioning for header and the colored bars */
+header, body::before, body::after {
+  position: fixed !important;
+}
+
+/* Proper margin for hero section below fixed header */
+.hero-section {
+  margin-top: 80px !important;
+}

@@ -1,0 +1,86 @@
+/* StoreFront specific fixes for package visibility */
+
+/* Ensure storefront containers have proper stacking context */
+.storefront-container,
+div[class*="StoreContainer"] {
+  position: relative !important;
+  z-index: 1 !important;
+  isolation: isolate !important;
+}
+
+/* Force package sections to be visible */
+.packages-section,
+section[id*="packages"],
+div[class*="SectionContainer"] {
+  position: relative !important;
+  z-index: 10 !important;
+}
+
+/* Ensure package grids are above any backdrop */
+div[class*="Grid"] {
+  position: relative !important;
+  z-index: 15 !important;
+}
+
+/* Force package cards to be visible */
+div[class*="CardContainer"] {
+  position: relative !important;
+  z-index: 20 !important;
+  isolation: isolate !important;
+  transform: translateZ(0) !important; /* Force hardware acceleration */
+  backface-visibility: hidden !important;
+  perspective: 1000px !important;
+}
+
+/* Ensure card content is visible */
+div[class*="CardContent"] {
+  position: relative !important;
+  z-index: 25 !important;
+}
+
+/* Force buttons to be clickable */
+div[class*="CardActions"] {
+  position: relative !important;
+  z-index: 30 !important;
+}
+
+/* Fix for any MUI overlays that might be interfering */
+.MuiBackdrop-root {
+  z-index: 1300 !important;
+}
+
+/* Ensure the packages are visible in the DOM tree */
+[data-testid*="package"],
+[class*="package-card"],
+[class*="training-package"] {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: flex !important;
+  pointer-events: auto !important;
+}
+
+/* Force visibility for any hidden elements */
+.storefront-container * {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Debug styles - remove after fixing */
+.debug-package-card {
+  border: 2px solid red !important;
+  background: rgba(255, 0, 0, 0.2) !important;
+}
+
+/* Additional backdrop override */
+.MuiModal-backdrop,
+.MuiDialog-backdrop,
+div[class*="backdrop"] {
+  z-index: 1300 !important;
+}
+
+/* Force content overlay to be above everything */
+div[class*="ContentOverlay"] {
+  position: relative !important;
+  z-index: 5 !important;
+  isolation: isolate !important;
+}

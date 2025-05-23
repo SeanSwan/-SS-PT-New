@@ -1,0 +1,54 @@
+/* Aggressive MUI overrides to remove all margins and paddings */
+
+/* Target all MUI components */
+.MuiPaper-root,
+.MuiAppBar-root,
+.MuiToolbar-root,
+.MuiBox-root,
+.MuiContainer-root,
+.MuiGrid-root,
+.MuiDrawer-root,
+.MuiList-root,
+.MuiListItem-root,
+.MuiCard-root,
+.css-j1xakc,  /* The specific class causing margin-top issues */
+[class*="Mui"] {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+}
+
+/* Override AppBar positioning */
+.MuiAppBar-root, 
+header {
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  position: fixed !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Fix for main content area */
+.css-j1xakc {
+  margin-top: 0 !important;
+  min-height: 100vh !important;
+  padding: 0 !important;
+}
+
+/* Make sure content doesn't have top margin even at different breakpoints */
+@media (min-width: 0px), (min-width: 600px), (min-width: 900px), (min-width: 1200px) {
+  .css-j1xakc,
+  .MuiBox-root,
+  main,
+  [class*="Mui"] {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    margin-top: 0 !important;
+  }
+}
+
+/* Add internal padding only where needed */
+.MuiToolbar-root {
+  padding: 0 16px !important;
+}

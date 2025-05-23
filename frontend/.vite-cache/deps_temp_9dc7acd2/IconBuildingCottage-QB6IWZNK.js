@@ -1,0 +1,10 @@
+import {
+  IconBuildingCottage
+} from "./chunk-BD7BUWJK.js";
+import "./chunk-VGMI3IZW.js";
+import "./chunk-UVNPGZG7.js";
+import "./chunk-OL46QLBJ.js";
+export {
+  IconBuildingCottage as default
+};
+//# sourceMappingURL=IconBuildingCottage-QB6IWZNK.js.map

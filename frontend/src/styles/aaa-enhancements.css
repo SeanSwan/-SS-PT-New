@@ -1,0 +1,117 @@
+/**
+ * AAA Enhancements CSS
+ * ====================
+ * 
+ * This file contains high-priority enhancements and overrides
+ * that will be loaded last to ensure they take precedence.
+ */
+
+/* Heart icon animation for creative expression section */
+.heart-icon {
+  color: #ff6b8b;
+  filter: drop-shadow(0 0 12px rgba(255, 107, 139, 0.7));
+}
+
+.heart-icon svg {
+  animation: heartbeat 1.5s infinite ease-in-out;
+}
+
+@keyframes heartbeat {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.1); }
+  50% { transform: scale(1); }
+  75% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* Heart card special styling */
+.heart-card {
+  border-color: rgba(255, 107, 139, 0.3) !important;
+  background: linear-gradient(145deg, rgba(20, 20, 40, 0.4), rgba(60, 20, 40, 0.2)) !important;
+  box-shadow: 0 15px 35px rgba(255, 107, 139, 0.1), inset 0 1px 1px rgba(255, 255, 255, 0.1) !important;
+}
+
+.heart-card:hover {
+  box-shadow: 0 20px 40px rgba(255, 107, 139, 0.15) !important;
+}
+
+.heart-card-title {
+  background: linear-gradient(to right, #ff6b8b, #c8b6ff, #ff6b8b) !important;
+  -webkit-background-clip: text !important;
+  color: transparent !important;
+  text-shadow: 0 2px 15px rgba(255, 107, 139, 0.5) !important;
+}
+
+/* Primary focus label */
+.primary-focus-label {
+  position: relative;
+}
+
+.primary-focus-label::before {
+  content: '★ Our Primary Focus ★';
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(to right, #46cdcf, #7851a9);
+  color: white;
+  padding: 5px 15px;
+  border-radius: 15px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  white-space: nowrap;
+  z-index: 10;
+}
+
+/* Diagonal Glimmer (from FeatureSection) applied to CreativeExpressionSection cards */
+@keyframes diagonalGlimmer {
+  0%, 85% {
+    background-position: -200% 200%;
+    opacity: 0;
+  }
+  90%, 95% {
+    background-position: 0% 0%;
+    opacity: 0.8;
+  }
+  100% {
+    background-position: 200% -200%;
+    opacity: 0;
+  }
+}
+
+.expression-card {
+  position: relative;
+}
+
+.expression-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.1) 50%, 
+    rgba(255, 255, 255, 0.05) 75%,
+    transparent 100%
+  );
+  background-size: 200% 200%;
+  animation: diagonalGlimmer 5s linear infinite;
+  pointer-events: none;
+  border-radius: 20px;
+  opacity: 0;
+}
+
+/* Responsive T-shaped layout for larger screens */
+@media (min-width: 993px) {
+  .expression-card:nth-child(4) {
+    max-width: 90%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}

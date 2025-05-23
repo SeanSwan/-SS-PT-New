@@ -1,0 +1,52 @@
+/* Restore development margins and elements */
+
+/* Restore the orange and green margin/bars */
+body::before {
+  content: "" !important;
+  display: block !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 15px !important; /* Height of the orange bar */
+  background-color: #fa6800 !important; /* Orange color */
+  z-index: 9999 !important;
+}
+
+/* Add another bar with green color for the dev tools indicator */
+body::after {
+  content: "" !important;
+  display: block !important;
+  position: fixed !important;
+  top: 15px !important; /* Position it right after the orange bar */
+  left: 0 !important;
+  right: 0 !important;
+  height: 15px !important; /* Height of the green bar */
+  background-color: #bada55 !important; /* Green color */
+  z-index: 9999 !important;
+}
+
+/* Adjust all content to account for the top bars */
+#root, .app-root, main, body > div, .content {
+  margin-top: 30px !important; /* Total height of both bars */
+}
+
+/* Adjust the header to be positioned below the bars */
+header, .header, .MuiAppBar-root, nav {
+  top: 30px !important; /* Position header below both bars */
+  position: fixed !important;
+}
+
+/* Adjust hero section to account for header + dev bars */
+.hero-section, .HeroContainer, .HeroSection {
+  padding-top: 30px !important;
+  min-height: calc(100vh - 110px) !important; /* 80px header + 30px dev bars */
+}
+
+/* Ensure the bars are always visible and don't get hidden */
+html::before, html::after,
+body::before, body::after {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
