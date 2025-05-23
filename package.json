@@ -62,6 +62,7 @@
     "frontend-only": "cd frontend && npm run dev",
     "setup-session-packages": "cd backend && npm run seed-correct-packages",
     "create-luxury-packages": "cd backend && npm run seed-luxury-packages",
+    "create-luxury-production": "cd backend && npm run seed-luxury-production",
     "debug-session-packages": "cd backend && npm run seed-debug-packages",
     "fix-session-packages-now": "cd backend && npm run seed-ultra-simple",
     "verify-session-packages": "cd backend && npm run verify-session-packages",
