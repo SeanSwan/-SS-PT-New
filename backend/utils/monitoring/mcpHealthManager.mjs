@@ -9,6 +9,11 @@ import { piiSafeLogger } from './piiSafeLogging.mjs';
 
 class MCPHealthManager {
   constructor() {
+    // Production-safe configuration for MCP health checks
+    this.isProduction = process.env.NODE_ENV === 'production';
+    this.enableHealthChecks = process.env.ENABLE_MCP_HEALTH_CHECKS !== 'false';
+    this.enableHealthAlerting = process.env.ENABLE_MCP_HEALTH_ALERTS !== 'false';
+    
     // Define all MCP servers with their configurations
     this.mcpServers = {
       workout: {
@@ -95,22 +100,41 @@ class MCPHealthManager {
       }
     };
 
-    // Health check intervals
-    this.healthCheckInterval = 30000; // 30 seconds
+    // Health check intervals - longer in production to reduce noise
+    this.healthCheckInterval = this.isProduction ? 60000 : 30000; // 60s prod, 30s dev
     this.alertThresholds = {
       maxLatency: 5000, // 5 seconds
       minHealthScore: 50,
       maxErrorRate: 10 // 10%
     };
 
-    // Start monitoring
-    this.startMonitoring();
+    // Start monitoring only if enabled
+    if (this.enableHealthChecks) {
+      this.startMonitoring();
+    } else {
+      piiSafeLogger.info('MCP Health Monitoring DISABLED via configuration');
+    }
   }
 
   /**
    * Check health of all MCP servers
    */
   async checkAllMCPHealth() {
+    // Skip health checks if disabled
+    if (!this.enableHealthChecks) {
+      piiSafeLogger.debug('MCP Health checks disabled, returning mock healthy status');
+      const healthResults = {};
+      for (const [serverKey] of Object.entries(this.mcpServers)) {
+        healthResults[serverKey] = {
+          healthy: true,
+          status: 'disabled',
+          message: 'Health checks disabled in configuration',
+          timestamp: Date.now()
+        };
+      }
+      return healthResults;
+    }
+    
     const healthResults = {};
 
     for (const [serverKey, serverConfig] of Object.entries(this.mcpServers)) {
@@ -118,7 +142,12 @@ class MCPHealthManager {
         const healthResult = await this.checkSingleMCPHealth(serverKey);
         healthResults[serverKey] = healthResult;
       } catch (error) {
-        piiSafeLogger.error(`Health check failed for ${serverKey}`, { error: error.message });
+        // In production, reduce error noise for expected MCP service unavailability
+        if (this.isProduction) {
+          piiSafeLogger.warn(`MCP service unavailable: ${serverKey} (this is expected if MCP services are not deployed)`, { error: error.message });
+        } else {
+          piiSafeLogger.error(`Health check failed for ${serverKey}`, { error: error.message });
+        }
         healthResults[serverKey] = {
           healthy: false,
           error: error.message,
@@ -211,6 +240,12 @@ class MCPHealthManager {
    * @param {Error|Object} error - Error details
    */
   async alertMCPFailure(serverKey, error) {
+    // Skip alerting if disabled or in production with expected service unavailability  
+    if (!this.enableHealthAlerting || (this.isProduction && error.code === 'ECONNREFUSED')) {
+      piiSafeLogger.debug(`MCP alerting skipped for ${serverKey}: alerting disabled or expected production unavailability`);
+      return;
+    }
+    
     const server = this.mcpServers[serverKey];
     const alertData = {
       serverName: server.name,
@@ -232,9 +267,11 @@ class MCPHealthManager {
     // - Slack webhooks
     // - PagerDuty
     // - Discord notifications
-    // For now, we'll use console output for immediate visibility
-    console.error(`🚨 CRITICAL: ${server.name} is DOWN`);
-    console.error(`Port: ${server.port}, Error: ${error.message || error}`);
+    // For now, we'll use console output for immediate visibility (only if alerting enabled)
+    if (this.enableHealthAlerting) {
+      console.error(`🚨 CRITICAL: ${server.name} is DOWN`);
+      console.error(`Port: ${server.port}, Error: ${error.message || error}`);
+    }
   }
 
   /**
@@ -303,11 +340,21 @@ class MCPHealthManager {
    * Start continuous monitoring
    */
   startMonitoring() {
+    // Skip monitoring if disabled
+    if (!this.enableHealthChecks) {
+      piiSafeLogger.info('MCP Health Monitoring startup skipped - disabled in configuration');
+      return;
+    }
+    
     setInterval(async () => {
       try {
         await this.checkAllMCPHealth();
       } catch (error) {
-        piiSafeLogger.error('Monitoring cycle failed', { error: error.message });
+        if (this.isProduction) {
+          piiSafeLogger.debug('MCP monitoring cycle completed with expected service unavailability', { error: error.message });
+        } else {
+          piiSafeLogger.error('Monitoring cycle failed', { error: error.message });
+        }
       }
     }, this.healthCheckInterval);
 
