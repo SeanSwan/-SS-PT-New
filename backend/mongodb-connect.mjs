@@ -78,7 +78,8 @@ export async function connectToMongoDB() {
     
     return { client, db };
   } catch (error) {
-    console.error(`MongoDB connection error with port ${MONGODB_PORT}: ${error.message}`);
+    console.error(`MongoDB connection error: ${error.message}`);
+    console.log('Continuing with other databases');
     
     // Clean up any partial connection
     if (client) {
