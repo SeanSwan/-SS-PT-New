@@ -6,7 +6,7 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import { piiSafeLogger } from '../../../utils/monitoring/piiSafeLogging.mjs';
 import { ethicalAIReview } from '../EthicalAIReview.mjs';
 import { accessibilityTesting } from '../../accessibility/AccessibilityTesting.mjs';
