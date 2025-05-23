@@ -59,7 +59,15 @@
     "restart-all": "npm run kill-ports && npm start",
     "test-frontend": "node scripts/start-frontend-only.js",
     "backend-only": "cd backend && node start-backend-only.mjs",
-    "frontend-only": "cd frontend && npm run dev"
+    "frontend-only": "cd frontend && npm run dev",
+    "setup-session-packages": "cd backend && npm run seed-correct-packages",
+    "create-luxury-packages": "cd backend && npm run seed-luxury-packages",
+    "debug-session-packages": "cd backend && npm run seed-debug-packages",
+    "fix-session-packages-now": "cd backend && npm run seed-ultra-simple",
+    "verify-session-packages": "cd backend && npm run verify-session-packages",
+    "verify-luxury-packages": "cd backend && npm run verify-luxury-packages",
+    "check-session-packages": "cd backend && npm run check-packages",
+    "fix-session-packages": "cd backend && npm run reset-and-seed-packages"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
