@@ -11,6 +11,12 @@ services:
         value: 10000
       - key: FRONTEND_ORIGINS
         value: "https://sswanstudios.com,https://www.sswanstudios.com,http://localhost:5173,http://localhost:5174"
+      - key: ENABLE_MCP_HEALTH_CHECKS
+        value: "false"
+      - key: ENABLE_MCP_HEALTH_ALERTS
+        value: "false"
+      - key: ENABLE_MCP_SERVICES
+        value: "false"
     headers:
       - path: /*
         name: Access-Control-Allow-Origin

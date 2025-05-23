@@ -15,6 +15,8 @@ const router = express.Router();
 // MCP Server Configuration
 const WORKOUT_MCP_URL = process.env.WORKOUT_MCP_URL || 'http://localhost:8000';
 const GAMIFICATION_MCP_URL = process.env.GAMIFICATION_MCP_URL || 'http://localhost:8002';
+const MCP_SERVICES_ENABLED = process.env.ENABLE_MCP_SERVICES !== 'false';
+const isProduction = process.env.NODE_ENV === 'production';
 
 // Create axios instances for MCP servers
 const workoutMcpApi = axios.create({
@@ -35,6 +37,18 @@ const gamificationMcpApi = axios.create({
  */
 router.get('/status', async (req, res) => {
   try {
+    // Return disabled status if MCP services are not enabled
+    if (!MCP_SERVICES_ENABLED) {
+      return res.status(200).json({
+        status: 'disabled',
+        message: 'MCP services are disabled in this environment',
+        servers: {
+          workout: { status: 'disabled', message: 'MCP services disabled' },
+          gamification: { status: 'disabled', message: 'MCP services disabled' }
+        },
+        timestamp: new Date().toISOString()
+      });
+    }
     const [workoutStatus, gamificationStatus] = await Promise.allSettled([
       workoutMcpApi.get('/status'),
       gamificationMcpApi.get('/status')
@@ -80,6 +94,17 @@ router.get('/status', async (req, res) => {
  */
 router.post('/generate', authMiddleware, async (req, res) => {
   const startTime = Date.now();
+  
+  // Check if MCP services are enabled
+  if (!MCP_SERVICES_ENABLED) {
+    return res.status(503).json({
+      success: false,
+      message: 'MCP workout generation services are not available in this environment',
+      fallback: 'Please use the manual workout planning tools or contact support',
+      serviceStatus: 'disabled'
+    });
+  }
+  
   try {
     const { 
       modelName = 'claude-3-5-sonnet',
@@ -175,6 +200,17 @@ router.post('/generate', authMiddleware, async (req, res) => {
  */
 router.post('/analyze', authMiddleware, async (req, res) => {
   const startTime = Date.now();
+  
+  // Check if MCP services are enabled
+  if (!MCP_SERVICES_ENABLED) {
+    return res.status(503).json({
+      success: false,
+      message: 'MCP analysis services are not available in this environment',
+      fallback: 'Please use the manual progress tracking tools or contact support',
+      serviceStatus: 'disabled'
+    });
+  }
+  
   try {
     const { 
       modelName = 'claude-3-5-sonnet',
@@ -245,6 +281,17 @@ router.post('/analyze', authMiddleware, async (req, res) => {
  */
 router.post('/alternatives', authMiddleware, async (req, res) => {
   const startTime = Date.now();
+  
+  // Check if MCP services are enabled
+  if (!MCP_SERVICES_ENABLED) {
+    return res.status(503).json({
+      success: false,
+      message: 'MCP exercise alternatives services are not available in this environment',
+      fallback: 'Please use the exercise library or contact your trainer for alternatives',
+      serviceStatus: 'disabled'
+    });
+  }
+  
   try {
     const { 
       modelName = 'claude-3-5-sonnet',
@@ -315,6 +362,17 @@ router.post('/alternatives', authMiddleware, async (req, res) => {
  */
 router.post('/nutrition', authMiddleware, async (req, res) => {
   const startTime = Date.now();
+  
+  // Check if MCP services are enabled
+  if (!MCP_SERVICES_ENABLED) {
+    return res.status(503).json({
+      success: false,
+      message: 'MCP nutrition planning services are not available in this environment',
+      fallback: 'Please use the manual nutrition tracking tools or contact support',
+      serviceStatus: 'disabled'
+    });
+  }
+  
   try {
     const { 
       modelName = 'claude-3-5-sonnet',
@@ -385,6 +443,17 @@ router.post('/nutrition', authMiddleware, async (req, res) => {
  */
 router.post('/gamification/:action', authMiddleware, async (req, res) => {
   const startTime = Date.now();
+  
+  // Check if MCP services are enabled
+  if (!MCP_SERVICES_ENABLED) {
+    return res.status(503).json({
+      success: false,
+      message: 'MCP gamification services are not available in this environment',
+      fallback: 'Basic gamification features are still available through the main platform',
+      serviceStatus: 'disabled'
+    });
+  }
+  
   try {
     const { action } = req.params;
     const validActions = ['award-points', 'unlock-achievement', 'create-challenge', 'update-leaderboard'];
@@ -453,10 +522,22 @@ router.post('/gamification/:action', authMiddleware, async (req, res) => {
 router.get('/health', async (req, res) => {
   try {
     const health = {
-      status: 'healthy',
+      status: MCP_SERVICES_ENABLED ? 'checking' : 'disabled',
       timestamp: new Date().toISOString(),
-      services: {}
+      services: {},
+      mcpServicesEnabled: MCP_SERVICES_ENABLED
     };
+    
+    // If MCP services are disabled, return early with disabled status
+    if (!MCP_SERVICES_ENABLED) {
+      health.status = 'disabled';
+      health.message = 'MCP services are disabled in this environment';
+      health.services = {
+        workout: { status: 'disabled', message: 'Service disabled via configuration' },
+        gamification: { status: 'disabled', message: 'Service disabled via configuration' }
+      };
+      return res.status(200).json(health);
+    }
 
     // Check Workout MCP
     try {
