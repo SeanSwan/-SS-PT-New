@@ -6,7 +6,9 @@
 
 import fs from 'fs/promises';
 import path from 'path';
-import * as yaml from 'js-yaml';
+// TEMPORARILY DISABLED FOR RENDER DEPLOYMENT
+// import * as yaml from 'js-yaml';
+// TODO: Re-enable once js-yaml import issues are resolved
 import { piiSafeLogger } from '../../../utils/monitoring/piiSafeLogging.mjs';
 import { ethicalAIReview } from '../EthicalAIReview.mjs';
 import { accessibilityTesting } from '../../accessibility/AccessibilityTesting.mjs';
@@ -1151,16 +1153,22 @@ pipeline {
       
       switch (platform) {
         case 'github':
-          content = yaml.dump(config, { lineWidth: 120 });
+          // TEMPORARILY USING JSON INSTEAD OF YAML DUE TO js-yaml IMPORT ISSUE
+          // content = yaml.dump(config, { lineWidth: 120 });
+          content = JSON.stringify(config, null, 2);
           break;
         case 'gitlab':
-          content = yaml.dump(config, { lineWidth: 120 });
+          // TEMPORARILY USING JSON INSTEAD OF YAML DUE TO js-yaml IMPORT ISSUE  
+          // content = yaml.dump(config, { lineWidth: 120 });
+          content = JSON.stringify(config, null, 2);
           break;
         case 'jenkins':
           content = config; // Already a string
           break;
         case 'azure':
-          content = yaml.dump(config, { lineWidth: 120 });
+          // TEMPORARILY USING JSON INSTEAD OF YAML DUE TO js-yaml IMPORT ISSUE
+          // content = yaml.dump(config, { lineWidth: 120 });
+          content = JSON.stringify(config, null, 2);
           break;
         default:
           content = JSON.stringify(config, null, 2);
