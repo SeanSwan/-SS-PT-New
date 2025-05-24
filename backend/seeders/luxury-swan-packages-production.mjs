@@ -30,7 +30,23 @@ async function seedLuxuryPackagesProduction() {
     console.log('🦢 Step 4: Creating SwanStudios Luxury Package Collection...');
     console.log('✨ Each package combines rare elements with swan elegance');
     
-    // Production-Compatible Luxury Packages (no theme field)
+    // Check if isActive and displayOrder columns exist before using them
+    let tableColumns;
+    try {
+      const [results] = await sequelize.query("SELECT column_name FROM information_schema.columns WHERE table_name = 'storefront_items' AND table_schema = current_schema()");
+      tableColumns = results.map(row => row.column_name);
+      console.log('📋 Available columns:', tableColumns.join(', '));
+    } catch (columnError) {
+      console.log('⚠️ Could not check table columns, proceeding with basic schema');
+      tableColumns = ['id', 'packageType', 'name', 'description', 'price', 'sessions', 'pricePerSession', 'totalCost'];
+    }
+    
+    const hasIsActive = tableColumns.includes('isActive');
+    const hasDisplayOrder = tableColumns.includes('displayOrder');
+    
+    console.log(`📊 Schema support - isActive: ${hasIsActive}, displayOrder: ${hasDisplayOrder}`);
+    
+    // Production-Compatible Luxury Packages (conditionally include isActive and displayOrder)
     const luxuryPackages = [
       {
         packageType: 'fixed',
@@ -40,8 +56,8 @@ async function seedLuxuryPackagesProduction() {
         pricePerSession: 175.00,
         totalCost: 175.00,
         price: 175.00,
-        isActive: true,
-        displayOrder: 1
+        ...(hasIsActive && { isActive: true }),
+        ...(hasDisplayOrder && { displayOrder: 1 })
       },
       {
         packageType: 'fixed',
@@ -51,8 +67,8 @@ async function seedLuxuryPackagesProduction() {
         pricePerSession: 170.00,
         totalCost: 1360.00,
         price: 1360.00,
-        isActive: true,
-        displayOrder: 2
+        ...(hasIsActive && { isActive: true }),
+        ...(hasDisplayOrder && { displayOrder: 2 })
       },
       {
         packageType: 'fixed',
@@ -62,8 +78,8 @@ async function seedLuxuryPackagesProduction() {
         pricePerSession: 165.00,
         totalCost: 3300.00,
         price: 3300.00,
-        isActive: true,
-        displayOrder: 3
+        ...(hasIsActive && { isActive: true }),
+        ...(hasDisplayOrder && { displayOrder: 3 })
       },
       {
         packageType: 'fixed',
@@ -73,8 +89,8 @@ async function seedLuxuryPackagesProduction() {
         pricePerSession: 160.00,
         totalCost: 8000.00,
         price: 8000.00,
-        isActive: true,
-        displayOrder: 4
+        ...(hasIsActive && { isActive: true }),
+        ...(hasDisplayOrder && { displayOrder: 4 })
       },
       {
         packageType: 'monthly',
@@ -86,8 +102,8 @@ async function seedLuxuryPackagesProduction() {
         pricePerSession: 155.00,
         totalCost: 8060.00,
         price: 8060.00,
-        isActive: true,
-        displayOrder: 5
+        ...(hasIsActive && { isActive: true }),
+        ...(hasDisplayOrder && { displayOrder: 5 })
       },
       {
         packageType: 'monthly',
@@ -99,8 +115,8 @@ async function seedLuxuryPackagesProduction() {
         pricePerSession: 150.00,
         totalCost: 15600.00,
         price: 15600.00,
-        isActive: true,
-        displayOrder: 6
+        ...(hasIsActive && { isActive: true }),
+        ...(hasDisplayOrder && { displayOrder: 6 })
       },
       {
         packageType: 'monthly',
@@ -112,8 +128,8 @@ async function seedLuxuryPackagesProduction() {
         pricePerSession: 145.00,
         totalCost: 22620.00,
         price: 22620.00,
-        isActive: true,
-        displayOrder: 7
+        ...(hasIsActive && { isActive: true }),
+        ...(hasDisplayOrder && { displayOrder: 7 })
       },
       {
         packageType: 'monthly',
@@ -125,8 +141,8 @@ async function seedLuxuryPackagesProduction() {
         pricePerSession: 140.00,
         totalCost: 29120.00,
         price: 29120.00,
-        isActive: true,
-        displayOrder: 8
+        ...(hasIsActive && { isActive: true }),
+        ...(hasDisplayOrder && { displayOrder: 8 })
       }
     ];
     
@@ -161,8 +177,9 @@ async function seedLuxuryPackagesProduction() {
     console.log('==========================================');
     console.log('💎 Rare Elements × Swan Elegance × Premium Training\n');
     
+    const orderClause = hasDisplayOrder ? [['displayOrder', 'ASC']] : [['id', 'ASC']];
     const allPackages = await StorefrontItem.findAll({
-      order: [['displayOrder', 'ASC']]
+      order: orderClause
     });
     
     allPackages.forEach((pkg, index) => {

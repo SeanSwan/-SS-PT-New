@@ -22,12 +22,20 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 // For production: MONGO_URI is set by Render with full connection string
 // For development: Use environment variables or fallback to default
 const isProduction = process.env.NODE_ENV === 'production';
-const MONGODB_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/swanstudios';
-// Fallback connection in case the primary one fails
+
+// In production, if no MongoDB URI is provided, automatically use SQLite fallback
+const MONGODB_URI = process.env.MONGO_URI || process.env.MONGODB_URI;
 const MONGODB_FALLBACK_URI = isProduction ? MONGODB_URI : 'mongodb://localhost:27017/swanstudios';
 
-// SQLite fallback flag
-const USE_SQLITE_FALLBACK = process.env.USE_SQLITE_FALLBACK === 'true';
+// SQLite fallback flag - automatically enabled in production if no MongoDB URI
+let USE_SQLITE_FALLBACK = process.env.USE_SQLITE_FALLBACK === 'true';
+
+// In production, if no MongoDB URI is configured, use SQLite fallback
+if (isProduction && !MONGODB_URI) {
+  console.log('🗃️ Production: No MongoDB URI configured, using SQLite fallback mode');
+  USE_SQLITE_FALLBACK = true;
+  process.env.USE_SQLITE_FALLBACK = 'true';
+}
 
 // Default connection options
 const MONGODB_OPTIONS = {
@@ -58,16 +66,23 @@ export async function connectToMongoDB() {
     return { client: null, db: null };
   }
 
+  // In production, if no MongoDB URI, skip connection attempt
+  if (isProduction && !MONGODB_URI) {
+    console.log('Production: No MongoDB URI provided, skipping MongoDB connection');
+    return { client: null, db: null };
+  }
+
   // Try to connect to MongoDB
   try {
-    if (!client) {
+    if (!client && MONGODB_URI) {
       client = new MongoClient(MONGODB_URI, MONGODB_OPTIONS);
       console.log(`Connecting to MongoDB at ${MONGODB_URI.split('/').slice(0, -1).join('/')}/...`);
       
-      // Connect with timeout
+      // Connect with shorter timeout in production to fail fast
+      const timeoutMs = isProduction ? 3000 : 5000;
       const connectPromise = client.connect();
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('MongoDB connection timeout')), 5000);
+        setTimeout(() => reject(new Error('MongoDB connection timeout')), timeoutMs);
       });
       
       await Promise.race([connectPromise, timeoutPromise]);
@@ -79,35 +94,42 @@ export async function connectToMongoDB() {
     return { client, db };
   } catch (error) {
     console.error(`MongoDB connection error: ${error.message}`);
-    console.log('Continuing with other databases');
     
     // Clean up any partial connection
     if (client) {
       try {
         await client.close();
       } catch (closeError) {
-        console.error(`Error closing MongoDB client: ${closeError.message}`);
+        // Ignore close errors
       }
       client = null;
       db = null;
     }
     
-    // Try connecting to default MongoDB port if custom port failed
-    try {
-      console.log('Attempting to connect to MongoDB on default port 27017...');
-      client = new MongoClient(MONGODB_FALLBACK_URI, MONGODB_OPTIONS);
-      await client.connect();
-      db = client.db();
-      console.log('MongoDB connection established successfully on default port');
-      return { client, db };
-    } catch (fallbackError) {
-      console.error(`MongoDB fallback connection also failed: ${fallbackError.message}`);
-      console.log('Falling back to SQLite');
-      
-      // Enable SQLite fallback
+    // In production, don't try fallback connections - just enable SQLite
+    if (isProduction) {
+      console.log('Production: MongoDB unavailable, enabling SQLite fallback');
       process.env.USE_SQLITE_FALLBACK = 'true';
       return { client: null, db: null };
     }
+    
+    // In development, try connecting to default MongoDB port if custom port failed
+    if (!isProduction && MONGODB_FALLBACK_URI && MONGODB_FALLBACK_URI !== MONGODB_URI) {
+      try {
+        console.log('Attempting to connect to MongoDB on default port 27017...');
+        client = new MongoClient(MONGODB_FALLBACK_URI, MONGODB_OPTIONS);
+        await client.connect();
+        db = client.db();
+        console.log('MongoDB connection established successfully on default port');
+        return { client, db };
+      } catch (fallbackError) {
+        console.error(`MongoDB fallback connection also failed: ${fallbackError.message}`);
+      }
+    }
+    
+    console.log('Falling back to SQLite');
+    process.env.USE_SQLITE_FALLBACK = 'true';
+    return { client: null, db: null };
   }
 }
 

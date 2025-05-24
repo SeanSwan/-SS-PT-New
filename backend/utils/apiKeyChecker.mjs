@@ -75,7 +75,7 @@ export const checkApiKeys = () => {
          console.log('[API Key Check] JWT_SECRET: OK (Found)');
     }
      if (!process.env.JWT_REFRESH_SECRET) {
-         console.warn('[API Key Check] JWT_REFRESH_SECRET: MISSING. Token refresh will fall back to JWT_SECRET.');
+         console.log('[API Key Check] JWT_REFRESH_SECRET: MISSING. Token refresh will fall back to JWT_SECRET.');
      } else {
           console.log('[API Key Check] JWT_REFRESH_SECRET: OK (Found)');
      }
