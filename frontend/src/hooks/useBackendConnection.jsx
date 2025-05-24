@@ -12,20 +12,25 @@ export const CONNECTION_STATES = {
 
 // Get the correct API URL based on environment
 const getApiUrl = () => {
-  // In production, use the same domain/port as the frontend
+  // In production, check if we're on a custom domain that needs to connect to Render backend
   if (process.env.NODE_ENV === 'production') {
-    return window.location.origin; // Use same domain as frontend
+    // If on custom domain (sswanstudios.com), connect to the Render backend
+    if (window.location.hostname === 'sswanstudios.com' || window.location.hostname === 'www.sswanstudios.com') {
+      return 'https://ss-pt.onrender.com'; // Your Render backend URL
+    }
+    // If on Render domain, use same origin
+    return window.location.origin;
   }
   // In development, use localhost:10000
   return 'http://localhost:10000';
 };
 
-// Default configuration
+// Default configuration - PRODUCTION SAFE
 const DEFAULT_CONFIG = {
-  maxRetries: 2, // Reduced retries for faster fallback
-  retryDelay: 1500, // Shorter delay
-  maxRetryDelay: 4000, // Shorter max delay  
-  backoffMultiplier: 1.5,
+  maxRetries: 1, // Reduced to 1 for production safety - prevents infinite loops
+  retryDelay: 2000, // 2 second delay
+  maxRetryDelay: 2000, // Max 2 seconds  
+  backoffMultiplier: 1,
   healthCheckInterval: 30000, // Check every 30 seconds once connected
   apiUrl: getApiUrl(), // Dynamic API URL based on environment
   forceMockMode: process.env.NODE_ENV === 'development' && window.location.hostname === 'localhost' // Only force mock in local development
@@ -122,6 +127,11 @@ export const useBackendConnection = (config = {}) => {
   const timeoutRef = useRef(null);
   const healthCheckIntervalRef = useRef(null);
   
+  // Circuit breaker to prevent infinite loops
+  const circuitBreakerRef = useRef({ attempts: 0, lastAttempt: 0 });
+  const CIRCUIT_BREAKER_LIMIT = 10; // Max attempts per minute
+  const CIRCUIT_BREAKER_WINDOW = 60000; // 1 minute window
+  
   // Create API instance
   const apiInstance = createApiInstance(fullConfig.apiUrl);
   
@@ -178,8 +188,31 @@ export const useBackendConnection = (config = {}) => {
     }
   }, [apiInstance, fullConfig.forceMockMode, fullConfig.maxRetries, fullConfig.apiUrl]);
   
-  // Attempt to reconnect with retry logic - REWRITTEN to prevent infinite loops
+  // Attempt to reconnect with retry logic - FIXED to prevent infinite loops
   const attemptReconnection = useCallback(async () => {
+    // CIRCUIT BREAKER - Prevent infinite loops
+    const now = Date.now();
+    const circuitBreaker = circuitBreakerRef.current;
+    
+    // Reset counter if window expired
+    if (now - circuitBreaker.lastAttempt > CIRCUIT_BREAKER_WINDOW) {
+      circuitBreaker.attempts = 0;
+    }
+    
+    // Check circuit breaker limit
+    if (circuitBreaker.attempts >= CIRCUIT_BREAKER_LIMIT) {
+      console.error(`🛑 CIRCUIT BREAKER: Too many connection attempts (${circuitBreaker.attempts}), forcing mock mode`);
+      if (isMountedRef.current) {
+        setConnectionState(CONNECTION_STATES.MOCK_MODE);
+        setIsRetrying(false);
+      }
+      return;
+    }
+    
+    // Increment circuit breaker counter
+    circuitBreaker.attempts++;
+    circuitBreaker.lastAttempt = now;
+    
     // IMMEDIATE EXIT CONDITIONS - Check these first to prevent any work
     if (!isMountedRef.current) {
       console.log('Component unmounted, cancelling reconnection attempt');
@@ -202,9 +235,13 @@ export const useBackendConnection = (config = {}) => {
       timeoutRef.current = null;
     }
     
+    // GET CURRENT RETRY COUNT DIRECTLY FROM STATE
+    const currentRetryCount = retryCount;
+    console.log(`Attempting reconnection, current retry count: ${currentRetryCount}/${fullConfig.maxRetries}`);
+    
     // CHECK MAX RETRIES REACHED
-    if (retryCount >= fullConfig.maxRetries) {
-      console.log(`Max retries (${fullConfig.maxRetries}) reached, switching to mock mode`);
+    if (currentRetryCount >= fullConfig.maxRetries) {
+      console.log(`Max retries (${fullConfig.maxRetries}) reached, switching to mock mode FINAL`);
       if (isMountedRef.current) {
         setConnectionState(CONNECTION_STATES.MOCK_MODE);
         setIsRetrying(false);
@@ -229,8 +266,11 @@ export const useBackendConnection = (config = {}) => {
       }
       
       if (isHealthy) {
-        // SUCCESS - Connection established
+        // SUCCESS - Connection established, reset circuit breaker
+        console.log('✅ Connection successful, resetting retry count');
+        circuitBreaker.attempts = 0; // Reset circuit breaker on success
         if (isMountedRef.current) {
+          setRetryCount(0);
           setIsRetrying(false);
           // checkBackendHealth already sets CONNECTED state
         }
@@ -238,16 +278,17 @@ export const useBackendConnection = (config = {}) => {
       }
       
       // FAILED - Increment retry count and schedule next attempt
-      const newRetryCount = retryCount + 1;
-      console.log(`Health check failed, attempt ${newRetryCount}/${fullConfig.maxRetries}`);
+      const newRetryCount = currentRetryCount + 1;
+      console.log(`❌ Health check failed, incrementing retry count to ${newRetryCount}/${fullConfig.maxRetries}`);
       
+      // UPDATE RETRY COUNT IMMEDIATELY
       if (isMountedRef.current) {
         setRetryCount(newRetryCount);
       }
       
       // Check if we've hit max retries after incrementing
       if (newRetryCount >= fullConfig.maxRetries) {
-        console.log('Max retries reached after increment, switching to mock mode');
+        console.log('🛑 Max retries reached after increment, switching to mock mode FINAL');
         if (isMountedRef.current) {
           setConnectionState(CONNECTION_STATES.MOCK_MODE);
           setIsRetrying(false);
@@ -257,13 +298,19 @@ export const useBackendConnection = (config = {}) => {
       
       // Schedule next attempt with exponential backoff
       const delay = calculateRetryDelay(newRetryCount - 1);
-      console.log(`Scheduling next attempt in ${delay}ms`);
+      console.log(`⏰ Scheduling retry ${newRetryCount} in ${delay}ms`);
       
-      timeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current) {
+      // CRITICAL: Use a separate timeout for each retry attempt
+      const timeoutId = setTimeout(() => {
+        if (isMountedRef.current && timeoutRef.current === timeoutId) {
+          // Only proceed if this is still the active timeout
           attemptReconnection();
+        } else {
+          console.log('Timeout cancelled or component unmounted, skipping retry');
         }
       }, delay);
+      
+      timeoutRef.current = timeoutId;
       
     } catch (error) {
       console.error('Unexpected error in attemptReconnection:', error);
@@ -272,7 +319,7 @@ export const useBackendConnection = (config = {}) => {
         setIsRetrying(false);
       }
     }
-  }, [retryCount, fullConfig.maxRetries, fullConfig.forceMockMode, checkBackendHealth, calculateRetryDelay]);
+  }, [retryCount, fullConfig.maxRetries, fullConfig.forceMockMode, checkBackendHealth, calculateRetryDelay, CIRCUIT_BREAKER_LIMIT, CIRCUIT_BREAKER_WINDOW]);
   
   // Manual retry function
   const manualRetry = useCallback(() => {
@@ -288,8 +335,12 @@ export const useBackendConnection = (config = {}) => {
       timeoutRef.current = null;
     }
     
+    // Reset circuit breaker on manual retry
+    circuitBreakerRef.current.attempts = 0;
+    
     setRetryCount(0);
     setLastError(null);
+    console.log('🔄 Manual retry initiated, resetting all counters');
     attemptReconnection();
   }, [attemptReconnection]);
   
@@ -425,8 +476,8 @@ export const ConnectionStatusBanner = ({ connection }) => {
         return {
           color: 'bg-purple-500',
           icon: '🔧',
-          title: 'Development Mode',
-          message: 'Using mock data - backend unavailable'
+          title: 'Mock Mode',
+          message: window.location.hostname === 'localhost' ? 'Local development mode - using mock data' : 'Backend unavailable - using mock data'
         };
       default:
         return {
