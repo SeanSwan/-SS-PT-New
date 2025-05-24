@@ -10,6 +10,16 @@ export const CONNECTION_STATES = {
   MOCK_MODE: 'mock_mode'
 };
 
+// Get the correct API URL based on environment
+const getApiUrl = () => {
+  // In production, use the same domain/port as the frontend
+  if (process.env.NODE_ENV === 'production') {
+    return window.location.origin; // Use same domain as frontend
+  }
+  // In development, use localhost:10000
+  return 'http://localhost:10000';
+};
+
 // Default configuration
 const DEFAULT_CONFIG = {
   maxRetries: 2, // Reduced retries for faster fallback
@@ -17,8 +27,8 @@ const DEFAULT_CONFIG = {
   maxRetryDelay: 4000, // Shorter max delay  
   backoffMultiplier: 1.5,
   healthCheckInterval: 30000, // Check every 30 seconds once connected
-  apiUrl: 'http://localhost:10000', // Use the same port consistently
-  forceMockMode: true // Always force mock mode in development to avoid connection issues
+  apiUrl: getApiUrl(), // Dynamic API URL based on environment
+  forceMockMode: process.env.NODE_ENV === 'development' && window.location.hostname === 'localhost' // Only force mock in local development
 };
 
 // Function to check if the endpoint is a health check
@@ -125,14 +135,15 @@ export const useBackendConnection = (config = {}) => {
   const checkBackendHealth = useCallback(async () => {
     // Force mock mode if configured - skip health check and return false
     if (fullConfig.forceMockMode) {
-      console.log('Force mock mode enabled, skipping backend health check');
+      console.log('Local development mode, skipping backend health check');
       return false;
     }
     
     try {
+      console.log(`Checking backend health at: ${fullConfig.apiUrl}/health`);
       const response = await apiInstance.get('/health');
       if (response.status === 200) {
-        console.log('Backend health check SUCCESS - server is running');
+        console.log('✅ Backend health check SUCCESS - server is running');
         setConnectionState(CONNECTION_STATES.CONNECTED);
         setRetryCount(0);
         setLastError(null);
@@ -150,7 +161,7 @@ export const useBackendConnection = (config = {}) => {
       
       // Special handling for blocked by client - immediately give up
       if (errorObj.blockedByClient) {
-        console.warn('Health check BLOCKED by browser/ad blocker - switching to mock mode immediately');
+        console.warn('🚫 Health check BLOCKED by browser/ad blocker - switching to mock mode immediately');
         if (isMountedRef.current) {
           setConnectionState(CONNECTION_STATES.MOCK_MODE);
           setRetryCount(fullConfig.maxRetries); // Force max retries to stop further attempts
@@ -159,13 +170,13 @@ export const useBackendConnection = (config = {}) => {
       
       // Only log warnings if not silenced
       if (!errorObj.silenced && !errorObj.blockedByClient) {
-        console.warn('Backend health check failed:', errorObj.message);
+        console.warn('❌ Backend health check failed:', errorObj.message);
       }
       
       setLastError(errorObj);
       return false;
     }
-  }, [apiInstance, fullConfig.forceMockMode, fullConfig.maxRetries]);
+  }, [apiInstance, fullConfig.forceMockMode, fullConfig.maxRetries, fullConfig.apiUrl]);
   
   // Attempt to reconnect with retry logic - REWRITTEN to prevent infinite loops
   const attemptReconnection = useCallback(async () => {
@@ -175,9 +186,9 @@ export const useBackendConnection = (config = {}) => {
       return;
     }
     
-    // FORCE MOCK MODE - Skip ALL connection attempts if enabled
+    // FORCE MOCK MODE - Skip ALL connection attempts if enabled (LOCAL development only)
     if (fullConfig.forceMockMode) {
-      console.log('Force mock mode enabled, switching to mock mode immediately');
+      console.log('Local development mode detected, switching to mock mode immediately');
       if (isMountedRef.current) {
         setConnectionState(CONNECTION_STATES.MOCK_MODE);
         setIsRetrying(false);
@@ -282,14 +293,14 @@ export const useBackendConnection = (config = {}) => {
     attemptReconnection();
   }, [attemptReconnection]);
   
-  // Initial connection attempt - with immediate mock mode for development
+  // Initial connection attempt - with immediate mock mode for LOCAL development only
   useEffect(() => {
     // Mark component as mounted
     isMountedRef.current = true;
     
-    // If force mock mode is enabled, go straight to mock mode immediately
+    // If force mock mode is enabled (LOCAL development only), go straight to mock mode immediately
     if (fullConfig.forceMockMode) {
-      console.log('Force mock mode enabled on mount, switching to mock mode immediately');
+      console.log('Local development detected, switching to mock mode immediately');
       setConnectionState(CONNECTION_STATES.MOCK_MODE);
       return;
     }
@@ -300,8 +311,8 @@ export const useBackendConnection = (config = {}) => {
       return;
     }
     
-    // Only attempt connection if not in force mock mode
-    console.log('Attempting initial connection...');
+    // For production or when backend is expected, attempt connection
+    console.log(`Attempting initial connection to: ${fullConfig.apiUrl}`);
     attemptReconnection();
     
     // Cleanup function to prevent memory leaks
