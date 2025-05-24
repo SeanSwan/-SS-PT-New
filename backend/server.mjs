@@ -188,14 +188,23 @@ if (isProduction) {
 // Reads from Render Env Var FRONTEND_ORIGINS first, then falls back to defaults
 const whitelist = process.env.FRONTEND_ORIGINS
   ? process.env.FRONTEND_ORIGINS.split(',')
-  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'https://swanstudios-app.onrender.com']; // Ensure all production and development domains are included
+  : [
+      'http://localhost:5173', 
+      'http://localhost:5174', 
+      'http://localhost:5175', 
+      'https://swanstudios-app.onrender.com',
+      'https://sswanstudios.com',
+      'https://www.sswanstudios.com',
+      'https://swanstudios.com',
+      'https://www.swanstudios.com'
+    ]; // Ensure all production and development domains are included
 
 // In production, use stricter CORS policies
 const corsOptions = {
   origin: function (origin, callback) {
     // In development, we're more permissive
     if (!isProduction) {
-      // Allow requests with no origin (like mobile apps, curl, Postman)
+      // Allow requests with no origin (like mobile apps, curl, Postman, server-to-server)
       if (!origin) {
         callback(null, true);
         return;
@@ -207,15 +216,28 @@ const corsOptions = {
         callback(null, true);
         return;
       }
+      
+      // In development, also allow localhost variations
+      if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+        callback(null, true);
+        return;
+      }
     }
     
-    // In production, strict origin matching
+    // In production, strict origin matching but also allow requests with no origin
     if (!origin || whitelist.includes(origin)) {
       callback(null, true);
     } else {
-      // Origin is NOT in the whitelist and is present
-      logger.warn(`CORS blocked request from origin: ${origin}`);
-      callback(new Error(`Origin ${origin} not allowed by CORS`));
+      // Check if it's a similar domain that might be missing from whitelist
+      const isSwanStudiosDomain = origin.includes('swanstudios.com') || origin.includes('sswanstudios.com');
+      if (isSwanStudiosDomain) {
+        logger.warn(`CORS: Swan Studios domain not in whitelist, allowing: ${origin}`);
+        callback(null, true);
+      } else {
+        // Origin is NOT in the whitelist and is present
+        logger.warn(`CORS blocked request from origin: ${origin}`);
+        callback(new Error(`Origin ${origin} not allowed by CORS`));
+      }
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
