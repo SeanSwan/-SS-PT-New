@@ -32,7 +32,7 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
 // API URLs
 export const API_BASE_URL = ''; // Empty string relies on proxy for /api paths
 export const DEV_BACKEND_URL = 'http://localhost:10000';
-export const PROD_BACKEND_URL = 'https://swanstudios.onrender.com';
+export const PROD_BACKEND_URL = 'https://swan-studios-api.onrender.com';
 
 // Auth configuration
 export const AUTH_CONFIG = {
