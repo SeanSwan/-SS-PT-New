@@ -87,14 +87,18 @@ export default defineConfig(({ mode }) => {
     build: {
       sourcemap: true,
       outDir: 'dist',
-      // Ensure the router works correctly with Render
+      // Ensure the router works correctly with hosting platforms
       rollupOptions: {
         output: {
           manualChunks: {
             vendor: ['react', 'react-dom', 'react-router-dom'],
           }
         }
-      }
+      },
+      // Enable SPA fallback for development preview
+      assetsDir: 'assets',
+      // Ensure all assets are properly handled
+      copyPublicDir: true
     },
     define: {
       'import.meta.env.VITE_API_BASE_URL': JSON.stringify('/api'),
