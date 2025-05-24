@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 
 // Connection states
@@ -100,6 +100,11 @@ export const useBackendConnection = (config = {}) => {
   const [lastError, setLastError] = useState(null);
   const [isRetrying, setIsRetrying] = useState(false);
   
+  // Ref to track if component is mounted and timeout IDs for cleanup
+  const isMountedRef = useRef(true);
+  const timeoutRef = useRef(null);
+  const healthCheckIntervalRef = useRef(null);
+  
   // Create API instance
   const apiInstance = createApiInstance(fullConfig.apiUrl);
   
@@ -147,24 +152,48 @@ export const useBackendConnection = (config = {}) => {
   
   // Attempt to reconnect with retry logic
   const attemptReconnection = useCallback(async () => {
+    // Check if component is still mounted
+    if (!isMountedRef.current) {
+      console.log('Component unmounted, cancelling reconnection attempt');
+      return;
+    }
+    
+    // Clear any existing timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    
     // If force mock mode is enabled, skip reconnection attempts and go straight to mock mode
     if (fullConfig.forceMockMode) {
       console.log('Force mock mode enabled, switching to mock mode without retries');
-      setConnectionState(CONNECTION_STATES.MOCK_MODE);
+      if (isMountedRef.current) {
+        setConnectionState(CONNECTION_STATES.MOCK_MODE);
+      }
       return;
     }
     
     if (retryCount >= fullConfig.maxRetries) {
       console.log('Max retries reached, switching to mock mode');
-      setConnectionState(CONNECTION_STATES.MOCK_MODE);
-      setIsRetrying(false);
+      if (isMountedRef.current) {
+        setConnectionState(CONNECTION_STATES.MOCK_MODE);
+        setIsRetrying(false);
+      }
       return;
     }
     
-    setIsRetrying(true);
-    setConnectionState(CONNECTION_STATES.CONNECTING);
+    if (isMountedRef.current) {
+      setIsRetrying(true);
+      setConnectionState(CONNECTION_STATES.CONNECTING);
+    }
     
     const isHealthy = await checkBackendHealth();
+    
+    // Check again if component is still mounted after async operation
+    if (!isMountedRef.current) {
+      console.log('Component unmounted during health check, cancelling reconnection');
+      return;
+    }
     
     if (!isHealthy) {
       setRetryCount(prev => prev + 1);
@@ -172,16 +201,33 @@ export const useBackendConnection = (config = {}) => {
       
       console.log(`Retrying connection in ${delay}ms (attempt ${retryCount + 1}/${fullConfig.maxRetries})`);
       
-      setTimeout(() => {
-        attemptReconnection();
+      // Use ref to store timeout ID for cleanup
+      timeoutRef.current = setTimeout(() => {
+        if (isMountedRef.current) {
+          attemptReconnection();
+        }
       }, delay);
     } else {
-      setIsRetrying(false);
+      if (isMountedRef.current) {
+        setIsRetrying(false);
+      }
     }
   }, [retryCount, fullConfig.maxRetries, fullConfig.forceMockMode, checkBackendHealth, calculateRetryDelay]);
   
   // Manual retry function
   const manualRetry = useCallback(() => {
+    // Check if component is still mounted
+    if (!isMountedRef.current) {
+      console.log('Component unmounted, ignoring manual retry');
+      return;
+    }
+    
+    // Clear any existing timeout before retrying
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    
     setRetryCount(0);
     setLastError(null);
     attemptReconnection();
@@ -189,6 +235,9 @@ export const useBackendConnection = (config = {}) => {
   
   // Initial connection attempt - with safeguard against infinite loops
   useEffect(() => {
+    // Mark component as mounted
+    isMountedRef.current = true;
+    
     // Skip all connection attempts if already set to mock mode
     if (connectionState === CONNECTION_STATES.MOCK_MODE) {
       console.log('Already in mock mode, skipping connection attempts');
@@ -203,20 +252,48 @@ export const useBackendConnection = (config = {}) => {
     }
     
     attemptReconnection();
+    
+    // Cleanup function to prevent memory leaks
+    return () => {
+      isMountedRef.current = false;
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+      if (healthCheckIntervalRef.current) {
+        clearInterval(healthCheckIntervalRef.current);
+        healthCheckIntervalRef.current = null;
+      }
+    };
     // Only run this effect once on mount with empty dependency array
   }, []);
   
   // Set up periodic health checks when connected
   useEffect(() => {
-    // Skip periodic health checks if in mock mode
-    if (connectionState === CONNECTION_STATES.MOCK_MODE) {
+    // Clear any existing interval
+    if (healthCheckIntervalRef.current) {
+      clearInterval(healthCheckIntervalRef.current);
+      healthCheckIntervalRef.current = null;
+    }
+    
+    // Skip periodic health checks if in mock mode or not mounted
+    if (connectionState === CONNECTION_STATES.MOCK_MODE || !isMountedRef.current) {
       return;
     }
     
     if (connectionState === CONNECTION_STATES.CONNECTED) {
-      const interval = setInterval(async () => {
+      healthCheckIntervalRef.current = setInterval(async () => {
+        // Check if component is still mounted before proceeding
+        if (!isMountedRef.current) {
+          if (healthCheckIntervalRef.current) {
+            clearInterval(healthCheckIntervalRef.current);
+            healthCheckIntervalRef.current = null;
+          }
+          return;
+        }
+        
         const isHealthy = await checkBackendHealth();
-        if (!isHealthy) {
+        if (!isHealthy && isMountedRef.current) {
           setConnectionState(CONNECTION_STATES.DISCONNECTED);
           // Only attempt reconnection if not already in mock mode
           if (connectionState !== CONNECTION_STATES.MOCK_MODE) {
@@ -225,9 +302,14 @@ export const useBackendConnection = (config = {}) => {
         }
       }, fullConfig.healthCheckInterval);
       
-      return () => clearInterval(interval);
+      return () => {
+        if (healthCheckIntervalRef.current) {
+          clearInterval(healthCheckIntervalRef.current);
+          healthCheckIntervalRef.current = null;
+        }
+      };
     }
-  }, [connectionState]);
+  }, [connectionState, checkBackendHealth, fullConfig.healthCheckInterval, attemptReconnection]);
   
   return {
     connectionState,
