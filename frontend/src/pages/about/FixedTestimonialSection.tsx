@@ -9,7 +9,7 @@ import maleBlk from "../../assets/maleblk.jpg";
 import femaleLat from "../../assets/femalelat.jpg";
 import femalewht from "../../assets/femalewht.jpg";
 import femaleoldwht from "../../assets/femaleoldwht.jpg";
-import male1 from "../../assets/male1.jpg";
+import femaleAsi from "../../assets/femaleasi.jpg"; // Use existing image instead of male1
 import male2 from "../../assets/male2.jpg";
 
 // ======================= 🎨 Animation Keyframes =======================
@@ -498,8 +498,8 @@ export default function FixedTestimonialSection() {
       rating: 5
     },
     {
-      name: "Daniel Rivera",
-      image: male1,
+      name: "Anna Liu",
+      image: femaleAsi,
       text: "What sets SwanStudios apart is their attention to detail. Every exercise is tailored to your specific needs and goals. I've trained at many gyms over the years, but none have delivered results as efficiently and effectively as SwanStudios.",
       profession: "Business Executive",
       rating: 5
