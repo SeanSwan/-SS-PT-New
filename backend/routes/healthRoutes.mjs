@@ -50,13 +50,20 @@ router.get('/', async (req, res) => {
       logger.error('PostgreSQL health check failed:', { error: dbError.message });
     }
     
-    // Get MongoDB status - with error handling
-    let mongoStatus = { connected: false, usingSQLite: false };
+    // Get MongoDB status - with better error handling
+    let mongoStatus = { connected: false, usingSQLite: false, error: null };
     if (getMongoDBStatus) {
       try {
         mongoStatus = getMongoDBStatus();
       } catch (mongoError) {
         logger.warn('MongoDB status check failed:', { error: mongoError.message });
+        mongoStatus = { 
+          connected: false, 
+          usingSQLite: true, 
+          error: mongoError.message,
+          uri: 'Status check failed',
+          database: 'N/A'
+        };
       }
     }
     
