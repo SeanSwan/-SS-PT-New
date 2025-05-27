@@ -2,8 +2,8 @@ services:
   - type: web
     name: swan-studios-api
     env: node
-    buildCommand: npm install
-    startCommand: npm run render-start
+    buildCommand: cd frontend && npm install && npm run build && cd ../backend && npm install
+    startCommand: cd backend && npm run render-start
     envVars:
       - key: NODE_ENV
         value: production
