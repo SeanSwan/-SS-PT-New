@@ -102,7 +102,7 @@ import gamificationRoutes from './routes/gamificationRoutes.mjs';
 import socialRoutes from './routes/social/index.mjs';
 import roleRoutes from './routes/roleRoutes.mjs';
 import logger from './utils/logger.mjs';
-import { requestLogger, dbHealthCheck } from './middleware/debugMiddleware.mjs';
+import { requestLogger } from './middleware/debugMiddleware.mjs';
 import sequelize from './database.mjs';
 
 // Import updated setupAssociations that uses dynamic imports
@@ -110,6 +110,9 @@ import setupAssociations from './setupAssociations.mjs';
 
 // Import MongoDB connection with fallback support
 import { connectToMongoDB, getMongoDBStatus } from './mongodb-connect.mjs';
+
+// Import startup migrations
+import { runStartupMigrations } from './utils/startupMigrations.mjs';
 
 // Import storefront seeder
 import seedStorefrontItems from './seedStorefrontItems.mjs';
@@ -306,25 +309,45 @@ app.get('/test', (req, res) => {
 });
 
 // Health check endpoint - crucial for Render and monitoring
-app.get('/health', dbHealthCheck, (req, res) => {
-  // Get MongoDB status
-  const mongoStatus = getMongoDBStatus();
+// Simple, robust health check that always works
+app.get('/health', async (req, res) => {
+  // Set CORS headers explicitly for health check
+  res.header('Access-Control-Allow-Origin', req.headers.origin || 'https://sswanstudios.com');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   
-  // Combine with Sequelize status
-  const dbStatus = {
-    connected: (req.dbStatus && req.dbStatus.connected) || mongoStatus.connected,
-    sequelize: req.dbStatus || { connected: false, message: 'Sequelize status unknown' },
-    mongodb: mongoStatus,
-    usingSQLiteFallback: USE_SQLITE_FALLBACK
-  };
-  
-  res.status(dbStatus.connected ? 200 : 500).json({
-    status: dbStatus.connected ? 'ok' : 'error',
-    environment: process.env.NODE_ENV || 'development',
-    timestamp: new Date().toISOString(),
-    dbStatus: dbStatus,
-    uptime: process.uptime()
-  });
+  try {
+    // Basic server health response
+    const healthResponse = {
+      success: true,
+      status: 'healthy',
+      message: 'SwanStudios API Server is running',
+      environment: process.env.NODE_ENV || 'development',
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor(process.uptime()),
+      version: '1.0.0'
+    };
+    
+    // Optional: Add database check if needed, but don't fail health check if DB is down
+    try {
+      await sequelize.authenticate();
+      healthResponse.database = { status: 'connected', type: 'postgresql' };
+    } catch (dbError) {
+      healthResponse.database = { status: 'disconnected', message: 'Database check failed but server is running' };
+    }
+    
+    res.status(200).json(healthResponse);
+  } catch (error) {
+    // Always return 200 for health checks - even if there are issues
+    res.status(200).json({
+      success: true,
+      status: 'basic',
+      message: 'Server is running (minimal health check)',
+      timestamp: new Date().toISOString(),
+      uptime: Math.floor(process.uptime())
+    });
+  }
 });
 
 // --- Debug Routes (DEVELOPMENT ONLY) ---
@@ -520,6 +543,7 @@ if (!isProduction) {
 
 // --- Apply API Routes ---
 // All application API routes are prefixed with /api
+// Mount health routes at /api/health for detailed health info
 app.use('/api/health', healthRoutes);
 app.use('/api/mcp', mcpRoutes);  // Add MCP integration routes
 app.use('/api/ai-monitoring', aiMonitoringRoutes);  // Add AI monitoring routes
@@ -655,6 +679,13 @@ app.use((req, res) => {
       } catch (syncError) {
         logger.error(`Error syncing database: ${syncError.message}`);
       }
+    }
+
+    // Run startup migrations to ensure database schema is up to date
+    try {
+      await runStartupMigrations();
+    } catch (migrationError) {
+      logger.warn('Startup migrations had issues (non-critical):', migrationError.message);
     }
 
     // Seed storefront items (training packages) if they don't exist

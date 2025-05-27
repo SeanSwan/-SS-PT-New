@@ -170,7 +170,9 @@ export function getMongoDBStatus() {
   return {
     connected: isMongoDBConnected(),
     usingSQLite: USE_SQLITE_FALLBACK,
-    uri: MONGODB_URI.split('/').slice(0, -1).join('/') + '/...',
+    uri: MONGODB_URI ? MONGODB_URI.split('/').slice(0, -1).join('/') + '/...' : 'Not configured',
+    database: MONGODB_URI ? MONGODB_URI.split('/').pop() : 'N/A',
+    lastConnectionAttempt: new Date().toISOString()
   };
 }
 
