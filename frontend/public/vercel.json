@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://swan-studios-api.onrender.com/api/$1"
+      "destination": "https://ss-pt-new.onrender.com/api/$1"
     },
     {
       "source": "/(.*)",
