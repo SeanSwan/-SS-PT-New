@@ -4553,3 +4553,4 @@
 {"level":"error","message":"⚠️  Error during storefront seeding (non-critical): cannot truncate a table referenced in a foreign key constraint","name":"SequelizeDatabaseError","timestamp":"2025-05-28T19:43:26.523Z"}
 {"level":"error","message":"⚠️  Error during storefront seeding (non-critical): cannot truncate a table referenced in a foreign key constraint","name":"SequelizeDatabaseError","timestamp":"2025-05-28T19:44:40.292Z"}
 {"level":"error","message":"⚠️  Error during storefront seeding (non-critical): cannot truncate a table referenced in a foreign key constraint","name":"SequelizeDatabaseError","timestamp":"2025-05-28T19:49:43.610Z"}
+{"level":"error","message":"⚠️  Error during storefront seeding (non-critical): cannot truncate a table referenced in a foreign key constraint","name":"SequelizeDatabaseError","timestamp":"2025-05-28T19:53:32.359Z"}
