@@ -3,12 +3,12 @@ import db from '../database.mjs';
 
 const UserReward = db.define('UserReward', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
   },
   userId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Users',
@@ -16,7 +16,7 @@ const UserReward = db.define('UserReward', {
     }
   },
   rewardId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Rewards',
@@ -47,7 +47,7 @@ const UserReward = db.define('UserReward', {
     allowNull: true
   },
   fulfilledBy: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: true,
     references: {
       model: 'Users',

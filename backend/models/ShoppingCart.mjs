@@ -17,9 +17,9 @@ ShoppingCart.init(
       defaultValue: 'active',
       allowNull: false,
     },
-    // Updated userId to UUID to match User.id
+    // Updated userId to INTEGER to match User.id
     userId: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
     // Add these fields needed for checkout

@@ -3,12 +3,12 @@ import db from '../database.mjs';
 
 const PointTransaction = db.define('PointTransaction', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
   },
   userId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Users',
@@ -45,7 +45,7 @@ const PointTransaction = db.define('PointTransaction', {
     allowNull: false
   },
   sourceId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: true
   },
   description: {
@@ -57,7 +57,7 @@ const PointTransaction = db.define('PointTransaction', {
     allowNull: true
   },
   awardedBy: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: true,
     references: {
       model: 'Users',

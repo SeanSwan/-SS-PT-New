@@ -17,7 +17,7 @@ FoodScanHistory.init(
     },
     // User who performed the scan
     userId: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       allowNull: false,
       references: {
         model: 'users',

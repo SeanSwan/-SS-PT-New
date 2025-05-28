@@ -33,13 +33,13 @@ Session.init({
     comment: 'Duration in minutes'
   },
   userId: {
-    // Updated to UUID to match User.id primary key
-    type: DataTypes.UUID,
+    // Updated to INTEGER to match User.id primary key
+    type: DataTypes.INTEGER,
     allowNull: true,
     comment: 'Client who booked the session'
   },
   trainerId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: true,
     comment: 'Trainer assigned to the session'
   },
@@ -88,7 +88,7 @@ Session.init({
     comment: 'Reason for cancellation if applicable'
   },
   cancelledBy: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: true,
     comment: 'User who cancelled the session'
   },
