@@ -4477,3 +4477,4 @@
 {"error":"invalid signature","level":"error","message":"Token verification error","method":"GET","path":"/storefront","timestamp":"2025-05-23T06:17:09.024Z"}
 {"error":"invalid signature","level":"error","message":"Token verification error","method":"GET","path":"/trainers","timestamp":"2025-05-23T06:17:27.207Z"}
 {"error":"invalid signature","level":"error","message":"Token verification error","method":"GET","path":"/trainers","timestamp":"2025-05-23T06:17:27.210Z"}
+{"level":"error","message":"⚠️  Error during storefront seeding (non-critical): cannot truncate a table referenced in a foreign key constraint","name":"SequelizeDatabaseError","timestamp":"2025-05-28T01:43:17.326Z"}
