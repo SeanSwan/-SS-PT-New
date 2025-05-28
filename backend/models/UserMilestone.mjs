@@ -3,12 +3,12 @@ import db from '../database.mjs';
 
 const UserMilestone = db.define('UserMilestone', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
   },
   userId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Users',
@@ -16,7 +16,7 @@ const UserMilestone = db.define('UserMilestone', {
     }
   },
   milestoneId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Milestones',
