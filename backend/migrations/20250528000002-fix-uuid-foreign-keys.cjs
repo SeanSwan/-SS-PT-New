@@ -36,7 +36,7 @@ module.exports = {
         console.log('Orders userId column type:', orderUserIdCheck);
         
         // If orders table exists with wrong data type, drop it
-        if (orderUserIdCheck.length > 0 && orderUserIdCheck[0].data_type !== 'uuid') {
+        if (orderUserIdCheck.length > 0 && orderUserIdCheck[0].data_type !== 'integer') {
           console.log('🔥 Dropping orders table with incorrect userId data type...');
           await queryInterface.dropTable('orders', { cascade: true });
           console.log('✅ Orders table dropped');
@@ -76,7 +76,7 @@ module.exports = {
           WHERE table_name = 'shopping_carts' AND column_name = 'userId';
         `);
         
-        if (cartUserIdCheck.length > 0 && cartUserIdCheck[0].data_type !== 'uuid') {
+        if (cartUserIdCheck.length > 0 && cartUserIdCheck[0].data_type !== 'integer') {
           console.log('🔥 Shopping_carts table has incorrect userId data type, fixing...');
           
           // Drop cart_items first (foreign key dependency)
@@ -96,8 +96,8 @@ module.exports = {
           console.log('🔥 Dropping shopping_carts table with incorrect userId data type...');
           await queryInterface.dropTable('shopping_carts', { cascade: true });
           
-          // Recreate shopping_carts with correct UUID userId
-          console.log('📋 Recreating shopping_carts table with UUID userId...');
+          // Recreate shopping_carts with correct INTEGER userId
+          console.log('📋 Recreating shopping_carts table with INTEGER userId...');
           await queryInterface.createTable('shopping_carts', {
             id: {
               allowNull: false,
@@ -111,7 +111,7 @@ module.exports = {
               defaultValue: 'active',
             },
             userId: {
-              type: Sequelize.UUID,  // Fixed to UUID
+              type: Sequelize.INTEGER,  // Fixed to INTEGER to match users.id
               allowNull: false,
               references: { 
                 model: 'users', 
@@ -186,8 +186,8 @@ module.exports = {
         }
       }
       
-      // Now create the orders table with correct UUID data types
-      console.log('📋 Creating orders table with correct UUID data types...');
+      // Now create the orders table with correct INTEGER data types
+      console.log('📋 Creating orders table with correct INTEGER data types...');
       
       await queryInterface.createTable('orders', {
         id: {
@@ -197,7 +197,7 @@ module.exports = {
           type: Sequelize.INTEGER
         },
         userId: {
-          type: Sequelize.UUID,  // Explicitly UUID to match users.id
+          type: Sequelize.INTEGER,  // Changed to INTEGER to match users.id
           allowNull: false,
           references: {
             model: 'users',
@@ -274,7 +274,7 @@ module.exports = {
         }
       });
       
-      console.log('✅ Orders table created with UUID userId');
+      console.log('✅ Orders table created with INTEGER userId');
       
       // Create order_items table
       console.log('📋 Creating order_items table...');
