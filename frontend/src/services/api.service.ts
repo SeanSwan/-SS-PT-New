@@ -21,10 +21,10 @@ declare global {
 }
 
 // API URL from environment variables with fallbacks
-// NOTE: Using empty base URL to leverage Vite's proxy feature
+// In production, use direct backend URL
 const API_BASE_URL = import.meta.env.MODE === 'development' 
   ? '' // Use empty base URL in development to leverage proxy
-  : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000');
+  : 'https://ss-pt-new.onrender.com';
 
 // In development mode, force mock mode to avoid backend connection issues
 const FORCE_MOCK_MODE = import.meta.env.MODE === 'development';
