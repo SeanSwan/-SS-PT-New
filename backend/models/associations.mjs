@@ -12,6 +12,7 @@ const setupAssociations = async () => {
     
     // Import ONLY SEQUELIZE MODELS (PostgreSQL)
     const UserModule = await import('./User.mjs');
+    const SessionModule = await import('./Session.mjs');
     const ClientProgressModule = await import('./ClientProgress.mjs');
     const GamificationModule = await import('./Gamification.mjs');
     const AchievementModule = await import('./Achievement.mjs');
@@ -43,6 +44,7 @@ const setupAssociations = async () => {
     
     // Extract default exports for SEQUELIZE models only
     const User = UserModule.default;
+    const Session = SessionModule.default;
     const ClientProgress = ClientProgressModule.default;
     const Gamification = GamificationModule.default;
     const Achievement = AchievementModule.default;
@@ -88,6 +90,16 @@ const setupAssociations = async () => {
     // ============================================
     User.hasOne(ClientProgress, { foreignKey: 'userId', as: 'clientProgress' }); // Changed alias from 'progress'
     User.hasOne(Gamification, { foreignKey: 'userId', as: 'gamification' });
+    
+    // USER-SESSION ASSOCIATIONS (CRITICAL FOR SCHEDULE FUNCTIONALITY)
+    // ===============================================================
+    // User as client in sessions
+    User.hasMany(Session, { foreignKey: 'userId', as: 'clientSessions' });
+    Session.belongsTo(User, { foreignKey: 'userId', as: 'client' });
+    
+    // User as trainer in sessions
+    User.hasMany(Session, { foreignKey: 'trainerId', as: 'trainerSessions' });
+    Session.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
     
     // User to achievements (many-to-many through UserAchievements)
     User.belongsToMany(Achievement, { 
@@ -158,6 +170,7 @@ const setupAssociations = async () => {
     // Return ONLY SEQUELIZE models for exporting
     return {
       User,
+      Session,
       ClientProgress,
       Gamification,
       Achievement,
