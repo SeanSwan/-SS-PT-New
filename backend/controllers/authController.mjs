@@ -3,7 +3,8 @@ import logger from '../utils/logger.mjs';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import User from '../models/User.mjs';
-import sequelize, { Op } from '../database.mjs';
+import sequelize from '../database.mjs';
+import { Op } from 'sequelize';
 import dotenv from 'dotenv';
 import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
@@ -397,15 +398,43 @@ export const login = async (req, res) => {
     recordLoginAttempt(ipAddress);
     recordLoginAttempt(username);
 
-    // Find the user
-    const user = await User.findOne({ 
-      where: { 
-        [Op.or]: [
-          { username },
-          { email: username } // Allow login with email too
-        ]
-      }
-    });
+    // Find the user with enhanced error handling
+    console.log(`🔍 Searching for user: ${username}`);
+    let user;
+    
+    try {
+      user = await User.findOne({ 
+        where: { 
+          [Op.or]: [
+            { username },
+            { email: username } // Allow login with email too
+          ]
+        }
+      });
+      console.log(`📊 User query result: ${user ? 'FOUND' : 'NOT FOUND'}`);
+    } catch (queryError) {
+      logger.error('Database query error in findOne:', {
+        error: queryError.message,
+        name: queryError.name,
+        code: queryError.code,
+        username: username
+      });
+      
+      console.error('========== DATABASE QUERY ERROR ==========');
+      console.error('Query Error:', queryError.message);
+      console.error('Error Name:', queryError.name);
+      console.error('Error Code:', queryError.code);
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Database query error',
+        error: process.env.NODE_ENV === 'development' ? queryError.message : undefined,
+        details: process.env.NODE_ENV === 'development' ? {
+          name: queryError.name,
+          code: queryError.code
+        } : undefined
+      });
+    }
 
     if (!user) {
       logger.info(`Login attempt for non-existent user: ${username}`);
@@ -424,8 +453,25 @@ export const login = async (req, res) => {
       });
     }
 
-    // Check password
-    const isMatch = await user.checkPassword(password);
+    // Check password with error handling
+    console.log('🔐 Verifying password...');
+    let isMatch;
+    
+    try {
+      isMatch = await user.checkPassword(password);
+      console.log(`🔐 Password verification: ${isMatch ? 'SUCCESS' : 'FAILED'}`);
+    } catch (passwordError) {
+      logger.error('Password verification error:', {
+        error: passwordError.message,
+        userId: user.id
+      });
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Password verification error',
+        error: process.env.NODE_ENV === 'development' ? passwordError.message : undefined
+      });
+    }
     
     if (!isMatch) {
       // Increment failed attempts
@@ -442,23 +488,44 @@ export const login = async (req, res) => {
       });
     }
 
-    // Generate tokens
-    const accessToken = generateAccessToken(user.id, user.role);
-    const refreshToken = generateRefreshToken(user.id);
+    // Generate tokens with error handling
+    console.log('🎫 Generating tokens...');
+    let accessToken, refreshToken;
+    
+    try {
+      accessToken = generateAccessToken(user.id, user.role);
+      refreshToken = generateRefreshToken(user.id);
+      console.log('🎫 Tokens generated successfully');
+    } catch (tokenError) {
+      logger.error('Token generation error:', tokenError);
+      return res.status(500).json({
+        success: false,
+        message: 'Token generation error',
+        error: process.env.NODE_ENV === 'development' ? tokenError.message : undefined
+      });
+    }
 
     // Reset failed attempts and update login info
-    await user.update({
-      failedLoginAttempts: 0,
-      lastLogin: new Date(),
-      lastActive: new Date(),
-      lastLoginIP: req.ip,
-      refreshTokenHash: await bcrypt.hash(refreshToken, 10)
-    });
+    console.log('💾 Updating user login info...');
+    try {
+      await user.update({
+        failedLoginAttempts: 0,
+        lastLogin: new Date(),
+        lastActive: new Date(),
+        lastLoginIP: req.ip,
+        refreshTokenHash: await bcrypt.hash(refreshToken, 10)
+      });
+      console.log('💾 User info updated successfully');
+    } catch (updateError) {
+      logger.error('Error updating user login info:', updateError);
+      // Don't fail login if update fails, just log it
+    }
 
-    logger.info(`Successful login for user: ${username}, role: ${user.role}`);
+    logger.info(`✅ Successful login for user: ${username}, role: ${user.role}`);
 
     // Return user data and tokens
-    res.status(200).json({
+    console.log('📤 Sending successful login response');
+    return res.status(200).json({
       success: true,
       user: sanitizeUser(user),
       token: accessToken,
