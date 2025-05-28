@@ -3,7 +3,7 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    console.log('🚨 EMERGENCY: Executing direct SQL fix for all UUID mismatches...');
+    console.log('🚨 EMERGENCY: Executing direct SQL fix for all UUID mismatches by using INTEGER foreign keys...');
     
     try {
       // Execute the comprehensive fix in one transaction
@@ -17,13 +17,13 @@ module.exports = {
         await queryInterface.sequelize.query('DROP TABLE IF EXISTS shopping_carts CASCADE;', { transaction: t });
         await queryInterface.sequelize.query('DROP TABLE IF EXISTS food_scan_history CASCADE;', { transaction: t });
         
-        // Step 2: Recreate shopping_carts with correct UUID userId
-        console.log('📋 Creating shopping_carts with UUID userId...');
+        // Step 2: Recreate shopping_carts with correct INTEGER userId
+        console.log('📋 Creating shopping_carts with INTEGER userId...');
         await queryInterface.sequelize.query(`
           CREATE TABLE shopping_carts (
               id SERIAL PRIMARY KEY,
               status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed')),
-              "userId" UUID NOT NULL REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE,
+              "userId" INTEGER NOT NULL REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE,
               "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
               "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
           );
@@ -43,12 +43,12 @@ module.exports = {
           );
         `, { transaction: t });
         
-        // Step 4: Recreate orders with correct UUID userId
-        console.log('📋 Creating orders with UUID userId...');
+        // Step 4: Recreate orders with correct INTEGER userId
+        console.log('📋 Creating orders with INTEGER userId...');
         await queryInterface.sequelize.query(`
           CREATE TABLE orders (
               id SERIAL PRIMARY KEY,
-              "userId" UUID NOT NULL REFERENCES users(id) ON UPDATE CASCADE ON DELETE RESTRICT,
+              "userId" INTEGER NOT NULL REFERENCES users(id) ON UPDATE CASCADE ON DELETE RESTRICT,
               "cartId" INTEGER REFERENCES shopping_carts(id) ON UPDATE CASCADE ON DELETE SET NULL,
               "orderNumber" VARCHAR(255) NOT NULL UNIQUE,
               "totalAmount" DECIMAL(10,2) NOT NULL,
@@ -86,12 +86,12 @@ module.exports = {
           );
         `, { transaction: t });
         
-        // Step 6: Recreate food_scan_history with correct UUID userId
-        console.log('📋 Creating food_scan_history with UUID userId...');
+        // Step 6: Recreate food_scan_history with correct INTEGER userId
+        console.log('📋 Creating food_scan_history with INTEGER userId...');
         await queryInterface.sequelize.query(`
           CREATE TABLE food_scan_history (
               id SERIAL PRIMARY KEY,
-              "userId" UUID NOT NULL REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE,
+              "userId" INTEGER NOT NULL REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE,
               "productName" VARCHAR(255) NOT NULL,
               "productCode" VARCHAR(255),
               "scanDate" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
@@ -116,7 +116,7 @@ module.exports = {
         await queryInterface.sequelize.query('CREATE INDEX idx_food_scan_history_userid ON food_scan_history("userId");', { transaction: t });
         await queryInterface.sequelize.query('CREATE INDEX idx_food_scan_history_scandate ON food_scan_history("scanDate");', { transaction: t });
         
-        console.log('✅ All tables recreated with correct UUID foreign keys!');
+        console.log('✅ All tables recreated with correct INTEGER foreign keys!');
       });
       
       console.log('🎉 EMERGENCY UUID FIX COMPLETED SUCCESSFULLY!');
