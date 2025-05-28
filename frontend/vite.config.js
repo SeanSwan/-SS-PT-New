@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   
   // Set the appropriate backend URL based on environment
   const backendUrl = isProd 
-    ? 'https://ss-pt.onrender.com' 
+    ? 'https://swan-studios-api.onrender.com' 
     : 'http://localhost:10000';
   
   console.log(`[Vite Config] Using backend URL: ${backendUrl} (${mode} mode)`);
