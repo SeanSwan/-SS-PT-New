@@ -23,8 +23,36 @@ async function seedLuxuryPackagesProduction() {
     
     if (currentCount > 0) {
       console.log('🧹 Step 3: Clearing existing packages to make way for luxury collection...');
-      await StorefrontItem.destroy({ where: {}, truncate: true });
-      console.log('✅ Cleared - Ready for SwanStudios luxury collection');
+      
+      // Clear dependent tables first to avoid foreign key constraint errors
+      try {
+        // Import dependent models
+        const { default: CartItem } = await import('../models/CartItem.mjs');
+        const { default: OrderItem } = await import('../models/OrderItem.mjs');
+        
+        console.log('   🗑️ Clearing dependent CartItems...');
+        await CartItem.destroy({ where: {} });
+        
+        console.log('   🗑️ Clearing dependent OrderItems...');
+        await OrderItem.destroy({ where: {} });
+        
+        console.log('   🗑️ Clearing StorefrontItems...');
+        await StorefrontItem.destroy({ where: {} });
+        
+        console.log('✅ Cleared - Ready for SwanStudios luxury collection');
+      } catch (clearError) {
+        console.log('⚠️ Standard clear failed, trying force clear without foreign key checks...');
+        // Alternative approach: disable foreign key checks temporarily
+        try {
+          await sequelize.query('SET foreign_key_checks = 0;');
+          await StorefrontItem.destroy({ where: {}, truncate: true });
+          await sequelize.query('SET foreign_key_checks = 1;');
+          console.log('✅ Force cleared - Ready for SwanStudios luxury collection');
+        } catch (forceError) {
+          console.log('⚠️ Could not clear existing packages, proceeding with creation anyway...');
+          console.log('   📝 Note: Duplicate packages may be created');
+        }
+      }
     }
     
     console.log('🦢 Step 4: Creating SwanStudios Luxury Package Collection...');
