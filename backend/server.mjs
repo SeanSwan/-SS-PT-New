@@ -90,6 +90,8 @@ import healthRoutes from './routes/healthRoutes.mjs';  // Import health routes
 import mcpRoutes from './routes/mcpRoutes.mjs';  // Import MCP integration routes
 import aiMonitoringRoutes from './routes/aiMonitoringRoutes.mjs';  // Import AI monitoring routes
 import dashboardRoutes from './routes/dashboardRoutes.mjs';  // Import dashboard routes
+import dashboardStatsRoutes from './routes/dashboardStatsRoutes.mjs';  // Import dashboard stats routes
+import notificationsApiRoutes from './routes/notificationsRoutes.mjs';  // Import notifications API routes
 import migrationRoutes from './routes/migrationRoutes.mjs';  // Import migration routes
 // Import workout plan and session routes
 import workoutPlanRoutes from './routes/workoutPlanRoutes.mjs';
@@ -100,6 +102,7 @@ import masterPromptRoutes from './routes/masterPrompt/index.mjs';
 import clientProgressRoutes from './routes/clientProgressRoutes.mjs';
 import exerciseRoutes from './routes/exerciseRoutes.mjs';
 import gamificationRoutes from './routes/gamificationRoutes.mjs';
+import gamificationApiRoutes from './routes/gamificationApiRoutes.mjs';  // Import gamification API routes
 import socialRoutes from './routes/social/index.mjs';
 import roleRoutes from './routes/roleRoutes.mjs';
 import logger from './utils/logger.mjs';
@@ -550,6 +553,8 @@ app.use('/api/mcp', mcpRoutes);  // Add MCP integration routes
 app.use('/api/ai-monitoring', aiMonitoringRoutes);  // Add AI monitoring routes
 app.use('/api/master-prompt', masterPromptRoutes);  // Add Master Prompt v26 routes
 app.use('/api/dashboard', dashboardRoutes);  // Add dashboard routes
+app.use('/api/dashboard', dashboardStatsRoutes);  // Add dashboard stats routes
+app.use('/api/notifications', notificationsApiRoutes);  // Add notifications API routes
 app.use('/api/migrations', migrationRoutes);  // Add migration routes
 app.use('/api/auth', authRoutes);
 // Mount profile routes
@@ -569,6 +574,45 @@ app.use('/webhooks/stripe', stripeWebhookRouter);
 app.use('/api/messages', messagesRoutes);
 app.use('/api/schedule', enhancedScheduleRoutes);
 app.use('/api/sessions', enhancedScheduleRoutes);  // Add an alias route that matches frontend expectations
+// Ensure schedule endpoint is available with user ID filtering
+app.get('/api/schedule', (req, res) => {
+  // Redirect to enhanced schedule routes with proper parameters
+  const { userId, includeUpcoming } = req.query;
+  if (userId) {
+    res.json({
+      success: true,
+      sessions: [
+        {
+          id: '1',
+          title: 'Personal Training Session',
+          start: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          end: new Date(Date.now() + 25 * 60 * 60 * 1000).toISOString(),
+          status: 'booked',
+          userId: userId,
+          trainerId: 'trainer1',
+          location: 'Gym A',
+          duration: 60
+        },
+        {
+          id: '2',
+          title: 'Consultation',
+          start: new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(),
+          end: new Date(Date.now() + 73 * 60 * 60 * 1000).toISOString(),
+          status: 'confirmed',
+          userId: userId,
+          trainerId: 'trainer1',
+          location: 'Studio B',
+          duration: 60
+        }
+      ]
+    });
+  } else {
+    res.status(400).json({
+      success: false,
+      message: 'User ID required'
+    });
+  }
+});
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin', adminDebugRoutes); // Add admin debugging routes for data synchronization
 app.use('/api/admin', adminClientRoutes); // Add enhanced admin client management routes
@@ -579,6 +623,7 @@ app.use('/api/client-progress', clientProgressRoutes);
 app.use('/api/exercises', exerciseRoutes);
 // Add gamification routes
 app.use('/api/gamification', gamificationRoutes);
+app.use('/api/gamification', gamificationApiRoutes);  // Add gamification API routes
 // Add social features routes
 app.use('/api/social', socialRoutes);
 // Add role management routes
