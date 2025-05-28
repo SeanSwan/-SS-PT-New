@@ -106,12 +106,20 @@ interface McpServerResponse<T = any> {
 }
 
 // === CONFIGURATION ===
-// Fix: Use correct ports and URLs to avoid double /api/ prefix
+// Fixed: Use correct production URLs for all services
 const API_BASE_URL = import.meta.env.MODE === 'production' 
   ? 'https://ss-pt-new.onrender.com' 
-  : 'http://localhost:10000'; // Fixed: Use correct backend port
-const MCP_GAMIFICATION_URL = import.meta.env.VITE_MCP_GAMIFICATION_URL || 'http://localhost:8002';
-const WEBSOCKET_URL = import.meta.env.VITE_WEBSOCKET_URL || 'http://localhost:10000'; // Fixed: Use correct WebSocket port
+  : 'http://localhost:10000';
+
+// Fix: MCP server should use backend URL in production (MCP is integrated into backend)
+const MCP_GAMIFICATION_URL = import.meta.env.MODE === 'production'
+  ? 'https://ss-pt-new.onrender.com' // MCP integrated into main backend
+  : (import.meta.env.VITE_MCP_GAMIFICATION_URL || 'http://localhost:8002');
+
+// Fix: WebSocket should use backend URL in production
+const WEBSOCKET_URL = import.meta.env.MODE === 'production'
+  ? 'https://ss-pt-new.onrender.com' // WebSocket integrated into main backend
+  : (import.meta.env.VITE_WEBSOCKET_URL || 'http://localhost:10000');
 
 // Create axios instances with interceptors
 const apiClient = axios.create({
