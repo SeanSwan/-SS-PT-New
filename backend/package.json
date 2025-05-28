@@ -59,7 +59,8 @@
     "reset-and-seed-packages": "npm run seed-correct-packages && npm run verify-session-packages",
     "check-packages": "node scripts/check-packages.mjs",
     "test-health": "node scripts/test-backend-health.mjs",
-    "verify-env": "node scripts/verify-production-env.mjs"
+    "verify-env": "node scripts/verify-production-env.mjs",
+    "fix-schema": "node scripts/fix-database-schema.mjs"
   },
   "keywords": [],
   "author": "",
