@@ -49,7 +49,7 @@ Orientation.init(
       allowNull: true,
     },
     userId: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       allowNull: true, // Allow null for prospect submissions
       references: {
         model: 'users',

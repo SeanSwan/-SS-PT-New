@@ -3,12 +3,12 @@ import db from '../database.mjs';
 
 const UserAchievement = db.define('UserAchievement', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true
   },
   userId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Users',
@@ -16,7 +16,7 @@ const UserAchievement = db.define('UserAchievement', {
     }
   },
   achievementId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Achievements',

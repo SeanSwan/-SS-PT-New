@@ -11,9 +11,9 @@ class Notification extends Model {}
 Notification.init(
   {
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.INTEGER,
       primaryKey: true,
+      autoIncrement: true,
     },
     title: {
       type: DataTypes.STRING,
@@ -42,7 +42,7 @@ Notification.init(
       allowNull: true,
     },
     userId: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       allowNull: false,
       references: {
         model: 'users',
@@ -50,7 +50,7 @@ Notification.init(
       }
     },
     senderId: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       allowNull: true,
       references: {
         model: 'users',
