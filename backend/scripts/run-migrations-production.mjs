@@ -29,7 +29,7 @@ async function runMigrations() {
     console.log('🗄️ Running database migrations...');
     
     // Run migrations with explicit production environment
-    const migrationCommand = 'npx sequelize-cli db:migrate --config config/config.js --migrations-path migrations --models-path models --env production';
+    const migrationCommand = 'npx sequelize-cli db:migrate --config config/config.cjs --migrations-path migrations --models-path models --env production';
     
     console.log('💻 Command:', migrationCommand);
     
