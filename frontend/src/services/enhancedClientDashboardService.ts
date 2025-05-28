@@ -133,7 +133,8 @@ const mcpClient = axios.create({
 // === REQUEST INTERCEPTORS ===
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth_token');
+    // Fix: Use correct token key that matches AuthContext
+    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -144,7 +145,8 @@ apiClient.interceptors.request.use(
 
 mcpClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth_token');
+    // Fix: Use correct token key that matches AuthContext
+    const token = localStorage.getItem('token') || localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -183,7 +185,7 @@ class WebSocketManager {
         // Create socket with more lenient timeout settings
         this.socket = io(WEBSOCKET_URL, {
           auth: {
-            token: localStorage.getItem('auth_token'),
+            token: localStorage.getItem('token') || localStorage.getItem('auth_token'),
             userId: userId,
           },
           transports: ['websocket', 'polling'],
