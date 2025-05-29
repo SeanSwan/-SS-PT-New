@@ -41,13 +41,12 @@ async function seedLuxuryPackagesProduction() {
         
         console.log('✅ Cleared - Ready for SwanStudios luxury collection');
       } catch (clearError) {
-        console.log('⚠️ Standard clear failed, trying force clear without foreign key checks...');
-        // Alternative approach: disable foreign key checks temporarily
+        console.log('⚠️ Standard clear failed, trying PostgreSQL-compatible force clear...');
+        // PostgreSQL approach: disable triggers temporarily
         try {
-          await sequelize.query('SET foreign_key_checks = 0;');
-          await StorefrontItem.destroy({ where: {}, truncate: true });
-          await sequelize.query('SET foreign_key_checks = 1;');
-          console.log('✅ Force cleared - Ready for SwanStudios luxury collection');
+          // For PostgreSQL, we need to use TRUNCATE CASCADE or disable triggers
+          await sequelize.query('TRUNCATE TABLE storefront_items RESTART IDENTITY CASCADE;');
+          console.log('✅ PostgreSQL force cleared - Ready for SwanStudios luxury collection');
         } catch (forceError) {
           console.log('⚠️ Could not clear existing packages, proceeding with creation anyway...');
           console.log('   📝 Note: Duplicate packages may be created');
