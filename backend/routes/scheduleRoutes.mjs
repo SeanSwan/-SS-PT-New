@@ -21,29 +21,74 @@ const router = express.Router();
  */
 router.get("/", protect, async (req, res) => {
   try {
-    // Fetch all sessions with client and trainer information
-    const sessions = await Session.findAll({
-      include: [
-        {
-          model: User,
-          as: 'client', // Match the association name in setupAssociations.mjs
-          attributes: ['id', 'firstName', 'lastName', 'phone', 'photo'],
-          required: false // Make it a LEFT JOIN so we get available sessions too
-        },
-        {
-          model: User,
-          as: 'trainer', // Match the association name in setupAssociations.mjs
-          attributes: ['id', 'firstName', 'lastName', 'phone', 'photo', 'specialties'],
-          required: false // Make it a LEFT JOIN
-        }
-      ],
-      order: [['sessionDate', 'ASC']] // Sort by date
-    });
+    // First, try to fetch sessions with associations
+    let sessions;
     
-    res.json(sessions);
+    try {
+      // Try with associations first
+      sessions = await Session.findAll({
+        include: [
+          {
+            model: User,
+            as: 'client', // Match the association name in setupAssociations.mjs
+            attributes: ['id', 'firstName', 'lastName', 'phone', 'photo'],
+            required: false // Make it a LEFT JOIN so we get available sessions too
+          },
+          {
+            model: User,
+            as: 'trainer', // Match the association name in setupAssociations.mjs
+            attributes: ['id', 'firstName', 'lastName', 'phone', 'photo', 'specialties'],
+            required: false // Make it a LEFT JOIN
+          }
+        ],
+        order: [['sessionDate', 'ASC']] // Sort by date
+      });
+    } catch (associationError) {
+      console.warn('Session associations not available, fetching basic session data:', associationError.message);
+      
+      // Fallback: fetch sessions without associations
+      sessions = await Session.findAll({
+        order: [['sessionDate', 'ASC']]
+      });
+      
+      // Manually add user data if needed
+      for (let session of sessions) {
+        if (session.userId) {
+          try {
+            const client = await User.findByPk(session.userId, {
+              attributes: ['id', 'firstName', 'lastName', 'phone', 'photo']
+            });
+            session.dataValues.client = client;
+          } catch (err) {
+            console.warn('Could not fetch client for session:', err.message);
+          }
+        }
+        
+        if (session.trainerId) {
+          try {
+            const trainer = await User.findByPk(session.trainerId, {
+              attributes: ['id', 'firstName', 'lastName', 'phone', 'photo', 'specialties']
+            });
+            session.dataValues.trainer = trainer;
+          } catch (err) {
+            console.warn('Could not fetch trainer for session:', err.message);
+          }
+        }
+      }
+    }
+    
+    res.json({
+      success: true,
+      sessions: sessions,
+      message: sessions.length === 0 ? 'No sessions found' : `Found ${sessions.length} sessions`
+    });
   } catch (error) {
     console.error("Error fetching schedule:", error.message);
-    res.status(500).json({ message: "Server error fetching schedule." });
+    res.status(500).json({ 
+      success: false,
+      message: "Server error fetching sessions.",
+      error: error.message
+    });
   }
 });
 

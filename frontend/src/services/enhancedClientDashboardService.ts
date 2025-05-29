@@ -347,19 +347,29 @@ class EnhancedClientDashboardService {
         filters.userId = this.userId;
       }
       
-      const response: AxiosResponse<{ sessions: SessionEvent[] }> = await apiClient.get('/api/schedule', {
+      const response: AxiosResponse<{ success: boolean; sessions: SessionEvent[]; message?: string }> = await apiClient.get('/api/schedule', {
         params: filters,
       });
       
-      if (response.data?.sessions) {
-        return response.data.sessions.map(session => ({
-          ...session,
-          start: new Date(session.start),
-          end: new Date(session.end),
-        }));
+      // Handle both old and new response formats
+      let sessions: SessionEvent[] = [];
+      
+      if (response.data?.success && response.data?.sessions) {
+        // New format with success flag
+        sessions = response.data.sessions;
+      } else if (Array.isArray(response.data)) {
+        // Old format - direct array
+        sessions = response.data;
+      } else if (response.data?.sessions) {
+        // Fallback - sessions property exists
+        sessions = response.data.sessions;
       }
       
-      return [];
+      return sessions.map(session => ({
+        ...session,
+        start: new Date(session.start || session.sessionDate),
+        end: new Date(session.end || new Date(new Date(session.start || session.sessionDate).getTime() + (session.duration || 60) * 60000)),
+      }));
     } catch (error) {
       console.warn('⚠️ Sessions unavailable, using fallback data');
       return this.getFallbackSessions();
