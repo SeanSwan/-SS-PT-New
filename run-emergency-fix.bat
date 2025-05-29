@@ -1,29 +1,61 @@
 @echo off
-echo ========================================
-echo EMERGENCY PRODUCTION LOGIN FIX
-echo ========================================
+echo ==========================================
+echo  🚨 EMERGENCY DATABASE SCHEMA FIX 🚨
+echo ==========================================
 echo.
-echo This script will:
-echo 1. Add missing deletedAt column
-echo 2. Create test users (admin, trainer, client)
-echo 3. Test login functionality
+echo This will fix the critical UUID vs INTEGER mismatch
+echo that's preventing your SwanStudios platform from working.
 echo.
-echo Username: admin
-echo Password: admin123
+echo What this fix does:
+echo ✅ Converts users.id from UUID to INTEGER
+echo ✅ Preserves all existing user data  
+echo ✅ Fixes foreign key constraints
+echo ✅ Adds missing session table columns
+echo ✅ Aligns database with model specifications
 echo.
-echo ========================================
+echo ⚠️ IMPORTANT: Make sure your database is running!
+echo.
+pause
+
+echo.
+echo 🔧 Running emergency database fix...
 echo.
 
-cd C:\Users\ogpsw\Desktop\quick-pt\SS-PT
-node emergency-login-fix.mjs
+node emergency-database-fix.mjs
 
-echo.
-echo ========================================
-echo FIX COMPLETED
-echo ========================================
-echo.
-echo Now test login at: https://ss-pt-new.onrender.com
-echo Username: admin
-echo Password: admin123
-echo.
+if %ERRORLEVEL% EQU 0 (
+    echo.
+    echo ==========================================
+    echo  🎉 EMERGENCY FIX SUCCESSFUL! 🎉
+    echo ==========================================
+    echo.
+    echo Your database schema has been fixed!
+    echo.
+    echo Next steps:
+    echo 1. Your local database is now working
+    echo 2. Deploy to production: git add . && git commit -m "Emergency database schema fix" && git push
+    echo 3. Test your SwanStudios platform
+    echo.
+    echo The following errors should now be resolved:
+    echo ✅ "column Session.reason does not exist"
+    echo ✅ UUID vs INTEGER foreign key mismatches
+    echo ✅ Schedule and session functionality
+    echo.
+) else (
+    echo.
+    echo ==========================================
+    echo  ❌ EMERGENCY FIX FAILED ❌
+    echo ==========================================
+    echo.
+    echo Please check the error messages above.
+    echo Common issues:
+    echo - Database server not running
+    echo - Connection settings incorrect
+    echo - Insufficient database permissions
+    echo.
+    echo Contact support if the issue persists.
+    echo.
+)
+
+echo Press any key to continue...
 pause
