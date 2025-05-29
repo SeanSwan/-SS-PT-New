@@ -744,7 +744,7 @@ const StellarSidebar: React.FC<StellarSidebarProps> = ({
         {/* Footer */}
         <SidebarFooter isCollapsed={isMobile ? !isMobileOpen : isCollapsed}>
           <div className="version-info">Galaxy Dashboard v2.0</div>
-          <div className="stellar-signature">Designed by Seraphina</div>
+          <div className="stellar-signature">Designed by Sean Swan</div>
         </SidebarFooter>
       </SidebarContainer>
     </ThemeProvider>
