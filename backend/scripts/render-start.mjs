@@ -48,6 +48,34 @@ async function runMigrations() {
   }
 }
 
+async function runProductionDataFix() {
+  try {
+    console.log('\n📋 Step 1.5: Running Comprehensive Production Fix');
+    console.log('-----------------------------------------------');
+    console.log('🛒 Fixing cart packages AND session schema issues');
+    
+    // Import and run the comprehensive production fix
+    const { default: comprehensiveProductionFix } = await import('../../comprehensive-production-fix.mjs');
+    const result = await comprehensiveProductionFix();
+    
+    if (result.success) {
+      console.log('✅ Comprehensive production fix successful!');
+      console.log('🛒 Cart functionality should now work properly');
+      console.log('📅 Session errors should be resolved');
+    } else {
+      console.log('⚠️ Production fix encountered some issues:');
+      console.log(`  - Session schema: ${result.sessionFixed ? '✅ Fixed' : '❌ Issues remain'}`);
+      console.log(`  - Cart packages: ${result.packagesFixed ? '✅ Fixed' : '❌ Issues remain'}`);
+      console.log('💡 Some functionality may be limited - check logs above');
+    }
+    
+  } catch (error) {
+    console.error('⚠️ Comprehensive production fix failed:', error.message);
+    console.log('💡 This is non-critical - server will continue startup');
+    console.log('🔧 You can run the fix manually: node ../comprehensive-production-fix.mjs');
+  }
+}
+
 async function startServer() {
   console.log('\n🚀 Step 2: Starting Application Server');
   console.log('-------------------------------------');
@@ -82,11 +110,12 @@ async function startServer() {
 
 async function main() {
   try {
-    // Only run migrations if DATABASE_URL is available
+    // Only run migrations and fixes if DATABASE_URL is available
     if (process.env.DATABASE_URL) {
       await runMigrations();
+      await runProductionDataFix();
     } else {
-      console.log('⚠️ Skipping migrations - DATABASE_URL not configured');
+      console.log('⚠️ Skipping migrations and data fixes - DATABASE_URL not configured');
     }
     
     // Start the server
