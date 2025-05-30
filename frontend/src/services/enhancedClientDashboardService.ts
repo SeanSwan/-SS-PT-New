@@ -106,20 +106,35 @@ interface McpServerResponse<T = any> {
 }
 
 // === CONFIGURATION ===
-// Fixed: Use correct production URLs for all services
-const API_BASE_URL = import.meta.env.MODE === 'production' 
-  ? 'https://ss-pt-new.onrender.com' 
-  : 'http://localhost:10000';
+// Robust configuration that works in all environments
+const isProduction = import.meta.env.PROD || import.meta.env.MODE === 'production' || window.location.hostname !== 'localhost';
+const PRODUCTION_URL = 'https://ss-pt-new.onrender.com';
+const DEVELOPMENT_URL = 'http://localhost:10000';
 
-// Fix: MCP server should use backend URL in production (MCP is integrated into backend)
-const MCP_GAMIFICATION_URL = import.meta.env.MODE === 'production'
-  ? 'https://ss-pt-new.onrender.com' // MCP integrated into main backend
+// Primary API configuration with multiple fallback methods
+const API_BASE_URL = isProduction 
+  ? PRODUCTION_URL
+  : (import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_BASE_URL || DEVELOPMENT_URL);
+
+// MCP server configuration (integrated into main backend in production)
+const MCP_GAMIFICATION_URL = isProduction
+  ? PRODUCTION_URL // MCP integrated into main backend
   : (import.meta.env.VITE_MCP_GAMIFICATION_URL || 'http://localhost:8002');
 
-// Fix: WebSocket should use backend URL in production
-const WEBSOCKET_URL = import.meta.env.MODE === 'production'
-  ? 'https://ss-pt-new.onrender.com' // WebSocket integrated into main backend
-  : (import.meta.env.VITE_WEBSOCKET_URL || 'http://localhost:10000');
+// WebSocket configuration (integrated into main backend in production)
+const WEBSOCKET_URL = isProduction
+  ? PRODUCTION_URL // WebSocket integrated into main backend
+  : (import.meta.env.VITE_WEBSOCKET_URL || DEVELOPMENT_URL);
+
+// Debug logging for configuration verification
+console.log('🔧 EnhancedClientDashboardService Configuration:', {
+  isProduction,
+  API_BASE_URL,
+  MCP_GAMIFICATION_URL,
+  WEBSOCKET_URL,
+  hostname: window.location.hostname,
+  environment: import.meta.env.MODE
+});
 
 // Create axios instances with interceptors
 const apiClient = axios.create({

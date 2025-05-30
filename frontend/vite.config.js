@@ -13,6 +13,17 @@ export default defineConfig(({ mode }) => {
     ? 'https://ss-pt-new.onrender.com' 
     : 'http://localhost:10000';
   
+  // Ensure environment variables are properly set for production
+  const envVars = {
+    NODE_ENV: mode,
+    VITE_API_BASE_URL: backendUrl,
+    VITE_BACKEND_URL: backendUrl,
+    VITE_MCP_SERVER_URL: backendUrl,
+    VITE_DEV_MODE: isProd ? 'false' : 'true',
+    VITE_MOCK_AUTH: 'false',
+    VITE_FORCE_MOCK_MODE: 'false',
+  };
+  
   console.log(`[Vite Config] Using backend URL: ${backendUrl} (${mode} mode)`);
   
   return {
@@ -101,13 +112,18 @@ export default defineConfig(({ mode }) => {
       copyPublicDir: true
     },
     define: {
-      'import.meta.env.VITE_API_BASE_URL': JSON.stringify('/api'),
+      // Properly define environment variables for both dev and production
+      'import.meta.env.VITE_API_BASE_URL': JSON.stringify(envVars.VITE_API_BASE_URL),
+      'import.meta.env.VITE_BACKEND_URL': JSON.stringify(envVars.VITE_BACKEND_URL),
+      'import.meta.env.VITE_MCP_SERVER_URL': JSON.stringify(envVars.VITE_MCP_SERVER_URL),
+      'import.meta.env.MODE': JSON.stringify(mode),
       'process.env': JSON.stringify({
-        // Define any process.env variables that are still needed here
         NODE_ENV: mode,
-        REACT_APP_WORKOUT_MCP_URL: 'http://localhost:8000',
-        REACT_APP_GAMIFICATION_MCP_URL: 'http://localhost:8001',
-        REACT_APP_API_URL: '/api',
+        VITE_API_BASE_URL: envVars.VITE_API_BASE_URL,
+        VITE_BACKEND_URL: envVars.VITE_BACKEND_URL,
+        VITE_MCP_SERVER_URL: envVars.VITE_MCP_SERVER_URL,
+        VITE_DEV_MODE: envVars.VITE_DEV_MODE,
+        REACT_APP_API_URL: isProd ? backendUrl + '/api' : '/api',
         REACT_APP_ENABLE_GAMIFICATION: 'true',
         REACT_APP_ENABLE_FOOD_TRACKER: 'true',
         REACT_APP_ENABLE_SOCIAL_FEATURES: 'false',
