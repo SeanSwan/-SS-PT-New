@@ -1,43 +1,51 @@
 @echo off
-echo ================================================
-echo 🔍 CHECKING SWANSTUDIOS DEVELOPMENT PORTS
-echo ================================================
+echo 🔍 SWANSTUDIOS PORT CONFLICT CHECKER
+echo ====================================
 echo.
 
-echo 📋 Checking if required ports are available...
+echo 📋 Checking ports used by SwanStudios...
 echo.
 
-echo 🔍 Checking Backend Port (10000):
+echo 🔧 Backend (Port 10000):
 netstat -ano | findstr :10000
-if %errorlevel% equ 0 (
-    echo ✅ Port 10000 is IN USE
-    echo 💡 If your backend is running, this is good!
-    echo 💡 If not, something else is using this port.
-) else (
-    echo ❌ Port 10000 is FREE
-    echo 💡 Your backend server is NOT running.
-)
+if %errorlevel% neq 0 echo    ✅ Port 10000 is available
 
 echo.
-echo 🔍 Checking Frontend Port (5173):
+echo 🤖 Workout MCP (Port 8000):
+netstat -ano | findstr :8000
+if %errorlevel% neq 0 echo    ✅ Port 8000 is available
+
+echo.
+echo 🤖 YOLO MCP (Port 8001):
+netstat -ano | findstr :8001
+if %errorlevel% neq 0 echo    ✅ Port 8001 is available
+
+echo.
+echo 🤖 Gamify MCP (Port 8002):
+netstat -ano | findstr :8002
+if %errorlevel% neq 0 echo    ✅ Port 8002 is available
+
+echo.
+echo 🤖 Nutrition MCP (Port 8003):
+netstat -ano | findstr :8003
+if %errorlevel% neq 0 echo    ✅ Port 8003 is available
+
+echo.
+echo 🤖 Alternatives MCP (Port 8004):
+netstat -ano | findstr :8004
+if %errorlevel% neq 0 echo    ✅ Port 8004 is available
+
+echo.
+echo 🎨 Frontend (Port 5173):
 netstat -ano | findstr :5173
-if %errorlevel% equ 0 (
-    echo ✅ Port 5173 is IN USE
-    echo 💡 If your frontend is running, this is good!
-) else (
-    echo ❌ Port 5173 is FREE
-    echo 💡 Your frontend server is NOT running.
-)
+if %errorlevel% neq 0 echo    ✅ Port 5173 is available
 
 echo.
-echo 📋 Other ports that might be in use:
-echo 🔍 Alternative frontend ports:
-netstat -ano | findstr :5174
-netstat -ano | findstr :5175
+echo 💡 If ports are in use, you can:
+echo    1. Kill all Node.js processes: taskkill /F /IM node.exe
+echo    2. Kill specific process by PID: taskkill /F /PID [PID_NUMBER]
+echo    3. Restart your computer to clear all processes
+echo    4. Change ports in .env configuration files
+echo.
 
-echo.
-echo 💡 QUICK ACTIONS:
-echo   - If no ports are in use: Run START-DEV-SERVERS.bat
-echo   - If ports are in use but servers aren't responding: Kill processes and restart
-echo.
 pause
