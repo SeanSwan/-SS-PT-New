@@ -28,17 +28,17 @@ if %errorlevel% equ 0 (
 echo.
 echo 🔍 Test 2: API Endpoint Check
 echo ================================================
-echo [INFO] Testing: %PRODUCTION_URL%/api/schedule?userId=test&includeUpcoming=true
+echo [INFO] Testing: %PRODUCTION_URL%/api/schedule?userId=test^&includeUpcoming=true
 
 where curl >nul 2>&1
 if %errorlevel% equ 0 (
     echo [INFO] Using curl to test API endpoint...
-    curl -s "%PRODUCTION_URL%/api/schedule?userId=test&includeUpcoming=true"
+    curl -s "%PRODUCTION_URL%/api/schedule?userId=test^&includeUpcoming=true"
     echo.
     echo [INFO] Expected: JSON response with sessions data (not connection refused)
 ) else (
     echo [WARNING] curl not available
-    echo [INFO] Please manually test: %PRODUCTION_URL%/api/schedule?userId=test&includeUpcoming=true
+    echo [INFO] Please manually test: %PRODUCTION_URL%/api/schedule?userId=test^&includeUpcoming=true
 )
 
 echo.
