@@ -188,9 +188,8 @@ const formatPrice = (price: number | null | undefined): string => {
 };
 
 const getPackageImage = (imageUrl: string | null, packageName: string): string => {
-  if (imageUrl && imageUrl.startsWith('/assets/images/')) {
-    return imageUrl;
-  }
+  // Always use the marble texture as a fallback since package images are missing
+  // This prevents 404 errors in the console
   return '/marble-texture.png';
 };
 

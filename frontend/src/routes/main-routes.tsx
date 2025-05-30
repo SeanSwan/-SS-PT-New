@@ -490,6 +490,12 @@ const MainRoutes: RouteObject = {
       element: <DebugRoutes />
     },
     
+    // Redirect for missing training-packages route
+    {
+      path: 'training-packages',
+      element: <Navigate to="/shop/training-packages" replace />
+    },
+    
     // Fallback Route (404)
     {
       path: '*',
