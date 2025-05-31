@@ -8,7 +8,7 @@ import logger from '../utils/logger.mjs';
 import { toStringId } from '../utils/idUtils.mjs';
 
 /**
- * Authentication middleware to protect routes
+ * PRODUCTION-FIXED Authentication middleware to protect routes
  * Verifies JWT token and attaches user to request
  */
 export const protect = async (req, res, next) => {
@@ -22,16 +22,37 @@ export const protect = async (req, res, next) => {
     
     // Check if token exists
     if (!token) {
-      logger.warn('No token provided', { path: req.path, method: req.method });
+      logger.warn('No token provided', { path: req.path, method: req.method, origin: req.headers.origin });
       return res.status(401).json({
         success: false,
         message: 'Not authorized, no token'
       });
     }
+
+    // PRODUCTION FIX: Validate JWT_SECRET exists and is not placeholder
+    const JWT_SECRET = process.env.JWT_SECRET;
+    if (!JWT_SECRET || JWT_SECRET === 'your-production-jwt-secret-key-here-change-this') {
+      logger.error('CRITICAL: JWT_SECRET not properly configured for production!', {
+        hasSecret: !!JWT_SECRET,
+        isPlaceholder: JWT_SECRET === 'your-production-jwt-secret-key-here-change-this'
+      });
+      return res.status(500).json({
+        success: false,
+        message: 'Server configuration error'
+      });
+    }
     
     try {
       // Verify token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const decoded = jwt.verify(token, JWT_SECRET);
+      
+      // PRODUCTION FIX: Enhanced token validation with logging
+      logger.info('Token decoded successfully', {
+        userId: decoded.id,
+        tokenType: decoded.tokenType,
+        path: req.path,
+        timeToExpiry: decoded.exp ? (decoded.exp * 1000 - Date.now()) : 'unknown'
+      });
       
       // Check token type
       if (decoded.tokenType !== 'access') {
@@ -47,8 +68,22 @@ export const protect = async (req, res, next) => {
         });
       }
       
-      // Get user from database
-      const user = await User.findByPk(decoded.id);
+      // PRODUCTION FIX: Enhanced database error handling
+      let user;
+      try {
+        user = await User.findByPk(decoded.id);
+      } catch (dbError) {
+        logger.error('Database error during user lookup', {
+          error: dbError.message,
+          userId: decoded.id,
+          path: req.path
+        });
+        
+        return res.status(500).json({
+          success: false,
+          message: 'Database error during authentication'
+        });
+      }
       
       if (!user) {
         logger.warn('User not found for token', { userId: decoded.id });
@@ -84,23 +119,46 @@ export const protect = async (req, res, next) => {
       });
       
       next();
-    } catch (error) {
+    } catch (tokenError) {
+      // PRODUCTION FIX: Enhanced token error handling with specific error codes
       logger.error('Token verification error', { 
-        error: error.message, 
+        error: tokenError.message,
+        name: tokenError.name,
         path: req.path, 
-        method: req.method 
+        method: req.method,
+        tokenLength: token?.length || 0
       });
       
-      if (error.name === 'TokenExpiredError') {
+      // Specific error responses for different token errors
+      if (tokenError.name === 'TokenExpiredError') {
         return res.status(401).json({
           success: false,
-          message: 'Token expired'
+          message: 'Token expired',
+          errorCode: 'TOKEN_EXPIRED'
         });
       }
       
+      if (tokenError.name === 'JsonWebTokenError') {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid token',
+          errorCode: 'TOKEN_INVALID'
+        });
+      }
+      
+      if (tokenError.name === 'NotBeforeError') {
+        return res.status(401).json({
+          success: false,
+          message: 'Token not active',
+          errorCode: 'TOKEN_NOT_ACTIVE'
+        });
+      }
+      
+      // Generic token error
       return res.status(401).json({
         success: false,
-        message: 'Not authorized, invalid token'
+        message: 'Token validation failed',
+        errorCode: 'TOKEN_VALIDATION_FAILED'
       });
     }
   } catch (error) {
