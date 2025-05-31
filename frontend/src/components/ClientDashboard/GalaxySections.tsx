@@ -810,6 +810,188 @@ export const LogsAndTrackers: React.FC = () => (
   </motion.div>
 );
 
+// Enhanced Galactic Package Components
+const CosmicPackageCard = styled(motion.div)<{ $isPopular?: boolean; $theme?: string }>`
+  background: ${props => props.$isPopular 
+    ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(0, 255, 255, 0.1), rgba(120, 81, 169, 0.2))'
+    : 'linear-gradient(135deg, rgba(30, 30, 60, 0.4), rgba(120, 81, 169, 0.2), rgba(0, 255, 255, 0.1))'};
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 2rem;
+  border: ${props => props.$isPopular 
+    ? '2px solid rgba(255, 215, 0, 0.6)' 
+    : '1px solid rgba(0, 255, 255, 0.3)'};
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 100%
+    );
+    transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  &:hover {
+    transform: translateY(-8px) scale(1.03);
+    border-color: ${props => props.$isPopular ? 'rgba(255, 215, 0, 1)' : 'rgba(0, 255, 255, 0.8)'};
+    box-shadow: 
+      0 20px 40px rgba(0, 0, 0, 0.4),
+      0 0 40px ${props => props.$isPopular ? 'rgba(255, 215, 0, 0.3)' : 'rgba(0, 255, 255, 0.3)'};
+    
+    &::before {
+      left: 100%;
+    }
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      radial-gradient(circle at 20% 20%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(120, 81, 169, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+`;
+
+const PopularBadge = styled(motion.div)`
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  color: #0a0a0f;
+  padding: 0.5rem 1.5rem;
+  border-radius: 25px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  z-index: 2;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+  
+  &::before {
+    content: '⭐';
+    margin-right: 0.5rem;
+  }
+`;
+
+const PackageTitle = styled.h5`
+  margin: 0 0 1rem 0;
+  color: ${props => props.color || '#00ffff'};
+  font-size: 1.4rem;
+  font-weight: 600;
+  position: relative;
+  z-index: 1;
+`;
+
+const PriceDisplay = styled.div`
+  margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 1;
+  
+  .price-main {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #fff;
+    text-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+  }
+  
+  .price-period {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.1rem;
+  }
+`;
+
+const FeatureList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem 0;
+  position: relative;
+  z-index: 1;
+  
+  li {
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 0.75rem;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    
+    &::before {
+      content: '✦';
+      color: #00ffff;
+      font-size: 0.8rem;
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+    }
+  }
+`;
+
+const CurrentPackageCard = styled(motion.div)`
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.3), rgba(255, 215, 0, 0.1));
+  backdrop-filter: blur(20px);
+  border-radius: 25px;
+  padding: 2.5rem;
+  margin-bottom: 3rem;
+  border: 2px solid rgba(0, 255, 255, 0.4);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      radial-gradient(circle at 30% 30%, rgba(0, 255, 255, 0.1) 0%, transparent 60%),
+      radial-gradient(circle at 70% 70%, rgba(255, 215, 0, 0.1) 0%, transparent 60%);
+    pointer-events: none;
+    animation: ${pulse} 6s ease-in-out infinite;
+  }
+`;
+
+const StatusIndicator = styled.div`
+  background: rgba(255, 215, 0, 0.2);
+  color: #ffd700;
+  padding: 0.75rem 1.5rem;
+  border-radius: 25px;
+  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  &::before {
+    content: '●';
+    color: #00ff88;
+    font-size: 0.8rem;
+    animation: ${pulse} 2s infinite;
+  }
+`;
+
+// Import GlowButton
+import GlowButton from '../../ui/GlowButton';
+
+const float = keyframes`
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+`;
+
 export const PackageSubscription: React.FC = () => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
@@ -821,164 +1003,191 @@ export const PackageSubscription: React.FC = () => (
         <Package /> Galactic Marketplace
       </SectionTitle>
       
-      <div style={{
-        background: 'linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.3))',
-        borderRadius: '20px',
-        padding: '2rem',
-        marginBottom: '2rem',
-        border: '2px solid rgba(0, 255, 255, 0.3)'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <div>
-            <h3 style={{ margin: '0 0 0.5rem 0', color: '#00ffff' }}>Premium Galaxy Pass</h3>
-            <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.8)' }}>Unlimited access to all training sessions</p>
+      {/* Current Active Package */}
+      <CurrentPackageCard
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <h3 style={{ 
+              margin: '0 0 0.75rem 0', 
+              color: '#00ffff', 
+              fontSize: '1.8rem',
+              textShadow: '0 0 15px rgba(0, 255, 255, 0.5)'
+            }}>
+              Premium Galaxy Pass
+            </h3>
+            <p style={{ 
+              margin: 0, 
+              color: 'rgba(255, 255, 255, 0.9)', 
+              fontSize: '1.1rem' 
+            }}>
+              Unlimited access to all stellar training sessions
+            </p>
           </div>
-          <div style={{
-            background: 'rgba(255, 215, 0, 0.2)',
-            color: '#ffd700',
-            padding: '0.5rem 1rem',
-            borderRadius: '20px',
-            fontWeight: 'bold'
-          }}>
+          <StatusIndicator>
             ACTIVE
+          </StatusIndicator>
+        </div>
+        
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', 
+          gap: '1.5rem', 
+          marginBottom: '2rem',
+          position: 'relative',
+          zIndex: 1
+        }}>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ 
+              color: '#00ffff', 
+              fontSize: '2rem', 
+              fontWeight: 'bold',
+              textShadow: '0 0 15px rgba(0, 255, 255, 0.8)'
+            }}>∞</div>
+            <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.9rem' }}>Sessions Left</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ 
+              color: '#ffd700', 
+              fontSize: '2rem', 
+              fontWeight: 'bold',
+              textShadow: '0 0 15px rgba(255, 215, 0, 0.8)'
+            }}>23</div>
+            <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.9rem' }}>Days Remaining</div>
+          </div>
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ 
+              color: '#00ff88', 
+              fontSize: '2rem', 
+              fontWeight: 'bold',
+              textShadow: '0 0 15px rgba(0, 255, 136, 0.8)'
+            }}>$49</div>
+            <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.9rem' }}>Monthly</div>
           </div>
         </div>
         
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ color: '#00ffff', fontSize: '1.5rem', fontWeight: 'bold' }}>∞</div>
-            <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>Sessions Left</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ color: '#ffd700', fontSize: '1.5rem', fontWeight: 'bold' }}>23</div>
-            <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>Days Remaining</div>
-          </div>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ color: '#00ff88', fontSize: '1.5rem', fontWeight: 'bold' }}>$49</div>
-            <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>Monthly</div>
-          </div>
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          <GlowButton
+            variant="info"
+            glowIntensity="medium"
+            style={{
+              width: '100%',
+              borderRadius: '25px',
+              padding: '1rem 2rem',
+              fontSize: '1.1rem',
+              fontWeight: 'bold'
+            }}
+          >
+            Manage Subscription
+          </GlowButton>
         </div>
-        
-        <motion.button
-          style={{
-            background: 'rgba(255, 255, 255, 0.1)',
-            border: '2px solid rgba(255, 255, 255, 0.2)',
-            borderRadius: '25px',
-            padding: '0.75rem 2rem',
-            color: 'white',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            width: '100%'
-          }}
-          whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 255, 255, 0.2)' }}
-          whileTap={{ scale: 0.98 }}
-        >
-          Manage Subscription
-        </motion.button>
-      </div>
+      </CurrentPackageCard>
       
-      <div>
-        <h4 style={{ color: '#00ffff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <CreditCard size={20} /> Available Packages
+      {/* Available Packages Section */}
+      <div style={{ position: 'relative' }}>
+        <h4 style={{ 
+          color: '#00ffff', 
+          marginBottom: '2rem', 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '0.75rem',
+          fontSize: '1.4rem',
+          textShadow: '0 0 10px rgba(0, 255, 255, 0.5)'
+        }}>
+          <CreditCard size={24} /> Available Cosmic Packages
         </h4>
         
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+          gap: '2rem' 
+        }}>
           {[
             {
               name: 'Stellar Starter',
               price: '$19',
               period: '/month',
-              features: ['4 Sessions/month', 'Basic tracking', 'Email support'],
-              popular: false
+              features: ['4 Sessions/month', 'Basic tracking', 'Email support', 'Mobile app access'],
+              popular: false,
+              theme: 'primary'
             },
             {
               name: 'Cosmic Crusher',
               price: '$39',
               period: '/month',
-              features: ['12 Sessions/month', 'Advanced analytics', 'Priority support', 'Nutrition guidance'],
-              popular: true
+              features: ['12 Sessions/month', 'Advanced analytics', 'Priority support', 'Nutrition guidance', 'Progress coaching'],
+              popular: true,
+              theme: 'warning'
             },
             {
               name: 'Galaxy Guardian',
               price: '$79',
               period: '/month',
-              features: ['Unlimited sessions', 'Personal trainer', '24/7 support', 'Custom meal plans', 'Progress coaching'],
-              popular: false
+              features: ['Unlimited sessions', 'Personal trainer', '24/7 support', 'Custom meal plans', 'Progress coaching', 'VIP access'],
+              popular: false,
+              theme: 'secondary'
             }
           ].map((pkg, index) => (
-            <motion.div
+            <CosmicPackageCard
               key={index}
-              style={{
-                background: pkg.popular 
-                  ? 'linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(0, 255, 255, 0.1))'
-                  : 'rgba(30, 30, 60, 0.3)',
-                borderRadius: '15px',
-                padding: '1.5rem',
-                border: pkg.popular 
-                  ? '2px solid rgba(255, 215, 0, 0.5)'
-                  : '1px solid rgba(0, 255, 255, 0.2)',
-                position: 'relative'
-              }}
-              whileHover={{ scale: 1.02 }}
+              $isPopular={pkg.popular}
+              $theme={pkg.theme}
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 * (index + 1) }}
+              whileHover={{ y: -8 }}
             >
               {pkg.popular && (
-                <div style={{
-                  position: 'absolute',
-                  top: '-12px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  background: 'linear-gradient(135deg, #ffd700, #ffed4e)',
-                  color: '#0a0a0f',
-                  padding: '0.25rem 1rem',
-                  borderRadius: '15px',
-                  fontSize: '0.8rem',
-                  fontWeight: 'bold'
-                }}>
+                <PopularBadge
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                >
                   MOST POPULAR
-                </div>
+                </PopularBadge>
               )}
               
-              <h5 style={{ margin: '0 0 1rem 0', color: pkg.popular ? '#ffd700' : '#00ffff' }}>{pkg.name}</h5>
-              <div style={{ marginBottom: '1rem' }}>
-                <span style={{ fontSize: '2rem', fontWeight: 'bold', color: '#fff' }}>{pkg.price}</span>
-                <span style={{ color: 'rgba(255, 255, 255, 0.7)' }}>{pkg.period}</span>
-              </div>
+              <PackageTitle color={pkg.popular ? '#ffd700' : '#00ffff'}>
+                {pkg.name}
+              </PackageTitle>
               
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 1.5rem 0' }}>
+              <PriceDisplay>
+                <span className="price-main">{pkg.price}</span>
+                <span className="price-period">{pkg.period}</span>
+              </PriceDisplay>
+              
+              <FeatureList>
                 {pkg.features.map((feature, fIndex) => (
-                  <li key={fIndex} style={{
-                    color: 'rgba(255, 255, 255, 0.8)',
-                    marginBottom: '0.5rem',
-                    fontSize: '0.9rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}>
-                    <Star size={12} color="#00ffff" fill="#00ffff" />
+                  <motion.li 
+                    key={fIndex}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.2 + (fIndex * 0.1) }}
+                  >
                     {feature}
-                  </li>
+                  </motion.li>
                 ))}
-              </ul>
+              </FeatureList>
               
-              <motion.button
-                style={{
-                  width: '100%',
-                  background: pkg.popular 
-                    ? 'linear-gradient(135deg, #ffd700, #ffed4e)'
-                    : 'linear-gradient(135deg, #00ffff, #00c8ff)',
-                  border: 'none',
-                  borderRadius: '20px',
-                  padding: '0.75rem',
-                  color: '#0a0a0f',
-                  fontWeight: 'bold',
-                  cursor: 'pointer'
-                }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                {pkg.popular ? 'Upgrade Now' : 'Select Plan'}
-              </motion.button>
-            </motion.div>
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <GlowButton
+                  variant={pkg.popular ? 'warning' : pkg.theme as any}
+                  glowIntensity={pkg.popular ? 'high' : 'medium'}
+                  style={{
+                    width: '100%',
+                    borderRadius: '20px',
+                    padding: '0.875rem 1.5rem',
+                    fontSize: '1rem',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {pkg.popular ? 'Upgrade Now' : 'Select Plan'}
+                </GlowButton>
+              </div>
+            </CosmicPackageCard>
           ))}
         </div>
       </div>
