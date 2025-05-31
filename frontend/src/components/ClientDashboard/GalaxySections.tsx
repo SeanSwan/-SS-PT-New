@@ -984,7 +984,7 @@ const StatusIndicator = styled.div`
 `;
 
 // Import GlowButton
-import GlowButton from '../../ui/GlowButton';
+import { GlowButton } from '../ui';
 
 const float = keyframes`
   0% { transform: translateY(0px); }
