@@ -295,6 +295,37 @@ app.use((req, res, next) => {
 // Serve uploaded profile photos
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// 🎯 FRONTEND STATIC FILES & SPA ROUTING
+// Serve the built frontend in production
+if (isProduction) {
+  const frontendDistPath = path.join(__dirname, '../frontend/dist');
+  
+  // Check if frontend dist directory exists
+  if (existsSync(frontendDistPath)) {
+    logger.info(`Serving frontend static files from: ${frontendDistPath}`);
+    
+    // Serve static assets with caching headers
+    app.use(express.static(frontendDistPath, {
+      maxAge: '1y', // Cache static assets for 1 year
+      etag: true,
+      lastModified: true,
+      setHeaders: (res, path) => {
+        // Don't cache HTML files (for SPA routing)
+        if (path.endsWith('.html')) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+        }
+      }
+    }));
+    
+    logger.info('✅ Frontend static files configured successfully');
+  } else {
+    logger.warn(`⚠️ Frontend dist directory not found at: ${frontendDistPath}`);
+    logger.warn('Frontend static files will not be served. Run frontend build first.');
+  }
+}
+
 // --- Public Routes ---
 
 // Root endpoint
@@ -666,6 +697,35 @@ const handleServerError = (error, req, res, next) => {
 
 // Global error handler (catches errors not handled by specific middleware)
 app.use(handleServerError);
+
+// 🚀 SPA ROUTING CATCH-ALL (PRODUCTION ONLY)
+// This handles client-side routing for the React app
+// Must be AFTER all API routes but BEFORE 404 handler
+if (isProduction) {
+  app.get('*', (req, res) => {
+    // Don't handle API routes or files with extensions
+    if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/') || req.path.includes('.')) {
+      // Let this fall through to 404 handler
+      return res.status(404).json({
+        success: false,
+        message: 'API route not found',
+        path: req.path
+      });
+    }
+    
+    // For all other routes, serve the React app's index.html
+    const frontendDistPath = path.join(__dirname, '../frontend/dist');
+    const indexPath = path.join(frontendDistPath, 'index.html');
+    
+    if (existsSync(indexPath)) {
+      logger.info(`SPA Routing: Serving index.html for ${req.path}`);
+      res.sendFile(indexPath);
+    } else {
+      logger.error(`index.html not found at: ${indexPath}`);
+      res.status(404).send('Frontend not built. Please run npm run build in frontend directory.');
+    }
+  });
+}
 
 // Catch-all route handler for undefined routes (404)
 // This should be the *last* middleware/route handler
