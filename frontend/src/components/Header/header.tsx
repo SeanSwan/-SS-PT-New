@@ -505,22 +505,7 @@ const EnhancedHeader = () => {
             <DashboardSelector />
           </Box>
 
-          <StyledNavLink 
-            to="/workout-tracker" 
-            className={isActive('/workout-tracker') ? "active" : ""}
-            variants={itemVariants}
-          >
-            Workout Tracker
-          </StyledNavLink>
 
-          <StyledNavLink 
-            to="/schedule" 
-            className={isActive('/schedule') ? "active" : ""}
-            variants={itemVariants}
-            aria-label="Access training schedule"
-          >
-            <EventNoteIcon style={{ marginRight: '5px', fontSize: '1rem' }} />Schedule
-          </StyledNavLink>
         </>
       );
     } else {
@@ -657,23 +642,7 @@ const EnhancedHeader = () => {
             <PersonIcon fontSize="small" /> User Dashboard
           </MobileNavLink>
           
-          <MobileNavLink
-            to="/workout-tracker"
-            onClick={() => setMobileMenuOpen(false)}
-            className={isActive('/workout-tracker') ? "active" : ""}
-            variants={itemVariants}
-          >
-            Workout Tracker
-          </MobileNavLink>
-          
-          <MobileNavLink
-            to="/schedule"
-            onClick={() => setMobileMenuOpen(false)}
-            className={isActive('/schedule') ? "active" : ""}
-            variants={itemVariants}
-          >
-            <EventNoteIcon fontSize="small" /> Schedule
-          </MobileNavLink>
+
           
           <MobileNavLink 
             to="/contact" 
