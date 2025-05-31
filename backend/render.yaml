@@ -2,26 +2,49 @@ services:
   - type: web
     name: swan-studios-api
     env: node
-    buildCommand: cd frontend && npm install && npm run build && cd ../backend && npm install
+    region: oregon
+    plan: starter
+    buildCommand: |
+      echo "🏗️  Starting production build..."
+      cd frontend && npm install && npm run build
+      cd ../backend && npm install
+      echo "✅ Build completed successfully"
     startCommand: cd backend && npm run render-start
+    
+    # PRODUCTION ENVIRONMENT VARIABLES
+    # CRITICAL: Update these in Render dashboard with values from PRODUCTION-SECRETS.env
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
+      
+      # CRITICAL: JWT SECRETS (MUST BE SET IN RENDER DASHBOARD)
+      - key: JWT_SECRET
+        value: "MUST_BE_SET_IN_RENDER_DASHBOARD"
+      - key: JWT_REFRESH_SECRET
+        value: "MUST_BE_SET_IN_RENDER_DASHBOARD"
+      - key: JWT_EXPIRES_IN
+        value: "3h"
+      - key: ACCESS_TOKEN_EXPIRY
+        value: "10800"
+      - key: REFRESH_TOKEN_EXPIRES_IN
+        value: "7d"
+      
+      # CRITICAL: CORS CONFIGURATION
       - key: FRONTEND_ORIGINS
-        value: "https://sswanstudios.com,https://www.sswanstudios.com,http://localhost:5173,http://localhost:5174"
-      - key: ENABLE_MCP_HEALTH_CHECKS
-        value: "false"
-      - key: ENABLE_MCP_HEALTH_ALERTS
-        value: "false"
+        value: "https://sswanstudios.com,https://www.sswanstudios.com,https://swanstudios.com,https://www.swanstudios.com"
+      
+      # ADMIN ACCESS
+      - key: ADMIN_ACCESS_CODE
+        value: "MUST_BE_SET_IN_RENDER_DASHBOARD"
+      
+      # PRODUCTION SETTINGS
       - key: ENABLE_MCP_SERVICES
         value: "false"
-      - key: JWT_SECRET
-        value: "your-production-jwt-secret-key-here-change-this"
-      - key: ACCESS_TOKEN_EXPIRY
-        value: "3600"
       - key: USE_SQLITE_FALLBACK
         value: "false"
-    # Remove static CORS headers - let Express handle CORS dynamically
-    # Static headers with * origin conflict with credentials: true
+      - key: TRUST_PROXY
+        value: "true"
+      - key: REDIS_ENABLED
+        value: "false"
