@@ -9,8 +9,14 @@ import { useBackendConnection } from '../hooks/useBackendConnection.jsx';
 import { AxiosInstance } from 'axios';
 import tokenCleanup from '../utils/tokenCleanup';
 
-// In development mode, ensure the admin dashboard can always be accessed when needed
-if (process.env.NODE_ENV === 'development') {
+// Detect production environment
+const isProduction = window.location.hostname.includes('render.com') || 
+                    window.location.hostname.includes('sswanstudios.com') ||
+                    window.location.hostname.includes('swanstudios.com') ||
+                    import.meta.env.PROD;
+
+// Development mode utilities
+if (!isProduction) {
   window.forceAdminAccess = function() {
     localStorage.setItem('bypass_admin_verification', 'true');
     console.log('[DEV MODE] Admin access bypass flag set. Reload the page to apply.');
@@ -230,9 +236,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     
     console.log('Mock login successful:', mockUser.username, mockUser.role);
     
-    // Force set localStorage flag to bypass admin verification (for admin users)
-    if (mockUser.role === 'admin' && process.env.NODE_ENV === 'development') {
-      localStorage.setItem('bypass_admin_verification', 'true');
+    // Force set localStorage flag to bypass admin verification (for admin users in development)
+    if (mockUser.role === 'admin' && !isProduction) {
+    localStorage.setItem('bypass_admin_verification', 'true');
     }
     
     return { success: true, user: mockUser };
@@ -244,108 +250,46 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       setLoading(true);
       setError(null);
       
-      // EMERGENCY FIX: In development mode, check for bypass flag immediately and use it
-      if (process.env.NODE_ENV === 'development') {
-        const bypass = localStorage.getItem('bypass_admin_verification') === 'true';
-        if (bypass) {
-          console.log('[EMERGENCY FIX] Using admin bypass flag to skip authentication checks');
-          
-          // Get stored user if possible or use defaults
-          try {
-            const storedUser = localStorage.getItem('user');
-            if (storedUser) {
-              const parsedUser = JSON.parse(storedUser);
-              if (parsedUser) {
-                // Force admin role
-                parsedUser.role = 'admin';
-                localStorage.setItem('user', JSON.stringify(parsedUser));
-                
-                console.log('[EMERGENCY FIX] Using stored user with forced admin role');
-                setUser(parsedUser);
-                setLoading(false);
-                
-                // Get the token
-                const token = localStorage.getItem('token');
-                if (token) {
-                  setToken(token);
-                  apiService.setAuthToken(token);
-                }
-                
-                return;
-              }
-            }
-          } catch (e) {
-            console.warn('[EMERGENCY FIX] Error parsing stored user:', e);
-          }
-          
-          // If we don't have a stored user, create a default admin
-          const defaultMockAdmin = {
-            id: 'mock-admin-emergency-' + Date.now(),
-            email: 'admin@swanstudios.com',
-            username: 'admin',
-            firstName: 'Admin',
-            lastName: 'Emergency',
-            role: 'admin',
-            isActive: true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            permissions: ['admin:all']
-          };
-          
-          setUser(defaultMockAdmin);
-          setLoading(false);
-          
-          // Generate a mock token
-          const mockToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify({
-            id: defaultMockAdmin.id,
-            role: 'admin',
-            exp: Math.floor(Date.now()/1000) + (24*60*60)
-          }))}.emergency-mock-token`;
-          
-          // Store the token and user
-          localStorage.setItem('token', mockToken);
-          localStorage.setItem('tokenTimestamp', Date.now().toString());
-          localStorage.setItem('user', JSON.stringify(defaultMockAdmin));
-          
-          apiService.setAuthToken(mockToken);
-          setToken(mockToken);
-          
-          return;
-        }
-      }
-      
-      // In development mode, check for bypass flag
-      if (process.env.NODE_ENV === 'development' && localStorage.getItem('bypass_admin_verification') === 'true') {
-        console.log('[DEV MODE] Found admin verification bypass flag - creating default admin user');
+      // In production, always use real authentication
+      // In development, allow bypass mode for testing
+      if (!isProduction) {
+        // Development mode authentication bypass
+        console.log('[DEV MODE] Development authentication flow');
         
-        // Get stored user if possible or use defaults
+        // Always set bypass flag in development
+        localStorage.setItem('bypass_admin_verification', 'true');
+        
+        // Try to use existing stored user first
         try {
           const storedUser = localStorage.getItem('user');
-          if (storedUser) {
+          const storedToken = localStorage.getItem('token');
+          
+          if (storedUser && storedToken) {
             const parsedUser = JSON.parse(storedUser);
-            if (parsedUser && parsedUser.role === 'admin') {
-              console.log('[DEV MODE] Using stored admin user');
-              setUser(parsedUser);
-              setLoading(false);
-              
-              // Get the token
-              const token = localStorage.getItem('token');
-              if (token) {
-                setToken(token);
-                apiService.setAuthToken(token);
-              }
-              
-              return;
+            console.log('[DEV MODE] Using existing stored user:', parsedUser.username);
+            
+            // Ensure admin role in development
+            parsedUser.role = 'admin';
+            localStorage.setItem('user', JSON.stringify(parsedUser));
+            
+            setUser(parsedUser);
+            setToken(storedToken);
+            apiService.setAuthToken(storedToken);
+            setLoading(false);
+            
+            if (dispatch) {
+              dispatch(setReduxUser(parsedUser));
             }
+            
+            return;
           }
         } catch (e) {
-          console.warn('[DEV MODE] Error parsing stored user:', e);
+          console.warn('[DEV MODE] Error with stored user data:', e);
         }
         
-        // If we get here, we don't have a stored admin user
-        // Create a default admin user
-        const defaultMockAdmin: User = {
-          id: 'mock-admin-' + Date.now(),
+        // Create a new development admin user
+        const devAdmin: User = {
+          id: 'dev-admin-' + Date.now(),
           email: 'admin@swanstudios.com',
           username: 'admin',
           firstName: 'Admin',
@@ -356,26 +300,34 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           updatedAt: new Date().toISOString()
         };
         
-        setUser(defaultMockAdmin);
+        // Generate a development token with proper structure
+        const devToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify({
+          id: devAdmin.id,
+          username: devAdmin.username,
+          role: 'admin',
+          tokenType: 'access',
+          exp: Math.floor(Date.now()/1000) + (24*60*60)
+        }))}.dev-token`;
+        
+        // Store everything
+        localStorage.setItem('token', devToken);
+        localStorage.setItem('tokenTimestamp', Date.now().toString());
+        localStorage.setItem('user', JSON.stringify(devAdmin));
+        
+        setUser(devAdmin);
+        setToken(devToken);
+        apiService.setAuthToken(devToken);
         setLoading(false);
         
-        // Generate a mock token
-        const mockToken = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${btoa(JSON.stringify({
-          id: defaultMockAdmin.id,
-          role: 'admin',
-          exp: Math.floor(Date.now()/1000) + (24*60*60)
-        }))}.mock-jwt-token`;
+        if (dispatch) {
+          dispatch(setReduxUser(devAdmin));
+        }
         
-        // Store the token and user
-        tokenCleanup.storeToken(mockToken, defaultMockAdmin);
-        apiService.setAuthToken(mockToken);
-        setToken(mockToken);
-        
-        // Store for future usage
-        localStorage.setItem('user', JSON.stringify(defaultMockAdmin));
-        
+        console.log('[DEV MODE] Created development admin user');
         return;
       }
+      
+
       
       try {
         // Get validated token from cleanup utility
@@ -411,66 +363,79 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         apiService.setAuthToken(token);
         setToken(token);
         
-        // Verify token with backend
-        const response = await apiService.get('/api/auth/me');
-        
-        if (response.data?.user) {
-          const userData = response.data.user;
+        // Try to verify token with backend
+        try {
+          const response = await apiService.get('/api/auth/me');
           
-          // Ensure proper user structure
-          const formattedUser: User = {
-            id: userData.id,
-            email: userData.email,
-            username: userData.username || userData.email?.split('@')[0],
-            firstName: userData.firstName || '',
-            lastName: userData.lastName || '',
-            role: userData.role || 'user',
-            profileImageUrl: userData.profileImageUrl,
-            isActive: userData.isActive !== false,
-            createdAt: userData.createdAt,
-            updatedAt: userData.updatedAt,
-            trainerInfo: userData.trainerInfo,
-            clientInfo: userData.clientInfo
-          };
-          
-          setUser(formattedUser);
-          
-          // Update Redux if available
-          if (dispatch) {
-            dispatch(setReduxUser(formattedUser));
+          if (response.data?.user) {
+            const userData = response.data.user;
+            
+            // Ensure proper user structure
+            const formattedUser: User = {
+              id: userData.id,
+              email: userData.email,
+              username: userData.username || userData.email?.split('@')[0],
+              firstName: userData.firstName || '',
+              lastName: userData.lastName || '',
+              role: userData.role || 'user',
+              profileImageUrl: userData.profileImageUrl,
+              isActive: userData.isActive !== false,
+              createdAt: userData.createdAt,
+              updatedAt: userData.updatedAt,
+              trainerInfo: userData.trainerInfo,
+              clientInfo: userData.clientInfo
+            };
+            
+            setUser(formattedUser);
+            
+            // Update Redux if available
+            if (dispatch) {
+              dispatch(setReduxUser(formattedUser));
+            }
+            
+            console.log('Authentication restored:', formattedUser.username, formattedUser.role);
+          } else {
+            throw new Error('Invalid user data from server');
           }
+        } catch (apiError) {
+          // API call failed - handle gracefully
+          console.warn('Failed to verify token with backend:', apiError);
           
-          console.log('Authentication restored:', formattedUser.username, formattedUser.role);
-        } else if (process.env.NODE_ENV === 'development') {
-          // In development, create a default admin user if the response doesn't have the expected format
-          const defaultMockUser: User = {
-            id: 'mock-id-' + Date.now(),
-            email: 'admin@swanstudios.com',
-            username: 'admin',
-            firstName: 'Admin',
-            lastName: 'Dev',
-            role: 'admin',
-            profileImageUrl: null,
-            isActive: true,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-          };
-          
-          console.log('DEV MODE: Creating fallback admin user');
-          setUser(defaultMockUser);
-          
-          if (dispatch) {
-            dispatch(setReduxUser(defaultMockUser));
+          // In development mode, use fallback user on API error
+          if (!isProduction) {
+            const fallbackUser: User = {
+              id: 'fallback-admin-' + Date.now(),
+              email: 'admin@swanstudios.com',
+              username: 'admin',
+              firstName: 'Admin',
+              lastName: 'Fallback',
+              role: 'admin',
+              profileImageUrl: null,
+              isActive: true,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+            
+            console.log('[DEV MODE] Using fallback admin user due to API error');
+            setUser(fallbackUser);
+            
+            if (dispatch) {
+              dispatch(setReduxUser(fallbackUser));
+            }
+          } else {
+            // In production, clear token and let user log in again
+            tokenCleanup.cleanupAllTokens();
+            setUser(null);
+            setToken(null);
+            throw apiError; // Re-throw in production
           }
-        } else {
-          throw new Error('Invalid user data from server');
         }
       } catch (error) {
         console.error('Auth check failed:', error);
         
-        // Try fallback to mock user for development
+        // Try fallback to mock user only in development
         const storedUser = localStorage.getItem('user');
-        if (storedUser && process.env.NODE_ENV === 'development') {
+        if (storedUser && !isProduction) {
           try {
             const userData = JSON.parse(storedUser);
             console.log('Using fallback mock user:', userData);
@@ -496,15 +461,15 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     setLoading(true);
     setError(null);
     
-    // Immediate success in development mode for admin logins
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[DEV MODE] Development mode login flow used');
-      if (username.toLowerCase() === 'admin') {
-        localStorage.setItem('bypass_admin_verification', 'true');
-      }
+    // Development mode login handling
+    if (!isProduction) {
+      console.log('[DEV MODE] Development login flow');
       
+      // Always set bypass flag
+      localStorage.setItem('bypass_admin_verification', 'true');
+      
+      // Try backend first, but fallback to mock on any error
       try {
-        // Try the API approach first in case the backend is running
         const response = await apiService.post('/api/auth/login', { 
           username, 
           password 
@@ -513,7 +478,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         if (response.data?.user && response.data?.token) {
           const { user: userData, token } = response.data;
           
-          // Format user data
           const formattedUser: User = {
             id: userData.id,
             email: userData.email,
@@ -529,27 +493,23 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
             clientInfo: userData.clientInfo
           };
           
-          // Store token and user using cleanup utility
           tokenCleanup.storeToken(token, formattedUser);
           apiService.setAuthToken(token);
-          
           setUser(formattedUser);
           setToken(token);
           
-          // Update Redux if available
           if (dispatch) {
             dispatch(setReduxUser(formattedUser));
           }
           
-          console.log('Login successful:', formattedUser.username, formattedUser.role);
+          console.log('[DEV MODE] Backend login successful:', formattedUser.username);
           return { success: true, user: formattedUser };
         }
       } catch (error) {
-        // API approach failed, fallback to mock login in development mode
-        console.log('API login failed in development mode, using mock login');
+        console.log('[DEV MODE] Backend login failed, using mock login:', error.message);
       }
       
-      // In development, always succeed with mock login data
+      // Always use mock login in development if backend fails
       return await performMockLogin(username, password);
     }
     
@@ -600,8 +560,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       console.error('Login failed:', error);
       
       // Development fallback - use mock login
-      if (process.env.NODE_ENV === 'development') {
-        console.log('API login failed, using mock login');
+      if (!isProduction) {
+        console.log('[DEV MODE] Production login failed, using mock login');
         return await performMockLogin(username, password);
       }
       

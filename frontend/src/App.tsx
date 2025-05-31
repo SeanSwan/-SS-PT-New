@@ -35,6 +35,7 @@ import { setupNotifications } from './utils/notificationInitializer';
 import { initializeMockData } from './utils/mockDataHelper';
 import { initializeApiMonitoring } from './utils/apiConnectivityFixer';
 import clearMockTokens from './utils/clearMockTokens';
+import './utils/initTokenCleanup'; // Initialize token cleanup handlers
 
 // Styles
 import './App.scss';

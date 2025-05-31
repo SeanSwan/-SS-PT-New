@@ -423,28 +423,14 @@ class ProductionApiService {
       delete this.client.defaults.headers.common['Authorization'];
     }
   }
-
-  // Legacy compatibility methods
-  async checkConnection(): Promise<boolean> {
-    try {
-      const response = await this.client.get('/health', { timeout: 5000 });
-      return response.status === 200;
-    } catch (error) {
-      return false;
-    }
-  }
 }
 
 // Create and export default instance
 const productionApiService = new ProductionApiService();
 
-// Export for compatibility with existing code
+// Export for compatibility
 export default productionApiService;
 export { ProductionApiService, ProductionTokenManager };
-
-// Legacy exports for compatibility
-export const apiClient = productionApiService;
-export const createApiClient = () => productionApiService;
 
 // Global debug functions for production troubleshooting
 if (typeof window !== 'undefined') {
