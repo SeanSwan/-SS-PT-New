@@ -46,6 +46,7 @@ import './styles/auth-page-fixes.css';
 import './styles/signup-fixes.css';
 import './styles/aaa-enhancements.css';
 import './styles/dashboard-global-styles.css'; // Dashboard full-space utilization styles
+import './styles/animation-performance-fallbacks.css'; // Performance-optimized animation fallbacks
 import ImprovedGlobalStyle from './styles/ImprovedGlobalStyle';
 import theme from './styles/theme';
 

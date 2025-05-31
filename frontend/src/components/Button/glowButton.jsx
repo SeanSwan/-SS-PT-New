@@ -5,6 +5,17 @@ import chroma from "chroma-js";
 
 // Button theme options with different color schemes
 const BUTTON_THEMES = {
+  // PRIMARY theme (Blue/Cyan) - Galaxy-Swan primary
+  primary: {
+    background: "#041e2e", // Dark blue base
+    color: "#fff",
+    shadow: "rgba(4, 64, 104, 0.2)",
+    shineLeft: "rgba(0, 160, 227, 0.5)", // swanBlue
+    shineRight: "rgba(0, 255, 255, 0.65)", // swanCyan
+    glowStart: "#00A0E3", // swanBlue
+    glowEnd: "#00FFFF", // swanCyan
+  },
+  // SECONDARY theme (Purple) - Galaxy-Swan secondary
   purple: {
     background: "#09041e",
     color: "#fff",
@@ -281,7 +292,7 @@ const IconContainer = styled.span`
  * Enhanced GlowButton Component
  * @param {Object} props - Component props
  * @param {string} props.text - Button text
- * @param {string} props.theme - Button theme (purple, emerald, ruby, cosmic)
+ * @param {string} props.theme - Button theme (primary, purple, emerald, ruby, cosmic)
  * @param {string} props.size - Button size (small, medium, large)
  * @param {boolean} props.isLoading - Loading state
  * @param {boolean} props.disabled - Disabled state
@@ -292,7 +303,7 @@ const IconContainer = styled.span`
  */
 const GlowButton = ({
   text,
-  theme = "purple",
+  theme = "primary", // Default to PRIMARY (blue/cyan) theme
   size = "medium",
   isLoading = false,
   disabled = false,
@@ -307,7 +318,7 @@ const GlowButton = ({
   const [isAnimating, setIsAnimating] = useState(animateOnRender);
   
   // Handle theme selection
-  const buttonTheme = BUTTON_THEMES[theme] || BUTTON_THEMES.purple;
+  const buttonTheme = BUTTON_THEMES[theme] || BUTTON_THEMES.primary;
   const buttonSize = BUTTON_SIZES[size] || BUTTON_SIZES.medium;
   
   // Handle cursor tracking for glow effect

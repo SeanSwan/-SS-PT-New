@@ -1,0 +1,402 @@
+/**
+ * animation-performance-fallbacks.css
+ * ====================================
+ * 
+ * Performance-optimized animation fallbacks for SwanStudios platform
+ * Provides graceful degradation for users with:
+ * - Reduced motion preferences (accessibility)
+ * - Low-end devices ("potato phones/PCs")
+ * - Limited bandwidth or processing power
+ * 
+ * Key Features:
+ * - Respects user's prefers-reduced-motion setting
+ * - Conditional performance tiers based on device capabilities
+ * - Maintains visual appeal while improving accessibility
+ */
+
+/* ========================================
+   REDUCED MOTION ACCESSIBILITY OVERRIDES
+   ======================================== */
+
+/**
+ * Primary accessibility: Disable/reduce animations for users who prefer reduced motion
+ * This is critical for users with vestibular disorders, seizure conditions, etc.
+ */
+@media (prefers-reduced-motion: reduce) {
+  
+  /* Disable complex keyframe animations */
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  
+  /* Specific SwanStudios animations to simplify */
+  .logo-container,
+  .cosmic-float,
+  .swan-glide,
+  .nebula-spin,
+  .galactic-shimmer {
+    animation: none !important;
+    transform: none !important;
+  }
+  
+  /* Remove complex transform animations on cards */
+  .cosmic-package-card:hover,
+  .swan-card:hover {
+    transform: none !important;
+    animation: none !important;
+  }
+  
+  /* Simplify button hover effects */
+  .glow-button:hover,
+  .swan-button:hover {
+    transform: none !important;
+    animation: none !important;
+    /* Keep basic color/shadow changes for visual feedback */
+    opacity: 0.9;
+  }
+  
+  /* Remove floating/spinning background effects */
+  .galaxy-container::before,
+  .cosmic-background,
+  .stellar-particles {
+    animation: none !important;
+  }
+  
+  /* Disable parallax and scroll-triggered animations */
+  .parallax-element,
+  .scroll-animation {
+    transform: none !important;
+    animation: none !important;
+  }
+  
+  /* Simplify text glow effects to basic color changes */
+  .galaxy-swan-text,
+  .animated-name,
+  .cosmic-title {
+    animation: none !important;
+    color: #00ffff !important; /* Static cyan color */
+    text-shadow: none !important;
+  }
+  
+  /* Remove particle effects and complex backgrounds */
+  .star-sparkle,
+  .cosmic-particles,
+  .nebula-effect {
+    display: none !important;
+  }
+}
+
+/* ========================================
+   LOW-END DEVICE PERFORMANCE OPTIMIZATIONS
+   ======================================== */
+
+/**
+ * Target devices with limited processing power
+ * Generally smaller screens with lower resolution and less powerful GPUs
+ */
+@media (max-width: 768px) and (max-height: 1024px) {
+  
+  /* Reduce animation complexity on mobile/tablet */
+  .cosmic-float,
+  .swan-glide {
+    animation-duration: 8s !important; /* Slower = less CPU intensive */
+    animation-timing-function: ease !important; /* Simpler easing */
+  }
+  
+  /* Simplify hover effects on touch devices */
+  .cosmic-package-card:hover {
+    transform: translateY(-4px) !important; /* Reduced movement */
+    animation: none !important;
+  }
+  
+  /* Reduce backdrop-filter usage (expensive on mobile GPUs) */
+  .hero-content,
+  .cosmic-price-box,
+  .session-info {
+    backdrop-filter: blur(5px) !important; /* Reduced blur radius */
+  }
+  
+  /* Simplify gradient animations */
+  .galactic-shimmer {
+    animation-duration: 6s !important;
+  }
+  
+  /* Remove complex box-shadows on mobile (performance drain) */
+  .cosmic-package-card {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3) !important;
+  }
+  
+  .cosmic-package-card:hover {
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4) !important;
+  }
+}
+
+/* ========================================
+   VERY LOW-END DEVICE OPTIMIZATIONS
+   ======================================== */
+
+/**
+ * Target very old devices, budget smartphones, or severely limited hardware
+ */
+@media (max-width: 480px) and (max-height: 800px) {
+  
+  /* Further reduce animation complexity */
+  .cosmic-float,
+  .swan-glide,
+  .stellar-pulse {
+    animation: none !important;
+  }
+  
+  /* Remove background animations entirely */
+  .galaxy-container::before {
+    display: none !important;
+  }
+  
+  /* Simplify gradients to solid colors for better performance */
+  .cosmic-package-card {
+    background: rgba(30, 30, 60, 0.6) !important;
+  }
+  
+  /* Remove all backdrop-filter effects (very expensive on old devices) */
+  * {
+    backdrop-filter: none !important;
+  }
+  
+  /* Simplify text effects */
+  .hero-title,
+  .cosmic-card-title {
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5) !important;
+  }
+  
+  /* Remove glow effects */
+  .glow-button,
+  .swan-button {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  }
+}
+
+/* ========================================
+   HIGH-CONTRAST MODE SUPPORT
+   ======================================== */
+
+/**
+ * Enhanced visibility for users with visual impairments
+ */
+@media (prefers-contrast: high) {
+  
+  /* Increase border visibility */
+  .cosmic-package-card,
+  .swan-card {
+    border: 3px solid #ffffff !important;
+  }
+  
+  /* Ensure text remains highly visible */
+  .hero-title,
+  .cosmic-card-title,
+  .section-title {
+    color: #ffffff !important;
+    text-shadow: 2px 2px 4px #000000 !important;
+  }
+  
+  /* Increase button contrast */
+  .glow-button,
+  .swan-button {
+    border: 2px solid #ffffff !important;
+    background: #000000 !important;
+    color: #ffffff !important;
+  }
+  
+  /* Remove subtle background effects that may reduce contrast */
+  .galaxy-container::before,
+  .cosmic-background {
+    opacity: 0.1 !important;
+  }
+}
+
+/* ========================================
+   PERFORMANCE-BASED FEATURE DETECTION
+   ======================================== */
+
+/**
+ * Use CSS feature queries to conditionally apply expensive effects
+ * Only enable advanced features if the browser/device supports them well
+ */
+
+/* Only apply complex filters if supported and device is capable */
+@supports (backdrop-filter: blur(10px)) {
+  @media (min-width: 1024px) {
+    .enhanced-backdrop {
+      backdrop-filter: blur(15px);
+    }
+  }
+}
+
+/* Only use complex transforms on devices that handle them well */
+@supports (transform: translateZ(0)) {
+  @media (min-width: 768px) and (min-height: 768px) {
+    .hw-accelerated {
+      transform: translateZ(0); /* Force hardware acceleration */
+      will-change: transform; /* Hint to browser for optimization */
+    }
+  }
+}
+
+/* Only enable complex gradients on capable devices */
+@supports (background: conic-gradient(from 0deg, red, blue)) {
+  @media (min-width: 1024px) {
+    .advanced-gradients {
+      background: conic-gradient(from 180deg at 50% 50%, 
+        #00ffff 0deg, 
+        #7851a9 120deg, 
+        #ff416c 240deg, 
+        #00ffff 360deg);
+    }
+  }
+}
+
+/* ========================================
+   UTILITY CLASSES FOR PERFORMANCE CONTROL
+   ======================================== */
+
+/**
+ * Utility classes that components can use to opt into performance tiers
+ */
+
+/* Disable all animations and effects */
+.performance-minimal * {
+  animation: none !important;
+  transform: none !important;
+  transition: none !important;
+  backdrop-filter: none !important;
+  filter: none !important;
+}
+
+/* Reduce animations but keep basic effects */
+.performance-standard * {
+  animation-duration: 0.3s !important;
+  transition-duration: 0.3s !important;
+}
+
+/* Enable all effects (for high-end devices) */
+.performance-enhanced {
+  /* Full effects enabled by default */
+}
+
+/* ========================================
+   SPECIFIC SWANSTUDIOS COMPONENT OVERRIDES
+   ======================================== */
+
+/**
+ * Target specific SwanStudios components for performance optimization
+ */
+
+/* Optimize StoreFront component animations */
+@media (prefers-reduced-motion: reduce) {
+  .storefront-hero-video {
+    animation: none !important;
+  }
+  
+  .package-card-hover-effect {
+    transform: none !important;
+    transition: opacity 0.2s ease !important;
+  }
+  
+  .price-reveal-animation {
+    animation: none !important;
+    transition: opacity 0.2s ease !important;
+  }
+}
+
+/* Optimize header animations */
+@media (max-width: 768px) {
+  .header-logo-float {
+    animation-duration: 10s !important;
+  }
+  
+  .mobile-menu-slide {
+    transition-duration: 0.2s !important;
+  }
+}
+
+/* Optimize dashboard components */
+.dashboard-grid-item {
+  will-change: auto; /* Reset will-change after animations complete */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-grid-item {
+    animation: none !important;
+  }
+  
+  .notification-pulse,
+  .cart-bounce,
+  .loading-spinner {
+    animation: none !important;
+  }
+}
+
+/* ========================================
+   PRINT STYLES (BONUS)
+   ======================================== */
+
+/**
+ * Ensure the site is printable without heavy effects
+ */
+@media print {
+  * {
+    animation: none !important;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  
+  .galaxy-container::before,
+  .cosmic-background,
+  video {
+    display: none !important;
+  }
+}
+
+/* ========================================
+   JAVASCRIPT PERFORMANCE HINTS
+   ======================================== */
+
+/**
+ * CSS custom properties that JavaScript can use to detect performance preferences
+ * Components can read these values to adjust behavior accordingly
+ */
+:root {
+  --performance-tier: standard;
+  --animation-enabled: 1;
+  --reduced-motion: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --performance-tier: minimal;
+    --animation-enabled: 0;
+    --reduced-motion: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --performance-tier: mobile;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --performance-tier: minimal;
+  }
+}
+
+@media (min-width: 1440px) and (min-height: 900px) {
+  :root {
+    --performance-tier: enhanced;
+  }
+}
