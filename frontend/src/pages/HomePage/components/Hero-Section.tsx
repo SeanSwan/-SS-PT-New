@@ -8,7 +8,7 @@ import GlowButton from "../../../components/Button/glowButton";
 import OrientationForm from "../../../components/OrientationForm/orientationForm";
 
 // Import assets (ensure paths are correct)
-import heroVideo from "/Swans.mp4"; // Ensure this path is correct
+import heroVideo from "../../../assets/Swans.mp4"; // Ensure this path is correct
 import logoImg from "/Logo.png"; // Ensure this path is correct
 
 // --- TypeScript Interfaces ---
