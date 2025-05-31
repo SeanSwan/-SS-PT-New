@@ -6,3 +6,4 @@ export * from "./badge";
 export * from "./popover";
 export * from "./select";
 export * from "./textarea";
+export { default as GlowButton } from "./GlowButton";
