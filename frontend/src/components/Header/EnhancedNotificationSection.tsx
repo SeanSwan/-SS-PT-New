@@ -19,7 +19,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import { alpha, useTheme } from '@mui/material/styles';
 
 // Redux and API
-import { RootState } from '../../store';
+import { RootState } from '../../redux/store';
 import { fetchNotifications, markAsRead, markAllAsRead, removeNotification, Notification } from '../../store/slices/notificationSlice';
 import api from '../../services/api';
 

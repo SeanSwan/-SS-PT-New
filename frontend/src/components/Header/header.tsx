@@ -501,7 +501,7 @@ const EnhancedHeader = () => {
           </StyledNavLinkWithDropdown>
           
           {/* Dashboard Selector - Always show for logged-in users */}
-          <Box sx={{ ml: 2, mr: 2 }}>
+          <Box sx={{ ml: 1, mr: 1 }}>
             <DashboardSelector />
           </Box>
 
