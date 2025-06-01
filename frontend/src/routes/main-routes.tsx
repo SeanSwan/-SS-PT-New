@@ -144,6 +144,10 @@ const FoodScannerPage = lazyLoadWithErrorHandling(
   () => import('../pages/FoodScanner/FoodScannerPage'),
   'Food Scanner'
 );
+const SwanBrandShowcase = lazyLoadWithErrorHandling(
+  () => import('../components/SwanBrandShowcase.component'),
+  'Swan Brand Showcase'
+);
 const UnauthorizedPage = lazyLoadWithErrorHandling(
   () => import('../pages/UnauthorizedPage.component'),
   'Unauthorized Page'
@@ -321,6 +325,14 @@ const MainRoutes: RouteObject = {
       element: (
         <Suspense fallback={<PageLoader />}>
           <FoodScannerPage />
+        </Suspense>
+      )
+    },
+    {
+      path: 'theme-showcase',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <SwanBrandShowcase />
         </Suspense>
       )
     },
