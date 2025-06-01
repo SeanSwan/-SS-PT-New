@@ -274,6 +274,44 @@ const FilteredButton = styled.button`
 const FilteredMotionSpan = styled(motion.span)``;
 
 
+// Additional styled components for sidebar stats
+const AnimatedStatValue = styled.span`
+  color: ${({ theme }) => theme.colors.primary};
+  font-weight: 600;
+  animation: ${({ $performanceLevel }) => {
+    if ($performanceLevel === 'weak') return 'none';
+    if ($performanceLevel === 'medium') return css`${simpleFade} 4s ease-in-out infinite`;
+    return css`${cosmicGlow} 4s ease-in-out infinite`;
+  }};
+  
+  /* Performance-based overrides */
+  body.perf-weak & {
+    animation: none;
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+const AnimatedAchievementIcon = styled.div`
+  color: ${({ theme }) => theme.colors.accent};
+  animation: ${({ $performanceLevel }) => {
+    if ($performanceLevel === 'weak') return 'none';
+    if ($performanceLevel === 'medium') return css`${simpleFade} 3s ease-in-out infinite`;
+    return css`${starTwinkle} 3s ease-in-out infinite`;
+  }};
+  
+  /* Performance-based overrides */
+  body.perf-weak & {
+    animation: none;
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
 // ===================== COSMIC STYLED COMPONENTS =====================
 
 const ProfileContainer = styled(motion.div)`
@@ -2115,17 +2153,9 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                         </div>
                         <span style={{ color: theme.text.primary }}>{stat.label}</span>
                       </div>
-                      <span style={{ 
-                        color: theme.colors.primary, 
-                        fontWeight: '600',
-                        animation: (() => {
-                          if (devicePerformance === 'weak') return 'none';
-                          if (devicePerformance === 'medium') return `${simpleFade} 4s ease-in-out infinite`;
-                          return `${cosmicGlow} 4s ease-in-out infinite`;
-                        })()
-                      }}>
+                      <AnimatedStatValue $performanceLevel={devicePerformance}>
                         {stat.value}
-                      </span>
+                      </AnimatedStatValue>
                     </FilteredMotionDiv>
                   );
                 })}
@@ -2158,16 +2188,9 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                         border: `1px solid ${theme.borders.subtle}`
                       }}
                     >
-                      <div style={{
-                        color: theme.colors.accent,
-                        animation: (() => {
-                          if (devicePerformance === 'weak') return 'none';
-                          if (devicePerformance === 'medium') return `${simpleFade} 3s ease-in-out infinite`;
-                          return `${starTwinkle} 3s ease-in-out infinite`;
-                        })()
-                      }}>
+                      <AnimatedAchievementIcon $performanceLevel={devicePerformance}>
                         <Icon size={20} />
-                      </div>
+                      </AnimatedAchievementIcon>
                       <div>
                         <p style={{ 
                           color: theme.text.primary, 
