@@ -13,7 +13,7 @@ import { useCart } from "../../context/CartContext";
 import GlowButton from "../../components/Button/glowButton";
 // Import Galaxy-Swan theme utilities
 import { galaxySwanTheme } from '../../styles/galaxy-swan-theme';
-import { ThemedGlowButton } from '../../styles/swan-theme-utils';
+import { ThemedGlowButton } from '../../styles/swan-theme-utils.tsx';
 import OrientationForm from "../../components/OrientationForm/orientationForm";
 import ShoppingCart from "../../components/ShoppingCart/ShoppingCart";
 import { useToast } from "../../hooks/use-toast";

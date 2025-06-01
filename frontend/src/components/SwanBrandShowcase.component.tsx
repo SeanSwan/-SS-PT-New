@@ -25,7 +25,7 @@ import {
   SwanCard,
   responsiveAnimation,
   accessibleHover
-} from '../styles/swan-theme-utils';
+} from '../styles/swan-theme-utils.tsx';
 
 // === SHOWCASE-SPECIFIC STYLED COMPONENTS ===
 
