@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwanStudios Auth Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .diagnostic-btn {
+            background: #28a745;
+        }
+        .diagnostic-btn:hover {
+            background: #1e7e34;
+        }
+        .result {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 15px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 SwanStudios Authentication Test</h1>
+        
+        <div class="status info" id="serverStatus">
+            Checking server status...
+        </div>
+        
+        <div class="form-group">
+            <label for="username">Username or Email:</label>
+            <input type="text" id="username" value="admin" placeholder="Enter username or email">
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" value="test123" placeholder="Enter password">
+        </div>
+        
+        <div class="form-group">
+            <button onclick="testLogin()" id="loginBtn">Test Login</button>
+            <button onclick="runDiagnostic()" class="diagnostic-btn">Run Full Diagnostic</button>
+            <button onclick="checkServer()">Check Server Status</button>
+            <button onclick="clearResults()">Clear Results</button>
+        </div>
+        
+        <div id="results" class="result" style="display: none;">
+            Results will appear here...
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://ss-pt-new.onrender.com';
+        
+        // Check server status on page load
+        window.onload = function() {
+            checkServer();
+        };
+        
+        function showResult(content, className = 'info') {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.className = `result ${className}`;
+            resultsDiv.textContent = content;
+            resultsDiv.style.display = 'block';
+        }
+        
+        function clearResults() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.style.display = 'none';
+        }
+        
+        async function checkServer() {
+            const statusDiv = document.getElementById('serverStatus');
+            statusDiv.textContent = 'Checking server...';
+            statusDiv.className = 'status info';
+            
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    statusDiv.textContent = `✅ Server Online - ${data.environment} mode`;
+                    statusDiv.className = 'status success';
+                } else {
+                    statusDiv.textContent = '⚠️ Server responding but with issues';
+                    statusDiv.className = 'status error';
+                }
+                
+                showResult(JSON.stringify(data, null, 2), 'success');
+            } catch (error) {
+                statusDiv.textContent = '❌ Server Offline or Unreachable';
+                statusDiv.className = 'status error';
+                showResult(`Server Error: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            
+            if (!username || !password) {
+                showResult('Please enter both username and password', 'error');
+                return;
+            }
+            
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Testing...';
+            
+            try {
+                showResult('Attempting login...', 'info');
+                
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                const result = {
+                    status: response.status,
+                    statusText: response.statusText,
+                    success: data.success,
+                    data: data
+                };
+                
+                if (response.ok && data.success) {
+                    showResult(`✅ Login Successful!\\n\\n${JSON.stringify(result, null, 2)}`, 'success');
+                } else {
+                    showResult(`❌ Login Failed\\n\\nStatus: ${response.status}\\nError: ${data.message || 'Unknown error'}\\n\\nFull Response:\\n${JSON.stringify(result, null, 2)}`, 'error');
+                }
+                
+            } catch (error) {
+                showResult(`❌ Network Error\\n\\n${error.message}\\n\\nThis might indicate:\\n- Server is down\\n- Network connectivity issues\\n- CORS problems`, 'error');
+            } finally {
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Test Login';
+            }
+        }
+        
+        async function runDiagnostic() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                showResult('Please enter both username and password for diagnostic', 'error');
+                return;
+            }
+            
+            showResult('Running comprehensive diagnostic...', 'info');
+            
+            const diagnosticResults = [];
+            
+            // Test 1: Server Status
+            diagnosticResults.push('🔍 Test 1: Server Health Check');
+            try {
+                const healthResponse = await fetch(`${API_BASE}/health`);
+                const healthData = await healthResponse.json();
+                diagnosticResults.push(`✅ Server Health: ${healthData.status || 'OK'}`);
+                diagnosticResults.push(`   Environment: ${healthData.environment}`);
+                diagnosticResults.push(`   Uptime: ${healthData.uptime}s`);
+            } catch (error) {
+                diagnosticResults.push(`❌ Server Health: ${error.message}`);
+            }
+            
+            // Test 2: Debug Endpoint
+            diagnosticResults.push('\\n🧪 Test 2: Login Debug Check');
+            try {
+                const debugResponse = await fetch(`${API_BASE}/api/debug/login-test`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const debugData = await debugResponse.json();
+                
+                if (debugData.success) {
+                    diagnosticResults.push(`✅ User Found: ${debugData.debug.userFound}`);
+                    diagnosticResults.push(`✅ Password Valid: ${debugData.debug.passwordValid}`);
+                    diagnosticResults.push(`✅ Can Login: ${debugData.debug.canLogin}`);
+                    if (debugData.debug.userDetails) {
+                        diagnosticResults.push(`   User Role: ${debugData.debug.userDetails.role}`);
+                        diagnosticResults.push(`   Account Active: ${debugData.debug.userDetails.isActive}`);
+                        diagnosticResults.push(`   Account Locked: ${debugData.debug.userDetails.isLocked || false}`);
+                    }
+                } else {
+                    diagnosticResults.push(`❌ Debug Check Failed: ${debugData.error}`);
+                    if (debugData.debug) {
+                        diagnosticResults.push(`   Details: ${JSON.stringify(debugData.debug, null, 2)}`);
+                    }
+                }
+            } catch (error) {
+                diagnosticResults.push(`❌ Debug Endpoint Error: ${error.message}`);
+            }
+            
+            // Test 3: Actual Login
+            diagnosticResults.push('\\n🔐 Test 3: Actual Login Attempt');
+            try {
+                const loginResponse = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const loginData = await loginResponse.json();
+                
+                diagnosticResults.push(`   Status Code: ${loginResponse.status}`);
+                diagnosticResults.push(`   Response Success: ${loginData.success || false}`);
+                
+                if (loginResponse.ok && loginData.success) {
+                    diagnosticResults.push(`✅ Login Successful!`);
+                    diagnosticResults.push(`   User: ${loginData.user?.username || 'Unknown'}`);
+                    diagnosticResults.push(`   Role: ${loginData.user?.role || 'Unknown'}`);
+                    diagnosticResults.push(`   Token Received: ${!!loginData.token}`);
+                } else {
+                    diagnosticResults.push(`❌ Login Failed: ${loginData.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                diagnosticResults.push(`❌ Login Request Error: ${error.message}`);
+            }
+            
+            // Show results
+            showResult(diagnosticResults.join('\\n'), 'info');
+        }
+    </script>
+</body>
+</html>
