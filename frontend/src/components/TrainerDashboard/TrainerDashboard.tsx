@@ -1,6 +1,7 @@
 /**
  * trainer-dashboard.tsx
  * Trainer Dashboard View Component for SwanStudios Platform
+ * Enhanced with Galaxy-Swan Theme and GlowButton Integration
  */
 import React, { useState, useEffect, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -20,16 +21,17 @@ import {
   Upload
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { ThemedGlowButton, galaxySwanTheme } from '../../styles/swan-theme-utils';
 
-// Styled Components
+// Enhanced Styled Components with Galaxy-Swan Theme
 const DashboardContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 2rem;
   padding: 2rem;
-  background: #0a0a1a;
+  background: ${galaxySwanTheme.background.primary};
   min-height: 100vh;
-  color: white;
+  color: ${galaxySwanTheme.text.primary};
 
   @media (max-width: 768px) {
     padding: 1rem;
@@ -38,11 +40,11 @@ const DashboardContainer = styled.div`
 `;
 
 const DashboardHeader = styled.div`
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: ${galaxySwanTheme.gradients.primaryCosmic};
   border-radius: 12px;
   padding: 1.5rem;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: ${galaxySwanTheme.borders.elegant};
+  box-shadow: ${galaxySwanTheme.shadows.primaryElevated};
 `;
 
 const HeaderContent = styled.div`
@@ -55,13 +57,13 @@ const HeaderTitle = styled.h1`
   font-size: 1.75rem;
   font-weight: 600;
   margin: 0;
-  color: #00ffff;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  color: ${galaxySwanTheme.primary.main};
+  text-shadow: ${galaxySwanTheme.shadows.primaryGlow};
 `;
 
 const WelcomeMessage = styled.p`
   font-size: 1rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: ${galaxySwanTheme.text.muted};
   margin: 0;
 `;
 
@@ -73,8 +75,8 @@ const StatsRow = styled.div`
 `;
 
 const StatCard = styled.div`
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: ${galaxySwanTheme.background.surface};
+  border: ${galaxySwanTheme.borders.subtle};
   border-radius: 8px;
   padding: 1rem;
   display: flex;
@@ -91,15 +93,15 @@ const StatCard = styled.div`
     left: 0;
     right: 0;
     height: 2px;
-    background: linear-gradient(90deg, #00ffff, #7851a9);
+    background: ${galaxySwanTheme.gradients.primaryCosmic};
     opacity: 0;
     transition: opacity 0.3s ease;
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: ${galaxySwanTheme.background.elevated};
     transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 255, 255, 0.1);
+    box-shadow: ${galaxySwanTheme.shadows.primaryGlow};
     
     &::before {
       opacity: 1;
@@ -131,23 +133,23 @@ const StatContent = styled.div`
 const StatValue = styled.div`
   font-size: 1.5rem;
   font-weight: 700;
-  color: white;
+  color: ${galaxySwanTheme.text.primary};
   line-height: 1.2;
 `;
 
 const StatLabel = styled.div`
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: ${galaxySwanTheme.text.secondary};
   margin-top: 0.25rem;
 `;
 
 const SectionContainer = styled.div`
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: ${galaxySwanTheme.components.card.background};
+  border: ${galaxySwanTheme.components.card.border};
   border-radius: 12px;
   padding: 1.5rem;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(15px);
+  box-shadow: ${galaxySwanTheme.shadows.swanCosmic};
 `;
 
 const SectionHeader = styled.div`
@@ -161,49 +163,11 @@ const SectionTitle = styled.h2`
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0;
-  color: #00ffff;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  color: ${galaxySwanTheme.primary.main};
+  text-shadow: ${galaxySwanTheme.shadows.primaryGlow};
 `;
 
-const ActionButton = styled.button`
-  background: linear-gradient(135deg, #00ffff, #00c8ff);
-  border: none;
-  border-radius: 8px;
-  padding: 0.6rem 1.2rem;
-  color: #0a0a1a;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s ease;
-  }
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 255, 255, 0.4);
-    
-    &::before {
-      left: 100%;
-    }
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-`;
+// ActionButton replaced with ThemedGlowButton - see component usage below
 
 const GridContainer = styled.div`
   display: grid;
@@ -216,8 +180,8 @@ const GridContainer = styled.div`
 `;
 
 const ClientCard = styled.div`
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: ${galaxySwanTheme.components.card.background};
+  border: ${galaxySwanTheme.components.card.border};
   border-radius: 10px;
   padding: 1rem;
   display: flex;
@@ -235,15 +199,15 @@ const ClientCard = styled.div`
     left: 0;
     width: 3px;
     height: 100%;
-    background: linear-gradient(180deg, #00ffff, #7851a9);
+    background: ${galaxySwanTheme.gradients.primaryCosmic};
     opacity: 0;
     transition: opacity 0.3s ease;
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: ${galaxySwanTheme.components.card.hoverBackground};
     transform: translateX(8px);
-    box-shadow: 0 4px 16px rgba(0, 255, 255, 0.1);
+    box-shadow: ${galaxySwanTheme.shadows.primaryGlow};
     
     &::before {
       opacity: 1;
@@ -259,14 +223,14 @@ const ClientAvatar = styled.div`
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #00ffff, #7851a9);
+  background: ${galaxySwanTheme.gradients.primaryCosmic};
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: ${galaxySwanTheme.text.primary};
   font-weight: 700;
   font-size: 1.1rem;
-  box-shadow: 0 4px 12px rgba(0, 255, 255, 0.3);
+  box-shadow: ${galaxySwanTheme.shadows.primaryGlow};
 `;
 
 const ClientInfo = styled.div`
@@ -275,14 +239,14 @@ const ClientInfo = styled.div`
 
 const ClientName = styled.div`
   font-weight: 600;
-  color: white;
+  color: ${galaxySwanTheme.text.primary};
   margin-bottom: 0.25rem;
   font-size: 1rem;
 `;
 
 const ClientDetails = styled.div`
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: ${galaxySwanTheme.text.secondary};
   margin-bottom: 0.1rem;
 `;
 
@@ -306,8 +270,8 @@ const ClientStatus = styled.div<{ status: string }>`
 `;
 
 const SessionCard = styled.div`
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: ${galaxySwanTheme.components.card.background};
+  border: ${galaxySwanTheme.components.card.border};
   border-radius: 10px;
   padding: 1rem;
   margin-bottom: 0.75rem;
@@ -322,15 +286,15 @@ const SessionCard = styled.div`
     left: 0;
     width: 100%;
     height: 3px;
-    background: linear-gradient(90deg, #00ffff, #7851a9);
+    background: ${galaxySwanTheme.gradients.primaryCosmic};
     opacity: 0;
     transition: opacity 0.3s ease;
   }
 
   &:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: ${galaxySwanTheme.components.card.hoverBackground};
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 255, 255, 0.1);
+    box-shadow: ${galaxySwanTheme.shadows.primaryGlow};
     
     &::before {
       opacity: 1;
@@ -344,10 +308,10 @@ const SessionCard = styled.div`
 
 const SessionTime = styled.div`
   font-size: 0.9rem;
-  color: #00ffff;
+  color: ${galaxySwanTheme.primary.main};
   font-weight: 600;
   margin-bottom: 0.5rem;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  text-shadow: ${galaxySwanTheme.shadows.primaryGlow};
 `;
 
 const SessionInfo = styled.div`
@@ -357,7 +321,7 @@ const SessionInfo = styled.div`
 `;
 
 const SessionDetails = styled.div`
-  color: white;
+  color: ${galaxySwanTheme.text.primary};
   font-weight: 600;
   margin-bottom: 0.25rem;
   font-size: 1rem;
@@ -365,17 +329,17 @@ const SessionDetails = styled.div`
 
 const SessionClient = styled.div`
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: ${galaxySwanTheme.text.secondary};
 `;
 
 const SessionDuration = styled.div`
-  color: rgba(255, 255, 255, 0.6);
+  color: ${galaxySwanTheme.text.secondary};
   font-size: 0.85rem;
   font-weight: 500;
   padding: 0.25rem 0.75rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: ${galaxySwanTheme.background.surface};
   border-radius: 15px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: ${galaxySwanTheme.borders.subtle};
 `;
 
 const SearchFilterContainer = styled.div`
@@ -397,23 +361,23 @@ const SearchInputContainer = styled.div`
 
 const SearchInput = styled.input`
   width: 100%;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: ${galaxySwanTheme.background.surface};
+  border: ${galaxySwanTheme.borders.elegant};
   border-radius: 8px;
   padding: 0.6rem 1rem 0.6rem 2.5rem;
-  color: white;
+  color: ${galaxySwanTheme.text.primary};
   font-size: 0.9rem;
   transition: all 0.3s ease;
   
   &::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: ${galaxySwanTheme.text.muted};
   }
   
   &:focus {
     outline: none;
-    border-color: #00ffff;
-    background: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    border-color: ${galaxySwanTheme.primary.main};
+    background: ${galaxySwanTheme.background.elevated};
+    box-shadow: ${galaxySwanTheme.shadows.primaryGlow};
   }
 `;
 
@@ -422,16 +386,16 @@ const SearchIcon = styled(Search)`
   left: 0.75rem;
   top: 50%;
   transform: translateY(-50%);
-  color: rgba(255, 255, 255, 0.5);
+  color: ${galaxySwanTheme.text.muted};
   pointer-events: none;
 `;
 
 const FilterButton = styled.button`
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: ${galaxySwanTheme.background.surface};
+  border: ${galaxySwanTheme.borders.elegant};
   border-radius: 8px;
   padding: 0.6rem 1rem;
-  color: white;
+  color: ${galaxySwanTheme.text.primary};
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -440,8 +404,8 @@ const FilterButton = styled.button`
   font-weight: 500;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: #00ffff;
+    background: ${galaxySwanTheme.background.elevated};
+    border-color: ${galaxySwanTheme.primary.main};
     transform: translateY(-2px);
   }
 `;
@@ -451,15 +415,15 @@ const LoadingSpinner = styled.div`
   justify-content: center;
   align-items: center;
   padding: 3rem;
-  color: #00ffff;
+  color: ${galaxySwanTheme.primary.main};
   font-size: 1.1rem;
   
   &::after {
     content: '';
     width: 24px;
     height: 24px;
-    border: 3px solid rgba(0, 255, 255, 0.3);
-    border-top: 3px solid #00ffff;
+    border: 3px solid ${galaxySwanTheme.themeUtils?.rgba(galaxySwanTheme.primary.main, 0.3) || 'rgba(0, 255, 255, 0.3)'};
+    border-top: 3px solid ${galaxySwanTheme.primary.main};
     border-radius: 50%;
     margin-left: 1rem;
     animation: spin 1s linear infinite;
@@ -476,17 +440,17 @@ const EmptyState = styled.div`
   flex-direction: column;
   align-items: center;
   padding: 3rem 2rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: ${galaxySwanTheme.text.secondary};
   gap: 1rem;
   text-align: center;
   
   svg {
-    color: rgba(255, 255, 255, 0.3);
+    color: ${galaxySwanTheme.text.muted};
   }
   
   h3 {
     margin: 0;
-    color: rgba(255, 255, 255, 0.8);
+    color: ${galaxySwanTheme.text.primary};
     font-weight: 600;
   }
   
@@ -499,7 +463,7 @@ const EmptyState = styled.div`
 const MenuButton = styled.button`
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.6);
+  color: ${galaxySwanTheme.text.secondary};
   cursor: pointer;
   padding: 0.5rem;
   border-radius: 8px;
@@ -509,8 +473,8 @@ const MenuButton = styled.button`
   justify-content: center;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: ${galaxySwanTheme.background.elevated};
+    color: ${galaxySwanTheme.text.primary};
     transform: scale(1.1);
   }
 `;
@@ -659,9 +623,12 @@ const TrainerDashboard: React.FC<TrainerDashboardProps> = () => {
         }}>
           <h2 style={{ color: '#ff416c', marginBottom: '1rem' }}>Error Loading Dashboard</h2>
           <p style={{ color: 'rgba(255, 255, 255, 0.7)', marginBottom: '1.5rem' }}>{error}</p>
-          <ActionButton onClick={handleRetry}>
-            Retry Loading
-          </ActionButton>
+          <ThemedGlowButton 
+            variant="primary" 
+            size="medium"
+            text="Retry Loading"
+            onClick={handleRetry}
+          />
         </div>
       </DashboardContainer>
     );
@@ -743,10 +710,12 @@ const TrainerDashboard: React.FC<TrainerDashboardProps> = () => {
           <SectionContainer>
             <SectionHeader>
               <SectionTitle>My Clients</SectionTitle>
-              <ActionButton>
-                <Plus size={18} />
-                Add Client
-              </ActionButton>
+              <ThemedGlowButton 
+                variant="primary" 
+                size="medium"
+                text="Add Client"
+                leftIcon={<Plus size={18} />}
+              />
             </SectionHeader>
             
             <SearchFilterContainer>
@@ -798,10 +767,13 @@ const TrainerDashboard: React.FC<TrainerDashboardProps> = () => {
           <SectionContainer>
             <SectionHeader>
               <SectionTitle>Content & Form Checks</SectionTitle>
-              <ActionButton onClick={() => navigate('/trainer-dashboard/content')}>
-                <Video size={18} />
-                Manage Content
-              </ActionButton>
+              <ThemedGlowButton 
+                variant="secondary" 
+                size="medium"
+                text="Manage Content"
+                leftIcon={<Video size={18} />}
+                onClick={() => navigate('/trainer-dashboard/content')}
+              />
             </SectionHeader>
             
             <div style={{ marginBottom: '1rem' }}>
@@ -881,10 +853,12 @@ const TrainerDashboard: React.FC<TrainerDashboardProps> = () => {
           <SectionContainer>
             <SectionHeader>
               <SectionTitle>Today's Schedule</SectionTitle>
-              <ActionButton>
-                <Plus size={18} />
-                Add Session
-              </ActionButton>
+              <ThemedGlowButton 
+                variant="primary" 
+                size="medium"
+                text="Add Session"
+                leftIcon={<Plus size={18} />}
+              />
             </SectionHeader>
             
             {mockSessions.length > 0 ? (
