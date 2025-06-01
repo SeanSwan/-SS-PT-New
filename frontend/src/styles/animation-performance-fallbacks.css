@@ -286,6 +286,27 @@
 }
 
 /* ========================================
+   PERFORMANCE-AWARE ANIMATION CLASSES
+   ======================================== */
+
+/**
+ * Animations that respect performance settings and tab visibility
+ */
+.cosmic-float,
+.swan-glide,
+.stellar-pulse,
+.galactic-shimmer,
+.nebula-spin,
+.galaxy-shimmer {
+  animation-play-state: var(--animation-play-state, running);
+}
+
+/* Pause all animations when tab is hidden for better performance */
+body.tab-hidden * {
+  animation-play-state: paused !important;
+}
+
+/* ========================================
    SPECIFIC SWANSTUDIOS COMPONENT OVERRIDES
    ======================================== */
 
@@ -373,6 +394,7 @@
   --performance-tier: standard;
   --animation-enabled: 1;
   --reduced-motion: 0;
+  --animation-play-state: running;
 }
 
 @media (prefers-reduced-motion: reduce) {
