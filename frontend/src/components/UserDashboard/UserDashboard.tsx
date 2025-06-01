@@ -226,10 +226,14 @@ const FilteredDiv = styled.div`
 // Motion div for animated elements
 const FilteredMotionDiv = styled(motion.div).withConfig({
   shouldForwardProp: (prop) => ![
-    'whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 
-    'style', 'className', 'variants', 'layout', 'layoutId', 'drag', 
-    'dragConstraints', 'onDrag', 'onDragEnd', 'onDragStart', 'dragElastic',
-    'dragMomentum', 'layoutDependency'
+    'whileHover', 'whileTap', 'whileFocus', 'whileDrag', 'whileInView',
+    'initial', 'animate', 'exit', 'transition', 'variants', 'custom',
+    'layout', 'layoutId', 'layoutRoot', 'layoutScroll', 'layoutDependency',
+    'drag', 'dragConstraints', 'dragElastic', 'dragMomentum', 'dragPropagation',
+    'dragSnapToOrigin', 'dragTransition', '_dragX', '_dragY', 'onDrag', 
+    'onDragStart', 'onDragEnd', 'onDirectionLock', 'onDragTransitionEnd',
+    'dragControls', 'dragListener', 'onAnimationStart', 'onAnimationComplete',
+    'onUpdate', 'onViewportEnter', 'onViewportLeave', 'viewport', 'transformTemplate'
   ].includes(prop)
 })`
   transition: all 0.3s ease;
@@ -253,22 +257,30 @@ const FilteredMotionDiv = styled(motion.div).withConfig({
 
 const FilteredButton = styled.button.withConfig({
   shouldForwardProp: (prop) => ![
-    'whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 
-    'style', 'className', 'variants', 'layout', 'layoutId', 'drag', 
-    'dragConstraints', 'onDrag', 'onDragEnd', 'onDragStart', 'dragElastic',
-    'dragMomentum', 'layoutDependency'
+    'whileHover', 'whileTap', 'whileFocus', 'whileDrag', 'whileInView',
+    'initial', 'animate', 'exit', 'transition', 'variants', 'custom',
+    'layout', 'layoutId', 'layoutRoot', 'layoutScroll', 'layoutDependency',
+    'drag', 'dragConstraints', 'dragElastic', 'dragMomentum', 'dragPropagation',
+    'dragSnapToOrigin', 'dragTransition', '_dragX', '_dragY', 'onDrag', 
+    'onDragStart', 'onDragEnd', 'onDirectionLock', 'onDragTransitionEnd',
+    'dragControls', 'dragListener', 'onAnimationStart', 'onAnimationComplete',
+    'onUpdate', 'onViewportEnter', 'onViewportLeave', 'viewport', 'transformTemplate'
   ].includes(prop)
 })``;
 
 // Additional filtered motion component for any other elements
 const FilteredMotionSpan = styled(motion.span).withConfig({
   shouldForwardProp: (prop) => ![
-    'whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 
-    'style', 'className', 'variants', 'layout', 'layoutId', 'drag', 
-    'dragConstraints', 'onDrag', 'onDragEnd', 'onDragStart', 'dragElastic',
-    'dragMomentum', 'layoutDependency'
+    'whileHover', 'whileTap', 'whileFocus', 'whileDrag', 'whileInView',
+    'initial', 'animate', 'exit', 'transition', 'variants', 'custom',
+    'layout', 'layoutId', 'layoutRoot', 'layoutScroll', 'layoutDependency',
+    'drag', 'dragConstraints', 'dragElastic', 'dragMomentum', 'dragPropagation',
+    'dragSnapToOrigin', 'dragTransition', '_dragX', '_dragY', 'onDrag', 
+    'onDragStart', 'onDragEnd', 'onDirectionLock', 'onDragTransitionEnd',
+    'dragControls', 'dragListener', 'onAnimationStart', 'onAnimationComplete',
+    'onUpdate', 'onViewportEnter', 'onViewportLeave', 'viewport', 'transformTemplate'
   ].includes(prop)
-})``;
+})`
 
 
 // ===================== COSMIC STYLED COMPONENTS =====================
