@@ -410,10 +410,22 @@ export const initializeCosmicPerformance = (): (() => void) => {
   return cleanup;
 };
 
-export default {
+// Named exports
+export {
   detectDeviceCapabilities,
   generatePerformanceProfile,
   applyPerformanceOptimizations,
   startPerformanceMonitoring,
   initializeCosmicPerformance
 };
+
+// Default export
+const cosmicPerformanceOptimizer = {
+  detectDeviceCapabilities,
+  generatePerformanceProfile,
+  applyPerformanceOptimizations,
+  startPerformanceMonitoring,
+  initializeCosmicPerformance
+};
+
+export default cosmicPerformanceOptimizer;
