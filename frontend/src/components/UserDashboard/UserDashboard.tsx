@@ -237,10 +237,20 @@ const FilteredButton = styled.button.withConfig({
     'dragConstraints', 'onDrag', 'onDragEnd', 'onDragStart', 'dragElastic',
     'dragMomentum', 'layoutDependency'
   ].includes(prop)
-})``;";
+})``;
 
 // Additional filtered motion component for any other elements
 const FilteredMotionSpan = styled(motion.span).withConfig({
+  shouldForwardProp: (prop) => ![
+    'whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 
+    'style', 'className', 'variants', 'layout', 'layoutId', 'drag', 
+    'dragConstraints', 'onDrag', 'onDragEnd', 'onDragStart', 'dragElastic',
+    'dragMomentum', 'layoutDependency'
+  ].includes(prop)
+})``;
+
+// Additional motion div component for the activity section
+const FilteredMotionDiv = styled(motion.div).withConfig({
   shouldForwardProp: (prop) => ![
     'whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 
     'style', 'className', 'variants', 'layout', 'layoutId', 'drag', 
