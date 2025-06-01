@@ -413,15 +413,6 @@ export const initializeCosmicPerformance = (): (() => void) => {
   return cleanup;
 };
 
-// Named exports
-export {
-  detectDeviceCapabilities,
-  generatePerformanceProfile,
-  applyPerformanceOptimizations,
-  startPerformanceMonitoring,
-  initializeCosmicPerformance
-};
-
 // Default export
 const cosmicPerformanceOptimizer = {
   detectDeviceCapabilities,
