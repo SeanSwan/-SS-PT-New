@@ -131,6 +131,22 @@ const injectPerformanceStyles = () => {
       transition-duration: 0.2s !important;
     }
     
+    /* Cosmic glow animation */
+    .cosmic-glow-animation {
+      animation: cosmic-glow 4s ease-in-out infinite;
+    }
+    
+    @keyframes cosmic-glow {
+      0%, 100% { 
+        filter: drop-shadow(0 0 20px currentColor) brightness(1);
+        transform: scale(1);
+      }
+      50% { 
+        filter: drop-shadow(0 0 40px currentColor) brightness(1.2);
+        transform: scale(1.02);
+      }
+    }
+    
     /* Respect reduced motion preferences */
     @media (prefers-reduced-motion: reduce) {
       * {
@@ -138,6 +154,9 @@ const injectPerformanceStyles = () => {
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
+      }
+      .cosmic-glow-animation {
+        animation: none !important;
       }
     }
     
@@ -223,18 +242,27 @@ const FilteredDiv = styled.div`
   }
 `;
 
-// Motion div for animated elements
+// Motion div for animated elements with comprehensive prop filtering
 const FilteredMotionDiv = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => ![
-    'whileHover', 'whileTap', 'whileFocus', 'whileDrag', 'whileInView',
-    'initial', 'animate', 'exit', 'transition', 'variants', 'custom',
-    'layout', 'layoutId', 'layoutRoot', 'layoutScroll', 'layoutDependency',
-    'drag', 'dragConstraints', 'dragElastic', 'dragMomentum', 'dragPropagation',
-    'dragSnapToOrigin', 'dragTransition', '_dragX', '_dragY', 'onDrag', 
-    'onDragStart', 'onDragEnd', 'onDirectionLock', 'onDragTransitionEnd',
-    'dragControls', 'dragListener', 'onAnimationStart', 'onAnimationComplete',
-    'onUpdate', 'onViewportEnter', 'onViewportLeave', 'viewport', 'transformTemplate'
-  ].includes(prop)
+  shouldForwardProp: (prop) => {
+    const motionProps = [
+      'whileHover', 'whileTap', 'whileFocus', 'whileDrag', 'whileInView',
+      'initial', 'animate', 'exit', 'transition', 'variants', 'custom',
+      'layout', 'layoutId', 'layoutRoot', 'layoutScroll', 'layoutDependency',
+      'drag', 'dragConstraints', 'dragElastic', 'dragMomentum', 'dragPropagation',
+      'dragSnapToOrigin', 'dragTransition', '_dragX', '_dragY', 'onDrag', 
+      'onDragStart', 'onDragEnd', 'onDirectionLock', 'onDragTransitionEnd',
+      'dragControls', 'dragListener', 'onAnimationStart', 'onAnimationComplete',
+      'onUpdate', 'onViewportEnter', 'onViewportLeave', 'viewport', 'transformTemplate',
+      'transformOrigin', 'originX', 'originY', 'originZ', 'transformValues',
+      'rotateX', 'rotateY', 'rotateZ', 'scaleX', 'scaleY', 'scaleZ', 'skewX', 'skewY',
+      'x', 'y', 'z', 'scale', 'rotate', 'opacity', 'width', 'height',
+      'backgroundColor', 'borderRadius', 'onTap', 'onTapStart', 'onTapCancel',
+      'onHoverStart', 'onHoverEnd', 'onPan', 'onPanStart', 'onPanEnd',
+      'enableAnimations', 'enableLuxuryAnimations', 'performanceLevel'
+    ];
+    return !motionProps.includes(prop as string);
+  }
 })`
   transition: all 0.3s ease;
   
@@ -256,31 +284,42 @@ const FilteredMotionDiv = styled(motion.div).withConfig({
 `;
 
 const FilteredButton = styled.button.withConfig({
-  shouldForwardProp: (prop) => ![
-    'whileHover', 'whileTap', 'whileFocus', 'whileDrag', 'whileInView',
-    'initial', 'animate', 'exit', 'transition', 'variants', 'custom',
-    'layout', 'layoutId', 'layoutRoot', 'layoutScroll', 'layoutDependency',
-    'drag', 'dragConstraints', 'dragElastic', 'dragMomentum', 'dragPropagation',
-    'dragSnapToOrigin', 'dragTransition', '_dragX', '_dragY', 'onDrag', 
-    'onDragStart', 'onDragEnd', 'onDirectionLock', 'onDragTransitionEnd',
-    'dragControls', 'dragListener', 'onAnimationStart', 'onAnimationComplete',
-    'onUpdate', 'onViewportEnter', 'onViewportLeave', 'viewport', 'transformTemplate'
-  ].includes(prop)
-})``;
+  shouldForwardProp: (prop) => {
+    const motionProps = [
+      'whileHover', 'whileTap', 'whileFocus', 'whileDrag', 'whileInView',
+      'initial', 'animate', 'exit', 'transition', 'variants', 'custom',
+      'layout', 'layoutId', 'layoutRoot', 'layoutScroll', 'layoutDependency',
+      'drag', 'dragConstraints', 'dragElastic', 'dragMomentum', 'dragPropagation',
+      'dragSnapToOrigin', 'dragTransition', '_dragX', '_dragY', 'onDrag', 
+      'onDragStart', 'onDragEnd', 'onDirectionLock', 'onDragTransitionEnd',
+      'dragControls', 'dragListener', 'onAnimationStart', 'onAnimationComplete',
+      'onUpdate', 'onViewportEnter', 'onViewportLeave', 'viewport', 'transformTemplate'
+    ];
+    return !motionProps.includes(prop as string);
+  }
+})`
+  background: none;
+  border: none;
+  cursor: pointer;
+  outline: none;
+`;
 
 // Additional filtered motion component for any other elements
 const FilteredMotionSpan = styled(motion.span).withConfig({
-  shouldForwardProp: (prop) => ![
-    'whileHover', 'whileTap', 'whileFocus', 'whileDrag', 'whileInView',
-    'initial', 'animate', 'exit', 'transition', 'variants', 'custom',
-    'layout', 'layoutId', 'layoutRoot', 'layoutScroll', 'layoutDependency',
-    'drag', 'dragConstraints', 'dragElastic', 'dragMomentum', 'dragPropagation',
-    'dragSnapToOrigin', 'dragTransition', '_dragX', '_dragY', 'onDrag', 
-    'onDragStart', 'onDragEnd', 'onDirectionLock', 'onDragTransitionEnd',
-    'dragControls', 'dragListener', 'onAnimationStart', 'onAnimationComplete',
-    'onUpdate', 'onViewportEnter', 'onViewportLeave', 'viewport', 'transformTemplate'
-  ].includes(prop)
-})``;
+  shouldForwardProp: (prop) => {
+    const motionProps = [
+      'whileHover', 'whileTap', 'whileFocus', 'whileDrag', 'whileInView',
+      'initial', 'animate', 'exit', 'transition', 'variants', 'custom',
+      'layout', 'layoutId', 'layoutRoot', 'layoutScroll', 'layoutDependency',
+      'drag', 'dragConstraints', 'dragElastic', 'dragMomentum', 'dragPropagation',
+      'dragSnapToOrigin', 'dragTransition', '_dragX', '_dragY', 'onDrag', 
+      'onDragStart', 'onDragEnd', 'onDirectionLock', 'onDragTransitionEnd',
+      'dragControls', 'dragListener', 'onAnimationStart', 'onAnimationComplete',
+      'onUpdate', 'onViewportEnter', 'onViewportLeave', 'viewport', 'transformTemplate'
+    ];
+    return !motionProps.includes(prop as string);
+  }
+})`;
 
 
 // ===================== COSMIC STYLED COMPONENTS =====================
@@ -1346,14 +1385,23 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
-              whileHover={{ y: -5, boxShadow: theme.shadows.primary }}
+              whileHover={{ y: -5 }}
               style={{
                 padding: '1.5rem',
                 background: theme.background.elevated,
                 borderRadius: '12px',
                 border: `1px solid ${theme.borders.subtle}`,
                 cursor: 'pointer',
-                transition: 'all 0.3s ease'
+                transition: 'all 0.3s ease',
+                boxShadow: 'none'
+              }}
+              onMouseEnter={(e) => {
+                if (enableLuxuryAnimations) {
+                  e.currentTarget.style.boxShadow = theme.shadows.primary;
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = 'none';
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
@@ -1463,15 +1511,15 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                   overflow: 'hidden',
                   marginBottom: '1rem'
                 }}>
-                  <FilteredMotionDiv
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progressPercent}%` }}
-                  transition={{ duration: 1, delay: index * 0.2 }}
-                  style={{
-                  height: '100%',
-                  background: theme.gradients.primary,
-                  borderRadius: '4px'
-                  }}
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progressPercent}%` }}
+                    transition={{ duration: 1, delay: index * 0.2 }}
+                    style={{
+                      height: '100%',
+                      background: theme.gradients.primary,
+                      borderRadius: '4px'
+                    }}
                   />
                 </div>
                 
@@ -1503,17 +1551,19 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
         transition={{ duration: 0.5, delay: 0.2 }}
       >
         <div style={{ textAlign: 'center', padding: '2rem' }}>
-          <div style={{
-            width: '80px',
-            height: '80px',
-            margin: '0 auto 1.5rem',
-            background: theme.gradients.primary,
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            animation: enableLuxuryAnimations ? `${cosmicGlow} 4s ease-in-out infinite` : 'none'
-          }}>
+          <div 
+            className={enableLuxuryAnimations ? 'cosmic-glow-animation' : ''}
+            style={{
+              width: '80px',
+              height: '80px',
+              margin: '0 auto 1.5rem',
+              background: theme.gradients.primary,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
             <GraduationCap size={40} color="white" />
           </div>
           
@@ -1747,59 +1797,59 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                 </p>
                 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <FilteredButton
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: theme.colors.primary,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      fontSize: '0.9rem'
-                    }}
+                  <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  style={{
+                  background: 'none',
+                  border: 'none',
+                  color: theme.colors.primary,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  fontSize: '0.9rem'
+                  }}
                   >
-                    <Heart size={16} />
-                    {post.likes}
-                  </FilteredButton>
+                  <Heart size={16} />
+                  {post.likes}
+                  </motion.button>
                   
-                  <FilteredButton
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: theme.text.secondary,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      fontSize: '0.9rem'
-                    }}
+                  <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  style={{
+                  background: 'none',
+                  border: 'none',
+                  color: theme.text.secondary,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  fontSize: '0.9rem'
+                  }}
                   >
-                    <MessageCircle size={16} />
-                    Share
-                  </FilteredButton>
+                  <MessageCircle size={16} />
+                  Share
+                  </motion.button>
                   
-                  <FilteredButton
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: theme.text.secondary,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.25rem',
-                      fontSize: '0.9rem'
-                    }}
+                  <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  style={{
+                  background: 'none',
+                  border: 'none',
+                  color: theme.text.secondary,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem',
+                  fontSize: '0.9rem'
+                  }}
                   >
-                    <Sparkles size={16} />
-                    Inspire
-                  </FilteredButton>
+                  <Sparkles size={16} />
+                  Inspire
+                  </motion.button>
                 </div>
               </div>
             );
@@ -2033,7 +2083,8 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
           <BackgroundImageContainer backgroundImage={backgroundImage}>
             <BackgroundUploadOverlay
               onClick={handleBackgroundImageClick}
-              {...(enableLuxuryAnimations ? { whileHover: { opacity: 1 }, whileTap: { scale: 0.98 } } : {})}
+              whileHover={enableLuxuryAnimations ? { opacity: 1 } : undefined}
+              whileTap={enableLuxuryAnimations ? { scale: 0.98 } : undefined}
             >
               <Camera size={48} color="white" />
               <p style={{ color: 'white', marginTop: '1rem', fontSize: '1.1rem', fontWeight: '500' }}>
@@ -2044,7 +2095,9 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
 
           <ProfileImageSection>
             <ProfileImageContainer
-              {...(enableLuxuryAnimations ? { whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } : {})}
+              whileHover={enableLuxuryAnimations ? { scale: 1.05 } : undefined}
+              whileTap={enableLuxuryAnimations ? { scale: 0.95 } : undefined}
+              transition={enableLuxuryAnimations ? { duration: 0.3 } : undefined}
             >
               <ProfileImage 
                 image={profile?.photo} 
@@ -2056,7 +2109,8 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
               
               <ImageUploadButton
                 onClick={handleProfileImageClick}
-                {...(enableLuxuryAnimations ? { whileHover: { scale: 1.1 }, whileTap: { scale: 0.9 } } : {})}
+                whileHover={enableLuxuryAnimations ? { scale: 1.1 } : undefined}
+                whileTap={enableLuxuryAnimations ? { scale: 0.9 } : undefined}
               >
                 <Camera size={20} />
               </ImageUploadButton>
@@ -2084,7 +2138,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
             <StatsContainer>
               <StatItem 
                 enableAnimations={enableLuxuryAnimations}
-                {...(enableLuxuryAnimations ? { whileHover: { scale: 1.1 } } : {})}
+                whileHover={enableLuxuryAnimations ? { scale: 1.1 } : undefined}
               >
                 <StatValue performanceLevel={devicePerformance}>
                   {isLoadingStats ? '...' : displayStats.posts}
@@ -2093,7 +2147,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
               </StatItem>
               <StatItem 
                 enableAnimations={enableLuxuryAnimations}
-                {...(enableLuxuryAnimations ? { whileHover: { scale: 1.1 } } : {})}
+                whileHover={enableLuxuryAnimations ? { scale: 1.1 } : undefined}
               >
                 <StatValue performanceLevel={devicePerformance}>
                   {isLoadingStats ? '...' : displayStats.followers.toLocaleString()}
@@ -2102,7 +2156,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
               </StatItem>
               <StatItem 
                 enableAnimations={enableLuxuryAnimations}
-                {...(enableLuxuryAnimations ? { whileHover: { scale: 1.1 } } : {})}
+                whileHover={enableLuxuryAnimations ? { scale: 1.1 } : undefined}
               >
                 <StatValue performanceLevel={devicePerformance}>
                   {isLoadingStats ? '...' : displayStats.following}
@@ -2123,7 +2177,8 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
             <ActionButtons>
               <PrimaryButton
                 onClick={handleEditProfile}
-                {...(enableLuxuryAnimations ? { whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } : {})}
+                whileHover={enableLuxuryAnimations ? { scale: 1.05 } : undefined}
+                whileTap={enableLuxuryAnimations ? { scale: 0.95 } : undefined}
               >
                 <Edit3 size={20} />
                 Edit Profile
@@ -2131,14 +2186,16 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
               
               <SecondaryButton
                 onClick={handleSettings}
-                {...(enableLuxuryAnimations ? { whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } : {})}
+                whileHover={enableLuxuryAnimations ? { scale: 1.05 } : undefined}
+                whileTap={enableLuxuryAnimations ? { scale: 0.95 } : undefined}
               >
                 <Settings size={20} />
               </SecondaryButton>
               
               <SecondaryButton
                 onClick={handleShare}
-                {...(enableLuxuryAnimations ? { whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } : {})}
+                whileHover={enableLuxuryAnimations ? { scale: 1.05 } : undefined}
+                whileTap={enableLuxuryAnimations ? { scale: 0.95 } : undefined}
               >
                 <Share2 size={20} />
               </SecondaryButton>
