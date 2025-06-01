@@ -102,4 +102,254 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
     } finally {
       setIsLoading(false);
     }
-  }, [user]);\n\n  /**\n   * Load user statistics\n   */\n  const loadStats = useCallback(async () => {\n    if (!user) return;\n    \n    setIsLoadingStats(true);\n    setError(null);\n    \n    try {\n      const statsData = await profileService.getUserStats();\n      setStats(statsData);\n    } catch (err: any) {\n      console.error('Error loading stats:', err);\n      setError(err.message || 'Failed to load stats');\n    } finally {\n      setIsLoadingStats(false);\n    }\n  }, [user]);\n\n  /**\n   * Load user posts\n   */\n  const loadUserPosts = useCallback(async (userId?: string, limit: number = 20, offset: number = 0) => {\n    setIsLoadingPosts(true);\n    setError(null);\n    \n    try {\n      const postsData = await profileService.getUserPosts(userId, limit, offset);\n      \n      if (offset === 0) {\n        // Fresh load\n        setPosts(postsData.posts);\n      } else {\n        // Load more\n        setPosts(prev => [...prev, ...postsData.posts]);\n      }\n      \n      setPostsHasMore(postsData.posts.length === limit);\n      setPostsOffset(offset + postsData.posts.length);\n    } catch (err: any) {\n      console.error('Error loading posts:', err);\n      setError(err.message || 'Failed to load posts');\n    } finally {\n      setIsLoadingPosts(false);\n    }\n  }, []);\n\n  /**\n   * Load more posts (pagination)\n   */\n  const loadMorePosts = useCallback(async () => {\n    if (!postsHasMore || isLoadingPosts) return;\n    \n    await loadUserPosts(currentUserId, 20, postsOffset);\n  }, [loadUserPosts, currentUserId, postsOffset, postsHasMore, isLoadingPosts]);\n\n  /**\n   * Load user achievements\n   */\n  const loadAchievements = useCallback(async () => {\n    if (!user) return;\n    \n    setIsLoadingAchievements(true);\n    setError(null);\n    \n    try {\n      const achievementsData = await profileService.getUserAchievements();\n      setAchievements(achievementsData.achievements);\n    } catch (err: any) {\n      console.error('Error loading achievements:', err);\n      setError(err.message || 'Failed to load achievements');\n    } finally {\n      setIsLoadingAchievements(false);\n    }\n  }, [user]);\n\n  /**\n   * Load follow statistics\n   */\n  const loadFollowStats = useCallback(async () => {\n    if (!user) return;\n    \n    setIsLoadingFollowStats(true);\n    setError(null);\n    \n    try {\n      const followData = await profileService.getFollowStats();\n      setFollowStats(followData);\n    } catch (err: any) {\n      console.error('Error loading follow stats:', err);\n      setError(err.message || 'Failed to load follow stats');\n    } finally {\n      setIsLoadingFollowStats(false);\n    }\n  }, [user]);\n\n  /**\n   * Refresh profile data\n   */\n  const refreshProfile = useCallback(async () => {\n    await loadProfile(currentUserId);\n  }, [loadProfile, currentUserId]);\n\n  /**\n   * Refresh stats\n   */\n  const refreshStats = useCallback(async () => {\n    await loadStats();\n  }, [loadStats]);\n\n  /**\n   * Refresh achievements\n   */\n  const refreshAchievements = useCallback(async () => {\n    await loadAchievements();\n  }, [loadAchievements]);\n\n  /**\n   * Refresh follow stats\n   */\n  const refreshFollowStats = useCallback(async () => {\n    await loadFollowStats();\n  }, [loadFollowStats]);\n\n  /**\n   * Update profile\n   */\n  const updateProfile = useCallback(async (data: Partial<UserProfile>) => {\n    if (!user) return;\n    \n    setIsLoading(true);\n    setError(null);\n    \n    try {\n      const updatedProfile = await profileService.updateProfile(data);\n      setProfile(updatedProfile);\n    } catch (err: any) {\n      console.error('Error updating profile:', err);\n      setError(err.message || 'Failed to update profile');\n      throw err; // Re-throw for component handling\n    } finally {\n      setIsLoading(false);\n    }\n  }, [user]);\n\n  /**\n   * Upload profile photo\n   */\n  const uploadProfilePhoto = useCallback(async (file: File) => {\n    if (!user) return;\n    \n    setIsUploading(true);\n    setError(null);\n    \n    try {\n      const result = await profileService.uploadProfilePhoto(file);\n      setProfile(result.user);\n    } catch (err: any) {\n      console.error('Error uploading profile photo:', err);\n      setError(err.message || 'Failed to upload profile photo');\n      throw err; // Re-throw for component handling\n    } finally {\n      setIsUploading(false);\n    }\n  }, [user]);\n\n  /**\n   * Utility function to get display name\n   */\n  const getDisplayName = useCallback(() => {\n    if (!profile) return 'User';\n    return profileService.getDisplayName(profile);\n  }, [profile]);\n\n  /**\n   * Utility function to get username for display\n   */\n  const getUsernameForDisplay = useCallback(() => {\n    if (!profile) return 'user';\n    return profileService.getUsernameForDisplay(profile);\n  }, [profile]);\n\n  /**\n   * Utility function to get user initials\n   */\n  const getUserInitials = useCallback(() => {\n    if (!profile) return 'U';\n    return profileService.getUserInitials(profile);\n  }, [profile]);\n\n  // Load initial data when component mounts or user changes\n  useEffect(() => {\n    if (user || initialUserId) {\n      loadProfile(initialUserId);\n      \n      // Only load user-specific data for current user\n      if (!initialUserId || initialUserId === user?.id) {\n        loadStats();\n        loadAchievements();\n        loadFollowStats();\n      }\n      \n      // Load posts for any user (current or specified)\n      loadUserPosts(initialUserId, 20, 0);\n    }\n  }, [user, initialUserId, loadProfile, loadStats, loadAchievements, loadFollowStats, loadUserPosts]);\n\n  return {\n    // Profile data\n    profile,\n    stats,\n    posts,\n    achievements,\n    followStats,\n    \n    // Loading states\n    isLoading,\n    isLoadingStats,\n    isLoadingPosts,\n    isLoadingAchievements,\n    isLoadingFollowStats,\n    isUploading,\n    \n    // Error states\n    error,\n    \n    // Operations\n    refreshProfile,\n    updateProfile,\n    uploadProfilePhoto,\n    loadUserPosts,\n    loadMorePosts,\n    refreshStats,\n    refreshAchievements,\n    refreshFollowStats,\n    \n    // Utility functions\n    getDisplayName,\n    getUsernameForDisplay,\n    getUserInitials,\n    \n    // Pagination\n    postsHasMore,\n    postsOffset,\n  };\n};\n\nexport default useProfile;"
+  }, [user]);
+
+  /**
+   * Load user statistics
+   */
+  const loadStats = useCallback(async () => {
+    if (!user) return;
+    
+    setIsLoadingStats(true);
+    setError(null);
+    
+    try {
+      const statsData = await profileService.getUserStats();
+      setStats(statsData);
+    } catch (err: any) {
+      console.error('Error loading stats:', err);
+      setError(err.message || 'Failed to load stats');
+    } finally {
+      setIsLoadingStats(false);
+    }
+  }, [user]);
+
+  /**
+   * Load user posts
+   */
+  const loadUserPosts = useCallback(async (userId?: string, limit: number = 20, offset: number = 0) => {
+    setIsLoadingPosts(true);
+    setError(null);
+    
+    try {
+      const postsData = await profileService.getUserPosts(userId, limit, offset);
+      
+      if (offset === 0) {
+        // Fresh load
+        setPosts(postsData.posts);
+      } else {
+        // Load more
+        setPosts(prev => [...prev, ...postsData.posts]);
+      }
+      
+      setPostsHasMore(postsData.posts.length === limit);
+      setPostsOffset(offset + postsData.posts.length);
+    } catch (err: any) {
+      console.error('Error loading posts:', err);
+      setError(err.message || 'Failed to load posts');
+    } finally {
+      setIsLoadingPosts(false);
+    }
+  }, []);
+
+  /**
+   * Load more posts (pagination)
+   */
+  const loadMorePosts = useCallback(async () => {
+    if (!postsHasMore || isLoadingPosts) return;
+    
+    await loadUserPosts(currentUserId, 20, postsOffset);
+  }, [loadUserPosts, currentUserId, postsOffset, postsHasMore, isLoadingPosts]);
+
+  /**
+   * Load user achievements
+   */
+  const loadAchievements = useCallback(async () => {
+    if (!user) return;
+    
+    setIsLoadingAchievements(true);
+    setError(null);
+    
+    try {
+      const achievementsData = await profileService.getUserAchievements();
+      setAchievements(achievementsData.achievements);
+    } catch (err: any) {
+      console.error('Error loading achievements:', err);
+      setError(err.message || 'Failed to load achievements');
+    } finally {
+      setIsLoadingAchievements(false);
+    }
+  }, [user]);
+
+  /**
+   * Load follow statistics
+   */
+  const loadFollowStats = useCallback(async () => {
+    if (!user) return;
+    
+    setIsLoadingFollowStats(true);
+    setError(null);
+    
+    try {
+      const followData = await profileService.getFollowStats();
+      setFollowStats(followData);
+    } catch (err: any) {
+      console.error('Error loading follow stats:', err);
+      setError(err.message || 'Failed to load follow stats');
+    } finally {
+      setIsLoadingFollowStats(false);
+    }
+  }, [user]);
+
+  /**
+   * Refresh profile data
+   */
+  const refreshProfile = useCallback(async () => {
+    await loadProfile(currentUserId);
+  }, [loadProfile, currentUserId]);
+
+  /**
+   * Refresh stats
+   */
+  const refreshStats = useCallback(async () => {
+    await loadStats();
+  }, [loadStats]);
+
+  /**
+   * Refresh achievements
+   */
+  const refreshAchievements = useCallback(async () => {
+    await loadAchievements();
+  }, [loadAchievements]);
+
+  /**
+   * Refresh follow stats
+   */
+  const refreshFollowStats = useCallback(async () => {
+    await loadFollowStats();
+  }, [loadFollowStats]);
+
+  /**
+   * Update profile
+   */
+  const updateProfile = useCallback(async (data: Partial<UserProfile>) => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const updatedProfile = await profileService.updateProfile(data);
+      setProfile(updatedProfile);
+    } catch (err: any) {
+      console.error('Error updating profile:', err);
+      setError(err.message || 'Failed to update profile');
+      throw err; // Re-throw for component handling
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  /**
+   * Upload profile photo
+   */
+  const uploadProfilePhoto = useCallback(async (file: File) => {
+    if (!user) return;
+    
+    setIsUploading(true);
+    setError(null);
+    
+    try {
+      const result = await profileService.uploadProfilePhoto(file);
+      setProfile(result.user);
+    } catch (err: any) {
+      console.error('Error uploading profile photo:', err);
+      setError(err.message || 'Failed to upload profile photo');
+      throw err; // Re-throw for component handling
+    } finally {
+      setIsUploading(false);
+    }
+  }, [user]);
+
+  /**
+   * Utility function to get display name
+   */
+  const getDisplayName = useCallback(() => {
+    if (!profile) return 'User';
+    return profileService.getDisplayName(profile);
+  }, [profile]);
+
+  /**
+   * Utility function to get username for display
+   */
+  const getUsernameForDisplay = useCallback(() => {
+    if (!profile) return 'user';
+    return profileService.getUsernameForDisplay(profile);
+  }, [profile]);
+
+  /**
+   * Utility function to get user initials
+   */
+  const getUserInitials = useCallback(() => {
+    if (!profile) return 'U';
+    return profileService.getUserInitials(profile);
+  }, [profile]);
+
+  // Load initial data when component mounts or user changes
+  useEffect(() => {
+    if (user || initialUserId) {
+      loadProfile(initialUserId);
+      
+      // Only load user-specific data for current user
+      if (!initialUserId || initialUserId === user?.id) {
+        loadStats();
+        loadAchievements();
+        loadFollowStats();
+      }
+      
+      // Load posts for any user (current or specified)
+      loadUserPosts(initialUserId, 20, 0);
+    }
+  }, [user, initialUserId, loadProfile, loadStats, loadAchievements, loadFollowStats, loadUserPosts]);
+
+  return {
+    // Profile data
+    profile,
+    stats,
+    posts,
+    achievements,
+    followStats,
+    
+    // Loading states
+    isLoading,
+    isLoadingStats,
+    isLoadingPosts,
+    isLoadingAchievements,
+    isLoadingFollowStats,
+    isUploading,
+    
+    // Error states
+    error,
+    
+    // Operations
+    refreshProfile,
+    updateProfile,
+    uploadProfilePhoto,
+    loadUserPosts,
+    loadMorePosts,
+    refreshStats,
+    refreshAchievements,
+    refreshFollowStats,
+    
+    // Utility functions
+    getDisplayName,
+    getUsernameForDisplay,
+    getUserInitials,
+    
+    // Pagination
+    postsHasMore,
+    postsOffset,
+  };
+};
+
+export default useProfile;
