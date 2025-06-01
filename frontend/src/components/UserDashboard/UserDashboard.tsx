@@ -324,9 +324,7 @@ const FilteredMotionSpan = styled(motion.span).withConfig({
 
 // ===================== COSMIC STYLED COMPONENTS =====================
 
-const ProfileContainer = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => !['performanceLevel'].includes(prop)
-})<{ performanceLevel?: string }>`
+const ProfileContainer = styled(motion.div)`
   min-height: 100vh;
   background: ${({ theme }) => theme.background.primary};
   position: relative;
@@ -358,9 +356,7 @@ const ProfileHeader = styled(motion.div).withConfig({
   box-shadow: ${({ theme }) => theme.shadows.cosmic};
 `;
 
-const BackgroundImageContainer = styled.div.withConfig({
-  shouldForwardProp: (prop) => !['backgroundImage'].includes(prop)
-})<{ backgroundImage?: string }>`
+const BackgroundImageContainer = styled.div`
   height: 300px;
   position: relative;
   background: ${({ backgroundImage, theme }) => 
@@ -433,9 +429,7 @@ const ProfileImageContainer = styled(motion.div).withConfig({
   }
 `;
 
-const ProfileImage = styled.div.withConfig({
-  shouldForwardProp: (prop) => !['image', 'enableLuxury', 'performanceLevel'].includes(prop)
-})<{ image?: string; enableLuxury?: boolean; performanceLevel?: string }>`
+const ProfileImage = styled.div`
   width: 100%;
   height: 100%;
   border-radius: 50%;
@@ -522,9 +516,7 @@ const ProfileInfo = styled(motion.div).withConfig({
   }
 `;
 
-const DisplayName = styled.h1.withConfig({
-  shouldForwardProp: (prop) => !['performanceLevel'].includes(prop)
-})<{ performanceLevel?: string }>`
+const DisplayName = styled.h1`
   font-size: 2.5rem;
   font-weight: 700;
   background: ${({ theme }) => theme.gradients.stellar};
@@ -563,9 +555,7 @@ const Username = styled.p`
   }
 `;
 
-const UserRole = styled(motion.span).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 'performanceLevel'].includes(prop)
-})<{ performanceLevel?: string }>`
+const UserRole = styled(motion.span)`
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -604,9 +594,7 @@ const StatsContainer = styled.div`
   }
 `;
 
-const StatItem = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 'enableAnimations', 'enableLuxuryAnimations'].includes(prop)
-})<{ enableAnimations?: boolean }>`
+const StatItem = styled(motion.div)`
   text-align: center;
   cursor: pointer;
   transition: ${({ enableAnimations }) => 
@@ -632,9 +620,7 @@ const StatItem = styled(motion.div).withConfig({
   }
 `;
 
-const StatValue = styled.div.withConfig({
-  shouldForwardProp: (prop) => !['performanceLevel'].includes(prop)
-})<{ performanceLevel?: string }>`
+const StatValue = styled.div`
   font-size: 1.8rem;
   font-weight: 700;
   color: ${({ theme }) => theme.colors.primary};
@@ -796,9 +782,7 @@ const TabNavigation = styled.div`
   overflow-x: auto;
 `;
 
-const Tab = styled(motion.button).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 'active'].includes(prop)
-})<{ active: boolean }>`
+const Tab = styled(motion.button)`
   display: flex;
   align-items: center;
   gap: 0.5rem;
