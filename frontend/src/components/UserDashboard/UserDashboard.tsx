@@ -1972,6 +1972,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                 onClick={handleShare}
                 whileHover={enableLuxuryAnimations ? { scale: 1.05 } : {}}
                 whileTap={enableLuxuryAnimations ? { scale: 0.95 } : {}}
+              >
                 <Share2 size={20} />
               </SecondaryButton>
             </ActionButtons>
