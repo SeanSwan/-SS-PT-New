@@ -214,10 +214,10 @@ const AdminDashboardLayout = lazyLoadWithErrorHandling(
   'Admin Dashboard Layout'
 );
 
-// Trainer Dashboard Layout (New)
-const TrainerDashboardLayout = lazyLoadWithErrorHandling(
-  () => import('../components/TrainerDashboard/TrainerDashboardLayout'),
-  'Trainer Dashboard Layout'
+// Trainer Dashboard - Revolutionary Galaxy Theme (New)
+const TrainerDashboard = lazyLoadWithErrorHandling(
+  () => import('../components/TrainerDashboard/TrainerDashboard'),
+  'Trainer Dashboard'
 );
 
 // User Dashboard - Instagram-style social dashboard
@@ -437,14 +437,14 @@ const MainRoutes: RouteObject = {
       )
     },
     
-    // Trainer Dashboard Routes - Independent Layout with Sub-routes
+    // Trainer Dashboard Routes - Revolutionary Galaxy Theme
     // Allow both trainer and admin roles to access trainer dashboard
     {
       path: 'trainer-dashboard/*',
       element: (
         <ProtectedRoute allowedRoles={['trainer', 'admin']}>
           <Suspense fallback={<PageLoader />}>
-            <TrainerDashboardLayout />
+            <TrainerDashboard />
           </Suspense>
         </ProtectedRoute>
       )

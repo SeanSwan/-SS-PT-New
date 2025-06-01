@@ -6,6 +6,9 @@
  */
 
 import logger from '../utils/logger.mjs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { existsSync } from 'fs';
 
 // ===================== CORE ROUTES =====================
 import authRoutes from '../routes/authRoutes.mjs';
@@ -240,6 +243,36 @@ export const setupRoutes = async (app) => {
 
   // ===================== GENERAL API ROUTES (LAST) =====================
   app.use('/api', apiRoutes);
+
+  // ===================== SPA FALLBACK ROUTING (PRODUCTION) =====================
+  if (isProduction) {
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const frontendDistPath = path.resolve(__dirname, '../../../frontend/dist');
+    const indexPath = path.join(frontendDistPath, 'index.html');
+    
+    if (existsSync(indexPath)) {
+      // Serve index.html for all non-API routes (SPA fallback)
+      app.get('*', (req, res) => {
+        // Don't serve HTML for API routes
+        if (req.path.startsWith('/api') || req.path.startsWith('/webhooks')) {
+          return res.status(404).json({ error: 'API endpoint not found' });
+        }
+        
+        // Don't serve HTML for static asset requests
+        if (req.path.includes('.') && !req.path.endsWith('.html')) {
+          return res.status(404).send('Asset not found');
+        }
+        
+        logger.info(`SPA Fallback: Serving index.html for route: ${req.path}`);
+        res.sendFile(indexPath);
+      });
+      
+      logger.info('✅ SPA fallback routing configured');
+    } else {
+      logger.warn(`⚠️ Index.html not found at: ${indexPath}`);
+    }
+  }
 
   // ===================== CUSTOM SCHEDULE ENDPOINT =====================
   app.get('/api/schedule', (req, res) => {
