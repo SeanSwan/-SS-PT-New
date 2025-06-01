@@ -351,8 +351,11 @@ export const startPerformanceMonitoring = (): (() => void) => {
   const handleVisibilityChange = () => {
     if (document.hidden) {
       document.body.classList.add('tab-hidden');
+      // Pause expensive animations when tab is hidden
+      document.documentElement.style.setProperty('--animation-play-state', 'paused');
     } else {
       document.body.classList.remove('tab-hidden');
+      document.documentElement.style.setProperty('--animation-play-state', 'running');
     }
   };
 
