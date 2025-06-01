@@ -519,15 +519,6 @@ const EnhancedHeader = () => {
           <Box sx={{ ml: 1, mr: 1 }}>
             <DashboardSelector />
           </Box>
-          
-          {/* Direct User Dashboard Link - For easy access */}
-          <StyledNavLink 
-            to="/user-dashboard" 
-            className={isActive('/user-dashboard') ? "active" : ""}
-            variants={itemVariants}
-          >
-            <PersonIcon fontSize="small" style={{ marginRight: '4px' }} /> Profile
-          </StyledNavLink>
         </>
       );
     } else {
