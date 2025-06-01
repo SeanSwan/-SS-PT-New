@@ -11,6 +11,9 @@ import { useCart } from "../../context/CartContext";
 
 // --- Component Imports ---
 import GlowButton from "../../components/Button/glowButton";
+// Import Galaxy-Swan theme utilities
+import { galaxySwanTheme } from '../../styles/galaxy-swan-theme';
+import { ThemedGlowButton } from '../../styles/swan-theme-utils';
 import OrientationForm from "../../components/OrientationForm/orientationForm";
 import ShoppingCart from "../../components/ShoppingCart/ShoppingCart";
 import { useToast } from "../../hooks/use-toast";
@@ -796,6 +799,29 @@ const StatusBanner = styled.div`
   border-bottom: 1px solid rgba(0, 255, 255, 0.4);
 `;
 
+const ThemeBanner = styled.div`
+  position: fixed;
+  top: 40px;
+  left: 0;
+  width: 100%;
+  padding: 8px 16px;
+  background: linear-gradient(135deg, ${galaxySwanTheme?.primary?.main || '#00FFFF'}, ${galaxySwanTheme?.secondary?.main || '#7851A9'});
+  color: white;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  z-index: 999;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: linear-gradient(135deg, ${galaxySwanTheme?.primary?.blue || '#00A0E3'}, ${galaxySwanTheme?.primary?.main || '#00FFFF'});
+    transform: translateY(1px);
+  }
+`;
+
 // --- StoreFront Component ---
 const StoreFront: React.FC = () => {
   const { user, isAuthenticated, authAxios } = useAuth();
@@ -1149,8 +1175,15 @@ const StoreFront: React.FC = () => {
         </StatusBanner>
       )}
       
+      <ThemeBanner 
+        onClick={() => window.open('/theme-showcase', '_blank')}
+        title="Click to view Galaxy-Swan theme showcase"
+      >
+        🌟 ✨ NEW: Galaxy-Swan Theme Integration - Click to View Theme Showcase ✨ 🌟
+      </ThemeBanner>
+      
       {/* Debug authentication banner */}
-      <StatusBanner style={{ top: showBanner ? '40px' : '0', background: 'rgba(255, 0, 0, 0.2)', zIndex: 1001 }}>
+      <StatusBanner style={{ top: showBanner ? '76px' : '36px', background: 'rgba(255, 0, 0, 0.2)', zIndex: 1001 }}>
         Auth Status: {effectiveAuth ? '✅ Authenticated' : '❌ Not Authenticated'} | User: {user?.username || 'None'} | Role: {user?.role || 'None'} | Override: {authOverride ? 'On' : 'Off'}
       </StatusBanner>
       
@@ -1189,17 +1222,17 @@ const StoreFront: React.FC = () => {
               </HeroDescription>
               <ButtonsContainer variants={itemVariants}>
                 <motion.div {...buttonMotionProps}>
-                  <GlowButton 
+                  <ThemedGlowButton 
                     text="Book Consultation" 
-                    theme="cosmic" 
+                    variant="primary" 
                     size="large" 
                     onClick={() => setShowOrientation(true)} 
                   />
                 </motion.div>
                 <motion.div {...buttonMotionProps}>
-                  <GlowButton 
+                  <ThemedGlowButton 
                     text="View Packages" 
-                    theme="purple" 
+                    variant="secondary" 
                     size="large" 
                     onClick={() => document.getElementById("packages-section")?.scrollIntoView({ behavior: "smooth" })}
                   />
@@ -1259,9 +1292,9 @@ const StoreFront: React.FC = () => {
                       animate={{ opacity: 1 }}
                   >
                       <motion.div {...buttonMotionProps}>
-                      <GlowButton 
+                      <ThemedGlowButton 
                           text="Schedule Consultation" 
-                          theme="cosmic" 
+                          variant="primary" 
                           size="large" 
                           onClick={() => setShowOrientation(true)} 
                       />
