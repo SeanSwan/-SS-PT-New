@@ -203,12 +203,50 @@ const simpleFade = keyframes`
 // ===================== MOTION COMPONENTS WITH PROPER PROP FILTERING =====================
 
 // Create properly filtered motion components for use in map functions
-const FilteredMotionDiv = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 'style', 'className'].includes(prop)
-})``;
+const FilteredDiv = styled.div.withConfig({
+  shouldForwardProp: (prop) => ![
+    'whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 
+    'style', 'className', 'variants', 'layout', 'layoutId', 'drag', 
+    'dragConstraints', 'onDrag', 'onDragEnd', 'onDragStart', 'dragElastic',
+    'dragMomentum', 'layoutDependency'
+  ].includes(prop)
+})`
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+  }
+  
+  /* Disable hover effects on weak devices */
+  body.perf-weak &:hover {
+    transform: none;
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover {
+      transform: none;
+    }
+  }
+`;
 
-const FilteredMotionButton = styled(motion.button).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 'style', 'className'].includes(prop)
+const FilteredButton = styled.button.withConfig({
+  shouldForwardProp: (prop) => ![
+    'whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 
+    'style', 'className', 'variants', 'layout', 'layoutId', 'drag', 
+    'dragConstraints', 'onDrag', 'onDragEnd', 'onDragStart', 'dragElastic',
+    'dragMomentum', 'layoutDependency'
+  ].includes(prop)
+})``;";
+
+// Additional filtered motion component for any other elements
+const FilteredMotionSpan = styled(motion.span).withConfig({
+  shouldForwardProp: (prop) => ![
+    'whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 
+    'style', 'className', 'variants', 'layout', 'layoutId', 'drag', 
+    'dragConstraints', 'onDrag', 'onDragEnd', 'onDragStart', 'dragElastic',
+    'dragMomentum', 'layoutDependency'
+  ].includes(prop)
 })``;
 
 // ===================== COSMIC STYLED COMPONENTS =====================
@@ -1269,7 +1307,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
           {localEvents.map((event, index) => (
-            <FilteredMotionDiv
+            <FilteredDiv
               key={event.id}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -1332,7 +1370,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                   Join Event
                 </PrimaryButton>
               </div>
-            </FilteredMotionDiv>
+            </FilteredDiv>
           ))}
         </div>
       </ContentCard>
@@ -1352,7 +1390,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
           {workoutGoals.map((goal, index) => {
             const progressPercent = (goal.progress / goal.target) * 100;
             return (
-              <FilteredMotionDiv
+              <FilteredDiv
                 key={goal.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -1391,7 +1429,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                   overflow: 'hidden',
                   marginBottom: '1rem'
                 }}>
-                  <FilteredMotionDiv
+                  <FilteredDiv
                   initial={{ width: 0 }}
                   animate={{ width: `${progressPercent}%` }}
                   transition={{ duration: 1, delay: index * 0.2 }}
@@ -1418,7 +1456,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                     {goal.type}
                   </div>
                 </div>
-              </FilteredMotionDiv>
+              </FilteredDiv>
             );
           })}
         </div>
@@ -1531,15 +1569,8 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
           
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             {['Dancing', 'Singing', 'Workouts', 'Yoga Flow', 'Motivation', 'Transformation'].map((tag, index) => (
-              <FilteredMotionDiv
+              <FilteredDiv
                 key={tag}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                whileHover={{ 
-                  background: theme.colors.primary + '40',
-                  scale: 1.05
-                }}
                 style={{
                   padding: '0.25rem 0.75rem',
                   background: theme.colors.primary + '20',
@@ -1552,7 +1583,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                 }}
               >
                 #{tag}
-              </FilteredMotionDiv>
+              </FilteredDiv>
             ))}
           </div>
         </div>
@@ -1647,12 +1678,8 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
           ].map((post, index) => {
             const Icon = post.icon;
             return (
-              <FilteredMotionDiv
+              <FilteredDiv
                 key={index}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                whileHover={{ y: -5, boxShadow: theme.shadows.primary }}
                 style={{
                   padding: '1.5rem',
                   background: theme.background.elevated,
@@ -1686,7 +1713,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                 </p>
                 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <FilteredMotionButton
+                  <FilteredButton
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     style={{
@@ -1702,9 +1729,9 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                   >
                     <Heart size={16} />
                     {post.likes}
-                  </FilteredMotionButton>
+                  </FilteredButton>
                   
-                  <FilteredMotionButton
+                  <FilteredButton
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     style={{
@@ -1720,9 +1747,9 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                   >
                     <MessageCircle size={16} />
                     Share
-                  </FilteredMotionButton>
+                  </FilteredButton>
                   
-                  <FilteredMotionButton
+                  <FilteredButton
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     style={{
@@ -1738,9 +1765,9 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                   >
                     <Sparkles size={16} />
                     Inspire
-                  </FilteredMotionButton>
+                  </FilteredButton>
                 </div>
-              </FilteredMotionDiv>
+              </FilteredDiv>
             );
           })}
         </div>
@@ -2104,7 +2131,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                 {fitnessStats.map((stat, index) => {
                   const Icon = stat.icon;
                   return (
-                    <FilteredMotionDiv
+                    <FilteredDiv
                       key={index}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -2137,7 +2164,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                       }}>
                         {stat.value}
                       </span>
-                    </FilteredMotionDiv>
+                    </FilteredDiv>
                   );
                 })}
               </div>
@@ -2154,7 +2181,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                 {displayAchievements.slice(0, 3).map((achievement, index) => {
                   const Icon = achievement.icon;
                   return (
-                    <FilteredMotionDiv
+                    <FilteredDiv
                       key={index}
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -2196,7 +2223,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                           {achievement.description}
                         </p>
                       </div>
-                    </FilteredMotionDiv>
+                    </FilteredDiv>
                   );
                 })}
               </div>
