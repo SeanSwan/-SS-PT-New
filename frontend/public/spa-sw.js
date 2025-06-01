@@ -18,8 +18,22 @@ const APP_SHELL = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(APP_SHELL))
+      .then((cache) => {
+        // Try to cache each item individually to avoid total failure
+        return Promise.allSettled(
+          APP_SHELL.map(url => 
+            cache.add(url).catch(error => {
+              console.warn(`Failed to cache ${url}:`, error);
+              return null;
+            })
+          )
+        );
+      })
       .then(() => self.skipWaiting())
+      .catch(error => {
+        console.warn('Service worker install failed:', error);
+        self.skipWaiting();
+      })
   );
 });
 
