@@ -202,15 +202,8 @@ const simpleFade = keyframes`
 
 // ===================== MOTION COMPONENTS WITH PROPER PROP FILTERING =====================
 
-// Create properly filtered motion components for use in map functions
-const FilteredDiv = styled.div.withConfig({
-  shouldForwardProp: (prop) => ![
-    'whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 
-    'style', 'className', 'variants', 'layout', 'layoutId', 'drag', 
-    'dragConstraints', 'onDrag', 'onDragEnd', 'onDragStart', 'dragElastic',
-    'dragMomentum', 'layoutDependency'
-  ].includes(prop)
-})`
+// Create properly filtered div components for non-motion elements
+const FilteredDiv = styled.div`
   transition: all 0.3s ease;
   
   &:hover {
@@ -1598,7 +1591,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
           
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             {['Dancing', 'Singing', 'Workouts', 'Yoga Flow', 'Motivation', 'Transformation'].map((tag, index) => (
-              <FilteredDiv
+              <div
                 key={tag}
                 style={{
                   padding: '0.25rem 0.75rem',
@@ -1612,7 +1605,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                 }}
               >
                 #{tag}
-              </FilteredDiv>
+              </div>
             ))}
           </div>
         </div>
@@ -1707,7 +1700,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
           ].map((post, index) => {
             const Icon = post.icon;
             return (
-              <FilteredDiv
+              <div
                 key={index}
                 style={{
                   padding: '1.5rem',
@@ -1796,7 +1789,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                     Inspire
                   </FilteredButton>
                 </div>
-              </FilteredDiv>
+              </div>
             );
           })}
         </div>
