@@ -53,6 +53,21 @@ export default defineConfig(({ mode }) => {
       hmr: {
         overlay: true,
       },
+      // Enable SPA fallback for development server
+      middlewareMode: false,
+      fs: {
+        strict: false,
+      },
+      // Add SPA fallback middleware
+      configure: (app, { middlewares }) => {
+        middlewares.use('/', (req, res, next) => {
+          // Serve index.html for non-API, non-static file requests
+          if (!req.url.startsWith('/api') && !req.url.includes('.') && req.headers.accept?.includes('text/html')) {
+            req.url = '/index.html';
+          }
+          next();
+        });
+      },
       // Enhanced proxy configuration with detailed logging and error handling
       proxy: {
         '/api': {
@@ -110,6 +125,22 @@ export default defineConfig(({ mode }) => {
       assetsDir: 'assets',
       // Ensure all assets are properly handled
       copyPublicDir: true
+    },
+    // SPA fallback for preview server
+    preview: {
+      port: 4173,
+      // Enable SPA fallback - serves index.html for all routes
+      spa: true,
+      // Add fallback middleware
+      configure: (app, { middlewares }) => {
+        middlewares.use('/', (req, res, next) => {
+          // Serve index.html for non-API, non-static file requests
+          if (!req.url.startsWith('/api') && !req.url.includes('.')) {
+            req.url = '/index.html';
+          }
+          next();
+        });
+      }
     },
     define: {
       // Properly define environment variables for both dev and production
