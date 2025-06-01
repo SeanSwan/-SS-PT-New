@@ -5,7 +5,11 @@
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { Op } from 'sequelize';
 import User from '../models/User.mjs';
+import { SocialPost, Friendship } from '../models/social/index.mjs';
+import UserAchievement from '../models/UserAchievement.mjs';
+import Achievement from '../models/Achievement.mjs';
 import logger from '../utils/logger.mjs';
 
 // Get directory name in ES modules context
@@ -240,6 +244,322 @@ export const updateUserProfile = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to update profile: ' + error.message
+    });
+  }
+};
+
+/**
+ * Get user statistics
+ * 
+ * @route   GET /api/profile/stats
+ * @desc    Get current user stats (followers, following, posts, etc.)
+ * @access  Private
+ */
+export const getUserStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get post count
+    const postCount = await SocialPost.count({
+      where: { userId }
+    });
+    
+    // Get followers count (where current user is the recipient)
+    const followersCount = await Friendship.count({
+      where: {
+        recipientId: userId,
+        status: 'accepted'
+      }
+    });
+    
+    // Get following count (where current user is the requester)
+    const followingCount = await Friendship.count({
+      where: {
+        requesterId: userId,
+        status: 'accepted'
+      }
+    });
+    
+    // Get user's gamification data
+    const user = await User.findByPk(userId, {
+      attributes: ['points', 'level', 'tier', 'streakDays', 'totalWorkouts', 'totalExercises']
+    });
+    
+    const stats = {
+      posts: postCount,
+      followers: followersCount,
+      following: followingCount,
+      workouts: user?.totalWorkouts || 0,
+      streak: user?.streakDays || 0,
+      points: user?.points || 0,
+      level: user?.level || 1,
+      tier: user?.tier || 'bronze'
+    };
+    
+    logger.info('User stats retrieved successfully', { userId, stats });
+    return res.status(200).json({
+      success: true,
+      message: 'Stats retrieved successfully',
+      stats
+    });
+  } catch (error) {
+    logger.error('Error getting user stats', { 
+      error: error.message, 
+      stack: error.stack,
+      userId: req.user?.id 
+    });
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to get stats: ' + error.message
+    });
+  }
+};
+
+/**
+ * Get user posts
+ * 
+ * @route   GET /api/profile/posts
+ * @desc    Get current user posts
+ * @access  Private
+ */
+export const getUserPosts = async (req, res) => {
+  try {
+    const userId = req.params.userId || req.user.id;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = parseInt(req.query.offset) || 0;
+    
+    // Check if requesting another user's posts
+    let whereClause = { userId };
+    
+    if (userId !== req.user.id) {
+      // Check friendship status to determine visibility
+      const friendship = await Friendship.findOne({
+        where: {
+          [Op.or]: [
+            { requesterId: req.user.id, recipientId: userId, status: 'accepted' },
+            { requesterId: userId, recipientId: req.user.id, status: 'accepted' }
+          ]
+        }
+      });
+      
+      if (!friendship) {
+        // Not friends, only show public posts
+        whereClause.visibility = 'public';
+      } else {
+        // Friends, show public and friends posts
+        whereClause.visibility = { [Op.in]: ['public', 'friends'] };
+      }
+    }
+    
+    const posts = await SocialPost.findAll({
+      where: whereClause,
+      limit,
+      offset,
+      order: [['createdAt', 'DESC']],
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
+        }
+      ]
+    });
+    
+    const totalPosts = await SocialPost.count({ where: whereClause });
+    
+    logger.info('User posts retrieved successfully', { 
+      requestingUserId: req.user.id,
+      targetUserId: userId,
+      postCount: posts.length 
+    });
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Posts retrieved successfully',
+      posts,
+      pagination: {
+        limit,
+        offset,
+        total: totalPosts
+      }
+    });
+  } catch (error) {
+    logger.error('Error getting user posts', { 
+      error: error.message, 
+      stack: error.stack,
+      userId: req.user?.id 
+    });
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to get posts: ' + error.message
+    });
+  }
+};
+
+/**
+ * Get user achievements
+ * 
+ * @route   GET /api/profile/achievements
+ * @desc    Get current user achievements and gamification data
+ * @access  Private
+ */
+export const getUserAchievements = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get user achievements
+    const userAchievements = await UserAchievement.findAll({
+      where: { userId },
+      include: [
+        {
+          model: Achievement,
+          as: 'achievement',
+          attributes: ['id', 'name', 'description', 'iconUrl', 'rarity', 'category']
+        }
+      ],
+      order: [['earnedAt', 'DESC']]
+    });
+    
+    // Get user's complete gamification data
+    const user = await User.findByPk(userId, {
+      attributes: [
+        'points', 'level', 'tier', 'streakDays', 'lastActivityDate',
+        'totalWorkouts', 'totalExercises', 'exercisesCompleted'
+      ]
+    });
+    
+    // Calculate additional stats
+    const totalAchievements = userAchievements.length;
+    const achievementsByRarity = userAchievements.reduce((acc, ua) => {
+      const rarity = ua.achievement.rarity || 'common';
+      acc[rarity] = (acc[rarity] || 0) + 1;
+      return acc;
+    }, {});
+    
+    const gamificationData = {
+      user: user,
+      achievements: userAchievements,
+      stats: {
+        totalAchievements,
+        achievementsByRarity,
+        currentStreak: user?.streakDays || 0,
+        totalPoints: user?.points || 0,
+        currentLevel: user?.level || 1,
+        currentTier: user?.tier || 'bronze'
+      }
+    };
+    
+    logger.info('User achievements retrieved successfully', { 
+      userId, 
+      achievementCount: totalAchievements 
+    });
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Achievements retrieved successfully',
+      data: gamificationData
+    });
+  } catch (error) {
+    logger.error('Error getting user achievements', { 
+      error: error.message, 
+      stack: error.stack,
+      userId: req.user?.id 
+    });
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to get achievements: ' + error.message
+    });
+  }
+};
+
+/**
+ * Get user follow statistics
+ * 
+ * @route   GET /api/profile/follow-stats
+ * @desc    Get detailed follow statistics for current user
+ * @access  Private
+ */
+export const getUserFollowStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get detailed followers (users who follow current user)
+    const followers = await Friendship.findAll({
+      where: {
+        recipientId: userId,
+        status: 'accepted'
+      },
+      include: [
+        {
+          model: User,
+          as: 'requester',
+          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+    
+    // Get detailed following (users current user follows)
+    const following = await Friendship.findAll({
+      where: {
+        requesterId: userId,
+        status: 'accepted'
+      },
+      include: [
+        {
+          model: User,
+          as: 'recipient',
+          attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
+        }
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+    
+    // Format the data
+    const followersList = followers.map(f => ({
+      ...f.requester.toJSON(),
+      followedAt: f.createdAt,
+      friendshipId: f.id
+    }));
+    
+    const followingList = following.map(f => ({
+      ...f.recipient.toJSON(),
+      followedAt: f.createdAt,
+      friendshipId: f.id
+    }));
+    
+    const followStats = {
+      followers: {
+        count: followersList.length,
+        list: followersList
+      },
+      following: {
+        count: followingList.length,
+        list: followingList
+      },
+      ratio: followingList.length > 0 ? (followersList.length / followingList.length).toFixed(2) : 0
+    };
+    
+    logger.info('User follow stats retrieved successfully', { 
+      userId, 
+      followersCount: followersList.length,
+      followingCount: followingList.length
+    });
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Follow stats retrieved successfully',
+      data: followStats
+    });
+  } catch (error) {
+    logger.error('Error getting user follow stats', { 
+      error: error.message, 
+      stack: error.stack,
+      userId: req.user?.id 
+    });
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to get follow stats: ' + error.message
     });
   }
 };

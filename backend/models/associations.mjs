@@ -36,6 +36,10 @@ const setupAssociations = async () => {
     const FoodProductModule = await import('./FoodProduct.mjs');
     const FoodScanHistoryModule = await import('./FoodScanHistory.mjs');
 
+    // Social Models (Sequelize)
+    const SocialModels = await import('./social/index.mjs');
+    const { SocialPost, SocialComment, SocialLike, Friendship, Challenge, ChallengeParticipant, ChallengeTeam } = SocialModels;
+
     // Notification and Orientation (Sequelize)
     const OrientationModule = await import('./Orientation.mjs');
     const NotificationModule = await import('./Notification.mjs');
@@ -157,6 +161,40 @@ const setupAssociations = async () => {
     // =======================
     Orientation.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     
+    // SOCIAL MODEL ASSOCIATIONS
+    // =========================
+    // User -> Social Posts
+    User.hasMany(SocialPost, { foreignKey: 'userId', as: 'socialPosts' });
+    SocialPost.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    
+    // Social Posts -> Comments
+    SocialPost.hasMany(SocialComment, { foreignKey: 'postId', as: 'comments' });
+    SocialComment.belongsTo(SocialPost, { foreignKey: 'postId', as: 'post' });
+    
+    // User -> Comments
+    User.hasMany(SocialComment, { foreignKey: 'userId', as: 'comments' });
+    SocialComment.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    
+    // Social Likes
+    User.hasMany(SocialLike, { foreignKey: 'userId', as: 'likes' });
+    SocialLike.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    
+    // Friendships
+    User.hasMany(Friendship, { foreignKey: 'requesterId', as: 'sentFriendRequests' });
+    User.hasMany(Friendship, { foreignKey: 'recipientId', as: 'receivedFriendRequests' });
+    Friendship.belongsTo(User, { foreignKey: 'requesterId', as: 'requester' });
+    Friendship.belongsTo(User, { foreignKey: 'recipientId', as: 'recipient' });
+    
+    // Challenges
+    User.hasMany(Challenge, { foreignKey: 'createdBy', as: 'createdChallenges' });
+    Challenge.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+    
+    // Challenge Participants
+    User.hasMany(ChallengeParticipant, { foreignKey: 'userId', as: 'challengeParticipations' });
+    ChallengeParticipant.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    Challenge.hasMany(ChallengeParticipant, { foreignKey: 'challengeId', as: 'participants' });
+    ChallengeParticipant.belongsTo(Challenge, { foreignKey: 'challengeId', as: 'challenge' });
+
     // NOTIFICATION ASSOCIATIONS
     // =========================
     User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
@@ -181,6 +219,15 @@ const setupAssociations = async () => {
       Reward,
       Milestone,
       PointTransaction,
+      
+      // Social Models
+      SocialPost,
+      SocialComment,
+      SocialLike,
+      Friendship,
+      Challenge,
+      ChallengeParticipant,
+      ChallengeTeam,
       
       // E-Commerce Models
       StorefrontItem,

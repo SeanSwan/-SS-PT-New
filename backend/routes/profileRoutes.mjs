@@ -1,13 +1,17 @@
 /**
  * profileRoutes.mjs
- * Handles routes for user profile management including photo uploads
+ * Enhanced routes for comprehensive user profile management including social features
  */
 import express from 'express';
 import multer from 'multer';
 import { 
   uploadProfilePhoto,
   getUserProfile,
-  updateUserProfile
+  updateUserProfile,
+  getUserStats,
+  getUserPosts,
+  getUserAchievements,
+  getUserFollowStats
 } from '../controllers/profileController.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import { rateLimiter } from '../middleware/authMiddleware.mjs';
@@ -59,5 +63,40 @@ router.get('/', protect, getUserProfile);
  * @access  Private
  */
 router.put('/', protect, updateUserProfile);
+
+/**
+ * @route   GET /api/profile/stats
+ * @desc    Get current user stats (followers, following, posts, etc.)
+ * @access  Private
+ */
+router.get('/stats', protect, getUserStats);
+
+/**
+ * @route   GET /api/profile/posts
+ * @desc    Get current user posts
+ * @access  Private
+ */
+router.get('/posts', protect, getUserPosts);
+
+/**
+ * @route   GET /api/profile/achievements
+ * @desc    Get current user achievements and gamification data
+ * @access  Private
+ */
+router.get('/achievements', protect, getUserAchievements);
+
+/**
+ * @route   GET /api/profile/follow-stats
+ * @desc    Get current user follow statistics
+ * @access  Private
+ */
+router.get('/follow-stats', protect, getUserFollowStats);
+
+/**
+ * @route   GET /api/profile/:userId
+ * @desc    Get specific user profile (public view)
+ * @access  Private
+ */
+router.get('/:userId', protect, getUserProfile);
 
 export default router;
