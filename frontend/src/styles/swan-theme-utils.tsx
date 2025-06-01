@@ -9,7 +9,7 @@
 
 import React from 'react';
 import styled, { css, keyframes } from 'styled-components';
-import { galaxySwanTheme, mediaQueries, animationConfig, themeUtils, getGlowButtonTheme } from './galaxy-swan-theme';
+import { galaxySwanTheme, mediaQueries } from './galaxy-swan-theme';
 import GlowButton from '../components/Button/glowButton.jsx';
 
 // === ENHANCED KEYFRAME ANIMATIONS ===
@@ -71,7 +71,7 @@ export const responsiveAnimation = (
 ) => css`
   animation: ${standardAnimation};
   
-  ${mediaQueries.reducedMotion} {
+  @media (prefers-reduced-motion: reduce) {
     animation: ${reducedAnimation};
   }
 `;
@@ -84,7 +84,7 @@ export const accessibleHover = (hoverStyles: any) => css`
     ${hoverStyles}
   }
   
-  ${mediaQueries.reducedMotion} {
+  @media (prefers-reduced-motion: reduce) {
     transition: none;
     
     &:hover {
@@ -146,9 +146,13 @@ export const SwanHeading = styled.h1<{ level?: 1 | 2 | 3 | 4 }>`
   text-align: center;
   margin-bottom: 1.5rem;
   
-  ${responsiveAnimation(`${elegantGlow} 4s ease-in-out infinite`)}
+  animation: ${elegantGlow} 4s ease-in-out infinite;
   
-  ${mediaQueries.mobile} {
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+  
+  @media (max-width: 480px) {
     font-size: ${props => {
       switch (props.level) {
         case 1: return '2.5rem';
@@ -176,7 +180,11 @@ export const GalaxySwanText = styled.span`
   -webkit-background-clip: text;
   color: transparent;
   
-  ${responsiveAnimation(`${galaxySwanShimmer} 3s linear infinite`)}
+  animation: ${galaxySwanShimmer} 3s linear infinite;
+  
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
   
   display: inline-block;
   padding: 0 2px;
@@ -193,16 +201,26 @@ export const SwanCard = styled.div<{ interactive?: boolean }>`
   
   ${props => props.interactive && css`
     cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     
-    ${accessibleHover(css`
+    &:hover {
       transform: translateY(-8px) scale(1.02);
       border-color: ${galaxySwanTheme.components.card.hoverBorder};
       background: ${galaxySwanTheme.components.card.hoverBackground};
       box-shadow: ${galaxySwanTheme.shadows.swanCosmic};
-    `)}
+    }
+    
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
+      
+      &:hover {
+        transform: none;
+        animation: none;
+      }
+    }
   `}
   
-  ${mediaQueries.mobile} {
+  @media (max-width: 480px) {
     padding: 1.25rem;
     border-radius: 12px;
   }
@@ -302,7 +320,7 @@ export const ThemedGlowButton: React.FC<ThemedGlowButtonProps> = ({
 export const glassMorphism = css`
   background: rgba(30, 30, 60, 0.4);
   backdrop-filter: blur(15px);
-  border: 1px solid ${galaxySwanTheme.borders.elegant};
+  border: 1px solid rgba(0, 255, 255, 0.2);
   box-shadow: 
     0 8px 32px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -310,9 +328,9 @@ export const glassMorphism = css`
 
 // Text gradient with Galaxy-Swan colors emphasizing PRIMARY
 export const textGradient = (colors: string[] = [
-  galaxySwanTheme.primary.main,
-  galaxySwanTheme.primary.blue,
-  galaxySwanTheme.secondary.main
+  '#00FFFF',
+  '#00A0E3',
+  '#7851A9'
 ]) => css`
   background: linear-gradient(to right, ${colors.join(', ')});
   background-clip: text;
@@ -321,10 +339,10 @@ export const textGradient = (colors: string[] = [
 `;
 
 // Responsive glow effect using PRIMARY colors
-export const responsiveGlow = (color: string = galaxySwanTheme.primary.main) => css`
-  filter: drop-shadow(0 0 10px ${themeUtils.rgba(color, 0.3)});
+export const responsiveGlow = (color: string = '#00FFFF') => css`
+  filter: drop-shadow(0 0 10px ${color}33);
   
-  ${mediaQueries.reducedMotion} {
+  @media (prefers-reduced-motion: reduce) {
     filter: none;
   }
 `;
@@ -337,14 +355,14 @@ export const getSpacing = (multiplier: number = 1): string => {
 };
 
 // Function to get responsive font size
-export const getResponsiveFontSize = (baseSize: string): any => css`
+export const getResponsiveFontSize = (baseSize: string) => css`
   font-size: ${baseSize};
   
-  ${mediaQueries.mobile} {
+  @media (max-width: 480px) {
     font-size: calc(${baseSize} * 0.875);
   }
   
-  ${mediaQueries.tablet} {
+  @media (min-width: 481px) and (max-width: 768px) {
     font-size: calc(${baseSize} * 0.9375);
   }
 `;
@@ -353,9 +371,13 @@ export const getResponsiveFontSize = (baseSize: string): any => css`
 
 // Optimized animated component that respects user preferences
 export const OptimizedAnimatedDiv = styled.div<{ shouldAnimate?: boolean }>`
-  ${props => props.shouldAnimate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches && css`
-    ${responsiveAnimation(`${swanGlide} 6s ease-in-out infinite`)}
-  `}
+  ${props => props.shouldAnimate ? css`
+    animation: ${swanGlide} 6s ease-in-out infinite;
+    
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
+  ` : ''}
 `;
 
 // === BUTTON CONVENIENCE EXPORTS ===
@@ -374,8 +396,5 @@ export const SwanButton = ThemedGlowButton;
 export {
   galaxySwanTheme,
   mediaQueries,
-  animationConfig,
-  themeUtils,
-  getGlowButtonTheme,
   GlowButton // Re-export the original component
 };
