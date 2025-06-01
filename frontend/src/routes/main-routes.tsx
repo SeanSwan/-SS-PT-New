@@ -144,10 +144,11 @@ const FoodScannerPage = lazyLoadWithErrorHandling(
   () => import('../pages/FoodScanner/FoodScannerPage'),
   'Food Scanner'
 );
-const SwanBrandShowcase = lazyLoadWithErrorHandling(
-  () => import('../components/SwanBrandShowcase.component'),
-  'Swan Brand Showcase'
-);
+// Temporarily disabled - missing theme dependencies
+// const SwanBrandShowcase = lazyLoadWithErrorHandling(
+//   () => import('../components/SwanBrandShowcase.component'),
+//   'Swan Brand Showcase'
+// );
 const UnauthorizedPage = lazyLoadWithErrorHandling(
   () => import('../pages/UnauthorizedPage.component'),
   'Unauthorized Page'
@@ -328,14 +329,15 @@ const MainRoutes: RouteObject = {
         </Suspense>
       )
     },
-    {
-      path: 'theme-showcase',
-      element: (
-        <Suspense fallback={<PageLoader />}>
-          <SwanBrandShowcase />
-        </Suspense>
-      )
-    },
+    // Temporarily disabled - missing theme dependencies
+    // {
+    //   path: 'theme-showcase',
+    //   element: (
+    //     <Suspense fallback={<PageLoader />}>
+    //       <SwanBrandShowcase />
+    //     </Suspense>
+    //   )
+    // },
     {
       path: 'store',
       element: (
