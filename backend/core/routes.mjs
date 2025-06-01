@@ -62,6 +62,7 @@ import masterPromptRoutes from '../routes/masterPrompt/index.mjs';
 import debugRoutes from '../routes/debug.mjs';
 import devRoutes from '../routes/dev-routes.mjs';
 import migrationRoutes from '../routes/migrationRoutes.mjs';
+import debugAuthRoutes from '../routes/debugAuthRoutes.mjs';
 
 // ===================== NASM PROTOCOL =====================
 import clientProgressRoutes from '../routes/clientProgressRoutes.mjs';
@@ -191,6 +192,7 @@ export const setupRoutes = async (app) => {
   // ===================== DEVELOPMENT ROUTES =====================
   if (!isProduction) {
     app.use('/api/debug', debugRoutes);
+    app.use('/api/debug', debugAuthRoutes); // Add auth debugging routes
     app.use('/api/dev', devRoutes);
     app.use('/api/migrations', migrationRoutes);
     
