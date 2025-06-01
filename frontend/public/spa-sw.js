@@ -6,7 +6,7 @@
  * even when the server isn't configured properly for SPA routing
  */
 
-const CACHE_NAME = 'swanstudios-spa-v2';
+const CACHE_NAME = 'swanstudios-spa-v5';
 // Only cache essential files that we know exist
 const APP_SHELL = [
   '/',
@@ -98,10 +98,16 @@ self.addEventListener('fetch', (event) => {
   
   // For static assets, try network first, then cache, with dynamic caching
   if (url.pathname.includes('.') && !url.pathname.startsWith('/api/')) {
+    // Special handling for video files - don't cache them to avoid memory issues
+    if (url.pathname.endsWith('.mp4') || url.pathname.endsWith('.webm') || url.pathname.endsWith('.avi')) {
+      console.log(`SW: Serving video file ${url.pathname} without caching`);
+      return; // Let the browser handle video files normally
+    }
+    
     event.respondWith(
       fetch(event.request)
         .then(response => {
-          // If successful, cache the asset for future use
+          // If successful, cache the asset for future use (but not videos)
           if (response.ok && response.status === 200) {
             const responseClone = response.clone();
             caches.open(CACHE_NAME)
