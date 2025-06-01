@@ -70,7 +70,7 @@ import {
   // Creative Expression Icons
   Music,
   Mic,
-  Dance,
+  Music2,
   Palette,
   Video,
   Camera as VideoCamera,
@@ -949,7 +949,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
       {
         id: 2,
         title: 'SwanStudios Dance Battle',
-        type: 'dance',
+        type: 'dancing',
         date: '2024-06-18',
         time: '6:00 PM',
         location: 'Venice Beach',
@@ -973,7 +973,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
     ]);
     
     // Mock community interests
-    setCommunityInterests(['Yoga', 'Dance', 'Strength Training', 'Nutrition', 'Meditation']);
+    setCommunityInterests(['Yoga', 'Dancing', 'Strength Training', 'Nutrition', 'Meditation']);
     
     // Mock workout goals with cosmic metaphors
     setWorkoutGoals([
@@ -1180,7 +1180,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                   color: theme.colors.primary
                 }}>
                   {event.type === 'yoga' && <Mountain size={20} />}
-                  {event.type === 'dance' && <Music size={20} />}
+                  {event.type === 'dancing' && <Music size={20} />}
                   {event.type === 'strength' && <Zap size={20} />}
                 </div>
                 <div>
@@ -1398,7 +1398,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <h3 style={{ color: theme.text.primary, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Dance size={24} />
+            <Music2 size={24} />
             Creative Expression Gallery
           </h3>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -1418,7 +1418,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
           </p>
           
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            {['Dance', 'Singing', 'Workouts', 'Yoga Flow', 'Motivation', 'Transformation'].map((tag, index) => (
+            {['Dancing', 'Singing', 'Workouts', 'Yoga Flow', 'Motivation', 'Transformation'].map((tag, index) => (
               <motion.div
                 key={tag}
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -1474,7 +1474,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                 color: 'white',
                 fontSize: '0.7rem'
               }}>
-                {['Dance', 'Singing', 'Workout', 'Yoga', 'Motivation', 'Transform'][index]}
+                {['Dancing', 'Singing', 'Workout', 'Yoga', 'Motivation', 'Transform'][index]}
               </div>
               <div style={{
                 position: 'absolute',
@@ -2107,7 +2107,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
             <TabNavigation>
               {[
                 { id: 'community', label: 'Community', icon: Users2 },
-                { id: 'creative', label: 'Creative', icon: Dance },
+                { id: 'creative', label: 'Creative', icon: Music2 },
                 { id: 'photos', label: 'Photos', icon: ImageIcon },
                 { id: 'about', label: 'About', icon: Users },
                 { id: 'activity', label: 'Activity', icon: Activity },
