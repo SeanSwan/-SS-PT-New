@@ -324,7 +324,9 @@ const FilteredMotionSpan = styled(motion.span).withConfig({
 
 // ===================== COSMIC STYLED COMPONENTS =====================
 
-const ProfileContainer = styled(motion.div)<{ performanceLevel?: string }>`
+const ProfileContainer = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => !['performanceLevel'].includes(prop)
+})<{ performanceLevel?: string }>`
   min-height: 100vh;
   background: ${({ theme }) => theme.background.primary};
   position: relative;
