@@ -230,6 +230,34 @@ const FilteredDiv = styled.div.withConfig({
   }
 `;
 
+// Motion div for animated elements
+const FilteredMotionDiv = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => ![
+    'whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 
+    'style', 'className', 'variants', 'layout', 'layoutId', 'drag', 
+    'dragConstraints', 'onDrag', 'onDragEnd', 'onDragStart', 'dragElastic',
+    'dragMomentum', 'layoutDependency'
+  ].includes(prop)
+})`
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+  }
+  
+  /* Disable hover effects on weak devices */
+  body.perf-weak &:hover {
+    transform: none;
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+    &:hover {
+      transform: none;
+    }
+  }
+`;
+
 const FilteredButton = styled.button.withConfig({
   shouldForwardProp: (prop) => ![
     'whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 
@@ -1317,7 +1345,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
           {localEvents.map((event, index) => (
-            <FilteredDiv
+            <FilteredMotionDiv
               key={event.id}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -1380,7 +1408,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                   Join Event
                 </PrimaryButton>
               </div>
-            </FilteredDiv>
+            </FilteredMotionDiv>
           ))}
         </div>
       </ContentCard>
@@ -1400,7 +1428,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
           {workoutGoals.map((goal, index) => {
             const progressPercent = (goal.progress / goal.target) * 100;
             return (
-              <FilteredDiv
+              <FilteredMotionDiv
                 key={goal.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -1439,7 +1467,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                   overflow: 'hidden',
                   marginBottom: '1rem'
                 }}>
-                  <FilteredDiv
+                  <FilteredMotionDiv
                   initial={{ width: 0 }}
                   animate={{ width: `${progressPercent}%` }}
                   transition={{ duration: 1, delay: index * 0.2 }}
@@ -1466,7 +1494,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                     {goal.type}
                   </div>
                 </div>
-              </FilteredDiv>
+              </FilteredMotionDiv>
             );
           })}
         </div>
@@ -2141,7 +2169,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                 {fitnessStats.map((stat, index) => {
                   const Icon = stat.icon;
                   return (
-                    <FilteredDiv
+                    <FilteredMotionDiv
                       key={index}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -2174,7 +2202,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                       }}>
                         {stat.value}
                       </span>
-                    </FilteredDiv>
+                    </FilteredMotionDiv>
                   );
                 })}
               </div>
@@ -2191,7 +2219,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                 {displayAchievements.slice(0, 3).map((achievement, index) => {
                   const Icon = achievement.icon;
                   return (
-                    <FilteredDiv
+                    <FilteredMotionDiv
                       key={index}
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
@@ -2233,7 +2261,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                           {achievement.description}
                         </p>
                       </div>
-                    </FilteredDiv>
+                    </FilteredMotionDiv>
                   );
                 })}
               </div>
