@@ -158,8 +158,16 @@ const startServer = async (app) => {
     logger.info(`Server started successfully on port ${PORT} at ${new Date().toISOString()}`);
   });
 
-  // Set server timeout
+  // Set server timeout and handle graceful connections
   server.timeout = 60000; // 60 seconds
+  server.keepAliveTimeout = 61000; // Slightly higher than timeout
+  server.headersTimeout = 62000; // Higher than keepAliveTimeout
+  
+  // Optimize server for production
+  if (isProduction) {
+    server.maxHeadersCount = 100;
+    server.requestTimeout = 30000;
+  }
 
   return { server, httpServer };
 };
