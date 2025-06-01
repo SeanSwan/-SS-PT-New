@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
 import { gsap } from "gsap";
 import chroma from "chroma-js";
+import { useUniversalTheme } from '../../context/ThemeContext';
 
 // Button theme options with different color schemes
 const BUTTON_THEMES = {
@@ -317,8 +318,46 @@ const GlowButton = ({
   const [ripples, setRipples] = useState([]);
   const [isAnimating, setIsAnimating] = useState(animateOnRender);
   
-  // Handle theme selection
-  const buttonTheme = BUTTON_THEMES[theme] || BUTTON_THEMES.primary;
+  // Get universal theme for enhanced theming (with fallback)
+  let currentTheme = 'swan-galaxy'; // Default fallback
+  try {
+    const themeContext = useUniversalTheme();
+    currentTheme = themeContext.currentTheme;
+  } catch (error) {
+    // If used outside UniversalThemeProvider, use default
+    console.warn('GlowButton used outside UniversalThemeProvider, using default theme');
+  }
+  
+  // Handle theme selection with universal theme awareness
+  const getEnhancedTheme = (themeName) => {
+    const baseTheme = BUTTON_THEMES[themeName] || BUTTON_THEMES.primary;
+    
+    // Enhance with universal theme colors if available
+    if (currentTheme === 'admin-command' && themeName === 'primary') {
+      return {
+        ...baseTheme,
+        glowStart: "#3b82f6",
+        glowEnd: "#2563eb",
+        shineLeft: "rgba(59, 130, 246, 0.5)",
+        shineRight: "rgba(37, 99, 235, 0.65)",
+      };
+    }
+    
+    if (currentTheme === 'dark-galaxy' && themeName === 'primary') {
+      return {
+        ...baseTheme,
+        background: "#1a1a1a",
+        glowStart: "#ffffff",
+        glowEnd: "#00ffff",
+        shineLeft: "rgba(255, 255, 255, 0.5)",
+        shineRight: "rgba(0, 255, 255, 0.65)",
+      };
+    }
+    
+    return baseTheme;
+  };
+  
+  const buttonTheme = getEnhancedTheme(theme);
   const buttonSize = BUTTON_SIZES[size] || BUTTON_SIZES.medium;
   
   // Handle cursor tracking for glow effect

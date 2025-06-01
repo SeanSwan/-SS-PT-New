@@ -25,11 +25,17 @@ import './utils/tokenDebugTool';
 // Import store initialization safeguard (must run before any components render)
 import './utils/storeInitSafeguard';
 
+// Import SPA routing fix for handling refresh and direct URL access
+import { initializeAllSPAFixes } from './utils/spaRoutingFix';
+
 // Initialize viewport fixes for better mobile experience
 initViewportFixes();
 
 // Initialize global image error handler to fix placeholder issues
 imageErrorHandler.initialize();
+
+// Initialize SPA routing fixes to handle refresh and direct URL access issues
+initializeAllSPAFixes();
 
 // Get the root element - remove the TypeScript non-null assertion (!)
 const rootElement = document.getElementById('root');

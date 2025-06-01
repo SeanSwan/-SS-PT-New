@@ -39,6 +39,7 @@ import { LayoutDashboard, Users } from 'lucide-react';
 import EnhancedNotificationSectionWrapper from './EnhancedNotificationSectionWrapper';
 import Debug from '../Debug/Debug';
 import { UserSwitcher } from '../UserSwitcher';
+import UniversalThemeToggle from '../../context/ThemeContext/UniversalThemeToggle';
 
 // ===================== Animation Keyframes =====================
 const float = keyframes`
@@ -816,6 +817,9 @@ const EnhancedHeader = () => {
                 <ShoppingCartIcon fontSize="small" />
               </Badge>
             </IconButton>
+
+            {/* Universal Theme Toggle */}
+            <UniversalThemeToggle size="medium" />
 
             {/* User Profile - Only for logged in users */}
             {user ? (
