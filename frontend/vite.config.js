@@ -58,15 +58,9 @@ export default defineConfig(({ mode }) => {
       fs: {
         strict: false,
       },
-      // Add SPA fallback middleware
-      configure: (app, { middlewares }) => {
-        middlewares.use('/', (req, res, next) => {
-          // Serve index.html for non-API, non-static file requests
-          if (!req.url.startsWith('/api') && !req.url.includes('.') && req.headers.accept?.includes('text/html')) {
-            req.url = '/index.html';
-          }
-          next();
-        });
+      // Enable historyApiFallback for SPA routing
+      historyApiFallback: {
+        index: '/index.html'
       },
       // Enhanced proxy configuration with detailed logging and error handling
       proxy: {
@@ -130,16 +124,8 @@ export default defineConfig(({ mode }) => {
     preview: {
       port: 4173,
       // Enable SPA fallback - serves index.html for all routes
-      spa: true,
-      // Add fallback middleware
-      configure: (app, { middlewares }) => {
-        middlewares.use('/', (req, res, next) => {
-          // Serve index.html for non-API, non-static file requests
-          if (!req.url.startsWith('/api') && !req.url.includes('.')) {
-            req.url = '/index.html';
-          }
-          next();
-        });
+      historyApiFallback: {
+        index: '/index.html'
       }
     },
     define: {
