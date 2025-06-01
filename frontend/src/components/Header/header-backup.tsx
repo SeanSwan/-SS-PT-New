@@ -484,20 +484,6 @@ const EnhancedHeader = () => {
     return location.pathname === path || location.pathname.startsWith(path);
   };
 
-  // Function to determine if a dashboard option should be enabled based on user role
-  const isRoleEnabled = (requiredRole: string | string[]) => {
-    if (!user || !user.role) return false;
-    
-    // Admin can access everything
-    if (user.role === 'admin') return true;
-    
-    if (Array.isArray(requiredRole)) {
-      return requiredRole.includes(user.role);
-    }
-    
-    return user.role === requiredRole;
-  };
-
   /**
    * Renders desktop navigation links
    */
@@ -528,6 +514,8 @@ const EnhancedHeader = () => {
           >
             <PersonIcon fontSize="small" style={{ marginRight: '4px' }} /> Profile
           </StyledNavLink>
+
+
         </>
       );
     } else {
@@ -562,7 +550,7 @@ const EnhancedHeader = () => {
   };
 
   /**
-   * Renders mobile navigation links with proper role-based access control
+   * Renders mobile navigation links
    */
   const renderMobileLinks = () => {
     if (user) {
@@ -625,41 +613,36 @@ const EnhancedHeader = () => {
             )}
           </motion.div>
           
-          {/* Dashboard Links - Role-based visibility */}
-          {isRoleEnabled('admin') && (
-            <MobileNavLink
-              to="/dashboard/default" 
-              onClick={() => setMobileMenuOpen(false)}
-              className={isActive('/dashboard') ? "active" : ""}
-              variants={itemVariants}
-            >
-              <LayoutDashboard fontSize="small" /> Admin Dashboard
-            </MobileNavLink>
-          )}
+          {/* Dashboard Links */}
+          <MobileNavLink
+            to="/dashboard/default" 
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/dashboard') ? "active" : ""}
+            variants={itemVariants}
+            style={{ opacity: user?.role === 'admin' ? 1 : 0.5 }}
+          >
+            <LayoutDashboard fontSize="small" /> Admin Dashboard
+          </MobileNavLink>
           
-          {isRoleEnabled(['admin', 'trainer']) && (
-            <MobileNavLink
-              to="/trainer-dashboard"
-              onClick={() => setMobileMenuOpen(false)}
-              className={isActive('/trainer-dashboard') ? "active" : ""}
-              variants={itemVariants}
-            >
-              <Users fontSize="small" /> Trainer Dashboard
-            </MobileNavLink>
-          )}
+          <MobileNavLink
+            to="/trainer-dashboard"
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/trainer-dashboard') ? "active" : ""}
+            variants={itemVariants}
+            style={{ opacity: user?.role === 'admin' || user?.role === 'trainer' ? 1 : 0.5 }}
+          >
+            <Users fontSize="small" /> Trainer Dashboard
+          </MobileNavLink>
           
-          {isRoleEnabled('client') && (
-            <MobileNavLink
-              to="/client-dashboard"
-              onClick={() => setMobileMenuOpen(false)}
-              className={isActive('/client-dashboard') ? "active" : ""}
-              variants={itemVariants}
-            >
-              <PersonIcon fontSize="small" /> Client Dashboard
-            </MobileNavLink>
-          )}
+          <MobileNavLink
+            to="/client-dashboard"
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/client-dashboard') ? "active" : ""}
+            variants={itemVariants}
+          >
+            <PersonIcon fontSize="small" /> Client Dashboard
+          </MobileNavLink>
           
-          {/* User Dashboard - Available to all authenticated users */}
           <MobileNavLink
             to="/user-dashboard"
             onClick={() => setMobileMenuOpen(false)}
@@ -668,6 +651,8 @@ const EnhancedHeader = () => {
           >
             <PersonIcon fontSize="small" /> User Dashboard
           </MobileNavLink>
+          
+
           
           <MobileNavLink 
             to="/contact" 

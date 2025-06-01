@@ -290,24 +290,86 @@ class ProductionApiService {
   // Authentication methods
   async login(credentials: { username: string; password: string }) {
     try {
-      console.log('[API] Attempting login...');
+      console.log('[API] Attempting login with enhanced error handling...');
+      
+      // Log the request being made (without password)
+      console.log('[API] Login request:', {
+        username: credentials.username,
+        hasPassword: !!credentials.password,
+        apiUrl: this.client.defaults.baseURL + '/api/auth/login'
+      });
+      
       const response = await this.client.post('/api/auth/login', credentials);
       
-      if (response.data.success) {
+      console.log('[API] Login response status:', response.status);
+      console.log('[API] Login response data:', response.data);
+      
+      if (response.data && (response.data.success || response.data.token)) {
         const { token, refreshToken, user } = response.data;
         
-        ProductionTokenManager.setToken(token);
-        ProductionTokenManager.setRefreshToken(refreshToken);
-        ProductionTokenManager.setUser(user);
-        
-        console.log('[API] Login successful');
-        return response.data;
+        if (token && user) {
+          ProductionTokenManager.setToken(token);
+          if (refreshToken) {
+            ProductionTokenManager.setRefreshToken(refreshToken);
+          }
+          ProductionTokenManager.setUser(user);
+          
+          console.log('[API] Login successful, tokens stored');
+          return response.data;
+        } else {
+          throw new Error('Invalid response: missing token or user data');
+        }
       } else {
-        throw new Error(response.data.message || 'Login failed');
+        throw new Error(response.data?.message || 'Login failed - invalid response format');
       }
     } catch (error) {
-      console.error('[API] Login error:', error);
-      throw error;
+      console.error('[API] Login error details:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers
+      });
+      
+      // Enhanced error message extraction
+      let errorMessage = 'Login failed';
+      
+      if (error.response?.data) {
+        // Try different ways to extract error message
+        const data = error.response.data;
+        
+        if (typeof data === 'string') {
+          errorMessage = data;
+        } else if (data.message) {
+          errorMessage = data.message;
+        } else if (data.error) {
+          errorMessage = data.error;
+        } else if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+          errorMessage = data.errors[0].message || data.errors[0];
+        } else if (data.details) {
+          errorMessage = data.details;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Handle specific HTTP status codes
+      if (error.response?.status === 401) {
+        errorMessage = 'Invalid username or password';
+      } else if (error.response?.status === 429) {
+        errorMessage = 'Too many login attempts. Please try again later.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (error.code === 'ECONNREFUSED' || error.code === 'NETWORK_ERROR') {
+        errorMessage = 'Unable to connect to server. Please check your internet connection.';
+      }
+      
+      console.error('[API] Final error message:', errorMessage);
+      
+      const enhancedError = new Error(errorMessage);
+      enhancedError.originalError = error;
+      enhancedError.status = error.response?.status;
+      throw enhancedError;
     }
   }
 
