@@ -4,7 +4,7 @@ import { Route, Routes, Navigate } from 'react-router-dom';
 // Import Dashboard Layouts
 import UnifiedAdminDashboardLayout from '../components/DashBoard/UnifiedAdminDashboardLayout';
 import ClientDashboard from '../components/ClientDashboard/ClientDashboard';
-import TrainerDashboardLayout from '../components/TrainerDashboard/TrainerDashboardLayout';
+import TrainerDashboard from '../components/TrainerDashboard/TrainerDashboard';
 import DashboardPage from '../components/DashboardView/DashboardPage';
 
 // Import Protected Route component
@@ -53,7 +53,7 @@ const DashboardRoutes: React.FC = () => {
             allowedRoles={['trainer', 'admin']} 
             fallbackPath="/unauthorized"
           >
-            <TrainerDashboardLayout />
+            <TrainerDashboard />
           </ProtectedRoute>
         } 
       />
