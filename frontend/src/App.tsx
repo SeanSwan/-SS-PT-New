@@ -47,6 +47,7 @@ import './styles/signup-fixes.css';
 import './styles/aaa-enhancements.css';
 import './styles/dashboard-global-styles.css'; // Dashboard full-space utilization styles
 import './styles/animation-performance-fallbacks.css'; // Performance-optimized animation fallbacks
+// Galaxy-Swan theme integration imported via styled components
 import ImprovedGlobalStyle from './styles/ImprovedGlobalStyle';
 import theme from './styles/theme';
 
