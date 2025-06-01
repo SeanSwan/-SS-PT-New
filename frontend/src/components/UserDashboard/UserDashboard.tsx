@@ -242,28 +242,8 @@ const FilteredDiv = styled.div`
   }
 `;
 
-// Motion div for animated elements with comprehensive prop filtering
-const FilteredMotionDiv = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => {
-    const motionProps = [
-      'whileHover', 'whileTap', 'whileFocus', 'whileDrag', 'whileInView',
-      'initial', 'animate', 'exit', 'transition', 'variants', 'custom',
-      'layout', 'layoutId', 'layoutRoot', 'layoutScroll', 'layoutDependency',
-      'drag', 'dragConstraints', 'dragElastic', 'dragMomentum', 'dragPropagation',
-      'dragSnapToOrigin', 'dragTransition', '_dragX', '_dragY', 'onDrag', 
-      'onDragStart', 'onDragEnd', 'onDirectionLock', 'onDragTransitionEnd',
-      'dragControls', 'dragListener', 'onAnimationStart', 'onAnimationComplete',
-      'onUpdate', 'onViewportEnter', 'onViewportLeave', 'viewport', 'transformTemplate',
-      'transformOrigin', 'originX', 'originY', 'originZ', 'transformValues',
-      'rotateX', 'rotateY', 'rotateZ', 'scaleX', 'scaleY', 'scaleZ', 'skewX', 'skewY',
-      'x', 'y', 'z', 'scale', 'rotate', 'opacity', 'width', 'height',
-      'backgroundColor', 'borderRadius', 'onTap', 'onTapStart', 'onTapCancel',
-      'onHoverStart', 'onHoverEnd', 'onPan', 'onPanStart', 'onPanEnd',
-      'enableAnimations', 'enableLuxuryAnimations', 'performanceLevel'
-    ];
-    return !motionProps.includes(prop as string);
-  }
-})`
+// Motion div for animated elements
+const FilteredMotionDiv = styled(motion.div)`
   transition: all 0.3s ease;
   
   &:hover {
@@ -283,21 +263,7 @@ const FilteredMotionDiv = styled(motion.div).withConfig({
   }
 `;
 
-const FilteredButton = styled.button.withConfig({
-  shouldForwardProp: (prop) => {
-    const motionProps = [
-      'whileHover', 'whileTap', 'whileFocus', 'whileDrag', 'whileInView',
-      'initial', 'animate', 'exit', 'transition', 'variants', 'custom',
-      'layout', 'layoutId', 'layoutRoot', 'layoutScroll', 'layoutDependency',
-      'drag', 'dragConstraints', 'dragElastic', 'dragMomentum', 'dragPropagation',
-      'dragSnapToOrigin', 'dragTransition', '_dragX', '_dragY', 'onDrag', 
-      'onDragStart', 'onDragEnd', 'onDirectionLock', 'onDragTransitionEnd',
-      'dragControls', 'dragListener', 'onAnimationStart', 'onAnimationComplete',
-      'onUpdate', 'onViewportEnter', 'onViewportLeave', 'viewport', 'transformTemplate'
-    ];
-    return !motionProps.includes(prop as string);
-  }
-})`
+const FilteredButton = styled.button`
   background: none;
   border: none;
   cursor: pointer;
@@ -305,21 +271,7 @@ const FilteredButton = styled.button.withConfig({
 `;
 
 // Additional filtered motion component for any other elements
-const FilteredMotionSpan = styled(motion.span).withConfig({
-  shouldForwardProp: (prop) => {
-    const motionProps = [
-      'whileHover', 'whileTap', 'whileFocus', 'whileDrag', 'whileInView',
-      'initial', 'animate', 'exit', 'transition', 'variants', 'custom',
-      'layout', 'layoutId', 'layoutRoot', 'layoutScroll', 'layoutDependency',
-      'drag', 'dragConstraints', 'dragElastic', 'dragMomentum', 'dragPropagation',
-      'dragSnapToOrigin', 'dragTransition', '_dragX', '_dragY', 'onDrag', 
-      'onDragStart', 'onDragEnd', 'onDirectionLock', 'onDragTransitionEnd',
-      'dragControls', 'dragListener', 'onAnimationStart', 'onAnimationComplete',
-      'onUpdate', 'onViewportEnter', 'onViewportLeave', 'viewport', 'transformTemplate'
-    ];
-    return !motionProps.includes(prop as string);
-  }
-})`;
+const FilteredMotionSpan = styled(motion.span)``;
 
 
 // ===================== COSMIC STYLED COMPONENTS =====================
@@ -343,9 +295,7 @@ const ContentWrapper = styled.div`
   }
 `;
 
-const ProfileHeader = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
-})`
+const ProfileHeader = styled(motion.div)`
   position: relative;
   border-radius: 20px;
   overflow: hidden;
@@ -385,9 +335,7 @@ const BackgroundImageContainer = styled.div`
   }
 `;
 
-const BackgroundUploadOverlay = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
-})`
+const BackgroundUploadOverlay = styled(motion.div)`
   position: absolute;
   top: 0;
   left: 0;
@@ -415,9 +363,7 @@ const ProfileImageSection = styled.div`
   z-index: 10;
 `;
 
-const ProfileImageContainer = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
-})`
+const ProfileImageContainer = styled(motion.div)`
   position: relative;
   width: 160px;
   height: 160px;
@@ -473,9 +419,7 @@ const ProfileImage = styled.div`
   }
 `;
 
-const ImageUploadButton = styled(motion.button).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
-})`
+const ImageUploadButton = styled(motion.button)`
   position: absolute;
   bottom: 5px;
   right: 5px;
@@ -505,9 +449,7 @@ const ImageUploadButton = styled(motion.button).withConfig({
   }
 `;
 
-const ProfileInfo = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
-})`
+const ProfileInfo = styled(motion.div)`
   text-align: center;
   padding: 80px 2rem 2rem;
   
@@ -669,9 +611,7 @@ const ActionButtons = styled.div`
   flex-wrap: wrap;
 `;
 
-const PrimaryButton = styled(motion.button).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
-})`
+const PrimaryButton = styled(motion.button)`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -696,9 +636,7 @@ const PrimaryButton = styled(motion.button).withConfig({
   }
 `;
 
-const SecondaryButton = styled(motion.button).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
-})`
+const SecondaryButton = styled(motion.button)`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -735,17 +673,13 @@ const ContentGrid = styled.div`
   }
 `;
 
-const Sidebar = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
-})`
+const Sidebar = styled(motion.div)`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 `;
 
-const SidebarCard = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
-})`
+const SidebarCard = styled(motion.div)`
   background: ${({ theme }) => theme.gradients.card};
   backdrop-filter: blur(20px);
   border: 1px solid ${({ theme }) => theme.borders.elegant};
@@ -764,9 +698,7 @@ const SidebarTitle = styled.h3`
   gap: 0.5rem;
 `;
 
-const MainContent = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
-})`
+const MainContent = styled(motion.div)`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -810,9 +742,7 @@ const Tab = styled(motion.button)`
   }
 `;
 
-const ContentCard = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
-})`
+const ContentCard = styled(motion.div)`
   background: ${({ theme }) => theme.gradients.card};
   backdrop-filter: blur(20px);
   border: 1px solid ${({ theme }) => theme.borders.elegant};
@@ -833,9 +763,7 @@ const PhotoGrid = styled.div`
   }
 `;
 
-const PhotoItem = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
-})`
+const PhotoItem = styled(motion.div)`
   aspect-ratio: 1;
   border-radius: 12px;
   background: ${({ theme }) => theme.gradients.card};
@@ -857,9 +785,7 @@ const PhotoItem = styled(motion.div).withConfig({
   }
 `;
 
-const UploadPlaceholder = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
-})`
+const UploadPlaceholder = styled(motion.div)`
   aspect-ratio: 1;
   border-radius: 12px;
   background: ${({ theme }) => theme.background.elevated};
@@ -884,9 +810,7 @@ const HiddenInput = styled.input`
   display: none;
 `;
 
-const LoadingOverlay = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
-})`
+const LoadingOverlay = styled(motion.div)`
   position: fixed;
   top: 0;
   left: 0;
@@ -901,9 +825,7 @@ const LoadingOverlay = styled(motion.div).withConfig({
   backdrop-filter: blur(10px);
 `;
 
-const LoadingSpinner = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
-})`
+const LoadingSpinner = styled(motion.div)`
   width: 60px;
   height: 60px;
   border: 3px solid transparent;
