@@ -148,9 +148,11 @@ export const enhanceInternalLinks = () => {
 /**
  * Service Worker registration for offline SPA routing
  * Ensures the app works offline and handles routing correctly
+ * Only registers in production to avoid development cache issues
  */
 export const registerSPAServiceWorker = () => {
-  if ('serviceWorker' in navigator) {
+  // Only register service worker in production
+  if ('serviceWorker' in navigator && import.meta.env.PROD) {
     navigator.serviceWorker.register('/spa-sw.js')
       .then((registration) => {
         console.log('SPA Service Worker registered:', registration);
@@ -158,6 +160,37 @@ export const registerSPAServiceWorker = () => {
       .catch((error) => {
         console.log('SPA Service Worker registration failed:', error);
       });
+  } else if (!import.meta.env.PROD && 'serviceWorker' in navigator) {
+    // In development, unregister any existing service workers to avoid cache conflicts
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      registrations.forEach((registration) => {
+        registration.unregister().then(() => {
+          console.log('SW: Unregistered service worker for development');
+        });
+      });
+    });
+    console.log('SW: Skipping service worker registration in development');
+  }
+};
+
+/**
+ * Clear service worker caches in development
+ * Helps prevent cache-related issues during development
+ */
+export const clearServiceWorkerCaches = async () => {
+  if ('caches' in window && !import.meta.env.PROD) {
+    try {
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames.map(cacheName => {
+          console.log(`SW: Clearing cache: ${cacheName}`);
+          return caches.delete(cacheName);
+        })
+      );
+      console.log('SW: All caches cleared for development');
+    } catch (error) {
+      console.warn('SW: Failed to clear caches:', error);
+    }
   }
 };
 
@@ -166,6 +199,11 @@ export const registerSPAServiceWorker = () => {
  * Call this function once when the app starts
  */
 export const initializeAllSPAFixes = () => {
+  // Clear any existing service worker caches in development
+  if (!import.meta.env.PROD) {
+    clearServiceWorkerCaches();
+  }
+  
   initializeSPARouting();
   enhanceBrowserNavigation();
   enhanceInternalLinks();
@@ -179,5 +217,6 @@ export default {
   enhanceBrowserNavigation,
   enhanceInternalLinks,
   registerSPAServiceWorker,
+  clearServiceWorkerCaches,
   initializeAllSPAFixes
 };
