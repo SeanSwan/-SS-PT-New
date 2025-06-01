@@ -37,6 +37,7 @@ import { initializeMockData } from './utils/mockDataHelper';
 import { initializeApiMonitoring } from './utils/apiConnectivityFixer';
 import clearMockTokens from './utils/clearMockTokens';
 import './utils/initTokenCleanup'; // Initialize token cleanup handlers
+import './utils/clearCache'; // Emergency cache clearing utility
 
 // Styles
 import './App.scss';

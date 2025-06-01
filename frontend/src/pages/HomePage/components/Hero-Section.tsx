@@ -8,8 +8,10 @@ import GlowButton from "../../../components/Button/glowButton";
 import OrientationForm from "../../../components/OrientationForm/orientationForm";
 
 // Import assets (ensure paths are correct)
-import heroVideo from "../../../assets/Swans.mp4"; // Ensure this path is correct
 import logoImg from "/Logo.png"; // Ensure this path is correct
+
+// Use public directory for video to avoid build hashing issues
+const heroVideo = "/Swans.mp4";
 
 // --- TypeScript Interfaces ---
 
@@ -424,7 +426,6 @@ const HeroSection: React.FC = () => {
           loop 
           muted 
           playsInline 
-          poster="/Swans.mp4"
           loading="eager"
           disablePictureInPicture
           disableRemotePlayback
