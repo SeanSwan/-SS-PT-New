@@ -202,7 +202,9 @@ const simpleFade = keyframes`
 
 // ===================== COSMIC STYLED COMPONENTS =====================
 
-const ProfileContainer = styled(motion.div)<{ performanceLevel?: string }>`
+const ProfileContainer = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 'performanceLevel'].includes(prop)
+})<{ performanceLevel?: string }>`
   min-height: 100vh;
   background: ${({ theme }) => theme.background.primary};
   position: relative;
@@ -256,7 +258,9 @@ const ContentWrapper = styled.div`
   }
 `;
 
-const ProfileHeader = styled(motion.div)`
+const ProfileHeader = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
+})`
   position: relative;
   border-radius: 20px;
   overflow: hidden;
@@ -296,7 +300,9 @@ const BackgroundImageContainer = styled.div<{ backgroundImage?: string }>`
   }
 `;
 
-const BackgroundUploadOverlay = styled(motion.div)`
+const BackgroundUploadOverlay = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
+})`
   position: absolute;
   top: 0;
   left: 0;
@@ -324,7 +330,9 @@ const ProfileImageSection = styled.div`
   z-index: 10;
 `;
 
-const ProfileImageContainer = styled(motion.div)`
+const ProfileImageContainer = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
+})`
   position: relative;
   width: 160px;
   height: 160px;
@@ -380,7 +388,9 @@ const ProfileImage = styled.div<{ image?: string; enableLuxury?: boolean; perfor
   }
 `;
 
-const ImageUploadButton = styled(motion.button)`
+const ImageUploadButton = styled(motion.button).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
+})`
   position: absolute;
   bottom: 5px;
   right: 5px;
@@ -410,7 +420,9 @@ const ImageUploadButton = styled(motion.button)`
   }
 `;
 
-const ProfileInfo = styled(motion.div)`
+const ProfileInfo = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
+})`
   text-align: center;
   padding: 80px 2rem 2rem;
   
@@ -458,7 +470,9 @@ const Username = styled.p`
   }
 `;
 
-const UserRole = styled(motion.span)<{ performanceLevel?: string }>`
+const UserRole = styled(motion.span).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 'performanceLevel'].includes(prop)
+})<{ performanceLevel?: string }>`
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -497,7 +511,9 @@ const StatsContainer = styled.div`
   }
 `;
 
-const StatItem = styled(motion.div)<{ enableAnimations?: boolean }>`
+const StatItem = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 'enableAnimations'].includes(prop)
+})<{ enableAnimations?: boolean }>`
   text-align: center;
   cursor: pointer;
   transition: ${({ enableAnimations }) => 
@@ -572,7 +588,9 @@ const ActionButtons = styled.div`
   flex-wrap: wrap;
 `;
 
-const PrimaryButton = styled(motion.button)`
+const PrimaryButton = styled(motion.button).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
+})`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -597,7 +615,9 @@ const PrimaryButton = styled(motion.button)`
   }
 `;
 
-const SecondaryButton = styled(motion.button)`
+const SecondaryButton = styled(motion.button).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
+})`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -634,13 +654,17 @@ const ContentGrid = styled.div`
   }
 `;
 
-const Sidebar = styled(motion.div)`
+const Sidebar = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
+})`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
 `;
 
-const SidebarCard = styled(motion.div)`
+const SidebarCard = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
+})`
   background: ${({ theme }) => theme.gradients.card};
   backdrop-filter: blur(20px);
   border: 1px solid ${({ theme }) => theme.borders.elegant};
@@ -659,7 +683,9 @@ const SidebarTitle = styled.h3`
   gap: 0.5rem;
 `;
 
-const MainContent = styled(motion.div)`
+const MainContent = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
+})`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -675,7 +701,9 @@ const TabNavigation = styled.div`
   overflow-x: auto;
 `;
 
-const Tab = styled(motion.button)<{ active: boolean }>`
+const Tab = styled(motion.button).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
+})<{ active: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -703,7 +731,9 @@ const Tab = styled(motion.button)<{ active: boolean }>`
   }
 `;
 
-const ContentCard = styled(motion.div)`
+const ContentCard = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
+})`
   background: ${({ theme }) => theme.gradients.card};
   backdrop-filter: blur(20px);
   border: 1px solid ${({ theme }) => theme.borders.elegant};
@@ -724,7 +754,9 @@ const PhotoGrid = styled.div`
   }
 `;
 
-const PhotoItem = styled(motion.div)`
+const PhotoItem = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
+})`
   aspect-ratio: 1;
   border-radius: 12px;
   background: ${({ theme }) => theme.gradients.card};
@@ -746,7 +778,9 @@ const PhotoItem = styled(motion.div)`
   }
 `;
 
-const UploadPlaceholder = styled(motion.div)`
+const UploadPlaceholder = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
+})`
   aspect-ratio: 1;
   border-radius: 12px;
   background: ${({ theme }) => theme.background.elevated};
@@ -771,7 +805,9 @@ const HiddenInput = styled.input`
   display: none;
 `;
 
-const LoadingOverlay = styled(motion.div)`
+const LoadingOverlay = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
+})`
   position: fixed;
   top: 0;
   left: 0;
@@ -786,7 +822,9 @@ const LoadingOverlay = styled(motion.div)`
   backdrop-filter: blur(10px);
 `;
 
-const LoadingSpinner = styled(motion.div)`
+const LoadingSpinner = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
+})`
   width: 60px;
   height: 60px;
   border: 3px solid transparent;
