@@ -17,6 +17,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { CartProvider } from './context/CartContext';
 import { ConfigProvider } from './context/ConfigContext';
+import { UniversalThemeProvider } from './context/ThemeContext';
 import MenuStateProvider from './hooks/useMenuState';
 import { ConnectionStatusBanner, useBackendConnection } from './hooks/useBackendConnection.jsx';
 
@@ -47,9 +48,14 @@ import './styles/signup-fixes.css';
 import './styles/aaa-enhancements.css';
 import './styles/dashboard-global-styles.css'; // Dashboard full-space utilization styles
 import './styles/animation-performance-fallbacks.css'; // Performance-optimized animation fallbacks
-// Galaxy-Swan theme integration imported via styled components
+import './styles/cosmic-elegance-utilities.css'; // ✨ Cosmic Elegance Utility System
+import './styles/cosmic-mobile-navigation.css'; // ✨ Cosmic Mobile Navigation System
+// Galaxy-Swan theme integration with Cosmic Elegance
 import ImprovedGlobalStyle from './styles/ImprovedGlobalStyle';
+import CosmicEleganceGlobalStyle, { detectDeviceCapability } from './styles/CosmicEleganceGlobalStyle';
 import theme from './styles/theme';
+// Cosmic Performance Optimizer
+import { initializeCosmicPerformance } from './utils/cosmicPerformanceOptimizer';
 
 // Custom shouldForwardProp function to filter out props that cause warnings
 const shouldForwardProp = (prop) => {
@@ -90,6 +96,9 @@ const AppContent = () => {
   // Redux dispatch
   const dispatch = useDispatch();
   
+  // Device capability detection for performance optimization
+  const [deviceCapability] = React.useState(() => detectDeviceCapability());
+  
   // Set router context flag
   useEffect(() => {
     window.__ROUTER_CONTEXT_AVAILABLE__ = true;
@@ -101,6 +110,9 @@ const AppContent = () => {
   // Initialize mock data for fallback when backend is unavailable
   // Using a ref to ensure this only runs once
   const initializationRef = React.useRef(false);
+  
+  // Initialize Cosmic Performance System
+  const performanceCleanupRef = React.useRef<(() => void) | null>(null);
   
   useEffect(() => {
     // Skip if already initialized to prevent re-runs
@@ -129,6 +141,9 @@ const AppContent = () => {
     setTimeout(() => {
       initializeApiMonitoring();
     }, 500);
+    
+    // Initialize Cosmic Performance System
+    performanceCleanupRef.current = initializeCosmicPerformance();
   }, []);
   
   // Initialize notifications when user is authenticated
@@ -146,8 +161,18 @@ const AppContent = () => {
     };
   }, [isAuthenticated, user]);
   
+  // Cleanup performance monitoring on unmount
+  useEffect(() => {
+    return () => {
+      if (performanceCleanupRef.current) {
+        performanceCleanupRef.current();
+      }
+    };
+  }, []);
+  
   return (
     <>
+      <CosmicEleganceGlobalStyle deviceCapability={deviceCapability} />
       <ConnectionStatusBanner connection={connection} />
       <RouterProvider router={router} />
     </>
@@ -160,22 +185,24 @@ const App = () => {
       <Provider store={store}>
         <HelmetProvider>
           <StyleSheetManager shouldForwardProp={shouldForwardProp}>
-            <ThemeProvider theme={theme.dark}>
-              <ImprovedGlobalStyle />
-              <ConfigProvider>
-                <MenuStateProvider>
-                  <AuthProvider>
-                    <ToastProvider>
-                      <CartProvider>
-                        <DevToolsProvider>
-                          <AppContent />
-                        </DevToolsProvider>
-                      </CartProvider>
-                    </ToastProvider>
-                  </AuthProvider>
-                </MenuStateProvider>
-              </ConfigProvider>
-            </ThemeProvider>
+            <UniversalThemeProvider defaultTheme="swan-galaxy">
+              <ThemeProvider theme={theme.dark}>
+                <ImprovedGlobalStyle />
+                <ConfigProvider>
+                  <MenuStateProvider>
+                    <AuthProvider>
+                      <ToastProvider>
+                        <CartProvider>
+                          <DevToolsProvider>
+                            <AppContent />
+                          </DevToolsProvider>
+                        </CartProvider>
+                      </ToastProvider>
+                    </AuthProvider>
+                  </MenuStateProvider>
+                </ConfigProvider>
+              </ThemeProvider>
+            </UniversalThemeProvider>
           </StyleSheetManager>
         </HelmetProvider>
       </Provider>
