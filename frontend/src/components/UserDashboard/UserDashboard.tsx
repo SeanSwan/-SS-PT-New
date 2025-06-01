@@ -309,9 +309,9 @@ const ProfileHeader = styled(motion.div)`
 const BackgroundImageContainer = styled.div`
   height: 300px;
   position: relative;
-  background: ${({ backgroundImage, theme }) => 
-    backgroundImage 
-      ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.1)), url(${backgroundImage})`
+  background: ${({ $backgroundImage, theme }) => 
+    $backgroundImage 
+      ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.1)), url(${$backgroundImage})`
       : theme.gradients.hero
   };
   background-size: cover;
@@ -380,9 +380,9 @@ const ProfileImage = styled.div`
   height: 100%;
   border-radius: 50%;
   border: 4px solid ${({ theme }) => theme.colors.primary};
-  background: ${({ image, theme }) => 
-    image 
-      ? `url(${image})` 
+  background: ${({ $image, theme }) => 
+    $image 
+      ? `url(${$image})` 
       : theme.gradients.primary
   };
   background-size: cover;
@@ -390,9 +390,9 @@ const ProfileImage = styled.div`
   position: relative;
   overflow: hidden;
   box-shadow: ${({ theme }) => theme.shadows.cosmic};
-  animation: ${({ enableLuxury, performanceLevel }) => {
-    if (!enableLuxury || performanceLevel === 'weak') return 'none';
-    if (performanceLevel === 'medium') return css`${simpleFade} 4s ease-in-out infinite`;
+  animation: ${({ $enableLuxury, $performanceLevel }) => {
+    if (!$enableLuxury || $performanceLevel === 'weak') return 'none';
+    if ($performanceLevel === 'medium') return css`${simpleFade} 4s ease-in-out infinite`;
     return css`${cosmicGlow} 4s ease-in-out infinite`;
   }};
 
@@ -466,9 +466,9 @@ const DisplayName = styled.h1`
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin-bottom: 0.5rem;
-  animation: ${({ performanceLevel }) => {
-    if (performanceLevel === 'weak') return 'none';
-    if (performanceLevel === 'medium') return css`${simpleFloat} 6s ease-in-out infinite`;
+  animation: ${({ $performanceLevel }) => {
+    if ($performanceLevel === 'weak') return 'none';
+    if ($performanceLevel === 'medium') return css`${simpleFloat} 6s ease-in-out infinite`;
     return css`${stellarFloat} 6s ease-in-out infinite`;
   }};
   
@@ -508,9 +508,9 @@ const UserRole = styled(motion.span)`
   font-size: 0.9rem;
   font-weight: 600;
   box-shadow: ${({ theme }) => theme.shadows.primary};
-  animation: ${({ performanceLevel }) => {
-    if (performanceLevel === 'weak') return 'none';
-    if (performanceLevel === 'medium') return css`${simpleFade} 3s ease-in-out infinite`;
+  animation: ${({ $performanceLevel }) => {
+    if ($performanceLevel === 'weak') return 'none';
+    if ($performanceLevel === 'medium') return css`${simpleFade} 3s ease-in-out infinite`;
     return css`${starTwinkle} 3s ease-in-out infinite`;
   }};
   
@@ -539,13 +539,13 @@ const StatsContainer = styled.div`
 const StatItem = styled(motion.div)`
   text-align: center;
   cursor: pointer;
-  transition: ${({ enableAnimations }) => 
-    enableAnimations ? 'transform 0.3s ease' : 'none'
+  transition: ${({ $enableAnimations }) => 
+    $enableAnimations ? 'transform 0.3s ease' : 'none'
   };
 
   &:hover {
-    transform: ${({ enableAnimations }) => 
-      enableAnimations ? 'translateY(-5px)' : 'none'
+    transform: ${({ $enableAnimations }) => 
+      $enableAnimations ? 'translateY(-5px)' : 'none'
     };
   }
   
@@ -566,9 +566,9 @@ const StatValue = styled.div`
   font-size: 1.8rem;
   font-weight: 700;
   color: ${({ theme }) => theme.colors.primary};
-  animation: ${({ performanceLevel }) => {
-    if (performanceLevel === 'weak') return 'none';
-    if (performanceLevel === 'medium') return css`${simpleFade} 4s ease-in-out infinite`;
+  animation: ${({ $performanceLevel }) => {
+    if ($performanceLevel === 'weak') return 'none';
+    if ($performanceLevel === 'medium') return css`${simpleFade} 4s ease-in-out infinite`;
     return css`${cosmicGlow} 4s ease-in-out infinite`;
   }};
   
@@ -1951,7 +1951,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
         >
-          <BackgroundImageContainer backgroundImage={backgroundImage}>
+          <BackgroundImageContainer $backgroundImage={backgroundImage}>
             <BackgroundUploadOverlay
               onClick={handleBackgroundImageClick}
               whileHover={enableLuxuryAnimations ? { opacity: 1 } : undefined}
@@ -1971,9 +1971,9 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
               transition={enableLuxuryAnimations ? { duration: 0.3 } : undefined}
             >
               <ProfileImage 
-                image={profile?.photo} 
-                enableLuxury={enableLuxuryAnimations}
-                performanceLevel={devicePerformance}
+                $image={profile?.photo} 
+                $enableLuxury={enableLuxuryAnimations}
+                $performanceLevel={devicePerformance}
               >
               {!profile?.photo && getUserInitials()}
             </ProfileImage>
@@ -1993,11 +1993,11 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           >
-            <DisplayName performanceLevel={devicePerformance}>{getDisplayName()}</DisplayName>
+            <DisplayName $performanceLevel={devicePerformance}>{getDisplayName()}</DisplayName>
             <Username>@{getUsernameForDisplay()}</Username>
             
             <UserRole
-              performanceLevel={devicePerformance}
+              $performanceLevel={devicePerformance}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: performanceProfile?.transitionDuration === 'fast' ? 0.2 : 0.5, delay: performanceProfile?.transitionDuration === 'fast' ? 0.1 : 0.4 }}
@@ -2008,28 +2008,28 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
 
             <StatsContainer>
               <StatItem 
-                enableAnimations={enableLuxuryAnimations}
+                $enableAnimations={enableLuxuryAnimations}
                 whileHover={enableLuxuryAnimations ? { scale: 1.1 } : undefined}
               >
-                <StatValue performanceLevel={devicePerformance}>
+                <StatValue $performanceLevel={devicePerformance}>
                   {isLoadingStats ? '...' : displayStats.posts}
                 </StatValue>
                 <StatLabel>Posts</StatLabel>
               </StatItem>
               <StatItem 
-                enableAnimations={enableLuxuryAnimations}
+                $enableAnimations={enableLuxuryAnimations}
                 whileHover={enableLuxuryAnimations ? { scale: 1.1 } : undefined}
               >
-                <StatValue performanceLevel={devicePerformance}>
+                <StatValue $performanceLevel={devicePerformance}>
                   {isLoadingStats ? '...' : displayStats.followers.toLocaleString()}
                 </StatValue>
                 <StatLabel>Followers</StatLabel>
               </StatItem>
               <StatItem 
-                enableAnimations={enableLuxuryAnimations}
+                $enableAnimations={enableLuxuryAnimations}
                 whileHover={enableLuxuryAnimations ? { scale: 1.1 } : undefined}
               >
-                <StatValue performanceLevel={devicePerformance}>
+                <StatValue $performanceLevel={devicePerformance}>
                   {isLoadingStats ? '...' : displayStats.following}
                 </StatValue>
                 <StatLabel>Following</StatLabel>
