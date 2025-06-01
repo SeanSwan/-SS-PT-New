@@ -280,7 +280,7 @@ const FilteredMotionSpan = styled(motion.span).withConfig({
     'dragControls', 'dragListener', 'onAnimationStart', 'onAnimationComplete',
     'onUpdate', 'onViewportEnter', 'onViewportLeave', 'viewport', 'transformTemplate'
   ].includes(prop)
-})`
+})``;
 
 
 // ===================== COSMIC STYLED COMPONENTS =====================
