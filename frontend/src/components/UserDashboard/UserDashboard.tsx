@@ -1391,7 +1391,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                   overflow: 'hidden',
                   marginBottom: '1rem'
                 }}>
-                  <motion.div
+                  <FilteredMotionDiv
                   initial={{ width: 0 }}
                   animate={{ width: `${progressPercent}%` }}
                   transition={{ duration: 1, delay: index * 0.2 }}
