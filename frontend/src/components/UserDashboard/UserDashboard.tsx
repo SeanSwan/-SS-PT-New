@@ -759,23 +759,23 @@ const Tab = styled(motion.button)`
   padding: 0.75rem 1rem;
   border: none;
   border-radius: 12px;
-  background: ${({ active, theme }) => 
-    active ? theme.gradients.primary : 'transparent'
+  background: ${({ $active, theme }) => 
+    $active ? theme.gradients.primary : 'transparent'
   };
-  color: ${({ active, theme }) => 
-    active ? 'white' : theme.text.secondary
+  color: ${({ $active, theme }) => 
+    $active ? 'white' : theme.text.secondary
   };
   cursor: pointer;
   transition: all 0.3s ease;
   white-space: nowrap;
-  font-weight: ${({ active }) => active ? '600' : '500'};
+  font-weight: ${({ $active }) => $active ? '600' : '500'};
 
   &:hover {
-    background: ${({ active, theme }) => 
-      active ? theme.gradients.primary : theme.background.elevated
+    background: ${({ $active, theme }) => 
+      $active ? theme.gradients.primary : theme.background.elevated
     };
-    color: ${({ active, theme }) => 
-      active ? 'white' : theme.text.primary
+    color: ${({ $active, theme }) => 
+      $active ? 'white' : theme.text.primary
     };
   }
 `;
@@ -1977,7 +1977,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
   
   return (
     <ProfileContainer
-      performanceLevel={devicePerformance}
+      $performanceLevel={devicePerformance}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: (performanceProfile?.transitionDuration === 'fast' || devicePerformance === 'weak') ? 0.2 : 0.8 }}
@@ -2234,7 +2234,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
                 return (
                   <Tab
                     key={tab.id}
-                    active={activeTab === tab.id}
+                    $active={activeTab === tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
