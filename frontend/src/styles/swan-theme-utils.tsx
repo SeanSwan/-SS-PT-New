@@ -208,6 +208,23 @@ export const SwanCard = styled.div<{ interactive?: boolean }>`
   }
 `;
 
+// === TYPESCRIPT INTERFACES ===
+
+interface ThemedGlowButtonProps {
+  variant?: 'primary' | 'secondary' | 'blue' | 'cyan' | 'main' | 'purple' | 'emerald' | 'green' | 'ruby' | 'red' | 'cosmic' | 'accent';
+  size?: 'small' | 'medium' | 'large';
+  text?: string;
+  children?: React.ReactNode;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  disabled?: boolean;
+  isLoading?: boolean;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+  [key: string]: any; // For additional props
+}
+
 // === GLOW BUTTON WRAPPER ===
 
 /**
@@ -217,7 +234,7 @@ export const SwanCard = styled.div<{ interactive?: boolean }>`
  * 
  * COLOR HIERARCHY: Blue (PRIMARY), Purple (SECONDARY)
  */
-export const ThemedGlowButton: React.FC<any> = ({
+export const ThemedGlowButton: React.FC<ThemedGlowButtonProps> = ({
   variant = 'primary', // Default to PRIMARY (blue/cyan)
   size = 'medium',
   text,
@@ -345,11 +362,11 @@ export const OptimizedAnimatedDiv = styled.div<{ shouldAnimate?: boolean }>`
 
 // Export commonly used button variants for easy access
 // PRIMARY = Blue/Cyan, SECONDARY = Purple
-export const PrimaryButton: React.FC<any> = (props) => <ThemedGlowButton {...props} variant="primary" />;
-export const SecondaryButton: React.FC<any> = (props) => <ThemedGlowButton {...props} variant="secondary" />;
-export const AccentButton: React.FC<any> = (props) => <ThemedGlowButton {...props} variant="primary" />; // PRIMARY is our accent
-export const BlueButton: React.FC<any> = (props) => <ThemedGlowButton {...props} variant="primary" />; // Explicit blue
-export const PurpleButton: React.FC<any> = (props) => <ThemedGlowButton {...props} variant="secondary" />; // Explicit purple
+export const PrimaryButton: React.FC<ThemedGlowButtonProps> = (props) => <ThemedGlowButton {...props} variant="primary" />;
+export const SecondaryButton: React.FC<ThemedGlowButtonProps> = (props) => <ThemedGlowButton {...props} variant="secondary" />;
+export const AccentButton: React.FC<ThemedGlowButtonProps> = (props) => <ThemedGlowButton {...props} variant="primary" />; // PRIMARY is our accent
+export const BlueButton: React.FC<ThemedGlowButtonProps> = (props) => <ThemedGlowButton {...props} variant="primary" />; // Explicit blue
+export const PurpleButton: React.FC<ThemedGlowButtonProps> = (props) => <ThemedGlowButton {...props} variant="secondary" />; // Explicit purple
 
 // Legacy alias for compatibility - points to ThemedGlowButton with PRIMARY default
 export const SwanButton = ThemedGlowButton;
