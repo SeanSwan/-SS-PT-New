@@ -203,7 +203,7 @@ const simpleFade = keyframes`
 // ===================== COSMIC STYLED COMPONENTS =====================
 
 const ProfileContainer = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 'performanceLevel'].includes(prop)
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 'performanceLevel', 'enableLuxury', 'devicePerformance'].includes(prop)
 })<{ performanceLevel?: string }>`
   min-height: 100vh;
   background: ${({ theme }) => theme.background.primary};
@@ -271,7 +271,9 @@ const ProfileHeader = styled(motion.div).withConfig({
   box-shadow: ${({ theme }) => theme.shadows.cosmic};
 `;
 
-const BackgroundImageContainer = styled.div<{ backgroundImage?: string }>`
+const BackgroundImageContainer = styled.div.withConfig({
+  shouldForwardProp: (prop) => !['backgroundImage'].includes(prop)
+})<{ backgroundImage?: string }>`
   height: 300px;
   position: relative;
   background: ${({ backgroundImage, theme }) => 
@@ -344,7 +346,9 @@ const ProfileImageContainer = styled(motion.div).withConfig({
   }
 `;
 
-const ProfileImage = styled.div<{ image?: string; enableLuxury?: boolean; performanceLevel?: string }>`
+const ProfileImage = styled.div.withConfig({
+  shouldForwardProp: (prop) => !['image', 'enableLuxury', 'performanceLevel'].includes(prop)
+})<{ image?: string; enableLuxury?: boolean; performanceLevel?: string }>`
   width: 100%;
   height: 100%;
   border-radius: 50%;
@@ -431,7 +435,9 @@ const ProfileInfo = styled(motion.div).withConfig({
   }
 `;
 
-const DisplayName = styled.h1<{ performanceLevel?: string }>`
+const DisplayName = styled.h1.withConfig({
+  shouldForwardProp: (prop) => !['performanceLevel'].includes(prop)
+})<{ performanceLevel?: string }>`
   font-size: 2.5rem;
   font-weight: 700;
   background: ${({ theme }) => theme.gradients.stellar};
@@ -512,7 +518,7 @@ const StatsContainer = styled.div`
 `;
 
 const StatItem = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 'enableAnimations'].includes(prop)
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 'enableAnimations', 'enableLuxuryAnimations'].includes(prop)
 })<{ enableAnimations?: boolean }>`
   text-align: center;
   cursor: pointer;
@@ -539,7 +545,9 @@ const StatItem = styled(motion.div).withConfig({
   }
 `;
 
-const StatValue = styled.div<{ performanceLevel?: string }>`
+const StatValue = styled.div.withConfig({
+  shouldForwardProp: (prop) => !['performanceLevel'].includes(prop)
+})<{ performanceLevel?: string }>`
   font-size: 1.8rem;
   font-weight: 700;
   color: ${({ theme }) => theme.colors.primary};
@@ -702,7 +710,7 @@ const TabNavigation = styled.div`
 `;
 
 const Tab = styled(motion.button).withConfig({
-  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition'].includes(prop)
+  shouldForwardProp: (prop) => !['whileHover', 'whileTap', 'initial', 'animate', 'exit', 'transition', 'active'].includes(prop)
 })<{ active: boolean }>`
   display: flex;
   align-items: center;
@@ -839,6 +847,61 @@ const LoadingText = styled.p`
   font-size: 1.1rem;
   font-weight: 500;
 `;
+
+// ===================== ERROR BOUNDARY =====================
+class UserDashboardErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('UserDashboard Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100vh',
+          padding: '2rem',
+          background: 'radial-gradient(ellipse at center, #1e1e3f 0%, #0a0a1a 70%)',
+          color: 'white',
+          textAlign: 'center'
+        }}>
+          <h2>🌟 Cosmic Dashboard Loading Error</h2>
+          <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '2rem' }}>
+            We're experiencing some stellar interference. Please refresh to reconnect to the cosmic network.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: 'linear-gradient(135deg, #00ffff, #7851a9)',
+              border: 'none',
+              borderRadius: '8px',
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: '600'
+            }}
+          >
+            🚀 Reconnect to Cosmos
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 // ===================== MAIN COMPONENT =====================
 
@@ -1886,7 +1949,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
       performanceLevel={devicePerformance}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      transition={{ duration: performanceProfile?.transitionDuration === 'fast' ? 0.2 : 0.8 }}
+      transition={{ duration: (performanceProfile?.transitionDuration === 'fast' || devicePerformance === 'weak') ? 0.2 : 0.8 }}
     >
       <ContentWrapper>
         {/* Profile Header with Background Image */}
@@ -1898,8 +1961,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
           <BackgroundImageContainer backgroundImage={backgroundImage}>
             <BackgroundUploadOverlay
               onClick={handleBackgroundImageClick}
-              whileHover={{ opacity: 1 }}
-              whileTap={{ scale: 0.98 }}
+              {...(enableLuxuryAnimations ? { whileHover: { opacity: 1 }, whileTap: { scale: 0.98 } } : {})}
             >
               <Camera size={48} color="white" />
               <p style={{ color: 'white', marginTop: '1rem', fontSize: '1.1rem', fontWeight: '500' }}>
@@ -1910,21 +1972,19 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
 
           <ProfileImageSection>
             <ProfileImageContainer
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              {...(enableLuxuryAnimations ? { whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } : {})}
             >
               <ProfileImage 
-              image={profile?.photo} 
+                image={profile?.photo} 
                 enableLuxury={enableLuxuryAnimations}
-              performanceLevel={devicePerformance}
-            >
+                performanceLevel={devicePerformance}
+              >
               {!profile?.photo && getUserInitials()}
             </ProfileImage>
               
               <ImageUploadButton
                 onClick={handleProfileImageClick}
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
+                {...(enableLuxuryAnimations ? { whileHover: { scale: 1.1 }, whileTap: { scale: 0.9 } } : {})}
               >
                 <Camera size={20} />
               </ImageUploadButton>
@@ -1952,7 +2012,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
             <StatsContainer>
               <StatItem 
                 enableAnimations={enableLuxuryAnimations}
-                whileHover={enableLuxuryAnimations ? { scale: 1.1 } : {}}
+                {...(enableLuxuryAnimations ? { whileHover: { scale: 1.1 } } : {})}
               >
                 <StatValue performanceLevel={devicePerformance}>
                   {isLoadingStats ? '...' : displayStats.posts}
@@ -1961,7 +2021,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
               </StatItem>
               <StatItem 
                 enableAnimations={enableLuxuryAnimations}
-                whileHover={enableLuxuryAnimations ? { scale: 1.1 } : {}}
+                {...(enableLuxuryAnimations ? { whileHover: { scale: 1.1 } } : {})}
               >
                 <StatValue performanceLevel={devicePerformance}>
                   {isLoadingStats ? '...' : displayStats.followers.toLocaleString()}
@@ -1970,7 +2030,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
               </StatItem>
               <StatItem 
                 enableAnimations={enableLuxuryAnimations}
-                whileHover={enableLuxuryAnimations ? { scale: 1.1 } : {}}
+                {...(enableLuxuryAnimations ? { whileHover: { scale: 1.1 } } : {})}
               >
                 <StatValue performanceLevel={devicePerformance}>
                   {isLoadingStats ? '...' : displayStats.following}
@@ -1991,8 +2051,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
             <ActionButtons>
               <PrimaryButton
                 onClick={handleEditProfile}
-                whileHover={enableLuxuryAnimations ? { scale: 1.05 } : {}}
-                whileTap={enableLuxuryAnimations ? { scale: 0.95 } : {}}
+                {...(enableLuxuryAnimations ? { whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } : {})}
               >
                 <Edit3 size={20} />
                 Edit Profile
@@ -2000,16 +2059,14 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
               
               <SecondaryButton
                 onClick={handleSettings}
-                whileHover={enableLuxuryAnimations ? { scale: 1.05 } : {}}
-                whileTap={enableLuxuryAnimations ? { scale: 0.95 } : {}}
+                {...(enableLuxuryAnimations ? { whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } : {})}
               >
                 <Settings size={20} />
               </SecondaryButton>
               
               <SecondaryButton
                 onClick={handleShare}
-                whileHover={enableLuxuryAnimations ? { scale: 1.05 } : {}}
-                whileTap={enableLuxuryAnimations ? { scale: 0.95 } : {}}
+                {...(enableLuxuryAnimations ? { whileHover: { scale: 1.05 }, whileTap: { scale: 0.95 } } : {})}
               >
                 <Share2 size={20} />
               </SecondaryButton>
@@ -2214,4 +2271,13 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
   );
 };
 
-export default UserDashboard;
+// Wrap the component in error boundary
+const UserDashboardWithErrorBoundary: React.FC<UserDashboardProps> = () => {
+  return (
+    <UserDashboardErrorBoundary>
+      <UserDashboard />
+    </UserDashboardErrorBoundary>
+  );
+};
+
+export default UserDashboardWithErrorBoundary;
