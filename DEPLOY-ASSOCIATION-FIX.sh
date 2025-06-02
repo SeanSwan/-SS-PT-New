@@ -16,12 +16,14 @@ echo ""
 git add .
 
 # Commit with descriptive message
-git commit -m "🔧 CRITICAL FIX: Resolve duplicate association alias conflict
+git commit -m "🔧 CRITICAL FIX: Resolve ALL association naming conflicts
 
 - Fixed SequelizeAssociationError: duplicate 'shoppingCarts' alias
-- Changed Enhanced Social Model to use 'socialShoppingCarts' alias  
-- Location: backend/models/social/enhanced/index.mjs:223
-- Resolves server startup crash in production
+- Fixed naming collision: 'preferences' attribute vs association
+- Changed 'shoppingCarts' → 'socialShoppingCarts' (line 223)
+- Changed 'preferences' → 'aiPreferences' (line 291)
+- Location: backend/models/social/enhanced/index.mjs
+- Resolves ALL server startup crashes in production
 - Production database sync will auto-create missing tables
 - Frontend already has graceful fallbacks for social features
 
