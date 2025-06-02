@@ -463,15 +463,15 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
             >
               <ContactHeader>
                 <ContactInfo>
-                  <div className=\"name\">
+                  <div className="name">
                     <User size={16} style={{ display: 'inline', marginRight: '0.5rem' }} />
                     {contact.name}
                   </div>
-                  <div className=\"email\">
+                  <div className="email">
                     <Mail size={14} style={{ display: 'inline', marginRight: '0.5rem' }} />
                     {contact.email}
                   </div>
-                  <div className=\"time\">
+                  <div className="time">
                     <Clock size={12} />
                     {formatTimeAgo(contact.createdAt)}
                     {contact.priority !== 'normal' && (
@@ -490,7 +490,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
                   <ActionButtons>
                     {!contact.viewedAt && (
                       <ActionButton
-                        variant=\"success\"
+                        variant="success"
                         onClick={() => markAsViewed(contact.id)}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -500,7 +500,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
                       </ActionButton>
                     )}
                     <ActionButton
-                      variant=\"primary\"
+                      variant="primary"
                       onClick={() => window.open(`mailto:${contact.email}`, '_blank')}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -528,7 +528,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
           borderTop: '1px solid rgba(255, 255, 255, 0.1)'
         }}>
           <ActionButton
-            variant=\"primary\"
+            variant="primary"
             onClick={() => {/* Navigate to full contacts management */}}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
