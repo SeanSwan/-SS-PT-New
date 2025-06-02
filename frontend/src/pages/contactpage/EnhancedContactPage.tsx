@@ -851,7 +851,7 @@ const EnhancedContactPage = () => {
                 <PhoneIcon className="icon" />
                 <div className="text">
                   <strong>Phone</strong><br />
-                  <a href="tel:+14155125678">+1 (415) 512-5678</a>
+                  <a href="tel:+17149473221">(714) 947-3221</a>
                 </div>
               </InfoItem>
             </InfoCard>
@@ -864,9 +864,7 @@ const EnhancedContactPage = () => {
                 <TimelapseIcon className="icon" />
                 <div className="text">
                   <strong>Hours</strong><br />
-                  Monday - Friday: 6am - 9pm<br />
-                  Saturday: 8am - 6pm<br />
-                  Sunday: 9am - 5pm
+                  Monday-Sunday: By Appointment Only
                 </div>
               </InfoItem>
             </InfoCard>
