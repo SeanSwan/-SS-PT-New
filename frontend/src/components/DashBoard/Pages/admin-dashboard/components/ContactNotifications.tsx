@@ -17,7 +17,7 @@ import {
   Bell, 
   AlertCircle,
   ExternalLink,
-  Refresh,
+  RefreshCw,
   X
 } from 'lucide-react';
 
@@ -406,7 +406,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
         <div style={{ textAlign: 'center', padding: '2rem', color: '#ef4444' }}>
           <p>{error}</p>
           <RefreshButton onClick={fetchContacts} style={{ marginTop: '1rem' }}>
-            <Refresh size={16} />
+            <RefreshCw size={16} />
             Retry
           </RefreshButton>
         </div>
@@ -436,7 +436,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
             Last updated: {formatTimeAgo(lastFetch.toISOString())}
           </span>
           <RefreshButton onClick={fetchContacts}>
-            <Refresh size={16} />
+            <RefreshCw size={16} />
           </RefreshButton>
         </div>
       </NotificationHeader>
