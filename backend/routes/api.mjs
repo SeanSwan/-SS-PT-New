@@ -10,6 +10,8 @@ import orientationRoutes from './orientationRoutes.mjs';
 import testNotificationRoutes from './testNotificationRoutes.mjs';
 import notificationSettingsRoutes from './notificationSettingsRoutes.mjs';
 import notificationRoutes from './notificationRoutes.mjs';
+import adminRoutes from './adminRoutes.mjs';
+import contactRoutes from './contactRoutes.mjs';
 
 const router = Router();
 
@@ -48,5 +50,11 @@ router.use('/notification-settings', notificationSettingsRoutes);
 
 // Mount notification routes
 router.use('/notifications', notificationRoutes);
+
+// Mount admin routes (protected)
+router.use('/admin', adminRoutes);
+
+// Mount contact routes
+router.use('/contact', contactRoutes);
 
 export default router;

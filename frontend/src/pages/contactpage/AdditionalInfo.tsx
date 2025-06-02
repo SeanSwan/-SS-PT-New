@@ -58,7 +58,7 @@ const AdditionalInfo: React.FC = () => {
           <i className="fab fa-twitter"></i>
         </Icon>
         <Icon
-          href="https://instagram.com"
+          href="https://www.instagram.com/seanswantech"
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Instagram"
