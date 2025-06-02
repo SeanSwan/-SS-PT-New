@@ -16,6 +16,7 @@ import sequelize from '../database.mjs';
 import setupAssociations from '../setupAssociations.mjs';
 import { connectToMongoDB, getMongoDBStatus } from '../mongodb-connect.mjs';
 import { runStartupMigrations } from '../utils/startupMigrations.mjs';
+import { syncDatabaseSafely } from '../utils/productionDatabaseSync.mjs';
 import seedStorefrontItems from '../seedStorefrontItems.mjs';
 import logger from '../utils/logger.mjs';
 
@@ -93,6 +94,19 @@ const initializeDatabases = async () => {
         logger.info('Database synchronized in development mode');
       } catch (syncError) {
         logger.error(`Error syncing database: ${syncError.message}`);
+      }
+    } else {
+      // Production-safe database sync - only creates missing tables
+      try {
+        const syncResult = await syncDatabaseSafely();
+        if (syncResult.success) {
+          logger.info(`✅ Production database sync completed: ${syncResult.tablesCreated} tables created, ${syncResult.tablesExisting} already existed`);
+        } else {
+          logger.warn(`⚠️  Database sync completed with issues: ${syncResult.errors.join(', ')}`);
+        }
+      } catch (syncError) {
+        logger.error(`❌ Production database sync failed: ${syncError.message}`);
+        // Continue startup even if sync fails
       }
     }
 
