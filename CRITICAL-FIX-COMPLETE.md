@@ -5,9 +5,16 @@
 
 ## 🚨 **PROBLEM RESOLVED**
 
-**Issue**: Production deployment failure due to duplicate Sequelize association alias
+**Issues**: Production deployment failure due to multiple Sequelize association conflicts
+
+**Error #1**: 
 ```
 SequelizeAssociationError: You have used the alias shoppingCarts in two separate associations
+```
+
+**Error #2**:
+```
+Error: Naming collision between attribute 'preferences' and association 'preferences' on model User
 ```
 
 **Impact**: Complete server startup failure, blocking all production functionality
@@ -16,19 +23,38 @@ SequelizeAssociationError: You have used the alias shoppingCarts in two separate
 
 ## ✅ **SOLUTION IMPLEMENTED**
 
-### **Root Cause Identified**
+### **Root Causes Identified**
+
+#### **Issue #1: Duplicate Association Alias**
 - **File**: `backend/models/social/enhanced/index.mjs` (Line 223)
 - **Conflict**: Two models using the same association alias `shoppingCarts`
   1. Regular `ShoppingCart` model → `User.hasMany(ShoppingCart, { as: 'shoppingCarts' })`
   2. Enhanced `SocialShoppingCart` model → `User.hasMany(SocialShoppingCart, { as: 'shoppingCarts' })`
 
-### **Fix Applied**
+#### **Issue #2: Naming Collision (Attribute vs Association)**
+- **File**: `backend/models/social/enhanced/index.mjs` (Line 291)
+- **Conflict**: User model has `preferences` attribute, association uses same name
+  1. User model attribute → `preferences: { type: DataTypes.TEXT }`
+  2. Enhanced association → `User.hasOne(UserPreferences, { as: 'preferences' })`
+
+### **Fixes Applied**
+
+#### **Fix #1: Shopping Carts Alias**
 ```javascript
 // BEFORE (Line 223)
 db.models.User.hasMany(SocialShoppingCart, { foreignKey: 'userId', as: 'shoppingCarts' });
 
 // AFTER (Fixed)
 db.models.User.hasMany(SocialShoppingCart, { foreignKey: 'userId', as: 'socialShoppingCarts' });
+```
+
+#### **Fix #2: Preferences Alias**
+```javascript
+// BEFORE (Line 291)
+db.models.User.hasOne(UserPreferences, { foreignKey: 'userId', as: 'preferences' });
+
+// AFTER (Fixed)
+db.models.User.hasOne(UserPreferences, { foreignKey: 'userId', as: 'aiPreferences' });
 ```
 
 ---
@@ -84,7 +110,8 @@ db.models.User.hasMany(SocialShoppingCart, { foreignKey: 'userId', as: 'socialSh
 
 | File | Change | Impact |
 |------|--------|---------|
-| `backend/models/social/enhanced/index.mjs` | Line 223: Changed alias `shoppingCarts` → `socialShoppingCarts` | **CRITICAL FIX** - Resolves server crash |
+| `backend/models/social/enhanced/index.mjs` | Line 223: Changed alias `shoppingCarts` → `socialShoppingCarts` | **CRITICAL FIX** - Resolves duplicate alias crash |
+| `backend/models/social/enhanced/index.mjs` | Line 291: Changed alias `preferences` → `aiPreferences` | **CRITICAL FIX** - Resolves naming collision crash |
 
 ---
 
