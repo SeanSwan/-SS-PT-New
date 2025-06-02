@@ -20,7 +20,7 @@ import {
   RefreshCw,
   X
 } from 'lucide-react';
-import apiService from '../../../../services/api.service';
+import apiService from '../../../../../services/api.service';
 
 // === ANIMATIONS ===
 const pulse = keyframes`
