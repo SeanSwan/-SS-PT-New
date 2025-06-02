@@ -1,7 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, useAnimation, useInView } from "framer-motion";
-import Header from "../../components/Header/header";
 import GlowButton from "../../components/ui/GlowButton";
 import { TextField, Snackbar, Alert, Grid, IconButton, Tooltip } from "@mui/material";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
@@ -181,13 +180,13 @@ const MainContent = styled(motion.main)`
   z-index: 3;
   max-width: 1200px;
   width: 90%;
-  margin: 7rem auto 3rem;
+  margin: 3rem auto;
   padding: 0;
   border-radius: 20px;
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
   
   @media (max-width: 768px) {
-    margin-top: 5rem;
+    margin-top: 2rem;
   }
 `;
 
@@ -724,9 +723,6 @@ const EnhancedContactPage = () => {
       {/* Premium Decorative Elements */}
       <TopLeftOrb />
       <BottomRightOrb />
-
-      {/* Site Header */}
-      <Header />
       
       {/* Main Content with Glass Morphism */}
       <MainContent
