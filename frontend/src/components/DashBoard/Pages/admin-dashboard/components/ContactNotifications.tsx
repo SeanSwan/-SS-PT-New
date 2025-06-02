@@ -443,14 +443,14 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
 
       {contacts.length === 0 ? (
         <EmptyState>
-          <div className=\"icon\">
+          <div className="icon">
             <MessageSquare size={48} />
           </div>
           <h4>No Recent Contacts</h4>
           <p>All caught up! No new consultation requests in the last 24 hours.</p>
         </EmptyState>
       ) : (
-        <AnimatePresence mode=\"popLayout\">
+        <AnimatePresence mode="popLayout">
           {contacts.map((contact, index) => (
             <ContactCard
               key={contact.id}
