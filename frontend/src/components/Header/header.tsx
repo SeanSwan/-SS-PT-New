@@ -264,7 +264,7 @@ const MobileMenu = styled(motion.div)`
   padding: 80px 24px 24px; 
   display: flex; 
   flex-direction: column; 
-  z-index: 9; 
+  z-index: 1001; 
   overflow-y: auto;
 `;
 

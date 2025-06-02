@@ -11,6 +11,17 @@ const MainContainer = styled.div`
   min-height: 100vh;
 `;
 
+const ContentWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  margin-top: 56px; /* Account for fixed header height */
+  
+  @media (max-width: 480px) {
+    margin-top: 56px; /* Header height on mobile */
+  }
+`;
+
 const Content = styled.main`
   flex: 1;
 `;
@@ -40,18 +51,21 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <MainContainer>
       <Header />
       
-      {/* Construction Banner - Between Header and Content */}
-      <ConstructionBannerContainer 
-        isVisible={showConstructionBanner}
-        onClose={handleCloseBanner}
-        showCloseButton={true}
-        customMessage="SwanStudios Platform Enhanced - Nearly Complete"
-        customSubMessage="We're putting the finishing touches on your upgraded experience"
-      />
+      <ContentWrapper>
+        {/* Construction Banner - Right below fixed header */}
+        <ConstructionBannerContainer 
+          isVisible={showConstructionBanner}
+          onClose={handleCloseBanner}
+          showCloseButton={true}
+          customMessage="SwanStudios Platform Enhanced - Nearly Complete"
+          customSubMessage="We're putting the finishing touches on your upgraded experience"
+        />
+        
+        <Content>
+          {children}
+        </Content>
+      </ContentWrapper>
       
-      <Content>
-        {children}
-      </Content>
       <Footer />
       <ScrollToTop 
         theme="cosmic"
