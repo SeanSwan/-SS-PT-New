@@ -4,6 +4,7 @@ import styled, { keyframes, css } from "styled-components";
 import { motion, useScroll, useTransform, useInView, AnimatePresence } from "framer-motion";
 import { Helmet } from "react-helmet-async";
 import GlowButton from "../../../components/Button/glowButton";
+import { ConstructionBannerContainer } from "../../../components/common";
 
 // Import components
 import HeroSection from "./Hero-Section";
@@ -320,6 +321,7 @@ const HomePage: React.FC = () => {
   const { scrollY } = useScroll();
   const scrollPromptOpacity = useTransform(scrollY, [0, 300], [1, 0]);
   const [showScrollPrompt, setShowScrollPrompt] = useState<boolean>(true);
+  const [showConstructionBanner, setShowConstructionBanner] = useState<boolean>(true);
   const [homeRef, isHomeInView] = useCustomInView(0.1);
   
   // Section refs for improved animations
@@ -349,7 +351,19 @@ const HomePage: React.FC = () => {
     testimonials: "testimonials"
   };
 
+  // Handle banner close
+  const handleCloseBanner = () => {
+    setShowConstructionBanner(false);
+    sessionStorage.setItem('construction-banner-closed', 'true');
+  };
+
   useEffect(() => {
+    // Check if banner was previously closed
+    const bannerClosed = sessionStorage.getItem('construction-banner-closed');
+    if (bannerClosed === 'true') {
+      setShowConstructionBanner(false);
+    }
+    
     // Handle scroll visibility
     const handleScroll = () => {
       setShowScrollPrompt(window.scrollY <= 200);
@@ -457,6 +471,15 @@ const HomePage: React.FC = () => {
         <meta name="keywords" content="personal training, fitness, dance, creative expression, wellness, performance training, NASM certified" />
         <link rel="canonical" href="https://swanstudios.com" />
       </Helmet>
+      
+      {/* Construction Banner - Between header and hero */}
+      <ConstructionBannerContainer 
+        isVisible={showConstructionBanner}
+        onClose={handleCloseBanner}
+        showCloseButton={true}
+        customMessage="SwanStudios Platform Enhanced - Nearly Complete"
+        customSubMessage="We're putting the finishing touches on your upgraded experience"
+      />
       
       {/* Hero Section */}
       <HeroSection />
