@@ -47,8 +47,20 @@ async function testAssociationsFix() {
       console.log(`🛒 Regular shopping carts alias: ${hasShoppingCarts ? '✅' : '❌'}`);
       console.log(`🛍️  Social shopping carts alias: ${hasSocialShoppingCarts ? '✅' : '❌'}`);
       
+      // Check for preferences naming collision fix
+      const hasPreferences = userAssociations.includes('preferences');
+      const hasAiPreferences = userAssociations.includes('aiPreferences');
+      
+      console.log(`⚙️  Preferences alias (should be ABSENT): ${hasPreferences ? '❌ CONFLICT!' : '✅ No conflict'}`);
+      console.log(`🤖 AI Preferences alias: ${hasAiPreferences ? '✅' : '❌'}`);
+      
       if (hasShoppingCarts && !hasSocialShoppingCarts) {
         console.log('⚠️  Note: Social shopping carts not found - this is expected if enhanced social models aren\'t fully integrated yet');
+      }
+      
+      if (hasPreferences) {
+        console.error('🚨 CRITICAL: preferences alias conflict still exists!');
+        process.exit(1);
       }
     }
     
@@ -64,6 +76,11 @@ async function testAssociationsFix() {
     if (error.message.includes('alias') && error.message.includes('separate associations')) {
       console.error('🚨 This indicates there are still duplicate association aliases!');
       console.error('📝 Check for other conflicting aliases in the enhanced social models');
+    }
+    
+    if (error.message.includes('Naming collision') && error.message.includes('attribute')) {
+      console.error('🚨 This indicates a naming collision between model attributes and associations!');
+      console.error('📝 Check for conflicting names between User model attributes and association aliases');
     }
     
     console.error('Stack trace:', error.stack);

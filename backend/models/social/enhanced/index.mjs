@@ -288,7 +288,7 @@ const setupEnhancedSocialAssociations = () => {
     
     if (db.models.User) {
       // User preferences
-      db.models.User.hasOne(UserPreferences, { foreignKey: 'userId', as: 'preferences' });
+      db.models.User.hasOne(UserPreferences, { foreignKey: 'userId', as: 'aiPreferences' });
       UserPreferences.belongsTo(db.models.User, { foreignKey: 'userId', as: 'user' });
       
       // User interactions
