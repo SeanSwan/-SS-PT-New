@@ -800,7 +800,7 @@ const EnhancedFooter = () => {
           </ContactItem>
           <ContactItem variants={contactVariants}>
             <FaPhone />
-            <span>(555) 123-4567</span>
+            <span>(714) 947-3221</span>
           </ContactItem>
           <ContactItem variants={contactVariants}>
             <FaEnvelope />
@@ -811,13 +811,7 @@ const EnhancedFooter = () => {
             Hours
           </FooterHeading>
           <ContactItem variants={contactVariants}>
-            <span>Monday-Friday: 6am - 9pm</span>
-          </ContactItem>
-          <ContactItem variants={contactVariants}>
-            <span>Saturday: 8am - 6pm</span>
-          </ContactItem>
-          <ContactItem variants={contactVariants}>
-            <span>Sunday: 10am - 4pm</span>
+            <span>Monday-Sunday: By Appointment Only</span>
           </ContactItem>
         </FooterSection>
       </FooterContent>
