@@ -879,6 +879,463 @@ const LoadingText = styled.p`
   font-weight: 500;
 `;
 
+// ===================== SWAN GALAXY RADIANCE LIVE MESSAGE BOARD COMPONENTS =====================
+
+// Webb-inspired nebula animations
+const nebulaFlow = keyframes`
+  0% {
+    background-position: 0% 0%;
+    opacity: 0.6;
+  }
+  50% {
+    background-position: 100% 100%;
+    opacity: 0.8;
+  }
+  100% {
+    background-position: 0% 0%;
+    opacity: 0.6;
+  }
+`;
+
+const swanGlide = keyframes`
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-8px) rotate(1deg);
+  }
+  75% {
+    transform: translateY(4px) rotate(-0.5deg);
+  }
+`;
+
+const stellarRadiance = keyframes`
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(139, 69, 19, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(139, 69, 19, 0.6), 0 0 80px rgba(65, 105, 225, 0.2);
+    transform: scale(1.01);
+  }
+`;
+
+// Main Feed Container with Webb-inspired nebula background
+const LiveFeedContainer = styled(motion.div)`
+  position: relative;
+  background: ${({ theme }) => theme.gradients.card};
+  backdrop-filter: blur(20px);
+  border: 1px solid ${({ theme }) => theme.borders.elegant};
+  border-radius: 20px;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      45deg,
+      rgba(15, 23, 42, 0.8) 0%,
+      rgba(30, 58, 138, 0.6) 25%,
+      rgba(139, 69, 19, 0.4) 50%,
+      rgba(249, 115, 22, 0.3) 75%,
+      rgba(15, 23, 42, 0.8) 100%
+    );
+    background-size: 400% 400%;
+    animation: ${({ $enableAnimations }) => 
+      $enableAnimations ? css`${nebulaFlow} 20s ease-in-out infinite` : 'none'
+    };
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  /* Performance optimizations */
+  body.perf-weak &::before {
+    animation: none;
+    background: ${({ theme }) => theme.background.elevated};
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      animation: none;
+    }
+  }
+`;
+
+const FeedContent = styled.div`
+  position: relative;
+  z-index: 1;
+  padding: 2rem;
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
+`;
+
+const FeedHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+`;
+
+const FeedTitle = styled.h2`
+  color: ${({ theme }) => theme.text.primary};
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: linear-gradient(135deg, #F59E0B, #3B82F6, #8B5CF6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: ${({ $performanceLevel }) => {
+    if ($performanceLevel === 'weak') return 'none';
+    if ($performanceLevel === 'medium') return css`${simpleFloat} 6s ease-in-out infinite`;
+    return css`${swanGlide} 8s ease-in-out infinite`;
+  }};
+  
+  @media (max-width: 768px) {
+    font-size: 1.6rem;
+    text-align: center;
+  }
+  
+  /* Performance overrides */
+  body.perf-weak & {
+    animation: none;
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+const CreatePostContainer = styled(motion.div)`
+  background: ${({ theme }) => theme.background.elevated};
+  backdrop-filter: blur(15px);
+  border: 2px solid ${({ theme }) => theme.borders.elegant};
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(59, 130, 246, 0.1) 0%,
+      rgba(139, 69, 19, 0.05) 50%,
+      rgba(249, 115, 22, 0.1) 100%
+    );
+    border-radius: 16px;
+    pointer-events: none;
+  }
+`;
+
+const PostComposer = styled.div`
+  position: relative;
+  z-index: 1;
+`;
+
+const PostInput = styled.textarea`
+  width: 100%;
+  min-height: 120px;
+  background: ${({ theme }) => theme.background.primary};
+  border: 1px solid ${({ theme }) => theme.borders.subtle};
+  border-radius: 12px;
+  padding: 1rem;
+  color: ${({ theme }) => theme.text.primary};
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  resize: vertical;
+  transition: all 0.3s ease;
+  
+  &::placeholder {
+    color: ${({ theme }) => theme.text.secondary};
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary + '20'};
+  }
+`;
+
+const PostActions = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1rem;
+  }
+`;
+
+const PostOptions = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  
+  @media (max-width: 768px) {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+`;
+
+const PostOptionButton = styled(motion.button)`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: ${({ theme }) => theme.background.elevated};
+  border: 1px solid ${({ theme }) => theme.borders.subtle};
+  border-radius: 8px;
+  color: ${({ theme }) => theme.text.secondary};
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  
+  &:hover {
+    background: ${({ theme }) => theme.colors.primary + '20'};
+    border-color: ${({ theme }) => theme.colors.primary};
+    color: ${({ theme }) => theme.colors.primary};
+    transform: translateY(-1px);
+  }
+`;
+
+const PostButton = styled(motion.button)`
+  background: linear-gradient(135deg, #3B82F6, #8B5CF6);
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+const PostsStream = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+`;
+
+const PostCard = styled(motion.div)`
+  background: ${({ theme }) => theme.background.elevated};
+  backdrop-filter: blur(15px);
+  border: 1px solid ${({ theme }) => theme.borders.elegant};
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  transition: all 0.3s ease;
+  animation: ${({ $enableAnimations, $performanceLevel }) => {
+    if (!$enableAnimations || $performanceLevel === 'weak') return 'none';
+    if ($performanceLevel === 'medium') return css`${simpleFade} 6s ease-in-out infinite`;
+    return css`${stellarRadiance} 8s ease-in-out infinite`;
+  }};
+  
+  &:hover {
+    transform: translateY(-4px);
+    border-color: ${({ theme }) => theme.colors.primary + '60'};
+  }
+  
+  /* Performance overrides */
+  body.perf-weak & {
+    animation: none;
+    &:hover {
+      transform: translateY(-1px);
+    }
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    &:hover {
+      transform: none;
+    }
+  }
+`;
+
+const PostHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 1.5rem 0;
+`;
+
+const PostAuthorImage = styled.div`
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: ${({ $image, theme }) => 
+    $image ? `url(${$image})` : theme.gradients.primary
+  };
+  background-size: cover;
+  background-position: center;
+  border: 2px solid ${({ theme }) => theme.colors.primary + '40'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  animation: ${({ $enableAnimations, $performanceLevel }) => {
+    if (!$enableAnimations || $performanceLevel === 'weak') return 'none';
+    return css`${cosmicGlow} 6s ease-in-out infinite`;
+  }};
+  
+  body.perf-weak & {
+    animation: none;
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+`;
+
+const PostAuthorInfo = styled.div`
+  flex: 1;
+`;
+
+const PostAuthorName = styled.h4`
+  color: ${({ theme }) => theme.text.primary};
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+`;
+
+const PostTimestamp = styled.p`
+  color: ${({ theme }) => theme.text.secondary};
+  font-size: 0.9rem;
+  margin: 0;
+`;
+
+const PostContent = styled.div`
+  padding: 1rem 1.5rem;
+`;
+
+const PostText = styled.p`
+  color: ${({ theme }) => theme.text.primary};
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0 0 1rem;
+  word-wrap: break-word;
+`;
+
+const PostMediaContainer = styled.div`
+  margin: 1rem 0;
+  border-radius: 12px;
+  overflow: hidden;
+  
+  img, video {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+`;
+
+const PostFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem 1.5rem;
+  border-top: 1px solid ${({ theme }) => theme.borders.subtle};
+  margin-top: 1rem;
+  padding-top: 1rem;
+`;
+
+const PostInteractions = styled.div`
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+`;
+
+const InteractionButton = styled(motion.button)`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: ${({ $active, theme }) => 
+    $active ? theme.colors.primary : theme.text.secondary
+  };
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: ${({ theme }) => theme.colors.primary + '10'};
+    color: ${({ theme }) => theme.colors.primary};
+    transform: scale(1.05);
+  }
+  
+  body.perf-weak &:hover {
+    transform: none;
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    &:hover {
+      transform: none;
+    }
+  }
+`;
+
+const JourneyWeaveButton = styled(motion.button)`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #F59E0B, #DC2626);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+  }
+`;
+
 // ===================== ERROR BOUNDARY =====================
 class UserDashboardErrorBoundary extends React.Component {
   constructor(props) {
@@ -964,7 +1421,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
   } = useProfile();
   
   // Core UI State
-  const [activeTab, setActiveTab] = useState('community');
+  const [activeTab, setActiveTab] = useState('feed');
   const [backgroundImage, setBackgroundImage] = useState<string | null>(null);
   const [uploadingType, setUploadingType] = useState<'profile' | 'background' | 'photo' | null>(null);
   
@@ -1266,6 +1723,383 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
     { icon: Rocket, title: 'Ready to Shine', description: 'Ready for stellar transformation', rarity: 'common' }
   ];
 
+  // ===================== SWAN GALAXY RADIANCE LIVE FEED FUNCTIONS =====================
+  
+  // Mock posts data with positive, inspiring content
+  const [feedPosts, setFeedPosts] = useState([
+    {
+      id: 1,
+      author: {
+        name: 'Luna Starlight',
+        username: 'luna_cosmic',
+        image: null,
+        initials: 'LS'
+      },
+      content: '🌟 Just completed my morning yoga flow watching the sunrise! There\'s something magical about starting the day with gratitude and movement. The way the light danced through the clouds reminded me that every new day is a gift. Who else loves morning workouts? ✨',
+      media: {
+        type: 'image',
+        url: 'https://picsum.photos/600/400?random=1'
+      },
+      timestamp: '2 hours ago',
+      interactions: {
+        inspires: 24,
+        resonates: 18,
+        uplifts: 31,
+        comments: 7
+      },
+      userInteractions: {
+        inspired: false,
+        resonated: false,
+        uplifted: false
+      }
+    },
+    {
+      id: 2,
+      author: {
+        name: 'Marcus Wellness',
+        username: 'marcus_strong',
+        image: null,
+        initials: 'MW'
+      },
+      content: '💪 Breakthrough moment at the gym today! Finally deadlifted my bodyweight for the first time. Six months ago, I could barely lift the bar. Progress isn\'t always linear, but consistency pays off. To everyone on their fitness journey - keep going, you\'re stronger than you think! 🚀',
+      media: null,
+      timestamp: '4 hours ago',
+      interactions: {
+        inspires: 42,
+        resonates: 28,
+        uplifts: 35,
+        comments: 12
+      },
+      userInteractions: {
+        inspired: true,
+        resonated: false,
+        uplifted: false
+      }
+    },
+    {
+      id: 3,
+      author: {
+        name: 'Sophia Dance',
+        username: 'sophia_moves',
+        image: null,
+        initials: 'SD'
+      },
+      content: '💃 Dance class tonight was pure magic! We learned a routine to \"What a Wonderful World\" and I couldn\'t help but smile the entire time. Dance isn\'t just movement - it\'s expression, joy, and connection. Feeling grateful for this amazing community where we lift each other up! 🎵',
+      media: {
+        type: 'video',
+        url: 'https://picsum.photos/600/400?random=2'
+      },
+      timestamp: '6 hours ago',
+      interactions: {
+        inspires: 38,
+        resonates: 31,
+        uplifts: 44,
+        comments: 15
+      },
+      userInteractions: {
+        inspired: false,
+        resonated: true,
+        uplifted: true
+      }
+    },
+    {
+      id: 4,
+      author: {
+        name: 'Chef Gabriel',
+        username: 'chef_gabriel',
+        image: null,
+        initials: 'CG'
+      },
+      content: '🥗 Made this rainbow Buddha bowl for lunch and it tasted as beautiful as it looks! Roasted sweet potato, quinoa, fresh greens, and tahini dressing. Nourishing our bodies is an act of self-love. What\'s your favorite healthy meal that makes you feel amazing? Share the love! 🌈',
+      media: {
+        type: 'image',
+        url: 'https://picsum.photos/600/400?random=3'
+      },
+      timestamp: '8 hours ago',
+      interactions: {
+        inspires: 29,
+        resonates: 33,
+        uplifts: 26,
+        comments: 9
+      },
+      userInteractions: {
+        inspired: false,
+        resonated: false,
+        uplifted: false
+      }
+    },
+    {
+      id: 5,
+      author: {
+        name: 'Trainer Alex',
+        username: 'alex_trainer',
+        image: null,
+        initials: 'TA'
+      },
+      content: '🎯 Reminder: Your worth isn\'t measured by the number on the scale, your speed on the treadmill, or how much you can lift. It\'s measured by your kindness, your effort, your resilience, and the positive energy you bring to the world. You are enough, exactly as you are. 💛',
+      media: null,
+      timestamp: '1 day ago',
+      interactions: {
+        inspires: 67,
+        resonates: 89,
+        uplifts: 102,
+        comments: 23
+      },
+      userInteractions: {
+        inspired: true,
+        resonated: true,
+        uplifted: true
+      }
+    }
+  ]);
+  
+  const [newPostContent, setNewPostContent] = useState('');
+  const [isPosting, setIsPosting] = useState(false);
+  
+  // Handle post creation
+  const handleCreatePost = useCallback(async () => {
+    if (!newPostContent.trim() || isPosting) return;
+    
+    setIsPosting(true);
+    
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      const newPost = {
+        id: Date.now(),
+        author: {
+          name: getDisplayName(),
+          username: getUsernameForDisplay(),
+          image: profile?.photo,
+          initials: getUserInitials()
+        },
+        content: newPostContent,
+        media: null,
+        timestamp: 'Just now',
+        interactions: {
+          inspires: 0,
+          resonates: 0,
+          uplifts: 0,
+          comments: 0
+        },
+        userInteractions: {
+          inspired: false,
+          resonated: false,
+          uplifted: false
+        }
+      };
+      
+      setFeedPosts(prev => [newPost, ...prev]);
+      setNewPostContent('');
+    } catch (error) {
+      console.error('Error creating post:', error);
+    } finally {
+      setIsPosting(false);
+    }
+  }, [newPostContent, isPosting, getDisplayName, getUsernameForDisplay, getUserInitials, profile?.photo]);
+  
+  // Handle post interactions
+  const handlePostInteraction = useCallback((postId: number, type: 'inspires' | 'resonates' | 'uplifts') => {
+    setFeedPosts(prev => prev.map(post => {
+      if (post.id === postId) {
+        const wasActive = post.userInteractions[type === 'inspires' ? 'inspired' : type === 'resonates' ? 'resonated' : 'uplifted'];
+        return {
+          ...post,
+          interactions: {
+            ...post.interactions,
+            [type]: wasActive ? post.interactions[type] - 1 : post.interactions[type] + 1
+          },
+          userInteractions: {
+            ...post.userInteractions,
+            [type === 'inspires' ? 'inspired' : type === 'resonates' ? 'resonated' : 'uplifted']: !wasActive
+          }
+        };
+      }
+      return post;
+    }));
+  }, []);
+  
+  // Handle Journey Weave feature
+  const handleJourneyWeave = useCallback(() => {
+    console.log('🌟 Opening Journey Weave visualization...');
+    // TODO: Implement Journey Weave modal/page
+  }, []);
+  
+  // ===================== SWAN GALAXY RADIANCE LIVE FEED COMPONENT =====================
+  
+  const SwanGalaxyRadianceFeed = () => (
+    <LiveFeedContainer
+      $enableAnimations={enableLuxuryAnimations}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8 }}
+    >
+      <FeedContent>
+        <FeedHeader>
+          <FeedTitle $performanceLevel={devicePerformance}>
+            <Sparkles size={32} />
+            Swan Galaxy Community
+          </FeedTitle>
+          <JourneyWeaveButton
+            onClick={handleJourneyWeave}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <Telescope size={20} />
+            Journey Weave
+          </JourneyWeaveButton>
+        </FeedHeader>
+        
+        {/* Create New Post */}
+        <CreatePostContainer
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <PostComposer>
+            <PostInput
+              placeholder="Share your positive energy with the SwanStudios community... ✨"
+              value={newPostContent}
+              onChange={(e) => setNewPostContent(e.target.value)}
+              maxLength={500}
+            />
+            <PostActions>
+              <PostOptions>
+                <PostOptionButton
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <ImageIcon size={18} />
+                  Photo
+                </PostOptionButton>
+                <PostOptionButton
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <VideoCamera size={18} />
+                  Video
+                </PostOptionButton>
+                <PostOptionButton
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Smile size={18} />
+                  Feeling
+                </PostOptionButton>
+              </PostOptions>
+              <PostButton
+                onClick={handleCreatePost}
+                disabled={!newPostContent.trim() || isPosting}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {isPosting ? (
+                  <LoadingSpinner style={{ width: '20px', height: '20px', margin: 0 }} />
+                ) : (
+                  <>Share Light</>  
+                )}
+              </PostButton>
+            </PostActions>
+          </PostComposer>
+        </CreatePostContainer>
+        
+        {/* Posts Stream */}
+        <PostsStream>
+          {feedPosts.map((post, index) => (
+            <PostCard
+              key={post.id}
+              $enableAnimations={enableLuxuryAnimations}
+              $performanceLevel={devicePerformance}
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 + (index * 0.1) }}
+            >
+              <PostHeader>
+                <PostAuthorImage
+                  $image={post.author.image}
+                  $enableAnimations={enableLuxuryAnimations}
+                  $performanceLevel={devicePerformance}
+                >
+                  {!post.author.image && post.author.initials}
+                </PostAuthorImage>
+                <PostAuthorInfo>
+                  <PostAuthorName>{post.author.name}</PostAuthorName>
+                  <PostTimestamp>@{post.author.username} • {post.timestamp}</PostTimestamp>
+                </PostAuthorInfo>
+              </PostHeader>
+              
+              <PostContent>
+                <PostText>{post.content}</PostText>
+                {post.media && (
+                  <PostMediaContainer>
+                    {post.media.type === 'image' ? (
+                      <img src={post.media.url} alt="Post content" />
+                    ) : (
+                      <video 
+                        src={post.media.url} 
+                        controls 
+                        style={{ 
+                          background: `url(${post.media.url}) center/cover`,
+                          minHeight: '200px'
+                        }}
+                      />
+                    )}
+                  </PostMediaContainer>
+                )}
+              </PostContent>
+              
+              <PostFooter>
+                <PostInteractions>
+                  <InteractionButton
+                    $active={post.userInteractions.inspired}
+                    onClick={() => handlePostInteraction(post.id, 'inspires')}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <Star size={18} />
+                    {post.interactions.inspires} Inspires
+                  </InteractionButton>
+                  <InteractionButton
+                    $active={post.userInteractions.resonated}
+                    onClick={() => handlePostInteraction(post.id, 'resonates')}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <Heart size={18} />
+                    {post.interactions.resonates} Resonates
+                  </InteractionButton>
+                  <InteractionButton
+                    $active={post.userInteractions.uplifted}
+                    onClick={() => handlePostInteraction(post.id, 'uplifts')}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <Sun size={18} />
+                    {post.interactions.uplifts} Uplifts
+                  </InteractionButton>
+                  <InteractionButton
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <MessageCircle size={18} />
+                    {post.interactions.comments} Comments
+                  </InteractionButton>
+                </PostInteractions>
+                <InteractionButton
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <Share2 size={18} />
+                </InteractionButton>
+              </PostFooter>
+            </PostCard>
+          ))}
+        </PostsStream>
+      </FeedContent>
+    </LiveFeedContainer>
+  );
+  
   // ===================== TAB CONTENT COMPONENTS =====================
   
   const CommunityContent = () => (
@@ -2224,6 +3058,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
             {/* Tab Navigation */}
             <TabNavigation>
               {[
+                { id: 'feed', label: 'Live Feed', icon: Sparkles },
                 { id: 'community', label: 'Community', icon: Users2 },
                 { id: 'creative', label: 'Creative', icon: Music2 },
                 { id: 'photos', label: 'Photos', icon: ImageIcon },
@@ -2248,6 +3083,7 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
 
             {/* Tab Content */}
             <AnimatePresence mode="wait">
+              {activeTab === 'feed' && <SwanGalaxyRadianceFeed key="feed" />}
               {activeTab === 'community' && <CommunityContent key="community" />}
               {activeTab === 'creative' && <CreativeExpressionContent key="creative" />}
               {activeTab === 'photos' && <PhotosContent key="photos" />}
