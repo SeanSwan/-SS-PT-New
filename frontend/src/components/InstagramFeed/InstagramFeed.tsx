@@ -520,7 +520,7 @@ const InstagramFeed: React.FC = () => {
             Get inspired by real transformations, workout tips, and behind-the-scenes content from our community.
           </SectionSubtitle>
           <InstagramHandle
-            href="https://instagram.com/swanstudios"
+            href="https://www.instagram.com/seanswantech"
             target="_blank"
             rel="noopener noreferrer"
             variants={handleVariants}
@@ -528,7 +528,7 @@ const InstagramFeed: React.FC = () => {
             whileInView="visible"
             viewport={{ once: true }}
           >
-            <FaInstagram /> @swanstudios
+            <FaInstagram /> @seanswantech
           </InstagramHandle>
         </SectionHeader>
 
@@ -599,7 +599,7 @@ const InstagramFeed: React.FC = () => {
             theme="purple"
             size="medium"
             leftIcon={<FaInstagram />}
-            onClick={() => window.open('https://instagram.com/swanstudios', '_blank')}
+            onClick={() => window.open('https://www.instagram.com/seanswantech', '_blank')}
             animateOnRender={false}
           />
         </ButtonContainer>

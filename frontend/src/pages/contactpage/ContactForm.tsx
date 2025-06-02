@@ -81,13 +81,14 @@ const ContactForm: React.FC = () => {
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [message, setMessage] = useState<string>("");
-  const [errors, setErrors] = useState({ name: "", email: "", message: "" });
+  const [consultationType, setConsultationType] = useState<string>("general");
+  const [errors, setErrors] = useState({ name: "", email: "", message: "", consultationType: "" });
   const [submitted, setSubmitted] = useState<boolean>(false);
 
   // Validate form inputs
   const validateForm = (): boolean => {
     let isValid = true;
-    const newErrors = { name: "", email: "", message: "" };
+    const newErrors = { name: "", email: "", message: "", consultationType: "" };
 
     if (!name.trim()) {
       newErrors.name = "Name is required";
@@ -104,6 +105,10 @@ const ContactForm: React.FC = () => {
       newErrors.message = "Message is required";
       isValid = false;
     }
+    if (!consultationType) {
+      newErrors.consultationType = "Please select a consultation type";
+      isValid = false;
+    }
 
     setErrors(newErrors);
     return isValid;
@@ -114,9 +119,27 @@ const ContactForm: React.FC = () => {
     if (!validateForm()) return;
 
     try {
+      // Map consultation type to priority
+      const priorityMap = {
+        'general': 'normal',
+        'consultation': 'high',
+        'urgent-consultation': 'urgent',
+        'personal-training': 'high',
+        'nutrition-coaching': 'normal',
+        'injury-rehab': 'urgent'
+      };
+      
+      const priority = priorityMap[consultationType] || 'normal';
+      
       // Use the environment variable to point to your backend API
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-      await axios.post(`${API_BASE_URL}/api/contact`, { name, email, message });
+      await axios.post(`${API_BASE_URL}/api/contact`, { 
+        name, 
+        email, 
+        message, 
+        consultationType,
+        priority 
+      });
 
       setSubmitted(true);
       setTimeout(() => {
@@ -124,6 +147,7 @@ const ContactForm: React.FC = () => {
         setName("");
         setEmail("");
         setMessage("");
+        setConsultationType("general");
       }, 3000);
     } catch (error) {
       console.error("Error sending contact message:", error);
@@ -156,8 +180,31 @@ const ContactForm: React.FC = () => {
       />
       {errors.email && <ErrorMessage>{errors.email}</ErrorMessage>}
 
+      <select
+        value={consultationType}
+        onChange={(e) => setConsultationType(e.target.value)}
+        style={{
+          padding: '0.75rem',
+          border: 'none',
+          borderRadius: '5px',
+          background: 'rgba(255, 255, 255, 0.2)',
+          color: '#ffffff',
+          fontSize: '1rem',
+          cursor: 'pointer'
+        }}
+        aria-label="Consultation Type"
+      >
+        <option value="general" style={{ background: '#2a2a2a', color: '#ffffff' }}>General Inquiry</option>
+        <option value="consultation" style={{ background: '#2a2a2a', color: '#ffffff' }}>Free Consultation</option>
+        <option value="urgent-consultation" style={{ background: '#2a2a2a', color: '#ffffff' }}>Urgent Consultation</option>
+        <option value="personal-training" style={{ background: '#2a2a2a', color: '#ffffff' }}>Personal Training</option>
+        <option value="nutrition-coaching" style={{ background: '#2a2a2a', color: '#ffffff' }}>Nutrition Coaching</option>
+        <option value="injury-rehab" style={{ background: '#2a2a2a', color: '#ffffff' }}>Injury Rehabilitation</option>
+      </select>
+      {errors.consultationType && <ErrorMessage>{errors.consultationType}</ErrorMessage>}
+
       <TextArea
-        placeholder="Message"
+        placeholder="Message - Please describe your fitness goals, current situation, and how we can help you achieve extraordinary results"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         aria-label="Message"

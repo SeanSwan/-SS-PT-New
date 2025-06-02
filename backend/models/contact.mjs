@@ -28,6 +28,23 @@ Contact.init(
       type: DataTypes.UUID,
       allowNull: true, // Nullable since contacts might be from non-registered users
     },
+    // Admin tracking
+    viewedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'When admin viewed this contact'
+    },
+    respondedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'When admin responded to this contact'
+    },
+    priority: {
+      type: DataTypes.ENUM('low', 'normal', 'high', 'urgent'),
+      allowNull: false,
+      defaultValue: 'normal',
+      comment: 'Contact priority level'
+    },
   },
   {
     sequelize,
