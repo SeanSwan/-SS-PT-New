@@ -125,12 +125,12 @@ const setupEnhancedSocialAssociations = () => {
     // ===============================
     
     if (db.models.User) {
-      // User notifications
-      db.models.User.hasMany(EnhancedNotification, { foreignKey: 'userId', as: 'notifications' });
+      // User enhanced notifications (unique alias to avoid conflict with base Notification model)
+      db.models.User.hasMany(EnhancedNotification, { foreignKey: 'userId', as: 'enhancedNotifications' });
       EnhancedNotification.belongsTo(db.models.User, { foreignKey: 'userId', as: 'recipient' });
       
-      // Notification senders
-      db.models.User.hasMany(EnhancedNotification, { foreignKey: 'senderId', as: 'sentNotifications' });
+      // Enhanced notification senders
+      db.models.User.hasMany(EnhancedNotification, { foreignKey: 'senderId', as: 'sentEnhancedNotifications' });
       EnhancedNotification.belongsTo(db.models.User, { foreignKey: 'senderId', as: 'sender' });
       
       // Notification preferences
