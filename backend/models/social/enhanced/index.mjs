@@ -220,7 +220,7 @@ const setupEnhancedSocialAssociations = () => {
       ProductReview.belongsTo(db.models.User, { foreignKey: 'userId', as: 'reviewer' });
       
       // Shopping carts
-      db.models.User.hasMany(SocialShoppingCart, { foreignKey: 'userId', as: 'shoppingCarts' });
+      db.models.User.hasMany(SocialShoppingCart, { foreignKey: 'userId', as: 'socialShoppingCarts' });
       SocialShoppingCart.belongsTo(db.models.User, { foreignKey: 'userId', as: 'user' });
       
       // Wishlist
