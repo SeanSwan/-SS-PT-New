@@ -28,12 +28,18 @@ module.exports = {
         comment: 'Price field to match StorefrontItem model'
       });
       
-      // Update existing records to set price = total_cost where price is null
-      await queryInterface.sequelize.query(`
-        UPDATE storefront_items 
-        SET price = total_cost 
-        WHERE price IS NULL AND total_cost IS NOT NULL
-      `);
+      // Check if totalCost column exists before updating
+      if (tableDescription.totalCost) {
+        // Update existing records to set price = totalCost where price is null
+        await queryInterface.sequelize.query(`
+          UPDATE storefront_items 
+          SET price = "totalCost" 
+          WHERE price IS NULL AND "totalCost" IS NOT NULL
+        `);
+        console.log('✅ Updated existing records: price = totalCost where applicable');
+      } else {
+        console.log('⚠️ totalCost column not found, skipping data migration');
+      }
       
       console.log('✅ Successfully added price column to storefront_items table');
       
