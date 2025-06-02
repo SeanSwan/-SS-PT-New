@@ -39,6 +39,15 @@ const setupAssociations = async () => {
     // Social Models (Sequelize)
     const SocialModels = await import('./social/index.mjs');
     const { SocialPost, SocialComment, SocialLike, Friendship, Challenge, ChallengeParticipant, ChallengeTeam } = SocialModels;
+    
+    // Enhanced Social Models (Sequelize)
+    const EnhancedSocialModels = await import('./social/enhanced/index.mjs');
+    const {
+      EnhancedSocialPost, SocialConnection, Community, CommunityMembership,
+      Conversation, Message, ConversationParticipant, EnhancedNotification,
+      LiveStream, CreatorProfile, SocialProduct, SocialEvent, UserPreferences,
+      SocialAnalytics
+    } = EnhancedSocialModels;
 
     // Notification and Orientation (Sequelize)
     const OrientationModule = await import('./Orientation.mjs');
@@ -204,6 +213,12 @@ const setupAssociations = async () => {
 
     console.log('✅ Sequelize model associations established successfully');
     console.log('Note: MongoDB models (exercises, workout plans/sessions) are handled separately');
+    
+    // Setup Enhanced Social Model Associations
+    if (EnhancedSocialModels.setupEnhancedSocialAssociations) {
+      console.log('🔗 Setting up Enhanced Social Model Associations...');
+      EnhancedSocialModels.setupEnhancedSocialAssociations();
+    }
 
     // Return ONLY SEQUELIZE models for exporting
     return {
@@ -228,6 +243,22 @@ const setupAssociations = async () => {
       Challenge,
       ChallengeParticipant,
       ChallengeTeam,
+      
+      // Enhanced Social Models
+      EnhancedSocialPost,
+      SocialConnection,
+      Community,
+      CommunityMembership,
+      Conversation,
+      Message,
+      ConversationParticipant,
+      EnhancedNotification,
+      LiveStream,
+      CreatorProfile,
+      SocialProduct,
+      SocialEvent,
+      UserPreferences,
+      SocialAnalytics,
       
       // E-Commerce Models
       StorefrontItem,

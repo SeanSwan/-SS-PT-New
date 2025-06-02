@@ -111,14 +111,23 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
     if (!user) return;
     
     setIsLoadingStats(true);
-    setError(null);
     
     try {
       const statsData = await profileService.getUserStats();
       setStats(statsData);
     } catch (err: any) {
-      console.error('Error loading stats:', err);
-      setError(err.message || 'Failed to load stats');
+      console.warn('Stats endpoint not available yet:', err.message);
+      // Set default stats instead of showing error
+      setStats({
+        posts: 0,
+        followers: 0,
+        following: 0,
+        workouts: 0,
+        streak: 0,
+        points: 0,
+        level: 1,
+        tier: 'bronze'
+      });
     } finally {
       setIsLoadingStats(false);
     }
@@ -129,7 +138,6 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
    */
   const loadUserPosts = useCallback(async (userId?: string, limit: number = 20, offset: number = 0) => {
     setIsLoadingPosts(true);
-    setError(null);
     
     try {
       const postsData = await profileService.getUserPosts(userId, limit, offset);
@@ -145,8 +153,11 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
       setPostsHasMore(postsData.posts.length === limit);
       setPostsOffset(offset + postsData.posts.length);
     } catch (err: any) {
-      console.error('Error loading posts:', err);
-      setError(err.message || 'Failed to load posts');
+      console.warn('Posts endpoint not available yet:', err.message);
+      // Set empty posts instead of showing error
+      setPosts([]);
+      setPostsHasMore(false);
+      setPostsOffset(0);
     } finally {
       setIsLoadingPosts(false);
     }
@@ -168,14 +179,14 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
     if (!user) return;
     
     setIsLoadingAchievements(true);
-    setError(null);
     
     try {
       const achievementsData = await profileService.getUserAchievements();
       setAchievements(achievementsData.achievements);
     } catch (err: any) {
-      console.error('Error loading achievements:', err);
-      setError(err.message || 'Failed to load achievements');
+      console.warn('Achievements endpoint not available yet:', err.message);
+      // Set empty achievements instead of showing error
+      setAchievements([]);
     } finally {
       setIsLoadingAchievements(false);
     }
@@ -188,14 +199,18 @@ export const useProfile = (initialUserId?: string): UseProfileReturn => {
     if (!user) return;
     
     setIsLoadingFollowStats(true);
-    setError(null);
     
     try {
       const followData = await profileService.getFollowStats();
       setFollowStats(followData);
     } catch (err: any) {
-      console.error('Error loading follow stats:', err);
-      setError(err.message || 'Failed to load follow stats');
+      console.warn('Follow stats endpoint not available yet:', err.message);
+      // Set default follow stats instead of showing error
+      setFollowStats({
+        followers: 0,
+        following: 0,
+        mutualFollows: 0
+      });
     } finally {
       setIsLoadingFollowStats(false);
     }
