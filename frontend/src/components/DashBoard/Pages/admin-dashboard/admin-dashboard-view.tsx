@@ -51,6 +51,7 @@ import UserAnalyticsPanel from './components/UserAnalyticsPanel';
 import AIMonitoringPanel from './components/AIMonitoringPanel';
 import SecurityMonitoringPanel from './components/SecurityMonitoringPanel';
 import SystemHealthPanel from './components/SystemHealthPanel';
+import ContactNotifications from './components/ContactNotifications';
 
 // Import admin section components
 import UsersManagementSection from './UsersManagementSection';
@@ -835,6 +836,13 @@ const CommandCenterOverview: React.FC = () => {
 
   return (
     <div>
+      {/* PRIORITY: Contact Notifications - Critical for new client acquisition */}
+      <ContactNotifications 
+        autoRefresh={true}
+        maxContacts={5}
+        showActions={true}
+      />
+      
       {/* Time Range Controls */}
       <div style={{ 
         display: 'flex', 

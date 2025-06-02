@@ -137,10 +137,10 @@ const TrainerCarousel = styled.div`
   position: relative;
   width: 100%;
   margin: 0 auto;
-  min-height: 650px; // Increased height to accommodate taller image container
+  min-height: 686px; // Increased height by ~0.5 inches (36px) to accommodate taller cards
 
   @media (max-width: 768px) {
-    min-height: 700px; // Adjust if needed for mobile layout
+    min-height: 736px; // Adjust for mobile layout (+36px)
   }
 `;
 
@@ -153,7 +153,7 @@ const TrainerCard = styled(motion.div)`
   display: flex;
   flex-direction: column;
   position: relative; // Changed from absolute to relative for carousel logic
-  height: 650px; // Increased fixed height for consistent carousel appearance
+  height: 686px; // Increased by ~0.5 inches (36px) to prevent bottom cutoff
   max-width: 800px;
   margin: 0 auto; // Center the card
   border: 1px solid rgba(255, 255, 255, 0.05);
@@ -182,7 +182,7 @@ const TrainerCard = styled(motion.div)`
 
   @media (max-width: 768px) {
     height: auto; // Allow height to adjust on mobile
-    min-height: 650px; // Ensure minimum height on mobile
+    min-height: 686px; // Ensure minimum height on mobile (increased by 36px)
   }
 `;
 
@@ -497,14 +497,17 @@ const buttonVariants = {
   }
 };
 
+// Import logo for trainer images
+import logoImage from "../../../assets/Logo.png";
+
 // --- Sample Trainer Data ---
-// (Using the full data again for completeness)
+// (Using the full data again for completeness - ALL IMAGES REPLACED WITH LOGO)
 const trainers: Trainer[] = [
-    { id: 1, name: "Sean Swan", title: "Head Coach & Founder", image: "male1.jpg", bio: "With over 25 years of experience, Sean has trained professional athletes and celebrities. His holistic approach focuses on sustainable performance improvements and injury prevention.", specialties: ["Strength & Conditioning", "Athletic Performance", "Injury Rehabilitation"], rating: 5, reviews: 152, certifications: ["NASM-CPT", "CSCS", "PES"], socialLinks: { linkedin: "https://linkedin.com/in/seanswan", instagram: "https://instagram.com/seanswanfitness" } },
-    { id: 2, name: "Jennifer Adams", title: "Senior Performance Coach", image: "/femalewht.jpg", bio: "Jennifer specializes in helping clients transform their bodies through science-based training protocols. Her background in exercise physiology allows her to create optimized programs for any goal.", specialties: ["Body Transformation", "Nutrition Planning", "HIIT Training"], rating: 4.9, reviews: 98, certifications: ["NASM-CPT", "PN-1"], socialLinks: { linkedin: "https://linkedin.com/in/jenniferadamsfit", instagram: "https://instagram.com/jenadams_fit" } },
-    { id: 3, name: "Michael Torres", title: "Strength Specialist", image: "/male2.jpg", bio: "Former competitive powerlifter, Michael helps clients build functional strength that translates to improved performance in both daily life and athletic pursuits.", specialties: ["Powerlifting", "Olympic Lifting", "Functional Strength"], rating: 4.8, reviews: 87, certifications: ["NSCA-CSCS"], socialLinks: { linkedin: "https://linkedin.com/in/michaeltorresstrength", instagram: "https://instagram.com/miketorreslifts" } },
-    { id: 4, name: "Lisa Chen", title: "Mobility & Recovery Specialist", image: "/femaleasi.jpg", bio: "Lisa combines traditional training approaches with cutting-edge recovery techniques to help clients move better, reduce pain, and improve longevity.", specialties: ["Mobility Training", "Pain Management", "Recovery Protocols"], rating: 4.9, reviews: 74, certifications: ["FRC", "FMS"], socialLinks: { linkedin: "https://linkedin.com/in/lisachenmobility", instagram: "https://instagram.com/lisamoveswell" } },
-    { id: 5, name: "David Johnson", title: "Performance Nutrition Coach", image: "/maleblk.jpg", bio: "David's expertise in performance nutrition helps clients optimize their body composition, energy levels, and recovery through personalized nutrition strategies.", specialties: ["Sports Nutrition", "Macro Planning", "Supplement Guidance"], rating: 4.7, reviews: 63, certifications: ["PN-2", "CISSN"], socialLinks: { linkedin: "https://linkedin.com/in/davidjohnsonnutrition", instagram: "https://instagram.com/davidj_nutrition" } }
+    { id: 1, name: "Sean Swan", title: "Head Coach & Founder", image: logoImage, bio: "With over 25 years of experience, Sean has trained professional athletes and celebrities. His holistic approach focuses on sustainable performance improvements and injury prevention.", specialties: ["Strength & Conditioning", "Athletic Performance", "Injury Rehabilitation"], rating: 5, reviews: 152, certifications: ["NASM-CPT", "CSCS", "PES"], socialLinks: { linkedin: "https://linkedin.com/in/seanswan", instagram: "https://www.instagram.com/seanswantech" } },
+    { id: 2, name: "Jennifer Adams", title: "Senior Performance Coach", image: logoImage, bio: "Jennifer specializes in helping clients transform their bodies through science-based training protocols. Her background in exercise physiology allows her to create optimized programs for any goal.", specialties: ["Body Transformation", "Nutrition Planning", "HIIT Training"], rating: 4.9, reviews: 98, certifications: ["NASM-CPT", "PN-1"], socialLinks: { linkedin: "https://linkedin.com/in/jenniferadamsfit", instagram: "https://instagram.com/jenadams_fit" } },
+    { id: 3, name: "Michael Torres", title: "Strength Specialist", image: logoImage, bio: "Former competitive powerlifter, Michael helps clients build functional strength that translates to improved performance in both daily life and athletic pursuits.", specialties: ["Powerlifting", "Olympic Lifting", "Functional Strength"], rating: 4.8, reviews: 87, certifications: ["NSCA-CSCS"], socialLinks: { linkedin: "https://linkedin.com/in/michaeltorresstrength", instagram: "https://instagram.com/miketorreslifts" } },
+    { id: 4, name: "Lisa Chen", title: "Mobility & Recovery Specialist", image: logoImage, bio: "Lisa combines traditional training approaches with cutting-edge recovery techniques to help clients move better, reduce pain, and improve longevity.", specialties: ["Mobility Training", "Pain Management", "Recovery Protocols"], rating: 4.9, reviews: 74, certifications: ["FRC", "FMS"], socialLinks: { linkedin: "https://linkedin.com/in/lisachenmobility", instagram: "https://instagram.com/lisamoveswell" } },
+    { id: 5, name: "David Johnson", title: "Performance Nutrition Coach", image: logoImage, bio: "David's expertise in performance nutrition helps clients optimize their body composition, energy levels, and recovery through personalized nutrition strategies.", specialties: ["Sports Nutrition", "Macro Planning", "Supplement Guidance"], rating: 4.7, reviews: 63, certifications: ["PN-2", "CISSN"], socialLinks: { linkedin: "https://linkedin.com/in/davidjohnsonnutrition", instagram: "https://instagram.com/davidj_nutrition" } }
 ];
 
 // --- Component Implementation ---

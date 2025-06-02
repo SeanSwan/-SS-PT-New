@@ -680,7 +680,7 @@ const EnhancedFooter = () => {
               <SiBluesky />
             </SocialIcon>
             <SocialIcon 
-              href="https://instagram.com/seanswantech" 
+              href="https://www.instagram.com/seanswantech" 
               target="_blank" 
               rel="noopener noreferrer" 
               aria-label="Instagram"

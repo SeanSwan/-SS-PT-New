@@ -13,15 +13,27 @@ const useDynamicTemplate = process.env.SENDGRID_USE_DYNAMIC_TEMPLATE === "true";
 
 router.post("/", async (req, res) => {
   try {
-    const { name, email, message } = req.body;
+    const { name, email, message, consultationType, priority } = req.body;
     
     // Validate required fields
     if (!name || !email || !message) {
       return res.status(400).json({ message: "Missing required fields." });
     }
 
-    // 1. Store the contact info in the DB
-    const newContact = await Contact.create({ name, email, message });
+    // 1. Store the contact info in the DB with priority
+    const contactData = {
+      name,
+      email,
+      message,
+      priority: priority || 'normal'
+    };
+    
+    // Add consultation type to message for context
+    if (consultationType) {
+      contactData.message = `[${consultationType.replace('-', ' ').toUpperCase()}] ${message}`;
+    }
+    
+    const newContact = await Contact.create(contactData);
 
     // 2. Prepare the email message via SendGrid
     let emailMsg;
@@ -45,8 +57,8 @@ router.post("/", async (req, res) => {
         to: [process.env.OWNER_EMAIL, process.env.OWNER_WIFE_EMAIL],
         from: process.env.SENDGRID_FROM_EMAIL,
         replyTo: process.env.CONTACT_EMAIL, // Optional: where replies should go
-        subject: "New Contact Form Submission",
-        text: `Name: ${name}\nEmail: ${email}\nMessage: ${message}`,
+        subject: `${priority === 'urgent' ? '🚨 URGENT ' : priority === 'high' ? '⚡ HIGH PRIORITY ' : ''}New Contact: ${consultationType ? consultationType.replace('-', ' ').toUpperCase() : 'GENERAL'}`,
+        text: `🎯 CONSULTATION REQUEST 🎯\n\nName: ${name}\nEmail: ${email}\nType: ${consultationType ? consultationType.replace('-', ' ').toUpperCase() : 'General Inquiry'}\nPriority: ${priority ? priority.toUpperCase() : 'NORMAL'}\n\nMessage:\n${message}\n\n📞 RESPOND IMMEDIATELY for ${priority === 'urgent' ? 'URGENT' : 'HIGH PRIORITY'} requests!`,
       };
     }
 
@@ -63,16 +75,19 @@ router.post("/", async (req, res) => {
     }
     const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
 
+    // Create SMS message with priority indicators
+    const smsMessage = `${priority === 'urgent' ? '🚨 URGENT' : priority === 'high' ? '⚡ HIGH PRIORITY' : '📞'} NEW CLIENT!\n\n${name}\n${email}\n\nType: ${consultationType ? consultationType.replace('-', ' ').toUpperCase() : 'General'}\n\n${message.substring(0, 100)}${message.length > 100 ? '...' : ''}\n\nCheck admin dashboard NOW!`;
+    
     // Send SMS to owner
     await client.messages.create({
-      body: `New Contact from ${name}, email: ${email}\n${message}`,
+      body: smsMessage,
       from: process.env.TWILIO_PHONE_NUMBER,
       to: process.env.OWNER_PHONE,
     });
 
     // Send SMS to owner's wife
     await client.messages.create({
-      body: `New Contact from ${name}, email: ${email}\n${message}`,
+      body: smsMessage,
       from: process.env.TWILIO_PHONE_NUMBER,
       to: process.env.OWNER_WIFE_PHONE,
     });
