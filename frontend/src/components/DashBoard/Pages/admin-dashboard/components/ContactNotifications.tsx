@@ -20,6 +20,7 @@ import {
   RefreshCw,
   X
 } from 'lucide-react';
+import apiService from '../../../../services/api.service';
 
 // === ANIMATIONS ===
 const pulse = keyframes`
@@ -285,28 +286,17 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
   const fetchContacts = useCallback(async () => {
     try {
       setError(null);
-      const response = await fetch('/api/admin/contacts/recent', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await apiService.get('/api/admin/contacts/recent');
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch contacts');
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        setContacts(data.contacts.slice(0, maxContacts));
+      if (response.data && response.data.success) {
+        setContacts(response.data.contacts.slice(0, maxContacts));
         setLastFetch(new Date());
       } else {
-        throw new Error(data.message || 'Failed to fetch contacts');
+        throw new Error(response.data?.message || 'Failed to fetch contacts');
       }
     } catch (err) {
       console.error('Error fetching contacts:', err);
-      setError(err.message);
+      setError(err.response?.data?.message || err.message || 'Failed to fetch contacts');
     } finally {
       setLoading(false);
     }
@@ -314,26 +304,20 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
 
   const markAsViewed = useCallback(async (contactId: number) => {
     try {
-      const response = await fetch(`/api/admin/contacts/${contactId}/viewed`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await apiService.patch(`/api/admin/contacts/${contactId}/viewed`);
 
-      if (!response.ok) {
+      if (response.data && response.data.success) {
+        // Update local state
+        setContacts(prev => 
+          prev.map(contact => 
+            contact.id === contactId 
+              ? { ...contact, viewedAt: new Date().toISOString() }
+              : contact
+          )
+        );
+      } else {
         throw new Error('Failed to mark contact as viewed');
       }
-
-      // Update local state
-      setContacts(prev => 
-        prev.map(contact => 
-          contact.id === contactId 
-            ? { ...contact, viewedAt: new Date().toISOString() }
-            : contact
-        )
-      );
     } catch (err) {
       console.error('Error marking contact as viewed:', err);
     }
