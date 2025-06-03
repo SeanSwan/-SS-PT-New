@@ -22,7 +22,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 
 // --- Component Imports ---
-import { GlowButton } from "../../components/ui";
+import { SwanGalaxyLuxuryButton } from "../../components/ui";
 import OrientationForm from "../../components/OrientationForm/orientationForm";
 import ShoppingCart from "../../components/ShoppingCart/ShoppingCart";
 import { useToast } from "../../hooks/use-toast";
@@ -1171,10 +1171,12 @@ const GalaxyStoreFrontFixed: React.FC = () => {
             
             <CardActions>
               <motion.div {...buttonMotionProps} style={{ width: '100%'}}>
-                <GlowButton 
+                <SwanGalaxyLuxuryButton 
                   variant={glowVariant}
-                  glowIntensity="medium"
+                  size="medium"
+                  glowIntensity="high"
                   disabled={isCurrentlyAdding || !isAuthenticated}
+                  loading={isCurrentlyAdding}
                   onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
                     e.stopPropagation(); 
                     handleAddToCart(pkg); 
@@ -1183,14 +1185,11 @@ const GalaxyStoreFrontFixed: React.FC = () => {
                   aria-label={`Add ${pkg.name} to cart`}
                   style={{
                     width: '100%',
-                    borderRadius: '25px',
-                    padding: '1rem 1.5rem',
-                    fontSize: '1.1rem',
-                    fontWeight: 'bold'
+                    borderRadius: '25px'
                   }}
                 >
                   {isCurrentlyAdding ? "Adding..." : "Add to Cart"}
-                </GlowButton>
+                </SwanGalaxyLuxuryButton>
               </motion.div>
             </CardActions>
           </CosmicCardContent>
@@ -1244,36 +1243,32 @@ const GalaxyStoreFrontFixed: React.FC = () => {
               </HeroDescription>
               <ButtonsContainer variants={itemVariants}>
                 <motion.div {...buttonMotionProps}>
-                  <GlowButton 
+                  <SwanGalaxyLuxuryButton 
                     variant="info"
-                    glowIntensity="high"
+                    size="large"
+                    glowIntensity="ultra"
                     onClick={() => setShowOrientation(true)}
                     style={{
                       width: '100%',
-                      borderRadius: '25px',
-                      padding: '1rem 1.5rem',
-                      fontSize: '1.1rem',
-                      fontWeight: 'bold'
+                      borderRadius: '25px'
                     }}
                   >
                     Book Consultation
-                  </GlowButton>
+                  </SwanGalaxyLuxuryButton>
                 </motion.div>
                 <motion.div {...buttonMotionProps}>
-                  <GlowButton 
+                  <SwanGalaxyLuxuryButton 
                     variant="secondary"
+                    size="large"
                     glowIntensity="high"
                     onClick={() => document.getElementById("packages-section")?.scrollIntoView({ behavior: "smooth" })}
                     style={{
                       width: '100%',
-                      borderRadius: '25px',
-                      padding: '1rem 1.5rem',
-                      fontSize: '1.1rem',
-                      fontWeight: 'bold'
+                      borderRadius: '25px'
                     }}
                   >
                     View Packages
-                  </GlowButton>
+                  </SwanGalaxyLuxuryButton>
                 </motion.div>
               </ButtonsContainer>
             </HeroContent>
@@ -1330,24 +1325,20 @@ const GalaxyStoreFrontFixed: React.FC = () => {
                       animate={{ opacity: 1 }}
                   >
                       <motion.div {...buttonMotionProps}>
-                      <GlowButton 
+                      <SwanGalaxyLuxuryButton 
                           variant="warning"
-                          glowIntensity="high"
+                          size="xlarge"
+                          glowIntensity="ultra"
                           onClick={() => setShowOrientation(true)}
                           style={{
                             borderRadius: '30px',
-                            padding: '1.5rem 3rem',
-                            fontSize: '1.3rem',
-                            fontWeight: 'bold',
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.5rem'
                           }}
                       >
-                          <img src={swanIcon} alt="Swan" style={{ width: '24px', height: '24px', filter: 'invert(1)' }} />
                           Schedule Consultation
-                          <img src={swanIcon} alt="Swan" style={{ width: '24px', height: '24px', filter: 'invert(1)' }} />
-                      </GlowButton>
+                      </SwanGalaxyLuxuryButton>
                       </motion.div>
                   </motion.div>
               </SectionContainer>
@@ -1363,9 +1354,10 @@ const GalaxyStoreFrontFixed: React.FC = () => {
           exit={{ scale: 0.8, opacity: 0 }} 
           transition={{ type: 'spring', stiffness: 500, damping: 30 }}
         >
-          <GlowButton
+          <SwanGalaxyLuxuryButton
             variant={showPulse ? "warning" : "info"}
-            glowIntensity={showPulse ? "high" : "medium"}
+            size="medium"
+            glowIntensity={showPulse ? "ultra" : "high"}
             onClick={handleToggleCart}
             aria-label={`View Cart (${cart?.itemCount || 0} items)`}
             style={{
@@ -1376,12 +1368,13 @@ const GalaxyStoreFrontFixed: React.FC = () => {
               position: 'relative',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              padding: '0'
             }}
           >
             🛒
             {cart && cart.itemCount > 0 && <CartCount>{cart.itemCount}</CartCount>}
-          </GlowButton>
+          </SwanGalaxyLuxuryButton>
         </FloatingCartButton>
       )}
 
