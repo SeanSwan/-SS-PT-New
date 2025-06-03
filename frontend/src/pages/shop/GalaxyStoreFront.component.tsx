@@ -23,6 +23,7 @@ import { useCart } from "../../context/CartContext";
 
 // --- Component Imports ---
 import GlowButton from "../../components/Button/glowButton.jsx";
+import { ThemedGlowButton } from "../../styles/swan-theme-utils.tsx";
 import OrientationForm from "../../components/OrientationForm/orientationForm";
 import ShoppingCart from "../../components/ShoppingCart/ShoppingCart";
 import { useToast } from "../../hooks/use-toast";
@@ -757,8 +758,8 @@ const CardActions = styled.div`
   z-index: 30;
   
   & > div {
-    width: 90%;
-    max-width: 260px;
+    width: 85%;
+    max-width: 240px;
   }
 `;
 
@@ -1111,9 +1112,6 @@ const GalaxyStoreFront: React.FC = () => {
 
     const valueBadge = getValueBadge(pkg);
 
-    const glowTheme = pkg.theme === 'cosmic' ? 'cosmic' : 
-                     pkg.theme === 'ruby' ? 'ruby' : 
-                     pkg.theme === 'emerald' ? 'emerald' : 'primary';
 
     return (
       <motion.div key={pkg.id} variants={cardVariants}>
@@ -1181,8 +1179,8 @@ const GalaxyStoreFront: React.FC = () => {
             <CardActions>
               <motion.div {...buttonMotionProps} style={{ width: '100%'}}>
                 <GlowButton 
-                  text={isCurrentlyAdding ? "Adding..." : "Add to Cart"}
-                  theme={glowTheme}
+                  text={isCurrentlyAdding ? "Adding..." : "Add to Cart"} 
+                  theme={pkg.theme || "purple"}
                   size="medium" 
                   isLoading={isCurrentlyAdding}
                   disabled={isCurrentlyAdding || !effectiveAuth}
@@ -1254,18 +1252,18 @@ const GalaxyStoreFront: React.FC = () => {
               </HeroDescription>
               <ButtonsContainer initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6, duration: 0.4 }}>
                 <motion.div {...buttonMotionProps}>
-                  <GlowButton 
-                    text="Book Consultation"
-                    theme="neonBlue"
-                    size="large"
-                    onClick={() => setShowOrientation(true)}
+                  <ThemedGlowButton 
+                    text="Book Consultation" 
+                    variant="primary" 
+                    size="large" 
+                    onClick={() => setShowOrientation(true)} 
                   />
                 </motion.div>
                 <motion.div {...buttonMotionProps}>
-                  <GlowButton 
-                    text="View Packages"
-                    theme="cosmic"
-                    size="large"
+                  <ThemedGlowButton 
+                    text="View Packages" 
+                    variant="secondary" 
+                    size="large" 
                     onClick={() => document.getElementById("packages-section")?.scrollIntoView({ behavior: "smooth" })}
                   />
                 </motion.div>
@@ -1357,11 +1355,11 @@ const GalaxyStoreFront: React.FC = () => {
                       transition={{ duration: 0.4, ease: "easeOut" }}
                   >
                       <motion.div {...buttonMotionProps}>
-                      <GlowButton 
-                          text="🌟 Schedule Consultation 🌟"
-                          theme="ruby"
-                          size="large"
-                          onClick={() => setShowOrientation(true)}
+                      <ThemedGlowButton 
+                          text="Schedule Consultation" 
+                          variant="primary" 
+                          size="large" 
+                          onClick={() => setShowOrientation(true)} 
                       />
                       </motion.div>
                   </motion.div>
