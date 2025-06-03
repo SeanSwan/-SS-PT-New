@@ -9,6 +9,7 @@ import StorefrontItem from '../models/StorefrontItem.mjs';
 import User from '../models/User.mjs';
 import logger from '../utils/logger.mjs';
 import { v4 as uuidv4 } from 'uuid';
+import TrainingSessionService from '../services/TrainingSessionService.mjs';
 
 const router = express.Router();
 
@@ -228,6 +229,7 @@ router.put('/:id', protect, async (req, res) => {
     }
     
     // Update order
+    const previousStatus = order.status;
     order.status = status || order.status;
     if (notes) order.notes = notes;
     
@@ -237,11 +239,32 @@ router.put('/:id', protect, async (req, res) => {
     
     await order.save();
     
-    return res.status(200).json({
+    // If order was just completed, create training sessions
+    let sessionCreationResult = null;
+    if (status === 'completed' && previousStatus !== 'completed') {
+      try {
+        logger.info(`Order ${orderId} completed, creating training sessions for user ${order.userId}`);
+        sessionCreationResult = await TrainingSessionService.createSessionsForOrder(orderId, order.userId);
+        logger.info(`Created ${sessionCreationResult.created} training sessions for order ${orderId}`);
+      } catch (sessionError) {
+        logger.error(`Failed to create training sessions for order ${orderId}:`, sessionError);
+        // Don't fail the order update if session creation fails
+      }
+    }
+    
+    const response = {
       success: true,
       message: 'Order updated successfully',
       order
-    });
+    };
+    
+    // Include session creation info if applicable
+    if (sessionCreationResult) {
+      response.sessions = sessionCreationResult;
+      response.message += ` and ${sessionCreationResult.created} training sessions created`;
+    }
+    
+    return res.status(200).json(response);
   } catch (error) {
     logger.error(`Error updating order: ${error.message}`);
     return res.status(500).json({

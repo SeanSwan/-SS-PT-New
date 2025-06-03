@@ -19,6 +19,7 @@ import healthRoutes from '../routes/healthRoutes.mjs';
 import userManagementRoutes from '../routes/userManagementRoutes.mjs';
 import sessionRoutes from '../routes/sessionRoutes.mjs';
 import sessionPackageRoutes from '../routes/sessionPackageRoutes.mjs';
+import trainingSessionRoutes from '../routes/trainingSessionRoutes.mjs';
 
 // ===================== BUSINESS LOGIC =====================
 import cartRoutes from '../routes/cartRoutes.mjs';
@@ -142,6 +143,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/auth', userManagementRoutes);
   app.use('/api/sessions', sessionRoutes);
   app.use('/api/session-packages', sessionPackageRoutes);
+  app.use('/api/training-sessions', trainingSessionRoutes);
   app.use('/api/roles', roleRoutes);
 
   // ===================== BUSINESS LOGIC ROUTES =====================
