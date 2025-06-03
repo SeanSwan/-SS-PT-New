@@ -70,10 +70,18 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <ScrollToTop 
         theme="cosmic"
         size="medium"
-        scrollThreshold={400}
+        scrollThreshold={300} /* Lower threshold for better mobile UX */
+        scrollBehavior="smooth"
+        ariaLabel="Scroll to top of page"
         onScrollToTop={() => {
           // Optional: Add analytics tracking here
-          console.log('Scroll to top clicked');
+          console.log('🚀 Scroll to top clicked - Page:', window.location.pathname);
+          // Track with analytics if available
+          if (typeof gtag !== 'undefined') {
+            gtag('event', 'scroll_to_top', {
+              page_path: window.location.pathname
+            });
+          }
         }}
       />
     </MainContainer>
