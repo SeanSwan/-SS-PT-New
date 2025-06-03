@@ -9,7 +9,8 @@ import StorefrontItem from '../models/StorefrontItem.mjs';
 import User from '../models/User.mjs';
 import logger from '../utils/logger.mjs';
 import { v4 as uuidv4 } from 'uuid';
-import TrainingSessionService from '../services/TrainingSessionService.mjs';
+// Temporarily disabled for deployment hotfix - will re-enable after verification
+// import TrainingSessionService from '../services/TrainingSessionService.mjs';
 
 const router = express.Router();
 
@@ -239,18 +240,19 @@ router.put('/:id', protect, async (req, res) => {
     
     await order.save();
     
+    // TEMPORARILY DISABLED FOR DEPLOYMENT HOTFIX
     // If order was just completed, create training sessions
     let sessionCreationResult = null;
-    if (status === 'completed' && previousStatus !== 'completed') {
-      try {
-        logger.info(`Order ${orderId} completed, creating training sessions for user ${order.userId}`);
-        sessionCreationResult = await TrainingSessionService.createSessionsForOrder(orderId, order.userId);
-        logger.info(`Created ${sessionCreationResult.created} training sessions for order ${orderId}`);
-      } catch (sessionError) {
-        logger.error(`Failed to create training sessions for order ${orderId}:`, sessionError);
-        // Don't fail the order update if session creation fails
-      }
-    }
+    // if (status === 'completed' && previousStatus !== 'completed') {
+    //   try {
+    //     logger.info(`Order ${orderId} completed, creating training sessions for user ${order.userId}`);
+    //     sessionCreationResult = await TrainingSessionService.createSessionsForOrder(orderId, order.userId);
+    //     logger.info(`Created ${sessionCreationResult.created} training sessions for order ${orderId}`);
+    //   } catch (sessionError) {
+    //     logger.error(`Failed to create training sessions for order ${orderId}:`, sessionError);
+    //     // Don't fail the order update if session creation fails
+    //   }
+    // }
     
     const response = {
       success: true,
