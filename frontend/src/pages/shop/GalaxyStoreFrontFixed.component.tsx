@@ -217,22 +217,16 @@ const getPackageImage = (imageUrl: string | null, packageName: string): string =
   return '/marble-texture.png';
 };
 
-// --- Enhanced Galaxy Keyframes ---
-const nebulaSpin = keyframes`
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+// --- Optimized Performance Keyframes ---
+const float = keyframes`
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
 `;
 
 const starSparkle = keyframes`
   0%, 100% { opacity: 0.3; transform: scale(0.8); }
   50% { opacity: 1; transform: scale(1.2); }
-`;
-
-const cosmicFloat = keyframes`
-  0% { transform: translateY(0px) rotateZ(0deg); }
-  33% { transform: translateY(-20px) rotateZ(120deg); }
-  66% { transform: translateY(10px) rotateZ(240deg); }
-  100% { transform: translateY(0px) rotateZ(360deg); }
 `;
 
 const galacticShimmer = keyframes`
@@ -271,14 +265,11 @@ const GalaxyContainer = styled.div`
     bottom: 0;
     background: 
       radial-gradient(2px 2px at 20px 30px, ${GALAXY_COLORS.cyberCyan}, transparent),
-      radial-gradient(2px 2px at 40px 70px, ${GALAXY_COLORS.starGold}, transparent),
       radial-gradient(1px 1px at 90px 40px, ${GALAXY_COLORS.stellarWhite}, transparent),
-      radial-gradient(1px 1px at 130px 80px, ${GALAXY_COLORS.cyberCyan}, transparent),
-      radial-gradient(2px 2px at 180px 30px, ${GALAXY_COLORS.cosmicPurple}, transparent);
+      radial-gradient(1px 1px at 130px 80px, ${GALAXY_COLORS.cyberCyan}, transparent);
     background-repeat: repeat;
     background-size: 200px 100px;
-    animation: ${nebulaSpin} 180s linear infinite;
-    opacity: 0.4;
+    opacity: 0.2;
     pointer-events: none;
     z-index: -1;
   }
@@ -320,9 +311,10 @@ const HeroSection = styled.section`
 
 const LogoContainer = styled(motion.div)`
   position: relative; display: flex; justify-content: center; align-items: center;
-  width: 100%; animation: ${cosmicFloat} 8s ease-in-out infinite;
+  width: 100%; animation: ${float} 6s ease-in-out infinite;
   filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.6)); margin-bottom: 1.5rem;
   z-index: 2;
+  will-change: transform;
 
   img { height: 160px; max-width: 90%; object-fit: contain; }
   @media (max-width: 768px) { img { height: 120px; } margin-bottom: 1rem; }
@@ -434,7 +426,7 @@ const ScrollIndicator = styled(motion.div)`
     content: "↓"; 
     font-size: 1.5rem; 
     margin-top: 0.5rem; 
-    animation: ${cosmicFloat} 3s ease-in-out infinite;
+    animation: ${float} 3s ease-in-out infinite;
     color: ${GALAXY_COLORS.cyberCyan};
   }
 `;
@@ -545,12 +537,9 @@ const CosmicPackageCard = styled(motion.div)<{ $theme?: string }>`
   border-radius: 25px;
   overflow: hidden;
   background: ${props => getGalaxyGradient(props.$theme)};
-  backdrop-filter: blur(20px);
   border: 2px solid rgba(0, 255, 255, 0.4);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
-    0 15px 35px rgba(0, 0, 0, 0.4),
-    0 0 20px rgba(0, 255, 255, 0.2);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   cursor: pointer;
   height: 100%;
   min-height: 520px;
@@ -558,27 +547,11 @@ const CosmicPackageCard = styled(motion.div)<{ $theme?: string }>`
   flex-direction: column;
   isolation: isolate;
   z-index: 20;
+  will-change: transform;
   
   @media (max-width: 768px) {
     min-height: 480px;
     border-radius: 20px;
-  }
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.1) 50%,
-      transparent 100%
-    );
-    transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 1;
   }
   
   &::after {
@@ -588,25 +561,16 @@ const CosmicPackageCard = styled(motion.div)<{ $theme?: string }>`
     left: 0;
     right: 0;
     bottom: 0;
-    background: 
-      radial-gradient(circle at 20% 20%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(120, 81, 169, 0.1) 0%, transparent 50%);
+    background: radial-gradient(circle at 50% 50%, rgba(0, 255, 255, 0.05) 0%, transparent 60%);
     pointer-events: none;
     z-index: 0;
   }
   
   &:hover {
-    transform: translateY(-12px) scale(1.03);
-    border-color: rgba(0, 255, 255, 0.8);
-    box-shadow: 
-      0 25px 50px rgba(0, 0, 0, 0.5),
-      0 0 40px rgba(0, 255, 255, 0.4),
-      0 0 60px rgba(120, 81, 169, 0.3);
+    transform: translateY(-8px) scale(1.02);
+    border-color: rgba(0, 255, 255, 0.7);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 25px rgba(0, 255, 255, 0.3);
     z-index: 25;
-    
-    &::before {
-      left: 100%;
-    }
   }
   
   &:focus {
@@ -772,7 +736,6 @@ const CosmicPriceBox = styled(motion.div)`
   overflow: hidden;
   min-height: 120px;
   isolation: isolate;
-  backdrop-filter: blur(15px);
   
   &:before {
     content: "";
@@ -781,9 +744,9 @@ const CosmicPriceBox = styled(motion.div)`
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
+    background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%);
     background-size: 200% 200%;
-    animation: ${galacticShimmer} 6s ease-in-out infinite;
+    animation: ${galacticShimmer} 8s ease-in-out infinite;
     pointer-events: none;
   }
 `;
@@ -998,8 +961,19 @@ const GalaxyStoreFrontFixed: React.FC = () => {
     heroControls, fixedPackagesControls, monthlyPackagesControls
   ]);
 
+  // Optimized scroll handler with throttling
   useEffect(() => {
-    const handleScroll = () => setAnimateScrollIndicator(window.scrollY < 200);
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          setAnimateScrollIndicator(window.scrollY < 200);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -1131,8 +1105,8 @@ const GalaxyStoreFrontFixed: React.FC = () => {
     return { text: '', isGoodValue: false };
   };
 
-  // --- Render Package Card ---
-  const renderCosmicPackageCard = (pkg: StoreItem) => {
+  // --- Render Package Card (Memoized for Performance) ---
+  const renderCosmicPackageCard = useCallback((pkg: StoreItem) => {
     const isCurrentlyAdding = isAddingToCart === pkg.id;
 
     let badgeDisplay = '';
@@ -1228,7 +1202,7 @@ const GalaxyStoreFrontFixed: React.FC = () => {
         </CosmicPackageCard>
       </motion.div>
     );
-  };
+  }, [isAddingToCart, revealPrices, isAuthenticated, handleAddToCart, buttonMotionProps, getValueBadge]);
 
   // --- Component JSX ---
   return (
