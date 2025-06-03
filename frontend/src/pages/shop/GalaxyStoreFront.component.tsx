@@ -22,7 +22,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 
 // --- Component Imports ---
-import { GlowButton } from "../../components/ui";
+import GlowButton from "../../components/Button/glowButton.jsx";
 import OrientationForm from "../../components/OrientationForm/orientationForm";
 import ShoppingCart from "../../components/ShoppingCart/ShoppingCart";
 import { useToast } from "../../hooks/use-toast";
@@ -1111,9 +1111,9 @@ const GalaxyStoreFront: React.FC = () => {
 
     const valueBadge = getValueBadge(pkg);
 
-    const glowVariant = pkg.theme === 'cosmic' ? 'info' : 
-                      pkg.theme === 'ruby' ? 'warning' : 
-                      pkg.theme === 'emerald' ? 'success' : 'primary';
+    const glowTheme = pkg.theme === 'cosmic' ? 'cosmic' : 
+                     pkg.theme === 'ruby' ? 'ruby' : 
+                     pkg.theme === 'emerald' ? 'emerald' : 'primary';
 
     return (
       <motion.div key={pkg.id} variants={cardVariants}>
@@ -1181,8 +1181,10 @@ const GalaxyStoreFront: React.FC = () => {
             <CardActions>
               <motion.div {...buttonMotionProps} style={{ width: '100%'}}>
                 <GlowButton 
-                  variant={glowVariant}
-                  glowIntensity="medium"
+                  text={isCurrentlyAdding ? "Adding..." : "Add to Cart"}
+                  theme={glowTheme}
+                  size="medium" 
+                  isLoading={isCurrentlyAdding}
                   disabled={isCurrentlyAdding || !effectiveAuth}
                   onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
                     e.stopPropagation(); 
@@ -1190,16 +1192,7 @@ const GalaxyStoreFront: React.FC = () => {
                   }}
                   aria-busy={isCurrentlyAdding}
                   aria-label={`Add ${pkg.name} to cart`}
-                  style={{
-                    width: '100%',
-                    borderRadius: '25px',
-                    padding: '1rem 1.5rem',
-                    fontSize: '1.1rem',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  {isCurrentlyAdding ? "Adding..." : "Add to Cart"}
-                </GlowButton>
+                />
               </motion.div>
             </CardActions>
           </CosmicCardContent>
@@ -1262,35 +1255,19 @@ const GalaxyStoreFront: React.FC = () => {
               <ButtonsContainer initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6, duration: 0.4 }}>
                 <motion.div {...buttonMotionProps}>
                   <GlowButton 
-                    variant="info"
-                    glowIntensity="high"
+                    text="Book Consultation"
+                    theme="neonBlue"
+                    size="large"
                     onClick={() => setShowOrientation(true)}
-                    style={{
-                      width: '100%',
-                      borderRadius: '25px',
-                      padding: '1rem 1.5rem',
-                      fontSize: '1.1rem',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    Book Consultation
-                  </GlowButton>
+                  />
                 </motion.div>
                 <motion.div {...buttonMotionProps}>
                   <GlowButton 
-                    variant="secondary"
-                    glowIntensity="high"
+                    text="View Packages"
+                    theme="cosmic"
+                    size="large"
                     onClick={() => document.getElementById("packages-section")?.scrollIntoView({ behavior: "smooth" })}
-                    style={{
-                      width: '100%',
-                      borderRadius: '25px',
-                      padding: '1rem 1.5rem',
-                      fontSize: '1.1rem',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    View Packages
-                  </GlowButton>
+                  />
                 </motion.div>
               </ButtonsContainer>
             </HeroContent>
@@ -1381,18 +1358,11 @@ const GalaxyStoreFront: React.FC = () => {
                   >
                       <motion.div {...buttonMotionProps}>
                       <GlowButton 
-                          variant="warning"
-                          glowIntensity="high"
+                          text="🌟 Schedule Consultation 🌟"
+                          theme="ruby"
+                          size="large"
                           onClick={() => setShowOrientation(true)}
-                          style={{
-                            borderRadius: '30px',
-                            padding: '1.5rem 3rem',
-                            fontSize: '1.3rem',
-                            fontWeight: 'bold'
-                          }}
-                      >
-                          🌟 Schedule Consultation 🌟
-                      </GlowButton>
+                      />
                       </motion.div>
                   </motion.div>
               </SectionContainer>
