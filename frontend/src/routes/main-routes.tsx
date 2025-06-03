@@ -144,11 +144,10 @@ const FoodScannerPage = lazyLoadWithErrorHandling(
   () => import('../pages/FoodScanner/FoodScannerPage'),
   'Food Scanner'
 );
-// Temporarily disabled - missing theme dependencies
-// const SwanBrandShowcase = lazyLoadWithErrorHandling(
-//   () => import('../components/SwanBrandShowcase.component'),
-//   'Swan Brand Showcase'
-// );
+const ScrollTestPage = lazyLoadWithErrorHandling(
+  () => import('../pages/ScrollTestPage'),
+  'Scroll Test Page'
+);
 const UnauthorizedPage = lazyLoadWithErrorHandling(
   () => import('../pages/UnauthorizedPage.component'),
   'Unauthorized Page'
@@ -318,6 +317,14 @@ const MainRoutes: RouteObject = {
       element: (
         <Suspense fallback={<PageLoader />}>
           <ProductDetail />
+        </Suspense>
+      )
+    },
+    {
+      path: 'scroll-test',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <ScrollTestPage />
         </Suspense>
       )
     },
