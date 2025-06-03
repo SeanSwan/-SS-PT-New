@@ -509,7 +509,7 @@ const EnhancedHeader = () => {
           <StyledNavLinkWithDropdown 
             as="div"
             onClick={handleStoreClick}
-            className={isActive('/store') ? "active" : ""}
+            className={isActive('/store') || isActive('/galaxy-store') ? "active" : ""}
             variants={itemVariants}
           >
             Store <StyledDropdownIcon />
@@ -564,7 +564,7 @@ const EnhancedHeader = () => {
             <MobileNavLink 
               as="div"
               onClick={toggleMobileStore}
-              className={isActive('/store') ? "active" : ""}
+              className={isActive('/store') || isActive('/galaxy-store') ? "active" : ""}
             >
               Store 
               <KeyboardArrowDownIcon 
@@ -589,6 +589,13 @@ const EnhancedHeader = () => {
                   className={isActive('/store') && !location.pathname.includes('/shop') ? "active" : ""}
                 >
                   <ShoppingBagIcon fontSize="small" /> All Products
+                </MobileNavLink>
+                <MobileNavLink 
+                  to="/galaxy-store" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={isActive('/galaxy-store') ? "active" : ""}
+                >
+                  <LocalMallIcon fontSize="small" /> Galaxy Ecommerce Store
                 </MobileNavLink>
                 <MobileNavLink 
                   to="/shop/training-packages" 
@@ -927,6 +934,9 @@ const EnhancedHeader = () => {
         >
           <StyledMenuItem onClick={() => handleStoreNavigate('/store')}>
             <ShoppingBagIcon fontSize="small" /> All Products
+          </StyledMenuItem>
+          <StyledMenuItem onClick={() => handleStoreNavigate('/galaxy-store')}>
+            <LocalMallIcon fontSize="small" /> Galaxy Ecommerce Store
           </StyledMenuItem>
           <StyledMenuItem onClick={() => handleStoreNavigate('/shop/training-packages')}>
             <FitnessCenterIcon fontSize="small" /> Training Packages

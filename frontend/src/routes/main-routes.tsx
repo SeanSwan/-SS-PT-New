@@ -128,6 +128,10 @@ const SimplifiedStoreFront = lazyLoadWithErrorHandling(
   () => import('../pages/shop/SimplifiedStoreFront.component'),
   'Simplified Storefront'
 );
+const GalaxyStoreFront = lazyLoadWithErrorHandling(
+  () => import('../pages/shop/GalaxyStoreFront.component'),
+  'Galaxy Storefront'
+);
 const ShopPage = lazyLoadWithErrorHandling(
   () => import('../pages/shop/ShopPage'),
   'Shop Page'
@@ -350,6 +354,14 @@ const MainRoutes: RouteObject = {
       element: (
         <Suspense fallback={<PageLoader />}>
           <StoreFront />
+        </Suspense>
+      )
+    },
+    {
+      path: 'galaxy-store',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <GalaxyStoreFront />
         </Suspense>
       )
     },
