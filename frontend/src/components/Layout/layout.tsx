@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import Header from '../Header/header'; // Adjust the import path based on your project structure
 import Footer from '../Footer/Footer';
-import { ScrollToTop, ConstructionBannerContainer } from '../common';
+import { SimpleScrollToTop, ConstructionBannerContainer } from '../common';
+import AlwaysVisibleScrollButton from '../common/AlwaysVisibleScrollButton';
 
 const MainContainer = styled.div`
   display: flex;
@@ -67,23 +68,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </ContentWrapper>
       
       <Footer />
-      <ScrollToTop 
-        theme="cosmic"
-        size="medium"
-        scrollThreshold={300} /* Lower threshold for better mobile UX */
-        scrollBehavior="smooth"
-        ariaLabel="Scroll to top of page"
-        onScrollToTop={() => {
-          // Optional: Add analytics tracking here
-          console.log('🚀 Scroll to top clicked - Page:', window.location.pathname);
-          // Track with analytics if available
-          if (typeof gtag !== 'undefined') {
-            gtag('event', 'scroll_to_top', {
-              page_path: window.location.pathname
-            });
-          }
-        }}
-      />
+      {/* DEBUG: Using always visible button for testing */}
+      <AlwaysVisibleScrollButton />
     </MainContainer>
   );
 };
