@@ -13,9 +13,9 @@
  * - Responsive galaxy gradients and backgrounds
  */
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import styled, { keyframes } from "styled-components";
-import { motion, useAnimation, useInView, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 // --- Context Imports ---
 import { useAuth } from "../../context/AuthContext";
@@ -215,38 +215,25 @@ const getPackageImage = (imageUrl: string | null, packageName: string): string =
   return '/marble-texture.png';
 };
 
-// --- Enhanced Galaxy Keyframes ---
-const nebulaSpin = keyframes`
+// --- Optimized Galaxy Keyframes (Reduced for Performance) ---
+const subtleFloat = keyframes`
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+`;
+
+const softGlow = keyframes`
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+`;
+
+const smoothSpin = keyframes`
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 `;
 
-const starSparkle = keyframes`
-  0%, 100% { opacity: 0.3; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.2); }
-`;
-
-const cosmicFloat = keyframes`
-  0% { transform: translateY(0px) rotateZ(0deg); }
-  33% { transform: translateY(-20px) rotateZ(120deg); }
-  66% { transform: translateY(10px) rotateZ(240deg); }
-  100% { transform: translateY(0px) rotateZ(360deg); }
-`;
-
-const galacticShimmer = keyframes`
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-`;
-
-const stellarPulse = keyframes`
-  0%, 100% { 
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3), 0 0 40px rgba(120, 81, 169, 0.2);
-    transform: scale(1);
-  }
-  50% { 
-    box-shadow: 0 0 30px rgba(0, 255, 255, 0.6), 0 0 60px rgba(120, 81, 169, 0.4);
-    transform: scale(1.02);
-  }
+const gentlePulse = keyframes`
+  0%, 100% { transform: scale(1); box-shadow: 0 0 15px rgba(0, 255, 255, 0.3); }
+  50% { transform: scale(1.02); box-shadow: 0 0 20px rgba(0, 255, 255, 0.5); }
 `;
 
 // --- Enhanced Styled Components ---
@@ -265,17 +252,16 @@ const GalaxyContainer = styled.div`
     right: 0;
     bottom: 0;
     background: 
-      radial-gradient(2px 2px at 20px 30px, ${GALAXY_COLORS.cyberCyan}, transparent),
-      radial-gradient(2px 2px at 40px 70px, ${GALAXY_COLORS.starGold}, transparent),
+      radial-gradient(1px 1px at 20px 30px, ${GALAXY_COLORS.cyberCyan}, transparent),
       radial-gradient(1px 1px at 90px 40px, ${GALAXY_COLORS.stellarWhite}, transparent),
-      radial-gradient(1px 1px at 130px 80px, ${GALAXY_COLORS.cyberCyan}, transparent),
-      radial-gradient(2px 2px at 180px 30px, ${GALAXY_COLORS.cosmicPurple}, transparent);
+      radial-gradient(1px 1px at 150px 70px, ${GALAXY_COLORS.cosmicPurple}, transparent);
     background-repeat: repeat;
-    background-size: 200px 100px;
-    animation: ${nebulaSpin} 180s linear infinite;
-    opacity: 0.4;
+    background-size: 300px 200px;
+    animation: ${smoothSpin} 300s linear infinite;
+    opacity: 0.2;
     pointer-events: none;
     z-index: -1;
+    will-change: transform;
   }
 `;
 
@@ -298,6 +284,8 @@ const VideoBackground = styled.div`
   video {
     position: absolute; top: 50%; left: 50%; min-width: 100%; min-height: 100%;
     width: auto; height: auto; transform: translate(-50%, -50%); z-index: 0;
+    will-change: auto;
+    loading: lazy;
   }
 `;
 
@@ -315,9 +303,10 @@ const HeroSection = styled.section`
 
 const LogoContainer = styled(motion.div)`
   position: relative; display: flex; justify-content: center; align-items: center;
-  width: 100%; animation: ${cosmicFloat} 8s ease-in-out infinite;
-  filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.6)); margin-bottom: 1.5rem;
+  width: 100%; animation: ${subtleFloat} 6s ease-in-out infinite;
+  filter: drop-shadow(0 0 10px rgba(0, 255, 255, 0.4)); margin-bottom: 1.5rem;
   z-index: 2;
+  will-change: transform;
 
   img { height: 160px; max-width: 90%; object-fit: contain; }
   @media (max-width: 768px) { img { height: 120px; } margin-bottom: 1rem; }
@@ -326,11 +315,10 @@ const LogoContainer = styled(motion.div)`
 
 const HeroContent = styled(motion.div)`
   max-width: 800px; width: 100%; margin: 0 auto; position: relative; z-index: 2;
-  background: linear-gradient(135deg, rgba(30, 30, 60, 0.6), rgba(120, 81, 169, 0.3));
+  background: linear-gradient(135deg, rgba(30, 30, 60, 0.8), rgba(120, 81, 169, 0.5));
   padding: 2rem; border-radius: 20px;
-  backdrop-filter: blur(15px); 
   border: 2px solid rgba(0, 255, 255, 0.3);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
   
   @media (max-width: 768px) { padding: 1.5rem; }
 `;
@@ -340,8 +328,7 @@ const PremiumBadge = styled(motion.div)`
   font-size: 1rem; padding: 12px 20px; 
   border: 2px solid rgba(0, 255, 255, 0.5);
   border-radius: 8px; 
-  background: linear-gradient(135deg, rgba(30, 30, 60, 0.8), rgba(120, 81, 169, 0.6));
-  backdrop-filter: blur(10px);
+  background: linear-gradient(135deg, rgba(30, 30, 60, 0.9), rgba(120, 81, 169, 0.7));
   color: ${GALAXY_COLORS.stellarWhite}; z-index: 3; letter-spacing: 3px;
   
   &:before { 
@@ -353,12 +340,6 @@ const PremiumBadge = styled(motion.div)`
     text-align: center; 
     margin-bottom: 4px; 
   }
-  
-  &:after { 
-    content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-    background: linear-gradient( 45deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100% ); 
-    background-size: 200% auto; animation: ${galacticShimmer} 3s linear infinite; 
-  }
 `;
 
 const AnimatedName = styled(motion.span)`
@@ -367,14 +348,12 @@ const AnimatedName = styled(motion.span)`
     to right, 
     ${GALAXY_COLORS.cyberCyan}, 
     ${GALAXY_COLORS.starGold}, 
-    ${GALAXY_COLORS.cosmicPurple}, 
-    ${GALAXY_COLORS.energyBlue}, 
-    ${GALAXY_COLORS.cyberCyan}
+    ${GALAXY_COLORS.cosmicPurple}
   );
-  background-size: 200% auto; background-clip: text; -webkit-background-clip: text;
-  color: transparent; animation: ${galacticShimmer} 3s linear infinite;
+  background-clip: text; -webkit-background-clip: text;
+  color: transparent;
   padding: 0 5px;
-  text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+  text-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
 `;
 
 const HeroTitle = styled(motion.h1)`
@@ -389,11 +368,10 @@ const HeroSubtitle = styled(motion.h2)`
     to right, 
     ${GALAXY_COLORS.cyberCyan}, 
     ${GALAXY_COLORS.starGold}, 
-    ${GALAXY_COLORS.cosmicPurple}, 
-    ${GALAXY_COLORS.energyBlue}
+    ${GALAXY_COLORS.cosmicPurple}
   );
-  background-size: 200% auto; background-clip: text; -webkit-background-clip: text; 
-  color: transparent; animation: ${galacticShimmer} 4s linear infinite; 
+  background-clip: text; -webkit-background-clip: text; 
+  color: transparent;
   display: inline-block; font-weight: 300;
   @media (max-width: 768px) { font-size: 1.25rem; }
 `;
@@ -423,7 +401,7 @@ const ScrollIndicator = styled(motion.div)`
     content: "↓"; 
     font-size: 1.5rem; 
     margin-top: 0.5rem; 
-    animation: ${cosmicFloat} 3s ease-in-out infinite;
+    animation: ${subtleFloat} 3s ease-in-out infinite;
     color: ${GALAXY_COLORS.cyberCyan};
   }
 `;
@@ -521,12 +499,9 @@ const CosmicPackageCard = styled(motion.div)<{ $theme?: string }>`
   border-radius: 25px;
   overflow: hidden;
   background: ${props => getGalaxyGradient(props.$theme)};
-  backdrop-filter: blur(20px);
   border: 2px solid rgba(0, 255, 255, 0.4);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
-    0 15px 35px rgba(0, 0, 0, 0.4),
-    0 0 20px rgba(0, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   cursor: pointer;
   height: 100%;
   min-height: 520px;
@@ -534,27 +509,11 @@ const CosmicPackageCard = styled(motion.div)<{ $theme?: string }>`
   flex-direction: column;
   isolation: isolate;
   z-index: 20;
+  will-change: transform;
   
   @media (max-width: 768px) {
     min-height: 480px;
     border-radius: 20px;
-  }
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.1) 50%,
-      transparent 100%
-    );
-    transition: left 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 1;
   }
   
   &::after {
@@ -564,26 +523,16 @@ const CosmicPackageCard = styled(motion.div)<{ $theme?: string }>`
     left: 0;
     right: 0;
     bottom: 0;
-    background: 
-      radial-gradient(circle at 20% 20%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 80% 80%, rgba(120, 81, 169, 0.1) 0%, transparent 50%);
+    background: radial-gradient(circle at 50% 50%, rgba(0, 255, 255, 0.05) 0%, transparent 60%);
     pointer-events: none;
     z-index: 0;
   }
   
   &:hover {
-    transform: translateY(-12px) scale(1.03);
-    border-color: rgba(0, 255, 255, 0.8);
-    box-shadow: 
-      0 25px 50px rgba(0, 0, 0, 0.5),
-      0 0 40px rgba(0, 255, 255, 0.4),
-      0 0 60px rgba(120, 81, 169, 0.3);
-    animation: ${stellarPulse} 2s ease-in-out infinite;
+    transform: translateY(-8px) scale(1.02);
+    border-color: rgba(0, 255, 255, 0.7);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 25px rgba(0, 255, 255, 0.3);
     z-index: 25;
-    
-    &::before {
-      left: 100%;
-    }
   }
   
   &:focus {
@@ -742,27 +691,12 @@ const CosmicPriceBox = styled(motion.div)`
   padding: 1.5rem;
   margin-bottom: 1.5rem;
   border-radius: 15px;
-  background: linear-gradient(135deg, rgba(30, 30, 60, 0.8), rgba(120, 81, 169, 0.4));
+  background: linear-gradient(135deg, rgba(30, 30, 60, 0.9), rgba(120, 81, 169, 0.5));
   border: 2px solid rgba(0, 255, 255, 0.4);
   text-align: center;
   position: relative;
-  overflow: hidden;
   min-height: 120px;
   isolation: isolate;
-  backdrop-filter: blur(15px);
-  
-  &:before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.1) 50%, transparent 100%);
-    background-size: 200% 200%;
-    animation: ${galacticShimmer} 6s ease-in-out infinite;
-    pointer-events: none;
-  }
 `;
 
 const CosmicPriceContent = styled(motion.div)`
@@ -865,10 +799,10 @@ const CartButton = styled(motion.button)`
 `;
 
 const PulsingCartButton = styled(CartButton)`
-  animation: ${stellarPulse} 1.5s infinite;
+  animation: ${gentlePulse} 2s infinite;
   box-shadow: 
     0 8px 25px rgba(0, 0, 0, 0.4), 
-    0 0 40px rgba(0, 255, 255, 0.8);
+    0 0 30px rgba(0, 255, 255, 0.6);
   
   outline: none;
   &:focus {
@@ -992,37 +926,35 @@ const GalaxyStoreFront: React.FC = () => {
     }
   }, [effectiveAuth, isAuthenticated]);
 
-  // --- Refs and Animation Controls ---
+  // --- Refs for scroll optimization ---
   const heroRef = useRef<HTMLDivElement>(null);
   const fixedPackagesSectionRef = useRef<HTMLDivElement>(null);
   const monthlyPackagesSectionRef = useRef<HTMLDivElement>(null);
-
-  const heroControls = useAnimation();
-  const fixedPackagesControls = useAnimation();
-  const monthlyPackagesControls = useAnimation();
-
-  const isHeroInView = useInView(heroRef, { once: true, amount: 0.3 });
-  const isFixedPackagesInView = useInView(fixedPackagesSectionRef, { once: true, amount: 0.1 });
-  const isMonthlyPackagesInView = useInView(monthlyPackagesSectionRef, { once: true, amount: 0.1 });
+  const scrollTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Allow anyone who is authenticated (by any means) to view prices and purchase
   const canViewPrices = effectiveAuth;
 
   // --- Effects ---
-  useEffect(() => {
-    if (isHeroInView) heroControls.start("visible");
-    if (isFixedPackagesInView) fixedPackagesControls.start("visible");
-    if (isMonthlyPackagesInView) monthlyPackagesControls.start("visible");
-  }, [
-    isHeroInView, isFixedPackagesInView, isMonthlyPackagesInView,
-    heroControls, fixedPackagesControls, monthlyPackagesControls
-  ]);
+  // Debounced scroll handler for better performance
+  const handleScroll = useCallback(() => {
+    if (scrollTimeout.current) {
+      clearTimeout(scrollTimeout.current);
+    }
+    scrollTimeout.current = setTimeout(() => {
+      setAnimateScrollIndicator(window.scrollY < 200);
+    }, 16); // 60fps throttling
+  }, []);
 
   useEffect(() => {
-    const handleScroll = () => setAnimateScrollIndicator(window.scrollY < 200);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (scrollTimeout.current) {
+        clearTimeout(scrollTimeout.current);
+      }
+    };
+  }, [handleScroll]);
 
   // Track if we've already refreshed the cart to avoid loops
   const hasRefreshed = React.useRef(false);
@@ -1043,8 +975,8 @@ const GalaxyStoreFront: React.FC = () => {
     }
   }, [showBanner]);
 
-  // --- Animation Variants ---
-  const containerVariants = { 
+  // --- Optimized Animation Variants (Memoized) ---
+  const containerVariants = useMemo(() => ({ 
     hidden: { opacity: 0 }, 
     visible: { 
       opacity: 1, 
@@ -1053,9 +985,9 @@ const GalaxyStoreFront: React.FC = () => {
         staggerChildren: 0.1 
       } 
     } 
-  };
+  }), []);
   
-  const itemVariants = { 
+  const itemVariants = useMemo(() => ({ 
     hidden: { y: 20, opacity: 0 }, 
     visible: { 
       y: 0, 
@@ -1065,9 +997,9 @@ const GalaxyStoreFront: React.FC = () => {
         ease: "easeOut" 
       } 
     } 
-  };
+  }), []);
   
-  const gridVariants = { 
+  const gridVariants = useMemo(() => ({ 
     hidden: { opacity: 0 }, 
     visible: { 
       opacity: 1, 
@@ -1076,33 +1008,33 @@ const GalaxyStoreFront: React.FC = () => {
         staggerChildren: 0.05 
       } 
     } 
-  };
+  }), []);
   
-  const cardVariants = { 
-    hidden: { y: 40, opacity: 0 }, 
+  const cardVariants = useMemo(() => ({ 
+    hidden: { y: 30, opacity: 0 }, 
     visible: { 
       y: 0, 
       opacity: 1, 
       transition: { 
-        duration: 0.4, 
+        duration: 0.3, 
         ease: "easeOut" 
       } 
     } 
-  };
+  }), []);
   
-  const buttonMotionProps = { 
+  const buttonMotionProps = useMemo(() => ({ 
     whileHover: { 
-      scale: 1.05, 
+      scale: 1.03, 
       transition: { 
         type: "spring", 
-        stiffness: 400, 
-        damping: 10 
+        stiffness: 300, 
+        damping: 15 
       } 
     }, 
     whileTap: { 
-      scale: 0.95 
+      scale: 0.97 
     } 
-  };
+  }), []);
 
   // --- Event Handlers ---
   const togglePriceVisibility = (packageId: number) => setRevealPrices((prev) => ({ ...prev, [packageId]: !prev[packageId] }));
@@ -1150,22 +1082,24 @@ const GalaxyStoreFront: React.FC = () => {
     }
   }, [toast, addToCart, refreshCart, user, effectiveAuth]);
 
-  // --- Helper Functions ---
-  const getValueBadge = (pkg: StoreItem): { text: string; isGoodValue: boolean } => {
-    if (!pkg.pricePerSession) return { text: '', isGoodValue: false };
-    
-    if (pkg.pricePerSession <= 142) {
-      return { text: 'Best Value', isGoodValue: true };
-    } else if (pkg.pricePerSession <= 150) {
-      return { text: 'Great Value', isGoodValue: true };
-    } else if (pkg.pricePerSession <= 165) {
-      return { text: 'Good Value', isGoodValue: false };
-    }
-    return { text: '', isGoodValue: false };
-  };
+  // --- Helper Functions (Memoized for Performance) ---
+  const getValueBadge = useMemo(() => {
+    return (pkg: StoreItem): { text: string; isGoodValue: boolean } => {
+      if (!pkg.pricePerSession) return { text: '', isGoodValue: false };
+      
+      if (pkg.pricePerSession <= 142) {
+        return { text: 'Best Value', isGoodValue: true };
+      } else if (pkg.pricePerSession <= 150) {
+        return { text: 'Great Value', isGoodValue: true };
+      } else if (pkg.pricePerSession <= 165) {
+        return { text: 'Good Value', isGoodValue: false };
+      }
+      return { text: '', isGoodValue: false };
+    };
+  }, []);
 
-  // --- Render Package Card ---
-  const renderCosmicPackageCard = (pkg: StoreItem) => {
+  // --- Render Package Card (Memoized for Performance) ---
+  const renderCosmicPackageCard = useCallback((pkg: StoreItem) => {
     const isCurrentlyAdding = isAddingToCart === pkg.id;
 
     let badgeDisplay = '';
@@ -1272,7 +1206,7 @@ const GalaxyStoreFront: React.FC = () => {
         </CosmicPackageCard>
       </motion.div>
     );
-  };
+  }, [isAddingToCart, revealPrices, effectiveAuth, handleAddToCart, buttonMotionProps, getValueBadge]);
 
   // --- Component JSX ---
   return (
@@ -1287,37 +1221,45 @@ const GalaxyStoreFront: React.FC = () => {
         {/* Hero Section */}
         <HeroSection ref={heroRef}>
           <VideoBackground>
-            <video autoPlay loop muted playsInline key="hero-bg-video">
+            <video 
+              autoPlay 
+              loop 
+              muted 
+              playsInline 
+              key="hero-bg-video"
+              preload="metadata"
+              style={{ willChange: 'auto' }}
+            >
               <source src={swanVideo} type="video/mp4" />
             </video>
           </VideoBackground>
           
-          <PremiumBadge initial={{ opacity: 0, x: 20 }} animate={heroControls} variants={itemVariants} transition={{ delay: 0.5 }}> 
+          <PremiumBadge initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5, duration: 0.4 }}> 
             PREMIER
           </PremiumBadge>
 
           <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={heroControls} 
-            variants={containerVariants} 
-            style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2 }}
+          initial={{ opacity: 0 }} 
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2 }}
           >
-            <LogoContainer variants={itemVariants}>
+            <LogoContainer initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1, duration: 0.4 }}>
               <img src={logoImg} alt="Swan Studios Logo" loading="lazy" />
             </LogoContainer>
             
-            <HeroContent variants={itemVariants}>
-              <HeroTitle variants={itemVariants}>
+            <HeroContent initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2, duration: 0.4 }}>
+              <HeroTitle initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3, duration: 0.4 }}>
                 Elite Training Designed by{' '}
                 <AnimatedName>Sean Swan</AnimatedName>
               </HeroTitle>
-              <HeroSubtitle variants={itemVariants}>
+              <HeroSubtitle initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4, duration: 0.4 }}>
                 25+ Years of Experience & NASM-Approved Protocols
               </HeroSubtitle>
-              <HeroDescription variants={itemVariants}>
+              <HeroDescription initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.5, duration: 0.4 }}>
                 Discover a revolutionary workout program tailored to your unique goals. Leveraging over two decades of expertise and cutting-edge techniques, Sean Swan delivers results that redefine your limits.
               </HeroDescription>
-              <ButtonsContainer variants={itemVariants}>
+              <ButtonsContainer initial={{ y: 15, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.6, duration: 0.4 }}>
                 <motion.div {...buttonMotionProps}>
                   <GlowButton 
                     variant="info"
@@ -1370,11 +1312,27 @@ const GalaxyStoreFront: React.FC = () => {
           {/* Fixed Packages Section */}
           {FIXED_PACKAGES.length > 0 && (
             <PackageSection id="packages-section" ref={fixedPackagesSectionRef}>
-              <motion.div initial={{ opacity: 0 }} animate={fixedPackagesControls} variants={containerVariants}>
-                <SectionTitle initial={{ opacity: 0 }} animate={{ opacity: 1 }} variants={itemVariants}>
+              <motion.div 
+                initial={{ opacity: 0 }} 
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true, amount: 0.1 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+              >
+                <SectionTitle 
+                  initial={{ opacity: 0, y: 20 }} 
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                >
                   ⭐ Premium Training Packages ⭐
                 </SectionTitle>
-                <GalaxyGrid initial={{ opacity: 0 }} animate={{ opacity: 1 }} variants={gridVariants} aria-label="Session packages">
+                <GalaxyGrid 
+                  initial={{ opacity: 0 }} 
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true, amount: 0.1 }}
+                  transition={{ duration: 0.6, ease: "easeOut", staggerChildren: 0.1 }}
+                  aria-label="Session packages"
+                >
                   {FIXED_PACKAGES.map(renderCosmicPackageCard)}
                 </GalaxyGrid>
               </motion.div>
@@ -1384,11 +1342,27 @@ const GalaxyStoreFront: React.FC = () => {
           {/* Monthly Packages Section */}
           {MONTHLY_PACKAGES.length > 0 && (
             <PackageSection ref={monthlyPackagesSectionRef} style={FIXED_PACKAGES.length > 0 ? { marginTop: '0rem' } : {}}>
-              <motion.div initial={{ opacity: 0 }} animate={monthlyPackagesControls} variants={containerVariants}>
-                 <SectionTitle initial={{ opacity: 0 }} animate={{ opacity: 1 }} variants={itemVariants}>
+              <motion.div 
+                initial={{ opacity: 0 }} 
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: true, amount: 0.1 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+              >
+                 <SectionTitle 
+                  initial={{ opacity: 0, y: 20 }} 
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                >
                   🚀 Long-Term Excellence Programs 🚀
                 </SectionTitle>
-                <GalaxyGrid initial={{ opacity: 0 }} animate={{ opacity: 1 }} variants={gridVariants} aria-label="Monthly packages">
+                <GalaxyGrid 
+                  initial={{ opacity: 0 }} 
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true, amount: 0.1 }}
+                  transition={{ duration: 0.6, ease: "easeOut", staggerChildren: 0.1 }}
+                  aria-label="Monthly packages"
+                >
                   {MONTHLY_PACKAGES.map(renderCosmicPackageCard)}
                 </GalaxyGrid>
               </motion.div>
@@ -1400,9 +1374,10 @@ const GalaxyStoreFront: React.FC = () => {
               <SectionContainer style={{paddingTop: '2rem', paddingBottom: '5rem'}}>
                   <motion.div 
                       style={{ display: "flex", justifyContent: "center", marginTop: "1rem", position: 'relative', zIndex: 20 }} 
-                      variants={itemVariants} 
-                      initial={{ opacity: 0 }} 
-                      animate={{ opacity: 1 }}
+                      initial={{ opacity: 0, y: 20 }} 
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.4, ease: "easeOut" }}
                   >
                       <motion.div {...buttonMotionProps}>
                       <GlowButton 
