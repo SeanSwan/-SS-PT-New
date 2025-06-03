@@ -68,7 +68,14 @@
     "verify-session-packages": "cd backend && npm run verify-session-packages",
     "verify-luxury-packages": "cd backend && npm run verify-luxury-packages",
     "check-session-packages": "cd backend && npm run check-packages",
-    "fix-session-packages": "cd backend && npm run reset-and-seed-packages"
+    "fix-session-packages": "cd backend && npm run reset-and-seed-packages",
+    "render-debug": "node render-production-debug.mjs",
+    "render-seed": "node render-production-seeder.mjs",
+    "render-fix-pricing": "node render-production-seeder.mjs",
+    "production-seed": "node render-production-seeder.mjs",
+    "production-debug": "node render-production-debug.mjs",
+    "production-verify": "node render-production-verify.mjs",
+    "render-verify": "node render-production-verify.mjs"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
