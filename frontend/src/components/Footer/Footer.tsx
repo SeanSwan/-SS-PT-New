@@ -446,53 +446,7 @@ const AnimatedButton = motion.create('button', {
   shouldForwardProp: defaultShouldForwardProp
 });
 
-const ScrollTopButton = styled(AnimatedButton)`
-  position: fixed;
-  bottom: 30px;
-  right: 30px;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 30, 0.8);
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  color: var(--neon-blue, #00ffff);
-  font-size: 1.2rem;
-  cursor: pointer;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s ease;
-  z-index: 1000;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    padding: 2px;
-    background: linear-gradient(135deg, #00ffff, #7851a9);
-    -webkit-mask: 
-      linear-gradient(#fff 0 0) content-box, 
-      linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    opacity: 0.6;
-  }
-  
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-  }
-  
-  @media (max-width: 480px) {
-    bottom: 20px;
-    right: 20px;
-    width: 40px;
-    height: 40px;
-    font-size: 1rem;
-  }
-`;
+/* Removed ScrollTopButton to prevent conflicts with the global ScrollToTop component in Layout */
 
 // Animation variants
 const containerVariants = {
@@ -582,13 +536,7 @@ const EnhancedFooter = () => {
     }
   }, [controls, isInView]);
   
-  // Smooth scroll to top
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  };
+  // Removed scrollToTop function - handled by global ScrollToTop component in Layout
   
   // GSAP animation for hover effects on social icons
   useEffect(() => {
@@ -835,17 +783,7 @@ const EnhancedFooter = () => {
         </FooterLinks>
       </BottomFooter>
       
-      <ScrollTopButton
-        onClick={scrollToTop}
-        aria-label="Scroll to top"
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
-      >
-        <FaChevronUp />
-      </ScrollTopButton>
+      {/* ScrollTopButton removed - using global ScrollToTop component from Layout instead */}
     </FooterContainer>
   );
 };
