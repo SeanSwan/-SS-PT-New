@@ -128,9 +128,9 @@ const SimplifiedStoreFront = lazyLoadWithErrorHandling(
   () => import('../pages/shop/SimplifiedStoreFront.component'),
   'Simplified Storefront'
 );
-const GalaxyStoreFront = lazyLoadWithErrorHandling(
+const SwanStudiosStore = lazyLoadWithErrorHandling(
   () => import('../pages/shop/GalaxyStoreFrontFixed.component'),
-  'Galaxy Storefront Fixed'
+  'SwanStudios Store'
 );
 const ShopPage = lazyLoadWithErrorHandling(
   () => import('../pages/shop/ShopPage'),
@@ -288,7 +288,7 @@ const MainRoutes: RouteObject = {
       path: 'shop',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <StoreFront />
+          <SwanStudiosStore />
         </Suspense>
       )
     },
@@ -296,7 +296,7 @@ const MainRoutes: RouteObject = {
       path: 'shop/apparel',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <StoreFront />
+          <SwanStudiosStore />
         </Suspense>
       )
     },
@@ -304,7 +304,7 @@ const MainRoutes: RouteObject = {
       path: 'shop/training-packages',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <StoreFront />
+          <SwanStudiosStore />
         </Suspense>
       )
     },
@@ -312,7 +312,7 @@ const MainRoutes: RouteObject = {
       path: 'shop/supplements',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <StoreFront />
+          <SwanStudiosStore />
         </Suspense>
       )
     },
@@ -353,7 +353,15 @@ const MainRoutes: RouteObject = {
       path: 'store',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <StoreFront />
+          <SwanStudiosStore />
+        </Suspense>
+      )
+    },
+    {
+      path: 'swanstudios-store',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <SwanStudiosStore />
         </Suspense>
       )
     },
@@ -361,7 +369,7 @@ const MainRoutes: RouteObject = {
       path: 'galaxy-store',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <GalaxyStoreFront />
+          <SwanStudiosStore />
         </Suspense>
       )
     },

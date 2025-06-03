@@ -1,15 +1,16 @@
 /**
- * GalaxyStoreFrontFixed.component.tsx
- * ===================================
+ * SwanStudiosStore.component.tsx (formerly GalaxyStoreFrontFixed)
+ * ============================================================
  * 
- * FIXED VERSION: Now properly fetches packages from backend API instead of using hardcoded data
- * This resolves the 404 cart errors by ensuring frontend uses actual database IDs
+ * UNIFIED SWANSTUDIOS STORE: Properly fetches packages from backend API with unified store logic
+ * This resolves the 404 cart errors and unifies training packages with the main store
  * 
- * Key Changes:
- * - Added API call to fetch packages from /api/storefront
- * - Removed hardcoded FIXED_PACKAGES and MONTHLY_PACKAGES arrays
- * - Added proper loading states and error handling
+ * Key Features:
+ * - API-driven package loading from /api/storefront
+ * - Unified training packages and store functionality
+ * - Proper client/admin/trainer dashboard integration
  * - Maintains all existing styling and animations
+ * - Renamed from Galaxy to SwanStudios Store
  */
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
@@ -890,7 +891,7 @@ const RetryButton = styled.button`
 `;
 
 // --- Component Implementation ---
-const GalaxyStoreFrontFixed: React.FC = () => {
+const SwanStudiosStore: React.FC = () => {
   const { user, isAuthenticated, authAxios } = useAuth();
   const { cart, addToCart, refreshCart } = useCart();
   const { toast } = useToast();
@@ -1199,12 +1200,12 @@ const GalaxyStoreFrontFixed: React.FC = () => {
                     </CosmicPriceContent>
                   ) : (
                     <motion.div key="reveal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'rgba(255,255,255,0.7)'}}>
-                      Click to reveal stellar pricing
+                      Click to reveal premium pricing
                     </motion.div>
                   )
                 ) : (
                   <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%'}}>
-                    <LoginMessage>Login to view galactic prices and purchase</LoginMessage>
+                    <LoginMessage>Login to view premium prices and purchase</LoginMessage>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1238,7 +1239,7 @@ const GalaxyStoreFrontFixed: React.FC = () => {
     <GalaxyContainer>
       {showBanner && (
         <StatusBanner>
-          SwanStudios Rare Element Collection - Luxury Training Packages Powered by Cosmic Swan Technology
+          SwanStudios Store - Luxury Training Packages and Wellness Solutions by Sean Swan
         </StatusBanner>
       )}
       
@@ -1303,7 +1304,7 @@ const GalaxyStoreFrontFixed: React.FC = () => {
               animate={{ opacity: [0, 0.7, 0] }} 
               transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             >
-              DISCOVER THE GALAXY
+              DISCOVER SWANSTUDIOS
             </ScrollIndicator>
           )}
         </HeroSection>
@@ -1313,7 +1314,7 @@ const GalaxyStoreFrontFixed: React.FC = () => {
           {loading && (
             <LoadingContainer>
               <LoadingSpinner />
-              <LoadingText>Loading Cosmic Packages...</LoadingText>
+              <LoadingText>Loading SwanStudios Packages...</LoadingText>
             </LoadingContainer>
           )}
 
@@ -1439,4 +1440,4 @@ const GalaxyStoreFrontFixed: React.FC = () => {
   );
 };
 
-export default GalaxyStoreFrontFixed;
+export default SwanStudiosStore;
