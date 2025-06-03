@@ -16,6 +16,16 @@ const BUTTON_THEMES = {
     glowStart: "#00A0E3", // swanBlue
     glowEnd: "#00FFFF", // swanCyan
   },
+  // NEON BLUE theme - Bright electric blue
+  neonBlue: {
+    background: "#001122", // Very dark blue base
+    color: "#fff",
+    shadow: "rgba(0, 136, 255, 0.3)",
+    shineLeft: "rgba(0, 136, 255, 0.6)", // Electric blue
+    shineRight: "rgba(0, 200, 255, 0.8)", // Bright cyan
+    glowStart: "#0088FF", // Electric blue
+    glowEnd: "#00C8FF", // Bright cyan
+  },
   // SECONDARY theme (Purple) - Galaxy-Swan secondary
   purple: {
     background: "#09041e",
