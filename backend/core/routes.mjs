@@ -241,36 +241,86 @@ export const setupRoutes = async (app) => {
     });
   }
 
-  // ===================== GENERAL API ROUTES (LAST) =====================
+  // ===================== GENERAL API ROUTES (BEFORE SPA FALLBACK) =====================
   app.use('/api', apiRoutes);
 
-  // ===================== SPA FALLBACK ROUTING (PRODUCTION) =====================
+  // ===================== ENHANCED SPA FALLBACK ROUTING (PRODUCTION) =====================
   if (isProduction) {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
-    const frontendDistPath = path.resolve(__dirname, '../../../frontend/dist');
-    const indexPath = path.join(frontendDistPath, 'index.html');
+    // Use the robust paths determined in middleware setup
+    const frontendDistPath = global.FRONTEND_DIST_PATH;
+    const indexPath = global.FRONTEND_INDEX_PATH;
     
-    if (existsSync(indexPath)) {
-      // Serve index.html for all non-API routes (SPA fallback)
+    if (frontendDistPath && indexPath && existsSync(indexPath)) {
+      logger.info('🌌 Setting up SPA fallback routing...');
+      
+      // Enhanced SPA fallback with comprehensive route handling
       app.get('*', (req, res) => {
-        // Don't serve HTML for API routes
+        const requestPath = req.path;
+        const userAgent = req.get('User-Agent') || '';
+        
+        // Exclude API and webhook routes
+        if (requestPath.startsWith('/api') || requestPath.startsWith('/webhooks')) {
+          return res.status(404).json({ 
+            success: false,
+            error: 'API endpoint not found',
+            path: requestPath,
+            timestamp: new Date().toISOString()
+          });
+        }
+        
+        // Exclude static asset requests (but allow HTML files)
+        const staticAssetPattern = /\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|map|json|xml|txt)$/i;
+        if (staticAssetPattern.test(requestPath)) {
+          return res.status(404).send('Static asset not found');
+        }
+        
+        // Exclude common non-browser requests
+        if (requestPath.includes('robots.txt') || 
+            requestPath.includes('sitemap.xml') || 
+            requestPath.includes('favicon.ico') ||
+            requestPath.includes('.well-known')) {
+          return res.status(404).send('Resource not found');
+        }
+        
+        // Log SPA fallback (but reduce noise from bots)
+        const isBrowserRequest = userAgent.includes('Mozilla') || userAgent.includes('Chrome') || userAgent.includes('Safari');
+        if (isBrowserRequest) {
+          logger.info(`🌌 SPA Fallback: ${requestPath} -> index.html`);
+        } else {
+          logger.debug(`🤖 Bot request SPA fallback: ${requestPath}`);
+        }
+        
+        // Set proper headers for SPA
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        
+        // Serve the React app
+        res.sendFile(indexPath);
+      });
+      
+      logger.info('✅ Enhanced SPA fallback routing configured successfully');
+      logger.info(`🏠 Frontend served from: ${frontendDistPath}`);
+      logger.info(`📄 Index.html path: ${indexPath}`);
+    } else {
+      logger.error('🚨 CRITICAL: Cannot configure SPA routing - frontend files not found!');
+      logger.error(`Frontend path: ${frontendDistPath}`);
+      logger.error(`Index path: ${indexPath}`);
+      
+      // Fallback error handler for missing frontend
+      app.get('*', (req, res) => {
         if (req.path.startsWith('/api') || req.path.startsWith('/webhooks')) {
           return res.status(404).json({ error: 'API endpoint not found' });
         }
         
-        // Don't serve HTML for static asset requests
-        if (req.path.includes('.') && !req.path.endsWith('.html')) {
-          return res.status(404).send('Asset not found');
-        }
-        
-        logger.info(`SPA Fallback: Serving index.html for route: ${req.path}`);
-        res.sendFile(indexPath);
+        res.status(503).json({
+          error: 'Frontend not available',
+          message: 'The frontend application is not properly built or deployed.',
+          suggestion: 'Run "npm run build" in the frontend directory',
+          timestamp: new Date().toISOString()
+        });
       });
-      
-      logger.info('✅ SPA fallback routing configured');
-    } else {
-      logger.warn(`⚠️ Index.html not found at: ${indexPath}`);
     }
   }
 
