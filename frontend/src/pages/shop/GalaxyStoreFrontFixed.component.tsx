@@ -22,7 +22,8 @@ import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 
 // --- Component Imports ---
-import { SwanGalaxyLuxuryButton } from "../../components/ui";
+import GlowButton from "../../components/Button/glowButton.jsx";
+import { ThemedGlowButton } from "../../styles/swan-theme-utils.tsx";
 import OrientationForm from "../../components/OrientationForm/orientationForm";
 import ShoppingCart from "../../components/ShoppingCart/ShoppingCart";
 import { useToast } from "../../hooks/use-toast";
@@ -850,11 +851,52 @@ const CardActions = styled.div`
   }
 `;
 
-const FloatingCartButton = styled(motion.div)`
+const CartButton = styled(motion.button)`
   position: fixed;
   bottom: 2rem;
   right: 2rem;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, ${GALAXY_COLORS.cosmicPurple}, ${GALAXY_COLORS.cyberCyan});
+  border: 3px solid rgba(0, 255, 255, 0.6);
+  color: white;
+  font-size: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.4), 
+    0 0 30px rgba(0, 255, 255, 0.4);
   z-index: 1000;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  
+  &:hover {
+    transform: scale(1.15);
+    box-shadow: 
+      0 12px 35px rgba(0, 0, 0, 0.5), 
+      0 0 40px rgba(0, 255, 255, 0.6);
+    animation: ${stellarPulse} 1.5s ease-in-out infinite;
+  }
+  
+  outline: none;
+  &:focus {
+    outline: none;
+  }
+`;
+
+const PulsingCartButton = styled(CartButton)`
+  animation: ${stellarPulse} 2s infinite;
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.4), 
+    0 0 30px rgba(0, 255, 255, 0.6);
+  
+  outline: none;
+  &:focus {
+    outline: none;
+  }
 `;
 
 const CartCount = styled.span`
@@ -1102,10 +1144,6 @@ const GalaxyStoreFrontFixed: React.FC = () => {
 
     const valueBadge = getValueBadge(pkg);
 
-    const glowVariant = pkg.theme === 'cosmic' ? 'info' : 
-                      pkg.theme === 'ruby' ? 'warning' : 
-                      pkg.theme === 'emerald' ? 'success' : 'primary';
-
     return (
       <motion.div key={pkg.id} variants={cardVariants}>
         <CosmicPackageCard 
@@ -1171,25 +1209,19 @@ const GalaxyStoreFrontFixed: React.FC = () => {
             
             <CardActions>
               <motion.div {...buttonMotionProps} style={{ width: '100%'}}>
-                <SwanGalaxyLuxuryButton 
-                  variant={glowVariant}
-                  size="medium"
-                  glowIntensity="high"
+                <GlowButton 
+                  text={isCurrentlyAdding ? "Adding..." : "Add to Cart"} 
+                  theme={pkg.theme || "purple"}
+                  size="medium" 
+                  isLoading={isCurrentlyAdding}
                   disabled={isCurrentlyAdding || !isAuthenticated}
-                  loading={isCurrentlyAdding}
                   onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
                     e.stopPropagation(); 
                     handleAddToCart(pkg); 
                   }}
                   aria-busy={isCurrentlyAdding}
                   aria-label={`Add ${pkg.name} to cart`}
-                  style={{
-                    width: '100%',
-                    borderRadius: '25px'
-                  }}
-                >
-                  {isCurrentlyAdding ? "Adding..." : "Add to Cart"}
-                </SwanGalaxyLuxuryButton>
+                />
               </motion.div>
             </CardActions>
           </CosmicCardContent>
@@ -1243,32 +1275,20 @@ const GalaxyStoreFrontFixed: React.FC = () => {
               </HeroDescription>
               <ButtonsContainer variants={itemVariants}>
                 <motion.div {...buttonMotionProps}>
-                  <SwanGalaxyLuxuryButton 
-                    variant="info"
-                    size="large"
-                    glowIntensity="ultra"
-                    onClick={() => setShowOrientation(true)}
-                    style={{
-                      width: '100%',
-                      borderRadius: '25px'
-                    }}
-                  >
-                    Book Consultation
-                  </SwanGalaxyLuxuryButton>
+                  <ThemedGlowButton 
+                    text="Book Consultation" 
+                    variant="primary" 
+                    size="large" 
+                    onClick={() => setShowOrientation(true)} 
+                  />
                 </motion.div>
                 <motion.div {...buttonMotionProps}>
-                  <SwanGalaxyLuxuryButton 
-                    variant="secondary"
-                    size="large"
-                    glowIntensity="high"
+                  <ThemedGlowButton 
+                    text="View Packages" 
+                    variant="secondary" 
+                    size="large" 
                     onClick={() => document.getElementById("packages-section")?.scrollIntoView({ behavior: "smooth" })}
-                    style={{
-                      width: '100%',
-                      borderRadius: '25px'
-                    }}
-                  >
-                    View Packages
-                  </SwanGalaxyLuxuryButton>
+                  />
                 </motion.div>
               </ButtonsContainer>
             </HeroContent>
@@ -1325,20 +1345,12 @@ const GalaxyStoreFrontFixed: React.FC = () => {
                       animate={{ opacity: 1 }}
                   >
                       <motion.div {...buttonMotionProps}>
-                      <SwanGalaxyLuxuryButton 
-                          variant="warning"
-                          size="xlarge"
-                          glowIntensity="ultra"
-                          onClick={() => setShowOrientation(true)}
-                          style={{
-                            borderRadius: '30px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem'
-                          }}
-                      >
-                          Schedule Consultation
-                      </SwanGalaxyLuxuryButton>
+                      <ThemedGlowButton 
+                          text="Schedule Consultation" 
+                          variant="primary" 
+                          size="large" 
+                          onClick={() => setShowOrientation(true)} 
+                      />
                       </motion.div>
                   </motion.div>
               </SectionContainer>
@@ -1348,34 +1360,45 @@ const GalaxyStoreFrontFixed: React.FC = () => {
 
       {/* Floating Cart Button */}
       {user && (
-        <FloatingCartButton
-          initial={{ scale: 0.8, opacity: 0 }} 
-          animate={{ scale: 1, opacity: 1 }} 
-          exit={{ scale: 0.8, opacity: 0 }} 
-          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-        >
-          <SwanGalaxyLuxuryButton
-            variant={showPulse ? "warning" : "info"}
-            size="medium"
-            glowIntensity={showPulse ? "ultra" : "high"}
-            onClick={handleToggleCart}
-            aria-label={`View Cart (${cart?.itemCount || 0} items)`}
-            style={{
-              width: '70px',
-              height: '70px',
-              borderRadius: '50%',
-              fontSize: '1.8rem',
-              position: 'relative',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '0'
-            }}
-          >
-            🛒
-            {cart && cart.itemCount > 0 && <CartCount>{cart.itemCount}</CartCount>}
-          </SwanGalaxyLuxuryButton>
-        </FloatingCartButton>
+        <AnimatePresence>
+          {showPulse ? (
+            <PulsingCartButton 
+              className="cart-follow-button"
+              key="pulsing-cart" 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleToggleCart();
+              }} 
+              initial={{ scale: 0.8, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.8, opacity: 0 }} 
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              aria-label={`View Cart (${cart?.itemCount || 0} items)`}
+            >
+              🛒
+              {cart && cart.itemCount > 0 && <CartCount>{cart.itemCount}</CartCount>}
+            </PulsingCartButton>
+          ) : (
+            <CartButton 
+              className="cart-follow-button"
+              key="static-cart" 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleToggleCart();
+              }} 
+              initial={{ scale: 0.8, opacity: 0 }} 
+              animate={{ scale: 1, opacity: 1 }} 
+              exit={{ scale: 0.8, opacity: 0 }} 
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              aria-label={`View Cart (${cart?.itemCount || 0} items)`}
+            >
+              🛒
+              {cart && cart.itemCount > 0 && <CartCount>{cart.itemCount}</CartCount>}
+            </CartButton>
+          )}
+        </AnimatePresence>
       )}
 
       {/* Modals */}
