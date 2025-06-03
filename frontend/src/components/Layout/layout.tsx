@@ -4,7 +4,6 @@ import styled from 'styled-components';
 import Header from '../Header/header'; // Adjust the import path based on your project structure
 import Footer from '../Footer/Footer';
 import { SimpleScrollToTop, ConstructionBannerContainer } from '../common';
-import AlwaysVisibleScrollButton from '../common/AlwaysVisibleScrollButton';
 
 const MainContainer = styled.div`
   display: flex;
@@ -68,8 +67,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </ContentWrapper>
       
       <Footer />
-      {/* DEBUG: Using always visible button for testing */}
-      <AlwaysVisibleScrollButton />
+      {/* Production scroll-to-top button - appears when scrolling down */}
+      <SimpleScrollToTop scrollThreshold={300} />
     </MainContainer>
   );
 };
