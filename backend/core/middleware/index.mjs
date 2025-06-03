@@ -45,19 +45,50 @@ export const setupMiddleware = async (app) => {
   const uploadsPath = path.join(__dirname, '../../uploads');
   app.use('/uploads', express.static(uploadsPath));
 
-  // Serve frontend in production
+  // Serve frontend in production with ROBUST path resolution
   if (isProduction) {
-    const frontendDistPath = path.join(__dirname, '../../../frontend/dist');
+    // Try multiple possible frontend dist paths for different deployment scenarios
+    const possibleFrontendPaths = [
+      path.join(__dirname, '../../../frontend/dist'),           // Local development structure
+      path.join(__dirname, '../../frontend/dist'),              // Alternative structure
+      path.join(process.cwd(), 'frontend/dist'),                // From project root
+      path.join(process.cwd(), 'dist'),                         // Build output in root
+      '/app/frontend/dist',                                     // Render.com structure
+      '/app/dist'                                               // Alternative Render structure
+    ];
     
-    if (existsSync(frontendDistPath)) {
-      logger.info(`Serving frontend static files from: ${frontendDistPath}`);
+    let frontendDistPath = null;
+    let indexPath = null;
+    
+    // Find the correct frontend path
+    for (const testPath of possibleFrontendPaths) {
+      const testIndexPath = path.join(testPath, 'index.html');
+      if (existsSync(testIndexPath)) {
+        frontendDistPath = testPath;
+        indexPath = testIndexPath;
+        logger.info(`✅ Found frontend dist at: ${frontendDistPath}`);
+        break;
+      } else {
+        logger.debug(`❌ Frontend not found at: ${testPath}`);
+      }
+    }
+    
+    if (frontendDistPath && indexPath) {
+      logger.info(`🎯 Serving frontend static files from: ${frontendDistPath}`);
       
+      // Configure static file serving with proper caching
       app.use(express.static(frontendDistPath, {
         maxAge: '1y',
         etag: true,
         lastModified: true,
-        setHeaders: (res, path) => {
-          if (path.endsWith('.html')) {
+        index: false, // Don't auto-serve index.html here, we'll handle it in SPA fallback
+        setHeaders: (res, filePath) => {
+          // Cache static assets aggressively
+          if (filePath.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          }
+          // Don't cache HTML files
+          else if (filePath.endsWith('.html')) {
             res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
             res.setHeader('Pragma', 'no-cache');
             res.setHeader('Expires', '0');
@@ -65,9 +96,15 @@ export const setupMiddleware = async (app) => {
         }
       }));
       
-      logger.info('✅ Frontend static files configured successfully');
+      // Store paths globally for SPA fallback use
+      global.FRONTEND_DIST_PATH = frontendDistPath;
+      global.FRONTEND_INDEX_PATH = indexPath;
+      
+      logger.info('✅ Frontend static files configured with robust path resolution');
     } else {
-      logger.warn(`⚠️ Frontend dist directory not found at: ${frontendDistPath}`);
+      logger.error('🚨 CRITICAL: Frontend dist directory not found in any expected location!');
+      logger.error('🔍 Searched paths:', possibleFrontendPaths);
+      logger.error('💡 Ensure frontend is built with: npm run build');
     }
   }
 
