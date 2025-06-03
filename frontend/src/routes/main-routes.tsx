@@ -129,8 +129,8 @@ const SimplifiedStoreFront = lazyLoadWithErrorHandling(
   'Simplified Storefront'
 );
 const GalaxyStoreFront = lazyLoadWithErrorHandling(
-  () => import('../pages/shop/GalaxyStoreFront.component'),
-  'Galaxy Storefront'
+  () => import('../pages/shop/GalaxyStoreFrontFixed.component'),
+  'Galaxy Storefront Fixed'
 );
 const ShopPage = lazyLoadWithErrorHandling(
   () => import('../pages/shop/ShopPage'),
