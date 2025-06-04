@@ -903,7 +903,6 @@ const SwanStudiosStore: React.FC = () => {
   const [showOrientation, setShowOrientation] = useState(false);
   const [showCart, setShowCart] = useState(false);
   const [animateScrollIndicator, setAnimateScrollIndicator] = useState(true);
-  const [revealPrices, setRevealPrices] = useState<{ [key: string]: boolean }>({});
   const [isAddingToCart, setIsAddingToCart] = useState<number | null>(null);
   const [showPulse, setShowPulse] = useState(false);
   const [showBanner, setShowBanner] = useState(true);
@@ -1079,7 +1078,6 @@ const SwanStudiosStore: React.FC = () => {
   };
 
   // --- Event Handlers ---
-  const togglePriceVisibility = (packageId: number) => setRevealPrices((prev) => ({ ...prev, [packageId]: !prev[packageId] }));
   const handleToggleCart = () => setShowCart(prev => !prev);
   const handleHideCart = () => setShowCart(false);
 
@@ -1152,11 +1150,9 @@ const SwanStudiosStore: React.FC = () => {
       <motion.div key={pkg.id} variants={cardVariants}>
         <CosmicPackageCard 
           $theme={pkg.theme}
-          onClick={() => togglePriceVisibility(pkg.id)}
           aria-label={`View details for ${pkg.name}`}
           role="button"
           tabIndex={0}
-          onKeyPress={(e) => (e.key === 'Enter' || e.key === ' ') && togglePriceVisibility(pkg.id)}
         >
           <CosmicCardMedia>
             <CosmicCardImage 
@@ -1188,21 +1184,15 @@ const SwanStudiosStore: React.FC = () => {
             <CosmicPriceBox variants={itemVariants} aria-live="polite">
               <AnimatePresence mode="wait">
                 {isAuthenticated ? (
-                  revealPrices[pkg.id] ? (
-                    <CosmicPriceContent key="price" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
-                      <PriceLabel>Total Investment</PriceLabel>
-                      <Price>{formatPrice(pkg.displayPrice)}</Price>
-                      {valueBadge.text && (
-                        <ValueBadge $isGoodValue={valueBadge.isGoodValue}>
-                          {valueBadge.text}
-                        </ValueBadge>
-                      )}
-                    </CosmicPriceContent>
-                  ) : (
-                    <motion.div key="reveal" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'rgba(255,255,255,0.7)'}}>
-                      Click to reveal premium pricing
-                    </motion.div>
-                  )
+                  <CosmicPriceContent key="price" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+                    <PriceLabel>Total Investment</PriceLabel>
+                    <Price>{formatPrice(pkg.displayPrice)}</Price>
+                    {valueBadge.text && (
+                      <ValueBadge $isGoodValue={valueBadge.isGoodValue}>
+                        {valueBadge.text}
+                      </ValueBadge>
+                    )}
+                  </CosmicPriceContent>
                 ) : (
                   <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%'}}>
                     <LoginMessage>Login to view premium prices and purchase</LoginMessage>
@@ -1232,7 +1222,7 @@ const SwanStudiosStore: React.FC = () => {
         </CosmicPackageCard>
       </motion.div>
     );
-  }, [isAddingToCart, revealPrices, isAuthenticated, handleAddToCart, buttonMotionProps, getValueBadge]);
+  }, [isAddingToCart, isAuthenticated, handleAddToCart, buttonMotionProps, getValueBadge]);
 
   // --- Component JSX ---
   return (
