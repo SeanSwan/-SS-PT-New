@@ -14,7 +14,8 @@ services:
       - key: PORT
         value: 10000
       
-      # CORS CONFIGURATION - CRITICAL FOR FRONTEND
+      # CORS CONFIGURATION - PRODUCTION DOMAINS ONLY
+      # (localhost origins handled by defaultOrigins in code)
       - key: FRONTEND_ORIGINS
         value: "https://sswanstudios.com,https://www.sswanstudios.com,https://swanstudios.com,https://www.swanstudios.com"
       
