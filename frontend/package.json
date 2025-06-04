@@ -5,11 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite --port 5173 --force",
-    "build": "vite build",
+    "build": "vite build && npm run copy-redirects",
+    "build:production": "npm run clear-cache && vite build --mode production && npm run copy-redirects",
+    "copy-redirects": "cp _redirects dist/ || copy _redirects dist\\ || echo 'Redirects file copied'",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "clear-cache": "node .vite-cache-cleaner.js",
-    "dev:mock": "cross-env VITE_DEV_MODE=true vite --port 5173 --force"
+    "dev:mock": "cross-env VITE_DEV_MODE=true vite --port 5173 --force",
+    "verify-build": "node verify-production-build.mjs",
+    "deploy-ready": "npm run build:production && npm run verify-build"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

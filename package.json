@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "start": "concurrently \"npm run start-mongodb\" \"npm run start-backend-robust\" \"npm run start-frontend-delayed\" \"npm run start-workout-mcp\" \"npm run start-gamification-mcp\" \"npm run start-yolo-mcp\" --names \"mongo,backend,frontend,workout-mcp,gamify-mcp,yolo-mcp\" --prefix-colors \"green,yellow,cyan,magenta,blue,red\" --kill-others-on-fail",
-    "start-without-yolo": "concurrently \"npm run start-mongodb\" \"npm run start-backend-robust\" \"npm run start-frontend-delayed\" \"npm run start-workout-mcp\" \"npm run start-gamification-mcp\" --names \"mongo,backend,frontend,workout-mcp,gamify-mcp\" --prefix-colors \"green,yellow,cyan,magenta,blue\" --kill-others-on-fail",
+    "start-without-yolo": "concurrently \"npm run start-mongodb\" \"npm run start-backend-robust\" \"npm run start-frontend-delayed\" \"npm run start-workout-mcp\" \"npm run start-gamification-mcp\" --names \"mongo,backend,frontend,workout-mcp,gamify-mcp\" --prefix-colors \"green,yellow,cyan,magenta,blue\"",
     "start-dev": "npm run start-without-yolo",
     "start-core": "concurrently \"npm run start-mongodb\" \"npm run start-backend\" \"npm run start-frontend\" --names \"mongo,backend,frontend\" --prefix-colors \"green,yellow,cyan\"",
     "start-full": "concurrently \"npm run start-mongodb\" \"npm run start-backend\" \"npm run start-frontend\" \"npm run start-all-mcp\" --names \"mongo,backend,frontend,mcp-servers\" --prefix-colors \"green,yellow,cyan,purple\"",
