@@ -107,18 +107,32 @@ export default defineConfig(({ mode }) => {
     build: {
       sourcemap: true,
       outDir: 'dist',
+      // Enable SPA fallback for development preview
+      assetsDir: 'assets',
+      // Ensure all assets are properly handled
+      copyPublicDir: true,
       // Ensure the router works correctly with hosting platforms
       rollupOptions: {
         output: {
           manualChunks: {
             vendor: ['react', 'react-dom', 'react-router-dom'],
           }
-        }
-      },
-      // Enable SPA fallback for development preview
-      assetsDir: 'assets',
-      // Ensure all assets are properly handled
-      copyPublicDir: true
+        },
+        external: [],
+        plugins: [
+          {
+            name: 'copy-spa-files',
+            generateBundle() {
+              // Copy _redirects file for SPA routing
+              this.emitFile({
+                type: 'asset',
+                fileName: '_redirects',
+                source: '/*    /index.html   200'
+              });
+            }
+          }
+        ]
+      }
     },
     // SPA fallback for preview server
     preview: {
