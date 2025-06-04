@@ -218,7 +218,7 @@ Exercise.init(
   {
     sequelize,
     modelName: 'Exercise',
-    tableName: 'exercises',
+    tableName: "Exercises",
     timestamps: true
   }
 );
