@@ -7,18 +7,27 @@
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
-// Production configuration
+// Production configuration - READ FROM ENVIRONMENT VARIABLES
 const IS_PRODUCTION = import.meta.env.PROD || 
                      window.location.hostname.includes('render.com') || 
                      window.location.hostname.includes('sswanstudios.com') ||
                      window.location.hostname.includes('swanstudios.com');
 
-const API_BASE_URL = IS_PRODUCTION
-  ? 'https://ss-pt-new.onrender.com'
-  : 'http://localhost:10000';
+// Use environment variables with fallback
+const API_BASE_URL = import.meta.env.VITE_API_URL || 
+                     import.meta.env.VITE_BACKEND_URL ||
+                     import.meta.env.VITE_API_BASE_URL ||
+                     (IS_PRODUCTION
+                       ? 'https://swan-studios-api.onrender.com'
+                       : 'http://localhost:10000');
 
 console.log(`[API] Production mode: ${IS_PRODUCTION}`);
-console.log(`[API] Base URL: ${API_BASE_URL}`);
+console.log(`[API] Environment variables:`, {
+  VITE_API_URL: import.meta.env.VITE_API_URL,
+  VITE_BACKEND_URL: import.meta.env.VITE_BACKEND_URL,
+  VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL
+});
+console.log(`[API] Final Base URL: ${API_BASE_URL}`);
 
 /**
  * Production Token Manager
