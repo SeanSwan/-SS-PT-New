@@ -6821,3 +6821,14 @@
 {"level":"error","message":"❌ Failed to create table sets: relation \"WorkoutExercises\" does not exist","timestamp":"2025-06-04T04:18:43.052Z"}
 {"level":"error","message":"❌ Failed to create table exercise_muscle_groups: relation \"Exercises\" does not exist","timestamp":"2025-06-04T04:18:43.067Z"}
 {"level":"error","message":"❌ Failed to create table exercise_equipment: relation \"Exercises\" does not exist","timestamp":"2025-06-04T04:18:43.091Z"}
+{"level":"error","message":"❌ Failed to create table SocialPosts: foreign key constraint \"SocialPosts_achievementId_fkey\" cannot be implemented","timestamp":"2025-06-04T04:26:54.055Z"}
+{"level":"error","message":"❌ Failed to create table SocialComments: relation \"SocialPosts\" does not exist","timestamp":"2025-06-04T04:26:54.059Z"}
+{"level":"error","message":"❌ Failed to create table Challenges: foreign key constraint \"Challenges_badgeId_fkey\" cannot be implemented","timestamp":"2025-06-04T04:26:54.081Z"}
+{"level":"error","message":"❌ Failed to create table ChallengeParticipants: relation \"Challenges\" does not exist","timestamp":"2025-06-04T04:26:54.086Z"}
+{"level":"error","message":"❌ Failed to create table ChallengeTeams: relation \"Challenges\" does not exist","timestamp":"2025-06-04T04:26:54.089Z"}
+{"level":"error","message":"❌ Failed to create table workout_plan_days: relation \"WorkoutPlans\" does not exist","timestamp":"2025-06-04T04:26:54.094Z"}
+{"level":"error","message":"❌ Failed to create table workout_plan_day_exercises: relation \"WorkoutPlanDays\" does not exist","timestamp":"2025-06-04T04:26:54.098Z"}
+{"level":"error","message":"❌ Failed to create table workout_exercises: relation \"WorkoutSessions\" does not exist","timestamp":"2025-06-04T04:26:54.102Z"}
+{"level":"error","message":"❌ Failed to create table sets: relation \"WorkoutExercises\" does not exist","timestamp":"2025-06-04T04:26:54.106Z"}
+{"level":"error","message":"❌ Failed to create table exercise_muscle_groups: relation \"Exercises\" does not exist","timestamp":"2025-06-04T04:26:54.112Z"}
+{"level":"error","message":"❌ Failed to create table exercise_equipment: relation \"Exercises\" does not exist","timestamp":"2025-06-04T04:26:54.115Z"}
