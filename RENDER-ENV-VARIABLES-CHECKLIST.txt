@@ -1,0 +1,34 @@
+# RENDER ENVIRONMENT VARIABLES CHECKLIST
+# ========================================
+# These MUST be set in the Render Dashboard for swan-studios-api service:
+
+NODE_ENV=production
+PORT=10000
+
+# CORS - CRITICAL for frontend to work
+FRONTEND_ORIGINS=https://sswanstudios.com,https://www.sswanstudios.com,https://swanstudios.com,https://www.swanstudios.com
+
+# JWT Secrets - REPLACE WITH ACTUAL SECURE VALUES
+JWT_SECRET=your-actual-secure-jwt-secret-here-at-least-32-chars
+JWT_REFRESH_SECRET=your-actual-secure-refresh-secret-here-different-from-jwt
+JWT_EXPIRES_IN=3h
+ACCESS_TOKEN_EXPIRY=10800
+REFRESH_TOKEN_EXPIRES_IN=7d
+
+# Admin access
+ADMIN_ACCESS_CODE=admin-access-code-123
+
+# Production settings
+ENABLE_MCP_SERVICES=false
+USE_SQLITE_FALLBACK=false
+TRUST_PROXY=true
+REDIS_ENABLED=false
+
+# Database URL (should be auto-set by Render PostgreSQL addon)
+DATABASE_URL=postgresql://user:password@host:port/database
+
+# ⚠️ CRITICAL NOTES:
+# 1. Replace placeholder values with actual secure secrets
+# 2. JWT_SECRET and JWT_REFRESH_SECRET should be different random strings
+# 3. Generate secrets using: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# 4. DATABASE_URL should be automatically set by Render if you have PostgreSQL addon
