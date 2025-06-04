@@ -3,12 +3,12 @@ import db from '../../database.mjs';
 
 const ChallengeParticipant = db.define('ChallengeParticipant', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
     primaryKey: true
   },
   challengeId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Challenges',
@@ -16,7 +16,7 @@ const ChallengeParticipant = db.define('ChallengeParticipant', {
     }
   },
   userId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Users',
@@ -24,7 +24,7 @@ const ChallengeParticipant = db.define('ChallengeParticipant', {
     }
   },
   teamId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: true,
     references: {
       model: 'ChallengeTeams',

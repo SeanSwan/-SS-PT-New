@@ -40,18 +40,35 @@ const setupAssociations = async () => {
     const SocialModels = await import('./social/index.mjs');
     const { SocialPost, SocialComment, SocialLike, Friendship, Challenge, ChallengeParticipant, ChallengeTeam } = SocialModels;
     
-    // Enhanced Social Models (Sequelize)
-    const EnhancedSocialModels = await import('./social/enhanced/index.mjs');
-    const {
-      EnhancedSocialPost, SocialConnection, Community, CommunityMembership,
-      Conversation, Message, ConversationParticipant, EnhancedNotification,
-      LiveStream, CreatorProfile, SocialProduct, SocialEvent, UserPreferences,
-      SocialAnalytics
-    } = EnhancedSocialModels;
+    // Enhanced Social Models (Sequelize) - TEMPORARILY DISABLED FOR DEBUGGING
+    // const EnhancedSocialModels = await import('./social/enhanced/index.mjs');
+    // const {
+    //   EnhancedSocialPost, SocialConnection, Community, CommunityMembership,
+    //   Conversation, Message, ConversationParticipant, EnhancedNotification,
+    //   LiveStream, CreatorProfile, SocialProduct, SocialEvent, UserPreferences,
+    //   SocialAnalytics
+    // } = EnhancedSocialModels;
 
-    // Notification and Orientation (Sequelize)
+    // Workout Models (Sequelize)
+    const WorkoutPlanModule = await import('./WorkoutPlan.mjs');
+    const WorkoutPlanDayModule = await import('./WorkoutPlanDay.mjs');
+    const WorkoutPlanDayExerciseModule = await import('./WorkoutPlanDayExercise.mjs');
+    const WorkoutSessionModule = await import('./WorkoutSession.mjs');
+    const WorkoutExerciseModule = await import('./WorkoutExercise.mjs');
+    const ExerciseModule = await import('./Exercise.mjs');
+    const SetModule = await import('./Set.mjs');
+    
+    // Exercise Reference Models (Sequelize)
+    const MuscleGroupModule = await import('./MuscleGroup.mjs');
+    const ExerciseMuscleGroupModule = await import('./ExerciseMuscleGroup.mjs');
+    const EquipmentModule = await import('./Equipment.mjs');
+    const ExerciseEquipmentModule = await import('./ExerciseEquipment.mjs');
+    
+    // Notification and Admin Models (Sequelize)
     const OrientationModule = await import('./Orientation.mjs');
     const NotificationModule = await import('./Notification.mjs');
+    const NotificationSettingsModule = await import('./NotificationSettings.mjs');
+    const AdminSettingsModule = await import('./AdminSettings.mjs');
 
     console.log('Extracting Sequelize models...');
     
@@ -81,9 +98,26 @@ const setupAssociations = async () => {
     const FoodProduct = FoodProductModule.default;
     const FoodScanHistory = FoodScanHistoryModule.default;
 
-    // Orientation and Notification Models
+    // Workout Models
+    const WorkoutPlan = WorkoutPlanModule.default;
+    const WorkoutPlanDay = WorkoutPlanDayModule.default;
+    const WorkoutPlanDayExercise = WorkoutPlanDayExerciseModule.default;
+    const WorkoutSession = WorkoutSessionModule.default;
+    const WorkoutExercise = WorkoutExerciseModule.default;
+    const Exercise = ExerciseModule.default;
+    const Set = SetModule.default;
+    
+    // Exercise Reference Models
+    const MuscleGroup = MuscleGroupModule.default;
+    const ExerciseMuscleGroup = ExerciseMuscleGroupModule.default;
+    const Equipment = EquipmentModule.default;
+    const ExerciseEquipment = ExerciseEquipmentModule.default;
+    
+    // Notification and Admin Models
     const Orientation = OrientationModule.default;
     const Notification = NotificationModule.default;
+    const NotificationSettings = NotificationSettingsModule.default;
+    const AdminSettings = AdminSettingsModule.default;
 
     console.log('Setting up Sequelize associations only...');
     
@@ -95,7 +129,10 @@ const setupAssociations = async () => {
         UserAchievement, UserReward, UserMilestone, Reward, Milestone, 
         PointTransaction, StorefrontItem, ShoppingCart, CartItem, Order, 
         OrderItem, FoodIngredient, FoodProduct, FoodScanHistory, 
-        Orientation, Notification
+        SocialPost, SocialComment, SocialLike, Friendship, Challenge, ChallengeParticipant, ChallengeTeam,
+        WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, WorkoutSession, WorkoutExercise, Exercise, Set,
+        MuscleGroup, ExerciseMuscleGroup, Equipment, ExerciseEquipment,
+        Orientation, Notification, NotificationSettings, AdminSettings
       };
     }
     
@@ -214,11 +251,11 @@ const setupAssociations = async () => {
     console.log('✅ Sequelize model associations established successfully');
     console.log('Note: MongoDB models (exercises, workout plans/sessions) are handled separately');
     
-    // Setup Enhanced Social Model Associations
-    if (EnhancedSocialModels.setupEnhancedSocialAssociations) {
-      console.log('🔗 Setting up Enhanced Social Model Associations...');
-      EnhancedSocialModels.setupEnhancedSocialAssociations();
-    }
+    // Setup Enhanced Social Model Associations - TEMPORARILY DISABLED
+    // if (EnhancedSocialModels.setupEnhancedSocialAssociations) {
+    //   console.log('🔗 Setting up Enhanced Social Model Associations...');
+    //   EnhancedSocialModels.setupEnhancedSocialAssociations();
+    // }
 
     // Return ONLY SEQUELIZE models for exporting
     return {
@@ -244,21 +281,21 @@ const setupAssociations = async () => {
       ChallengeParticipant,
       ChallengeTeam,
       
-      // Enhanced Social Models
-      EnhancedSocialPost,
-      SocialConnection,
-      Community,
-      CommunityMembership,
-      Conversation,
-      Message,
-      ConversationParticipant,
-      EnhancedNotification,
-      LiveStream,
-      CreatorProfile,
-      SocialProduct,
-      SocialEvent,
-      UserPreferences,
-      SocialAnalytics,
+      // Enhanced Social Models - TEMPORARILY DISABLED
+      // EnhancedSocialPost,
+      // SocialConnection,
+      // Community,
+      // CommunityMembership,
+      // Conversation,
+      // Message,
+      // ConversationParticipant,
+      // EnhancedNotification,
+      // LiveStream,
+      // CreatorProfile,
+      // SocialProduct,
+      // SocialEvent,
+      // UserPreferences,
+      // SocialAnalytics,
       
       // E-Commerce Models
       StorefrontItem,
@@ -272,11 +309,26 @@ const setupAssociations = async () => {
       FoodProduct,
       FoodScanHistory,
       
-      // Orientation Model
-      Orientation,
+      // Workout Models
+      WorkoutPlan,
+      WorkoutPlanDay,
+      WorkoutPlanDayExercise,
+      WorkoutSession,
+      WorkoutExercise,
+      Exercise,
+      Set,
       
-      // Notification Model
-      Notification
+      // Exercise Reference Models
+      MuscleGroup,
+      ExerciseMuscleGroup,
+      Equipment,
+      ExerciseEquipment,
+      
+      // Notification and Admin Models
+      Orientation,
+      Notification,
+      NotificationSettings,
+      AdminSettings
     };
   } catch (error) {
     console.error('❌ Error setting up Sequelize model associations:', error);

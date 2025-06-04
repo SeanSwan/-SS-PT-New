@@ -3,12 +3,12 @@ import db from '../../database.mjs';
 
 const SocialPost = db.define('SocialPost', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
     primaryKey: true
   },
   userId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Users',
@@ -31,15 +31,12 @@ const SocialPost = db.define('SocialPost', {
   },
   // Optional references to other entities
   workoutSessionId: {
-    type: DataTypes.UUID,
+    type: DataTypes.STRING,
     allowNull: true,
-    references: {
-      model: 'WorkoutSessions',
-      key: 'id'
-    }
+    comment: 'MongoDB ObjectId reference to WorkoutSession'
   },
   achievementId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: true,
     references: {
       model: 'Achievements',
@@ -47,7 +44,7 @@ const SocialPost = db.define('SocialPost', {
     }
   },
   userAchievementId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: true,
     references: {
       model: 'UserAchievements',
@@ -55,7 +52,7 @@ const SocialPost = db.define('SocialPost', {
     }
   },
   challengeId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: true
   },
   // For attaching photos to posts
