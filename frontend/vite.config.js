@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => {
   // Ensure environment variables are properly set for production
   const envVars = {
     NODE_ENV: mode,
+    VITE_API_URL: backendUrl,
     VITE_API_BASE_URL: backendUrl,
     VITE_BACKEND_URL: backendUrl,
     VITE_MCP_SERVER_URL: backendUrl,
@@ -144,12 +145,14 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       // Properly define environment variables for both dev and production
+      'import.meta.env.VITE_API_URL': JSON.stringify(envVars.VITE_API_URL),
       'import.meta.env.VITE_API_BASE_URL': JSON.stringify(envVars.VITE_API_BASE_URL),
       'import.meta.env.VITE_BACKEND_URL': JSON.stringify(envVars.VITE_BACKEND_URL),
       'import.meta.env.VITE_MCP_SERVER_URL': JSON.stringify(envVars.VITE_MCP_SERVER_URL),
       'import.meta.env.MODE': JSON.stringify(mode),
       'process.env': JSON.stringify({
         NODE_ENV: mode,
+        VITE_API_URL: envVars.VITE_API_URL,
         VITE_API_BASE_URL: envVars.VITE_API_BASE_URL,
         VITE_BACKEND_URL: envVars.VITE_BACKEND_URL,
         VITE_MCP_SERVER_URL: envVars.VITE_MCP_SERVER_URL,
