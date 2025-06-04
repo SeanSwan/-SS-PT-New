@@ -246,7 +246,7 @@ router.put('/update/:itemId', protect, validatePurchaseRole, async (req, res) =>
       where: { id: itemId },
       include: [{
         model: ShoppingCart,
-        as: 'shoppingCart',
+        as: 'cart',
         where: { 
           userId: req.user.id,
           status: 'active'
@@ -309,7 +309,7 @@ router.delete('/remove/:itemId', protect, validatePurchaseRole, async (req, res)
       where: { id: itemId },
       include: [{
         model: ShoppingCart,
-        as: 'shoppingCart',
+        as: 'cart',
         where: { 
           userId: req.user.id,
           status: 'active'
