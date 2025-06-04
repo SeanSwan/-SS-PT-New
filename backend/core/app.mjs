@@ -68,33 +68,55 @@ export const createApp = async () => {
 
   const corsOptions = {
     origin: function (origin, callback) {
+      // Log CORS request for debugging
+      logger.info(`CORS request from origin: ${origin || 'null'}`);
+      
+      // Allow requests with no origin (mobile apps, curl, etc.)
+      if (!origin) {
+        logger.info('CORS: Allowing request with no origin');
+        callback(null, true);
+        return;
+      }
+      
+      // Development: more permissive
       if (!isProduction) {
-        // Development: more permissive
-        if (!origin || whitelist.some(allowed => 
-          origin.includes(allowed) || allowed.includes(origin) ||
-          origin.includes('localhost') || origin.includes('127.0.0.1')
-        )) {
+        logger.info('CORS: Development mode - allowing all localhost and whitelisted origins');
+        if (origin.includes('localhost') || origin.includes('127.0.0.1') || whitelist.includes(origin)) {
           callback(null, true);
           return;
         }
       }
       
-      // Production: strict matching
-      if (!origin || whitelist.includes(origin)) {
+      // Production: Check whitelist first
+      if (whitelist.includes(origin)) {
+        logger.info(`CORS: Origin ${origin} found in whitelist - allowing`);
         callback(null, true);
-      } else {
-        const isSwanStudiosDomain = origin.includes('swanstudios.com') || origin.includes('sswanstudios.com');
-        if (isSwanStudiosDomain) {
-          logger.warn(`CORS: Swan Studios domain not in whitelist, allowing: ${origin}`);
-          callback(null, true);
-        } else {
-          logger.warn(`CORS blocked request from origin: ${origin}`);
-          callback(new Error(`Origin ${origin} not allowed by CORS`));
-        }
+        return;
       }
+      
+      // Fallback: Allow any Swan Studios domain
+      const isSwanStudiosDomain = origin.includes('swanstudios.com') || origin.includes('sswanstudios.com');
+      if (isSwanStudiosDomain) {
+        logger.info(`CORS: Swan Studios domain detected - allowing: ${origin}`);
+        callback(null, true);
+        return;
+      }
+      
+      // Block all other origins
+      logger.warn(`CORS: Blocking request from unauthorized origin: ${origin}`);
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
     },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: [
+      'Content-Type', 
+      'Authorization', 
+      'X-Requested-With', 
+      'Accept', 
+      'Origin',
+      'Access-Control-Request-Method',
+      'Access-Control-Request-Headers'
+    ],
+    exposedHeaders: ['Authorization'],
     credentials: true,
     preflightContinue: false,
     optionsSuccessStatus: 204,
@@ -102,9 +124,37 @@ export const createApp = async () => {
   };
 
   app.use(cors(corsOptions));
+  
+  // Explicitly handle preflight requests
   app.options('*', cors(corsOptions));
+  
+  // Add manual CORS headers for additional safety
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && (whitelist.includes(origin) || origin.includes('swanstudios.com') || origin.includes('sswanstudios.com'))) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+      res.header('Access-Control-Allow-Credentials', 'true');
+    }
+    next();
+  });
 
   logger.info(`CORS configured for ${isProduction ? 'production' : 'development'} with ${whitelist.length} allowed origins`);
+  logger.info(`CORS whitelist: ${whitelist.join(', ')}`);
+
+  // Add health check endpoint for CORS testing
+  app.get('/health', (req, res) => {
+    res.status(200).json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      cors: {
+        origin: req.headers.origin || 'no-origin',
+        allowed: true
+      }
+    });
+  });
 
   // ===================== MIDDLEWARE SETUP =====================
   await setupMiddleware(app);
