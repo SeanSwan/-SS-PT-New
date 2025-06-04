@@ -4,26 +4,25 @@ services:
     env: node
     region: oregon
     plan: starter
-    buildCommand: |
-      echo "🏗️  Starting production build..."
-      cd frontend && npm install && npm run build
-      cd ../backend && npm install
-      echo "✅ Build completed successfully"
-    startCommand: cd backend && npm run render-start
+    buildCommand: npm install
+    startCommand: npm run render-start
     
     # PRODUCTION ENVIRONMENT VARIABLES
-    # CRITICAL: Update these in Render dashboard with values from PRODUCTION-SECRETS.env
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
       
-      # CRITICAL: JWT SECRETS (MUST BE SET IN RENDER DASHBOARD)
+      # CORS CONFIGURATION - CRITICAL FOR FRONTEND
+      - key: FRONTEND_ORIGINS
+        value: "https://sswanstudios.com,https://www.sswanstudios.com,https://swanstudios.com,https://www.swanstudios.com"
+      
+      # JWT CONFIGURATION
       - key: JWT_SECRET
-        value: "MUST_BE_SET_IN_RENDER_DASHBOARD"
+        value: "your-jwt-secret-key-here"
       - key: JWT_REFRESH_SECRET
-        value: "MUST_BE_SET_IN_RENDER_DASHBOARD"
+        value: "your-jwt-refresh-secret-here"
       - key: JWT_EXPIRES_IN
         value: "3h"
       - key: ACCESS_TOKEN_EXPIRY
@@ -31,13 +30,9 @@ services:
       - key: REFRESH_TOKEN_EXPIRES_IN
         value: "7d"
       
-      # CRITICAL: CORS CONFIGURATION
-      - key: FRONTEND_ORIGINS
-        value: "https://sswanstudios.com,https://www.sswanstudios.com,https://swanstudios.com,https://www.swanstudios.com"
-      
       # ADMIN ACCESS
       - key: ADMIN_ACCESS_CODE
-        value: "MUST_BE_SET_IN_RENDER_DASHBOARD"
+        value: "admin-access-code-123"
       
       # PRODUCTION SETTINGS
       - key: ENABLE_MCP_SERVICES
