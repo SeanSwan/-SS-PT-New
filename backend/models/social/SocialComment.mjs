@@ -3,12 +3,12 @@ import db from '../../database.mjs';
 
 const SocialComment = db.define('SocialComment', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
     primaryKey: true
   },
   postId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'SocialPosts',
@@ -16,7 +16,7 @@ const SocialComment = db.define('SocialComment', {
     }
   },
   userId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Users',

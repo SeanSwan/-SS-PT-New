@@ -3,12 +3,12 @@ import db from '../../database.mjs';
 
 const SocialLike = db.define('SocialLike', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
     primaryKey: true
   },
   userId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Users',
@@ -21,7 +21,7 @@ const SocialLike = db.define('SocialLike', {
     allowNull: false
   },
   targetId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false
   },
   createdAt: {
