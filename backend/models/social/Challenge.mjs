@@ -3,8 +3,8 @@ import db from '../../database.mjs';
 
 const Challenge = db.define('Challenge', {
   id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
     primaryKey: true
   },
   name: {
@@ -45,7 +45,7 @@ const Challenge = db.define('Challenge', {
     allowNull: false
   },
   creatorId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: false,
     references: {
       model: 'Users',
@@ -79,7 +79,7 @@ const Challenge = db.define('Challenge', {
     comment: 'Bonus points awarded for completing the entire challenge'
   },
   badgeId: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     allowNull: true,
     references: {
       model: 'Achievements',
