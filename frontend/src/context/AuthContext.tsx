@@ -470,13 +470,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       
       // Try backend first, but fallback to mock on any error
       try {
-        const response = await apiService.post('/api/auth/login', { 
-          username, 
-          password 
-        });
+        const response = await apiService.login({ username, password });
         
-        if (response.data?.user && response.data?.token) {
-          const { user: userData, token } = response.data;
+        if (response?.user && response?.token) {
+          const { user: userData, token } = response;
           
           const formattedUser: User = {
             id: userData.id,
@@ -514,14 +511,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     }
     
     try {
-      // Attempt real API login
-      const response = await apiService.post('/api/auth/login', { 
-        username, 
-        password 
-      });
+      // Attempt real API login using the dedicated login method
+      const response = await apiService.login({ username, password });
       
-      if (response.data?.user && response.data?.token) {
-        const { user: userData, token } = response.data;
+      if (response?.user && response?.token) {
+        const { user: userData, token } = response;
         
         // Format user data
         const formattedUser: User = {
