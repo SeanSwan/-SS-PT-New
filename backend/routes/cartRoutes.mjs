@@ -85,13 +85,12 @@ router.get('/', protect, async (req, res) => {
     });
 
     // Get cart items with storefront item details
-    // FIXED: Removed 'type' field which doesn't exist in StorefrontItem model
     const cartItems = await CartItem.findAll({
       where: { cartId: cart.id },
       include: [{
         model: StorefrontItem,
         as: 'storefrontItem',
-        attributes: ['name', 'description', 'imageUrl']
+        attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType']
       }]
     });
 
@@ -124,6 +123,9 @@ router.get('/', protect, async (req, res) => {
 router.post('/add', protect, validatePurchaseRole, async (req, res) => {
   try {
     const { storefrontItemId, quantity = 1 } = req.body;
+    
+    console.log('Cart add request body:', req.body);
+    console.log('User:', req.user?.username, 'Role:', req.user?.role);
     
     if (!storefrontItemId) {
       return res.status(400).json({ 
@@ -177,13 +179,12 @@ router.post('/add', protect, validatePurchaseRole, async (req, res) => {
     }
 
     // Get updated cart with items
-    // FIXED: Removed 'type' field which doesn't exist in StorefrontItem model
     const updatedCartItems = await CartItem.findAll({
       where: { cartId: cart.id },
       include: [{
         model: StorefrontItem,
         as: 'storefrontItem',
-        attributes: ['name', 'description', 'imageUrl']
+        attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType']
       }]
     });
 
@@ -265,13 +266,12 @@ router.put('/update/:itemId', protect, validatePurchaseRole, async (req, res) =>
     await cartItem.save();
 
     // Get updated cart with items
-    // FIXED: Removed 'type' field which doesn't exist in StorefrontItem model
     const updatedCartItems = await CartItem.findAll({
       where: { cartId: cartItem.cartId },
       include: [{
         model: StorefrontItem,
         as: 'storefrontItem',
-        attributes: ['name', 'description', 'imageUrl']
+        attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType']
       }]
     });
 
@@ -330,13 +330,12 @@ router.delete('/remove/:itemId', protect, validatePurchaseRole, async (req, res)
     await cartItem.destroy();
 
     // Get updated cart with items
-    // FIXED: Removed 'type' field which doesn't exist in StorefrontItem model
     const updatedCartItems = await CartItem.findAll({
       where: { cartId },
       include: [{
         model: StorefrontItem,
         as: 'storefrontItem',
-        attributes: ['name', 'description', 'imageUrl']
+        attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType']
       }]
     });
 
