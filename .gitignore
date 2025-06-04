@@ -20,6 +20,8 @@ out/
 .env.test.local
 .env.production.local
 .env.comprehensive
+env.txt
+*.env.backup
 
 # Log files - PREVENT LARGE FILES
 *.log
