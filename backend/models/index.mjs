@@ -39,8 +39,14 @@ import FoodIngredient from './FoodIngredient.mjs';
 import FoodScanHistory from './FoodScanHistory.mjs';
 import Orientation from './Orientation.mjs';
 
-// Import social models if they exist
-import * as socialModels from './social/index.mjs';
+// Import social models individually (FIXED)
+import Friendship from './social/Friendship.mjs';
+import SocialPost from './social/SocialPost.mjs';
+import SocialComment from './social/SocialComment.mjs';
+import SocialLike from './social/SocialLike.mjs';
+import Challenge from './social/Challenge.mjs';
+import ChallengeParticipant from './social/ChallengeParticipant.mjs';
+import ChallengeTeam from './social/ChallengeTeam.mjs';
 
 // Set up associations between models
 import setupAssociations from './associations.mjs';
@@ -48,7 +54,7 @@ import setupAssociations from './associations.mjs';
 // Initialize associations
 setupAssociations();
 
-// Export all models
+// Export all models individually (FIXED - includes social models)
 export {
   User,
   Session,
@@ -85,7 +91,14 @@ export {
   FoodIngredient,
   FoodScanHistory,
   Orientation,
-  socialModels
+  // Social models now exported individually
+  Friendship,
+  SocialPost,
+  SocialComment,
+  SocialLike,
+  Challenge,
+  ChallengeParticipant,
+  ChallengeTeam
 };
 
 // Default export with all models
@@ -125,5 +138,12 @@ export default {
   FoodIngredient,
   FoodScanHistory,
   Orientation,
-  ...socialModels
+  // Social models now included individually
+  Friendship,
+  SocialPost,
+  SocialComment,
+  SocialLike,
+  Challenge,
+  ChallengeParticipant,
+  ChallengeTeam
 };
