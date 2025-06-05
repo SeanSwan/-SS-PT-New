@@ -13,21 +13,36 @@ const IS_PRODUCTION = import.meta.env.PROD ||
                      window.location.hostname.includes('sswanstudios.com') ||
                      window.location.hostname.includes('swanstudios.com');
 
-// Use environment variables with fallback
-const API_BASE_URL = import.meta.env.VITE_API_URL || 
-                     import.meta.env.VITE_BACKEND_URL ||
-                     import.meta.env.VITE_API_BASE_URL ||
-                     (IS_PRODUCTION
-                       ? 'https://swan-studios-api.onrender.com'
-                       : 'http://localhost:10000');
+// Check if we should use proxy (when deployed on sswanstudios.com domain)
+const USE_PROXY = window.location.hostname.includes('sswanstudios.com') ||
+                  window.location.hostname.includes('swanstudios.com');
+
+// API Base URL logic:
+// - If using proxy (deployed on sswanstudios.com): empty string for relative URLs
+// - Otherwise: use environment variables or fallback to direct backend URL
+const API_BASE_URL = USE_PROXY ? '' : (
+  import.meta.env.VITE_API_URL || 
+  import.meta.env.VITE_BACKEND_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  (IS_PRODUCTION
+    ? 'https://swan-studios-api.onrender.com'
+    : 'http://localhost:10000')
+);
 
 console.log(`[API] Production mode: ${IS_PRODUCTION}`);
+console.log(`[API] Using proxy: ${USE_PROXY}`);
+console.log(`[API] Hostname: ${window.location.hostname}`);
 console.log(`[API] Environment variables:`, {
   VITE_API_URL: import.meta.env.VITE_API_URL,
   VITE_BACKEND_URL: import.meta.env.VITE_BACKEND_URL,
   VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL
 });
-console.log(`[API] Final Base URL: ${API_BASE_URL}`);
+console.log(`[API] Final Base URL: ${API_BASE_URL || '(relative - using proxy)'}`);
+if (USE_PROXY) {
+  console.log(`[API] Proxy mode: API calls will be made to /api/* (same-origin)`);
+} else {
+  console.log(`[API] Direct mode: API calls will be made to ${API_BASE_URL}`);
+}
 
 /**
  * Production Token Manager

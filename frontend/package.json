@@ -7,7 +7,7 @@
     "dev": "vite --port 5173 --force",
     "build": "vite build && npm run copy-redirects",
     "build:production": "npm run clear-cache && vite build --mode production && npm run copy-redirects",
-    "copy-redirects": "cp _redirects dist/ || copy _redirects dist\\ || echo 'Redirects file copied'",
+    "copy-redirects": "cp public/_redirects dist/ || copy public\\_redirects dist\\ || echo 'Redirects file copied from public folder'",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "clear-cache": "node .vite-cache-cleaner.js",
