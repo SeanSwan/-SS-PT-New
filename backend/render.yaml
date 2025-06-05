@@ -9,16 +9,22 @@ services:
     
     # PLATFORM-LEVEL CORS HEADERS (CRITICAL FOR PREFLIGHT)
     # These headers are set by Render's proxy layer BEFORE reaching the app
+    # CORRECTED SYNTAX: Added required 'path' field for each header
     headers:
-      - name: Access-Control-Allow-Origin
+      - path: /*
+        name: Access-Control-Allow-Origin
         value: https://sswanstudios.com
-      - name: Access-Control-Allow-Methods
+      - path: /*
+        name: Access-Control-Allow-Methods
         value: GET, POST, PUT, DELETE, OPTIONS, PATCH
-      - name: Access-Control-Allow-Headers
+      - path: /*
+        name: Access-Control-Allow-Headers
         value: Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers
-      - name: Access-Control-Allow-Credentials
+      - path: /*
+        name: Access-Control-Allow-Credentials
         value: "true"
-      - name: Access-Control-Max-Age
+      - path: /*
+        name: Access-Control-Max-Age
         value: "86400"
     
     # PRODUCTION ENVIRONMENT VARIABLES
