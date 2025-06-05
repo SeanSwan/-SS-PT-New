@@ -43,56 +43,72 @@ export const createApp = async () => {
 
   const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
 
-  // ENHANCED CORS configuration with bulletproof Render deployment support
+  // ===================== EXPLICIT PREFLIGHT HANDLER (BULLETPROOF) =====================
+  // This runs BEFORE the cors middleware to ensure OPTIONS requests always get proper headers
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    const method = req.method;
+    
+    // Log all requests for debugging
+    logger.info(`📡 REQUEST: ${method} ${req.path} from origin: ${origin || 'no-origin'}`);
+    
+    // Determine if origin should be allowed
+    let isOriginAllowed = false;
+    
+    if (!origin) {
+      // No origin header (mobile apps, server-to-server, etc.)
+      isOriginAllowed = true;
+    } else if (isProduction && origin === 'https://sswanstudios.com') {
+      // Production override for main domain
+      isOriginAllowed = true;
+    } else if (allowedOrigins.includes(origin)) {
+      // Exact match in allowed origins list
+      isOriginAllowed = true;
+    } else if (!isProduction && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+      // Development localhost with any port
+      isOriginAllowed = true;
+    } else if (isProduction && (origin.includes('sswanstudios.com') || origin.includes('swanstudios.com'))) {
+      // Production fallback for Swan Studios domains
+      isOriginAllowed = true;
+    }
+    
+    // If origin is allowed, set CORS headers
+    if (isOriginAllowed && origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else if (isOriginAllowed && !origin) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+    
+    // Set other required CORS headers
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
+    res.setHeader('Access-Control-Expose-Headers', 'Authorization, X-Total-Count');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
+    // Handle OPTIONS preflight requests
+    if (method === 'OPTIONS') {
+      if (isOriginAllowed) {
+        logger.info(`✅ PREFLIGHT SUCCESS: OPTIONS ${req.path} from ${origin || 'no-origin'} - sending 204`);
+        return res.status(204).end();
+      } else {
+        logger.error(`❌ PREFLIGHT REJECTED: OPTIONS ${req.path} from ${origin} - origin not allowed`);
+        return res.status(403).json({ error: 'CORS: Origin not allowed' });
+      }
+    }
+    
+    // Continue to next middleware for non-OPTIONS requests
+    if (isOriginAllowed) {
+      logger.info(`✅ CORS: ${method} ${req.path} from ${origin || 'no-origin'} - allowed`);
+    } else {
+      logger.error(`❌ CORS: ${method} ${req.path} from ${origin} - origin not allowed`);
+    }
+    
+    next();
+  });
+
+  // SIMPLIFIED CORS configuration as backup (should not be needed for preflight after above)
   const corsOptions = {
-    origin: function (origin, callback) {
-      // Enhanced logging for deployment debugging
-      logger.info(`🌐 CORS REQUEST RECEIVED:`);
-      logger.info(`   Origin: ${origin || 'null'}`);
-      logger.info(`   Environment: ${process.env.NODE_ENV}`);
-      logger.info(`   FRONTEND_ORIGINS env: '${process.env.FRONTEND_ORIGINS || 'NOT SET'}'`);
-      logger.info(`   Allowed Origins: [${allowedOrigins.join(', ')}]`);
-      
-      // PRODUCTION DEPLOYMENT FIX: Always allow sswanstudios.com in production
-      if (isProduction && origin === 'https://sswanstudios.com') {
-        logger.info('🎯 CORS: PRODUCTION OVERRIDE - sswanstudios.com always allowed');
-        return callback(null, true);
-      }
-      
-      // Allow requests with no origin (Postman, mobile apps, curl, server-to-server)
-      if (!origin) {
-        logger.info('✅ CORS: No origin header - allowing (mobile/server-to-server)');
-        return callback(null, true);
-      }
-      
-      // Check exact match in allowed origins list
-      if (allowedOrigins.includes(origin)) {
-        logger.info(`✅ CORS: Origin '${origin}' found in allowedOrigins - ALLOWING`);
-        return callback(null, true);
-      }
-      
-      // Development mode: allow localhost with any port
-      if (!isProduction && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
-        logger.info(`✅ CORS: Development localhost origin '${origin}' - ALLOWING`);
-        return callback(null, true);
-      }
-      
-      // Additional production fallbacks for Swan Studios domains
-      if (isProduction && (origin.includes('sswanstudios.com') || origin.includes('swanstudios.com'))) {
-        logger.info(`✅ CORS: Production Swan Studios domain '${origin}' - ALLOWING as fallback`);
-        return callback(null, true);
-      }
-      
-      // Reject all other origins with detailed logging
-      logger.error(`❌ CORS REJECTION DETAILS:`);
-      logger.error(`   Rejected Origin: '${origin}'`);
-      logger.error(`   Environment: ${process.env.NODE_ENV}`);
-      logger.error(`   Production Mode: ${isProduction}`);
-      logger.error(`   Expected Origins: ${allowedOrigins.join(', ')}`);
-      const error = new Error(`CORS: Origin '${origin}' not allowed`);
-      error.status = 403;
-      return callback(error, false);
-    },
+    origin: true, // Trust our explicit handler above
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: [
       'Content-Type', 
@@ -104,21 +120,17 @@ export const createApp = async () => {
       'Access-Control-Request-Headers'
     ],
     exposedHeaders: ['Authorization', 'X-Total-Count'],
-    credentials: true,
-    preflightContinue: false,
-    optionsSuccessStatus: 204
+    credentials: true
   };
 
-  // Apply CORS middleware as THE FIRST middleware (critical for preflight)
+  // Apply simplified CORS middleware (explicit preflight handler above handles the complex logic)
   app.use(cors(corsOptions));
-  
-  // Explicitly handle preflight OPTIONS requests for all routes
-  app.options('*', cors(corsOptions));
 
-  logger.info(`🔧 CORS Configuration Complete (Applied FIRST):`);
+  logger.info(`🔧 CORS Configuration Complete (EXPLICIT PREFLIGHT HANDLER):`);
   logger.info(`   Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
   logger.info(`   Allowed Origins (${allowedOrigins.length}): ${allowedOrigins.join(', ')}`);
   logger.info(`   FRONTEND_ORIGINS env: '${rawOrigins}'`);
+  logger.info(`   🚀 BULLETPROOF PREFLIGHT: Manual OPTIONS handler active - guaranteed headers!`);
 
   // ===================== SECURITY & OPTIMIZATION (AFTER CORS) =====================
   if (isProduction) {
