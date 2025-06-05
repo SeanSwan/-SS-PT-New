@@ -124,12 +124,9 @@ export default defineConfig(({ mode }) => {
           {
             name: 'copy-spa-files',
             generateBundle() {
-              // Copy _redirects file for SPA routing
-              this.emitFile({
-                type: 'asset',
-                fileName: '_redirects',
-                source: '/*    /index.html   200'
-              });
+              // Don't override _redirects - Vite will copy from public folder
+              // This preserves the proxy configuration for API routes
+              console.log('[Build] Preserving _redirects proxy configuration from public folder');
             }
           }
         ]
