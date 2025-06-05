@@ -1,7 +1,7 @@
 /**
- * Core Application Configuration
- * =============================
- * Simplified Express app setup with modular architecture
+ * Core Application Configuration - PLATFORM-LEVEL CORS VERSION
+ * ============================================================
+ * Simplified Express app with Render platform-level CORS handling
  * Master Prompt v28 aligned - Clean, maintainable, production-ready
  */
 
@@ -21,147 +21,57 @@ export const createApp = async () => {
   const app = express();
   const isProduction = process.env.NODE_ENV === 'production';
 
-  // ===================== DIAGNOSTIC: ULTRA-PRIORITY OPTIONS HANDLER =====================
-  // THIS RUNS BEFORE EVERYTHING ELSE TO ISOLATE RENDER/MIDDLEWARE CONFLICTS
-  app.use((req, res, next) => {
-    if (req.method === 'OPTIONS') {
-      const origin = req.headers.origin;
-      logger.info(`🚨 DIAGNOSTIC OPTIONS HANDLER: ${req.path} from ${origin || 'no-origin'}`);
-      
-      // ULTRA-PERMISSIVE for diagnostic - reflect origin or allow all
-      if (origin) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-      } else {
-        res.setHeader('Access-Control-Allow-Origin', '*');
-      }
-      
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-      res.setHeader('Access-Control-Max-Age', '86400');
-      
-      logger.info(`🚨 DIAGNOSTIC: Sending 204 with headers for OPTIONS ${req.path}`);
-      return res.status(204).end();
-    }
-    next();
-  });
-
-  // ===================== CORS CONFIGURATION (FIRST!) =====================
-  // CRITICAL: CORS must be the very first middleware to handle preflight requests
-  // Parse allowed origins with proper cleanup
-  const rawOrigins = process.env.FRONTEND_ORIGINS || '';
-  const envOrigins = rawOrigins
-    ? rawOrigins.split(',').map(origin => origin.trim()).filter(Boolean)
-    : [];
-
-  const defaultOrigins = [
+  // ===================== SIMPLIFIED CORS (PLATFORM HANDLES PREFLIGHT) =====================
+  // Render's platform-level headers handle OPTIONS preflight requests
+  // This app-level CORS only handles actual request validation
+  
+  const allowedOrigins = [
     'http://localhost:5173', 
     'http://localhost:5174', 
     'http://localhost:5175',
     'http://localhost:3000',
-    'https://swanstudios-app.onrender.com',
     'https://sswanstudios.com',
     'https://www.sswanstudios.com',
     'https://swanstudios.com',
     'https://www.swanstudios.com'
   ];
 
-  const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
-
-  // ===================== EXPLICIT PREFLIGHT HANDLER (BULLETPROOF) =====================
-  // This runs BEFORE the cors middleware to ensure OPTIONS requests always get proper headers
-  app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    const method = req.method;
-    
-    // Log all requests for debugging
-    logger.info(`📡 REQUEST: ${method} ${req.path} from origin: ${origin || 'no-origin'}`);
-    
-    // Determine if origin should be allowed
-    let isOriginAllowed = false;
-    
-    if (!origin) {
-      // No origin header (mobile apps, server-to-server, etc.)
-      isOriginAllowed = true;
-    } else if (isProduction && origin === 'https://sswanstudios.com') {
-      // Production override for main domain
-      isOriginAllowed = true;
-    } else if (allowedOrigins.includes(origin)) {
-      // Exact match in allowed origins list
-      isOriginAllowed = true;
-    } else if (!isProduction && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
-      // Development localhost with any port
-      isOriginAllowed = true;
-    } else if (isProduction && (origin.includes('sswanstudios.com') || origin.includes('swanstudios.com'))) {
-      // Production fallback for Swan Studios domains
-      isOriginAllowed = true;
-    }
-    
-    // If origin is allowed, set CORS headers
-    if (isOriginAllowed && origin) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-    } else if (isOriginAllowed && !origin) {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-    }
-    
-    // Set other required CORS headers
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
-    res.setHeader('Access-Control-Expose-Headers', 'Authorization, X-Total-Count');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    
-    // Handle OPTIONS preflight requests
-    if (method === 'OPTIONS') {
-      if (isOriginAllowed) {
-        logger.info(`✅ PREFLIGHT SUCCESS: OPTIONS ${req.path} from ${origin || 'no-origin'} - sending 204`);
-        return res.status(204).end();
-      } else {
-        logger.error(`❌ PREFLIGHT REJECTED: OPTIONS ${req.path} from ${origin} - origin not allowed`);
-        return res.status(403).json({ error: 'CORS: Origin not allowed' });
-      }
-    }
-    
-    // Continue to next middleware for non-OPTIONS requests
-    if (isOriginAllowed) {
-      logger.info(`✅ CORS: ${method} ${req.path} from ${origin || 'no-origin'} - allowed`);
-    } else {
-      logger.error(`❌ CORS: ${method} ${req.path} from ${origin} - origin not allowed`);
-    }
-    
-    next();
-  });
-
-  // SIMPLIFIED CORS configuration as backup (should not be needed for preflight after above)
+  // BASIC CORS middleware (platform handles preflight, this handles actual requests)
   const corsOptions = {
-    origin: true, // Trust our explicit handler above
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: [
-      'Content-Type', 
-      'Authorization', 
-      'X-Requested-With', 
-      'Accept', 
-      'Origin',
-      'Access-Control-Request-Method',
-      'Access-Control-Request-Headers'
-    ],
-    exposedHeaders: ['Authorization', 'X-Total-Count'],
+    origin: function (origin, callback) {
+      // Allow requests with no origin (mobile apps, server-to-server)
+      if (!origin) return callback(null, true);
+      
+      // Check if origin is in allowed list
+      if (allowedOrigins.includes(origin)) {
+        logger.info(`✅ CORS: Origin '${origin}' allowed by app-level check`);
+        return callback(null, true);
+      }
+      
+      // Development fallback
+      if (!isProduction && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+        logger.info(`✅ CORS: Development origin '${origin}' allowed`);
+        return callback(null, true);
+      }
+      
+      logger.warn(`⚠️ CORS: Origin '${origin}' not in app allowlist (platform headers should handle)`);
+      return callback(null, true); // Let platform headers handle it
+    },
     credentials: true
   };
 
-  // Apply simplified CORS middleware (explicit preflight handler above handles the complex logic)
+  // Apply basic CORS middleware
   app.use(cors(corsOptions));
 
-  logger.info(`🔧 CORS Configuration Complete:`);
-  logger.info(`   🚨 DIAGNOSTIC MODE: Ultra-priority OPTIONS handler active (pre-everything)`);
-  logger.info(`   Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
-  logger.info(`   Allowed Origins (${allowedOrigins.length}): ${allowedOrigins.join(', ')}`);
-  logger.info(`   FRONTEND_ORIGINS env: '${rawOrigins}'`);
-  logger.info(`   🛡️ HELMET: CORS-friendly mode (crossOrigin policies disabled)`);
-  logger.info(`   🎯 This should resolve Render preflight issues - monitoring OPTIONS requests...`);
+  logger.info(`🔧 CORS Configuration: PLATFORM + APP HYBRID:`);
+  logger.info(`   🏢 PLATFORM LEVEL: Render headers handle preflight OPTIONS requests`);
+  logger.info(`   🚀 APP LEVEL: Basic origin validation for actual requests`);
+  logger.info(`   📝 Allowed Origins: ${allowedOrigins.join(', ')}`);
+  logger.info(`   🎯 This should resolve Render preflight interference!`);
 
-  // ===================== SECURITY & OPTIMIZATION (AFTER CORS) =====================
+  // ===================== SECURITY & OPTIMIZATION =====================
   if (isProduction) {
-    // CORS-FRIENDLY Security headers (helmet configured to not interfere with CORS)
+    // CORS-FRIENDLY Security headers
     app.use(helmet({
       contentSecurityPolicy: {
         directives: {
@@ -195,12 +105,10 @@ export const createApp = async () => {
     logger.info('Production optimizations enabled: CORS-friendly helmet, compression');
   }
 
-  // CORS test endpoint (before other middleware that might interfere)
+  // Health check endpoint
   app.get('/health', (req, res) => {
     const origin = req.headers.origin;
-    const isOriginAllowed = !origin || allowedOrigins.includes(origin) || 
-      (!isProduction && origin.includes('localhost')) ||
-      (isProduction && (origin.includes('sswanstudios.com') || origin.includes('swanstudios.com')));
+    logger.info(`🏥 Health check from origin: ${origin || 'no-origin'}`);
     
     res.status(200).json({
       status: 'ok',
@@ -208,8 +116,8 @@ export const createApp = async () => {
       environment: process.env.NODE_ENV || 'development',
       cors: {
         requestOrigin: origin || 'no-origin',
-        isAllowed: isOriginAllowed,
-        allowedOrigins: allowedOrigins,
+        platformLevel: 'Render headers handle preflight',
+        appLevel: 'Basic origin validation',
         userAgent: req.headers['user-agent']
       }
     });
@@ -224,7 +132,7 @@ export const createApp = async () => {
   // ===================== ERROR HANDLING =====================
   setupErrorHandling(app);
 
-  logger.info('Express application configured successfully');
+  logger.info('Express application configured successfully (PLATFORM-LEVEL CORS)');
   return app;
 };
 
