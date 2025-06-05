@@ -7,51 +7,12 @@ services:
     buildCommand: npm install
     startCommand: npm run render-start
     
-    # ENHANCED PLATFORM-LEVEL CORS HEADERS (ULTRA-EXPLICIT FOR OPTIONS)
-    # These headers are set by Render's proxy layer for ALL requests including OPTIONS
-    # DUAL-LAYER APPROACH: Platform + Application handling for maximum compatibility
+    # MINIMAL PLATFORM HEADERS - LET APPLICATION HANDLE CORS
+    # Remove specific path targeting to avoid platform interference
     headers:
-      # Primary CORS headers for all requests
       - path: /*
         name: Access-Control-Allow-Origin
-        value: https://sswanstudios.com
-      - path: /*
-        name: Access-Control-Allow-Methods
-        value: GET, POST, PUT, DELETE, OPTIONS, PATCH
-      - path: /*
-        name: Access-Control-Allow-Headers
-        value: Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers
-      - path: /*
-        name: Access-Control-Allow-Credentials
-        value: "true"
-      - path: /*
-        name: Access-Control-Max-Age
-        value: "86400"
-      
-      # EXPLICIT API ROUTE CORS (redundant but ensures coverage)
-      - path: /api/*
-        name: Access-Control-Allow-Origin
-        value: https://sswanstudios.com
-      - path: /api/*
-        name: Access-Control-Allow-Methods
-        value: GET, POST, PUT, DELETE, OPTIONS, PATCH
-      - path: /api/*
-        name: Access-Control-Allow-Headers
-        value: Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers
-      - path: /api/*
-        name: Access-Control-Allow-Credentials
-        value: "true"
-      
-      # HEALTH ENDPOINT CORS
-      - path: /health
-        name: Access-Control-Allow-Origin
-        value: https://sswanstudios.com
-      - path: /health
-        name: Access-Control-Allow-Methods
-        value: GET, OPTIONS
-      - path: /health
-        name: Access-Control-Allow-Credentials
-        value: "true"
+        value: "*"
     
     # PRODUCTION ENVIRONMENT VARIABLES
     envVars:
@@ -60,10 +21,13 @@ services:
       - key: PORT
         value: 10000
       
-      # CORS CONFIGURATION - PRODUCTION DOMAINS ONLY
-      # (localhost origins handled by defaultOrigins in code)
+      # CORS CONFIGURATION
       - key: FRONTEND_ORIGINS
         value: "https://sswanstudios.com,https://www.sswanstudios.com,https://swanstudios.com,https://www.swanstudios.com"
+      
+      # FORCE APPLICATION-LEVEL CORS HANDLING
+      - key: FORCE_APP_CORS
+        value: "true"
       
       # JWT CONFIGURATION
       - key: JWT_SECRET
