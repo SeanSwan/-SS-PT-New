@@ -21,6 +21,31 @@ export const createApp = async () => {
   const app = express();
   const isProduction = process.env.NODE_ENV === 'production';
 
+  // ===================== DIAGNOSTIC: ULTRA-PRIORITY OPTIONS HANDLER =====================
+  // THIS RUNS BEFORE EVERYTHING ELSE TO ISOLATE RENDER/MIDDLEWARE CONFLICTS
+  app.use((req, res, next) => {
+    if (req.method === 'OPTIONS') {
+      const origin = req.headers.origin;
+      logger.info(`🚨 DIAGNOSTIC OPTIONS HANDLER: ${req.path} from ${origin || 'no-origin'}`);
+      
+      // ULTRA-PERMISSIVE for diagnostic - reflect origin or allow all
+      if (origin) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      } else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+      }
+      
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Max-Age', '86400');
+      
+      logger.info(`🚨 DIAGNOSTIC: Sending 204 with headers for OPTIONS ${req.path}`);
+      return res.status(204).end();
+    }
+    next();
+  });
+
   // ===================== CORS CONFIGURATION (FIRST!) =====================
   // CRITICAL: CORS must be the very first middleware to handle preflight requests
   // Parse allowed origins with proper cleanup
@@ -126,15 +151,17 @@ export const createApp = async () => {
   // Apply simplified CORS middleware (explicit preflight handler above handles the complex logic)
   app.use(cors(corsOptions));
 
-  logger.info(`🔧 CORS Configuration Complete (EXPLICIT PREFLIGHT HANDLER):`);
+  logger.info(`🔧 CORS Configuration Complete:`);
+  logger.info(`   🚨 DIAGNOSTIC MODE: Ultra-priority OPTIONS handler active (pre-everything)`);
   logger.info(`   Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
   logger.info(`   Allowed Origins (${allowedOrigins.length}): ${allowedOrigins.join(', ')}`);
   logger.info(`   FRONTEND_ORIGINS env: '${rawOrigins}'`);
-  logger.info(`   🚀 BULLETPROOF PREFLIGHT: Manual OPTIONS handler active - guaranteed headers!`);
+  logger.info(`   🛡️ HELMET: CORS-friendly mode (crossOrigin policies disabled)`);
+  logger.info(`   🎯 This should resolve Render preflight issues - monitoring OPTIONS requests...`);
 
   // ===================== SECURITY & OPTIMIZATION (AFTER CORS) =====================
   if (isProduction) {
-    // Security headers
+    // CORS-FRIENDLY Security headers (helmet configured to not interfere with CORS)
     app.use(helmet({
       contentSecurityPolicy: {
         directives: {
@@ -145,11 +172,16 @@ export const createApp = async () => {
           connectSrc: ["'self'", "https://api.stripe.com"],
         }
       },
+      crossOriginEmbedderPolicy: false, // Disable COEP which can interfere with CORS
+      crossOriginOpenerPolicy: false,   // Disable COOP which can interfere with CORS
+      crossOriginResourcePolicy: false, // Disable CORP which can interfere with CORS
       hidePoweredBy: true,
       xssFilter: true,
       noSniff: true,
       referrerPolicy: { policy: 'same-origin' }
     }));
+    
+    logger.info('✅ Helmet configured with CORS-friendly settings (COEP/COOP/CORP disabled)');
     
     // Compression for performance
     app.use(compression({
@@ -160,7 +192,7 @@ export const createApp = async () => {
       }
     }));
     
-    logger.info('Production optimizations enabled: helmet security, compression');
+    logger.info('Production optimizations enabled: CORS-friendly helmet, compression');
   }
 
   // CORS test endpoint (before other middleware that might interfere)
