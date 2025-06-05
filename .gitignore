@@ -23,6 +23,11 @@ out/
 env.txt
 *.env.backup
 
+# Backup files with potential secrets
+*.backup
+*.bak
+*.orig
+
 # Log files - PREVENT LARGE FILES
 *.log
 logs/
@@ -151,3 +156,4 @@ backend/uploads/temp/*
 backend/combined.log
 backend/error.log
 backend/logs/
+PRODUCTION-SECRETS.env
