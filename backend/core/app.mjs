@@ -21,9 +21,9 @@ export const createApp = async () => {
   const app = express();
   const isProduction = process.env.NODE_ENV === 'production';
 
-  // ===================== SIMPLIFIED CORS (PLATFORM HANDLES PREFLIGHT) =====================
-  // Render's platform-level headers handle OPTIONS preflight requests
-  // This app-level CORS only handles actual request validation
+  // ===================== ULTRA-PRIORITY OPTIONS HANDLER (RENDER PLATFORM FIX) =====================
+  // This handler runs BEFORE any other middleware to ensure OPTIONS preflight requests
+  // are handled immediately with explicit CORS headers, bypassing Render platform interference
   
   const allowedOrigins = [
     'http://localhost:5173', 
@@ -36,7 +36,33 @@ export const createApp = async () => {
     'https://www.swanstudios.com'
   ];
 
-  // BASIC CORS middleware (platform handles preflight, this handles actual requests)
+  // ULTRA-PRIORITY: Handle ALL OPTIONS requests immediately
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    
+    if (req.method === 'OPTIONS') {
+      logger.info(`🎯 ULTRA-PRIORITY OPTIONS HANDLER: ${req.url} from origin: ${origin || 'no-origin'}`);
+      
+      // Set explicit CORS headers for OPTIONS preflight
+      res.setHeader('Access-Control-Allow-Origin', origin || 'https://sswanstudios.com');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Max-Age', '86400');
+      
+      // Explicitly log what we're sending
+      logger.info(`📤 OPTIONS Response Headers:`);
+      logger.info(`   - Access-Control-Allow-Origin: ${origin || 'https://sswanstudios.com'}`);
+      logger.info(`   - Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS, PATCH`);
+      logger.info(`   - Access-Control-Allow-Credentials: true`);
+      
+      return res.status(204).end();
+    }
+    
+    next();
+  });
+
+  // SIMPLIFIED CORS middleware for actual requests (non-OPTIONS)
   const corsOptions = {
     origin: function (origin, callback) {
       // Allow requests with no origin (mobile apps, server-to-server)
@@ -54,13 +80,13 @@ export const createApp = async () => {
         return callback(null, true);
       }
       
-      logger.warn(`⚠️ CORS: Origin '${origin}' not in app allowlist (platform headers should handle)`);
-      return callback(null, true); // Let platform headers handle it
+      logger.warn(`⚠️ CORS: Origin '${origin}' not in app allowlist - but allowing for platform compatibility`);
+      return callback(null, true); // Allow all for platform compatibility
     },
     credentials: true
   };
 
-  // Apply basic CORS middleware
+  // Apply CORS middleware for non-OPTIONS requests
   app.use(cors(corsOptions));
 
   logger.info(`🔧 CORS Configuration: PLATFORM + APP HYBRID:`);

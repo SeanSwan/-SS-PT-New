@@ -7,10 +7,11 @@ services:
     buildCommand: npm install
     startCommand: npm run render-start
     
-    # PLATFORM-LEVEL CORS HEADERS (CRITICAL FOR PREFLIGHT)
-    # These headers are set by Render's proxy layer BEFORE reaching the app
-    # CORRECTED SYNTAX: Added required 'path' field for each header
+    # ENHANCED PLATFORM-LEVEL CORS HEADERS (ULTRA-EXPLICIT FOR OPTIONS)
+    # These headers are set by Render's proxy layer for ALL requests including OPTIONS
+    # DUAL-LAYER APPROACH: Platform + Application handling for maximum compatibility
     headers:
+      # Primary CORS headers for all requests
       - path: /*
         name: Access-Control-Allow-Origin
         value: https://sswanstudios.com
@@ -26,6 +27,31 @@ services:
       - path: /*
         name: Access-Control-Max-Age
         value: "86400"
+      
+      # EXPLICIT API ROUTE CORS (redundant but ensures coverage)
+      - path: /api/*
+        name: Access-Control-Allow-Origin
+        value: https://sswanstudios.com
+      - path: /api/*
+        name: Access-Control-Allow-Methods
+        value: GET, POST, PUT, DELETE, OPTIONS, PATCH
+      - path: /api/*
+        name: Access-Control-Allow-Headers
+        value: Content-Type, Authorization, X-Requested-With, Accept, Origin, Access-Control-Request-Method, Access-Control-Request-Headers
+      - path: /api/*
+        name: Access-Control-Allow-Credentials
+        value: "true"
+      
+      # HEALTH ENDPOINT CORS
+      - path: /health
+        name: Access-Control-Allow-Origin
+        value: https://sswanstudios.com
+      - path: /health
+        name: Access-Control-Allow-Methods
+        value: GET, OPTIONS
+      - path: /health
+        name: Access-Control-Allow-Credentials
+        value: "true"
     
     # PRODUCTION ENVIRONMENT VARIABLES
     envVars:
