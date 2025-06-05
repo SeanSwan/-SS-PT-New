@@ -43,12 +43,23 @@ export const createApp = async () => {
 
   const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
 
-  // Simplified, robust CORS configuration
+  // ENHANCED CORS configuration with bulletproof Render deployment support
   const corsOptions = {
     origin: function (origin, callback) {
-      logger.info(`🌐 CORS Request - Origin: ${origin || 'null'}, Environment: ${process.env.NODE_ENV}`);
+      // Enhanced logging for deployment debugging
+      logger.info(`🌐 CORS REQUEST RECEIVED:`);
+      logger.info(`   Origin: ${origin || 'null'}`);
+      logger.info(`   Environment: ${process.env.NODE_ENV}`);
+      logger.info(`   FRONTEND_ORIGINS env: '${process.env.FRONTEND_ORIGINS || 'NOT SET'}'`);
+      logger.info(`   Allowed Origins: [${allowedOrigins.join(', ')}]`);
       
-      // Allow requests with no origin (Postman, mobile apps, curl, etc.)
+      // PRODUCTION DEPLOYMENT FIX: Always allow sswanstudios.com in production
+      if (isProduction && origin === 'https://sswanstudios.com') {
+        logger.info('🎯 CORS: PRODUCTION OVERRIDE - sswanstudios.com always allowed');
+        return callback(null, true);
+      }
+      
+      // Allow requests with no origin (Postman, mobile apps, curl, server-to-server)
       if (!origin) {
         logger.info('✅ CORS: No origin header - allowing (mobile/server-to-server)');
         return callback(null, true);
@@ -66,14 +77,18 @@ export const createApp = async () => {
         return callback(null, true);
       }
       
-      // Production fallback: Swan Studios domains (defensive)
+      // Additional production fallbacks for Swan Studios domains
       if (isProduction && (origin.includes('sswanstudios.com') || origin.includes('swanstudios.com'))) {
         logger.info(`✅ CORS: Production Swan Studios domain '${origin}' - ALLOWING as fallback`);
         return callback(null, true);
       }
       
-      // Reject all other origins
-      logger.error(`❌ CORS: Origin '${origin}' NOT ALLOWED. Allowed origins: ${allowedOrigins.join(', ')}`);
+      // Reject all other origins with detailed logging
+      logger.error(`❌ CORS REJECTION DETAILS:`);
+      logger.error(`   Rejected Origin: '${origin}'`);
+      logger.error(`   Environment: ${process.env.NODE_ENV}`);
+      logger.error(`   Production Mode: ${isProduction}`);
+      logger.error(`   Expected Origins: ${allowedOrigins.join(', ')}`);
       const error = new Error(`CORS: Origin '${origin}' not allowed`);
       error.status = 403;
       return callback(error, false);
