@@ -6910,3 +6910,12 @@
 {"level":"error","message":"❌ Failed to create table sets: relation \"WorkoutExercises\" does not exist","timestamp":"2025-06-06T18:19:05.701Z"}
 {"level":"error","message":"❌ Failed to create table exercise_muscle_groups: relation \"MuscleGroups\" does not exist","timestamp":"2025-06-06T18:19:05.707Z"}
 {"level":"error","message":"❌ Failed to create table exercise_equipment: relation \"Equipment\" does not exist","timestamp":"2025-06-06T18:19:05.710Z"}
+{"level":"error","message":"❌ Failed to create table SocialPosts: foreign key constraint \"SocialPosts_achievementId_fkey\" cannot be implemented","timestamp":"2025-06-06T18:25:23.938Z"}
+{"level":"error","message":"❌ Failed to create table SocialComments: relation \"SocialPosts\" does not exist","timestamp":"2025-06-06T18:25:23.943Z"}
+{"level":"error","message":"❌ Failed to create table Challenges: foreign key constraint \"Challenges_badgeId_fkey\" cannot be implemented","timestamp":"2025-06-06T18:25:23.955Z"}
+{"level":"error","message":"❌ Failed to create table ChallengeParticipants: relation \"Challenges\" does not exist","timestamp":"2025-06-06T18:25:23.960Z"}
+{"level":"error","message":"❌ Failed to create table ChallengeTeams: relation \"Challenges\" does not exist","timestamp":"2025-06-06T18:25:23.965Z"}
+{"level":"error","message":"❌ Failed to create table workout_plan_day_exercises: relation \"WorkoutPlanDays\" does not exist","timestamp":"2025-06-06T18:25:23.968Z"}
+{"level":"error","message":"❌ Failed to create table sets: relation \"WorkoutExercises\" does not exist","timestamp":"2025-06-06T18:25:23.973Z"}
+{"level":"error","message":"❌ Failed to create table exercise_muscle_groups: relation \"MuscleGroups\" does not exist","timestamp":"2025-06-06T18:25:23.978Z"}
+{"level":"error","message":"❌ Failed to create table exercise_equipment: relation \"Equipment\" does not exist","timestamp":"2025-06-06T18:25:23.982Z"}

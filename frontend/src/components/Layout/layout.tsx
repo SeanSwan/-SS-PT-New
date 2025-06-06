@@ -4,6 +4,8 @@ import styled from 'styled-components';
 import Header from '../Header/header'; // Adjust the import path based on your project structure
 import Footer from '../Footer/Footer';
 import { SimpleScrollToTop, ConstructionBannerContainer } from '../common';
+import FloatingSessionWidget from '../SessionDashboard/FloatingSessionWidget';
+import { useAuth } from '../../context/AuthContext';
 
 const MainContainer = styled.div`
   display: flex;
@@ -31,6 +33,8 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const { isAuthenticated, user } = useAuth();
+  
   // Construction banner state management
   const [showConstructionBanner, setShowConstructionBanner] = useState(true);
   
@@ -67,8 +71,23 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       </ContentWrapper>
       
       <Footer />
+      
       {/* Production scroll-to-top button - appears when scrolling down */}
       <SimpleScrollToTop scrollThreshold={300} />
+      
+      {/* Floating Session Widget - only for authenticated users */}
+      {isAuthenticated && user && (
+        <FloatingSessionWidget 
+          onOpenDashboard={() => {
+            // Navigate to appropriate dashboard based on role
+            const dashboardRoute = user.role === 'admin' ? '/dashboard' :
+                                 user.role === 'trainer' ? '/trainer-dashboard' :
+                                 user.role === 'client' ? '/client-dashboard' :
+                                 '/user-dashboard';
+            window.location.href = dashboardRoute;
+          }}
+        />
+      )}
     </MainContainer>
   );
 };
