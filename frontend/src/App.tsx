@@ -16,6 +16,7 @@ import { ThemeProvider, StyleSheetManager } from 'styled-components';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { CartProvider } from './context/CartContext';
+import { SessionProvider } from './context/SessionContext';
 import { ConfigProvider } from './context/ConfigContext';
 import { UniversalThemeProvider } from './context/ThemeContext';
 import MenuStateProvider from './hooks/useMenuState';
@@ -194,9 +195,11 @@ const App = () => {
                     <AuthProvider>
                       <ToastProvider>
                         <CartProvider>
-                          <DevToolsProvider>
-                            <AppContent />
-                          </DevToolsProvider>
+                          <SessionProvider>
+                            <DevToolsProvider>
+                              <AppContent />
+                            </DevToolsProvider>
+                          </SessionProvider>
                         </CartProvider>
                       </ToastProvider>
                     </AuthProvider>

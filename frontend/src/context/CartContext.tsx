@@ -240,7 +240,42 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   }, [isAuthenticated]); // Remove token dependency to prevent loop
 
-  // Add item to cart - Enhanced with role upgrade logic
+  // Enhanced cart success notification
+  const showCartNotification = useCallback((message: string, type: 'success' | 'error' = 'success') => {
+    // Create a temporary notification element
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: ${type === 'success' ? 'linear-gradient(135deg, #00ffff, #0080ff)' : 'linear-gradient(135deg, #ff6b9d, #ff4d6d)'};
+      color: ${type === 'success' ? '#000' : '#fff'};
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 500;
+      z-index: 10000;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    `;
+    notification.textContent = message;
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+      notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Remove after delay
+    setTimeout(() => {
+      notification.style.transform = 'translateX(100%)';
+      setTimeout(() => {
+        document.body.removeChild(notification);
+      }, 300);
+    }, 3000);
+  }, []);
+
+  // Add item to cart - Enhanced with role upgrade logic and better notifications
   const addToCart = useCallback(async (itemData: AddToCartPayload): Promise<void> => {
     // First check for authentication with force_cart_auth override
     const forceAccept = localStorage.getItem('force_cart_auth') === 'true';
@@ -310,6 +345,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         // Update both state and ref
         setCart(updatedCart);
         mockCartRef.current = updatedCart;
+        showCartNotification(`${itemData.name || 'Item'} ${existingItem ? 'quantity updated' : 'added to cart'}!`);
       } else {
         // No existing cart, create a new one with this item
         console.log('Creating new mock cart with initial item');
@@ -324,6 +360,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         // Update both state and ref
         setCart(newCart);
         mockCartRef.current = newCart;
+        showCartNotification(`${itemData.name || 'Item'} added to cart!`);
       }
       
       setShowCart(true);
@@ -367,10 +404,14 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           setCart(response.data);
           setShowCart(true); // Show cart after adding an item
           
+          // Show success notification
+          showCartNotification(`${itemData.name || 'Item'} added to cart successfully!`);
+          
           // Check if user role should be upgraded
           // If user is 'user' role and they add training sessions, upgrade to 'client'
           if (user?.role === 'user' && response.data.userRoleUpgrade) {
             console.log('User role upgraded to client after adding training sessions');
+            showCartNotification('Your account has been upgraded to client status!', 'success');
             // Note: The actual role update should be handled by the backend during checkout
             // This is just a UI notification
           }
@@ -384,6 +425,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       console.error('Error adding to cart:', err);
       const message = err.response?.data?.message || "Failed to add item to cart";
       setError(message);
+      showCartNotification(message, 'error');
       return Promise.reject(new Error(message));
     } finally {
       setLoading(false);

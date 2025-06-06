@@ -446,6 +446,80 @@ const HeightField = styled.div`
   }
 `;
 
+// Enhanced UI Components
+const FieldError = styled.div`
+  color: #ff6b9d;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: rgba(255, 107, 157, 0.1);
+  border-radius: 4px;
+  border-left: 2px solid #ff6b9d;
+`;
+
+const PasswordStrengthContainer = styled.div`
+  margin-top: 0.5rem;
+`;
+
+const PasswordStrengthBar = styled.div<{ strength: number }>`
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 0.25rem;
+  
+  &::after {
+    content: '';
+    display: block;
+    height: 100%;
+    width: ${props => props.strength}%;
+    background: ${props => 
+      props.strength < 30 ? '#ff4d6d' :
+      props.strength < 60 ? '#ffa726' :
+      props.strength < 80 ? '#66bb6a' :
+      '#00ffff'
+    };
+    transition: all 0.3s ease;
+    border-radius: 2px;
+  }
+`;
+
+const PasswordStrengthText = styled.div<{ strength: number }>`
+  font-size: 0.7rem;
+  color: ${props => 
+    props.strength < 30 ? '#ff6b9d' :
+    props.strength < 60 ? '#ffa726' :
+    props.strength < 80 ? '#66bb6a' :
+    '#00ffff'
+  };
+  text-align: center;
+`;
+
+const PasswordToggle = styled.button`
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: rgba(0, 255, 255, 0.7);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 4px;
+  
+  &:hover {
+    color: #00ffff;
+  }
+`;
+
+const InputFieldWithToggle = styled.div`
+  position: relative;
+  
+  input {
+    padding-right: 45px;
+  }
+`;
+
 /**
  * OptimizedSignupModal Component
  * Enhanced signup modal with improved layout, compact footer,
@@ -483,6 +557,10 @@ const OptimizedSignupModal: React.FC = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState(0);
+  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0);
 
   // Calculate completion percentage whenever formData changes
   useEffect(() => {
@@ -505,6 +583,47 @@ const OptimizedSignupModal: React.FC = () => {
     }, 100);
   }, []);
 
+  // Enhanced password strength calculation
+  const calculatePasswordStrength = (password: string): number => {
+    let strength = 0;
+    if (password.length >= 8) strength += 20;
+    if (password.length >= 12) strength += 10;
+    if (/[A-Z]/.test(password)) strength += 20;
+    if (/[a-z]/.test(password)) strength += 20;
+    if (/[0-9]/.test(password)) strength += 20;
+    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength += 10;
+    return Math.min(strength, 100);
+  };
+
+  // Enhanced field validation
+  const validateField = (name: string, value: string): string => {
+    switch (name) {
+      case 'email':
+        if (!value.trim()) return 'Email is required';
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Invalid email format';
+        return '';
+      case 'username':
+        if (!value.trim()) return 'Username is required';
+        if (value.length < 3) return 'Username must be at least 3 characters';
+        if (!/^[a-zA-Z0-9_]+$/.test(value)) return 'Username can only contain letters, numbers, and underscores';
+        return '';
+      case 'password':
+        if (!value) return 'Password is required';
+        if (value.length < 8) return 'Password must be at least 8 characters';
+        return '';
+      case 'confirmPassword':
+        if (!value) return 'Please confirm your password';
+        if (value !== formData.password) return 'Passwords do not match';
+        return '';
+      case 'firstName':
+      case 'lastName':
+        if (!value.trim()) return `${name === 'firstName' ? 'First' : 'Last'} name is required`;
+        return '';
+      default:
+        return '';
+    }
+  };
+
   const handleClose = () => {
     controls.start("exit").then(() => {
        if (window.history.length > 1) {
@@ -515,10 +634,51 @@ const OptimizedSignupModal: React.FC = () => {
     });
   };
 
-  // Handle changes for input elements
+  // Enhanced handle changes for input elements with real-time validation
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+    
+    // Clear field-specific error when user starts typing
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+    
+    // Clear general error when user makes changes
+    if (error) setError('');
+    
     setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    // Real-time validation for critical fields
+    if (['email', 'username', 'password', 'confirmPassword', 'firstName', 'lastName'].includes(name)) {
+      const fieldError = validateField(name, value);
+      if (fieldError) {
+        setFieldErrors(prev => ({ ...prev, [name]: fieldError }));
+      }
+    }
+    
+    // Update password strength
+    if (name === 'password') {
+      setPasswordStrength(calculatePasswordStrength(value));
+      // Also revalidate confirm password if it exists
+      if (formData.confirmPassword) {
+        const confirmError = validateField('confirmPassword', formData.confirmPassword);
+        if (confirmError) {
+          setFieldErrors(prev => ({ ...prev, confirmPassword: confirmError }));
+        }
+      }
+    }
+    
+    // Revalidate confirm password when it changes
+    if (name === 'confirmPassword') {
+      const confirmError = validateField('confirmPassword', value);
+      if (confirmError) {
+        setFieldErrors(prev => ({ ...prev, confirmPassword: confirmError }));
+      }
+    }
     
     // If changing height fields (feet/inches), calculate the total height in cm
     if (name === 'feet' || name === 'inches') {
@@ -760,8 +920,15 @@ const OptimizedSignupModal: React.FC = () => {
                     value={formData.firstName} 
                     onChange={handleChange} 
                     required 
-                    disabled={isLoading} 
+                    disabled={isLoading}
+                    style={{
+                      borderColor: fieldErrors.firstName ? '#ff6b9d' : '',
+                      boxShadow: fieldErrors.firstName ? '0 0 0 2px rgba(255, 107, 157, 0.2)' : ''
+                    }}
                   />
+                  {fieldErrors.firstName && (
+                    <FieldError>{fieldErrors.firstName}</FieldError>
+                  )}
                 </InputWrapper>
                 <InputWrapper>
                   <Label htmlFor="lastName">Last Name</Label>
@@ -773,8 +940,15 @@ const OptimizedSignupModal: React.FC = () => {
                     value={formData.lastName} 
                     onChange={handleChange} 
                     required 
-                    disabled={isLoading} 
+                    disabled={isLoading}
+                    style={{
+                      borderColor: fieldErrors.lastName ? '#ff6b9d' : '',
+                      boxShadow: fieldErrors.lastName ? '0 0 0 2px rgba(255, 107, 157, 0.2)' : ''
+                    }}
                   />
+                  {fieldErrors.lastName && (
+                    <FieldError>{fieldErrors.lastName}</FieldError>
+                  )}
                 </InputWrapper>
               </FormGrid>
               <InputWrapper>
@@ -787,8 +961,15 @@ const OptimizedSignupModal: React.FC = () => {
                   value={formData.email} 
                   onChange={handleChange} 
                   required 
-                  disabled={isLoading} 
+                  disabled={isLoading}
+                  style={{
+                    borderColor: fieldErrors.email ? '#ff6b9d' : '',
+                    boxShadow: fieldErrors.email ? '0 0 0 2px rgba(255, 107, 157, 0.2)' : ''
+                  }}
                 />
+                {fieldErrors.email && (
+                  <FieldError>{fieldErrors.email}</FieldError>
+                )}
               </InputWrapper>
               <InputWrapper>
                 <Label htmlFor="phone">Phone Number (Optional)</Label>
@@ -841,38 +1022,91 @@ const OptimizedSignupModal: React.FC = () => {
                   value={formData.username} 
                   onChange={handleChange} 
                   required 
-                  disabled={isLoading} 
+                  disabled={isLoading}
+                  style={{
+                    borderColor: fieldErrors.username ? '#ff6b9d' : '',
+                    boxShadow: fieldErrors.username ? '0 0 0 2px rgba(255, 107, 157, 0.2)' : ''
+                  }}
                 />
+                {fieldErrors.username && (
+                  <FieldError>{fieldErrors.username}</FieldError>
+                )}
+                <HelpText>
+                  Username must be at least 3 characters and can only contain letters, numbers, and underscores
+                </HelpText>
               </InputWrapper>
               <FormGrid>
                 <InputWrapper>
                   <Label htmlFor="password">Password</Label>
-                  <InputField 
-                    type="password" 
-                    id="password" 
-                    name="password" 
-                    placeholder="Enter password" 
-                    value={formData.password} 
-                    onChange={handleChange} 
-                    required 
-                    disabled={isLoading} 
-                  />
+                  <InputFieldWithToggle>
+                    <InputField 
+                      type={showPassword ? "text" : "password"} 
+                      id="password" 
+                      name="password" 
+                      placeholder="Enter password" 
+                      value={formData.password} 
+                      onChange={handleChange} 
+                      required 
+                      disabled={isLoading}
+                      style={{
+                        borderColor: fieldErrors.password ? '#ff6b9d' : '',
+                        boxShadow: fieldErrors.password ? '0 0 0 2px rgba(255, 107, 157, 0.2)' : ''
+                      }}
+                    />
+                    <PasswordToggle 
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      disabled={isLoading}
+                    >
+                      {showPassword ? '👁️‍🗨️' : '👁️'}
+                    </PasswordToggle>
+                  </InputFieldWithToggle>
+                  {fieldErrors.password && (
+                    <FieldError>{fieldErrors.password}</FieldError>
+                  )}
+                  {formData.password && (
+                    <PasswordStrengthContainer>
+                      <PasswordStrengthBar strength={passwordStrength} />
+                      <PasswordStrengthText strength={passwordStrength}>
+                        {passwordStrength < 30 ? 'Weak' :
+                         passwordStrength < 60 ? 'Fair' :
+                         passwordStrength < 80 ? 'Good' :
+                         'Strong'} Password
+                      </PasswordStrengthText>
+                    </PasswordStrengthContainer>
+                  )}
                   <HelpText>
                     Password must contain at least 8 characters, including uppercase & lowercase letters, numbers, and special characters (!@#$%^&*)
                   </HelpText>
                 </InputWrapper>
                 <InputWrapper>
                   <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <InputField 
-                    type="password" 
-                    id="confirmPassword" 
-                    name="confirmPassword" 
-                    placeholder="Confirm password" 
-                    value={formData.confirmPassword} 
-                    onChange={handleChange} 
-                    required 
-                    disabled={isLoading} 
-                  />
+                  <InputFieldWithToggle>
+                    <InputField 
+                      type={showConfirmPassword ? "text" : "password"} 
+                      id="confirmPassword" 
+                      name="confirmPassword" 
+                      placeholder="Confirm password" 
+                      value={formData.confirmPassword} 
+                      onChange={handleChange} 
+                      required 
+                      disabled={isLoading}
+                      style={{
+                        borderColor: fieldErrors.confirmPassword ? '#ff6b9d' : '',
+                        boxShadow: fieldErrors.confirmPassword ? '0 0 0 2px rgba(255, 107, 157, 0.2)' : ''
+                      }}
+                    />
+                    <PasswordToggle 
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      disabled={isLoading}
+                    >
+                      {showConfirmPassword ? '👁️‍🗨️' : '👁️'}
+                    </PasswordToggle>
+                  </InputFieldWithToggle>
+                  {fieldErrors.confirmPassword && (
+                    <FieldError>{fieldErrors.confirmPassword}</FieldError>
+                  )}
                 </InputWrapper>
               </FormGrid>
               
