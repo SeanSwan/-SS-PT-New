@@ -1,0 +1,51 @@
+🚨 URGENT: SET PRODUCTION ENVIRONMENT VARIABLES IN RENDER DASHBOARD
+========================================================================
+
+Your backend service is crashing because of placeholder environment variables.
+
+STEP-BY-STEP INSTRUCTIONS:
+==========================
+
+1. Go to: https://dashboard.render.com
+2. Find and click on your "swan-studios-api" service  
+3. Click on the "Environment" tab
+4. Look for these variables and UPDATE them with real values:
+
+CRITICAL VARIABLES TO UPDATE:
+============================
+
+JWT_SECRET
+   Current: "your-jwt-secret-key-here"
+   Update to: [Generate a 32+ character random string]
+   Example: "kJ8x9mP2qR5sT7uV0wZ3yB6nC9fH1gL4oS8vE2rT5yU7iP0qA3sD6gH9jK2mN5pR"
+
+JWT_REFRESH_SECRET  
+   Current: "your-jwt-refresh-secret-here"
+   Update to: [Generate a DIFFERENT 32+ character random string]
+   Example: "nV8yP1mS4tR7uL0zC3bE6gH9jN2pQ5sW8xA1dF4hK7oM0rT3vU6yZ9cG2fJ5lN8p"
+
+ADMIN_ACCESS_CODE
+   Current: "admin-access-code-123"
+   Update to: [Your chosen secure admin code]
+   Example: "SwanAdmin2024!Secure"
+
+OPTIONAL (Can skip for now to get basic functionality working):
+==============================================================
+SENDGRID_API_KEY - If you need email functionality
+STRIPE_SECRET_KEY - If you need payment functionality  
+TWILIO_ACCOUNT_SID - If you need SMS functionality
+TWILIO_AUTH_TOKEN - If you need SMS functionality
+
+LEAVE THESE AS-IS (Render auto-manages):
+=======================================
+DATABASE_URL - Render sets this automatically
+PORT - Render sets this automatically
+NODE_ENV - Should be "production"
+
+AFTER UPDATING:
+==============
+1. Click "Save Changes" 
+2. Go to "Manual Deploy" section
+3. Click "Deploy Latest Commit"
+4. Wait 2-3 minutes for deployment to complete
+5. Check logs for successful startup message
