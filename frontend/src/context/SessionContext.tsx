@@ -160,6 +160,29 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [tabId] = useState(() => `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [isActiveTab, setIsActiveTab] = useState(true);
 
+  // MOVED: saveSessionData function definition BEFORE its first usage to prevent hoisting issues
+  const saveSessionData = useCallback(async (): Promise<void> => {
+    if (!currentSession || !user) return;
+    
+    try {
+      await apiService.put(`/api/sessions/${currentSession.id}`, {
+        ...currentSession,
+        duration: sessionTimer,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.warn('Failed to auto-save session to backend');
+      // ENHANCED: Safe localStorage write with tab coordination
+      if (isActiveTab) {
+        localStorage.setItem(`activeSession_${user.id}`, JSON.stringify({
+          ...currentSession,
+          duration: sessionTimer,
+          updatedAt: new Date().toISOString()
+        }));
+      }
+    }
+  }, [currentSession, user, sessionTimer, isActiveTab]);
+
   // Auto-save current session data - ENHANCED WITH PROPER CLEANUP
   useEffect(() => {
     let autoSaveInterval: NodeJS.Timeout | null = null;
@@ -721,28 +744,6 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       setSessionAnalytics(basicAnalytics);
     }
   }, [isAuthenticated, user, sessions]);
-
-  const saveSessionData = useCallback(async (): Promise<void> => {
-    if (!currentSession || !user) return;
-    
-    try {
-      await apiService.put(`/api/sessions/${currentSession.id}`, {
-        ...currentSession,
-        duration: sessionTimer,
-        updatedAt: new Date().toISOString()
-      });
-    } catch (error) {
-      console.warn('Failed to auto-save session to backend');
-      // ENHANCED: Safe localStorage write with tab coordination
-      if (isActiveTab) {
-        localStorage.setItem(`activeSession_${user.id}`, JSON.stringify({
-          ...currentSession,
-          duration: sessionTimer,
-          updatedAt: new Date().toISOString()
-        }));
-      }
-    }
-  }, [currentSession, user, sessionTimer, isActiveTab]);
 
   // Role-based data access functions
   const fetchClientSessions = useCallback(async (clientId?: string): Promise<WorkoutSession[]> => {
