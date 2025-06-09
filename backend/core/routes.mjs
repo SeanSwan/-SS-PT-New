@@ -105,38 +105,12 @@ export const setupRoutes = async (app) => {
     });
   });
 
-  // ===================== HEALTH CHECK =====================
-  app.get('/health', async (req, res) => {
-    res.header('Access-Control-Allow-Origin', req.headers.origin || 'https://sswanstudios.com');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    
-    try {
-      const healthResponse = {
-        success: true,
-        status: 'healthy',
-        message: 'SwanStudios API Server is running',
-        environment: process.env.NODE_ENV || 'development',
-        timestamp: new Date().toISOString(),
-        uptime: Math.floor(process.uptime()),
-        version: '1.0.0'
-      };
-      
-      res.status(200).json(healthResponse);
-    } catch (error) {
-      res.status(200).json({
-        success: true,
-        status: 'basic',
-        message: 'Server is running (minimal health check)',
-        timestamp: new Date().toISOString(),
-        uptime: Math.floor(process.uptime())
-      });
-    }
-  });
+  // ===================== HEALTH CHECK ROUTES =====================
+  // Consolidated health endpoints - fixes P0 health check conflicts
+  app.use('/health', healthRoutes);
+  app.use('/api/health', healthRoutes);
 
   // ===================== CORE API ROUTES =====================
-  app.use('/api/health', healthRoutes);
   app.use('/api/auth', authRoutes);
   app.use('/api/profile', profileRoutes);
 

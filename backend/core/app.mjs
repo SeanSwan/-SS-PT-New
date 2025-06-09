@@ -194,28 +194,8 @@ export const createApp = async () => {
     logger.info('Production optimizations enabled: CORS-friendly helmet, compression');
   }
 
-  // Enhanced health check endpoint with CORS debug info
-  app.get('/health', (req, res) => {
-    const origin = req.headers.origin;
-    logger.info(`🏥 Health check from origin: ${origin || 'no-origin'}`);
-    
-    res.status(200).json({
-      status: 'ok',
-      timestamp: new Date().toISOString(),
-      environment: process.env.NODE_ENV || 'development',
-      cors: {
-        requestOrigin: origin || 'no-origin',
-        corsStrategy: 'Ultra-Aggressive-4-Layer',
-        userAgent: req.headers['user-agent'],
-        method: req.method,
-        url: req.url
-      },
-      debug: {
-        corsLayers: ['Layer1-Middleware', 'Layer2-Routes', 'Layer3-Wildcard', 'Layer4-Traditional'],
-        renderPlatform: 'Bypassed via application handling'
-      }
-    });
-  });
+  // Health check endpoints are now handled by dedicated healthRoutes
+  // This prevents conflicts and ensures consistent CORS handling
 
   // ===================== MIDDLEWARE SETUP =====================
   await setupMiddleware(app);
