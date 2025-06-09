@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from '../../context/SessionContext';
+import SessionErrorBoundary from './SessionErrorBoundary';
 
 // Animations
 const pulse = keyframes`
@@ -84,7 +85,7 @@ const ExpandedView = styled.div`
 
 const SessionHeader = styled.div`
   display: flex;
-  justify-content: between;
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 0.75rem;
   
@@ -309,8 +310,23 @@ const FloatingSessionWidget: React.FC<FloatingSessionWidgetProps> = ({ onOpenDas
   }
 
   return (
-    <AnimatePresence>
-      <WidgetContainer
+    <SessionErrorBoundary 
+      context="Floating Session Widget"
+      variant="compact"
+      enableRetry={true}
+      maxRetries={2}
+      onError={(error, errorInfo) => {
+        console.error('[FloatingSessionWidget] Error in session widget:', {
+          error: error.message,
+          componentStack: errorInfo.componentStack,
+          hasCurrentSession: !!currentSession,
+          sessionStatus: currentSession?.status,
+          isExpanded
+        });
+      }}
+    >
+      <AnimatePresence>
+        <WidgetContainer
         $isExpanded={isExpanded}
         onClick={currentSession ? handleToggleExpand : undefined}
         initial={{ scale: 0, opacity: 0 }}
@@ -419,8 +435,9 @@ const FloatingSessionWidget: React.FC<FloatingSessionWidgetProps> = ({ onOpenDas
             )}
           </ExpandedView>
         )}
-      </WidgetContainer>
-    </AnimatePresence>
+        </WidgetContainer>
+      </AnimatePresence>
+    </SessionErrorBoundary>
   );
 };
 

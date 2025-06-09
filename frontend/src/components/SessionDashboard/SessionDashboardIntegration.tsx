@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import AdminSessionManager from './AdminSessionManager';
 import TrainerClientSessions from './TrainerClientSessions';
 import SessionDashboard from './SessionDashboard';
+import SessionErrorBoundary from './SessionErrorBoundary';
 import styled from 'styled-components';
 
 const IntegrationContainer = styled.div`
@@ -97,11 +98,28 @@ const SessionDashboardIntegration: React.FC<SessionDashboardIntegrationProps> = 
   const viewType = forceView || user.role;
 
   return (
-    <IntegrationContainer className={className}>
+    <SessionErrorBoundary 
+      context={`Session Dashboard Integration (${viewType})`}
+      variant="full"
+      enableRetry={true}
+      maxRetries={3}
+      onError={(error, errorInfo) => {
+        console.error('[SessionDashboardIntegration] Error in integration layer:', {
+          error: error.message,
+          componentStack: errorInfo.componentStack,
+          viewType,
+          userRole: user?.role,
+          isAuthenticated,
+          forceView
+        });
+      }}
+    >
+      <IntegrationContainer className={className}>
       {viewType === 'admin' && <AdminSessionManager />}
       {viewType === 'trainer' && <TrainerClientSessions />}
       {(viewType === 'client' || viewType === 'user') && <SessionDashboard />}
-    </IntegrationContainer>
+      </IntegrationContainer>
+    </SessionErrorBoundary>
   );
 };
 
