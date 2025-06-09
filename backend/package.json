@@ -35,6 +35,7 @@
     "fix-all": "node fix-server.mjs && node fix-remaining-models.mjs",
     "start-fixed": "node fix-server.mjs && node fix-remaining-models.mjs && npm run dev",
     "render-start": "node scripts/render-start.mjs",
+    "render-start-emergency": "node scripts/render-start-emergency.mjs",
     "render-start-old": "npx sequelize-cli db:migrate --config config/config.cjs --migrations-path migrations --models-path models --env production && node scripts/adminSeeder.mjs && node server.mjs",
     "migrate-production": "node scripts/run-migrations-production.mjs",
     "verify-deployment": "node scripts/verify-deployment.mjs",
