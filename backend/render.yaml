@@ -7,12 +7,13 @@ services:
     buildCommand: npm install
     startCommand: npm run render-start
     
-    # MINIMAL PLATFORM HEADERS - LET APPLICATION HANDLE CORS
-    # Remove specific path targeting to avoid platform interference
-    headers:
-      - path: /*
-        name: Access-Control-Allow-Origin
-        value: "*"
+    # REMOVE PLATFORM HEADERS - FULL APPLICATION CONTROL
+    # Platform headers can interfere with root-level endpoints like /health
+    # Let ultra-aggressive CORS in app.mjs handle everything
+    # headers:
+    #   - path: /*
+    #     name: Access-Control-Allow-Origin
+    #     value: "*"
     
     # PRODUCTION ENVIRONMENT VARIABLES
     envVars:
