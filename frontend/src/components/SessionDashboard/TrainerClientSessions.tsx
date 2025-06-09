@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from '../../context/SessionContext';
 import { useAuth } from '../../context/AuthContext';
 import apiService from '../../services/api.service';
+import SessionErrorBoundary from './SessionErrorBoundary';
 
 // Animations
 const fadeIn = keyframes`
@@ -563,7 +564,22 @@ const TrainerClientSessions: React.FC = () => {
   }
 
   return (
-    <TrainerContainer>
+    <SessionErrorBoundary 
+      context="Trainer Client Sessions"
+      variant="full"
+      enableRetry={true}
+      maxRetries={3}
+      onError={(error, errorInfo) => {
+        console.error('[TrainerClientSessions] Error in trainer dashboard:', {
+          error: error.message,
+          componentStack: errorInfo.componentStack,
+          clientCount: clients.length,
+          activeClients: stats?.activeClients,
+          userRole: user?.role
+        });
+      }}
+    >
+      <TrainerContainer>
       <HeaderSection>
         <div>
           <h1 className="title">My Clients</h1>
@@ -719,7 +735,8 @@ const TrainerClientSessions: React.FC = () => {
           <div className="submessage">Start building your client base to track their sessions</div>
         </EmptyState>
       )}
-    </TrainerContainer>
+      </TrainerContainer>
+    </SessionErrorBoundary>
   );
 };
 

@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from '../../context/SessionContext';
 import { useAuth } from '../../context/AuthContext';
 import apiService from '../../services/api.service';
+import SessionErrorBoundary from './SessionErrorBoundary';
 
 // Animations
 const shimmer = keyframes`
@@ -654,7 +655,22 @@ const AdminSessionManager: React.FC = () => {
   }
 
   return (
-    <AdminContainer>
+    <SessionErrorBoundary 
+      context="Admin Session Manager"
+      variant="full"
+      enableRetry={true}
+      maxRetries={3}
+      onError={(error, errorInfo) => {
+        console.error('[AdminSessionManager] Error in admin dashboard:', {
+          error: error.message,
+          componentStack: errorInfo.componentStack,
+          activeTab,
+          totalSessions: adminStats?.totalSessions,
+          activeSessions: adminStats?.activeSessions
+        });
+      }}
+    >
+      <AdminContainer>
       <HeaderSection>
         <div>
           <h1 className="title">Session Management</h1>
@@ -926,7 +942,8 @@ const AdminSessionManager: React.FC = () => {
           )}
         </ContentSection>
       </TabContainer>
-    </AdminContainer>
+      </AdminContainer>
+    </SessionErrorBoundary>
   );
 };
 
