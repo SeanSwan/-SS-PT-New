@@ -578,6 +578,133 @@ router.delete("/cancel/:sessionId", protect, async (req, res) => {
 });
 
 /**
+ * @route   GET /api/sessions/analytics
+ * @desc    Get session analytics for the current user
+ * @access  Private
+ */
+router.get("/analytics", protect, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    // Get all completed sessions for the user
+    const userSessions = await Session.findAll({
+      where: {
+        userId,
+        status: 'completed'
+      },
+      order: [['sessionDate', 'DESC']]
+    });
+
+    // Calculate basic analytics
+    const totalSessions = userSessions.length;
+    const totalDuration = userSessions.reduce((sum, session) => {
+      return sum + (session.duration || 0);
+    }, 0);
+    
+    const averageDuration = totalSessions > 0 ? Math.round(totalDuration / totalSessions) : 0;
+    
+    // Calculate weekly progress (last 12 weeks)
+    const weeklyProgress = [];
+    const now = new Date();
+    
+    for (let i = 11; i >= 0; i--) {
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - (i * 7));
+      weekStart.setHours(0, 0, 0, 0);
+      
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+      
+      const weekSessions = userSessions.filter(session => {
+        const sessionDate = new Date(session.sessionDate);
+        return sessionDate >= weekStart && sessionDate <= weekEnd;
+      });
+      
+      const weekDuration = weekSessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+      
+      weeklyProgress.push({
+        week: weekStart.toISOString().split('T')[0],
+        sessionsCompleted: weekSessions.length,
+        totalDuration: weekDuration,
+        caloriesBurned: weekSessions.reduce((sum, s) => sum + (s.caloriesBurned || 0), 0)
+      });
+    }
+    
+    // Calculate current streak (consecutive days with sessions)
+    let currentStreak = 0;
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    
+    for (let i = 0; i < 30; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(today.getDate() - i);
+      checkDate.setHours(0, 0, 0, 0);
+      
+      const dayEnd = new Date(checkDate);
+      dayEnd.setHours(23, 59, 59, 999);
+      
+      const hasSession = userSessions.some(session => {
+        const sessionDate = new Date(session.sessionDate);
+        return sessionDate >= checkDate && sessionDate <= dayEnd;
+      });
+      
+      if (hasSession) {
+        currentStreak++;
+      } else {
+        break;
+      }
+    }
+    
+    // Calculate longest streak
+    let longestStreak = 0;
+    let tempStreak = 0;
+    const sortedSessions = [...userSessions].sort((a, b) => 
+      new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()
+    );
+    
+    for (let i = 0; i < sortedSessions.length; i++) {
+      const currentDate = new Date(sortedSessions[i].sessionDate).toDateString();
+      const prevDate = i > 0 ? new Date(sortedSessions[i-1].sessionDate) : null;
+      
+      if (prevDate) {
+        const diffTime = new Date(currentDate).getTime() - prevDate.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays <= 1) {
+          tempStreak++;
+        } else {
+          longestStreak = Math.max(longestStreak, tempStreak);
+          tempStreak = 1;
+        }
+      } else {
+        tempStreak = 1;
+      }
+    }
+    longestStreak = Math.max(longestStreak, tempStreak);
+    
+    const analytics = {
+      totalSessions,
+      totalDuration,
+      averageDuration,
+      caloriesBurned: userSessions.reduce((sum, s) => sum + (s.caloriesBurned || 0), 0),
+      favoriteExercises: [], // TODO: Implement when exercise tracking is added
+      weeklyProgress,
+      currentStreak,
+      longestStreak
+    };
+    
+    res.json(analytics);
+  } catch (error) {
+    console.error("Error fetching session analytics:", error.message);
+    res.status(500).json({ 
+      message: "Server error fetching analytics.",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+/**
  * @route   GET /api/sessions/available
  * @desc    ADMIN & CLIENT: Get all available sessions.
  * @access  Public

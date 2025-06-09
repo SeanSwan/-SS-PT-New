@@ -16,7 +16,7 @@ const getApiUrl = () => {
   if (process.env.NODE_ENV === 'production') {
     // If on custom domain (sswanstudios.com), connect to the correct Render backend
     if (window.location.hostname === 'sswanstudios.com' || window.location.hostname === 'www.sswanstudios.com') {
-      return 'https://ss-pt-new.onrender.com'; // Correct Render backend URL
+      return 'https://swan-studios-api.onrender.com'; // Correct Render backend URL
     }
     // If on Render domain, use same origin
     return window.location.origin;

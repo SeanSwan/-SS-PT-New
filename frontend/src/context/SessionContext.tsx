@@ -155,23 +155,125 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [error, setError] = useState<string | null>(null);
   const [sessionTimer, setSessionTimer] = useState(0);
   const [timerInterval, setTimerInterval] = useState<NodeJS.Timeout | null>(null);
+  
+  // ENHANCED: Tab synchronization state to prevent localStorage race conditions
+  const [tabId] = useState(() => `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [isActiveTab, setIsActiveTab] = useState(true);
 
-  // Auto-save current session data
+  // Auto-save current session data - ENHANCED WITH PROPER CLEANUP
   useEffect(() => {
+    let autoSaveInterval: NodeJS.Timeout | null = null;
+    
     if (currentSession && currentSession.status === 'active') {
-      const autoSaveInterval = setInterval(saveSessionData, 30000); // Auto-save every 30 seconds
-      return () => clearInterval(autoSaveInterval);
+      autoSaveInterval = setInterval(saveSessionData, 30000); // Auto-save every 30 seconds
     }
-  }, [currentSession]);
+    
+    // Cleanup function - prevents memory leaks
+    return () => {
+      if (autoSaveInterval) {
+        clearInterval(autoSaveInterval);
+      }
+    };
+  }, [currentSession, saveSessionData]); // Added saveSessionData to dependencies
 
-  // Cleanup timer on unmount
+  // ENHANCED: Comprehensive timer cleanup on unmount and state changes
   useEffect(() => {
     return () => {
       if (timerInterval) {
         clearInterval(timerInterval);
+        setTimerInterval(null);
       }
     };
-  }, [timerInterval]);
+  }, []); // Empty dependency array for unmount cleanup only
+
+  // ENHANCED: Additional cleanup when session changes to prevent multiple timers
+  useEffect(() => {
+    if (!currentSession || currentSession.status !== 'active') {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        setTimerInterval(null);
+      }
+    }
+  }, [currentSession, timerInterval]);
+
+  // ENHANCED: Tab synchronization system to prevent localStorage race conditions
+  useEffect(() => {
+    // Mark this tab as active
+    localStorage.setItem('activeSessionTab', tabId);
+    
+    // Listen for tab visibility changes
+    const handleVisibilityChange = () => {
+      const nowActive = !document.hidden;
+      setIsActiveTab(nowActive);
+      
+      if (nowActive) {
+        // When tab becomes active, check if we should take over session management
+        const currentActiveTab = localStorage.getItem('activeSessionTab');
+        if (!currentActiveTab || currentActiveTab === tabId) {
+          localStorage.setItem('activeSessionTab', tabId);
+        }
+      }
+    };
+    
+    // Listen for localStorage changes from other tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (!user) return;
+      
+      // Session data changed in another tab
+      if (e.key === `activeSession_${user.id}` && e.newValue) {
+        try {
+          const sessionFromOtherTab = JSON.parse(e.newValue);
+          const currentActiveTab = localStorage.getItem('activeSessionTab');
+          
+          // Only update if this isn't the active tab managing the session
+          if (currentActiveTab !== tabId) {
+            setCurrentSession(sessionFromOtherTab);
+            
+            // Sync timer if session is active
+            if (sessionFromOtherTab.status === 'active' && sessionFromOtherTab.startTime) {
+              const startTime = new Date(sessionFromOtherTab.startTime).getTime();
+              const elapsed = Math.floor((Date.now() - startTime) / 1000);
+              setSessionTimer(elapsed);
+            }
+          }
+        } catch (error) {
+          console.warn('[SessionContext] Error syncing session from other tab:', error);
+        }
+      }
+      
+      // Active tab changed
+      if (e.key === 'activeSessionTab' && e.newValue !== tabId) {
+        setIsActiveTab(false);
+        // Stop timer if we're no longer the active tab
+        if (timerInterval) {
+          clearInterval(timerInterval);
+          setTimerInterval(null);
+        }
+      }
+    };
+    
+    // Register event listeners
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('beforeunload', () => {
+      // Clear our tab as active when unloading
+      const currentActiveTab = localStorage.getItem('activeSessionTab');
+      if (currentActiveTab === tabId) {
+        localStorage.removeItem('activeSessionTab');
+      }
+    });
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('storage', handleStorageChange);
+      
+      // Clean up our active tab status
+      const currentActiveTab = localStorage.getItem('activeSessionTab');
+      if (currentActiveTab === tabId) {
+        localStorage.removeItem('activeSessionTab');
+      }
+    };
+  }, [tabId, user, timerInterval]);
 
   // Load session data when user logs in
   useEffect(() => {
@@ -301,7 +403,11 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
 
       setCurrentSession(newSession);
-      localStorage.setItem(`activeSession_${user.id}`, JSON.stringify(newSession));
+      
+      // ENHANCED: Safe localStorage write with tab coordination
+      if (isActiveTab) {
+        localStorage.setItem(`activeSession_${user.id}`, JSON.stringify(newSession));
+      }
       
       resetTimer();
       startTimer();
@@ -334,7 +440,11 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       };
 
       setCurrentSession(updatedSession);
-      localStorage.setItem(`activeSession_${user!.id}`, JSON.stringify(updatedSession));
+      
+      // ENHANCED: Safe localStorage write with tab coordination
+      if (isActiveTab) {
+        localStorage.setItem(`activeSession_${user!.id}`, JSON.stringify(updatedSession));
+      }
       
       pauseTimer();
       showSessionNotification('Session paused. Take a break! ⏸️', 'info');
@@ -368,7 +478,11 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       };
 
       setCurrentSession(updatedSession);
-      localStorage.setItem(`activeSession_${user!.id}`, JSON.stringify(updatedSession));
+      
+      // ENHANCED: Safe localStorage write with tab coordination
+      if (isActiveTab) {
+        localStorage.setItem(`activeSession_${user!.id}`, JSON.stringify(updatedSession));
+      }
       
       startTimer();
       showSessionNotification('Session resumed! Keep going! 🔥', 'success');
@@ -409,7 +523,11 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       
       // Clear current session
       setCurrentSession(null);
-      localStorage.removeItem(`activeSession_${user!.id}`);
+      
+      // ENHANCED: Safe localStorage cleanup with tab coordination
+      if (isActiveTab) {
+        localStorage.removeItem(`activeSession_${user!.id}`);
+      }
       
       pauseTimer();
       resetTimer();
@@ -443,11 +561,15 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     if (!currentSession) return;
     
     setCurrentSession(null);
-    localStorage.removeItem(`activeSession_${user!.id}`);
+    
+    // ENHANCED: Safe localStorage cleanup with tab coordination
+    if (isActiveTab) {
+      localStorage.removeItem(`activeSession_${user!.id}`);
+    }
     pauseTimer();
     resetTimer();
     showSessionNotification('Session cancelled', 'warning');
-  }, [currentSession, user, showSessionNotification, pauseTimer, resetTimer]);
+  }, [currentSession, user, isActiveTab, showSessionNotification, pauseTimer, resetTimer]);
 
   const addExercise = useCallback(async (exercise: Omit<SessionExercise, 'id' | 'completed'>): Promise<void> => {
     if (!currentSession) throw new Error('No active session');
@@ -465,9 +587,13 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
     
     setCurrentSession(updatedSession);
-    localStorage.setItem(`activeSession_${user!.id}`, JSON.stringify(updatedSession));
+    
+    // ENHANCED: Safe localStorage write with tab coordination
+    if (isActiveTab) {
+      localStorage.setItem(`activeSession_${user!.id}`, JSON.stringify(updatedSession));
+    }
     showSessionNotification(`${exercise.exerciseName} added to session`, 'success');
-  }, [currentSession, user, showSessionNotification]);
+  }, [currentSession, user, isActiveTab, showSessionNotification]);
 
   const updateExercise = useCallback(async (exerciseId: string, updates: Partial<SessionExercise>): Promise<void> => {
     if (!currentSession) throw new Error('No active session');
@@ -481,8 +607,12 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
     
     setCurrentSession(updatedSession);
-    localStorage.setItem(`activeSession_${user!.id}`, JSON.stringify(updatedSession));
-  }, [currentSession, user]);
+    
+    // ENHANCED: Safe localStorage write with tab coordination
+    if (isActiveTab) {
+      localStorage.setItem(`activeSession_${user!.id}`, JSON.stringify(updatedSession));
+    }
+  }, [currentSession, user, isActiveTab]);
 
   const completeExercise = useCallback(async (exerciseId: string): Promise<void> => {
     await updateExercise(exerciseId, { completed: true });
@@ -509,8 +639,12 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
     
     setCurrentSession(updatedSession);
-    localStorage.setItem(`activeSession_${user!.id}`, JSON.stringify(updatedSession));
-  }, [currentSession, user]);
+    
+    // ENHANCED: Safe localStorage write with tab coordination
+    if (isActiveTab) {
+      localStorage.setItem(`activeSession_${user!.id}`, JSON.stringify(updatedSession));
+    }
+  }, [currentSession, user, isActiveTab]);
 
   const updateSet = useCallback(async (exerciseId: string, setId: string, updates: Partial<ExerciseSet>): Promise<void> => {
     if (!currentSession) throw new Error('No active session');
@@ -531,8 +665,12 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     };
     
     setCurrentSession(updatedSession);
-    localStorage.setItem(`activeSession_${user!.id}`, JSON.stringify(updatedSession));
-  }, [currentSession, user]);
+    
+    // ENHANCED: Safe localStorage write with tab coordination
+    if (isActiveTab) {
+      localStorage.setItem(`activeSession_${user!.id}`, JSON.stringify(updatedSession));
+    }
+  }, [currentSession, user, isActiveTab]);
 
   const completeSet = useCallback(async (exerciseId: string, setId: string): Promise<void> => {
     await updateSet(exerciseId, setId, { completed: true });
@@ -595,14 +733,16 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       });
     } catch (error) {
       console.warn('Failed to auto-save session to backend');
-      // Update local storage
-      localStorage.setItem(`activeSession_${user.id}`, JSON.stringify({
-        ...currentSession,
-        duration: sessionTimer,
-        updatedAt: new Date().toISOString()
-      }));
+      // ENHANCED: Safe localStorage write with tab coordination
+      if (isActiveTab) {
+        localStorage.setItem(`activeSession_${user.id}`, JSON.stringify({
+          ...currentSession,
+          duration: sessionTimer,
+          updatedAt: new Date().toISOString()
+        }));
+      }
     }
-  }, [currentSession, user, sessionTimer]);
+  }, [currentSession, user, sessionTimer, isActiveTab]);
 
   // Role-based data access functions
   const fetchClientSessions = useCallback(async (clientId?: string): Promise<WorkoutSession[]> => {

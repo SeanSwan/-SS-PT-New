@@ -8,6 +8,7 @@ import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from '../../context/SessionContext';
+import SessionErrorBoundary from './SessionErrorBoundary';
 
 // Animations
 const pulse = keyframes`
@@ -343,7 +344,21 @@ const SessionDashboard: React.FC = () => {
   };
 
   return (
-    <DashboardContainer>
+    <SessionErrorBoundary 
+      context="Client Session Dashboard"
+      variant="full"
+      enableRetry={true}
+      maxRetries={3}
+      onError={(error, errorInfo) => {
+        console.error('[SessionDashboard] Error in client dashboard:', {
+          error: error.message,
+          componentStack: errorInfo.componentStack,
+          currentSession: currentSession?.id,
+          sessionStatus: currentSession?.status
+        });
+      }}
+    >
+      <DashboardContainer>
       {/* Active Session / Session Controls */}
       <SessionCard 
         $isActive={!!currentSession}
@@ -517,7 +532,8 @@ const SessionDashboard: React.FC = () => {
           </AnimatePresence>
         </SessionHistory>
       </SessionCard>
-    </DashboardContainer>
+      </DashboardContainer>
+    </SessionErrorBoundary>
   );
 };
 
