@@ -1,0 +1,1 @@
+# Remove problematic diagnostic file from git tracking\ngit rm frontend/src/utils/backendDiagnostic.ts\n\n# Commit the removal\ngit add .\ngit commit -m \"fix: Remove problematic backendDiagnostic.ts file causing build failure\"\n\n# Push the fix\ngit push origin main\n
