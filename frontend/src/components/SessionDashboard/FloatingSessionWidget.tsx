@@ -2,11 +2,11 @@
  * FloatingSessionWidget.tsx
  * A floating widget that shows active session status and provides quick controls
  * Can be placed anywhere in the app for easy session management
+ * HOTFIX: Removed framer-motion to prevent styled-components conflicts
  */
 
 import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useSession } from '../../context/SessionContext';
 import SessionErrorBoundary from './SessionErrorBoundary';
 
@@ -23,8 +23,13 @@ const float = keyframes`
   100% { transform: translateY(0px); }
 `;
 
-// Styled Components - Fixed: Separate motion from styled to prevent prop conflicts
-const WidgetBase = styled.div<{ $isExpanded: boolean }>`
+const fadeIn = keyframes`
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+`;
+
+// Styled Components - HOTFIX: Pure CSS animations, no framer-motion
+const WidgetContainer = styled.div<{ $isExpanded: boolean }>`
   position: fixed;
   bottom: 20px;
   right: 20px;
@@ -37,6 +42,7 @@ const WidgetBase = styled.div<{ $isExpanded: boolean }>`
   cursor: pointer;
   transition: all 0.3s ease;
   overflow: hidden;
+  animation: ${fadeIn} 0.3s ease-out;
   
   ${props => !props.$isExpanded && `
     width: 60px;
@@ -50,7 +56,6 @@ const WidgetBase = styled.div<{ $isExpanded: boolean }>`
   ${props => props.$isExpanded && `
     width: 300px;
     padding: 1rem;
-    animation: none;
   `}
   
   &:hover {
@@ -58,8 +63,12 @@ const WidgetBase = styled.div<{ $isExpanded: boolean }>`
     box-shadow: 0 12px 40px rgba(0, 255, 255, 0.4);
   }
 
+  &:active {
+    transform: ${props => props.$isExpanded ? 'none' : 'scale(0.95)'};
+  }
+
   @media (max-width: 768px) {
-    bottom: 80px; // Account for mobile navigation
+    bottom: 80px;
     right: 10px;
     
     ${props => props.$isExpanded && `
@@ -68,9 +77,6 @@ const WidgetBase = styled.div<{ $isExpanded: boolean }>`
     `}
   }
 `;
-
-// Motion wrapper component
-const WidgetContainer = motion(WidgetBase);
 
 const CompactView = styled.div`
   display: flex;
@@ -140,7 +146,7 @@ const QuickControls = styled.div`
   margin-top: 0.75rem;
 `;
 
-const QuickButton = styled(motion.button)<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
+const QuickButton = styled.button<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
   padding: 0.4rem 0.8rem;
   border: none;
   border-radius: 8px;
@@ -169,6 +175,10 @@ const QuickButton = styled(motion.button)<{ $variant?: 'primary' | 'secondary' |
         default: return 'rgba(0, 0, 0, 0.7)';
       }
     }};
+  }
+  
+  &:active:not(:disabled) {
+    transform: translateY(0) scale(0.95);
   }
   
   &:disabled {
@@ -200,7 +210,7 @@ const StatusIndicator = styled.div<{ $status: string }>`
   `}
 `;
 
-const StartButton = styled(motion.div)`
+const StartButton = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -211,6 +221,15 @@ const StartButton = styled(motion.div)`
   font-size: 0.9rem;
   text-align: center;
   padding: 0.5rem;
+  transition: transform 0.2s ease;
+  
+  &:hover {
+    transform: scale(1.05);
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
   
   .icon {
     font-size: 1.2rem;
@@ -328,15 +347,9 @@ const FloatingSessionWidget: React.FC<FloatingSessionWidgetProps> = ({ onOpenDas
         });
       }}
     >
-      <AnimatePresence>
-        <WidgetContainer
+      <WidgetContainer
         $isExpanded={isExpanded}
         onClick={currentSession ? handleToggleExpand : undefined}
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0, opacity: 0 }}
-        transition={{ duration: 0.3, type: 'spring' }}
-        whileTap={{ scale: 0.95 }}
       >
         {currentSession && (
           <StatusIndicator $status={currentSession.status} />
@@ -389,7 +402,6 @@ const FloatingSessionWidget: React.FC<FloatingSessionWidgetProps> = ({ onOpenDas
                         $variant="secondary"
                         onClick={handlePause}
                         disabled={loading}
-                        whileTap={{ scale: 0.95 }}
                       >
                         ⏸️ Pause
                       </QuickButton>
@@ -397,7 +409,6 @@ const FloatingSessionWidget: React.FC<FloatingSessionWidgetProps> = ({ onOpenDas
                         $variant="primary"
                         onClick={handleComplete}
                         disabled={loading}
-                        whileTap={{ scale: 0.95 }}
                       >
                         ✅ Done
                       </QuickButton>
@@ -408,7 +419,6 @@ const FloatingSessionWidget: React.FC<FloatingSessionWidgetProps> = ({ onOpenDas
                         $variant="primary"
                         onClick={handleResume}
                         disabled={loading}
-                        whileTap={{ scale: 0.95 }}
                       >
                         ▶️ Resume
                       </QuickButton>
@@ -416,7 +426,6 @@ const FloatingSessionWidget: React.FC<FloatingSessionWidgetProps> = ({ onOpenDas
                         $variant="secondary"
                         onClick={handleComplete}
                         disabled={loading}
-                        whileTap={{ scale: 0.95 }}
                       >
                         ✅ Finish
                       </QuickButton>
@@ -428,7 +437,6 @@ const FloatingSessionWidget: React.FC<FloatingSessionWidgetProps> = ({ onOpenDas
                   <QuickControls>
                     <QuickButton
                       onClick={handleOpenDashboard}
-                      whileTap={{ scale: 0.95 }}
                     >
                       📊 Full Dashboard
                     </QuickButton>
@@ -438,8 +446,7 @@ const FloatingSessionWidget: React.FC<FloatingSessionWidgetProps> = ({ onOpenDas
             )}
           </ExpandedView>
         )}
-        </WidgetContainer>
-      </AnimatePresence>
+      </WidgetContainer>
     </SessionErrorBoundary>
   );
 };
