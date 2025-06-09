@@ -23,8 +23,8 @@ const float = keyframes`
   100% { transform: translateY(0px); }
 `;
 
-// Styled Components
-const WidgetContainer = styled(motion.div)<{ $isExpanded: boolean }>`
+// Styled Components - Fixed: Separate motion from styled to prevent prop conflicts
+const WidgetBase = styled.div<{ $isExpanded: boolean }>`
   position: fixed;
   bottom: 20px;
   right: 20px;
@@ -68,6 +68,9 @@ const WidgetContainer = styled(motion.div)<{ $isExpanded: boolean }>`
     `}
   }
 `;
+
+// Motion wrapper component
+const WidgetContainer = motion(WidgetBase);
 
 const CompactView = styled.div`
   display: flex;
