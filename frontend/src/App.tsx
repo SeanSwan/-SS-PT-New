@@ -36,6 +36,7 @@ import { setInitialized } from './store/slices/appSlice';
 import { setupNotifications } from './utils/notificationInitializer';
 import { initializeMockData } from './utils/mockDataHelper';
 import { initializeApiMonitoring } from './utils/apiConnectivityFixer';
+import { diagnoseBackendConnectivity, quickBackendCheck } from './utils/backendDiagnostic';
 import clearMockTokens from './utils/clearMockTokens';
 import './utils/initTokenCleanup'; // Initialize token cleanup handlers
 import './utils/clearCache'; // Emergency cache clearing utility
@@ -138,6 +139,15 @@ const AppContent = () => {
     
     // Initialize mock data system
     initializeMockData();
+    
+    // Add backend diagnostic tools to window for production debugging
+    if (typeof window !== 'undefined') {
+      window.swanStudiosDiagnostic = {
+        diagnoseBackendConnectivity,
+        quickBackendCheck
+      };
+      console.log('🛠️  Backend diagnostic tools available: window.swanStudiosDiagnostic');
+    }
     
     // Start API connection monitoring with a slight delay to prevent conflicts
     setTimeout(() => {
