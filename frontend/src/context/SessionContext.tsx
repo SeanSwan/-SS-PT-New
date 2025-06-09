@@ -160,7 +160,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [tabId] = useState(() => `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [isActiveTab, setIsActiveTab] = useState(true);
 
-  // MOVED: saveSessionData function definition BEFORE its first usage to prevent hoisting issues
+  // CRITICAL FIX: saveSessionData function definition with enhanced error handling
   const saveSessionData = useCallback(async (): Promise<void> => {
     if (!currentSession || !user) return;
     
@@ -183,18 +183,26 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }, [currentSession, user, sessionTimer, isActiveTab]);
 
-  // Auto-save current session data - ENHANCED WITH PROPER CLEANUP
+  // Auto-save current session data - ENHANCED WITH PROPER CLEANUP AND ERROR HANDLING
   useEffect(() => {
     let autoSaveInterval: NodeJS.Timeout | null = null;
     
-    if (currentSession && currentSession.status === 'active') {
-      autoSaveInterval = setInterval(saveSessionData, 30000); // Auto-save every 30 seconds
+    // Defensive check to ensure saveSessionData is available
+    if (currentSession && currentSession.status === 'active' && saveSessionData) {
+      autoSaveInterval = setInterval(() => {
+        try {
+          saveSessionData();
+        } catch (error) {
+          console.warn('[SessionContext] Auto-save error:', error);
+        }
+      }, 30000); // Auto-save every 30 seconds
     }
     
     // Cleanup function - prevents memory leaks
     return () => {
       if (autoSaveInterval) {
         clearInterval(autoSaveInterval);
+        autoSaveInterval = null;
       }
     };
   }, [currentSession, saveSessionData]); // Added saveSessionData to dependencies
