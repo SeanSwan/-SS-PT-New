@@ -1,6 +1,7 @@
 // backend/routes/adminRoutes.mjs
 import express from 'express';
 import sequelize from '../database.mjs';
+import { Op } from 'sequelize'; // <--- CRITICAL FIX: Import Op from sequelize library
 import { authenticateToken, authorizeAdmin } from '../middleware/auth.mjs';
 import userManagementController from '../controllers/userManagementController.mjs';
 
@@ -107,7 +108,7 @@ router.get('/contacts/recent', async (req, res) => {
     const recentContacts = await Contact.findAll({
       where: {
         createdAt: {
-          [sequelize.Op.gte]: oneDayAgo
+          [Op.gte]: oneDayAgo // <--- FIXED: Use Op.gte instead of sequelize.Op.gte
         }
       },
       order: [['createdAt', 'DESC']]
