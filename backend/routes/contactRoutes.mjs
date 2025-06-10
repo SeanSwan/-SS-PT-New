@@ -1,13 +1,13 @@
 // backend/routes/contactRoutes.mjs
-// BULLETPROOF CONTACT ROUTE - ALWAYS WORKS
+// ENHANCED BULLETPROOF CONTACT ROUTE - WITH SENDGRID & TWILIO SUPPORT
 import express from "express";
 import Contact from '../models/contact.mjs';
 
 const router = express.Router();
 
-// BULLETPROOF Contact Route - Database First, Notifications Optional
+// Enhanced Contact Route - Database First + Smart External Services
 router.post("/", async (req, res) => {
-  console.log('🔥 CONTACT ROUTE CALLED - Starting processing...');
+  console.log('🔥 ENHANCED CONTACT ROUTE - Starting processing...');
   console.log('📦 Request body:', req.body);
   
   try {
@@ -24,7 +24,7 @@ router.post("/", async (req, res) => {
 
     console.log('✅ Validation passed');
 
-    // 1. PRIORITY #1: Store the contact info in the DB (THIS MUST WORK)
+    // 1. PRIORITY #1: Store the contact info in the DB (THIS MUST ALWAYS WORK)
     const contactData = {
       name: name.trim(),
       email: email.trim(),
@@ -41,84 +41,22 @@ router.post("/", async (req, res) => {
     const newContact = await Contact.create(contactData);
     console.log('✅ Contact saved to database:', newContact.id);
 
-    // 2. OPTIONAL: Try to send notifications (but don't fail if they don't work)
+    // 2. SMART EXTERNAL SERVICES: Try to send notifications (but don't fail if they don't work)
     const notificationResults = {
-      email: { success: false, error: null },
-      sms: { success: false, error: null }
+      email: { success: false, error: null, attempted: false },
+      sms: { success: false, error: null, attempted: false }
     };
 
-    // Try email notification (non-blocking)
-    try {
-      console.log('📧 Attempting email notification...');
-      
-      // Only try if environment variables are available
-      if (process.env.SENDGRID_API_KEY && 
-          process.env.SENDGRID_FROM_EMAIL && 
-          (process.env.OWNER_EMAIL || process.env.OWNER_WIFE_EMAIL)) {
-        
-        const sgMail = await import("@sendgrid/mail");
-        sgMail.default.setApiKey(process.env.SENDGRID_API_KEY);
-
-        const emailMsg = {
-          to: [process.env.OWNER_EMAIL, process.env.OWNER_WIFE_EMAIL].filter(Boolean),
-          from: process.env.SENDGRID_FROM_EMAIL,
-          subject: `${priority === 'urgent' ? '🚨 URGENT ' : priority === 'high' ? '⚡ HIGH PRIORITY ' : ''}New Contact: ${consultationType ? consultationType.replace('-', ' ').toUpperCase() : 'GENERAL'}`,
-          text: `🎯 NEW CONTACT SUBMISSION 🎯\n\nName: ${name}\nEmail: ${email}\nType: ${consultationType ? consultationType.replace('-', ' ').toUpperCase() : 'General Inquiry'}\nPriority: ${priority ? priority.toUpperCase() : 'NORMAL'}\n\nMessage:\n${message}\n\nContact ID: ${newContact.id}\nSubmitted: ${new Date().toISOString()}`,
-        };
-
-        await sgMail.default.send(emailMsg);
-        notificationResults.email.success = true;
-        console.log('✅ Email notification sent successfully');
-      } else {
-        console.log('⚠️ Email notification skipped - missing environment variables');
-        notificationResults.email.error = 'Missing email configuration';
-      }
-    } catch (emailError) {
-      console.log('⚠️ Email notification failed (non-critical):', emailError.message);
-      notificationResults.email.error = emailError.message;
-    }
-
-    // Try SMS notification (non-blocking)
-    try {
-      console.log('📱 Attempting SMS notification...');
-      
-      // Only try if environment variables are available
-      if (process.env.TWILIO_ACCOUNT_SID && 
-          process.env.TWILIO_AUTH_TOKEN && 
-          process.env.TWILIO_PHONE_NUMBER &&
-          (process.env.OWNER_PHONE || process.env.OWNER_WIFE_PHONE)) {
-        
-        const twilio = await import("twilio");
-        const client = twilio.default(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-
-        const smsMessage = `${priority === 'urgent' ? '🚨 URGENT' : priority === 'high' ? '⚡ HIGH PRIORITY' : '📞'} NEW CLIENT!\n\n${name}\n${email}\n\nType: ${consultationType ? consultationType.replace('-', ' ').toUpperCase() : 'General'}\n\n${message.substring(0, 100)}${message.length > 100 ? '...' : ''}\n\nID: ${newContact.id}`;
-        
-        // Send to available phone numbers
-        const phoneNumbers = [process.env.OWNER_PHONE, process.env.OWNER_WIFE_PHONE].filter(Boolean);
-        
-        for (const phoneNumber of phoneNumbers) {
-          await client.messages.create({
-            body: smsMessage,
-            from: process.env.TWILIO_PHONE_NUMBER,
-            to: phoneNumber,
-          });
-        }
-        
-        notificationResults.sms.success = true;
-        console.log('✅ SMS notification(s) sent successfully');
-      } else {
-        console.log('⚠️ SMS notification skipped - missing environment variables');
-        notificationResults.sms.error = 'Missing SMS configuration';
-      }
-    } catch (smsError) {
-      console.log('⚠️ SMS notification failed (non-critical):', smsError.message);
-      notificationResults.sms.error = smsError.message;
-    }
+    // === SENDGRID EMAIL NOTIFICATIONS ===
+    await tryEmailNotification(newContact, contactData, notificationResults);
+    
+    // === TWILIO SMS NOTIFICATIONS ===  
+    await trySMSNotification(newContact, contactData, notificationResults);
 
     // 3. ALWAYS RETURN SUCCESS (as long as database save worked)
     console.log('🎉 Contact processing completed successfully');
     
-    res.status(200).json({
+    const response = {
       success: true,
       message: "Contact submission received and saved successfully!",
       contact: {
@@ -129,7 +67,20 @@ router.post("/", async (req, res) => {
         createdAt: newContact.createdAt
       },
       notifications: notificationResults
-    });
+    };
+
+    // Add helpful status messages
+    if (notificationResults.email.success && notificationResults.sms.success) {
+      response.message += " Email and SMS notifications sent successfully!";
+    } else if (notificationResults.email.success) {
+      response.message += " Email notification sent successfully!";
+    } else if (notificationResults.sms.success) {
+      response.message += " SMS notification sent successfully!";
+    } else if (notificationResults.email.attempted || notificationResults.sms.attempted) {
+      response.message += " Contact saved successfully (notifications had issues but this is not critical).";
+    }
+
+    res.status(200).json(response);
 
   } catch (error) {
     console.error('💥 CRITICAL ERROR in contact route:', error);
@@ -147,12 +98,209 @@ router.post("/", async (req, res) => {
   }
 });
 
+// === SENDGRID EMAIL NOTIFICATION FUNCTION ===
+async function tryEmailNotification(contact, formData, results) {
+  try {
+    console.log('📧 Attempting SendGrid email notification...');
+    results.email.attempted = true;
+    
+    // Check if SendGrid is properly configured
+    const requiredEmailVars = ['SENDGRID_API_KEY', 'SENDGRID_FROM_EMAIL'];
+    const missingEmailVars = requiredEmailVars.filter(varName => !process.env[varName]);
+    
+    if (missingEmailVars.length > 0) {
+      const error = `Missing environment variables: ${missingEmailVars.join(', ')}`;
+      console.log(`⚠️ SendGrid skipped: ${error}`);
+      results.email.error = error;
+      return;
+    }
+
+    // Check for recipient emails
+    const recipients = [process.env.OWNER_EMAIL, process.env.OWNER_WIFE_EMAIL].filter(Boolean);
+    if (recipients.length === 0) {
+      const error = 'No recipient emails configured (OWNER_EMAIL, OWNER_WIFE_EMAIL)';
+      console.log(`⚠️ SendGrid skipped: ${error}`);
+      results.email.error = error;
+      return;
+    }
+
+    // Import and configure SendGrid
+    const sgMail = await import("@sendgrid/mail");
+    sgMail.default.setApiKey(process.env.SENDGRID_API_KEY);
+
+    // Create email message
+    const emailMsg = {
+      to: recipients,
+      from: process.env.SENDGRID_FROM_EMAIL,
+      subject: `${formData.priority === 'urgent' ? '🚨 URGENT ' : formData.priority === 'high' ? '⚡ HIGH PRIORITY ' : ''}New SwanStudios Contact: ${formData.consultationType ? formData.consultationType.replace('-', ' ').toUpperCase() : 'GENERAL'}`,
+      text: `🎯 NEW CONTACT SUBMISSION 🎯
+
+Name: ${formData.name}
+Email: ${formData.email}
+Type: ${formData.consultationType ? formData.consultationType.replace('-', ' ').toUpperCase() : 'General Inquiry'}
+Priority: ${formData.priority ? formData.priority.toUpperCase() : 'NORMAL'}
+
+Message:
+${formData.message}
+
+Contact Details:
+• Contact ID: ${contact.id}
+• Submitted: ${new Date().toISOString()}
+• Admin Dashboard: https://sswanstudios.com/admin
+
+${formData.priority === 'urgent' ? '🚨 RESPOND IMMEDIATELY for URGENT requests!' : formData.priority === 'high' ? '⚡ HIGH PRIORITY - Please respond promptly!' : '📞 Please respond when convenient.'}
+
+Your SwanStudios Contact System`,
+      html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #00ffff;">${formData.priority === 'urgent' ? '🚨' : formData.priority === 'high' ? '⚡' : '🎯'} New SwanStudios Contact</h2>
+        
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Contact Information</h3>
+          <p><strong>Name:</strong> ${formData.name}</p>
+          <p><strong>Email:</strong> ${formData.email}</p>
+          <p><strong>Type:</strong> ${formData.consultationType ? formData.consultationType.replace('-', ' ').toUpperCase() : 'General Inquiry'}</p>
+          <p><strong>Priority:</strong> <span style="color: ${formData.priority === 'urgent' ? '#dc3545' : formData.priority === 'high' ? '#fd7e14' : '#28a745'};">${formData.priority ? formData.priority.toUpperCase() : 'NORMAL'}</span></p>
+        </div>
+
+        <div style="background: #e9ecef; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Message</h3>
+          <p style="white-space: pre-wrap;">${formData.message}</p>
+        </div>
+
+        <div style="background: #d1ecf1; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <h4 style="margin-top: 0;">Contact Details</h4>
+          <p><strong>Contact ID:</strong> ${contact.id}</p>
+          <p><strong>Submitted:</strong> ${new Date().toISOString()}</p>
+          <p><strong>Admin Dashboard:</strong> <a href="https://sswanstudios.com/admin">View in Dashboard</a></p>
+        </div>
+
+        ${formData.priority === 'urgent' 
+          ? '<div style="background: #f8d7da; color: #721c24; padding: 15px; border-radius: 8px; margin: 20px 0;"><strong>🚨 URGENT: Please respond immediately!</strong></div>'
+          : formData.priority === 'high'
+          ? '<div style="background: #fff3cd; color: #856404; padding: 15px; border-radius: 8px; margin: 20px 0;"><strong>⚡ HIGH PRIORITY: Please respond promptly!</strong></div>'
+          : '<div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin: 20px 0;"><strong>📞 Please respond when convenient.</strong></div>'
+        }
+
+        <hr style="margin: 30px 0;">
+        <p style="color: #666; font-size: 14px;">Your SwanStudios Contact System</p>
+      </div>
+      `
+    };
+
+    // Send email
+    await sgMail.default.send(emailMsg);
+    results.email.success = true;
+    console.log('✅ SendGrid email sent successfully');
+    console.log(`📧 Sent to: ${recipients.join(', ')}`);
+
+  } catch (emailError) {
+    console.log('⚠️ SendGrid email failed (non-critical):', emailError.message);
+    results.email.error = emailError.message;
+    
+    // Log detailed error for debugging
+    if (emailError.response) {
+      console.log(`📊 SendGrid Error Details:`, {
+        status: emailError.response.status,
+        body: emailError.response.body
+      });
+    }
+  }
+}
+
+// === TWILIO SMS NOTIFICATION FUNCTION ===
+async function trySMSNotification(contact, formData, results) {
+  try {
+    console.log('📱 Attempting Twilio SMS notification...');
+    results.sms.attempted = true;
+    
+    // Check if Twilio is properly configured
+    const requiredSMSVars = ['TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_PHONE_NUMBER'];
+    const missingSMSVars = requiredSMSVars.filter(varName => !process.env[varName]);
+    
+    if (missingSMSVars.length > 0) {
+      const error = `Missing environment variables: ${missingSMSVars.join(', ')}`;
+      console.log(`⚠️ Twilio skipped: ${error}`);
+      results.sms.error = error;
+      return;
+    }
+
+    // Check for recipient phone numbers
+    const phoneNumbers = [process.env.OWNER_PHONE, process.env.OWNER_WIFE_PHONE].filter(Boolean);
+    if (phoneNumbers.length === 0) {
+      const error = 'No recipient phone numbers configured (OWNER_PHONE, OWNER_WIFE_PHONE)';
+      console.log(`⚠️ Twilio skipped: ${error}`);
+      results.sms.error = error;
+      return;
+    }
+
+    // Import and configure Twilio
+    const twilio = await import("twilio");
+    const client = twilio.default(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+
+    // Create SMS message
+    const smsMessage = `${formData.priority === 'urgent' ? '🚨 URGENT' : formData.priority === 'high' ? '⚡ HIGH PRIORITY' : '📞'} NEW SWANSTUDIOS CLIENT!
+
+${formData.name}
+${formData.email}
+
+Type: ${formData.consultationType ? formData.consultationType.replace('-', ' ').toUpperCase() : 'General'}
+
+${formData.message.substring(0, 100)}${formData.message.length > 100 ? '...' : ''}
+
+ID: ${contact.id}
+Dashboard: sswanstudios.com/admin
+
+${formData.priority === 'urgent' ? 'RESPOND NOW!' : formData.priority === 'high' ? 'Respond promptly!' : 'Respond when convenient.'}`;
+    
+    // Send SMS to all configured phone numbers
+    let sentCount = 0;
+    for (const phoneNumber of phoneNumbers) {
+      try {
+        await client.messages.create({
+          body: smsMessage,
+          from: process.env.TWILIO_PHONE_NUMBER,
+          to: phoneNumber,
+        });
+        sentCount++;
+        console.log(`✅ SMS sent to ${phoneNumber.substring(0, 6)}...`);
+      } catch (smsError) {
+        console.log(`⚠️ SMS failed for ${phoneNumber.substring(0, 6)}...: ${smsError.message}`);
+      }
+    }
+    
+    if (sentCount > 0) {
+      results.sms.success = true;
+      console.log(`✅ Twilio SMS sent successfully to ${sentCount}/${phoneNumbers.length} recipients`);
+    } else {
+      results.sms.error = 'Failed to send to any recipients';
+    }
+
+  } catch (smsError) {
+    console.log('⚠️ Twilio SMS failed (non-critical):', smsError.message);
+    results.sms.error = smsError.message;
+    
+    // Log detailed error for debugging
+    console.log(`📊 Twilio Error Details:`, {
+      code: smsError.code,
+      message: smsError.message
+    });
+  }
+}
+
 // Test endpoint to verify contact route is working
 router.get("/test", (req, res) => {
   console.log('🧪 Contact route test endpoint called');
   res.json({
     success: true,
-    message: "Contact route is operational",
+    message: "Enhanced contact route is operational",
+    features: [
+      "Database-first contact saving",
+      "SendGrid email notifications (when configured)",
+      "Twilio SMS notifications (when configured)",
+      "Comprehensive error handling",
+      "Detailed logging and diagnostics"
+    ],
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development'
   });
@@ -166,11 +314,24 @@ router.get("/health", async (req, res) => {
     // Test database connection
     const contactCount = await Contact.count();
     
+    // Check external service configuration
+    const externalServices = {
+      sendgrid: {
+        configured: !!(process.env.SENDGRID_API_KEY && process.env.SENDGRID_FROM_EMAIL),
+        recipients: [process.env.OWNER_EMAIL, process.env.OWNER_WIFE_EMAIL].filter(Boolean).length
+      },
+      twilio: {
+        configured: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER),
+        recipients: [process.env.OWNER_PHONE, process.env.OWNER_WIFE_PHONE].filter(Boolean).length
+      }
+    };
+    
     res.json({
       success: true,
-      message: "Contact system is healthy",
+      message: "Enhanced contact system is healthy",
       database: "connected",
       totalContacts: contactCount,
+      externalServices: externalServices,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -183,6 +344,6 @@ router.get("/health", async (req, res) => {
   }
 });
 
-console.log('🔥 BULLETPROOF Contact Routes loaded - Database first, notifications optional');
+console.log('🔥 ENHANCED Contact Routes loaded - Database first + Smart external services');
 
 export default router;
