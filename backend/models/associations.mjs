@@ -69,6 +69,7 @@ const setupAssociations = async () => {
     const NotificationModule = await import('./Notification.mjs');
     const NotificationSettingsModule = await import('./NotificationSettings.mjs');
     const AdminSettingsModule = await import('./AdminSettings.mjs');
+    const ContactModule = await import('./contact.mjs');
 
     console.log('Extracting Sequelize models...');
     
@@ -118,6 +119,7 @@ const setupAssociations = async () => {
     const Notification = NotificationModule.default;
     const NotificationSettings = NotificationSettingsModule.default;
     const AdminSettings = AdminSettingsModule.default;
+    const Contact = ContactModule.default;
 
     console.log('Setting up Sequelize associations only...');
     
@@ -132,7 +134,7 @@ const setupAssociations = async () => {
         SocialPost, SocialComment, SocialLike, Friendship, Challenge, ChallengeParticipant, ChallengeTeam,
         WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, WorkoutSession, WorkoutExercise, Exercise, Set,
         MuscleGroup, ExerciseMuscleGroup, Equipment, ExerciseEquipment,
-        Orientation, Notification, NotificationSettings, AdminSettings
+        Orientation, Notification, NotificationSettings, AdminSettings, Contact
       };
     }
     
@@ -247,6 +249,11 @@ const setupAssociations = async () => {
     Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     User.hasMany(Notification, { foreignKey: 'senderId', as: 'sentNotifications' });
     Notification.belongsTo(User, { foreignKey: 'senderId', as: 'sender' });
+    
+    // CONTACT ASSOCIATIONS
+    // ===================
+    User.hasMany(Contact, { foreignKey: 'userId', as: 'contacts' });
+    Contact.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
     console.log('✅ Sequelize model associations established successfully');
     console.log('Note: MongoDB models (exercises, workout plans/sessions) are handled separately');
@@ -328,7 +335,8 @@ const setupAssociations = async () => {
       Orientation,
       Notification,
       NotificationSettings,
-      AdminSettings
+      AdminSettings,
+      Contact
     };
   } catch (error) {
     console.error('❌ Error setting up Sequelize model associations:', error);
