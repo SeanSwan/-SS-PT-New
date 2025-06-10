@@ -5,7 +5,7 @@ services:
     region: oregon
     plan: starter
     buildCommand: npm install
-    startCommand: npm run render-start-emergency
+    startCommand: npm run render-start
     
     # REMOVE PLATFORM HEADERS - FULL APPLICATION CONTROL
     # Platform headers can interfere with root-level endpoints like /health
