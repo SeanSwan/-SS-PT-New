@@ -1,9 +1,10 @@
 // backend/routes/adminRoutes.mjs
 import express from 'express';
 import sequelize from '../database.mjs';
-import { Op } from 'sequelize'; // <--- CRITICAL FIX: Import Op from sequelize library
+import { Op } from 'sequelize';
 import { authenticateToken, authorizeAdmin } from '../middleware/auth.mjs';
 import userManagementController from '../controllers/userManagementController.mjs';
+import Contact from '../models/contact.mjs'; // FIXED: Use direct import like contactRoutes.mjs
 
 const router = express.Router();
 
@@ -20,74 +21,73 @@ router.post('/promote-admin', userManagementController.promoteToAdmin);
 // Contact management endpoints
 router.get('/contacts', async (req, res) => {
   try {
-    const getModels = await import('../models/associations.mjs').then(m => m.default);
-    const models = await getModels();
-    const { Contact } = models;
+    console.log('🔍 Admin /contacts endpoint called');
     
     const contacts = await Contact.findAll({
       order: [['createdAt', 'DESC']],
       limit: 50
     });
     
+    console.log(`📊 Found ${contacts.length} contacts`);
+    
     res.json({
       success: true,
       contacts: contacts
     });
   } catch (error) {
-    console.error('Error fetching contacts:', error);
+    console.error('❌ Error fetching contacts:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Failed to fetch contacts' 
+      message: 'Failed to fetch contacts',
+      error: error.message
     });
   }
 });
 
-// DIAGNOSTIC ROUTE - TEMPORARY
+// DIAGNOSTIC ROUTE - TEMPORARY FOR DEBUGGING
 router.get('/contacts/debug', async (req, res) => {
   try {
     console.log('🔍 DIAGNOSTIC: Starting contacts debug...');
     
-    // Check if we can import models
-    let models;
-    try {
-      const getModels = await import('../models/associations.mjs').then(m => m.default);
-      models = await getModels();
-      console.log('✅ Models imported successfully');
-    } catch (importError) {
+    // Test Contact model availability
+    if (!Contact) {
       return res.status(500).json({
-        error: 'Model import failed',
-        message: importError.message,
-        step: 'import'
+        error: 'Contact model not available',
+        step: 'model_check'
       });
     }
     
-    // Check if Contact model exists
-    if (!models.Contact) {
-      return res.status(500).json({
-        error: 'Contact model missing',
-        availableModels: Object.keys(models),
-        step: 'contact_check'
-      });
-    }
+    console.log('✅ Contact model available');
     
-    // Test Contact query
+    // Test basic query
     try {
-      const contacts = await models.Contact.findAll({ limit: 1 });
+      const testContact = await Contact.findOne({ order: [['createdAt', 'DESC']] });
+      console.log('✅ Contact query successful');
+      
+      const allContacts = await Contact.findAll({ limit: 5 });
+      console.log(`📊 Found ${allContacts.length} total contacts`);
+      
       return res.json({
         success: true,
-        message: 'Contact system working',
-        contactCount: contacts.length,
-        availableModels: Object.keys(models)
+        message: 'Contact system fully operational',
+        contactCount: allContacts.length,
+        latestContact: testContact ? {
+          id: testContact.id,
+          name: testContact.name,
+          createdAt: testContact.createdAt
+        } : null
       });
     } catch (queryError) {
+      console.error('❌ Contact query failed:', queryError);
       return res.status(500).json({
         error: 'Contact query failed',
         message: queryError.message,
-        step: 'query'
+        step: 'query_test'
       });
     }
     
   } catch (error) {
+    console.error('❌ Diagnostic failed:', error);
     return res.status(500).json({
       error: 'Diagnostic failed',
       message: error.message
@@ -95,35 +95,46 @@ router.get('/contacts/debug', async (req, res) => {
   }
 });
 
-// Get recent contacts (for notifications)
+// Get recent contacts (for notifications) - FIXED VERSION
 router.get('/contacts/recent', async (req, res) => {
   try {
-    const getModels = await import('../models/associations.mjs').then(m => m.default);
-    const models = await getModels();
-    const { Contact } = models;
+    console.log('🔍 Admin /contacts/recent endpoint called');
     
     // Get contacts from last 24 hours
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     
+    console.log(`📅 Looking for contacts since: ${oneDayAgo.toISOString()}`);
+    
     const recentContacts = await Contact.findAll({
       where: {
         createdAt: {
-          [Op.gte]: oneDayAgo // <--- FIXED: Use Op.gte instead of sequelize.Op.gte
+          [Op.gte]: oneDayAgo // FIXED: Now using properly imported Op
         }
       },
       order: [['createdAt', 'DESC']]
     });
     
+    console.log(`📊 Found ${recentContacts.length} recent contacts`);
+    
     res.json({
       success: true,
       contacts: recentContacts,
-      count: recentContacts.length
+      count: recentContacts.length,
+      since: oneDayAgo.toISOString()
     });
   } catch (error) {
-    console.error('Error fetching recent contacts:', error);
+    console.error('❌ Error fetching recent contacts:', error);
+    console.error('❌ Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
+    
     res.status(500).json({ 
       success: false, 
-      message: 'Failed to fetch recent contacts' 
+      message: 'Failed to fetch recent contacts',
+      error: error.message,
+      errorType: error.name
     });
   }
 });
@@ -131,9 +142,7 @@ router.get('/contacts/recent', async (req, res) => {
 // Mark contact as viewed
 router.patch('/contacts/:id/viewed', async (req, res) => {
   try {
-    const getModels = await import('../models/associations.mjs').then(m => m.default);
-    const models = await getModels();
-    const { Contact } = models;
+    console.log(`🔍 Marking contact ${req.params.id} as viewed`);
     
     const contact = await Contact.findByPk(req.params.id);
     if (!contact) {
@@ -145,22 +154,20 @@ router.patch('/contacts/:id/viewed', async (req, res) => {
     
     await contact.update({ viewedAt: new Date() });
     
+    console.log(`✅ Contact ${req.params.id} marked as viewed`);
+    
     res.json({
       success: true,
       message: 'Contact marked as viewed'
     });
   } catch (error) {
-    console.error('Error marking contact as viewed:', error);
+    console.error('❌ Error marking contact as viewed:', error);
     res.status(500).json({ 
       success: false, 
-      message: 'Failed to mark contact as viewed' 
+      message: 'Failed to mark contact as viewed',
+      error: error.message
     });
   }
 });
-
-// TODO: Add these endpoints if needed:
-// router.get('/users/:id', userManagementController.getUserById);
-// router.delete('/users/:id', userManagementController.deleteUser);
-// router.post('/users/:id/reset-password', userManagementController.resetUserPassword);
 
 export default router;
