@@ -19,7 +19,9 @@ router.post('/promote-admin', userManagementController.promoteToAdmin);
 // Contact management endpoints
 router.get('/contacts', async (req, res) => {
   try {
-    const { Contact } = await import('../models/associations.mjs').then(m => m.default());
+    const getModels = await import('../models/associations.mjs').then(m => m.default);
+    const models = await getModels();
+    const { Contact } = models;
     
     const contacts = await Contact.findAll({
       order: [['createdAt', 'DESC']],
@@ -39,10 +41,65 @@ router.get('/contacts', async (req, res) => {
   }
 });
 
+// DIAGNOSTIC ROUTE - TEMPORARY
+router.get('/contacts/debug', async (req, res) => {
+  try {
+    console.log('🔍 DIAGNOSTIC: Starting contacts debug...');
+    
+    // Check if we can import models
+    let models;
+    try {
+      const getModels = await import('../models/associations.mjs').then(m => m.default);
+      models = await getModels();
+      console.log('✅ Models imported successfully');
+    } catch (importError) {
+      return res.status(500).json({
+        error: 'Model import failed',
+        message: importError.message,
+        step: 'import'
+      });
+    }
+    
+    // Check if Contact model exists
+    if (!models.Contact) {
+      return res.status(500).json({
+        error: 'Contact model missing',
+        availableModels: Object.keys(models),
+        step: 'contact_check'
+      });
+    }
+    
+    // Test Contact query
+    try {
+      const contacts = await models.Contact.findAll({ limit: 1 });
+      return res.json({
+        success: true,
+        message: 'Contact system working',
+        contactCount: contacts.length,
+        availableModels: Object.keys(models)
+      });
+    } catch (queryError) {
+      return res.status(500).json({
+        error: 'Contact query failed',
+        message: queryError.message,
+        step: 'query'
+      });
+    }
+    
+  } catch (error) {
+    return res.status(500).json({
+      error: 'Diagnostic failed',
+      message: error.message
+    });
+  }
+});
+
 // Get recent contacts (for notifications)
 router.get('/contacts/recent', async (req, res) => {
   try {
-    const { Contact } = await import('../models/associations.mjs').then(m => m.default());
+    const getModels = await import('../models/associations.mjs').then(m => m.default);
+    const models = await getModels();
+    const { Contact } = models;
     
     // Get contacts from last 24 hours
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -73,7 +130,9 @@ router.get('/contacts/recent', async (req, res) => {
 // Mark contact as viewed
 router.patch('/contacts/:id/viewed', async (req, res) => {
   try {
-    const { Contact } = await import('../models/associations.mjs').then(m => m.default());
+    const getModels = await import('../models/associations.mjs').then(m => m.default);
+    const models = await getModels();
+    const { Contact } = models;
     
     const contact = await Contact.findByPk(req.params.id);
     if (!contact) {
