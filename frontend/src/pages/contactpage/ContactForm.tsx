@@ -131,15 +131,23 @@ const ContactForm: React.FC = () => {
       
       const priority = priorityMap[consultationType] || 'normal';
       
-      // Use the environment variable to point to your backend API
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-      await axios.post(`${API_BASE_URL}/api/contact`, { 
+      // FIXED: Use correct API URL for production
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 
+                          (window.location.origin.includes('sswanstudios.com') 
+                            ? 'https://ss-pt-new.onrender.com' 
+                            : 'http://localhost:5000');
+      
+      console.log('Submitting to:', `${API_BASE_URL}/api/contact`);
+      
+      const response = await axios.post(`${API_BASE_URL}/api/contact`, { 
         name, 
         email, 
         message, 
         consultationType,
         priority 
       });
+      
+      console.log('Contact submission successful:', response.data);
 
       setSubmitted(true);
       setTimeout(() => {
@@ -151,7 +159,13 @@ const ContactForm: React.FC = () => {
       }, 3000);
     } catch (error) {
       console.error("Error sending contact message:", error);
-      // Optionally, update error state to show user feedback
+      console.error("Error details:", error.response?.data || error.message);
+      
+      // Show error to user
+      setErrors({
+        ...errors,
+        message: `Failed to send message: ${error.response?.data?.message || error.message}`
+      });
     }
   };
 
