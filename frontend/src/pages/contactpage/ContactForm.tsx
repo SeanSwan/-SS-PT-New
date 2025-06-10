@@ -84,6 +84,8 @@ const ContactForm: React.FC = () => {
   const [consultationType, setConsultationType] = useState<string>("general");
   const [errors, setErrors] = useState({ name: "", email: "", message: "", consultationType: "" });
   const [submitted, setSubmitted] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string>("");
 
   // Validate form inputs
   const validateForm = (): boolean => {
@@ -116,7 +118,18 @@ const ContactForm: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
+    
+    // Clear previous errors
+    setSubmitError("");
+    setErrors({ name: "", email: "", message: "", consultationType: "" });
+    
+    if (!validateForm()) {
+      console.log('❌ Form validation failed');
+      return;
+    }
+
+    setIsSubmitting(true);
+    console.log('📤 Starting form submission...');
 
     try {
       // Map consultation type to priority
@@ -137,9 +150,11 @@ const ContactForm: React.FC = () => {
                             ? 'https://ss-pt-new.onrender.com' 
                             : 'http://localhost:5000');
       
-      console.log('Submitting to:', `${API_BASE_URL}/api/contact`);
+      const submitUrl = `${API_BASE_URL}/api/contact`;
+      console.log('📍 Submitting to:', submitUrl);
+      console.log('📦 Data:', { name, email, consultationType, priority });
       
-      const response = await axios.post(`${API_BASE_URL}/api/contact`, { 
+      const response = await axios.post(submitUrl, { 
         name, 
         email, 
         message, 
@@ -147,7 +162,7 @@ const ContactForm: React.FC = () => {
         priority 
       });
       
-      console.log('Contact submission successful:', response.data);
+      console.log('✅ Contact submission successful:', response.data);
 
       setSubmitted(true);
       setTimeout(() => {
@@ -156,16 +171,24 @@ const ContactForm: React.FC = () => {
         setEmail("");
         setMessage("");
         setConsultationType("general");
-      }, 3000);
-    } catch (error) {
-      console.error("Error sending contact message:", error);
-      console.error("Error details:", error.response?.data || error.message);
+      }, 5000); // Show success message for 5 seconds
       
-      // Show error to user
-      setErrors({
-        ...errors,
-        message: `Failed to send message: ${error.response?.data?.message || error.message}`
-      });
+    } catch (error) {
+      console.error("❌ Error sending contact message:", error);
+      console.error("❌ Error details:", error.response?.data || error.message);
+      
+      // Set user-friendly error message
+      if (error.response?.status === 404) {
+        setSubmitError("Contact service not found. Please try again later or contact us directly.");
+      } else if (error.response?.status >= 500) {
+        setSubmitError("Server error. Please try again later.");
+      } else if (error.code === 'NETWORK_ERROR' || !error.response) {
+        setSubmitError("Network error. Please check your connection and try again.");
+      } else {
+        setSubmitError(`Failed to send message: ${error.response?.data?.message || error.message}`);
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -227,11 +250,27 @@ const ContactForm: React.FC = () => {
 
       <SubmitButton
         type="submit"
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
+        disabled={isSubmitting}
+        whileHover={{ scale: isSubmitting ? 1 : 1.05 }}
+        whileTap={{ scale: isSubmitting ? 1 : 0.95 }}
+        style={{ 
+          opacity: isSubmitting ? 0.7 : 1,
+          cursor: isSubmitting ? 'not-allowed' : 'pointer'
+        }}
       >
-        Send Message
+        {isSubmitting ? 'Sending...' : 'Send Message'}
       </SubmitButton>
+
+      {submitError && (
+        <ErrorMessage style={{ 
+          background: 'rgba(239, 68, 68, 0.2)', 
+          padding: '1rem', 
+          borderRadius: '5px',
+          border: '1px solid #ef4444'
+        }}>
+          {submitError}
+        </ErrorMessage>
+      )}
 
       {submitted && (
         <SuccessMessage
