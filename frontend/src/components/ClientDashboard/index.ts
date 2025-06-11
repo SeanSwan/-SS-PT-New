@@ -3,17 +3,15 @@
  * 
  * This file exports all components related to the Client Dashboard
  * for easy importing throughout the application.
+ * 
+ * CLEANED UP VERSION - Removed obsolete component references
  */
 
-// Revolutionary Dashboard (RECOMMENDED - Master Prompt v28)
+// Revolutionary Dashboard (ACTIVE - Master Prompt v28)
 export { default } from './RevolutionaryClientDashboard';
 export { default as RevolutionaryClientDashboard } from './RevolutionaryClientDashboard';
-export { default as GamifiedGalaxyDashboard } from './GamifiedGalaxyDashboard';
 
-// Legacy Components (Backward Compatibility)
-export { default as ClientDashboard } from './ClientDashboard';
-export { default as NewDashboard } from './NewDashboard';
-export { default as EmergencyDashboard } from './EmergencyDashboard';
+// Active Layout Components
 export { default as ClientLayout } from './ClientLayout';
 export { default as ClientSidebar } from './ClientSidebar';
 export { default as ClientMainContent } from './ClientMainContent';
@@ -44,3 +42,11 @@ export {
 
 // Types
 export { DashboardSection } from './ClientLayout';
+
+// NOTE: Cleaned up obsolete components moved to /old_component_files/
+// - ClientDashboard.tsx (replaced by RevolutionaryClientDashboard)
+// - NewClientDashboard.tsx (obsolete)
+// - EmergencyDashboard.jsx (obsolete debug component)
+// - NewDashboard.jsx (obsolete)
+// - GamifiedGalaxyDashboard.tsx (merged into Revolutionary)
+// - ClientDashboard/ nested directory (duplicate)
