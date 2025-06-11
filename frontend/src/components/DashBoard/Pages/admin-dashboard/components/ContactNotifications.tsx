@@ -74,36 +74,54 @@ const NotificationHeader = styled.div`
   }
 `;
 
-const NotificationBadge = styled.div`
-  background: ${props => props.urgent ? '#ef4444' : '#f59e0b'};
+// Fix NotificationBadge prop typing
+interface NotificationBadgeProps {
+  $urgent?: boolean; // Use $ prefix for styled-component props
+}
+
+const NotificationBadge = styled.div.withConfig({
+  shouldForwardProp: (prop) => !['$urgent'].includes(prop)
+})<NotificationBadgeProps>`
+  background: ${({ $urgent }) => $urgent ? '#ef4444' : '#f59e0b'};
   color: white;
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 600;
-  animation: ${props => props.urgent ? pulse : 'none'} 2s infinite;
+  animation: ${({ $urgent }) => $urgent ? pulse : 'none'} 2s infinite;
   display: flex;
   align-items: center;
   gap: 0.25rem;
 `;
 
-const ContactCard = styled(motion.div)`
+// Add proper prop interfaces for styled components
+interface ContactCardProps {
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  $viewed: boolean; // Use $ prefix for styled-component props
+}
+
+const ContactCard = styled(motion.div).withConfig({
+  shouldForwardProp: (prop) => !['priority', '$viewed'].includes(prop)
+})<ContactCardProps>`
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   padding: 1rem;
   margin-bottom: 0.75rem;
-  border-left: 4px solid ${props => 
-    props.priority === 'urgent' ? '#ef4444' :
-    props.priority === 'high' ? '#f59e0b' :
-    props.priority === 'normal' ? '#3b82f6' : '#6b7280'
-  };
+  border-left: 4px solid ${({ priority }) => {
+    switch (priority) {
+      case 'urgent': return '#ef4444';
+      case 'high': return '#f59e0b';
+      case 'normal': return '#3b82f6';
+      default: return '#6b7280';
+    }
+  }};
   position: relative;
   
   &:hover {
     background: rgba(255, 255, 255, 0.08);
   }
   
-  ${props => !props.viewed && `
+  ${({ $viewed }) => !$viewed && `
     animation: ${slideIn} 0.5s ease-out;
     
     &::before {
@@ -188,17 +206,28 @@ const ActionButtons = styled.div`
   }
 `;
 
-const ActionButton = styled(motion.button)`
-  background: ${props => 
-    props.variant === 'primary' ? 'linear-gradient(45deg, #3b82f6 0%, #00ffff 100%)' :
-    props.variant === 'success' ? 'rgba(16, 185, 129, 0.2)' :
-    'rgba(255, 255, 255, 0.1)'
-  };
-  border: 1px solid ${props => 
-    props.variant === 'primary' ? 'rgba(59, 130, 246, 0.3)' :
-    props.variant === 'success' ? 'rgba(16, 185, 129, 0.3)' :
-    'rgba(255, 255, 255, 0.2)'
-  };
+// Fix ActionButton prop typing
+interface ActionButtonProps {
+  $variant?: 'primary' | 'success' | 'default';
+}
+
+const ActionButton = styled(motion.button).withConfig({
+  shouldForwardProp: (prop) => !['$variant'].includes(prop)
+})<ActionButtonProps>`
+  background: ${({ $variant }) => {
+    switch ($variant) {
+      case 'primary': return 'linear-gradient(45deg, #3b82f6 0%, #00ffff 100%)';
+      case 'success': return 'rgba(16, 185, 129, 0.2)';
+      default: return 'rgba(255, 255, 255, 0.1)';
+    }
+  }};
+  border: 1px solid ${({ $variant }) => {
+    switch ($variant) {
+      case 'primary': return 'rgba(59, 130, 246, 0.3)';
+      case 'success': return 'rgba(16, 185, 129, 0.3)';
+      default: return 'rgba(255, 255, 255, 0.2)';
+    }
+  }};
   border-radius: 8px;
   color: #ffffff;
   padding: 0.5rem 1rem;
@@ -409,7 +438,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
           <Bell size={20} />
           Contact Notifications
           {getUnviewedCount() > 0 && (
-            <NotificationBadge urgent={getUnviewedCount() > 3}>
+            <NotificationBadge $urgent={getUnviewedCount() > 3}>
               <AlertCircle size={12} />
               {getUnviewedCount()} new
             </NotificationBadge>
@@ -439,7 +468,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
             <ContactCard
               key={contact.id}
               priority={contact.priority}
-              viewed={!!contact.viewedAt}
+              $viewed={!!contact.viewedAt}
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
@@ -474,7 +503,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
                   <ActionButtons>
                     {!contact.viewedAt && (
                       <ActionButton
-                        variant="success"
+                        $variant="success"
                         onClick={() => markAsViewed(contact.id)}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
@@ -484,7 +513,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
                       </ActionButton>
                     )}
                     <ActionButton
-                      variant="primary"
+                      $variant="primary"
                       onClick={() => window.open(`mailto:${contact.email}`, '_blank')}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -512,7 +541,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
           borderTop: '1px solid rgba(255, 255, 255, 0.1)'
         }}>
           <ActionButton
-            variant="primary"
+            $variant="primary"
             onClick={() => {/* Navigate to full contacts management */}}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
