@@ -62,12 +62,12 @@
     "test-health": "node scripts/test-backend-health.mjs",
     "verify-env": "node scripts/verify-production-env.mjs",
     "fix-schema": "node scripts/fix-database-schema.mjs",
-    "production-seed": "node ../render-production-seeder.mjs",
-    "production-debug": "node ../render-production-debug.mjs",
-    "production-verify": "node ../render-production-verify.mjs",
-    "render-seed": "node ../render-production-seeder.mjs",
-    "render-debug": "node ../render-production-debug.mjs",
-    "render-verify": "node ../render-production-verify.mjs"
+    "production-seed": "node render-production-seeder.mjs",
+    "production-debug": "node render-production-debug.mjs",
+    "production-verify": "node render-production-verify.mjs",
+    "render-seed": "node render-production-seeder.mjs",
+    "render-debug": "node render-production-debug.mjs",
+    "render-verify": "node render-production-verify.mjs"
   },
   "keywords": [],
   "author": "",
