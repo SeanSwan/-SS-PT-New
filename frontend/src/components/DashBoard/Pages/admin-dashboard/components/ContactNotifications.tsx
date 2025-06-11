@@ -1,8 +1,7 @@
 /**
- * Contact Notifications Component for Admin Dashboard
- * ==================================================
- * Real-time contact form submission notifications for administrators
- * Ensures no new client consultations are missed
+ * Contact Notifications Component - EMERGENCY PRODUCTION FIX
+ * =========================================================
+ * Fixed all styled-components prop forwarding issues for production stability
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -40,7 +39,7 @@ const slideIn = keyframes`
   }
 `;
 
-// === STYLED COMPONENTS ===
+// === SAFE STYLED COMPONENTS (PRODUCTION-READY) ===
 const NotificationContainer = styled(motion.div)`
   background: rgba(30, 58, 138, 0.2);
   backdrop-filter: blur(20px);
@@ -74,54 +73,40 @@ const NotificationHeader = styled.div`
   }
 `;
 
-// Fix NotificationBadge prop typing
-interface NotificationBadgeProps {
-  $urgent?: boolean; // Use $ prefix for styled-component props
-}
-
-const NotificationBadge = styled.div.withConfig({
-  shouldForwardProp: (prop) => !['$urgent'].includes(prop)
-})<NotificationBadgeProps>`
-  background: ${({ $urgent }) => $urgent ? '#ef4444' : '#f59e0b'};
+// SAFE: Basic div with conditional styling via CSS classes
+const NotificationBadgeBase = styled.div`
   color: white;
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 600;
-  animation: ${({ $urgent }) => $urgent ? pulse : 'none'} 2s infinite;
   display: flex;
   align-items: center;
   gap: 0.25rem;
+  
+  &.urgent {
+    background: #ef4444;
+    animation: ${pulse} 2s infinite;
+  }
+  
+  &.normal {
+    background: #f59e0b;
+  }
 `;
 
-// Add proper prop interfaces for styled components
-interface ContactCardProps {
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  $viewed: boolean; // Use $ prefix for styled-component props
-}
-
-const ContactCard = styled(motion.div).withConfig({
-  shouldForwardProp: (prop) => !['priority', '$viewed'].includes(prop)
-})<ContactCardProps>`
+// SAFE: Use regular div with dynamic styling instead of styled components with props
+const ContactCardBase = styled.div`
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   padding: 1rem;
   margin-bottom: 0.75rem;
-  border-left: 4px solid ${({ priority }) => {
-    switch (priority) {
-      case 'urgent': return '#ef4444';
-      case 'high': return '#f59e0b';
-      case 'normal': return '#3b82f6';
-      default: return '#6b7280';
-    }
-  }};
   position: relative;
   
   &:hover {
     background: rgba(255, 255, 255, 0.08);
   }
   
-  ${({ $viewed }) => !$viewed && `
+  &.unviewed {
     animation: ${slideIn} 0.5s ease-out;
     
     &::before {
@@ -135,7 +120,23 @@ const ContactCard = styled(motion.div).withConfig({
       border-radius: 50%;
       box-shadow: 0 0 12px #00ffff;
     }
-  `}
+  }
+  
+  &.priority-urgent {
+    border-left: 4px solid #ef4444;
+  }
+  
+  &.priority-high {
+    border-left: 4px solid #f59e0b;
+  }
+  
+  &.priority-normal {
+    border-left: 4px solid #3b82f6;
+  }
+  
+  &.priority-low {
+    border-left: 4px solid #6b7280;
+  }
 `;
 
 const ContactHeader = styled.div`
@@ -206,28 +207,8 @@ const ActionButtons = styled.div`
   }
 `;
 
-// Fix ActionButton prop typing
-interface ActionButtonProps {
-  $variant?: 'primary' | 'success' | 'default';
-}
-
-const ActionButton = styled(motion.button).withConfig({
-  shouldForwardProp: (prop) => !['$variant'].includes(prop)
-})<ActionButtonProps>`
-  background: ${({ $variant }) => {
-    switch ($variant) {
-      case 'primary': return 'linear-gradient(45deg, #3b82f6 0%, #00ffff 100%)';
-      case 'success': return 'rgba(16, 185, 129, 0.2)';
-      default: return 'rgba(255, 255, 255, 0.1)';
-    }
-  }};
-  border: 1px solid ${({ $variant }) => {
-    switch ($variant) {
-      case 'primary': return 'rgba(59, 130, 246, 0.3)';
-      case 'success': return 'rgba(16, 185, 129, 0.3)';
-      default: return 'rgba(255, 255, 255, 0.2)';
-    }
-  }};
+// SAFE: Use CSS classes instead of props for variants
+const ActionButtonBase = styled(motion.button)`
   border-radius: 8px;
   color: #ffffff;
   padding: 0.5rem 1rem;
@@ -238,6 +219,8 @@ const ActionButton = styled(motion.button).withConfig({
   align-items: center;
   gap: 0.25rem;
   transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
   
   &:hover {
     transform: translateY(-2px);
@@ -249,14 +232,24 @@ const ActionButton = styled(motion.button).withConfig({
     cursor: not-allowed;
     transform: none;
   }
-`;
-
-const RefreshButton = styled(ActionButton)`
-  background: rgba(59, 130, 246, 0.2);
-  border: 1px solid rgba(59, 130, 246, 0.3);
   
-  &:hover {
-    background: rgba(59, 130, 246, 0.3);
+  &.primary {
+    background: linear-gradient(45deg, #3b82f6 0%, #00ffff 100%);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+  }
+  
+  &.success {
+    background: rgba(16, 185, 129, 0.2);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  
+  &.refresh {
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    
+    &:hover {
+      background: rgba(59, 130, 246, 0.3);
+    }
   }
 `;
 
@@ -300,7 +293,7 @@ interface ContactNotificationsProps {
   showActions?: boolean;
 }
 
-// === COMPONENT ===
+// === SAFE COMPONENT (NO PROP FORWARDING ISSUES) ===
 const ContactNotifications: React.FC<ContactNotificationsProps> = ({
   autoRefresh = true,
   maxContacts = 10,
@@ -336,7 +329,6 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
       const response = await apiService.patch(`/api/admin/contacts/${contactId}/viewed`);
 
       if (response.data && response.data.success) {
-        // Update local state
         setContacts(prev => 
           prev.map(contact => 
             contact.id === contactId 
@@ -360,7 +352,7 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
   useEffect(() => {
     if (!autoRefresh) return;
 
-    const interval = setInterval(fetchContacts, 30000); // Refresh every 30 seconds
+    const interval = setInterval(fetchContacts, 30000);
     return () => clearInterval(interval);
   }, [autoRefresh, fetchContacts]);
 
@@ -418,10 +410,14 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
         </NotificationHeader>
         <div style={{ textAlign: 'center', padding: '2rem', color: '#ef4444' }}>
           <p>{error}</p>
-          <RefreshButton onClick={fetchContacts} style={{ marginTop: '1rem' }}>
+          <ActionButtonBase 
+            className="refresh" 
+            onClick={fetchContacts} 
+            style={{ marginTop: '1rem' }}
+          >
             <RefreshCw size={16} />
             Retry
-          </RefreshButton>
+          </ActionButtonBase>
         </div>
       </NotificationContainer>
     );
@@ -438,19 +434,19 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
           <Bell size={20} />
           Contact Notifications
           {getUnviewedCount() > 0 && (
-            <NotificationBadge $urgent={getUnviewedCount() > 3}>
+            <NotificationBadgeBase className={getUnviewedCount() > 3 ? 'urgent' : 'normal'}>
               <AlertCircle size={12} />
               {getUnviewedCount()} new
-            </NotificationBadge>
+            </NotificationBadgeBase>
           )}
         </h3>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>
             Last updated: {formatTimeAgo(lastFetch.toISOString())}
           </span>
-          <RefreshButton onClick={fetchContacts}>
+          <ActionButtonBase className="refresh" onClick={fetchContacts}>
             <RefreshCw size={16} />
-          </RefreshButton>
+          </ActionButtonBase>
         </div>
       </NotificationHeader>
 
@@ -465,70 +461,75 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
       ) : (
         <AnimatePresence mode="popLayout">
           {contacts.map((contact, index) => (
-            <ContactCard
+            <motion.div
               key={contact.id}
-              priority={contact.priority}
-              $viewed={!!contact.viewedAt}
               initial={{ opacity: 0, x: 50 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
             >
-              <ContactHeader>
-                <ContactInfo>
-                  <div className="name">
-                    <User size={16} style={{ display: 'inline', marginRight: '0.5rem' }} />
-                    {contact.name}
-                  </div>
-                  <div className="email">
-                    <Mail size={14} style={{ display: 'inline', marginRight: '0.5rem' }} />
-                    {contact.email}
-                  </div>
-                  <div className="time">
-                    <Clock size={12} />
-                    {formatTimeAgo(contact.createdAt)}
-                    {contact.priority !== 'normal' && (
-                      <span style={{ 
-                        color: getPriorityColor(contact.priority),
-                        fontWeight: 600,
-                        textTransform: 'uppercase'
-                      }}>
-                        • {contact.priority}
-                      </span>
-                    )}
-                  </div>
-                </ContactInfo>
-                
-                {showActions && (
-                  <ActionButtons>
-                    {!contact.viewedAt && (
-                      <ActionButton
-                        $variant="success"
-                        onClick={() => markAsViewed(contact.id)}
+              <ContactCardBase
+                className={`
+                  priority-${contact.priority} 
+                  ${!contact.viewedAt ? 'unviewed' : ''}
+                `}
+              >
+                <ContactHeader>
+                  <ContactInfo>
+                    <div className="name">
+                      <User size={16} style={{ display: 'inline', marginRight: '0.5rem' }} />
+                      {contact.name}
+                    </div>
+                    <div className="email">
+                      <Mail size={14} style={{ display: 'inline', marginRight: '0.5rem' }} />
+                      {contact.email}
+                    </div>
+                    <div className="time">
+                      <Clock size={12} />
+                      {formatTimeAgo(contact.createdAt)}
+                      {contact.priority !== 'normal' && (
+                        <span style={{ 
+                          color: getPriorityColor(contact.priority),
+                          fontWeight: 600,
+                          textTransform: 'uppercase'
+                        }}>
+                          • {contact.priority}
+                        </span>
+                      )}
+                    </div>
+                  </ContactInfo>
+                  
+                  {showActions && (
+                    <ActionButtons>
+                      {!contact.viewedAt && (
+                        <ActionButtonBase
+                          className="success"
+                          onClick={() => markAsViewed(contact.id)}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <CheckCircle size={14} />
+                          Mark Viewed
+                        </ActionButtonBase>
+                      )}
+                      <ActionButtonBase
+                        className="primary"
+                        onClick={() => window.open(`mailto:${contact.email}`, '_blank')}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                       >
-                        <CheckCircle size={14} />
-                        Mark Viewed
-                      </ActionButton>
-                    )}
-                    <ActionButton
-                      $variant="primary"
-                      onClick={() => window.open(`mailto:${contact.email}`, '_blank')}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <ExternalLink size={14} />
-                      Reply
-                    </ActionButton>
-                  </ActionButtons>
-                )}
-              </ContactHeader>
+                        <ExternalLink size={14} />
+                        Reply
+                      </ActionButtonBase>
+                    </ActionButtons>
+                  )}
+                </ContactHeader>
 
-              <ContactMessage>
-                {contact.message}
-              </ContactMessage>
-            </ContactCard>
+                <ContactMessage>
+                  {contact.message}
+                </ContactMessage>
+              </ContactCardBase>
+            </motion.div>
           ))}
         </AnimatePresence>
       )}
@@ -540,15 +541,15 @@ const ContactNotifications: React.FC<ContactNotificationsProps> = ({
           paddingTop: '1rem',
           borderTop: '1px solid rgba(255, 255, 255, 0.1)'
         }}>
-          <ActionButton
-            $variant="primary"
+          <ActionButtonBase
+            className="primary"
             onClick={() => {/* Navigate to full contacts management */}}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
             <ExternalLink size={16} />
             View All Contacts ({contacts.length})
-          </ActionButton>
+          </ActionButtonBase>
         </div>
       )}
     </NotificationContainer>
