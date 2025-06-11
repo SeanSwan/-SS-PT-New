@@ -1343,7 +1343,7 @@ const StoreFront: React.FC = () => {
             >
               🛒
               {cart && cart.itemCount > 0 && <CartCount>{cart.itemCount}</CartCount>}
-            </PulsingCartButton>
+            </CartButton>
           )}
         </AnimatePresence>
       )}
