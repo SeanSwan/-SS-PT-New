@@ -676,12 +676,29 @@ const EnhancedContactPage = () => {
       return;
     }
     
+    console.log('🚀 Starting contact form submission...');
+    console.log('📋 Form data:', { name, email, subject, message });
+    
     try {
-      // Simulating API call
-      // In real implementation, replace with:
-      // await axios.post("/api/contact", { name, email, subject, message });
+      // FIXED: Real API call instead of simulation
+      const API_BASE_URL = window.location.origin.includes('sswanstudios.com') 
+        ? 'https://ss-pt-new.onrender.com' 
+        : 'http://localhost:5000';
       
-      // Simulate success
+      const submitUrl = `${API_BASE_URL}/api/contact`;
+      console.log('📍 Submitting to:', submitUrl);
+      
+      const response = await axios.post(submitUrl, { 
+        name, 
+        email, 
+        message: message + (subject ? `\n\nSubject: ${subject}` : ''),
+        consultationType: 'general',
+        priority: 'normal'
+      });
+      
+      console.log('✅ Contact submission successful:', response.data);
+      
+      // Show success
       setSuccess(true);
       setName("");
       setEmail("");
@@ -693,8 +710,20 @@ const EnhancedContactPage = () => {
       setTimeout(() => {
         setSuccess(false);
       }, 5000);
+      
     } catch (err) {
-      setError("Failed to send message. Please try again later.");
+      console.error('❌ Contact form submission failed:', err);
+      console.error('❌ Error details:', err.response?.data || err.message);
+      
+      if (err.response?.status === 404) {
+        setError("Contact service not found. Please try again later.");
+      } else if (err.response?.status >= 500) {
+        setError("Server error. Please try again later.");
+      } else if (err.code === 'NETWORK_ERROR' || !err.response) {
+        setError("Network error. Please check your connection and try again.");
+      } else {
+        setError(`Failed to send message: ${err.response?.data?.message || err.message}`);
+      }
     }
   };
   
