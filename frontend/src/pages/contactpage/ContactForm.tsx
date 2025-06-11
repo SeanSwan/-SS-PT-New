@@ -116,7 +116,7 @@ const ContactForm: React.FC = () => {
     return isValid;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     
     // Clear previous errors
@@ -194,7 +194,6 @@ const ContactForm: React.FC = () => {
 
   return (
     <FormWrapper
-      onSubmit={handleSubmit}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5, duration: 0.5 }}
@@ -249,7 +248,8 @@ const ContactForm: React.FC = () => {
       {errors.message && <ErrorMessage>{errors.message}</ErrorMessage>}
 
       <SubmitButton
-        type="submit"
+        type="button" // Changed from "submit" to prevent page reload
+        onClick={handleSubmit} // Moved logic to onClick for robust handling
         disabled={isSubmitting}
         whileHover={{ scale: isSubmitting ? 1 : 1.05 }}
         whileTap={{ scale: isSubmitting ? 1 : 0.95 }}
