@@ -93,7 +93,7 @@ function lazyLoadWithErrorHandling(importFn, componentName) {
 // Lazy-loaded Components with enhanced error handling
 // Public Pages
 const HomePage = lazyLoadWithErrorHandling(
-  () => import('../pages/HomePage/components/HomePage.component.jsx'),
+  () => import('../pages/HomePage/components/HomePage.component'),
   'Home Page'
 );
 const LoginModal = lazyLoadWithErrorHandling(
