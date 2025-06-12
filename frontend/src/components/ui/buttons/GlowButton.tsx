@@ -2,10 +2,48 @@ import React, { useEffect, useRef, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
 import { gsap } from "gsap";
 import chroma from "chroma-js";
-import { useUniversalTheme } from '../../context/ThemeContext';
+
+// TypeScript interfaces for better type safety
+export interface GlowButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  text?: string;
+  variant?: GlowButtonColorScheme;
+  size?: GlowButtonSize;
+  isLoading?: boolean;
+  disabled?: boolean;
+  animateOnRender?: boolean;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
+  startIcon?: React.ReactNode; // Alias for leftIcon
+  endIcon?: React.ReactNode; // Alias for rightIcon
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  children?: React.ReactNode;
+  fullWidth?: boolean;
+  glowIntensity?: 'low' | 'medium' | 'high';
+}
+
+export type GlowButtonColorScheme = 'primary' | 'neonBlue' | 'purple' | 'emerald' | 'ruby' | 'cosmic';
+export type GlowButtonSize = 'small' | 'medium' | 'large';
+
+interface ButtonTheme {
+  background: string;
+  color: string;
+  shadow: string;
+  shineLeft: string;
+  shineRight: string;
+  glowStart: string;
+  glowEnd: string;
+}
+
+interface ButtonSize {
+  fontSize: string;
+  padding: string;
+  width: string;
+  height: string;
+  borderRadius: string;
+}
 
 // Button theme options with different color schemes
-const BUTTON_THEMES = {
+const BUTTON_THEMES: Record<GlowButtonColorScheme, ButtonTheme> = {
   // PRIMARY theme (Blue/Cyan) - Galaxy-Swan primary
   primary: {
     background: "#041e2e", // Dark blue base
@@ -66,7 +104,7 @@ const BUTTON_THEMES = {
 };
 
 // Button sizes
-const BUTTON_SIZES = {
+const BUTTON_SIZES: Record<GlowButtonSize, ButtonSize> = {
   small: {
     fontSize: "14px",
     padding: "8px 16px",
@@ -110,7 +148,7 @@ const ripple = keyframes`
 `;
 
 // Convert button variables to CSS vars
-const generateButtonVars = (theme, size) => css`
+const generateButtonVars = (theme: ButtonTheme, size: ButtonSize, fullWidth?: boolean, glowIntensity?: string) => css`
   --button-background: ${theme.background};
   --button-color: ${theme.color};
   --button-shadow: ${theme.shadow};
@@ -121,41 +159,48 @@ const generateButtonVars = (theme, size) => css`
   --pointer-x: 0px;
   --pointer-y: 0px;
   --button-glow: transparent;
-  --button-glow-opacity: 0;
+  --button-glow-opacity: ${glowIntensity === 'high' ? '1.2' : glowIntensity === 'low' ? '0.6' : '1'};
   --button-glow-duration: 0.5s;
   --button-font-size: ${size.fontSize};
   --button-padding: ${size.padding};
-  --button-width: ${size.width};
+  --button-width: ${fullWidth ? '100%' : size.width};
   --button-height: ${size.height};
   --button-border-radius: ${size.borderRadius};
 `;
 
 // Main button container
-const ButtonContainer = styled.div`
+const ButtonContainer = styled.div<{ fullWidth?: boolean }>`
   display: inline-block;
   position: relative;
   transition: transform 0.2s ease;
+  width: ${props => props.fullWidth ? '100%' : 'auto'};
   
   &:active {
     transform: translateY(2px) scale(0.98);
   }
 `;
 
-// StyledGlowButton is our styled component that creates the base button element
-// We need to make sure it doesn't try to forward props that aren't valid HTML attributes
+interface StyledButtonProps {
+  $theme: ButtonTheme;
+  $size: ButtonSize;
+  $fullWidth?: boolean;
+  $glowIntensity?: string;
+}
+
+// StyledGlowButton with proper prop filtering
 const StyledGlowButton = styled.button.withConfig({
   shouldForwardProp: (prop) => {
     // These are props we don't want to pass to the HTML button element
     const nonDOMProps = [
-      'theme', 'size', 'isAnimating', 'variant', 
+      '$theme', '$size', '$fullWidth', '$glowIntensity', 'isAnimating', 'variant', 
       'startIcon', 'endIcon', 'leftIcon', 'rightIcon', // Icon props
       'animateOnRender', 'isLoading', // State props
-      'text' // Content prop
+      'text', 'glowIntensity' // Content prop
     ];
     return !nonDOMProps.includes(prop);
   }
-})`
-  ${({ theme, size }) => generateButtonVars(theme, size)}
+})<StyledButtonProps>`
+  ${({ $theme, $size, $fullWidth, $glowIntensity }) => generateButtonVars($theme, $size, $fullWidth, $glowIntensity)}
   
   appearance: none;
   outline: none;
@@ -224,11 +269,10 @@ const Gradient = styled.div`
   }
 `;
 
-// FIX: Modified ButtonSpan to prevent isAnimating prop from reaching the DOM
 // Button text with glow effect
 const ButtonSpan = styled.span.withConfig({
   shouldForwardProp: (prop) => prop !== 'isAnimating'
-})`
+})<{ isAnimating?: boolean }>`
   z-index: 1;
   position: relative;
   display: flex;
@@ -263,10 +307,10 @@ const ButtonSpan = styled.span.withConfig({
 `;
 
 // Click ripple effect
-const Ripple = styled.span`
+const Ripple = styled.span<{ $x: number; $y: number }>`
   position: absolute;
-  top: calc(var(--y, 0) * 1px);
-  left: calc(var(--x, 0) * 1px);
+  top: ${props => props.$y}px;
+  left: ${props => props.$x}px;
   width: 20px;
   height: 20px;
   background-color: rgba(255, 255, 255, 0.7);
@@ -292,82 +336,50 @@ const Spinner = styled.div`
 `;
 
 // Icon container for prepending or appending icons
-const IconContainer = styled.span`
+const IconContainer = styled.span<{ position: 'left' | 'right' }>`
   display: flex;
   align-items: center;
   justify-content: center;
   ${({ position }) => position === 'left' ? 'margin-right: 8px;' : 'margin-left: 8px;'}
 `;
 
+interface RippleData {
+  id: number;
+  x: number;
+  y: number;
+}
+
 /**
  * Enhanced GlowButton Component
- * @param {Object} props - Component props
- * @param {string} props.text - Button text
- * @param {string} props.theme - Button theme (primary, purple, emerald, ruby, cosmic)
- * @param {string} props.size - Button size (small, medium, large)
- * @param {boolean} props.isLoading - Loading state
- * @param {boolean} props.disabled - Disabled state
- * @param {boolean} props.animateOnRender - Animate the button on initial render
- * @param {React.ReactNode} props.leftIcon - Icon to display before text
- * @param {React.ReactNode} props.rightIcon - Icon to display after text
- * @param {Function} props.onClick - Click handler function
+ * A premium button component with animated glow effects, customizable themes, and accessibility features
  */
-const GlowButton = ({
+const GlowButton: React.FC<GlowButtonProps> = ({
   text,
-  theme = "primary", // Default to PRIMARY (blue/cyan) theme
+  children,
+  variant = "primary",
   size = "medium",
   isLoading = false,
   disabled = false,
   animateOnRender = false,
   leftIcon,
   rightIcon,
+  startIcon,
+  endIcon,
   onClick,
+  fullWidth = false,
+  glowIntensity = 'medium',
   ...props
 }) => {
-  const buttonRef = useRef(null);
-  const [ripples, setRipples] = useState([]);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [ripples, setRipples] = useState<RippleData[]>([]);
   const [isAnimating, setIsAnimating] = useState(animateOnRender);
   
-  // Get universal theme for enhanced theming (with fallback)
-  let currentTheme = 'swan-galaxy'; // Default fallback
-  try {
-    const themeContext = useUniversalTheme();
-    currentTheme = themeContext.currentTheme;
-  } catch (error) {
-    // If used outside UniversalThemeProvider, use default
-    console.warn('GlowButton used outside UniversalThemeProvider, using default theme');
-  }
+  // Resolve icon props (support both leftIcon/rightIcon and startIcon/endIcon)
+  const resolvedLeftIcon = leftIcon || startIcon;
+  const resolvedRightIcon = rightIcon || endIcon;
   
-  // Handle theme selection with universal theme awareness
-  const getEnhancedTheme = (themeName) => {
-    const baseTheme = BUTTON_THEMES[themeName] || BUTTON_THEMES.primary;
-    
-    // Enhance with universal theme colors if available
-    if (currentTheme === 'admin-command' && themeName === 'primary') {
-      return {
-        ...baseTheme,
-        glowStart: "#3b82f6",
-        glowEnd: "#2563eb",
-        shineLeft: "rgba(59, 130, 246, 0.5)",
-        shineRight: "rgba(37, 99, 235, 0.65)",
-      };
-    }
-    
-    if (currentTheme === 'dark-galaxy' && themeName === 'primary') {
-      return {
-        ...baseTheme,
-        background: "#1a1a1a",
-        glowStart: "#ffffff",
-        glowEnd: "#00ffff",
-        shineLeft: "rgba(255, 255, 255, 0.5)",
-        shineRight: "rgba(0, 255, 255, 0.65)",
-      };
-    }
-    
-    return baseTheme;
-  };
-  
-  const buttonTheme = getEnhancedTheme(theme);
+  // Get theme and size configurations
+  const buttonTheme = BUTTON_THEMES[variant] || BUTTON_THEMES.primary;
   const buttonSize = BUTTON_SIZES[size] || BUTTON_SIZES.medium;
   
   // Handle cursor tracking for glow effect
@@ -375,7 +387,7 @@ const GlowButton = ({
     const button = buttonRef.current;
     if (!button) return;
     
-    const handlePointerMove = (e) => {
+    const handlePointerMove = (e: PointerEvent) => {
       if (disabled) return;
       
       const rect = button.getBoundingClientRect();
@@ -426,16 +438,18 @@ const GlowButton = ({
   }, [animateOnRender, disabled]);
 
   // Handle click ripple effect
-  const handleClick = (e) => {
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (disabled || isLoading) return;
     
     // Create ripple effect
-    const rect = buttonRef.current.getBoundingClientRect();
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
     const rippleId = Date.now();
-    setRipples([...ripples, { id: rippleId, x, y }]);
+    setRipples(prev => [...prev, { id: rippleId, x, y }]);
     
     // Remove ripple after animation completes
     setTimeout(() => {
@@ -446,48 +460,40 @@ const GlowButton = ({
     if (onClick) onClick(e);
   };
 
-  // Filter out any custom props that shouldn't be forwarded to the DOM
-  const buttonProps = { ...props };
-  
-  // Remove known custom props to avoid React warnings
-  const customProps = [
-    'text', 'theme', 'size', 'isLoading', 'animateOnRender', 
-    'leftIcon', 'rightIcon', 'startIcon', 'endIcon', 'variant'
-  ];
-  
-  customProps.forEach(prop => {
-    if (prop in buttonProps) {
-      delete buttonProps[prop];
-    }
-  });
+  // Determine display content
+  const displayContent = children || text;
 
   return (
-    <ButtonContainer>
+    <ButtonContainer fullWidth={fullWidth}>
       <StyledGlowButton
         ref={buttonRef}
         onClick={handleClick}
         disabled={disabled || isLoading}
-        theme={buttonTheme}
-        size={buttonSize}
-        {...buttonProps}
+        $theme={buttonTheme}
+        $size={buttonSize}
+        $fullWidth={fullWidth}
+        $glowIntensity={glowIntensity}
+        {...props}
         aria-busy={isLoading}
+        aria-label={props['aria-label'] || (typeof displayContent === 'string' ? displayContent : 'Button')}
       >
         <Gradient />
         <ButtonSpan isAnimating={isAnimating}>
           {isLoading && <Spinner />}
-          {!isLoading && leftIcon && (
-            <IconContainer position="left">{leftIcon}</IconContainer>
+          {!isLoading && resolvedLeftIcon && (
+            <IconContainer position="left">{resolvedLeftIcon}</IconContainer>
           )}
-          {text}
-          {!isLoading && rightIcon && (
-            <IconContainer position="right">{rightIcon}</IconContainer>
+          {displayContent}
+          {!isLoading && resolvedRightIcon && (
+            <IconContainer position="right">{resolvedRightIcon}</IconContainer>
           )}
           
           {/* Render ripples */}
           {ripples.map(ripple => (
             <Ripple 
               key={ripple.id} 
-              style={{ "--x": ripple.x, "--y": ripple.y }}
+              $x={ripple.x}
+              $y={ripple.y}
             />
           ))}
         </ButtonSpan>
