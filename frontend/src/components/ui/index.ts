@@ -6,5 +6,6 @@ export * from "./badge";
 export * from "./popover";
 export * from "./select";
 export * from "./textarea";
-// export { default as GlowButton } from "./GlowButton"; // REMOVED - GlowButton moved to archived files (ui/GlowButton.tsx was unused)
+export { GlowButton } from "./buttons";
+export type { GlowButtonProps, GlowButtonColorScheme, GlowButtonSize } from "./buttons";
 export { SwanGalaxyLuxuryButton } from "./SwanGalaxyLuxuryButton";
