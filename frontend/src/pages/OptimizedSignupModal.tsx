@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { motion, useAnimation, Variants } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
-import GlowButton from "../components/Button/glowButton";
+import GlowButton from "../components/ui/GlowButton";
 import ProgressBar from "../components/ProgressBar/ProgressBar";
 import AuthLayout from "../layouts/AuthLayout";
 
@@ -808,8 +808,35 @@ const OptimizedSignupModal: React.FC = () => {
         ...registrationData 
       } = formattedData;
       
-      await register(registrationData);
-      navigate("/login", { state: { message: "Registration successful! Please log in." } });
+      console.log('🚀 Attempting registration...', {
+        ...registrationData,
+        password: '[REDACTED]',
+        adminCode: registrationData.adminCode ? '[REDACTED]' : undefined
+      });
+      
+      const result = await register(registrationData);
+      
+      if (result.success) {
+        console.log('✅ Registration successful, user logged in:', result.user);
+        // AuthContext handles login automatically, redirect to appropriate dashboard
+        const userRole = result.user?.role || 'user';
+        
+        switch (userRole) {
+          case 'admin':
+            navigate('/dashboard');
+            break;
+          case 'trainer':
+            navigate('/trainer-dashboard');
+            break;
+          case 'client':
+            navigate('/client-dashboard');
+            break;
+          default:
+            navigate('/user-dashboard');
+        }
+      } else {
+        throw new Error(result.error || 'Registration failed');
+      }
     } catch (err: any) {
       setIsLoading(false);
       console.error("Error during registration:", err);

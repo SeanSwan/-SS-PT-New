@@ -3,7 +3,7 @@ import React, { useEffect, useRef, lazy, Suspense, useState } from "react";
 import styled, { keyframes, css } from "styled-components";
 import { motion, useScroll, useTransform, useInView, AnimatePresence } from "framer-motion";
 import { Helmet } from "react-helmet-async";
-import GlowButton from "../../../components/Button/glowButton";
+import GlowButton from "../../../components/ui/GlowButton";
 
 // Import components
 import HeroSection from "./Hero-Section";

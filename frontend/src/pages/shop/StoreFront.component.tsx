@@ -10,7 +10,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 
 // --- Component Imports ---
-import GlowButton from "../../components/Button/glowButton";
+import GlowButton from "../../components/ui/GlowButton";
 // Import Galaxy-Swan theme utilities
 import { galaxySwanTheme } from '../../styles/galaxy-swan-theme';
 import { ThemedGlowButton } from '../../styles/swan-theme-utils.tsx';
