@@ -7,7 +7,7 @@ import { Helmet } from "react-helmet-async";
 import Hero from "./Hero";
 import AboutContent from "./AboutContent";
 import FixedTestimonialSection from "./FixedTestimonialSection";
-import GlowButton from "../../components/Button/glowButton";
+import GlowButton from "../../components/ui/GlowButton";
 
 /*
   ✨ Ultra-Premium About Page (2025 Enhancement)
