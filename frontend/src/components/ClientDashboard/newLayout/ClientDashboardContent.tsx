@@ -15,8 +15,7 @@ import CommunitySection from '../sections/CommunitySection';
 import ProfileSection from '../sections/ProfileSection';
 import SettingsSection from '../sections/SettingsSection';
 
-// Import DummyTester as a fallback
-import DummyTester from '../sections/DummyTester';
+// DummyTester component removed - using simple fallback instead
 
 // Import specialized components from newLayout
 import EnhancedMessagingSection from './EnhancedMessagingSection';
@@ -128,12 +127,13 @@ const ClientDashboardContent: React.FC<ClientDashboardContentProps> = ({ activeS
       }
     } catch (error) {
       console.error('Global error in renderContent:', error);
-      // If everything fails, show the DummyTester as last resort
+      // If everything fails, show a simple fallback
       return (
         <>
           <ErrorFallback componentName="Section Content" error={error as Error} />
-          <Box sx={{ mt: 4 }}>
-            <DummyTester />
+          <Box sx={{ mt: 4, p: 3, textAlign: 'center', bgcolor: 'rgba(0,0,0,0.1)', borderRadius: 2 }}>
+            <h3>🚧 Dashboard Section Under Development</h3>
+            <p>This section is currently being built. Please try another section or refresh the page.</p>
           </Box>
         </>
       );
