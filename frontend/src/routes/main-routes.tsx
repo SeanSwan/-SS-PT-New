@@ -116,17 +116,9 @@ const StoreFront = lazyLoadWithErrorHandling(
   () => import('../pages/shop/StoreFront.component'),
   'Storefront'
 );
-const StoreFrontFixed = lazyLoadWithErrorHandling(
-  () => import('../pages/shop/StoreFrontFixed.component'),
-  'Fixed Storefront'
-);
 const DebugStoreFront = lazyLoadWithErrorHandling(
   () => import('../pages/shop/DebugStoreFront.component'),
   'Debug Storefront'
-);
-const SimplifiedStoreFront = lazyLoadWithErrorHandling(
-  () => import('../pages/shop/SimplifiedStoreFront.component'),
-  'Simplified Storefront'
 );
 const SwanStudiosStore = lazyLoadWithErrorHandling(
   () => import('../pages/shop/GalaxyStoreFrontFixed.component'),
@@ -395,7 +387,7 @@ const MainRoutes: RouteObject = {
       path: 'simple-store',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <SimplifiedStoreFront />
+          <SwanStudiosStore />
         </Suspense>
       )
     },
