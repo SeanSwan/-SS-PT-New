@@ -643,7 +643,22 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       }
     } catch (error: any) {
       console.error('Registration failed:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
+      
+      // Enhanced error message handling for common registration issues
+      let errorMessage = 'Registration failed. Please try again.';
+      
+      if (error.response?.status === 409) {
+        errorMessage = 'An account with this email or username already exists. Please try logging in instead or use a different email/username.';
+      } else if (error.response?.status === 400) {
+        errorMessage = error.response?.data?.message || 'Please check your information and try again.';
+      } else if (error.response?.status === 500) {
+        errorMessage = 'Server error. Please try again in a few moments.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       setError(errorMessage);
       return { success: false, user: null, error: errorMessage };
     } finally {
