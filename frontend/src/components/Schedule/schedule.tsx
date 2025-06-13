@@ -54,7 +54,7 @@ import HighContrastToggle from './HighContrastToggle';
 import ScreenReaderAnnouncements, { useScreenReaderAnnouncement } from './ScreenReaderAnnouncements';
 
 // Custom components
-import GlowButton from "../Button/glowButton.jsx"; // Make sure we use the JSX version we modified
+import GlowButton from "../ui/buttons/GlowButton";
 import { useAuth } from "../../context/AuthContext";
 
 // Import services

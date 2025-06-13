@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "../../context/CartContext";
-import GlowButton from "../Button/glowButton";
+import GlowButton from "../ui/buttons/GlowButton";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../../hooks/use-toast";
