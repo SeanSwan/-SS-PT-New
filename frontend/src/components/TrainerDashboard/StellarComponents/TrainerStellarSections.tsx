@@ -27,7 +27,7 @@ import {
   Award, Zap, Bell, Settings, BarChart3, FileText, Search
 } from 'lucide-react';
 import { useUniversalTheme } from '../../../context/ThemeContext';
-import GlowButton from '../../Button/glowButton';
+import GlowButton from '../../ui/buttons/GlowButton';
 
 // === KEYFRAME ANIMATIONS ===
 const stellarFloat = keyframes`
