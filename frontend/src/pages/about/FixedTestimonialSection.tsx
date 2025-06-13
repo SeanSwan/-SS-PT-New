@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, useAnimation, useInView } from "framer-motion";
 import Testimonial from "./Testimonial";
-import GlowButton from "../../components/Button/glowButton";
+import GlowButton from "../../components/ui/buttons/GlowButton";
 
 // Import images
 import maleBlk from "../../assets/maleblk.jpg";
