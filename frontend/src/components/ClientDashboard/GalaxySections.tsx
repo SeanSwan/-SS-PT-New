@@ -984,7 +984,7 @@ const StatusIndicator = styled.div`
 `;
 
 // Import GlowButton
-import { GlowButton } from '../ui';
+import GlowButton from '../ui/buttons/GlowButton';
 
 const float = keyframes`
   0% { transform: translateY(0px); }
@@ -1071,8 +1071,9 @@ export const PackageSubscription: React.FC = () => (
         
         <div style={{ position: 'relative', zIndex: 1 }}>
           <GlowButton
-            variant="info"
-            glowIntensity="medium"
+            text="Manage Subscription"
+            theme="info"
+            size="medium"
             style={{
               width: '100%',
               borderRadius: '25px',
@@ -1080,9 +1081,7 @@ export const PackageSubscription: React.FC = () => (
               fontSize: '1.1rem',
               fontWeight: 'bold'
             }}
-          >
-            Manage Subscription
-          </GlowButton>
+          />
         </div>
       </CurrentPackageCard>
       
@@ -1174,18 +1173,17 @@ export const PackageSubscription: React.FC = () => (
               
               <div style={{ position: 'relative', zIndex: 1 }}>
                 <GlowButton
-                  variant={pkg.popular ? 'warning' : pkg.theme as any}
-                  glowIntensity={pkg.popular ? 'high' : 'medium'}
-                  style={{
-                    width: '100%',
-                    borderRadius: '20px',
-                    padding: '0.875rem 1.5rem',
-                    fontSize: '1rem',
-                    fontWeight: 'bold'
+                text={pkg.popular ? 'Upgrade Now' : 'Select Plan'}
+                theme={pkg.popular ? 'cosmic' : 'primary'}
+                size="medium"
+                style={{
+                width: '100%',
+                borderRadius: '20px',
+                padding: '0.875rem 1.5rem',
+                fontSize: '1rem',
+                  fontWeight: 'bold'
                   }}
-                >
-                  {pkg.popular ? 'Upgrade Now' : 'Select Plan'}
-                </GlowButton>
+                />
               </div>
             </CosmicPackageCard>
           ))}
