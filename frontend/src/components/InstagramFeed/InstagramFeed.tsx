@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, HTMLMotionProps } from 'framer-motion';
 import { FaInstagram, FaHeart, FaComment, FaShare, FaPlay } from 'react-icons/fa';
-import GlowButton from "../Button/glowButton"; // Import your GlowButton component
+import GlowButton from "../ui/buttons/GlowButton"; // Import your GlowButton component
 
 // Import dummy Instagram post images from assets - Ensure paths are correct
 const post1 = "/image1.jpg";
