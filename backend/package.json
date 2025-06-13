@@ -67,7 +67,10 @@
     "production-verify": "node render-production-verify.mjs",
     "render-seed": "node render-production-seeder.mjs",
     "render-debug": "node render-production-debug.mjs",
-    "render-verify": "node render-production-verify.mjs"
+    "render-verify": "node render-production-verify.mjs",
+    "check-system-status": "node scripts/check-system-status.mjs",
+    "test-auth-system": "node scripts/test-auth-system.mjs",
+    "restart-backend": "node scripts/restart-backend.mjs"
   },
   "keywords": [],
   "author": "",

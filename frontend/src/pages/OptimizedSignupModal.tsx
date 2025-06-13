@@ -550,10 +550,8 @@ const OptimizedSignupModal: React.FC = () => {
     emergencyContact: "", 
     emergencyContactName: "", 
     emergencyContactPhone: "",
-    role: "user", 
-    adminCode: ""
+    role: "user"
   });
-  const [showAdminCode, setShowAdminCode] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [completionPercentage, setCompletionPercentage] = useState(0);
@@ -725,6 +723,13 @@ const OptimizedSignupModal: React.FC = () => {
     e.preventDefault();
     setError("");
     
+    console.log('👍 FORM SUBMISSION STARTED');
+    console.log('Form data (without password):', {
+      ...formData,
+      password: '[REDACTED]',
+      confirmPassword: '[REDACTED]'
+    });
+    
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match");
@@ -754,11 +759,7 @@ const OptimizedSignupModal: React.FC = () => {
       return;
     }
     
-    // Validate admin role requires admin code
-    if (formData.role === "admin" && !formData.adminCode) {
-      setError("Admin access code is required for admin accounts");
-      return;
-    }
+    // Note: Admin accounts are created through secure backend processes only
     
     // Validate fitness goal format
     if (formData.fitnessGoal && !["weight-loss", "muscle-gain", "endurance", "flexibility", "general-fitness", "sports-specific", "other"].includes(formData.fitnessGoal)) {
@@ -810,16 +811,19 @@ const OptimizedSignupModal: React.FC = () => {
       
       console.log('🚀 Attempting registration...', {
         ...registrationData,
-        password: '[REDACTED]',
-        adminCode: registrationData.adminCode ? '[REDACTED]' : undefined
+        password: '[REDACTED]'
       });
       
+      console.log('🚀 CALLING REGISTER FUNCTION...');
       const result = await register(registrationData);
+      console.log('🎆 REGISTER FUNCTION COMPLETED, result:', result);
       
       if (result.success) {
         console.log('✅ Registration successful, user logged in:', result.user);
         // AuthContext handles login automatically, redirect to appropriate dashboard
         const userRole = result.user?.role || 'user';
+        
+        console.log('📦 Redirecting to dashboard for role:', userRole);
         
         switch (userRole) {
           case 'admin':
@@ -835,6 +839,7 @@ const OptimizedSignupModal: React.FC = () => {
             navigate('/user-dashboard');
         }
       } else {
+        console.error('❌ Registration failed with result:', result);
         throw new Error(result.error || 'Registration failed');
       }
     } catch (err: any) {
@@ -1143,37 +1148,17 @@ const OptimizedSignupModal: React.FC = () => {
                   id="role" 
                   name="role" 
                   value={formData.role} 
-                  onChange={(e) => {
-                    handleChange(e);
-                    setShowAdminCode(e.target.value === "admin");
-                  }} 
+                  onChange={handleChange} 
                   disabled={isLoading}
                 >
                   <option value="user">Regular User</option>
                   <option value="client">Client</option>
                   <option value="trainer">Trainer</option>
-                  <option value="admin">Admin</option>
                 </SelectField>
+                <HelpText>
+                  Choose the account type that best fits your needs. Admin accounts are created separately for security.
+                </HelpText>
               </InputWrapper>
-
-              {showAdminCode && (
-                <InputWrapper>
-                  <Label htmlFor="adminCode">Admin Access Code</Label>
-                  <InputField 
-                    type="password" 
-                    id="adminCode" 
-                    name="adminCode" 
-                    placeholder="Enter admin access code" 
-                    value={formData.adminCode} 
-                    onChange={handleChange} 
-                    required={formData.role === "admin"}
-                    disabled={isLoading} 
-                  />
-                  <HelpText>
-                    Required for admin accounts. Please contact system administrator if you don't have a code.
-                  </HelpText>
-                </InputWrapper>
-              )}
             </FormSection>
 
             <FormSection>
