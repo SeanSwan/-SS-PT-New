@@ -2,7 +2,7 @@
 import React, { useRef } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, useScroll, useTransform, useInView } from "framer-motion";
-import GlowButton from "../../components/Button/glowButton";
+import GlowButton from "../../components/ui/buttons/GlowButton";
 
 // Import correct video path
 import wavesVideo from "/smoke.mp4"; // Updated to smoke.mp4
