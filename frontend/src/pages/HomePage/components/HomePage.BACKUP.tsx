@@ -1,9 +1,8 @@
-// src/pages/homepage/HomePage.component.tsx - PRODUCTION REVENUE OPTIMIZED
+// src/pages/homepage/HomePage.component.tsx
 import React, { useEffect, useRef, lazy, Suspense, useState } from "react";
 import styled, { keyframes, css } from "styled-components";
 import { motion, useScroll, useTransform, useInView, AnimatePresence } from "framer-motion";
 import { Helmet } from "react-helmet-async";
-import { useNavigate } from "react-router-dom";
 import GlowButton from "../../../components/ui/GlowButton";
 
 // Import components
@@ -31,10 +30,11 @@ const FeaturedSection = styled.div`
     z-index: -1;
   }
 `;
-
 // Lazy-loaded components with prefetch optimization
 const TestimonialSlider = lazy(() => {
+  // Prefetch the component when idle
   const prefetch = import("../../../components/TestimonialSlider/TestimonialSlider");
+  // Tell browser this is a high priority fetch
   if ('requestIdleCallback' in window) {
     // @ts-ignore
     window.requestIdleCallback(() => prefetch);
@@ -132,172 +132,20 @@ const HomePageContainer = styled.div`
   position: relative;
   background: linear-gradient(to bottom, #0a0a0a, #1a1a2e);
   
+  /* Enhanced responsive container */
   width: 100%;
   max-width: 100vw;
   margin: 0 auto;
   
+  /* Optimize rendering performance */
   will-change: opacity, transform;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   
+  /* Ultra mobile responsiveness */
   @media (max-width: 480px) {
     overflow-x: hidden;
   }
-`;
-
-// NEW: Revenue-focused package preview section
-const PackagePreviewSection = styled.section`
-  padding: 5rem 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-  text-align: center;
-  position: relative;
-  z-index: 10;
-  
-  @media (max-width: 768px) {
-    padding: 3rem 1rem;
-  }
-`;
-
-const PackagePreviewTitle = styled(motion.h2)`
-  font-size: 2.5rem;
-  font-weight: 300;
-  margin-bottom: 1rem;
-  color: white;
-  text-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-  
-  @media (max-width: 768px) {
-    font-size: 2rem;
-  }
-`;
-
-const PackagePreviewSubtitle = styled(motion.p)`
-  font-size: 1.2rem;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 3rem;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-`;
-
-const PackageGrid = styled(motion.div)`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
-  margin-bottom: 3rem;
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-`;
-
-const PackageCard = styled(motion.div)`
-  background: rgba(30, 30, 60, 0.4);
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  border-radius: 15px;
-  padding: 2rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-  
-  &:hover {
-    transform: translateY(-10px);
-    border-color: rgba(0, 255, 255, 0.6);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 255, 255, 0.2);
-  }
-  
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.1),
-      transparent
-    );
-    transition: left 0.5s;
-  }
-  
-  &:hover::before {
-    left: 100%;
-  }
-  
-  h3 {
-    font-size: 1.5rem;
-    color: #00ffff;
-    margin-bottom: 1rem;
-  }
-  
-  p {
-    color: rgba(255, 255, 255, 0.8);
-    margin-bottom: 1.5rem;
-    font-size: 1rem;
-    line-height: 1.6;
-  }
-  
-  .price {
-    font-size: 1.8rem;
-    font-weight: bold;
-    color: white;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-  }
-  
-  .sessions {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.6);
-    margin-top: 0.5rem;
-  }
-`;
-
-// NEW: Urgency and social proof section
-const UrgencySection = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(255, 46, 99, 0.1), rgba(0, 255, 255, 0.1));
-  padding: 3rem 2rem;
-  margin: 4rem 0;
-  text-align: center;
-  border-radius: 20px;
-  position: relative;
-  overflow: hidden;
-  
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      45deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.05) 50%,
-      transparent 100%
-    );
-    background-size: 200% 200%;
-    animation: ${diagonalShimmer} 3s linear infinite;
-  }
-`;
-
-const UrgencyText = styled.h3`
-  font-size: 1.8rem;
-  color: #ff2e63;
-  margin-bottom: 1rem;
-  font-weight: 600;
-  position: relative;
-  z-index: 2;
-`;
-
-const SocialProofText = styled.p`
-  font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 2rem;
-  position: relative;
-  z-index: 2;
 `;
 
 const SectionDivider = styled(motion.div)`
@@ -338,6 +186,7 @@ const SectionDivider = styled(motion.div)`
     pointer-events: none;
   }
   
+  /* Ultra mobile responsiveness */
   @media (max-width: 768px) {
     height: 120px;
   }
@@ -359,6 +208,7 @@ const FloatingText = styled(motion.div)`
   z-index: 2;
   text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
   
+  /* Ultra mobile responsiveness */
   @media (max-width: 768px) {
     font-size: 1rem;
     letter-spacing: 2px;
@@ -389,6 +239,7 @@ const ScrollPrompt = styled(motion.div)`
     animation: ${pulse} 2s infinite;
   }
   
+  /* Hide on smallest screens for better mobile experience */
   @media (max-width: 480px) {
     bottom: 15px;
     right: 15px;
@@ -458,18 +309,6 @@ const buttonVariants = {
   }
 };
 
-const packageVariants = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: { 
-      duration: 0.6,
-      ease: "easeOut" 
-    }
-  }
-};
-
 // Custom hook for intersection observer with threshold options
 const useCustomInView = (threshold = 0.2) => {
   const ref = useRef<HTMLDivElement>(null);
@@ -478,7 +317,6 @@ const useCustomInView = (threshold = 0.2) => {
 };
 
 const HomePage: React.FC = () => {
-  const navigate = useNavigate();
   const { scrollY } = useScroll();
   const scrollPromptOpacity = useTransform(scrollY, [0, 300], [1, 0]);
   const [showScrollPrompt, setShowScrollPrompt] = useState<boolean>(true);
@@ -486,7 +324,6 @@ const HomePage: React.FC = () => {
   
   // Section refs for improved animations
   const [featuresRef, isFeaturesInView] = useCustomInView();
-  const [packageRef, isPackageInView] = useCustomInView();
   const [trainersRef, isTrainersInView] = useCustomInView();
   const [testimonialRef, isTestimonialInView] = useCustomInView();
   const [statsRef, isStatsInView] = useCustomInView();
@@ -496,7 +333,6 @@ const HomePage: React.FC = () => {
   // Divider texts for each section
   const dividerTexts = [
     "Elevate Your Training",
-    "Choose Your Journey",
     "Express & Connect",
     "Expert Coaching",
     "Success Stories",
@@ -507,7 +343,6 @@ const HomePage: React.FC = () => {
   // Add ids for scroll navigation
   const sectionIds = {
     hero: "hero",
-    packages: "packages",
     features: "services",
     creativeExpression: "creative-expression",
     trainers: "trainers",
@@ -515,12 +350,14 @@ const HomePage: React.FC = () => {
   };
 
   useEffect(() => {
+    // Handle scroll visibility
     const handleScroll = () => {
       setShowScrollPrompt(window.scrollY <= 200);
     };
     
     window.addEventListener('scroll', handleScroll);
     
+    // Smooth scroll to element if hash is present in URL
     const hash = window.location.hash;
     if (hash) {
       const element = document.querySelector(hash);
@@ -529,6 +366,7 @@ const HomePage: React.FC = () => {
       }
     }
     
+    // Add smooth scrolling for all anchor links
     const handleAnchorClick = (e: Event) => {
       e.preventDefault();
       const target = e.currentTarget as HTMLAnchorElement;
@@ -540,6 +378,7 @@ const HomePage: React.FC = () => {
             behavior: 'smooth'
           });
           
+          // Update URL without reload
           window.history.pushState(null, '', targetId);
         }
       }
@@ -549,9 +388,10 @@ const HomePage: React.FC = () => {
       anchor.addEventListener('click', handleAnchorClick);
     });
     
+    // Prefetch critical resources
     const prefetchResources = () => {
+      // Prefetch images and resources that will be needed
       const prefetchLinks = [
-        "/shop",
         "/services",
         "/trainers",
         "/testimonials"
@@ -571,8 +411,10 @@ const HomePage: React.FC = () => {
       }
     };
     
+    // Start prefetching after page is loaded
     window.addEventListener('load', prefetchResources);
     
+    // Cleanup event listeners
     return () => {
       document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.removeEventListener('click', handleAnchorClick);
@@ -629,10 +471,10 @@ const HomePage: React.FC = () => {
             animate="visible"
             exit="exit"
             onClick={() => {
-              const packagesElement = document.getElementById(sectionIds.packages);
-              if (packagesElement) packagesElement.scrollIntoView({ behavior: 'smooth' });
+              const featuresElement = document.getElementById(sectionIds.features);
+              if (featuresElement) featuresElement.scrollIntoView({ behavior: 'smooth' });
             }}
-            aria-label="Scroll down to explore packages"
+            aria-label="Scroll down to explore content"
           >
             Scroll
           </ScrollPrompt>
@@ -640,88 +482,6 @@ const HomePage: React.FC = () => {
       </AnimatePresence>
       
       {renderSectionDivider(0)}
-      
-      {/* NEW: Package Preview Section - PRIMARY REVENUE DRIVER */}
-      <PackagePreviewSection id={sectionIds.packages} ref={packageRef}>
-        <PackagePreviewTitle
-          variants={packageVariants}
-          initial="hidden"
-          animate={isPackageInView ? "visible" : "hidden"}
-        >
-          Start Your Transformation Today
-        </PackagePreviewTitle>
-        <PackagePreviewSubtitle
-          variants={packageVariants}
-          initial="hidden"
-          animate={isPackageInView ? "visible" : "hidden"}
-        >
-          Choose from our premium training packages designed by Sean Swan with over 25 years of experience
-        </PackagePreviewSubtitle>
-        
-        <PackageGrid
-          variants={packageVariants}
-          initial="hidden"
-          animate={isPackageInView ? "visible" : "hidden"}
-        >
-          <PackageCard
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/shop')}
-          >
-            <h3>Single Session</h3>
-            <p>Perfect for trying our premium training experience with Sean Swan.</p>
-            <div className="price">$175</div>
-            <div className="sessions">1 Premium Session</div>
-          </PackageCard>
-          
-          <PackageCard
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/shop')}
-          >
-            <h3>Silver Package</h3>
-            <p>8 sessions for committed results and lasting transformation.</p>
-            <div className="price">$1,360</div>
-            <div className="sessions">8 Sessions • $170 per session</div>
-          </PackageCard>
-          
-          <PackageCard
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/shop')}
-          >
-            <h3>Gold Package</h3>
-            <p>20 sessions for complete body and mind transformation.</p>
-            <div className="price">$3,300</div>
-            <div className="sessions">20 Sessions • $165 per session</div>
-          </PackageCard>
-        </PackageGrid>
-        
-        {/* Urgency and Social Proof */}
-        <UrgencySection
-          variants={packageVariants}
-          initial="hidden"
-          animate={isPackageInView ? "visible" : "hidden"}
-        >
-          <UrgencyText>🔥 Limited Availability - Only 3 New Clients Per Month</UrgencyText>
-          <SocialProofText>
-            Over 500+ transformations completed • Featured in LA Fitness Magazine • Trusted by celebrities and athletes
-          </SocialProofText>
-          
-          <ExploreMoreButton>
-            <GlowButton 
-              text="View All Packages & Pricing" 
-              theme="cosmic" 
-              size="large" 
-              animateOnRender 
-              onClick={() => navigate('/shop')}
-              aria-label="View all training packages and pricing"
-            />
-          </ExploreMoreButton>
-        </UrgencySection>
-      </PackagePreviewSection>
-      
-      {renderSectionDivider(1)}
       
       {/* Features Section - Shows services */}
       <FeaturedSection ref={featuresRef} className="primary-focus-label">
@@ -742,23 +502,23 @@ const HomePage: React.FC = () => {
             whileTap="tap"
           >
             <GlowButton 
-              text="Book Free Consultation" 
-              theme="emerald" 
+              text="Explore Services" 
+              theme="cosmic" 
               size="medium" 
               animateOnRender 
-              onClick={() => navigate('/contact')}
-              aria-label="Book your free consultation"
+              onClick={() => window.location.href = '/services'}
+              aria-label="Explore our services"
             />
           </ExploreMoreButton>
         </div>
       </FeaturedSection>
       
-      {renderSectionDivider(2)}
+      {renderSectionDivider(1)}
       
       {/* Creative Expression Section */}
       <CreativeExpressionSection />
       
-      {renderSectionDivider(3)}
+      {renderSectionDivider(2)}
       
       {/* Trainer Profiles Section */}
       <div ref={trainersRef}>
@@ -772,26 +532,26 @@ const HomePage: React.FC = () => {
           whileTap="tap"
         >
           <GlowButton 
-            text="Start Training Today" 
+            text="Meet Our Trainers" 
             theme="purple" 
             size="medium" 
             animateOnRender 
-            onClick={() => navigate('/shop')}
-            aria-label="Start your training journey today"
+            onClick={() => window.location.href = '/trainers'}
+            aria-label="Meet our professional trainers"
           />
         </ExploreMoreButton>
       </div>
       
-      {renderSectionDivider(4)}
+      {renderSectionDivider(3)}
       
-      {/* Parallax Section with video background */}
+      {/* Parallax Section with video background - using IntersectionObserver for optimized loading */}
       <div data-testid="parallax-section" style={{ minHeight: '100px', willChange: 'transform' }}>
         <ParallaxSection />
       </div>
       
-      {renderSectionDivider(5)}
+      {renderSectionDivider(4)}
       
-      {/* Testimonial Slider */}
+      {/* Testimonial Slider with enhanced loading - use visibility transition */}
       <div ref={testimonialRef} style={{ minHeight: '200px', opacity: isTestimonialInView ? 1 : 0, transition: 'opacity 0.5s ease-in-out' }}>
         <Suspense fallback={<SectionLoader />}>
           <TestimonialSlider />
@@ -805,17 +565,17 @@ const HomePage: React.FC = () => {
           whileTap="tap"
         >
           <GlowButton 
-            text="Get Started Now" 
+            text="Read More Testimonials" 
             theme="cosmic" 
             size="medium" 
             animateOnRender 
-            onClick={() => navigate('/shop')}
-            aria-label="Get started with your transformation"
+            onClick={() => window.location.href = '/testimonials'}
+            aria-label="View more customer testimonials"
           />
         </ExploreMoreButton>
       </div>
       
-      {/* Stats Section */}
+      {/* Stats Section - Shows achievements with progressive loading */}
       <div ref={statsRef} style={{ 
         minHeight: '200px', 
         willChange: 'opacity',
@@ -827,9 +587,9 @@ const HomePage: React.FC = () => {
         </Suspense>
       </div>
       
-      {renderSectionDivider(6)}
+      {renderSectionDivider(4)}
       
-      {/* Instagram Feed Section */}
+      {/* Instagram Feed Section with loading priority */}
       <div ref={instagramRef} style={{ 
         minHeight: '200px', 
         willChange: 'opacity',
@@ -842,7 +602,7 @@ const HomePage: React.FC = () => {
         </Suspense>
       </div>
       
-      {/* Newsletter Signup */}
+      {/* Newsletter Signup with priority loading */}
       <div ref={newsletterRef} style={{ 
         minHeight: '100px', 
         willChange: 'opacity',
@@ -853,25 +613,6 @@ const HomePage: React.FC = () => {
         <Suspense fallback={<SectionLoader />}>
           <NewsletterSignup />
         </Suspense>
-        
-        {/* Final CTA */}
-        <ExploreMoreButton
-          variants={buttonVariants}
-          initial="hidden"
-          animate={isNewsletterInView ? "visible" : "hidden"}
-          whileHover="hover"
-          whileTap="tap"
-          style={{ marginTop: '3rem' }}
-        >
-          <GlowButton 
-            text="Ready to Transform? Start Here" 
-            theme="cosmic" 
-            size="large" 
-            animateOnRender 
-            onClick={() => navigate('/shop')}
-            aria-label="Ready to transform? Start your journey here"
-          />
-        </ExploreMoreButton>
       </div>
     </HomePageContainer>
   );
