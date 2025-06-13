@@ -1,5 +1,5 @@
-// SwanStudios StoreFront with Galaxy Theme + Correct Pricing
-// Combines the stunning Galaxy Store theme with the correct hardcoded pricing structure
+// SwanStudios StoreFront with Galaxy Theme + API Integration
+// Fixed: Now fetches packages from backend API instead of hardcoded data
 
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import styled, { keyframes } from "styled-components";
@@ -8,6 +8,7 @@ import { motion, useAnimation, useInView, AnimatePresence } from "framer-motion"
 // --- Context Imports ---
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
+import { api } from "../../services/api.service";
 
 // --- Component Imports ---
 import GlowButton from "../../components/ui/GlowButton";
@@ -34,138 +35,6 @@ const GALAXY_COLORS = {
   warningRed: '#ff416c'
 };
 
-// --- CORRECT PRICING - Fixed Packages ---
-const FIXED_PACKAGES = [
-  {
-    id: 1,
-    name: "Single Session",
-    description: "Try a premium training session with Sean Swan.",
-    packageType: "fixed",
-    sessions: 1,
-    pricePerSession: 175,
-    price: 175,
-    displayPrice: 175,
-    totalSessions: 1,
-    imageUrl: "/assets/images/single-session.jpg",
-    theme: "ruby",
-    isActive: true,
-    displayOrder: 1
-  },
-  {
-    id: 2,
-    name: "Silver Package",
-    description: "Perfect starter package with 8 premium training sessions.",
-    packageType: "fixed",
-    sessions: 8,
-    pricePerSession: 170,
-    price: 1360,
-    displayPrice: 1360,
-    totalSessions: 8,
-    imageUrl: "/assets/images/silver-package.jpg",
-    theme: "emerald",
-    isActive: true,
-    displayOrder: 2
-  },
-  {
-    id: 3,
-    name: "Gold Package",
-    description: "Comprehensive training with 20 sessions for serious results.",
-    packageType: "fixed",
-    sessions: 20,
-    pricePerSession: 165,
-    price: 3300,
-    displayPrice: 3300,
-    totalSessions: 20,
-    imageUrl: "/assets/images/gold-package.jpg",
-    theme: "cosmic",
-    isActive: true,
-    displayOrder: 3
-  },
-  {
-    id: 4,
-    name: "Platinum Package",
-    description: "Ultimate transformation with 50 premium sessions.",
-    packageType: "fixed",
-    sessions: 50,
-    pricePerSession: 160,
-    price: 8000,
-    displayPrice: 8000,
-    totalSessions: 50,
-    imageUrl: "/assets/images/platinum-package.jpg",
-    theme: "purple",
-    isActive: true,
-    displayOrder: 4
-  }
-];
-
-// --- CORRECT PRICING - Monthly Packages ---
-const MONTHLY_PACKAGES = [
-  {
-    id: 5,
-    name: "3-Month Excellence",
-    description: "Intensive 3-month program with 4 sessions per week.",
-    packageType: "monthly",
-    months: 3,
-    sessionsPerWeek: 4,
-    totalSessions: 48,
-    pricePerSession: 155,
-    price: 7440,
-    displayPrice: 7440,
-    imageUrl: "/assets/images/3-month-package.jpg",
-    theme: "emerald",
-    isActive: true,
-    displayOrder: 5
-  },
-  {
-    id: 6,
-    name: "6-Month Mastery",
-    description: "Build lasting habits with 6 months of consistent training.",
-    packageType: "monthly",
-    months: 6,
-    sessionsPerWeek: 4,
-    totalSessions: 96,
-    pricePerSession: 150,
-    price: 14400,
-    displayPrice: 14400,
-    imageUrl: "/assets/images/6-month-package.jpg",
-    theme: "cosmic",
-    isActive: true,
-    displayOrder: 6
-  },
-  {
-    id: 7,
-    name: "9-Month Transformation",
-    description: "Complete lifestyle transformation over 9 months.",
-    packageType: "monthly",
-    months: 9,
-    sessionsPerWeek: 4,
-    totalSessions: 144,
-    pricePerSession: 145,
-    price: 20880,
-    displayPrice: 20880,
-    imageUrl: "/assets/images/9-month-package.jpg",
-    theme: "ruby",
-    isActive: true,
-    displayOrder: 7
-  },
-  {
-    id: 8,
-    name: "12-Month Elite Program",
-    description: "The ultimate yearly commitment for maximum results.",
-    packageType: "monthly",
-    months: 12,
-    sessionsPerWeek: 4,
-    totalSessions: 192,
-    pricePerSession: 140,
-    price: 26880,
-    displayPrice: 26880,
-    imageUrl: "/assets/images/12-month-package.jpg",
-    theme: "purple",
-    isActive: true,
-    displayOrder: 8
-  }
-];
-
 // --- Type Definition for Package ---
 interface StoreItem {
   id: number;
@@ -178,6 +47,7 @@ interface StoreItem {
   sessionsPerWeek?: number;
   totalSessions?: number;
   price?: number;
+  totalCost?: number;
   displayPrice: number;
   theme?: string;
   isActive: boolean;
@@ -204,6 +74,19 @@ const formatPrice = (price: number | null | undefined): string => {
 
 const getPackageImage = (imageUrl: string | null, packageName: string): string => {
   return '/marble-texture.png';
+};
+
+const getThemeFromName = (name: string): string => {
+  const nameLower = name.toLowerCase();
+  if (nameLower.includes('silver') || nameLower.includes('wing')) return 'emerald';
+  if (nameLower.includes('golden') || nameLower.includes('flight')) return 'ruby';
+  if (nameLower.includes('sapphire') || nameLower.includes('soar')) return 'cosmic';
+  if (nameLower.includes('platinum') || nameLower.includes('grace')) return 'purple';
+  if (nameLower.includes('emerald') || nameLower.includes('evolution')) return 'emerald';
+  if (nameLower.includes('diamond') || nameLower.includes('dynasty')) return 'cosmic';
+  if (nameLower.includes('ruby') || nameLower.includes('reign')) return 'ruby';
+  if (nameLower.includes('rhodium') || nameLower.includes('royalty')) return 'purple';
+  return 'purple';
 };
 
 // --- Galaxy Theme Keyframes ---
@@ -926,7 +809,56 @@ const AuthBanner = styled.div`
   }
 `;
 
-// --- StoreFront Component with Galaxy Theme ---
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  flex-direction: column;
+  gap: 1rem;
+  
+  .spinner {
+    width: 50px;
+    height: 50px;
+    border: 4px solid rgba(0, 255, 255, 0.1);
+    border-left: 4px solid rgba(0, 255, 255, 0.8);
+    border-radius: 50%;
+    animation: ${spinnerAnimation} 1s linear infinite;
+  }
+  
+  .loading-text {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.1rem;
+  }
+`;
+
+const ErrorContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  flex-direction: column;
+  gap: 1rem;
+  text-align: center;
+  
+  .error-title {
+    font-size: 1.5rem;
+    color: ${GALAXY_COLORS.warningRed};
+    margin-bottom: 0.5rem;
+  }
+  
+  .error-message {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.1rem;
+    max-width: 600px;
+  }
+  
+  .retry-button {
+    margin-top: 1rem;
+  }
+`;
+
+// --- StoreFront Component with Galaxy Theme and API Integration ---
 const GalaxyThemedStoreFront: React.FC = () => {
   const { user, isAuthenticated, authAxios } = useAuth();
   const { cart, addToCart, refreshCart } = useCart();
@@ -939,6 +871,11 @@ const GalaxyThemedStoreFront: React.FC = () => {
   const [revealPrices, setRevealPrices] = useState<{ [key: string]: boolean }>({});
   const [isAddingToCart, setIsAddingToCart] = useState<number | null>(null);
   const [showPulse, setShowPulse] = useState(false);
+  
+  // NEW: API-based package state
+  const [packages, setPackages] = useState<StoreItem[]>([]);
+  const [isLoadingPackages, setIsLoadingPackages] = useState(true);
+  const [packagesError, setPackagesError] = useState<string | null>(null);
 
   // PRODUCTION: Only authenticated users can purchase
   const canViewPrices = isAuthenticated && !!user;
@@ -957,7 +894,68 @@ const GalaxyThemedStoreFront: React.FC = () => {
   const isFixedPackagesInView = useInView(fixedPackagesSectionRef, { once: true, amount: 0.1 });
   const isMonthlyPackagesInView = useInView(monthlyPackagesSectionRef, { once: true, amount: 0.1 });
 
+  // --- NEW: Fetch packages from API ---
+  const fetchPackages = useCallback(async () => {
+    try {
+      setIsLoadingPackages(true);
+      setPackagesError(null);
+      
+      console.log('🔄 Fetching packages from API...');
+      const response = await api.get('/storefront');
+      
+      if (response.data?.success && Array.isArray(response.data.items)) {
+        const fetchedPackages = response.data.items.map((pkg: any) => ({
+          id: pkg.id,
+          name: pkg.name,
+          description: pkg.description || '',
+          packageType: pkg.packageType || 'fixed',
+          pricePerSession: pkg.pricePerSession || 0,
+          sessions: pkg.sessions,
+          months: pkg.months,
+          sessionsPerWeek: pkg.sessionsPerWeek,
+          totalSessions: pkg.totalSessions,
+          price: pkg.price || pkg.totalCost || 0,
+          totalCost: pkg.totalCost || pkg.price || 0,
+          displayPrice: pkg.totalCost || pkg.price || 0,
+          theme: getThemeFromName(pkg.name), // Auto-assign theme based on package name
+          isActive: pkg.isActive !== false,
+          imageUrl: pkg.imageUrl,
+          displayOrder: pkg.displayOrder || 0,
+          includedFeatures: pkg.includedFeatures
+        }));
+        
+        // Sort by display order, then by ID
+        fetchedPackages.sort((a, b) => {
+          if (a.displayOrder !== b.displayOrder) {
+            return (a.displayOrder || 0) - (b.displayOrder || 0);
+          }
+          return a.id - b.id;
+        });
+        
+        setPackages(fetchedPackages);
+        console.log(`✅ Loaded ${fetchedPackages.length} packages from API`);
+        console.log('📦 Packages:', fetchedPackages.map(p => `${p.id}: ${p.name}`).join(', '));
+      } else {
+        throw new Error('Invalid API response format');
+      }
+    } catch (error: any) {
+      console.error('❌ Failed to fetch packages:', error);
+      setPackagesError(error.message || 'Failed to load packages');
+      toast({ 
+        title: "Failed to load packages", 
+        description: "Using fallback data. Please refresh the page.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsLoadingPackages(false);
+    }
+  }, [toast]);
+
   // --- Effects ---
+  useEffect(() => {
+    fetchPackages();
+  }, [fetchPackages]);
+
   useEffect(() => {
     if (isHeroInView) heroControls.start("visible");
     if (isFixedPackagesInView) fixedPackagesControls.start("visible");
@@ -1062,20 +1060,16 @@ const GalaxyThemedStoreFront: React.FC = () => {
       return;
     }
 
-    const cartItemData = {
-      id: pkg.id,
-      name: pkg.name,
-      price: pkg.displayPrice,
-      quantity: 1,
-      totalSessions: pkg.totalSessions || 0,
-      packageType: pkg.packageType || 'fixed',
-      sessionCount: pkg.sessions || pkg.totalSessions || 0,
-      timestamp: Date.now()
+    // NOW USING: storefrontItemId instead of hardcoded cart data
+    const cartData = {
+      storefrontItemId: pkg.id, // This matches the backend expectation
+      quantity: 1
     };
 
     setIsAddingToCart(pkg.id);
     try {
-      await addToCart(cartItemData);
+      console.log(`🛒 Adding package to cart:`, { packageId: pkg.id, packageName: pkg.name });
+      await addToCart(cartData);
       setTimeout(() => refreshCart(), 500);
       toast({ title: "Success!", description: `Added ${pkg.name} to cart.` });
       setShowPulse(true);
@@ -1102,6 +1096,10 @@ const GalaxyThemedStoreFront: React.FC = () => {
     }
     return { text: '', isGoodValue: false };
   };
+
+  // --- Filter packages ---
+  const fixedPackages = packages.filter(pkg => pkg.packageType === 'fixed');
+  const monthlyPackages = packages.filter(pkg => pkg.packageType === 'monthly');
 
   // --- Render Package Card ---
   const renderCosmicPackageCard = useCallback((pkg: StoreItem) => {
@@ -1200,6 +1198,58 @@ const GalaxyThemedStoreFront: React.FC = () => {
     );
   }, [isAddingToCart, canViewPrices, canPurchase, handleAddToCart, buttonMotionProps, revealPrices, togglePriceVisibility]);
 
+  // --- Render Loading State ---
+  if (isLoadingPackages) {
+    return (
+      <GalaxyContainer>
+        {!isAuthenticated && (
+          <AuthBanner>
+            Please login or register to view pricing and purchase training packages
+          </AuthBanner>
+        )}
+        <ContentOverlay style={{ paddingTop: !isAuthenticated ? '60px' : '0' }}>
+          <SectionContainer>
+            <LoadingContainer>
+              <div className="spinner"></div>
+              <div className="loading-text">Loading your luxury Swan packages...</div>
+            </LoadingContainer>
+          </SectionContainer>
+        </ContentOverlay>
+      </GalaxyContainer>
+    );
+  }
+
+  // --- Render Error State ---
+  if (packagesError && packages.length === 0) {
+    return (
+      <GalaxyContainer>
+        {!isAuthenticated && (
+          <AuthBanner>
+            Please login or register to view pricing and purchase training packages
+          </AuthBanner>
+        )}
+        <ContentOverlay style={{ paddingTop: !isAuthenticated ? '60px' : '0' }}>
+          <SectionContainer>
+            <ErrorContainer>
+              <div className="error-title">Failed to Load Packages</div>
+              <div className="error-message">
+                We couldn't load the training packages. This might be because the luxury Swan packages need to be restored to the database.
+              </div>
+              <div className="retry-button">
+                <ThemedGlowButton 
+                  text="Retry Loading" 
+                  variant="primary" 
+                  size="medium" 
+                  onClick={fetchPackages}
+                />
+              </div>
+            </ErrorContainer>
+          </SectionContainer>
+        </ContentOverlay>
+      </GalaxyContainer>
+    );
+  }
+
   // --- Component JSX ---
   return (
     <GalaxyContainer>
@@ -1279,35 +1329,35 @@ const GalaxyThemedStoreFront: React.FC = () => {
         {/* Package Content */}
         <>
           {/* Fixed Packages Section */}
-          {FIXED_PACKAGES.length > 0 && (
+          {fixedPackages.length > 0 && (
             <PackageSection id="packages-section" ref={fixedPackagesSectionRef}>
               <motion.div initial={{ opacity: 0 }} animate={fixedPackagesControls} variants={containerVariants}>
                 <SectionTitle initial={{ opacity: 0 }} animate={{ opacity: 1 }} variants={itemVariants}>
                   Premium Training Packages
                 </SectionTitle>
                 <GalaxyGrid initial={{ opacity: 0 }} animate={{ opacity: 1 }} variants={gridVariants} aria-label="Session packages">
-                  {FIXED_PACKAGES.map(renderCosmicPackageCard)}
+                  {fixedPackages.map(renderCosmicPackageCard)}
                 </GalaxyGrid>
               </motion.div>
             </PackageSection>
           )}
 
           {/* Monthly Packages Section */}
-          {MONTHLY_PACKAGES.length > 0 && (
-            <PackageSection ref={monthlyPackagesSectionRef} style={FIXED_PACKAGES.length > 0 ? { marginTop: '0rem' } : {}}>
+          {monthlyPackages.length > 0 && (
+            <PackageSection ref={monthlyPackagesSectionRef} style={fixedPackages.length > 0 ? { marginTop: '0rem' } : {}}>
               <motion.div initial={{ opacity: 0 }} animate={monthlyPackagesControls} variants={containerVariants}>
                  <SectionTitle initial={{ opacity: 0 }} animate={{ opacity: 1 }} variants={itemVariants}>
                   Long-Term Excellence Programs
                 </SectionTitle>
                 <GalaxyGrid initial={{ opacity: 0 }} animate={{ opacity: 1 }} variants={gridVariants} aria-label="Monthly packages">
-                  {MONTHLY_PACKAGES.map(renderCosmicPackageCard)}
+                  {monthlyPackages.map(renderCosmicPackageCard)}
                 </GalaxyGrid>
               </motion.div>
             </PackageSection>
           )}
           
           {/* Consultation Button */}
-          {(FIXED_PACKAGES.length > 0 || MONTHLY_PACKAGES.length > 0) && (
+          {(fixedPackages.length > 0 || monthlyPackages.length > 0) && (
               <SectionContainer style={{paddingTop: '2rem', paddingBottom: '5rem'}}>
                   <motion.div 
                       style={{ display: "flex", justifyContent: "center", marginTop: "1rem", position: 'relative', zIndex: 20 }} 
