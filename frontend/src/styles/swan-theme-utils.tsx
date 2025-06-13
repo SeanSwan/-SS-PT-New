@@ -10,7 +10,7 @@
 import React from 'react';
 import styled, { css, keyframes } from 'styled-components';
 import { galaxySwanTheme, mediaQueries } from './galaxy-swan-theme';
-import GlowButton from '../components/Button/glowButton.jsx';
+import GlowButton from '../components/ui/buttons/GlowButton';
 
 // === ENHANCED KEYFRAME ANIMATIONS ===
 

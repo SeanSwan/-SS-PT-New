@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import styled, { keyframes, css } from "styled-components";
 import { motion, useInView, useAnimation } from "framer-motion";
-import GlowButton from "../../components/Button/glowButton";
+import GlowButton from "../../components/ui/buttons/GlowButton";
 
 // Import Header Component
 import Header from "../../components/Header/header";
