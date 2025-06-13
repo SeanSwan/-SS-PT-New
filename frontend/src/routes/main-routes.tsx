@@ -112,17 +112,21 @@ const AboutPage = lazyLoadWithErrorHandling(
   () => import('../pages/about/About'),
   'About Page'
 );
-const StoreFront = lazyLoadWithErrorHandling(
+
+// ✅ CONSOLIDATED SWANSTUDIOS STORE - Using StoreFront with correct pricing
+const SwanStudiosStore = lazyLoadWithErrorHandling(
   () => import('../pages/shop/StoreFront.component'),
-  'Storefront'
+  'SwanStudios Store'
 );
+
+// Additional store components for debugging/fallback
 const DebugStoreFront = lazyLoadWithErrorHandling(
   () => import('../pages/shop/DebugStoreFront.component'),
   'Debug Storefront'
 );
-const SwanStudiosStore = lazyLoadWithErrorHandling(
+const GalaxyStoreFrontFixed = lazyLoadWithErrorHandling(
   () => import('../pages/shop/GalaxyStoreFrontFixed.component'),
-  'SwanStudios Store'
+  'Galaxy StoreFront Fixed'
 );
 const ShopPage = lazyLoadWithErrorHandling(
   () => import('../pages/shop/ShopPage'),
@@ -276,71 +280,8 @@ const MainRoutes: RouteObject = {
         </Suspense>
       )
     },
-    {
-      path: 'shop',
-      element: (
-        <Suspense fallback={<PageLoader />}>
-          <SwanStudiosStore />
-        </Suspense>
-      )
-    },
-    {
-      path: 'shop/apparel',
-      element: (
-        <Suspense fallback={<PageLoader />}>
-          <SwanStudiosStore />
-        </Suspense>
-      )
-    },
-    {
-      path: 'shop/training-packages',
-      element: (
-        <Suspense fallback={<PageLoader />}>
-          <SwanStudiosStore />
-        </Suspense>
-      )
-    },
-    {
-      path: 'shop/supplements',
-      element: (
-        <Suspense fallback={<PageLoader />}>
-          <SwanStudiosStore />
-        </Suspense>
-      )
-    },
-    {
-      path: 'shop/product/:id',
-      element: (
-        <Suspense fallback={<PageLoader />}>
-          <ProductDetail />
-        </Suspense>
-      )
-    },
-    {
-      path: 'scroll-test',
-      element: (
-        <Suspense fallback={<PageLoader />}>
-          <ScrollTestPage />
-        </Suspense>
-      )
-    },
-    {
-      path: 'food-scanner',
-      element: (
-        <Suspense fallback={<PageLoader />}>
-          <FoodScannerPage />
-        </Suspense>
-      )
-    },
-    // Temporarily disabled - missing theme dependencies
-    // {
-    //   path: 'theme-showcase',
-    //   element: (
-    //     <Suspense fallback={<PageLoader />}>
-    //       <SwanBrandShowcase />
-    //     </Suspense>
-    //   )
-    // },
+    
+    // ✅ CONSOLIDATED SWANSTUDIOS STORE ROUTES - All point to StoreFront with correct pricing
     {
       path: 'store',
       element: (
@@ -358,10 +299,55 @@ const MainRoutes: RouteObject = {
       )
     },
     {
-      path: 'galaxy-store',
+      path: 'shop',
       element: (
         <Suspense fallback={<PageLoader />}>
           <SwanStudiosStore />
+        </Suspense>
+      )
+    },
+    
+    // Redirect old/multiple store routes to main store
+    {
+      path: 'galaxy-store',
+      element: <Navigate to="/store" replace />
+    },
+    {
+      path: 'shop/apparel',
+      element: <Navigate to="/store" replace />
+    },
+    {
+      path: 'shop/training-packages',
+      element: <Navigate to="/store" replace />
+    },
+    {
+      path: 'shop/supplements',
+      element: <Navigate to="/store" replace />
+    },
+    
+    // Keep product detail route
+    {
+      path: 'shop/product/:id',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <ProductDetail />
+        </Suspense>
+      )
+    },
+    
+    {
+      path: 'scroll-test',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <ScrollTestPage />
+        </Suspense>
+      )
+    },
+    {
+      path: 'food-scanner',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <FoodScannerPage />
         </Suspense>
       )
     },
@@ -374,7 +360,7 @@ const MainRoutes: RouteObject = {
       )
     },
     
-    // Debug routes for StoreFront troubleshooting
+    // Debug routes for StoreFront troubleshooting (keep for development)
     {
       path: 'debug-store',
       element: (
@@ -384,18 +370,10 @@ const MainRoutes: RouteObject = {
       )
     },
     {
-      path: 'simple-store',
+      path: 'galaxy-storefront-fixed',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <SwanStudiosStore />
-        </Suspense>
-      )
-    },
-    {
-      path: 'fixed-store',
-      element: (
-        <Suspense fallback={<PageLoader />}>
-          <StoreFront />
+          <GalaxyStoreFrontFixed />
         </Suspense>
       )
     },
@@ -526,7 +504,7 @@ const MainRoutes: RouteObject = {
     // Redirect for missing training-packages route
     {
       path: 'training-packages',
-      element: <Navigate to="/shop/training-packages" replace />
+      element: <Navigate to="/store" replace />
     },
     
     // Fallback Route (404)
