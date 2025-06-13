@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from "../../../../hooks/use-toast";
-import GlowButton from '../../../Button/glowButton';
+import GlowButton from '../../../ui/buttons/GlowButton';
 
 // Import Icons
 import {
