@@ -6,7 +6,7 @@ import { useToast } from '../../hooks/use-toast';
 import axios from 'axios';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import GlowButton from '../Button/glowButton';
+import GlowButton from '../ui/buttons/GlowButton';
 import ProductRecommendations from './ProductRecommendations';
 
 // Types
