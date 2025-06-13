@@ -1,7 +1,6 @@
 /**
- * main-routes.tsx
- * Main application routes configuration for SwanStudios fitness platform.
- * Implements a type-safe routing structure with protected routes and improved error handling.
+ * main-routes.tsx - GALAXY THEMED STOREFRONT VERSION
+ * Using the new GalaxyThemedStoreFront with correct pricing and stunning visuals
  */
 import React, { lazy, Suspense } from 'react';
 import { RouteObject, Navigate, Outlet } from 'react-router-dom';
@@ -18,80 +17,113 @@ import { DashboardWrapper } from '../components/DashboardWrapper';
 // Custom Routes
 import DebugRoutes from './debug-routes';
 
-// Types
-interface ProtectedRouteProps {
-  requiredRole?: string;
-  children: React.ReactNode;
-}
-
 // Loading Component for Code Splitting
 const PageLoader: React.FC = () => (
-  <div className="page-loading-container">
-    <div className="page-loading-spinner"></div>
-  </div>
-);
-
-// Enhanced error component with retry functionality
-const ComponentLoadError = ({ componentName = "Component", retryFn = null }) => (
-  <div className="error-container" style={{
-    padding: '2rem',
-    maxWidth: '800px',
-    margin: '0 auto',
-    textAlign: 'center',
-    background: 'rgba(30, 30, 60, 0.4)',
-    backdropFilter: 'blur(10px)',
-    borderRadius: '15px',
-    border: '1px solid rgba(255, 255, 255, 0.1)',
+  <div style={{
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '50vh',
+    background: 'linear-gradient(135deg, #0a0a1a, #1e1e3f)',
     color: 'white'
   }}>
-    <h2 style={{ color: '#ff416c' }}>Failed to Load {componentName}</h2>
-    <p>We're having trouble loading this page. This could be due to a network issue or a problem with the component.</p>
-    
-    {retryFn && (
-      <button 
-        onClick={retryFn}
-        style={{
-          background: 'linear-gradient(135deg, #00ffff, #00c8ff)',
-          border: 'none',
-          padding: '0.75rem 1.5rem',
-          borderRadius: '8px',
-          color: '#0a0a1a',
-          fontWeight: 500,
-          cursor: 'pointer',
-          marginTop: '1rem'
-        }}
-      >
-        Retry Loading
-      </button>
-    )}
-    
-    <p style={{ marginTop: '1rem', fontSize: '0.9rem', opacity: 0.7 }}>
-      If this issue persists, please try refreshing the browser or contact support.
-    </p>
+    <div style={{
+      border: '4px solid rgba(255, 255, 255, 0.1)',
+      borderRadius: '50%',
+      borderTop: '4px solid #00ffff',
+      width: '50px',
+      height: '50px',
+      animation: 'spin 1s linear infinite'
+    }}>
+    </div>
   </div>
 );
 
-// Enhanced lazy loading function with better error handling
-function lazyLoadWithErrorHandling(importFn, componentName) {
+// Enhanced lazy loading function
+function lazyLoadWithErrorHandling(importFn, componentName, fallbackImportFn = null) {
   return lazy(() => 
     importFn()
       .catch(error => {
         console.error(`Failed to load ${componentName}:`, error);
-        // Return a component that displays the error but allows retrying
+        
+        if (fallbackImportFn) {
+          console.log(`Trying fallback for ${componentName}...`);
+          return fallbackImportFn().catch(fallbackError => {
+            console.error(`Fallback also failed for ${componentName}:`, fallbackError);
+            return {
+              default: () => (
+                <div style={{
+                  padding: '2rem',
+                  textAlign: 'center',
+                  background: 'linear-gradient(135deg, #0a0a1a, #1e1e3f)',
+                  color: 'white',
+                  minHeight: '50vh',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}>
+                  <h2 style={{ color: '#ff416c' }}>Error Loading {componentName}</h2>
+                  <p>Please refresh the page or contact support.</p>
+                  <button 
+                    onClick={() => window.location.reload()}
+                    style={{
+                      background: 'linear-gradient(135deg, #00ffff, #00c8ff)',
+                      border: 'none',
+                      padding: '0.75rem 1.5rem',
+                      borderRadius: '8px',
+                      color: '#0a0a1a',
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      marginTop: '1rem'
+                    }}
+                  >
+                    Retry
+                  </button>
+                </div>
+              )
+            };
+          });
+        }
+        
         return {
-          default: (props) => (
-            <ComponentLoadError 
-              componentName={componentName} 
-              retryFn={() => window.location.reload()}
-            />
+          default: () => (
+            <div style={{
+              padding: '2rem',
+              textAlign: 'center',
+              background: 'linear-gradient(135deg, #0a0a1a, #1e1e3f)',
+              color: 'white',
+              minHeight: '50vh',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}>
+              <h2 style={{ color: '#ff416c' }}>Error Loading {componentName}</h2>
+              <p>Please refresh the page or contact support.</p>
+              <button 
+                onClick={() => window.location.reload()}
+                style={{
+                  background: 'linear-gradient(135deg, #00ffff, #00c8ff)',
+                  border: 'none',
+                  padding: '0.75rem 1.5rem',
+                  borderRadius: '8px',
+                  color: '#0a0a1a',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  marginTop: '1rem'
+                }}
+              >
+                Retry
+              </button>
+            </div>
           )
         };
       })
   );
 }
 
-// Lazy-loaded Components with enhanced error handling
-// Public Pages
+// Lazy-loaded Components
 const HomePage = lazyLoadWithErrorHandling(
   () => import('../pages/HomePage/components/HomePage.component'),
   'Home Page'
@@ -113,13 +145,15 @@ const AboutPage = lazyLoadWithErrorHandling(
   'About Page'
 );
 
-// ✅ CONSOLIDATED SWANSTUDIOS STORE - Using StoreFront with correct pricing
+// 🌌 GALAXY THEMED SWANSTUDIOS STORE - Perfect combination of Galaxy theme + correct pricing
 const SwanStudiosStore = lazyLoadWithErrorHandling(
-  () => import('../pages/shop/StoreFront.component'),
-  'SwanStudios Store'
+  () => import('../pages/shop/GalaxyThemedStoreFront'),
+  'SwanStudios Store (Galaxy Theme)',
+  // Fallback to simple store if needed
+  () => import('../pages/shop/SimpleStoreFront')
 );
 
-// Additional store components for debugging/fallback
+// Other store components for testing/fallback
 const DebugStoreFront = lazyLoadWithErrorHandling(
   () => import('../pages/shop/DebugStoreFront.component'),
   'Debug Storefront'
@@ -128,13 +162,13 @@ const GalaxyStoreFrontFixed = lazyLoadWithErrorHandling(
   () => import('../pages/shop/GalaxyStoreFrontFixed.component'),
   'Galaxy StoreFront Fixed'
 );
-const ShopPage = lazyLoadWithErrorHandling(
-  () => import('../pages/shop/ShopPage'),
-  'Shop Page'
+const OriginalStoreFront = lazyLoadWithErrorHandling(
+  () => import('../pages/shop/StoreFront.component'),
+  'Original StoreFront'
 );
-const RawPackageViewer = lazyLoadWithErrorHandling(
-  () => import('../pages/shop/RawPackageViewer'),
-  'Raw Package Viewer'
+const SimpleStoreFront = lazyLoadWithErrorHandling(
+  () => import('../pages/shop/SimpleStoreFront'),
+  'Simple StoreFront'
 );
 const ProductDetail = lazyLoadWithErrorHandling(
   () => import('../components/Shop/ProductDetail'),
@@ -152,11 +186,8 @@ const UnauthorizedPage = lazyLoadWithErrorHandling(
   () => import('../pages/UnauthorizedPage.component'),
   'Unauthorized Page'
 );
+
 // Schedule Related Components
-const ScheduleContainer = lazyLoadWithErrorHandling(
-  () => import('../components/Schedule'),
-  'Schedule Container'
-);
 const EnhancedScheduleWrapper = lazyLoadWithErrorHandling(
   () => import('../components/Schedule').then(module => ({ default: module.EnhancedScheduleWrapper })),
   'Enhanced Schedule Wrapper'
@@ -177,50 +208,30 @@ const MockCheckout = lazyLoadWithErrorHandling(
 );
 
 // Protected Pages
-const ClientDashboard = lazyLoadWithErrorHandling(
-  () => import('../components/ClientDashboard/ClientDashboard'),
-  'Client Dashboard'
-);
-const ClientDashboardView = lazyLoadWithErrorHandling(
-  () => import('../components/DashBoard/Pages/client-dashboard/client-dashboard-view'),
-  'Client Dashboard View'
-);
-// Revolutionary Galaxy Dashboard - Seraphina's Digital Alchemist Implementation
 const RevolutionaryClientDashboard = lazyLoadWithErrorHandling(
   () => import('../components/ClientDashboard/RevolutionaryClientDashboard'),
   'Revolutionary Galaxy Client Dashboard'
 );
-
-// Legacy dashboard (kept for fallback if needed)
 const NewClientDashboard = lazyLoadWithErrorHandling(
   () => import('../components/ClientDashboard/NewDashboard.jsx'),
   'Enhanced Client Dashboard'
 );
-
-// Emergency dashboard for testing
 const EmergencyDashboard = lazyLoadWithErrorHandling(
   () => import('../components/ClientDashboard/EmergencyDashboard.jsx'),
   'Emergency Dashboard'
 );
-
 const WorkoutDashboard = lazyLoadWithErrorHandling(
   () => import('../pages/workout/WorkoutDashboard'),
   'Workout Dashboard'
 );
-
-// Admin Dashboard Components - using direct imports to avoid path resolution issues
 const AdminDashboardLayout = lazyLoadWithErrorHandling(
   () => import('../components/DashBoard/UnifiedAdminDashboardLayout'),
   'Admin Dashboard Layout'
 );
-
-// Trainer Dashboard - Revolutionary Galaxy Theme (New)
 const TrainerDashboard = lazyLoadWithErrorHandling(
   () => import('../components/TrainerDashboard/TrainerDashboard'),
   'Trainer Dashboard'
 );
-
-// User Dashboard - Instagram-style social dashboard
 const UserDashboard = lazyLoadWithErrorHandling(
   () => import('../components/UserDashboard'),
   'User Dashboard'
@@ -228,7 +239,6 @@ const UserDashboard = lazyLoadWithErrorHandling(
 
 /**
  * Main application routes configuration
- * Organized by access level: public, protected, and admin routes
  */
 const MainRoutes: RouteObject = {
   path: '/',
@@ -281,7 +291,7 @@ const MainRoutes: RouteObject = {
       )
     },
     
-    // ✅ CONSOLIDATED SWANSTUDIOS STORE ROUTES - All point to StoreFront with correct pricing
+    // 🌌 GALAXY THEMED SWANSTUDIOS STORE - All routes point to the new Galaxy themed version
     {
       path: 'store',
       element: (
@@ -307,7 +317,33 @@ const MainRoutes: RouteObject = {
       )
     },
     
-    // Redirect old/multiple store routes to main store
+    // Testing routes for different store versions
+    {
+      path: 'store-original',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <OriginalStoreFront />
+        </Suspense>
+      )
+    },
+    {
+      path: 'store-galaxy-api',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <GalaxyStoreFrontFixed />
+        </Suspense>
+      )
+    },
+    {
+      path: 'store-simple',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <SimpleStoreFront />
+        </Suspense>
+      )
+    },
+    
+    // Redirect old routes
     {
       path: 'galaxy-store',
       element: <Navigate to="/store" replace />
@@ -360,20 +396,12 @@ const MainRoutes: RouteObject = {
       )
     },
     
-    // Debug routes for StoreFront troubleshooting (keep for development)
+    // Debug routes
     {
       path: 'debug-store',
       element: (
         <Suspense fallback={<PageLoader />}>
           <DebugStoreFront />
-        </Suspense>
-      )
-    },
-    {
-      path: 'galaxy-storefront-fixed',
-      element: (
-        <Suspense fallback={<PageLoader />}>
-          <GalaxyStoreFrontFixed />
         </Suspense>
       )
     },
@@ -415,7 +443,6 @@ const MainRoutes: RouteObject = {
         </ProtectedRoute>
       )
     },
-    // Legacy dashboard fallback route
     {
       path: 'client-dashboard-legacy',
       element: (
@@ -426,7 +453,6 @@ const MainRoutes: RouteObject = {
         </ProtectedRoute>
       )
     },
-    // Emergency admin dashboard route - for breaking loops
     {
       path: 'emergency-admin',
       element: (
@@ -436,8 +462,7 @@ const MainRoutes: RouteObject = {
       )
     },
     
-    // Trainer Dashboard Routes - Revolutionary Galaxy Theme
-    // Allow both trainer and admin roles to access trainer dashboard
+    // Trainer Dashboard Routes
     {
       path: 'trainer-dashboard/*',
       element: (
@@ -449,7 +474,7 @@ const MainRoutes: RouteObject = {
       )
     },
     
-    // User Dashboard Route - Open to all authenticated users
+    // User Dashboard Route
     {
       path: 'user-dashboard',
       element: (
@@ -461,7 +486,6 @@ const MainRoutes: RouteObject = {
       )
     },
     
-
     {
       path: 'workout',
       element: (
@@ -495,25 +519,18 @@ const MainRoutes: RouteObject = {
       )
     },
     
-    // Debug Routes (Direct access)
+    // Debug Routes
     {
       path: 'debug/*',
       element: <DebugRoutes />
     },
     
-    // Redirect for missing training-packages route
     {
       path: 'training-packages',
       element: <Navigate to="/store" replace />
     },
     
-    // Fallback Route (404)
-    {
-      path: '*',
-      element: <Navigate to="/" replace />
-    },
-    
-    // Schedule Route (Protected)
+    // Schedule Route
     {
       path: 'schedule',
       element: (
@@ -523,6 +540,12 @@ const MainRoutes: RouteObject = {
           </Suspense>
         </ProtectedRoute>
       )
+    },
+    
+    // Fallback Route (404)
+    {
+      path: '*',
+      element: <Navigate to="/" replace />
     }
   ]
 };
