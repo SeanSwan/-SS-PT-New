@@ -2,7 +2,7 @@
 import React, { useRef } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, useInView } from "framer-motion";
-import GlowButton from "../Button/glowButton";
+import GlowButton from "../ui/buttons/GlowButton";
 import SectionTitle from "../ui/SectionTitle";
 
 // Define TypeScript interfaces
