@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, useAnimation, useInView } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import GlowButton from "../../../components/Button/glowButton";
+import GlowButton from "../../../components/ui/buttons/GlowButton";
 import OrientationForm from "../../../components/OrientationForm/orientationForm";
 
 // Import assets (ensure paths are correct)
