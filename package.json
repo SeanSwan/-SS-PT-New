@@ -53,7 +53,7 @@
     "dev": "npm run start",
     "monitor": "node scripts/monitor-servers.js",
     "start-backend-stable": "cd backend && npm run dev",
-    "start-frontend-delayed": "sleep 3 && cd frontend && npm run dev",
+    "start-frontend-delayed": "node -e \"setTimeout(() => process.exit(0), 3000)\" && cd frontend && npm run dev",
     "start-backend-robust": "node scripts/start-backend-robust.mjs",
     "start-debug": "concurrently \"npm run start-backend-stable\" \"npm run start-frontend-delayed\" --names \"backend,frontend\" --prefix-colors \"yellow,cyan\"",
     "restart-all": "npm run kill-ports && npm start",
