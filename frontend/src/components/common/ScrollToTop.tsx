@@ -1,7 +1,7 @@
 // src/components/common/ScrollToTop.tsx
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import GlowButton from '../Button/glowButton';
+import GlowButton from '../ui/buttons/GlowButton';
 import { FaArrowUp } from 'react-icons/fa';
 
 // Styled container for positioning the scroll button

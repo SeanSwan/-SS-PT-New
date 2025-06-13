@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from "../../../../hooks/use-toast";
 import { useSocket } from "../../../../hooks/use-socket";
-import GlowButton from '../../../Button/glowButton'; // Ensure path is correct
+import GlowButton from '../../../ui/buttons/GlowButton'; // Ensure path is correct
 import SessionTestControls from './session-test-controls';
 import services from '../../../../services/index';
 import apiService from '../../../../services/api.service'; // Import apiService directly
