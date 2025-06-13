@@ -22,9 +22,9 @@ import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 
 // --- Component Imports ---
-import GlowButton from "../../components/Button/glowButton.jsx";
+import GlowButton from "../../components/ui/buttons/GlowButton";
 import { ThemedGlowButton } from "../../styles/swan-theme-utils.tsx";
-import OrientationForm from "../../components/OrientationForm/orientationForm";
+import OrientationForm from "../../components/OrientationForm/orientationForm.tsx";
 import ShoppingCart from "../../components/ShoppingCart/ShoppingCart";
 import { useToast } from "../../hooks/use-toast";
 
