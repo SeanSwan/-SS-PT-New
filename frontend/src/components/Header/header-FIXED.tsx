@@ -21,12 +21,11 @@ import {
 } from "@mui/material";
 
 // Import icons
-import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
-import NotificationsIcon from '@mui/icons-material/Notifications';
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonIcon from '@mui/icons-material/Person';
+import StoreIcon from '@mui/icons-material/Store';
 import { LayoutDashboard, Users } from 'lucide-react';
 
 // Import custom components
@@ -277,7 +276,6 @@ const MobileLogoutButton = styled(motion.button)`
 `;
 
 // ===================== Animation Variants =====================
-// Simplified animations for better performance
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -427,18 +425,19 @@ const EnhancedHeader = () => {
   };
 
   /**
-   * Renders desktop navigation links - CONSOLIDATED STORE LINK
+   * Renders desktop navigation links - SIMPLIFIED TO SINGLE STORE LINK
    */
   const renderDesktopLinks = () => {
     if (user) {
       return (
         <>
-          {/* SINGLE CONSOLIDATED SWANSTUDIOS STORE LINK */}
+          {/* Single SwanStudios Store Link */}
           <StyledNavLink 
-            to="/store" 
-            className={isActive('/store') || isActive('/shop') ? "active" : ""}
+            to="/shop" 
+            className={isActive('/shop') || isActive('/store') || isActive('/galaxy-store') ? "active" : ""}
             variants={itemVariants}
           >
+            <StoreIcon fontSize="small" style={{ marginRight: '6px' }} />
             SwanStudios Store
           </StyledNavLink>
           
@@ -452,10 +451,11 @@ const EnhancedHeader = () => {
       return (
         <>
           <StyledNavLink 
-            to="/store" 
-            className={isActive('/store') ? "active" : ""}
+            to="/shop" 
+            className={isActive('/shop') || isActive('/store') ? "active" : ""}
             variants={itemVariants}
           >
+            <StoreIcon fontSize="small" style={{ marginRight: '6px' }} />
             SwanStudios Store
           </StyledNavLink>
           
@@ -480,22 +480,21 @@ const EnhancedHeader = () => {
   };
 
   /**
-   * Renders mobile navigation links - CONSOLIDATED STORE LINK
+   * Renders mobile navigation links - SIMPLIFIED TO SINGLE STORE LINK
    */
   const renderMobileLinks = () => {
     if (user) {
       return (
         <>
-          {/* SINGLE CONSOLIDATED SWANSTUDIOS STORE LINK */}
-          <motion.div variants={itemVariants}>
-            <MobileNavLink 
-              to="/store" 
-              onClick={() => setMobileMenuOpen(false)}
-              className={isActive('/store') || isActive('/shop') ? "active" : ""}
-            >
-              <ShoppingBagIcon fontSize="small" /> SwanStudios Store
-            </MobileNavLink>
-          </motion.div>
+          {/* Single SwanStudios Store Link */}
+          <MobileNavLink 
+            to="/shop" 
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/shop') || isActive('/store') || isActive('/galaxy-store') ? "active" : ""}
+            variants={itemVariants}
+          >
+            <StoreIcon fontSize="small" /> SwanStudios Store
+          </MobileNavLink>
           
           {/* Dashboard Links - Role-based visibility */}
           {isRoleEnabled('admin') && (
@@ -573,12 +572,12 @@ const EnhancedHeader = () => {
       return (
         <>
           <MobileNavLink 
-            to="/store" 
+            to="/shop" 
             onClick={() => setMobileMenuOpen(false)}
-            className={isActive('/store') ? "active" : ""}
+            className={isActive('/shop') || isActive('/store') ? "active" : ""}
             variants={itemVariants}
           >
-            <ShoppingBagIcon fontSize="small" /> SwanStudios Store
+            <StoreIcon fontSize="small" /> SwanStudios Store
           </MobileNavLink>
           
           <MobileNavLink 
