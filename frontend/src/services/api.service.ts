@@ -7,42 +7,18 @@
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
 
-// Production configuration - READ FROM ENVIRONMENT VARIABLES
+// Production configuration
 const IS_PRODUCTION = import.meta.env.PROD || 
                      window.location.hostname.includes('render.com') || 
                      window.location.hostname.includes('sswanstudios.com') ||
                      window.location.hostname.includes('swanstudios.com');
 
-// Check if we should use proxy (when deployed on sswanstudios.com domain)
-const USE_PROXY = window.location.hostname.includes('sswanstudios.com') ||
-                  window.location.hostname.includes('swanstudios.com');
-
-// API Base URL logic:
-// - If using proxy (deployed on sswanstudios.com): empty string for relative URLs
-// - Otherwise: use environment variables or fallback to direct backend URL
-const API_BASE_URL = USE_PROXY ? '' : (
-  import.meta.env.VITE_API_URL || 
-  import.meta.env.VITE_BACKEND_URL ||
-  import.meta.env.VITE_API_BASE_URL ||
-  (IS_PRODUCTION
-    ? 'https://swan-studios-api.onrender.com'
-    : 'http://localhost:10000')
-);
+const API_BASE_URL = IS_PRODUCTION
+  ? 'https://ss-pt-new.onrender.com'
+  : 'http://localhost:10000';
 
 console.log(`[API] Production mode: ${IS_PRODUCTION}`);
-console.log(`[API] Using proxy: ${USE_PROXY}`);
-console.log(`[API] Hostname: ${window.location.hostname}`);
-console.log(`[API] Environment variables:`, {
-  VITE_API_URL: import.meta.env.VITE_API_URL,
-  VITE_BACKEND_URL: import.meta.env.VITE_BACKEND_URL,
-  VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL
-});
-console.log(`[API] Final Base URL: ${API_BASE_URL || '(relative - using proxy)'}`);
-if (USE_PROXY) {
-  console.log(`[API] Proxy mode: API calls will be made to /api/* (same-origin)`);
-} else {
-  console.log(`[API] Direct mode: API calls will be made to ${API_BASE_URL}`);
-}
+console.log(`[API] Base URL: ${API_BASE_URL}`);
 
 /**
  * Production Token Manager
@@ -314,86 +290,24 @@ class ProductionApiService {
   // Authentication methods
   async login(credentials: { username: string; password: string }) {
     try {
-      console.log('[API] Attempting login with enhanced error handling...');
-      
-      // Log the request being made (without password)
-      console.log('[API] Login request:', {
-        username: credentials.username,
-        hasPassword: !!credentials.password,
-        apiUrl: this.client.defaults.baseURL + '/api/auth/login'
-      });
-      
+      console.log('[API] Attempting login...');
       const response = await this.client.post('/api/auth/login', credentials);
       
-      console.log('[API] Login response status:', response.status);
-      console.log('[API] Login response data:', response.data);
-      
-      if (response.data && (response.data.success || response.data.token)) {
+      if (response.data.success) {
         const { token, refreshToken, user } = response.data;
         
-        if (token && user) {
-          ProductionTokenManager.setToken(token);
-          if (refreshToken) {
-            ProductionTokenManager.setRefreshToken(refreshToken);
-          }
-          ProductionTokenManager.setUser(user);
-          
-          console.log('[API] Login successful, tokens stored');
-          return response.data;
-        } else {
-          throw new Error('Invalid response: missing token or user data');
-        }
+        ProductionTokenManager.setToken(token);
+        ProductionTokenManager.setRefreshToken(refreshToken);
+        ProductionTokenManager.setUser(user);
+        
+        console.log('[API] Login successful');
+        return response.data;
       } else {
-        throw new Error(response.data?.message || 'Login failed - invalid response format');
+        throw new Error(response.data.message || 'Login failed');
       }
     } catch (error) {
-      console.error('[API] Login error details:', {
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        headers: error.response?.headers
-      });
-      
-      // Enhanced error message extraction
-      let errorMessage = 'Login failed';
-      
-      if (error.response?.data) {
-        // Try different ways to extract error message
-        const data = error.response.data;
-        
-        if (typeof data === 'string') {
-          errorMessage = data;
-        } else if (data.message) {
-          errorMessage = data.message;
-        } else if (data.error) {
-          errorMessage = data.error;
-        } else if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
-          errorMessage = data.errors[0].message || data.errors[0];
-        } else if (data.details) {
-          errorMessage = data.details;
-        }
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      // Handle specific HTTP status codes
-      if (error.response?.status === 401) {
-        errorMessage = 'Invalid username or password';
-      } else if (error.response?.status === 429) {
-        errorMessage = 'Too many login attempts. Please try again later.';
-      } else if (error.response?.status === 500) {
-        errorMessage = 'Server error. Please try again later.';
-      } else if (error.code === 'ECONNREFUSED' || error.code === 'NETWORK_ERROR') {
-        errorMessage = 'Unable to connect to server. Please check your internet connection.';
-      }
-      
-      console.error('[API] Final error message:', errorMessage);
-      
-      const enhancedError = new Error(errorMessage);
-      enhancedError.originalError = error;
-      enhancedError.status = error.response?.status;
-      throw enhancedError;
+      console.error('[API] Login error:', error);
+      throw error;
     }
   }
 
@@ -509,28 +423,14 @@ class ProductionApiService {
       delete this.client.defaults.headers.common['Authorization'];
     }
   }
-
-  // Legacy compatibility methods
-  async checkConnection(): Promise<boolean> {
-    try {
-      const response = await this.client.get('/health', { timeout: 5000 });
-      return response.status === 200;
-    } catch (error) {
-      return false;
-    }
-  }
 }
 
 // Create and export default instance
 const productionApiService = new ProductionApiService();
 
-// Export for compatibility with existing code
+// Export for compatibility
 export default productionApiService;
 export { ProductionApiService, ProductionTokenManager };
-
-// Legacy exports for compatibility
-export const apiClient = productionApiService;
-export const createApiClient = () => productionApiService;
 
 // Global debug functions for production troubleshooting
 if (typeof window !== 'undefined') {
