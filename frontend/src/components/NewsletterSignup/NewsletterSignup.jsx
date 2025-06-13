@@ -4,7 +4,7 @@ import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaEnvelope, FaCheck, FaExclamationTriangle, FaLock, FaArrowRight, FaDumbbell, FaAppleAlt, FaBrain } from 'react-icons/fa';
 import SectionTitle from '../ui/SectionTitle';
-import GlowButton from '../Button/glowButton'; // Import GlowButton component
+import GlowButton from '../ui/buttons/GlowButton'; // Import GlowButton component
 
 // Import background image
 import backgroundImage from '../../assets/swan-tile-big.png';
