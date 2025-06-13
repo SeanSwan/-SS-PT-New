@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, useAnimation, useInView } from "framer-motion";
 // Import GlowButton component
-import GlowButton from "../../components/Button/glowButton";
+import GlowButton from "../../components/ui/buttons/GlowButton";
 
 // Use direct paths to public folder
 import wavesVideo from "../../assets/Waves.mp4";
