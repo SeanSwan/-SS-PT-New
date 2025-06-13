@@ -1,6 +1,9 @@
 /**
  * Models Index
  * This file exports all models to simplify imports throughout the application
+ * 
+ * FIXED: Removed duplicate association setup to prevent circular dependencies.
+ * Association setup is handled properly by associations.mjs with singleton pattern.
  */
 
 import User from './User.mjs';
@@ -39,7 +42,7 @@ import FoodIngredient from './FoodIngredient.mjs';
 import FoodScanHistory from './FoodScanHistory.mjs';
 import Orientation from './Orientation.mjs';
 
-// Import social models individually (FIXED)
+// Import social models individually
 import Friendship from './social/Friendship.mjs';
 import SocialPost from './social/SocialPost.mjs';
 import SocialComment from './social/SocialComment.mjs';
@@ -48,13 +51,10 @@ import Challenge from './social/Challenge.mjs';
 import ChallengeParticipant from './social/ChallengeParticipant.mjs';
 import ChallengeTeam from './social/ChallengeTeam.mjs';
 
-// Set up associations between models
-import setupAssociations from './associations.mjs';
+// NOTE: Association setup is handled by associations.mjs with proper singleton pattern
+// Removed duplicate setup to prevent circular dependencies
 
-// Initialize associations
-setupAssociations();
-
-// Export all models individually (FIXED - includes social models)
+// Export all models individually
 export {
   User,
   Session,
@@ -91,7 +91,7 @@ export {
   FoodIngredient,
   FoodScanHistory,
   Orientation,
-  // Social models now exported individually
+  // Social models
   Friendship,
   SocialPost,
   SocialComment,
@@ -138,7 +138,7 @@ export default {
   FoodIngredient,
   FoodScanHistory,
   Orientation,
-  // Social models now included individually
+  // Social models
   Friendship,
   SocialPost,
   SocialComment,
