@@ -493,10 +493,10 @@ const RevenueAnalyticsPanel: React.FC = () => {
             value={timeRange}
             onChange={(e) => handleTimeRangeChange(e.target.value)}
           >
-            <option value=\"24h\">Last 24 Hours</option>
-            <option value=\"7d\">Last 7 Days</option>
-            <option value=\"30d\">Last 30 Days</option>
-            <option value=\"90d\">Last 90 Days</option>
+            <option value="24h">Last 24 Hours</option>
+            <option value="7d">Last 7 Days</option>
+            <option value="30d">Last 30 Days</option>
+            <option value="90d">Last 90 Days</option>
           </TimeRangeSelector>
           
           <ActionButton
@@ -586,16 +586,16 @@ const RevenueAnalyticsPanel: React.FC = () => {
               <LineChart size={20} />
               Revenue Trend
             </ChartTitle>
-            <ResponsiveContainer width=\"100%\" height={300}>
+            <ResponsiveContainer width="100%" height={300}>
               <ReLineChart data={revenueData.dailyTrend}>
-                <CartesianGrid strokeDasharray=\"3 3\" stroke=\"rgba(255, 255, 255, 0.1)\" />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
                 <XAxis 
-                  dataKey=\"date\" 
-                  stroke=\"rgba(255, 255, 255, 0.7)\"
+                  dataKey="date" 
+                  stroke="rgba(255, 255, 255, 0.7)"
                   fontSize={12}
                 />
                 <YAxis 
-                  stroke=\"rgba(255, 255, 255, 0.7)\"
+                  stroke="rgba(255, 255, 255, 0.7)"
                   fontSize={12}
                 />
                 <Tooltip 
@@ -611,8 +611,8 @@ const RevenueAnalyticsPanel: React.FC = () => {
                   ]}
                 />
                 <Line 
-                  type=\"monotone\" 
-                  dataKey=\"revenue\" 
+                  type="monotone" 
+                  dataKey="revenue" 
                   stroke={chartColors.primary}
                   strokeWidth={3}
                   dot={{ fill: chartColors.primary, strokeWidth: 2, r: 4 }}
@@ -631,16 +631,16 @@ const RevenueAnalyticsPanel: React.FC = () => {
               <PieChart size={20} />
               Top Packages
             </ChartTitle>
-            <ResponsiveContainer width=\"100%\" height={300}>
+            <ResponsiveContainer width="100%" height={300}>
               <RePieChart>
                 <Pie
                   data={revenueData.topPackages}
-                  cx=\"50%\"
-                  cy=\"50%\"
+                  cx="50%"
+                  cy="50%"
                   innerRadius={60}
                   outerRadius={100}
-                  dataKey=\"revenue\"
-                  nameKey=\"name\"
+                  dataKey="revenue"
+                  nameKey="name"
                 >
                   {revenueData.topPackages.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={pieChartColors[index % pieChartColors.length]} />
