@@ -8,7 +8,7 @@ import { motion, useAnimation, useInView, AnimatePresence } from "framer-motion"
 // --- Context Imports ---
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
-import { api } from "../../services/api.service";
+import api from "../../services/api.service";
 
 // --- Component Imports ---
 import GlowButton from "../../components/ui/GlowButton";
