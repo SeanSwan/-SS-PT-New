@@ -901,7 +901,7 @@ const GalaxyThemedStoreFront: React.FC = () => {
       setPackagesError(null);
       
       console.log('🔄 Fetching packages from API...');
-      const response = await api.get('/storefront');
+      const response = await api.get('/api/storefront');
       
       if (response.data?.success && Array.isArray(response.data.items)) {
         const fetchedPackages = response.data.items.map((pkg: any) => ({
