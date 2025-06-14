@@ -43,6 +43,8 @@
     "@radix-ui/react-tooltip": "^1.1.2",
     "@reduxjs/toolkit": "^2.6.0",
     "@shadcn/ui": "^0.0.4",
+    "@stripe/react-stripe-js": "^2.8.0",
+    "@stripe/stripe-js": "^3.5.0",
     "@tabler/icons-react": "^3.30.0",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",

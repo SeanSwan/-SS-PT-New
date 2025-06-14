@@ -1,290 +1,287 @@
 /**
- * Contact Notifications Component - EMERGENCY PRODUCTION FIX
- * =========================================================
- * Fixed all styled-components prop forwarding issues for production stability
+ * ContactNotifications.tsx - SwanStudios Business Intelligence Alert System
+ * =========================================================================
+ * Real-time financial and business notifications for admin dashboard
+ * Displays high-priority alerts, new purchases, and system updates
+ * 
+ * Features:
+ * - Real-time financial transaction alerts
+ * - New customer registration notifications
+ * - High-value purchase alerts
+ * - System health notifications
+ * - Contact form submissions (priority alerts)
+ * - Action-required notifications
+ * 
+ * Master Prompt v28 Alignment:
+ * - Revolutionary real-time business intelligence
+ * - Galaxy-themed professional aesthetics
+ * - Production-ready notification system
+ * - Performance optimized with auto-refresh
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  MessageSquare, 
-  Mail, 
-  Clock, 
-  User, 
-  CheckCircle, 
-  Bell, 
-  AlertCircle,
-  ExternalLink,
-  RefreshCw,
-  X
+import { useAuth } from '../../../../../context/AuthContext';
+import {
+  Bell, BellRing, DollarSign, UserPlus, AlertTriangle, 
+  CheckCircle, Clock, Mail, ShoppingBag, CreditCard,
+  TrendingUp, Star, Shield, Eye, EyeOff, RefreshCw,
+  X, ExternalLink, MessageCircle, Users
 } from 'lucide-react';
-import apiService from '../../../../../services/api.service';
 
-// === ANIMATIONS ===
-const pulse = keyframes`
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.05); opacity: 0.8; }
-  100% { transform: scale(1); opacity: 1; }
+// Animations
+const notificationPulse = keyframes`
+  0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+`;
+
+const urgentBlink = keyframes`
+  0%, 50% { opacity: 1; }
+  25%, 75% { opacity: 0.3; }
 `;
 
 const slideIn = keyframes`
-  from { 
-    transform: translateX(100%); 
-    opacity: 0; 
-  }
-  to { 
-    transform: translateX(0); 
-    opacity: 1; 
-  }
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
 `;
 
-// === SAFE STYLED COMPONENTS (PRODUCTION-READY) ===
-const NotificationContainer = styled(motion.div)`
-  background: rgba(30, 58, 138, 0.2);
-  backdrop-filter: blur(20px);
-  border-radius: 16px;
+// Styled Components
+const NotificationsContainer = styled(motion.div)`
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.2) 0%, rgba(0, 255, 255, 0.1) 100%);
   border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 16px;
   padding: 1.5rem;
-  margin-bottom: 1rem;
-  min-height: 200px;
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(20px);
   
-  &:hover {
-    background: rgba(30, 58, 138, 0.3);
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px rgba(59, 130, 246, 0.2);
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #00ffff, #3b82f6, #00ffff);
+    background-size: 200% 100%;
+    animation: shimmer 3s ease-in-out infinite;
+  }
+  
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
   }
 `;
 
 const NotificationHeader = styled.div`
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  margin-bottom: 1rem;
-  
-  h3 {
-    color: #00ffff;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-  }
+  align-items: center;
+  margin-bottom: 1.5rem;
 `;
 
-// SAFE: Basic div with conditional styling via CSS classes
-const NotificationBadgeBase = styled.div`
-  color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
+const HeaderTitle = styled.h3`
+  font-size: 1.25rem;
   font-weight: 600;
+  color: #00ffff;
+  margin: 0;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  
-  &.urgent {
-    background: #ef4444;
-    animation: ${pulse} 2s infinite;
-  }
-  
-  &.normal {
-    background: #f59e0b;
-  }
+  gap: 0.5rem;
 `;
 
-// SAFE: Use regular div with dynamic styling instead of styled components with props
-const ContactCardBase = styled.div`
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 1rem;
-  margin-bottom: 0.75rem;
-  position: relative;
+const HeaderControls = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+`;
+
+const ControlButton = styled(motion.button)`
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.5);
+    color: white;
   }
   
-  &.unviewed {
-    animation: ${slideIn} 0.5s ease-out;
-    
-    &::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 8px;
-      height: 8px;
-      background: #00ffff;
-      border-radius: 50%;
-      box-shadow: 0 0 12px #00ffff;
-    }
-  }
-  
-  &.priority-urgent {
-    border-left: 4px solid #ef4444;
-  }
-  
-  &.priority-high {
-    border-left: 4px solid #f59e0b;
-  }
-  
-  &.priority-normal {
-    border-left: 4px solid #3b82f6;
-  }
-  
-  &.priority-low {
-    border-left: 4px solid #6b7280;
-  }
-`;
-
-const ContactHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 0.75rem;
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-`;
-
-const ContactInfo = styled.div`
-  flex: 1;
-  
-  .name {
-    font-weight: 600;
-    font-size: 1rem;
-    color: #ffffff;
-    margin-bottom: 0.25rem;
-  }
-  
-  .email {
+  &.active {
+    background: rgba(0, 255, 255, 0.2);
+    border-color: rgba(0, 255, 255, 0.5);
     color: #00ffff;
-    font-size: 0.875rem;
-    margin-bottom: 0.25rem;
-  }
-  
-  .time {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.75rem;
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
   }
 `;
 
-const ContactMessage = styled.div`
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  padding: 0.75rem;
-  margin: 0.75rem 0;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.875rem;
-  line-height: 1.4;
-  max-height: 80px;
+const NotificationBadge = styled.div`
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-left: 0.5rem;
+  animation: ${notificationPulse} 2s infinite;
+`;
+
+const NotificationsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 400px;
   overflow-y: auto;
   
+  /* Custom scrollbar */
   &::-webkit-scrollbar {
-    width: 4px;
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
   }
   
   &::-webkit-scrollbar-thumb {
     background: rgba(59, 130, 246, 0.5);
-    border-radius: 2px;
+    border-radius: 3px;
+    
+    &:hover {
+      background: rgba(59, 130, 246, 0.7);
+    }
   }
 `;
 
-const ActionButtons = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  
-  @media (max-width: 768px) {
-    width: 100%;
-  }
-`;
-
-// SAFE: Use CSS classes instead of props for variants
-const ActionButtonBase = styled(motion.button)`
+const NotificationItem = styled(motion.div)`
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-left: 4px solid ${props => props.priorityColor || '#3b82f6'};
   border-radius: 8px;
-  color: #ffffff;
-  padding: 0.5rem 1rem;
-  font-size: 0.75rem;
-  font-weight: 500;
+  padding: 1rem;
   cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: ${props => props.priorityColor || '#3b82f6'};
+    transform: translateX(4px);
+  }
+  
+  &.unread {
+    border-left-width: 6px;
+    background: rgba(59, 130, 246, 0.1);
+  }
+  
+  &.urgent {
+    animation: ${urgentBlink} 3s infinite;
+    border-left-color: #ef4444;
+  }
+`;
+
+const NotificationContent = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+`;
+
+const NotificationIcon = styled.div`
+  background: ${props => props.color || 'rgba(59, 130, 246, 0.2)'};
+  color: ${props => props.color || '#3b82f6'};
+  border-radius: 8px;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+`;
+
+const NotificationDetails = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const NotificationTitle = styled.div`
+  font-weight: 600;
+  color: white;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+`;
+
+const NotificationMessage = styled.div`
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.85rem;
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
+`;
+
+const NotificationMeta = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+`;
+
+const NotificationTime = styled.span`
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  transition: all 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.1);
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-  
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-  }
-  
-  &.primary {
-    background: linear-gradient(45deg, #3b82f6 0%, #00ffff 100%);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-  }
-  
-  &.success {
-    background: rgba(16, 185, 129, 0.2);
-    border: 1px solid rgba(16, 185, 129, 0.3);
-  }
-  
-  &.refresh {
-    background: rgba(59, 130, 246, 0.2);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    
-    &:hover {
-      background: rgba(59, 130, 246, 0.3);
-    }
-  }
+`;
+
+const NotificationAmount = styled.span`
+  color: #10b981;
+  font-weight: 600;
 `;
 
 const EmptyState = styled.div`
   text-align: center;
   padding: 2rem;
   color: rgba(255, 255, 255, 0.6);
+`;
+
+const LoadingSpinner = styled.div`
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 2rem auto;
   
-  .icon {
-    margin-bottom: 1rem;
-    opacity: 0.5;
-  }
-  
-  h4 {
-    margin: 0 0 0.5rem 0;
-    color: rgba(255, 255, 255, 0.8);
-  }
-  
-  p {
-    margin: 0;
-    font-size: 0.875rem;
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
   }
 `;
 
-// === INTERFACES ===
-interface Contact {
-  id: number;
-  name: string;
-  email: string;
+// Interface definitions
+interface Notification {
+  id: string;
+  type: 'purchase' | 'new_user' | 'contact' | 'system_alert' | 'high_value_purchase' | 'payment_failed';
+  title: string;
   message: string;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  viewedAt: string | null;
-  respondedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
+  amount?: number;
+  timestamp: string;
+  priority: 'low' | 'medium' | 'high' | 'critical';
+  isRead: boolean;
+  actionRequired?: boolean;
+  userId?: number;
+  userName?: string;
 }
 
 interface ContactNotificationsProps {
@@ -293,266 +290,269 @@ interface ContactNotificationsProps {
   showActions?: boolean;
 }
 
-// === SAFE COMPONENT (NO PROP FORWARDING ISSUES) ===
+// Priority color mapping
+const getPriorityColor = (priority: string) => {
+  const colorMap = {
+    low: '#6b7280',
+    medium: '#3b82f6',
+    high: '#f59e0b',
+    critical: '#ef4444'
+  };
+  return colorMap[priority] || colorMap.medium;
+};
+
+// Type icon mapping
+const getTypeIcon = (type: string) => {
+  const iconMap = {
+    purchase: <ShoppingBag size={18} />,
+    high_value_purchase: <Star size={18} />,
+    new_user: <UserPlus size={18} />,
+    contact: <MessageCircle size={18} />,
+    system_alert: <AlertTriangle size={18} />,
+    payment_failed: <CreditCard size={18} />
+  };
+  return iconMap[type] || <Bell size={18} />;
+};
+
+// Time formatting
+const formatTimeAgo = (timestamp: string) => {
+  const now = new Date();
+  const time = new Date(timestamp);
+  const diffInSeconds = Math.floor((now.getTime() - time.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return 'Just now';
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+  return `${Math.floor(diffInSeconds / 86400)}d ago`;
+};
+
 const ContactNotifications: React.FC<ContactNotificationsProps> = ({
   autoRefresh = true,
   maxContacts = 10,
   showActions = true
 }) => {
-  const [contacts, setContacts] = useState<Contact[]>([]);
+  const { authAxios } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastFetch, setLastFetch] = useState<Date>(new Date());
+  const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // === API FUNCTIONS ===
-  const fetchContacts = useCallback(async () => {
+  // Fetch notifications
+  const fetchNotifications = useCallback(async () => {
     try {
+      setRefreshing(true);
       setError(null);
-      const response = await apiService.get('/api/admin/contacts/recent');
 
-      if (response.data && response.data.success) {
-        setContacts(response.data.contacts.slice(0, maxContacts));
-        setLastFetch(new Date());
-      } else {
-        throw new Error(response.data?.message || 'Failed to fetch contacts');
-      }
-    } catch (err) {
-      console.error('Error fetching contacts:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to fetch contacts');
+      // Fetch admin notifications
+      const adminResponse = await authAxios.get('/api/admin/finance/notifications');
+      
+      // Fetch contact form submissions
+      const contactResponse = await authAxios.get('/api/contact?limit=5');
+
+      const adminNotifications = adminResponse.data.success 
+        ? adminResponse.data.data.notifications.map((notif: any) => ({
+            id: notif.id || Math.random().toString(),
+            type: notif.type,
+            title: notif.title,
+            message: notif.message,
+            amount: notif.amount,
+            timestamp: notif.timestamp || notif.createdAt,
+            priority: notif.priority,
+            isRead: false,
+            actionRequired: notif.type === 'payment_failed',
+            userId: notif.userId,
+            userName: notif.userName
+          }))
+        : [];
+
+      // Convert contact submissions to notifications
+      const contactNotifications = contactResponse.data.contacts
+        ? contactResponse.data.contacts.slice(0, 3).map((contact: any) => ({
+            id: `contact_${contact.id}`,
+            type: 'contact' as const,
+            title: 'New Contact Form Submission',
+            message: `${contact.name} (${contact.email}) sent: "${contact.message.substring(0, 50)}${contact.message.length > 50 ? '...' : ''}"`,
+            timestamp: contact.createdAt,
+            priority: 'medium' as const,
+            isRead: false,
+            actionRequired: true,
+            userName: contact.name
+          }))
+        : [];
+
+      // Combine and sort notifications
+      const allNotifications = [...adminNotifications, ...contactNotifications]
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, maxContacts);
+
+      setNotifications(allNotifications);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to load notifications');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }, [maxContacts]);
+  }, [authAxios, maxContacts]);
 
-  const markAsViewed = useCallback(async (contactId: number) => {
-    try {
-      const response = await apiService.patch(`/api/admin/contacts/${contactId}/viewed`);
-
-      if (response.data && response.data.success) {
-        setContacts(prev => 
-          prev.map(contact => 
-            contact.id === contactId 
-              ? { ...contact, viewedAt: new Date().toISOString() }
-              : contact
-          )
-        );
-      } else {
-        throw new Error('Failed to mark contact as viewed');
-      }
-    } catch (err) {
-      console.error('Error marking contact as viewed:', err);
-    }
-  }, []);
-
-  // === EFFECTS ===
+  // Initial load
   useEffect(() => {
-    fetchContacts();
-  }, [fetchContacts]);
+    fetchNotifications();
+  }, [fetchNotifications]);
 
+  // Auto-refresh setup
   useEffect(() => {
     if (!autoRefresh) return;
 
-    const interval = setInterval(fetchContacts, 30000);
+    const interval = setInterval(fetchNotifications, 30000); // Refresh every 30 seconds
     return () => clearInterval(interval);
-  }, [autoRefresh, fetchContacts]);
+  }, [autoRefresh, fetchNotifications]);
 
-  // === UTILITY FUNCTIONS ===
-  const formatTimeAgo = (dateString: string): string => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
-    return `${Math.floor(diffInMinutes / 1440)}d ago`;
-  };
-
-  const getUnviewedCount = (): number => {
-    return contacts.filter(contact => !contact.viewedAt).length;
-  };
-
-  const getPriorityColor = (priority: string): string => {
-    switch (priority) {
-      case 'urgent': return '#ef4444';
-      case 'high': return '#f59e0b';
-      case 'normal': return '#3b82f6';
-      case 'low': return '#6b7280';
-      default: return '#6b7280';
+  // Handle notification click
+  const handleNotificationClick = (notification: Notification) => {
+    if (notification.type === 'contact') {
+      // Navigate to contact management
+      window.open('/dashboard/contact-management', '_blank');
+    } else if (notification.type === 'purchase' || notification.type === 'high_value_purchase') {
+      // Navigate to revenue analytics
+      window.open('/dashboard/revenue', '_blank');
+    } else if (notification.type === 'new_user') {
+      // Navigate to user management
+      window.open('/dashboard/user-management', '_blank');
     }
   };
 
-  // === RENDER ===
-  if (loading) {
-    return (
-      <NotificationContainer>
-        <NotificationHeader>
-          <h3>
-            <MessageSquare size={20} />
-            Loading Contact Notifications...
-          </h3>
-        </NotificationHeader>
-        <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255, 255, 255, 0.6)' }}>
-          Loading...
-        </div>
-      </NotificationContainer>
-    );
-  }
+  // Filter notifications
+  const filteredNotifications = showUnreadOnly 
+    ? notifications.filter(n => !n.isRead)
+    : notifications;
 
-  if (error) {
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  if (loading && notifications.length === 0) {
     return (
-      <NotificationContainer>
-        <NotificationHeader>
-          <h3>
-            <AlertCircle size={20} />
-            Contact Notifications Error
-          </h3>
-        </NotificationHeader>
-        <div style={{ textAlign: 'center', padding: '2rem', color: '#ef4444' }}>
-          <p>{error}</p>
-          <ActionButtonBase 
-            className="refresh" 
-            onClick={fetchContacts} 
-            style={{ marginTop: '1rem' }}
-          >
-            <RefreshCw size={16} />
-            Retry
-          </ActionButtonBase>
-        </div>
-      </NotificationContainer>
+      <NotificationsContainer>
+        <LoadingSpinner />
+      </NotificationsContainer>
     );
   }
 
   return (
-    <NotificationContainer
+    <NotificationsContainer
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
       <NotificationHeader>
-        <h3>
+        <HeaderTitle>
           <Bell size={20} />
-          Contact Notifications
-          {getUnviewedCount() > 0 && (
-            <NotificationBadgeBase className={getUnviewedCount() > 3 ? 'urgent' : 'normal'}>
-              <AlertCircle size={12} />
-              {getUnviewedCount()} new
-            </NotificationBadgeBase>
-          )}
-        </h3>
-        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>
-            Last updated: {formatTimeAgo(lastFetch.toISOString())}
-          </span>
-          <ActionButtonBase className="refresh" onClick={fetchContacts}>
-            <RefreshCw size={16} />
-          </ActionButtonBase>
-        </div>
+          Business Intelligence Alerts
+          {unreadCount > 0 && <NotificationBadge>{unreadCount}</NotificationBadge>}
+        </HeaderTitle>
+        
+        {showActions && (
+          <HeaderControls>
+            <ControlButton
+              className={showUnreadOnly ? 'active' : ''}
+              onClick={() => setShowUnreadOnly(!showUnreadOnly)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              title={showUnreadOnly ? 'Show all notifications' : 'Show unread only'}
+            >
+              {showUnreadOnly ? <Eye size={16} /> : <EyeOff size={16} />}
+            </ControlButton>
+            
+            <ControlButton
+              onClick={fetchNotifications}
+              disabled={refreshing}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              title="Refresh notifications"
+            >
+              <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+            </ControlButton>
+          </HeaderControls>
+        )}
       </NotificationHeader>
 
-      {contacts.length === 0 ? (
-        <EmptyState>
-          <div className="icon">
-            <MessageSquare size={48} />
-          </div>
-          <h4>No Recent Contacts</h4>
-          <p>All caught up! No new consultation requests in the last 24 hours.</p>
-        </EmptyState>
-      ) : (
-        <AnimatePresence mode="popLayout">
-          {contacts.map((contact, index) => (
-            <motion.div
-              key={contact.id}
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-            >
-              <ContactCardBase
-                className={`
-                  priority-${contact.priority} 
-                  ${!contact.viewedAt ? 'unviewed' : ''}
-                `}
-              >
-                <ContactHeader>
-                  <ContactInfo>
-                    <div className="name">
-                      <User size={16} style={{ display: 'inline', marginRight: '0.5rem' }} />
-                      {contact.name}
-                    </div>
-                    <div className="email">
-                      <Mail size={14} style={{ display: 'inline', marginRight: '0.5rem' }} />
-                      {contact.email}
-                    </div>
-                    <div className="time">
-                      <Clock size={12} />
-                      {formatTimeAgo(contact.createdAt)}
-                      {contact.priority !== 'normal' && (
-                        <span style={{ 
-                          color: getPriorityColor(contact.priority),
-                          fontWeight: 600,
-                          textTransform: 'uppercase'
-                        }}>
-                          • {contact.priority}
-                        </span>
-                      )}
-                    </div>
-                  </ContactInfo>
-                  
-                  {showActions && (
-                    <ActionButtons>
-                      {!contact.viewedAt && (
-                        <ActionButtonBase
-                          className="success"
-                          onClick={() => markAsViewed(contact.id)}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                        >
-                          <CheckCircle size={14} />
-                          Mark Viewed
-                        </ActionButtonBase>
-                      )}
-                      <ActionButtonBase
-                        className="primary"
-                        onClick={() => window.open(`mailto:${contact.email}`, '_blank')}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <ExternalLink size={14} />
-                        Reply
-                      </ActionButtonBase>
-                    </ActionButtons>
-                  )}
-                </ContactHeader>
-
-                <ContactMessage>
-                  {contact.message}
-                </ContactMessage>
-              </ContactCardBase>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      )}
-
-      {contacts.length > 0 && (
-        <div style={{ 
-          textAlign: 'center', 
-          marginTop: '1rem', 
-          paddingTop: '1rem',
-          borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+      {error && (
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.1)',
+          border: '1px solid rgba(239, 68, 68, 0.3)',
+          borderRadius: '8px',
+          padding: '1rem',
+          color: '#ef4444',
+          marginBottom: '1rem',
+          fontSize: '0.875rem'
         }}>
-          <ActionButtonBase
-            className="primary"
-            onClick={() => {/* Navigate to full contacts management */}}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <ExternalLink size={16} />
-            View All Contacts ({contacts.length})
-          </ActionButtonBase>
+          {error}
         </div>
       )}
-    </NotificationContainer>
+
+      <NotificationsList>
+        <AnimatePresence>
+          {filteredNotifications.length > 0 ? (
+            filteredNotifications.map((notification, index) => (
+              <NotificationItem
+                key={notification.id}
+                priorityColor={getPriorityColor(notification.priority)}
+                className={`${!notification.isRead ? 'unread' : ''} ${notification.priority === 'critical' ? 'urgent' : ''}`}
+                onClick={() => handleNotificationClick(notification)}
+                initial={{ opacity: 0, x: 100 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -100 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                whileHover={{ scale: 1.02 }}
+              >
+                <NotificationContent>
+                  <NotificationIcon color={getPriorityColor(notification.priority)}>
+                    {getTypeIcon(notification.type)}
+                  </NotificationIcon>
+                  
+                  <NotificationDetails>
+                    <NotificationTitle>{notification.title}</NotificationTitle>
+                    <NotificationMessage>{notification.message}</NotificationMessage>
+                    
+                    <NotificationMeta>
+                      <NotificationTime>
+                        <Clock size={12} />
+                        {formatTimeAgo(notification.timestamp)}
+                      </NotificationTime>
+                      
+                      {notification.amount && (
+                        <NotificationAmount>
+                          ${notification.amount.toLocaleString()}
+                        </NotificationAmount>
+                      )}
+                    </NotificationMeta>
+                  </NotificationDetails>
+                  
+                  {notification.actionRequired && (
+                    <div style={{
+                      background: 'rgba(245, 158, 11, 0.2)',
+                      border: '1px solid rgba(245, 158, 11, 0.3)',
+                      borderRadius: '6px',
+                      padding: '0.25rem 0.5rem',
+                      fontSize: '0.75rem',
+                      color: '#f59e0b',
+                      fontWeight: 500,
+                      flexShrink: 0
+                    }}>
+                      Action Required
+                    </div>
+                  )}
+                </NotificationContent>
+              </NotificationItem>
+            ))
+          ) : (
+            <EmptyState>
+              <CheckCircle size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+              <div>All caught up! No new notifications.</div>
+            </EmptyState>
+          )}
+        </AnimatePresence>
+      </NotificationsList>
+    </NotificationsContainer>
   );
 };
 
