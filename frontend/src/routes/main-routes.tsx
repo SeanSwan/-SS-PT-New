@@ -145,10 +145,10 @@ const AboutPage = lazyLoadWithErrorHandling(
   'About Page'
 );
 
-// 🌌 GALAXY THEMED SWANSTUDIOS STORE - Perfect combination of Galaxy theme + correct pricing
+// 🌌 OPTIMIZED GALAXY THEMED SWANSTUDIOS STORE - Performance optimized, decomposed architecture
 const SwanStudiosStore = lazyLoadWithErrorHandling(
-  () => import('../pages/shop/GalaxyThemedStoreFront'),
-  'SwanStudios Store (Galaxy Theme)',
+  () => import('../pages/shop/OptimizedGalaxyStoreFront'),
+  'SwanStudios Store (Optimized Galaxy Theme)',
   // Fallback to simple store if needed
   () => import('../pages/shop/SimpleStoreFront')
 );
