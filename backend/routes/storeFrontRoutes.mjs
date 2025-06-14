@@ -65,12 +65,12 @@ router.get('/', async (req, res) => {
       id: item.id,
       name: item.name,
       description: item.description,
-      // Handle price fields appropriately
-      totalCost: item.totalCost || item.price,
-      displayPrice: item.price || item.totalCost,
-      pricePerSession: item.pricePerSession,
+      // Handle price fields appropriately - convert DECIMAL to numbers
+      totalCost: parseFloat(item.totalCost) || parseFloat(item.price) || 0,
+      displayPrice: parseFloat(item.price) || parseFloat(item.totalCost) || 0,
+      pricePerSession: parseFloat(item.pricePerSession) || 0,
       // Also add price for frontend compatibility
-      price: item.price || item.totalCost,
+      price: parseFloat(item.price) || parseFloat(item.totalCost) || 0,
       priceDetails: item.packageType === 'monthly' ? 
         `${item.months} months, ${item.sessionsPerWeek} sessions/week` : 
         null,
@@ -132,11 +132,11 @@ router.get('/:id', async (req, res) => {
       id: item.id,
       name: item.name,
       description: item.description,
-      totalCost: item.totalCost || item.price,
-      displayPrice: item.price || item.totalCost,
-      pricePerSession: item.pricePerSession,
+      totalCost: parseFloat(item.totalCost) || parseFloat(item.price) || 0,
+      displayPrice: parseFloat(item.price) || parseFloat(item.totalCost) || 0,
+      pricePerSession: parseFloat(item.pricePerSession) || 0,
       // Also add price for frontend compatibility
-      price: item.price || item.totalCost,
+      price: parseFloat(item.price) || parseFloat(item.totalCost) || 0,
       priceDetails: item.packageType === 'monthly' ? 
         `${item.months} months, ${item.sessionsPerWeek} sessions/week` : 
         null,
