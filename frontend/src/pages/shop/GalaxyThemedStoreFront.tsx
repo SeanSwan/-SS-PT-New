@@ -1101,6 +1101,22 @@ const GalaxyThemedStoreFront: React.FC = () => {
   const fixedPackages = packages.filter(pkg => pkg.packageType === 'fixed');
   const monthlyPackages = packages.filter(pkg => pkg.packageType === 'monthly');
 
+  // 🔍 DEBUG: Log package filtering details
+  console.log('🔍 PACKAGE FILTERING DEBUG:');
+  console.log('📦 Total packages loaded:', packages.length);
+  console.log('📋 Package types:', packages.map(p => `${p.name}: ${p.packageType}`));
+  console.log('🔢 Fixed packages:', fixedPackages.length, 'items');
+  console.log('📅 Monthly packages:', monthlyPackages.length, 'items');
+  console.log('✅ User authenticated:', isAuthenticated);
+  console.log('👤 User object:', user?.username || 'none');
+  
+  // Additional debugging for rendering conditions
+  console.log('🎨 Rendering conditions:');
+  console.log('  - fixedPackages.length > 0:', fixedPackages.length > 0);
+  console.log('  - monthlyPackages.length > 0:', monthlyPackages.length > 0);
+  console.log('  - isLoadingPackages:', isLoadingPackages);
+  console.log('  - packagesError:', packagesError);
+
   // --- Render Package Card ---
   const renderCosmicPackageCard = useCallback((pkg: StoreItem) => {
     const isCurrentlyAdding = isAddingToCart === pkg.id;
@@ -1375,6 +1391,23 @@ const GalaxyThemedStoreFront: React.FC = () => {
                       </motion.div>
                   </motion.div>
               </SectionContainer>
+          )}
+          
+          {/* 🚨 FALLBACK: Show all packages if filtering fails */}
+          {(fixedPackages.length === 0 && monthlyPackages.length === 0 && packages.length > 0) && (
+            <PackageSection>
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} variants={containerVariants}>
+                <SectionTitle initial={{ opacity: 0 }} animate={{ opacity: 1 }} variants={itemVariants} style={{color: '#ff416c'}}>
+                  🚨 Debug: All Available Packages (Unfiltered)
+                </SectionTitle>
+                <div style={{textAlign: 'center', color: 'rgba(255,255,255,0.8)', marginBottom: '2rem'}}>
+                  Packages loaded but filtering failed. Showing all {packages.length} packages:
+                </div>
+                <GalaxyGrid initial={{ opacity: 0 }} animate={{ opacity: 1 }} variants={gridVariants} aria-label="All packages">
+                  {packages.map(renderCosmicPackageCard)}
+                </GalaxyGrid>
+              </motion.div>
+            </PackageSection>
           )}
         </>
       </ContentOverlay>
