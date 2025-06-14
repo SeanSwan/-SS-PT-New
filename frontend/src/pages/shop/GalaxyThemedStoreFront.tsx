@@ -904,25 +904,33 @@ const GalaxyThemedStoreFront: React.FC = () => {
       const response = await api.get('/api/storefront');
       
       if (response.data?.success && Array.isArray(response.data.items)) {
-        const fetchedPackages = response.data.items.map((pkg: any) => ({
-          id: pkg.id,
-          name: pkg.name,
-          description: pkg.description || '',
-          packageType: pkg.packageType || 'fixed',
-          pricePerSession: Number(pkg.pricePerSession) || 0,
-          sessions: pkg.sessions,
-          months: pkg.months,
-          sessionsPerWeek: pkg.sessionsPerWeek,
-          totalSessions: pkg.totalSessions,
-          price: Number(pkg.price) || Number(pkg.totalCost) || 0,
-          totalCost: Number(pkg.totalCost) || Number(pkg.price) || 0,
-          displayPrice: Number(pkg.totalCost) || Number(pkg.price) || Number(pkg.displayPrice) || 0,
-          theme: getThemeFromName(pkg.name), // Auto-assign theme based on package name
-          isActive: pkg.isActive !== false,
-          imageUrl: pkg.imageUrl,
-          displayOrder: pkg.displayOrder || 0,
-          includedFeatures: pkg.includedFeatures
-        }));
+        console.log('🔍 Raw API response items:', response.data.items.slice(0, 2)); // Log first 2 items
+        
+        const fetchedPackages = response.data.items.map((pkg: any) => {
+          console.log(`📎 Processing package: ${pkg.name} with ID: ${pkg.id}`);
+          
+          return {
+            id: pkg.id,
+            name: pkg.name,
+            description: pkg.description || '',
+            packageType: pkg.packageType || 'fixed',
+            pricePerSession: Number(pkg.pricePerSession) || 0,
+            sessions: pkg.sessions,
+            months: pkg.months,
+            sessionsPerWeek: pkg.sessionsPerWeek,
+            totalSessions: pkg.totalSessions,
+            price: Number(pkg.price) || Number(pkg.totalCost) || 0,
+            totalCost: Number(pkg.totalCost) || Number(pkg.price) || 0,
+            displayPrice: Number(pkg.totalCost) || Number(pkg.price) || Number(pkg.displayPrice) || 0,
+            theme: getThemeFromName(pkg.name), // Auto-assign theme based on package name
+            isActive: pkg.isActive !== false,
+            imageUrl: pkg.imageUrl,
+            displayOrder: pkg.displayOrder || 0,
+            includedFeatures: pkg.includedFeatures
+          };
+        });
+        
+        console.log('📦 Mapped packages with IDs:', fetchedPackages.map(p => ({ id: p.id, name: p.name })));
         
         // Sort by display order, then by ID
         fetchedPackages.sort((a, b) => {
@@ -1066,8 +1074,32 @@ const GalaxyThemedStoreFront: React.FC = () => {
   const handleHideCart = () => setShowCart(false);
 
   const handleAddToCart = useCallback(async (pkg: StoreItem) => {
+    // 🔍 DEBUG: Log package details before processing
+    console.log('📦 handleAddToCart called with:', {
+      id: pkg.id,
+      name: pkg.name,
+      hasId: pkg.id !== undefined,
+      idType: typeof pkg.id,
+      fullPkg: pkg
+    });
+    
     if (!canPurchase) {
       toast({ title: "Login Required", description: "Please log in to purchase packages.", variant: "destructive" });
+      return;
+    }
+
+    // ❗ Validate package ID
+    if (!pkg.id || pkg.id === undefined || pkg.id === null) {
+      console.error('🚨 CART ERROR: Package ID is invalid!', {
+        id: pkg.id,
+        name: pkg.name,
+        package: pkg
+      });
+      toast({ 
+        title: "Error", 
+        description: "Invalid package data - missing ID. Please refresh the page.", 
+        variant: "destructive" 
+      });
       return;
     }
 
@@ -1076,6 +1108,9 @@ const GalaxyThemedStoreFront: React.FC = () => {
       storefrontItemId: pkg.id, // This matches the backend expectation
       quantity: 1
     };
+
+    console.log('📦 Cart data prepared:', cartData);
+    console.log('🔍 Verification - pkg.id:', pkg.id, 'Type:', typeof pkg.id);
 
     setIsAddingToCart(pkg.id);
     try {
