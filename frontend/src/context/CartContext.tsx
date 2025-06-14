@@ -195,9 +195,14 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     
     console.log('Adding to cart:', itemData);
     
-    const storefrontItemId = typeof itemData.id === 'string' ? parseInt(itemData.id, 10) : itemData.id;
-    if (isNaN(storefrontItemId)) {
-        console.error("Invalid storefrontItemId provided to addToCart:", itemData.id);
+    // 🔧 ROBUST FIX: Handle both 'id' and 'storefrontItemId' property names
+    const itemId = (itemData as any).storefrontItemId || itemData.id;
+    const storefrontItemId = typeof itemId === 'string' ? parseInt(itemId, 10) : itemId;
+    
+    console.log('🔍 DEBUG: itemData.id =', itemData.id, '| storefrontItemId from data =', (itemData as any).storefrontItemId, '| final itemId =', itemId);
+    
+    if (!itemId || isNaN(storefrontItemId)) {
+        console.error("Invalid storefrontItemId provided to addToCart. itemData.id:", itemData.id, "| storefrontItemId:", (itemData as any).storefrontItemId);
         setError("Invalid item selected.");
         return Promise.reject(new Error("Invalid item ID"));
     }

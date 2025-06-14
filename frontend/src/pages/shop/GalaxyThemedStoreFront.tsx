@@ -1112,9 +1112,9 @@ const GalaxyThemedStoreFront: React.FC = () => {
       return;
     }
 
-    // NOW USING: storefrontItemId instead of hardcoded cart data
+    // Cart data using the correct interface property name
     const cartData = {
-      storefrontItemId: pkg.id, // This matches the backend expectation
+      id: pkg.id, // Use 'id' to match AddToCartPayload interface
       quantity: 1
     };
 
