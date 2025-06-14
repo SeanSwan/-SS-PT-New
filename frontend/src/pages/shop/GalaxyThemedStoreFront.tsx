@@ -941,8 +941,17 @@ const GalaxyThemedStoreFront: React.FC = () => {
         });
         
         setPackages(fetchedPackages);
-        console.log(`✅ Loaded ${fetchedPackages.length} packages from API`);
+        console.log('✅ Loaded', fetchedPackages.length, 'packages from API');
         console.log('📦 Packages:', fetchedPackages.map(p => `${p.id}: ${p.name}`).join(', '));
+        console.log('🚨 CRITICAL DEBUG - First package details:', fetchedPackages[0]);
+        
+        // 🚨 EMERGENCY DEBUG: Check for undefined IDs
+        const packagesWithUndefinedIds = fetchedPackages.filter(p => p.id === undefined || p.id === null);
+        if (packagesWithUndefinedIds.length > 0) {
+          console.error('🚨 FOUND PACKAGES WITH UNDEFINED IDs!', packagesWithUndefinedIds);
+        } else {
+          console.log('✅ All packages have valid IDs');
+        }
       } else {
         throw new Error('Invalid API response format');
       }
@@ -1149,6 +1158,9 @@ const GalaxyThemedStoreFront: React.FC = () => {
 
   // --- Render Package Card ---
   const renderCosmicPackageCard = useCallback((pkg: StoreItem) => {
+    // 🚨 EMERGENCY DEBUG: Log package being rendered
+    console.log('🎨 Rendering package card:', { id: pkg.id, name: pkg.name, hasId: pkg.id !== undefined });
+    
     const isCurrentlyAdding = isAddingToCart === pkg.id;
 
     let badgeDisplay = '';
@@ -1231,6 +1243,15 @@ const GalaxyThemedStoreFront: React.FC = () => {
                   disabled={isCurrentlyAdding || !canPurchase}
                   onClick={(e: React.MouseEvent<HTMLButtonElement>) => { 
                     e.stopPropagation(); 
+                    
+                    // 🚨 SAFETY CHECK: Validate package ID before calling handleAddToCart
+                    if (!pkg || !pkg.id) {
+                      console.error('🚨 BUTTON CLICK ERROR: Invalid package data!', { pkg, pkgId: pkg?.id });
+                      toast({ title: "Error", description: "Invalid package data. Please refresh the page.", variant: "destructive" });
+                      return;
+                    }
+                    
+                    console.log('🔘 Button clicked for package:', { id: pkg.id, name: pkg.name });
                     handleAddToCart(pkg); 
                   }}
                   aria-busy={isCurrentlyAdding}
