@@ -12,6 +12,8 @@ import notificationSettingsRoutes from './notificationSettingsRoutes.mjs';
 import notificationRoutes from './notificationRoutes.mjs';
 import adminRoutes from './adminRoutes.mjs';
 import contactRoutes from './contactRoutes.mjs';
+import paymentRoutes from './paymentRoutes.mjs';
+import adminFinanceRoutes from './admin/adminFinanceRoutes.mjs';
 
 const router = Router();
 
@@ -56,5 +58,11 @@ router.use('/admin', adminRoutes);
 
 // Mount contact routes
 router.use('/contact', contactRoutes);
+
+// Mount payment routes (protected)
+router.use('/payments', paymentRoutes);
+
+// Mount admin finance routes (admin only)
+router.use('/admin/finance', adminFinanceRoutes);
 
 export default router;

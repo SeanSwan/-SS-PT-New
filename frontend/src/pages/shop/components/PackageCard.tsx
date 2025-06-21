@@ -488,7 +488,7 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
           {pkg.description || 'Premium training package designed for stellar results.'}
         </CosmicDescription>
         
-        {pkg.pricePerSession && (
+        {canViewPrices && pkg.pricePerSession && (
           <SessionInfo>
             <div className="session-details">
               {pkg.packageType === 'fixed' 

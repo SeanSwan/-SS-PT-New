@@ -287,6 +287,31 @@ class ProductionApiService {
     this.client = createProductionApiClient();
   }
 
+  // Connection checking method
+  async checkConnection(): Promise<boolean> {
+    try {
+      console.log('[API] Checking server connection...');
+      const response = await this.client.get('/api/health', {
+        timeout: 5000 // 5 second timeout for connection check
+      });
+      
+      if (response.data && response.status === 200) {
+        console.log('[API] Server connection successful');
+        return true;
+      } else {
+        console.warn('[API] Server responded but not with expected format');
+        return false;
+      }
+    } catch (error: any) {
+      console.warn('[API] Server connection failed:', {
+        message: error.message,
+        status: error.response?.status,
+        code: error.code
+      });
+      return false;
+    }
+  }
+
   // Authentication methods
   async login(credentials: { username: string; password: string }) {
     try {

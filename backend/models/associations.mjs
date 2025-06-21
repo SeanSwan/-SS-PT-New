@@ -3,6 +3,7 @@
  * =================
  * This file defines all associations between SEQUELIZE models only.
  * MongoDB models are handled separately and don't need associations here.
+ * Updated to include Financial Intelligence models.
  */
 
 // Import models using dynamic imports to avoid circular dependencies
@@ -39,15 +40,6 @@ const setupAssociations = async () => {
     // Social Models (Sequelize)
     const SocialModels = await import('./social/index.mjs');
     const { SocialPost, SocialComment, SocialLike, Friendship, Challenge, ChallengeParticipant, ChallengeTeam } = SocialModels;
-    
-    // Enhanced Social Models (Sequelize) - TEMPORARILY DISABLED FOR DEBUGGING
-    // const EnhancedSocialModels = await import('./social/enhanced/index.mjs');
-    // const {
-    //   EnhancedSocialPost, SocialConnection, Community, CommunityMembership,
-    //   Conversation, Message, ConversationParticipant, EnhancedNotification,
-    //   LiveStream, CreatorProfile, SocialProduct, SocialEvent, UserPreferences,
-    //   SocialAnalytics
-    // } = EnhancedSocialModels;
 
     // Workout Models (Sequelize)
     const WorkoutPlanModule = await import('./WorkoutPlan.mjs');
@@ -70,6 +62,11 @@ const setupAssociations = async () => {
     const NotificationSettingsModule = await import('./NotificationSettings.mjs');
     const AdminSettingsModule = await import('./AdminSettings.mjs');
     const ContactModule = await import('./contact.mjs');
+    
+    // Financial Models (Sequelize)
+    const FinancialTransactionModule = await import('./financial/FinancialTransaction.mjs');
+    const BusinessMetricsModule = await import('./financial/BusinessMetrics.mjs');
+    const AdminNotificationModule = await import('./financial/AdminNotification.mjs');
 
     console.log('Extracting Sequelize models...');
     
@@ -120,6 +117,11 @@ const setupAssociations = async () => {
     const NotificationSettings = NotificationSettingsModule.default;
     const AdminSettings = AdminSettingsModule.default;
     const Contact = ContactModule.default;
+    
+    // Financial Models
+    const FinancialTransaction = FinancialTransactionModule.default;
+    const BusinessMetrics = BusinessMetricsModule.default;
+    const AdminNotification = AdminNotificationModule.default;
 
     console.log('Setting up Sequelize associations only...');
     
@@ -134,13 +136,14 @@ const setupAssociations = async () => {
         SocialPost, SocialComment, SocialLike, Friendship, Challenge, ChallengeParticipant, ChallengeTeam,
         WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, WorkoutSession, WorkoutExercise, Exercise, Set,
         MuscleGroup, ExerciseMuscleGroup, Equipment, ExerciseEquipment,
-        Orientation, Notification, NotificationSettings, AdminSettings, Contact
+        Orientation, Notification, NotificationSettings, AdminSettings, Contact,
+        FinancialTransaction, BusinessMetrics, AdminNotification
       };
     }
     
     // USER ASSOCIATIONS (only with Sequelize models)
     // ============================================
-    User.hasOne(ClientProgress, { foreignKey: 'userId', as: 'clientProgress' }); // Changed alias from 'progress'
+    User.hasOne(ClientProgress, { foreignKey: 'userId', as: 'clientProgress' });
     User.hasOne(Gamification, { foreignKey: 'userId', as: 'gamification' });
     
     // USER-SESSION ASSOCIATIONS (CRITICAL FOR SCHEDULE FUNCTIONALITY)
@@ -255,15 +258,37 @@ const setupAssociations = async () => {
     User.hasMany(Contact, { foreignKey: 'userId', as: 'contacts' });
     Contact.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
-    console.log('✅ Sequelize model associations established successfully');
-    console.log('Note: MongoDB models (exercises, workout plans/sessions) are handled separately');
+    // FINANCIAL ASSOCIATIONS
+    // ======================
+    // User -> Financial Transactions
+    User.hasMany(FinancialTransaction, { foreignKey: 'userId', as: 'financialTransactions' });
+    FinancialTransaction.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     
-    // Setup Enhanced Social Model Associations - TEMPORARILY DISABLED
-    // if (EnhancedSocialModels.setupEnhancedSocialAssociations) {
-    //   console.log('🔗 Setting up Enhanced Social Model Associations...');
-    //   EnhancedSocialModels.setupEnhancedSocialAssociations();
-    // }
+    // Order -> Financial Transactions
+    Order.hasMany(FinancialTransaction, { foreignKey: 'orderId', as: 'financialTransactions' });
+    FinancialTransaction.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
+    
+    // ShoppingCart -> Financial Transactions
+    ShoppingCart.hasMany(FinancialTransaction, { foreignKey: 'cartId', as: 'financialTransactions' });
+    FinancialTransaction.belongsTo(ShoppingCart, { foreignKey: 'cartId', as: 'cart' });
+    
+    // Business Metrics -> Top Package
+    BusinessMetrics.belongsTo(StorefrontItem, { foreignKey: 'topPackageId', as: 'topPackage' });
+    
+    // Admin Notifications -> User (for user-related notifications)
+    AdminNotification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    User.hasMany(AdminNotification, { foreignKey: 'userId', as: 'adminNotifications' });
+    
+    // Admin Notifications -> Financial Transaction
+    AdminNotification.belongsTo(FinancialTransaction, { foreignKey: 'transactionId', as: 'transaction' });
+    FinancialTransaction.hasMany(AdminNotification, { foreignKey: 'transactionId', as: 'notifications' });
+    
+    // Admin Notifications -> Read By (admin user)
+    AdminNotification.belongsTo(User, { foreignKey: 'readBy', as: 'readByUser' });
 
+    console.log('✅ Sequelize model associations established successfully');
+    console.log('✅ Financial Intelligence models integrated');
+    
     // Return ONLY SEQUELIZE models for exporting
     return {
       User,
@@ -287,22 +312,6 @@ const setupAssociations = async () => {
       Challenge,
       ChallengeParticipant,
       ChallengeTeam,
-      
-      // Enhanced Social Models - TEMPORARILY DISABLED
-      // EnhancedSocialPost,
-      // SocialConnection,
-      // Community,
-      // CommunityMembership,
-      // Conversation,
-      // Message,
-      // ConversationParticipant,
-      // EnhancedNotification,
-      // LiveStream,
-      // CreatorProfile,
-      // SocialProduct,
-      // SocialEvent,
-      // UserPreferences,
-      // SocialAnalytics,
       
       // E-Commerce Models
       StorefrontItem,
@@ -336,7 +345,12 @@ const setupAssociations = async () => {
       Notification,
       NotificationSettings,
       AdminSettings,
-      Contact
+      Contact,
+      
+      // Financial Models
+      FinancialTransaction,
+      BusinessMetrics,
+      AdminNotification
     };
   } catch (error) {
     console.error('❌ Error setting up Sequelize model associations:', error);
