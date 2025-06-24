@@ -18,7 +18,7 @@
  */
 
 import express from 'express';
-import { protect, requireRole } from '../../middleware/authMiddleware.mjs';
+import { protect, authorize } from '../../middleware/authMiddleware.mjs';
 import { Op, literal, fn, col } from 'sequelize';
 import ShoppingCart from '../../models/ShoppingCart.mjs';
 import CartItem from '../../models/CartItem.mjs';
@@ -30,7 +30,7 @@ const router = express.Router();
 
 // Apply authentication and admin role requirement to all routes
 router.use(protect);
-router.use(requireRole(['admin']));
+router.use(authorize(['admin']));
 
 /**
  * GET /api/admin/finance/overview
