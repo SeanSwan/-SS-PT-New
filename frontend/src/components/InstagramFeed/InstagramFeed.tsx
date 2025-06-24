@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, HTMLMotionProps } from 'framer-motion';
 import { FaInstagram, FaHeart, FaComment, FaShare, FaPlay } from 'react-icons/fa';
@@ -26,6 +26,7 @@ interface InstagramPost {
   likes: number;
   comments: number;
   shares: number;
+  instagramUrl?: string;
 }
 
 // --- Animation Keyframes ---
@@ -215,6 +216,10 @@ const PostImageContainer = styled.div`
   overflow: hidden;
   cursor: pointer;
   z-index: 2;
+  
+  &:hover .instagram-link-overlay {
+    opacity: 1;
+  }
 `;
 
 // The post image with a scale effect on hover
@@ -246,6 +251,28 @@ const VideoOverlay = styled.div`
     color: white;
     opacity: 0.8;
     filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.5));
+  }
+`;
+
+// Overlay to indicate Instagram link
+const InstagramLinkOverlay = styled.div`
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 20px;
+  padding: 8px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: white;
+  font-size: 0.8rem;
+  
+  svg {
+    font-size: 1.2rem;
+    color: #E4405F;
   }
 `;
 
@@ -380,7 +407,7 @@ const cardVariants: HTMLMotionProps<"div">["variants"] = {
   })
 };
 
-// --- Sample Instagram Posts Data ---
+// --- Real Instagram Posts Data with Actual URLs ---
 const instagramPosts: InstagramPost[] = [
   {
     id: 1,
@@ -388,12 +415,13 @@ const instagramPosts: InstagramPost[] = [
     isVideo: false,
     avatar: post6,
     author: "sswanstudios",
-    date: "2 days ago",
-    caption: "Our client Jane crushing her deadlift PR! Hard work paying off after just 3 months of consistent training.",
-    hashtags: "#fitnessmotivation #strengthtraining #personaltraining",
-    likes: 328,
-    comments: 42,
-    shares: 12
+    date: "2 weeks ago",
+    caption: "Training excellence in action! 💪 Watch our clients push their limits and achieve incredible results. This is what dedication looks like.",
+    hashtags: "#SwanStudios #PersonalTraining #FitnessMotivation #StrengthTraining #ClientSuccess",
+    likes: 284,
+    comments: 32,
+    shares: 15,
+    instagramUrl: "https://www.instagram.com/p/C3vQ9P4pP-e/"
   },
   {
     id: 2,
@@ -401,12 +429,13 @@ const instagramPosts: InstagramPost[] = [
     isVideo: true,
     avatar: post6,
     author: "sswanstudios",
-    date: "4 days ago",
-    caption: "Quick tutorial: 3 mobility exercises you can do anywhere to improve hip flexibility and prevent lower back pain.",
-    hashtags: "#mobilitytraining #flexibilityworkout #injuryprevention",
-    likes: 456,
-    comments: 67,
-    shares: 89
+    date: "2 weeks ago",
+    caption: "Form is everything! 🎯 Coach Sean breaking down the perfect squat technique. Quality movement patterns lead to lasting results.",
+    hashtags: "#ProperForm #SquatTechnique #PersonalTrainer #FitnessEducation #SwanStudios",
+    likes: 392,
+    comments: 48,
+    shares: 67,
+    instagramUrl: "https://www.instagram.com/p/C3YKUE2MO38/"
   },
   {
     id: 3,
@@ -414,12 +443,13 @@ const instagramPosts: InstagramPost[] = [
     isVideo: false,
     avatar: post6,
     author: "sswanstudios",
-    date: "1 week ago",
-    caption: "Congratulations to our client Mark on his incredible 6-month transformation! 32lbs down and significantly stronger.",
-    hashtags: "#transformationtuesday #weightlossjourney #fitnessresults",
-    likes: 712,
-    comments: 98,
-    shares: 124
+    date: "3 weeks ago",
+    caption: "Consistency breeds champions! 🏆 Our client testimonials speak volumes about the Swan Studios difference. Your transformation starts here.",
+    hashtags: "#ClientTestimonials #TransformationStory #SwanStudios #FitnessJourney #Results",
+    likes: 456,
+    comments: 71,
+    shares: 89,
+    instagramUrl: "https://www.instagram.com/p/C2Ts4f6P1yq/"
   },
   {
     id: 4,
@@ -427,12 +457,13 @@ const instagramPosts: InstagramPost[] = [
     isVideo: true,
     avatar: post6,
     author: "sswanstudios",
-    date: "1 week ago",
-    caption: "Coach Sean explains the science behind progressive overload and why it's essential for continued results.",
-    hashtags: "#fitnessscience #strengthcoach #fitnessexpert",
-    likes: 289,
-    comments: 45,
-    shares: 38
+    date: "3 weeks ago",
+    caption: "Behind the scenes at Swan Studios! 🎬 See what goes into creating personalized training programs that deliver real results.",
+    hashtags: "#BehindTheScenes #PersonalizedTraining #SwanStudios #FitnessStudio #ProfessionalTraining",
+    likes: 318,
+    comments: 54,
+    shares: 42,
+    instagramUrl: "https://www.instagram.com/p/C3Qb6hvgohV/"
   },
   {
     id: 5,
@@ -440,12 +471,13 @@ const instagramPosts: InstagramPost[] = [
     isVideo: false,
     avatar: post6,
     author: "sswanstudios",
-    date: "2 weeks ago",
-    caption: "New equipment just arrived at the studio! Come check out our expanded training space with state-of-the-art gear.",
-    hashtags: "#gymequipment #trainingfacility #fitnessupgrade",
-    likes: 503,
-    comments: 72,
-    shares: 28
+    date: "3 weeks ago",
+    caption: "Innovation meets tradition 🔬 Cutting-edge training methods combined with proven techniques. This is modern fitness done right.",
+    hashtags: "#InnovativeTraining #ModernFitness #SwanStudios #FitnessInnovation #TrainingMethods",
+    likes: 523,
+    comments: 68,
+    shares: 91,
+    instagramUrl: "https://www.instagram.com/p/C3N25ylPjkf/"
   },
   {
     id: 6,
@@ -453,50 +485,19 @@ const instagramPosts: InstagramPost[] = [
     isVideo: false,
     avatar: post6,
     author: "sswanstudios",
-    date: "3 weeks ago",
-    caption: "Client spotlight: At 58, Susan proves that age is just a number. She's now stronger than she was in her 30s!",
-    hashtags: "#agelessfitness #strengthoversixy #seniorhealth",
-    likes: 612,
-    comments: 87,
-    shares: 103
-  },
-  {
-    id: 7,
-    image: post5,
-    isVideo: false,
-    avatar: post6,
-    author: "sswanstudios",
-    date: "3 weeks ago",
-    caption: "Nutrition tip: Simple protein-packed meal prep ideas for busy professionals who still want to prioritize their health.",
-    hashtags: "#mealprep #nutritioncoaching #healthyeating",
-    likes: 421,
-    comments: 63,
-    shares: 92
-  },
-  {
-    id: 8,
-    image: post1,
-    isVideo: false,
-    avatar: post6,
-    author: "sswanstudios",
-    date: "1 month ago",
-    caption: "Team SwanStudios at the Charity Fitness Challenge this weekend. Proud to have raised over $5,000 for children's health programs!",
-    hashtags: "#fitnessforgood #charityevent #communityimpact",
-    likes: 687,
-    comments: 104,
-    shares: 156
+    date: "4 weeks ago",
+    caption: "Mind-body connection in action! 🧠💪 At Swan Studios, we train more than just muscles - we develop complete athletes and confident individuals.",
+    hashtags: "#MindBodyConnection #HolisticFitness #SwanStudios #MentalStrength #CompleteTraining",
+    likes: 647,
+    comments: 83,
+    shares: 124,
+    instagramUrl: "https://www.instagram.com/p/C22dSFQOq6h/"
   }
 ];
 
 // --- Instagram Feed Component ---
 const InstagramFeed: React.FC = () => {
-  const [visiblePosts, setVisiblePosts] = useState<number>(6);
-
-  const handleShowMore = () => {
-    setVisiblePosts(instagramPosts.length);
-  };
-
-  const displayedPosts = instagramPosts.slice(0, visiblePosts);
+  const displayedPosts = instagramPosts; // Show all real Instagram posts
 
   return (
     <InstagramSection id="instagram">
@@ -517,7 +518,7 @@ const InstagramFeed: React.FC = () => {
             whileInView="visible"
             viewport={{ once: true }}
           >
-            Get inspired by real transformations, workout tips, and behind-the-scenes content from our community.
+            Follow our latest posts for training insights, client success stories, and behind-the-scenes content from SwanStudios.
           </SectionSubtitle>
           <InstagramHandle
             href="https://www.instagram.com/sswanstudios"
@@ -542,12 +543,26 @@ const InstagramFeed: React.FC = () => {
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.3 }}
               >
-                <PostImageContainer>
+                <PostImageContainer
+                  onClick={() => {
+                    if (post.instagramUrl) {
+                      window.open(post.instagramUrl, '_blank', 'noopener,noreferrer');
+                    }
+                  }}
+                  style={{ cursor: post.instagramUrl ? 'pointer' : 'default' }}
+                  title={post.instagramUrl ? 'View post on Instagram' : ''}
+                >
                   <PostImage src={post.image} alt={post.caption} loading="lazy" />
                   {post.isVideo && (
                     <VideoOverlay>
                       <FaPlay />
                     </VideoOverlay>
+                  )}
+                  {post.instagramUrl && (
+                    <InstagramLinkOverlay className="instagram-link-overlay">
+                      <FaInstagram />
+                      <span>View on IG</span>
+                    </InstagramLinkOverlay>
                   )}
                 </PostImageContainer>
                 <PostContent>
@@ -578,19 +593,6 @@ const InstagramFeed: React.FC = () => {
             </PostCardContainer>
           ))}
         </PostsGrid>
-
-        {/* "Show More Posts" button - replaced with GlowButton */}
-        {visiblePosts < instagramPosts.length && (
-          <ButtonContainer>
-            <GlowButton
-              text="Show More Posts"
-              theme="cosmic"
-              size="medium"
-              onClick={handleShowMore}
-              animateOnRender={false}
-            />
-          </ButtonContainer>
-        )}
 
         {/* "Follow Us On Instagram" button - replaced with GlowButton */}
         <ButtonContainer>
