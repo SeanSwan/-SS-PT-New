@@ -3,8 +3,9 @@
 import React, { useRef } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, useInView } from "framer-motion";
-import { FaDumbbell, FaPaintBrush, FaMicrophone, FaHeart } from "react-icons/fa";
-import SectionTitle from "../../../components/ui/SectionTitle"; // Adjust if needed
+import { FaMusic, FaPaintBrush, FaMicrophone, FaHeart } from "react-icons/fa";
+import SectionTitle from "../../../components/ui/SectionTitle";
+import { useUniversalTheme } from "../../../context/ThemeContext";
 
 // --- Animation Keyframes ---
 const float = keyframes`
@@ -14,15 +15,25 @@ const float = keyframes`
 `;
 
 const pulse = keyframes`
-  0% { box-shadow: 0 0 15px rgba(0, 255, 255, 0.4); }
-  50% { box-shadow: 0 0 25px rgba(120, 81, 169, 0.7); }
-  100% { box-shadow: 0 0 15px rgba(0, 255, 255, 0.4); }
+  0% { box-shadow: 0 0 15px currentColor; }
+  50% { box-shadow: 0 0 25px currentColor; }
+  100% { box-shadow: 0 0 15px currentColor; }
+`;
+
+const shimmer = keyframes`
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+`;
+
+const stellarGlow = keyframes`
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
 `;
 
 // --- Styled Components ---
 const SectionContainer = styled.section`
   padding: 6rem 2rem;
-  background: linear-gradient(to bottom, #0f0f1a, #1a1a2e);
+  background: linear-gradient(to bottom, ${({ theme }) => theme.background.primary}, ${({ theme }) => theme.background.secondary});
   position: relative;
   overflow: hidden;
   
@@ -36,14 +47,28 @@ const GlowEffect = styled.div`
   width: 70vh;
   height: 70vh;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(0, 255, 255, 0.07) 0%, rgba(120, 81, 169, 0.05) 50%, transparent 70%);
+  background: ${({ theme }) => theme.gradients.cosmic};
   top: 10%;
   left: 50%;
   transform: translateX(-50%);
   filter: blur(60px);
   z-index: 0;
-  opacity: 0.8;
+  opacity: 0.6;
   pointer-events: none;
+  animation: ${stellarGlow} 8s ease-in-out infinite;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    width: 40%;
+    height: 40%;
+    background: ${({ theme }) => theme.gradients.primary};
+    border-radius: 50%;
+    top: 30%;
+    left: 30%;
+    filter: blur(40px);
+    animation: ${float} 6s ease-in-out infinite;
+  }
 `;
 
 const ContentWrapper = styled.div`
@@ -60,16 +85,12 @@ const SectionDescription = styled(motion.p)`
   text-align: center;
   font-size: 1.2rem;
   margin-bottom: 4rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: ${({ theme }) => theme.text.secondary};
   max-width: 800px;
   line-height: 1.6;
   
   span {
-    background: linear-gradient(
-      to right,
-      rgba(0, 255, 255, 0.8),
-      rgba(120, 81, 169, 0.8)
-    );
+    background: ${({ theme }) => theme.gradients.cosmic};
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
@@ -111,7 +132,7 @@ const CardGrid = styled.div`
 `;
 
 const ExpressionCard = styled(motion.div)`
-  background: rgba(20, 20, 40, 0.3);
+  background: ${({ theme }) => theme.background.surface};
   backdrop-filter: blur(10px);
   border-radius: 20px;
   padding: 2.5rem 2rem;
@@ -121,47 +142,111 @@ const ExpressionCard = styled(motion.div)`
   text-align: center;
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid ${({ theme }) => theme.borders.subtle};
+  box-shadow: ${({ theme }) => theme.shadows.elevation};
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      ${({ theme }) => theme.colors.primary}20,
+      transparent
+    );
+    transition: left 0.6s ease;
+    z-index: 1;
+  }
   
   &:hover {
     transform: translateY(-10px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: ${({ theme }) => theme.shadows.cosmic};
+    border-color: ${({ theme }) => theme.borders.elegant};
+    animation: ${float} 3s ease-in-out infinite;
+    
+    &::before {
+      left: 100%;
+    }
+  }
+  
+  &.heart-card {
+    background: ${({ theme }) => theme.gradients.swanCosmic}20;
+    border: 1px solid ${({ theme }) => theme.colors.accent}40;
+    
+    &:hover {
+      border-color: ${({ theme }) => theme.colors.accent};
+      box-shadow: ${({ theme }) => theme.shadows.accent};
+    }
   }
 `;
 
 const IconContainer = styled.div`
   font-size: 3rem;
   margin-bottom: 1.5rem;
-  color: var(--neon-blue, #00ffff);
+  color: ${({ theme }) => theme.colors.primary};
+  position: relative;
+  z-index: 2;
+  transition: all 0.3s ease;
   
   svg {
-    filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.5));
+    filter: drop-shadow(0 0 8px ${({ theme }) => theme.colors.primary}80);
+    transition: all 0.3s ease;
+  }
+  
+  &.heart-icon {
+    color: ${({ theme }) => theme.colors.accent};
+    animation: ${pulse} 3s ease-in-out infinite;
+    
+    svg {
+      filter: drop-shadow(0 0 8px ${({ theme }) => theme.colors.accent}80);
+    }
+  }
+  
+  ${ExpressionCard}:hover & {
+    animation: ${stellarGlow} 2s ease-in-out infinite;
+    
+    svg {
+      filter: drop-shadow(0 0 15px currentColor);
+    }
   }
 `;
 
 const CardTitle = styled.h3`
   font-size: 1.8rem;
   margin-bottom: 1rem;
-  background: linear-gradient(
-    to right,
-    #a9f8fb,
-    #46cdcf,
-    #7b2cbf,
-    #c8b6ff
-  );
+  background: ${({ theme }) => theme.gradients.stellar};
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
   font-weight: 600;
+  position: relative;
+  z-index: 2;
+  transition: all 0.3s ease;
+  
+  &.heart-card-title {
+    background: ${({ theme }) => theme.gradients.accent};
+    background-clip: text;
+    -webkit-background-clip: text;
+  }
+  
+  ${ExpressionCard}:hover & {
+    background-size: 200% 200%;
+    animation: ${shimmer} 2s linear infinite;
+  }
 `;
 
 const CardDescription = styled.p`
   font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: ${({ theme }) => theme.text.secondary};
   line-height: 1.6;
   margin-bottom: 1.5rem;
+  position: relative;
+  z-index: 2;
 `;
 
 const BenefitsList = styled.ul`
@@ -170,19 +255,31 @@ const BenefitsList = styled.ul`
   margin: 0 0 1.5rem;
   text-align: left;
   width: 100%;
+  position: relative;
+  z-index: 2;
 `;
 
 const BenefitItem = styled.li`
   margin-bottom: 0.75rem;
   display: flex;
   align-items: center;
-  color: rgba(255, 255, 255, 0.8);
+  color: ${({ theme }) => theme.text.muted};
   font-size: 1rem;
+  transition: color 0.3s ease;
   
   &::before {
     content: "✦";
     margin-right: 10px;
-    color: var(--neon-blue, #00ffff);
+    color: ${({ theme }) => theme.colors.primary};
+    transition: all 0.3s ease;
+  }
+  
+  ${ExpressionCard}:hover & {
+    color: ${({ theme }) => theme.text.primary};
+    
+    &::before {
+      animation: ${stellarGlow} 2s ease-in-out infinite;
+    }
   }
 `;
 
@@ -226,11 +323,12 @@ const textVariants = {
 const CreativeExpressionSection: React.FC = () => {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: false, amount: 0.2 });
+  const { theme } = useUniversalTheme();
   
   const expressionCategories = [
     {
       title: "Dance",
-      icon: <FaDumbbell />,
+      icon: <FaMusic />,
       description: "Express yourself through movement and rhythm with our specialized dance training programs.",
       benefits: [
         "Build core strength and flexibility",
