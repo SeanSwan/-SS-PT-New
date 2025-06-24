@@ -387,7 +387,7 @@ const instagramPosts: InstagramPost[] = [
     image: post1,
     isVideo: false,
     avatar: post6,
-    author: "swanstudios",
+    author: "sswanstudios",
     date: "2 days ago",
     caption: "Our client Jane crushing her deadlift PR! Hard work paying off after just 3 months of consistent training.",
     hashtags: "#fitnessmotivation #strengthtraining #personaltraining",
@@ -400,7 +400,7 @@ const instagramPosts: InstagramPost[] = [
     image: videoThumb1,
     isVideo: true,
     avatar: post6,
-    author: "swanstudios",
+    author: "sswanstudios",
     date: "4 days ago",
     caption: "Quick tutorial: 3 mobility exercises you can do anywhere to improve hip flexibility and prevent lower back pain.",
     hashtags: "#mobilitytraining #flexibilityworkout #injuryprevention",
@@ -413,7 +413,7 @@ const instagramPosts: InstagramPost[] = [
     image: post2,
     isVideo: false,
     avatar: post6,
-    author: "swanstudios",
+    author: "sswanstudios",
     date: "1 week ago",
     caption: "Congratulations to our client Mark on his incredible 6-month transformation! 32lbs down and significantly stronger.",
     hashtags: "#transformationtuesday #weightlossjourney #fitnessresults",
@@ -426,7 +426,7 @@ const instagramPosts: InstagramPost[] = [
     image: videoThumb2,
     isVideo: true,
     avatar: post6,
-    author: "swanstudios",
+    author: "sswanstudios",
     date: "1 week ago",
     caption: "Coach Sean explains the science behind progressive overload and why it's essential for continued results.",
     hashtags: "#fitnessscience #strengthcoach #fitnessexpert",
@@ -439,7 +439,7 @@ const instagramPosts: InstagramPost[] = [
     image: post3,
     isVideo: false,
     avatar: post6,
-    author: "swanstudios",
+    author: "sswanstudios",
     date: "2 weeks ago",
     caption: "New equipment just arrived at the studio! Come check out our expanded training space with state-of-the-art gear.",
     hashtags: "#gymequipment #trainingfacility #fitnessupgrade",
@@ -452,7 +452,7 @@ const instagramPosts: InstagramPost[] = [
     image: post4,
     isVideo: false,
     avatar: post6,
-    author: "swanstudios",
+    author: "sswanstudios",
     date: "3 weeks ago",
     caption: "Client spotlight: At 58, Susan proves that age is just a number. She's now stronger than she was in her 30s!",
     hashtags: "#agelessfitness #strengthoversixy #seniorhealth",
@@ -465,7 +465,7 @@ const instagramPosts: InstagramPost[] = [
     image: post5,
     isVideo: false,
     avatar: post6,
-    author: "swanstudios",
+    author: "sswanstudios",
     date: "3 weeks ago",
     caption: "Nutrition tip: Simple protein-packed meal prep ideas for busy professionals who still want to prioritize their health.",
     hashtags: "#mealprep #nutritioncoaching #healthyeating",
@@ -478,7 +478,7 @@ const instagramPosts: InstagramPost[] = [
     image: post1,
     isVideo: false,
     avatar: post6,
-    author: "swanstudios",
+    author: "sswanstudios",
     date: "1 month ago",
     caption: "Team SwanStudios at the Charity Fitness Challenge this weekend. Proud to have raised over $5,000 for children's health programs!",
     hashtags: "#fitnessforgood #charityevent #communityimpact",
@@ -520,7 +520,7 @@ const InstagramFeed: React.FC = () => {
             Get inspired by real transformations, workout tips, and behind-the-scenes content from our community.
           </SectionSubtitle>
           <InstagramHandle
-            href="https://www.instagram.com/seanswantech"
+            href="https://www.instagram.com/sswanstudios"
             target="_blank"
             rel="noopener noreferrer"
             variants={handleVariants}
@@ -528,7 +528,7 @@ const InstagramFeed: React.FC = () => {
             whileInView="visible"
             viewport={{ once: true }}
           >
-            <FaInstagram /> @seanswantech
+            <FaInstagram /> @sswanstudios
           </InstagramHandle>
         </SectionHeader>
 
@@ -599,7 +599,7 @@ const InstagramFeed: React.FC = () => {
             theme="purple"
             size="medium"
             leftIcon={<FaInstagram />}
-            onClick={() => window.open('https://www.instagram.com/seanswantech', '_blank')}
+            onClick={() => window.open('https://www.instagram.com/sswanstudios', '_blank')}
             animateOnRender={false}
           />
         </ButtonContainer>
