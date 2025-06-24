@@ -32,6 +32,9 @@
 - `HomePage.BACKUP.tsx` → Moved from `/pages/HomePage/components/` to archive
 - `HomePage.PRODUCTION.tsx` → Moved to archive (identical to current file)
 
+### Login Modal Files (to `/pages/old/`):
+- `LoginModal.component.tsx` → Moved to archive (unused version)
+
 ### Shop/Store Files (to `/pages/old/`):
 - `StoreFront.BACKUP.tsx` → Moved to archive
 - `GalaxyThemedStoreFront.BACKUP.tsx` → Moved to archive  
@@ -59,6 +62,9 @@
 
 ### HomePage Files:
 - `HomePage.component.tsx` ✅ **PRODUCTION READY** - Revenue-optimized version with package previews
+
+### Login Modal Files:
+- `EnhancedLoginModal.tsx` ✅ **PRODUCTION READY** - Active login modal used in routes
 
 ### Service Files:
 - `api.service.ts` ✅ **PRODUCTION READY** - Contains connection checking and all production features
@@ -90,6 +96,7 @@
 - **6 duplicate production files** moved to archive  
 - **1 entire backup directory** moved to archive
 - **3 .fix files** moved to archive
+- **1 unused login modal** moved to archive
 
 ### Production Benefits:
 - ✅ **Single source of truth** for each component/service
@@ -132,6 +139,7 @@
 - **AuthContext:** `/frontend/src/context/AuthContext.tsx`
 - **CartContext:** `/frontend/src/context/CartContext.tsx`
 - **HomePage:** `/frontend/src/pages/HomePage/components/HomePage.component.tsx`
+- **LoginModal:** `/frontend/src/pages/EnhancedLoginModal.tsx`
 - **API Service:** `/frontend/src/services/api.service.ts`
 - **Token Cleanup:** `/frontend/src/utils/tokenCleanup.ts`
 
