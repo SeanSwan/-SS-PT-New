@@ -495,12 +495,12 @@ const HomePage: React.FC = () => {
   
   // Divider texts for each section
   const dividerTexts = [
-    "Elevate Your Training",
-    "Choose Your Journey",
+    "Elevate Your Excellence",
+    "Exclusive Consultation",
     "Express & Connect",
-    "Expert Coaching",
+    "Elite Coaching",
     "Success Stories",
-    "Measurable Results",
+    "Proven Results",
     "Join Our Community"
   ];
   
@@ -604,15 +604,15 @@ const HomePage: React.FC = () => {
   return (
     <HomePageContainer ref={homeRef}>
       <Helmet>
-        <title>SwanStudios | Elite Performance Training & Creative Expression</title>
-        <meta name="description" content="Transform your fitness journey with SwanStudios' elite personal training. NASM-certified coaching with over 25 years of experience in performance, dance, and creative wellness training." />
-        <meta property="og:title" content="SwanStudios | Elite Performance Training & Creative Expression" />
-        <meta property="og:description" content="Transform your fitness journey with SwanStudios' elite personal training. NASM-certified coaching with over 25 years of experience in performance, dance, and creative wellness training." />
+        <title>SwanStudios | Elite Personal Training for Executives & Entrepreneurs</title>
+        <meta name="description" content="Exclusive personal training for discerning professionals. NASM-certified elite coaching with 25+ years of expertise. Limited availability - by invitation only. Complimentary consultation available." />
+        <meta property="og:title" content="SwanStudios | Elite Personal Training for Executives & Entrepreneurs" />
+        <meta property="og:description" content="Exclusive personal training for discerning professionals. NASM-certified elite coaching with 25+ years of expertise. Limited availability - by invitation only. Complimentary consultation available." />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="/Logo.png" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
         <meta name="theme-color" content="#0a0a1a" />
-        <meta name="keywords" content="personal training, fitness, dance, creative expression, wellness, performance training, NASM certified" />
+        <meta name="keywords" content="elite personal training, executive fitness, luxury wellness, premium coaching, NASM certified, Beverly Hills trainer, exclusive fitness, executive wellness program" />
         <link rel="canonical" href="https://swanstudios.com" />
       </Helmet>
       
@@ -641,21 +641,21 @@ const HomePage: React.FC = () => {
       
       {renderSectionDivider(0)}
       
-      {/* NEW: Package Preview Section - PRIMARY REVENUE DRIVER */}
+      {/* NEW: Exclusive Consultation Section - LUXURY CLIENT ACQUISITION */}
       <PackagePreviewSection id={sectionIds.packages} ref={packageRef}>
         <PackagePreviewTitle
           variants={packageVariants}
           initial="hidden"
           animate={isPackageInView ? "visible" : "hidden"}
         >
-          Start Your Transformation Today
+          Elite Personal Training - By Invitation Only
         </PackagePreviewTitle>
         <PackagePreviewSubtitle
           variants={packageVariants}
           initial="hidden"
           animate={isPackageInView ? "visible" : "hidden"}
         >
-          Choose from our premium training packages designed by Sean Swan with over 25 years of experience
+          Discover why executives, entrepreneurs, and discerning individuals choose SwanStudios for their transformation journey
         </PackagePreviewSubtitle>
         
         <PackageGrid
@@ -666,56 +666,59 @@ const HomePage: React.FC = () => {
           <PackageCard
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/shop')}
+            onClick={() => navigate('/contact')}
+            style={{ background: 'linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(120, 81, 169, 0.2))' }}
           >
-            <h3>Single Session</h3>
-            <p>Perfect for trying our premium training experience with Sean Swan.</p>
-            <div className="price">$175</div>
-            <div className="sessions">1 Premium Session</div>
+            <h3>🎯 Complimentary Consultation</h3>
+            <p>Experience our premium approach with a comprehensive fitness assessment, goal setting session, and personalized strategy development.</p>
+            <div className="price">No Obligation</div>
+            <div className="sessions">60-Minute Private Session</div>
           </PackageCard>
           
           <PackageCard
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/shop')}
+            onClick={() => navigate('/contact')}
+            style={{ background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(120, 81, 169, 0.2))' }}
           >
-            <h3>Silver Package</h3>
-            <p>8 sessions for committed results and lasting transformation.</p>
-            <div className="price">$1,360</div>
-            <div className="sessions">8 Sessions • $170 per session</div>
+            <h3>⭐ Executive Wellness Program</h3>
+            <p>Designed for busy professionals who demand results. Flexible scheduling, concierge-level service, and accelerated transformation protocols.</p>
+            <div className="price">Premium Experience</div>
+            <div className="sessions">Customized to Your Schedule</div>
           </PackageCard>
           
           <PackageCard
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/shop')}
+            onClick={() => navigate('/contact')}
+            style={{ background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.1), rgba(120, 81, 169, 0.2))' }}
           >
-            <h3>Gold Package</h3>
-            <p>20 sessions for complete body and mind transformation.</p>
-            <div className="price">$3,300</div>
-            <div className="sessions">20 Sessions • $165 per session</div>
+            <h3>💎 Elite Transformation</h3>
+            <p>Our signature program for those who accept nothing less than excellence. Comprehensive lifestyle optimization with measurable results.</p>
+            <div className="price">Investment in Excellence</div>
+            <div className="sessions">Complete Lifestyle Transformation</div>
           </PackageCard>
         </PackageGrid>
         
-        {/* Urgency and Social Proof */}
+        {/* Luxury Positioning and Social Proof */}
         <UrgencySection
           variants={packageVariants}
           initial="hidden"
           animate={isPackageInView ? "visible" : "hidden"}
         >
-          <UrgencyText>🔥 Limited Availability - Only 3 New Clients Per Month</UrgencyText>
+          <UrgencyText>🏆 Limited Availability - Only 3 New Executive Clients Monthly</UrgencyText>
           <SocialProofText>
-            Over 500+ transformations completed • Featured in LA Fitness Magazine • Trusted by celebrities and athletes
+            Trusted by Fortune 500 executives • Featured in Elite Lifestyle publications • 25+ years of proven results • Discretion guaranteed
           </SocialProofText>
           
           <ExploreMoreButton>
             <GlowButton 
-              text="View All Packages & Pricing" 
+              text="Schedule Your Complimentary Consultation" 
               theme="cosmic" 
               size="large" 
               animateOnRender 
-              onClick={() => navigate('/shop')}
-              aria-label="View all training packages and pricing"
+              onClick={() => navigate('/contact')}
+              aria-label="Schedule your complimentary consultation"
             />
           </ExploreMoreButton>
         </UrgencySection>
@@ -742,12 +745,12 @@ const HomePage: React.FC = () => {
             whileTap="tap"
           >
             <GlowButton 
-              text="Book Free Consultation" 
+              text="Book Your Consultation" 
               theme="emerald" 
               size="medium" 
               animateOnRender 
               onClick={() => navigate('/contact')}
-              aria-label="Book your free consultation"
+              aria-label="Book your complimentary consultation"
             />
           </ExploreMoreButton>
         </div>
@@ -772,12 +775,12 @@ const HomePage: React.FC = () => {
           whileTap="tap"
         >
           <GlowButton 
-            text="Start Training Today" 
+            text="Begin Your Transformation" 
             theme="purple" 
             size="medium" 
             animateOnRender 
-            onClick={() => navigate('/shop')}
-            aria-label="Start your training journey today"
+            onClick={() => navigate('/contact')}
+            aria-label="Begin your transformation journey"
           />
         </ExploreMoreButton>
       </div>
@@ -805,12 +808,12 @@ const HomePage: React.FC = () => {
           whileTap="tap"
         >
           <GlowButton 
-            text="Get Started Now" 
+            text="Discover Your Potential" 
             theme="cosmic" 
             size="medium" 
             animateOnRender 
-            onClick={() => navigate('/shop')}
-            aria-label="Get started with your transformation"
+            onClick={() => navigate('/contact')}
+            aria-label="Discover your potential with a consultation"
           />
         </ExploreMoreButton>
       </div>
@@ -864,12 +867,12 @@ const HomePage: React.FC = () => {
           style={{ marginTop: '3rem' }}
         >
           <GlowButton 
-            text="Ready to Transform? Start Here" 
+            text="Schedule Your Consultation" 
             theme="cosmic" 
             size="large" 
             animateOnRender 
-            onClick={() => navigate('/shop')}
-            aria-label="Ready to transform? Start your journey here"
+            onClick={() => navigate('/contact')}
+            aria-label="Schedule your consultation to begin your journey"
           />
         </ExploreMoreButton>
       </div>
