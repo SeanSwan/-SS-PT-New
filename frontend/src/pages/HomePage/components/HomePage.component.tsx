@@ -5,6 +5,7 @@ import { motion, useScroll, useTransform, useInView, AnimatePresence } from "fra
 import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
 import GlowButton from "../../../components/ui/GlowButton";
+import { useUniversalTheme } from "../../../context/ThemeContext";
 
 // Import components
 import HeroSection from "./Hero-Section";
@@ -27,7 +28,7 @@ const FeaturedSection = styled.div`
     right: -5px;
     bottom: -5px;
     border-radius: 10px;
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(120, 81, 169, 0.15));
+    background: ${({ theme }) => theme.gradients.cosmic}20;
     z-index: -1;
   }
 `;
@@ -100,7 +101,7 @@ const SectionLoader = styled.div`
   align-items: center;
   min-height: 400px;
   width: 100%;
-  background: rgba(10, 10, 30, 0.5);
+  background: ${({ theme }) => theme.background.surface};
   opacity: 0;
   animation: ${fadeIn} 0.5s ease-in-out forwards;
   position: relative;
@@ -109,8 +110,8 @@ const SectionLoader = styled.div`
     content: "";
     width: 50px;
     height: 50px;
-    border: 3px solid rgba(0, 255, 255, 0.3);
-    border-top-color: rgba(0, 255, 255, 0.8);
+    border: 3px solid ${({ theme }) => theme.colors.primary}30;
+    border-top-color: ${({ theme }) => theme.colors.primary};
     border-radius: 50%;
     animation: ${spin} 1s linear infinite, ${pulse} 2s ease-in-out infinite;
   }
@@ -130,7 +131,7 @@ const diagonalShimmer = keyframes`
 const HomePageContainer = styled.div`
   overflow: hidden;
   position: relative;
-  background: linear-gradient(to bottom, #0a0a0a, #1a1a2e);
+  background: linear-gradient(to bottom, ${({ theme }) => theme.background.primary}, ${({ theme }) => theme.background.secondary});
   
   width: 100%;
   max-width: 100vw;
@@ -163,8 +164,9 @@ const PackagePreviewTitle = styled(motion.h2)`
   font-size: 2.5rem;
   font-weight: 300;
   margin-bottom: 1rem;
-  color: white;
-  text-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+  color: ${({ theme }) => theme.text.primary};
+  text-shadow: 0 0 20px ${({ theme }) => theme.colors.primary}30;
+  transition: all 0.3s ease;
   
   @media (max-width: 768px) {
     font-size: 2rem;
@@ -173,11 +175,12 @@ const PackagePreviewTitle = styled(motion.h2)`
 
 const PackagePreviewSubtitle = styled(motion.p)`
   font-size: 1.2rem;
-  color: rgba(255, 255, 255, 0.8);
+  color: ${({ theme }) => theme.text.secondary};
   margin-bottom: 3rem;
   max-width: 600px;
   margin-left: auto;
   margin-right: auto;
+  transition: color 0.3s ease;
 `;
 
 const PackageGrid = styled(motion.div)`
@@ -193,8 +196,8 @@ const PackageGrid = styled(motion.div)`
 `;
 
 const PackageCard = styled(motion.div)`
-  background: rgba(30, 30, 60, 0.4);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  background: ${({ theme }) => theme.background.surface};
+  border: 1px solid ${({ theme }) => theme.borders.subtle};
   border-radius: 15px;
   padding: 2rem;
   cursor: pointer;
@@ -204,8 +207,8 @@ const PackageCard = styled(motion.div)`
   
   &:hover {
     transform: translateY(-10px);
-    border-color: rgba(0, 255, 255, 0.6);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 255, 255, 0.2);
+    border-color: ${({ theme }) => theme.borders.elegant};
+    box-shadow: ${({ theme }) => theme.shadows.cosmic};
   }
   
   &::before {
@@ -218,7 +221,7 @@ const PackageCard = styled(motion.div)`
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(255, 255, 255, 0.1),
+      ${({ theme }) => theme.colors.primary}20,
       transparent
     );
     transition: left 0.5s;
@@ -230,40 +233,50 @@ const PackageCard = styled(motion.div)`
   
   h3 {
     font-size: 1.5rem;
-    color: #00ffff;
+    color: ${({ theme }) => theme.colors.primary};
     margin-bottom: 1rem;
+    transition: color 0.3s ease;
   }
   
   p {
-    color: rgba(255, 255, 255, 0.8);
+    color: ${({ theme }) => theme.text.secondary};
     margin-bottom: 1.5rem;
     font-size: 1rem;
     line-height: 1.6;
+    transition: color 0.3s ease;
   }
   
   .price {
     font-size: 1.8rem;
     font-weight: bold;
-    color: white;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    color: ${({ theme }) => theme.text.primary};
+    text-shadow: 0 0 10px ${({ theme }) => theme.colors.primary}50;
+    transition: all 0.3s ease;
   }
   
   .sessions {
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.6);
+    color: ${({ theme }) => theme.text.muted};
     margin-top: 0.5rem;
+    transition: color 0.3s ease;
   }
 `;
 
 // NEW: Urgency and social proof section
 const UrgencySection = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(255, 46, 99, 0.1), rgba(0, 255, 255, 0.1));
+  background: ${({ theme }) => theme.gradients.secondary}20;
   padding: 3rem 2rem;
   margin: 4rem 0;
   text-align: center;
   border-radius: 20px;
   position: relative;
   overflow: hidden;
+  border: 1px solid ${({ theme }) => theme.borders.subtle};
+  transition: all 0.3s ease;
+  
+  &:hover {
+    border-color: ${({ theme }) => theme.borders.elegant};
+  }
   
   &::before {
     content: "";
@@ -275,7 +288,7 @@ const UrgencySection = styled(motion.div)`
     background: linear-gradient(
       45deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.05) 50%,
+      ${({ theme }) => theme.colors.primary}10 50%,
       transparent 100%
     );
     background-size: 200% 200%;
@@ -285,25 +298,27 @@ const UrgencySection = styled(motion.div)`
 
 const UrgencyText = styled.h3`
   font-size: 1.8rem;
-  color: #ff2e63;
+  color: ${({ theme }) => theme.colors.accent};
   margin-bottom: 1rem;
   font-weight: 600;
   position: relative;
   z-index: 2;
+  transition: color 0.3s ease;
 `;
 
 const SocialProofText = styled.p`
   font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: ${({ theme }) => theme.text.secondary};
   margin-bottom: 2rem;
   position: relative;
   z-index: 2;
+  transition: color 0.3s ease;
 `;
 
 const SectionDivider = styled(motion.div)`
   position: relative;
   height: 150px;
-  background: linear-gradient(to right, rgba(0, 255, 255, 0.05), rgba(120, 81, 169, 0.05));
+  background: ${({ theme }) => theme.gradients.cosmic}10;
   margin: 0;
   overflow: hidden;
   display: flex;
@@ -315,7 +330,7 @@ const SectionDivider = styled(motion.div)`
     position: absolute;
     width: 100%;
     height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.8), rgba(120, 81, 169, 0.8), transparent);
+    background: ${({ theme }) => theme.gradients.primary};
   }
   
   &::after {
@@ -328,9 +343,9 @@ const SectionDivider = styled(motion.div)`
     background: linear-gradient(
       135deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.05) 25%,
-      rgba(255, 255, 255, 0.1) 50%,
-      rgba(255, 255, 255, 0.05) 75%,
+      ${({ theme }) => theme.colors.primary}10 25%,
+      ${({ theme }) => theme.colors.primary}20 50%,
+      ${({ theme }) => theme.colors.primary}10 75%,
       transparent 100%
     );
     background-size: 200% 200%;
@@ -348,7 +363,7 @@ const SectionDivider = styled(motion.div)`
 `;
 
 const FloatingText = styled(motion.div)`
-  color: rgba(255, 255, 255, 0.9);
+  color: ${({ theme }) => theme.text.secondary};
   font-size: 1.2rem;
   font-weight: 300;
   letter-spacing: 3px;
@@ -357,7 +372,8 @@ const FloatingText = styled(motion.div)`
   padding: 0 15px;
   position: relative;
   z-index: 2;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+  text-shadow: 0 0 10px ${({ theme }) => theme.colors.primary}50;
+  transition: all 0.3s ease;
   
   @media (max-width: 768px) {
     font-size: 1rem;
@@ -375,18 +391,25 @@ const ScrollPrompt = styled(motion.div)`
   bottom: 30px;
   right: 30px;
   z-index: 100;
-  color: var(--neon-blue, #00ffff);
+  color: ${({ theme }) => theme.colors.primary};
   display: flex;
   flex-direction: column;
   align-items: center;
   font-size: 0.8rem;
   opacity: 0.8;
   cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    opacity: 1;
+    transform: scale(1.1);
+  }
   
   &::after {
     content: "↓";
     font-size: 1.5rem;
     animation: ${pulse} 2s infinite;
+    color: ${({ theme }) => theme.colors.primary};
   }
   
   @media (max-width: 480px) {
@@ -478,11 +501,28 @@ const useCustomInView = (threshold = 0.2) => {
 };
 
 const HomePage: React.FC = () => {
+  // Theme integration
+  const { theme, currentTheme } = useUniversalTheme();
+  
   const navigate = useNavigate();
   const { scrollY } = useScroll();
   const scrollPromptOpacity = useTransform(scrollY, [0, 300], [1, 0]);
   const [showScrollPrompt, setShowScrollPrompt] = useState<boolean>(true);
   const [homeRef, isHomeInView] = useCustomInView(0.1);
+  
+  // Theme-aware button variants
+  const getThemeButtonVariant = (type: 'primary' | 'secondary' | 'accent') => {
+    switch (currentTheme) {
+      case 'swan-galaxy':
+        return type === 'primary' ? 'cosmic' : type === 'secondary' ? 'emerald' : 'purple';
+      case 'admin-command':
+        return type === 'primary' ? 'primary' : type === 'secondary' ? 'cosmic' : 'emerald';
+      case 'dark-galaxy':
+        return type === 'primary' ? 'cosmic' : type === 'secondary' ? 'primary' : 'purple';
+      default:
+        return 'cosmic';
+    }
+  };
   
   // Section refs for improved animations
   const [featuresRef, isFeaturesInView] = useCustomInView();
@@ -714,7 +754,7 @@ const HomePage: React.FC = () => {
           <ExploreMoreButton>
             <GlowButton 
               text="Schedule Your Complimentary Consultation" 
-              theme="cosmic" 
+              theme={getThemeButtonVariant('primary')} 
               size="large" 
               animateOnRender 
               onClick={() => navigate('/contact')}
@@ -746,7 +786,7 @@ const HomePage: React.FC = () => {
           >
             <GlowButton 
               text="Book Your Consultation" 
-              theme="emerald" 
+              theme={getThemeButtonVariant('secondary')} 
               size="medium" 
               animateOnRender 
               onClick={() => navigate('/contact')}
@@ -776,7 +816,7 @@ const HomePage: React.FC = () => {
         >
           <GlowButton 
             text="Begin Your Transformation" 
-            theme="purple" 
+            theme={getThemeButtonVariant('accent')} 
             size="medium" 
             animateOnRender 
             onClick={() => navigate('/contact')}
@@ -809,7 +849,7 @@ const HomePage: React.FC = () => {
         >
           <GlowButton 
             text="Discover Your Potential" 
-            theme="cosmic" 
+            theme={getThemeButtonVariant('primary')} 
             size="medium" 
             animateOnRender 
             onClick={() => navigate('/contact')}
@@ -868,7 +908,7 @@ const HomePage: React.FC = () => {
         >
           <GlowButton 
             text="Schedule Your Consultation" 
-            theme="cosmic" 
+            theme={getThemeButtonVariant('primary')} 
             size="large" 
             animateOnRender 
             onClick={() => navigate('/contact')}

@@ -6,6 +6,7 @@ import { motion, useAnimation, useInView } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import GlowButton from "../../../components/ui/buttons/GlowButton";
 import OrientationForm from "../../../components/OrientationForm/orientationForm";
+import { useUniversalTheme } from "../../../context/ThemeContext";
 
 // Import assets (ensure paths are correct)
 import logoImg from "/Logo.png"; // Ensure this path is correct
@@ -36,6 +37,16 @@ const glow = keyframes`
   100% { filter: drop-shadow(0 0 5px rgba(0,255,255,0.5)); }
 `;
 
+const stellarGlow = keyframes`
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+`;
+
+const textShine = keyframes`
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+`;
+
 
 
 // --- Styled Components ---
@@ -59,7 +70,7 @@ const HeroContainer = styled.section`
   }
 `;
 
-// Video background with a light overlay for increased video brightness.
+// Video background with theme-aware overlay
 const VideoBackground = styled.div`
   position: fixed;
   top: 0;
@@ -76,13 +87,7 @@ const VideoBackground = styled.div`
     left: 0;
     width: 100%;
     height: 100%;
-    /* Updated gradient to match Transform section */
-    background: linear-gradient(
-      160deg, 
-      rgba(120, 81, 169, 0.4), 
-      rgba(9, 4, 30, 0.7), 
-      rgba(0, 159, 253, 0.3)
-    );
+    background: ${({ theme }) => theme.gradients.hero};
     z-index: 1;
   }
 
@@ -125,7 +130,13 @@ const LogoContainer = styled(motion.div)`
     height: 160px;
     max-width: 100%;
     object-fit: contain;
-    filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.4));
+    filter: drop-shadow(0 0 15px ${({ theme }) => theme.colors.primary}60);
+    transition: filter 0.3s ease;
+  }
+  
+  &:hover img {
+    filter: drop-shadow(0 0 25px ${({ theme }) => theme.colors.primary}80);
+    animation: ${stellarGlow} 2s ease-in-out infinite;
   }
 
   @media (max-width: 768px) {
@@ -143,7 +154,7 @@ const LogoContainer = styled(motion.div)`
   }
 `;
 
-// Improved HeroContent with enhanced styling
+// Theme-aware HeroContent with enhanced styling
 const HeroContent = styled(motion.div)`
   position: relative;
   z-index: 2;
@@ -151,11 +162,12 @@ const HeroContent = styled(motion.div)`
   width: 92%;
   margin: 0 auto;
   padding: 2.5rem 2rem;
-  background: rgba(10, 10, 30, 0.3);
+  background: ${({ theme }) => theme.background.surface};
   border-radius: 20px;
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  border: 1px solid ${({ theme }) => theme.borders.subtle};
+  box-shadow: ${({ theme }) => theme.shadows.elevation};
+  transition: all 0.3s ease;
   
   /* Add subtle shine effect */
   &::before {
@@ -165,7 +177,12 @@ const HeroContent = styled(motion.div)`
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    background: linear-gradient(90deg, transparent, ${({ theme }) => theme.colors.primary}40, transparent);
+  }
+  
+  &:hover {
+    border-color: ${({ theme }) => theme.borders.elegant};
+    box-shadow: ${({ theme }) => theme.shadows.cosmic};
   }
 
   @media (max-width: 768px) {
@@ -182,28 +199,21 @@ const HeroContent = styled(motion.div)`
 const Title = styled(motion.h1)`
   font-size: 3.5rem;
   font-weight: 800;
-  background: linear-gradient(
-    to right,
-    #a9f8fb,
-    #46cdcf,
-    #7b2cbf,
-    #c8b6ff,
-    #a9f8fb
-  );
+  background: ${({ theme }) => theme.gradients.stellar};
   background-size: 200% auto;
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
   margin-bottom: 1rem;
-  text-shadow: 0 0 30px rgba(120, 81, 169, 0.8);
+  text-shadow: 0 0 30px ${({ theme }) => theme.colors.secondary}80;
   letter-spacing: 1px;
   text-align: center;
-  animation: textShine 8s linear infinite;
+  animation: ${textShine} 8s linear infinite;
+  transition: all 0.3s ease;
   
-  @keyframes textShine {
-    to {
-      background-position: 200% center;
-    }
+  &:hover {
+    transform: scale(1.02);
+    animation: ${textShine} 4s linear infinite;
   }
 
   @media (max-width: 768px) {
@@ -228,21 +238,15 @@ const Tagline = styled(motion.h2)`
   font-size: 2.2rem;
   font-weight: 300;
   line-height: 1.4;
-  color: white;
+  color: ${({ theme }) => theme.text.primary};
   margin-bottom: 2rem;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  text-shadow: 0 0 10px ${({ theme }) => theme.colors.primary}30;
   letter-spacing: 1px;
   text-align: center;
+  transition: all 0.3s ease;
 
   span {
-    background: linear-gradient(
-      to right,
-      #a9f8fb,
-      #46cdcf,
-      #7b2cbf,
-      #c8b6ff,
-      #a9f8fb
-    );
+    background: ${({ theme }) => theme.gradients.cosmic};
     background-size: 200% auto;
     background-clip: text;
     -webkit-background-clip: text;
@@ -250,8 +254,9 @@ const Tagline = styled(motion.h2)`
     display: inline-block;
     font-weight: 700;
     padding: 0 5px;
-    text-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+    text-shadow: 0 0 15px ${({ theme }) => theme.colors.primary}50;
     position: relative;
+    transition: all 0.3s ease;
     
     &::after {
       content: '';
@@ -260,13 +265,13 @@ const Tagline = styled(motion.h2)`
       right: 0;
       bottom: -2px;
       height: 2px;
-      background: linear-gradient(
-        to right,
-        rgba(169, 248, 251, 0.5),
-        rgba(70, 205, 207, 0.5),
-        rgba(123, 44, 191, 0.5)
-      );
+      background: ${({ theme }) => theme.gradients.primary};
       border-radius: 2px;
+      transition: all 0.3s ease;
+    }
+    
+    &:hover {
+      animation: ${textShine} 3s linear infinite;
     }
   }
 
@@ -285,16 +290,22 @@ const HeroDescription = styled(motion.p)`
   font-size: 1.125rem;
   margin-bottom: 2rem;
   line-height: 1.6;
-  color: rgba(255, 255, 255, 0.9);
+  color: ${({ theme }) => theme.text.secondary};
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
   text-align: center;
   max-width: 90%;
   margin-left: auto;
   margin-right: auto;
+  transition: color 0.3s ease;
 
   strong {
-    color: #46cdcf;
+    color: ${({ theme }) => theme.colors.primary};
     font-weight: 600;
+    transition: color 0.3s ease;
+    
+    &:hover {
+      color: ${({ theme }) => theme.colors.accent};
+    }
   }
 
   @media (max-width: 768px) {
@@ -336,16 +347,23 @@ const ScrollIndicator = styled(motion.div)`
   flex-direction: column;
   align-items: center;
   font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: ${({ theme }) => theme.text.muted};
   letter-spacing: 2px;
   cursor: pointer;
   z-index: 5;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    color: ${({ theme }) => theme.colors.primary};
+    transform: translateX(-50%) scale(1.1);
+  }
 
   &:after {
     content: "↓";
     font-size: 1.5rem;
     margin-top: 0.5rem;
     animation: ${float} 2s ease-in-out infinite;
+    color: ${({ theme }) => theme.colors.primary};
   }
 
   @media (max-width: 768px) {
@@ -382,6 +400,9 @@ const itemVariants = {
 };
 
 const HeroSection: React.FC = () => {
+  // Theme integration
+  const { theme, currentTheme } = useUniversalTheme();
+  
   // Using useMemo for expensive component data calculation
   const videoSource = useMemo(() => heroVideo, []);
   const logoSource = useMemo(() => logoImg, []);
@@ -393,6 +414,20 @@ const HeroSection: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(containerRef, { once: true });
   const navigate = useNavigate();
+  
+  // Theme-aware button variants
+  const getThemeButtonVariant = (type: 'primary' | 'secondary') => {
+    switch (currentTheme) {
+      case 'swan-galaxy':
+        return type === 'primary' ? 'cosmic' : 'purple';
+      case 'admin-command':
+        return type === 'primary' ? 'primary' : 'cosmic';
+      case 'dark-galaxy':
+        return type === 'primary' ? 'cosmic' : 'primary';
+      default:
+        return 'cosmic';
+    }
+  };
 
   useEffect(() => {
     if (isInView) {
@@ -462,7 +497,7 @@ const HeroSection: React.FC = () => {
           <ButtonsContainer variants={itemVariants}>
             <GlowButton
               text="Book Consultation"
-              theme="cosmic"
+              theme={getThemeButtonVariant('primary')}
               size="large"
               animateOnRender={false}
               onClick={() => setShowOrientation(true)}
@@ -470,7 +505,7 @@ const HeroSection: React.FC = () => {
             />
             <GlowButton
               text="Explore Classes"
-              theme="purple"
+              theme={getThemeButtonVariant('secondary')}
               size="large"
               animateOnRender={false}
               onClick={() => navigate("/store")}
