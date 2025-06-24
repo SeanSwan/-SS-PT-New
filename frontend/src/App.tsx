@@ -52,6 +52,7 @@ import './styles/dashboard-global-styles.css'; // Dashboard full-space utilizati
 import './styles/animation-performance-fallbacks.css'; // Performance-optimized animation fallbacks
 import './styles/cosmic-elegance-utilities.css'; // ✨ Cosmic Elegance Utility System
 import './styles/cosmic-mobile-navigation.css'; // ✨ Cosmic Mobile Navigation System
+import './styles/universal-theme-styles.css'; // ✨ Universal Theme Integration System
 // Galaxy-Swan theme integration with Cosmic Elegance
 import ImprovedGlobalStyle from './styles/ImprovedGlobalStyle';
 import CosmicEleganceGlobalStyle, { detectDeviceCapability } from './styles/CosmicEleganceGlobalStyle';

@@ -20,6 +20,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ThemeProvider as StyledThemeProvider } from 'styled-components';
+import { injectThemeVariables } from '../../utils/theme/themeUtils';
 
 // === THEME DEFINITIONS ===
 
@@ -290,13 +291,20 @@ export const UniversalThemeProvider: React.FC<UniversalThemeProviderProps> = ({
     const savedTheme = localStorage.getItem('swanstudios-theme') as ThemeId;
     if (savedTheme && themes[savedTheme]) {
       setCurrentThemeState(savedTheme);
+      injectThemeVariables(savedTheme);
+    } else {
+      // Inject default theme variables
+      injectThemeVariables(defaultTheme);
     }
-  }, []);
+  }, [defaultTheme]);
 
   // Save theme to localStorage when changed
   const setTheme = (themeId: ThemeId) => {
     setCurrentThemeState(themeId);
     localStorage.setItem('swanstudios-theme', themeId);
+    
+    // Inject CSS variables for the new theme
+    injectThemeVariables(themeId);
     
     // Dispatch custom event for components that need to react to theme changes
     window.dispatchEvent(new CustomEvent('themeChanged', { 
