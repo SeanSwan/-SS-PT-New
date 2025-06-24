@@ -15,6 +15,7 @@ import {
 // Assuming GlowButton path is correct relative to this file
 import GlowButton from "../../../components/ui/buttons/GlowButton";
 import SectionTitle from "../../../components/ui/SectionTitle"; // Assuming this path is correct
+import { useUniversalTheme } from "../../../context/ThemeContext";
 
 // --- TypeScript Interfaces ---
 interface TrainerSpecialty {
@@ -74,10 +75,15 @@ const pulseGlow = keyframes`
   100% { box-shadow: 0 0 15px rgba(120, 81, 169, 0.4); }
 `;
 
+const stellarGlow = keyframes`
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+`;
+
 // --- Styled Components ---
 const SectionContainer = styled.section`
   padding: 6rem 2rem;
-  background: linear-gradient(to right, rgba(10, 10, 10, 0.9), rgba(26, 26, 46, 0.9), rgba(10, 10, 10, 0.9)),
+  background: linear-gradient(to right, ${({ theme }) => theme.background.primary}90, ${({ theme }) => theme.background.secondary}90, ${({ theme }) => theme.background.primary}90),
               url(${backgroundImage});
   background-size: cover;
   background-position: center;
@@ -122,10 +128,11 @@ const SectionSubtitle = styled(motion.p)`
   text-align: center;
   font-size: 1.2rem;
   margin-bottom: 3rem;
-  color: #c0c0c0;
+  color: ${({ theme }) => theme.text.secondary};
   max-width: 800px;
   margin-left: auto;
   margin-right: auto;
+  transition: color 0.3s ease;
 
   @media (max-width: 768px) {
     font-size: 1rem;
@@ -145,18 +152,24 @@ const TrainerCarousel = styled.div`
 `;
 
 const TrainerCard = styled(motion.div)`
-  background: rgba(20, 20, 30, 0.9);
+  background: ${({ theme }) => theme.background.surface};
   border-radius: 15px;
   padding: 0; // No padding on the card itself, handle inside TrainerInfo
   overflow: hidden;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+  box-shadow: ${({ theme }) => theme.shadows.elevation};
   display: flex;
   flex-direction: column;
   position: relative; // Changed from absolute to relative for carousel logic
   height: 722px; // Increased by additional 36px (quarter inch) to prevent bottom cutoff
   max-width: 800px;
   margin: 0 auto; // Center the card
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid ${({ theme }) => theme.borders.subtle};
+  transition: all 0.3s ease;
+  
+  &:hover {
+    border-color: ${({ theme }) => theme.borders.elegant};
+    box-shadow: ${({ theme }) => theme.shadows.cosmic};
+  }
 
   &::before {
     content: "";
@@ -168,9 +181,9 @@ const TrainerCard = styled(motion.div)`
     background: linear-gradient(
       135deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.05) 25%,
-      rgba(255, 255, 255, 0.1) 50%,
-      rgba(255, 255, 255, 0.05) 75%,
+      ${({ theme }) => theme.colors.primary}10 25%,
+      ${({ theme }) => theme.colors.primary}20 50%,
+      ${({ theme }) => theme.colors.primary}10 75%,
       transparent 100%
     );
     background-size: 200% 200%;
@@ -178,6 +191,10 @@ const TrainerCard = styled(motion.div)`
     pointer-events: none;
     border-radius: 15px;
     opacity: 0;
+  }
+  
+  &:hover::before {
+    opacity: 1;
   }
 
   @media (max-width: 768px) {
@@ -246,23 +263,26 @@ const TrainerInfo = styled.div`
 const TrainerName = styled.h3`
   font-size: 1.8rem;
   margin-bottom: 0.5rem;
-  color: white;
+  color: ${({ theme }) => theme.text.primary};
   font-weight: 600;
+  transition: color 0.3s ease;
 `;
 
 const TrainerTitle = styled.h4`
   font-size: 1.1rem;
   margin-bottom: 1rem;
-  color: var(--neon-blue, #00ffff);
+  color: ${({ theme }) => theme.colors.primary};
   font-weight: 400;
+  transition: color 0.3s ease;
 `;
 
 const TrainerBio = styled.p`
   font-size: 1rem;
   margin-bottom: 1.5rem;
-  color: #c0c0c0;
+  color: ${({ theme }) => theme.text.secondary};
   line-height: 1.6;
   flex-grow: 1; // Allow bio to take up available space
+  transition: color 0.3s ease;
 `;
 
 const SpecialtiesContainer = styled.div`
@@ -273,8 +293,8 @@ const SpecialtiesContainer = styled.div`
 `;
 
 const SpecialtyTag = styled.div`
-  background: rgba(0, 255, 255, 0.1);
-  color: var(--neon-blue, #00ffff);
+  background: ${({ theme }) => theme.colors.primary}20;
+  color: ${({ theme }) => theme.colors.primary};
   padding: 0.3rem 0.8rem;
   border-radius: 20px;
   font-size: 0.85rem;
@@ -283,10 +303,13 @@ const SpecialtyTag = styled.div`
   gap: 5px;
   transition: all 0.3s ease;
   flex-shrink: 0; // Prevent tags from shrinking too much
+  border: 1px solid ${({ theme }) => theme.colors.primary}40;
 
   &:hover {
-    background: rgba(0, 255, 255, 0.2);
+    background: ${({ theme }) => theme.colors.primary}30;
+    border-color: ${({ theme }) => theme.colors.primary};
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px ${({ theme }) => theme.colors.primary}30;
   }
 `;
 
@@ -304,8 +327,9 @@ const Rating = styled.div`
 `;
 
 const RatingText = styled.span`
-  color: #c0c0c0;
+  color: ${({ theme }) => theme.text.muted};
   font-size: 0.9rem;
+  transition: color 0.3s ease;
 `;
 
 const CardFooter = styled.div`
@@ -324,13 +348,14 @@ const SocialLinksContainer = styled.div` // Renamed from SocialLinks
 `;
 
 const SocialLink = styled.a`
-  color: #c0c0c0;
+  color: ${({ theme }) => theme.text.muted};
   font-size: 1.2rem;
   transition: all 0.3s ease;
 
   &:hover {
-    color: var(--neon-blue, #00ffff);
+    color: ${({ theme }) => theme.colors.primary};
     transform: translateY(-2px);
+    filter: drop-shadow(0 0 8px ${({ theme }) => theme.colors.primary}60);
   }
 `;
 
@@ -338,8 +363,8 @@ const Certification = styled.div`
   position: absolute;
   top: 10px;
   right: 10px;
-  background: rgba(0, 0, 0, 0.7);
-  color: gold;
+  background: ${({ theme }) => theme.background.elevated};
+  color: ${({ theme }) => theme.colors.accent};
   padding: 0.3rem 0.8rem;
   border-radius: 20px;
   font-size: 0.85rem;
@@ -347,17 +372,24 @@ const Certification = styled.div`
   align-items: center;
   gap: 5px;
   z-index: 2;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  animation: ${pulseGlow} 3s infinite;
+  border: 1px solid ${({ theme }) => theme.borders.elegant};
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: ${({ theme }) => theme.colors.accent}20;
+    border-color: ${({ theme }) => theme.colors.accent};
+    animation: ${stellarGlow} 2s ease-in-out infinite;
+  }
 `;
 
 const NavigationButton = styled(motion.button)`
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  background: rgba(0, 0, 0, 0.5);
-  color: white;
-  border: none;
+  background: ${({ theme }) => theme.background.elevated};
+  color: ${({ theme }) => theme.text.primary};
+  border: 1px solid ${({ theme }) => theme.borders.subtle};
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -366,15 +398,19 @@ const NavigationButton = styled(motion.button)`
   justify-content: center;
   cursor: pointer;
   z-index: 10;
-  transition: background 0.3s ease;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
 
   &:hover {
-    background: var(--royal-purple, #7851a9);
+    background: ${({ theme }) => theme.colors.secondary};
+    border-color: ${({ theme }) => theme.borders.elegant};
+    color: ${({ theme }) => theme.text.primary};
+    box-shadow: ${({ theme }) => theme.shadows.primary};
   }
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}50;
   }
 
   &.prev {
@@ -419,22 +455,22 @@ const Dot = styled.button<{ $active: boolean }>`
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  /* Use $active prop in the CSS */
-  background: ${props => props.$active ? 'var(--neon-blue, #00ffff)' : 'rgba(255, 255, 255, 0.3)'};
-  border: none;
+  background: ${({ $active, theme }) => $active ? theme.colors.primary : theme.colors.primary}30;
+  border: 1px solid ${({ $active, theme }) => $active ? theme.colors.primary : theme.borders.subtle};
   padding: 0;
   cursor: pointer;
   transition: all 0.3s ease;
 
   &:hover, &:focus {
-    /* Use $active prop in the CSS */
-    background: ${props => props.$active ? 'var(--neon-blue, #00ffff)' : 'var(--royal-purple, #7851a9)'};
+    background: ${({ $active, theme }) => $active ? theme.colors.primary : theme.colors.secondary};
+    border-color: ${({ theme }) => theme.colors.primary};
     transform: scale(1.2);
+    box-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}40;
   }
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 0 2px ${({ theme }) => theme.colors.primary}50;
   }
 `;
 
@@ -513,11 +549,28 @@ const trainers: Trainer[] = [
 
 // --- Component Implementation ---
 const TrainerProfilesSection: React.FC = () => {
+  // Theme integration
+  const { theme, currentTheme } = useUniversalTheme();
+  
   const [[activeIndex, direction], setActiveIndex] = useState<[number, number]>([0, 0]);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [autoRotate, setAutoRotate] = useState<boolean>(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null); // Correctly typed ref
+  
+  // Theme-aware button variant
+  const getThemeButtonVariant = () => {
+    switch (currentTheme) {
+      case 'swan-galaxy':
+        return 'cosmic';
+      case 'admin-command':
+        return 'primary';
+      case 'dark-galaxy':
+        return 'cosmic';
+      default:
+        return 'cosmic';
+    }
+  };
 
   // Navigate between trainers
   const navigate = useCallback((newDirection: number) => {
@@ -673,7 +726,7 @@ const TrainerProfilesSection: React.FC = () => {
                 <CardFooter>
                    <GlowButton
                         text="Book Session"
-                        theme="cosmic"
+                        theme={getThemeButtonVariant()}
                         size="medium"
                         animateOnRender={false}
                         onClick={() => window.location.href = '/contact'}
