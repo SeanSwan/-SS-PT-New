@@ -145,31 +145,14 @@ const AboutPage = lazyLoadWithErrorHandling(
   'About Page'
 );
 
-// 🌌 OPTIMIZED GALAXY THEMED SWANSTUDIOS STORE - Performance optimized, decomposed architecture
+// 🌌 OPTIMIZED GALAXY THEMED SWANSTUDIOS STORE - Single production store
 const SwanStudiosStore = lazyLoadWithErrorHandling(
   () => import('../pages/shop/OptimizedGalaxyStoreFront'),
-  'SwanStudios Store (Optimized Galaxy Theme)',
-  // Fallback to simple store if needed
-  () => import('../pages/shop/SimpleStoreFront')
+  'SwanStudios Store (Optimized Galaxy Theme)'
 );
 
-// Other store components for testing/fallback
-const DebugStoreFront = lazyLoadWithErrorHandling(
-  () => import('../pages/shop/DebugStoreFront.component'),
-  'Debug Storefront'
-);
-const GalaxyStoreFrontFixed = lazyLoadWithErrorHandling(
-  () => import('../pages/shop/GalaxyStoreFrontFixed.component'),
-  'Galaxy StoreFront Fixed'
-);
-const OriginalStoreFront = lazyLoadWithErrorHandling(
-  () => import('../pages/shop/StoreFront.component'),
-  'Original StoreFront'
-);
-const SimpleStoreFront = lazyLoadWithErrorHandling(
-  () => import('../pages/shop/SimpleStoreFront'),
-  'Simple StoreFront'
-);
+// All testing routes now redirect to main production store
+// No need for separate testing components
 const ProductDetail = lazyLoadWithErrorHandling(
   () => import('../components/Shop/ProductDetail'),
   'Product Detail'
@@ -317,30 +300,18 @@ const MainRoutes: RouteObject = {
       )
     },
     
-    // Testing routes for different store versions
+    // Testing routes redirect to main production store
     {
       path: 'store-original',
-      element: (
-        <Suspense fallback={<PageLoader />}>
-          <OriginalStoreFront />
-        </Suspense>
-      )
+      element: <Navigate to="/store" replace />
     },
     {
-      path: 'store-galaxy-api',
-      element: (
-        <Suspense fallback={<PageLoader />}>
-          <GalaxyStoreFrontFixed />
-        </Suspense>
-      )
+      path: 'store-galaxy-api', 
+      element: <Navigate to="/store" replace />
     },
     {
       path: 'store-simple',
-      element: (
-        <Suspense fallback={<PageLoader />}>
-          <SimpleStoreFront />
-        </Suspense>
-      )
+      element: <Navigate to="/store" replace />
     },
     
     // Redirect old routes
@@ -396,14 +367,10 @@ const MainRoutes: RouteObject = {
       )
     },
     
-    // Debug routes
+    // Debug store redirects to main production store
     {
       path: 'debug-store',
-      element: (
-        <Suspense fallback={<PageLoader />}>
-          <DebugStoreFront />
-        </Suspense>
-      )
+      element: <Navigate to="/store" replace />
     },
     
     // Checkout Routes
