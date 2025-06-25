@@ -2,25 +2,10 @@
  * OrderSummaryComponent.tsx - Reusable Order Summary with PostgreSQL Integration
  * ============================================================================
  * Comprehensive order summary component with real-time calculations and analytics tracking
- * 
- * Features:
- * - Real-time price calculations and tax computation
- * - Training session details and package breakdowns
- * - Discount and promo code support
- * - PostgreSQL transaction preview logging
- * - Mobile-optimized responsive design
- * - Accessibility compliance (WCAG AA)
- * 
- * Master Prompt v28.6 Compliance:
- * ✅ Modular architecture (reusable across checkout flows)
- * ✅ Production-ready with comprehensive error handling
- * ✅ PostgreSQL data integration for business intelligence
- * ✅ Performance optimized with memoized calculations
- * ✅ Galaxy-themed design matching app aesthetic
  */
 
 import React, { useMemo, useState, useCallback } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Package, 
@@ -75,6 +60,7 @@ interface OrderSummaryProps {
   compact?: boolean;
   className?: string;
   onOrderChange?: (summary: OrderSummary) => void;
+  onProceedToPayment?: () => void;
 }
 
 // Animations
@@ -94,7 +80,7 @@ const pulseGlow = keyframes`
   100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
 `;
 
-// Styled Components
+// Styled Components with fixed syntax
 const SummaryContainer = styled(motion.div)<{ $compact: boolean }>`
   background: linear-gradient(135deg, rgba(0, 255, 255, 0.05), rgba(0, 153, 255, 0.02));
   border: 1px solid rgba(0, 255, 255, 0.3);
@@ -259,32 +245,39 @@ const SummaryBreakdown = styled.div`
   z-index: 1;
 `;
 
-const SummaryRow = styled(motion.div)<{ $isTotal?: boolean; $isHighlight?: boolean }>`
+// Fixed SummaryRow with proper conditional styling
+const SummaryRow = styled(motion.div)<{ 
+  $isTotal?: boolean; 
+  $isHighlight?: boolean 
+}>`
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0;
-  font-size: ${props => props.$isTotal ? '1.1rem' : '0.9rem'};
-  font-weight: ${props => props.$isTotal ? '600' : '400'};
-  color: ${props => 
-    props.$isTotal ? '#00ffff' : 
-    props.$isHighlight ? '#10b981' : 
-    'rgba(255, 255, 255, 0.9)'
-  };
+  color: rgba(255, 255, 255, 0.9);
   
-  ${props => props.$isTotal && `
+  ${props => props.$isTotal && css`
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #00ffff;
     border-top: 2px solid rgba(0, 255, 255, 0.3);
     margin-top: 0.5rem;
     padding-top: 1rem;
     animation: ${pulseGlow} 2s infinite;
   `}
   
-  ${props => props.$isHighlight && `
+  ${props => props.$isHighlight && css`
+    color: #10b981;
     background: rgba(16, 185, 129, 0.1);
     margin: 0 -0.5rem;
     padding: 0.5rem;
     border-radius: 6px;
     border: 1px solid rgba(16, 185, 129, 0.3);
+  `}
+  
+  ${props => !props.$isTotal && !props.$isHighlight && css`
+    font-size: 0.9rem;
+    font-weight: 400;
   `}
 `;
 
@@ -297,7 +290,7 @@ const SummaryLabel = styled.span`
 const SummaryValue = styled.span<{ $isAnimated?: boolean }>`
   font-variant-numeric: tabular-nums;
   
-  ${props => props.$isAnimated && `
+  ${props => props.$isAnimated && css`
     animation: ${countUp} 0.5s ease-out;
   `}
 `;
@@ -400,6 +393,30 @@ const SessionsStat = styled.div`
   }
 `;
 
+const ProceedButton = styled(motion.button)`
+  width: 100%;
+  background: linear-gradient(135deg, #00ffff, #0099ff);
+  color: #0a0a1a;
+  border: none;
+  border-radius: 12px;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: linear-gradient(135deg, #00cccc, #0088cc);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(0, 255, 255, 0.4);
+  }
+`;
+
 /**
  * OrderSummaryComponent
  * Comprehensive order summary with PostgreSQL integration
@@ -412,7 +429,8 @@ const OrderSummaryComponent: React.FC<OrderSummaryProps> = ({
   allowEditing = false,
   compact = false,
   className,
-  onOrderChange
+  onOrderChange,
+  onProceedToPayment
 }) => {
   const { cart } = useCart();
   const { user } = useAuth();
@@ -460,7 +478,7 @@ const OrderSummaryComponent: React.FC<OrderSummaryProps> = ({
       } else if (itemName.includes('3-Month')) {
         months = 3 * item.quantity;
         sessionsPerWeek = 4;
-        sessions = months * 4 * sessionsPerWeek; // 3 months × 4 weeks × 4 sessions
+        sessions = months * 4 * sessionsPerWeek;
         packageType = 'monthly';
       } else if (itemName.includes('6-Month')) {
         months = 6 * item.quantity;
@@ -499,13 +517,12 @@ const OrderSummaryComponent: React.FC<OrderSummaryProps> = ({
     // Calculate totals
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const discounts = items.reduce((sum, item) => sum + (item.discountAmount || 0), 0);
-    const taxes = showTaxes ? subtotal * 0.0875 : 0; // 8.75% tax (adjustable)
-    const fees = 0; // No additional fees for now
+    const taxes = showTaxes ? subtotal * 0.0875 : 0;
+    const fees = 0;
     const total = subtotal - discounts + taxes + fees;
     const savings = discounts;
     const totalSessions = items.reduce((sum, item) => sum + (item.totalSessions || 0), 0);
     
-    // Estimate duration based on average 2 sessions per week
     const estimatedWeeks = Math.ceil(totalSessions / 2);
     const estimatedDuration = estimatedWeeks > 52 
       ? `${Math.ceil(estimatedWeeks / 52)} year${Math.ceil(estimatedWeeks / 52) > 1 ? 's' : ''}` 
@@ -546,14 +563,11 @@ const OrderSummaryComponent: React.FC<OrderSummaryProps> = ({
     if (!promoCode.trim()) return;
 
     try {
-      // Mock promo code validation - replace with actual API call
       const validPromoCodes = ['SAVE10', 'NEWCLIENT', 'LOYALTY20'];
       
       if (validPromoCodes.includes(promoCode.toUpperCase())) {
         setAppliedPromos(prev => [...prev, promoCode.toUpperCase()]);
         setPromoCode('');
-        
-        // In real implementation, this would update the cart with discount
         console.log(`Applied promo code: ${promoCode.toUpperCase()}`);
       } else {
         throw new Error('Invalid promo code');
@@ -791,6 +805,18 @@ const OrderSummaryComponent: React.FC<OrderSummaryProps> = ({
             <SummaryValue $isAnimated>{formatPrice(orderSummary.total)}</SummaryValue>
           </SummaryRow>
         </SummaryBreakdown>
+      )}
+
+      {/* Proceed to Payment Button */}
+      {onProceedToPayment && (
+        <ProceedButton
+          onClick={onProceedToPayment}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          <CheckCircle size={20} />
+          Proceed to Payment
+        </ProceedButton>
       )}
     </SummaryContainer>
   );

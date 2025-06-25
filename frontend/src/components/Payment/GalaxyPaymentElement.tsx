@@ -33,8 +33,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { CreditCard, Shield, Zap, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 
-// Load Stripe
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || '');
+// Load Stripe with proper fallback
+const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripePublishableKey && stripePublishableKey !== 'pk_test_placeholder_key_for_development' && stripePublishableKey !== 'pk_test_placeholder_production_key'
+  ? loadStripe(stripePublishableKey)
+  : null;
 
 // Galaxy-themed animations
 const galaxyShimmer = keyframes`
@@ -681,6 +684,12 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
       return;
     }
 
+    // Check if Stripe is properly configured
+    if (!stripePromise) {
+      setError('Payment system is not configured. Please contact support.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -724,6 +733,73 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
   };
 
   if (!isOpen) return null;
+
+  // Show configuration error if Stripe is not properly set up
+  if (!stripePromise) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '1rem'
+        }}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        <PaymentContainer
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.8, opacity: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <PaymentHeader>
+            <PaymentTitle>Payment System Unavailable</PaymentTitle>
+            <PaymentSubtitle>Payment processing is currently being configured</PaymentSubtitle>
+          </PaymentHeader>
+
+          <MessageContainer className="error">
+            <AlertCircle size={16} />
+            Payment system is not configured. Please contact support or try again later.
+          </MessageContainer>
+
+          <motion.button
+            onClick={onClose}
+            style={{
+              position: 'absolute',
+              top: '1rem',
+              right: '1rem',
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              cursor: 'pointer'
+            }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            ✕
+          </motion.button>
+        </PaymentContainer>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
