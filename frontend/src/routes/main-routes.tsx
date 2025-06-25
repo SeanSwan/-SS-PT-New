@@ -185,10 +185,6 @@ const CheckoutCancel = lazyLoadWithErrorHandling(
   () => import('../pages/checkout/CheckoutCancel'),
   'Checkout Cancel'
 );
-const MockCheckout = lazyLoadWithErrorHandling(
-  () => import('../pages/checkout/MockCheckout'),
-  'Mock Checkout'
-);
 
 // Protected Pages
 const RevolutionaryClientDashboard = lazyLoadWithErrorHandling(
@@ -387,14 +383,6 @@ const MainRoutes: RouteObject = {
       element: (
         <Suspense fallback={<PageLoader />}>
           <CheckoutCancel />
-        </Suspense>
-      )
-    },
-    {
-      path: 'checkout/mock',
-      element: (
-        <Suspense fallback={<PageLoader />}>
-          <MockCheckout />
         </Suspense>
       )
     },
