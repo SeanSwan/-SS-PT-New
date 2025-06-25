@@ -161,10 +161,7 @@ const FoodScannerPage = lazyLoadWithErrorHandling(
   () => import('../pages/FoodScanner/FoodScannerPage'),
   'Food Scanner'
 );
-const ScrollTestPage = lazyLoadWithErrorHandling(
-  () => import('../pages/ScrollTestPage'),
-  'Scroll Test Page'
-);
+
 const UnauthorizedPage = lazyLoadWithErrorHandling(
   () => import('../pages/UnauthorizedPage.component'),
   'Unauthorized Page'
@@ -338,14 +335,7 @@ const MainRoutes: RouteObject = {
       )
     },
     
-    {
-      path: 'scroll-test',
-      element: (
-        <Suspense fallback={<PageLoader />}>
-          <ScrollTestPage />
-        </Suspense>
-      )
-    },
+
     {
       path: 'food-scanner',
       element: (
