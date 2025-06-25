@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { motion, useAnimation, Variants } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
+import { useUniversalTheme } from "../context/ThemeContext";
 import GlowButton from "../components/ui/GlowButton";
 import ProgressBar from "../components/ProgressBar/ProgressBar";
 import AuthLayout from "../layouts/AuthLayout";
@@ -66,12 +67,7 @@ const VideoBackground = styled.div`
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0.7),
-      rgba(10, 10, 30, 0.85),
-      rgba(20, 20, 50, 0.95)
-    );
+    background: ${({ theme }) => theme.gradients.hero};
     z-index: 1;
   }
 
@@ -95,19 +91,28 @@ const ModalContent = styled(motion.div)`
   width: 95%;
   max-width: 500px; /* Slightly reduced max-width */
   height: auto;
-  background: rgba(18, 18, 35, 0.85);
+  background: ${({ theme }) => theme.background.surface};
   padding: 1.5rem; /* Reduced padding */
   border-radius: 16px;
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+  border: 1px solid ${({ theme }) => theme.borders.subtle};
+  box-shadow: ${({ theme }) => theme.shadows.elevation};
   margin: 20px 0 60px 0; /* Increased top margin */
   overflow: visible; /* Changed from auto to prevent nested scrollbars */
+  transition: all 0.3s ease;
 
-  /* Custom scrollbar */
+  /* Custom scrollbar with theme colors */
   &::-webkit-scrollbar { width: 8px; }
   &::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 4px; }
-  &::-webkit-scrollbar-thumb { background: linear-gradient( to bottom, rgba(0, 255, 255, 0.7), rgba(120, 81, 169, 0.7) ); border-radius: 4px; }
+  &::-webkit-scrollbar-thumb { 
+    background: ${({ theme }) => theme.gradients.primary}; 
+    border-radius: 4px; 
+  }
+  
+  &:hover {
+    border-color: ${({ theme }) => theme.borders.elegant};
+    box-shadow: ${({ theme }) => theme.shadows.cosmic};
+  }
 
   @media (max-width: 768px) { 
     padding: 1.25rem; 
@@ -120,12 +125,12 @@ const CloseButton = styled(motion.button)`
   top: 10px;
   right: 10px;
   background: transparent;
-  border: 2px solid var(--neon-blue, #00ffff);
+  border: 2px solid ${({ theme }) => theme.colors.primary};
   border-radius: 50%;
   width: 36px;
   height: 36px;
   font-size: 1.5rem; /* Slightly larger font for better centering */
-  color: var(--neon-blue, #00ffff);
+  color: ${({ theme }) => theme.colors.primary};
   cursor: pointer;
   transition: all 0.3s ease;
   z-index: 10;
@@ -143,14 +148,15 @@ const CloseButton = styled(motion.button)`
   }
 
   &:hover {
-    background: var(--neon-blue, #00ffff);
-    color: #111;
+    background: ${({ theme }) => theme.colors.primary};
+    color: ${({ theme }) => theme.background.primary};
     transform: rotate(90deg);
+    box-shadow: ${({ theme }) => theme.shadows.primary};
   }
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}30;
   }
 `;
 
@@ -166,7 +172,7 @@ const LogoCircle = styled.div`
   width: 65px; /* Reduced size */
   height: 65px; /* Reduced size */
   border-radius: 50%;
-  background: rgba(0, 255, 255, 0.2);
+  background: ${({ theme }) => theme.gradients.cosmic};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -174,6 +180,9 @@ const LogoCircle = styled.div`
   position: relative;
   overflow: hidden;
   animation: ${glow} 3s infinite ease-in-out;
+  border: 1px solid ${({ theme }) => theme.borders.elegant};
+  box-shadow: ${({ theme }) => theme.shadows.cosmic};
+  transition: all 0.3s ease;
 
   &:before { 
     content: ''; 
@@ -182,8 +191,14 @@ const LogoCircle = styled.div`
     left: 0; 
     right: 0; 
     bottom: 0; 
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.2)); 
+    background: ${({ theme }) => theme.gradients.primary}; 
+    opacity: 0.3;
     z-index: 1; 
+  }
+  
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: ${({ theme }) => theme.shadows.primary}, ${({ theme }) => theme.shadows.cosmic};
   }
 `;
 
@@ -194,19 +209,35 @@ const LogoImage = styled.img`
   position: relative;
   z-index: 2;
   animation: ${float} 6s ease-in-out infinite;
+  filter: drop-shadow(0 0 8px ${({ theme }) => theme.colors.primary}40);
+  transition: all 0.3s ease;
+  
+  /* Swan-inspired enhancement */
+  &:hover {
+    filter: drop-shadow(0 0 15px ${({ theme }) => theme.colors.primary}70);
+    transform: scale(1.05) rotate(2deg);
+  }
 `;
 
 const HeaderText = styled.h1`
   font-size: 1.5rem; /* Reduced size */
   font-weight: 300;
   margin: 0;
-  background: linear-gradient(to right, #a9f8fb, #46cdcf, #7b2cbf, #c8b6ff, #a9f8fb);
+  background: ${({ theme }) => theme.gradients.stellar};
   background-size: 200% auto;
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
   animation: ${shimmer} 4s linear infinite;
   letter-spacing: 1px;
+  text-shadow: 0 0 10px ${({ theme }) => theme.colors.primary}50;
+  transition: all 0.3s ease;
+  
+  /* Swan Studios brand enhancement */
+  &:hover {
+    animation: ${shimmer} 2s linear infinite;
+    text-shadow: 0 0 15px ${({ theme }) => theme.colors.primary}70;
+  }
 `;
 
 const FormTitle = styled.h2`
@@ -214,11 +245,13 @@ const FormTitle = styled.h2`
   margin-bottom: 1rem; /* Reduced margin */
   font-weight: 400;
   font-size: 1.25rem; /* Reduced size */
-  color: white;
+  color: ${({ theme }) => theme.colors.primary};
   position: relative;
   display: inline-block;
   width: 100%;
   padding-bottom: 6px; /* Reduced padding */
+  text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}50;
+  transition: all 0.3s ease;
 
   &:after { 
     content: ""; 
@@ -228,7 +261,13 @@ const FormTitle = styled.h2`
     transform: translateX(-50%); 
     width: 60px; /* Reduced width */
     height: 2px; 
-    background: linear-gradient(to right, rgba(0, 255, 255, 0), rgba(0, 255, 255, 1), rgba(0, 255, 255, 0)); 
+    background: ${({ theme }) => theme.gradients.primary}; 
+  }
+  
+  /* Swan elegance enhancement */
+  &:hover {
+    color: ${({ theme }) => theme.colors.accent || theme.colors.primary};
+    text-shadow: 0 0 12px ${({ theme }) => theme.colors.primary}70;
   }
 `;
 
@@ -241,35 +280,37 @@ const Label = styled.label`
   display: block;
   margin-bottom: 4px; /* Reduced margin */
   font-size: 0.85rem; /* Reduced size */
-  color: rgba(255, 255, 255, 0.8);
+  color: ${({ theme }) => theme.text.secondary};
   font-weight: 300;
   letter-spacing: 0.5px;
   transition: color 0.3s ease;
 
   ${InputWrapper}:focus-within & { 
-    color: var(--neon-blue, #00ffff); 
+    color: ${({ theme }) => theme.colors.primary}; 
   }
 `;
 
 const InputField = styled.input`
   width: 100%;
   padding: 10px 14px; /* Reduced padding */
-  border: 1px solid rgba(120, 81, 169, 0.5);
+  border: 1px solid ${({ theme }) => theme.borders.subtle};
   border-radius: 8px;
-  background: rgba(30, 30, 60, 0.3);
-  color: white;
+  background: ${({ theme }) => theme.background.elevated};
+  color: ${({ theme }) => theme.text.primary};
   font-size: 0.9rem; /* Reduced size */
   transition: all 0.3s ease;
 
   &:focus { 
     outline: none; 
-    border-color: var(--neon-blue, #00ffff); 
-    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.2); 
-    background: rgba(30, 30, 60, 0.5); 
+    border-color: ${({ theme }) => theme.colors.primary}; 
+    box-shadow: 0 0 0 3px ${({ theme }) => theme.colors.primary}20; 
+    background: ${({ theme }) => theme.background.surface}; 
+    transform: translateY(-1px);
+    text-shadow: 0 0 5px ${({ theme }) => theme.colors.primary}20;
   }
   
   &::placeholder { 
-    color: rgba(255, 255, 255, 0.4); 
+    color: ${({ theme }) => theme.text.muted}; 
   }
   
   &:disabled { 
@@ -528,6 +569,7 @@ const InputFieldWithToggle = styled.div`
 const OptimizedSignupModal: React.FC = () => {
   const navigate = useNavigate();
   const { register } = useAuth();
+  const { theme } = useUniversalTheme();
   const controls = useAnimation();
 
   const [formData, setFormData] = useState({
