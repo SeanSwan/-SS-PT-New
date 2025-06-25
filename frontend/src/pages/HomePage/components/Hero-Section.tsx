@@ -87,7 +87,12 @@ const VideoBackground = styled.div`
     left: 0;
     width: 100%;
     height: 100%;
-    background: ${({ theme }) => theme.gradients.hero};
+    background: linear-gradient(
+      135deg,
+      ${({ theme }) => theme.colors.deepSpace}60 0%,
+      ${({ theme }) => theme.colors.stardust}40 50%,
+      ${({ theme }) => theme.colors.deepSpace}60 100%
+    );
     z-index: 1;
   }
 
