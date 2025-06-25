@@ -263,6 +263,110 @@ const LoadingSpinner = styled(motion.div)`
   }
 `;
 
+const PaymentMethodSelector = styled.div`
+  margin-bottom: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const PaymentMethodButton = styled(motion.button)<{ $active: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  border: 1px solid ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.3)'};
+  background: ${props => props.$active ? 'rgba(0, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)'};
+  color: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.8)'};
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-align: left;
+  
+  &:hover {
+    border-color: #00ffff;
+    background: rgba(0, 255, 255, 0.1);
+    color: #00ffff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 255, 255, 0.2);
+  }
+  
+  svg {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+  
+  .method-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .method-title {
+    font-weight: 600;
+  }
+  
+  .method-subtitle {
+    font-size: 0.8rem;
+    opacity: 0.8;
+  }
+`;
+
+const SubscriptionToggle = styled.div`
+  background: rgba(0, 255, 255, 0.05);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+`;
+
+const ToggleLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+`;
+
+const ToggleSwitch = styled.div<{ $active: boolean }>`
+  width: 48px;
+  height: 24px;
+  border-radius: 12px;
+  background: ${props => props.$active ? '#00ffff' : 'rgba(255, 255, 255, 0.2)'};
+  position: relative;
+  transition: all 0.3s ease;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: ${props => props.$active ? '26px' : '2px'};
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: ${props => props.$active ? '#0a0a1a' : '#ffffff'};
+    transition: all 0.3s ease;
+  }
+`;
+
+const SubscriptionInfo = styled.div`
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(0, 255, 255, 0.05);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.4;
+`;
+
 const MessageContainer = styled(motion.div)`
   margin-top: 1rem;
   padding: 1rem;
@@ -320,6 +424,9 @@ const stripeElementOptions = {
   },
 };
 
+// Payment method types
+type PaymentMethodType = 'card' | 'bank' | 'bnpl';
+
 // Interface definitions
 interface PaymentFormProps {
   clientSecret: string;
@@ -343,6 +450,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('info');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodType>('card');
+  const [enableSubscription, setEnableSubscription] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -401,7 +510,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
             Order Summary
           </SummaryTitle>
           
-          {cart?.cartItems?.map((item, index) => (
+          {cart?.items?.map((item, index) => (
             <SummaryItem key={index}>
               <span>
                 {item.storefrontItem?.name || 'Training Package'} × {item.quantity}
@@ -416,9 +525,78 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
           </SummaryTotal>
         </OrderSummary>
 
+        {/* Payment Method Selection */}
+        <PaymentMethodSelector>
+          <PaymentMethodButton
+            $active={selectedPaymentMethod === 'card'}
+            onClick={() => setSelectedPaymentMethod('card')}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <CreditCard />
+            <div className="method-info">
+              <div className="method-title">Credit/Debit Card</div>
+              <div className="method-subtitle">Visa, Mastercard, Amex</div>
+            </div>
+          </PaymentMethodButton>
+          
+          <PaymentMethodButton
+            $active={selectedPaymentMethod === 'bank'}
+            onClick={() => setSelectedPaymentMethod('bank')}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Shield />
+            <div className="method-info">
+              <div className="method-title">Bank Transfer (EFT)</div>
+              <div className="method-subtitle">Direct from your bank</div>
+            </div>
+          </PaymentMethodButton>
+          
+          <PaymentMethodButton
+            $active={selectedPaymentMethod === 'bnpl'}
+            onClick={() => setSelectedPaymentMethod('bnpl')}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Zap />
+            <div className="method-info">
+              <div className="method-title">Buy Now, Pay Later</div>
+              <div className="method-subtitle">Affirm, Klarna options</div>
+            </div>
+          </PaymentMethodButton>
+        </PaymentMethodSelector>
+        
+        {/* Subscription Toggle */}
+        <SubscriptionToggle>
+          <ToggleLabel>
+            <ToggleSwitch 
+              $active={enableSubscription}
+              onClick={() => setEnableSubscription(!enableSubscription)}
+            />
+            <span>Enable Monthly Auto-Pay</span>
+          </ToggleLabel>
+          {enableSubscription && (
+            <SubscriptionInfo>
+              <strong>🎯 Auto-Pay Benefits:</strong><br/>
+              • 10% discount on all future sessions<br/>
+              • Priority booking for appointments<br/>
+              • Cancel anytime, no commitment<br/>
+              • Automatic session credit renewal
+            </SubscriptionInfo>
+          )}
+        </SubscriptionToggle>
+
         {/* Payment Element */}
         <StripeElementContainer>
-          <PaymentElement options={stripeElementOptions} />
+          <PaymentElement 
+            options={{
+              ...stripeElementOptions,
+              paymentMethodTypes: selectedPaymentMethod === 'card' ? ['card'] :
+                                selectedPaymentMethod === 'bank' ? ['us_bank_account'] :
+                                ['affirm', 'klarna']
+            }} 
+          />
         </StripeElementContainer>
 
         {/* Security Badges */}

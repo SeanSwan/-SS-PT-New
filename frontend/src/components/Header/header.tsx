@@ -51,7 +51,7 @@ const glow = keyframes`
 `;
 
 // ===================== Styled Components =====================
-const HeaderContainer = styled(motion.header)`
+const HeaderContainer = styled(motion.header)<{ $isScrolled: boolean; $isVisible: boolean }>`
   position: fixed;
   top: 0;
   left: 0;
@@ -62,10 +62,18 @@ const HeaderContainer = styled(motion.header)`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: ${({ theme }) => theme.background.primary};
+  background: ${({ theme, $isScrolled }) => 
+    $isScrolled 
+      ? `${theme.background.primary}dd` 
+      : theme.background.primary};
   border-bottom: 1px solid ${({ theme }) => theme.borders.subtle};
-  transition: all 0.3s ease;
-  backdrop-filter: blur(8px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: ${({ $isScrolled }) => $isScrolled ? 'blur(15px)' : 'blur(8px)'};
+  transform: translateY(${({ $isVisible }) => $isVisible ? '0' : '-100%'});
+  box-shadow: ${({ $isScrolled }) => 
+    $isScrolled 
+      ? '0 4px 20px rgba(0, 0, 0, 0.15), 0 0 15px rgba(0, 255, 255, 0.1)' 
+      : 'none'};
   
   @media (max-width: 480px) {
     padding: 0 12px;
@@ -352,6 +360,8 @@ const EnhancedHeader = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
   
   // Context hooks
   const { cart } = useCart();
@@ -367,15 +377,45 @@ const EnhancedHeader = () => {
   // Refs
   const headerRef = useRef(null);
   
-  // Handle scroll effect
+  // Enhanced scroll effect with hide/show behavior
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
+      const currentScrollY = window.scrollY;
+      const scrollDirection = currentScrollY > lastScrollY ? 'down' : 'up';
+      
+      // Set scrolled state for styling
+      setIsScrolled(currentScrollY > 10);
+      
+      // Header visibility logic
+      if (currentScrollY < 10) {
+        // Always show at top
+        setIsVisible(true);
+      } else if (scrollDirection === 'down' && currentScrollY > lastScrollY + 5) {
+        // Hide when scrolling down (with threshold)
+        setIsVisible(false);
+      } else if (scrollDirection === 'up' && currentScrollY < lastScrollY - 5) {
+        // Show when scrolling up (with threshold)
+        setIsVisible(true);
+      }
+      
+      setLastScrollY(currentScrollY);
     };
     
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+    // Throttle scroll events for performance
+    let ticking = false;
+    const throttledHandleScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    
+    window.addEventListener('scroll', throttledHandleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', throttledHandleScroll);
+  }, [lastScrollY]);
   
   // Handle mobile menu overflow
   useEffect(() => {
@@ -656,10 +696,8 @@ const EnhancedHeader = () => {
       {/* Main Header */}
       <HeaderContainer
         ref={headerRef}
-        style={{
-          boxShadow: isScrolled ? '0 5px 20px rgba(0, 0, 0, 0.3)' : 'none',
-          backdropFilter: isScrolled ? 'blur(10px)' : 'none',
-        }}
+        $isScrolled={isScrolled}
+        $isVisible={isVisible}
         initial="hidden"
         animate="visible"
         variants={containerVariants}

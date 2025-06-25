@@ -9,6 +9,7 @@ import GlowButton from "../ui/buttons/GlowButton";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../../hooks/use-toast";
+import { OptimizedCheckoutFlow } from '../Checkout';
 
 // Animations
 const shimmer = keyframes`
@@ -299,12 +300,10 @@ interface ShoppingCartProps {
 
 const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
   const { cart, loading, error, updateQuantity, removeItem, clearCart } = useCart();
-  const { user, authAxios, isAuthenticated, token } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [checkoutLoading, setCheckoutLoading] = useState<boolean>(false);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
-  const [debugMode] = useState<boolean>(localStorage.getItem('debug_checkout') === 'true');
+  const [showCheckout, setShowCheckout] = useState<boolean>(false);
 
   // Animation variants
   const containerVariants = {
@@ -339,324 +338,61 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
   const formatPrice = (price: number | undefined): string => 
     price ? price.toLocaleString() : '0';
 
-  // Process checkout
-  const handleCheckout = async (): Promise<void> => {
+  // Simplified checkout handler - delegates to OptimizedCheckoutFlow
+  const handleCheckout = (): void => {
     if (!cart || cart.items.length === 0) {
-      setCheckoutError("Your cart is empty. Please add items before checkout.");
+      toast({
+        title: "Cart Empty",
+        description: "Please add items to your cart before checkout.",
+        variant: "destructive",
+        duration: 5000,
+      });
       return;
     }
     
-    try {
-      setCheckoutLoading(true);
-      setCheckoutError(null);
-      
-      // Log checkout attempt
-      console.log('Initiating checkout process...');
-      
-      // Log authentication state for debugging
-      if (debugMode) {
-        console.log('Checkout auth debug:', { 
-          isAuthenticated, 
-          userId: user?.id,
-          userRole: user?.role,
-          hasToken: !!token,
-          tokenLength: token ? token.length : 0,
-          cartItems: cart?.items?.length || 0
-        });
-      }
-      
-      // Process session packages - enhance cart items with detailed session info
-      const enhancedCartItems = cart.items.map(item => {
-        // Determine if this is a training package
-        const isTrainingPackage = item.storefrontItem?.name?.includes('Gold') || 
-                              item.storefrontItem?.name?.includes('Platinum') ||
-                              item.storefrontItem?.name?.includes('Rhodium') ||
-                              item.storefrontItem?.name?.includes('Silver');
-        
-        let sessionDetails = {};
-        let baseSessionCount = 0;
-        
-        if (isTrainingPackage) {
-          // First, determine base number of sessions per package
-          if (item.storefrontItem?.name?.includes('Single Session')) {
-            baseSessionCount = 1;
-          } else if (item.storefrontItem?.name?.includes('Silver Package')) {
-            baseSessionCount = 8;
-          } else if (item.storefrontItem?.name?.includes('Gold Package')) {
-            baseSessionCount = 20;
-          } else if (item.storefrontItem?.name?.includes('Platinum Package')) {
-            baseSessionCount = 50;
-          } else if (item.storefrontItem?.name?.includes('3-Month')) {
-            baseSessionCount = 48; // 3 months × 4 weeks × 4 sessions/week
-          } else if (item.storefrontItem?.name?.includes('6-Month')) {
-            baseSessionCount = 96; // 6 months × 4 weeks × 4 sessions/week
-          } else if (item.storefrontItem?.name?.includes('9-Month')) {
-            baseSessionCount = 144; // 9 months × 4 weeks × 4 sessions/week
-          } else if (item.storefrontItem?.name?.includes('12-Month')) {
-            baseSessionCount = 192; // 12 months × 4 weeks × 4 sessions/week
-          }
-          
-          // Apply quantity multiplier to get total sessions
-          const totalSessionCount = baseSessionCount * item.quantity;
-          
-          // Now set package details based on name
-          if (item.storefrontItem?.name?.includes('Single Session')) {
-            sessionDetails = {
-              sessionCount: totalSessionCount,
-              pricePerSession: 175,
-              packageType: 'fixed'
-            };
-          } else if (item.storefrontItem?.name?.includes('Silver Package')) {
-            sessionDetails = {
-              sessionCount: totalSessionCount,
-              pricePerSession: 170,
-              packageType: 'fixed'
-            };
-          } else if (item.storefrontItem?.name?.includes('Gold Package')) {
-            sessionDetails = {
-              sessionCount: totalSessionCount,
-              pricePerSession: 165,
-              packageType: 'fixed'
-            };
-          } else if (item.storefrontItem?.name?.includes('Platinum Package')) {
-            sessionDetails = {
-              sessionCount: totalSessionCount,
-              pricePerSession: 160,
-              packageType: 'fixed'
-            };
-          } else if (item.storefrontItem?.name?.includes('3-Month')) {
-            sessionDetails = {
-              months: 3 * item.quantity,
-              sessionsPerWeek: 4,
-              sessionCount: totalSessionCount,
-              pricePerSession: 155,
-              packageType: 'monthly'
-            };
-          } else if (item.storefrontItem?.name?.includes('6-Month')) {
-            sessionDetails = {
-              months: 6 * item.quantity,
-              sessionsPerWeek: 4,
-              sessionCount: totalSessionCount,
-              pricePerSession: 150,
-              packageType: 'monthly'
-            };
-          } else if (item.storefrontItem?.name?.includes('9-Month')) {
-            sessionDetails = {
-              months: 9 * item.quantity,
-              sessionsPerWeek: 4,
-              sessionCount: totalSessionCount,
-              pricePerSession: 145,
-              packageType: 'monthly'
-            };
-          } else if (item.storefrontItem?.name?.includes('12-Month')) {
-            sessionDetails = {
-              months: 12 * item.quantity,
-              sessionsPerWeek: 4,
-              sessionCount: totalSessionCount,
-              pricePerSession: 140,
-              packageType: 'monthly'
-            };
-          }
-        }
-        
-        return {
-          ...item,
-          sessionDetails
-        };
+    if (!isAuthenticated || !user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to complete your purchase.",
+        variant: "destructive",
+        duration: 5000,
       });
-      
-      // HYBRID APPROACH: First try the API, then fallback to client-side if needed
-      try {
-        // Check if we have valid authentication before proceeding
-        const hasValidAuth = isAuthenticated && !!token && token.length > 20;
-        
-        // If no proper auth is detected, we can try to recover
-        if (!hasValidAuth && localStorage.getItem('force_cart_auth') === 'true') {
-          console.log('⚠️ Authentication issue detected, using force_cart_auth mode...');
-          // Skip the API call and use client-side fallback instead
-          throw new Error('Missing authentication, using fallback');
-        }
-        
-        // Try the real API first (for future Stripe integration)
-        // Add explicit authorization headers for more reliable auth
-        const headers = {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        };
-        
-        const response = await Promise.race([
-          authAxios.post('/api/cart/checkout', { enhancedCartItems }, { headers }), // Send enhanced cart data with explicit headers
-          // Timeout after 3 seconds to prevent hanging
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Request timeout')), 3000))
-        ]) as any;
-        
-        console.log('Checkout API response:', response);
-        
-        // If API call succeeded and returned a checkout URL
-        if (response.data && response.data.checkoutUrl) {
-          window.location.href = response.data.checkoutUrl;
-          return;
-        }
-      } catch (apiError) {
-        console.log('API checkout failed, using client-side fallback:', apiError);
-        // API call failed, continue to client-side fallback
-        
-        // Try alternate endpoint for session package creation
-        try {
-          // Use the sessionPackage endpoint as a fallback
-          console.log('Trying session package creation as fallback...');
-          
-          // Get the primary training package from cart
-          const trainingPackage = enhancedCartItems.find(item => {
-            const itemName = item.storefrontItem?.name || '';
-            return itemName.includes('Gold') || itemName.includes('Platinum') || 
-                   itemName.includes('Rhodium') || itemName.includes('Silver') || 
-                   itemName.includes('Session');
-          });
-          
-          if (trainingPackage) {
-            const sessionCount = trainingPackage.sessionDetails?.sessionCount || 0;
-            
-            if (sessionCount > 0) {
-              // Add sessions directly to user account with explicit auth headers
-              const headers = {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              };
-              
-              await authAxios.post('/api/session-packages/add-test-sessions', {
-                sessions: sessionCount,
-                packageId: trainingPackage.storefrontItemId,
-                amount: trainingPackage.price * trainingPackage.quantity
-              }, { headers });
-              
-              console.log(`Added ${sessionCount} sessions to user account via fallback`);
-            }
-          }
-        } catch (sessionError) {
-          console.error('Session package fallback failed:', sessionError);
-          // Continue with client-side fallback regardless
-        }
-      }
-      
-      // CLIENT-SIDE FALLBACK
-      // Save cart data with detailed session information for future server integration
-      if (cart) {
-        try {
-          // Check if user role should be upgraded
-          const hasTrainingPackages = enhancedCartItems.some(item => {
-            const itemName = item.storefrontItem?.name || '';
-            return itemName.includes('Gold') || itemName.includes('Platinum') || 
-                   itemName.includes('Rhodium') || itemName.includes('Silver');
-          });
-          
-          // If user was 'user' role and purchased training, notify about upgrade
-          if (user?.role === 'user' && hasTrainingPackages) {
-            toast({
-              title: "Role Upgraded!",
-              description: "Your account has been upgraded to Client status after purchasing training packages.",
-              duration: 5000,
-            });
-          }
-          
-          // Save enhanced cart data with session details to localStorage
-          localStorage.setItem('lastCheckoutData', JSON.stringify({
-            items: enhancedCartItems,
-            total: cart.total,
-            itemCount: cart.itemCount,
-            userId: user?.id, // Store user ID for admin dashboard integration
-            userEmail: user?.email,
-            userName: user?.firstName + ' ' + (user?.lastName || ''),
-            timestamp: new Date().toISOString(),
-            status: 'completed',
-            paymentMethod: 'stripe', // Mock payment method
-            userRoleUpgrade: user?.role === 'user' && hasTrainingPackages
-          }));
-          
-          // Also save to sessionStorage for immediate admin dashboard availability
-          sessionStorage.setItem('recentPurchase', JSON.stringify({
-            items: enhancedCartItems,
-            userId: user?.id,
-            timestamp: new Date().toISOString(),
-            status: 'completed',
-            userRoleUpgrade: user?.role === 'user' && hasTrainingPackages
-          }));
-        } catch (e) {
-          console.warn('Failed to save cart data to storage:', e);
-        }
-      }
-      
-      // Generate a mock order ID that looks like a Stripe session ID
-      const mockOrderId = 'cs_test_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
-      
-      // Find training packages and calculate total sessions
-      let totalSessions = 0;
-      let primaryPackageType = '';
-      
-      enhancedCartItems.forEach(item => {
-        if (item.sessionDetails?.sessionCount) {
-          // Apply quantity multiplier for correct total calculation
-          totalSessions += item.sessionDetails.sessionCount;
-          if (!primaryPackageType && item.storefrontItem?.name) {
-            primaryPackageType = item.storefrontItem.name;
-          }
-        }
-      });
-      
-      // Log session information for debugging
-      console.log(`Cart checkout: ${totalSessions} total sessions, primaryPackage: ${primaryPackageType}`);
-      
-      // Simulate payment processing
-      setTimeout(() => {
-        // Redirect to success page with mock order details
-        window.location.href = `${window.location.origin}/checkout/success?session_id=${mockOrderId}&amount=${cart.total}&client=${encodeURIComponent(user?.firstName || 'Client')}&sessions=${totalSessions}&package_type=${encodeURIComponent(primaryPackageType)}`;
-      }, 800);
-      
+      navigate('/login');
       return;
-    } catch (err: any) {
-      console.error('Error creating checkout session:', err);
-      
-      // Generic error handling
-      let errorMessage = "Failed to start checkout process. Please try again.";
-      
-      // Specific error messages based on response
-      if (err.response) {
-        if (err.response.status === 503) {
-          errorMessage = "Payment service is currently unavailable. Please try again later.";
-          
-          // LAST RESORT FALLBACK - Try client-side checkout one more time
-          try {
-            const mockOrderId = 'cs_recovery_' + Date.now();
-            
-            setTimeout(() => {
-              window.location.href = `${window.location.origin}/checkout/success?session_id=${mockOrderId}&recovery=true&amount=${cart?.total || 0}`;
-            }, 1500);
-            
-            setCheckoutError("Payment service temporarily unavailable. Redirecting to alternative checkout...");
-            return;
-          } catch (e) {
-            console.error('Fatal checkout error:', e);
-          }
-        } else if (err.response.data?.message) {
-          errorMessage = err.response.data.message;
-        }
-      }
-      
-      setCheckoutError(errorMessage);
-      setCheckoutLoading(false);
     }
+    
+    // Show the optimized checkout flow
+    setShowCheckout(true);
+  };
+  
+  // Handle successful checkout completion
+  const handleCheckoutSuccess = () => {
+    setShowCheckout(false);
+    onClose(); // Close the cart
+    
+    toast({
+      title: "Purchase Complete!",
+      description: "Thank you for your purchase. Your training sessions are now available.",
+      duration: 6000,
+    });
+  };
+  
+  // Handle checkout close
+  const handleCheckoutClose = () => {
+    setShowCheckout(false);
   };
 
   return (
-    <CartModalOverlay onClick={onClose}>
-      <AnimatePresence>
-        <CartModalContent 
-          onClick={(e) => e.stopPropagation()}
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-        >
+    <>
+      <CartModalOverlay onClick={onClose}>
+        <AnimatePresence>
+          <CartModalContent 
+            onClick={(e) => e.stopPropagation()}
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
           <ModalCloseButton onClick={onClose}>&times;</ModalCloseButton>
           <CartTitle>Your Shopping Cart</CartTitle>
           
@@ -668,18 +404,7 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
             <StatusMessage $isError>{error}</StatusMessage>
           ) : (
             <>
-              {checkoutError && (
-                <StatusMessage $isError>{checkoutError}</StatusMessage>
-              )}
-              
-              {debugMode && (
-                <StatusMessage>
-                  Auth Debug: {isAuthenticated ? 'Authenticated' : 'Not Authenticated'} | 
-                  User: {user?.username || 'None'} | 
-                  Role: {user?.role || 'None'} | 
-                  Token: {token ? 'Present' : 'Missing'}
-                </StatusMessage>
-              )}
+
               
               {(!cart || cart.items?.length === 0) ? (
                 <EmptyCartMessage>
@@ -815,20 +540,28 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
                       onClick={clearCart} 
                     />
                     <GlowButton 
-                      text={checkoutLoading ? "Processing..." : "Checkout"} 
+                      text="Secure Checkout" 
                       theme="emerald" 
                       size="medium"
                       onClick={handleCheckout}
-                      disabled={checkoutLoading}
                     />
                   </ButtonsContainer>
                 </>
               )}
             </>
           )}
-        </CartModalContent>
-      </AnimatePresence>
-    </CartModalOverlay>
+          </CartModalContent>
+        </AnimatePresence>
+      </CartModalOverlay>
+      
+      {/* Optimized Checkout Flow Integration */}
+      <OptimizedCheckoutFlow
+        isOpen={showCheckout}
+        onClose={handleCheckoutClose}
+        onSuccess={handleCheckoutSuccess}
+        preferredMethod="embedded"
+      />
+    </>
   );
 };
 

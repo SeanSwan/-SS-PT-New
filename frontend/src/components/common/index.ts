@@ -1,8 +1,4 @@
-// src/components/common/index.ts
-export { default as ScrollToTop } from './ScrollToTop';
-export { default as SimpleScrollToTop } from './SimpleScrollToTop';
-export { default as GalaxyScrollToTop } from './GalaxyScrollToTop';
-export { default as GalaxyScrollToTopDemo } from './GalaxyScrollToTopDemo';
+// src/components/common/index.ts - Cleaned and Optimized
 export { default as SmartImage } from './SmartImage';
 export { default as ResponsiveGrid } from './ResponsiveGrid';
 export { default as AccessibleMenu } from './AccessibleMenu';
