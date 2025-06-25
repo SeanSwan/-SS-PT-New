@@ -478,6 +478,7 @@ const OptimizedCheckoutFlow: React.FC<OptimizedCheckoutFlowProps> = ({
                         isOpen={true}
                         onClose={() => handleStepChange(CheckoutStep.REVIEW)}
                         onSuccess={handlePaymentSuccess}
+                        embedded={true}
                       />
                     ) : (
                       <ModernCheckoutOrchestrator

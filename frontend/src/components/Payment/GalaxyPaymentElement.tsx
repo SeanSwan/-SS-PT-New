@@ -441,6 +441,7 @@ interface GalaxyPaymentElementProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  embedded?: boolean; // New prop for embedded mode
 }
 
 // Payment Form Component
@@ -663,7 +664,8 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
 const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({ 
   isOpen, 
   onClose, 
-  onSuccess 
+  onSuccess,
+  embedded = false // Default to false for backward compatibility
 }) => {
   const { authAxios, token } = useAuth();
   const { cart } = useCart();
@@ -733,6 +735,71 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
   };
 
   if (!isOpen) return null;
+
+  // Embedded mode - render without overlay
+  if (embedded) {
+    // Show configuration error if Stripe is not properly set up
+    if (!stripePromise) {
+      return (
+        <PaymentContainer
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.8, opacity: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <PaymentHeader>
+            <PaymentTitle>Payment System Unavailable</PaymentTitle>
+            <PaymentSubtitle>Payment processing is currently being configured</PaymentSubtitle>
+          </PaymentHeader>
+
+          <MessageContainer className="error">
+            <AlertCircle size={16} />
+            Payment system is not configured. Please contact support or try again later.
+          </MessageContainer>
+        </PaymentContainer>
+      );
+    }
+
+    return (
+      <PaymentContainer
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <PaymentHeader>
+          <PaymentTitle>Secure Payment</PaymentTitle>
+          <PaymentSubtitle>Complete your SwanStudios training package purchase</PaymentSubtitle>
+        </PaymentHeader>
+
+        {loading && (
+          <div style={{ textAlign: 'center', padding: '2rem' }}>
+            <LoadingSpinner />
+            <p style={{ marginTop: '1rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+              Initializing secure payment...
+            </p>
+          </div>
+        )}
+
+        {error && (
+          <MessageContainer className="error">
+            <AlertCircle size={16} />
+            {error}
+          </MessageContainer>
+        )}
+
+        {clientSecret && (
+          <Elements stripe={stripePromise} options={{ clientSecret }}>
+            <PaymentForm
+              clientSecret={clientSecret}
+              onSuccess={handlePaymentSuccess}
+              onError={handlePaymentError}
+            />
+          </Elements>
+        )}
+      </PaymentContainer>
+    );
+  }
 
   // Show configuration error if Stripe is not properly set up
   if (!stripePromise) {
