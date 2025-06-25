@@ -361,14 +361,20 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
       return;
     }
     
-    // Show the optimized checkout flow
+    // Show the optimized checkout flow (cart stays mounted but hidden)
     setShowCheckout(true);
   };
   
+  // Handle checkout close
+  const handleCheckoutClose = () => {
+    setShowCheckout(false);
+    // Note: Cart modal will automatically reappear when showCheckout becomes false
+  };
+
   // Handle successful checkout completion
   const handleCheckoutSuccess = () => {
     setShowCheckout(false);
-    onClose(); // Close the cart
+    onClose(); // Close the entire cart component after successful purchase
     
     toast({
       title: "Purchase Complete!",
@@ -376,23 +382,20 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
       duration: 6000,
     });
   };
-  
-  // Handle checkout close
-  const handleCheckoutClose = () => {
-    setShowCheckout(false);
-  };
 
   return (
     <>
-      <CartModalOverlay onClick={onClose}>
-        <AnimatePresence>
-          <CartModalContent 
-            onClick={(e) => e.stopPropagation()}
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-          >
+      {/* Cart Modal - hidden when checkout is open */}
+      {!showCheckout && (
+        <CartModalOverlay onClick={onClose}>
+          <AnimatePresence>
+            <CartModalContent 
+              onClick={(e) => e.stopPropagation()}
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+            >
           <ModalCloseButton onClick={onClose}>&times;</ModalCloseButton>
           <CartTitle>Your Shopping Cart</CartTitle>
           
@@ -553,6 +556,7 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
           </CartModalContent>
         </AnimatePresence>
       </CartModalOverlay>
+      )}
       
       {/* Optimized Checkout Flow Integration */}
       <OptimizedCheckoutFlow

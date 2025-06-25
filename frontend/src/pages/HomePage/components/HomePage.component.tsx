@@ -590,25 +590,12 @@ const HomePage: React.FC = () => {
     });
     
     const prefetchResources = () => {
-      const prefetchLinks = [
-        "/shop",
-        "/services",
-        "/trainers",
-        "/testimonials"
-      ];
+      // Note: Prefetch disabled in production to avoid unnecessary 404s
+      // These routes don't exist as separate pages since we're using SPA routing
+      console.log('📡 Prefetch disabled - using SPA routing');
       
-      if ('requestIdleCallback' in window) {
-        // @ts-ignore
-        window.requestIdleCallback(() => {
-          prefetchLinks.forEach(link => {
-            const linkEl = document.createElement('link');
-            linkEl.rel = 'prefetch';
-            linkEl.href = link;
-            linkEl.as = 'document';
-            document.head.appendChild(linkEl);
-          });
-        });
-      }
+      // Optional: Add any actual API prefetching here if needed
+      // Example: prefetch storefront data, user profile, etc.
     };
     
     window.addEventListener('load', prefetchResources);
