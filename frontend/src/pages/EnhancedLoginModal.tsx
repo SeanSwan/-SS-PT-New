@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import { motion, Variants } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
+import { useUniversalTheme } from "../context/ThemeContext";
 import apiService from "../services/api.service";
 import AuthLayout from "../layouts/AuthLayout";
 
@@ -31,9 +32,9 @@ const float = keyframes`
 `;
 
 const glowText = keyframes`
-  0% { text-shadow: 0 0 5px rgba(0, 255, 255, 0.5); }
-  50% { text-shadow: 0 0 10px rgba(0, 255, 255, 0.8), 0 0 15px rgba(120, 81, 169, 0.5); }
-  100% { text-shadow: 0 0 5px rgba(0, 255, 255, 0.5); }
+  0% { text-shadow: 0 0 5px currentColor; }
+  50% { text-shadow: 0 0 10px currentColor, 0 0 15px currentColor; }
+  100% { text-shadow: 0 0 5px currentColor; }
 `;
 
 /* ------------------ Styled Components ------------------ */
@@ -65,12 +66,7 @@ const VideoBackground = styled.div`
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0.7),
-      rgba(10, 10, 30, 0.85),
-      rgba(20, 20, 50, 0.95)
-    );
+    background: ${({ theme }) => theme.gradients.hero};
     z-index: 1;
   }
 
@@ -91,14 +87,20 @@ const VideoBackground = styled.div`
 const FormWrapper = styled(motion.div)`
   width: 100%;
   max-width: 400px;
-  background: rgba(30, 30, 60, 0.4);
+  background: ${({ theme }) => theme.background.surface};
   backdrop-filter: blur(8px);
   padding: 30px 25px;
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  border: 1px solid ${({ theme }) => theme.borders.subtle};
+  box-shadow: ${({ theme }) => theme.shadows.elevation};
   position: relative;
   z-index: 2;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    border-color: ${({ theme }) => theme.borders.elegant};
+    box-shadow: ${({ theme }) => theme.shadows.cosmic};
+  }
 `;
 
 const PremiumBadge = styled(motion.div)`
@@ -150,16 +152,16 @@ const CloseButton = styled(motion.button)`
   position: absolute;
   top: 15px;
   right: 20px;
-  background: rgba(0, 255, 255, 0.1);
-  border: 1px solid rgba(0, 255, 255, 0.3);
+  background: ${({ theme }) => theme.colors.primary}10;
+  border: 1px solid ${({ theme }) => theme.colors.primary}30;
   border-radius: 50%;
   width: 40px;
   height: 40px;
   font-size: 1.5rem;
-  color: var(--neon-blue, #00ffff);
+  color: ${({ theme }) => theme.colors.primary};
   cursor: pointer;
   transition: all 0.3s ease;
-  text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+  text-shadow: 0 0 5px ${({ theme }) => theme.colors.primary}50;
   z-index: 10;
   display: flex;
   justify-content: center;
@@ -175,9 +177,9 @@ const CloseButton = styled(motion.button)`
   }
 
   &:hover {
-    background: rgba(0, 255, 255, 0.2);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5), 0 0 20px rgba(0, 255, 255, 0.3);
-    color: white;
+    background: ${({ theme }) => theme.colors.primary}20;
+    box-shadow: ${({ theme }) => theme.shadows.primary};
+    color: ${({ theme }) => theme.text.primary};
     transform: rotate(90deg) scale(1.1);
   }
 `;
@@ -193,15 +195,16 @@ const LogoCircle = styled(motion.div)`
   width: 90px;
   height: 90px;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.2));
+  background: ${({ theme }) => theme.gradients.cosmic};
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  border: 1px solid ${({ theme }) => theme.borders.elegant};
+  box-shadow: ${({ theme }) => theme.shadows.cosmic};
   animation: ${float} 6s ease-in-out infinite;
   overflow: hidden;
+  transition: all 0.3s ease;
 
   &:before {
     content: "";
@@ -213,12 +216,17 @@ const LogoCircle = styled(motion.div)`
     background: linear-gradient(
       45deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.1) 50%,
+      ${({ theme }) => theme.colors.primary}20 50%,
       transparent 100%
     );
     background-size: 200% auto;
     animation: ${shimmer} 3s linear infinite;
     border-radius: 50%;
+  }
+  
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: ${({ theme }) => theme.shadows.primary}, ${({ theme }) => theme.shadows.cosmic};
   }
 `;
 
@@ -226,21 +234,38 @@ const LogoImage = styled.img`
   width: 120%;
   height: 120%;
   object-fit: contain;
-  filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.4));
+  filter: drop-shadow(0 0 8px ${({ theme }) => theme.colors.primary}40);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 2;
+  
+  /* Swan-inspired enhancement */
+  &:hover {
+    filter: drop-shadow(0 0 15px ${({ theme }) => theme.colors.primary}70);
+    transform: scale(1.05) rotate(2deg);
+  }
 `;
 
 const HeaderText = styled(motion.h1)`
   font-size: 1.6rem;
   font-weight: 300;
-  color: white;
+  color: ${({ theme }) => theme.text.primary};
   margin: 0;
   letter-spacing: 1px;
-  background: linear-gradient(to right, #a9f8fb, #46cdcf, #7b2cbf, #c8b6ff, #a9f8fb);
+  background: ${({ theme }) => theme.gradients.stellar};
   background-size: 200% auto;
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
   animation: ${shimmer} 4s linear infinite;
+  text-shadow: 0 0 10px ${({ theme }) => theme.colors.primary}50;
+  transition: all 0.3s ease;
+  
+  /* Swan Studios brand enhancement */
+  &:hover {
+    animation: ${shimmer} 2s linear infinite;
+    text-shadow: 0 0 15px ${({ theme }) => theme.colors.primary}70;
+  }
 `;
 
 const FormTitle = styled(motion.h2)`
@@ -248,43 +273,57 @@ const FormTitle = styled(motion.h2)`
   margin-bottom: 20px;
   font-weight: 300;
   font-size: 1.3rem;
-  color: white;
+  color: ${({ theme }) => theme.colors.primary};
   letter-spacing: 1px;
   animation: ${glowText} 3s infinite;
+  text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}50;
+  transition: all 0.3s ease;
+  
+  /* Swan elegance enhancement */
+  &:hover {
+    color: ${({ theme }) => theme.colors.accent || theme.colors.primary};
+    text-shadow: 0 0 12px ${({ theme }) => theme.colors.primary}70;
+  }
 `;
 
 const InputField = styled(motion.input)`
   width: 100%;
   padding: 12px 15px;
   margin-bottom: 18px;
-  border: 1px solid rgba(120, 81, 169, 0.3);
+  border: 1px solid ${({ theme }) => theme.borders.subtle};
   border-radius: 8px;
-  background: rgba(10, 10, 30, 0.5);
-  color: #fff;
+  background: ${({ theme }) => theme.background.elevated};
+  color: ${({ theme }) => theme.text.primary};
   font-size: 1rem;
   transition: all 0.3s ease;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
 
   &:focus {
     outline: none;
-    border-color: rgba(0, 255, 255, 0.5);
-    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2), inset 0 1px 3px rgba(0, 0, 0, 0.2);
-    background: rgba(30, 30, 60, 0.6);
+    border-color: ${({ theme }) => theme.colors.primary};
+    box-shadow: 0 0 10px ${({ theme }) => theme.colors.primary}30, inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    background: ${({ theme }) => theme.background.surface};
+    text-shadow: 0 0 5px ${({ theme }) => theme.colors.primary}20;
   }
 
   &::placeholder {
-    color: rgba(255, 255, 255, 0.5);
+    color: ${({ theme }) => theme.text.muted};
+  }
+  
+  /* Swan-inspired focus animation */
+  &:focus {
+    transform: translateY(-1px);
   }
 `;
 
 const Button = styled(motion.button)`
   width: 100%;
   padding: 12px;
-  background: linear-gradient(90deg, rgba(0, 255, 255, 0.8), rgba(120, 81, 169, 0.8));
+  background: ${({ theme }) => theme.gradients.primary};
   background-size: 200% auto;
   border: none;
   border-radius: 8px;
-  color: #0a0a1a;
+  color: ${({ theme }) => theme.colors.white || '#ffffff'};
   font-size: 1.1rem;
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -293,11 +332,14 @@ const Button = styled(motion.button)`
   position: relative;
   overflow: hidden;
   margin-top: 10px;
+  box-shadow: ${({ theme }) => theme.shadows.primary};
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 
   &:hover {
     background-position: right center;
-    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5), 0 0 30px rgba(120, 81, 169, 0.3);
+    box-shadow: ${({ theme }) => theme.shadows.cosmic};
     transform: translateY(-2px);
+    background: ${({ theme }) => theme.gradients.cosmic};
   }
   
   &:active {
@@ -314,7 +356,7 @@ const Button = styled(motion.button)`
     background: linear-gradient(
       90deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.2) 50%,
+      ${({ theme }) => theme.colors.primary}30 50%,
       transparent 100%
     );
     transition: all 0.3s ease;
@@ -341,15 +383,16 @@ const ForgotPasswordLink = styled(motion.a)`
   display: block;
   margin-top: 15px;
   text-align: center;
-  color: rgba(0, 255, 255, 0.8);
+  color: ${({ theme }) => theme.colors.primary};
   font-size: 0.9rem;
   text-decoration: none;
   cursor: pointer;
   position: relative;
+  transition: all 0.3s ease;
 
   &:hover {
-    color: #fff;
-    text-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+    color: ${({ theme }) => theme.colors.accent || theme.colors.primaryLight};
+    text-shadow: 0 0 5px ${({ theme }) => theme.colors.primary}50;
   }
   
   &:after {
@@ -360,7 +403,7 @@ const ForgotPasswordLink = styled(motion.a)`
     transform: translateX(-50%);
     width: 0;
     height: 1px;
-    background: rgba(0, 255, 255, 0.8);
+    background: ${({ theme }) => theme.colors.primary};
     transition: width 0.3s ease;
   }
   
@@ -398,6 +441,7 @@ const ConnectionStatus = styled(motion.div)`
 const EnhancedLoginModal: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { theme } = useUniversalTheme();
   const [credentials, setCredentials] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
