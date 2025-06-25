@@ -40,7 +40,7 @@ import HeroSection from "./components/HeroSection";
 import PackagesGrid from "./components/PackagesGrid";
 import FloatingCart from "./components/FloatingCart";
 import OrientationForm from "../../components/OrientationForm/orientationForm";
-import ShoppingCart from "../../components/ShoppingCart/ShoppingCart";
+import { OptimizedCheckoutFlow } from "../../components/Checkout";
 import { ThemedGlowButton } from '../../styles/swan-theme-utils';
 
 // Galaxy Theme Constants
@@ -541,9 +541,20 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
           />
         )}
         {showCart && (
-          <ShoppingCart 
-            key="cart-modal" 
-            onClose={handleHideCart} 
+          <OptimizedCheckoutFlow 
+            key="checkout-modal" 
+            isOpen={showCart}
+            onClose={handleHideCart}
+            onSuccess={() => {
+              console.log('✅ Checkout completed successfully');
+              handleHideCart();
+              toast({ 
+                title: "Success!", 
+                description: "Your training package purchase is complete!",
+                duration: 5000
+              });
+            }}
+            preferredMethod="embedded"
           />
         )}
       </AnimatePresence>
