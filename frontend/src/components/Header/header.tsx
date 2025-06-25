@@ -361,8 +361,8 @@ const EnhancedHeader = () => {
   const navigate = useNavigate();
   
   // Material UI hooks
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
   
   // Refs
   const headerRef = useRef(null);
