@@ -617,7 +617,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
 
         {/* Submit Button */}
         <PaymentButton
-          type=\"submit\"
+          type="submit"
           disabled={!stripe || !elements || isProcessing}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
@@ -768,7 +768,7 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
         )}
 
         {error && (
-          <MessageContainer className=\"error\">
+          <MessageContainer className="error">
             <AlertCircle size={16} />
             {error}
           </MessageContainer>
