@@ -34,6 +34,7 @@ import EnhancedNotificationSectionWrapper from './EnhancedNotificationSectionWra
 import Debug from '../Debug/Debug';
 import { UserSwitcher } from '../UserSwitcher';
 import UniversalThemeToggle from '../../context/ThemeContext/UniversalThemeToggle';
+import { useUniversalTheme } from '../../context/ThemeContext';
 
 // ===================== Animation Keyframes =====================
 const float = keyframes`
@@ -42,10 +43,11 @@ const float = keyframes`
   100% { transform: translateY(0); }
 `;
 
+// Note: Keyframes will be replaced with dynamic glow in styled components
 const glow = keyframes`
-  0% { filter: drop-shadow(0 0 5px rgba(0,160,227,0.3)); }
-  50% { filter: drop-shadow(0 0 15px rgba(0,160,227,0.6)); }
-  100% { filter: drop-shadow(0 0 5px rgba(0,160,227,0.3)); }
+  0% { filter: drop-shadow(0 0 5px currentColor); }
+  50% { filter: drop-shadow(0 0 15px currentColor); }
+  100% { filter: drop-shadow(0 0 5px currentColor); }
 `;
 
 // ===================== Styled Components =====================
@@ -60,9 +62,10 @@ const HeaderContainer = styled(motion.header)`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: #0a0a1a;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: ${({ theme }) => theme.background.primary};
+  border-bottom: 1px solid ${({ theme }) => theme.borders.subtle};
   transition: all 0.3s ease;
+  backdrop-filter: blur(8px);
   
   @media (max-width: 480px) {
     padding: 0 12px;
@@ -83,7 +86,7 @@ const LogoContainer = styled(motion.div)`
   display: flex;
   align-items: center;
   font-weight: 500;
-  color: #00a0e3;
+  color: ${({ theme }) => theme.colors.primary};
   position: relative;
   margin-right: 20px;
   cursor: pointer;
@@ -93,9 +96,10 @@ const LogoGlow = styled.div`
   position: absolute;
   width: 100%;
   height: 100%;
-  background: radial-gradient(circle, rgba(0, 160, 227, 0.3) 0%, transparent 70%);
+  background: radial-gradient(circle, ${({ theme }) => theme.colors.primary}30 0%, transparent 70%);
   filter: blur(8px);
   z-index: -1;
+  transition: all 0.3s ease;
 `;
 
 const Logo = styled.div`
@@ -103,13 +107,15 @@ const Logo = styled.div`
   align-items: center;
   position: relative;
   animation: ${float} 6s ease-in-out infinite, ${glow} 4s ease-in-out infinite;
+  color: ${({ theme }) => theme.colors.primary};
   
   .logo-text {
     font-size: 1.15rem;
-    color: #00a0e3;
+    color: ${({ theme }) => theme.colors.primary};
     position: relative;
     letter-spacing: 0.5px;
-    transition: color 0.3s ease;
+    transition: all 0.3s ease;
+    text-shadow: 0 0 10px ${({ theme }) => theme.colors.primary}50;
   }
   
   img {
@@ -117,10 +123,19 @@ const Logo = styled.div`
     width: 32px;
     transition: all 0.3s ease;
     margin-right: 8px;
+    filter: drop-shadow(0 0 8px ${({ theme }) => theme.colors.primary}40);
   }
   
-  &:hover .logo-text {
-    color: #10b5f0;
+  &:hover {
+    .logo-text {
+      color: ${({ theme }) => theme.colors.primaryLight || theme.colors.accent};
+      text-shadow: 0 0 15px ${({ theme }) => theme.colors.primary}80;
+    }
+    
+    img {
+      filter: drop-shadow(0 0 12px ${({ theme }) => theme.colors.primary}60);
+      transform: scale(1.05);
+    }
   }
   
   @media (max-width: 480px) {
@@ -165,7 +180,7 @@ const ActionsContainer = styled(motion.div)`
 
 // Navigation links
 const StyledNavLink = styled(motion.create(Link))`
-  color: white;
+  color: ${({ theme }) => theme.text.primary};
   text-decoration: none;
   margin: 0;
   padding: 0 12px;
@@ -180,20 +195,22 @@ const StyledNavLink = styled(motion.create(Link))`
   border-bottom: 2px solid transparent;
   
   &:hover {
-    color: #00a0e3;
-    border-bottom: 2px solid #00a0e3;
+    color: ${({ theme }) => theme.colors.primary};
+    border-bottom: 2px solid ${({ theme }) => theme.colors.primary};
+    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}40;
   }
   
   &.active {
-    color: #00a0e3;
-    border-bottom: 2px solid #00a0e3;
+    color: ${({ theme }) => theme.colors.primary};
+    border-bottom: 2px solid ${({ theme }) => theme.colors.primary};
+    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}60;
   }
 `;
 
 const LogoutButton = styled.button`
   background: transparent;
   border: none;
-  color: white;
+  color: ${({ theme }) => theme.text.primary};
   padding: 8px 12px;
   font-size: 0.95rem;
   font-weight: 500;
@@ -201,15 +218,18 @@ const LogoutButton = styled.button`
   display: flex;
   align-items: center;
   transition: all 0.2s ease;
+  border-radius: 6px;
   
   &:hover {
-    color: #00a0e3;
+    color: ${({ theme }) => theme.colors.primary};
+    background: ${({ theme }) => theme.colors.primary}10;
+    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}40;
   }
 `;
 
 const MobileMenuButton = styled(IconButton)`
   display: none;
-  color: white;
+  color: ${({ theme }) => theme.text.primary};
   padding: 8px;
   
   @media (max-width: 768px) {
@@ -217,8 +237,8 @@ const MobileMenuButton = styled(IconButton)`
   }
   
   &:hover {
-    color: #00a0e3;
-    background: rgba(0, 160, 227, 0.05);
+    color: ${({ theme }) => theme.colors.primary};
+    background: ${({ theme }) => theme.colors.primary}10;
   }
 `;
 
@@ -228,18 +248,19 @@ const MobileMenu = styled(motion.div)`
   left: 0; 
   right: 0; 
   bottom: 0; 
-  background: #0a0a1a;
-  backdrop-filter: blur(10px); 
+  background: ${({ theme }) => theme.background.primary};
+  backdrop-filter: blur(15px); 
   padding: 80px 24px 24px; 
   display: flex; 
   flex-direction: column; 
   z-index: 1001; 
   overflow-y: auto;
+  border-right: 1px solid ${({ theme }) => theme.borders.subtle};
 `;
 
 const MobileNavLink = styled(motion.create(Link))`
   margin: 8px 0;
-  color: white;
+  color: ${({ theme }) => theme.text.primary};
   text-decoration: none;
   font-size: 1.1rem;
   font-weight: 500;
@@ -247,11 +268,15 @@ const MobileNavLink = styled(motion.create(Link))`
   display: flex;
   align-items: center;
   gap: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  transition: color 0.2s ease;
+  border-bottom: 1px solid ${({ theme }) => theme.borders.subtle};
+  transition: all 0.2s ease;
+  border-radius: 8px;
   
   &:hover, &.active {
-    color: #00a0e3;
+    color: ${({ theme }) => theme.colors.primary};
+    background: ${({ theme }) => theme.colors.primary}08;
+    padding-left: 12px;
+    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}40;
   }
 `;
 
@@ -259,7 +284,7 @@ const MobileLogoutButton = styled(motion.button)`
   margin: 8px 0;
   background: none;
   border: none;
-  color: white;
+  color: ${({ theme }) => theme.text.primary};
   font-size: 1.1rem;
   font-weight: 500;
   padding: 12px 0;
@@ -268,11 +293,15 @@ const MobileLogoutButton = styled(motion.button)`
   display: flex;
   align-items: center;
   gap: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  transition: color 0.2s ease;
+  border-bottom: 1px solid ${({ theme }) => theme.borders.subtle};
+  transition: all 0.2s ease;
+  border-radius: 8px;
   
   &:hover {
-    color: #00a0e3;
+    color: ${({ theme }) => theme.colors.primary};
+    background: ${({ theme }) => theme.colors.primary}08;
+    padding-left: 12px;
+    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}40;
   }
 `;
 
@@ -327,6 +356,7 @@ const EnhancedHeader = () => {
   // Context hooks
   const { cart } = useCart();
   const { user, logout } = useAuth();
+  const { theme } = useUniversalTheme();
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -690,10 +720,10 @@ const EnhancedHeader = () => {
             <IconButton 
               onClick={() => setCartOpen(true)}
               sx={{ 
-                color: 'white',
+                color: theme.text.primary,
                 '&:hover': {
-                  color: '#00a0e3',
-                  backgroundColor: 'rgba(0, 160, 227, 0.05)'
+                  color: theme.colors.primary,
+                  backgroundColor: `${theme.colors.primary}10`
                 }
               }}
             >
@@ -702,10 +732,11 @@ const EnhancedHeader = () => {
                 color="error"
                 sx={{ 
                   '& .MuiBadge-badge': {
-                    backgroundColor: '#ec4899',
+                    backgroundColor: theme.colors.accent || '#ec4899',
                     fontSize: '0.65rem',
                     minWidth: '18px',
-                    height: '18px'
+                    height: '18px',
+                    boxShadow: `0 0 8px ${theme.colors.accent || '#ec4899'}40`
                   }
                 }}
               >
@@ -721,13 +752,17 @@ const EnhancedHeader = () => {
               <>
                 <IconButton
                   sx={{ 
-                    bgcolor: '#00a0e3',
+                    bgcolor: theme.colors.primary,
                     width: 36,
                     height: 36,
                     fontSize: '0.9rem',
                     ml: 0.5,
+                    color: theme.colors.white || '#ffffff',
+                    boxShadow: `0 0 12px ${theme.colors.primary}40`,
                     '&:hover': {
-                      bgcolor: '#0090d0',
+                      bgcolor: theme.colors.primaryDeep || theme.colors.secondary,
+                      boxShadow: `0 0 16px ${theme.colors.primary}60`,
+                      transform: 'scale(1.05)'
                     }
                   }}
                 >
@@ -746,10 +781,10 @@ const EnhancedHeader = () => {
                   <IconButton
                     onClick={() => navigate('/login')}
                     sx={{ 
-                      color: 'white',
+                      color: theme.text.primary,
                       '&:hover': {
-                        color: '#00a0e3',
-                        backgroundColor: 'rgba(0, 160, 227, 0.05)'
+                        color: theme.colors.primary,
+                        backgroundColor: `${theme.colors.primary}10`
                       }
                     }}
                   >
