@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import Header from '../Header/header'; // Adjust the import path based on your project structure
 import Footer from '../Footer/Footer';
-import { SimpleScrollToTop, ConstructionBannerContainer } from '../common';
+import { GalaxyScrollToTop, ConstructionBannerContainer } from '../common';
 import FloatingSessionWidget from '../SessionDashboard/FloatingSessionWidget';
 import { useAuth } from '../../context/AuthContext';
 
@@ -72,8 +72,23 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       
       <Footer />
       
-      {/* Production scroll-to-top button - appears when scrolling down */}
-      <SimpleScrollToTop scrollThreshold={300} />
+      {/* Revolutionary Galaxy-themed scroll-to-top with ThemedGlowButton integration */}
+      <GalaxyScrollToTop 
+        scrollThreshold={300}
+        variant="cosmic"
+        position="bottom-right"
+        icon="chevron"
+        showProgressRing={true}
+        showTooltip={true}
+        tooltipText="Return to the cosmic summit"
+        tooltipPosition="left"
+        enableFloatAnimation={true}
+        buttonVariant="primary"
+        buttonSize="medium"
+        hapticFeedback={true}
+        hideAfterScroll={true}
+        enableAnalytics={true}
+      />
       
       {/* Floating Session Widget - only for authenticated users */}
       {isAuthenticated && user && (
