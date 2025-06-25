@@ -12,7 +12,7 @@ import { useUniversalTheme } from "../../../context/ThemeContext";
 import logoImg from "/Logo.png"; // Ensure this path is correct
 
 // Use public directory for video to avoid build hashing issues
-const heroVideo = "/Swans.mp4";
+const heroVideo = "/swan.mp4";
 
 // --- TypeScript Interfaces ---
 
