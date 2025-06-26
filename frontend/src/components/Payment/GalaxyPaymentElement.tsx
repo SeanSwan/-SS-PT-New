@@ -58,49 +58,71 @@ const stellarFloat = keyframes`
 `;
 
 // Styled Components
-const PaymentContainer = styled(motion.div)`
-  background: linear-gradient(135deg, #0a0a1a 0%, #1e1e3f 50%, #0a0a1a 100%);
-  border-radius: 20px;
-  padding: 2rem;
-  border: 1px solid rgba(0, 255, 255, 0.3);
+const PaymentContainer = styled(motion.div)<{ $embedded?: boolean }>`
+  background: ${props => props.$embedded 
+    ? 'transparent' 
+    : 'linear-gradient(135deg, #0a0a1a 0%, #1e1e3f 50%, #0a0a1a 100%)'
+  };
+  border-radius: ${props => props.$embedded ? '0' : '20px'};
+  padding: ${props => props.$embedded ? '1rem' : '2rem'};
+  border: ${props => props.$embedded ? 'none' : '1px solid rgba(0, 255, 255, 0.3)'};
   position: relative;
   overflow: hidden;
-  max-width: 600px;
+  max-width: ${props => props.$embedded ? 'none' : '600px'};
   margin: 0 auto;
+  width: 100%;
+  min-height: ${props => props.$embedded ? 'calc(100vh - 200px)' : 'auto'};
   
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      45deg,
-      transparent 30%,
-      rgba(0, 255, 255, 0.1) 50%,
-      transparent 70%
-    );
-    background-size: 200% 200%;
-    animation: ${galaxyShimmer} 3s ease-in-out infinite;
-    pointer-events: none;
+  ${props => !props.$embedded && `
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(
+        45deg,
+        transparent 30%,
+        rgba(0, 255, 255, 0.1) 50%,
+        transparent 70%
+      );
+      background-size: 200% 200%;
+      animation: ${galaxyShimmer} 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+  `}
+  
+  /* Mobile-first responsive design */
+  @media (max-width: 768px) {
+    padding: ${props => props.$embedded ? '1rem' : '1.5rem'};
+    border-radius: ${props => props.$embedded ? '0' : '15px'};
+    min-height: ${props => props.$embedded ? 'calc(100vh - 160px)' : 'auto'};
   }
   
-  @media (max-width: 768px) {
-    padding: 1.5rem;
-    border-radius: 15px;
+  @media (max-width: 480px) {
+    padding: ${props => props.$embedded ? '0.75rem' : '1rem'};
+    min-height: ${props => props.$embedded ? 'calc(100vh - 140px)' : 'auto'};
   }
 `;
 
-const PaymentHeader = styled.div`
+const PaymentHeader = styled.div<{ $embedded?: boolean }>`
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: ${props => props.$embedded ? '1.5rem' : '2rem'};
   position: relative;
   z-index: 1;
+  
+  @media (max-width: 768px) {
+    margin-bottom: 1rem;
+  }
+  
+  @media (max-width: 480px) {
+    margin-bottom: 0.75rem;
+  }
 `;
 
-const PaymentTitle = styled.h2`
-  font-size: 1.75rem;
+const PaymentTitle = styled.h2<{ $embedded?: boolean }>`
+  font-size: ${props => props.$embedded ? '1.5rem' : '1.75rem'};
   font-weight: 600;
   background: linear-gradient(135deg, #00ffff, #0099ff, #ffffff);
   -webkit-background-clip: text;
@@ -108,22 +130,48 @@ const PaymentTitle = styled.h2`
   background-clip: text;
   margin-bottom: 0.5rem;
   animation: ${stellarFloat} 4s ease-in-out infinite;
+  
+  @media (max-width: 768px) {
+    font-size: 1.25rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 1.1rem;
+  }
 `;
 
 const PaymentSubtitle = styled.p`
   color: rgba(255, 255, 255, 0.7);
   font-size: 1rem;
   margin: 0;
+  
+  @media (max-width: 768px) {
+    font-size: 0.9rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 0.85rem;
+  }
 `;
 
-const OrderSummary = styled(motion.div)`
+const OrderSummary = styled(motion.div)<{ $embedded?: boolean }>`
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(0, 255, 255, 0.2);
   border-radius: 12px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
+  padding: ${props => props.$embedded ? '1.25rem' : '1.5rem'};
+  margin-bottom: ${props => props.$embedded ? '1.5rem' : '2rem'};
   position: relative;
   z-index: 1;
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
 `;
 
 const SummaryTitle = styled.h3`
@@ -157,17 +205,25 @@ const SummaryTotal = styled(SummaryItem)`
   border-top: 2px solid rgba(0, 255, 255, 0.3);
 `;
 
-const PaymentFormContainer = styled.div`
+const PaymentFormContainer = styled.div<{ $embedded?: boolean }>`
   position: relative;
   z-index: 1;
-  margin-bottom: 2rem;
+  margin-bottom: ${props => props.$embedded ? '1.5rem' : '2rem'};
+  
+  @media (max-width: 768px) {
+    margin-bottom: 1rem;
+  }
+  
+  @media (max-width: 480px) {
+    margin-bottom: 0.75rem;
+  }
 `;
 
-const StripeElementContainer = styled.div`
+const StripeElementContainer = styled.div<{ $embedded?: boolean }>`
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(0, 255, 255, 0.3);
   border-radius: 12px;
-  padding: 1.5rem;
+  padding: ${props => props.$embedded ? '1.25rem' : '1.5rem'};
   margin-bottom: 1.5rem;
   transition: all 0.3s ease;
   
@@ -179,6 +235,16 @@ const StripeElementContainer = styled.div`
   .StripeElement {
     background: transparent;
     color: white;
+  }
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
   }
 `;
 
@@ -206,12 +272,12 @@ const SecurityBadge = styled.div`
   }
 `;
 
-const PaymentButton = styled(motion.button)`
+const PaymentButton = styled(motion.button)<{ $embedded?: boolean }>`
   width: 100%;
   background: linear-gradient(135deg, #00ffff, #0099ff);
   border: none;
   border-radius: 12px;
-  padding: 1rem 2rem;
+  padding: ${props => props.$embedded ? '1.25rem 2rem' : '1rem 2rem'};
   font-size: 1.1rem;
   font-weight: 600;
   color: #0a0a1a;
@@ -223,6 +289,7 @@ const PaymentButton = styled(motion.button)`
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
+  min-height: 56px;
   
   &:hover:not(:disabled) {
     background: linear-gradient(135deg, #00cccc, #0088cc);
@@ -250,7 +317,20 @@ const PaymentButton = styled(motion.button)`
   &:hover::before {
     left: 100%;
   }
-`;
+  
+  /* Mobile optimization */
+  @media (max-width: 768px) {
+    padding: 1.25rem;
+    font-size: 1rem;
+    min-height: 56px;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 1rem;
+    font-size: 0.95rem;
+    min-height: 52px;
+  }
+`;}]
 
 const LoadingSpinner = styled(motion.div)`
   width: 20px;
@@ -502,9 +582,10 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
 
   return (
     <form onSubmit={handleSubmit}>
-      <PaymentFormContainer>
+      <PaymentFormContainer $embedded={embedded}>
         {/* Order Summary */}
         <OrderSummary
+          $embedded={embedded}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -592,7 +673,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
         </SubscriptionToggle>
 
         {/* Payment Element */}
-        <StripeElementContainer>
+        <StripeElementContainer $embedded={embedded}>
           <PaymentElement 
             options={{
               ...stripeElementOptions,
@@ -621,6 +702,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
 
         {/* Submit Button */}
         <PaymentButton
+          $embedded={embedded}
           type="submit"
           disabled={!stripe || !elements || isProcessing}
           whileHover={{ scale: 1.02 }}
@@ -742,14 +824,15 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
     if (!stripePromise) {
       return (
         <PaymentContainer
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.8, opacity: 0 }}
+        $embedded={false}
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
           transition={{ duration: 0.3 }}
-        >
-          <PaymentHeader>
-            <PaymentTitle>Payment System Unavailable</PaymentTitle>
-            <PaymentSubtitle>Payment processing is currently being configured</PaymentSubtitle>
+          >
+          <PaymentHeader $embedded={embedded}>
+          <PaymentTitle $embedded={embedded}>Payment System Unavailable</PaymentTitle>
+          <PaymentSubtitle>Payment processing is currently being configured</PaymentSubtitle>
           </PaymentHeader>
 
           <MessageContainer className="error">
@@ -762,13 +845,14 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
 
     return (
       <PaymentContainer
+        $embedded={embedded}
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.8, opacity: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <PaymentHeader>
-          <PaymentTitle>Secure Payment</PaymentTitle>
+        <PaymentHeader $embedded={embedded}>
+          <PaymentTitle $embedded={embedded}>Secure Payment</PaymentTitle>
           <PaymentSubtitle>Complete your SwanStudios training package purchase</PaymentSubtitle>
         </PaymentHeader>
 
@@ -826,14 +910,15 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
         }}
       >
         <PaymentContainer
+          $embedded={false}
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.8, opacity: 0 }}
           transition={{ duration: 0.3 }}
         >
-          <PaymentHeader>
-            <PaymentTitle>Payment System Unavailable</PaymentTitle>
-            <PaymentSubtitle>Payment processing is currently being configured</PaymentSubtitle>
+          <PaymentHeader $embedded={false}>
+          <PaymentTitle $embedded={false}>Payment System Unavailable</PaymentTitle>
+          <PaymentSubtitle>Payment processing is currently being configured</PaymentSubtitle>
           </PaymentHeader>
 
           <MessageContainer className="error">
@@ -891,14 +976,15 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
       }}
     >
       <PaymentContainer
+        $embedded={embedded}
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.8, opacity: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <PaymentHeader>
-          <PaymentTitle>Secure Payment</PaymentTitle>
-          <PaymentSubtitle>Complete your SwanStudios training package purchase</PaymentSubtitle>
+        <PaymentHeader $embedded={false}>
+        <PaymentTitle $embedded={false}>Secure Payment</PaymentTitle>
+        <PaymentSubtitle>Complete your SwanStudios training package purchase</PaymentSubtitle>
         </PaymentHeader>
 
         {loading && (
