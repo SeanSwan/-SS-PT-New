@@ -39,12 +39,33 @@ export const validateStripeConfig = () => {
   const nodeEnv = process.env.NODE_ENV || 'development';
   stripeConfig.environment = nodeEnv;
   
-  // Get keys from environment
+  // Get keys from environment with detailed debugging
   const secretKey = process.env.STRIPE_SECRET_KEY;
   const publishableKey = process.env.VITE_STRIPE_PUBLISHABLE_KEY;
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   
   logger.info(`[Stripe Config] Validating configuration for ${nodeEnv} environment`);
+  
+  // ENHANCED DEBUGGING - Safe variable inspection
+  console.log('🔍 [Stripe Config] DETAILED ENVIRONMENT INSPECTION:');
+  console.log(`   - STRIPE_SECRET_KEY: ${secretKey ? 'EXISTS' : 'MISSING'} ${secretKey ? `(length: ${secretKey.length}, starts with: "${secretKey.substring(0, 8)}...")` : ''}`);
+  console.log(`   - VITE_STRIPE_PUBLISHABLE_KEY: ${publishableKey ? 'EXISTS' : 'MISSING'} ${publishableKey ? `(length: ${publishableKey.length}, starts with: "${publishableKey.substring(0, 8)}...")` : ''}`);
+  console.log(`   - STRIPE_WEBHOOK_SECRET: ${webhookSecret ? 'EXISTS' : 'MISSING'} ${webhookSecret ? `(length: ${webhookSecret.length}, starts with: "${webhookSecret.substring(0, 8)}...")` : ''}`);
+  console.log(`   - Total env variables available: ${Object.keys(process.env).length}`);
+  console.log(`   - NODE_ENV: ${nodeEnv}`);
+  
+  // Check for common environment variable issues
+  const allEnvKeys = Object.keys(process.env);
+  const stripeRelatedKeys = allEnvKeys.filter(key => key.includes('STRIPE'));
+  console.log(`   - All STRIPE-related env vars found: [${stripeRelatedKeys.join(', ')}]`);
+  
+  // Check for whitespace issues
+  if (secretKey) {
+    const trimmedSecretKey = secretKey.trim();
+    if (trimmedSecretKey !== secretKey) {
+      console.log(`   - ⚠️ WARNING: STRIPE_SECRET_KEY has whitespace! Original length: ${secretKey.length}, trimmed: ${trimmedSecretKey.length}`);
+    }
+  }
   
   // Validate Secret Key
   if (!secretKey) {
