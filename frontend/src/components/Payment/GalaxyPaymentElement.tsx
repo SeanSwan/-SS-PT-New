@@ -330,7 +330,7 @@ const PaymentButton = styled(motion.button)<{ $embedded?: boolean }>`
     font-size: 0.95rem;
     min-height: 52px;
   }
-`;}]
+`;
 
 const LoadingSpinner = styled(motion.div)`
   width: 20px;
@@ -515,6 +515,7 @@ interface PaymentFormProps {
   clientSecret: string;
   onSuccess: (paymentIntent: any) => void;
   onError: (error: string) => void;
+  embedded?: boolean;
 }
 
 interface GalaxyPaymentElementProps {
@@ -525,7 +526,7 @@ interface GalaxyPaymentElementProps {
 }
 
 // Payment Form Component
-const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onError }) => {
+const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onError, embedded = false }) => {
   const stripe = useStripe();
   const elements = useElements();
   const { user } = useAuth();
@@ -878,6 +879,7 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
               clientSecret={clientSecret}
               onSuccess={handlePaymentSuccess}
               onError={handlePaymentError}
+              embedded={embedded}
             />
           </Elements>
         )}
@@ -1009,6 +1011,7 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
               clientSecret={clientSecret}
               onSuccess={handlePaymentSuccess}
               onError={handlePaymentError}
+              embedded={embedded}
             />
           </Elements>
         )}
