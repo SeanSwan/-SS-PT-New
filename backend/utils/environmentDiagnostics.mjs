@@ -1,1 +1,198 @@
-/**\n * environmentDiagnostics.mjs\n * ==========================\n * Backend environment diagnostics for payment issues\n * \n * Master Prompt v28.6 Compliance:\n * ✅ Single Responsibility: Only diagnoses environment configuration\n * ✅ Production-Ready: Safe for production use (no secret exposure)\n * ✅ Modular Design: Independent diagnostic utility\n */\n\nimport { isStripeConfigured, getStripeConfig, getSetupInstructions } from '../utils/stripeConfig.mjs';\nimport logger from '../utils/logger.mjs';\n\n/**\n * Perform comprehensive environment diagnostics\n */\nexport const performEnvironmentDiagnostics = () => {\n  console.log('\\n🔍 SWANSTUDIOS ENVIRONMENT DIAGNOSTICS');\n  console.log('=====================================');\n  \n  const diagnostics = {\n    timestamp: new Date().toISOString(),\n    environment: process.env.NODE_ENV || 'unknown',\n    stripe: {},\n    database: {},\n    server: {},\n    recommendations: []\n  };\n  \n  // Stripe Configuration\n  console.log('\\n💳 STRIPE CONFIGURATION:');\n  const stripeConfig = getStripeConfig();\n  diagnostics.stripe = {\n    configured: stripeConfig.isConfigured,\n    environment: stripeConfig.environment,\n    hasSecretKey: !!stripeConfig.secretKey,\n    hasPublishableKey: !!stripeConfig.publishableKey,\n    hasWebhookSecret: !!stripeConfig.webhookSecret,\n    errors: stripeConfig.errors\n  };\n  \n  if (stripeConfig.isConfigured) {\n    console.log('  ✅ Stripe is properly configured');\n    console.log(`  📍 Environment: ${stripeConfig.environment}`);\n  } else {\n    console.log('  ❌ Stripe configuration issues detected:');\n    stripeConfig.errors.forEach(error => {\n      console.log(`    • ${error}`);\n    });\n    diagnostics.recommendations.push('Fix Stripe configuration (see setup instructions below)');\n  }\n  \n  // Database Configuration\n  console.log('\\n🗄️  DATABASE CONFIGURATION:');\n  const hasPostgres = !!process.env.DATABASE_URL || (!!process.env.PG_HOST && !!process.env.PG_DB);\n  const hasMongo = !!process.env.MONGODB_URI;\n  \n  diagnostics.database = {\n    postgres: hasPostgres,\n    mongodb: hasMongo,\n    databaseUrl: !!process.env.DATABASE_URL,\n    localPostgres: !!(process.env.PG_HOST && process.env.PG_DB)\n  };\n  \n  if (hasPostgres) {\n    console.log('  ✅ PostgreSQL configuration detected');\n  } else {\n    console.log('  ⚠️  PostgreSQL configuration missing');\n    diagnostics.recommendations.push('Configure PostgreSQL database connection');\n  }\n  \n  if (hasMongo) {\n    console.log('  ✅ MongoDB configuration detected');\n  } else {\n    console.log('  ⚠️  MongoDB configuration missing');\n  }\n  \n  // Server Configuration\n  console.log('\\n🖥️  SERVER CONFIGURATION:');\n  const hasJwtSecret = !!process.env.JWT_SECRET;\n  const hasPort = !!process.env.PORT;\n  const hasNodeEnv = !!process.env.NODE_ENV;\n  \n  diagnostics.server = {\n    jwtSecret: hasJwtSecret,\n    port: process.env.PORT || '5000',\n    nodeEnv: process.env.NODE_ENV || 'development',\n    hasEnvFile: process.env.NODE_ENV !== 'production' // Assume .env exists if not production\n  };\n  \n  if (hasJwtSecret) {\n    console.log('  ✅ JWT Secret configured');\n  } else {\n    console.log('  ❌ JWT Secret missing - authentication will fail');\n    diagnostics.recommendations.push('Set JWT_SECRET in environment variables');\n  }\n  \n  console.log(`  📍 Port: ${diagnostics.server.port}`);\n  console.log(`  📍 Environment: ${diagnostics.server.nodeEnv}`);\n  \n  // API Keys Status\n  console.log('\\n🔑 API KEYS STATUS:');\n  const apiKeys = {\n    stripe: isStripeConfigured(),\n    sendgrid: !!process.env.SENDGRID_API_KEY,\n    twilio: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN)\n  };\n  \n  Object.entries(apiKeys).forEach(([service, configured]) => {\n    if (configured) {\n      console.log(`  ✅ ${service.toUpperCase()}: Configured`);\n    } else {\n      console.log(`  ⚠️  ${service.toUpperCase()}: Not configured`);\n    }\n  });\n  \n  // Recommendations\n  if (diagnostics.recommendations.length > 0) {\n    console.log('\\n💡 RECOMMENDATIONS:');\n    diagnostics.recommendations.forEach((rec, index) => {\n      console.log(`  ${index + 1}. ${rec}`);\n    });\n  }\n  \n  // Setup Instructions for Stripe (if needed)\n  if (!stripeConfig.isConfigured) {\n    console.log('\\n📋 STRIPE SETUP INSTRUCTIONS:');\n    const instructions = getSetupInstructions();\n    instructions.forEach(instruction => {\n      console.log(`  ${instruction}`);\n    });\n  }\n  \n  // Summary\n  console.log('\\n📊 DIAGNOSIS SUMMARY:');\n  const criticalIssues = diagnostics.recommendations.length;\n  if (criticalIssues === 0) {\n    console.log('  🎉 All systems appear to be configured correctly!');\n  } else {\n    console.log(`  ⚠️  ${criticalIssues} configuration issue(s) detected`);\n    console.log('  🔧 Please address the recommendations above');\n  }\n  \n  console.log('\\n=====================================\\n');\n  \n  return diagnostics;\n};\n\n/**\n * Express route handler for diagnostics endpoint\n */\nexport const diagnosticsHandler = (req, res) => {\n  try {\n    const diagnostics = performEnvironmentDiagnostics();\n    \n    // Remove sensitive information for API response\n    const safeDiagnostics = {\n      ...diagnostics,\n      stripe: {\n        configured: diagnostics.stripe.configured,\n        environment: diagnostics.stripe.environment,\n        hasSecretKey: diagnostics.stripe.hasSecretKey,\n        hasPublishableKey: diagnostics.stripe.hasPublishableKey,\n        hasWebhookSecret: diagnostics.stripe.hasWebhookSecret,\n        errorCount: diagnostics.stripe.errors?.length || 0\n        // Don't include actual error messages (might contain sensitive info)\n      },\n      database: diagnostics.database,\n      server: {\n        port: diagnostics.server.port,\n        nodeEnv: diagnostics.server.nodeEnv,\n        hasJwtSecret: diagnostics.server.hasJwtSecret\n      },\n      recommendations: diagnostics.recommendations\n    };\n    \n    res.json({\n      success: true,\n      data: safeDiagnostics\n    });\n  } catch (error) {\n    logger.error('Error performing diagnostics:', error);\n    res.status(500).json({\n      success: false,\n      message: 'Failed to perform diagnostics',\n      error: {\n        code: 'DIAGNOSTICS_ERROR',\n        details: 'Internal diagnostics error'\n      }\n    });\n  }\n};\n\nexport default {\n  performEnvironmentDiagnostics,\n  diagnosticsHandler\n};
+/**
+ * environmentDiagnostics.mjs
+ * ==========================
+ * Backend environment diagnostics for payment issues
+ * 
+ * Master Prompt v28.6 Compliance:
+ * ✅ Single Responsibility: Only diagnoses environment configuration
+ * ✅ Production-Ready: Safe for production use (no secret exposure)
+ * ✅ Modular Design: Independent diagnostic utility
+ */
+
+import { isStripeConfigured, getStripeConfig, getSetupInstructions } from '../utils/stripeConfig.mjs';
+import logger from '../utils/logger.mjs';
+
+/**
+ * Perform comprehensive environment diagnostics
+ */
+export const performEnvironmentDiagnostics = () => {
+  console.log('\n🔍 SWANSTUDIOS ENVIRONMENT DIAGNOSTICS');
+  console.log('=====================================');
+  
+  const diagnostics = {
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'unknown',
+    stripe: {},
+    database: {},
+    server: {},
+    recommendations: []
+  };
+  
+  // Stripe Configuration
+  console.log('\n💳 STRIPE CONFIGURATION:');
+  const stripeConfig = getStripeConfig();
+  diagnostics.stripe = {
+    configured: stripeConfig.isConfigured,
+    environment: stripeConfig.environment,
+    hasSecretKey: !!stripeConfig.secretKey,
+    hasPublishableKey: !!stripeConfig.publishableKey,
+    hasWebhookSecret: !!stripeConfig.webhookSecret,
+    errors: stripeConfig.errors
+  };
+  
+  if (stripeConfig.isConfigured) {
+    console.log('  ✅ Stripe is properly configured');
+    console.log(`  📍 Environment: ${stripeConfig.environment}`);
+  } else {
+    console.log('  ❌ Stripe configuration issues detected:');
+    stripeConfig.errors.forEach(error => {
+      console.log(`    • ${error}`);
+    });
+    diagnostics.recommendations.push('Fix Stripe configuration (see setup instructions below)');
+  }
+  
+  // Database Configuration
+  console.log('\n🗄️  DATABASE CONFIGURATION:');
+  const hasPostgres = !!process.env.DATABASE_URL || (!!process.env.PG_HOST && !!process.env.PG_DB);
+  const hasMongo = !!process.env.MONGODB_URI;
+  
+  diagnostics.database = {
+    postgres: hasPostgres,
+    mongodb: hasMongo,
+    databaseUrl: !!process.env.DATABASE_URL,
+    localPostgres: !!(process.env.PG_HOST && process.env.PG_DB)
+  };
+  
+  if (hasPostgres) {
+    console.log('  ✅ PostgreSQL configuration detected');
+  } else {
+    console.log('  ⚠️  PostgreSQL configuration missing');
+    diagnostics.recommendations.push('Configure PostgreSQL database connection');
+  }
+  
+  if (hasMongo) {
+    console.log('  ✅ MongoDB configuration detected');
+  } else {
+    console.log('  ⚠️  MongoDB configuration missing');
+  }
+  
+  // Server Configuration
+  console.log('\n🖥️  SERVER CONFIGURATION:');
+  const hasJwtSecret = !!process.env.JWT_SECRET;
+  const hasPort = !!process.env.PORT;
+  const hasNodeEnv = !!process.env.NODE_ENV;
+  
+  diagnostics.server = {
+    jwtSecret: hasJwtSecret,
+    port: process.env.PORT || '5000',
+    nodeEnv: process.env.NODE_ENV || 'development',
+    hasEnvFile: process.env.NODE_ENV !== 'production' // Assume .env exists if not production
+  };
+  
+  if (hasJwtSecret) {
+    console.log('  ✅ JWT Secret configured');
+  } else {
+    console.log('  ❌ JWT Secret missing - authentication will fail');
+    diagnostics.recommendations.push('Set JWT_SECRET in environment variables');
+  }
+  
+  console.log(`  📍 Port: ${diagnostics.server.port}`);
+  console.log(`  📍 Environment: ${diagnostics.server.nodeEnv}`);
+  
+  // API Keys Status
+  console.log('\n🔑 API KEYS STATUS:');
+  const apiKeys = {
+    stripe: isStripeConfigured(),
+    sendgrid: !!process.env.SENDGRID_API_KEY,
+    twilio: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN)
+  };
+  
+  Object.entries(apiKeys).forEach(([service, configured]) => {
+    if (configured) {
+      console.log(`  ✅ ${service.toUpperCase()}: Configured`);
+    } else {
+      console.log(`  ⚠️  ${service.toUpperCase()}: Not configured`);
+    }
+  });
+  
+  // Recommendations
+  if (diagnostics.recommendations.length > 0) {
+    console.log('\n💡 RECOMMENDATIONS:');
+    diagnostics.recommendations.forEach((rec, index) => {
+      console.log(`  ${index + 1}. ${rec}`);
+    });
+  }
+  
+  // Setup Instructions for Stripe (if needed)
+  if (!stripeConfig.isConfigured) {
+    console.log('\n📋 STRIPE SETUP INSTRUCTIONS:');
+    const instructions = getSetupInstructions();
+    instructions.forEach(instruction => {
+      console.log(`  ${instruction}`);
+    });
+  }
+  
+  // Summary
+  console.log('\n📊 DIAGNOSIS SUMMARY:');
+  const criticalIssues = diagnostics.recommendations.length;
+  if (criticalIssues === 0) {
+    console.log('  🎉 All systems appear to be configured correctly!');
+  } else {
+    console.log(`  ⚠️  ${criticalIssues} configuration issue(s) detected`);
+    console.log('  🔧 Please address the recommendations above');
+  }
+  
+  console.log('\n=====================================\n');
+  
+  return diagnostics;
+};
+
+/**
+ * Express route handler for diagnostics endpoint
+ */
+export const diagnosticsHandler = (req, res) => {
+  try {
+    const diagnostics = performEnvironmentDiagnostics();
+    
+    // Remove sensitive information for API response
+    const safeDiagnostics = {
+      ...diagnostics,
+      stripe: {
+        configured: diagnostics.stripe.configured,
+        environment: diagnostics.stripe.environment,
+        hasSecretKey: diagnostics.stripe.hasSecretKey,
+        hasPublishableKey: diagnostics.stripe.hasPublishableKey,
+        hasWebhookSecret: diagnostics.stripe.hasWebhookSecret,
+        errorCount: diagnostics.stripe.errors?.length || 0
+        // Don't include actual error messages (might contain sensitive info)
+      },
+      database: diagnostics.database,
+      server: {
+        port: diagnostics.server.port,
+        nodeEnv: diagnostics.server.nodeEnv,
+        hasJwtSecret: diagnostics.server.hasJwtSecret
+      },
+      recommendations: diagnostics.recommendations
+    };
+    
+    res.json({
+      success: true,
+      data: safeDiagnostics
+    });
+  } catch (error) {
+    logger.error('Error performing diagnostics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to perform diagnostics',
+      error: {
+        code: 'DIAGNOSTICS_ERROR',
+        details: 'Internal diagnostics error'
+      }
+    });
+  }
+};
+
+export default {
+  performEnvironmentDiagnostics,
+  diagnosticsHandler
+};
