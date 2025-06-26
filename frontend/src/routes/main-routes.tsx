@@ -151,6 +151,12 @@ const SwanStudiosStore = lazyLoadWithErrorHandling(
   'SwanStudios Store (Optimized Galaxy Theme)'
 );
 
+// Galaxy-Swan Theme Showcase
+const SwanBrandShowcase = lazyLoadWithErrorHandling(
+  () => import('../components/SwanBrandShowcase.component'),
+  'Swan Brand Theme Showcase'
+);
+
 // All testing routes now redirect to main production store
 // No need for separate testing components
 const ProductDetail = lazyLoadWithErrorHandling(
@@ -263,6 +269,16 @@ const MainRoutes: RouteObject = {
       element: (
         <Suspense fallback={<PageLoader />}>
           <AboutPage />
+        </Suspense>
+      )
+    },
+    
+    // Galaxy-Swan Theme Showcase
+    {
+      path: 'theme-showcase',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <SwanBrandShowcase />
         </Suspense>
       )
     },

@@ -24,6 +24,7 @@ import { ConnectionStatusBanner, useBackendConnection } from './hooks/useBackend
 
 // Development Tools
 import { DevToolsProvider } from './components/DevTools';
+import ThemeStatusIndicator from './components/ThemeStatusIndicator';
 
 // Routes configuration
 import MainRoutes from './routes/main-routes';
@@ -177,6 +178,7 @@ const AppContent = () => {
     <>
       <CosmicEleganceGlobalStyle deviceCapability={deviceCapability} />
       <ConnectionStatusBanner connection={connection} />
+      <ThemeStatusIndicator enabled={process.env.NODE_ENV === 'development'} />
       <RouterProvider router={router} />
     </>
   );

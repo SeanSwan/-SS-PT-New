@@ -33,6 +33,7 @@ import {
 
 // Lazy load heavy components for performance
 const GalaxyPaymentElement = React.lazy(() => import('../Payment/GalaxyPaymentElement'));
+const FullScreenPaymentModal = React.lazy(() => import('../Payment/FullScreenPaymentModal'));
 const ModernCheckoutOrchestrator = React.lazy(() => import('./ModernCheckoutOrchestrator'));
 
 // Animations
@@ -204,7 +205,7 @@ interface OptimizedCheckoutFlowProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
-  preferredMethod?: 'embedded' | 'hosted';
+  preferredMethod?: 'embedded' | 'hosted' | 'fullscreen';
 }
 
 // Checkout Steps Enum
@@ -473,7 +474,13 @@ const OptimizedCheckoutFlow: React.FC<OptimizedCheckoutFlowProps> = ({
                   exit={{ opacity: 0, x: 20 }}
                 >
                   <Suspense fallback={<LoadingSpinner />}>
-                    {preferredMethod === 'embedded' ? (
+                    {preferredMethod === 'fullscreen' ? (
+                      <FullScreenPaymentModal
+                        isOpen={true}
+                        onClose={() => handleStepChange(CheckoutStep.REVIEW)}
+                        onSuccess={handlePaymentSuccess}
+                      />
+                    ) : preferredMethod === 'embedded' ? (
                       <GalaxyPaymentElement
                         isOpen={true}
                         onClose={() => handleStepChange(CheckoutStep.REVIEW)}

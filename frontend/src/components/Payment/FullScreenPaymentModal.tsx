@@ -1,39 +1,27 @@
 /**
- * FullScreenPaymentModal.tsx - Pixel-Perfect Mobile-First Payment Modal
- * ===================================================================
- * Revolutionary full-screen payment experience optimized for mobile devices
- * Master Prompt v28.6 Aligned: Extreme modularity, production-ready
+ * FullScreenPaymentModal.tsx
+ * ==========================
+ * Full-screen, pixel-perfect mobile payment modal wrapper
+ * 
+ * Master Prompt v28.6 Compliance:
+ * ✅ Single Responsibility: Only handles full-screen modal behavior
+ * ✅ Extreme Modularity: Wraps existing GalaxyPaymentElement
+ * ✅ Production-Ready: Mobile-first responsive design
+ * ✅ Performance Optimized: Efficient viewport usage
  * 
  * Features:
- * - 100% viewport coverage on all devices
- * - Pixel-perfect mobile responsiveness
- * - Smooth animations and transitions
- * - Accessibility compliant (WCAG AA)
- * - Error boundary protection
- * - Galaxy-themed sensational design
+ * - 100vh full-screen coverage on mobile
+ * - Centered content with proper safe areas
+ * - Touch-friendly close button
+ * - Keyboard navigation support
+ * - Performance-optimized animations
  */
 
 import React, { useEffect, useRef } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Shield, Lock } from 'lucide-react';
+import { X } from 'lucide-react';
 import GalaxyPaymentElement from './GalaxyPaymentElement';
-
-// Animations
-const fadeIn = keyframes`
-  from { opacity: 0; }
-  to { opacity: 1; }
-`;
-
-const slideUp = keyframes`
-  from { transform: translateY(100vh); }
-  to { transform: translateY(0); }
-`;
-
-const galaxyShimmer = keyframes`
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
-`;
 
 // Styled Components
 const ModalOverlay = styled(motion.div)`
@@ -42,137 +30,132 @@ const ModalOverlay = styled(motion.div)`
   left: 0;
   right: 0;
   bottom: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.95);
-  backdrop-filter: blur(8px);
+  z-index: 10000;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
-  overflow: hidden;
   
-  /* Ensure proper stacking and coverage */
+  /* Full-screen background with blur */
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  
+  /* Prevent body scroll when modal is open */
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
   
-  /* Lock background scrolling */
-  position: fixed;
-  touch-action: none;
+  /* Safe area handling for mobile devices */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   
-  @media (max-width: 768px) {
-    align-items: flex-start;
-    padding: 0;
+  /* Mobile-first responsive padding */
+  padding: 0;
+  
+  @media (min-width: 768px) {
+    padding: 2rem;
+  }
+  
+  @media (min-width: 1024px) {
+    padding: 3rem;
   }
 `;
 
 const ModalContainer = styled(motion.div)`
+  position: relative;
   width: 100%;
   height: 100%;
   max-width: none;
   max-height: none;
-  background: linear-gradient(135deg, #0a0a1a 0%, #1e1e3f 50%, #0a0a1a 100%);
-  position: relative;
-  overflow-y: auto;
-  overflow-x: hidden;
-  display: flex;
-  flex-direction: column;
   
-  /* Galaxy background effect */
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      45deg,
-      transparent 30%,
-      rgba(0, 255, 255, 0.08) 50%,
-      transparent 70%
-    );
-    background-size: 200% 200%;
-    animation: ${galaxyShimmer} 4s ease-in-out infinite;
-    pointer-events: none;
-    z-index: 1;
-  }
-  
-  /* Desktop styles */
-  @media (min-width: 769px) {
-    width: 90vw;
-    height: 90vh;
-    max-width: 800px;
-    max-height: 900px;
-    border-radius: 20px;
-    border: 1px solid rgba(0, 255, 255, 0.3);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-  }
-  
-  /* Mobile optimization */
-  @media (max-width: 768px) {
+  /* Mobile: Full viewport coverage */
+  @media (max-width: 767px) {
     width: 100vw;
     height: 100vh;
     border-radius: 0;
-    border: none;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   
-  /* Very small mobile devices */
-  @media (max-width: 480px) {
-    width: 100vw;
-    height: 100vh;
+  /* Tablet: Slightly constrained */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    width: 90vw;
+    height: 90vh;
+    max-width: 600px;
+    border-radius: 20px;
+    overflow-y: auto;
   }
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.5rem;
-  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.3);
-  position: relative;
-  z-index: 2;
-  flex-shrink: 0;
   
-  @media (max-width: 768px) {
-    padding: 1rem;
-    min-height: 60px;
+  /* Desktop: Well-contained modal */
+  @media (min-width: 1024px) {
+    width: 80vw;
+    height: 80vh;
+    max-width: 700px;
+    max-height: 900px;
+    border-radius: 24px;
+    overflow-y: auto;
   }
-`;
-
-const ModalTitle = styled.h2`
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #00ffff;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
   
-  @media (max-width: 768px) {
-    font-size: 1.25rem;
+  /* Background with Galaxy theme */
+  background: linear-gradient(135deg, #0a0a1a 0%, #1e1e3f 50%, #0a0a1a 100%);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.8),
+    0 0 100px rgba(0, 255, 255, 0.2);
+  
+  /* Scrollbar styling for webkit browsers */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 255, 0.3);
+    border-radius: 3px;
+    
+    &:hover {
+      background: rgba(0, 255, 255, 0.5);
+    }
   }
 `;
 
 const CloseButton = styled(motion.button)`
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10001;
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: rgba(255, 255, 255, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  flex-shrink: 0;
+  
+  /* Touch-friendly size on mobile */
+  @media (max-width: 767px) {
+    width: 48px;
+    height: 48px;
+    top: 1.5rem;
+    right: 1.5rem;
+  }
+  
+  /* Safe area considerations for mobile */
+  top: max(1rem, env(safe-area-inset-top));
+  right: max(1rem, env(safe-area-inset-right));
   
   &:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(0, 255, 255, 0.5);
-    color: #00ffff;
+    background: rgba(255, 0, 0, 0.2);
+    border-color: rgba(255, 0, 0, 0.5);
+    color: #ffffff;
     transform: scale(1.05);
   }
   
@@ -180,201 +163,163 @@ const CloseButton = styled(motion.button)`
     transform: scale(0.95);
   }
   
-  /* Ensure minimum touch target on mobile */
-  @media (max-width: 768px) {
-    min-width: 44px;
-    min-height: 44px;
+  &:focus {
+    outline: 2px solid rgba(0, 255, 255, 0.5);
+    outline-offset: 2px;
+  }
+  
+  svg {
+    width: 20px;
+    height: 20px;
   }
 `;
 
-const ModalContent = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+const ContentWrapper = styled.div`
+  width: 100%;
+  height: 100%;
   position: relative;
-  z-index: 2;
-  padding: 0;
   
-  /* Custom scrollbar for webkit browsers */
-  &::-webkit-scrollbar {
-    width: 8px;
+  /* Mobile: Full area usage */
+  @media (max-width: 767px) {
+    padding: 0;
+    min-height: 100vh;
   }
   
-  &::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.2);
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: rgba(0, 255, 255, 0.3);
-    border-radius: 4px;
-  }
-  
-  &::-webkit-scrollbar-thumb:hover {
-    background: rgba(0, 255, 255, 0.5);
-  }
-  
-  /* Smooth scrolling */
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-`;
-
-const SecurityBanner = styled.div`
-  background: linear-gradient(90deg, rgba(0, 255, 0, 0.1), rgba(0, 255, 255, 0.1));
-  border-top: 1px solid rgba(0, 255, 255, 0.2);
-  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
-  padding: 0.75rem 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.9);
-  position: relative;
-  z-index: 2;
-  flex-shrink: 0;
-  
-  @media (max-width: 768px) {
-    padding: 0.5rem 1rem;
-    font-size: 0.8rem;
+  /* Tablet and desktop: Padded content */
+  @media (min-width: 768px) {
+    padding: 1rem;
+    min-height: auto;
   }
 `;
 
-// TypeScript Interface
+// Animation variants
+const overlayVariants = {
+  hidden: { 
+    opacity: 0,
+    backdropFilter: 'blur(0px)'
+  },
+  visible: { 
+    opacity: 1,
+    backdropFilter: 'blur(8px)',
+    transition: {
+      duration: 0.3,
+      ease: "easeOut"
+    }
+  },
+  exit: { 
+    opacity: 0,
+    backdropFilter: 'blur(0px)',
+    transition: {
+      duration: 0.2,
+      ease: "easeIn"
+    }
+  }
+};
+
+const containerVariants = {
+  hidden: { 
+    scale: 0.8,
+    opacity: 0,
+    y: 50
+  },
+  visible: { 
+    scale: 1,
+    opacity: 1,
+    y: 0,
+    transition: {
+      type: "spring",
+      stiffness: 300,
+      damping: 30,
+      duration: 0.4
+    }
+  },
+  exit: { 
+    scale: 0.8,
+    opacity: 0,
+    y: 50,
+    transition: {
+      duration: 0.2,
+      ease: "easeIn"
+    }
+  }
+};
+
+const closeButtonVariants = {
+  hidden: { 
+    scale: 0,
+    rotate: -180
+  },
+  visible: { 
+    scale: 1,
+    rotate: 0,
+    transition: {
+      delay: 0.2,
+      type: "spring",
+      stiffness: 300,
+      damping: 25
+    }
+  },
+  exit: { 
+    scale: 0,
+    rotate: 180,
+    transition: {
+      duration: 0.15
+    }
+  }
+};
+
+// Component Props
 interface FullScreenPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
 }
 
-/**
- * FullScreenPaymentModal Component
- * Provides pixel-perfect mobile-first payment experience
- */
+// Main Component
 const FullScreenPaymentModal: React.FC<FullScreenPaymentModalProps> = ({
   isOpen,
   onClose,
   onSuccess
 }) => {
-  const modalRef = useRef<HTMLDivElement>(null);
-
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      // Save current scroll position
-      const scrollY = window.scrollY;
-      
-      // Lock body scroll
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
-      document.body.style.overflow = 'hidden';
-      
-      // Cleanup function
-      return () => {
-        // Restore body scroll
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        document.body.style.overflow = '';
-        
-        // Restore scroll position
-        window.scrollTo(0, scrollY);
-      };
-    }
-  }, [isOpen]);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   // Handle escape key
   useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isOpen) {
         onClose();
       }
     };
 
     if (isOpen) {
       document.addEventListener('keydown', handleEscape);
-      return () => document.removeEventListener('keydown', handleEscape);
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
     }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      // Restore body scroll when modal closes
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    };
   }, [isOpen, onClose]);
 
   // Handle backdrop click
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
+  const handleBackdropClick = (event: React.MouseEvent) => {
+    if (event.target === overlayRef.current) {
       onClose();
     }
   };
-
-  // Animation variants
-  const overlayVariants = {
-    hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1,
-      transition: { duration: 0.3, ease: 'easeOut' }
-    },
-    exit: { 
-      opacity: 0,
-      transition: { duration: 0.2, ease: 'easeIn' }
-    }
-  };
-
-  const modalVariants = {
-    hidden: { 
-      opacity: 0,
-      scale: 0.8,
-      y: 100
-    },
-    visible: { 
-      opacity: 1,
-      scale: 1,
-      y: 0,
-      transition: { 
-        duration: 0.4, 
-        ease: 'easeOut',
-        type: 'spring',
-        damping: 25,
-        stiffness: 300
-      }
-    },
-    exit: { 
-      opacity: 0,
-      scale: 0.8,
-      y: 100,
-      transition: { duration: 0.3, ease: 'easeIn' }
-    }
-  };
-
-  // Mobile-specific variants
-  const mobileModalVariants = {
-    hidden: { 
-      opacity: 0,
-      y: '100vh'
-    },
-    visible: { 
-      opacity: 1,
-      y: 0,
-      transition: { 
-        duration: 0.4, 
-        ease: 'easeOut',
-        type: 'spring',
-        damping: 30,
-        stiffness: 400
-      }
-    },
-    exit: { 
-      opacity: 0,
-      y: '100vh',
-      transition: { duration: 0.3, ease: 'easeIn' }
-    }
-  };
-
-  // Determine if mobile
-  const isMobile = window.innerWidth <= 768;
 
   return (
     <AnimatePresence mode="wait">
       {isOpen && (
         <ModalOverlay
-          ref={modalRef}
+          ref={overlayRef}
           variants={overlayVariants}
           initial="hidden"
           animate="visible"
@@ -382,43 +327,33 @@ const FullScreenPaymentModal: React.FC<FullScreenPaymentModalProps> = ({
           onClick={handleBackdropClick}
         >
           <ModalContainer
-            variants={isMobile ? mobileModalVariants : modalVariants}
+            variants={containerVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()} // Prevent click-through
           >
-            {/* Header */}
-            <ModalHeader>
-              <ModalTitle>
-                <Shield size={24} />
-                Secure Payment
-              </ModalTitle>
-              <CloseButton
-                onClick={onClose}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                aria-label="Close payment modal"
-              >
-                <X size={20} />
-              </CloseButton>
-            </ModalHeader>
-
-            {/* Security Banner */}
-            <SecurityBanner>
-              <Lock size={16} />
-              <span>256-bit SSL encrypted • PCI DSS compliant • Your data is secure</span>
-            </SecurityBanner>
-
-            {/* Payment Content */}
-            <ModalContent>
+            <CloseButton
+              variants={closeButtonVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              onClick={onClose}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              aria-label="Close payment modal"
+            >
+              <X />
+            </CloseButton>
+            
+            <ContentWrapper>
               <GalaxyPaymentElement
                 isOpen={true}
                 onClose={onClose}
                 onSuccess={onSuccess}
-                embedded={true}
+                embedded={true} // Use embedded mode for full-screen layout
               />
-            </ModalContent>
+            </ContentWrapper>
           </ModalContainer>
         </ModalOverlay>
       )}
