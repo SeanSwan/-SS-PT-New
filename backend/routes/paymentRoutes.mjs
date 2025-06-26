@@ -53,7 +53,76 @@ router.get('/diagnostics', async (req, res) => {
   }
 });
 
-// Apply authentication to all other payment routes
+/**
+ * Enhanced environment inspection endpoint (no auth required)
+ * GET /api/payments/environment-inspect
+ * Provides detailed, safe environment variable inspection
+ */
+router.get('/environment-inspect', async (req, res) => {
+  try {
+    // Import the environment inspector
+    const { environmentInspectionHandler } = await import('../utils/environmentInspector.mjs');
+    return environmentInspectionHandler(req, res);
+  } catch (error) {
+    logger.error('Environment inspection error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Environment inspection failed',
+      error: {
+        code: 'ENVIRONMENT_INSPECTION_ERROR',
+        details: 'Unable to inspect environment variables'
+      }
+    });
+  }
+});
+
+/**
+ * Real-time Stripe configuration validation endpoint (no auth required)
+ * GET /api/payments/stripe-validation
+ * Forces re-validation of Stripe configuration and shows detailed results
+ */
+router.get('/stripe-validation', async (req, res) => {
+  try {
+    // Force re-validation of Stripe configuration
+    const { validateStripeConfig, getHealthReport } = await import('../utils/stripeConfig.mjs');
+    
+    console.log('\n🔄 MANUAL STRIPE VALIDATION TRIGGERED');
+    console.log('=====================================');
+    
+    // Re-run validation
+    const config = validateStripeConfig();
+    const healthReport = getHealthReport();
+    
+    console.log('=====================================\n');
+    
+    res.json({
+      success: true,
+      data: {
+        timestamp: new Date().toISOString(),
+        validation: {
+          configured: config.isConfigured,
+          environment: config.environment,
+          errors: config.errors,
+          lastChecked: config.lastChecked
+        },
+        health: healthReport,
+        message: config.isConfigured ? 'Stripe configuration is valid' : 'Stripe configuration has issues'
+      }
+    });
+  } catch (error) {
+    logger.error('Stripe validation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Stripe validation failed',
+      error: {
+        code: 'STRIPE_VALIDATION_ERROR',
+        details: 'Unable to validate Stripe configuration'
+      }
+    });
+  }
+});
+
+// Apply authentication to all other payment routes (after diagnostic endpoints)
 router.use(protect);
 
 // Initialize Stripe client with comprehensive error handling
@@ -62,27 +131,62 @@ let stripeInitializationError = null;
 
 const initializeStripe = () => {
   try {
-    if (isStripeEnabled() && process.env.STRIPE_SECRET_KEY) {
-      stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
+    console.log('\n🔧 [Payment Routes] STRIPE INITIALIZATION DEBUG:');
+    console.log('=================================================');
+    
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    const isEnabled = isStripeEnabled();
+    
+    console.log(`   - isStripeEnabled(): ${isEnabled}`);
+    console.log(`   - STRIPE_SECRET_KEY exists: ${!!secretKey}`);
+    
+    if (secretKey) {
+      console.log(`   - Secret key length: ${secretKey.length}`);
+      console.log(`   - Secret key format: ${secretKey.substring(0, 8)}...`);
+      console.log(`   - Secret key starts with sk_: ${secretKey.startsWith('sk_')}`);
+      
+      // Check for whitespace issues
+      const trimmed = secretKey.trim();
+      if (trimmed !== secretKey) {
+        console.log(`   - ⚠️ SECRET KEY HAS WHITESPACE! Original: ${secretKey.length}, Trimmed: ${trimmed.length}`);
+      }
+    } else {
+      console.log('   - ❌ STRIPE_SECRET_KEY is null/undefined');
+      
+      // Check what environment variables are actually available
+      const allEnvKeys = Object.keys(process.env);
+      const stripeKeys = allEnvKeys.filter(key => key.includes('STRIPE'));
+      console.log(`   - Available STRIPE env vars: [${stripeKeys.join(', ')}]`);
+    }
+    
+    console.log('=================================================\n');
+    
+    if (isEnabled && secretKey) {
+      stripeClient = new Stripe(secretKey.trim(), { // Use trimmed version
         apiVersion: '2023-10-16'
       });
-      logger.info('Enhanced Stripe client initialized successfully');
+      logger.info('✅ Enhanced Stripe client initialized successfully');
+      console.log('🎉 [Payment Routes] Stripe client created successfully!');
       return true;
     } else {
-      const reason = !process.env.STRIPE_SECRET_KEY ? 'Missing STRIPE_SECRET_KEY' : 'Stripe not enabled';
+      const reason = !secretKey ? 'Missing STRIPE_SECRET_KEY' : 'Stripe not enabled by configuration';
       stripeInitializationError = `Stripe initialization failed: ${reason}`;
       logger.warn(stripeInitializationError);
+      console.log(`❌ [Payment Routes] Stripe initialization failed: ${reason}`);
       return false;
     }
   } catch (error) {
     stripeInitializationError = `Failed to initialize Stripe client: ${error.message}`;
     logger.error(stripeInitializationError);
+    console.log(`💥 [Payment Routes] Stripe initialization error: ${error.message}`);
     return false;
   }
 };
 
-// Initialize Stripe on module load
+// Initialize Stripe on module load with detailed logging
+console.log('\n🚀 [Payment Routes] Initializing Stripe client...');
 const stripeReady = initializeStripe();
+console.log(`🔍 [Payment Routes] Stripe initialization result: ${stripeReady ? 'SUCCESS' : 'FAILED'}\n`);
 
 /**
  * Middleware to check Stripe availability and provide helpful error responses
