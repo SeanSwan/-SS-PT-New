@@ -27,7 +27,6 @@ import User from '../models/User.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
-import { diagnosticsHandler } from '../utils/environmentDiagnostics.mjs';
 
 const router = express.Router();
 
@@ -36,7 +35,23 @@ const router = express.Router();
  * GET /api/payments/diagnostics
  * Provides system configuration status for debugging payment issues
  */
-router.get('/diagnostics', diagnosticsHandler);
+router.get('/diagnostics', async (req, res) => {
+  try {
+    // Dynamically import diagnostics to avoid startup issues
+    const { diagnosticsHandler } = await import('../utils/environmentDiagnostics.mjs');
+    return diagnosticsHandler(req, res);
+  } catch (error) {
+    logger.error('Diagnostics module error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Diagnostics unavailable',
+      error: {
+        code: 'DIAGNOSTICS_MODULE_ERROR',
+        details: 'Diagnostics module could not be loaded'
+      }
+    });
+  }
+});
 
 // Apply authentication to all other payment routes
 router.use(protect);
@@ -68,16 +83,6 @@ const initializeStripe = () => {
 
 // Initialize Stripe on module load
 const stripeReady = initializeStripe();
-
-// Run diagnostics on module load to help identify issues
-if (process.env.NODE_ENV !== 'production') {
-  // Import and run diagnostics for development
-  import('../utils/environmentDiagnostics.mjs').then(({ performEnvironmentDiagnostics }) => {
-    performEnvironmentDiagnostics();
-  }).catch(() => {
-    // Fail silently if diagnostics can't be loaded
-  });
-}
 
 /**
  * Middleware to check Stripe availability and provide helpful error responses
@@ -126,6 +131,18 @@ router.get('/health', (req, res) => {
   res.status(stripeReady ? 200 : 503).json({
     success: true,
     data: health
+  });
+});
+
+/**
+ * Simple status endpoint (no dependencies)
+ */
+router.get('/status', (req, res) => {
+  res.json({
+    success: true,
+    status: 'payment_service_running',
+    timestamp: new Date().toISOString(),
+    stripe_configured: stripeReady
   });
 });
 
