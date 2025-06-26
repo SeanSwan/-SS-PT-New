@@ -1,5 +1,7 @@
 // backend/utils/apiKeyChecker.mjs
 
+import { isStripeConfigured } from './stripeConfig.mjs';
+
 // Store the status of keys after checking
 const keyStatus = {
     stripe: false,
@@ -22,18 +24,12 @@ export const checkApiKeys = () => {
     // Use console.log for initial message to avoid PII scanning during startup
     console.log('--- Checking API Key Configuration ---');
 
-    // --- Stripe ---
-    const stripeKey = process.env.STRIPE_SECRET_KEY;
-    if (!stripeKey) {
-        console.warn('[API Key Check] Stripe: MISSING (STRIPE_SECRET_KEY not found in .env). Payment features disabled.');
-        keyStatus.stripe = false;
-    } else if (!stripeKey.startsWith('sk_') && !stripeKey.startsWith('rk_')) {
-        // Basic format check (live keys start with sk_, test keys with rk_)
-        console.warn(`[API Key Check] Stripe: INVALID_FORMAT (Key does not start with sk_ or rk_). Payment features likely disabled.`);
-        keyStatus.stripe = false; // Treat invalid format as unusable for now
+    // --- Stripe (using new configuration helper) ---
+    keyStatus.stripe = isStripeConfigured();
+    if (keyStatus.stripe) {
+        console.log('[API Key Check] Stripe: OK (Configured via stripeConfig helper)');
     } else {
-        console.log('[API Key Check] Stripe: OK (Key found)');
-        keyStatus.stripe = true;
+        console.warn('[API Key Check] Stripe: NOT_CONFIGURED (See stripeConfig.mjs for details). Payment features disabled.');
     }
 
     // --- SendGrid ---
@@ -97,7 +93,7 @@ export const checkApiKeys = () => {
 };
 
 // Export status checkers for conditional logic elsewhere
-export const isStripeEnabled = () => keyStatus.stripe;
+export const isStripeEnabled = () => keyStatus.stripe || isStripeConfigured();
 export const isSendGridEnabled = () => keyStatus.sendgrid;
 export const isTwilioEnabled = () => keyStatus.twilio;
 

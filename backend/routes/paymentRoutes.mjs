@@ -1,7 +1,7 @@
 /**
  * Enhanced Payment Routes - SwanStudios Premium Payment Integration
  * ================================================================
- * Production-ready payment processing with Stripe Elements support
+ * Production-ready payment processing with improved error handling for Render deployment
  * Maintains backward compatibility with existing Stripe Checkout
  * 
  * Features:
@@ -10,6 +10,7 @@
  * - Payment Intent management
  * - Real-time payment status
  * - Enhanced security and validation
+ * - Comprehensive error handling for 503 prevention
  * - Galaxy-themed payment experience support
  * 
  * Security: PCI DSS compliant, authenticated users only
@@ -32,97 +33,239 @@ const router = express.Router();
 // Apply authentication to all payment routes
 router.use(protect);
 
-// Initialize Stripe client
+// Initialize Stripe client with comprehensive error handling
 let stripeClient = null;
-if (isStripeEnabled()) {
+let stripeInitializationError = null;
+
+const initializeStripe = () => {
   try {
-    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2023-10-16'
-    });
-    logger.info('Enhanced Stripe client initialized successfully');
+    if (isStripeEnabled() && process.env.STRIPE_SECRET_KEY) {
+      stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
+        apiVersion: '2023-10-16'
+      });
+      logger.info('Enhanced Stripe client initialized successfully');
+      return true;
+    } else {
+      const reason = !process.env.STRIPE_SECRET_KEY ? 'Missing STRIPE_SECRET_KEY' : 'Stripe not enabled';
+      stripeInitializationError = `Stripe initialization failed: ${reason}`;
+      logger.warn(stripeInitializationError);
+      return false;
+    }
   } catch (error) {
-    logger.error(`Failed to initialize Stripe client: ${error.message}`);
+    stripeInitializationError = `Failed to initialize Stripe client: ${error.message}`;
+    logger.error(stripeInitializationError);
+    return false;
   }
-} else {
-  logger.warn('Stripe not available - payment routes will return errors');
-}
+};
+
+// Initialize Stripe on module load
+const stripeReady = initializeStripe();
+
+/**
+ * Middleware to check Stripe availability and provide helpful error responses
+ */
+const checkStripeAvailability = (req, res, next) => {
+  if (!stripeClient || !stripeReady) {
+    return res.status(503).json({
+      success: false,
+      message: 'Payment processing temporarily unavailable',
+      error: {
+        code: 'PAYMENT_SERVICE_UNAVAILABLE',
+        details: stripeInitializationError || 'Payment service not configured',
+        retryAfter: 300, // 5 minutes
+        supportContact: 'support@swanstudios.com'
+      },
+      fallbackOptions: [
+        {
+          method: 'contact',
+          description: 'Contact our support team to complete your purchase',
+          contact: 'support@swanstudios.com'
+        },
+        {
+          method: 'retry',
+          description: 'Try again in a few minutes',
+          retryAfter: 300
+        }
+      ]
+    });
+  }
+  next();
+};
+
+/**
+ * Health check endpoint for payment system
+ */
+router.get('/health', (req, res) => {
+  const health = {
+    status: stripeReady ? 'healthy' : 'degraded',
+    stripe: {
+      available: stripeReady,
+      error: stripeInitializationError
+    },
+    timestamp: new Date().toISOString()
+  };
+
+  res.status(stripeReady ? 200 : 503).json({
+    success: true,
+    data: health
+  });
+});
 
 /**
  * POST /api/payments/create-payment-intent
  * Create a Payment Intent for Stripe Elements
  * This enables embedded payment forms with enhanced UX
  */
-router.post('/create-payment-intent', async (req, res) => {
+router.post('/create-payment-intent', checkStripeAvailability, async (req, res) => {
   try {
-    if (!stripeClient) {
-      return res.status(503).json({
-        success: false,
-        message: 'Payment processing temporarily unavailable'
-      });
-    }
-
     const userId = req.user.id;
     const { cartId } = req.body;
 
-    // Validate cart
-    const cart = await ShoppingCart.findOne({
-      where: { 
-        id: cartId || null,
-        userId, 
-        status: 'active' 
-      },
-      include: [{
-        model: CartItem,
-        as: 'cartItems',
+    logger.info(`Creating payment intent for user ${userId}, cart ${cartId}`);
+
+    // Validate cart with comprehensive error handling
+    let cart;
+    try {
+      cart = await ShoppingCart.findOne({
+        where: { 
+          id: cartId || null,
+          userId, 
+          status: 'active' 
+        },
         include: [{
-          model: StorefrontItem,
-          as: 'storefrontItem'
+          model: CartItem,
+          as: 'cartItems',
+          include: [{
+            model: StorefrontItem,
+            as: 'storefrontItem'
+          }]
         }]
-      }]
-    });
+      });
+    } catch (dbError) {
+      logger.error(`Database error while fetching cart: ${dbError.message}`);
+      return res.status(500).json({
+        success: false,
+        message: 'Unable to access cart data',
+        error: {
+          code: 'DATABASE_ERROR',
+          details: 'Cart validation failed'
+        }
+      });
+    }
 
     if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid or empty cart'
+        message: 'Invalid or empty cart',
+        error: {
+          code: 'INVALID_CART',
+          details: 'Cart not found or contains no items'
+        }
       });
     }
 
-    // Calculate total amount
+    // Calculate total amount with validation
     const totalAmount = Math.round(cart.total * 100); // Convert to cents
-
-    // Get customer information
-    const user = await User.findByPk(userId);
-    if (!user) {
-      return res.status(404).json({
+    
+    if (totalAmount < 50) { // $0.50 minimum for Stripe
+      return res.status(400).json({
         success: false,
-        message: 'User not found'
+        message: 'Order total too small',
+        error: {
+          code: 'AMOUNT_TOO_SMALL',
+          details: 'Minimum order amount is $0.50'
+        }
       });
     }
 
-    // Create Payment Intent
-    const paymentIntent = await stripeClient.paymentIntents.create({
-      amount: totalAmount,
-      currency: 'usd',
-      customer: user.stripeCustomerId || undefined, // Use existing customer if available
-      metadata: {
-        cartId: cart.id.toString(),
-        userId: userId.toString(),
-        userName: `${user.firstName} ${user.lastName}`,
-        itemCount: cart.cartItems.length.toString()
-      },
-      description: `SwanStudios Training Package - ${cart.cartItems.length} item(s)`,
-      // Enable automatic payment methods
-      automatic_payment_methods: {
-        enabled: true
-      },
-      // Set up for future payments if needed
-      setup_future_usage: 'off_session'
-    });
+    // Get customer information with error handling
+    let user;
+    try {
+      user = await User.findByPk(userId);
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found',
+          error: {
+            code: 'USER_NOT_FOUND',
+            details: 'Authentication user not found in database'
+          }
+        });
+      }
+    } catch (dbError) {
+      logger.error(`Database error while fetching user: ${dbError.message}`);
+      return res.status(500).json({
+        success: false,
+        message: 'Unable to access user data',
+        error: {
+          code: 'DATABASE_ERROR',
+          details: 'User validation failed'
+        }
+      });
+    }
+
+    // Create Payment Intent with comprehensive error handling
+    let paymentIntent;
+    try {
+      paymentIntent = await stripeClient.paymentIntents.create({
+        amount: totalAmount,
+        currency: 'usd',
+        customer: user.stripeCustomerId || undefined,
+        metadata: {
+          cartId: cart.id.toString(),
+          userId: userId.toString(),
+          userName: `${user.firstName} ${user.lastName}`,
+          itemCount: cart.cartItems.length.toString()
+        },
+        description: `SwanStudios Training Package - ${cart.cartItems.length} item(s)`,
+        automatic_payment_methods: {
+          enabled: true
+        },
+        setup_future_usage: 'off_session'
+      });
+    } catch (stripeError) {
+      logger.error(`Stripe error creating payment intent: ${stripeError.message}`);
+      
+      // Handle specific Stripe errors
+      let errorMessage = 'Failed to create payment intent';
+      let errorCode = 'STRIPE_ERROR';
+      
+      if (stripeError.type === 'StripeCardError') {
+        errorMessage = 'Card was declined';
+        errorCode = 'CARD_DECLINED';
+      } else if (stripeError.type === 'StripeRateLimitError') {
+        errorMessage = 'Too many requests, please try again later';
+        errorCode = 'RATE_LIMITED';
+      } else if (stripeError.type === 'StripeInvalidRequestError') {
+        errorMessage = 'Invalid payment request';
+        errorCode = 'INVALID_REQUEST';
+      } else if (stripeError.type === 'StripeAPIError') {
+        errorMessage = 'Payment service temporarily unavailable';
+        errorCode = 'SERVICE_UNAVAILABLE';
+      } else if (stripeError.type === 'StripeConnectionError') {
+        errorMessage = 'Network error, please check your connection';
+        errorCode = 'CONNECTION_ERROR';
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: errorMessage,
+        error: {
+          code: errorCode,
+          details: process.env.NODE_ENV === 'development' ? stripeError.message : 'Payment processing error',
+          retryable: ['RATE_LIMITED', 'SERVICE_UNAVAILABLE', 'CONNECTION_ERROR'].includes(errorCode)
+        }
+      });
+    }
 
     // Store payment intent ID in cart for tracking
-    cart.paymentIntentId = paymentIntent.id;
-    await cart.save();
+    try {
+      cart.paymentIntentId = paymentIntent.id;
+      await cart.save();
+    } catch (dbError) {
+      logger.error(`Database error saving payment intent ID: ${dbError.message}`);
+      // Don't fail the request if we can't save the ID, but log it
+    }
 
     logger.info(`Created payment intent ${paymentIntent.id} for cart ${cart.id}`);
 
@@ -148,11 +291,14 @@ router.post('/create-payment-intent', async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('Error creating payment intent:', error);
+    logger.error('Unexpected error creating payment intent:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to create payment intent',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Payment processing error'
+      message: 'An unexpected error occurred',
+      error: {
+        code: 'INTERNAL_ERROR',
+        details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      }
     });
   }
 });
@@ -162,69 +308,112 @@ router.post('/create-payment-intent', async (req, res) => {
  * Confirm payment and complete order processing
  * Called after successful payment via Stripe Elements
  */
-router.post('/confirm-payment', async (req, res) => {
+router.post('/confirm-payment', checkStripeAvailability, async (req, res) => {
   try {
-    if (!stripeClient) {
-      return res.status(503).json({
-        success: false,
-        message: 'Payment processing temporarily unavailable'
-      });
-    }
-
     const userId = req.user.id;
     const { paymentIntentId } = req.body;
 
     if (!paymentIntentId) {
       return res.status(400).json({
         success: false,
-        message: 'Payment Intent ID required'
+        message: 'Payment Intent ID required',
+        error: {
+          code: 'MISSING_PAYMENT_INTENT_ID',
+          details: 'paymentIntentId is required'
+        }
       });
     }
 
-    // Retrieve payment intent from Stripe
-    const paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
+    // Retrieve payment intent from Stripe with error handling
+    let paymentIntent;
+    try {
+      paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
+    } catch (stripeError) {
+      logger.error(`Stripe error retrieving payment intent: ${stripeError.message}`);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid payment intent',
+        error: {
+          code: 'INVALID_PAYMENT_INTENT',
+          details: 'Payment intent not found or inaccessible'
+        }
+      });
+    }
 
     if (paymentIntent.status !== 'succeeded') {
       return res.status(400).json({
         success: false,
         message: 'Payment not completed',
-        status: paymentIntent.status
+        status: paymentIntent.status,
+        error: {
+          code: 'PAYMENT_NOT_COMPLETED',
+          details: `Payment status: ${paymentIntent.status}`
+        }
       });
     }
 
     // Find the cart associated with this payment
-    const cart = await ShoppingCart.findOne({
-      where: {
-        paymentIntentId,
-        userId,
-        status: 'active'
-      },
-      include: [{
-        model: CartItem,
-        as: 'cartItems',
+    let cart;
+    try {
+      cart = await ShoppingCart.findOne({
+        where: {
+          paymentIntentId,
+          userId,
+          status: 'active'
+        },
         include: [{
-          model: StorefrontItem,
-          as: 'storefrontItem'
+          model: CartItem,
+          as: 'cartItems',
+          include: [{
+            model: StorefrontItem,
+            as: 'storefrontItem'
+          }]
         }]
-      }]
-    });
+      });
+    } catch (dbError) {
+      logger.error(`Database error while fetching cart for confirmation: ${dbError.message}`);
+      return res.status(500).json({
+        success: false,
+        message: 'Unable to access cart data',
+        error: {
+          code: 'DATABASE_ERROR',
+          details: 'Cart confirmation failed'
+        }
+      });
+    }
 
     if (!cart) {
       return res.status(404).json({
         success: false,
-        message: 'Cart not found or already processed'
+        message: 'Cart not found or already processed',
+        error: {
+          code: 'CART_NOT_FOUND',
+          details: 'Associated cart not found or already completed'
+        }
       });
     }
 
     // Mark cart as completed
-    cart.status = 'completed';
-    cart.paymentStatus = 'paid';
-    cart.completedAt = new Date();
-    cart.paymentIntentId = paymentIntentId;
-    await cart.save();
+    try {
+      cart.status = 'completed';
+      cart.paymentStatus = 'paid';
+      cart.completedAt = new Date();
+      cart.paymentIntentId = paymentIntentId;
+      await cart.save();
 
-    // Process the completed order (add sessions, trigger notifications, etc.)
-    await processCompletedOrder(cart.id);
+      // Process the completed order (add sessions, trigger notifications, etc.)
+      await processCompletedOrder(cart.id);
+    } catch (dbError) {
+      logger.error(`Database error while completing order: ${dbError.message}`);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to complete order',
+        error: {
+          code: 'ORDER_COMPLETION_ERROR',
+          details: 'Order processing failed'
+        }
+      });
+    }
 
     logger.info(`Payment confirmed and order completed for cart ${cart.id}`);
 
@@ -246,11 +435,14 @@ router.post('/confirm-payment', async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('Error confirming payment:', error);
+    logger.error('Unexpected error confirming payment:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to confirm payment',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Payment confirmation error'
+      message: 'An unexpected error occurred',
+      error: {
+        code: 'INTERNAL_ERROR',
+        details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      }
     });
   }
 });
@@ -259,35 +451,58 @@ router.post('/confirm-payment', async (req, res) => {
  * GET /api/payments/status/:paymentIntentId
  * Get real-time payment status
  */
-router.get('/status/:paymentIntentId', async (req, res) => {
+router.get('/status/:paymentIntentId', checkStripeAvailability, async (req, res) => {
   try {
-    if (!stripeClient) {
-      return res.status(503).json({
-        success: false,
-        message: 'Payment processing temporarily unavailable'
-      });
-    }
-
     const { paymentIntentId } = req.params;
     const userId = req.user.id;
 
     // Verify this payment intent belongs to the user
-    const cart = await ShoppingCart.findOne({
-      where: {
-        paymentIntentId,
-        userId
-      }
-    });
+    let cart;
+    try {
+      cart = await ShoppingCart.findOne({
+        where: {
+          paymentIntentId,
+          userId
+        }
+      });
+    } catch (dbError) {
+      logger.error(`Database error while checking payment ownership: ${dbError.message}`);
+      return res.status(500).json({
+        success: false,
+        message: 'Unable to verify payment ownership',
+        error: {
+          code: 'DATABASE_ERROR',
+          details: 'Payment verification failed'
+        }
+      });
+    }
 
     if (!cart) {
       return res.status(403).json({
         success: false,
-        message: 'Unauthorized access to payment'
+        message: 'Unauthorized access to payment',
+        error: {
+          code: 'UNAUTHORIZED_PAYMENT_ACCESS',
+          details: 'Payment does not belong to authenticated user'
+        }
       });
     }
 
     // Get payment intent status from Stripe
-    const paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
+    let paymentIntent;
+    try {
+      paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
+    } catch (stripeError) {
+      logger.error(`Stripe error retrieving payment status: ${stripeError.message}`);
+      return res.status(400).json({
+        success: false,
+        message: 'Unable to retrieve payment status',
+        error: {
+          code: 'PAYMENT_STATUS_ERROR',
+          details: 'Payment status unavailable'
+        }
+      });
+    }
 
     res.json({
       success: true,
@@ -304,11 +519,14 @@ router.get('/status/:paymentIntentId', async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('Error fetching payment status:', error);
+    logger.error('Unexpected error fetching payment status:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch payment status',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Status check error'
+      message: 'An unexpected error occurred',
+      error: {
+        code: 'INTERNAL_ERROR',
+        details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      }
     });
   }
 });
@@ -317,47 +535,79 @@ router.get('/status/:paymentIntentId', async (req, res) => {
  * POST /api/payments/cancel-payment
  * Cancel a pending payment intent
  */
-router.post('/cancel-payment', async (req, res) => {
+router.post('/cancel-payment', checkStripeAvailability, async (req, res) => {
   try {
-    if (!stripeClient) {
-      return res.status(503).json({
-        success: false,
-        message: 'Payment processing temporarily unavailable'
-      });
-    }
-
     const { paymentIntentId } = req.body;
     const userId = req.user.id;
 
     if (!paymentIntentId) {
       return res.status(400).json({
         success: false,
-        message: 'Payment Intent ID required'
+        message: 'Payment Intent ID required',
+        error: {
+          code: 'MISSING_PAYMENT_INTENT_ID',
+          details: 'paymentIntentId is required'
+        }
       });
     }
 
     // Verify this payment intent belongs to the user
-    const cart = await ShoppingCart.findOne({
-      where: {
-        paymentIntentId,
-        userId,
-        status: 'active'
-      }
-    });
+    let cart;
+    try {
+      cart = await ShoppingCart.findOne({
+        where: {
+          paymentIntentId,
+          userId,
+          status: 'active'
+        }
+      });
+    } catch (dbError) {
+      logger.error(`Database error while checking payment for cancellation: ${dbError.message}`);
+      return res.status(500).json({
+        success: false,
+        message: 'Unable to verify payment for cancellation',
+        error: {
+          code: 'DATABASE_ERROR',
+          details: 'Payment cancellation verification failed'
+        }
+      });
+    }
 
     if (!cart) {
       return res.status(404).json({
         success: false,
-        message: 'Payment not found or already processed'
+        message: 'Payment not found or already processed',
+        error: {
+          code: 'PAYMENT_NOT_FOUND',
+          details: 'Payment not found or not eligible for cancellation'
+        }
       });
     }
 
     // Cancel the payment intent in Stripe
-    const paymentIntent = await stripeClient.paymentIntents.cancel(paymentIntentId);
+    let paymentIntent;
+    try {
+      paymentIntent = await stripeClient.paymentIntents.cancel(paymentIntentId);
+    } catch (stripeError) {
+      logger.error(`Stripe error cancelling payment intent: ${stripeError.message}`);
+      return res.status(400).json({
+        success: false,
+        message: 'Unable to cancel payment',
+        error: {
+          code: 'PAYMENT_CANCELLATION_ERROR',
+          details: 'Payment cancellation failed'
+        }
+      });
+    }
 
     // Clear payment intent from cart
-    cart.paymentIntentId = null;
-    await cart.save();
+    try {
+      cart.paymentIntentId = null;
+      await cart.save();
+    } catch (dbError) {
+      logger.error(`Database error clearing payment intent: ${dbError.message}`);
+      // Don't fail the request, but log the error
+    }
 
     logger.info(`Payment intent ${paymentIntentId} cancelled for cart ${cart.id}`);
 
@@ -371,11 +621,14 @@ router.post('/cancel-payment', async (req, res) => {
     });
 
   } catch (error) {
-    logger.error('Error cancelling payment:', error);
+    logger.error('Unexpected error cancelling payment:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to cancel payment',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Cancellation error'
+      message: 'An unexpected error occurred',
+      error: {
+        code: 'INTERNAL_ERROR',
+        details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      }
     });
   }
 });
@@ -384,7 +637,7 @@ router.post('/cancel-payment', async (req, res) => {
  * GET /api/payments/methods
  * Get available payment methods for the user's location
  */
-router.get('/methods', async (req, res) => {
+router.get('/methods', (req, res) => {
   try {
     // Return available payment methods
     // This could be enhanced to be location-specific
@@ -412,7 +665,11 @@ router.get('/methods', async (req, res) => {
     logger.error('Error fetching payment methods:', error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch payment methods'
+      message: 'Failed to fetch payment methods',
+      error: {
+        code: 'INTERNAL_ERROR',
+        details: 'Payment methods unavailable'
+      }
     });
   }
 });
