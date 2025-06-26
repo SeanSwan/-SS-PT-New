@@ -70,7 +70,9 @@
     "render-verify": "node render-production-verify.mjs",
     "check-system-status": "node scripts/check-system-status.mjs",
     "test-auth-system": "node scripts/test-auth-system.mjs",
-    "restart-backend": "node scripts/restart-backend.mjs"
+    "restart-backend": "node scripts/restart-backend.mjs",
+    "check-env": "node utils/quickEnvCheck.mjs",
+    "check-stripe": "node utils/manualDiagnostics.mjs"
   },
   "keywords": [],
   "author": "",

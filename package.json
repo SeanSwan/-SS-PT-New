@@ -75,7 +75,9 @@
     "production-seed": "node render-production-seeder.mjs",
     "production-debug": "node render-production-debug.mjs",
     "production-verify": "node render-production-verify.mjs",
-    "render-verify": "node render-production-verify.mjs"
+    "render-verify": "node render-production-verify.mjs",
+    "check-env": "node backend/utils/quickEnvCheck.mjs",
+    "check-stripe": "node backend/utils/manualDiagnostics.mjs"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",
