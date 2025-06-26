@@ -39,6 +39,7 @@ import { useToast } from "../../hooks/use-toast";
 import HeroSection from "./components/HeroSection";
 import PackagesGrid from "./components/PackagesGrid";
 import FloatingCart from "./components/FloatingCart";
+import ThemeShowcaseBanner from "./components/ThemeShowcaseBanner";
 import OrientationForm from "../../components/OrientationForm/orientationForm";
 import { OptimizedCheckoutFlow } from "../../components/Checkout";
 import { ThemedGlowButton } from '../../styles/swan-theme-utils';
@@ -495,6 +496,11 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
           onViewPackages={handleViewPackages}
         />
 
+        {/* Galaxy-Swan Theme Showcase Banner */}
+        <SectionContainer>
+          <ThemeShowcaseBanner />
+        </SectionContainer>
+
         {/* Packages Grid */}
         {hasPackages && (
           <>
@@ -554,7 +560,7 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
                 duration: 5000
               });
             }}
-            preferredMethod="embedded"
+            preferredMethod="fullscreen"
           />
         )}
       </AnimatePresence>

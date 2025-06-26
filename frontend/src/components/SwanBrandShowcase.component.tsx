@@ -24,8 +24,9 @@ import {
   ThemedGlowButton as SwanButton, // Use ThemedGlowButton as SwanButton
   SwanCard,
   responsiveAnimation,
+  responsiveAnimationCSS,
   accessibleHover
-} from '../styles/swan-theme-utils.tsx';
+} from '../styles/swan-theme-utils';
 
 // === SHOWCASE-SPECIFIC STYLED COMPONENTS ===
 
@@ -137,7 +138,7 @@ const GradientShowcase = styled.div<{ gradient: string }>`
     border-radius: 10px;
     background: linear-gradient(45deg, transparent 30%, rgba(255,255,255,0.1) 50%, transparent 70%);
     background-size: 200% 200%;
-    ${responsiveAnimation('background-position 3s ease-in-out infinite')}
+    ${responsiveAnimationCSS('background-position 3s ease-in-out infinite;')}
     background-position: -100% -100%;
     
     &:hover {

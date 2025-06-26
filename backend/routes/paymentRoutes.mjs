@@ -27,10 +27,18 @@ import User from '../models/User.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
+import { diagnosticsHandler } from '../utils/environmentDiagnostics.mjs';
 
 const router = express.Router();
 
-// Apply authentication to all payment routes
+/**
+ * Public diagnostics endpoint (no auth required)
+ * GET /api/payments/diagnostics
+ * Provides system configuration status for debugging payment issues
+ */
+router.get('/diagnostics', diagnosticsHandler);
+
+// Apply authentication to all other payment routes
 router.use(protect);
 
 // Initialize Stripe client with comprehensive error handling
@@ -60,6 +68,16 @@ const initializeStripe = () => {
 
 // Initialize Stripe on module load
 const stripeReady = initializeStripe();
+
+// Run diagnostics on module load to help identify issues
+if (process.env.NODE_ENV !== 'production') {
+  // Import and run diagnostics for development
+  import('../utils/environmentDiagnostics.mjs').then(({ performEnvironmentDiagnostics }) => {
+    performEnvironmentDiagnostics();
+  }).catch(() => {
+    // Fail silently if diagnostics can't be loaded
+  });
+}
 
 /**
  * Middleware to check Stripe availability and provide helpful error responses

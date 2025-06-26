@@ -33,6 +33,9 @@ import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { CreditCard, Shield, Zap, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 
+// Import enhanced error handling
+import PaymentErrorHandler from './PaymentErrorHandler';
+
 // Load Stripe with proper fallback
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = stripePublishableKey && stripePublishableKey !== 'pk_test_placeholder_key_for_development' && stripePublishableKey !== 'pk_test_placeholder_production_key'
@@ -71,7 +74,9 @@ const PaymentContainer = styled(motion.div)<{ $embedded?: boolean }>`
   max-width: ${props => props.$embedded ? 'none' : '600px'};
   margin: 0 auto;
   width: 100%;
-  min-height: ${props => props.$embedded ? 'calc(100vh - 200px)' : 'auto'};
+  
+  /* Enhanced mobile responsiveness */
+  min-height: ${props => props.$embedded ? '100%' : 'auto'};
   
   ${props => !props.$embedded && `
     &::before {
@@ -93,16 +98,30 @@ const PaymentContainer = styled(motion.div)<{ $embedded?: boolean }>`
     }
   `}
   
-  /* Mobile-first responsive design */
+  /* Mobile-first responsive design - Enhanced */
   @media (max-width: 768px) {
     padding: ${props => props.$embedded ? '1rem' : '1.5rem'};
     border-radius: ${props => props.$embedded ? '0' : '15px'};
-    min-height: ${props => props.$embedded ? 'calc(100vh - 160px)' : 'auto'};
+    min-height: ${props => props.$embedded ? '100vh' : 'auto'};
+    
+    /* Full viewport on mobile when embedded */
+    ${props => props.$embedded && `
+      margin: 0;
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    `}
   }
   
   @media (max-width: 480px) {
-    padding: ${props => props.$embedded ? '0.75rem' : '1rem'};
-    min-height: ${props => props.$embedded ? 'calc(100vh - 140px)' : 'auto'};
+    padding: ${props => props.$embedded ? '1rem' : '1rem'};
+    min-height: ${props => props.$embedded ? '100vh' : 'auto'};
+    
+    /* Ensure full mobile coverage */
+    ${props => props.$embedded && `
+      padding: 1rem;
+      padding-top: 2rem; /* Account for close button */
+    `}
   }
 `;
 
@@ -754,7 +773,7 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
   const { cart } = useCart();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<any>(null); // Enhanced to handle error objects
 
   // Create Payment Intent when component opens
   useEffect(() => {
@@ -789,7 +808,45 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
         setError(response.data.message || 'Failed to initialize payment');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to initialize payment');
+      console.error('Payment intent creation error:', err);
+      
+      // Handle specific error types
+      if (err.response?.status === 503) {
+        // Service unavailable - show enhanced error with fallback options
+        const errorData = err.response.data;
+        setError({
+          code: 'PAYMENT_SERVICE_UNAVAILABLE',
+          message: errorData.message || 'Payment processing temporarily unavailable',
+          details: errorData.error?.details,
+          retryAfter: errorData.error?.retryAfter,
+          supportContact: errorData.error?.supportContact,
+          fallbackOptions: errorData.fallbackOptions
+        });
+      } else if (err.response?.status === 400) {
+        setError({
+          code: 'INVALID_REQUEST',
+          message: err.response.data.message || 'Invalid payment request',
+          details: err.response.data.error?.details
+        });
+      } else if (err.response?.status === 500) {
+        setError({
+          code: 'INTERNAL_ERROR',
+          message: 'Internal server error. Please try again.',
+          details: 'Payment processing encountered an error'
+        });
+      } else if (err.code === 'ERR_NETWORK') {
+        setError({
+          code: 'CONNECTION_ERROR',
+          message: 'Network connection error. Please check your internet connection.',
+          details: 'Unable to connect to payment service'
+        });
+      } else {
+        setError({
+          code: 'UNKNOWN_ERROR',
+          message: err.response?.data?.message || 'Failed to initialize payment',
+          details: 'An unexpected error occurred'
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -836,10 +893,27 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
           <PaymentSubtitle>Payment processing is currently being configured</PaymentSubtitle>
           </PaymentHeader>
 
-          <MessageContainer className="error">
-            <AlertCircle size={16} />
-            Payment system is not configured. Please contact support or try again later.
-          </MessageContainer>
+          <PaymentErrorHandler 
+            error={{
+              code: 'STRIPE_NOT_CONFIGURED',
+              message: 'Payment system is not configured. Please contact support or try again later.',
+              details: 'Payment processing temporarily unavailable',
+              fallbackOptions: [
+                {
+                  method: 'contact',
+                  description: 'Contact our support team to complete your purchase',
+                  contact: 'support@swanstudios.com'
+                },
+                {
+                  method: 'retry',
+                  description: 'Try again in a few minutes',
+                  retryAfter: 300
+                }
+              ]
+            }}
+            onRetry={() => window.location.reload()}
+            onClose={onClose}
+          />
         </PaymentContainer>
       );
     }
@@ -867,10 +941,18 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
         )}
 
         {error && (
-          <MessageContainer className="error">
-            <AlertCircle size={16} />
-            {error}
-          </MessageContainer>
+          <PaymentErrorHandler 
+            error={typeof error === 'string' ? {
+              code: 'GENERIC_ERROR',
+              message: error
+            } : error}
+            onRetry={() => {
+              setError(null);
+              setClientSecret(null);
+              createPaymentIntent();
+            }}
+            onClose={onClose}
+          />
         )}
 
         {clientSecret && (
@@ -923,10 +1005,27 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
           <PaymentSubtitle>Payment processing is currently being configured</PaymentSubtitle>
           </PaymentHeader>
 
-          <MessageContainer className="error">
-            <AlertCircle size={16} />
-            Payment system is not configured. Please contact support or try again later.
-          </MessageContainer>
+          <PaymentErrorHandler 
+            error={{
+              code: 'STRIPE_NOT_CONFIGURED',
+              message: 'Payment system is not configured. Please contact support or try again later.',
+              details: 'Payment processing temporarily unavailable',
+              fallbackOptions: [
+                {
+                  method: 'contact',
+                  description: 'Contact our support team to complete your purchase',
+                  contact: 'support@swanstudios.com'
+                },
+                {
+                  method: 'retry',
+                  description: 'Try again in a few minutes',
+                  retryAfter: 300
+                }
+              ]
+            }}
+            onRetry={() => window.location.reload()}
+            onClose={onClose}
+          />
 
           <motion.button
             onClick={onClose}
@@ -999,10 +1098,18 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
         )}
 
         {error && (
-          <MessageContainer className="error">
-            <AlertCircle size={16} />
-            {error}
-          </MessageContainer>
+          <PaymentErrorHandler 
+            error={typeof error === 'string' ? {
+              code: 'GENERIC_ERROR',
+              message: error
+            } : error}
+            onRetry={() => {
+              setError(null);
+              setClientSecret(null);
+              createPaymentIntent();
+            }}
+            onClose={onClose}
+          />
         )}
 
         {clientSecret && (

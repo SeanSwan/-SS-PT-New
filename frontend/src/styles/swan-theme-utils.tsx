@@ -64,7 +64,7 @@ export const elegantGlow = keyframes`
 
 // === RESPONSIVE ANIMATION MIXINS ===
 
-// Animation with performance fallbacks
+// Animation with performance fallbacks - Enhanced version
 export const responsiveAnimation = (
   standardAnimation: string,
   reducedAnimation: string = 'none'
@@ -73,6 +73,19 @@ export const responsiveAnimation = (
   
   @media (prefers-reduced-motion: reduce) {
     animation: ${reducedAnimation};
+  }
+  
+  @media (max-width: 768px) {
+    animation-duration: 0.8s; /* Slightly faster on mobile */
+  }
+`;
+
+// Alternative responsive animation function for CSS strings
+export const responsiveAnimationCSS = (animationCSS: string) => css`
+  ${animationCSS}
+  
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 `;
 
