@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
   
   // Set the appropriate backend URL based on environment
   const backendUrl = isProd 
-    ? 'https://ss-pt-new.onrender.com' 
+    ? 'https://swan-studios-api.onrender.com' 
     : 'http://localhost:10000';
   
   // Ensure environment variables are properly set for production

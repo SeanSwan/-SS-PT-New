@@ -16,7 +16,7 @@ const getApiUrl = () => {
   if (process.env.NODE_ENV === 'production') {
     // If on custom domain (sswanstudios.com), connect to the correct Render backend
     if (window.location.hostname === 'sswanstudios.com' || window.location.hostname === 'www.sswanstudios.com') {
-      return 'https://ss-pt-new.onrender.com'; // FIXED: Correct Render backend URL
+      return 'https://swan-studios-api.onrender.com'; // FIXED: Correct Render backend URL
     }
     // If on Render domain, use same origin
     return window.location.origin;
@@ -127,10 +127,11 @@ export const useBackendConnection = (config = {}) => {
   const timeoutRef = useRef(null);
   const healthCheckIntervalRef = useRef(null);
   
-  // Circuit breaker to prevent infinite loops
-  const circuitBreakerRef = useRef({ attempts: 0, lastAttempt: 0 });
-  const CIRCUIT_BREAKER_LIMIT = 10; // Max attempts per minute
+  // Enhanced circuit breaker to prevent infinite loops
+  const circuitBreakerRef = useRef({ attempts: 0, lastAttempt: 0, isBlocked: false });
+  const CIRCUIT_BREAKER_LIMIT = 5; // Reduced from 10 to 5 for safety
   const CIRCUIT_BREAKER_WINDOW = 60000; // 1 minute window
+  const CIRCUIT_BREAKER_COOLDOWN = 300000; // 5 minute cooldown after blocking
   
   // Create API instance
   const apiInstance = createApiInstance(fullConfig.apiUrl);
@@ -188,20 +189,40 @@ export const useBackendConnection = (config = {}) => {
     }
   }, [apiInstance, fullConfig.forceMockMode, fullConfig.maxRetries, fullConfig.apiUrl]);
   
-  // Attempt to reconnect with retry logic - FIXED to prevent infinite loops
+  // Attempt to reconnect with enhanced safety - PRODUCTION HARDENED
   const attemptReconnection = useCallback(async () => {
-    // CIRCUIT BREAKER - Prevent infinite loops
+    // ENHANCED CIRCUIT BREAKER - Prevent infinite loops with cooldown
     const now = Date.now();
     const circuitBreaker = circuitBreakerRef.current;
+    
+    // Check if circuit breaker is in cooldown period
+    if (circuitBreaker.isBlocked && (now - circuitBreaker.lastAttempt) < CIRCUIT_BREAKER_COOLDOWN) {
+      console.log(`🛑 CIRCUIT BREAKER: In cooldown period, ${Math.ceil((CIRCUIT_BREAKER_COOLDOWN - (now - circuitBreaker.lastAttempt)) / 1000)}s remaining`);
+      if (isMountedRef.current) {
+        setConnectionState(CONNECTION_STATES.MOCK_MODE);
+        setIsRetrying(false);
+      }
+      return;
+    }
+    
+    // Reset circuit breaker if cooldown expired
+    if (circuitBreaker.isBlocked && (now - circuitBreaker.lastAttempt) >= CIRCUIT_BREAKER_COOLDOWN) {
+      console.log('🔄 CIRCUIT BREAKER: Cooldown expired, resetting');
+      circuitBreaker.attempts = 0;
+      circuitBreaker.isBlocked = false;
+    }
     
     // Reset counter if window expired
     if (now - circuitBreaker.lastAttempt > CIRCUIT_BREAKER_WINDOW) {
       circuitBreaker.attempts = 0;
+      circuitBreaker.isBlocked = false;
     }
     
     // Check circuit breaker limit
     if (circuitBreaker.attempts >= CIRCUIT_BREAKER_LIMIT) {
-      console.error(`🛑 CIRCUIT BREAKER: Too many connection attempts (${circuitBreaker.attempts}), forcing mock mode`);
+      console.error(`🛑 CIRCUIT BREAKER: Too many connection attempts (${circuitBreaker.attempts}), entering cooldown`);
+      circuitBreaker.isBlocked = true;
+      circuitBreaker.lastAttempt = now;
       if (isMountedRef.current) {
         setConnectionState(CONNECTION_STATES.MOCK_MODE);
         setIsRetrying(false);
@@ -337,6 +358,8 @@ export const useBackendConnection = (config = {}) => {
     
     // Reset circuit breaker on manual retry
     circuitBreakerRef.current.attempts = 0;
+    circuitBreakerRef.current.isBlocked = false;
+    circuitBreakerRef.current.lastAttempt = 0;
     
     setRetryCount(0);
     setLastError(null);

@@ -423,51 +423,29 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
                   <CartItemsList>
                     <AnimatePresence>
                       {cart.items.map((item) => {
-                        // Determine if this is a training package
-                        const isTrainingPackage = item.storefrontItem?.name?.includes('Gold') || 
-                                                  item.storefrontItem?.name?.includes('Platinum') ||
-                                                  item.storefrontItem?.name?.includes('Rhodium') ||
-                                                  item.storefrontItem?.name?.includes('Silver');
+                        // Get session information from StorefrontItem data
+                        const storefrontItem = item.storefrontItem;
+                        const itemSessions = storefrontItem?.sessions || storefrontItem?.totalSessions || 0;
+                        const totalItemSessions = itemSessions * item.quantity;
+                        const packageType = storefrontItem?.packageType || 'unknown';
                         
-                        // Get session details for training packages                    
+                        // Determine if this item has sessions (training package)
+                        const hasSessionData = itemSessions > 0;
+                        
+                        // Create session details string
                         let sessionDetails = '';
-                        let pricePerSession = 0;
-                        let sessionCount = 0;
-                        
-                        if (isTrainingPackage) {
-                          if (item.storefrontItem?.name?.includes('Single Session')) {
-                            sessionDetails = `${item.quantity} session${item.quantity > 1 ? 's' : ''} at $175 per session`;
-                            pricePerSession = 175;
-                            sessionCount = 1;
-                          } else if (item.storefrontItem?.name?.includes('Silver Package')) {
-                            sessionDetails = `${8 * item.quantity} sessions at $170 per session`;
-                            pricePerSession = 170;
-                            sessionCount = 8;
-                          } else if (item.storefrontItem?.name?.includes('Gold Package')) {
-                            sessionDetails = `${20 * item.quantity} sessions at $165 per session`;
-                            pricePerSession = 165;
-                            sessionCount = 20;
-                          } else if (item.storefrontItem?.name?.includes('Platinum Package')) {
-                            sessionDetails = `${50 * item.quantity} sessions at $160 per session`;
-                            pricePerSession = 160;
-                            sessionCount = 50;
-                          } else if (item.storefrontItem?.name?.includes('3-Month')) {
-                            sessionDetails = `${3 * item.quantity} months, 4 sessions/week at $155 per session`;
-                            pricePerSession = 155;
-                            sessionCount = 48; // 3 months × 4 weeks × 4 sessions/week
-                          } else if (item.storefrontItem?.name?.includes('6-Month')) {
-                            sessionDetails = `${6 * item.quantity} months, 4 sessions/week at $150 per session`;
-                            pricePerSession = 150;
-                            sessionCount = 96; // 6 months × 4 weeks × 4 sessions/week
-                          } else if (item.storefrontItem?.name?.includes('9-Month')) {
-                            sessionDetails = `${9 * item.quantity} months, 4 sessions/week at $145 per session`;
-                            pricePerSession = 145;
-                            sessionCount = 144; // 9 months × 4 weeks × 4 sessions/week
-                          } else if (item.storefrontItem?.name?.includes('12-Month')) {
-                            sessionDetails = `${12 * item.quantity} months, 4 sessions/week at $140 per session`;
-                            pricePerSession = 140;
-                            sessionCount = 192; // 12 months × 4 weeks × 4 sessions/week
+                        if (hasSessionData) {
+                          const pricePerSession = itemSessions > 0 ? (item.price / itemSessions).toFixed(0) : '0';
+                          
+                          if (packageType === 'fixed') {
+                            sessionDetails = `${totalItemSessions} session${totalItemSessions !== 1 ? 's' : ''} at ${pricePerSession} per session`;
+                          } else if (packageType === 'monthly') {
+                            sessionDetails = `${totalItemSessions} sessions (monthly package) at ${pricePerSession} per session`;
+                          } else {
+                            sessionDetails = `${totalItemSessions} training session${totalItemSessions !== 1 ? 's' : ''}`;
                           }
+                        } else {
+                          sessionDetails = storefrontItem?.description || "Premium training package";
                         }
                         
                         return (
@@ -481,11 +459,11 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
                             <ItemDetails>
                               <ItemName>{item.storefrontItem?.name || `Package #${item.storefrontItemId}`}</ItemName>
                               <ItemDescription>
-                                {isTrainingPackage ? sessionDetails : (item.storefrontItem?.description || "Premium training package")}
+                                {sessionDetails}
                               </ItemDescription>
-                              {isTrainingPackage && (
+                              {hasSessionData && (
                                 <span style={{ fontSize: '0.9rem', color: '#00ffff', marginTop: '0.5rem' }}>
-                                  <strong>{item.quantity * sessionCount} total sessions</strong>
+                                  <strong>{totalItemSessions} total sessions</strong>
                                 </span>
                               )}
                               <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.7)', marginTop: '0.5rem' }}>
@@ -529,6 +507,12 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
                       <SummaryLabel>Items</SummaryLabel>
                       <SummaryValue>{cart.itemCount}</SummaryValue>
                     </SummaryRow>
+                    {cart.totalSessions > 0 && (
+                      <SummaryRow>
+                        <SummaryLabel>Total Sessions</SummaryLabel>
+                        <SummaryValue style={{ color: '#00ffff', fontWeight: 'bold' }}>{cart.totalSessions}</SummaryValue>
+                      </SummaryRow>
+                    )}
                     <SummaryRow className="total">
                       <SummaryLabel>Total</SummaryLabel>
                       <SummaryValue>${formatPrice(cart.total)}</SummaryValue>
