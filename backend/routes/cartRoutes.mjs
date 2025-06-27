@@ -10,6 +10,8 @@ import User from '../models/User.mjs';
 import Stripe from 'stripe';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
+import cartHelpers from '../utils/cartHelpers.mjs';
+const { updateCartTotals, getCartTotalsWithFallback, debugCartState } = cartHelpers;
 
 const router = express.Router();
 
@@ -94,14 +96,22 @@ router.get('/', protect, async (req, res) => {
       }]
     });
 
-    // Calculate cart total
-    const cartTotal = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    // Calculate cart total using helper (with session tracking preparation)
+    const { total: cartTotal, totalSessions } = cartHelpers.calculateCartTotals(cartItems);
+    
+    logger.debug('Cart GET: Total calculation', {
+      cartId: cart.id,
+      itemCount: cartItems.length,
+      calculatedTotal: cartTotal,
+      totalSessions
+    });
 
     res.status(200).json({
       id: cart.id,
       status: cart.status,
       items: cartItems,
       total: cartTotal,
+      totalSessions, // Include session count for future dashboard integration
       itemCount: cartItems.length
     });
   } catch (error) {
@@ -178,13 +188,23 @@ router.post('/add', protect, validatePurchaseRole, async (req, res) => {
       });
     }
 
+    // Update cart totals in database using helper
+    const totalsResult = await updateCartTotals(cart.id);
+    
+    if (!totalsResult.success) {
+      logger.warn('Cart ADD: Failed to persist totals, continuing with calculated values', {
+        cartId: cart.id,
+        error: totalsResult.error
+      });
+    }
+
     // Get updated cart with items
     const updatedCartItems = await CartItem.findAll({
       where: { cartId: cart.id },
       include: [{
         model: StorefrontItem,
         as: 'storefrontItem',
-        attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType']
+        attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType', 'sessions', 'totalSessions']
       }]
     });
 
@@ -201,8 +221,12 @@ router.post('/add', protect, validatePurchaseRole, async (req, res) => {
       // Don't fail the request if role upgrade fails
     }
 
-    // Calculate cart total
-    const cartTotal = updatedCartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    // Use persisted totals or calculate as fallback
+    const { total: cartTotal, totalSessions } = getCartTotalsWithFallback({
+      id: cart.id,
+      total: totalsResult.total,
+      cartItems: updatedCartItems
+    });
 
     res.status(200).json({
       success: true,
@@ -211,6 +235,7 @@ router.post('/add', protect, validatePurchaseRole, async (req, res) => {
       status: cart.status,
       items: updatedCartItems,
       total: cartTotal,
+      totalSessions, // Include session count for future dashboard integration
       itemCount: updatedCartItems.length,
       userRoleUpgrade: userRoleUpgraded // Inform frontend about role upgrade
     });
@@ -265,24 +290,39 @@ router.put('/update/:itemId', protect, validatePurchaseRole, async (req, res) =>
     cartItem.quantity = quantity;
     await cartItem.save();
 
+    // Update cart totals in database
+    const totalsResult = await updateCartTotals(cartItem.cartId);
+    
+    if (!totalsResult.success) {
+      logger.warn('Cart UPDATE: Failed to persist totals', {
+        cartId: cartItem.cartId,
+        error: totalsResult.error
+      });
+    }
+
     // Get updated cart with items
     const updatedCartItems = await CartItem.findAll({
       where: { cartId: cartItem.cartId },
       include: [{
         model: StorefrontItem,
         as: 'storefrontItem',
-        attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType']
+        attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType', 'sessions', 'totalSessions']
       }]
     });
 
-    // Calculate cart total
-    const cartTotal = updatedCartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    // Use persisted totals or calculate as fallback
+    const { total: cartTotal, totalSessions } = getCartTotalsWithFallback({
+      id: cartItem.cartId,
+      total: totalsResult.total,
+      cartItems: updatedCartItems
+    });
 
     res.status(200).json({
       success: true,
       message: 'Cart updated',
       items: updatedCartItems,
       total: cartTotal,
+      totalSessions,
       itemCount: updatedCartItems.length
     });
   } catch (error) {
@@ -329,24 +369,39 @@ router.delete('/remove/:itemId', protect, validatePurchaseRole, async (req, res)
     // Delete the cart item
     await cartItem.destroy();
 
+    // Update cart totals in database
+    const totalsResult = await updateCartTotals(cartId);
+    
+    if (!totalsResult.success) {
+      logger.warn('Cart REMOVE: Failed to persist totals', {
+        cartId,
+        error: totalsResult.error
+      });
+    }
+
     // Get updated cart with items
     const updatedCartItems = await CartItem.findAll({
       where: { cartId },
       include: [{
         model: StorefrontItem,
         as: 'storefrontItem',
-        attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType']
+        attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType', 'sessions', 'totalSessions']
       }]
     });
 
-    // Calculate cart total
-    const cartTotal = updatedCartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    // Use persisted totals or calculate as fallback
+    const { total: cartTotal, totalSessions } = getCartTotalsWithFallback({
+      id: cartId,
+      total: totalsResult.total,
+      cartItems: updatedCartItems
+    });
 
     res.status(200).json({
       success: true,
       message: 'Item removed from cart',
       items: updatedCartItems,
       total: cartTotal,
+      totalSessions,
       itemCount: updatedCartItems.length
     });
   } catch (error) {
@@ -386,11 +441,22 @@ router.delete('/clear', protect, validatePurchaseRole, async (req, res) => {
       where: { cartId: cart.id }
     });
 
+    // Update cart totals to zero
+    const totalsResult = await updateCartTotals(cart.id);
+    
+    if (!totalsResult.success) {
+      logger.warn('Cart CLEAR: Failed to persist zero totals', {
+        cartId: cart.id,
+        error: totalsResult.error
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: 'Cart cleared',
       items: [],
       total: 0,
+      totalSessions: 0,
       itemCount: 0
     });
   } catch (error) {
@@ -454,8 +520,11 @@ router.post('/checkout', protect, validatePurchaseRole, async (req, res) => {
 
     console.log(`Found cart with ${cart.cartItems.length} items`);
 
-    // Calculate cart total for metadata
-    const cartTotal = cart.cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    // Calculate cart total for metadata using helper
+    const { total: cartTotal, totalSessions } = cartHelpers.calculateCartTotals(cart.cartItems);
+    
+    // Debug cart state for checkout troubleshooting
+    await debugCartState(cart.id, 'checkout_creation');
     
     // Format line items for Stripe
     const lineItems = cart.cartItems.map(item => {

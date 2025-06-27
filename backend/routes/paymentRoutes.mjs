@@ -27,6 +27,8 @@ import User from '../models/User.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
+import cartHelpers from '../utils/cartHelpers.mjs';
+const { getCartTotalsWithFallback, debugCartState } = cartHelpers;
 
 const router = express.Router();
 
@@ -303,16 +305,45 @@ router.post('/create-payment-intent', checkStripeAvailability, async (req, res) 
       });
     }
 
-    // Calculate total amount with validation
-    const totalAmount = Math.round(cart.total * 100); // Convert to cents
+    // Calculate total amount with defensive fallback
+    const { total: finalTotal, totalSessions, source } = getCartTotalsWithFallback(cart);
+    
+    // Debug payment intent creation
+    await debugCartState(cartId, 'payment_intent_creation');
+    
+    logger.info('Payment intent total calculation', {
+      cartId,
+      persistedTotal: cart.total,
+      calculatedTotal: finalTotal,
+      totalSessions,
+      source,
+      itemCount: cart.cartItems?.length || 0
+    });
+    
+    const totalAmount = Math.round(finalTotal * 100); // Convert to cents
     
     if (totalAmount < 50) { // $0.50 minimum for Stripe
+      logger.error('Payment intent creation failed: Amount too small', {
+        cartId,
+        totalAmount,
+        finalTotal,
+        totalSessions,
+        source,
+        persistedTotal: cart.total,
+        itemCount: cart.cartItems?.length || 0
+      });
+      
       return res.status(400).json({
         success: false,
         message: 'Order total too small',
         error: {
           code: 'AMOUNT_TOO_SMALL',
-          details: 'Minimum order amount is $0.50'
+          details: 'Minimum order amount is $0.50',
+          debugInfo: {
+            cartTotal: finalTotal,
+            totalSessions,
+            calculationSource: source
+          }
         }
       });
     }
@@ -417,13 +448,15 @@ router.post('/create-payment-intent', checkStripeAvailability, async (req, res) 
         currency: 'usd',
         cart: {
           id: cart.id,
-          total: cart.total,
+          total: finalTotal,
+          totalSessions,
           itemCount: cart.cartItems.length,
           items: cart.cartItems.map(item => ({
             id: item.id,
             name: item.storefrontItem?.name || 'Training Package',
             price: item.price,
-            quantity: item.quantity
+            quantity: item.quantity,
+            sessions: item.storefrontItem?.sessions || item.storefrontItem?.totalSessions || 0
           }))
         }
       }
