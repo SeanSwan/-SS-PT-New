@@ -31,10 +31,10 @@ WorkoutSession.init({
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'Users',
+      model: 'users',
       key: 'id'
     },
-    comment: 'User who performed this workout session'
+    comment: 'User who performed this workout session (client)'
   },
   title: {
     type: DataTypes.STRING,
@@ -125,7 +125,7 @@ WorkoutSession.init({
     type: DataTypes.UUID,
     allowNull: true,
     references: {
-      model: 'WorkoutPlans',
+      model: 'workout_plans',
       key: 'id'
     },
     comment: 'Reference to workout plan if this session was part of a plan'
@@ -167,7 +167,7 @@ WorkoutSession.init({
 }, {
   sequelize,
   modelName: 'WorkoutSession',
-  tableName: 'WorkoutSessions',
+  tableName: 'workout_sessions',
   timestamps: true,
   indexes: [
     {
