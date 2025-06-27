@@ -16,6 +16,9 @@ interface CartItem {
     description: string;
     imageUrl?: string;
     type: string;
+    sessions?: number;
+    totalSessions?: number;
+    packageType?: string;
   };
 }
 
@@ -24,6 +27,7 @@ interface Cart {
   status: string;
   items: CartItem[];
   total: number;
+  totalSessions: number;
   itemCount: number;
 }
 
@@ -112,8 +116,12 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       console.log('Cart response:', response.status, response.statusText);
       
       if (response.data && typeof response.data === 'object' && Array.isArray(response.data.items)) {
-        setCart(response.data);
-        console.log('Cart data loaded successfully:', response.data.items.length, 'items');
+        const cartData = {
+          ...response.data,
+          totalSessions: response.data.totalSessions || 0
+        };
+        setCart(cartData);
+        console.log('Cart data loaded successfully:', response.data.items.length, 'items,', cartData.totalSessions, 'total sessions');
       } else {
         console.warn("Invalid cart data received from API:", response.data?.message || 'Unexpected response format');
         setCart(null);
@@ -221,10 +229,15 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       console.log('Add to cart response:', response.status, response.statusText);
       
       if (response.data && typeof response.data === 'object' && Array.isArray(response.data.items)) {
-          setCart(response.data);
+          const cartData = {
+            ...response.data,
+            totalSessions: response.data.totalSessions || 0
+          };
+          setCart(cartData);
           setShowCart(true);
           
-          showCartNotification(`${itemData.name || 'Item'} added to cart successfully!`);
+          const sessionText = cartData.totalSessions > 0 ? ` (${cartData.totalSessions} sessions)` : '';
+          showCartNotification(`${itemData.name || 'Item'} added to cart successfully!${sessionText}`);
           
           // Check for role upgrade notification
           if (user?.role === 'user' && response.data.userRoleUpgrade) {
@@ -264,7 +277,11 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       if (response.data && typeof response.data === 'object' && Array.isArray(response.data.items)) {
          setCart(prevCart => {
              if (!prevCart) return null;
-             return { ...prevCart, ...response.data };
+             return { 
+               ...prevCart, 
+               ...response.data, 
+               totalSessions: response.data.totalSessions || 0 
+             };
          });
       } else {
           console.warn("Invalid cart data received after update:", response.data);
@@ -294,7 +311,11 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       if (response.data && typeof response.data === 'object' && Array.isArray(response.data.items)) {
           setCart(prevCart => {
               if (!prevCart) return null;
-              return { ...prevCart, ...response.data };
+              return { 
+                ...prevCart, 
+                ...response.data,
+                totalSessions: response.data.totalSessions || 0
+              };
           });
       } else {
           console.warn("Invalid cart data received after remove:", response.data);
@@ -329,7 +350,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       
       setCart(prevCart => {
         if (!prevCart) return null;
-        return { ...prevCart, items: [], total: 0, itemCount: 0 };
+        return { ...prevCart, items: [], total: 0, totalSessions: 0, itemCount: 0 };
       });
     } catch (err: any) {
       console.error('Error clearing cart:', err);
