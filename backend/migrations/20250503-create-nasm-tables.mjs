@@ -17,7 +17,7 @@ export async function up(queryInterface, Sequelize) {
       primaryKey: true,
     },
     userId: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       allowNull: false,
       references: {
         model: 'users',
@@ -376,8 +376,8 @@ export async function up(queryInterface, Sequelize) {
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
-    clientId: {
-      type: DataTypes.UUID,
+    userId: {
+      type: DataTypes.INTEGER,
       allowNull: false,
       references: {
         model: 'users',
@@ -387,7 +387,7 @@ export async function up(queryInterface, Sequelize) {
       onDelete: 'CASCADE',
     },
     trainerId: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       allowNull: true,
       references: {
         model: 'users',
@@ -530,8 +530,8 @@ export async function up(queryInterface, Sequelize) {
       defaultValue: DataTypes.UUIDV4,
       primaryKey: true,
     },
-    clientId: {
-      type: DataTypes.UUID,
+    userId: {
+      type: DataTypes.INTEGER,
       allowNull: false,
       references: {
         model: 'users',
@@ -551,7 +551,7 @@ export async function up(queryInterface, Sequelize) {
       onDelete: 'SET NULL',
     },
     trainerId: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       allowNull: true,
       references: {
         model: 'users',
@@ -709,10 +709,10 @@ export async function up(queryInterface, Sequelize) {
   await queryInterface.addIndex('client_progress', ['userId']);
   await queryInterface.addIndex('exercises', ['exerciseType', 'difficulty']);
   await queryInterface.addIndex('exercises', ['name']);
-  await queryInterface.addIndex('workout_plans', ['clientId']);
+  await queryInterface.addIndex('workout_plans', ['userId']);
   await queryInterface.addIndex('workout_plans', ['trainerId']);
   await queryInterface.addIndex('workout_plans', ['status']);
-  await queryInterface.addIndex('workout_sessions', ['clientId']);
+  await queryInterface.addIndex('workout_sessions', ['userId']);
   await queryInterface.addIndex('workout_sessions', ['workoutPlanId']);
   await queryInterface.addIndex('workout_sessions', ['date']);
   await queryInterface.addIndex('workout_sessions', ['status']);
