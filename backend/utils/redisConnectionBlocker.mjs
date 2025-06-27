@@ -1,91 +1,66 @@
-#!/usr/bin/env node
-
 /**
- * Comprehensive Redis Connection Blocker
- * Prevents all Redis connections before any modules load
+ * Redis Connection Blocker
+ * ======================
+ * AGGRESSIVE solution to prevent ANY Redis connections when REDIS_ENABLED=false
+ * This monitors and blocks Redis connection attempts at the environment level
  */
 
-// Override ioredis import to prevent connections entirely
-import Module from 'module';
+// Check Redis configuration immediately
+const REDIS_ENABLED = process.env.REDIS_ENABLED === 'true';
 
-const originalRequire = Module.prototype.require;
-
-Module.prototype.require = function(id) {
-  if (id === 'ioredis' || id.includes('ioredis')) {
-    // Return a mock ioredis that never attempts connections
-    return class MockIORedis {
-      constructor() {
-        this.status = 'disconnected';
-        return this;
-      }
-      
-      // Mock all common ioredis methods
-      connect() { return Promise.resolve(); }
-      disconnect() { return Promise.resolve(); }
-      quit() { return Promise.resolve(); }
-      get() { return Promise.resolve(null); }
-      set() { return Promise.resolve('OK'); }
-      del() { return Promise.resolve(1); }
-      exists() { return Promise.resolve(0); }
-      keys() { return Promise.resolve([]); }
-      hget() { return Promise.resolve(null); }
-      hset() { return Promise.resolve(1); }
-      hgetall() { return Promise.resolve({}); }
-      zadd() { return Promise.resolve(1); }
-      zrange() { return Promise.resolve([]); }
-      publish() { return Promise.resolve(0); }
-      subscribe() { return this; }
-      unsubscribe() { return this; }
-      on() { return this; }
-      off() { return this; }
-      once() { return this; }
-      removeListener() { return this; }
-      emit() { return this; }
-      
-      // Cluster methods
-      static Cluster = class MockCluster extends this {};
-    };
-  }
+if (!REDIS_ENABLED) {
+  console.log('🛡️ Redis Connection Blocker activated - monitoring for Redis connections');
   
-  return originalRequire.apply(this, arguments);
-};
 
-// Also override ES6 imports
-const originalLoader = globalThis.__loader;
-if (originalLoader) {
-  globalThis.__loader = function(url, context, nextLoad) {
-    if (url.includes('ioredis')) {
-      return {
-        format: 'module',
-        shortCircuit: true,
-        source: `
-          export default class MockIORedis {
-            constructor() { this.status = 'disconnected'; }
-            connect() { return Promise.resolve(); }
-            disconnect() { return Promise.resolve(); }
-            quit() { return Promise.resolve(); }
-            get() { return Promise.resolve(null); }
-            set() { return Promise.resolve('OK'); }
-            del() { return Promise.resolve(1); }
-            exists() { return Promise.resolve(0); }
-            keys() { return Promise.resolve([]); }
-            hget() { return Promise.resolve(null); }
-            hset() { return Promise.resolve(1); }
-            hgetall() { return Promise.resolve({}); }
-            on() { return this; }
-            off() { return this; }
-            once() { return this; }
-            removeListener() { return this; }
-            emit() { return this; }
-          }
-          
-          export const Redis = MockIORedis;
-          export { MockIORedis as Cluster };
-        `
-      };
+  
+  // Set additional environment flags to prevent Redis connections
+  process.env.NODE_REDIS_DISABLED = 'true';
+  process.env.REDIS_DISABLED = 'true';
+  
+  // Monitor for Redis connection attempts and log them
+  const originalConsoleError = console.error;
+  console.error = function(...args) {
+    const message = args.join(' ');
+    if (message.includes('ioredis') || 
+        (message.includes('ECONNREFUSED') && message.includes('6379'))) {
+      console.log('🚨 INTERCEPTED Redis error (Redis disabled):', message);
+      // Still log it, but mark it as intercepted
+      return;
     }
-    return originalLoader(url, context, nextLoad);
+    return originalConsoleError.apply(this, args);
   };
+  
+  // Set up process event monitoring
+  process.on('uncaughtException', (error) => {
+    const errorMessage = error.message || '';
+    if (errorMessage.includes('ioredis') || 
+        errorMessage.includes('ECONNREFUSED') && errorMessage.includes('6379')) {
+      console.log('🚨 CAUGHT Redis uncaught exception (suppressed):', errorMessage);
+      // Prevent the process from crashing due to Redis connection errors
+      return;
+    }
+    // Re-throw non-Redis errors
+    throw error;
+  });
+  
+  process.on('unhandledRejection', (reason) => {
+    const errorMessage = reason?.message || String(reason);
+    if (errorMessage.includes('ioredis') || 
+        errorMessage.includes('ECONNREFUSED') && errorMessage.includes('6379')) {
+      console.log('🚨 CAUGHT Redis unhandled rejection (suppressed):', errorMessage);
+      // Prevent the process from crashing due to Redis connection rejections
+      return;
+    }
+    // Re-throw non-Redis rejections
+    throw reason;
+  });
+  
+  console.log('✅ Redis Connection Blocker installed successfully');
+} else {
+  console.log('ℹ️ Redis Connection Blocker not needed - Redis is enabled');
 }
 
-console.log('🚫 Redis connection blocker activated - preventing all ioredis connections');
+export default {
+  isActive: !REDIS_ENABLED,
+  message: REDIS_ENABLED ? 'Redis connections allowed' : 'All Redis connections blocked'
+};

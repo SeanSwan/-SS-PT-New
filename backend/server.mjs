@@ -9,18 +9,19 @@
  */
 
 // ===================== ENVIRONMENT SETUP =====================
-import './utils/enhancedRedisErrorSuppressor.mjs'; // Suppress Redis errors early
+// PHASE 1: Load environment first
 import dotenv from 'dotenv';
 import { existsSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Configure environment variables
+// Get paths for environment setup
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRootDir = path.resolve(__dirname, '..');
 const envPath = path.resolve(projectRootDir, '.env');
 
+// Load environment variables FIRST (critical for Redis blocker)
 if (existsSync(envPath)) {
   console.log(`[Server] Loading environment variables from: ${envPath}`);
   dotenv.config({ path: envPath });
@@ -29,12 +30,14 @@ if (existsSync(envPath)) {
   dotenv.config();
 }
 
-// ===================== REDIS CONNECTION PREVENTION =====================
-import redisConnectionFix from './utils/redisConnectionFix.mjs';
-import { preventRedisConnections, checkRedisAvailability } from './utils/redisConnectionPreventer.mjs';
+// PHASE 2: Activate Redis Connection Blocker IMMEDIATELY after env setup
+import './utils/redisConnectionBlocker.mjs';
 
-redisConnectionFix.preventRedisConnections();
-preventRedisConnections();
+// PHASE 3: Continue with normal imports
+// Environment configuration already completed above
+
+// ===================== REDIS STATUS =====================
+// Redis connection handling is now managed by redisWrapper.mjs
 
 // ===================== CORE IMPORTS =====================
 import { checkApiKeys } from './utils/apiKeyChecker.mjs';
@@ -52,9 +55,7 @@ import logger from './utils/logger.mjs';
     console.log(`[Server] Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
     console.log(`[Server] Database: ${USE_SQLITE_FALLBACK ? 'SQLITE (Fallback)' : (isProduction ? 'RENDER POSTGRES' : 'POSTGRESQL + MONGODB')}`);
     
-    // Check Redis availability
-    const redisCheck = await checkRedisAvailability();
-    logger.info(`Redis availability check: ${redisCheck.reason}`);
+    // Redis status will be handled by redisWrapper.mjs
     
     // Check API keys early
     checkApiKeys();

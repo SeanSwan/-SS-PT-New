@@ -46,16 +46,28 @@ class RedisWrapper extends EventEmitter {
   async _ensureInitialized() {
     if (!this.initialized) {
       this.initialized = true;
-      if (this.enabled) {
+      // SAFETY CHECK: Never initialize if Redis is disabled
+      if (this.enabled && process.env.REDIS_ENABLED === 'true') {
         await this.initializeRedis();
+      } else {
+        logger.info('Redis initialization skipped in _ensureInitialized - Redis disabled');
+        this.emit('ready');
       }
     }
   }
   
   async initializeRedis() {
-    // First check: Is Redis actually enabled?
+    // ABSOLUTE FIRST CHECK: Never initialize if Redis is disabled
     if (!this.enabled || process.env.REDIS_ENABLED !== 'true') {
-      logger.info('Redis initialization skipped - Redis is disabled in environment');
+      logger.info('Redis initialization COMPLETELY SKIPPED - Redis is disabled in environment');
+      this.emit('ready');
+      return;
+    }
+    
+    // DOUBLE CHECK: Belt and suspenders approach
+    if (process.env.REDIS_ENABLED === 'false' || process.env.REDIS_ENABLED === undefined) {
+      logger.info('Redis initialization BLOCKED - Environment explicitly disables Redis');
+      this.enabled = false;
       this.emit('ready');
       return;
     }
@@ -68,6 +80,13 @@ class RedisWrapper extends EventEmitter {
       const url = new URL(redisUrl);
       const host = url.hostname || 'localhost';
       const port = parseInt(url.port) || 6379;
+      
+      // TRIPLE CHECK: One more safety check before any connection attempts
+      if (!this.enabled) {
+        logger.info('Redis connectivity check skipped - Redis is disabled');
+        this.emit('ready');
+        return;
+      }
       
       // Simple connectivity check using native Node.js net module
       const net = await import('net');
@@ -103,7 +122,9 @@ class RedisWrapper extends EventEmitter {
       const redisModule = await import('ioredis');
       const Redis = redisModule.default;
       
-      logger.info('Creating Redis connection', { url: redisUrl.replace(/\\/\\/.*@/, '//***:***@') });
+      // Log Redis connection (URL credentials redacted for security)
+      const redactedUrl = redisUrl.includes('@') ? redisUrl.replace(/:.*@/, ':***@') : redisUrl;
+      logger.info('Creating Redis connection', { url: redactedUrl });
       
       this.client = new Redis(redisUrl, {
         retryDelayOnFailover: 100,
