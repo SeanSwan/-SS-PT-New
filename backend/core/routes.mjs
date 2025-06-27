@@ -27,6 +27,7 @@ import cartRoutes from '../routes/cartRoutes.mjs';
 import storefrontRoutes from '../routes/storeFrontRoutes.mjs';
 import checkoutRoutes from '../routes/checkoutRoutes.mjs';
 import orderRoutes from '../routes/orderRoutes.mjs';
+import paymentRoutes from '../routes/paymentRoutes.mjs';
 import financialRoutes from '../routes/financialRoutes.mjs';
 
 // ===================== COMMUNICATION =====================
@@ -128,6 +129,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/storefront', storefrontRoutes);
   app.use('/api/checkout', checkoutRoutes);
   app.use('/api/orders', orderRoutes);
+  app.use('/api/payments', paymentRoutes);
   app.use('/api/financial', financialRoutes);
 
   // ===================== COMMUNICATION ROUTES =====================

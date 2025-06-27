@@ -22,27 +22,43 @@ ShoppingCart.init(
       type: DataTypes.INTEGER,
       allowNull: false,
     },
-    // Add these fields needed for checkout
+    // Payment and checkout related fields
+    paymentIntentId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: 'Stripe Payment Intent ID for tracking payments'
+    },
+    total: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      defaultValue: 0.00,
+      comment: 'Calculated total amount for the cart'
+    },
     checkoutSessionId: {
       type: DataTypes.STRING,
       allowNull: true,
+      comment: 'Stripe Checkout Session ID (for legacy checkout)'
     },
     paymentStatus: {
       type: DataTypes.STRING,
       allowNull: true,
+      comment: 'Payment status: pending, paid, failed, cancelled'
     },
     completedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      comment: 'Timestamp when the order was completed'
     },
     lastActivityAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      comment: 'Last time cart was modified'
     },
     checkoutSessionExpired: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
       allowNull: false,
+      comment: 'Whether the checkout session has expired'
     },
   },
   {
