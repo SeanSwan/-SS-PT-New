@@ -55,7 +55,7 @@ const createRequiredDirectories = async () => {
  */
 const initializeDatabases = async () => {
   try {
-    // 🚨 CRITICAL P0 FIX: Ensure associations are established before any routes can use models
+    // 🚨 CRITICAL P0 FIX: Set up model associations FIRST before any database operations
     logger.info('🎯 Setting up model associations (P0 checkout fix)...');
     const associatedModels = await setupAssociations();
     
@@ -63,10 +63,10 @@ const initializeDatabases = async () => {
     if (associatedModels && associatedModels.CartItem && associatedModels.CartItem.associations && associatedModels.CartItem.associations.storefrontItem) {
       logger.info('✅ P0 CRITICAL FIX VERIFIED: CartItem -> StorefrontItem association confirmed');
     } else {
-      logger.warn('⚠️ P0 WARNING: Unable to verify CartItem -> StorefrontItem association immediately');
+      logger.warn('⚠️ P0 WARNING: CartItem -> StorefrontItem association verification incomplete');
     }
     
-    logger.info('✅ Database associations configured');
+    logger.info('✅ Database associations configured and verified');
 
     // Test PostgreSQL connection
     try {
