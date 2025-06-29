@@ -45,6 +45,18 @@ export const calculateCartTotals = (cartItems) => {
       return { total: 0, totalSessions: 0, itemBreakdown: [] };
     }
     
+    // 🔥 P0 CRITICAL DEBUG: Log price types from database
+    logger.info('💰 P0 DEBUG: Price type analysis for cart calculation', {
+      totalItems: cartItems.length,
+      sampleItemPriceTypes: cartItems.slice(0, 3).map(item => ({
+        id: item.id,
+        price: item.price,
+        priceType: typeof item.price,
+        quantity: item.quantity,
+        quantityType: typeof item.quantity
+      }))
+    });
+    
     // 🎯 P0 CRITICAL DEBUG: Log association status
     const itemsWithStorefront = cartItems.filter(item => item.storefrontItem);
     const itemsWithoutStorefront = cartItems.filter(item => !item.storefrontItem);
@@ -65,14 +77,28 @@ export const calculateCartTotals = (cartItems) => {
 
     cartItems.forEach((item, index) => {
       try {
-        // Validate cart item structure
-        if (!item || typeof item.quantity !== 'number' || typeof item.price !== 'number') {
+        // Validate cart item structure with proper type coercion for database values
+        if (!item || typeof item.quantity !== 'number') {
           logger.warn(`calculateCartTotals: Invalid cart item at index ${index}`, { item });
           return;
         }
+        
+        // 🔥 P0 CRITICAL FIX: Handle Sequelize DECIMAL fields (returned as strings)
+        const itemPrice = typeof item.price === 'string' ? parseFloat(item.price) : item.price;
+        const itemQuantity = item.quantity;
+        
+        if (isNaN(itemPrice) || itemPrice <= 0) {
+          logger.warn(`calculateCartTotals: Invalid price for item ${index}`, { 
+            itemId: item.id, 
+            price: item.price, 
+            parsedPrice: itemPrice,
+            type: typeof item.price
+          });
+          return;
+        }
 
-        // Calculate item total
-        const itemTotal = item.price * item.quantity;
+        // Calculate item total using parsed price
+        const itemTotal = itemPrice * itemQuantity;
         total += itemTotal;
 
         // Calculate sessions for this item
@@ -91,14 +117,18 @@ export const calculateCartTotals = (cartItems) => {
           cartItemId: item.id,
           storefrontItemId: item.storefrontItemId,
           storefrontItemName: item.storefrontItem?.name || 'Unknown Item',
-          quantity: item.quantity,
-          pricePerItem: item.price,
+          quantity: itemQuantity,
+          pricePerItem: itemPrice, // Use parsed price
           itemTotal,
           sessionsPerItem: item.storefrontItem?.sessions || item.storefrontItem?.totalSessions || 0,
           totalSessionsForItem: itemSessions
         });
 
         logger.debug(`calculateCartTotals: Processed item ${item.id}`, {
+          originalPrice: item.price,
+          priceType: typeof item.price,
+          parsedPrice: itemPrice,
+          quantity: itemQuantity,
           itemTotal,
           itemSessions,
           runningTotal: total,
