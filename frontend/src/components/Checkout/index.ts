@@ -6,7 +6,6 @@
  * Components:
  * - StripeCheckoutProvider: Centralized Stripe context with PostgreSQL logging
  * - CheckoutSessionManager: Advanced payment session management
- * - PaymentMethodSelector: Comprehensive payment method selection
  * - OrderSummaryComponent: Reusable order summary with analytics
  * - CheckoutSuccessHandler: Enhanced success handling with data persistence
  * 
@@ -23,9 +22,6 @@ export { default as StripeCheckoutProvider, useStripeCheckout } from './StripeCh
 
 // Session Management
 export { default as CheckoutSessionManager } from './CheckoutSessionManager';
-
-// Payment Components
-export { default as PaymentMethodSelector } from './PaymentMethodSelector';
 
 // Order Components
 export { default as OrderSummaryComponent } from './OrderSummaryComponent';

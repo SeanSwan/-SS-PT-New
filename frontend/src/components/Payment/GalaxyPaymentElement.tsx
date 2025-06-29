@@ -19,7 +19,7 @@
  * - Performance optimized
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import {
   Elements,
@@ -36,9 +36,11 @@ import { CreditCard, Shield, Zap, CheckCircle, AlertCircle, Loader } from 'lucid
 // Import enhanced error handling
 import PaymentErrorHandler from './PaymentErrorHandler';
 
-// Load Stripe with proper fallback
+// Performance-optimized Stripe loading with proper initialization
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-const stripePromise = stripePublishableKey && stripePublishableKey !== 'pk_test_placeholder_key_for_development' && stripePublishableKey !== 'pk_test_placeholder_production_key'
+const stripePromise = stripePublishableKey && 
+  stripePublishableKey !== 'pk_test_placeholder_key_for_development' && 
+  stripePublishableKey !== 'pk_test_placeholder_production_key'
   ? loadStripe(stripePublishableKey)
   : null;
 
@@ -122,6 +124,34 @@ const PaymentContainer = styled(motion.div)<{ $embedded?: boolean }>`
       padding: 1rem;
       padding-top: 2rem; /* Account for close button */
     `}
+  }
+`;
+
+const MessageContainer = styled(motion.div)`
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  
+  &.success {
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+  }
+  
+  &.error {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+  }
+  
+  &.info {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #3b82f6;
   }
 `;
 
@@ -365,6 +395,36 @@ const LoadingSpinner = styled(motion.div)`
   }
 `;
 
+const EnhancedLoadingContainer = styled(motion.div)`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  background: rgba(0, 255, 255, 0.05);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+`;
+
+const LoadingText = styled.div`
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  
+  .primary {
+    color: #00ffff;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 0.25rem;
+  }
+  
+  .secondary {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.8rem;
+  }
+`;
+
 const PaymentMethodSelector = styled.div`
   margin-bottom: 1.5rem;
   display: grid;
@@ -373,6 +433,12 @@ const PaymentMethodSelector = styled.div`
   
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  @media (max-width: 480px) {
+    gap: 0.5rem;
+    margin-bottom: 1rem;
   }
 `;
 
@@ -390,6 +456,8 @@ const PaymentMethodButton = styled(motion.button)<{ $active: boolean }>`
   font-size: 0.95rem;
   font-weight: 500;
   text-align: left;
+  width: 100%;
+  min-height: 60px;
   
   &:hover {
     border-color: #00ffff;
@@ -409,6 +477,7 @@ const PaymentMethodButton = styled(motion.button)<{ $active: boolean }>`
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
+    flex: 1;
   }
   
   .method-title {
@@ -419,6 +488,41 @@ const PaymentMethodButton = styled(motion.button)<{ $active: boolean }>`
     font-size: 0.8rem;
     opacity: 0.8;
   }
+  
+  /* Enhanced Mobile Responsiveness */
+  @media (max-width: 768px) {
+    padding: 1rem;
+    font-size: 0.9rem;
+    min-height: 56px;
+    
+    .method-title {
+      font-size: 0.95rem;
+    }
+    
+    .method-subtitle {
+      font-size: 0.75rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.85rem;
+    gap: 0.5rem;
+    min-height: 52px;
+    font-size: 0.85rem;
+    
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+    
+    .method-title {
+      font-size: 0.9rem;
+    }
+    
+    .method-subtitle {
+      font-size: 0.7rem;
+    }
+  }
 `;
 
 const SubscriptionToggle = styled.div`
@@ -427,6 +531,16 @@ const SubscriptionToggle = styled.div`
   border-radius: 12px;
   padding: 1rem;
   margin-bottom: 1.5rem;
+  
+  @media (max-width: 768px) {
+    padding: 0.875rem;
+    margin-bottom: 1.25rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+  }
 `;
 
 const ToggleLabel = styled.label`
@@ -469,37 +583,113 @@ const SubscriptionInfo = styled.div`
   line-height: 1.4;
 `;
 
-const MessageContainer = styled(motion.div)`
-  margin-top: 1rem;
-  padding: 1rem;
+const FeeCalculator = styled.div`
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(0, 153, 255, 0.05));
+  border: 1px solid rgba(0, 255, 255, 0.3);
   border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
   
-  &.success {
+  .fee-comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .fee-item {
+    text-align: center;
+    padding: 0.5rem;
+    border-radius: 6px;
+    
+    &.eft {
+      background: rgba(0, 255, 255, 0.15);
+      color: #00ffff;
+    }
+    
+    &.card {
+      background: rgba(255, 165, 0, 0.15);
+      color: #ffa500;
+    }
+  }
+  
+  .savings-highlight {
+    text-align: center;
+    padding: 0.5rem;
     background: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 6px;
     color: #10b981;
-  }
-  
-  &.error {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    color: #ef4444;
-  }
-  
-  &.info {
-    background: rgba(59, 130, 246, 0.1);
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    color: #3b82f6;
+    font-weight: 600;
   }
 `;
 
-// Stripe Elements styling options
-const stripeElementOptions = {
-  layout: 'tabs',
+const EFTTimeline = styled.div`
+  background: rgba(0, 255, 255, 0.05);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  
+  .timeline-title {
+    color: #00ffff;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    text-align: center;
+  }
+  
+  .timeline-steps {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, #00ffff, rgba(0, 255, 255, 0.3));
+      z-index: 1;
+    }
+  }
+  
+  .timeline-step {
+    background: rgba(0, 255, 255, 0.1);
+    border: 2px solid #00ffff;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #00ffff;
+    position: relative;
+    z-index: 2;
+  }
+  
+  .timeline-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    
+    .timeline-label {
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.7);
+      text-align: center;
+      max-width: 60px;
+    }
+  }
+`;
+
+// Performance-optimized base Stripe Elements styling options
+const baseStripeElementOptions = {
+  layout: 'tabs' as const,
   style: {
     base: {
       fontSize: '16px',
@@ -544,6 +734,40 @@ interface GalaxyPaymentElementProps {
   embedded?: boolean; // New prop for embedded mode
 }
 
+// Payment Method Persistence Utilities
+const PAYMENT_PREFERENCES_KEY = 'swanstudios_payment_preferences';
+
+interface PaymentPreferences {
+  preferredMethod: PaymentMethodType;
+  autoPayEnabled: boolean;
+  lastUsed: string;
+}
+
+const savePaymentPreferences = (preferences: PaymentPreferences) => {
+  try {
+    localStorage.setItem(PAYMENT_PREFERENCES_KEY, JSON.stringify(preferences));
+  } catch (error) {
+    console.warn('Failed to save payment preferences:', error);
+  }
+};
+
+const loadPaymentPreferences = (): PaymentPreferences | null => {
+  try {
+    const stored = localStorage.getItem(PAYMENT_PREFERENCES_KEY);
+    if (stored) {
+      const preferences = JSON.parse(stored);
+      // Only use preferences if they're recent (within 30 days)
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      if (new Date(preferences.lastUsed) > thirtyDaysAgo) {
+        return preferences;
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to load payment preferences:', error);
+  }
+  return null;
+};
+
 // Payment Form Component
 const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onError, embedded = false }) => {
   const stripe = useStripe();
@@ -551,13 +775,52 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
   const { user } = useAuth();
   const { cart } = useCart();
   
+  // Performance-optimized preference loading with memoization
+  const savedPreferences = useMemo(() => loadPaymentPreferences(), []);
+  
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('info');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodType>('card');
-  const [enableSubscription, setEnableSubscription] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodType>(
+    savedPreferences?.preferredMethod || 'bank'
+  );
+  const [enableSubscription, setEnableSubscription] = useState(
+    savedPreferences?.autoPayEnabled || false
+  );
+  const [showPreferencesSaved, setShowPreferencesSaved] = useState(false);
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  // Save preferences when they change
+  useEffect(() => {
+    if (selectedPaymentMethod || enableSubscription !== (savedPreferences?.autoPayEnabled || false)) {
+      const preferences: PaymentPreferences = {
+        preferredMethod: selectedPaymentMethod,
+        autoPayEnabled: enableSubscription,
+        lastUsed: new Date().toISOString()
+      };
+      savePaymentPreferences(preferences);
+      
+      // Show brief confirmation for preference changes (not on initial load)
+      if (savedPreferences && (
+        selectedPaymentMethod !== savedPreferences.preferredMethod ||
+        enableSubscription !== savedPreferences.autoPayEnabled
+      )) {
+        setShowPreferencesSaved(true);
+        setTimeout(() => setShowPreferencesSaved(false), 2000);
+      }
+    }
+  }, [selectedPaymentMethod, enableSubscription]);
+
+  // Performance-optimized handlers with useCallback
+  const handlePaymentMethodChange = useCallback((method: PaymentMethodType) => {
+    setSelectedPaymentMethod(method);
+  }, []);
+
+  const handleSubscriptionToggle = useCallback(() => {
+    setEnableSubscription(prev => !prev);
+  }, []);
+
+  // Optimized submit handler with better error boundaries
+  const handleSubmit = useCallback(async (event: React.FormEvent) => {
     event.preventDefault();
 
     if (!stripe || !elements) {
@@ -584,11 +847,31 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
         setMessageType('error');
         onError(error.message || 'Payment failed');
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-        setMessage('Payment successful! Redirecting...');
+        // Enhanced success messaging with payment details
+        const paymentMethod = selectedPaymentMethod === 'bank' ? 'EFT Bank Transfer' : 
+          selectedPaymentMethod === 'card' ? 'Credit/Debit Card' : 'Buy Now, Pay Later';
+        
+        setMessage(`🎉 Payment successful via ${paymentMethod}! ${selectedPaymentMethod === 'bank' ? 'Bank transfer processing...' : 'Processing complete!'} Redirecting...`);
         setMessageType('success');
+        
+        // Save successful payment method preference
+        const successPreferences: PaymentPreferences = {
+          preferredMethod: selectedPaymentMethod,
+          autoPayEnabled: enableSubscription,
+          lastUsed: new Date().toISOString()
+        };
+        savePaymentPreferences(successPreferences);
+        
         onSuccess(paymentIntent);
       } else {
-        setMessage('Payment processing...');
+        // Enhanced processing messaging
+        const processingMessage = selectedPaymentMethod === 'bank' ? 
+          '🏦 Bank connection established. Processing EFT transfer...' :
+          selectedPaymentMethod === 'card' ? 
+          '💳 Card payment processing...' :
+          '⚡ Finalizing Buy Now, Pay Later setup...';
+          
+        setMessage(processingMessage);
         setMessageType('info');
       }
     } catch (err) {
@@ -598,7 +881,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
     }
 
     setIsProcessing(false);
-  };
+  }, [stripe, elements, selectedPaymentMethod, enableSubscription, user?.email, onSuccess, onError]);
 
   return (
     <form onSubmit={handleSubmit}>
@@ -630,37 +913,77 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
           </SummaryTotal>
         </OrderSummary>
 
-        {/* Payment Method Selection */}
+        {/* Payment Method Selection - Performance Optimized */}
         <PaymentMethodSelector>
           <PaymentMethodButton
-            $active={selectedPaymentMethod === 'card'}
-            onClick={() => setSelectedPaymentMethod('card')}
+          $active={selectedPaymentMethod === 'bank'}
+          onClick={() => handlePaymentMethodChange('bank')}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            style={{
+              border: selectedPaymentMethod === 'bank' ? '2px solid #00ffff' : '1px solid rgba(0, 255, 255, 0.6)',
+              position: 'relative'
+            }}
+            aria-label="Select EFT Bank Transfer payment method - Recommended, lower fees"
+            role="radio"
+            aria-checked={selectedPaymentMethod === 'bank'}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handlePaymentMethodChange('bank');
+              }
+            }}
+          >
+            <Shield />
+            <div className="method-info">
+              <div className="method-title">EFT Bank Transfer (Recommended)</div>
+              <div className="method-subtitle">Lower fees • Secure • Direct from bank</div>
+            </div>
+            {selectedPaymentMethod === 'bank' && (
+              <div style={{
+                position: 'absolute',
+                top: '-8px',
+                right: '8px',
+                background: 'linear-gradient(135deg, #00ffff, #0099ff)',
+                color: '#0a0a1a',
+                padding: '0.25rem 0.5rem',
+                borderRadius: '8px',
+                fontSize: '0.7rem',
+                fontWeight: 600
+              }}>
+                DEFAULT
+              </div>
+            )}
+          </PaymentMethodButton>
+          
+          <PaymentMethodButton
+          $active={selectedPaymentMethod === 'card'}
+          onClick={() => handlePaymentMethodChange('card')}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            aria-label="Select Credit/Debit Card payment method - Instant payment with higher fees"
+            role="radio"
+            aria-checked={selectedPaymentMethod === 'card'}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handlePaymentMethodChange('card');
+              }
+            }}
           >
             <CreditCard />
             <div className="method-info">
               <div className="method-title">Credit/Debit Card</div>
-              <div className="method-subtitle">Visa, Mastercard, Amex</div>
+              <div className="method-subtitle">Instant payment • Higher fees</div>
             </div>
           </PaymentMethodButton>
           
           <PaymentMethodButton
-            $active={selectedPaymentMethod === 'bank'}
-            onClick={() => setSelectedPaymentMethod('bank')}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <Shield />
-            <div className="method-info">
-              <div className="method-title">Bank Transfer (EFT)</div>
-              <div className="method-subtitle">Direct from your bank</div>
-            </div>
-          </PaymentMethodButton>
-          
-          <PaymentMethodButton
-            $active={selectedPaymentMethod === 'bnpl'}
-            onClick={() => setSelectedPaymentMethod('bnpl')}
+          $active={selectedPaymentMethod === 'bnpl'}
+          onClick={() => handlePaymentMethodChange('bnpl')}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
@@ -672,35 +995,283 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
           </PaymentMethodButton>
         </PaymentMethodSelector>
         
-        {/* Subscription Toggle */}
+        {/* Payment Method Context */}
+        {selectedPaymentMethod === 'bank' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            style={{
+              background: 'rgba(0, 255, 255, 0.05)',
+              border: '1px solid rgba(0, 255, 255, 0.2)',
+              borderRadius: '12px',
+              padding: '1rem',
+              marginBottom: '1.5rem',
+              textAlign: 'center'
+            }}
+          >
+            <div style={{
+              color: '#00ffff',
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              marginBottom: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
+            }}>
+              <Shield size={16} />
+              EFT Bank Transfer Selected (Default)
+            </div>
+            <p style={{
+              color: 'rgba(255, 255, 255, 0.8)',
+              fontSize: '0.85rem',
+              margin: '0 0 0.5rem 0',
+              lineHeight: 1.4
+            }}>
+              💰 <strong>Save {Math.round(((2.9 - 0.5) / 2.9) * 100)}%</strong> on fees with direct bank transfer (0.5% vs 2.9% card fees). Processing takes 1-3 business days.
+            </p>
+            
+            {/* Real-time Fee Calculator */}
+            {cart?.total && (
+              <FeeCalculator>
+                <div className="fee-comparison">
+                  <div className="fee-item eft">
+                    <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>EFT Fee</div>
+                    <div style={{ fontWeight: 600 }}>${(cart.total * 0.005).toFixed(2)}</div>
+                  </div>
+                  <div className="fee-item card">
+                    <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>Card Fee</div>
+                    <div style={{ fontWeight: 600 }}>${(cart.total * 0.029).toFixed(2)}</div>
+                  </div>
+                </div>
+                <div className="savings-highlight">
+                  💰 You save ${((cart.total * 0.029) - (cart.total * 0.005)).toFixed(2)} with EFT!
+                </div>
+              </FeeCalculator>
+            )}
+            
+            {/* EFT Process Timeline */}
+            <EFTTimeline>
+              <div className="timeline-title">EFT Processing Timeline</div>
+              <div className="timeline-steps">
+                <div className="timeline-step">1</div>
+                <div className="timeline-step">2</div>
+                <div className="timeline-step">3</div>
+                <div className="timeline-step">✓</div>
+              </div>
+              <div className="timeline-labels">
+                <div className="timeline-label">Setup Account</div>
+                <div className="timeline-label">Bank Verification</div>
+                <div className="timeline-label">Transfer Initiated</div>
+                <div className="timeline-label">Complete</div>
+              </div>
+            </EFTTimeline>
+            <p style={{
+              color: 'rgba(255, 255, 255, 0.7)',
+              fontSize: '0.8rem',
+              margin: 0
+            }}>
+              <strong style={{ color: '#00ffff' }}>Need instant payment?</strong> Select "Credit/Debit Card" above.
+            </p>
+            {isProcessing && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                style={{
+                  marginTop: '0.75rem',
+                  padding: '0.5rem',
+                  background: 'rgba(0, 255, 255, 0.1)',
+                  borderRadius: '6px',
+                  fontSize: '0.8rem',
+                  color: '#00ffff'
+                }}
+              >
+                ⏳ Setting up secure bank connection...
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+        
+        {selectedPaymentMethod === 'card' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              background: 'rgba(255, 165, 0, 0.1)',
+              border: '1px solid rgba(255, 165, 0, 0.3)',
+              borderRadius: '12px',
+              padding: '1rem',
+              marginBottom: '1.5rem',
+              textAlign: 'center'
+            }}
+          >
+            <div style={{
+              color: '#ffa500',
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              marginBottom: '0.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
+            }}>
+              <CreditCard size={16} />
+              One-Time Card Payment
+            </div>
+            <p style={{
+              color: 'rgba(255, 255, 255, 0.8)',
+              fontSize: '0.85rem',
+              margin: '0 0 0.5rem 0',
+              lineHeight: 1.4
+            }}>
+              Instant processing with 2.9% fee. Secure and immediate confirmation.
+            </p>
+            
+            {/* Card Fee Calculator */}
+            {cart?.total && (
+              <FeeCalculator>
+                <div className="fee-comparison">
+                  <div className="fee-item card">
+                    <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>Card Fee (Current)</div>
+                    <div style={{ fontWeight: 600, color: '#ffa500' }}>${(cart.total * 0.029).toFixed(2)}</div>
+                  </div>
+                  <div className="fee-item eft">
+                    <div style={{ fontSize: '0.7rem', opacity: 0.8 }}>EFT Fee (Alternative)</div>
+                    <div style={{ fontWeight: 600, color: '#00ffff' }}>${(cart.total * 0.005).toFixed(2)}</div>
+                  </div>
+                </div>
+                <div className="savings-highlight" style={{ background: 'rgba(255, 165, 0, 0.1)', color: '#ffa500' }}>
+                  💸 Potential savings: ${((cart.total * 0.029) - (cart.total * 0.005)).toFixed(2)} with EFT
+                </div>
+              </FeeCalculator>
+            )}
+            <p style={{
+              color: 'rgba(255, 255, 255, 0.7)',
+              fontSize: '0.8rem',
+              margin: 0
+            }}>
+              <strong style={{ color: '#ffa500' }}>Save money:</strong> Switch to "EFT Bank Transfer" for lower fees.
+            </p>
+          </motion.div>
+        )}
+        
+        {/* Smart Auto-Pay Integration */}
         <SubscriptionToggle>
           <ToggleLabel>
             <ToggleSwitch 
               $active={enableSubscription}
-              onClick={() => setEnableSubscription(!enableSubscription)}
+              onClick={handleSubscriptionToggle}
             />
-            <span>Enable Monthly Auto-Pay</span>
+            <span>
+              Enable Monthly Auto-Pay 
+              {selectedPaymentMethod === 'bank' && '💰 (Ultimate Savings Combo!)'}
+              {selectedPaymentMethod === 'card' && '⚡ (Instant + Convenient)'}
+              {selectedPaymentMethod === 'bnpl' && '📈 (Flexible + Automated)'}
+            </span>
           </ToggleLabel>
+          
+          {/* Dynamic Auto-Pay Messaging Based on Payment Method */}
           {enableSubscription && (
             <SubscriptionInfo>
-              <strong>🎯 Auto-Pay Benefits:</strong><br/>
-              • 10% discount on all future sessions<br/>
-              • Priority booking for appointments<br/>
-              • Cancel anytime, no commitment<br/>
-              • Automatic session credit renewal
+              {selectedPaymentMethod === 'bank' && (
+                <>
+                  <strong style={{ color: '#00ffff' }}>🏆 MAXIMUM SAVINGS ACTIVATED!</strong><br/>
+                  <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'rgba(0, 255, 255, 0.1)', borderRadius: '6px', marginBottom: '0.5rem' }}>
+                    💰 <strong>Total Savings with EFT + Auto-Pay:</strong><br/>
+                    • Lowest fees (0.5% vs 2.9% = 83% savings)<br/>
+                    • 10% auto-pay discount on future sessions<br/>
+                    • Zero monthly card processing charges<br/>
+                    {cart?.total && (
+                      <span style={{ color: '#10b981', fontWeight: 600 }}>
+                        Annual fee savings: ~${((cart.total * 0.024 * 12)).toFixed(0)}+
+                      </span>
+                    )}
+                  </div>
+                  • Priority booking for appointments<br/>
+                  • Seamless bank-to-bank transfers<br/>
+                  • Cancel anytime, no commitment<br/>
+                  • Automatic session credit renewal
+                </>
+              )}
+              
+              {selectedPaymentMethod === 'card' && (
+                <>
+                  <strong style={{ color: '#ffa500' }}>⚡ INSTANT + CONVENIENT!</strong><br/>
+                  <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'rgba(255, 165, 0, 0.1)', borderRadius: '6px', marginBottom: '0.5rem' }}>
+                    💳 <strong>Card Auto-Pay Benefits:</strong><br/>
+                    • Instant processing every month<br/>
+                    • 10% discount on future sessions<br/>
+                    • Never miss a session due to payment issues<br/>
+                    • Secure recurring billing
+                  </div>
+                  • Priority booking for appointments<br/>
+                  • Cancel anytime, no commitment<br/>
+                  • Automatic session credit renewal<br/>
+                  <span style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+                    💡 Tip: Switch to EFT for even lower monthly fees!
+                  </span>
+                </>
+              )}
+              
+              {selectedPaymentMethod === 'bnpl' && (
+                <>
+                  <strong style={{ color: '#a855f7' }}>📈 FLEXIBLE + AUTOMATED!</strong><br/>
+                  <div style={{ marginTop: '0.5rem', padding: '0.5rem', background: 'rgba(168, 85, 247, 0.1)', borderRadius: '6px', marginBottom: '0.5rem' }}>
+                    ⚡ <strong>BNPL Auto-Pay Benefits:</strong><br/>
+                    • Spread costs across multiple payments<br/>
+                    • 10% discount on future sessions<br/>
+                    • Automated payment scheduling<br/>
+                    • Flexible payment terms
+                  </div>
+                  • Priority booking for appointments<br/>
+                  • Cancel anytime, no commitment<br/>
+                  • Automatic session credit renewal
+                </>
+              )}
             </SubscriptionInfo>
+          )}
+          
+          {/* Smart CTA based on current selection */}
+          {!enableSubscription && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                marginTop: '0.5rem',
+                padding: '0.5rem',
+                background: selectedPaymentMethod === 'bank' ? 'rgba(0, 255, 255, 0.05)' : 
+                           selectedPaymentMethod === 'card' ? 'rgba(255, 165, 0, 0.05)' : 'rgba(168, 85, 247, 0.05)',
+                border: `1px solid ${selectedPaymentMethod === 'bank' ? 'rgba(0, 255, 255, 0.2)' : 
+                                     selectedPaymentMethod === 'card' ? 'rgba(255, 165, 0, 0.2)' : 'rgba(168, 85, 247, 0.2)'}`,
+                borderRadius: '6px',
+                fontSize: '0.8rem',
+                textAlign: 'center',
+                color: 'rgba(255, 255, 255, 0.8)'
+              }}
+            >
+              {selectedPaymentMethod === 'bank' && '💰 Enable Auto-Pay for ultimate savings (EFT fees + 10% discount)!'}
+              {selectedPaymentMethod === 'card' && '⚡ Enable Auto-Pay for convenience + 10% discount on future sessions!'}
+              {selectedPaymentMethod === 'bnpl' && '📈 Enable Auto-Pay for automated flexible payments + 10% discount!'}
+            </motion.div>
           )}
         </SubscriptionToggle>
 
         {/* Payment Element */}
         <StripeElementContainer $embedded={embedded}>
           <PaymentElement 
-            options={{
-              ...stripeElementOptions,
+            options={useMemo(() => ({
+              ...baseStripeElementOptions,
               paymentMethodTypes: selectedPaymentMethod === 'card' ? ['card'] :
-                                selectedPaymentMethod === 'bank' ? ['us_bank_account'] :
-                                ['affirm', 'klarna']
-            }} 
+                                selectedPaymentMethod === 'bank' ? ['us_bank_account', 'ach_debit'] :
+                                ['affirm', 'klarna'],
+              ...(selectedPaymentMethod === 'bank' && {
+                wallets: {
+                  applePay: 'never',
+                  googlePay: 'never'
+                }
+              })
+            }), [selectedPaymentMethod])} 
           />
         </StripeElementContainer>
 
@@ -727,19 +1298,74 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
           disabled={!stripe || !elements || isProcessing}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
+          aria-label={selectedPaymentMethod === 'bank' 
+            ? `Setup EFT bank transfer payment ${cart?.total ? `for ${cart.total.toFixed(2)}` : ''}` 
+            : `Complete card payment ${cart?.total ? `for ${cart.total.toFixed(2)}` : ''}`
+          }
         >
           {isProcessing ? (
             <>
               <LoadingSpinner />
-              Processing...
+              {selectedPaymentMethod === 'bank' 
+                ? 'Setting up secure bank connection...' 
+                : 'Processing payment...'}
             </>
           ) : (
             <>
-              <CreditCard size={20} />
-              Complete Payment
+              {selectedPaymentMethod === 'bank' ? <Shield size={20} /> : <CreditCard size={20} />}
+              {selectedPaymentMethod === 'bank' 
+                ? `Setup EFT Transfer (${cart?.total?.toFixed(2) || '0.00'})` 
+                : `Complete Card Payment (${cart?.total?.toFixed(2) || '0.00'})`}
             </>
           )}
         </PaymentButton>
+        
+        {/* Payment Method Guidance */}
+        {selectedPaymentMethod === 'bank' && !isProcessing && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            style={{
+              marginTop: '0.75rem',
+              textAlign: 'center',
+              fontSize: '0.8rem',
+              color: 'rgba(255, 255, 255, 0.7)',
+              fontStyle: 'italic'
+            }}
+          >
+            🔒 You'll securely connect your bank account in the next step
+          </motion.div>
+        )}
+
+        {/* Preferences Saved Notification */}
+        <AnimatePresence>
+          {showPreferencesSaved && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: -10 }}
+              style={{
+                position: 'fixed',
+                bottom: '2rem',
+                right: '2rem',
+                background: 'rgba(16, 185, 129, 0.1)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                borderRadius: '8px',
+                padding: '0.75rem 1rem',
+                color: '#10b981',
+                fontSize: '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                zIndex: 10000,
+                backdropFilter: 'blur(10px)'
+              }}
+            >
+              <CheckCircle size={16} />
+              Preferences saved for next time!
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Message Display */}
         <AnimatePresence>
@@ -932,12 +1558,22 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
         </PaymentHeader>
 
         {loading && (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <LoadingSpinner />
-            <p style={{ marginTop: '1rem', color: 'rgba(255, 255, 255, 0.7)' }}>
-              Initializing secure payment...
-            </p>
-          </div>
+          <EnhancedLoadingContainer
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            >
+              <Shield size={32} style={{ color: '#00ffff' }} />
+            </motion.div>
+            <LoadingText>
+              <span className="primary">Initializing Secure Payment</span>
+              <span className="secondary">Setting up your secure payment environment...</span>
+            </LoadingText>
+          </EnhancedLoadingContainer>
         )}
 
         {error && (
@@ -1089,12 +1725,22 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
         </PaymentHeader>
 
         {loading && (
-          <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <LoadingSpinner />
-            <p style={{ marginTop: '1rem', color: 'rgba(255, 255, 255, 0.7)' }}>
-              Initializing secure payment...
-            </p>
-          </div>
+          <EnhancedLoadingContainer
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+          >
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            >
+              <Shield size={32} style={{ color: '#00ffff' }} />
+            </motion.div>
+            <LoadingText>
+              <span className="primary">Initializing Secure Payment</span>
+              <span className="secondary">Setting up your secure payment environment...</span>
+            </LoadingText>
+          </EnhancedLoadingContainer>
         )}
 
         {error && (
