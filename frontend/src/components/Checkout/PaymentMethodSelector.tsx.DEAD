@@ -344,13 +344,25 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
   // Payment Methods Configuration
   const paymentMethods: PaymentMethod[] = [
     {
+      id: 'eft_bank_transfer',
+      type: 'bank_transfer',
+      name: 'EFT Bank Transfer',
+      description: 'Direct bank transfer - secure and cost-effective (recommended)',
+      icon: <Shield size={24} />,
+      isEnabled: true,
+      isRecommended: true,
+      processingFee: 0.5,
+      setupTime: '1-3 business days',
+      supportedRegions: ['US', 'CA']
+    },
+    {
       id: 'card',
       type: 'card',
       name: 'Credit/Debit Card',
       description: 'Visa, Mastercard, American Express, and Discover accepted',
       icon: <CreditCard size={24} />,
       isEnabled: true,
-      isRecommended: true,
+      isRecommended: false,
       processingFee: 2.9,
       setupTime: 'Instant',
       supportedRegions: ['US', 'CA', 'EU', 'AU']
@@ -449,6 +461,12 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
           // Card validation will be handled by Stripe Elements
           isValid = true;
           validationDetails = { type: 'card', requiresElements: true };
+          break;
+        
+        case 'bank_transfer':
+          // EFT bank transfer validation
+          isValid = true;
+          validationDetails = { type: 'bank_transfer', requiresElements: true };
           break;
         
         case 'digital_wallet':
@@ -665,6 +683,88 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
             ))}
           </MethodsGrid>
         </div>
+      )}
+
+      {/* EFT Information */}
+      {selectedMethodId === 'eft_bank_transfer' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{
+            background: 'rgba(0, 255, 255, 0.05)',
+            border: '1px solid rgba(0, 255, 255, 0.2)',
+            borderRadius: '8px',
+            padding: '1rem',
+            marginBottom: '1.5rem',
+            position: 'relative',
+            zIndex: 1
+          }}
+        >
+          <div style={{
+            color: '#00ffff',
+            fontSize: '0.9rem',
+            fontWeight: 600,
+            margin: '0 0 0.5rem 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <Shield size={16} />
+            EFT Bank Transfer - Default Payment Method
+          </div>
+          <p style={{
+            color: 'rgba(255, 255, 255, 0.8)',
+            fontSize: '0.85rem',
+            margin: '0 0 0.75rem 0',
+            lineHeight: 1.4
+          }}>
+            EFT is our recommended payment method with lower processing fees (0.5% vs 2.9%) and enhanced security. 
+            <strong style={{ color: '#00ffff' }}>Need to pay immediately?</strong> Select "Credit/Debit Card" above for instant processing.
+          </p>
+          <div style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.7)' }}>
+            <div>• Processing: 1-3 business days</div>
+            <div>• Direct bank-to-bank transfer</div>
+            <div>• No card fees or international charges</div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* One-time Payment Info */}
+      {selectedMethodId === 'card' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{
+            background: 'rgba(255, 165, 0, 0.1)',
+            border: '1px solid rgba(255, 165, 0, 0.3)',
+            borderRadius: '8px',
+            padding: '1rem',
+            marginBottom: '1.5rem',
+            position: 'relative',
+            zIndex: 1
+          }}
+        >
+          <div style={{
+            color: '#ffa500',
+            fontSize: '0.9rem',
+            fontWeight: 600,
+            margin: '0 0 0.5rem 0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem'
+          }}>
+            <CreditCard size={16} />
+            One-Time Card Payment
+          </div>
+          <p style={{
+            color: 'rgba(255, 255, 255, 0.8)',
+            fontSize: '0.85rem',
+            margin: '0',
+            lineHeight: 1.4
+          }}>
+            Instant processing with 2.9% processing fee. <strong style={{ color: '#ffa500' }}>Save money:</strong> Switch to "EFT Bank Transfer" above for reduced fees.
+          </p>
+        </motion.div>
       )}
 
       {/* Security Information */}
