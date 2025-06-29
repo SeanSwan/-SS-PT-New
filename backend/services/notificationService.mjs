@@ -222,8 +222,8 @@ import { getIO } from '../socket/socketManager.mjs';
 // 🚀 ENHANCED: Coordinated model imports for consistent associations
 import { getUser } from '../models/index.mjs';
 
-// Get User model with coordinated associations
-const User = getUser();
+// 🎯 ENHANCED P0 FIX: Lazy loading models to prevent initialization race condition
+// User model will be retrieved via getUser() inside functions when needed
 
 // Legacy function moved to sendTraditionalNotification and no longer exported separately
 // Instead, unified sendNotification above handles both real-time and traditional notifications
