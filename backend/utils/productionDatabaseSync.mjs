@@ -1,13 +1,15 @@
 /**
  * Production-Safe Database Synchronization
  * ========================================
- * Creates missing tables without altering existing ones
+ * Creates missing tables in proper dependency order
+ * CRITICAL FIX: Prevents foreign key creation errors
  * Safe for production environments
  */
 
 import sequelize from '../database.mjs';
 import getModels from '../models/associations.mjs';
 import logger from './logger.mjs';
+import { createTablesInOrder, validateTableOrder } from './tableCreationOrder.mjs';
 
 /**
  * Check if a table exists in the database
@@ -33,83 +35,88 @@ const tableExists = async (tableName) => {
 };
 
 /**
- * Create missing tables safely
+ * Create missing tables safely using dependency order
+ * CRITICAL FIX: Creates tables in proper order to prevent foreign key errors
  */
 const createMissingTables = async () => {
   try {
-    logger.info('🔍 Checking for missing database tables...');
+    logger.info('🔍 ENHANCED: Checking for missing database tables with dependency management...');
     
     // Get all models
     const models = await getModels();
     
-    const missingTables = [];
-    const existingTables = [];
+    // Validate table creation order first
+    const orderValidation = validateTableOrder(models);
+    logger.info(`📋 Table validation: ${orderValidation.tableCount} tables found, ${orderValidation.missingFromOrder.length} not in dependency order`);
     
-    // Check each model's table
-    for (const [modelName, model] of Object.entries(models)) {
-      if (model && model.getTableName) {
-        const tableName = model.getTableName();
-        const exists = await tableExists(tableName);
-        
-        if (!exists) {
-          missingTables.push({ modelName, tableName, model });
-        } else {
-          existingTables.push(tableName);
-        }
-      }
+    // Create tables in proper dependency order
+    const creationResults = await createTablesInOrder(models);
+    
+    if (creationResults.errors.length > 0) {
+      logger.warn(`⚠️  Some table creation errors occurred:`);
+      creationResults.errors.forEach(error => {
+        logger.warn(`   - ${error.table}: ${error.error}`);
+      });
     }
     
-    logger.info(`📊 Database table status: ${existingTables.length} existing, ${missingTables.length} missing`);
-    
-    // Create missing tables
-    if (missingTables.length > 0) {
-      logger.info(`🔨 Creating ${missingTables.length} missing tables...`);
-      
-      for (const { modelName, tableName, model } of missingTables) {
-        try {
-          await model.sync({ force: false }); // Only create if doesn't exist
-          logger.info(`✅ Created table: ${tableName} (${modelName})`);
-        } catch (error) {
-          logger.error(`❌ Failed to create table ${tableName}: ${error.message}`);
-        }
-      }
-      
-      logger.info('🎉 Missing tables creation completed!');
-    } else {
-      logger.info('✅ All required tables already exist');
-    }
+    logger.info('🎉 Missing tables creation completed!');
     
     return {
-      success: true,
-      existingCount: existingTables.length,
-      createdCount: missingTables.length,
-      missingTables: missingTables.map(t => t.tableName)
+      success: creationResults.errors.length === 0,
+      existingCount: creationResults.skipped.length,
+      createdCount: creationResults.created.length,
+      missingTables: creationResults.created,
+      errors: creationResults.errors
     };
     
   } catch (error) {
-    logger.error(`❌ Error during table creation: ${error.message}`);
+    logger.error(`❌ Error during dependency-aware table creation: ${error.message}`);
     return {
       success: false,
-      error: error.message
+      error: error.message,
+      existingCount: 0,
+      createdCount: 0,
+      missingTables: []
     };
   }
 };
 
 /**
  * Sync indexes and foreign keys safely
+ * ENHANCED: Better error handling for constraint creation
  */
 const syncIndexesAndConstraints = async () => {
   try {
-    logger.info('🔗 Syncing database indexes and constraints...');
+    logger.info('🔗 ENHANCED: Syncing database indexes and constraints...');
     
-    // This is safer than full sync - only adds missing indexes and constraints
-    await sequelize.sync({ alter: { drop: false } });
+    // Use safer sync options that won't drop existing constraints
+    await sequelize.sync({ 
+      alter: { 
+        drop: false  // Never drop existing constraints
+      },
+      hooks: false,  // Skip hooks for performance
+      logging: (sql) => {
+        // Only log constraint-related operations
+        if (sql.includes('CONSTRAINT') || sql.includes('INDEX')) {
+          logger.debug(`DB Constraint: ${sql}`);
+        }
+      }
+    });
     
-    logger.info('✅ Database indexes and constraints synced');
+    logger.info('✅ Database indexes and constraints synced successfully');
     return { success: true };
   } catch (error) {
-    logger.warn(`⚠️  Index/constraint sync had issues: ${error.message}`);
-    return { success: false, error: error.message };
+    // Be more specific about constraint errors
+    if (error.message.includes('does not exist')) {
+      logger.warn(`⚠️  Constraint sync skipped - missing parent table: ${error.message}`);
+      return { success: false, error: error.message, type: 'missing_parent_table' };
+    } else if (error.message.includes('already exists')) {
+      logger.info('ℹ️  Constraints already exist - skipping duplicate creation');
+      return { success: true, warning: 'constraints_already_exist' };
+    } else {
+      logger.warn(`⚠️  Index/constraint sync had issues: ${error.message}`);
+      return { success: false, error: error.message, type: 'constraint_error' };
+    }
   }
 };
 
@@ -144,9 +151,14 @@ export const syncDatabaseSafely = async () => {
     }
     
     if (summary.success) {
-      logger.info('🎉 Production-safe database sync completed successfully!');
+      logger.info('🎉 ENHANCED: Production-safe database sync completed successfully!');
+      logger.info(`📊 Summary: ${summary.tablesCreated} tables created, ${summary.tablesExisting} existing`);
     } else {
-      logger.warn('⚠️  Database sync completed with some issues');
+      logger.warn('⚠️  ENHANCED: Database sync completed with some issues');
+      if (summary.errors.length > 0) {
+        logger.warn('🔍 Issues encountered:');
+        summary.errors.forEach(error => logger.warn(`   - ${error}`));
+      }
     }
     
     return summary;

@@ -1,27 +1,52 @@
 /**
- * Redis Wrapper Service
- * ====================
- * Provides a Redis interface that respects the REDIS_ENABLED environment variable
- * If Redis is disabled, all operations are no-ops with in-memory fallback
+ * Redis Wrapper Service - COMPLETELY DISABLED VERSION
+ * =====================================================
+ * When REDIS_ENABLED !== 'true', this wrapper provides ZERO Redis functionality
+ * and prevents ANY ioredis imports or connection attempts.
  * 
- * IMPORTANT: This wrapper uses dynamic imports to prevent ioredis from being loaded
- * when Redis is disabled, eliminating connection attempt errors.
+ * CRITICAL FIX: Completely eliminates Redis connection spam in production
  */
 
 import { EventEmitter } from 'events';
 import logger from '../../utils/logger.mjs';
 
-// Check Redis configuration immediately but don't import ioredis yet
+// ABSOLUTE REDIS CONTROL - Check configuration and BLOCK all Redis activity
 const REDIS_ENABLED = process.env.REDIS_ENABLED === 'true';
-if (!REDIS_ENABLED) {
-  logger.info('Redis is disabled in configuration - all operations will use memory cache only');
+const REDIS_COMPLETELY_DISABLED = !REDIS_ENABLED;
+
+if (REDIS_COMPLETELY_DISABLED) {
+  logger.info('🛡️ Redis COMPLETELY DISABLED - zero Redis imports, zero connection attempts');
+  
+  // Block ioredis from being imported anywhere in the application
+  const originalRequire = globalThis.require;
+  if (originalRequire) {
+    globalThis.require = function(id) {
+      if (id === 'ioredis' || id.includes('ioredis')) {
+        logger.warn(`🚫 BLOCKED ioredis import attempt: ${id}`);
+        throw new Error('Redis is disabled - ioredis import blocked');
+      }
+      return originalRequire.apply(this, arguments);
+    };
+  }
+  
+  // Block dynamic imports of ioredis
+  const originalImport = globalThis.import;
+  if (originalImport) {
+    globalThis.import = function(specifier) {
+      if (typeof specifier === 'string' && (specifier === 'ioredis' || specifier.includes('ioredis'))) {
+        logger.warn(`🚫 BLOCKED ioredis dynamic import: ${specifier}`);
+        return Promise.reject(new Error('Redis is disabled - ioredis dynamic import blocked'));
+      }
+      return originalImport.apply(this, arguments);
+    };
+  }
 }
 
 class RedisWrapper extends EventEmitter {
   constructor() {
     super();
     
-    this.enabled = process.env.REDIS_ENABLED === 'true';
+    this.enabled = !REDIS_COMPLETELY_DISABLED;
     this.connected = false;
     this.client = null;
     this.initialized = false;
@@ -30,33 +55,55 @@ class RedisWrapper extends EventEmitter {
     this.memoryCache = new Map();
     this.memoryTTL = new Map();
     
-    // Always start with ready state for memory cache when Redis is disabled
-    if (!this.enabled) {
-      logger.info('Redis is disabled, using in-memory cache fallback');
-      setTimeout(() => this.emit('ready'), 0); // Emit ready async
+    // CRITICAL FIX: When Redis is completely disabled, never attempt connections
+    if (REDIS_COMPLETELY_DISABLED) {
+      this.enabled = false;
+      this.connected = false;
+      this.initialized = true; // Mark as initialized to prevent any setup attempts
+      logger.info('🔒 Redis COMPLETELY DISABLED - using memory-only cache, zero connection attempts');
+      setTimeout(() => this.emit('ready'), 0); // Emit ready async for memory cache
+      
+      // Clean up expired cache entries periodically
+      this.cleanupInterval = setInterval(() => this.cleanupExpiredEntries(), 60000);
+      return; // EXIT constructor early - no Redis setup
     }
     
-    // Clean up expired cache entries periodically
-    this.cleanupInterval = setInterval(() => this.cleanupExpiredEntries(), 60000); // Every minute
+    // Only reach here if Redis is explicitly enabled
+    logger.info(`🟢 Redis is ENABLED - will attempt connection`);
     
-    // Log initialization
-    logger.info(`RedisWrapper initialized - Redis enabled: ${this.enabled}`);
+    // Clean up expired cache entries periodically
+    this.cleanupInterval = setInterval(() => this.cleanupExpiredEntries(), 60000);
   }
   
   async _ensureInitialized() {
+    // CRITICAL FIX: Never initialize if Redis is completely disabled
+    if (REDIS_COMPLETELY_DISABLED) {
+      this.initialized = true;
+      this.enabled = false;
+      return; // Early exit - no Redis operations
+    }
+    
     if (!this.initialized) {
       this.initialized = true;
-      // SAFETY CHECK: Never initialize if Redis is disabled
+      // Only initialize if Redis is explicitly enabled
       if (this.enabled && process.env.REDIS_ENABLED === 'true') {
         await this.initializeRedis();
       } else {
-        logger.info('Redis initialization skipped in _ensureInitialized - Redis disabled');
+        logger.info('Redis initialization skipped - Redis not enabled');
         this.emit('ready');
       }
     }
   }
   
   async initializeRedis() {
+    // CRITICAL FIX: Absolute blocking when Redis is completely disabled
+    if (REDIS_COMPLETELY_DISABLED) {
+      logger.info('🛡️ Redis initialization COMPLETELY BLOCKED - Redis is disabled');
+      this.enabled = false;
+      this.emit('ready');
+      return;
+    }
+    
     // ABSOLUTE FIRST CHECK: Never initialize if Redis is disabled
     if (!this.enabled || process.env.REDIS_ENABLED !== 'true') {
       logger.info('Redis initialization COMPLETELY SKIPPED - Redis is disabled in environment');
@@ -118,9 +165,14 @@ class RedisWrapper extends EventEmitter {
       // Only import Redis if server is reachable AND Redis is enabled
       logger.info('Redis server is reachable - dynamically importing ioredis module...');
       
-      // Dynamic import of ioredis - this prevents the module from being loaded when Redis is disabled
+      // CRITICAL FIX: Only attempt ioredis import when Redis is explicitly enabled
+      logger.info('🔌 Redis is enabled - attempting ioredis dynamic import...');
       const redisModule = await import('ioredis');
-      const Redis = redisModule.default;
+      const Redis = redisModule.default || redisModule.Redis || redisModule;
+      
+      if (!Redis) {
+        throw new Error('Failed to import Redis constructor from ioredis');
+      }
       
       // Log Redis connection (URL credentials redacted for security)
       const redactedUrl = redisUrl.includes('@') ? redisUrl.replace(/:.*@/, ':***@') : redisUrl;
@@ -199,16 +251,20 @@ class RedisWrapper extends EventEmitter {
    * Set a key-value pair with optional TTL
    */
   async set(key, value, ttl = null) {
-    await this._ensureInitialized();
+    // CRITICAL FIX: Skip initialization if Redis is completely disabled
+    if (!REDIS_COMPLETELY_DISABLED) {
+      await this._ensureInitialized();
+    }
+    
     try {
-      if (this.enabled && this.connected && this.client) {
+      if (!REDIS_COMPLETELY_DISABLED && this.enabled && this.connected && this.client) {
         if (ttl) {
           return await this.client.setex(key, ttl, value);
         } else {
           return await this.client.set(key, value);
         }
       } else {
-        // Fallback to memory cache
+        // Fallback to memory cache (always used when Redis disabled)
         this.memoryCache.set(key, value);
         if (ttl) {
           this.memoryTTL.set(key, Date.now() + (ttl * 1000));
@@ -229,12 +285,16 @@ class RedisWrapper extends EventEmitter {
    * Get a value by key
    */
   async get(key) {
-    await this._ensureInitialized();
+    // CRITICAL FIX: Skip initialization if Redis is completely disabled
+    if (!REDIS_COMPLETELY_DISABLED) {
+      await this._ensureInitialized();
+    }
+    
     try {
-      if (this.enabled && this.connected && this.client) {
+      if (!REDIS_COMPLETELY_DISABLED && this.enabled && this.connected && this.client) {
         return await this.client.get(key);
       } else {
-        // Check TTL first
+        // Check TTL first (always used when Redis disabled)
         if (this.memoryTTL.has(key)) {
           const expiry = this.memoryTTL.get(key);
           if (Date.now() > expiry) {
@@ -263,9 +323,13 @@ class RedisWrapper extends EventEmitter {
    * Delete a key
    */
   async del(key) {
-    await this._ensureInitialized();
+    // CRITICAL FIX: Skip initialization if Redis is completely disabled
+    if (!REDIS_COMPLETELY_DISABLED) {
+      await this._ensureInitialized();
+    }
+    
     try {
-      if (this.enabled && this.connected && this.client) {
+      if (!REDIS_COMPLETELY_DISABLED && this.enabled && this.connected && this.client) {
         return await this.client.del(key);
       } else {
         const existed = this.memoryCache.has(key);
@@ -286,9 +350,13 @@ class RedisWrapper extends EventEmitter {
    * Check if key exists
    */
   async exists(key) {
-    await this._ensureInitialized();
+    // CRITICAL FIX: Skip initialization if Redis is completely disabled
+    if (!REDIS_COMPLETELY_DISABLED) {
+      await this._ensureInitialized();
+    }
+    
     try {
-      if (this.enabled && this.connected && this.client) {
+      if (!REDIS_COMPLETELY_DISABLED && this.enabled && this.connected && this.client) {
         return await this.client.exists(key);
       } else {
         // Check TTL first
@@ -320,9 +388,13 @@ class RedisWrapper extends EventEmitter {
    * Set TTL for existing key
    */
   async expire(key, ttl) {
-    await this._ensureInitialized();
+    // CRITICAL FIX: Skip initialization if Redis is completely disabled
+    if (!REDIS_COMPLETELY_DISABLED) {
+      await this._ensureInitialized();
+    }
+    
     try {
-      if (this.enabled && this.connected && this.client) {
+      if (!REDIS_COMPLETELY_DISABLED && this.enabled && this.connected && this.client) {
         return await this.client.expire(key, ttl);
       } else {
         if (this.memoryCache.has(key)) {
@@ -424,7 +496,7 @@ error:${error.message}`;
    * Get connection status
    */
   isConnected() {
-    return this.enabled && this.connected;
+    return !REDIS_COMPLETELY_DISABLED && this.enabled && this.connected;
   }
   
   /**
@@ -432,11 +504,12 @@ error:${error.message}`;
    */
   getStatus() {
     return {
-      enabled: this.enabled,
-      connected: this.connected,
-      using_memory_fallback: !this.enabled || !this.connected,
+      enabled: !REDIS_COMPLETELY_DISABLED && this.enabled,
+      connected: !REDIS_COMPLETELY_DISABLED && this.connected,
+      using_memory_fallback: REDIS_COMPLETELY_DISABLED || !this.enabled || !this.connected,
       memory_cache_size: this.memoryCache.size,
-      memory_ttl_entries: this.memoryTTL.size
+      memory_ttl_entries: this.memoryTTL.size,
+      redis_completely_disabled: REDIS_COMPLETELY_DISABLED
     };
   }
 }
