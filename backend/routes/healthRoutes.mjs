@@ -59,12 +59,25 @@ router.get('/', (req, res) => {
     uptime: Math.floor(process.uptime()),
     version: '1.0.0',
     services: {
-      stripe: {
-        enabled: isStripeEnabled(),
-        configured: getHealthReport().stripe.configured,
-        environment: getHealthReport().stripe.environment,
-        status: isStripeEnabled() ? 'operational' : 'disabled'
-      },
+      stripe: (() => {
+        try {
+          const stripeHealth = getHealthReport();
+          return {
+            enabled: isStripeEnabled(),
+            configured: stripeHealth?.stripe?.configured || false,
+            environment: stripeHealth?.stripe?.environment || 'unknown',
+            status: isStripeEnabled() ? 'operational' : 'disabled'
+          };
+        } catch (error) {
+          logger.error('Error getting Stripe health status:', error);
+          return {
+            enabled: false,
+            configured: false,
+            environment: 'error',
+            status: 'error'
+          };
+        }
+      })(),
       sendgrid: {
         enabled: isSendGridEnabled(),
         status: isSendGridEnabled() ? 'operational' : 'disabled'
@@ -139,9 +152,9 @@ router.get('/detailed', (req, res) => {
           type: process.env.NODE_ENV === 'production' ? 'postgresql' : 'postgresql+mongodb'
         },
         payment: {
-          stripe: stripeHealth.stripe,
-          status: stripeHealth.stripe.configured ? 'operational' : 'misconfigured',
-          issues: stripeHealth.stripe.errors
+          stripe: stripeHealth?.stripe || { configured: false, environment: 'unknown', errors: [] },
+          status: stripeHealth?.stripe?.configured ? 'operational' : 'misconfigured',
+          issues: stripeHealth?.stripe?.errors || []
         },
         email: {
           sendgrid: {
@@ -166,7 +179,7 @@ router.get('/detailed', (req, res) => {
     };
     
     // Set status based on critical services
-    if (!stripeHealth.stripe.configured && process.env.NODE_ENV === 'production') {
+    if (!stripeHealth?.stripe?.configured && process.env.NODE_ENV === 'production') {
       detailedHealth.status = 'degraded';
       detailedHealth.message = 'Payment processing unavailable';
     }
@@ -210,12 +223,12 @@ router.get('/payments', (req, res) => {
       service: 'Payment System',
       timestamp: new Date().toISOString(),
       stripe: {
-        ...stripeHealth.stripe,
+        ...(stripeHealth?.stripe || { configured: false, environment: 'unknown', errors: [] }),
         endpoint: '/api/payments/create-payment-intent',
         supportedMethods: ['card', 'digital_wallets'],
-        testMode: stripeHealth.stripe.environment !== 'production'
+        testMode: stripeHealth?.stripe?.environment !== 'production'
       },
-      status: stripeHealth.stripe.configured ? 'operational' : 'misconfigured',
+      status: stripeHealth?.stripe?.configured ? 'operational' : 'misconfigured',
       troubleshooting: {
         commonIssues: [
           'Missing STRIPE_SECRET_KEY in environment variables',
@@ -232,9 +245,9 @@ router.get('/payments', (req, res) => {
       }
     };
     
-    const httpStatus = stripeHealth.stripe.configured ? 200 : 503;
+    const httpStatus = stripeHealth?.stripe?.configured ? 200 : 503;
     
-    logger.info(`Payment health check - Stripe configured: ${stripeHealth.stripe.configured}`);
+    logger.info(`Payment health check - Stripe configured: ${stripeHealth?.stripe?.configured || false}`);
     
     res.status(httpStatus).json(paymentHealth);
     

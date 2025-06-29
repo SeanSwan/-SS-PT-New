@@ -152,10 +152,23 @@ export function validateStripeConfig() {
 
 /**
  * Get current health report
+ * Returns structure expected by health routes: { stripe: { configured, environment, errors } }
  */
 export function getHealthReport() {
+  // Ensure we have recent configuration data
+  if (!configState.lastChecked || 
+      (Date.now() - new Date(configState.lastChecked).getTime()) > 300000) { // 5 minutes
+    validateStripeConfig();
+  }
+  
   return {
-    ...configState,
+    stripe: {
+      configured: configState.isConfigured,
+      environment: configState.environment || 'unknown',
+      errors: configState.errors || [],
+      healthStatus: configState.healthStatus || 'unknown',
+      lastChecked: configState.lastChecked
+    },
     uptime: process.uptime(),
     nodeEnv: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString()
