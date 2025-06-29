@@ -26,10 +26,8 @@ import {
   getStorefrontItem
 } from '../models/index.mjs';
 
-// Get models with coordinated associations
-const ShoppingCart = getShoppingCart();
-const CartItem = getCartItem();
-const StorefrontItem = getStorefrontItem();
+// 🎯 ENHANCED P0 FIX: Lazy loading models to prevent initialization race condition
+// Models will be retrieved via getter functions inside each function when needed
 
 /**
  * Calculate cart total and session count from cart items
@@ -149,6 +147,9 @@ export const persistCartTotals = async (cartId, total, totalSessions, options = 
   const { transaction, skipLogging = false } = options;
 
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load model to prevent race condition
+    const ShoppingCart = getShoppingCart();
+    
     if (!cartId || typeof total !== 'number' || typeof totalSessions !== 'number') {
       throw new Error('Invalid parameters for persistCartTotals');
     }
@@ -205,6 +206,11 @@ export const updateCartTotals = async (cartId, options = {}) => {
   const { transaction, skipLogging = false } = options;
 
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    const ShoppingCart = getShoppingCart();
+    const CartItem = getCartItem();
+    const StorefrontItem = getStorefrontItem();
+    
     if (!cartId) {
       throw new Error('Cart ID is required');
     }
@@ -343,6 +349,10 @@ export const getCartTotalsWithFallback = (cart) => {
  */
 export const validateCartItemSessions = async (cartItemId) => {
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    const CartItem = getCartItem();
+    const StorefrontItem = getStorefrontItem();
+    
     const cartItem = await CartItem.findByPk(cartItemId, {
       include: [{
         model: StorefrontItem,
@@ -408,6 +418,11 @@ export const validateCartItemSessions = async (cartItemId) => {
  */
 export const debugCartState = async (cartId, context = 'unknown') => {
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    const ShoppingCart = getShoppingCart();
+    const CartItem = getCartItem();
+    const StorefrontItem = getStorefrontItem();
+    
     const cart = await ShoppingCart.findByPk(cartId, {
       include: [{
         model: CartItem,
