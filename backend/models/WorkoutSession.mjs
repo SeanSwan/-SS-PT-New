@@ -31,7 +31,7 @@ WorkoutSession.init({
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'users',
+      model: 'Users',  // FIXED: Match actual User table name
       key: 'id'
     },
     comment: 'User who performed this workout session (client)'
@@ -125,7 +125,7 @@ WorkoutSession.init({
     type: DataTypes.UUID,
     allowNull: true,
     references: {
-      model: 'workout_plans',
+      model: 'WorkoutPlans',  // FIXED: Match actual WorkoutPlan table name
       key: 'id'
     },
     comment: 'Reference to workout plan if this session was part of a plan'
@@ -134,7 +134,7 @@ WorkoutSession.init({
     type: DataTypes.UUID,
     allowNull: true,
     references: {
-      model: 'workout_plan_days',
+      model: 'WorkoutPlanDays',  // FIXED: Match actual WorkoutPlanDay table name
       key: 'id'
     },
     comment: 'Reference to specific workout plan day if applicable'

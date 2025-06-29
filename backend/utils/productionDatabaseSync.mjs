@@ -83,11 +83,11 @@ const createMissingTables = async () => {
 
 /**
  * Sync indexes and foreign keys safely
- * ENHANCED: Better error handling for constraint creation
+ * ENHANCED: Better error handling for constraint creation with detailed categorization
  */
 const syncIndexesAndConstraints = async () => {
   try {
-    logger.info('🔗 ENHANCED: Syncing database indexes and constraints...');
+    logger.info('🔗 ENHANCED: Syncing database indexes and constraints with enhanced error handling...');
     
     // Use safer sync options that won't drop existing constraints
     await sequelize.sync({ 
@@ -106,16 +106,26 @@ const syncIndexesAndConstraints = async () => {
     logger.info('✅ Database indexes and constraints synced successfully');
     return { success: true };
   } catch (error) {
-    // Be more specific about constraint errors
-    if (error.message.includes('does not exist')) {
-      logger.warn(`⚠️  Constraint sync skipped - missing parent table: ${error.message}`);
-      return { success: false, error: error.message, type: 'missing_parent_table' };
-    } else if (error.message.includes('already exists')) {
+    // Enhanced error categorization with better diagnostics
+    const errorMessage = error.message.toLowerCase();
+    
+    if (errorMessage.includes('does not exist')) {
+      const tableName = error.message.match(/relation "([^"]+)" does not exist/)?.[1] || 'unknown';
+      logger.warn(`⚠️  Constraint sync skipped - missing parent table: ${tableName}`);
+      logger.info(`🔄 This will be resolved when parent table '${tableName}' is created in dependency order`);
+      return { success: false, error: error.message, type: 'missing_parent_table', missingTable: tableName };
+    } else if (errorMessage.includes('already exists')) {
       logger.info('ℹ️  Constraints already exist - skipping duplicate creation');
       return { success: true, warning: 'constraints_already_exist' };
+    } else if (errorMessage.includes('foreign key')) {
+      logger.warn(`🔑 Foreign key constraint error: ${error.message}`);
+      return { success: false, error: error.message, type: 'foreign_key_error' };
+    } else if (errorMessage.includes('constraint')) {
+      logger.warn(`🔗 General constraint error: ${error.message}`);
+      return { success: false, error: error.message, type: 'constraint_error' };
     } else {
       logger.warn(`⚠️  Index/constraint sync had issues: ${error.message}`);
-      return { success: false, error: error.message, type: 'constraint_error' };
+      return { success: false, error: error.message, type: 'sync_error' };
     }
   }
 };
@@ -133,32 +143,94 @@ export const syncDatabaseSafely = async () => {
     // Step 2: Sync indexes and constraints (safer approach)
     const constraintResult = await syncIndexesAndConstraints();
     
-    // Summary
+    // Enhanced Summary with detailed error categorization
     const summary = {
       success: tableResult.success && constraintResult.success,
       tablesCreated: tableResult.createdCount || 0,
       tablesExisting: tableResult.existingCount || 0,
       missingTables: tableResult.missingTables || [],
-      errors: []
+      errors: [],
+      warnings: [],
+      errorBreakdown: {
+        foreignKeyErrors: 0,
+        missingParentTables: 0,
+        constraintErrors: 0,
+        creationErrors: 0
+      }
     };
     
-    if (!tableResult.success) {
+    // Categorize table creation errors
+    if (tableResult.errors && tableResult.errors.length > 0) {
+      tableResult.errors.forEach(error => {
+        if (error.type === 'missing_parent_table') {
+          summary.errorBreakdown.missingParentTables++;
+          summary.warnings.push(`Missing parent table: ${error.table} - ${error.error}`);
+        } else if (error.error.includes('foreign key')) {
+          summary.errorBreakdown.foreignKeyErrors++;
+          summary.errors.push(`Foreign key error in ${error.table}: ${error.error}`);
+        } else {
+          summary.errorBreakdown.creationErrors++;
+          summary.errors.push(`Table creation error in ${error.table}: ${error.error}`);
+        }
+      });
+    }
+    
+    if (!tableResult.success && tableResult.error) {
       summary.errors.push(`Table creation: ${tableResult.error}`);
     }
     
     if (!constraintResult.success) {
-      summary.errors.push(`Constraint sync: ${constraintResult.error}`);
+      summary.errorBreakdown.constraintErrors++;
+      if (constraintResult.type === 'missing_parent_table') {
+        summary.warnings.push(`Constraint sync: ${constraintResult.error}`);
+      } else {
+        summary.errors.push(`Constraint sync: ${constraintResult.error}`);
+      }
     }
     
+    // Enhanced reporting
     if (summary.success) {
       logger.info('🎉 ENHANCED: Production-safe database sync completed successfully!');
       logger.info(`📊 Summary: ${summary.tablesCreated} tables created, ${summary.tablesExisting} existing`);
+      
+      if (summary.warnings.length > 0) {
+        logger.info('ℹ️  Non-critical warnings:');
+        summary.warnings.forEach(warning => logger.info(`   ⚠️  ${warning}`));
+      }
     } else {
       logger.warn('⚠️  ENHANCED: Database sync completed with some issues');
-      if (summary.errors.length > 0) {
-        logger.warn('🔍 Issues encountered:');
-        summary.errors.forEach(error => logger.warn(`   - ${error}`));
+      
+      // Report error breakdown
+      const breakdown = summary.errorBreakdown;
+      if (breakdown.missingParentTables > 0) {
+        logger.warn(`🔗 Missing parent tables: ${breakdown.missingParentTables} (will resolve on next deployment)`);
       }
+      if (breakdown.foreignKeyErrors > 0) {
+        logger.warn(`🔑 Foreign key errors: ${breakdown.foreignKeyErrors}`);
+      }
+      if (breakdown.constraintErrors > 0) {
+        logger.warn(`🔗 Constraint errors: ${breakdown.constraintErrors}`);
+      }
+      if (breakdown.creationErrors > 0) {
+        logger.warn(`🛠️  Creation errors: ${breakdown.creationErrors}`);
+      }
+      
+      if (summary.errors.length > 0) {
+        logger.warn('🔍 Critical issues encountered:');
+        summary.errors.forEach(error => logger.warn(`   ❌ ${error}`));
+      }
+      
+      if (summary.warnings.length > 0) {
+        logger.warn('🔍 Non-critical warnings:');
+        summary.warnings.forEach(warning => logger.warn(`   ⚠️  ${warning}`));
+      }
+    }
+    
+    // Add diagnostic information for troubleshooting
+    if (summary.errorBreakdown.missingParentTables > 0) {
+      logger.info('📝 TROUBLESHOOTING: Missing parent table errors are usually resolved on the next deployment');
+      logger.info('   These occur when child tables try to create foreign keys to tables that haven\'t been created yet');
+      logger.info('   The dependency-aware table creation will create parent tables first on subsequent runs');
     }
     
     return summary;
