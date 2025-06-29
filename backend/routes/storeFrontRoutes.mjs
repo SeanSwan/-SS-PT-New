@@ -1,6 +1,10 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
-import StorefrontItem from '../models/StorefrontItem.mjs';
+// 🚀 ENHANCED: Coordinated model imports with associations
+import { getStorefrontItem } from '../models/index.mjs';
+
+// Get model with coordinated associations
+const StorefrontItem = getStorefrontItem();
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();

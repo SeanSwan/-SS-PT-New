@@ -55,38 +55,75 @@ const createRequiredDirectories = async () => {
  */
 const initializeDatabases = async () => {
   try {
-    // 🚨 CRITICAL P0 FIX: Set up model associations FIRST before any database operations
-    logger.info('🎯 Setting up model associations (P0 checkout fix)...');
+    // 🚨 ENHANCED P0 FIX: Initialize coordinated model system FIRST
+    logger.info('🎯 ENHANCED: Setting up coordinated model associations (P0 checkout fix)...');
     const associatedModels = await setupAssociations();
     
-    // 🎯 ENHANCED P0 VERIFICATION: Deep association check
+    // 🚀 ENHANCED: Initialize coordinated models cache for full-stack consistency
+    logger.info('🔗 ENHANCED: Initializing coordinated models cache for system-wide consistency...');
+    try {
+      const { initializeModelsCache } = await import('../models/index.mjs');
+      await initializeModelsCache();
+      logger.info('✅ ENHANCED: Coordinated models cache initialized - full-stack consistency achieved');
+      
+      // 🎯 ENHANCED: Verify critical system models are accessible
+      const { getCartItem, getUser, getStorefrontItem } = await import('../models/index.mjs');
+      const testModels = { 
+        CartItem: getCartItem(), 
+        User: getUser(), 
+        StorefrontItem: getStorefrontItem() 
+      };
+      
+      const allModelsValid = Object.values(testModels).every(model => model && model.associations);
+      if (allModelsValid) {
+        logger.info('✅ ENHANCED SUCCESS: All critical models verified with associations');
+        
+        // 🚀 ENHANCED: Run comprehensive system coordination check
+        try {
+          const { verifySystemCoordination } = await import('../utils/systemCoordinationCheck.mjs');
+          const healthCheck = await verifySystemCoordination();
+          logger.info('🎉 ENHANCED: Full-stack coordination verification passed', healthCheck);
+        } catch (healthError) {
+          logger.warn('⚠️ ENHANCED: System coordination check failed (non-critical):', healthError.message);
+        }
+      } else {
+        throw new Error('Critical models missing associations after cache initialization');
+      }
+    } catch (cacheError) {
+      logger.error('❌ ENHANCED CRITICAL: Failed to initialize coordinated models cache:', cacheError);
+      throw cacheError;
+    }
+    
+    // 🎯 ENHANCED P0 VERIFICATION: Deep association check with coordinated imports
     if (associatedModels && associatedModels.CartItem && associatedModels.CartItem.associations && associatedModels.CartItem.associations.storefrontItem) {
       const association = associatedModels.CartItem.associations.storefrontItem;
-      logger.info('✅ P0 CRITICAL FIX VERIFIED: CartItem -> StorefrontItem association confirmed', {
+      logger.info('✅ ENHANCED P0 VERIFIED: CartItem -> StorefrontItem association confirmed', {
         associationType: association.associationType,
         foreignKey: association.foreignKey,
         as: association.as,
         targetModel: association.target.name
       });
       
-      // Additional verification: Test that models/index.mjs exports work
+      // 🚀 ENHANCED: Test coordinated imports from models/index.mjs
       try {
-        const { getCartItem, getStorefrontItem } = await import('../models/index.mjs');
-        const testCartItem = await getCartItem();
-        const testStorefrontItem = await getStorefrontItem();
+        const { getCartItem, getStorefrontItem, getAllModels } = await import('../models/index.mjs');
+        const testCartItem = getCartItem();
+        const testStorefrontItem = getStorefrontItem();
+        const allModels = getAllModels();
         
         if (testCartItem && testStorefrontItem && testCartItem.associations?.storefrontItem) {
-          logger.info('✅ P0 CRITICAL SUCCESS: Models/index.mjs exports verified with associations');
+          logger.info('✅ ENHANCED P0 SUCCESS: Coordinated imports verified with associations');
+          logger.info(`🔗 ENHANCED: Models cache contains ${Object.keys(allModels).length} models with associations`);
         } else {
-          logger.error('❌ P0 CRITICAL ERROR: Models/index.mjs exports missing associations');
+          logger.error('❌ ENHANCED P0 ERROR: Coordinated imports missing associations');
         }
-      } catch (indexTestError) {
-        logger.error('❌ P0 CRITICAL ERROR: Failed to test models/index.mjs exports:', indexTestError.message);
+      } catch (coordImportError) {
+        logger.error('❌ ENHANCED P0 ERROR: Failed to test coordinated imports:', coordImportError.message);
       }
       
     } else {
-      logger.error('❌ P0 CRITICAL ERROR: CartItem -> StorefrontItem association missing or incomplete');
-      logger.warn('⚠️ Checkout functionality will be broken - association mismatch detected');
+      logger.error('❌ ENHANCED P0 ERROR: CartItem -> StorefrontItem association missing or incomplete');
+      logger.warn('⚠️ ENHANCED: Checkout functionality will be broken - association mismatch detected');
     }
     
     logger.info('✅ Database associations configured and verified');

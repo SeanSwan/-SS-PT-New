@@ -219,7 +219,11 @@ import { sendSMS, isTwilioServiceConfigured } from './twilioService.mjs';
 import { getNotificationRecipients, getPrimaryRecipients } from './notificationSettingsService.mjs';
 import logger from '../utils/logger.mjs';
 import { getIO } from '../socket/socketManager.mjs';
-import User from '../models/User.mjs';
+// 🚀 ENHANCED: Coordinated model imports for consistent associations
+import { getUser } from '../models/index.mjs';
+
+// Get User model with coordinated associations
+const User = getUser();
 
 // Legacy function moved to sendTraditionalNotification and no longer exported separately
 // Instead, unified sendNotification above handles both real-time and traditional notifications

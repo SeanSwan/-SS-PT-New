@@ -2,12 +2,16 @@
 import logger from '../utils/logger.mjs';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import User from '../models/User.mjs';
+// 🚀 ENHANCED: Coordinated model imports for consistent associations
+import { getUser } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import { Op } from 'sequelize';
 import dotenv from 'dotenv';
 import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
+
+// Get User model with coordinated associations
+const User = getUser();
 
 dotenv.config();
 
@@ -90,34 +94,23 @@ const sanitizeUser = (user) => {
 };
 
 /**
- * @desc    Check if user is rate limited
+ * 🚀 ENHANCED: Simplified rate limiting with better efficiency
  * @param   {String} identifier - IP address or username
  * @returns {Boolean} True if rate limited, false otherwise
  */
-const isRateLimited = (identifier) => {
+const checkAndRecordAttempt = (identifier) => {
   const now = Date.now();
   const attempts = loginAttempts.get(identifier) || [];
   
-  // Filter out attempts older than the window
-  const recentAttempts = attempts.filter(
-    timestamp => now - timestamp < LOGIN_ATTEMPT_WINDOW
-  );
+  // Filter recent attempts and add current attempt in one operation
+  const recentAttempts = attempts
+    .filter(timestamp => now - timestamp < LOGIN_ATTEMPT_WINDOW)
+    .concat(now);
   
-  // Update the attempt list
   loginAttempts.set(identifier, recentAttempts);
   
-  // Check if rate limited
-  return recentAttempts.length >= LOGIN_ATTEMPT_LIMIT;
-};
-
-/**
- * @desc    Record a login attempt
- * @param   {String} identifier - IP address or username
- */
-const recordLoginAttempt = (identifier) => {
-  const attempts = loginAttempts.get(identifier) || [];
-  attempts.push(Date.now());
-  loginAttempts.set(identifier, attempts);
+  // Return if rate limited (excluding the current attempt)
+  return recentAttempts.length > LOGIN_ATTEMPT_LIMIT;
 };
 
 /**
@@ -385,18 +378,14 @@ export const login = async (req, res) => {
       });
     }
 
-    // Rate limiting by IP and username
-    if (isRateLimited(ipAddress) || isRateLimited(username)) {
+    // 🚀 ENHANCED: Simplified rate limiting check
+    if (checkAndRecordAttempt(ipAddress) || checkAndRecordAttempt(username)) {
       logger.warn(`Rate limited login attempt for ${username} from ${ipAddress}`);
       return res.status(429).json({
         success: false,
         message: 'Too many login attempts. Please try again later.'
       });
     }
-
-    // Log attempt for rate limiting
-    recordLoginAttempt(ipAddress);
-    recordLoginAttempt(username);
 
     // Find the user with enhanced error handling
     console.log(`🔍 Searching for user: ${username}`);

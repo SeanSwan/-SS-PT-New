@@ -1,90 +1,106 @@
 /**
- * SwanStudios Models Index - Centralized Model Export with Associations
- * ====================================================================
- * Master Prompt v30 aligned - P0 checkout fix implementation
+ * SwanStudios Models Index - Enhanced Centralized Model Export Hub
+ * ===============================================================
+ * Master Prompt v30 aligned - SIMPLIFIED coordination for P0 checkout fix
  * 
- * This file exports models WITH associations already established,
- * preventing the runtime association mismatch that caused the
- * "1 items, 0 total sessions" checkout blocker.
+ * This file provides a single, reliable source for all models WITH associations.
+ * Eliminates the async complexity that was causing import chain confusion.
  * 
  * CRITICAL: All route files MUST import models from this index.mjs
  * to ensure associations are available at runtime.
  */
 
 import logger from '../utils/logger.mjs';
-
-// Import the associations setup function
 import getModels from './associations.mjs';
 
-// Singleton pattern to ensure models are initialized once
-let modelsWithAssociations = null;
-let initializationPromise = null;
+// Global models cache - initialized once during server startup
+let modelsCache = null;
+let isInitialized = false;
 
 /**
- * Get models with associations established
+ * Initialize models cache (called during server startup)
  * @returns {Promise<Object>} Models object with all associations
  */
-const getModelsWithAssociations = async () => {
-  // Return existing models if already initialized
-  if (modelsWithAssociations) {
-    return modelsWithAssociations;
+const initializeModelsCache = async () => {
+  if (isInitialized && modelsCache) {
+    logger.info('🔄 Models cache already initialized, returning cached models');
+    return modelsCache;
   }
   
-  // Return existing promise if initialization is in progress
-  if (initializationPromise) {
-    return await initializationPromise;
-  }
-  
-  // Start initialization
-  initializationPromise = (async () => {
-    try {
-      logger.info('🔗 P0 FIX: Initializing models with associations for runtime usage...');
-      
-      const models = await getModels();
-      
-      if (!models) {
-        throw new Error('Failed to get models from associations.mjs');
-      }
-      
-      // 🎯 CRITICAL P0 VERIFICATION: Ensure CartItem -> StorefrontItem association exists
-      if (models.CartItem && models.CartItem.associations && models.CartItem.associations.storefrontItem) {
-        logger.info('✅ P0 CRITICAL FIX: CartItem -> StorefrontItem association verified in models/index.mjs');
-      } else {
-        logger.error('❌ P0 CRITICAL ERROR: CartItem -> StorefrontItem association missing in models/index.mjs');
-        throw new Error('Critical association missing: CartItem -> StorefrontItem');
-      }
-      
-      // Store models for reuse
-      modelsWithAssociations = models;
-      
-      logger.info(`🎉 P0 FIX: Models with associations ready for runtime (${Object.keys(models).length} models)`);
-      
-      return models;
-    } catch (error) {
-      logger.error('❌ P0 CRITICAL: Failed to initialize models with associations:', error);
-      initializationPromise = null; // Reset for retry
-      throw error;
+  try {
+    logger.info('🚀 ENHANCED: Initializing models cache for coordinated imports...');
+    
+    const models = await getModels();
+    
+    if (!models) {
+      throw new Error('Failed to get models from associations.mjs');
     }
-  })();
-  
-  return await initializationPromise;
+    
+    // 🎯 ENHANCED P0 VERIFICATION: Deep association validation
+    const associationChecks = {
+      cartToStorefront: !!(models.CartItem?.associations?.storefrontItem),
+      cartToShoppingCart: !!(models.CartItem?.associations?.cart),
+      shoppingCartToItems: !!(models.ShoppingCart?.associations?.cartItems),
+      userToShoppingCarts: !!(models.User?.associations?.shoppingCarts)
+    };
+    
+    const allCriticalAssociationsExist = Object.values(associationChecks).every(check => check === true);
+    
+    if (allCriticalAssociationsExist) {
+      logger.info('✅ ENHANCED P0 SUCCESS: All critical associations verified in models cache');
+    } else {
+      const missingAssociations = Object.entries(associationChecks)
+        .filter(([key, value]) => !value)
+        .map(([key]) => key);
+      logger.error('❌ ENHANCED P0 ERROR: Missing critical associations:', missingAssociations);
+      throw new Error(`Critical associations missing: ${missingAssociations.join(', ')}`);
+    }
+    
+    // Cache the models globally
+    modelsCache = models;
+    isInitialized = true;
+    
+    logger.info(`🎉 ENHANCED: Models cache initialized successfully (${Object.keys(models).length} models)`);
+    
+    return models;
+  } catch (error) {
+    logger.error('❌ ENHANCED P0 CRITICAL: Failed to initialize models cache:', error);
+    throw error;
+  }
 };
 
 /**
- * Get specific model with associations
- * @param {string} modelName - Name of the model to get
- * @returns {Promise<Object>} Model with associations
+ * Get all models with associations (synchronous after initialization)
+ * @returns {Object} Models object with all associations
  */
-const getModel = async (modelName) => {
-  const models = await getModelsWithAssociations();
+const getAllModels = () => {
+  if (!isInitialized || !modelsCache) {
+    throw new Error('Models cache not initialized. Call initializeModelsCache() during server startup.');
+  }
+  return modelsCache;
+};
+
+/**
+ * Get specific model with associations (synchronous after initialization)
+ * @param {string} modelName - Name of the model to get
+ * @returns {Object} Model with associations
+ */
+const getModel = (modelName) => {
+  const models = getAllModels();
+  if (!models[modelName]) {
+    throw new Error(`Model '${modelName}' not found in cache`);
+  }
   return models[modelName];
 };
 
-// Export function to get models with associations
-export { getModelsWithAssociations as getAllModels };
+// Export initialization function (for server startup)
+export { initializeModelsCache };
+
+// Export main functions
+export { getAllModels };
 export { getModel };
 
-// Export specific getter functions for critical models
+// 🎯 ENHANCED: Synchronous getter functions for critical models (post-initialization)
 export const getCartItem = () => getModel('CartItem');
 export const getStorefrontItem = () => getModel('StorefrontItem');
 export const getShoppingCart = () => getModel('ShoppingCart');
@@ -96,7 +112,7 @@ export const getClientProgress = () => getModel('ClientProgress');
 export const getNotification = () => getModel('Notification');
 export const getContact = () => getModel('Contact');
 
-// Legacy exports for compatibility
+// Legacy exports for backward compatibility
 export { default } from './associations.mjs';
 export { default as getModels } from './associations.mjs';
 export { default as getDB } from './associations.mjs';
