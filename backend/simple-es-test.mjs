@@ -1,0 +1,1 @@
+console.log('=== SIMPLE ES MODULE TEST ===');\nconsole.log('This is a simple ES module');\nconsole.log('No imports, just basic console.log');\nconsole.log('=== END TEST ===');

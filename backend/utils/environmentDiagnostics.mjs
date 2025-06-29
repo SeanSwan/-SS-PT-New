@@ -1,198 +1,292 @@
 /**
- * environmentDiagnostics.mjs
- * ==========================
- * Backend environment diagnostics for payment issues
+ * Environment Diagnostics Handler - SwanStudios Payment System
+ * ===========================================================
+ * Master Prompt v33 Compliance - Comprehensive environment diagnostics
  * 
- * Master Prompt v28.6 Compliance:
- * ✅ Single Responsibility: Only diagnoses environment configuration
- * ✅ Production-Ready: Safe for production use (no secret exposure)
- * ✅ Modular Design: Independent diagnostic utility
+ * Features:
+ * - Public diagnostics endpoint (no authentication required)
+ * - Safe environment inspection
+ * - Real-time configuration status
+ * - Actionable error reporting
+ * 
+ * Security: NEVER exposes actual secret values, only configuration status
  */
 
-import { isStripeConfigured, getStripeConfig, getSetupInstructions } from '../utils/stripeConfig.mjs';
-import logger from '../utils/logger.mjs';
-
-/**
- * Perform comprehensive environment diagnostics
- */
-export const performEnvironmentDiagnostics = () => {
-  console.log('\n🔍 SWANSTUDIOS ENVIRONMENT DIAGNOSTICS');
-  console.log('=====================================');
-  
-  const diagnostics = {
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'unknown',
-    stripe: {},
-    database: {},
-    server: {},
-    recommendations: []
-  };
-  
-  // Stripe Configuration
-  console.log('\n💳 STRIPE CONFIGURATION:');
-  const stripeConfig = getStripeConfig();
-  diagnostics.stripe = {
-    configured: stripeConfig.isConfigured,
-    environment: stripeConfig.environment,
-    hasSecretKey: !!stripeConfig.secretKey,
-    hasPublishableKey: !!stripeConfig.publishableKey,
-    hasWebhookSecret: !!stripeConfig.webhookSecret,
-    errors: stripeConfig.errors
-  };
-  
-  if (stripeConfig.isConfigured) {
-    console.log('  ✅ Stripe is properly configured');
-    console.log(`  📍 Environment: ${stripeConfig.environment}`);
-  } else {
-    console.log('  ❌ Stripe configuration issues detected:');
-    stripeConfig.errors.forEach(error => {
-      console.log(`    • ${error}`);
-    });
-    diagnostics.recommendations.push('Fix Stripe configuration (see setup instructions below)');
-  }
-  
-  // Database Configuration
-  console.log('\n🗄️  DATABASE CONFIGURATION:');
-  const hasPostgres = !!process.env.DATABASE_URL || (!!process.env.PG_HOST && !!process.env.PG_DB);
-  const hasMongo = !!process.env.MONGODB_URI;
-  
-  diagnostics.database = {
-    postgres: hasPostgres,
-    mongodb: hasMongo,
-    databaseUrl: !!process.env.DATABASE_URL,
-    localPostgres: !!(process.env.PG_HOST && process.env.PG_DB)
-  };
-  
-  if (hasPostgres) {
-    console.log('  ✅ PostgreSQL configuration detected');
-  } else {
-    console.log('  ⚠️  PostgreSQL configuration missing');
-    diagnostics.recommendations.push('Configure PostgreSQL database connection');
-  }
-  
-  if (hasMongo) {
-    console.log('  ✅ MongoDB configuration detected');
-  } else {
-    console.log('  ⚠️  MongoDB configuration missing');
-  }
-  
-  // Server Configuration
-  console.log('\n🖥️  SERVER CONFIGURATION:');
-  const hasJwtSecret = !!process.env.JWT_SECRET;
-  const hasPort = !!process.env.PORT;
-  const hasNodeEnv = !!process.env.NODE_ENV;
-  
-  diagnostics.server = {
-    jwtSecret: hasJwtSecret,
-    port: process.env.PORT || '5000',
-    nodeEnv: process.env.NODE_ENV || 'development',
-    hasEnvFile: process.env.NODE_ENV !== 'production' // Assume .env exists if not production
-  };
-  
-  if (hasJwtSecret) {
-    console.log('  ✅ JWT Secret configured');
-  } else {
-    console.log('  ❌ JWT Secret missing - authentication will fail');
-    diagnostics.recommendations.push('Set JWT_SECRET in environment variables');
-  }
-  
-  console.log(`  📍 Port: ${diagnostics.server.port}`);
-  console.log(`  📍 Environment: ${diagnostics.server.nodeEnv}`);
-  
-  // API Keys Status
-  console.log('\n🔑 API KEYS STATUS:');
-  const apiKeys = {
-    stripe: isStripeConfigured(),
-    sendgrid: !!process.env.SENDGRID_API_KEY,
-    twilio: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN)
-  };
-  
-  Object.entries(apiKeys).forEach(([service, configured]) => {
-    if (configured) {
-      console.log(`  ✅ ${service.toUpperCase()}: Configured`);
-    } else {
-      console.log(`  ⚠️  ${service.toUpperCase()}: Not configured`);
-    }
-  });
-  
-  // Recommendations
-  if (diagnostics.recommendations.length > 0) {
-    console.log('\n💡 RECOMMENDATIONS:');
-    diagnostics.recommendations.forEach((rec, index) => {
-      console.log(`  ${index + 1}. ${rec}`);
-    });
-  }
-  
-  // Setup Instructions for Stripe (if needed)
-  if (!stripeConfig.isConfigured) {
-    console.log('\n📋 STRIPE SETUP INSTRUCTIONS:');
-    const instructions = getSetupInstructions();
-    instructions.forEach(instruction => {
-      console.log(`  ${instruction}`);
-    });
-  }
-  
-  // Summary
-  console.log('\n📊 DIAGNOSIS SUMMARY:');
-  const criticalIssues = diagnostics.recommendations.length;
-  if (criticalIssues === 0) {
-    console.log('  🎉 All systems appear to be configured correctly!');
-  } else {
-    console.log(`  ⚠️  ${criticalIssues} configuration issue(s) detected`);
-    console.log('  🔧 Please address the recommendations above');
-  }
-  
-  console.log('\n=====================================\n');
-  
-  return diagnostics;
-};
+import logger from './logger.mjs';
+import { inspectStripeEnvironment, analyzeKeyMatching } from './environmentInspector.mjs';
+import { validateStripeConfig, getHealthReport, getConfigurationRecommendations } from './stripeConfig.mjs';
+import { isStripeEnabled, checkApiKeys } from './apiKeyChecker.mjs';
 
 /**
- * Express route handler for diagnostics endpoint
+ * Comprehensive diagnostics handler for Express routes
  */
-export const diagnosticsHandler = (req, res) => {
+export function diagnosticsHandler(req, res) {
   try {
-    const diagnostics = performEnvironmentDiagnostics();
+    console.log('\n🚨 DIAGNOSTICS ENDPOINT ACCESSED');
+    console.log('================================');
+    console.log(`Request from: ${req.ip || 'unknown'}`);
+    console.log(`User Agent: ${req.get('User-Agent') || 'unknown'}`);
+    console.log(`Timestamp: ${new Date().toISOString()}`);
     
-    // Remove sensitive information for API response
-    const safeDiagnostics = {
-      ...diagnostics,
-      stripe: {
-        configured: diagnostics.stripe.configured,
-        environment: diagnostics.stripe.environment,
-        hasSecretKey: diagnostics.stripe.hasSecretKey,
-        hasPublishableKey: diagnostics.stripe.hasPublishableKey,
-        hasWebhookSecret: diagnostics.stripe.hasWebhookSecret,
-        errorCount: diagnostics.stripe.errors?.length || 0
-        // Don't include actual error messages (might contain sensitive info)
-      },
-      database: diagnostics.database,
-      server: {
-        port: diagnostics.server.port,
-        nodeEnv: diagnostics.server.nodeEnv,
-        hasJwtSecret: diagnostics.server.hasJwtSecret
-      },
-      recommendations: diagnostics.recommendations
+    // Run all diagnostic checks
+    console.log('\n🔄 Running comprehensive diagnostics...');
+    
+    // 1. Environment inspection
+    const envInspection = inspectStripeEnvironment();
+    
+    // 2. Key matching analysis
+    const keyMatching = analyzeKeyMatching();
+    
+    // 3. Stripe configuration validation
+    const stripeConfig = validateStripeConfig();
+    
+    // 4. Health report
+    const healthReport = getHealthReport();
+    
+    // 5. Configuration recommendations
+    const recommendations = getConfigurationRecommendations();
+    
+    // 6. API key checker status
+    const stripeEnabled = isStripeEnabled();
+    
+    // Generate overall status
+    const criticalIssues = [];
+    const warnings = [];
+    const successes = [];
+    
+    // Analyze results
+    if (envInspection.summary.missing > 0) {
+      criticalIssues.push(`${envInspection.summary.missing} required environment variables missing`);
+    }
+    
+    if (envInspection.summary.formatIssues > 0) {
+      criticalIssues.push(`${envInspection.summary.formatIssues} environment variables have format issues`);
+    }
+    
+    if (!keyMatching.matched) {
+      criticalIssues.push(`Stripe keys don't match: ${keyMatching.reason}`);
+    }
+    
+    if (!stripeConfig.isConfigured) {
+      criticalIssues.push('Stripe configuration is invalid');
+    }
+    
+    if (!stripeEnabled) {
+      criticalIssues.push('Stripe is not enabled by API key checker');
+    }
+    
+    if (envInspection.summary.whitespaceIssues > 0) {
+      warnings.push(`${envInspection.summary.whitespaceIssues} environment variables have whitespace issues`);
+    }
+    
+    if (stripeConfig.environment === 'test' && process.env.NODE_ENV === 'production') {
+      warnings.push('Using test Stripe keys in production environment');
+    }
+    
+    if (criticalIssues.length === 0 && warnings.length === 0) {
+      successes.push('All diagnostics passed - payment system should be operational');
+    }
+    
+    // Overall status determination
+    const overallStatus = criticalIssues.length > 0 ? 'CRITICAL_ISSUES' : 
+                         warnings.length > 0 ? 'WARNINGS' : 'HEALTHY';
+    
+    // Log summary
+    console.log('\n📊 DIAGNOSTIC RESULTS:');
+    console.log(`   Overall Status: ${overallStatus}`);
+    console.log(`   Critical Issues: ${criticalIssues.length}`);
+    console.log(`   Warnings: ${warnings.length}`);
+    console.log(`   Successes: ${successes.length}`);
+    console.log('================================\n');
+    
+    // Prepare response
+    const diagnosticsResponse = {
+      success: true,
+      data: {
+        timestamp: new Date().toISOString(),
+        overallStatus,
+        environment: process.env.NODE_ENV || 'development',
+        nodeVersion: process.version,
+        uptime: process.uptime(),
+        
+        // Core diagnostic data
+        environmentInspection: envInspection,
+        keyMatching,
+        stripeConfiguration: stripeConfig,
+        healthReport,
+        recommendations,
+        apiKeyChecker: {
+          stripeEnabled,
+          lastChecked: new Date().toISOString()
+        },
+        
+        // Summary
+        summary: {
+          criticalIssues: criticalIssues.length,
+          warnings: warnings.length,
+          successes: successes.length,
+          issues: criticalIssues,
+          warningMessages: warnings,
+          successMessages: successes
+        },
+        
+        // Next steps
+        nextSteps: generateNextSteps(overallStatus, criticalIssues, warnings)
+      }
     };
     
-    res.json({
-      success: true,
-      data: safeDiagnostics
-    });
+    // Set appropriate HTTP status
+    const httpStatus = overallStatus === 'CRITICAL_ISSUES' ? 200 : // Still 200 because diagnostics succeeded
+                      overallStatus === 'WARNINGS' ? 200 : 200;
+    
+    res.status(httpStatus).json(diagnosticsResponse);
+    
+    logger.info(`Diagnostics completed with status: ${overallStatus}`);
+    
   } catch (error) {
-    logger.error('Error performing diagnostics:', error);
+    console.error('\n💥 DIAGNOSTICS ERROR:', error);
+    logger.error('Diagnostics handler error:', error);
+    
     res.status(500).json({
       success: false,
-      message: 'Failed to perform diagnostics',
+      message: 'Diagnostics failed to run',
       error: {
         code: 'DIAGNOSTICS_ERROR',
-        details: 'Internal diagnostics error'
+        details: error.message,
+        timestamp: new Date().toISOString()
+      },
+      fallback: {
+        description: 'Manual verification needed',
+        steps: [
+          'Check that your .env file exists and contains Stripe keys',
+          'Verify STRIPE_SECRET_KEY starts with sk_',
+          'Verify VITE_STRIPE_PUBLISHABLE_KEY starts with pk_',
+          'Ensure both keys are from the same Stripe account',
+          'Restart your server after making changes'
+        ]
       }
     });
   }
-};
+}
+
+/**
+ * Generate actionable next steps based on diagnostic results
+ */
+function generateNextSteps(overallStatus, criticalIssues, warnings) {
+  const steps = [];
+  
+  switch (overallStatus) {
+    case 'CRITICAL_ISSUES':
+      steps.push({
+        priority: 'critical',
+        title: 'Fix Critical Configuration Issues',
+        description: 'Payment processing will not work until these are resolved',
+        actions: [
+          'Check your .env file in the backend directory',
+          'Ensure all required Stripe environment variables are present',
+          'Verify key formats (sk_ for secret, pk_ for publishable)',
+          'Confirm keys are from the same Stripe account',
+          'Restart your server after making changes'
+        ]
+      });
+      break;
+      
+    case 'WARNINGS':
+      steps.push({
+        priority: 'warning',
+        title: 'Address Configuration Warnings',
+        description: 'Payment may work but has potential issues',
+        actions: [
+          'Review the warning messages above',
+          'Consider the environment recommendations',
+          'Test payment functionality thoroughly',
+          'Monitor for any payment processing errors'
+        ]
+      });
+      break;
+      
+    case 'HEALTHY':
+      steps.push({
+        priority: 'success',
+        title: 'Test Payment Functionality',
+        description: 'Configuration looks good - verify payment processing',
+        actions: [
+          'Test creating a payment intent: POST /api/payments/create-payment-intent',
+          'Verify the payment form loads correctly',
+          'Process a test payment if using test keys',
+          'Monitor payment processing logs'
+        ]
+      });
+      break;
+  }
+  
+  // Add monitoring step for all cases
+  steps.push({
+    priority: 'info',
+    title: 'Ongoing Monitoring',
+    description: 'Keep track of payment system health',
+    actions: [
+      'Bookmark this diagnostics endpoint for future use',
+      'Set up monitoring for payment processing errors',
+      'Regularly check Stripe dashboard for payment status',
+      'Monitor application logs for payment-related issues'
+    ]
+  });
+  
+  return steps;
+}
+
+/**
+ * Lightweight status check (faster than full diagnostics)
+ */
+export function quickStatusCheck() {
+  try {
+    const stripeEnabled = isStripeEnabled();
+    const hasSecretKey = !!process.env.STRIPE_SECRET_KEY;
+    const hasPublishableKey = !!process.env.VITE_STRIPE_PUBLISHABLE_KEY;
+    
+    return {
+      timestamp: new Date().toISOString(),
+      status: stripeEnabled && hasSecretKey && hasPublishableKey ? 'operational' : 'issues',
+      checks: {
+        stripeEnabled,
+        hasSecretKey,
+        hasPublishableKey
+      }
+    };
+  } catch (error) {
+    return {
+      timestamp: new Date().toISOString(),
+      status: 'error',
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Express route handler for quick status
+ */
+export function quickStatusHandler(req, res) {
+  try {
+    const status = quickStatusCheck();
+    res.json({
+      success: true,
+      data: status
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Status check failed',
+      error: {
+        code: 'STATUS_CHECK_ERROR',
+        details: error.message
+      }
+    });
+  }
+}
 
 export default {
-  performEnvironmentDiagnostics,
-  diagnosticsHandler
+  diagnosticsHandler,
+  quickStatusCheck,
+  quickStatusHandler
 };

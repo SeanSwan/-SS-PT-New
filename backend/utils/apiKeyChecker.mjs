@@ -1,6 +1,6 @@
 // backend/utils/apiKeyChecker.mjs
 
-import { isStripeConfigured } from './stripeConfig.mjs';
+import { isStripeReady } from './stripeConfig.mjs';
 
 // Store the status of keys after checking
 const keyStatus = {
@@ -25,11 +25,11 @@ export const checkApiKeys = () => {
     console.log('--- Checking API Key Configuration ---');
 
     // --- Stripe (using new configuration helper) ---
-    keyStatus.stripe = isStripeConfigured();
+    keyStatus.stripe = isStripeReady();
     if (keyStatus.stripe) {
-        console.log('[API Key Check] Stripe: OK (Configured via stripeConfig helper)');
+        console.log('[API Key Check] Stripe: OK (Configured and ready for processing)');
     } else {
-        console.warn('[API Key Check] Stripe: NOT_CONFIGURED (See stripeConfig.mjs for details). Payment features disabled.');
+        console.warn('[API Key Check] Stripe: NOT_READY (Check stripeConfig.mjs for details). Payment features disabled.');
     }
 
     // --- SendGrid ---
@@ -93,7 +93,7 @@ export const checkApiKeys = () => {
 };
 
 // Export status checkers for conditional logic elsewhere
-export const isStripeEnabled = () => keyStatus.stripe || isStripeConfigured();
+export const isStripeEnabled = () => keyStatus.stripe || isStripeReady();
 export const isSendGridEnabled = () => keyStatus.sendgrid;
 export const isTwilioEnabled = () => keyStatus.twilio;
 
