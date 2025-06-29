@@ -35,6 +35,7 @@ import { CreditCard, Shield, Zap, CheckCircle, AlertCircle, Loader } from 'lucid
 
 // Import enhanced error handling
 import PaymentErrorHandler from './PaymentErrorHandler';
+import paymentDiagnostics from '../../utils/paymentDiagnostics';
 
 // Import diagnostic utilities for development
 if (process.env.NODE_ENV === 'development') {
@@ -43,6 +44,9 @@ if (process.env.NODE_ENV === 'development') {
   }).catch(err => {
     console.warn('Failed to load payment diagnostics:', err);
   });
+  
+  // Load payment diagnostics
+  console.log('🔧 Payment system diagnostics available via SwanPaymentDiagnostics.runAndReport()');
 }
 
 // Performance-optimized Stripe loading with enhanced validation
@@ -864,103 +868,197 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
   }, [selectedPaymentMethod, enableSubscription]);
 
   // Performance-optimized handlers with useCallback
-  const handlePaymentMethodChange = useCallback((method: PaymentMethodType) => {
-    setSelectedPaymentMethod(method);
-  }, []);
+const handlePaymentMethodChange = useCallback((method: PaymentMethodType) => {
+  setSelectedPaymentMethod(method);
+}, []);
 
-  const handleSubscriptionToggle = useCallback(() => {
-    setEnableSubscription(prev => !prev);
-  }, []);
+const handleSubscriptionToggle = useCallback(() => {
+  setEnableSubscription(prev => !prev);
+}, []);
 
-  // Optimized submit handler with better error boundaries
-  const handleSubmit = useCallback(async (event: React.FormEvent) => {
-    event.preventDefault();
+// Add state for Payment Element readiness
+const [isPaymentElementReady, setIsPaymentElementReady] = useState(false);
+const [paymentElementError, setPaymentElementError] = useState<string | null>(null);
 
-    if (!stripe || !elements) {
-      setMessage('Payment system is loading...');
-      setMessageType('info');
-      return;
+// Payment Element ready handler
+const handlePaymentElementReady = useCallback(() => {
+  console.log('💳 Payment Element is ready for interaction');
+  setIsPaymentElementReady(true);
+  setPaymentElementError(null);
+}, []);
+
+// Payment Element change handler for debugging
+const handlePaymentElementChange = useCallback((event: any) => {
+  console.log('💳 Payment Element change:', event);
+  if (event.complete) {
+    console.log('✅ Payment Element input is complete and valid');
+  }
+  if (event.error) {
+    console.error('❌ Payment Element error:', event.error);
+    setPaymentElementError(event.error.message);
+  }
+}, []);
+
+  // Optimized submit handler with better error boundaries and mounting validation
+const handleSubmit = useCallback(async (event: React.FormEvent) => {
+  event.preventDefault();
+
+  console.log('💳 Payment form submitted');
+  console.log('🔍 Pre-flight checks:', {
+  stripe: !!stripe,
+  elements: !!elements,
+    isPaymentElementReady,
+    selectedPaymentMethod,
+    userEmail: user?.email
+  });
+
+  if (!stripe || !elements) {
+  const errorMsg = 'Payment system is loading...';
+  console.warn('⚠️ Payment system not ready:', { stripe: !!stripe, elements: !!elements });
+  setMessage(errorMsg);
+  setMessageType('info');
+  return;
+  }
+
+  // CRITICAL: Check if Payment Element is ready before proceeding
+  if (!isPaymentElementReady) {
+  const errorMsg = 'Payment form is still loading. Please wait a moment and try again.';
+  console.error('❌ Payment Element not ready - blocking submission');
+  setMessage(errorMsg);
+  setMessageType('error');
+  return;
+  }
+
+  // Additional validation for Payment Element
+  const paymentElement = elements.getElement('payment');
+  if (!paymentElement) {
+  const errorMsg = 'Payment form not properly loaded. Please refresh and try again.';
+  console.error('❌ Payment Element not found in elements');
+  setMessage(errorMsg);
+  setMessageType('error');
+  onError(errorMsg);
+  return;
+  }
+
+  setIsProcessing(true);
+  setMessage(null);
+
+  try {
+  console.log('🚀 Initiating Stripe confirmPayment...');
+  console.log('📋 Payment configuration:', {
+  clientSecret: clientSecret.substring(0, 20) + '...',
+  returnUrl: `${window.location.origin}/checkout/CheckoutSuccess`,
+  userEmail: user?.email,
+  selectedMethod: selectedPaymentMethod
+  });
+
+  const { error, paymentIntent } = await stripe.confirmPayment({
+    elements,
+      confirmParams: {
+      return_url: `${window.location.origin}/checkout/CheckoutSuccess`,
+      receipt_email: user?.email,
+    },
+    redirect: 'if_required',
+  });
+
+  if (error) {
+    console.error('💳 Stripe confirmPayment error:', error);
+  console.error('Error details:', {
+      type: error.type,
+    code: error.code,
+      message: error.message,
+    paymentMethod: error.payment_method
+    });
+  
+  let userFriendlyMessage = error.message || 'An unexpected error occurred.';
+    
+  // Handle specific error types
+    if (error.code === 'payment_intent_authentication_failure') {
+      userFriendlyMessage = 'Payment authentication failed. Please verify your payment information and try again.';
+    } else if (error.code === 'card_declined') {
+      userFriendlyMessage = 'Your payment method was declined. Please try a different payment method.';
+  } else if (error.code === 'expired_card') {
+    userFriendlyMessage = 'Your payment method has expired. Please use a different payment method.';
+    } else if (error.code === 'processing_error') {
+      userFriendlyMessage = 'There was an error processing your payment. Please try again.';
     }
-
-    setIsProcessing(true);
-    setMessage(null);
-
-    try {
-      const { error, paymentIntent } = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: `${window.location.origin}/checkout/CheckoutSuccess`,
-          receipt_email: user?.email,
-        },
-        redirect: 'if_required',
-      });
-
-      if (error) {
-        setMessage(error.message || 'An unexpected error occurred.');
-        setMessageType('error');
-        onError(error.message || 'Payment failed');
-      } else if (paymentIntent && paymentIntent.status === 'succeeded') {
-        // Enhanced success messaging with payment details
-        const paymentMethod = selectedPaymentMethod === 'bank' ? 'EFT Bank Transfer' : 
-          selectedPaymentMethod === 'card' ? 'Credit/Debit Card' : 'Buy Now, Pay Later';
-        
-        setMessage(`🎉 Payment successful via ${paymentMethod}! ${selectedPaymentMethod === 'bank' ? 'Bank transfer processing...' : 'Processing complete!'} Redirecting...`);
-        setMessageType('success');
-        
-        // Save successful payment method preference
-        const successPreferences: PaymentPreferences = {
-          preferredMethod: selectedPaymentMethod,
-          autoPayEnabled: enableSubscription,
-          lastUsed: new Date().toISOString()
-        };
-        savePaymentPreferences(successPreferences);
-        
-        onSuccess(paymentIntent);
-      } else {
-        // Enhanced processing messaging
-        const processingMessage = selectedPaymentMethod === 'bank' ? 
-          '🏦 Bank connection established. Processing EFT transfer...' :
-          selectedPaymentMethod === 'card' ? 
-          '💳 Card payment processing...' :
-          '⚡ Finalizing Buy Now, Pay Later setup...';
-          
-        setMessage(processingMessage);
-        setMessageType('info');
-      }
-    } catch (err: any) {
-      console.error('💳 Payment processing error:', err);
-      
-      let errorMessage = 'Payment processing failed';
-      let showDiagnosticTip = false;
-      
-      if (err.type === 'card_error') {
-        errorMessage = err.message || 'Your card was declined';
-      } else if (err.type === 'validation_error') {
-        errorMessage = 'Please check your payment information and try again';
-      } else if (err.code === 'payment_intent_authentication_failure') {
-        errorMessage = 'Payment authentication failed. Please try again';
-      } else if (err.code === 'payment_method_creation_failed') {
-        errorMessage = 'Unable to set up payment method. Please check your information';
-      } else if (err.message?.includes('publishable key')) {
-        errorMessage = 'Payment configuration error. Please contact support';
-        showDiagnosticTip = true;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      // Add diagnostic tip for configuration errors
-      if (showDiagnosticTip && process.env.NODE_ENV === 'development') {
-        console.log('🔧 DIAGNOSTIC TIP: Run SwanStripeDiagnostics.runDiagnostics() in the browser console for detailed error analysis');
-        errorMessage += ' (Check browser console for diagnostic tools)';
-      }
-      
-      setMessage(errorMessage);
+    
+    setMessage(userFriendlyMessage);
       setMessageType('error');
-      onError(errorMessage);
+      onError(userFriendlyMessage);
+    } else if (paymentIntent && paymentIntent.status === 'succeeded') {
+      console.log('🎉 Payment succeeded!', paymentIntent);
+      
+      // Enhanced success messaging with payment details
+      const paymentMethod = selectedPaymentMethod === 'bank' ? 'EFT Bank Transfer' : 
+        selectedPaymentMethod === 'card' ? 'Credit/Debit Card' : 'Buy Now, Pay Later';
+      
+      setMessage(`🎉 Payment successful via ${paymentMethod}! ${selectedPaymentMethod === 'bank' ? 'Bank transfer processing...' : 'Processing complete!'} Redirecting...`);
+      setMessageType('success');
+      
+      // Save successful payment method preference
+      const successPreferences: PaymentPreferences = {
+        preferredMethod: selectedPaymentMethod,
+        autoPayEnabled: enableSubscription,
+        lastUsed: new Date().toISOString()
+      };
+      savePaymentPreferences(successPreferences);
+      
+      onSuccess(paymentIntent);
+    } else {
+      console.log('ℹ️ Payment requires additional processing:', paymentIntent);
+      // Enhanced processing messaging
+      const processingMessage = selectedPaymentMethod === 'bank' ? 
+        '🏦 Bank connection established. Processing EFT transfer...' :
+        selectedPaymentMethod === 'card' ? 
+        '💳 Card payment processing...' :
+        '⚡ Finalizing Buy Now, Pay Later setup...';
+        
+      setMessage(processingMessage);
+      setMessageType('info');
     }
+  } catch (err: any) {
+    console.error('💥 Payment processing exception:', err);
+    console.error('Exception details:', {
+      name: err.name,
+      message: err.message,
+      stack: err.stack
+    });
+    
+    let errorMessage = 'Payment processing failed';
+    let showDiagnosticTip = false;
+    
+    if (err.type === 'card_error') {
+      errorMessage = err.message || 'Your card was declined';
+    } else if (err.type === 'validation_error') {
+      errorMessage = 'Please check your payment information and try again';
+    } else if (err.code === 'payment_intent_authentication_failure') {
+      errorMessage = 'Payment authentication failed. Please try again';
+    } else if (err.code === 'payment_method_creation_failed') {
+      errorMessage = 'Unable to set up payment method. Please check your information';
+    } else if (err.message?.includes('publishable key')) {
+      errorMessage = 'Payment configuration error. Please contact support';
+      showDiagnosticTip = true;
+    } else if (err.message?.includes('Payment Element')) {
+      errorMessage = 'Payment form error. Please refresh the page and try again';
+      showDiagnosticTip = true;
+    } else if (err.message) {
+      errorMessage = err.message;
+    }
+    
+    // Add diagnostic tip for configuration errors
+    if (showDiagnosticTip && process.env.NODE_ENV === 'development') {
+      console.log('🔧 DIAGNOSTIC TIP: Run SwanStripeDiagnostics.runDiagnostics() in the browser console for detailed error analysis');
+      errorMessage += ' (Check browser console for diagnostic tools)';
+    }
+    
+    setMessage(errorMessage);
+    setMessageType('error');
+    onError(errorMessage);
+  }
 
-    setIsProcessing(false);
-  }, [stripe, elements, selectedPaymentMethod, enableSubscription, user?.email, onSuccess, onError]);
+  setIsProcessing(false);
+}, [stripe, elements, isPaymentElementReady, selectedPaymentMethod, enableSubscription, user?.email, clientSecret, onSuccess, onError]);
 
   return (
     <form onSubmit={handleSubmit}>
@@ -1389,8 +1487,60 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
                     paymentMethodTypes: ['card', 'us_bank_account']
                   };
               }
-            }, [selectedPaymentMethod])} 
+            }, [selectedPaymentMethod])}
+            onReady={handlePaymentElementReady}
+            onChange={handlePaymentElementChange}
           />
+          
+          {/* Payment Element Status Indicators */}
+          {!isPaymentElementReady && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              style={{
+                marginTop: '0.75rem',
+                padding: '0.75rem',
+                background: 'rgba(0, 255, 255, 0.1)',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                fontSize: '0.85rem',
+                color: '#00ffff'
+              }}
+            >
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                style={{ width: '16px', height: '16px' }}
+              >
+                <Loader size={16} />
+              </motion.div>
+              Loading secure payment form...
+            </motion.div>
+          )}
+          
+          {paymentElementError && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{
+                marginTop: '0.75rem',
+                padding: '0.75rem',
+                background: 'rgba(255, 68, 68, 0.1)',
+                border: '1px solid rgba(255, 68, 68, 0.3)',
+                borderRadius: '8px',
+                fontSize: '0.85rem',
+                color: '#ff4444',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem'
+              }}
+            >
+              <AlertCircle size={16} />
+              {paymentElementError}
+            </motion.div>
+          )}
         </StripeElementContainer>
 
         {/* Security Badges */}
@@ -1413,7 +1563,7 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
         <PaymentButton
           $embedded={embedded}
           type="submit"
-          disabled={!stripe || !elements || isProcessing}
+          disabled={!stripe || !elements || isProcessing || !isPaymentElementReady}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           aria-label={selectedPaymentMethod === 'bank' 
@@ -1427,6 +1577,16 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
               {selectedPaymentMethod === 'bank' 
                 ? 'Setting up secure bank connection...' 
                 : 'Processing payment...'}
+            </>
+          ) : !isPaymentElementReady ? (
+            <>
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              >
+                <Loader size={20} />
+              </motion.div>
+              Loading payment form...
             </>
           ) : (
             <>
@@ -1520,101 +1680,145 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
   const [error, setError] = useState<any>(null); // Enhanced to handle error objects
 
   // Create Payment Intent when component opens
-  useEffect(() => {
-    if (isOpen && cart?.id && !clientSecret) {
-      createPaymentIntent();
-    }
-  }, [isOpen, cart?.id]);
+useEffect(() => {
+  if (isOpen && cart?.id && !clientSecret) {
+  console.log('💳 Payment modal opened - creating payment intent');
+    console.log('📋 Cart info:', { cartId: cart.id, total: cart.total, items: cart.items?.length });
+    createPaymentIntent();
+  }
+}, [isOpen, cart?.id]);
 
   const createPaymentIntent = async () => {
-    if (!cart?.id || !token) {
-      setError('Cart or authentication not available');
-      return;
-    }
+  if (!cart?.id || !token) {
+  console.error('❌ Payment intent creation blocked - missing cart or token:', { cartId: cart?.id, token: !!token });
+  setError('Cart or authentication not available');
+    return;
+  }
 
-    // Check if Stripe is properly configured
-    if (!stripePromise) {
-      setError('Payment system is not configured. Please contact support.');
-      return;
-    }
+  // Check if Stripe is properly configured
+  if (!stripePromise) {
+  console.error('❌ Payment intent creation blocked - Stripe not configured');
+    setError('Payment system is not configured. Please contact support.');
+    return;
+  }
 
-    setLoading(true);
-    setError(null);
+  console.log('🚀 Creating payment intent for cart:', cart.id);
+  setLoading(true);
+  setError(null);
 
-    try {
-      const response = await authAxios.post('/api/payments/create-payment-intent', {
-        cartId: cart.id
+  try {
+    const response = await authAxios.post('/api/payments/create-payment-intent', {
+    cartId: cart.id
+  });
+
+  console.log('💳 Payment intent response:', { 
+    status: response.status, 
+      success: response.data.success,
+    hasClientSecret: !!response.data.data?.clientSecret
+  });
+
+  if (response.data.success) {
+  const clientSecret = response.data.data.clientSecret;
+  
+  // Validate client secret format
+  if (!clientSecret || !clientSecret.startsWith('pi_') || !clientSecret.includes('_secret_')) {
+  console.error('❌ Invalid client secret format:', clientSecret?.substring(0, 20) + '...');
+  setError('Invalid payment configuration. Please try again.');
+  return;
+  }
+  
+  console.log('✅ Payment intent created successfully:', {
+  paymentIntentId: response.data.data.paymentIntentId,
+  amount: response.data.data.amount,
+  currency: response.data.data.currency
+  });
+  
+  setClientSecret(clientSecret);
+  } else {
+  console.error('❌ Payment intent creation failed:', response.data.message);
+  setError(response.data.message || 'Failed to initialize payment');
+  }
+  } catch (err: any) {
+  console.error('💥 Payment intent creation error:', err);
+  
+  // Enhanced Stripe error handling with diagnostics
+  if (err.response?.status === 401) {
+  console.error('🚨 STRIPE AUTH ERROR: Backend Stripe secret key may be mismatched with frontend publishable key');
+  console.log('Frontend key:', stripePublishableKey?.substring(0, 15) + '...');
+  
+  // Run diagnostics in development
+  if (process.env.NODE_ENV === 'development') {
+      console.log('🔧 Running payment diagnostics...');
+    paymentDiagnostics.runDiagnostics().then(results => {
+    console.log('🔍 Diagnostic results:', results);
+    if (!results.success) {
+      console.log('💡 Recommendations:');
+        paymentDiagnostics.getRecommendations().forEach(rec => console.log(`   - ${rec}`));
+        }
+    }).catch(diagErr => {
+    console.warn('Diagnostics failed:', diagErr);
+  });
+  }
+  
+    setError({
+    code: 'STRIPE_AUTH_ERROR',
+  message: 'Stripe authentication failed. There may be a configuration mismatch between frontend and backend Stripe keys.',
+  details: 'Please contact support - this is a configuration issue.',
+  fallbackOptions: [
+      {
+          method: 'contact',
+        description: 'Contact support immediately - Stripe keys may be mismatched',
+      contact: 'support@swanstudios.com'
+    },
+    {
+        method: 'retry',
+          description: 'Try refreshing the page',
+            retryAfter: 10
+        }
+        ]
       });
-
-      if (response.data.success) {
-        setClientSecret(response.data.data.clientSecret);
-      } else {
-        setError(response.data.message || 'Failed to initialize payment');
-      }
-    } catch (err: any) {
-      console.error('💳 Payment intent creation error:', err);
-      
-      // Enhanced Stripe error handling
-      if (err.response?.status === 401) {
-        console.error('🚨 STRIPE AUTH ERROR: Backend Stripe secret key may be mismatched with frontend publishable key');
-        console.log('Frontend key:', stripePublishableKey?.substring(0, 15) + '...');
-        setError({
-          code: 'STRIPE_AUTH_ERROR',
-          message: 'Stripe authentication failed. There may be a configuration mismatch between frontend and backend Stripe keys.',
-          details: 'Please contact support - this is a configuration issue.',
-          fallbackOptions: [
-            {
-              method: 'contact',
-              description: 'Contact support immediately - Stripe keys may be mismatched',
-              contact: 'support@swanstudios.com'
-            },
-            {
-              method: 'retry',
-              description: 'Try refreshing the page',
-              retryAfter: 10
-            }
-          ]
-        });
-      } else if (err.response?.status === 503) {
-        // Service unavailable - show enhanced error with fallback options
-        const errorData = err.response.data;
-        setError({
-          code: 'PAYMENT_SERVICE_UNAVAILABLE',
-          message: errorData.message || 'Payment processing temporarily unavailable',
-          details: errorData.error?.details,
-          retryAfter: errorData.error?.retryAfter,
-          supportContact: errorData.error?.supportContact,
-          fallbackOptions: errorData.fallbackOptions
-        });
-      } else if (err.response?.status === 400) {
-        setError({
-          code: 'INVALID_REQUEST',
-          message: err.response.data.message || 'Invalid payment request',
-          details: err.response.data.error?.details
-        });
-      } else if (err.response?.status === 500) {
-        setError({
-          code: 'INTERNAL_ERROR',
-          message: 'Internal server error. Please try again.',
-          details: 'Payment processing encountered an error'
-        });
-      } else if (err.code === 'ERR_NETWORK') {
-        setError({
-          code: 'CONNECTION_ERROR',
-          message: 'Network connection error. Please check your internet connection.',
-          details: 'Unable to connect to payment service'
-        });
-      } else {
-        setError({
-          code: 'UNKNOWN_ERROR',
-          message: err.response?.data?.message || 'Failed to initialize payment',
-          details: 'An unexpected error occurred'
-        });
-      }
-    } finally {
-      setLoading(false);
+    } else if (err.response?.status === 503) {
+      // Service unavailable - show enhanced error with fallback options
+      const errorData = err.response.data;
+      setError({
+        code: 'PAYMENT_SERVICE_UNAVAILABLE',
+        message: errorData.message || 'Payment processing temporarily unavailable',
+        details: errorData.error?.details,
+        retryAfter: errorData.error?.retryAfter,
+        supportContact: errorData.error?.supportContact,
+        fallbackOptions: errorData.fallbackOptions
+      });
+    } else if (err.response?.status === 400) {
+      const errorData = err.response.data;
+      setError({
+        code: 'INVALID_REQUEST',
+        message: errorData.message || 'Invalid payment request',
+        details: errorData.error?.details,
+        debugInfo: errorData.error?.debugInfo
+      });
+    } else if (err.response?.status === 500) {
+      setError({
+        code: 'INTERNAL_ERROR',
+        message: 'Internal server error. Please try again.',
+        details: 'Payment processing encountered an error'
+      });
+    } else if (err.code === 'ERR_NETWORK') {
+      setError({
+        code: 'CONNECTION_ERROR',
+        message: 'Network connection error. Please check your internet connection.',
+        details: 'Unable to connect to payment service'
+      });
+    } else {
+      setError({
+        code: 'UNKNOWN_ERROR',
+        message: err.response?.data?.message || 'Failed to initialize payment',
+        details: 'An unexpected error occurred'
+      });
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handlePaymentSuccess = async (paymentIntent: any) => {
     try {
