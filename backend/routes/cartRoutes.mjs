@@ -3,45 +3,19 @@
 
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
-// 🚨 EMERGENCY P0 FIX: Direct model imports with immediate association setup
-import ShoppingCart from '../models/ShoppingCart.mjs';
-import CartItem from '../models/CartItem.mjs';
-import StorefrontItem from '../models/StorefrontItem.mjs';
-import User from '../models/User.mjs';
+// 🚀 ENHANCED P0 FIX: Coordinated model imports with associations
+import { 
+  getShoppingCart,
+  getCartItem, 
+  getStorefrontItem,
+  getUser
+} from '../models/index.mjs';
 
-// 🎯 EMERGENCY P0 CRITICAL FIX: Ensure associations are established immediately
-const ensureAssociations = () => {
-  if (!CartItem.associations || !CartItem.associations.storefrontItem) {
-    console.log('🚨 EMERGENCY: Setting up CartItem -> StorefrontItem association directly');
-    
-    CartItem.belongsTo(StorefrontItem, { 
-      foreignKey: 'storefrontItemId', 
-      as: 'storefrontItem' 
-    });
-    
-    StorefrontItem.hasMany(CartItem, { 
-      foreignKey: 'storefrontItemId', 
-      as: 'cartItems' 
-    });
-    
-    ShoppingCart.hasMany(CartItem, { 
-      foreignKey: 'cartId', 
-      as: 'cartItems' 
-    });
-    
-    CartItem.belongsTo(ShoppingCart, { 
-      foreignKey: 'cartId', 
-      as: 'cart' 
-    });
-    
-    console.log('✅ EMERGENCY: Direct associations established');
-  } else {
-    console.log('✅ EMERGENCY: Associations already exist');
-  }
-};
-
-// 🚨 CRITICAL: Call this immediately when module loads
-ensureAssociations();
+// Get models with coordinated associations
+const ShoppingCart = getShoppingCart();
+const CartItem = getCartItem();
+const StorefrontItem = getStorefrontItem();
+const User = getUser();
 
 import Stripe from 'stripe';
 import logger from '../utils/logger.mjs';
@@ -111,11 +85,9 @@ if (isStripeEnabled()) {
  */
 router.get('/', protect, async (req, res) => {
   try {
-    // 🚨 EMERGENCY VERIFICATION: Ensure associations before proceeding
-    ensureAssociations();
-    
+    // 🚀 ENHANCED P0 VERIFICATION: Coordinated association status
     const hasAssociation = !!CartItem.associations?.storefrontItem;
-    console.log('🔍 EMERGENCY DEBUG: Cart GET - Association status:', hasAssociation);
+    console.log('🔍 ENHANCED DEBUG: Cart GET - Coordinated association status:', hasAssociation);
     
     // Find or create the user's active cart
     let [cart, created] = await ShoppingCart.findOrCreate({
@@ -139,11 +111,11 @@ router.get('/', protect, async (req, res) => {
       }]
     });
 
-    // 🚨 EMERGENCY DEBUG: Log the actual query results
-    console.log('🔍 EMERGENCY DEBUG: Cart items found:', cartItems.length);
+    // 🚀 ENHANCED DEBUG: Log the coordinated query results
+    console.log('🔍 ENHANCED DEBUG: Cart items found:', cartItems.length);
     if (cartItems.length > 0) {
       const firstItem = cartItems[0];
-      console.log('🔍 EMERGENCY DEBUG: First item StorefrontItem data:', {
+      console.log('🔍 ENHANCED DEBUG: First item StorefrontItem data:', {
         hasStorefrontItem: !!firstItem.storefrontItem,
         storefrontItemId: firstItem.storefrontItemId,
         sessions: firstItem.storefrontItem?.sessions,
@@ -155,7 +127,7 @@ router.get('/', protect, async (req, res) => {
     // Calculate cart total using helper (with session tracking preparation)
     const { total: cartTotal, totalSessions } = cartHelpers.calculateCartTotals(cartItems);
     
-    console.log('🔍 EMERGENCY DEBUG: Calculated totals:', {
+    console.log('🔍 ENHANCED DEBUG: Calculated totals:', {
       cartTotal,
       totalSessions,
       itemCount: cartItems.length
@@ -170,7 +142,7 @@ router.get('/', protect, async (req, res) => {
       itemCount: cartItems.length
     });
   } catch (error) {
-    console.error('🚨 EMERGENCY ERROR in cart GET:', error);
+    console.error('🚨 ENHANCED ERROR in cart GET:', error);
     logger.error('Error fetching cart:', error);
     res.status(500).json({ 
       success: false, 
@@ -200,7 +172,7 @@ router.post('/add', protect, validatePurchaseRole, async (req, res) => {
       });
     }
 
-    // 🚨 EMERGENCY: Direct model usage (already imported at top)
+    // 🚀 ENHANCED: Using coordinated model imports
     // Get the storefront item to check price
     const storeFrontItem = await StorefrontItem.findByPk(storefrontItemId);
     if (!storeFrontItem) {
@@ -557,10 +529,8 @@ router.post('/checkout', protect, validatePurchaseRole, async (req, res) => {
   try {
     console.log('Creating checkout session for user:', req.user.id);
     
-    // 🚨 EMERGENCY: Ensure associations before proceeding
-    ensureAssociations();
-    
-    console.log('🔍 EMERGENCY DEBUG: CHECKOUT - Association status:', !!CartItem.associations?.storefrontItem);
+    // 🚀 ENHANCED: Verify coordinated associations status
+    console.log('🔍 ENHANCED DEBUG: CHECKOUT - Coordinated association status:', !!CartItem.associations?.storefrontItem);
     
     // Find the user's active cart with all related items using the correct alias "cartItems"
     const cart = await ShoppingCart.findOne({

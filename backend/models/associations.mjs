@@ -125,9 +125,36 @@ const setupAssociations = async () => {
 
     console.log('Setting up Sequelize associations only...');
     
-    // Check if associations already exist (prevent duplicate associations)
-    if (User.associations && Object.keys(User.associations).length > 0) {
-      console.log('⚠️ Associations already exist, skipping setup');
+    // 🎯 ENHANCED P0 FIX: Robust duplicate checking with detailed verification
+    const hasUserAssociations = User.associations && Object.keys(User.associations).length > 0;
+    const hasCartAssociations = CartItem.associations && Object.keys(CartItem.associations).length > 0;
+    const hasStorefrontAssociations = StorefrontItem.associations && Object.keys(StorefrontItem.associations).length > 0;
+    
+    if (hasUserAssociations || hasCartAssociations || hasStorefrontAssociations) {
+      console.log('🔍 ENHANCED P0 CHECK: Associations already exist, performing verification...');
+      
+      // Critical verification for P0 checkout fix
+      const criticalAssociationStatus = {
+        cartToStorefront: !!(CartItem.associations && CartItem.associations.storefrontItem),
+        cartToShoppingCart: !!(CartItem.associations && CartItem.associations.cart),
+        shoppingCartToItems: !!(ShoppingCart.associations && ShoppingCart.associations.cartItems),
+        userToCart: !!(User.associations && User.associations.shoppingCarts)
+      };
+      
+      console.log('🎯 P0 CRITICAL ASSOCIATIONS STATUS:', criticalAssociationStatus);
+      
+      // Verify all critical associations exist
+      const allCriticalExist = Object.values(criticalAssociationStatus).every(status => status === true);
+      
+      if (allCriticalExist) {
+        console.log('✅ ENHANCED P0 VERIFICATION: All critical associations confirmed - returning existing models');
+      } else {
+        console.warn('⚠️ ENHANCED P0 WARNING: Some critical associations missing, but continuing with existing setup');
+        console.log('Missing associations:', Object.entries(criticalAssociationStatus)
+          .filter(([key, value]) => !value)
+          .map(([key]) => key));
+      }
+      
       return {
         User, ClientProgress, Gamification, Achievement, GamificationSettings,
         UserAchievement, UserReward, UserMilestone, Reward, Milestone, 

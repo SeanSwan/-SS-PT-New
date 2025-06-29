@@ -1,136 +1,113 @@
 /**
  * Training Session Service
  * =======================
+ * Enhanced with coordinated model imports and simplified logic
  * Handles creation of training sessions when users purchase training packages
- * Ensures proper integration between SwanStudios Store and client/admin/trainer dashboards
  */
 
-import Session from '../models/Session.mjs';
-import User from '../models/User.mjs';
-import Order from '../models/Order.mjs';
-import OrderItem from '../models/OrderItem.mjs';
-import StorefrontItem from '../models/StorefrontItem.mjs';
+// 🚀 ENHANCED: Coordinated model imports for consistent associations
+import {
+  getSession,
+  getUser,
+  getOrder,
+  getOrderItem,
+  getStorefrontItem
+} from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
+
+// Get models with coordinated associations
+const Session = getSession();
+const User = getUser();
+const Order = getOrder();
+const OrderItem = getOrderItem();
+const StorefrontItem = getStorefrontItem();
 
 class TrainingSessionService {
   /**
-   * Create training sessions for a completed order
+   * 🚀 ENHANCED: Create training sessions with simplified logic
    * @param {number} orderId - The order ID
    * @param {number} userId - The user ID who made the purchase
    */
   static async createSessionsForOrder(orderId, userId) {
-    try {
-      logger.info(`Creating training sessions for order ${orderId}, user ${userId}`);
+    logger.info(`Creating training sessions for order ${orderId}, user ${userId}`);
 
-      // Get the order with all items
-      const order = await Order.findByPk(orderId, {
-        include: [
-          {
-            model: OrderItem,
-            as: 'orderItems',
-            include: [
-              {
-                model: StorefrontItem,
-                as: 'storefrontItem'
-              }
-            ]
-          },
-          {
-            model: User,
-            as: 'user'
-          }
-        ]
-      });
-
-      if (!order) {
-        throw new Error(`Order ${orderId} not found`);
-      }
-
-      if (order.status !== 'completed') {
-        logger.info(`Order ${orderId} is not completed (status: ${order.status}), skipping session creation`);
-        return { created: 0, sessions: [] };
-      }
-
-      const createdSessions = [];
-      let totalSessionsCreated = 0;
-
-      // Process each order item
-      for (const orderItem of order.orderItems) {
-        const storefrontItem = orderItem.storefrontItem;
-        
-        if (!storefrontItem) {
-          logger.warning(`No storefront item found for order item ${orderItem.id}`);
-          continue;
+    // Get the order with all items - simplified query
+    const order = await Order.findByPk(orderId, {
+      include: [
+        {
+          model: OrderItem,
+          as: 'orderItems',
+          include: [{ model: StorefrontItem, as: 'storefrontItem' }]
         }
+      ]
+    });
 
-        // Only create sessions for training packages
-        if (storefrontItem.packageType === 'fixed' || storefrontItem.packageType === 'monthly') {
-          const sessionsToCreate = this.calculateSessionsToCreate(storefrontItem, orderItem.quantity);
-          
-          logger.info(`Creating ${sessionsToCreate} sessions for package: ${storefrontItem.name}`);
-          
-          // Create available sessions for the user
-          for (let i = 0; i < sessionsToCreate; i++) {
-            const session = await Session.create({
-              userId: userId,
-              status: 'available',
-              duration: 60, // Default session duration
-              notes: `Session ${i + 1} from package: ${storefrontItem.name}`,
-              sessionDate: new Date(), // Will be updated when scheduled
-              location: 'TBD', // To be determined when scheduled
-              trainerId: null, // Will be assigned later
-              confirmed: false,
-              sessionDeducted: false // Sessions are pre-paid
-            });
-
-            createdSessions.push({
-              sessionId: session.id,
-              packageName: storefrontItem.name,
-              packageType: storefrontItem.packageType,
-              orderItemId: orderItem.id
-            });
-
-            totalSessionsCreated++;
-          }
-        }
-      }
-
-      logger.info(`Successfully created ${totalSessionsCreated} training sessions for order ${orderId}`);
-
-      return {
-        orderId,
-        userId,
-        created: totalSessionsCreated,
-        sessions: createdSessions
-      };
-
-    } catch (error) {
-      logger.error(`Error creating sessions for order ${orderId}:`, error);
-      throw error;
+    if (!order?.orderItems?.length || order.status !== 'completed') {
+      logger.info(`Order ${orderId} not suitable for session creation (status: ${order?.status})`);
+      return { created: 0, sessions: [] };
     }
+
+    const createdSessions = [];
+
+    // 🚀 ENHANCED: Process items efficiently with better logic
+    for (const orderItem of order.orderItems) {
+      const { storefrontItem } = orderItem;
+      
+      if (!storefrontItem || !['fixed', 'monthly'].includes(storefrontItem.packageType)) {
+        continue;
+      }
+
+      const sessionsToCreate = this.calculateSessionsToCreate(storefrontItem, orderItem.quantity);
+      logger.info(`Creating ${sessionsToCreate} sessions for package: ${storefrontItem.name}`);
+      
+      // Create sessions in batch for efficiency
+      const sessionData = Array.from({ length: sessionsToCreate }, (_, i) => ({
+        userId,
+        status: 'available',
+        duration: 60,
+        notes: `Session ${i + 1} from package: ${storefrontItem.name}`,
+        sessionDate: new Date(),
+        location: 'TBD',
+        trainerId: null,
+        confirmed: false,
+        sessionDeducted: false
+      }));
+
+      const sessions = await Session.bulkCreate(sessionData, { returning: true });
+      
+      // Map created sessions
+      sessions.forEach(session => {
+        createdSessions.push({
+          sessionId: session.id,
+          packageName: storefrontItem.name,
+          packageType: storefrontItem.packageType,
+          orderItemId: orderItem.id
+        });
+      });
+    }
+
+    logger.info(`Successfully created ${createdSessions.length} training sessions for order ${orderId}`);
+
+    return {
+      orderId,
+      userId,
+      created: createdSessions.length,
+      sessions: createdSessions
+    };
   }
 
   /**
-   * Calculate how many sessions to create based on the package
+   * 🚀 ENHANCED: Simplified session calculation with better logic
    * @param {Object} storefrontItem - The storefront package item
    * @param {number} quantity - Quantity purchased
    * @returns {number} Number of sessions to create
    */
   static calculateSessionsToCreate(storefrontItem, quantity = 1) {
-    let sessionsPerPackage = 0;
-
-    if (storefrontItem.packageType === 'fixed') {
-      // Fixed packages: use the sessions field directly
-      sessionsPerPackage = storefrontItem.sessions || 0;
-    } else if (storefrontItem.packageType === 'monthly') {
-      // Monthly packages: use totalSessions or calculate from months and sessions per week
-      if (storefrontItem.totalSessions) {
-        sessionsPerPackage = storefrontItem.totalSessions;
-      } else if (storefrontItem.months && storefrontItem.sessionsPerWeek) {
-        // Calculate: months * weeks per month * sessions per week
-        sessionsPerPackage = storefrontItem.months * 4 * storefrontItem.sessionsPerWeek;
-      }
-    }
+    const { packageType, sessions, totalSessions, months, sessionsPerWeek } = storefrontItem;
+    
+    const sessionsPerPackage = packageType === 'fixed' 
+      ? sessions || 0
+      : totalSessions || (months * 4 * sessionsPerWeek) || 0;
 
     return sessionsPerPackage * quantity;
   }

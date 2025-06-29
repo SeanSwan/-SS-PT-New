@@ -1,11 +1,16 @@
 /**
  * authMiddleware.mjs
  * Provides authentication and authorization middleware for API routes
+ * Enhanced with coordinated model imports and best practices
  */
 import jwt from 'jsonwebtoken';
-import User from '../models/User.mjs';
+// 🚀 ENHANCED: Coordinated model imports for consistent associations
+import { getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 import { toStringId } from '../utils/idUtils.mjs';
+
+// Get User model with coordinated associations
+const User = getUser();
 
 /**
  * PRODUCTION-FIXED Authentication middleware to protect routes
@@ -68,22 +73,15 @@ export const protect = async (req, res, next) => {
         });
       }
       
-      // PRODUCTION FIX: Enhanced database error handling
-      let user;
-      try {
-        user = await User.findByPk(decoded.id);
-      } catch (dbError) {
+      // 🚀 ENHANCED: Simplified database lookup with better error handling
+      const user = await User.findByPk(decoded.id).catch(dbError => {
         logger.error('Database error during user lookup', {
           error: dbError.message,
           userId: decoded.id,
           path: req.path
         });
-        
-        return res.status(500).json({
-          success: false,
-          message: 'Database error during authentication'
-        });
-      }
+        throw new Error('Database error during authentication');
+      });
       
       if (!user) {
         logger.warn('User not found for token', { userId: decoded.id });
@@ -120,45 +118,27 @@ export const protect = async (req, res, next) => {
       
       next();
     } catch (tokenError) {
-      // PRODUCTION FIX: Enhanced token error handling with specific error codes
+      // 🚀 ENHANCED: Simplified token error handling with efficient mapping
       logger.error('Token verification error', { 
         error: tokenError.message,
         name: tokenError.name,
         path: req.path, 
-        method: req.method,
-        tokenLength: token?.length || 0
+        method: req.method
       });
       
-      // Specific error responses for different token errors
-      if (tokenError.name === 'TokenExpiredError') {
-        return res.status(401).json({
-          success: false,
-          message: 'Token expired',
-          errorCode: 'TOKEN_EXPIRED'
-        });
-      }
+      const tokenErrors = {
+        TokenExpiredError: { message: 'Token expired', code: 'TOKEN_EXPIRED' },
+        JsonWebTokenError: { message: 'Invalid token', code: 'TOKEN_INVALID' },
+        NotBeforeError: { message: 'Token not active', code: 'TOKEN_NOT_ACTIVE' }
+      };
       
-      if (tokenError.name === 'JsonWebTokenError') {
-        return res.status(401).json({
-          success: false,
-          message: 'Invalid token',
-          errorCode: 'TOKEN_INVALID'
-        });
-      }
+      const errorInfo = tokenErrors[tokenError.name] || 
+        { message: 'Token validation failed', code: 'TOKEN_VALIDATION_FAILED' };
       
-      if (tokenError.name === 'NotBeforeError') {
-        return res.status(401).json({
-          success: false,
-          message: 'Token not active',
-          errorCode: 'TOKEN_NOT_ACTIVE'
-        });
-      }
-      
-      // Generic token error
       return res.status(401).json({
         success: false,
-        message: 'Token validation failed',
-        errorCode: 'TOKEN_VALIDATION_FAILED'
+        message: errorInfo.message,
+        errorCode: errorInfo.code
       });
     }
   } catch (error) {

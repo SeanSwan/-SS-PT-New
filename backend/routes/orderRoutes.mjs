@@ -1,12 +1,23 @@
 // backend/routes/orderRoutes.mjs
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
-import Order from '../models/Order.mjs';
-import OrderItem from '../models/OrderItem.mjs';
-import ShoppingCart from '../models/ShoppingCart.mjs';
-import CartItem from '../models/CartItem.mjs';
-import StorefrontItem from '../models/StorefrontItem.mjs';
-import User from '../models/User.mjs';
+// 🚀 ENHANCED: Coordinated model imports with associations
+import { 
+  getOrder,
+  getOrderItem,
+  getShoppingCart,
+  getCartItem,
+  getStorefrontItem,
+  getUser
+} from '../models/index.mjs';
+
+// Get models with coordinated associations
+const Order = getOrder();
+const OrderItem = getOrderItem();
+const ShoppingCart = getShoppingCart();
+const CartItem = getCartItem();
+const StorefrontItem = getStorefrontItem();
+const User = getUser();
 import logger from '../utils/logger.mjs';
 import { v4 as uuidv4 } from 'uuid';
 // Temporarily disabled for deployment hotfix - will re-enable after verification

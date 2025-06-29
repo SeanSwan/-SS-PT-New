@@ -1,34 +1,39 @@
 /**
  * Workout Service
  * ==============
+ * Enhanced with coordinated model imports and modern best practices
  * Business logic for workout management, including session tracking,
  * exercise recommendations, progress analysis, and plan creation.
- * 
- * Enhanced with support for normalized data models replacing JSON fields.
  */
 
 import { Op } from 'sequelize';
 import sequelize from '../database.mjs';
 
-// Import models
-import User from '../models/User.mjs';
-import Exercise from '../models/Exercise.mjs';
-import WorkoutSession from '../models/WorkoutSession.mjs';
-import WorkoutExercise from '../models/WorkoutExercise.mjs';
-import WorkoutPlan from '../models/WorkoutPlan.mjs';
-import ClientProgress from '../models/ClientProgress.mjs';
-import Gamification from '../models/Gamification.mjs';
-import Achievement from '../models/Achievement.mjs';
-import Set from '../models/Set.mjs';
-import MuscleGroup from '../models/MuscleGroup.mjs';
-import ExerciseMuscleGroup from '../models/ExerciseMuscleGroup.mjs';
-import Equipment from '../models/Equipment.mjs';
-import ExerciseEquipment from '../models/ExerciseEquipment.mjs';
-import WorkoutPlanDay from '../models/WorkoutPlanDay.mjs';
-import WorkoutPlanDayExercise from '../models/WorkoutPlanDayExercise.mjs';
+// 🚀 ENHANCED: Coordinated model imports for consistent associations
+import { getAllModels } from '../models/index.mjs';
+
+// Get all models with coordinated associations
+const models = getAllModels();
+const {
+  User,
+  Exercise,
+  WorkoutSession,
+  WorkoutExercise,
+  WorkoutPlan,
+  ClientProgress,
+  Gamification,
+  Achievement,
+  Set,
+  MuscleGroup,
+  ExerciseMuscleGroup,
+  Equipment,
+  ExerciseEquipment,
+  WorkoutPlanDay,
+  WorkoutPlanDayExercise
+} = models;
 
 /**
- * Get all workout sessions for a user
+ * 🚀 ENHANCED: Get workout sessions with simplified query building
  * @param {string} userId - User ID
  * @param {Object} options - Query options (limit, offset, status)
  * @returns {Promise<Array>} Array of workout sessions
@@ -36,54 +41,50 @@ import WorkoutPlanDayExercise from '../models/WorkoutPlanDayExercise.mjs';
 async function getWorkoutSessions(userId, options = {}) {
   const { limit = 10, offset = 0, status, startDate, endDate, sort = 'startedAt', order = 'DESC' } = options;
   
-  const whereClause = { userId };
-  
-  if (status) {
-    whereClause.status = status;
-  }
+  // 🚀 Build where clause efficiently
+  const whereClause = { userId, ...(status && { status }) };
   
   if (startDate || endDate) {
-    whereClause.startedAt = {};
-    if (startDate) whereClause.startedAt[Op.gte] = new Date(startDate);
-    if (endDate) whereClause.startedAt[Op.lte] = new Date(endDate);
+    whereClause.startedAt = {
+      ...(startDate && { [Op.gte]: new Date(startDate) }),
+      ...(endDate && { [Op.lte]: new Date(endDate) })
+    };
   }
   
   return WorkoutSession.findAll({
     where: whereClause,
-    include: [
-      {
-        model: WorkoutExercise,
-        as: 'exercises',
-        include: [
-          {
-            model: Exercise,
-            as: 'exercise',
-            attributes: ['id', 'name', 'description', 'difficulty', 'category', 'exerciseType'],
-            include: [
-              {
-                model: MuscleGroup,
-                as: 'muscleGroups',
-                through: { 
-                  attributes: ['activationType', 'activationLevel'],
-                  where: { activationType: 'primary' },
-                  required: false
-                }
-              },
-              {
-                model: Equipment,
-                as: 'equipment',
-                through: { attributes: ['required'] }
+    include: [{
+      model: WorkoutExercise,
+      as: 'exercises',
+      include: [
+        {
+          model: Exercise,
+          as: 'exercise',
+          attributes: ['id', 'name', 'description', 'difficulty', 'category', 'exerciseType'],
+          include: [
+            {
+              model: MuscleGroup,
+              as: 'muscleGroups',
+              through: { 
+                attributes: ['activationType', 'activationLevel'],
+                where: { activationType: 'primary' },
+                required: false
               }
-            ]
-          },
-          {
-            model: Set,
-            as: 'sets',
-            order: [['setNumber', 'ASC']]
-          }
-        ]
-      }
-    ],
+            },
+            {
+              model: Equipment,
+              as: 'equipment',
+              through: { attributes: ['required'] }
+            }
+          ]
+        },
+        {
+          model: Set,
+          as: 'sets',
+          order: [['setNumber', 'ASC']]
+        }
+      ]
+    }],
     order: [[sort, order]],
     limit,
     offset

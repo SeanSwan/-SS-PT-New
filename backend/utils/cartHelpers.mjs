@@ -19,10 +19,17 @@
  */
 
 import logger from './logger.mjs';
-// 🚨 EMERGENCY P0 FIX: Revert to direct model imports for production stability
-import ShoppingCart from '../models/ShoppingCart.mjs';
-import CartItem from '../models/CartItem.mjs';
-import StorefrontItem from '../models/StorefrontItem.mjs';
+// 🚀 ENHANCED P0 FIX: Coordinated model imports for production stability
+import { 
+  getShoppingCart,
+  getCartItem, 
+  getStorefrontItem
+} from '../models/index.mjs';
+
+// Get models with coordinated associations
+const ShoppingCart = getShoppingCart();
+const CartItem = getCartItem();
+const StorefrontItem = getStorefrontItem();
 
 /**
  * Calculate cart total and session count from cart items
