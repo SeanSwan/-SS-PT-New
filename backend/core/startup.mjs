@@ -165,29 +165,61 @@ const initializeDatabases = async () => {
         logger.error(`Error syncing database: ${syncError.message}`);
       }
     } else {
-      // Production-safe database sync - only creates missing tables
+      // ENHANCED: Production-safe database sync with dependency-aware table creation
       try {
-        const syncResult = await syncDatabaseSafely();
-        if (syncResult.success) {
-          logger.info(`✅ Production database sync completed: ${syncResult.tablesCreated} tables created, ${syncResult.tablesExisting} already existed`);
-        } else {
-          logger.warn(`⚠️  Database sync completed with issues: ${syncResult.errors.join(', ')}`);
+      const syncResult = await syncDatabaseSafely();
+      if (syncResult.success) {
+      logger.info(`✅ ENHANCED: Production database sync completed successfully`);
+        logger.info(`✅ Tables created: ${syncResult.tablesCreated}, Tables existing: ${syncResult.tablesExisting}`);
+      
+        if (syncResult.tablesCreated > 0) {
+            logger.info(`🎉 Successfully created ${syncResult.tablesCreated} new tables in dependency order`);
         }
-      } catch (syncError) {
-        logger.error(`❌ Production database sync failed: ${syncError.message}`);
-        // Continue startup even if sync fails
+      } else {
+          logger.warn(`⚠️  ENHANCED: Database sync completed with issues`);
+        if (syncResult.errors && syncResult.errors.length > 0) {
+          logger.warn('🔍 Detailed errors:');
+          syncResult.errors.forEach((error, index) => {
+            logger.warn(`   ${index + 1}. ${error}`);
+          });
+        }
+        
+        // Continue startup with degraded database functionality
+        logger.warn('⚠️  Continuing startup with partial database functionality');
+      }
+    } catch (syncError) {
+      logger.error(`❌ ENHANCED: Production database sync failed: ${syncError.message}`);
+      logger.error(`Stack trace: ${syncError.stack}`);
+      
+      // Enhanced error recovery
+      if (syncError.message.includes('relation') && syncError.message.includes('does not exist')) {
+        logger.warn('🔄 Database dependency error detected - some tables may be missing parent tables');
+        logger.warn('ℹ️  This is usually resolved on the next deployment after all tables are created');
+      }
+      
+      // Continue startup even if sync fails - critical for production resilience
+      logger.info('🚑 Continuing startup with database issues - manual intervention may be required');
+    }
+    }
+
+    // ENHANCED: Run startup migrations with better error handling
+    try {
+      await runStartupMigrations();
+      logger.info('✅ Startup migrations completed successfully');
+    } catch (migrationError) {
+      logger.warn('⚠️  ENHANCED: Startup migrations had issues (non-critical):', migrationError.message);
+      
+      // Categorize migration errors
+      if (migrationError.message.includes('relation') && migrationError.message.includes('does not exist')) {
+        logger.warn('🔄 Migration failed due to missing table - will retry on next deployment');
+      } else if (migrationError.message.includes('already exists')) {
+        logger.info('ℹ️  Migration skipped - changes already applied');
+      } else {
+        logger.warn('🚑 Unexpected migration error - manual review recommended');
       }
     }
 
-    // Run startup migrations
-    try {
-      await runStartupMigrations();
-      logger.info('Startup migrations completed');
-    } catch (migrationError) {
-      logger.warn('Startup migrations had issues (non-critical):', migrationError.message);
-    }
-
-    logger.info('✅ Database initialization completed');
+    logger.info('✅ ENHANCED: Database initialization completed with resilient error handling');
   } catch (error) {
     logger.error('❌ Database initialization failed:', error);
     throw error;
