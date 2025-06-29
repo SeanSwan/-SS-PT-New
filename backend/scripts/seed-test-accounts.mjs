@@ -14,7 +14,7 @@
  */
 
 import bcrypt from 'bcrypt';
-import { User } from '../models/index.mjs';
+import User from '../models/User.mjs';
 import dotenv from 'dotenv';
 import sequelize from '../database.mjs';
 
