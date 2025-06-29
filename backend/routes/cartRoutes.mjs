@@ -3,8 +3,46 @@
 
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
-// 🎯 P0 CRITICAL FIX: Import models with associations to ensure StorefrontItem data is populated
-import { getShoppingCart, getCartItem, getStorefrontItem, getUser } from '../models/index.mjs';
+// 🚨 EMERGENCY P0 FIX: Direct model imports with immediate association setup
+import ShoppingCart from '../models/ShoppingCart.mjs';
+import CartItem from '../models/CartItem.mjs';
+import StorefrontItem from '../models/StorefrontItem.mjs';
+import User from '../models/User.mjs';
+
+// 🎯 EMERGENCY P0 CRITICAL FIX: Ensure associations are established immediately
+const ensureAssociations = () => {
+  if (!CartItem.associations || !CartItem.associations.storefrontItem) {
+    console.log('🚨 EMERGENCY: Setting up CartItem -> StorefrontItem association directly');
+    
+    CartItem.belongsTo(StorefrontItem, { 
+      foreignKey: 'storefrontItemId', 
+      as: 'storefrontItem' 
+    });
+    
+    StorefrontItem.hasMany(CartItem, { 
+      foreignKey: 'storefrontItemId', 
+      as: 'cartItems' 
+    });
+    
+    ShoppingCart.hasMany(CartItem, { 
+      foreignKey: 'cartId', 
+      as: 'cartItems' 
+    });
+    
+    CartItem.belongsTo(ShoppingCart, { 
+      foreignKey: 'cartId', 
+      as: 'cart' 
+    });
+    
+    console.log('✅ EMERGENCY: Direct associations established');
+  } else {
+    console.log('✅ EMERGENCY: Associations already exist');
+  }
+};
+
+// 🚨 CRITICAL: Call this immediately when module loads
+ensureAssociations();
+
 import Stripe from 'stripe';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
@@ -73,16 +111,11 @@ if (isStripeEnabled()) {
  */
 router.get('/', protect, async (req, res) => {
   try {
-    // 🎯 P0 CRITICAL FIX: Use models with associations
-    const ShoppingCart = await getShoppingCart();
-    const CartItem = await getCartItem();
-    const StorefrontItem = await getStorefrontItem();
+    // 🚨 EMERGENCY VERIFICATION: Ensure associations before proceeding
+    ensureAssociations();
     
-    logger.info('🔗 P0 DEBUG: GET /api/cart using models with associations', {
-      userId: req.user.id,
-      hasCartItemAssociations: !!CartItem.associations?.storefrontItem,
-      associationAlias: CartItem.associations?.storefrontItem?.as
-    });
+    const hasAssociation = !!CartItem.associations?.storefrontItem;
+    console.log('🔍 EMERGENCY DEBUG: Cart GET - Association status:', hasAssociation);
     
     // Find or create the user's active cart
     let [cart, created] = await ShoppingCart.findOrCreate({
@@ -95,24 +128,37 @@ router.get('/', protect, async (req, res) => {
       }
     });
 
-    // Get cart items with storefront item details
+    // Get cart items with storefront item details - CRITICAL QUERY
     const cartItems = await CartItem.findAll({
       where: { cartId: cart.id },
       include: [{
         model: StorefrontItem,
         as: 'storefrontItem',
-        attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType', 'sessions', 'totalSessions']
+        attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType', 'sessions', 'totalSessions'],
+        required: false // Make it LEFT JOIN to avoid filtering out items
       }]
     });
+
+    // 🚨 EMERGENCY DEBUG: Log the actual query results
+    console.log('🔍 EMERGENCY DEBUG: Cart items found:', cartItems.length);
+    if (cartItems.length > 0) {
+      const firstItem = cartItems[0];
+      console.log('🔍 EMERGENCY DEBUG: First item StorefrontItem data:', {
+        hasStorefrontItem: !!firstItem.storefrontItem,
+        storefrontItemId: firstItem.storefrontItemId,
+        sessions: firstItem.storefrontItem?.sessions,
+        totalSessions: firstItem.storefrontItem?.totalSessions,
+        name: firstItem.storefrontItem?.name
+      });
+    }
 
     // Calculate cart total using helper (with session tracking preparation)
     const { total: cartTotal, totalSessions } = cartHelpers.calculateCartTotals(cartItems);
     
-    logger.debug('Cart GET: Total calculation', {
-      cartId: cart.id,
-      itemCount: cartItems.length,
-      calculatedTotal: cartTotal,
-      totalSessions
+    console.log('🔍 EMERGENCY DEBUG: Calculated totals:', {
+      cartTotal,
+      totalSessions,
+      itemCount: cartItems.length
     });
 
     res.status(200).json({
@@ -124,6 +170,7 @@ router.get('/', protect, async (req, res) => {
       itemCount: cartItems.length
     });
   } catch (error) {
+    console.error('🚨 EMERGENCY ERROR in cart GET:', error);
     logger.error('Error fetching cart:', error);
     res.status(500).json({ 
       success: false, 
@@ -153,12 +200,7 @@ router.post('/add', protect, validatePurchaseRole, async (req, res) => {
       });
     }
 
-    // 🎯 P0 CRITICAL FIX: Use models with associations
-    const StorefrontItem = await getStorefrontItem();
-    const ShoppingCart = await getShoppingCart();
-    const CartItem = await getCartItem();
-    const User = await getUser();
-    
+    // 🚨 EMERGENCY: Direct model usage (already imported at top)
     // Get the storefront item to check price
     const storeFrontItem = await StorefrontItem.findByPk(storefrontItemId);
     if (!storeFrontItem) {
@@ -515,16 +557,10 @@ router.post('/checkout', protect, validatePurchaseRole, async (req, res) => {
   try {
     console.log('Creating checkout session for user:', req.user.id);
     
-    // 🎯 P0 CRITICAL FIX: Use models with associations for checkout
-    const ShoppingCart = await getShoppingCart();
-    const CartItem = await getCartItem();
-    const StorefrontItem = await getStorefrontItem();
-    const User = await getUser();
+    // 🚨 EMERGENCY: Ensure associations before proceeding
+    ensureAssociations();
     
-    logger.info('🔗 P0 DEBUG: CHECKOUT using models with associations', {
-      userId: req.user.id,
-      hasCartItemAssociations: !!CartItem.associations?.storefrontItem
-    });
+    console.log('🔍 EMERGENCY DEBUG: CHECKOUT - Association status:', !!CartItem.associations?.storefrontItem);
     
     // Find the user's active cart with all related items using the correct alias "cartItems"
     const cart = await ShoppingCart.findOne({

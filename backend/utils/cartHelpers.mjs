@@ -19,8 +19,10 @@
  */
 
 import logger from './logger.mjs';
-// 🎯 P0 CRITICAL FIX: Import models with associations to ensure StorefrontItem data is populated
-import { getShoppingCart, getCartItem, getStorefrontItem } from '../models/index.mjs';
+// 🚨 EMERGENCY P0 FIX: Revert to direct model imports for production stability
+import ShoppingCart from '../models/ShoppingCart.mjs';
+import CartItem from '../models/CartItem.mjs';
+import StorefrontItem from '../models/StorefrontItem.mjs';
 
 /**
  * Calculate cart total and session count from cart items
@@ -144,9 +146,6 @@ export const persistCartTotals = async (cartId, total, totalSessions, options = 
       throw new Error('Invalid parameters for persistCartTotals');
     }
 
-    // 🎯 P0 CRITICAL FIX: Use models with associations
-    const ShoppingCart = await getShoppingCart();
-    
     // Find the cart
     const cart = await ShoppingCart.findByPk(cartId, { transaction });
     
@@ -202,17 +201,6 @@ export const updateCartTotals = async (cartId, options = {}) => {
     if (!cartId) {
       throw new Error('Cart ID is required');
     }
-
-    // 🎯 P0 CRITICAL FIX: Use models with associations
-    const ShoppingCart = await getShoppingCart();
-    const CartItem = await getCartItem();
-    const StorefrontItem = await getStorefrontItem();
-    
-    logger.info('🔗 P0 DEBUG: Using models with associations for cart total calculation', {
-      cartId,
-      hasCartItemAssociations: !!CartItem.associations?.storefrontItem,
-      associationAlias: CartItem.associations?.storefrontItem?.as
-    });
 
     // Fetch cart with items and storefront item details
     const cart = await ShoppingCart.findByPk(cartId, {
@@ -348,10 +336,6 @@ export const getCartTotalsWithFallback = (cart) => {
  */
 export const validateCartItemSessions = async (cartItemId) => {
   try {
-    // 🎯 P0 CRITICAL FIX: Use models with associations
-    const CartItem = await getCartItem();
-    const StorefrontItem = await getStorefrontItem();
-    
     const cartItem = await CartItem.findByPk(cartItemId, {
       include: [{
         model: StorefrontItem,
@@ -417,11 +401,6 @@ export const validateCartItemSessions = async (cartItemId) => {
  */
 export const debugCartState = async (cartId, context = 'unknown') => {
   try {
-    // 🎯 P0 CRITICAL FIX: Use models with associations
-    const ShoppingCart = await getShoppingCart();
-    const CartItem = await getCartItem();
-    const StorefrontItem = await getStorefrontItem();
-    
     const cart = await ShoppingCart.findByPk(cartId, {
       include: [{
         model: CartItem,
