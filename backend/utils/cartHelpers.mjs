@@ -19,9 +19,8 @@
  */
 
 import logger from './logger.mjs';
-import ShoppingCart from '../models/ShoppingCart.mjs';
-import CartItem from '../models/CartItem.mjs';
-import StorefrontItem from '../models/StorefrontItem.mjs';
+// 🎯 P0 CRITICAL FIX: Import models with associations to ensure StorefrontItem data is populated
+import { getShoppingCart, getCartItem, getStorefrontItem } from '../models/index.mjs';
 
 /**
  * Calculate cart total and session count from cart items
@@ -37,6 +36,24 @@ export const calculateCartTotals = (cartItems) => {
     if (!cartItems || !Array.isArray(cartItems)) {
       logger.warn('calculateCartTotals: Invalid cartItems provided', { cartItems });
       return { total: 0, totalSessions: 0, itemBreakdown: [] };
+    }
+    
+    // 🎯 P0 CRITICAL DEBUG: Log association status
+    const itemsWithStorefront = cartItems.filter(item => item.storefrontItem);
+    const itemsWithoutStorefront = cartItems.filter(item => !item.storefrontItem);
+    
+    logger.info('🔗 P0 DEBUG: calculateCartTotals association analysis', {
+      totalItems: cartItems.length,
+      itemsWithStorefrontData: itemsWithStorefront.length,
+      itemsWithoutStorefrontData: itemsWithoutStorefront.length,
+      firstItemHasStorefront: cartItems[0]?.storefrontItem ? true : false,
+      sampleStorefrontKeys: cartItems[0]?.storefrontItem ? Object.keys(cartItems[0].storefrontItem) : 'none'
+    });
+    
+    if (itemsWithoutStorefront.length > 0) {
+      logger.error('❌ P0 CRITICAL ERROR: CartItems missing StorefrontItem association data', {
+        itemsWithoutData: itemsWithoutStorefront.map(item => ({ id: item.id, storefrontItemId: item.storefrontItemId }))
+      });
     }
 
     cartItems.forEach((item, index) => {
@@ -127,6 +144,9 @@ export const persistCartTotals = async (cartId, total, totalSessions, options = 
       throw new Error('Invalid parameters for persistCartTotals');
     }
 
+    // 🎯 P0 CRITICAL FIX: Use models with associations
+    const ShoppingCart = await getShoppingCart();
+    
     // Find the cart
     const cart = await ShoppingCart.findByPk(cartId, { transaction });
     
@@ -182,6 +202,17 @@ export const updateCartTotals = async (cartId, options = {}) => {
     if (!cartId) {
       throw new Error('Cart ID is required');
     }
+
+    // 🎯 P0 CRITICAL FIX: Use models with associations
+    const ShoppingCart = await getShoppingCart();
+    const CartItem = await getCartItem();
+    const StorefrontItem = await getStorefrontItem();
+    
+    logger.info('🔗 P0 DEBUG: Using models with associations for cart total calculation', {
+      cartId,
+      hasCartItemAssociations: !!CartItem.associations?.storefrontItem,
+      associationAlias: CartItem.associations?.storefrontItem?.as
+    });
 
     // Fetch cart with items and storefront item details
     const cart = await ShoppingCart.findByPk(cartId, {
@@ -317,6 +348,10 @@ export const getCartTotalsWithFallback = (cart) => {
  */
 export const validateCartItemSessions = async (cartItemId) => {
   try {
+    // 🎯 P0 CRITICAL FIX: Use models with associations
+    const CartItem = await getCartItem();
+    const StorefrontItem = await getStorefrontItem();
+    
     const cartItem = await CartItem.findByPk(cartItemId, {
       include: [{
         model: StorefrontItem,
@@ -382,6 +417,11 @@ export const validateCartItemSessions = async (cartItemId) => {
  */
 export const debugCartState = async (cartId, context = 'unknown') => {
   try {
+    // 🎯 P0 CRITICAL FIX: Use models with associations
+    const ShoppingCart = await getShoppingCart();
+    const CartItem = await getCartItem();
+    const StorefrontItem = await getStorefrontItem();
+    
     const cart = await ShoppingCart.findByPk(cartId, {
       include: [{
         model: CartItem,

@@ -59,11 +59,34 @@ const initializeDatabases = async () => {
     logger.info('🎯 Setting up model associations (P0 checkout fix)...');
     const associatedModels = await setupAssociations();
     
-    // Verify the critical association is working
+    // 🎯 ENHANCED P0 VERIFICATION: Deep association check
     if (associatedModels && associatedModels.CartItem && associatedModels.CartItem.associations && associatedModels.CartItem.associations.storefrontItem) {
-      logger.info('✅ P0 CRITICAL FIX VERIFIED: CartItem -> StorefrontItem association confirmed');
+      const association = associatedModels.CartItem.associations.storefrontItem;
+      logger.info('✅ P0 CRITICAL FIX VERIFIED: CartItem -> StorefrontItem association confirmed', {
+        associationType: association.associationType,
+        foreignKey: association.foreignKey,
+        as: association.as,
+        targetModel: association.target.name
+      });
+      
+      // Additional verification: Test that models/index.mjs exports work
+      try {
+        const { getCartItem, getStorefrontItem } = await import('../models/index.mjs');
+        const testCartItem = await getCartItem();
+        const testStorefrontItem = await getStorefrontItem();
+        
+        if (testCartItem && testStorefrontItem && testCartItem.associations?.storefrontItem) {
+          logger.info('✅ P0 CRITICAL SUCCESS: Models/index.mjs exports verified with associations');
+        } else {
+          logger.error('❌ P0 CRITICAL ERROR: Models/index.mjs exports missing associations');
+        }
+      } catch (indexTestError) {
+        logger.error('❌ P0 CRITICAL ERROR: Failed to test models/index.mjs exports:', indexTestError.message);
+      }
+      
     } else {
-      logger.warn('⚠️ P0 WARNING: CartItem -> StorefrontItem association verification incomplete');
+      logger.error('❌ P0 CRITICAL ERROR: CartItem -> StorefrontItem association missing or incomplete');
+      logger.warn('⚠️ Checkout functionality will be broken - association mismatch detected');
     }
     
     logger.info('✅ Database associations configured and verified');

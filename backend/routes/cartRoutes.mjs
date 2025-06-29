@@ -3,10 +3,8 @@
 
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
-import ShoppingCart from '../models/ShoppingCart.mjs';
-import CartItem from '../models/CartItem.mjs';
-import StorefrontItem from '../models/StorefrontItem.mjs';
-import User from '../models/User.mjs';
+// 🎯 P0 CRITICAL FIX: Import models with associations to ensure StorefrontItem data is populated
+import { getShoppingCart, getCartItem, getStorefrontItem, getUser } from '../models/index.mjs';
 import Stripe from 'stripe';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
@@ -75,6 +73,17 @@ if (isStripeEnabled()) {
  */
 router.get('/', protect, async (req, res) => {
   try {
+    // 🎯 P0 CRITICAL FIX: Use models with associations
+    const ShoppingCart = await getShoppingCart();
+    const CartItem = await getCartItem();
+    const StorefrontItem = await getStorefrontItem();
+    
+    logger.info('🔗 P0 DEBUG: GET /api/cart using models with associations', {
+      userId: req.user.id,
+      hasCartItemAssociations: !!CartItem.associations?.storefrontItem,
+      associationAlias: CartItem.associations?.storefrontItem?.as
+    });
+    
     // Find or create the user's active cart
     let [cart, created] = await ShoppingCart.findOrCreate({
       where: { 
@@ -92,7 +101,7 @@ router.get('/', protect, async (req, res) => {
       include: [{
         model: StorefrontItem,
         as: 'storefrontItem',
-        attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType']
+        attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType', 'sessions', 'totalSessions']
       }]
     });
 
@@ -144,6 +153,12 @@ router.post('/add', protect, validatePurchaseRole, async (req, res) => {
       });
     }
 
+    // 🎯 P0 CRITICAL FIX: Use models with associations
+    const StorefrontItem = await getStorefrontItem();
+    const ShoppingCart = await getShoppingCart();
+    const CartItem = await getCartItem();
+    const User = await getUser();
+    
     // Get the storefront item to check price
     const storeFrontItem = await StorefrontItem.findByPk(storefrontItemId);
     if (!storeFrontItem) {
@@ -206,6 +221,18 @@ router.post('/add', protect, validatePurchaseRole, async (req, res) => {
         as: 'storefrontItem',
         attributes: ['id', 'name', 'description', 'imageUrl', 'price', 'totalCost', 'packageType', 'sessions', 'totalSessions']
       }]
+    });
+    
+    logger.info('🔗 P0 DEBUG: Cart items after ADD operation', {
+      cartId: cart.id,
+      itemCount: updatedCartItems.length,
+      itemsWithStorefrontData: updatedCartItems.filter(item => item.storefrontItem).length,
+      sampleStorefrontData: updatedCartItems[0]?.storefrontItem ? {
+        id: updatedCartItems[0].storefrontItem.id,
+        name: updatedCartItems[0].storefrontItem.name,
+        sessions: updatedCartItems[0].storefrontItem.sessions,
+        totalSessions: updatedCartItems[0].storefrontItem.totalSessions
+      } : 'No storefront data'
     });
 
     // Check if user role should be upgraded
@@ -487,6 +514,17 @@ router.post('/checkout', protect, validatePurchaseRole, async (req, res) => {
 
   try {
     console.log('Creating checkout session for user:', req.user.id);
+    
+    // 🎯 P0 CRITICAL FIX: Use models with associations for checkout
+    const ShoppingCart = await getShoppingCart();
+    const CartItem = await getCartItem();
+    const StorefrontItem = await getStorefrontItem();
+    const User = await getUser();
+    
+    logger.info('🔗 P0 DEBUG: CHECKOUT using models with associations', {
+      userId: req.user.id,
+      hasCartItemAssociations: !!CartItem.associations?.storefrontItem
+    });
     
     // Find the user's active cart with all related items using the correct alias "cartItems"
     const cart = await ShoppingCart.findOne({
