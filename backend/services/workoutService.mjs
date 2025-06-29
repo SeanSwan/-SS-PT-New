@@ -12,25 +12,8 @@ import sequelize from '../database.mjs';
 // 🚀 ENHANCED: Coordinated model imports for consistent associations
 import { getAllModels } from '../models/index.mjs';
 
-// Get all models with coordinated associations
-const models = getAllModels();
-const {
-  User,
-  Exercise,
-  WorkoutSession,
-  WorkoutExercise,
-  WorkoutPlan,
-  ClientProgress,
-  Gamification,
-  Achievement,
-  Set,
-  MuscleGroup,
-  ExerciseMuscleGroup,
-  Equipment,
-  ExerciseEquipment,
-  WorkoutPlanDay,
-  WorkoutPlanDayExercise
-} = models;
+// 🎯 ENHANCED P0 FIX: Lazy loading models to prevent initialization race condition
+// Models will be retrieved via getAllModels() inside each service function when needed
 
 /**
  * 🚀 ENHANCED: Get workout sessions with simplified query building
@@ -39,6 +22,10 @@ const {
  * @returns {Promise<Array>} Array of workout sessions
  */
 async function getWorkoutSessions(userId, options = {}) {
+  // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+  const models = getAllModels();
+  const { WorkoutSession, WorkoutExercise, Exercise, MuscleGroup, Equipment, Set } = models;
+  
   const { limit = 10, offset = 0, status, startDate, endDate, sort = 'startedAt', order = 'DESC' } = options;
   
   // 🚀 Build where clause efficiently
@@ -97,6 +84,10 @@ async function getWorkoutSessions(userId, options = {}) {
  * @returns {Promise<Object>} Workout session
  */
 async function getWorkoutSessionById(sessionId) {
+  // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+  const models = getAllModels();
+  const { WorkoutSession, User, WorkoutExercise, Exercise, MuscleGroup, Equipment, Set, WorkoutPlan } = models;
+  
   return WorkoutSession.findByPk(sessionId, {
     include: [
       {
@@ -147,6 +138,10 @@ async function getWorkoutSessionById(sessionId) {
  * @returns {Promise<Object>} Created workout session
  */
 async function createWorkoutSession(sessionData) {
+  // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+  const models = getAllModels();
+  const { WorkoutSession, WorkoutExercise, Set } = models;
+  
   // Start a transaction to ensure all operations succeed or fail together
   const transaction = await sequelize.transaction();
   
