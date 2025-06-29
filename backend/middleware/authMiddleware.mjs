@@ -9,8 +9,8 @@ import { getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 import { toStringId } from '../utils/idUtils.mjs';
 
-// Get User model with coordinated associations
-const User = getUser();
+// 🎯 ENHANCED P0 FIX: Lazy loading User model to prevent initialization race condition
+// User model will be retrieved via getUser() inside each function when needed
 
 /**
  * PRODUCTION-FIXED Authentication middleware to protect routes
@@ -74,6 +74,7 @@ export const protect = async (req, res, next) => {
       }
       
       // 🚀 ENHANCED: Simplified database lookup with better error handling
+      const User = getUser(); // 🎯 ENHANCED: Lazy load User model
       const user = await User.findByPk(decoded.id).catch(dbError => {
         logger.error('Database error during user lookup', {
           error: dbError.message,

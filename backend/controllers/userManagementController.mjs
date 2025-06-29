@@ -1,5 +1,6 @@
 // backend/controllers/userManagementController.mjs
-import User from '../models/User.mjs';
+// 🎯 ENHANCED P0 FIX: Coordinated model imports to prevent initialization race condition
+import { getUser } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import dotenv from 'dotenv';
@@ -26,6 +27,7 @@ const ADMIN_ACCESS_CODE = process.env.ADMIN_ACCESS_CODE;
 export const getAllUsers = async (req, res) => {
   try {
     // Include specific attributes, exclude sensitive info
+    const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const users = await User.findAll({
       attributes: { 
         exclude: ['password', 'refreshTokenHash', 'failedLoginAttempts'] 
@@ -67,6 +69,7 @@ export const promoteToClient = async (req, res) => {
     }
     
     // Find the user
+    const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const user = await User.findByPk(userId, { transaction });
     
     if (!user) {
@@ -143,6 +146,7 @@ export const promoteToAdmin = async (req, res) => {
     }
     
     // Find the user
+    const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const user = await User.findByPk(userId, { transaction });
     
     if (!user) {
@@ -208,6 +212,7 @@ export const updateUser = async (req, res) => {
     } = req.body;
     
     // Find the user
+    const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const user = await User.findByPk(userId, { transaction });
     
     if (!user) {
