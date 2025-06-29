@@ -1,5 +1,5 @@
 import logger from '../utils/logger.mjs';
-
+import { getUser } from '../models/index.mjs'; // 🎯 ENHANCED: Coordinated model imports
 import sequelize from '../database.mjs';
 
 export const getUsers = async (req, res) => {
@@ -17,6 +17,7 @@ import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
 
 export const getUserProfile = async (req, res) => {
   try {
+    const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const user = await User.findByPk(req.user.id);
     return successResponse(res, user, 'User profile retrieved successfully');
   } catch (error) {

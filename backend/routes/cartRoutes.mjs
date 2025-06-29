@@ -11,11 +11,8 @@ import {
   getUser
 } from '../models/index.mjs';
 
-// Get models with coordinated associations
-const ShoppingCart = getShoppingCart();
-const CartItem = getCartItem();
-const StorefrontItem = getStorefrontItem();
-const User = getUser();
+// 🎯 ENHANCED P0 FIX: Lazy loading models to prevent initialization race condition
+// Models will be retrieved via getter functions inside each route handler when needed
 
 import Stripe from 'stripe';
 import logger from '../utils/logger.mjs';
@@ -54,6 +51,7 @@ const checkUserRoleUpgrade = async (user, cartItems) => {
     
     if (hasTrainingPackages) {
       console.log(`Upgrading user ${user.id} from 'user' to 'client' role`);
+      const User = getUser(); // 🎯 ENHANCED: Lazy load User model
       await User.update({ role: 'client' }, { where: { id: user.id } });
       return true;
     }
@@ -85,6 +83,11 @@ if (isStripeEnabled()) {
  */
 router.get('/', protect, async (req, res) => {
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    const ShoppingCart = getShoppingCart();
+    const CartItem = getCartItem();
+    const StorefrontItem = getStorefrontItem();
+    
     // 🚀 ENHANCED P0 VERIFICATION: Coordinated association status
     const hasAssociation = !!CartItem.associations?.storefrontItem;
     console.log('🔍 ENHANCED DEBUG: Cart GET - Coordinated association status:', hasAssociation);
@@ -160,6 +163,12 @@ router.get('/', protect, async (req, res) => {
  */
 router.post('/add', protect, validatePurchaseRole, async (req, res) => {
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    const ShoppingCart = getShoppingCart();
+    const CartItem = getCartItem();
+    const StorefrontItem = getStorefrontItem();
+    const User = getUser();
+    
     const { storefrontItemId, quantity = 1 } = req.body;
     
     console.log('Cart add request body:', req.body);
@@ -297,6 +306,11 @@ router.post('/add', protect, validatePurchaseRole, async (req, res) => {
  */
 router.put('/update/:itemId', protect, validatePurchaseRole, async (req, res) => {
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    const ShoppingCart = getShoppingCart();
+    const CartItem = getCartItem();
+    const StorefrontItem = getStorefrontItem();
+    
     const { itemId } = req.params;
     const { quantity } = req.body;
     
@@ -383,6 +397,11 @@ router.put('/update/:itemId', protect, validatePurchaseRole, async (req, res) =>
  */
 router.delete('/remove/:itemId', protect, validatePurchaseRole, async (req, res) => {
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    const ShoppingCart = getShoppingCart();
+    const CartItem = getCartItem();
+    const StorefrontItem = getStorefrontItem();
+    
     const { itemId } = req.params;
 
     // Get the cart item
@@ -462,6 +481,10 @@ router.delete('/remove/:itemId', protect, validatePurchaseRole, async (req, res)
  */
 router.delete('/clear', protect, validatePurchaseRole, async (req, res) => {
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    const ShoppingCart = getShoppingCart();
+    const CartItem = getCartItem();
+    
     // Find the user's active cart
     const cart = await ShoppingCart.findOne({
       where: { 
@@ -527,6 +550,12 @@ router.post('/checkout', protect, validatePurchaseRole, async (req, res) => {
   // --- End check ---
 
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    const ShoppingCart = getShoppingCart();
+    const CartItem = getCartItem();
+    const StorefrontItem = getStorefrontItem();
+    const User = getUser();
+    
     console.log('Creating checkout session for user:', req.user.id);
     
     // 🚀 ENHANCED: Verify coordinated associations status
@@ -739,6 +768,9 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
   
   // Handle the event
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    const ShoppingCart = getShoppingCart();
+    
     switch (event.type) {
       case 'checkout.session.completed': {
         // Payment was successful
@@ -771,7 +803,8 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
         const { cartId } = session.metadata;
         
         if (cartId) {
-          await ShoppingCart.update(
+          const ShoppingCartExpired = getShoppingCart(); // 🎯 ENHANCED: Lazy load for expired session
+          await ShoppingCartExpired.update(
             { checkoutSessionExpired: true },
             { where: { id: cartId } }
           );

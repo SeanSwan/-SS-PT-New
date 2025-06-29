@@ -10,8 +10,8 @@ import dotenv from 'dotenv';
 import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
 
-// Get User model with coordinated associations
-const User = getUser();
+// 🎯 ENHANCED P0 FIX: Lazy loading User model to prevent initialization race condition
+// User model will be retrieved via getUser() inside each function when needed
 
 dotenv.config();
 
@@ -213,6 +213,7 @@ export const register = async (req, res) => {
     }
 
     // Check if user already exists
+    const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const existingUser = await User.findOne({ 
       where: { 
         [Op.or]: [
@@ -392,6 +393,7 @@ export const login = async (req, res) => {
     let user;
     
     try {
+      const User = getUser(); // 🎯 ENHANCED: Lazy load User model
       user = await User.findOne({ 
         where: { 
           [Op.or]: [
@@ -605,6 +607,7 @@ export const refreshToken = async (req, res) => {
     }
 
     // Find user
+    const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const user = await User.findByPk(decoded.id);
     if (!user) {
       return res.status(401).json({
@@ -683,6 +686,7 @@ export const refreshToken = async (req, res) => {
 export const logout = async (req, res) => {
   try {
     // The user is attached to req by the protect middleware
+    const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const user = await User.findByPk(req.user.id);
     
     if (!user) {
@@ -717,6 +721,7 @@ export const logout = async (req, res) => {
 export const getProfile = async (req, res) => {
   try {
     // The user is already attached to req by the protect middleware
+    const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const user = await User.findByPk(req.user.id, {
       attributes: { exclude: ['password', 'refreshTokenHash', 'failedLoginAttempts'] }
     });
@@ -754,6 +759,7 @@ export const updateProfile = async (req, res) => {
   const transaction = await sequelize.transaction();
   
   try {
+    const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const user = await User.findByPk(req.user.id, { transaction });
     
     if (!user) {
@@ -795,7 +801,8 @@ export const updateProfile = async (req, res) => {
       }
       
       // Check if email is already taken
-      const existingEmail = await User.findOne({
+      const ExistingUser = getUser(); // 🎯 ENHANCED: Lazy load User model for email check
+      const existingEmail = await ExistingUser.findOne({
         where: { email },
         transaction
       });
@@ -920,6 +927,7 @@ export const validateToken = async (req, res) => {
     }
     
     // Find user by ID
+    const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const user = await User.findByPk(decoded.id, {
       attributes: { exclude: ['password', 'refreshTokenHash', 'failedLoginAttempts'] }
     });
@@ -964,6 +972,7 @@ export const validateToken = async (req, res) => {
  */
 export const getUserById = async (req, res) => {
   try {
+    const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const user = await User.findByPk(req.params.id, {
       attributes: { exclude: ['password', 'refreshTokenHash'] }
     });
@@ -1003,6 +1012,7 @@ export const authController = async (req, res) => {
 
 export const getUserProfile = async (req, res) => {
   try {
+    const User = getUser(); // 🎯 ENHANCED: Lazy load User model
     const user = await User.findByPk(req.user.id);
     return successResponse(res, sanitizeUser(user), 'User profile retrieved successfully');
   } catch (error) {
