@@ -19,9 +19,9 @@
  */
 
 import logger from './logger.mjs';
-// 🚨 P0 CRITICAL FIX: Import from centralized models index
-// This ensures all models have their associations properly established
-import { ShoppingCart, CartItem, StorefrontItem } from '../models/index.mjs';
+import ShoppingCart from '../models/ShoppingCart.mjs';
+import CartItem from '../models/CartItem.mjs';
+import StorefrontItem from '../models/StorefrontItem.mjs';
 
 /**
  * Calculate cart total and session count from cart items

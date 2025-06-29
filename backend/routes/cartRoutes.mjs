@@ -3,9 +3,10 @@
 
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
-// 🚨 P0 CRITICAL FIX: Import from centralized models index
-// This ensures all models have their associations properly established
-import { ShoppingCart, CartItem, StorefrontItem, User } from '../models/index.mjs';
+import ShoppingCart from '../models/ShoppingCart.mjs';
+import CartItem from '../models/CartItem.mjs';
+import StorefrontItem from '../models/StorefrontItem.mjs';
+import User from '../models/User.mjs';
 import Stripe from 'stripe';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
