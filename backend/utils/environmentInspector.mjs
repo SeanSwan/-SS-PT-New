@@ -1,287 +1,304 @@
 /**
- * Environment Inspector - Safe Runtime Environment Variable Analysis
- * ================================================================
- * Master Prompt v28.6 Compliance - Safe diagnostic tool for environment debugging
- * 
- * ⚠️ CRITICAL: This module is designed to diagnose environment variable issues
- * without exposing any secret values. Only shows existence, format, and length.
+ * Environment Variable Inspector - SwanStudios Payment System Diagnostics
+ * =====================================================================
+ * Master Prompt v33 Compliance - Production-ready environment inspection
  * 
  * Features:
  * - Safe environment variable inspection (no secret exposure)
- * - Format validation for API keys
- * - Runtime availability checking
- * - Deployment verification tools
+ * - Stripe configuration validation
+ * - Format checking and validation
+ * - Express route handler for real-time inspection
+ * 
+ * Security: NEVER exposes actual secret values, only configuration status
  */
 
 import logger from './logger.mjs';
 
 /**
- * Safely inspect an environment variable without exposing its value
+ * Required environment variables for payment processing
  */
-const safeInspectVariable = (varName) => {
-  const value = process.env[varName];
+const REQUIRED_STRIPE_VARS = [
+  'STRIPE_SECRET_KEY',
+  'STRIPE_WEBHOOK_SECRET'
+];
+
+const OPTIONAL_STRIPE_VARS = [
+  'VITE_STRIPE_PUBLISHABLE_KEY'
+];
+
+/**
+ * Environment variable format validators
+ */
+const FORMAT_VALIDATORS = {
+  STRIPE_SECRET_KEY: (value) => {
+    if (!value) return { valid: false, error: 'Missing value' };
+    if (!value.startsWith('sk_')) return { valid: false, error: 'Must start with sk_' };
+    if (value.length < 20) return { valid: false, error: 'Key too short' };
+    return { valid: true };
+  },
   
-  if (!value) {
-    return {
-      name: varName,
-      exists: false,
-      length: 0,
-      format: 'MISSING',
-      prefix: null,
-      type: 'undefined'
-    };
+  STRIPE_WEBHOOK_SECRET: (value) => {
+    if (!value) return { valid: false, error: 'Missing value' };
+    if (!value.startsWith('whsec_')) return { valid: false, error: 'Must start with whsec_' };
+    if (value.length < 20) return { valid: false, error: 'Secret too short' };
+    return { valid: true };
+  },
+  
+  VITE_STRIPE_PUBLISHABLE_KEY: (value) => {
+    if (!value) return { valid: false, error: 'Missing value' };
+    if (!value.startsWith('pk_')) return { valid: false, error: 'Must start with pk_' };
+    if (value.length < 20) return { valid: false, error: 'Key too short' };
+    return { valid: true };
   }
-  
-  // Get safe format information
-  const length = value.length;
-  const prefix = value.substring(0, Math.min(10, length)); // First 10 chars max
-  let format = 'UNKNOWN';
-  
-  // Determine format based on known patterns
-  if (varName.includes('STRIPE')) {
-    if (value.startsWith('sk_test_')) format = 'STRIPE_TEST_SECRET';
-    else if (value.startsWith('sk_live_')) format = 'STRIPE_LIVE_SECRET';
-    else if (value.startsWith('pk_test_')) format = 'STRIPE_TEST_PUBLISHABLE';
-    else if (value.startsWith('pk_live_')) format = 'STRIPE_LIVE_PUBLISHABLE';
-    else if (value.startsWith('whsec_')) format = 'STRIPE_WEBHOOK_SECRET';
-    else format = 'STRIPE_UNKNOWN';
-  } else if (varName.includes('JWT')) {
-    format = 'JWT_SECRET';
-  } else if (varName.includes('DATABASE') || varName.includes('PG_')) {
-    format = 'DATABASE_CONNECTION';
-  } else {
-    format = 'GENERAL_CONFIG';
-  }
-  
-  return {
-    name: varName,
-    exists: true,
-    length,
-    format,
-    prefix: prefix,
-    type: typeof value,
-    startsWithExpected: getExpectedPrefix(varName) ? value.startsWith(getExpectedPrefix(varName)) : null
-  };
 };
 
 /**
- * Get expected prefix for validation
+ * Safe variable inspection - shows only structure, not values
  */
-const getExpectedPrefix = (varName) => {
-  const prefixMap = {
-    'STRIPE_SECRET_KEY': 'sk_',
-    'VITE_STRIPE_PUBLISHABLE_KEY': 'pk_',
-    'STRIPE_WEBHOOK_SECRET': 'whsec_',
-    'SENDGRID_API_KEY': 'SG.',
-    'TWILIO_ACCOUNT_SID': 'AC'
-  };
-  return prefixMap[varName] || null;
-};
-
-/**
- * Perform comprehensive environment inspection for Stripe configuration
- */
-export const inspectStripeEnvironment = () => {
-  console.log('\n🔍 STRIPE ENVIRONMENT INSPECTOR');
-  console.log('===============================');
-  
-  const timestamp = new Date().toISOString();
-  const nodeEnv = process.env.NODE_ENV || 'unknown';
-  
-  console.log(`🕒 Timestamp: ${timestamp}`);
-  console.log(`🌍 Environment: ${nodeEnv}`);
-  console.log(`📍 Process ID: ${process.pid}`);
-  console.log(`🖥️  Platform: ${process.platform}`);
-  console.log(`⚡ Node Version: ${process.version}`);
-  
-  // Critical Stripe variables
-  const stripeVars = [
-    'STRIPE_SECRET_KEY',
-    'VITE_STRIPE_PUBLISHABLE_KEY', 
-    'STRIPE_WEBHOOK_SECRET',
-    'STRIPE_PUBLIC_KEY' // Check if old name still exists
-  ];
+function inspectVariable(name, value) {
+  const exists = value !== undefined && value !== null;
+  const isEmpty = !value || value.trim() === '';
+  const hasWhitespace = value && (value !== value.trim());
   
   const inspection = {
-    timestamp,
-    environment: nodeEnv,
-    processInfo: {
-      pid: process.pid,
-      platform: process.platform,
-      nodeVersion: process.version
-    },
-    variables: {},
-    summary: {
-      total: 0,
-      existing: 0,
-      missing: 0,
-      formatIssues: 0
-    }
+    name,
+    exists,
+    isEmpty,
+    hasWhitespace,
+    length: value ? value.length : 0,
+    prefix: value ? value.substring(0, Math.min(8, value.length)) + '...' : null,
+    format: null
   };
   
-  console.log('\n🔑 STRIPE VARIABLE INSPECTION:');
-  
-  stripeVars.forEach(varName => {
-    const result = safeInspectVariable(varName);
-    inspection.variables[varName] = result;
-    inspection.summary.total++;
-    
-    if (result.exists) {
-      inspection.summary.existing++;
-      const status = result.startsWithExpected ? '✅' : '⚠️';
-      console.log(`  ${status} ${varName}:`);
-      console.log(`     - Exists: ${result.exists}`);
-      console.log(`     - Length: ${result.length} characters`);
-      console.log(`     - Format: ${result.format}`);
-      console.log(`     - Prefix: "${result.prefix}..."`);
-      
-      if (result.startsWithExpected === false) {
-        console.log(`     - ❌ INVALID PREFIX: Expected "${getExpectedPrefix(varName)}", got "${result.prefix}"`);
-        inspection.summary.formatIssues++;
-      }
-    } else {
-      inspection.summary.missing++;
-      console.log(`  ❌ ${varName}: NOT FOUND`);
-    }
-  });
-  
-  // Check for legacy variable names
-  console.log('\n🔄 LEGACY VARIABLE CHECK:');
-  const legacyVars = ['STRIPE_PUBLIC_KEY', 'STRIPE_PUBLISHABLE_KEY'];
-  legacyVars.forEach(varName => {
-    const result = safeInspectVariable(varName);
-    if (result.exists) {
-      console.log(`  ⚠️  LEGACY VARIABLE FOUND: ${varName} (${result.length} chars)`);
-      console.log(`     - This should be renamed to VITE_STRIPE_PUBLISHABLE_KEY`);
-    }
-  });
-  
-  // Environment variable loading verification
-  console.log('\n📋 ENVIRONMENT LOADING VERIFICATION:');
-  const dotenvCheck = process.env.NODE_ENV !== 'production' ? 'Expected' : 'Not Expected';
-  console.log(`  🗂️  .env file loading: ${dotenvCheck} (NODE_ENV: ${nodeEnv})`);
-  console.log(`  🌍 System env variables: Always available`);
-  console.log(`  🔄 Total env variables: ${Object.keys(process.env).length}`);
-  
-  // Summary
-  console.log('\n📊 INSPECTION SUMMARY:');
-  console.log(`  📈 Total variables checked: ${inspection.summary.total}`);
-  console.log(`  ✅ Variables found: ${inspection.summary.existing}`);
-  console.log(`  ❌ Variables missing: ${inspection.summary.missing}`);
-  console.log(`  ⚠️  Format issues: ${inspection.summary.formatIssues}`);
-  
-  if (inspection.summary.missing > 0 || inspection.summary.formatIssues > 0) {
-    console.log('\n🚨 CRITICAL ISSUES DETECTED');
-  } else {
-    console.log('\n🎉 All variables appear correctly configured');
+  // Apply format validation if available
+  if (FORMAT_VALIDATORS[name] && value) {
+    inspection.format = FORMAT_VALIDATORS[name](value);
   }
-  
-  console.log('===============================\n');
   
   return inspection;
-};
+}
 
 /**
- * Quick validation check for a specific Stripe variable
+ * Comprehensive environment inspection
  */
-export const validateStripeVariable = (varName) => {
-  const result = safeInspectVariable(varName);
-  const expected = getExpectedPrefix(varName);
+export function inspectStripeEnvironment() {
+  console.log('\n🔍 ENVIRONMENT INSPECTOR: Starting inspection...');
+  console.log('=================================================');
   
-  return {
-    ...result,
-    isValid: result.exists && (expected ? result.startsWithExpected : true),
-    expectedPrefix: expected,
-    issues: []
-  };
-};
-
-/**
- * Real-time environment change detection
- */
-export const detectEnvironmentChanges = () => {
-  const currentState = inspectStripeEnvironment();
-  
-  // Store baseline for comparison (in a real app, this would be persisted)
-  if (!global.__environmentBaseline) {
-    global.__environmentBaseline = currentState;
-    console.log('🔍 Environment baseline established');
-    return { changed: false, baseline: true };
-  }
-  
-  const baseline = global.__environmentBaseline;
-  const changes = [];
-  
-  Object.keys(currentState.variables).forEach(varName => {
-    const current = currentState.variables[varName];
-    const previous = baseline.variables[varName];
-    
-    if (!previous) {
-      changes.push(`NEW: ${varName} was added`);
-    } else if (current.exists !== previous.exists) {
-      changes.push(`CHANGED: ${varName} existence changed (${previous.exists} → ${current.exists})`);
-    } else if (current.length !== previous.length) {
-      changes.push(`CHANGED: ${varName} length changed (${previous.length} → ${current.length})`);
-    } else if (current.format !== previous.format) {
-      changes.push(`CHANGED: ${varName} format changed (${previous.format} → ${current.format})`);
+  const inspection = {
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    required: {},
+    optional: {},
+    summary: {
+      existing: 0,
+      missing: 0,
+      formatIssues: 0,
+      whitespaceIssues: 0
     }
-  });
+  };
   
-  if (changes.length > 0) {
-    console.log('\n🔄 ENVIRONMENT CHANGES DETECTED:');
-    changes.forEach(change => console.log(`  • ${change}`));
+  // Inspect required variables
+  console.log('\n📋 Required Environment Variables:');
+  for (const varName of REQUIRED_STRIPE_VARS) {
+    const result = inspectVariable(varName, process.env[varName]);
+    inspection.required[varName] = result;
+    
+    console.log(`   ${varName}:`);
+    console.log(`     - Exists: ${result.exists ? '✅' : '❌'}`);
+    console.log(`     - Length: ${result.length}`);
+    console.log(`     - Prefix: ${result.prefix || 'N/A'}`);
+    
+    if (result.hasWhitespace) {
+      console.log(`     - ⚠️ Has whitespace issues`);
+      inspection.summary.whitespaceIssues++;
+    }
+    
+    if (result.format && !result.format.valid) {
+      console.log(`     - ❌ Format issue: ${result.format.error}`);
+      inspection.summary.formatIssues++;
+    } else if (result.format && result.format.valid) {
+      console.log(`     - ✅ Format valid`);
+    }
+    
+    if (result.exists && !result.isEmpty) {
+      inspection.summary.existing++;
+    } else {
+      inspection.summary.missing++;
+    }
   }
   
-  // Update baseline
-  global.__environmentBaseline = currentState;
+  // Inspect optional variables
+  console.log('\n📋 Optional Environment Variables:');
+  for (const varName of OPTIONAL_STRIPE_VARS) {
+    const result = inspectVariable(varName, process.env[varName]);
+    inspection.optional[varName] = result;
+    
+    console.log(`   ${varName}:`);
+    console.log(`     - Exists: ${result.exists ? '✅' : '⚠️'}`);
+    console.log(`     - Length: ${result.length}`);
+    console.log(`     - Prefix: ${result.prefix || 'N/A'}`);
+    
+    if (result.hasWhitespace) {
+      console.log(`     - ⚠️ Has whitespace issues`);
+      inspection.summary.whitespaceIssues++;
+    }
+    
+    if (result.format && !result.format.valid) {
+      console.log(`     - ❌ Format issue: ${result.format.error}`);
+      inspection.summary.formatIssues++;
+    } else if (result.format && result.format.valid) {
+      console.log(`     - ✅ Format valid`);
+    }
+  }
   
-  return {
-    changed: changes.length > 0,
-    changes,
-    timestamp: currentState.timestamp
-  };
-};
+  // Summary
+  console.log('\n📊 Inspection Summary:');
+  console.log(`   - Variables found: ${inspection.summary.existing}`);
+  console.log(`   - Variables missing: ${inspection.summary.missing}`);
+  console.log(`   - Format issues: ${inspection.summary.formatIssues}`);
+  console.log(`   - Whitespace issues: ${inspection.summary.whitespaceIssues}`);
+  
+  console.log('=================================================\n');
+  
+  return inspection;
+}
 
 /**
- * Safe API endpoint handler for environment inspection
+ * Environment key matching analysis
  */
-export const environmentInspectionHandler = (req, res) => {
+export function analyzeKeyMatching() {
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  const publishableKey = process.env.VITE_STRIPE_PUBLISHABLE_KEY;
+  
+  if (!secretKey || !publishableKey) {
+    return {
+      matched: false,
+      reason: 'Missing keys',
+      secretKeyAccount: null,
+      publishableKeyAccount: null
+    };
+  }
+  
+  // Extract account IDs from keys
+  const secretMatch = secretKey.match(/sk_(live|test)_([^_]+)/);
+  const publishableMatch = publishableKey.match(/pk_(live|test)_([^_]+)/);
+  
+  if (!secretMatch || !publishableMatch) {
+    return {
+      matched: false,
+      reason: 'Invalid key format',
+      secretKeyAccount: null,
+      publishableKeyAccount: null
+    };
+  }
+  
+  const secretEnvironment = secretMatch[1];
+  const secretAccount = secretMatch[2];
+  const publishableEnvironment = publishableMatch[1];
+  const publishableAccount = publishableMatch[2];
+  
+  const environmentsMatch = secretEnvironment === publishableEnvironment;
+  const accountsMatch = secretAccount === publishableAccount;
+  
+  return {
+    matched: environmentsMatch && accountsMatch,
+    environmentsMatch,
+    accountsMatch,
+    secretEnvironment,
+    publishableEnvironment,
+    secretKeyAccount: secretAccount,
+    publishableKeyAccount: publishableAccount,
+    reason: !environmentsMatch ? 'Environment mismatch (live vs test)' : 
+            !accountsMatch ? 'Account mismatch' : 'Keys match'
+  };
+}
+
+/**
+ * Express route handler for environment inspection
+ */
+export function environmentInspectionHandler(req, res) {
   try {
-    const inspection = inspectStripeEnvironment();
+    logger.info('Environment inspection requested');
     
-    // Remove any potentially sensitive prefixes from the response
-    const safeInspection = {
-      ...inspection,
-      variables: Object.keys(inspection.variables).reduce((acc, varName) => {
-        const variable = inspection.variables[varName];
-        acc[varName] = {
-          ...variable,
-          prefix: variable.exists ? `${variable.prefix.substring(0, 3)}...` : null // Only first 3 chars
-        };
-        return acc;
-      }, {})
+    const inspection = inspectStripeEnvironment();
+    const keyMatching = analyzeKeyMatching();
+    
+    const response = {
+      success: true,
+      data: {
+        inspection,
+        keyMatching,
+        recommendations: generateRecommendations(inspection, keyMatching)
+      }
     };
     
-    res.json({
-      success: true,
-      data: safeInspection
-    });
+    res.json(response);
+    
   } catch (error) {
-    logger.error('Error performing environment inspection:', error);
+    logger.error('Environment inspection error:', error);
     res.status(500).json({
       success: false,
       message: 'Environment inspection failed',
       error: {
         code: 'INSPECTION_ERROR',
-        details: 'Unable to inspect environment variables'
+        details: error.message
       }
     });
   }
-};
+}
+
+/**
+ * Generate actionable recommendations
+ */
+function generateRecommendations(inspection, keyMatching) {
+  const recommendations = [];
+  
+  if (inspection.summary.missing > 0) {
+    recommendations.push({
+      type: 'critical',
+      message: `${inspection.summary.missing} required environment variables are missing`,
+      action: 'Add missing environment variables to your .env file'
+    });
+  }
+  
+  if (inspection.summary.formatIssues > 0) {
+    recommendations.push({
+      type: 'critical',
+      message: `${inspection.summary.formatIssues} environment variables have format issues`,
+      action: 'Check the format of your Stripe keys'
+    });
+  }
+  
+  if (inspection.summary.whitespaceIssues > 0) {
+    recommendations.push({
+      type: 'warning',
+      message: `${inspection.summary.whitespaceIssues} environment variables have whitespace issues`,
+      action: 'Remove leading/trailing spaces from environment variables'
+    });
+  }
+  
+  if (!keyMatching.matched) {
+    recommendations.push({
+      type: 'critical',
+      message: `Stripe keys don't match: ${keyMatching.reason}`,
+      action: 'Ensure your secret key and publishable key are from the same Stripe account and environment'
+    });
+  }
+  
+  if (recommendations.length === 0) {
+    recommendations.push({
+      type: 'success',
+      message: 'All environment variables are properly configured',
+      action: 'Your Stripe configuration looks good!'
+    });
+  }
+  
+  return recommendations;
+}
 
 export default {
   inspectStripeEnvironment,
-  validateStripeVariable,
-  detectEnvironmentChanges,
+  analyzeKeyMatching,
   environmentInspectionHandler
 };

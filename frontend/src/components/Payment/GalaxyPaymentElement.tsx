@@ -36,12 +36,57 @@ import { CreditCard, Shield, Zap, CheckCircle, AlertCircle, Loader } from 'lucid
 // Import enhanced error handling
 import PaymentErrorHandler from './PaymentErrorHandler';
 
-// Performance-optimized Stripe loading with proper initialization
+// Import diagnostic utilities for development
+if (process.env.NODE_ENV === 'development') {
+  import('../../utils/stripeDiagnostic').then(diagnostics => {
+    console.log('🔧 Payment diagnostics loaded! Available via SwanStripeDiagnostics global');
+  }).catch(err => {
+    console.warn('Failed to load payment diagnostics:', err);
+  });
+}
+
+// Performance-optimized Stripe loading with enhanced validation
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-const stripePromise = stripePublishableKey && 
-  stripePublishableKey !== 'pk_test_placeholder_key_for_development' && 
-  stripePublishableKey !== 'pk_test_placeholder_production_key'
-  ? loadStripe(stripePublishableKey)
+
+// Enhanced Stripe key validation and logging
+const validateStripeKey = (key: string | undefined): boolean => {
+  if (!key) {
+    console.error('🚨 STRIPE ERROR: No publishable key found in environment variables');
+    console.log('Expected env var: VITE_STRIPE_PUBLISHABLE_KEY');
+    return false;
+  }
+  
+  if (key === 'pk_test_placeholder_key_for_development' || key === 'pk_test_placeholder_production_key') {
+    console.error('🚨 STRIPE ERROR: Using placeholder key - Stripe not configured');
+    return false;
+  }
+  
+  if (!key.startsWith('pk_')) {
+    console.error('🚨 STRIPE ERROR: Invalid publishable key format:', key.substring(0, 10) + '...');
+    return false;
+  }
+  
+  if (key.length < 50) {
+    console.error('🚨 STRIPE ERROR: Publishable key too short:', key.length, 'characters');
+    return false;
+  }
+  
+  const isLive = key.startsWith('pk_live_');
+  const isTest = key.startsWith('pk_test_');
+  
+  console.log(`✅ STRIPE: Using ${isLive ? 'LIVE' : isTest ? 'TEST' : 'UNKNOWN'} environment`);
+  console.log(`🔑 STRIPE: Key prefix: ${key.substring(0, 15)}...`);
+  
+  if (isLive && window.location.hostname !== 'sswanstudios.com' && !window.location.hostname.includes('localhost')) {
+    console.warn('⚠️ STRIPE WARNING: Using live keys on non-production domain:', window.location.hostname);
+    console.log('ℹ️ This is normal for development testing with live keys');
+  }
+  
+  return true;
+};
+
+const stripePromise = validateStripeKey(stripePublishableKey) 
+  ? loadStripe(stripePublishableKey!)
   : null;
 
 // Galaxy-themed animations
@@ -689,7 +734,6 @@ const EFTTimeline = styled.div`
 
 // Performance-optimized base Stripe Elements styling options
 const baseStripeElementOptions = {
-  layout: 'tabs' as const,
   style: {
     base: {
       fontSize: '16px',
@@ -699,20 +743,29 @@ const baseStripeElementOptions = {
         color: 'rgba(255, 255, 255, 0.5)',
       },
       backgroundColor: 'transparent',
+      iconColor: '#00ffff',
+      lineHeight: '24px'
     },
     invalid: {
       color: '#ef4444',
       iconColor: '#ef4444',
     },
+    complete: {
+      color: '#10b981',
+      iconColor: '#10b981',
+    }
   },
   variables: {
     colorPrimary: '#00ffff',
-    colorBackground: 'transparent',
+    colorBackground: 'rgba(255, 255, 255, 0.05)',
     colorText: '#ffffff',
     colorDanger: '#ef4444',
+    colorSuccess: '#10b981',
     fontFamily: 'Inter, SF Pro Display, Roboto, sans-serif',
-    spacingUnit: '6px',
-    borderRadius: '8px',
+    spacingUnit: '8px',
+    borderRadius: '12px',
+    focusBoxShadow: '0 0 0 2px rgba(0, 255, 255, 0.3)',
+    tabSpacing: '12px'
   },
 };
 
@@ -874,10 +927,36 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
         setMessage(processingMessage);
         setMessageType('info');
       }
-    } catch (err) {
-      setMessage('An unexpected error occurred.');
+    } catch (err: any) {
+      console.error('💳 Payment processing error:', err);
+      
+      let errorMessage = 'Payment processing failed';
+      let showDiagnosticTip = false;
+      
+      if (err.type === 'card_error') {
+        errorMessage = err.message || 'Your card was declined';
+      } else if (err.type === 'validation_error') {
+        errorMessage = 'Please check your payment information and try again';
+      } else if (err.code === 'payment_intent_authentication_failure') {
+        errorMessage = 'Payment authentication failed. Please try again';
+      } else if (err.code === 'payment_method_creation_failed') {
+        errorMessage = 'Unable to set up payment method. Please check your information';
+      } else if (err.message?.includes('publishable key')) {
+        errorMessage = 'Payment configuration error. Please contact support';
+        showDiagnosticTip = true;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      // Add diagnostic tip for configuration errors
+      if (showDiagnosticTip && process.env.NODE_ENV === 'development') {
+        console.log('🔧 DIAGNOSTIC TIP: Run SwanStripeDiagnostics.runDiagnostics() in the browser console for detailed error analysis');
+        errorMessage += ' (Check browser console for diagnostic tools)';
+      }
+      
+      setMessage(errorMessage);
       setMessageType('error');
-      onError('Payment processing error');
+      onError(errorMessage);
     }
 
     setIsProcessing(false);
@@ -1260,18 +1339,57 @@ const PaymentForm: React.FC<PaymentFormProps> = ({ clientSecret, onSuccess, onEr
         {/* Payment Element */}
         <StripeElementContainer $embedded={embedded}>
           <PaymentElement 
-            options={useMemo(() => ({
-              ...baseStripeElementOptions,
-              paymentMethodTypes: selectedPaymentMethod === 'card' ? ['card'] :
-                                selectedPaymentMethod === 'bank' ? ['us_bank_account', 'ach_debit'] :
-                                ['affirm', 'klarna'],
-              ...(selectedPaymentMethod === 'bank' && {
+            options={useMemo(() => {
+              // Enhanced payment method configuration for better compatibility
+              const baseOptions = {
+                ...baseStripeElementOptions,
+                layout: {
+                  type: 'tabs' as const,
+                  defaultCollapsed: false,
+                  radios: false,
+                  spacedAccordionItems: true
+                },
                 wallets: {
-                  applePay: 'never',
-                  googlePay: 'never'
+                  applePay: 'auto' as const,
+                  googlePay: 'auto' as const
                 }
-              })
-            }), [selectedPaymentMethod])} 
+              };
+              
+              // Configure payment method types based on selection
+              switch (selectedPaymentMethod) {
+                case 'card':
+                  return {
+                    ...baseOptions,
+                    paymentMethodTypes: ['card'],
+                    wallets: {
+                      applePay: 'auto' as const,
+                      googlePay: 'auto' as const
+                    }
+                  };
+                  
+                case 'bank':
+                  return {
+                    ...baseOptions,
+                    paymentMethodTypes: ['us_bank_account'],
+                    wallets: {
+                      applePay: 'never' as const,
+                      googlePay: 'never' as const
+                    }
+                  };
+                  
+                case 'bnpl':
+                  return {
+                    ...baseOptions,
+                    paymentMethodTypes: ['affirm', 'klarna', 'afterpay_clearpay']
+                  };
+                  
+                default:
+                  return {
+                    ...baseOptions,
+                    paymentMethodTypes: ['card', 'us_bank_account']
+                  };
+              }
+            }, [selectedPaymentMethod])} 
           />
         </StripeElementContainer>
 
@@ -1434,10 +1552,30 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
         setError(response.data.message || 'Failed to initialize payment');
       }
     } catch (err: any) {
-      console.error('Payment intent creation error:', err);
+      console.error('💳 Payment intent creation error:', err);
       
-      // Handle specific error types
-      if (err.response?.status === 503) {
+      // Enhanced Stripe error handling
+      if (err.response?.status === 401) {
+        console.error('🚨 STRIPE AUTH ERROR: Backend Stripe secret key may be mismatched with frontend publishable key');
+        console.log('Frontend key:', stripePublishableKey?.substring(0, 15) + '...');
+        setError({
+          code: 'STRIPE_AUTH_ERROR',
+          message: 'Stripe authentication failed. There may be a configuration mismatch between frontend and backend Stripe keys.',
+          details: 'Please contact support - this is a configuration issue.',
+          fallbackOptions: [
+            {
+              method: 'contact',
+              description: 'Contact support immediately - Stripe keys may be mismatched',
+              contact: 'support@swanstudios.com'
+            },
+            {
+              method: 'retry',
+              description: 'Try refreshing the page',
+              retryAfter: 10
+            }
+          ]
+        });
+      } else if (err.response?.status === 503) {
         // Service unavailable - show enhanced error with fallback options
         const errorData = err.response.data;
         setError({
@@ -1592,7 +1730,40 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
         )}
 
         {clientSecret && (
-          <Elements stripe={stripePromise} options={{ clientSecret }}>
+          <Elements 
+            stripe={stripePromise} 
+            options={{ 
+              clientSecret,
+              appearance: {
+                theme: 'night',
+                variables: {
+                  colorPrimary: '#00ffff',
+                  colorBackground: '#0a0a1a',
+                  colorText: '#ffffff',
+                  fontFamily: 'Inter, SF Pro Display, Roboto, sans-serif'
+                }
+              }
+            }}
+            onError={(error: any) => {
+              console.error('🚨 STRIPE ELEMENTS ERROR:', error);
+              if (error.type === 'invalid_request_error' && error.code === 'client_secret_mismatch') {
+                setError({
+                  code: 'STRIPE_KEY_MISMATCH',
+                  message: 'Stripe configuration error detected. Frontend and backend keys may not match.',
+                  details: 'This is a server configuration issue.',
+                  fallbackOptions: [
+                    {
+                      method: 'contact',
+                      description: 'Contact support - Stripe keys mismatch detected',
+                      contact: 'support@swanstudios.com'
+                    }
+                  ]
+                });
+              } else {
+                setError(error.message || 'Stripe configuration error');
+              }
+            }}
+          >
             <PaymentForm
               clientSecret={clientSecret}
               onSuccess={handlePaymentSuccess}
@@ -1759,7 +1930,40 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
         )}
 
         {clientSecret && (
-          <Elements stripe={stripePromise} options={{ clientSecret }}>
+          <Elements 
+            stripe={stripePromise} 
+            options={{ 
+              clientSecret,
+              appearance: {
+                theme: 'night',
+                variables: {
+                  colorPrimary: '#00ffff',
+                  colorBackground: '#0a0a1a',
+                  colorText: '#ffffff',
+                  fontFamily: 'Inter, SF Pro Display, Roboto, sans-serif'
+                }
+              }
+            }}
+            onError={(error: any) => {
+              console.error('🚨 STRIPE ELEMENTS ERROR (Modal):', error);
+              if (error.type === 'invalid_request_error' && error.code === 'client_secret_mismatch') {
+                setError({
+                  code: 'STRIPE_KEY_MISMATCH',
+                  message: 'Stripe configuration error detected. Frontend and backend keys may not match.',
+                  details: 'This is a server configuration issue.',
+                  fallbackOptions: [
+                    {
+                      method: 'contact',
+                      description: 'Contact support - Stripe keys mismatch detected',
+                      contact: 'support@swanstudios.com'
+                    }
+                  ]
+                });
+              } else {
+                setError(error.message || 'Stripe configuration error');
+              }
+            }}
+          >
             <PaymentForm
               clientSecret={clientSecret}
               onSuccess={handlePaymentSuccess}
