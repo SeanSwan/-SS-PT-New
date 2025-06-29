@@ -11,13 +11,8 @@ import {
   getUser
 } from '../models/index.mjs';
 
-// Get models with coordinated associations
-const Order = getOrder();
-const OrderItem = getOrderItem();
-const ShoppingCart = getShoppingCart();
-const CartItem = getCartItem();
-const StorefrontItem = getStorefrontItem();
-const User = getUser();
+// 🎯 ENHANCED P0 FIX: Lazy loading models to prevent initialization race condition
+// Models will be retrieved via getter functions inside each route handler when needed
 import logger from '../utils/logger.mjs';
 import { v4 as uuidv4 } from 'uuid';
 // Temporarily disabled for deployment hotfix - will re-enable after verification
@@ -40,6 +35,10 @@ function generateOrderNumber() {
  */
 router.get('/', protect, async (req, res) => {
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    const Order = getOrder();
+    const OrderItem = getOrderItem();
+    
     const userId = req.user.id;
     
     const orders = await Order.findAll({
@@ -72,6 +71,12 @@ router.get('/', protect, async (req, res) => {
  */
 router.get('/:id', protect, async (req, res) => {
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    const Order = getOrder();
+    const OrderItem = getOrderItem();
+    const StorefrontItem = getStorefrontItem();
+    const User = getUser();
+    
     const userId = req.user.id;
     const orderId = req.params.id;
     
@@ -123,6 +128,13 @@ router.get('/:id', protect, async (req, res) => {
  */
 router.post('/create-from-cart', protect, async (req, res) => {
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    const ShoppingCart = getShoppingCart();
+    const CartItem = getCartItem();
+    const StorefrontItem = getStorefrontItem();
+    const Order = getOrder();
+    const OrderItem = getOrderItem();
+    
     const userId = req.user.id;
     
     // Retrieve the active shopping cart
@@ -220,6 +232,9 @@ router.post('/create-from-cart', protect, async (req, res) => {
  */
 router.put('/:id', protect, async (req, res) => {
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
+    const Order = getOrder();
+    
     // Check if user is admin
     if (req.user.role !== 'admin') {
       return res.status(403).json({
