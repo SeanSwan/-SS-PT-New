@@ -3,8 +3,8 @@ import { protect } from '../middleware/authMiddleware.mjs';
 // 🚀 ENHANCED: Coordinated model imports with associations
 import { getStorefrontItem } from '../models/index.mjs';
 
-// Get model with coordinated associations
-const StorefrontItem = getStorefrontItem();
+// 🎯 ENHANCED P0 FIX: Lazy loading model to prevent initialization race condition
+// StorefrontItem model will be retrieved via getStorefrontItem() inside each route handler when needed
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -24,6 +24,9 @@ const router = express.Router();
  */
 router.get('/', async (req, res) => {
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load model to prevent race condition
+    const StorefrontItem = getStorefrontItem();
+    
     const { 
       sortBy = 'id', 
       sortOrder = 'ASC',
@@ -117,6 +120,9 @@ router.get('/', async (req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load model to prevent race condition
+    const StorefrontItem = getStorefrontItem();
+    
     const item = await StorefrontItem.findOne({
       where: {
         id: req.params.id
@@ -178,6 +184,9 @@ router.get('/:id', async (req, res) => {
  */
 router.post('/', protect, async (req, res) => {
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load model to prevent race condition
+    const StorefrontItem = getStorefrontItem();
+    
     // Check if user is admin
     if (req.user.role !== 'admin') {
       return res.status(403).json({ 
@@ -229,6 +238,9 @@ router.post('/', protect, async (req, res) => {
  */
 router.put('/:id', protect, async (req, res) => {
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load model to prevent race condition
+    const StorefrontItem = getStorefrontItem();
+    
     // Check if user is admin
     if (req.user.role !== 'admin') {
       return res.status(403).json({ 
@@ -289,6 +301,9 @@ router.put('/:id', protect, async (req, res) => {
  */
 router.delete('/:id', protect, async (req, res) => {
   try {
+    // 🎯 ENHANCED P0 FIX: Lazy load model to prevent race condition
+    const StorefrontItem = getStorefrontItem();
+    
     // Check if user is admin
     if (req.user.role !== 'admin') {
       return res.status(403).json({ 
