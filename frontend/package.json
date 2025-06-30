@@ -13,7 +13,11 @@
     "clear-cache": "node .vite-cache-cleaner.js",
     "dev:mock": "cross-env VITE_DEV_MODE=true vite --port 5173 --force",
     "verify-build": "node verify-production-build.mjs",
-    "deploy-ready": "npm run build:production && npm run verify-build"
+    "deploy-ready": "npm run build:production && npm run verify-build",
+    "fix-payment": "node fix-payment-system.mjs",
+    "sync-stripe": "node sync-stripe-keys.mjs",
+    "verify-stripe": "node verify-payment-system.mjs",
+    "fix-stripe-401": "npm run sync-stripe && npm run clear-cache && npm run verify-stripe"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
