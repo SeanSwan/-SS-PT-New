@@ -160,10 +160,30 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [tabId] = useState(() => `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [isActiveTab, setIsActiveTab] = useState(true);
 
-  // CRITICAL FIX: saveSessionData function definition with enhanced error handling
+  // Helper function to detect client-generated session IDs
+  const isClientGeneratedSessionId = useCallback((sessionId: string): boolean => {
+    return sessionId.startsWith('session_') || sessionId.startsWith('exercise_') || sessionId.startsWith('set_');
+  }, []);
+
+  // CRITICAL FIX: saveSessionData function with route compatibility handling
   const saveSessionData = useCallback(async (): Promise<void> => {
     if (!currentSession || !user) return;
     
+    // FIXED: Skip backend save for client-generated session IDs to prevent 500 errors
+    // Client-generated sessions are workout tracking sessions that work offline via localStorage
+    if (isClientGeneratedSessionId(currentSession.id)) {
+      // For workout sessions, use localStorage as primary storage (offline-first design)
+      if (isActiveTab) {
+        localStorage.setItem(`activeSession_${user.id}`, JSON.stringify({
+          ...currentSession,
+          duration: sessionTimer,
+          updatedAt: new Date().toISOString()
+        }));
+      }
+      return; // Skip backend call to prevent 500 errors
+    }
+    
+    // For database-generated session IDs (admin-created sessions), attempt backend save
     try {
       await apiService.put(`/api/sessions/${currentSession.id}`, {
         ...currentSession,
@@ -171,7 +191,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         updatedAt: new Date().toISOString()
       });
     } catch (error) {
-      console.warn('Failed to auto-save session to backend');
+      console.warn('Failed to auto-save session to backend, using localStorage fallback');
       // ENHANCED: Safe localStorage write with tab coordination
       if (isActiveTab) {
         localStorage.setItem(`activeSession_${user.id}`, JSON.stringify({
@@ -181,7 +201,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         }));
       }
     }
-  }, [currentSession, user, sessionTimer, isActiveTab]);
+  }, [currentSession, user, sessionTimer, isActiveTab, isClientGeneratedSessionId]);
 
   // Auto-save current session data - ENHANCED WITH PROPER CLEANUP AND ERROR HANDLING
   useEffect(() => {
@@ -480,11 +500,13 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       pauseTimer();
       showSessionNotification('Session paused. Take a break! ⏸️', 'info');
       
-      // Try to update backend
-      try {
-        await apiService.put(`/api/sessions/${currentSession.id}`, updatedSession);
-      } catch (apiError) {
-        console.warn('Failed to update session on backend:', apiError);
+      // Try to update backend (only for database-generated sessions)
+      if (!isClientGeneratedSessionId(currentSession.id)) {
+        try {
+          await apiService.put(`/api/sessions/${currentSession.id}`, updatedSession);
+        } catch (apiError) {
+          console.warn('Failed to update session on backend:', apiError);
+        }
       }
     } catch (error: any) {
       const message = error.message || 'Failed to pause session';
@@ -493,7 +515,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     } finally {
       setLoading(false);
     }
-  }, [currentSession, sessionTimer, user, showSessionNotification, pauseTimer]);
+  }, [currentSession, sessionTimer, user, showSessionNotification, pauseTimer, isClientGeneratedSessionId]);
 
   const resumeSession = useCallback(async (): Promise<void> => {
     if (!currentSession || currentSession.status !== 'paused') {
@@ -518,11 +540,13 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       startTimer();
       showSessionNotification('Session resumed! Keep going! 🔥', 'success');
       
-      // Try to update backend
-      try {
-        await apiService.put(`/api/sessions/${currentSession.id}`, updatedSession);
-      } catch (apiError) {
-        console.warn('Failed to update session on backend:', apiError);
+      // Try to update backend (only for database-generated sessions)
+      if (!isClientGeneratedSessionId(currentSession.id)) {
+        try {
+          await apiService.put(`/api/sessions/${currentSession.id}`, updatedSession);
+        } catch (apiError) {
+          console.warn('Failed to update session on backend:', apiError);
+        }
       }
     } catch (error: any) {
       const message = error.message || 'Failed to resume session';
@@ -531,7 +555,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     } finally {
       setLoading(false);
     }
-  }, [currentSession, user, showSessionNotification, startTimer]);
+  }, [currentSession, user, showSessionNotification, startTimer, isClientGeneratedSessionId]);
 
   const completeSession = useCallback(async (notes?: string): Promise<void> => {
     if (!currentSession) {
@@ -565,12 +589,19 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       
       showSessionNotification(`Great job! Session completed in ${Math.floor(sessionTimer / 60)} minutes! 🎉`, 'success');
       
-      // Try to save completed session to backend
-      try {
-        await apiService.put(`/api/sessions/${currentSession.id}`, completedSession);
-      } catch (apiError) {
-        console.warn('Failed to save completed session to backend:', apiError);
-        // Save to local storage as backup
+      // Try to save completed session to backend (only for database-generated sessions)
+      if (!isClientGeneratedSessionId(currentSession.id)) {
+        try {
+          await apiService.put(`/api/sessions/${currentSession.id}`, completedSession);
+        } catch (apiError) {
+          console.warn('Failed to save completed session to backend:', apiError);
+          // Save to local storage as backup
+          const localSessions = JSON.parse(localStorage.getItem(`sessions_${user!.id}`) || '[]');
+          localSessions.unshift(completedSession);
+          localStorage.setItem(`sessions_${user!.id}`, JSON.stringify(localSessions.slice(0, 50))); // Keep last 50
+        }
+      } else {
+        // For client-generated sessions, save directly to localStorage (offline-first design)
         const localSessions = JSON.parse(localStorage.getItem(`sessions_${user!.id}`) || '[]');
         localSessions.unshift(completedSession);
         localStorage.setItem(`sessions_${user!.id}`, JSON.stringify(localSessions.slice(0, 50))); // Keep last 50
@@ -585,7 +616,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     } finally {
       setLoading(false);
     }
-  }, [currentSession, sessionTimer, user, showSessionNotification, pauseTimer, resetTimer]);
+  }, [currentSession, sessionTimer, user, showSessionNotification, pauseTimer, resetTimer, isClientGeneratedSessionId]);
 
   // Placeholder implementations for other functions
   const cancelSession = useCallback(async (): Promise<void> => {
