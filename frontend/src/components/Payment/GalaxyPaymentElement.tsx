@@ -36,6 +36,7 @@ import { CreditCard, Shield, Zap, CheckCircle, AlertCircle, Loader } from 'lucid
 // Import enhanced error handling
 import PaymentErrorHandler from './PaymentErrorHandler';
 import paymentDiagnostics from '../../utils/paymentDiagnostics';
+import StripeAccountValidator from '../../utils/stripeAccountValidator';
 
 // Import diagnostic utilities for development
 if (process.env.NODE_ENV === 'development') {
@@ -52,46 +53,69 @@ if (process.env.NODE_ENV === 'development') {
 // Performance-optimized Stripe loading with enhanced validation
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 
-// Enhanced Stripe key validation and logging
-const validateStripeKey = (key: string | undefined): boolean => {
+// ULTRA-ENHANCED Stripe key validation with account matching
+const validateStripeKey = (key: string | undefined): { valid: boolean; accountId: string | null; details: string } => {
   if (!key) {
-    console.error('🚨 STRIPE ERROR: No publishable key found in environment variables');
-    console.log('Expected env var: VITE_STRIPE_PUBLISHABLE_KEY');
-    return false;
+    const error = 'No publishable key found in environment variables';
+    console.error('🚨 STRIPE ERROR:', error);
+    return { valid: false, accountId: null, details: error };
   }
   
   if (key === 'pk_test_placeholder_key_for_development' || key === 'pk_test_placeholder_production_key') {
-    console.error('🚨 STRIPE ERROR: Using placeholder key - Stripe not configured');
-    return false;
+    const error = 'Using placeholder key - Stripe not configured';
+    console.error('🚨 STRIPE ERROR:', error);
+    return { valid: false, accountId: null, details: error };
   }
   
   if (!key.startsWith('pk_')) {
-    console.error('🚨 STRIPE ERROR: Invalid publishable key format:', key.substring(0, 10) + '...');
-    return false;
+    const error = `Invalid publishable key format: ${key.substring(0, 10)}...`;
+    console.error('🚨 STRIPE ERROR:', error);
+    return { valid: false, accountId: null, details: error };
   }
   
   if (key.length < 50) {
-    console.error('🚨 STRIPE ERROR: Publishable key too short:', key.length, 'characters');
-    return false;
+    const error = `Publishable key too short: ${key.length} characters`;
+    console.error('🚨 STRIPE ERROR:', error);
+    return { valid: false, accountId: null, details: error };
+  }
+  
+  // Extract account ID for validation
+  const accountMatch = key.match(/pk_(?:live|test)_([A-Za-z0-9]{16,})/);
+  const accountId = accountMatch ? accountMatch[1].substring(0, 16) : null;
+  
+  if (!accountId) {
+    const error = 'Could not extract account ID from key';
+    console.error('🚨 STRIPE ERROR:', error);
+    return { valid: false, accountId: null, details: error };
   }
   
   const isLive = key.startsWith('pk_live_');
   const isTest = key.startsWith('pk_test_');
   
-  console.log(`✅ STRIPE: Using ${isLive ? 'LIVE' : isTest ? 'TEST' : 'UNKNOWN'} environment`);
-  console.log(`🔑 STRIPE: Key prefix: ${key.substring(0, 15)}...`);
+  console.log(`✅ STRIPE KEY VALIDATED: ${isLive ? 'LIVE' : isTest ? 'TEST' : 'UNKNOWN'} environment`);
+  console.log(`🔑 STRIPE ACCOUNT ID: ${accountId}`);
+  console.log(`🔐 STRIPE KEY PREFIX: ${key.substring(0, 25)}...`);
   
   if (isLive && window.location.hostname !== 'sswanstudios.com' && !window.location.hostname.includes('localhost')) {
     console.warn('⚠️ STRIPE WARNING: Using live keys on non-production domain:', window.location.hostname);
     console.log('ℹ️ This is normal for development testing with live keys');
   }
   
-  return true;
+  return { valid: true, accountId, details: `Valid ${isLive ? 'LIVE' : 'TEST'} key for account ${accountId}` };
 };
 
-const stripePromise = validateStripeKey(stripePublishableKey) 
+const keyValidation = validateStripeKey(stripePublishableKey);
+const stripePromise = keyValidation.valid 
   ? loadStripe(stripePublishableKey!)
   : null;
+
+// Log validation results for debugging
+if (keyValidation.valid) {
+  console.log('🎯 STRIPE INITIALIZATION SUCCESS:', keyValidation.details);
+} else {
+  console.error('💥 STRIPE INITIALIZATION FAILED:', keyValidation.details);
+  console.error('🔧 ACTION REQUIRED: Check your VITE_STRIPE_PUBLISHABLE_KEY in .env files');
+}
 
 // Galaxy-themed animations
 const galaxyShimmer = keyframes`
@@ -1732,6 +1756,38 @@ useEffect(() => {
   amount: response.data.data.amount,
   currency: response.data.data.currency
   });
+  
+  // ULTRA-VALIDATION: Check account matching
+  if (keyValidation.valid && stripePublishableKey) {
+    const accountValidation = StripeAccountValidator.validateAccountMatch(
+      clientSecret, 
+      stripePublishableKey
+    );
+    
+    if (!accountValidation.valid) {
+      console.error('🚨 CRITICAL: Account mismatch will cause 401 errors!');
+      setError({
+        code: 'ACCOUNT_MISMATCH',
+        message: 'Payment configuration error: Frontend and backend Stripe accounts do not match.',
+        details: accountValidation.details,
+        fallbackOptions: [
+          {
+            method: 'fix',
+            description: 'Update frontend .env file with correct publishable key',
+            technical: `Expected account: ${accountValidation.backendAccount}`
+          },
+          {
+            method: 'contact',
+            description: 'Contact support for Stripe configuration assistance',
+            contact: 'support@swanstudios.com'
+          }
+        ]
+      });
+      return;
+    } else {
+      console.log('🎯 ACCOUNT VALIDATION PASSED: Ready for secure payment processing');
+    }
+  }
   
   setClientSecret(clientSecret);
   } else {
