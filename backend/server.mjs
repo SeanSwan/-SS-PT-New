@@ -6,6 +6,8 @@
  * This is the simplified entry point for the SwanStudios backend server.
  * Complex initialization logic has been moved to dedicated modules for better
  * maintainability and reduced risk of server crashes.
+ * 
+ * Environment refresh: 2025-07-01T22:26 - Force restart for Stripe env vars
  */
 
 // ===================== ENVIRONMENT SETUP =====================
