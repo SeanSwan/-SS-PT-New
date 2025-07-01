@@ -40,12 +40,12 @@ export function validateStripeConfig() {
   
   console.log('📋 Checking Stripe Environment Variables:');
   
-  // Validate secret key
+  // Validate secret key (accept both standard sk_ and restricted rk_ keys)
   if (!secretKey) {
     errors.push('STRIPE_SECRET_KEY is missing');
     console.log('   ❌ STRIPE_SECRET_KEY: Missing');
-  } else if (!secretKey.startsWith('sk_')) {
-    errors.push('STRIPE_SECRET_KEY has invalid format (must start with sk_)');
+  } else if (!secretKey.startsWith('sk_') && !secretKey.startsWith('rk_')) {
+    errors.push('STRIPE_SECRET_KEY has invalid format (must start with sk_ or rk_)');
     console.log('   ❌ STRIPE_SECRET_KEY: Invalid format');
   } else if (secretKey.trim() !== secretKey) {
     errors.push('STRIPE_SECRET_KEY has whitespace issues');
@@ -105,9 +105,9 @@ export function validateStripeConfig() {
     }
   }
 
-  // Extract account IDs and validate they match (but be more permissive)
+  // Extract account IDs and validate they match (support both sk_ and rk_ keys)
   if (secretKey && publishableKey) {
-    const secretMatch = secretKey.match(/sk_(live|test)_([^_]+)/);
+    const secretMatch = secretKey.match(/[sr]k_(live|test)_([^_]+)/);
     const publishableMatch = publishableKey.match(/pk_(live|test)_([^_]+)/);
     
     if (secretMatch && publishableMatch) {
@@ -194,7 +194,7 @@ export function isStripeReady() {
   // If all keys exist and are properly formatted, consider it ready
   // (bypass account matching validation for now)
   if (hasSecretKey && hasPublishableKey && hasWebhookSecret) {
-    const secretValid = process.env.STRIPE_SECRET_KEY.startsWith('sk_');
+    const secretValid = process.env.STRIPE_SECRET_KEY.startsWith('sk_') || process.env.STRIPE_SECRET_KEY.startsWith('rk_');
     const publishableValid = process.env.VITE_STRIPE_PUBLISHABLE_KEY.startsWith('pk_');
     const webhookValid = process.env.STRIPE_WEBHOOK_SECRET.startsWith('whsec_');
     
