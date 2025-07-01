@@ -9,6 +9,7 @@
  * 
  * Environment refresh: 2025-07-01T22:26 - Force restart for Stripe env vars
  * Account validation fix: 2025-07-01T22:29 - Fixed frontend validator logic
+ * Environment validation: 2025-07-01T22:32 - Simplified to environment consistency
  */
 
 // ===================== ENVIRONMENT SETUP =====================
