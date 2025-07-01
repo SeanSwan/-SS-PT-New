@@ -32,7 +32,7 @@ const OPTIONAL_STRIPE_VARS = [
 const FORMAT_VALIDATORS = {
   STRIPE_SECRET_KEY: (value) => {
     if (!value) return { valid: false, error: 'Missing value' };
-    if (!value.startsWith('sk_')) return { valid: false, error: 'Must start with sk_' };
+    if (!value.startsWith('sk_') && !value.startsWith('rk_')) return { valid: false, error: 'Must start with sk_ or rk_' };
     if (value.length < 20) return { valid: false, error: 'Key too short' };
     return { valid: true };
   },
@@ -180,8 +180,8 @@ export function analyzeKeyMatching() {
     };
   }
   
-  // Extract account IDs from keys
-  const secretMatch = secretKey.match(/sk_(live|test)_([^_]+)/);
+  // Extract account IDs from keys (support both sk_ and rk_ keys)
+  const secretMatch = secretKey.match(/[sr]k_(live|test)_([^_]+)/);
   const publishableMatch = publishableKey.match(/pk_(live|test)_([^_]+)/);
   
   if (!secretMatch || !publishableMatch) {
