@@ -97,6 +97,36 @@ router.get('/stripe-validation', async (req, res) => {
     
     console.log('=====================================\n');
     
+    // Additional enhanced diagnostics
+    const enhancedDiagnostics = {
+      rawKeyAnalysis: {
+        secretKey: {
+          exists: !!process.env.STRIPE_SECRET_KEY,
+          length: process.env.STRIPE_SECRET_KEY?.length || 0,
+          prefix: process.env.STRIPE_SECRET_KEY?.substring(0, 8) || 'N/A',
+          isValidFormat: process.env.STRIPE_SECRET_KEY?.match(/^(sk_|rk_)(live|test)_/) ? true : false
+        },
+        publishableKey: {
+          exists: !!process.env.VITE_STRIPE_PUBLISHABLE_KEY,
+          length: process.env.VITE_STRIPE_PUBLISHABLE_KEY?.length || 0,
+          prefix: process.env.VITE_STRIPE_PUBLISHABLE_KEY?.substring(0, 8) || 'N/A',
+          isValidFormat: process.env.VITE_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_') ? true : false,
+          criticalError: process.env.VITE_STRIPE_PUBLISHABLE_KEY?.startsWith('sk_') ? 'PUBLISHABLE_KEY_IS_ACTUALLY_SECRET_KEY' : null
+        },
+        webhookSecret: {
+          exists: !!process.env.STRIPE_WEBHOOK_SECRET,
+          length: process.env.STRIPE_WEBHOOK_SECRET?.length || 0,
+          prefix: process.env.STRIPE_WEBHOOK_SECRET?.substring(0, 8) || 'N/A',
+          isValidFormat: process.env.STRIPE_WEBHOOK_SECRET?.startsWith('whsec_') ? true : false
+        }
+      },
+      initializationStatus: {
+        stripeClientExists: !!stripeClient,
+        stripeReady: stripeReady,
+        lastInitializationError: stripeInitializationError
+      }
+    };
+    
     res.json({
       success: true,
       data: {
@@ -108,6 +138,7 @@ router.get('/stripe-validation', async (req, res) => {
           lastChecked: config.lastChecked
         },
         health: healthReport,
+        enhancedDiagnostics,
         message: config.isConfigured ? 'Stripe configuration is valid' : 'Stripe configuration has issues'
       }
     });
@@ -137,15 +168,26 @@ const initializeStripe = () => {
     console.log('=================================================');
     
     const secretKey = process.env.STRIPE_SECRET_KEY;
+    const publishableKey = process.env.VITE_STRIPE_PUBLISHABLE_KEY;
     const isEnabled = isStripeEnabled();
     
     console.log(`   - isStripeEnabled(): ${isEnabled}`);
     console.log(`   - STRIPE_SECRET_KEY exists: ${!!secretKey}`);
+    console.log(`   - VITE_STRIPE_PUBLISHABLE_KEY exists: ${!!publishableKey}`);
+    
+    // CRITICAL: Check for the common publishable key misconfiguration
+    if (publishableKey && publishableKey.startsWith('sk_')) {
+      console.log('   - 🚨 CRITICAL ERROR: PUBLISHABLE KEY IS ACTUALLY A SECRET KEY!');
+      console.log('   - 🚨 Your VITE_STRIPE_PUBLISHABLE_KEY starts with "sk_" but should start with "pk_"');
+      console.log('   - 🚨 This is the likely cause of your 503 errors!');
+      stripeInitializationError = 'CRITICAL: Publishable key is actually a secret key (starts with sk_ instead of pk_)';
+      return false;
+    }
     
     if (secretKey) {
       console.log(`   - Secret key length: ${secretKey.length}`);
       console.log(`   - Secret key format: ${secretKey.substring(0, 8)}...`);
-      console.log(`   - Secret key starts with sk_: ${secretKey.startsWith('sk_')}`);
+      console.log(`   - Secret key starts with sk_/rk_: ${secretKey.startsWith('sk_') || secretKey.startsWith('rk_')}`);
       
       // Check for whitespace issues
       const trimmed = secretKey.trim();
@@ -159,6 +201,12 @@ const initializeStripe = () => {
       const allEnvKeys = Object.keys(process.env);
       const stripeKeys = allEnvKeys.filter(key => key.includes('STRIPE'));
       console.log(`   - Available STRIPE env vars: [${stripeKeys.join(', ')}]`);
+    }
+    
+    if (publishableKey) {
+      console.log(`   - Publishable key length: ${publishableKey.length}`);
+      console.log(`   - Publishable key format: ${publishableKey.substring(0, 8)}...`);
+      console.log(`   - Publishable key starts with pk_: ${publishableKey.startsWith('pk_')}`);
     }
     
     console.log('=================================================\n');
