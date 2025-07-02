@@ -77,13 +77,13 @@ const getGalaxyGradient = (theme: string = 'purple') => {
   }
 };
 
-// Available movie files in assets folder
+// Available movie files in public folder (confirmed via directory listing)
 const AVAILABLE_MOVIES = [
   'fish.mp4',
   'forest.mp4', 
   'Run.mp4',
   'smoke.mp4',
-  'swan-silver-wing.mp4',
+  'swan-silver-wing.mp4', // You'll need to copy this manually to public folder
   'swan.mp4',
   'Swans.mp4',
   'Waves.mp4'
@@ -95,10 +95,10 @@ const getMatchingMovieFile = (packageName: string): string | null => {
   
   const nameLower = packageName.toLowerCase();
   
-  // Direct name matching with priority
+  // Direct name matching with priority (using available files)
   const matchingRules = [
-    { keywords: ['silver', 'swan', 'elite'], movie: 'swan-silver-wing.mp4' },
-    { keywords: ['swans', 'multiple'], movie: 'Swans.mp4' },
+    { keywords: ['silver', 'elite'], movie: 'swan-silver-wing.mp4' }, // Premium silver packages get special video
+    { keywords: ['swans', 'multiple', 'platinum', 'premium'], movie: 'Swans.mp4' },
     { keywords: ['swan'], movie: 'swan.mp4' },
     { keywords: ['run', 'running', 'cardio'], movie: 'Run.mp4' },
     { keywords: ['wave', 'water', 'flow'], movie: 'Waves.mp4' },
@@ -110,14 +110,14 @@ const getMatchingMovieFile = (packageName: string): string | null => {
   // Find best match based on keywords in package name
   for (const rule of matchingRules) {
     if (rule.keywords.some(keyword => nameLower.includes(keyword))) {
-      return `/assets/${rule.movie}`;
+      return `/${rule.movie}`;
     }
   }
   
   // Fallback strategy - use default based on package type or position
   const fallbackMovies = ['Waves.mp4', 'forest.mp4', 'smoke.mp4', 'swan.mp4'];
   const fallbackIndex = Math.abs(packageName.length % fallbackMovies.length);
-  return `/assets/${fallbackMovies[fallbackIndex]}`;
+  return `/${fallbackMovies[fallbackIndex]}`;
 };
 
 const formatPrice = (price: number | null | undefined): string => {
