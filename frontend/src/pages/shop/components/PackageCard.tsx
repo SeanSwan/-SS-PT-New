@@ -77,6 +77,49 @@ const getGalaxyGradient = (theme: string = 'purple') => {
   }
 };
 
+// Available movie files in assets folder
+const AVAILABLE_MOVIES = [
+  'fish.mp4',
+  'forest.mp4', 
+  'Run.mp4',
+  'smoke.mp4',
+  'swan-silver-wing.mp4',
+  'swan.mp4',
+  'Swans.mp4',
+  'Waves.mp4'
+];
+
+// Dynamic movie matching utility
+const getMatchingMovieFile = (packageName: string): string | null => {
+  if (!packageName) return null;
+  
+  const nameLower = packageName.toLowerCase();
+  
+  // Direct name matching with priority
+  const matchingRules = [
+    { keywords: ['silver', 'swan', 'elite'], movie: 'swan-silver-wing.mp4' },
+    { keywords: ['swans', 'multiple'], movie: 'Swans.mp4' },
+    { keywords: ['swan'], movie: 'swan.mp4' },
+    { keywords: ['run', 'running', 'cardio'], movie: 'Run.mp4' },
+    { keywords: ['wave', 'water', 'flow'], movie: 'Waves.mp4' },
+    { keywords: ['forest', 'nature', 'outdoor'], movie: 'forest.mp4' },
+    { keywords: ['smoke', 'intensity', 'transformation'], movie: 'smoke.mp4' },
+    { keywords: ['fish', 'aqua', 'marine'], movie: 'fish.mp4' }
+  ];
+  
+  // Find best match based on keywords in package name
+  for (const rule of matchingRules) {
+    if (rule.keywords.some(keyword => nameLower.includes(keyword))) {
+      return `/assets/${rule.movie}`;
+    }
+  }
+  
+  // Fallback strategy - use default based on package type or position
+  const fallbackMovies = ['Waves.mp4', 'forest.mp4', 'smoke.mp4', 'swan.mp4'];
+  const fallbackIndex = Math.abs(packageName.length % fallbackMovies.length);
+  return `/assets/${fallbackMovies[fallbackIndex]}`;
+};
+
 const formatPrice = (price: number | null | undefined): string => {
   if (typeof price !== 'number' || isNaN(price)) { return '$0'; }
   return price.toLocaleString("en-US", { 
@@ -87,8 +130,19 @@ const formatPrice = (price: number | null | undefined): string => {
   });
 };
 
-const getPackageImage = (imageUrl: string | null, packageName: string): string => {
-  return '/marble-texture.png';
+// Enhanced function to get package media (video or image)
+const getPackageMedia = (imageUrl: string | null, packageName: string): { type: 'video' | 'image'; url: string } => {
+  // First try to find a matching movie file
+  const movieFile = getMatchingMovieFile(packageName);
+  if (movieFile) {
+    return { type: 'video', url: movieFile };
+  }
+  
+  // Fallback to provided image or default texture
+  return { 
+    type: 'image', 
+    url: imageUrl || '/marble-texture.png' 
+  };
 };
 
 const getValueBadge = (pkg: StoreItem): { text: string; isGoodValue: boolean } => {
@@ -187,6 +241,34 @@ const CosmicCardMedia = styled.div`
   }
 `;
 
+// Enhanced media container that supports both video and image
+const CosmicCardMediaContent = styled.div<{$theme?: string}>`
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transition: transform 0.4s ease;
+  
+  ${CosmicPackageCard}:hover & {
+    transform: scale(1.08);
+  }
+`;
+
+const CosmicCardVideo = styled.video`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.4s ease;
+  
+  &::-webkit-media-controls {
+    display: none !important;
+  }
+  
+  &::-webkit-media-controls-panel {
+    display: none !important;
+  }
+`;
+
 const CosmicCardImage = styled.div<{$imageUrl?: string | null; $theme?: string}>`
   width: 100%;
   height: 100%;
@@ -194,13 +276,48 @@ const CosmicCardImage = styled.div<{$imageUrl?: string | null; $theme?: string}>
   background-size: ${props => props.$imageUrl ? 'cover' : '200% 200%'};
   background-position: center;
   background-repeat: no-repeat;
-  transition: transform 0.4s ease;
   background: ${props => !props.$imageUrl && getGalaxyGradient(props.$theme)};
-  
-  ${CosmicPackageCard}:hover & {
-    transform: scale(1.08);
-  }
 `;
+
+// Video/Image wrapper component
+interface MediaContentProps {
+  mediaInfo: { type: 'video' | 'image'; url: string };
+  packageName: string;
+  theme?: string;
+}
+
+const MediaContent: React.FC<MediaContentProps> = ({ mediaInfo, packageName, theme }) => {
+  if (mediaInfo.type === 'video') {
+    return (
+      <CosmicCardMediaContent $theme={theme}>
+        <CosmicCardVideo
+          src={mediaInfo.url}
+          autoPlay
+          loop
+          muted
+          playsInline
+          aria-label={`Video background for ${packageName}`}
+          onError={(e) => {
+            console.warn(`Video failed to load for ${packageName}:`, mediaInfo.url);
+            // Fallback to image background
+            const target = e.target as HTMLVideoElement;
+            const parent = target.parentElement;
+            if (parent) {
+              parent.style.background = getGalaxyGradient(theme);
+              target.style.display = 'none';
+            }
+          }}
+        />
+      </CosmicCardMediaContent>
+    );
+  }
+  
+  return (
+    <CosmicCardMediaContent $theme={theme}>
+      <CosmicCardImage $imageUrl={mediaInfo.url} $theme={theme} />
+    </CosmicCardMediaContent>
+  );
+};
 
 const CosmicCardContent = styled.div`
   padding: 2rem;
@@ -463,6 +580,7 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
   }
 
   const valueBadge = getValueBadge(pkg);
+  const mediaInfo = getPackageMedia(pkg.imageUrl, pkg.name);
 
   return (
     <CosmicPackageCard 
@@ -475,9 +593,10 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
       variants={itemVariants}
     >
       <CosmicCardMedia>
-        <CosmicCardImage 
-          $imageUrl={getPackageImage(pkg.imageUrl, pkg.name)} 
-          $theme={pkg.theme}
+        <MediaContent 
+          mediaInfo={mediaInfo}
+          packageName={pkg.name}
+          theme={pkg.theme}
         />
         {badgeDisplay && <CosmicBadge $theme={pkg.theme}>{badgeDisplay}</CosmicBadge>}
       </CosmicCardMedia>
