@@ -77,13 +77,12 @@ const getGalaxyGradient = (theme: string = 'purple') => {
   }
 };
 
-// Available movie files in public folder (confirmed via directory listing)
+// Available movie files in public folder (verified via directory listing)
 const AVAILABLE_MOVIES = [
   'fish.mp4',
   'forest.mp4', 
   'Run.mp4',
   'smoke.mp4',
-  'swan-silver-wing.mp4', // You'll need to copy this manually to public folder
   'swan.mp4',
   'Swans.mp4',
   'Waves.mp4'
@@ -95,9 +94,9 @@ const getMatchingMovieFile = (packageName: string): string | null => {
   
   const nameLower = packageName.toLowerCase();
   
-  // Direct name matching with priority (using available files)
+  // Direct name matching with priority (using only available files)
   const matchingRules = [
-    { keywords: ['silver', 'elite'], movie: 'swan-silver-wing.mp4' }, // Premium silver packages get special video
+    { keywords: ['silver', 'elite'], movie: 'Swans.mp4' }, // Silver packages get premium Swans video
     { keywords: ['swans', 'multiple', 'platinum', 'premium'], movie: 'Swans.mp4' },
     { keywords: ['swan'], movie: 'swan.mp4' },
     { keywords: ['run', 'running', 'cardio'], movie: 'Run.mp4' },
