@@ -185,22 +185,31 @@ const initializeStripe = () => {
   }
 };
 
-// Initialize Stripe on module load with detailed logging
-console.log('\n🚀 [Payment Routes] Initializing Stripe client...');
-const stripeReady = initializeStripe();
-console.log(`🔍 [Payment Routes] Stripe initialization result: ${stripeReady ? 'SUCCESS' : 'FAILED'}\n`);
+// Stripe is now initialized lazily in the checkStripeAvailability middleware
+// This prevents a bad configuration from crashing the server on startup.
+console.log('🚀 [Payment Routes] Module loaded. Stripe will initialize on first payment request.');
+
+let stripeReady = false; // Keep track of the initialization state
 
 /**
  * Middleware to check Stripe availability and provide helpful error responses
+ * ENHANCED WITH LAZY INITIALIZATION (SINGLETON PATTERN)
  */
 const checkStripeAvailability = (req, res, next) => {
+  // If Stripe isn't ready, try to initialize it now.
+  if (!stripeReady) {
+    console.log('🔄 [Payment Routes] Stripe not initialized. Attempting lazy initialization...');
+    stripeReady = initializeStripe();
+  }
+  
+  // If it's still not ready after the attempt, then fail gracefully.
   if (!stripeClient || !stripeReady) {
     return res.status(503).json({
       success: false,
       message: 'Payment processing temporarily unavailable',
       error: {
         code: 'PAYMENT_SERVICE_UNAVAILABLE',
-        details: stripeInitializationError || 'Payment service not configured',
+        details: stripeInitializationError || 'Payment service not configured or failed to initialize.',
         retryAfter: 300, // 5 minutes
         supportContact: 'support@swanstudios.com'
       },
@@ -218,13 +227,15 @@ const checkStripeAvailability = (req, res, next) => {
       ]
     });
   }
+  
+  // If we get here, Stripe is ready. Proceed.
   next();
 };
 
 /**
  * Health check endpoint for payment system
  */
-router.get('/health', (req, res) => {
+router.get('/health', (req, res) => { // This route does not use checkStripeAvailability
   const health = {
     status: stripeReady ? 'healthy' : 'degraded',
     stripe: {
