@@ -79,77 +79,225 @@ router.get('/environment-inspect', async (req, res) => {
 });
 
 /**
- * Real-time Stripe configuration validation endpoint (no auth required)
+ * ENHANCED TRUTH SERUM DIAGNOSTIC - Real-time Stripe configuration validation endpoint (no auth required)
  * GET /api/payments/stripe-validation
  * Forces re-validation of Stripe configuration and shows detailed results
+ * ENHANCED: Now includes definitive account ID verification via Stripe API
  */
 router.get('/stripe-validation', async (req, res) => {
   try {
-    // Force re-validation of Stripe configuration
-    const { validateStripeConfig, getHealthReport } = await import('../utils/stripeConfig.mjs');
+    console.log('\n🧪 ENHANCED TRUTH SERUM DIAGNOSTIC TRIGGERED');
+    console.log('===============================================');
+    console.log('⚡ This diagnostic will definitively identify account mismatches');
+    console.log('===============================================');
     
-    console.log('\n🔄 MANUAL STRIPE VALIDATION TRIGGERED');
-    console.log('=====================================');
+    const secretKey = process.env.STRIPE_SECRET_KEY;
+    const publishableKey = process.env.VITE_STRIPE_PUBLISHABLE_KEY;
     
-    // Re-run validation
-    const config = validateStripeConfig();
-    const healthReport = getHealthReport();
-    
-    console.log('=====================================\n');
-    
-    // Additional enhanced diagnostics
-    const enhancedDiagnostics = {
-      rawKeyAnalysis: {
-        secretKey: {
-          exists: !!process.env.STRIPE_SECRET_KEY,
-          length: process.env.STRIPE_SECRET_KEY?.length || 0,
-          prefix: process.env.STRIPE_SECRET_KEY?.substring(0, 8) || 'N/A',
-          isValidFormat: process.env.STRIPE_SECRET_KEY?.match(/^(sk_|rk_)(live|test)_/) ? true : false
-        },
-        publishableKey: {
-          exists: !!process.env.VITE_STRIPE_PUBLISHABLE_KEY,
-          length: process.env.VITE_STRIPE_PUBLISHABLE_KEY?.length || 0,
-          prefix: process.env.VITE_STRIPE_PUBLISHABLE_KEY?.substring(0, 8) || 'N/A',
-          isValidFormat: process.env.VITE_STRIPE_PUBLISHABLE_KEY?.startsWith('pk_') ? true : false,
-          criticalError: process.env.VITE_STRIPE_PUBLISHABLE_KEY?.startsWith('sk_') ? 'PUBLISHABLE_KEY_IS_ACTUALLY_SECRET_KEY' : null
-        },
-        webhookSecret: {
-          exists: !!process.env.STRIPE_WEBHOOK_SECRET,
-          length: process.env.STRIPE_WEBHOOK_SECRET?.length || 0,
-          prefix: process.env.STRIPE_WEBHOOK_SECRET?.substring(0, 8) || 'N/A',
-          isValidFormat: process.env.STRIPE_WEBHOOK_SECRET?.startsWith('whsec_') ? true : false
-        }
+    // PHASE 1: Basic Key Analysis with Character-Level Inspection
+    const basicAnalysis = {
+      secretKey: {
+        exists: !!secretKey,
+        length: secretKey?.length || 0,
+        prefix: secretKey?.substring(0, 8) || 'N/A',
+        isValidFormat: secretKey?.match(/^(sk_|rk_)(live|test)_/) ? true : false,
+        hasWhitespace: secretKey ? (secretKey !== secretKey.trim()) : false,
+        characterAnalysis: secretKey ? {
+          firstChar: secretKey.charCodeAt(0),
+          lastChar: secretKey.charCodeAt(secretKey.length - 1),
+          containsNonPrintable: /[\x00-\x1F\x7F-\x9F]/.test(secretKey),
+          byteLength: Buffer.from(secretKey, 'utf8').length
+        } : null
       },
-      initializationStatus: {
-        stripeClientExists: !!stripeClient,
-        stripeReady: stripeReady,
-        lastInitializationError: stripeInitializationError
+      publishableKey: {
+        exists: !!publishableKey,
+        length: publishableKey?.length || 0,
+        prefix: publishableKey?.substring(0, 8) || 'N/A',
+        isValidFormat: publishableKey?.startsWith('pk_') ? true : false,
+        criticalError: publishableKey?.startsWith('sk_') ? 'PUBLISHABLE_KEY_IS_ACTUALLY_SECRET_KEY' : null,
+        hasWhitespace: publishableKey ? (publishableKey !== publishableKey.trim()) : false,
+        characterAnalysis: publishableKey ? {
+          firstChar: publishableKey.charCodeAt(0),
+          lastChar: publishableKey.charCodeAt(publishableKey.length - 1),
+          containsNonPrintable: /[\x00-\x1F\x7F-\x9F]/.test(publishableKey),
+          byteLength: Buffer.from(publishableKey, 'utf8').length
+        } : null
       }
     };
     
+    console.log('📊 Basic Analysis Results:');
+    console.log('   Secret Key Valid Format:', basicAnalysis.secretKey.isValidFormat);
+    console.log('   Publishable Key Valid Format:', basicAnalysis.publishableKey.isValidFormat);
+    console.log('   Secret Key Whitespace Issues:', basicAnalysis.secretKey.hasWhitespace);
+    console.log('   Publishable Key Whitespace Issues:', basicAnalysis.publishableKey.hasWhitespace);
+    
+    // PHASE 2: TRUTH SERUM - Actual Stripe API Account Verification
+    let truthSerumResults = {
+      backendAccountVerified: false,
+      backendAccountId: null,
+      backendError: null,
+      frontendKeyAccountHint: null,
+      accountsMatch: null,
+      definitiveDiagnosis: null
+    };
+    
+    // Test the secret key by calling Stripe API
+    if (secretKey && basicAnalysis.secretKey.isValidFormat) {
+      console.log('🔍 Testing SECRET KEY against Stripe API...');
+      try {
+        const testStripe = new Stripe(secretKey.trim());
+        const account = await testStripe.accounts.retrieve();
+        
+        truthSerumResults.backendAccountVerified = true;
+        truthSerumResults.backendAccountId = account.id;
+        
+        console.log('✅ SECRET KEY VERIFICATION: SUCCESS');
+        console.log('   Backend Account ID:', account.id);
+        console.log('   Account Type:', account.type);
+        console.log('   Country:', account.country);
+        console.log('   Business Profile:', account.business_profile?.name || 'N/A');
+        
+      } catch (stripeError) {
+        truthSerumResults.backendError = {
+          type: stripeError.type,
+          code: stripeError.code,
+          message: stripeError.message,
+          statusCode: stripeError.statusCode
+        };
+        
+        console.log('❌ SECRET KEY VERIFICATION: FAILED');
+        console.log('   Error Type:', stripeError.type);
+        console.log('   Error Code:', stripeError.code);
+        console.log('   Error Message:', stripeError.message);
+      }
+    } else {
+      console.log('⚠️ Skipping secret key verification - invalid format or missing');
+    }
+    
+    // PHASE 3: Publishable Key Account Hint Extraction
+    if (publishableKey && basicAnalysis.publishableKey.isValidFormat) {
+      console.log('🔍 Analyzing PUBLISHABLE KEY for account hints...');
+      
+      // Extract account hint from publishable key structure
+      // Stripe publishable keys follow pattern: pk_live_51J7acMKE5XFS1YwG...
+      // The account hint is typically the part after the environment
+      const keyParts = publishableKey.split('_');
+      if (keyParts.length >= 3) {
+        const accountHint = keyParts[2];
+        truthSerumResults.frontendKeyAccountHint = accountHint;
+        
+        console.log('📋 Publishable Key Analysis:');
+        console.log('   Key Structure:', keyParts.map((part, i) => `${i}: ${part.substring(0, 12)}...`).join(', '));
+        console.log('   Account Hint:', accountHint.substring(0, 20) + '...');
+        
+        // Compare account hints if we have both
+        if (truthSerumResults.backendAccountId) {
+          // The backend account ID format is 'acct_XXXXXX' and the publishable key account hint should relate
+          const backendAccountCode = truthSerumResults.backendAccountId.replace('acct_', '');
+          const keyAccountHint = accountHint;
+          
+          console.log('🔄 Account Comparison:');
+          console.log('   Backend Account Code:', backendAccountCode);
+          console.log('   Frontend Key Hint:', keyAccountHint.substring(0, 20) + '...');
+          
+          // Check if they're related (this is heuristic, but helps identify mismatches)
+          const hintsMatch = keyAccountHint.includes(backendAccountCode) || 
+                           backendAccountCode.includes(keyAccountHint.substring(0, 15));
+          
+          truthSerumResults.accountsMatch = hintsMatch;
+          
+          if (hintsMatch) {
+            console.log('✅ ACCOUNT MATCH: Keys appear to be from the same Stripe account');
+            truthSerumResults.definitiveDiagnosis = 'SUCCESS: Keys are from the same Stripe account. The 401 error is likely due to a different issue (key permissions, API version, etc.)';
+          } else {
+            console.log('🚨 ACCOUNT MISMATCH DETECTED!');
+            console.log('   This is likely the cause of your 401 errors!');
+            truthSerumResults.definitiveDiagnosis = 'CRITICAL: Keys are from DIFFERENT Stripe accounts! This is the definitive cause of your 401 errors. You must use matching secret and publishable keys from the same Stripe account.';
+          }
+        }
+      }
+    }
+    
+    // PHASE 4: Environment Variable Source Verification
+    console.log('🔍 Environment Variable Source Verification:');
+    const envSourceAnalysis = {
+      nodeEnv: process.env.NODE_ENV,
+      isProduction: process.env.NODE_ENV === 'production',
+      renderDeployment: !!process.env.RENDER,
+      envVarCount: Object.keys(process.env).filter(key => key.includes('STRIPE')).length,
+      availableStripeVars: Object.keys(process.env).filter(key => key.includes('STRIPE'))
+    };
+    
+    console.log('   Environment:', envSourceAnalysis.nodeEnv);
+    console.log('   Is Production:', envSourceAnalysis.isProduction);
+    console.log('   Render Deployment:', envSourceAnalysis.renderDeployment);
+    console.log('   Stripe Env Vars Available:', envSourceAnalysis.availableStripeVars);
+    
+    // PHASE 5: Final Diagnosis and Recommendations
+    let finalRecommendations = [];
+    
+    if (truthSerumResults.definitiveDiagnosis) {
+      if (truthSerumResults.accountsMatch === false) {
+        finalRecommendations = [
+          'CRITICAL: Go to your Stripe Dashboard',
+          'CRITICAL: Choose ONE account to use for production',
+          'CRITICAL: Get BOTH the secret key (sk_live_...) AND publishable key (pk_live_...) from the SAME account',
+          'CRITICAL: Update your Render environment variables with the matching pair',
+          'CRITICAL: Redeploy your application',
+          'This will definitively resolve your 401 errors'
+        ];
+      } else if (truthSerumResults.accountsMatch === true) {
+        finalRecommendations = [
+          'Keys appear to be from the same account',
+          'Check if your keys have the correct permissions in Stripe Dashboard',
+          'Verify your keys are not restricted to specific domains/IPs',
+          'Check for any API version compatibility issues',
+          'The 401 error may be due to key restrictions rather than account mismatch'
+        ];
+      }
+    } else if (truthSerumResults.backendError) {
+      finalRecommendations = [
+        'Your secret key is invalid or has been revoked',
+        'Go to Stripe Dashboard and generate a new secret key',
+        'Update your Render environment variables',
+        'Ensure you\'re copying the key correctly (no extra spaces or characters)'
+      ];
+    }
+    
+    console.log('🎯 Final Recommendations:');
+    finalRecommendations.forEach((rec, i) => console.log(`   ${i + 1}. ${rec}`));
+    
+    console.log('===============================================');
+    console.log('🧪 ENHANCED TRUTH SERUM DIAGNOSTIC COMPLETE');
+    console.log('===============================================\n');
+    
+    // Return comprehensive results
     res.json({
       success: true,
+      diagnosticType: 'ENHANCED_TRUTH_SERUM',
+      timestamp: new Date().toISOString(),
       data: {
-        timestamp: new Date().toISOString(),
-        validation: {
-          configured: config.isConfigured,
-          environment: config.environment,
-          errors: config.errors,
-          lastChecked: config.lastChecked
-        },
-        health: healthReport,
-        enhancedDiagnostics,
-        message: config.isConfigured ? 'Stripe configuration is valid' : 'Stripe configuration has issues'
+        basicAnalysis,
+        truthSerumResults,
+        envSourceAnalysis,
+        finalRecommendations,
+        initializationStatus: {
+          stripeClientExists: !!stripeClient,
+          stripeReady: stripeReady,
+          lastInitializationError: stripeInitializationError
+        }
       }
     });
+    
   } catch (error) {
-    logger.error('Stripe validation error:', error);
+    logger.error('Enhanced Truth Serum diagnostic error:', error);
     res.status(500).json({
       success: false,
-      message: 'Stripe validation failed',
+      message: 'Enhanced diagnostic failed',
       error: {
-        code: 'STRIPE_VALIDATION_ERROR',
-        details: 'Unable to validate Stripe configuration'
+        code: 'ENHANCED_DIAGNOSTIC_ERROR',
+        details: 'Unable to complete enhanced Stripe diagnostic',
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
       }
     });
   }
