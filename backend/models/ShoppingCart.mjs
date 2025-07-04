@@ -11,9 +11,13 @@ ShoppingCart.init(
       primaryKey: true,
       autoIncrement: true,
     },
-    // Status: 'active' for an open cart, 'completed' after checkout
+    // Status: cart lifecycle states for payment processing
+    // 'active' - Cart being built by user
+    // 'pending_payment' - Payment in progress (Stripe or manual)
+    // 'completed' - Order completed and paid
+    // 'cancelled' - Payment cancelled or expired
     status: {
-      type: DataTypes.ENUM('active', 'completed'),
+      type: DataTypes.ENUM('active', 'pending_payment', 'completed', 'cancelled'),
       defaultValue: 'active',
       allowNull: false,
     },
