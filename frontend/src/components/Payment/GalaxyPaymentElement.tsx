@@ -797,6 +797,99 @@ const baseStripeElementOptions = {
   },
 };
 
+// Manual Payment UI Components
+const ManualPaymentContainer = styled(motion.div)`
+  background: rgba(255, 165, 0, 0.05);
+  border: 2px solid rgba(255, 165, 0, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+`;
+
+const ManualPaymentTitle = styled.h3`
+  color: #ffa500;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+`;
+
+const ManualPaymentInfo = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  text-align: left;
+  
+  .payment-reference {
+    background: rgba(255, 165, 0, 0.1);
+    border: 1px solid rgba(255, 165, 0, 0.3);
+    border-radius: 6px;
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    color: #ffa500;
+    text-align: center;
+    word-break: break-all;
+  }
+  
+  .next-steps {
+    margin-top: 1rem;
+    
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      margin: 0.5rem 0;
+      font-size: 0.9rem;
+      
+      .step-number {
+        background: #ffa500;
+        color: #0a0a1a;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        flex-shrink: 0;
+        margin-top: 0.1rem;
+      }
+    }
+  }
+`;
+
+const ManualPaymentButton = styled(motion.button)`
+  width: 100%;
+  background: linear-gradient(135deg, #ffa500, #ff8c00);
+  border: none;
+  border-radius: 12px;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #0a0a1a;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: linear-gradient(135deg, #ff8c00, #ff7700);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(255, 165, 0, 0.4);
+  }
+`;
+
 // Payment method types
 type PaymentMethodType = 'card' | 'bank' | 'bnpl';
 
@@ -847,6 +940,172 @@ const loadPaymentPreferences = (): PaymentPreferences | null => {
     console.warn('Failed to load payment preferences:', error);
   }
   return null;
+};
+
+// Manual Payment Component
+const ManualPaymentFlow: React.FC<{
+  clientSecret: string;
+  cart: any;
+  onSuccess: () => void;
+  onClose: () => void;
+  embedded?: boolean;
+}> = ({ clientSecret, cart, onSuccess, onClose, embedded = false }) => {
+  const [copied, setCopied] = useState(false);
+  
+  // Extract payment reference from client secret
+  const paymentReference = clientSecret.replace('manual_', '');
+  
+  const handleCopyReference = () => {
+    navigator.clipboard.writeText(paymentReference).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  
+  const handleProceed = () => {
+    // For manual payments, we just show success since payment is processed offline
+    onSuccess();
+  };
+  
+  return (
+    <>
+      <PaymentHeader $embedded={embedded}>
+        <PaymentTitle $embedded={embedded}>Manual Payment Required</PaymentTitle>
+        <PaymentSubtitle>Complete your payment using the instructions below</PaymentSubtitle>
+      </PaymentHeader>
+      
+      {/* Order Summary */}
+      <OrderSummary
+        $embedded={embedded}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <SummaryTitle>
+          <CreditCard size={20} />
+          Order Summary
+        </SummaryTitle>
+        
+        {cart?.items?.map((item: any, index: number) => (
+          <SummaryItem key={index}>
+            <span>
+              {item.storefrontItem?.name || 'Training Package'} × {item.quantity}
+            </span>
+            <span>${(item.price * item.quantity).toFixed(2)}</span>
+          </SummaryItem>
+        ))}
+        
+        <SummaryTotal>
+          <span>Total</span>
+          <span>${cart?.total?.toFixed(2) || '0.00'}</span>
+        </SummaryTotal>
+      </OrderSummary>
+      
+      {/* Manual Payment Instructions */}
+      <ManualPaymentContainer
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        <ManualPaymentTitle>
+          <AlertCircle size={20} />
+          Payment Processing Temporarily Offline
+        </ManualPaymentTitle>
+        
+        <p style={{ color: 'rgba(255, 255, 255, 0.8)', margin: '0 0 1rem 0' }}>
+          We're currently updating our payment system. Please use the payment reference below to complete your purchase:
+        </p>
+        
+        <ManualPaymentInfo>
+          <div style={{ marginBottom: '1rem' }}>
+            <strong style={{ color: '#ffa500' }}>Payment Reference:</strong>
+            <div className="payment-reference">
+              {paymentReference}
+              <button
+                onClick={handleCopyReference}
+                style={{
+                  marginLeft: '0.5rem',
+                  background: 'rgba(255, 165, 0, 0.2)',
+                  border: '1px solid rgba(255, 165, 0, 0.5)',
+                  borderRadius: '4px',
+                  padding: '0.25rem 0.5rem',
+                  color: '#ffa500',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem'
+                }}
+              >
+                {copied ? '✓ Copied!' : 'Copy'}
+              </button>
+            </div>
+          </div>
+          
+          <div className="next-steps">
+            <h4 style={{ color: '#ffa500', margin: '0 0 0.5rem 0' }}>Next Steps:</h4>
+            
+            <div className="step">
+              <div className="step-number">1</div>
+              <div>
+                <strong>Contact Support:</strong> Email us at support@swanstudios.com with your payment reference
+              </div>
+            </div>
+            
+            <div className="step">
+              <div className="step-number">2</div>
+              <div>
+                <strong>Payment Options:</strong> We'll send you secure payment instructions via email
+              </div>
+            </div>
+            
+            <div className="step">
+              <div className="step-number">3</div>
+              <div>
+                <strong>Activation:</strong> Your training sessions will be activated within 24 hours of payment
+              </div>
+            </div>
+          </div>
+          
+          <div style={{
+            marginTop: '1rem',
+            padding: '0.75rem',
+            background: 'rgba(0, 255, 255, 0.1)',
+            borderRadius: '6px',
+            fontSize: '0.85rem'
+          }}>
+            <strong style={{ color: '#00ffff' }}>💡 Pro Tip:</strong> Include your payment reference in all communications for faster processing.
+          </div>
+        </ManualPaymentInfo>
+        
+        <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+          <ManualPaymentButton
+            onClick={handleProceed}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            style={{ flex: 1 }}
+          >
+            <CheckCircle size={20} />
+            I'll Contact Support
+          </ManualPaymentButton>
+          
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1,
+              background: 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: '12px',
+              padding: '1rem',
+              color: 'rgba(255, 255, 255, 0.8)',
+              cursor: 'pointer',
+              fontSize: '1rem',
+              fontWeight: 500
+            }}
+          >
+            Close
+          </button>
+        </div>
+      </ManualPaymentContainer>
+    </>
+  );
 };
 
 // Payment Form Component
@@ -1702,6 +1961,7 @@ const GalaxyPaymentElement: React.FC<GalaxyPaymentElementProps> = ({
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<any>(null); // Enhanced to handle error objects
+  const [isManualPayment, setIsManualPayment] = useState(false); // Track if this is a manual payment
 
   // Create Payment Intent when component opens
 useEffect(() => {
@@ -1744,11 +2004,24 @@ useEffect(() => {
   if (response.data.success) {
   const clientSecret = response.data.data.clientSecret;
   
-  // Validate client secret format
-  if (!clientSecret || !clientSecret.startsWith('pi_') || !clientSecret.includes('_secret_')) {
-  console.error('❌ Invalid client secret format:', clientSecret?.substring(0, 20) + '...');
-  setError('Invalid payment configuration. Please try again.');
-  return;
+  // Validate client secret format - Support both Stripe and Manual payments
+  const isStripeFormat = clientSecret?.startsWith('pi_') && clientSecret.includes('_secret_');
+  const isManualFormat = clientSecret?.startsWith('manual_');
+  
+  if (!clientSecret || (!isStripeFormat && !isManualFormat)) {
+    console.error('❌ Invalid client secret format:', clientSecret?.substring(0, 20) + '...');
+    setError('Invalid payment configuration. Please try again.');
+    return;
+  }
+  
+  // Log payment method detection and set state
+  if (isManualFormat) {
+    console.log('🔧 Manual payment detected - switching to manual payment flow');
+    console.log('📋 Manual payment reference:', clientSecret.substring(0, 30) + '...');
+    setIsManualPayment(true);
+  } else {
+    console.log('💳 Stripe payment detected - using standard payment flow');
+    setIsManualPayment(false);
   }
   
   console.log('✅ Payment intent created successfully:', {
@@ -2190,47 +2463,64 @@ useEffect(() => {
         )}
 
         {clientSecret && (
-          <Elements 
-            stripe={stripePromise} 
-            options={{ 
-              clientSecret,
-              appearance: {
-                theme: 'night',
-                variables: {
-                  colorPrimary: '#00ffff',
-                  colorBackground: '#0a0a1a',
-                  colorText: '#ffffff',
-                  fontFamily: 'Inter, SF Pro Display, Roboto, sans-serif'
-                }
-              }
-            }}
-            onError={(error: any) => {
-              console.error('🚨 STRIPE ELEMENTS ERROR (Modal):', error);
-              if (error.type === 'invalid_request_error' && error.code === 'client_secret_mismatch') {
-                setError({
-                  code: 'STRIPE_KEY_MISMATCH',
-                  message: 'Stripe configuration error detected. Frontend and backend keys may not match.',
-                  details: 'This is a server configuration issue.',
-                  fallbackOptions: [
-                    {
-                      method: 'contact',
-                      description: 'Contact support - Stripe keys mismatch detected',
-                      contact: 'support@swanstudios.com'
-                    }
-                  ]
-                });
-              } else {
-                setError(error.message || 'Stripe configuration error');
-              }
-            }}
-          >
-            <PaymentForm
+          isManualPayment ? (
+            <ManualPaymentFlow
               clientSecret={clientSecret}
-              onSuccess={handlePaymentSuccess}
-              onError={handlePaymentError}
+              cart={cart}
+              onSuccess={() => {
+                console.log('🎉 Manual payment flow completed');
+                if (onSuccess) {
+                  onSuccess();
+                } else {
+                  window.location.href = '/checkout/CheckoutSuccess?manual=true';
+                }
+              }}
+              onClose={onClose}
               embedded={embedded}
             />
-          </Elements>
+          ) : (
+            <Elements 
+              stripe={stripePromise} 
+              options={{ 
+                clientSecret,
+                appearance: {
+                  theme: 'night',
+                  variables: {
+                    colorPrimary: '#00ffff',
+                    colorBackground: '#0a0a1a',
+                    colorText: '#ffffff',
+                    fontFamily: 'Inter, SF Pro Display, Roboto, sans-serif'
+                  }
+                }
+              }}
+              onError={(error: any) => {
+                console.error('🚨 STRIPE ELEMENTS ERROR (Modal):', error);
+                if (error.type === 'invalid_request_error' && error.code === 'client_secret_mismatch') {
+                  setError({
+                    code: 'STRIPE_KEY_MISMATCH',
+                    message: 'Stripe configuration error detected. Frontend and backend keys may not match.',
+                    details: 'This is a server configuration issue.',
+                    fallbackOptions: [
+                      {
+                        method: 'contact',
+                        description: 'Contact support - Stripe keys mismatch detected',
+                        contact: 'support@swanstudios.com'
+                      }
+                    ]
+                  });
+                } else {
+                  setError(error.message || 'Stripe configuration error');
+                }
+              }}
+            >
+              <PaymentForm
+                clientSecret={clientSecret}
+                onSuccess={handlePaymentSuccess}
+                onError={handlePaymentError}
+                embedded={embedded}
+              />
+            </Elements>
+          )
         )}
 
         <motion.button
