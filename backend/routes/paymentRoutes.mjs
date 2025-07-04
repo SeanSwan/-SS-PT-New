@@ -30,6 +30,9 @@ import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 import cartHelpers from '../utils/cartHelpers.mjs';
 const { getCartTotalsWithFallback, debugCartState } = cartHelpers;
 
+// NEW: Import the PaymentService (Strategy Pattern Implementation)
+import paymentService from '../services/payment/PaymentService.mjs';
+
 const router = express.Router();
 
 /**
@@ -303,6 +306,54 @@ router.get('/stripe-validation', async (req, res) => {
   }
 });
 
+// NEW: PaymentService Health Check (no auth required)
+router.get('/payment-service-health', async (req, res) => {
+  try {
+    const healthCheck = await paymentService.performHealthCheck();
+    
+    res.status(healthCheck.status === 'healthy' ? 200 : 503).json({
+      success: true,
+      data: healthCheck
+    });
+  } catch (error) {
+    logger.error('PaymentService health check error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'PaymentService health check failed',
+      error: {
+        code: 'PAYMENT_SERVICE_HEALTH_ERROR',
+        details: error.message
+      }
+    });
+  }
+});
+
+/**
+ * NEW: PaymentService Status Endpoint (PUBLIC - No Auth Required)
+ * GET /api/payments/service-status
+ * Get current payment service status and active strategy
+ */
+router.get('/service-status', (req, res) => {
+  try {
+    const serviceStatus = paymentService.getServiceStatus();
+    
+    res.json({
+      success: true,
+      data: serviceStatus
+    });
+  } catch (error) {
+    logger.error('Error getting payment service status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Unable to get service status',
+      error: {
+        code: 'SERVICE_STATUS_ERROR',
+        details: 'Service status unavailable'
+      }
+    });
+  }
+});
+
 // Apply authentication to all other payment routes (after diagnostic endpoints)
 router.use(protect);
 
@@ -460,102 +511,59 @@ router.get('/status', (req, res) => {
 });
 
 /**
- * POST /api/payments/create-payment-intent
- * Create a Payment Intent for Stripe Elements
- * This enables embedded payment forms with enhanced UX
+ * NEW: PaymentService Strategy Switch Endpoint
+ * POST /api/payments/switch-strategy
+ * Switch payment strategy at runtime (admin use)
  */
-router.post('/create-payment-intent', checkStripeAvailability, async (req, res) => {
+router.post('/switch-strategy', async (req, res) => {
+  try {
+    const { strategy } = req.body;
+    
+    if (!strategy) {
+      return res.status(400).json({
+        success: false,
+        message: 'Strategy name required',
+        error: {
+          code: 'MISSING_STRATEGY',
+          details: 'strategy parameter is required'
+        }
+      });
+    }
+    
+    const result = await paymentService.switchStrategy(strategy);
+    
+    res.json({
+      success: true,
+      message: 'Strategy switched successfully',
+      data: result
+    });
+  } catch (error) {
+    logger.error('Error switching payment strategy:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Unable to switch strategy',
+      error: {
+        code: 'STRATEGY_SWITCH_ERROR',
+        details: error.message
+      }
+    });
+  }
+});
+
+/**
+ * POST /api/payments/create-payment-intent
+ * Create a Payment Intent using PaymentService (Strategy Pattern)
+ * Now supports multiple payment strategies: checkout, elements, manual
+ */
+router.post('/create-payment-intent', async (req, res) => {
   try {
     const userId = req.user.id;
     const { cartId } = req.body;
 
-    logger.info(`Creating payment intent for user ${userId}, cart ${cartId}`);
+    logger.info(`[PaymentRoutes] Creating payment intent for user ${userId}, cart ${cartId}`);
+    console.log(`🎯 [PaymentRoutes] Active Strategy: ${paymentService.getServiceStatus().activeStrategy.displayName}`);
 
-    // Validate cart with comprehensive error handling
-    let cart;
-    try {
-      cart = await ShoppingCart.findOne({
-        where: { 
-          id: cartId || null,
-          userId, 
-          status: 'active' 
-        },
-        include: [{
-          model: CartItem,
-          as: 'cartItems',
-          include: [{
-            model: StorefrontItem,
-            as: 'storefrontItem'
-          }]
-        }]
-      });
-    } catch (dbError) {
-      logger.error(`Database error while fetching cart: ${dbError.message}`);
-      return res.status(500).json({
-        success: false,
-        message: 'Unable to access cart data',
-        error: {
-          code: 'DATABASE_ERROR',
-          details: 'Cart validation failed'
-        }
-      });
-    }
-
-    if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid or empty cart',
-        error: {
-          code: 'INVALID_CART',
-          details: 'Cart not found or contains no items'
-        }
-      });
-    }
-
-    // Calculate total amount with defensive fallback
-    const { total: finalTotal, totalSessions, source } = getCartTotalsWithFallback(cart);
-    
-    // Debug payment intent creation
-    await debugCartState(cartId, 'payment_intent_creation');
-    
-    logger.info('Payment intent total calculation', {
-      cartId,
-      persistedTotal: cart.total,
-      calculatedTotal: finalTotal,
-      totalSessions,
-      source,
-      itemCount: cart.cartItems?.length || 0
-    });
-    
-    const totalAmount = Math.round(finalTotal * 100); // Convert to cents
-    
-    if (totalAmount < 50) { // $0.50 minimum for Stripe
-      logger.error('Payment intent creation failed: Amount too small', {
-        cartId,
-        totalAmount,
-        finalTotal,
-        totalSessions,
-        source,
-        persistedTotal: cart.total,
-        itemCount: cart.cartItems?.length || 0
-      });
-      
-      return res.status(400).json({
-        success: false,
-        message: 'Order total too small',
-        error: {
-          code: 'AMOUNT_TOO_SMALL',
-          details: 'Minimum order amount is $0.50',
-          debugInfo: {
-            cartTotal: finalTotal,
-            totalSessions,
-            calculationSource: source
-          }
-        }
-      });
-    }
-
-    // Get customer information with error handling
+    // Get user information for payment processing
     let user;
     try {
       user = await User.findByPk(userId);
@@ -581,92 +589,41 @@ router.post('/create-payment-intent', checkStripeAvailability, async (req, res) 
       });
     }
 
-    // Create Payment Intent with comprehensive error handling
-    let paymentIntent;
+    // Create payment intent using PaymentService
+    let paymentResult;
     try {
-      paymentIntent = await stripeClient.paymentIntents.create({
-        amount: totalAmount,
-        currency: 'usd',
-        customer: user.stripeCustomerId || undefined,
-        metadata: {
-          cartId: cart.id.toString(),
-          userId: userId.toString(),
-          userName: `${user.firstName} ${user.lastName}`,
-          itemCount: cart.cartItems.length.toString()
+      paymentResult = await paymentService.createPaymentIntent({
+        cartId,
+        userId,
+        userInfo: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          stripeCustomerId: user.stripeCustomerId
         },
-        description: `SwanStudios Training Package - ${cart.cartItems.length} item(s)`,
-        automatic_payment_methods: {
-          enabled: true
-        },
-        setup_future_usage: 'off_session'
+        baseUrl: `${req.protocol}://${req.get('host')}`
       });
-    } catch (stripeError) {
-      logger.error(`Stripe error creating payment intent: ${stripeError.message}`);
+    } catch (paymentError) {
+      logger.error(`PaymentService error creating payment intent: ${paymentError.message}`);
       
-      // Handle specific Stripe errors
-      let errorMessage = 'Failed to create payment intent';
-      let errorCode = 'STRIPE_ERROR';
-      
-      if (stripeError.type === 'StripeCardError') {
-        errorMessage = 'Card was declined';
-        errorCode = 'CARD_DECLINED';
-      } else if (stripeError.type === 'StripeRateLimitError') {
-        errorMessage = 'Too many requests, please try again later';
-        errorCode = 'RATE_LIMITED';
-      } else if (stripeError.type === 'StripeInvalidRequestError') {
-        errorMessage = 'Invalid payment request';
-        errorCode = 'INVALID_REQUEST';
-      } else if (stripeError.type === 'StripeAPIError') {
-        errorMessage = 'Payment service temporarily unavailable';
-        errorCode = 'SERVICE_UNAVAILABLE';
-      } else if (stripeError.type === 'StripeConnectionError') {
-        errorMessage = 'Network error, please check your connection';
-        errorCode = 'CONNECTION_ERROR';
-      }
-
       return res.status(500).json({
         success: false,
-        message: errorMessage,
+        message: paymentError.message || 'Payment processing failed',
         error: {
-          code: errorCode,
-          details: process.env.NODE_ENV === 'development' ? stripeError.message : 'Payment processing error',
-          retryable: ['RATE_LIMITED', 'SERVICE_UNAVAILABLE', 'CONNECTION_ERROR'].includes(errorCode)
+          code: 'PAYMENT_SERVICE_ERROR',
+          details: paymentError.message,
+          strategy: paymentService.getServiceStatus().activeStrategy.name
         }
       });
     }
 
-    // Store payment intent ID in cart for tracking
-    try {
-      cart.paymentIntentId = paymentIntent.id;
-      await cart.save();
-    } catch (dbError) {
-      logger.error(`Database error saving payment intent ID: ${dbError.message}`);
-      // Don't fail the request if we can't save the ID, but log it
-    }
-
-    logger.info(`Created payment intent ${paymentIntent.id} for cart ${cart.id}`);
+    logger.info(`[PaymentRoutes] Payment intent created: ${paymentResult.paymentIntentId}`);
+    console.log(`✅ [PaymentRoutes] Payment intent created via ${paymentResult.strategy.displayName}`);
 
     res.json({
       success: true,
-      data: {
-        clientSecret: paymentIntent.client_secret,
-        paymentIntentId: paymentIntent.id,
-        amount: totalAmount,
-        currency: 'usd',
-        cart: {
-          id: cart.id,
-          total: finalTotal,
-          totalSessions,
-          itemCount: cart.cartItems.length,
-          items: cart.cartItems.map(item => ({
-            id: item.id,
-            name: item.storefrontItem?.name || 'Training Package',
-            price: item.price,
-            quantity: item.quantity,
-            sessions: item.storefrontItem?.sessions || item.storefrontItem?.totalSessions || 0
-          }))
-        }
-      }
+      data: paymentResult
     });
 
   } catch (error) {
@@ -684,133 +641,96 @@ router.post('/create-payment-intent', checkStripeAvailability, async (req, res) 
 
 /**
  * POST /api/payments/confirm-payment
- * Confirm payment and complete order processing
- * Called after successful payment via Stripe Elements
+ * Confirm payment using PaymentService (Strategy Pattern)
+ * Works with all payment strategies: checkout, elements, manual
  */
-router.post('/confirm-payment', checkStripeAvailability, async (req, res) => {
+router.post('/confirm-payment', async (req, res) => {
   try {
     const userId = req.user.id;
-    const { paymentIntentId } = req.body;
+    const { paymentIntentId, sessionId, adminNotes, verifiedBy } = req.body;
 
-    if (!paymentIntentId) {
+    // Support both paymentIntentId (elements) and sessionId (checkout)
+    const paymentId = paymentIntentId || sessionId;
+    
+    if (!paymentId) {
       return res.status(400).json({
         success: false,
-        message: 'Payment Intent ID required',
+        message: 'Payment ID required',
         error: {
-          code: 'MISSING_PAYMENT_INTENT_ID',
-          details: 'paymentIntentId is required'
+          code: 'MISSING_PAYMENT_ID',
+          details: 'paymentIntentId or sessionId is required'
         }
       });
     }
 
-    // Retrieve payment intent from Stripe with error handling
-    let paymentIntent;
+    logger.info(`[PaymentRoutes] Confirming payment ${paymentId} for user ${userId}`);
+    console.log(`🔐 [PaymentRoutes] Confirming payment via ${paymentService.getServiceStatus().activeStrategy.displayName}`);
+
+    // Confirm payment using PaymentService
+    let confirmationResult;
     try {
-      paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
-    } catch (stripeError) {
-      logger.error(`Stripe error retrieving payment intent: ${stripeError.message}`);
+      confirmationResult = await paymentService.confirmPayment({
+        paymentIntentId: paymentId,
+        sessionId: paymentId,
+        adminNotes,
+        verifiedBy
+      });
+    } catch (confirmationError) {
+      logger.error(`PaymentService error confirming payment: ${confirmationError.message}`);
+      
       return res.status(400).json({
         success: false,
-        message: 'Invalid payment intent',
+        message: confirmationError.message || 'Payment confirmation failed',
         error: {
-          code: 'INVALID_PAYMENT_INTENT',
-          details: 'Payment intent not found or inaccessible'
+          code: 'PAYMENT_CONFIRMATION_ERROR',
+          details: confirmationError.message,
+          strategy: paymentService.getServiceStatus().activeStrategy.name
         }
       });
     }
 
-    if (paymentIntent.status !== 'succeeded') {
-      return res.status(400).json({
-        success: false,
-        message: 'Payment not completed',
-        status: paymentIntent.status,
-        error: {
-          code: 'PAYMENT_NOT_COMPLETED',
-          details: `Payment status: ${paymentIntent.status}`
-        }
-      });
-    }
-
-    // Find the cart associated with this payment
-    let cart;
-    try {
-      cart = await ShoppingCart.findOne({
-        where: {
-          paymentIntentId,
-          userId,
-          status: 'active'
-        },
-        include: [{
-          model: CartItem,
-          as: 'cartItems',
+    // If payment confirmation succeeded, complete the order
+    if (confirmationResult.success && confirmationResult.status === 'succeeded') {
+      try {
+        // Find the cart to complete the order
+        const cart = await ShoppingCart.findOne({
+          where: {
+            paymentIntentId: paymentId,
+            userId
+          },
           include: [{
-            model: StorefrontItem,
-            as: 'storefrontItem'
+            model: CartItem,
+            as: 'cartItems',
+            include: [{
+              model: StorefrontItem,
+              as: 'storefrontItem'
+            }]
           }]
-        }]
-      });
-    } catch (dbError) {
-      logger.error(`Database error while fetching cart for confirmation: ${dbError.message}`);
-      return res.status(500).json({
-        success: false,
-        message: 'Unable to access cart data',
-        error: {
-          code: 'DATABASE_ERROR',
-          details: 'Cart confirmation failed'
+        });
+
+        if (cart && cart.status !== 'completed') {
+          // Mark cart as completed
+          cart.status = 'completed';
+          cart.paymentStatus = 'paid';
+          cart.completedAt = new Date();
+          await cart.save();
+
+          // Process the completed order (add sessions, trigger notifications, etc.)
+          await processCompletedOrder(cart.id);
+          
+          logger.info(`[PaymentRoutes] Order completed for cart ${cart.id}`);
+          console.log(`✅ [PaymentRoutes] Order completed via ${confirmationResult.strategy.displayName}`);
         }
-      });
+      } catch (orderError) {
+        logger.error(`Error completing order: ${orderError.message}`);
+        // Don't fail the payment confirmation, but log the error
+      }
     }
-
-    if (!cart) {
-      return res.status(404).json({
-        success: false,
-        message: 'Cart not found or already processed',
-        error: {
-          code: 'CART_NOT_FOUND',
-          details: 'Associated cart not found or already completed'
-        }
-      });
-    }
-
-    // Mark cart as completed
-    try {
-      cart.status = 'completed';
-      cart.paymentStatus = 'paid';
-      cart.completedAt = new Date();
-      cart.paymentIntentId = paymentIntentId;
-      await cart.save();
-
-      // Process the completed order (add sessions, trigger notifications, etc.)
-      await processCompletedOrder(cart.id);
-    } catch (dbError) {
-      logger.error(`Database error while completing order: ${dbError.message}`);
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to complete order',
-        error: {
-          code: 'ORDER_COMPLETION_ERROR',
-          details: 'Order processing failed'
-        }
-      });
-    }
-
-    logger.info(`Payment confirmed and order completed for cart ${cart.id}`);
 
     res.json({
-      success: true,
-      message: 'Payment confirmed and order completed',
-      data: {
-        orderId: cart.id,
-        paymentIntentId,
-        amount: cart.total,
-        completedAt: cart.completedAt,
-        items: cart.cartItems.map(item => ({
-          name: item.storefrontItem?.name || 'Training Package',
-          sessions: item.storefrontItem?.sessions || 0,
-          price: item.price,
-          quantity: item.quantity
-        }))
-      }
+      success: confirmationResult.success,
+      message: confirmationResult.success ? 'Payment confirmed successfully' : 'Payment confirmation failed',
+      data: confirmationResult
     });
 
   } catch (error) {
@@ -828,9 +748,9 @@ router.post('/confirm-payment', checkStripeAvailability, async (req, res) => {
 
 /**
  * GET /api/payments/status/:paymentIntentId
- * Get real-time payment status
+ * Get real-time payment status using PaymentService
  */
-router.get('/status/:paymentIntentId', checkStripeAvailability, async (req, res) => {
+router.get('/status/:paymentIntentId', async (req, res) => {
   try {
     const { paymentIntentId } = req.params;
     const userId = req.user.id;
@@ -867,34 +787,25 @@ router.get('/status/:paymentIntentId', checkStripeAvailability, async (req, res)
       });
     }
 
-    // Get payment intent status from Stripe
-    let paymentIntent;
+    // Get payment status using PaymentService
+    let statusResult;
     try {
-      paymentIntent = await stripeClient.paymentIntents.retrieve(paymentIntentId);
-    } catch (stripeError) {
-      logger.error(`Stripe error retrieving payment status: ${stripeError.message}`);
+      statusResult = await paymentService.getPaymentStatus(paymentIntentId);
+    } catch (statusError) {
+      logger.error(`PaymentService error retrieving payment status: ${statusError.message}`);
       return res.status(400).json({
         success: false,
         message: 'Unable to retrieve payment status',
         error: {
           code: 'PAYMENT_STATUS_ERROR',
-          details: 'Payment status unavailable'
+          details: statusError.message
         }
       });
     }
 
     res.json({
-      success: true,
-      data: {
-        status: paymentIntent.status,
-        amount: paymentIntent.amount,
-        currency: paymentIntent.currency,
-        created: paymentIntent.created,
-        lastError: paymentIntent.last_payment_error ? {
-          code: paymentIntent.last_payment_error.code,
-          message: paymentIntent.last_payment_error.message
-        } : null
-      }
+      success: statusResult.success,
+      data: statusResult
     });
 
   } catch (error) {
@@ -912,9 +823,9 @@ router.get('/status/:paymentIntentId', checkStripeAvailability, async (req, res)
 
 /**
  * POST /api/payments/cancel-payment
- * Cancel a pending payment intent
+ * Cancel a pending payment using PaymentService
  */
-router.post('/cancel-payment', checkStripeAvailability, async (req, res) => {
+router.post('/cancel-payment', async (req, res) => {
   try {
     const { paymentIntentId } = req.body;
     const userId = req.user.id;
@@ -963,40 +874,29 @@ router.post('/cancel-payment', checkStripeAvailability, async (req, res) => {
       });
     }
 
-    // Cancel the payment intent in Stripe
-    let paymentIntent;
+    // Cancel the payment using PaymentService
+    let cancellationResult;
     try {
-      paymentIntent = await stripeClient.paymentIntents.cancel(paymentIntentId);
-    } catch (stripeError) {
-      logger.error(`Stripe error cancelling payment intent: ${stripeError.message}`);
+      cancellationResult = await paymentService.cancelPayment(paymentIntentId);
+    } catch (cancellationError) {
+      logger.error(`PaymentService error cancelling payment: ${cancellationError.message}`);
       return res.status(400).json({
         success: false,
         message: 'Unable to cancel payment',
         error: {
           code: 'PAYMENT_CANCELLATION_ERROR',
-          details: 'Payment cancellation failed'
+          details: cancellationError.message
         }
       });
     }
 
-    // Clear payment intent from cart
-    try {
-      cart.paymentIntentId = null;
-      await cart.save();
-    } catch (dbError) {
-      logger.error(`Database error clearing payment intent: ${dbError.message}`);
-      // Don't fail the request, but log the error
-    }
-
-    logger.info(`Payment intent ${paymentIntentId} cancelled for cart ${cart.id}`);
+    logger.info(`Payment ${paymentIntentId} cancelled for user ${userId}`);
+    console.log(`❌ [PaymentRoutes] Payment cancelled via ${paymentService.getServiceStatus().activeStrategy.displayName}`);
 
     res.json({
-      success: true,
-      message: 'Payment cancelled successfully',
-      data: {
-        status: paymentIntent.status,
-        cancelledAt: new Date().toISOString()
-      }
+      success: cancellationResult.success,
+      message: cancellationResult.message || 'Payment cancelled successfully',
+      data: cancellationResult
     });
 
   } catch (error) {
@@ -1014,24 +914,38 @@ router.post('/cancel-payment', checkStripeAvailability, async (req, res) => {
 
 /**
  * GET /api/payments/methods
- * Get available payment methods for the user's location
+ * Get available payment methods and strategies
  */
 router.get('/methods', (req, res) => {
   try {
-    // Return available payment methods
-    // This could be enhanced to be location-specific
+    const availableStrategies = paymentService.getAvailableStrategies();
+    const activeStrategy = paymentService.getServiceStatus().activeStrategy;
+    
+    // Enhanced payment methods based on active strategy
     const paymentMethods = {
-      card: {
-        enabled: true,
-        types: ['visa', 'mastercard', 'amex', 'discover']
-      },
-      digital_wallets: {
-        enabled: true,
-        types: ['apple_pay', 'google_pay']
-      },
-      bank_payments: {
-        enabled: false, // Can be enabled for specific regions
-        types: ['ach_debit']
+      activeStrategy: activeStrategy,
+      availableStrategies: availableStrategies,
+      methods: {
+        card: {
+          enabled: activeStrategy.name !== 'manual',
+          types: ['visa', 'mastercard', 'amex', 'discover'],
+          availableIn: ['checkout', 'elements']
+        },
+        digital_wallets: {
+          enabled: activeStrategy.name === 'checkout',
+          types: ['apple_pay', 'google_pay'],
+          availableIn: ['checkout']
+        },
+        bank_payments: {
+          enabled: activeStrategy.name === 'elements',
+          types: ['ach_debit', 'us_bank_account'],
+          availableIn: ['elements']
+        },
+        manual_payment: {
+          enabled: activeStrategy.name === 'manual',
+          types: ['bank_transfer', 'check', 'wire_transfer'],
+          availableIn: ['manual']
+        }
       }
     };
 
@@ -1048,6 +962,35 @@ router.get('/methods', (req, res) => {
       error: {
         code: 'INTERNAL_ERROR',
         details: 'Payment methods unavailable'
+      }
+    });
+  }
+});
+
+/**
+ * GET /api/payments/health
+ * Enhanced health check with PaymentService status
+ */
+router.get('/payment-health', async (req, res) => {
+  try {
+    const healthCheck = await paymentService.performHealthCheck();
+    const serviceStatus = paymentService.getServiceStatus();
+    
+    res.status(healthCheck.status === 'healthy' ? 200 : 503).json({
+      success: true,
+      data: {
+        ...healthCheck,
+        serviceStatus
+      }
+    });
+  } catch (error) {
+    logger.error('Error performing health check:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Health check failed',
+      error: {
+        code: 'HEALTH_CHECK_ERROR',
+        details: error.message
       }
     });
   }
