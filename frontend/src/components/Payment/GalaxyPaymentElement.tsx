@@ -2265,7 +2265,23 @@ useEffect(() => {
         )}
 
         {clientSecret && (
-          <Elements 
+          isManualPayment ? (
+            <ManualPaymentFlow
+              clientSecret={clientSecret}
+              cart={cart}
+              onSuccess={() => {
+                console.log('🎉 Manual payment flow completed (Embedded)');
+                if (onSuccess) {
+                  onSuccess();
+                } else {
+                  window.location.href = '/checkout/CheckoutSuccess?manual=true';
+                }
+              }}
+              onClose={onClose}
+              embedded={embedded}
+            />
+          ) : (
+            <Elements 
             stripe={stripePromise} 
             options={{ 
               clientSecret,
@@ -2280,7 +2296,7 @@ useEffect(() => {
               }
             }}
             onError={(error: any) => {
-              console.error('🚨 STRIPE ELEMENTS ERROR:', error);
+              console.error('🚨 STRIPE ELEMENTS ERROR (Embedded):', error);
               if (error.type === 'invalid_request_error' && error.code === 'client_secret_mismatch') {
                 setError({
                   code: 'STRIPE_KEY_MISMATCH',
@@ -2306,6 +2322,7 @@ useEffect(() => {
               embedded={embedded}
             />
           </Elements>
+          )
         )}
       </PaymentContainer>
     );
