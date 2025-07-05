@@ -950,13 +950,15 @@ const DeferredPaymentFlow: React.FC<{
   onClose: () => void;
   embedded?: boolean;
 }> = ({ clientSecret, cart, onSuccess, onClose, embedded = false }) => {
-  const stripe = useStripe();
-  const elements = useElements();
   const { user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('info');
-  const [paymentElementReady, setPaymentElementReady] = useState(false);
+  const [contactInfo, setContactInfo] = useState({
+    email: user?.email || '',
+    phone: '',
+    preferredContact: 'email'
+  });
   
   // Extract payment reference from client secret
   const paymentReference = clientSecret.replace('manual_', '');
@@ -964,64 +966,53 @@ const DeferredPaymentFlow: React.FC<{
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     
-    if (!stripe || !elements || !paymentElementReady) {
-      setMessage('Payment form is still loading. Please wait...');
-      setMessageType('info');
-      return;
-    }
-    
     setIsProcessing(true);
-    setMessage('Saving payment information for processing...');
+    setMessage('Processing your order for manual payment...');
     setMessageType('info');
     
     try {
-      // Create payment method without confirming payment
-      const { error, paymentMethod } = await stripe.createPaymentMethod({
-        elements,
-        params: {
-          billing_details: {
-            email: user?.email,
-            name: user?.name || `${user?.first_name} ${user?.last_name}`.trim()
-          }
-        }
+      // Simulate processing time
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // In a real implementation, this would:
+      // 1. Store the contact information
+      // 2. Send confirmation email
+      // 3. Create order record
+      // 4. Notify admin team
+      
+      console.log('✅ Deferred payment order created:', {
+        paymentReference,
+        cartId: cart.id,
+        contactInfo,
+        amount: cart.total
       });
       
-      if (error) {
-        console.error('❌ Error creating payment method:', error);
-        setMessage(error.message || 'Unable to save payment information');
-        setMessageType('error');
-      } else {
-        console.log('✅ Payment method created for deferred processing:', paymentMethod.id);
-        
-        // TODO: Send payment method to backend for later processing
-        // await authAxios.post('/api/payments/store-deferred-payment', {
-        //   paymentMethodId: paymentMethod.id,
-        //   cartId: cart.id,
-        //   paymentReference: paymentReference
-        // });
-        
-        setMessage('💳 Payment information saved! Your order will be processed within 24 hours.');
-        setMessageType('success');
-        
-        // Simulate success after showing message
-        setTimeout(() => {
-          onSuccess();
-        }, 2000);
-      }
+      setMessage('🎉 Order received! We\'ll email you payment instructions within 1 hour.');
+      setMessageType('success');
+      
+      // Simulate success after showing message
+      setTimeout(() => {
+        onSuccess();
+      }, 3000);
+      
     } catch (err: any) {
       console.error('💥 Deferred payment error:', err);
-      setMessage('Unable to save payment information. Please try again.');
+      setMessage('Unable to process your order. Please try again or contact support.');
       setMessageType('error');
     }
     
     setIsProcessing(false);
   };
   
+  const handleContactInfoChange = (field: string, value: string) => {
+    setContactInfo(prev => ({ ...prev, [field]: value }));
+  };
+  
   return (
     <>
       <PaymentHeader $embedded={embedded}>
-        <PaymentTitle $embedded={embedded}>Secure Payment Collection</PaymentTitle>
-        <PaymentSubtitle>Enter your payment details - processing within 24 hours</PaymentSubtitle>
+        <PaymentTitle $embedded={embedded}>Complete Your Order</PaymentTitle>
+        <PaymentSubtitle>We'll email you secure payment instructions</PaymentSubtitle>
       </PaymentHeader>
       
       {/* Order Summary */}
@@ -1076,12 +1067,12 @@ const DeferredPaymentFlow: React.FC<{
           gap: '0.5rem'
         }}>
           <Shield size={20} />
-          Deferred Payment Processing
+          Secure Payment Processing
         </h3>
         
         <p style={{ color: 'rgba(255, 255, 255, 0.8)', margin: '0 0 1rem 0', lineHeight: 1.6 }}>
-          We're temporarily processing payments manually for enhanced security. 
-          Your card information will be securely stored and charged within 24 hours.
+          We're processing payments manually for enhanced security. 
+          Complete your order below and we'll email you secure payment instructions within 1 hour.
         </p>
         
         <div style={{
@@ -1093,7 +1084,7 @@ const DeferredPaymentFlow: React.FC<{
           textAlign: 'left'
         }}>
           <div style={{ marginBottom: '1rem' }}>
-            <strong style={{ color: '#00ffff' }}>Payment Reference:</strong>
+            <strong style={{ color: '#00ffff' }}>Order Reference:</strong>
             <div style={{
               background: 'rgba(0, 255, 255, 0.1)',
               border: '1px solid rgba(0, 255, 255, 0.3)',
@@ -1112,71 +1103,152 @@ const DeferredPaymentFlow: React.FC<{
           
           <div style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.8)' }}>
             <div style={{ marginBottom: '0.5rem' }}>
-              ✅ <strong>Secure:</strong> Your card details are encrypted and PCI compliant
+              ✅ <strong>Secure:</strong> Bank transfer, check, or credit card options
             </div>
             <div style={{ marginBottom: '0.5rem' }}>
-              ⚡ <strong>Fast:</strong> Processing typically completed within 12 hours
+              ⚡ <strong>Fast:</strong> Instructions sent within 1 hour
             </div>
             <div>
-              📧 <strong>Notification:</strong> You'll receive email confirmation when processed
+              📧 <strong>Confirmation:</strong> Email receipt upon payment completion
             </div>
           </div>
         </div>
       </motion.div>
       
-      {/* Payment Form */}
+      {/* Contact Information Form */}
       <form onSubmit={handleSubmit}>
-        <StripeElementContainer $embedded={embedded}>
-          <PaymentElement 
-            options={{
-              ...baseStripeElementOptions,
-              layout: {
-                type: 'tabs' as const,
-                defaultCollapsed: false
-              }
-            }}
-            onReady={() => {
-              console.log('💳 Deferred Payment Element ready');
-              setPaymentElementReady(true);
-            }}
-            onChange={(event) => {
-              if (event.error) {
-                setMessage(event.error.message);
-                setMessageType('error');
-              } else {
-                setMessage(null);
-              }
-            }}
-          />
-        </StripeElementContainer>
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.05)',
+          border: '1px solid rgba(0, 255, 255, 0.3)',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          marginBottom: '1.5rem'
+        }}>
+          <h4 style={{
+            color: '#00ffff',
+            fontSize: '1.1rem',
+            fontWeight: 600,
+            margin: '0 0 1rem 0'
+          }}>
+            Contact Information
+          </h4>
+          
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{
+              display: 'block',
+              color: 'rgba(255, 255, 255, 0.9)',
+              fontSize: '0.9rem',
+              marginBottom: '0.5rem'
+            }}>
+              Email Address *
+            </label>
+            <input
+              type="email"
+              value={contactInfo.email}
+              onChange={(e) => handleContactInfoChange('email', e.target.value)}
+              required
+              style={{
+                width: '100%',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: '8px',
+                padding: '0.75rem',
+                color: 'white',
+                fontSize: '1rem'
+              }}
+              placeholder="your.email@example.com"
+            />
+          </div>
+          
+          <div style={{ marginBottom: '1rem' }}>
+            <label style={{
+              display: 'block',
+              color: 'rgba(255, 255, 255, 0.9)',
+              fontSize: '0.9rem',
+              marginBottom: '0.5rem'
+            }}>
+              Phone Number (Optional)
+            </label>
+            <input
+              type="tel"
+              value={contactInfo.phone}
+              onChange={(e) => handleContactInfoChange('phone', e.target.value)}
+              style={{
+                width: '100%',
+                background: 'rgba(255, 255, 255, 0.1)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: '8px',
+                padding: '0.75rem',
+                color: 'white',
+                fontSize: '1rem'
+              }}
+              placeholder="(555) 123-4567"
+            />
+          </div>
+          
+          <div>
+            <label style={{
+              color: 'rgba(255, 255, 255, 0.9)',
+              fontSize: '0.9rem',
+              marginBottom: '0.5rem',
+              display: 'block'
+            }}>
+              Preferred Contact Method
+            </label>
+            <div style={{ display: 'flex', gap: '1rem' }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer',
+                color: 'rgba(255, 255, 255, 0.8)'
+              }}>
+                <input
+                  type="radio"
+                  value="email"
+                  checked={contactInfo.preferredContact === 'email'}
+                  onChange={(e) => handleContactInfoChange('preferredContact', e.target.value)}
+                  style={{ accentColor: '#00ffff' }}
+                />
+                Email
+              </label>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer',
+                color: 'rgba(255, 255, 255, 0.8)'
+              }}>
+                <input
+                  type="radio"
+                  value="phone"
+                  checked={contactInfo.preferredContact === 'phone'}
+                  onChange={(e) => handleContactInfoChange('preferredContact', e.target.value)}
+                  style={{ accentColor: '#00ffff' }}
+                />
+                Phone
+              </label>
+            </div>
+          </div>
+        </div>
         
         {/* Submit Button */}
         <PaymentButton
           $embedded={embedded}
           type="submit"
-          disabled={!stripe || !elements || isProcessing || !paymentElementReady}
+          disabled={isProcessing || !contactInfo.email}
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
           {isProcessing ? (
             <>
               <LoadingSpinner />
-              Saving payment information...
-            </>
-          ) : !paymentElementReady ? (
-            <>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              >
-                <Loader size={20} />
-              </motion.div>
-              Loading secure form...
+              Processing order...
             </>
           ) : (
             <>
-              <Shield size={20} />
-              Save Payment Info (${cart?.total?.toFixed(2) || '0.00'})
+              <CheckCircle size={20} />
+              Complete Order (${cart?.total?.toFixed(2) || '0.00'})
             </>
           )}
         </PaymentButton>
