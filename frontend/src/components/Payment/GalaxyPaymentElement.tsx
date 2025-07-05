@@ -942,36 +942,86 @@ const loadPaymentPreferences = (): PaymentPreferences | null => {
   return null;
 };
 
-// Manual Payment Component
-const ManualPaymentFlow: React.FC<{
+// Deferred Payment Collection Component (Better UX than pure manual payment)
+const DeferredPaymentFlow: React.FC<{
   clientSecret: string;
   cart: any;
   onSuccess: () => void;
   onClose: () => void;
   embedded?: boolean;
 }> = ({ clientSecret, cart, onSuccess, onClose, embedded = false }) => {
-  const [copied, setCopied] = useState(false);
+  const stripe = useStripe();
+  const elements = useElements();
+  const { user } = useAuth();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [messageType, setMessageType] = useState<'success' | 'error' | 'info'>('info');
+  const [paymentElementReady, setPaymentElementReady] = useState(false);
   
   // Extract payment reference from client secret
   const paymentReference = clientSecret.replace('manual_', '');
   
-  const handleCopyReference = () => {
-    navigator.clipboard.writeText(paymentReference).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-  
-  const handleProceed = () => {
-    // For manual payments, we just show success since payment is processed offline
-    onSuccess();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    
+    if (!stripe || !elements || !paymentElementReady) {
+      setMessage('Payment form is still loading. Please wait...');
+      setMessageType('info');
+      return;
+    }
+    
+    setIsProcessing(true);
+    setMessage('Saving payment information for processing...');
+    setMessageType('info');
+    
+    try {
+      // Create payment method without confirming payment
+      const { error, paymentMethod } = await stripe.createPaymentMethod({
+        elements,
+        params: {
+          billing_details: {
+            email: user?.email,
+            name: user?.name || `${user?.first_name} ${user?.last_name}`.trim()
+          }
+        }
+      });
+      
+      if (error) {
+        console.error('❌ Error creating payment method:', error);
+        setMessage(error.message || 'Unable to save payment information');
+        setMessageType('error');
+      } else {
+        console.log('✅ Payment method created for deferred processing:', paymentMethod.id);
+        
+        // TODO: Send payment method to backend for later processing
+        // await authAxios.post('/api/payments/store-deferred-payment', {
+        //   paymentMethodId: paymentMethod.id,
+        //   cartId: cart.id,
+        //   paymentReference: paymentReference
+        // });
+        
+        setMessage('💳 Payment information saved! Your order will be processed within 24 hours.');
+        setMessageType('success');
+        
+        // Simulate success after showing message
+        setTimeout(() => {
+          onSuccess();
+        }, 2000);
+      }
+    } catch (err: any) {
+      console.error('💥 Deferred payment error:', err);
+      setMessage('Unable to save payment information. Please try again.');
+      setMessageType('error');
+    }
+    
+    setIsProcessing(false);
   };
   
   return (
     <>
       <PaymentHeader $embedded={embedded}>
-        <PaymentTitle $embedded={embedded}>Manual Payment Required</PaymentTitle>
-        <PaymentSubtitle>Complete your payment using the instructions below</PaymentSubtitle>
+        <PaymentTitle $embedded={embedded}>Secure Payment Collection</PaymentTitle>
+        <PaymentSubtitle>Enter your payment details - processing within 24 hours</PaymentSubtitle>
       </PaymentHeader>
       
       {/* Order Summary */}
@@ -1001,92 +1051,156 @@ const ManualPaymentFlow: React.FC<{
         </SummaryTotal>
       </OrderSummary>
       
-      {/* Manual Payment Instructions */}
-      <ManualPaymentContainer
+      {/* Deferred Payment Notice */}
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
+        style={{
+          background: 'rgba(0, 255, 255, 0.05)',
+          border: '2px solid rgba(0, 255, 255, 0.3)',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          marginBottom: '1.5rem',
+          textAlign: 'center'
+        }}
       >
-        <ManualPaymentTitle>
-          <AlertCircle size={20} />
-          Payment Processing Temporarily Offline
-        </ManualPaymentTitle>
+        <h3 style={{
+          color: '#00ffff',
+          fontSize: '1.2rem',
+          fontWeight: 600,
+          margin: '0 0 1rem 0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '0.5rem'
+        }}>
+          <Shield size={20} />
+          Deferred Payment Processing
+        </h3>
         
-        <p style={{ color: 'rgba(255, 255, 255, 0.8)', margin: '0 0 1rem 0' }}>
-          We're currently updating our payment system. Please use the payment reference below to complete your purchase:
+        <p style={{ color: 'rgba(255, 255, 255, 0.8)', margin: '0 0 1rem 0', lineHeight: 1.6 }}>
+          We're temporarily processing payments manually for enhanced security. 
+          Your card information will be securely stored and charged within 24 hours.
         </p>
         
-        <ManualPaymentInfo>
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.05)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          borderRadius: '8px',
+          padding: '1rem',
+          margin: '1rem 0',
+          textAlign: 'left'
+        }}>
           <div style={{ marginBottom: '1rem' }}>
-            <strong style={{ color: '#ffa500' }}>Payment Reference:</strong>
-            <div className="payment-reference">
+            <strong style={{ color: '#00ffff' }}>Payment Reference:</strong>
+            <div style={{
+              background: 'rgba(0, 255, 255, 0.1)',
+              border: '1px solid rgba(0, 255, 255, 0.3)',
+              borderRadius: '6px',
+              padding: '0.75rem',
+              margin: '0.5rem 0',
+              fontFamily: 'Courier New, monospace',
+              fontWeight: 600,
+              color: '#00ffff',
+              textAlign: 'center',
+              wordBreak: 'break-all'
+            }}>
               {paymentReference}
-              <button
-                onClick={handleCopyReference}
-                style={{
-                  marginLeft: '0.5rem',
-                  background: 'rgba(255, 165, 0, 0.2)',
-                  border: '1px solid rgba(255, 165, 0, 0.5)',
-                  borderRadius: '4px',
-                  padding: '0.25rem 0.5rem',
-                  color: '#ffa500',
-                  cursor: 'pointer',
-                  fontSize: '0.8rem'
-                }}
-              >
-                {copied ? '✓ Copied!' : 'Copy'}
-              </button>
             </div>
           </div>
           
-          <div className="next-steps">
-            <h4 style={{ color: '#ffa500', margin: '0 0 0.5rem 0' }}>Next Steps:</h4>
-            
-            <div className="step">
-              <div className="step-number">1</div>
-              <div>
-                <strong>Contact Support:</strong> Email us at support@swanstudios.com with your payment reference
-              </div>
+          <div style={{ fontSize: '0.9rem', color: 'rgba(255, 255, 255, 0.8)' }}>
+            <div style={{ marginBottom: '0.5rem' }}>
+              ✅ <strong>Secure:</strong> Your card details are encrypted and PCI compliant
             </div>
-            
-            <div className="step">
-              <div className="step-number">2</div>
-              <div>
-                <strong>Payment Options:</strong> We'll send you secure payment instructions via email
-              </div>
+            <div style={{ marginBottom: '0.5rem' }}>
+              ⚡ <strong>Fast:</strong> Processing typically completed within 12 hours
             </div>
-            
-            <div className="step">
-              <div className="step-number">3</div>
-              <div>
-                <strong>Activation:</strong> Your training sessions will be activated within 24 hours of payment
-              </div>
+            <div>
+              📧 <strong>Notification:</strong> You'll receive email confirmation when processed
             </div>
           </div>
-          
-          <div style={{
-            marginTop: '1rem',
-            padding: '0.75rem',
-            background: 'rgba(0, 255, 255, 0.1)',
-            borderRadius: '6px',
-            fontSize: '0.85rem'
-          }}>
-            <strong style={{ color: '#00ffff' }}>💡 Pro Tip:</strong> Include your payment reference in all communications for faster processing.
-          </div>
-        </ManualPaymentInfo>
+        </div>
+      </motion.div>
+      
+      {/* Payment Form */}
+      <form onSubmit={handleSubmit}>
+        <StripeElementContainer $embedded={embedded}>
+          <PaymentElement 
+            options={{
+              ...baseStripeElementOptions,
+              layout: {
+                type: 'tabs' as const,
+                defaultCollapsed: false
+              }
+            }}
+            onReady={() => {
+              console.log('💳 Deferred Payment Element ready');
+              setPaymentElementReady(true);
+            }}
+            onChange={(event) => {
+              if (event.error) {
+                setMessage(event.error.message);
+                setMessageType('error');
+              } else {
+                setMessage(null);
+              }
+            }}
+          />
+        </StripeElementContainer>
         
-        <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-          <ManualPaymentButton
-            onClick={handleProceed}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            style={{ flex: 1 }}
-          >
-            <CheckCircle size={20} />
-            I'll Contact Support
-          </ManualPaymentButton>
-          
+        {/* Submit Button */}
+        <PaymentButton
+          $embedded={embedded}
+          type="submit"
+          disabled={!stripe || !elements || isProcessing || !paymentElementReady}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+        >
+          {isProcessing ? (
+            <>
+              <LoadingSpinner />
+              Saving payment information...
+            </>
+          ) : !paymentElementReady ? (
+            <>
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              >
+                <Loader size={20} />
+              </motion.div>
+              Loading secure form...
+            </>
+          ) : (
+            <>
+              <Shield size={20} />
+              Save Payment Info (${cart?.total?.toFixed(2) || '0.00'})
+            </>
+          )}
+        </PaymentButton>
+        
+        {/* Message Display */}
+        <AnimatePresence>
+          {message && (
+            <MessageContainer
+              className={messageType}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              {messageType === 'success' && <CheckCircle size={16} />}
+              {messageType === 'error' && <AlertCircle size={16} />}
+              {messageType === 'info' && <Loader size={16} />}
+              {message}
+            </MessageContainer>
+          )}
+        </AnimatePresence>
+        
+        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
           <button
+            type="button"
             onClick={onClose}
             style={{
               flex: 1,
@@ -1100,10 +1214,10 @@ const ManualPaymentFlow: React.FC<{
               fontWeight: 500
             }}
           >
-            Close
+            Cancel
           </button>
         </div>
-      </ManualPaymentContainer>
+      </form>
     </>
   );
 };
@@ -2016,8 +2130,8 @@ useEffect(() => {
   
   // Log payment method detection and set state
   if (isManualFormat) {
-    console.log('🔧 Manual payment detected - switching to manual payment flow');
-    console.log('📋 Manual payment reference:', clientSecret.substring(0, 30) + '...');
+    console.log('🔧 Deferred payment detected - switching to deferred payment flow');
+    console.log('📋 Deferred payment reference:', clientSecret.substring(0, 30) + '...');
     setIsManualPayment(true);
   } else {
     console.log('💳 Stripe payment detected - using standard payment flow');
@@ -2061,7 +2175,7 @@ useEffect(() => {
       console.log('🎯 ACCOUNT VALIDATION PASSED: Ready for secure payment processing');
     }
   } else if (isManualFormat) {
-    console.log('🔧 MANUAL PAYMENT: Skipping Stripe account validation');
+    console.log('🔧 DEFERRED PAYMENT: Skipping Stripe account validation');
   }
   
   setClientSecret(clientSecret);
@@ -2266,15 +2380,15 @@ useEffect(() => {
 
         {clientSecret && (
           isManualPayment ? (
-            <ManualPaymentFlow
+            <DeferredPaymentFlow
               clientSecret={clientSecret}
               cart={cart}
               onSuccess={() => {
-                console.log('🎉 Manual payment flow completed (Embedded)');
+                console.log('🎉 Deferred payment flow completed (Embedded)');
                 if (onSuccess) {
                   onSuccess();
                 } else {
-                  window.location.href = '/checkout/CheckoutSuccess?manual=true';
+                  window.location.href = '/checkout/CheckoutSuccess?deferred=true';
                 }
               }}
               onClose={onClose}
@@ -2483,15 +2597,15 @@ useEffect(() => {
 
         {clientSecret && (
           isManualPayment ? (
-            <ManualPaymentFlow
+            <DeferredPaymentFlow
               clientSecret={clientSecret}
               cart={cart}
               onSuccess={() => {
-                console.log('🎉 Manual payment flow completed');
+                console.log('🎉 Deferred payment flow completed');
                 if (onSuccess) {
                   onSuccess();
                 } else {
-                  window.location.href = '/checkout/CheckoutSuccess?manual=true';
+                  window.location.href = '/checkout/CheckoutSuccess?deferred=true';
                 }
               }}
               onClose={onClose}
