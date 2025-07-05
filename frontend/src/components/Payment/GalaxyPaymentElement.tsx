@@ -2030,8 +2030,8 @@ useEffect(() => {
   currency: response.data.data.currency
   });
   
-  // ULTRA-VALIDATION: Check account matching
-  if (keyValidation.valid && stripePublishableKey) {
+  // ULTRA-VALIDATION: Check account matching (skip for manual payments)
+  if (!isManualFormat && keyValidation.valid && stripePublishableKey) {
     const accountValidation = StripeAccountValidator.validateAccountMatch(
       clientSecret, 
       stripePublishableKey
@@ -2060,6 +2060,8 @@ useEffect(() => {
     } else {
       console.log('🎯 ACCOUNT VALIDATION PASSED: Ready for secure payment processing');
     }
+  } else if (isManualFormat) {
+    console.log('🔧 MANUAL PAYMENT: Skipping Stripe account validation');
   }
   
   setClientSecret(clientSecret);
