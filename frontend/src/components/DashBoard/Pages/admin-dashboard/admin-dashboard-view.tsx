@@ -47,6 +47,7 @@ import {
 
 // Revolutionary Component Ecosystem
 import RevenueAnalyticsPanel from './components/RevenueAnalyticsPanel';
+import PendingOrdersAdminPanel from './components/PendingOrdersAdminPanel';
 import UserAnalyticsPanel from './components/UserAnalyticsPanel';
 import AIMonitoringPanel from './components/AIMonitoringPanel';
 import SecurityMonitoringPanel from './components/SecurityMonitoringPanel';
@@ -344,8 +345,11 @@ const sectionComponents = {
   packages: () => <Suspense fallback={<div>Loading...</div>}><PackagesManagementSection /></Suspense>,
   content: () => <Suspense fallback={<div>Loading...</div>}><ContentModerationSection /></Suspense>,
   
-  // Analytics sections
+  // Financial Management sections
   revenue: () => <Suspense fallback={<div>Loading...</div>}><RevenueAnalyticsPanel /></Suspense>,
+  'pending-orders': () => <Suspense fallback={<div>Loading...</div>}><PendingOrdersAdminPanel /></Suspense>,
+  
+  // Analytics sections
   gamification: () => <Suspense fallback={<div>Loading...</div>}><AdminGamificationView /></Suspense>,
   notifications: () => <Suspense fallback={<div>Loading...</div>}><NotificationsSection /></Suspense>,
   
@@ -366,6 +370,7 @@ const sectionTitles = {
   packages: 'Package Management',
   content: 'Content Moderation',
   revenue: 'Revenue Analytics',
+  'pending-orders': 'Pending Orders',
   gamification: 'Gamification Engine',
   notifications: 'Notifications',
   'system-health': 'System Health',
@@ -384,6 +389,7 @@ const sectionDescriptions = {
   packages: 'Configure pricing and session packages',
   content: 'Review and moderate user-generated content',
   revenue: 'Track revenue streams and financial metrics',
+  'pending-orders': 'Manage manual payments and pending orders',
   gamification: 'Configure achievements and engagement systems',
   notifications: 'Manage platform notifications and alerts',
   'system-health': 'Monitor system performance and uptime',
