@@ -12,7 +12,7 @@ const REDIS_ENABLED = process.env.REDIS_ENABLED === 'true';
 const REDIS_COMPLETELY_BLOCKED = !REDIS_ENABLED;
 
 if (REDIS_COMPLETELY_BLOCKED) {
-  console.log('🛡️ ULTIMATE Redis Connection Blocker activated - ZERO Redis connections allowed');
+  // SILENT ACTIVATION - no logging to prevent startup log pollution
   
   // Set multiple environment flags to prevent Redis connections
   process.env.NODE_REDIS_DISABLED = 'true';
@@ -22,12 +22,12 @@ if (REDIS_COMPLETELY_BLOCKED) {
   
   // Block common Redis connection environment variables
   if (process.env.REDIS_URL) {
-    console.log('🚫 BLOCKING REDIS_URL environment variable');
+    // SILENT BLOCKING
     delete process.env.REDIS_URL;
   }
   
   if (process.env.REDIS_HOST) {
-    console.log('🚫 BLOCKING REDIS_HOST environment variable');
+    // SILENT BLOCKING
     delete process.env.REDIS_HOST;
   }
   
@@ -59,8 +59,8 @@ if (REDIS_COMPLETELY_BLOCKED) {
     );
     
     if (isRedisError) {
-      console.log('🚨 INTERCEPTED Redis error (Redis disabled):', message);
-      return; // Completely suppress Redis errors
+      // COMPLETE SUPPRESSION - no logging to prevent log flooding
+      return; // Completely suppress Redis errors silently
     }
     return originalConsoleError.apply(this, args);
   };
@@ -74,8 +74,8 @@ if (REDIS_COMPLETELY_BLOCKED) {
     );
     
     if (isRedisWarning) {
-      console.log('🚨 INTERCEPTED Redis warning (Redis disabled):', message);
-      return; // Completely suppress Redis warnings
+      // COMPLETE SUPPRESSION - no logging to prevent log flooding
+      return; // Completely suppress Redis warnings silently
     }
     return originalConsoleWarn.apply(this, args);
   };
@@ -101,8 +101,8 @@ if (REDIS_COMPLETELY_BLOCKED) {
       stackTrace.includes('redis');
     
     if (isRedisError) {
-      console.log('🚨 CAUGHT Redis uncaught exception (COMPLETELY SUPPRESSED):', errorMessage);
-      return; // Completely suppress Redis errors
+      // COMPLETE SUPPRESSION - no logging to prevent log flooding
+      return; // Completely suppress Redis errors silently
     }
     
     // Re-throw non-Redis errors to original listeners
@@ -141,8 +141,8 @@ if (REDIS_COMPLETELY_BLOCKED) {
       promise.toString().includes('ioredis');
     
     if (isRedisRejection) {
-      console.log('🚨 CAUGHT Redis unhandled rejection (COMPLETELY SUPPRESSED):', errorMessage);
-      return; // Completely suppress Redis rejections
+      // COMPLETE SUPPRESSION - no logging to prevent log flooding
+      return; // Completely suppress Redis rejections silently
     }
     
     // Re-throw non-Redis rejections to original listeners
@@ -176,8 +176,8 @@ if (REDIS_COMPLETELY_BLOCKED) {
       stackTrace.includes('redis');
     
     if (isRedisError) {
-      console.log('🚨 CAUGHT Redis process error (COMPLETELY SUPPRESSED):', errorMessage);
-      return; // Completely suppress Redis process errors
+      // COMPLETE SUPPRESSION - no logging to prevent log flooding
+      return; // Completely suppress Redis process errors silently
     }
     
     // Re-emit to original error handlers
@@ -201,7 +201,7 @@ if (REDIS_COMPLETELY_BLOCKED) {
       
       // Block connections to common Redis ports
       if (port === 6379 || port === '6379') {
-        console.log(`🚫 BLOCKED net.createConnection to Redis port ${port} on ${host}`);
+        // SILENT BLOCKING - no logging to prevent log flooding
         const mockSocket = new (require('events').EventEmitter)();
         mockSocket.connect = () => mockSocket;
         mockSocket.write = () => true;
@@ -220,10 +220,9 @@ if (REDIS_COMPLETELY_BLOCKED) {
     console.log('⚠️ Net module blocking failed (non-critical):', netBlockError.message);
   }
   
-  console.log('✅ ULTIMATE Redis Connection Blocker installed successfully');
-  console.log('🛡️ All Redis connections, imports, errors, and processes are now blocked');
+  // SILENT INSTALLATION COMPLETE
 } else {
-  console.log('ℹ️ Redis Connection Blocker not needed - Redis is enabled');
+  // Redis enabled, no blocking needed
 }
 
 export default {
