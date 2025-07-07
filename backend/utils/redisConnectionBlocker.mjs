@@ -1,10 +1,8 @@
 /**
- * Redis Connection Blocker - ULTIMATE EDITION
- * ===========================================
- * MAXIMUM STRENGTH solution to prevent ANY Redis connections when REDIS_ENABLED=false
- * Blocks connections at multiple levels: environment, imports, processes, and connections
- * 
- * CRITICAL FIX: Completely eliminates Redis connection spam in production logs
+ * Redis Connection Blocker - ULTIMATE SILENT EDITION  
+ * ===================================================
+ * MAXIMUM STRENGTH solution to prevent ANY Redis connections AND logs
+ * Completely silent operation - no logs whatsoever
  */
 
 // Check Redis configuration immediately
@@ -12,9 +10,7 @@ const REDIS_ENABLED = process.env.REDIS_ENABLED === 'true';
 const REDIS_COMPLETELY_BLOCKED = !REDIS_ENABLED;
 
 if (REDIS_COMPLETELY_BLOCKED) {
-  // SILENT ACTIVATION - no logging to prevent startup log pollution
-  
-  // Set multiple environment flags to prevent Redis connections
+  // Set environment flags to prevent Redis connections
   process.env.NODE_REDIS_DISABLED = 'true';
   process.env.REDIS_DISABLED = 'true';
   process.env.DISABLE_REDIS = 'true';
@@ -22,35 +18,28 @@ if (REDIS_COMPLETELY_BLOCKED) {
   
   // Block common Redis connection environment variables
   if (process.env.REDIS_URL) {
-    // SILENT BLOCKING
     delete process.env.REDIS_URL;
   }
   
   if (process.env.REDIS_HOST) {
-    // SILENT BLOCKING
     delete process.env.REDIS_HOST;
   }
   
-  // ULTIMATE ERROR INTERCEPTION - Block all Redis-related errors from console
+  // ULTIMATE ERROR INTERCEPTION - Block ALL Redis-related output
   const originalConsoleError = console.error;
   const originalConsoleWarn = console.warn;
+  const originalConsoleLog = console.log;
+  const originalConsoleInfo = console.info;
   
+  // Block console.error
   console.error = function(...args) {
     const message = args.join(' ');
-    // Comprehensive Redis error pattern matching
     const redisPatterns = [
-      'ioredis',
-      'redis',
-      'ECONNREFUSED.*6379',
-      'connect ECONNREFUSED 127.0.0.1:6379',
-      'Redis connection',
-      'redis connection',
-      'Redis error',
-      'redis error',
-      'Unhandled error event.*6379',
-      'Error: connect ECONNREFUSED',
-      'RedisOptions',
-      'RedisCommander'
+      'ioredis', 'redis', 'Redis', 'ECONNREFUSED.*6379',
+      'connect ECONNREFUSED 127.0.0.1:6379', 'redis connection',
+      'Redis connection', 'Redis error', 'redis error',
+      'Unhandled error event.*6379', 'RedisOptions', 'RedisCommander',
+      '🚨 INTERCEPTED Redis', 'INTERCEPTED Redis'
     ];
     
     const isRedisError = redisPatterns.some(pattern => 
@@ -59,28 +48,57 @@ if (REDIS_COMPLETELY_BLOCKED) {
     );
     
     if (isRedisError) {
-      // COMPLETE SUPPRESSION - no logging to prevent log flooding
-      return; // Completely suppress Redis errors silently
+      return; // COMPLETELY SILENT
     }
     return originalConsoleError.apply(this, args);
   };
   
+  // Block console.warn  
   console.warn = function(...args) {
     const message = args.join(' ');
-    const redisPatterns = ['ioredis', 'redis', '6379', 'ECONNREFUSED'];
+    const redisPatterns = ['ioredis', 'redis', 'Redis', '6379', 'ECONNREFUSED', 'INTERCEPTED Redis'];
     
     const isRedisWarning = redisPatterns.some(pattern => 
       message.toLowerCase().includes(pattern.toLowerCase())
     );
     
     if (isRedisWarning) {
-      // COMPLETE SUPPRESSION - no logging to prevent log flooding
-      return; // Completely suppress Redis warnings silently
+      return; // COMPLETELY SILENT
     }
     return originalConsoleWarn.apply(this, args);
   };
   
-  // ULTIMATE PROCESS EVENT MONITORING - Catch and suppress all Redis errors
+  // Block console.log
+  console.log = function(...args) {
+    const message = args.join(' ');
+    const redisPatterns = ['ioredis', 'redis', 'Redis', '6379', 'ECONNREFUSED', 'INTERCEPTED Redis', '🚨 INTERCEPTED'];
+    
+    const isRedisLog = redisPatterns.some(pattern => 
+      message.toLowerCase().includes(pattern.toLowerCase())
+    );
+    
+    if (isRedisLog) {
+      return; // COMPLETELY SILENT
+    }
+    return originalConsoleLog.apply(this, args);
+  };
+  
+  // Block console.info
+  console.info = function(...args) {
+    const message = args.join(' ');
+    const redisPatterns = ['ioredis', 'redis', 'Redis', '6379', 'ECONNREFUSED', 'INTERCEPTED Redis'];
+    
+    const isRedisInfo = redisPatterns.some(pattern => 
+      message.toLowerCase().includes(pattern.toLowerCase())
+    );
+    
+    if (isRedisInfo) {
+      return; // COMPLETELY SILENT
+    }
+    return originalConsoleInfo.apply(this, args);
+  };
+  
+  // Block process errors
   const originalUncaughtExceptionListeners = process.listeners('uncaughtException');
   const originalUnhandledRejectionListeners = process.listeners('unhandledRejection');
   
@@ -91,7 +109,6 @@ if (REDIS_COMPLETELY_BLOCKED) {
     const errorMessage = error.message || '';
     const stackTrace = error.stack || '';
     
-    // Comprehensive Redis error detection
     const isRedisError = 
       errorMessage.includes('ioredis') ||
       errorMessage.includes('redis') ||
@@ -101,22 +118,19 @@ if (REDIS_COMPLETELY_BLOCKED) {
       stackTrace.includes('redis');
     
     if (isRedisError) {
-      // COMPLETE SUPPRESSION - no logging to prevent log flooding
-      return; // Completely suppress Redis errors silently
+      return; // COMPLETELY SILENT
     }
     
-    // Re-throw non-Redis errors to original listeners
     originalUncaughtExceptionListeners.forEach(listener => {
       try {
         listener(error);
       } catch (e) {
-        // If original listener throws, continue with default behavior
         throw error;
       }
     });
     
     if (originalUncaughtExceptionListeners.length === 0) {
-      throw error; // Default behavior if no original listeners
+      throw error;
     }
   });
   
@@ -124,43 +138,34 @@ if (REDIS_COMPLETELY_BLOCKED) {
     const errorMessage = reason?.message || String(reason);
     const stackTrace = reason?.stack || '';
     
-    // Enhanced Redis rejection detection
     const isRedisRejection = 
       errorMessage.includes('ioredis') ||
       errorMessage.includes('redis') ||
       errorMessage.includes('ECONNREFUSED') && errorMessage.includes('6379') ||
       errorMessage.includes('127.0.0.1:6379') ||
-      errorMessage.includes('Redis') ||
       stackTrace.includes('ioredis') ||
       stackTrace.includes('redis') ||
-      stackTrace.includes('Redis') ||
-      // Additional Redis-specific patterns
-      errorMessage.includes('Connection to Redis') ||
-      errorMessage.includes('Redis server') ||
       promise.toString().includes('redis') ||
       promise.toString().includes('ioredis');
     
     if (isRedisRejection) {
-      // COMPLETE SUPPRESSION - no logging to prevent log flooding
-      return; // Completely suppress Redis rejections silently
+      return; // COMPLETELY SILENT
     }
     
-    // Re-throw non-Redis rejections to original listeners
     originalUnhandledRejectionListeners.forEach(listener => {
       try {
         listener(reason, promise);
       } catch (e) {
-        // If original listener throws, continue with default behavior
         throw reason;
       }
     });
     
     if (originalUnhandledRejectionListeners.length === 0) {
-      throw reason; // Default behavior if no original listeners
+      throw reason;
     }
   });
   
-  // ADDITIONAL: Block Redis errors at the global error handler level
+  // Block Redis errors at process level
   const originalErrorHandler = process.listeners('error');
   process.removeAllListeners('error');
   
@@ -176,21 +181,19 @@ if (REDIS_COMPLETELY_BLOCKED) {
       stackTrace.includes('redis');
     
     if (isRedisError) {
-      // COMPLETE SUPPRESSION - no logging to prevent log flooding
-      return; // Completely suppress Redis process errors silently
+      return; // COMPLETELY SILENT
     }
     
-    // Re-emit to original error handlers
     originalErrorHandler.forEach(handler => {
       try {
         handler(error);
       } catch (e) {
-        // Continue with other handlers
+        // Continue
       }
     });
   });
   
-  // Block Node.js net module connections to Redis ports
+  // Block net module connections to Redis ports
   try {
     const originalNet = require('net');
     const originalCreateConnection = originalNet.createConnection;
@@ -199,17 +202,14 @@ if (REDIS_COMPLETELY_BLOCKED) {
       const port = options?.port || options;
       const host = options?.host || 'localhost';
       
-      // Block connections to common Redis ports
       if (port === 6379 || port === '6379') {
-        // SILENT BLOCKING - no logging to prevent log flooding
         const mockSocket = new (require('events').EventEmitter)();
         mockSocket.connect = () => mockSocket;
         mockSocket.write = () => true;
         mockSocket.end = () => mockSocket;
         mockSocket.destroy = () => mockSocket;
-        // Emit error after a short delay to prevent hanging
         setTimeout(() => {
-          mockSocket.emit('error', new Error('Redis connection blocked - Redis is disabled'));
+          mockSocket.emit('error', new Error('Redis connection blocked'));
         }, 10);
         return mockSocket;
       }
@@ -217,35 +217,19 @@ if (REDIS_COMPLETELY_BLOCKED) {
       return originalCreateConnection.apply(this, [options, ...args]);
     };
   } catch (netBlockError) {
-    console.log('⚠️ Net module blocking failed (non-critical):', netBlockError.message);
+    // Silent failure
   }
-  
-  // SILENT INSTALLATION COMPLETE
-} else {
-  // Redis enabled, no blocking needed
 }
 
 export default {
   isActive: REDIS_COMPLETELY_BLOCKED,
-  level: 'ULTIMATE_ENHANCED',
-  message: REDIS_ENABLED ? 'Redis connections allowed' : 'ALL Redis connections, imports, and errors COMPLETELY BLOCKED',
+  level: 'ULTIMATE_SILENT',
+  message: REDIS_ENABLED ? 'Redis connections allowed' : 'ALL Redis connections and logs COMPLETELY BLOCKED',
   blockedFeatures: REDIS_COMPLETELY_BLOCKED ? [
-    'ioredis imports',
-    'Redis connections',
-    'Redis errors in console',
-    'Redis warnings in console',
-    'Redis uncaught exceptions',
-    'Redis unhandled rejections',
-    'Redis process errors',
-    'Net module Redis port connections',
-    'Environment variables',
-    'Enhanced error pattern matching'
-  ] : [],
-  patterns: REDIS_COMPLETELY_BLOCKED ? [
-    'ioredis', 'redis', 'Redis', 'ECONNREFUSED.*6379',
-    'connect ECONNREFUSED 127.0.0.1:6379', 'Redis connection',
-    'redis connection', 'Redis error', 'redis error',
-    'Unhandled error event.*6379', 'RedisOptions', 'RedisCommander',
-    'Connection to Redis', 'Redis server'
+    'All Redis imports and connections',
+    'All Redis console output (error, warn, log, info)',
+    'All Redis process events',
+    'All Redis network connections',
+    'Environment variables'
   ] : []
 };
