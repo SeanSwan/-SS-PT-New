@@ -574,25 +574,53 @@ const ProfessionalCheckoutFlow: React.FC = () => {
             textAlign: 'center'
           }}>
             <p style={{ margin: 0, color: '#00ffff', fontSize: '0.9rem', fontWeight: 600 }}>
-              🔒 Stripe Secure Payment Form Loading...
+              🔒 Creating Stripe Payment Intent...
             </p>
             <p style={{ margin: '0.5rem 0 0 0', color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>
-              If the form doesn't appear, check your browser console for errors.
+              Requesting Stripe checkout instead of manual payment.
             </p>
           </div>
           
-          <GalaxyPaymentElement
-            isOpen={true}
-            onClose={() => {
-              console.log('💳 [Payment Form] User closed payment form');
-              setCurrentStep(CheckoutStep.PAYMENT_METHOD);
-            }}
-            onSuccess={() => {
-              console.log('💳 [Payment Form] Stripe payment successful');
-              handleStripeSuccess();
-            }}
-            embedded={true}
-          />
+          {/* 🔥 CRITICAL FIX: Pass payment method preference to force Stripe */}
+          <div id="stripe-payment-container" style={{ position: 'relative' }}>
+            <div style={{
+              position: 'absolute',
+              top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0, 255, 255, 0.05)',
+              border: '2px dashed rgba(0, 255, 255, 0.3)',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10
+            }}>
+              <div style={{ textAlign: 'center', padding: '2rem' }}>
+                <h4 style={{ color: '#00ffff', margin: '0 0 1rem 0' }}>🚀 Creating Stripe Payment Session</h4>
+                <p style={{ color: 'rgba(255, 255, 255, 0.8)', margin: 0 }}>
+                  Initializing credit card payment form...
+                </p>
+                <div style={{ marginTop: '1rem' }}>
+                  <button
+                    onClick={() => {
+                      console.log('💳 [Payment Form] Manually triggering Stripe payment creation');
+                      createStripePaymentIntent();
+                    }}
+                    style={{
+                      background: 'linear-gradient(135deg, #00ffff, #0099ff)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '0.75rem 1.5rem',
+                      color: '#0a0a1a',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    💳 Load Stripe Payment Form
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         
         <div style={{
@@ -604,7 +632,10 @@ const ProfessionalCheckoutFlow: React.FC = () => {
           textAlign: 'center'
         }}>
           <p style={{ margin: 0, color: '#ffa500', fontSize: '0.85rem' }}>
-            ⚠️ Having issues? Try the manual payment option instead.
+            ⚠️ Issue: Backend is returning manual payment instead of Stripe payment intent.
+          </p>
+          <p style={{ margin: '0.5rem 0 0 0', color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>
+            We need to fix the backend to return real Stripe payment intents when Stripe is selected.
           </p>
         </div>
         
@@ -619,6 +650,36 @@ const ProfessionalCheckoutFlow: React.FC = () => {
         </ButtonRow>
       </FormSection>
     );
+  };
+
+  // 🔥 NEW FUNCTION: Create Stripe payment intent with payment method preference
+  const createStripePaymentIntent = async () => {
+    try {
+      console.log('🔥 [Stripe Fix] Creating Stripe payment intent with method preference');
+      
+      const response = await authAxios.post('/api/payments/create-payment-intent', {
+        cartId: cart?.id,
+        paymentMethod: 'stripe',  // 🔥 CRITICAL: Tell backend we want Stripe!
+        customerInfo,
+        preferredProcessing: 'stripe_elements'
+      });
+      
+      console.log('🔥 [Stripe Fix] Payment intent response:', response.data);
+      
+      if (response.data.success && response.data.data?.clientSecret) {
+        const clientSecret = response.data.data.clientSecret;
+        
+        if (clientSecret.startsWith('pi_')) {
+          console.log('✅ [Stripe Fix] Got real Stripe payment intent!');
+          // TODO: Initialize actual GalaxyPaymentElement with this client secret
+        } else {
+          console.error('❌ [Stripe Fix] Still getting manual payment:', clientSecret);
+        }
+      }
+      
+    } catch (error: any) {
+      console.error('💥 [Stripe Fix] Error creating Stripe payment intent:', error.message);
+    }
   };
 
   // Render customer info step
