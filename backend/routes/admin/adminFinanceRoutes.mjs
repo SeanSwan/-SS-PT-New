@@ -235,7 +235,8 @@ router.get('/overview', async (req, res) => {
 
 /**
  * GET /api/admin/finance/transactions
- * Detailed transaction history with filtering and pagination
+ * ENHANCED: Detailed transaction history with comprehensive pending payment support
+ * Now includes all checkout attempts and pending manual payments
  */
 router.get('/transactions', async (req, res) => {
   try {
@@ -248,23 +249,30 @@ router.get('/transactions', async (req, res) => {
       customerId,
       minAmount,
       maxAmount,
-      sortBy = 'completedAt',
+      sortBy = 'lastCheckoutAttempt',
       sortOrder = 'DESC'
     } = req.query;
     
     const offset = (page - 1) * limit;
     
-    // Build where conditions
+    // Build where conditions - ENHANCED to include all cart statuses
     const whereConditions = {};
     
+    // Enhanced status filtering to include pending payments
     if (status !== 'all') {
-      whereConditions.paymentStatus = status;
+      if (status === 'pending_manual_payment') {
+        whereConditions.paymentStatus = 'pending_manual_payment';
+      } else {
+        whereConditions.paymentStatus = status;
+      }
     }
     
+    // Enhanced date filtering to use lastCheckoutAttempt for pending payments
     if (startDate || endDate) {
-      whereConditions.completedAt = {};
-      if (startDate) whereConditions.completedAt[Op.gte] = new Date(startDate);
-      if (endDate) whereConditions.completedAt[Op.lte] = new Date(endDate);
+      const dateField = sortBy === 'completedAt' ? 'completedAt' : 'lastCheckoutAttempt';
+      whereConditions[dateField] = {};
+      if (startDate) whereConditions[dateField][Op.gte] = new Date(startDate);
+      if (endDate) whereConditions[dateField][Op.lte] = new Date(endDate);
     }
     
     if (customerId) {
@@ -277,14 +285,19 @@ router.get('/transactions', async (req, res) => {
       if (maxAmount) whereConditions.total[Op.lte] = parseFloat(maxAmount);
     }
     
-    // Fetch transactions
+    // Only include carts that have checkout attempts (have checkoutSessionId)
+    whereConditions.checkoutSessionId = {
+      [Op.not]: null
+    };
+    
+    // Fetch transactions with enhanced data
     const { count, rows: transactions } = await ShoppingCart.findAndCountAll({
       where: whereConditions,
       include: [
         {
           model: User,
           as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'email', 'role']
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'role']
         },
         {
           model: CartItem,
@@ -292,7 +305,7 @@ router.get('/transactions', async (req, res) => {
           include: [{
             model: StorefrontItem,
             as: 'storefrontItem',
-            attributes: ['name', 'itemType', 'sessions']
+            attributes: ['name', 'itemType', 'sessions', 'description']
           }]
         }
       ],
@@ -301,41 +314,76 @@ router.get('/transactions', async (req, res) => {
       offset: offset
     });
     
+    console.log(`📊 [Admin Finance] Found ${transactions.length} transactions (${count} total)`);
+    
     res.json({
       success: true,
       data: {
-        transactions: transactions.map(transaction => ({
-          id: transaction.id,
-          amount: transaction.total,
-          status: transaction.paymentStatus,
-          date: transaction.completedAt,
-          customer: transaction.user ? {
-            id: transaction.user.id,
-            name: `${transaction.user.firstName} ${transaction.user.lastName}`,
-            email: transaction.user.email,
-            role: transaction.user.role
-          } : null,
-          items: transaction.cartItems?.map(item => ({
-            id: item.id,
-            name: item.storefrontItem?.name || 'Unknown Item',
-            type: item.storefrontItem?.itemType,
-            sessions: item.storefrontItem?.sessions,
-            quantity: item.quantity,
-            price: item.price
-          })) || [],
-          checkoutSessionId: transaction.checkoutSessionId
-        })),
+        transactions: transactions.map(transaction => {
+          // Parse customer info if stored as JSON
+          let customerInfo = {};
+          try {
+            customerInfo = transaction.customerInfo ? JSON.parse(transaction.customerInfo) : {};
+          } catch (e) {
+            // Fallback to user data
+          }
+          
+          // Parse payment instructions if available
+          let paymentInstructions = {};
+          try {
+            paymentInstructions = transaction.paymentInstructions ? JSON.parse(transaction.paymentInstructions) : {};
+          } catch (e) {
+            // No instructions available
+          }
+          
+          return {
+            id: transaction.checkoutSessionId || transaction.id,
+            amount: transaction.total || 0,
+            status: transaction.paymentStatus,
+            date: transaction.completedAt || transaction.lastCheckoutAttempt || transaction.updatedAt,
+            customer: {
+              id: transaction.user?.id || customerInfo.userId,
+              name: customerInfo.name || `${transaction.user?.firstName || ''} ${transaction.user?.lastName || ''}`.trim() || 'Unknown Customer',
+              email: customerInfo.email || transaction.user?.email || 'unknown@email.com',
+              phone: customerInfo.phone || transaction.user?.phone,
+              role: transaction.user?.role
+            },
+            items: transaction.cartItems?.map(item => ({
+              id: item.id,
+              name: item.storefrontItem?.name || 'Unknown Item',
+              type: item.storefrontItem?.itemType,
+              sessions: item.storefrontItem?.sessions,
+              quantity: item.quantity,
+              price: item.price,
+              description: item.storefrontItem?.description
+            })) || [],
+            checkoutSessionId: transaction.checkoutSessionId,
+            paymentInstructions: paymentInstructions,
+            createdAt: transaction.createdAt,
+            lastAttempt: transaction.lastCheckoutAttempt,
+            cartStatus: transaction.status
+          };
+        }),
         pagination: {
           page: parseInt(page),
           limit: parseInt(limit),
           total: count,
           pages: Math.ceil(count / limit)
+        },
+        summary: {
+          totalTransactions: count,
+          pendingPayments: transactions.filter(t => t.paymentStatus === 'pending_manual_payment').length,
+          completedPayments: transactions.filter(t => t.paymentStatus === 'paid').length,
+          totalPendingValue: transactions
+            .filter(t => t.paymentStatus === 'pending_manual_payment')
+            .reduce((sum, t) => sum + (t.total || 0), 0)
         }
       }
     });
     
   } catch (error) {
     logger.error('Error fetching transactions:', error);
+    console.error(`💥 [Admin Finance] Transaction fetch failed: ${error.message}`);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch transactions',

@@ -15,8 +15,8 @@ import {
 // Models will be retrieved via getter functions inside each route handler when needed
 import logger from '../utils/logger.mjs';
 import { v4 as uuidv4 } from 'uuid';
-// Temporarily disabled for deployment hotfix - will re-enable after verification
-// import TrainingSessionService from '../services/TrainingSessionService.mjs';
+// Session allocation service for payment completion
+import sessionAllocationService from '../services/SessionAllocationService.mjs';
 
 const router = express.Router();
 
@@ -266,19 +266,34 @@ router.put('/:id', protect, async (req, res) => {
     
     await order.save();
     
-    // TEMPORARILY DISABLED FOR DEPLOYMENT HOTFIX
-    // If order was just completed, create training sessions
+    // ENHANCED: Automatic session allocation when order is completed
     let sessionCreationResult = null;
-    // if (status === 'completed' && previousStatus !== 'completed') {
-    //   try {
-    //     logger.info(`Order ${orderId} completed, creating training sessions for user ${order.userId}`);
-    //     sessionCreationResult = await TrainingSessionService.createSessionsForOrder(orderId, order.userId);
-    //     logger.info(`Created ${sessionCreationResult.created} training sessions for order ${orderId}`);
-    //   } catch (sessionError) {
-    //     logger.error(`Failed to create training sessions for order ${orderId}:`, sessionError);
-    //     // Don't fail the order update if session creation fails
-    //   }
-    // }
+    if (status === 'completed' && previousStatus !== 'completed') {
+      try {
+        logger.info(`Order ${orderId} completed, allocating sessions for user ${order.userId}`);
+        sessionCreationResult = await sessionAllocationService.allocateSessionsFromOrder(orderId, order.userId);
+        logger.info(`Successfully allocated ${sessionCreationResult.allocated} sessions for order ${orderId}`, {
+          orderNumber: order.orderNumber,
+          totalSessions: sessionCreationResult.totalSessions,
+          userId: order.userId
+        });
+      } catch (sessionError) {
+        logger.error(`Failed to allocate sessions for order ${orderId}:`, {
+          error: sessionError.message,
+          stack: sessionError.stack,
+          orderId,
+          userId: order.userId
+        });
+        // Don't fail the order update if session allocation fails
+        // But log it prominently for admin attention
+        logger.error('SESSION ALLOCATION FAILURE - ADMIN ATTENTION REQUIRED', {
+          orderId,
+          userId: order.userId,
+          orderNumber: order.orderNumber,
+          timestamp: new Date().toISOString()
+        });
+      }
+    }
     
     const response = {
       success: true,
@@ -286,10 +301,15 @@ router.put('/:id', protect, async (req, res) => {
       order
     };
     
-    // Include session creation info if applicable
+    // Include session allocation info if applicable
     if (sessionCreationResult) {
-      response.sessions = sessionCreationResult;
-      response.message += ` and ${sessionCreationResult.created} training sessions created`;
+      response.sessions = {
+        allocated: sessionCreationResult.allocated,
+        totalSessions: sessionCreationResult.totalSessions,
+        sessionIds: sessionCreationResult.sessions?.map(s => s.id) || [],
+        details: sessionCreationResult.orderDetails
+      };
+      response.message += ` and ${sessionCreationResult.allocated} sessions allocated`;
     }
     
     return res.status(200).json(response);

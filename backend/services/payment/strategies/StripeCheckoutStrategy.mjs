@@ -31,6 +31,9 @@ import logger from '../../../utils/logger.mjs';
 import cartHelpers from '../../../utils/cartHelpers.mjs';
 const { getCartTotalsWithFallback, debugCartState } = cartHelpers;
 
+// Production environment detection
+const isProduction = process.env.NODE_ENV === 'production';
+
 class StripeCheckoutStrategy {
   constructor(stripeClient) {
     this.stripe = stripeClient;
@@ -42,6 +45,7 @@ class StripeCheckoutStrategy {
   /**
    * Create a Stripe Checkout Session
    * Generates checkout session for redirect-based payment flow
+   * Enhanced with production error handling and 401 debugging
    * 
    * @param {Object} params - Payment parameters
    * @param {string} params.cartId - Shopping cart ID
@@ -51,6 +55,13 @@ class StripeCheckoutStrategy {
    * @returns {Object} Checkout session with redirect URL
    */
   async createPaymentIntent({ cartId, userId, userInfo, baseUrl }) {
+    // PRODUCTION DEBUG: Log Stripe client status
+    logger.info('[StripeCheckout] Creating checkout session', {
+      cartId,
+      userId,
+      hasStripeClient: !!this.stripe,
+      environment: process.env.NODE_ENV
+    });
     try {
       logger.info(`[StripeCheckout] Creating checkout session for cart ${cartId}`);
 
@@ -246,17 +257,52 @@ class StripeCheckoutStrategy {
       };
 
     } catch (error) {
-      logger.error(`[StripeCheckout] Error creating checkout session: ${error.message}`);
+      // PRODUCTION DEBUG: Enhanced error logging for 401 issues
+      logger.error(`[StripeCheckout] Error creating checkout session`, {
+        errorType: error.type,
+        errorCode: error.code,
+        statusCode: error.statusCode,
+        message: error.message,
+        cartId,
+        userId,
+        stripeConfigured: !!this.stripe
+      });
       
-      // Handle specific Stripe errors
-      if (error.type === 'StripeInvalidRequestError') {
+      // Handle specific Stripe errors with production debugging
+      if (error.type === 'StripeAuthenticationError' || error.statusCode === 401) {
+        logger.error('[StripeCheckout] STRIPE AUTHENTICATION ERROR - 401 Issue Detected', {
+          errorDetails: error.message,
+          possibleCauses: [
+            'Invalid or expired Stripe secret key',
+            'Key environment mismatch (live vs test)',
+            'Stripe account access revoked',
+            'Rate limiting or security restrictions'
+          ],
+          environment: process.env.NODE_ENV,
+          recommendation: 'Check Render environment variables for STRIPE_SECRET_KEY'
+        });
+        throw new Error('Payment authentication failed - please contact support');
+      } else if (error.type === 'StripeInvalidRequestError') {
+        logger.error('[StripeCheckout] Invalid request to Stripe API', {
+          errorDetails: error.message,
+          requestData: { cartId, userId }
+        });
         throw new Error(`Invalid checkout request: ${error.message}`);
       } else if (error.type === 'StripeAPIError') {
+        logger.error('[StripeCheckout] Stripe API error', { errorDetails: error.message });
         throw new Error('Stripe service temporarily unavailable');
       } else if (error.type === 'StripeConnectionError') {
+        logger.error('[StripeCheckout] Stripe connection error', { errorDetails: error.message });
         throw new Error('Unable to connect to payment processor');
       }
       
+      // Generic error with enhanced logging
+      logger.error('[StripeCheckout] Unexpected error during checkout session creation', {
+        error: error.message,
+        stack: error.stack,
+        cartId,
+        userId
+      });
       throw new Error(`Checkout session creation failed: ${error.message}`);
     }
   }
@@ -460,21 +506,36 @@ class StripeCheckoutStrategy {
 
   /**
    * Validate Stripe configuration for checkout
-   * Checks if Stripe is properly configured for checkout sessions
+   * Enhanced validation with production debugging
    * 
    * @returns {Object} Validation result
    */
   async validateConfiguration() {
     try {
       if (!this.stripe) {
+        logger.error('[StripeCheckout] Stripe client not initialized', {
+          environment: process.env.NODE_ENV,
+          hasSecretKey: !!process.env.STRIPE_SECRET_KEY,
+          secretKeyFormat: process.env.STRIPE_SECRET_KEY ? 
+            process.env.STRIPE_SECRET_KEY.substring(0, 8) + '...' : 'missing'
+        });
         return {
           valid: false,
-          error: 'Stripe client not initialized'
+          error: 'Stripe client not initialized - check environment variables'
         };
       }
 
       // Test Stripe connection by retrieving account
+      logger.info('[StripeCheckout] Testing Stripe account connection...');
       const account = await this.stripe.accounts.retrieve();
+      
+      logger.info('[StripeCheckout] Stripe account validation successful', {
+        accountId: account.id,
+        country: account.country,
+        chargesEnabled: account.charges_enabled,
+        detailsSubmitted: account.details_submitted,
+        businessType: account.business_type
+      });
       
       return {
         valid: true,
@@ -485,10 +546,19 @@ class StripeCheckoutStrategy {
       };
 
     } catch (error) {
+      logger.error('[StripeCheckout] Stripe configuration validation failed', {
+        errorType: error.type,
+        errorCode: error.code,
+        statusCode: error.statusCode,
+        message: error.message,
+        environment: process.env.NODE_ENV
+      });
+      
       return {
         valid: false,
         error: error.message,
-        type: error.type
+        type: error.type,
+        statusCode: error.statusCode
       };
     }
   }

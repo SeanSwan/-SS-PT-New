@@ -1,21 +1,23 @@
 /**
  * Enhanced Payment Routes - SwanStudios Premium Payment Integration
  * ================================================================
- * Production-ready payment processing with improved error handling for Render deployment
- * Maintains backward compatibility with existing Stripe Checkout
+ * PROFESSIONAL 7-STAR CHECKOUT EXPERIENCE
+ * Production-ready payment processing with comprehensive data capture
  * 
  * Features:
- * - Stripe Elements (embedded payment forms)
- * - Stripe Checkout (redirect method) - existing
- * - Payment Intent management
- * - Real-time payment status
+ * - PaymentService Strategy Pattern Integration
+ * - Stripe Checkout with manual payment fallback
+ * - Customer data capture for all scenarios
+ * - Admin dashboard integration for pending orders
+ * - Real-time payment status tracking
  * - Enhanced security and validation
- * - Comprehensive error handling for 503 prevention
+ * - Comprehensive error handling
  * - Galaxy-themed payment experience support
  * 
  * Security: PCI DSS compliant, authenticated users only
  * Performance: Optimized payment processing
- * UX: Seamless embedded payment experience
+ * UX: Professional seamless checkout experience
+ * Data Capture: ALWAYS captures customer information
  */
 
 import express from 'express';
@@ -34,6 +36,264 @@ const { getCartTotalsWithFallback, debugCartState } = cartHelpers;
 import paymentService from '../services/payment/PaymentService.mjs';
 
 const router = express.Router();
+
+/**
+ * PROFESSIONAL 7-STAR CHECKOUT ENDPOINT
+ * POST /api/payments/create-checkout-session
+ * Creates payment session with guaranteed customer data capture
+ * Always creates pending order for admin visibility
+ */
+router.post('/create-checkout-session', protect, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { customerInfo, billingAddress, preferences } = req.body;
+    
+    logger.info(`[Professional Checkout] Starting checkout for user ${userId}`);
+    console.log(`🎯 [Professional Checkout] Initiating 7-star checkout experience for user ${userId}`);
+
+    // Retrieve the active shopping cart with all details
+    const cart = await ShoppingCart.findOne({
+      where: { userId, status: 'active' },
+      include: [{ 
+        model: CartItem, 
+        as: 'cartItems',
+        include: [{ 
+          model: StorefrontItem, 
+          as: 'storefrontItem' 
+        }]
+      }, {
+        model: User,
+        as: 'user',
+        attributes: ['id', 'firstName', 'lastName', 'email', 'phone']
+      }]
+    });
+
+    if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Your cart is empty. Please add items before checkout.',
+        code: 'EMPTY_CART'
+      });
+    }
+
+    // Calculate cart totals
+    const subtotal = cart.cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const tax = subtotal * 0.08; // 8% tax
+    const total = subtotal + tax;
+
+    // Prepare customer information (combine user data with form data)
+    const customerData = {
+      userId,
+      name: customerInfo?.name || `${cart.user?.firstName || ''} ${cart.user?.lastName || ''}`.trim() || 'Unknown Customer',
+      email: customerInfo?.email || cart.user?.email || 'unknown@email.com',
+      phone: customerInfo?.phone || cart.user?.phone || null,
+      billing: billingAddress || null,
+      preferences: preferences || {}
+    };
+
+    // Prepare payment request for PaymentService
+    const paymentRequest = {
+      amount: total,
+      currency: 'usd',
+      customer: customerData,
+      items: cart.cartItems.map(item => ({
+        id: item.storefrontItemId,
+        name: item.storefrontItem?.name || `Training Package #${item.storefrontItemId}`,
+        description: item.storefrontItem?.description || 'Premium training package',
+        price: item.price,
+        quantity: item.quantity,
+        sessions: item.storefrontItem?.sessions || null
+      })),
+      metadata: {
+        cartId: cart.id,
+        userId,
+        checkoutTimestamp: new Date().toISOString()
+      },
+      successUrl: `${process.env.VITE_FRONTEND_URL || 'http://localhost:5173'}/checkout/success`,
+      cancelUrl: `${process.env.VITE_FRONTEND_URL || 'http://localhost:5173'}/checkout/cancel`
+    };
+
+    console.log(`💰 [Professional Checkout] Total: ${total.toFixed(2)} (${cart.cartItems.length} items)`);
+    console.log(`👤 [Professional Checkout] Customer: ${customerData.name} (${customerData.email})`);
+
+    // CRITICAL: Create payment intent using PaymentService
+    const paymentResult = await paymentService.createPaymentIntent(paymentRequest);
+
+    if (!paymentResult.success) {
+      logger.error(`[Professional Checkout] Payment creation failed: ${paymentResult.message}`);
+      return res.status(500).json({
+        success: false,
+        message: 'Unable to process payment. Please try again.',
+        error: paymentResult.message
+      });
+    }
+
+    // Update cart with payment information
+    await cart.update({
+      checkoutSessionId: paymentResult.paymentIntentId,
+      total: total,
+      subtotal: subtotal,
+      tax: tax,
+      paymentStatus: paymentResult.requiresAction ? 'pending_manual_payment' : 'processing',
+      customerInfo: JSON.stringify(customerData),
+      lastCheckoutAttempt: new Date()
+    });
+
+    console.log(`✅ [Professional Checkout] Payment ${paymentResult.strategy.name} session created: ${paymentResult.paymentIntentId}`);
+    console.log(`📊 [Professional Checkout] Strategy: ${paymentResult.strategy.displayName}`);
+    
+    // For manual payments, immediately create a pending order record
+    if (paymentResult.requiresAction) {
+      logger.info(`[Professional Checkout] Creating pending manual payment record for admin`);
+      console.log(`📝 [Professional Checkout] Creating pending order for admin dashboard visibility`);
+      
+      // This ensures the admin can see the order attempt
+      await cart.update({
+        status: 'pending_payment',
+        paymentStatus: 'pending_manual_payment',
+        paymentInstructions: JSON.stringify(paymentResult.instructions || {})
+      });
+    }
+
+    // Return response based on payment strategy
+    const response = {
+      success: true,
+      paymentIntentId: paymentResult.paymentIntentId,
+      strategy: paymentResult.strategy,
+      amount: total,
+      currency: 'usd',
+      customer: {
+        name: customerData.name,
+        email: customerData.email
+      }
+    };
+
+    // Add strategy-specific response data
+    if (paymentResult.checkoutUrl) {
+      response.checkoutUrl = paymentResult.checkoutUrl;
+      response.redirectRequired = true;
+    }
+    
+    if (paymentResult.clientSecret) {
+      response.clientSecret = paymentResult.clientSecret;
+      response.elementRequired = true;
+    }
+    
+    if (paymentResult.requiresAction) {
+      response.requiresManualPayment = true;
+      response.instructions = paymentResult.instructions;
+      response.message = 'Payment instructions have been prepared. Our team will contact you shortly.';
+    }
+
+    logger.info(`[Professional Checkout] Checkout session created successfully for user ${userId}`);
+    res.status(200).json(response);
+
+  } catch (error) {
+    logger.error(`[Professional Checkout] Error creating checkout session: ${error.message}`);
+    console.error(`💥 [Professional Checkout] Checkout failed: ${error.message}`);
+    
+    res.status(500).json({ 
+      success: false, 
+      message: 'Checkout system temporarily unavailable. Please try again.',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+/**
+ * ADMIN PAYMENT CONFIRMATION ENDPOINT
+ * POST /api/payments/confirm-payment
+ * Allows admins to mark manual payments as completed
+ * Updates cart status and creates completion record
+ */
+router.post('/confirm-payment', protect, async (req, res) => {
+  try {
+    const { paymentIntentId, adminNotes, verifiedBy } = req.body;
+    
+    // Verify admin permissions
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin access required'
+      });
+    }
+
+    logger.info(`[Admin Payment] Admin ${req.user.email} confirming payment ${paymentIntentId}`);
+    console.log(`👤 [Admin Payment] Admin confirmation for payment: ${paymentIntentId}`);
+
+    // Find the cart by checkout session ID
+    const cart = await ShoppingCart.findOne({
+      where: { 
+        checkoutSessionId: paymentIntentId,
+        paymentStatus: 'pending_manual_payment'
+      },
+      include: [{
+        model: User,
+        as: 'user',
+        attributes: ['id', 'firstName', 'lastName', 'email']
+      }, {
+        model: CartItem,
+        as: 'cartItems',
+        include: [{
+          model: StorefrontItem,
+          as: 'storefrontItem'
+        }]
+      }]
+    });
+
+    if (!cart) {
+      return res.status(404).json({
+        success: false,
+        message: 'Pending payment not found or already processed'
+      });
+    }
+
+    // Update cart to completed status
+    await cart.update({
+      status: 'completed',
+      paymentStatus: 'paid',
+      completedAt: new Date(),
+      adminConfirmation: JSON.stringify({
+        confirmedBy: verifiedBy || req.user.email,
+        confirmedAt: new Date(),
+        notes: adminNotes || 'Manual payment confirmed by admin'
+      })
+    });
+
+    // Use PaymentService to confirm the payment
+    const confirmResult = await paymentService.confirmPayment({
+      paymentIntentId,
+      adminConfirmation: true,
+      notes: adminNotes
+    });
+
+    console.log(`✅ [Admin Payment] Payment confirmed for customer: ${cart.user?.email}`);
+    console.log(`💰 [Admin Payment] Amount: ${cart.total}`);
+
+    res.json({
+      success: true,
+      message: 'Payment confirmed successfully',
+      paymentIntentId,
+      customerInfo: {
+        name: `${cart.user?.firstName} ${cart.user?.lastName}`,
+        email: cart.user?.email,
+        amount: cart.total
+      },
+      confirmedBy: verifiedBy || req.user.email,
+      confirmedAt: new Date()
+    });
+
+  } catch (error) {
+    logger.error(`[Admin Payment] Error confirming payment: ${error.message}`);
+    console.error(`💥 [Admin Payment] Confirmation failed: ${error.message}`);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Unable to confirm payment',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
 
 /**
  * Public diagnostics endpoint (no auth required)

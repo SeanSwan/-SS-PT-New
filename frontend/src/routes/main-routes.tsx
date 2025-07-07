@@ -148,7 +148,13 @@ const AboutPage = lazyLoadWithErrorHandling(
 // 🌌 OPTIMIZED GALAXY THEMED SWANSTUDIOS STORE - Single production store
 const SwanStudiosStore = lazyLoadWithErrorHandling(
   () => import('../pages/shop/OptimizedGalaxyStoreFront'),
-  'SwanStudios Store (Optimized Galaxy Theme)'
+  'SwanStudios Store'
+);
+
+// ✨ PROFESSIONAL 7-STAR CHECKOUT FLOW
+const ProfessionalCheckoutFlow = lazyLoadWithErrorHandling(
+  () => import('../components/Checkout/ProfessionalCheckoutFlow'),
+  'Professional Checkout'
 );
 
 // Galaxy-Swan Theme Showcase
@@ -375,7 +381,17 @@ const MainRoutes: RouteObject = {
       element: <Navigate to="/store" replace />
     },
     
-    // Checkout Routes
+    // PROFESSIONAL 7-STAR CHECKOUT ROUTES
+    {
+      path: 'checkout',
+      element: (
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <ProfessionalCheckoutFlow />
+          </Suspense>
+        </ProtectedRoute>
+      )
+    },
     {
       path: 'checkout/success',
       element: (

@@ -38,6 +38,10 @@ import AdminPackagesView from './Pages/admin-packages/admin-packages-view';
 import TrainersManagementSection from './Pages/admin-dashboard/TrainersManagementSection';
 import AdminGamificationView from './Pages/admin-gamification/admin-gamification-view';
 
+// Import Financial Management Components
+import RevenueAnalyticsPanel from './Pages/admin-dashboard/components/RevenueAnalyticsPanel';
+import PendingOrdersAdminPanel from './Pages/admin-dashboard/components/PendingOrdersAdminPanel';
+
 // === EXECUTIVE COMMAND INTELLIGENCE THEME ===
 const executiveCommandTheme = {
   colors: {
@@ -523,11 +527,25 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                 <Route 
                   path="/revenue" 
                   element={
-                    <LazyPlaceholder 
-                      title="Revenue Analytics Command"
-                      description="Advanced revenue tracking, financial forecasting, and business performance analytics with predictive modeling."
-                      icon="💰"
-                    />
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <RevenueAnalyticsPanel />
+                    </ExecutivePageContainer>
+                  } 
+                />
+                <Route 
+                  path="/pending-orders" 
+                  element={
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <PendingOrdersAdminPanel />
+                    </ExecutivePageContainer>
                   } 
                 />
                 <Route 

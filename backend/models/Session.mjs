@@ -7,6 +7,7 @@ class Session extends Model {}
 // Define session statuses as a separate constant
 const SESSION_STATUSES = [
   'available',
+  'assigned',
   'requested',
   'scheduled',
   'confirmed',
@@ -135,6 +136,16 @@ Session.init({
     type: DataTypes.TEXT,
     allowNull: true,
     comment: 'Client feedback text'
+  },
+  assignedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'When the trainer was assigned to this session'
+  },
+  assignedBy: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    comment: 'Admin user who assigned the trainer to this session'
   }
 }, {
   sequelize,
