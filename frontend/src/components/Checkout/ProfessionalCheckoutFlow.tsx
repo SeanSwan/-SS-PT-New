@@ -517,68 +517,109 @@ const ProfessionalCheckoutFlow: React.FC = () => {
   // Handle Stripe payment success
   const handleStripeSuccess = () => {
     console.log('🎉 [Professional Checkout] Stripe payment completed successfully');
-    setCurrentStep(CheckoutStep.COMPLETE);
+    setCurrentStep(CheckoutStep.REVIEW);
     toast({
       title: "Payment Successful!",
-      description: "Thank you for your purchase. You'll receive a confirmation email shortly.",
+      description: "Your payment has been processed. Please review your order.",
     });
   };
 
   // Render payment form step (Stripe Elements)
-  const renderPaymentForm = () => (
-    <FormSection
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <h3>
-        <Lock size={20} />
-        Secure Payment Details
-      </h3>
-      
-      <div style={{
-        background: 'rgba(0, 255, 255, 0.1)',
-        border: '1px solid rgba(0, 255, 255, 0.3)',
-        borderRadius: '12px',
-        padding: '1.5rem',
-        marginBottom: '1.5rem',
-        textAlign: 'center'
-      }}>
-        <h4 style={{ margin: '0 0 0.5rem 0', color: '#00ffff' }}>Complete Your Payment</h4>
-        <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.875rem' }}>
-          Secure payment processing powered by Stripe. Your payment information is encrypted and protected.
-        </p>
-      </div>
-      
-      <div style={{
-        minHeight: '400px',
-        background: 'rgba(255, 255, 255, 0.02)',
-        borderRadius: '12px',
-        padding: '1rem',
-        marginBottom: '1.5rem'
-      }}>
-        <GalaxyPaymentElement
-          isOpen={true}
-          onClose={() => setCurrentStep(CheckoutStep.PAYMENT_METHOD)}
-          onSuccess={handleStripeSuccess}
-          embedded={true}
-        />
-      </div>
-      
-      <ButtonRow>
-        <ActionButton variant="secondary" onClick={() => {
-          if (selectedPaymentMethod === 'stripe') {
-            setCurrentStep(CheckoutStep.PAYMENT_FORM);
-          } else {
-            setCurrentStep(CheckoutStep.PAYMENT_METHOD);
-          }
+  const renderPaymentForm = () => {
+    console.log('💳 [Payment Form] Rendering Stripe payment form');
+    console.log('💳 [Payment Form] Customer info:', customerInfo);
+    console.log('💳 [Payment Form] Selected method:', selectedPaymentMethod);
+    
+    return (
+      <FormSection
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <h3>
+          <Lock size={20} />
+          Secure Payment Details
+        </h3>
+        
+        <div style={{
+          background: 'rgba(0, 255, 255, 0.1)',
+          border: '1px solid rgba(0, 255, 255, 0.3)',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          marginBottom: '1.5rem',
+          textAlign: 'center'
         }}>
-          <ArrowLeft size={16} />
-          Change Payment Method
-        </ActionButton>
-      </ButtonRow>
-    </FormSection>
-  );
+          <h4 style={{ margin: '0 0 0.5rem 0', color: '#00ffff' }}>Complete Your Stripe Payment</h4>
+          <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.875rem' }}>
+            💳 Secure payment processing powered by Stripe. Enter your credit card details below.
+          </p>
+          <p style={{ margin: '0.5rem 0 0 0', color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.8rem' }}>
+            Customer: {customerInfo.name} ({customerInfo.email})
+          </p>
+        </div>
+        
+        <div style={{
+          minHeight: '500px',
+          background: 'rgba(255, 255, 255, 0.02)',
+          borderRadius: '12px',
+          padding: '1rem',
+          marginBottom: '1.5rem',
+          border: '1px solid rgba(0, 255, 255, 0.2)'
+        }}>
+          <div style={{
+            background: 'rgba(0, 255, 255, 0.05)',
+            padding: '1rem',
+            borderRadius: '8px',
+            marginBottom: '1rem',
+            textAlign: 'center'
+          }}>
+            <p style={{ margin: 0, color: '#00ffff', fontSize: '0.9rem', fontWeight: 600 }}>
+              🔒 Stripe Secure Payment Form Loading...
+            </p>
+            <p style={{ margin: '0.5rem 0 0 0', color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>
+              If the form doesn't appear, check your browser console for errors.
+            </p>
+          </div>
+          
+          <GalaxyPaymentElement
+            isOpen={true}
+            onClose={() => {
+              console.log('💳 [Payment Form] User closed payment form');
+              setCurrentStep(CheckoutStep.PAYMENT_METHOD);
+            }}
+            onSuccess={() => {
+              console.log('💳 [Payment Form] Stripe payment successful');
+              handleStripeSuccess();
+            }}
+            embedded={true}
+          />
+        </div>
+        
+        <div style={{
+          background: 'rgba(255, 165, 0, 0.1)',
+          border: '1px solid rgba(255, 165, 0, 0.3)',
+          borderRadius: '8px',
+          padding: '1rem',
+          marginBottom: '1.5rem',
+          textAlign: 'center'
+        }}>
+          <p style={{ margin: 0, color: '#ffa500', fontSize: '0.85rem' }}>
+            ⚠️ Having issues? Try the manual payment option instead.
+          </p>
+        </div>
+        
+        <ButtonRow>
+          <ActionButton variant="secondary" onClick={() => {
+            console.log('💳 [Payment Form] User going back to payment method selection');
+            setCurrentStep(CheckoutStep.PAYMENT_METHOD);
+          }}>
+            <ArrowLeft size={16} />
+            Change Payment Method
+          </ActionButton>
+        </ButtonRow>
+      </FormSection>
+    );
+  };
 
   // Render customer info step
   const renderCustomerInfo = () => (
@@ -886,6 +927,13 @@ const ProfessionalCheckoutFlow: React.FC = () => {
           </p>
         </div>
         
+        <div>
+          <h4 style={{ color: '#00ffff', margin: '0 0 0.5rem 0' }}>Payment Method</h4>
+          <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.8)' }}>
+            {selectedPaymentMethod === 'stripe' ? 'Stripe Secure Checkout' : 'Manual Payment Processing'}
+          </p>
+        </div>
+        
         {billingAddress.address && (
           <div>
             <h4 style={{ color: '#00ffff', margin: '0 0 0.5rem 0' }}>Billing Address</h4>
@@ -909,7 +957,9 @@ const ProfessionalCheckoutFlow: React.FC = () => {
           <div>
             <h4 style={{ margin: 0, color: '#10b981' }}>Ready to Complete Your Purchase</h4>
             <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.875rem' }}>
-              Click below to process your payment securely and start your fitness journey!
+              {selectedPaymentMethod === 'stripe' 
+                ? 'Your payment was processed securely through Stripe.' 
+                : 'Click below to submit your order and receive payment instructions.'}
             </p>
           </div>
         </div>
@@ -926,27 +976,42 @@ const ProfessionalCheckoutFlow: React.FC = () => {
           <ArrowLeft size={16} />
           Back
         </ActionButton>
-        <ActionButton 
-          onClick={processPayment}
-          disabled={isProcessing}
-          style={{
-            background: isProcessing 
-              ? 'rgba(59, 130, 246, 0.5)' 
-              : 'linear-gradient(135deg, #10b981, #059669)'
-          }}
-        >
-          {isProcessing ? (
-            <>
-              <Loader size={16} className="animate-spin" />
-              Processing...
-            </>
-          ) : (
-            <>
-              <Lock size={16} />
-              Complete Purchase - ${total.toFixed(2)}
-            </>
-          )}
-        </ActionButton>
+        
+        {selectedPaymentMethod === 'manual' && (
+          <ActionButton 
+            onClick={processPayment}
+            disabled={isProcessing}
+            style={{
+              background: isProcessing 
+                ? 'rgba(59, 130, 246, 0.5)' 
+                : 'linear-gradient(135deg, #10b981, #059669)'
+            }}
+          >
+            {isProcessing ? (
+              <>
+                <Loader size={16} className="animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <Lock size={16} />
+                Submit Order - ${total.toFixed(2)}
+              </>
+            )}
+          </ActionButton>
+        )}
+        
+        {selectedPaymentMethod === 'stripe' && (
+          <ActionButton 
+            onClick={() => setCurrentStep(CheckoutStep.COMPLETE)}
+            style={{
+              background: 'linear-gradient(135deg, #10b981, #059669)'
+            }}
+          >
+            <CheckCircle size={16} />
+            Continue to Confirmation
+          </ActionButton>
+        )}
       </ButtonRow>
     </FormSection>
   );
