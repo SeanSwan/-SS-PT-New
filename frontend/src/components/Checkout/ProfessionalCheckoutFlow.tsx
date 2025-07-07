@@ -124,7 +124,16 @@ const ProgressStep = styled.div<{ active: boolean; completed: boolean }>`
   font-weight: 600;
   font-size: 0.875rem;
   transition: all 0.3s ease;
-  animation: ${props => props.active ? `${galaxyPulse} 2s infinite` : 'none'};
+  
+  &.active-pulse {
+    animation: galaxy-pulse-animation 2s infinite ease-in-out;
+  }
+  
+  @keyframes galaxy-pulse-animation {
+    0% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
+    50% { box-shadow: 0 0 40px rgba(0, 255, 255, 0.6); }
+    100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
+  }
 `;
 
 const CheckoutContent = styled.div`
@@ -821,6 +830,7 @@ const ProfessionalCheckoutFlow: React.FC = () => {
               key={step.id}
               active={index === currentStepIndex}
               completed={index < currentStepIndex}
+              className={index === currentStepIndex ? 'active-pulse' : ''}
             >
               {step.icon}
               {step.label}
