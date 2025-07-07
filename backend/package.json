@@ -73,7 +73,7 @@
     "restart-backend": "node scripts/restart-backend.mjs",
     "check-env": "node utils/quickEnvCheck.mjs",
     "check-stripe": "node utils/manualDiagnostics.mjs",
-    "production-seed-safe": "node production-safe-seeder.mjs",
+    "production-seed-safe": "node production-luxury-seeder.mjs",
     "verify-store-status": "curl -s ${RENDER_EXTERNAL_URL:-http://localhost:5000}/api/health/store || echo 'Service not available'"
   },
   "keywords": [],
