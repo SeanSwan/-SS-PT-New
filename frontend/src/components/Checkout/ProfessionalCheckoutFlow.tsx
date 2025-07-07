@@ -125,9 +125,7 @@ const ProgressStep = styled.div<{ active: boolean; completed: boolean }>`
   font-size: 0.875rem;
   transition: all 0.3s ease;
   
-  ${props => props.active && `
-    animation: ${galaxyPulse} 2s infinite;
-  `}
+  ${props => props.active && `animation: ${galaxyPulse} 2s infinite;`}
 `;
 
 const CheckoutContent = styled.div`
