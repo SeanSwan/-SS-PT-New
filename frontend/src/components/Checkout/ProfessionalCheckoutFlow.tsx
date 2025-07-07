@@ -627,7 +627,7 @@ const ProfessionalCheckoutFlow: React.FC = () => {
           borderRadius: '12px',
           padding: '1.5rem',
           display: 'flex',
-          align-items: 'center',
+          alignItems: 'center',
           gap: '1rem'
         }}>
           <Shield size={24} color="#00ffff" />
@@ -645,7 +645,7 @@ const ProfessionalCheckoutFlow: React.FC = () => {
           borderRadius: '12px',
           padding: '1.5rem',
           display: 'flex',
-          align-items: 'center',
+          alignItems: 'center',
           gap: '1rem'
         }}>
           <Info size={24} color="#3b82f6" />
@@ -708,7 +708,7 @@ const ProfessionalCheckoutFlow: React.FC = () => {
           borderRadius: '12px',
           padding: '1.5rem',
           display: 'flex',
-          align-items: 'center',
+          alignItems: 'center',
           gap: '1rem'
         }}>
           <Sparkles size={24} color="#10b981" />
@@ -895,7 +895,7 @@ const ProfessionalCheckoutFlow: React.FC = () => {
               background: 'rgba(0, 255, 255, 0.1)',
               borderRadius: '8px',
               display: 'flex',
-              align-items: 'center',
+              alignItems: 'center',
               gap: '0.5rem'
             }}>
               <Shield size={16} color="#00ffff" />
