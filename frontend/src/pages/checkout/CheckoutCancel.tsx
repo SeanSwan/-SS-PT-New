@@ -22,10 +22,7 @@ import React, { useEffect, useCallback } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
-import { 
-  StripeCheckoutProvider,
-  OrderSummaryComponent
-} from "../../components/Checkout";
+import { OrderReviewStep } from "../../components/NewCheckout";
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 import { useToast } from "../../hooks/use-toast";
@@ -427,8 +424,7 @@ const CheckoutCancel: React.FC = () => {
   ];
   
   return (
-    <StripeCheckoutProvider>
-      <CancelPageContainer>
+    <CancelPageContainer>
         {/* Logo */}
         <LogoContainer
           initial={{ opacity: 0, y: -20 }}
@@ -471,7 +467,7 @@ const CheckoutCancel: React.FC = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.4 }}
                 >
-                  <OrderSummaryComponent 
+                  <OrderReviewStep 
                     showDetailedBreakdown={false}
                     showSessionDetails={true}
                     compact={true}
@@ -540,7 +536,6 @@ const CheckoutCancel: React.FC = () => {
           </CancelCard>
         </ContentContainer>
       </CancelPageContainer>
-    </StripeCheckoutProvider>
   );
 };
 
