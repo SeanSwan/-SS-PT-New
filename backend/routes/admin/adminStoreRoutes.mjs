@@ -1,7 +1,7 @@
 /**
- * Production Store Management Routes
- * =================================
- * Safe admin routes for managing store data in production
+ * Production Store Management Routes - LUXURY SWANSTUDIOS COLLECTION
+ * ==================================================================
+ * Safe admin routes for managing your EXACT luxury SwanStudios packages
  */
 
 import express from 'express';
@@ -45,7 +45,12 @@ router.get('/status', async (req, res) => {
         totalPackages,
         activePackages,
         validPricedPackages,
-        needsSeeding: totalPackages === 0
+        needsSeeding: totalPackages === 0,
+        hasLuxuryCollection: packages.some(pkg => 
+          pkg.name.includes('Swan Wing') || 
+          pkg.name.includes('Swan Flight') || 
+          pkg.name.includes('Swan Soar')
+        )
       },
       packages: packages.map(pkg => ({
         id: pkg.id,
@@ -68,7 +73,7 @@ router.get('/status', async (req, res) => {
 
 /**
  * POST /api/admin/store/seed
- * Safely seed training packages (only if none exist)
+ * Safely seed your EXACT luxury SwanStudios packages (only if none exist)
  */
 router.post('/seed', async (req, res) => {
   try {
@@ -86,83 +91,140 @@ router.post('/seed', async (req, res) => {
       });
     }
 
-    // Create essential packages
-    const essentialPackages = [
+    // Create your EXACT luxury SwanStudios collection
+    const luxurySwanPackages = [
       {
-        name: 'Starter Swan Package',
-        description: 'Perfect introduction to SwanStudios methodology with 4 personalized training sessions.',
+        name: 'Silver Swan Wing',
+        description: 'Your elegant introduction to premium personal training with Sean Swan',
         packageType: 'fixed',
-        sessions: 4,
-        pricePerSession: 140.00,
-        totalCost: 560.00,
-        price: 560.00,
+        sessions: 1,
+        pricePerSession: 175.00,
+        totalCost: 175.00,
+        price: 175.00,
         isActive: true,
         displayOrder: 1
       },
       {
-        name: 'Silver Swan Elite',
-        description: 'Comprehensive 8-session package with advanced fitness protocols.',
+        name: 'Golden Swan Flight',
+        description: 'Begin your transformation journey with 8 sessions of expert guidance',
         packageType: 'fixed',
         sessions: 8,
-        pricePerSession: 145.00,
-        totalCost: 1160.00,
-        price: 1160.00,
+        pricePerSession: 170.00,
+        totalCost: 1360.00,
+        price: 1360.00,
         isActive: true,
         displayOrder: 2
       },
       {
-        name: 'Gold Swan Mastery',
-        description: 'Premium 12-session program with elite training methodologies.',
+        name: 'Sapphire Swan Soar',
+        description: 'Elevate your fitness with 20 sessions of premium training excellence',
         packageType: 'fixed',
-        sessions: 12,
-        pricePerSession: 150.00,
-        totalCost: 1800.00,
-        price: 1800.00,
+        sessions: 20,
+        pricePerSession: 165.00,
+        totalCost: 3300.00,
+        price: 3300.00,
         isActive: true,
         displayOrder: 3
       },
       {
-        name: 'Platinum Swan Transformation',
-        description: 'Intensive 20-session complete lifestyle transformation.',
+        name: 'Platinum Swan Grace',
+        description: 'Master your potential with 50 sessions of elite personal training',
         packageType: 'fixed',
-        sessions: 20,
-        pricePerSession: 155.00,
-        totalCost: 3100.00,
-        price: 3100.00,
+        sessions: 50,
+        pricePerSession: 160.00,
+        totalCost: 8000.00,
+        price: 8000.00,
         isActive: true,
         displayOrder: 4
+      },
+      {
+        name: 'Emerald Swan Evolution',
+        description: 'Transform your life with 3 months of dedicated training (4x per week)',
+        packageType: 'monthly',
+        months: 3,
+        sessionsPerWeek: 4,
+        totalSessions: 52,
+        pricePerSession: 155.00,
+        totalCost: 8060.00,
+        price: 8060.00,
+        isActive: true,
+        displayOrder: 5
+      },
+      {
+        name: 'Diamond Swan Dynasty',
+        description: 'Build lasting strength with 6 months of premium training mastery',
+        packageType: 'monthly',
+        months: 6,
+        sessionsPerWeek: 4,
+        totalSessions: 104,
+        pricePerSession: 150.00,
+        totalCost: 15600.00,
+        price: 15600.00,
+        isActive: true,
+        displayOrder: 6
+      },
+      {
+        name: 'Ruby Swan Reign',
+        description: 'Command your fitness destiny with 9 months of elite transformation',
+        packageType: 'monthly',
+        months: 9,
+        sessionsPerWeek: 4,
+        totalSessions: 156,
+        pricePerSession: 145.00,
+        totalCost: 22620.00,
+        price: 22620.00,
+        isActive: true,
+        displayOrder: 7
+      },
+      {
+        name: 'Rhodium Swan Royalty',
+        description: 'The ultimate year-long journey to peak performance and royal fitness',
+        packageType: 'monthly',
+        months: 12,
+        sessionsPerWeek: 4,
+        totalSessions: 208,
+        pricePerSession: 140.00,
+        totalCost: 29120.00,
+        price: 29120.00,
+        isActive: true,
+        displayOrder: 8
       }
     ];
 
     const createdPackages = [];
     let successCount = 0;
+    let totalValue = 0;
 
-    for (const packageData of essentialPackages) {
+    for (const packageData of luxurySwanPackages) {
       try {
         const item = await StorefrontItem.create(packageData);
         createdPackages.push({
           id: item.id,
           name: item.name,
-          price: item.price
+          price: item.price,
+          sessions: item.sessions || item.totalSessions
         });
         successCount++;
+        totalValue += parseFloat(item.price);
       } catch (error) {
-        logger.error(`Failed to create package ${packageData.name}:`, error);
+        logger.error(`Failed to create luxury package ${packageData.name}:`, error);
       }
     }
 
-    logger.info(`Admin ${req.user.email} seeded ${successCount} training packages`);
+    logger.info(`Admin ${req.user.email} seeded ${successCount} luxury SwanStudios packages (value: $${totalValue})`);
 
     res.json({
       success: true,
-      message: `Successfully created ${successCount} training packages`,
+      message: `Successfully created ${successCount} luxury SwanStudios packages`,
       action: 'seeded',
       packages: createdPackages,
-      totalValue: createdPackages.reduce((sum, pkg) => sum + pkg.price, 0)
+      totalValue: totalValue,
+      collection: 'Luxury SwanStudios Collection',
+      revenueProtential: totalValue
     });
 
   } catch (error) {
-    logger.error('Error seeding store:', error);
+    logger.error('Error seeding luxury store:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -201,8 +263,20 @@ router.post('/fix-pricing', async (req, res) => {
     const fixedPackages = [];
 
     for (const item of brokenItems) {
-      const sessions = item.sessions || item.totalSessions || 4;
-      const baseRate = 150;
+      // Use luxury pricing based on sessions
+      const sessions = item.sessions || item.totalSessions || 1;
+      let baseRate = 175; // Start with highest rate
+      
+      // Determine rate based on package tier
+      if (sessions >= 200) baseRate = 140; // Rhodium
+      else if (sessions >= 150) baseRate = 145; // Ruby
+      else if (sessions >= 100) baseRate = 150; // Diamond
+      else if (sessions >= 50) baseRate = 155; // Emerald
+      else if (sessions >= 40) baseRate = 160; // Platinum
+      else if (sessions >= 15) baseRate = 165; // Sapphire
+      else if (sessions >= 5) baseRate = 170; // Golden
+      else baseRate = 175; // Silver
+      
       const newPrice = sessions * baseRate;
 
       await item.update({
@@ -214,21 +288,22 @@ router.post('/fix-pricing', async (req, res) => {
       fixedPackages.push({
         name: item.name,
         oldPrice: item.price,
-        newPrice: newPrice
+        newPrice: newPrice,
+        rate: baseRate
       });
     }
 
-    logger.info(`Admin ${req.user.email} fixed pricing for ${fixedPackages.length} packages`);
+    logger.info(`Admin ${req.user.email} fixed luxury pricing for ${fixedPackages.length} packages`);
 
     res.json({
       success: true,
-      message: `Fixed pricing for ${fixedPackages.length} packages`,
+      message: `Fixed luxury pricing for ${fixedPackages.length} packages`,
       action: 'fixed',
       packages: fixedPackages
     });
 
   } catch (error) {
-    logger.error('Error fixing store pricing:', error);
+    logger.error('Error fixing luxury store pricing:', error);
     res.status(500).json({
       success: false,
       error: error.message
