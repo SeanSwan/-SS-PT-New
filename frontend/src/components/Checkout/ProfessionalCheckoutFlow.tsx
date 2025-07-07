@@ -407,11 +407,40 @@ const ProfessionalCheckoutFlow: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [paymentResult, setPaymentResult] = useState<any>(null);
 
-  // Calculate totals - Fix: Access cart.items properly
+  // Calculate totals - Fix: Access cart.items properly + Debug logging
   const cartItems = cart?.items || [];
-  const subtotal = cartItems.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
+  
+  // 🔍 DEBUG: Log cart data for analysis
+  console.log('🛒 [Checkout Debug] Cart object:', cart);
+  console.log('🛒 [Checkout Debug] Cart items:', cartItems);
+  console.log('🛒 [Checkout Debug] Cart items length:', cartItems.length);
+  
+  if (cartItems.length > 0) {
+    cartItems.forEach((item, index) => {
+      console.log(`🛒 [Checkout Debug] Item ${index}:`, {
+        id: item.id,
+        price: item.price,
+        quantity: item.quantity,
+        storefrontItem: item.storefrontItem,
+        fullItem: item
+      });
+    });
+  }
+  
+  const subtotal = cartItems.reduce((sum, item) => {
+    const itemPrice = item.price || 0;
+    const itemQuantity = item.quantity || 0;
+    const itemTotal = itemPrice * itemQuantity;
+    console.log(`🛒 [Checkout Debug] Item calculation: ${itemPrice} × ${itemQuantity} = ${itemTotal}`);
+    return sum + itemTotal;
+  }, 0);
+  
+  console.log('🛒 [Checkout Debug] Final subtotal:', subtotal);
+  
   const tax = subtotal * 0.08; // 8% tax
   const total = subtotal + tax;
+  
+  console.log('🛒 [Checkout Debug] Tax:', tax, 'Total:', total);
 
   // Step navigation
   const steps = [
