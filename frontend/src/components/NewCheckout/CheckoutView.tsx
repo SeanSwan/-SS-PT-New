@@ -267,6 +267,17 @@ const SuccessMessage = styled(motion.div)`
   margin-top: 1rem;
 `;
 
+const PaymentMethodCard = styled.div`
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border: 2px solid rgba(59, 130, 246, 0.5);
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  animation: ${galaxyPulse} 3s infinite;
+`;
+
 const ActionButtonContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -570,16 +581,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
               Payment Method
             </SectionTitle>
             
-            <div style={{
-              background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-              border: '2px solid rgba(59, 130, 246, 0.5)',
-              borderRadius: '12px',
-              padding: '1.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-              animation: `${galaxyPulse} 3s infinite`
-            }}>
+            <PaymentMethodCard>
               <CreditCard size={24} color="#ffffff" />
               <div style={{ flex: 1 }}>
                 <h4 style={{ margin: 0, color: '#ffffff', fontSize: '1.1rem' }}>
@@ -593,7 +595,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
                 <Shield size={20} color="#ffffff" />
                 <Sparkles size={20} color="#ffffff" />
               </div>
-            </div>
+            </PaymentMethodCard>
           </CheckoutSection>
 
           {/* Action Buttons */}
