@@ -354,7 +354,7 @@ const mockClients = [
 // === SECTION COMPONENTS ===
 
 // Training Overview Section
-export const TrainingOverview: React.FC = () => {
+const TrainingOverview: React.FC = () => {
   const { theme } = useUniversalTheme();
   
   return (
@@ -416,7 +416,7 @@ export const TrainingOverview: React.FC = () => {
 };
 
 // Client Management Section
-export const ClientManagement: React.FC = () => {
+const ClientManagement: React.FC = () => {
   const { theme } = useUniversalTheme();
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -524,7 +524,7 @@ export const ClientManagement: React.FC = () => {
 };
 
 // Content Studio Section
-export const ContentStudio: React.FC = () => {
+const ContentStudio: React.FC = () => {
   const { theme } = useUniversalTheme();
   
   return (
@@ -621,7 +621,7 @@ export const ContentStudio: React.FC = () => {
  * - Session scheduling interface
  * - Real-time assignment updates
  */
-export const AssignedSessions: React.FC = () => {
+const AssignedSessions: React.FC = () => {
   const theme = useUniversalTheme();
   const [assignedSessions, setAssignedSessions] = useState([]);
   const [loading, setLoading] = useState(true);
