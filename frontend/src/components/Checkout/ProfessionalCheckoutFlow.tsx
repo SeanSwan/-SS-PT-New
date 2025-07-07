@@ -407,40 +407,17 @@ const ProfessionalCheckoutFlow: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [paymentResult, setPaymentResult] = useState<any>(null);
 
-  // Calculate totals - Fix: Access cart.items properly + Debug logging
+  // Calculate totals - Fix: Convert string prices to numbers
   const cartItems = cart?.items || [];
   
-  // 🔍 DEBUG: Log cart data for analysis
-  console.log('🛒 [Checkout Debug] Cart object:', cart);
-  console.log('🛒 [Checkout Debug] Cart items:', cartItems);
-  console.log('🛒 [Checkout Debug] Cart items length:', cartItems.length);
-  
-  if (cartItems.length > 0) {
-    cartItems.forEach((item, index) => {
-      console.log(`🛒 [Checkout Debug] Item ${index}:`, {
-        id: item.id,
-        price: item.price,
-        quantity: item.quantity,
-        storefrontItem: item.storefrontItem,
-        fullItem: item
-      });
-    });
-  }
-  
   const subtotal = cartItems.reduce((sum, item) => {
-    const itemPrice = item.price || 0;
+    const itemPrice = parseFloat(item.price) || 0;
     const itemQuantity = item.quantity || 0;
-    const itemTotal = itemPrice * itemQuantity;
-    console.log(`🛒 [Checkout Debug] Item calculation: ${itemPrice} × ${itemQuantity} = ${itemTotal}`);
-    return sum + itemTotal;
+    return sum + (itemPrice * itemQuantity);
   }, 0);
-  
-  console.log('🛒 [Checkout Debug] Final subtotal:', subtotal);
   
   const tax = subtotal * 0.08; // 8% tax
   const total = subtotal + tax;
-  
-  console.log('🛒 [Checkout Debug] Tax:', tax, 'Total:', total);
 
   // Step navigation
   const steps = [
@@ -656,7 +633,75 @@ const ProfessionalCheckoutFlow: React.FC = () => {
         Payment Method
       </h3>
       
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+        {/* Payment Method Selection */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+            border: '2px solid rgba(59, 130, 246, 0.5)',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease'
+          }}>
+            <div style={{
+              width: '20px',
+              height: '20px',
+              border: '2px solid #ffffff',
+              borderRadius: '50%',
+              background: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <div style={{
+                width: '10px',
+                height: '10px',
+                background: '#3b82f6',
+                borderRadius: '50%'
+              }}></div>
+            </div>
+            <div style={{ flex: 1 }}>
+              <h4 style={{ margin: 0, color: '#ffffff', fontSize: '1.1rem' }}>Stripe Secure Checkout (Recommended)</h4>
+              <p style={{ margin: '0.25rem 0 0 0', color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.875rem' }}>
+                Pay securely with credit/debit card. Redirects to Stripe's secure payment page.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <CreditCard size={20} color="#ffffff" />
+              <Shield size={20} color="#ffffff" />
+            </div>
+          </div>
+          
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem'
+          }}>
+            <div style={{
+              width: '20px',
+              height: '20px',
+              border: '2px solid rgba(255, 255, 255, 0.5)',
+              borderRadius: '50%'
+            }}></div>
+            <div style={{ flex: 1 }}>
+              <h4 style={{ margin: 0, color: 'rgba(255, 255, 255, 0.8)', fontSize: '1.1rem' }}>Manual Payment Processing</h4>
+              <p style={{ margin: '0.25rem 0 0 0', color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.875rem' }}>
+                Our team will contact you with payment instructions via email.
+              </p>
+            </div>
+            <Mail size={20} color="rgba(255, 255, 255, 0.6)" />
+          </div>
+        </div>
+        
+        {/* Security Information */}
         <div style={{
           background: 'rgba(0, 255, 255, 0.1)',
           border: '1px solid rgba(0, 255, 255, 0.3)',
@@ -668,29 +713,35 @@ const ProfessionalCheckoutFlow: React.FC = () => {
         }}>
           <Shield size={24} color="#00ffff" />
           <div>
-            <h4 style={{ margin: 0, color: '#00ffff' }}>Secure Payment Processing</h4>
+            <h4 style={{ margin: 0, color: '#00ffff' }}>Your Payment is Secure</h4>
             <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.875rem' }}>
-              Your payment information is encrypted and secure. We accept all major credit cards.
+              We use industry-standard encryption and never store your payment information.
+              All transactions are processed securely through Stripe.
             </p>
           </div>
         </div>
         
+        {/* Order Total Reminder */}
         <div style={{
-          background: 'rgba(59, 130, 246, 0.1)',
-          border: '1px solid rgba(59, 130, 246, 0.3)',
+          background: 'rgba(16, 185, 129, 0.1)',
+          border: '1px solid rgba(16, 185, 129, 0.3)',
           borderRadius: '12px',
           padding: '1.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem'
+          textAlign: 'center'
         }}>
-          <Info size={24} color="#3b82f6" />
-          <div>
-            <h4 style={{ margin: 0, color: '#3b82f6' }}>Multiple Payment Options</h4>
-            <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.875rem' }}>
-              Credit/Debit cards via Stripe, or manual payment processing for your convenience.
-            </p>
-          </div>
+          <h4 style={{ margin: '0 0 0.5rem 0', color: '#10b981' }}>Order Total</h4>
+          <p style={{ 
+            margin: 0, 
+            fontSize: '2rem', 
+            fontWeight: 'bold', 
+            color: '#00ffff',
+            textShadow: '0 0 10px rgba(0, 255, 255, 0.5)'
+          }}>
+            ${total.toFixed(2)}
+          </p>
+          <p style={{ margin: '0.25rem 0 0 0', color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.875rem' }}>
+            Includes ${tax.toFixed(2)} tax
+          </p>
         </div>
       </div>
       
@@ -905,9 +956,9 @@ const ProfessionalCheckoutFlow: React.FC = () => {
               <OrderItem key={item.id || item.storefrontItem?.name}>
                 <ItemInfo>
                   <h4>{item.storefrontItem?.name || 'Unknown Item'}</h4>
-                  <p>Qty: {item.quantity || 0} • ${(item.price || 0).toFixed(2)} each</p>
+                  <p>Qty: {item.quantity || 0} • ${(parseFloat(item.price) || 0).toFixed(2)} each</p>
                 </ItemInfo>
-                <ItemPrice>${((item.price || 0) * (item.quantity || 0)).toFixed(2)}</ItemPrice>
+                <ItemPrice>${((parseFloat(item.price) || 0) * (item.quantity || 0)).toFixed(2)}</ItemPrice>
               </OrderItem>
             ))}
             
