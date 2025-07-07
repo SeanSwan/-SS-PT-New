@@ -12,7 +12,10 @@ import notificationSettingsRoutes from './notificationSettingsRoutes.mjs';
 import notificationRoutes from './notificationRoutes.mjs';
 import adminRoutes from './adminRoutes.mjs';
 import contactRoutes from './contactRoutes.mjs';
-import paymentRoutes from './paymentRoutes.mjs';
+// ARCHIVED: Legacy payment routes (moved to _ARCHIVED)
+// import paymentRoutes from './paymentRoutes.mjs';
+// NEW GENESIS CHECKOUT SYSTEM:
+import v2PaymentRoutes from './v2PaymentRoutes.mjs';
 import adminFinanceRoutes from './admin/adminFinanceRoutes.mjs';
 
 const router = Router();
@@ -59,8 +62,10 @@ router.use('/admin', adminRoutes);
 // Mount contact routes
 router.use('/contact', contactRoutes);
 
-// Mount payment routes (protected)
-router.use('/payments', paymentRoutes);
+// ARCHIVED: Legacy payment routes (moved to _ARCHIVED)
+// router.use('/payments', paymentRoutes);
+// NEW GENESIS CHECKOUT SYSTEM:
+router.use('/v2/payments', v2PaymentRoutes);
 
 // Mount admin finance routes (admin only)
 router.use('/admin/finance', adminFinanceRoutes);
