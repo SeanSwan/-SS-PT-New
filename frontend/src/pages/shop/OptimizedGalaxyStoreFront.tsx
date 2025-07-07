@@ -40,7 +40,7 @@ import HeroSection from "./components/HeroSection";
 import PackagesGrid from "./components/PackagesGrid";
 import FloatingCart from "./components/FloatingCart";
 import OrientationForm from "../../components/OrientationForm/orientationForm";
-import { OptimizedCheckoutFlow } from "../../components/Checkout";
+import { CheckoutView } from "../../components/NewCheckout";
 import { ThemedGlowButton } from '../../styles/swan-theme-utils';
 
 // Galaxy Theme Constants
@@ -541,10 +541,9 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
           />
         )}
         {showCart && (
-          <OptimizedCheckoutFlow 
+          <CheckoutView 
             key="checkout-modal" 
-            isOpen={showCart}
-            onClose={handleHideCart}
+            onCancel={handleHideCart}
             onSuccess={() => {
               console.log('✅ Checkout completed successfully');
               handleHideCart();
@@ -554,7 +553,6 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
                 duration: 5000
               });
             }}
-            preferredMethod="fullscreen"
           />
         )}
       </AnimatePresence>
