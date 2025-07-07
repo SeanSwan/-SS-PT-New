@@ -25,9 +25,12 @@ import sessionPackageRoutes from '../routes/sessionPackageRoutes.mjs';
 // ===================== BUSINESS LOGIC =====================
 import cartRoutes from '../routes/cartRoutes.mjs';
 import storefrontRoutes from '../routes/storeFrontRoutes.mjs';
-import checkoutRoutes from '../routes/checkoutRoutes.mjs';
+// ARCHIVED: Legacy payment routes (moved to _ARCHIVED)
+// import checkoutRoutes from '../routes/checkoutRoutes.mjs';
+// import paymentRoutes from '../routes/paymentRoutes.mjs';
+// NEW GENESIS CHECKOUT SYSTEM:
+import v2PaymentRoutes from '../routes/v2PaymentRoutes.mjs';
 import orderRoutes from '../routes/orderRoutes.mjs';
-import paymentRoutes from '../routes/paymentRoutes.mjs';
 import financialRoutes from '../routes/financialRoutes.mjs';
 
 // ===================== COMMUNICATION =====================
@@ -128,9 +131,12 @@ export const setupRoutes = async (app) => {
   // ===================== BUSINESS LOGIC ROUTES =====================
   app.use('/api/cart', cartRoutes);
   app.use('/api/storefront', storefrontRoutes);
-  app.use('/api/checkout', checkoutRoutes);
+  // ARCHIVED: Legacy payment routes (moved to _ARCHIVED)
+  // app.use('/api/checkout', checkoutRoutes);
+  // app.use('/api/payments', paymentRoutes);
+  // NEW GENESIS CHECKOUT SYSTEM:
+  app.use('/api/v2/payments', v2PaymentRoutes);
   app.use('/api/orders', orderRoutes);
-  app.use('/api/payments', paymentRoutes);
   app.use('/api/financial', financialRoutes);
 
   // ===================== COMMUNICATION ROUTES =====================
