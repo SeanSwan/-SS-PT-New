@@ -151,10 +151,10 @@ const SwanStudiosStore = lazyLoadWithErrorHandling(
   'SwanStudios Store'
 );
 
-// ✨ PROFESSIONAL 7-STAR CHECKOUT FLOW
-const ProfessionalCheckoutFlow = lazyLoadWithErrorHandling(
-  () => import('../components/Checkout/ProfessionalCheckoutFlow'),
-  'Professional Checkout'
+// ✨ GENESIS CHECKOUT SYSTEM - New clean checkout flow
+const CheckoutView = lazyLoadWithErrorHandling(
+  () => import('../components/NewCheckout/CheckoutView'),
+  'Genesis Checkout'
 );
 
 // Galaxy-Swan Theme Showcase
@@ -185,10 +185,10 @@ const EnhancedScheduleWrapper = lazyLoadWithErrorHandling(
   'Enhanced Schedule Wrapper'
 );
 
-// Checkout Pages
-const CheckoutSuccess = lazyLoadWithErrorHandling(
-  () => import('../pages/checkout/CheckoutSuccess'),
-  'Checkout Success'
+// Checkout Pages - Genesis Checkout System
+const SuccessPage = lazyLoadWithErrorHandling(
+  () => import('../components/NewCheckout/SuccessPage'),
+  'Genesis Success Page'
 );
 const CheckoutCancel = lazyLoadWithErrorHandling(
   () => import('../pages/checkout/CheckoutCancel'),
@@ -381,13 +381,13 @@ const MainRoutes: RouteObject = {
       element: <Navigate to="/store" replace />
     },
     
-    // PROFESSIONAL 7-STAR CHECKOUT ROUTES
+    // GENESIS CHECKOUT SYSTEM ROUTES
     {
       path: 'checkout',
       element: (
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
-            <ProfessionalCheckoutFlow />
+            <CheckoutView />
           </Suspense>
         </ProtectedRoute>
       )
@@ -396,7 +396,7 @@ const MainRoutes: RouteObject = {
       path: 'checkout/success',
       element: (
         <Suspense fallback={<PageLoader />}>
-          <CheckoutSuccess />
+          <SuccessPage />
         </Suspense>
       )
     },
