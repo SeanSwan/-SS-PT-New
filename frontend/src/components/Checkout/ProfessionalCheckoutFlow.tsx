@@ -28,6 +28,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
 import { useToast } from '../../hooks/use-toast';
+import GalaxyPaymentElement from '../Payment/GalaxyPaymentElement';
 import {
   CreditCard, Shield, Zap, CheckCircle, AlertCircle,
   Loader, ArrowRight, Lock, User, Mail, Phone, MapPin,
@@ -61,8 +62,17 @@ const CheckoutContainer = styled(motion.div)`
   position: relative;
   overflow: hidden;
   width: 100%;
-  max-width: 1000px;
+  max-width: 1400px;
   margin: 2rem auto;
+  
+  @media (max-width: 1200px) {
+    max-width: 1200px;
+  }
+  
+  @media (max-width: 768px) {
+    max-width: 100%;
+    margin: 1rem;
+  }
   
   &::before {
     content: '';
@@ -141,11 +151,20 @@ const CheckoutContent = styled.div`
   grid-template-columns: 1fr 400px;
   gap: 2rem;
   padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+  
+  @media (max-width: 1200px) {
+    max-width: 1200px;
+    grid-template-columns: 1fr 350px;
+  }
   
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     gap: 1.5rem;
     padding: 1.5rem;
+    max-width: 100%;
   }
 `;
 
@@ -365,6 +384,7 @@ const SuccessMessage = styled(motion.div)`
 enum CheckoutStep {
   CUSTOMER_INFO = 'customer_info',
   PAYMENT_METHOD = 'payment_method',
+  PAYMENT_FORM = 'payment_form',
   REVIEW = 'review',
   PROCESSING = 'processing',
   COMPLETE = 'complete'
@@ -406,6 +426,8 @@ const ProfessionalCheckoutFlow: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentResult, setPaymentResult] = useState<any>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'stripe' | 'manual'>('stripe');
 
   // Calculate totals - Fix: Convert string prices to numbers
   const cartItems = cart?.items || [];
@@ -422,7 +444,8 @@ const ProfessionalCheckoutFlow: React.FC = () => {
   // Step navigation
   const steps = [
     { id: CheckoutStep.CUSTOMER_INFO, label: 'Customer Info', icon: <User size={16} /> },
-    { id: CheckoutStep.PAYMENT_METHOD, label: 'Payment', icon: <CreditCard size={16} /> },
+    { id: CheckoutStep.PAYMENT_METHOD, label: 'Payment Method', icon: <CreditCard size={16} /> },
+    { id: CheckoutStep.PAYMENT_FORM, label: 'Payment Details', icon: <Lock size={16} /> },
     { id: CheckoutStep.REVIEW, label: 'Review', icon: <CheckCircle size={16} /> }
   ];
 
@@ -453,7 +476,7 @@ const ProfessionalCheckoutFlow: React.FC = () => {
       setIsProcessing(true);
       setError(null);
       
-      console.log('🎯 [Professional Checkout] Processing payment...');
+      console.log('🎯 [Professional Checkout] Processing manual payment...');
       
       const response = await authAxios.post('/api/payments/create-checkout-session', {
         customerInfo,
@@ -471,26 +494,16 @@ const ProfessionalCheckoutFlow: React.FC = () => {
       const result = response.data;
       setPaymentResult(result);
       
-      console.log('✅ [Professional Checkout] Payment created:', result.strategy?.displayName);
+      console.log('✅ [Professional Checkout] Manual payment created:', result.strategy?.displayName);
       
-      // Handle different payment strategies
-      if (result.redirectRequired && result.checkoutUrl) {
-        // Stripe Checkout - redirect to Stripe
-        console.log('🔄 [Professional Checkout] Redirecting to Stripe Checkout');
-        window.location.href = result.checkoutUrl;
-      } else if (result.requiresManualPayment) {
-        // Manual payment - show instructions
+      // Handle manual payment instructions
+      if (result.requiresManualPayment) {
         console.log('📝 [Professional Checkout] Manual payment instructions provided');
         setCurrentStep(CheckoutStep.COMPLETE);
         toast({
           title: "Payment Instructions Sent",
           description: "Our team will contact you shortly to complete your payment.",
         });
-      } else if (result.clientSecret) {
-        // Stripe Elements - show embedded form
-        console.log('💳 [Professional Checkout] Stripe Elements integration needed');
-        setCurrentStep(CheckoutStep.PROCESSING);
-        // TODO: Implement Stripe Elements integration
       }
       
     } catch (error: any) {
@@ -500,6 +513,72 @@ const ProfessionalCheckoutFlow: React.FC = () => {
       setIsProcessing(false);
     }
   };
+
+  // Handle Stripe payment success
+  const handleStripeSuccess = () => {
+    console.log('🎉 [Professional Checkout] Stripe payment completed successfully');
+    setCurrentStep(CheckoutStep.COMPLETE);
+    toast({
+      title: "Payment Successful!",
+      description: "Thank you for your purchase. You'll receive a confirmation email shortly.",
+    });
+  };
+
+  // Render payment form step (Stripe Elements)
+  const renderPaymentForm = () => (
+    <FormSection
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <h3>
+        <Lock size={20} />
+        Secure Payment Details
+      </h3>
+      
+      <div style={{
+        background: 'rgba(0, 255, 255, 0.1)',
+        border: '1px solid rgba(0, 255, 255, 0.3)',
+        borderRadius: '12px',
+        padding: '1.5rem',
+        marginBottom: '1.5rem',
+        textAlign: 'center'
+      }}>
+        <h4 style={{ margin: '0 0 0.5rem 0', color: '#00ffff' }}>Complete Your Payment</h4>
+        <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.875rem' }}>
+          Secure payment processing powered by Stripe. Your payment information is encrypted and protected.
+        </p>
+      </div>
+      
+      <div style={{
+        minHeight: '400px',
+        background: 'rgba(255, 255, 255, 0.02)',
+        borderRadius: '12px',
+        padding: '1rem',
+        marginBottom: '1.5rem'
+      }}>
+        <GalaxyPaymentElement
+          isOpen={true}
+          onClose={() => setCurrentStep(CheckoutStep.PAYMENT_METHOD)}
+          onSuccess={handleStripeSuccess}
+          embedded={true}
+        />
+      </div>
+      
+      <ButtonRow>
+        <ActionButton variant="secondary" onClick={() => {
+          if (selectedPaymentMethod === 'stripe') {
+            setCurrentStep(CheckoutStep.PAYMENT_FORM);
+          } else {
+            setCurrentStep(CheckoutStep.PAYMENT_METHOD);
+          }
+        }}>
+          <ArrowLeft size={16} />
+          Change Payment Method
+        </ActionButton>
+      </ButtonRow>
+    </FormSection>
+  );
 
   // Render customer info step
   const renderCustomerInfo = () => (
@@ -634,40 +713,44 @@ const ProfessionalCheckoutFlow: React.FC = () => {
       </h3>
       
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-        {/* Payment Method Selection */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{
-            background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-            border: '2px solid rgba(59, 130, 246, 0.5)',
-            borderRadius: '12px',
-            padding: '1.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1rem',
-            cursor: 'pointer',
-            transition: 'all 0.3s ease'
-          }}>
+          <div 
+            style={{
+              background: selectedPaymentMethod === 'stripe' ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 'rgba(255, 255, 255, 0.1)',
+              border: selectedPaymentMethod === 'stripe' ? '2px solid rgba(59, 130, 246, 0.5)' : '1px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+            onClick={() => setSelectedPaymentMethod('stripe')}
+          >
             <div style={{
               width: '20px',
               height: '20px',
               border: '2px solid #ffffff',
               borderRadius: '50%',
-              background: '#ffffff',
+              background: selectedPaymentMethod === 'stripe' ? '#ffffff' : 'transparent',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <div style={{
-                width: '10px',
-                height: '10px',
-                background: '#3b82f6',
-                borderRadius: '50%'
-              }}></div>
+              {selectedPaymentMethod === 'stripe' && (
+                <div style={{
+                  width: '10px',
+                  height: '10px',
+                  background: '#3b82f6',
+                  borderRadius: '50%'
+                }}></div>
+              )}
             </div>
             <div style={{ flex: 1 }}>
               <h4 style={{ margin: 0, color: '#ffffff', fontSize: '1.1rem' }}>Stripe Secure Checkout (Recommended)</h4>
               <p style={{ margin: '0.25rem 0 0 0', color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.875rem' }}>
-                Pay securely with credit/debit card. Redirects to Stripe's secure payment page.
+                Pay securely with credit/debit card. Complete payment form in next step.
               </p>
             </div>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -676,21 +759,39 @@ const ProfessionalCheckoutFlow: React.FC = () => {
             </div>
           </div>
           
-          <div style={{
-            background: 'rgba(255, 255, 255, 0.1)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            borderRadius: '12px',
-            padding: '1.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1rem'
-          }}>
+          <div 
+            style={{
+              background: selectedPaymentMethod === 'manual' ? 'linear-gradient(135deg, #ffa500, #ff8c00)' : 'rgba(255, 255, 255, 0.1)',
+              border: selectedPaymentMethod === 'manual' ? '2px solid rgba(255, 165, 0, 0.5)' : '1px solid rgba(255, 255, 255, 0.3)',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1rem',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+            onClick={() => setSelectedPaymentMethod('manual')}
+          >
             <div style={{
               width: '20px',
               height: '20px',
-              border: '2px solid rgba(255, 255, 255, 0.5)',
-              borderRadius: '50%'
-            }}></div>
+              border: '2px solid #ffffff',
+              borderRadius: '50%',
+              background: selectedPaymentMethod === 'manual' ? '#ffffff' : 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              {selectedPaymentMethod === 'manual' && (
+                <div style={{
+                  width: '10px',
+                  height: '10px',
+                  background: '#ffa500',
+                  borderRadius: '50%'
+                }}></div>
+              )}
+            </div>
             <div style={{ flex: 1 }}>
               <h4 style={{ margin: 0, color: 'rgba(255, 255, 255, 0.8)', fontSize: '1.1rem' }}>Manual Payment Processing</h4>
               <p style={{ margin: '0.25rem 0 0 0', color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.875rem' }}>
@@ -750,7 +851,13 @@ const ProfessionalCheckoutFlow: React.FC = () => {
           <ArrowLeft size={16} />
           Back
         </ActionButton>
-        <ActionButton onClick={() => setCurrentStep(CheckoutStep.REVIEW)}>
+        <ActionButton onClick={() => {
+          if (selectedPaymentMethod === 'stripe') {
+            setCurrentStep(CheckoutStep.PAYMENT_FORM);
+          } else {
+            setCurrentStep(CheckoutStep.REVIEW);
+          }
+        }}>
           Review Order
           <ArrowRight size={16} />
         </ActionButton>
@@ -809,7 +916,13 @@ const ProfessionalCheckoutFlow: React.FC = () => {
       </div>
       
       <ButtonRow>
-        <ActionButton variant="secondary" onClick={() => setCurrentStep(CheckoutStep.PAYMENT_METHOD)}>
+        <ActionButton variant="secondary" onClick={() => {
+          if (selectedPaymentMethod === 'stripe') {
+            setCurrentStep(CheckoutStep.PAYMENT_FORM);
+          } else {
+            setCurrentStep(CheckoutStep.PAYMENT_METHOD);
+          }
+        }}>
           <ArrowLeft size={16} />
           Back
         </ActionButton>
@@ -925,6 +1038,7 @@ const ProfessionalCheckoutFlow: React.FC = () => {
           <AnimatePresence mode="wait">
             {currentStep === CheckoutStep.CUSTOMER_INFO && renderCustomerInfo()}
             {currentStep === CheckoutStep.PAYMENT_METHOD && renderPaymentMethod()}
+            {currentStep === CheckoutStep.PAYMENT_FORM && renderPaymentForm()}
             {currentStep === CheckoutStep.REVIEW && renderReview()}
             {currentStep === CheckoutStep.COMPLETE && renderComplete()}
           </AnimatePresence>
