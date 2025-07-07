@@ -407,8 +407,8 @@ const ProfessionalCheckoutFlow: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [paymentResult, setPaymentResult] = useState<any>(null);
 
-  // Calculate totals - Defensive programming for cart array
-  const cartItems = Array.isArray(cart) ? cart : [];
+  // Calculate totals - Fix: Access cart.items properly
+  const cartItems = cart?.items || [];
   const subtotal = cartItems.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
   const tax = subtotal * 0.08; // 8% tax
   const total = subtotal + tax;
@@ -873,9 +873,9 @@ const ProfessionalCheckoutFlow: React.FC = () => {
             </SummaryHeader>
             
             {cartItems.map((item) => (
-              <OrderItem key={item.id || item.name}>
+              <OrderItem key={item.id || item.storefrontItem?.name}>
                 <ItemInfo>
-                  <h4>{item.name || 'Unknown Item'}</h4>
+                  <h4>{item.storefrontItem?.name || 'Unknown Item'}</h4>
                   <p>Qty: {item.quantity || 0} • ${(item.price || 0).toFixed(2)} each</p>
                 </ItemInfo>
                 <ItemPrice>${((item.price || 0) * (item.quantity || 0)).toFixed(2)}</ItemPrice>
