@@ -16,7 +16,7 @@ export interface Session {
   trainerId: string | null;
   location: string | null;
   notes: string | null;
-  status: 'available' | 'requested' | 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
+  status: 'available' | 'assigned' | 'requested' | 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
   client?: any;
   trainer?: any;
   confirmed: boolean;
@@ -24,6 +24,8 @@ export interface Session {
   cancelledBy?: string;
   sessionDeducted: boolean;
   deductionDate?: string;
+  assignedAt?: string;
+  assignedBy?: string;
 }
 
 export interface SessionPackage {
@@ -179,12 +181,12 @@ class SessionService {
   }
 
   /**
-   * Add sessions to a client (admin only)
+   * Add sessions via session packages (admin only)
    * @param clientId The ID of the client
    * @param sessions Number of sessions to add
    * @param notes Optional admin notes
    */
-  async addSessionsToClient(clientId: string, sessions: number, notes?: string): Promise<SessionServiceResponse<any>> {
+  async addSessionsViaPackage(clientId: string, sessions: number, notes?: string): Promise<SessionServiceResponse<any>> {
     try {
       const response = await authAxiosInstance.post('/api/session-packages/add-sessions', {
         clientId,
@@ -248,6 +250,251 @@ class SessionService {
       return {
         success: false,
         message: error.response?.data?.message || 'Failed to add sessions to test client',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * ADMIN: Manually allocate sessions from completed order
+   */
+  async allocateSessionsFromOrder(orderId: number, userId: number): Promise<SessionServiceResponse<any>> {
+    try {
+      const response = await authAxiosInstance.post('/api/sessions/allocate-from-order', {
+        orderId,
+        userId
+      });
+      
+      return {
+        success: true,
+        message: response.data.message || 'Sessions allocated successfully',
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('Error allocating sessions from order:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to allocate sessions',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * ADMIN: Manually add sessions to user
+   */
+  async addSessionsToClient(userId: string, sessionCount: number, reason?: string): Promise<SessionServiceResponse<any>> {
+    try {
+      const response = await authAxiosInstance.post('/api/sessions/add-to-user', {
+        userId,
+        sessionCount,
+        reason: reason || 'Manually added by admin'
+      });
+      
+      return {
+        success: true,
+        message: response.data.message || 'Sessions added successfully',
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('Error adding sessions to client:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to add sessions',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * ADMIN: Get session summary for specific user
+   */
+  async getUserSessionSummary(userId: string): Promise<SessionServiceResponse<any>> {
+    try {
+      const response = await authAxiosInstance.get(`/api/sessions/user-summary/${userId}`);
+      
+      return {
+        success: true,
+        message: 'Session summary retrieved successfully',
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('Error getting user session summary:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to get session summary',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * ADMIN: Check session allocation service health
+   */
+  async checkAllocationHealth(): Promise<SessionServiceResponse<any>> {
+    try {
+      const response = await authAxiosInstance.get('/api/sessions/allocation-health');
+      
+      return {
+        success: true,
+        message: 'Health check completed',
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('Error checking allocation health:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Health check failed',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * TRAINER ASSIGNMENT METHODS
+   * ==========================
+   * Enhanced trainer assignment system for client-trainer relationship management
+   */
+
+  /**
+   * ADMIN: Assign trainer to client sessions
+   * @param trainerId The ID of the trainer
+   * @param clientId The ID of the client
+   * @param sessionIds Optional array of specific session IDs (assigns all available if empty)
+   */
+  async assignTrainerToClient(trainerId: string, clientId: string, sessionIds?: string[]): Promise<SessionServiceResponse<any>> {
+    try {
+      const response = await authAxiosInstance.post('/api/sessions/assign-trainer', {
+        trainerId,
+        clientId,
+        sessionIds: sessionIds || []
+      });
+      
+      return {
+        success: true,
+        message: response.data.message || 'Trainer assigned successfully',
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('Error assigning trainer to client:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to assign trainer',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Get trainer assignments (for trainer dashboard)
+   * @param trainerId The ID of the trainer
+   */
+  async getTrainerAssignments(trainerId: string): Promise<SessionServiceResponse<any>> {
+    try {
+      const response = await authAxiosInstance.get(`/api/sessions/trainer-assignments/${trainerId}`);
+      
+      return {
+        success: true,
+        message: 'Trainer assignments retrieved successfully',
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('Error getting trainer assignments:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to get trainer assignments',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Get client assignments (for client dashboard)
+   * @param clientId The ID of the client
+   */
+  async getClientAssignments(clientId: string): Promise<SessionServiceResponse<any>> {
+    try {
+      const response = await authAxiosInstance.get(`/api/sessions/client-assignments/${clientId}`);
+      
+      return {
+        success: true,
+        message: 'Client assignments retrieved successfully',
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('Error getting client assignments:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to get client assignments',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * ADMIN: Remove trainer assignment from sessions
+   * @param sessionIds Array of session IDs to unassign
+   */
+  async removeTrainerAssignment(sessionIds: string[]): Promise<SessionServiceResponse<any>> {
+    try {
+      const response = await authAxiosInstance.post('/api/sessions/remove-trainer-assignment', {
+        sessionIds
+      });
+      
+      return {
+        success: true,
+        message: response.data.message || 'Trainer assignment removed successfully',
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('Error removing trainer assignment:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to remove trainer assignment',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * ADMIN: Get assignment statistics for dashboard
+   */
+  async getAssignmentStatistics(): Promise<SessionServiceResponse<any>> {
+    try {
+      const response = await authAxiosInstance.get('/api/sessions/assignment-statistics');
+      
+      return {
+        success: true,
+        message: 'Assignment statistics retrieved successfully',
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('Error getting assignment statistics:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to get assignment statistics',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * ADMIN: Check trainer assignment service health
+   */
+  async checkTrainerAssignmentHealth(): Promise<SessionServiceResponse<any>> {
+    try {
+      const response = await authAxiosInstance.get('/api/sessions/trainer-assignment-health');
+      
+      return {
+        success: true,
+        message: 'Trainer assignment health check completed',
+        data: response.data.data
+      };
+    } catch (error: any) {
+      console.error('Error checking trainer assignment health:', error);
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Trainer assignment health check failed',
         error: error.message
       };
     }

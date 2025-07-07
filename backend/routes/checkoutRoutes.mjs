@@ -1,198 +1,473 @@
-// backend/routes/checkoutRoutes.mjs
+/**
+ * Professional-Grade Checkout Routes - SwanStudios 7-Star Experience
+ * ================================================================
+ * AA-Grade checkout system with intelligent payment strategy routing
+ * Customer data capture with manual payment fallback integration
+ * 
+ * Features:
+ * ✅ PaymentService Strategy Pattern Integration
+ * ✅ Automatic Stripe → Manual Payment Fallback
+ * ✅ Customer Data Capture for All Payment Attempts
+ * ✅ Admin Dashboard Integration for Manual Processing
+ * ✅ Professional Error Handling & User Experience
+ * ✅ Real-time Payment Status Tracking
+ * 
+ * Master Prompt v33 Compliance: Production-Ready Payment Processing
+ */
+
 import express from 'express';
-import Stripe from 'stripe';
 import ShoppingCart from '../models/ShoppingCart.mjs';
 import CartItem from '../models/CartItem.mjs';
 import StorefrontItem from '../models/StorefrontItem.mjs';
+import User from '../models/User.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 import logger from '../utils/logger.mjs';
-import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
-import mockCheckoutService from '../services/mockCheckoutService.mjs';
+import paymentService from '../services/payment/PaymentService.mjs';
 
 const router = express.Router();
 
-// --- Conditionally initialize Stripe ---
-let stripeClient = null;
-if (isStripeEnabled()) {
-  try {
-    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2023-10-16' // Use a fixed, recent API version
-    });
-    logger.info('Stripe client initialized successfully in checkoutRoutes.');
-  } catch (error) {
-      logger.error(`Failed to initialize Stripe in checkoutRoutes: ${error.message}`);
-      // stripeClient remains null
-  }
-} else {
-    logger.warn('Stripe client NOT initialized in checkoutRoutes due to missing/invalid API key. Using mock checkout service instead.');
-}
-// --- End Conditional Initialization ---
-
 /**
- * POST /checkout
- * Creates a Stripe checkout session for the user's active shopping cart.
- * Uses the authMiddleware to extract userId from token.
- * Returns a checkout URL for redirect.
+ * Enhanced cart validation with detailed error reporting
  */
-router.post('/checkout', protect, async (req, res) => {
+const validateCartForCheckout = async (userId) => {
   try {
-    // Extract userId from authenticated request
-    const userId = req.user.id;
-    
-    if (!userId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'User authentication required' 
-      });
-    }
-
-    // Retrieve the active shopping cart along with its items
-    // FIXED: Changed 'items' to 'cartItems' to match setupAssociations.mjs
     const cart = await ShoppingCart.findOne({
       where: { userId, status: 'active' },
-      include: [{ 
-        model: CartItem, 
-        as: 'cartItems', // Changed from 'items' to 'cartItems' to match setupAssociations.mjs
-        include: [{ 
-          model: StorefrontItem, 
-          as: 'storefrontItem' 
+      include: [{
+        model: CartItem,
+        as: 'cartItems',
+        include: [{
+          model: StorefrontItem,
+          as: 'storefrontItem'
         }]
       }]
     });
 
-    // FIXED: Changed cart.items to cart.cartItems to match the association name
-    if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Your cart is empty' 
+    if (!cart) {
+      return { valid: false, error: 'No active cart found', cart: null };
+    }
+
+    if (!cart.cartItems || cart.cartItems.length === 0) {
+      return { valid: false, error: 'Cart is empty', cart: null };
+    }
+
+    // Validate all cart items have valid storefront items
+    const invalidItems = cart.cartItems.filter(item => !item.storefrontItem);
+    if (invalidItems.length > 0) {
+      return {
+        valid: false,
+        error: `Invalid items in cart: ${invalidItems.map(i => i.id).join(', ')}`,
+        cart: null
+      };
+    }
+
+    // Calculate totals
+    const subtotal = cart.cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const tax = subtotal * 0.08; // 8% tax rate
+    const total = subtotal + tax;
+
+    return {
+      valid: true,
+      cart,
+      totals: { subtotal, tax, total }
+    };
+  } catch (error) {
+    logger.error('Cart validation error:', error);
+    return { valid: false, error: 'Cart validation failed', cart: null };
+  }
+};
+
+/**
+ * Create pending order record for manual payment processing
+ */
+const createPendingOrder = async (userId, cart, totals, paymentMethod = 'manual') => {
+  try {
+    // Get user information
+    const user = await User.findByPk(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    // Create order record with pending status
+    const orderData = {
+      userId,
+      status: 'pending_manual_payment',
+      paymentStatus: 'pending_manual_payment',
+      paymentMethod,
+      subtotal: totals.subtotal,
+      tax: totals.tax,
+      total: totals.total,
+      customerInfo: {
+        id: user.id,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        phone: user.phone || null
+      },
+      items: cart.cartItems.map(item => ({
+        id: item.storefrontItem.id,
+        name: item.storefrontItem.name,
+        quantity: item.quantity,
+        price: item.price,
+        sessions: item.storefrontItem.sessions || null
+      })),
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+    };
+
+    // Update cart with order information
+    await cart.update({
+      status: 'pending_payment',
+      paymentStatus: 'pending_manual_payment',
+      customerInfo: JSON.stringify(orderData.customerInfo),
+      orderMetadata: JSON.stringify(orderData)
+    });
+
+    logger.info(`Created pending order for user ${userId}, cart ${cart.id}`);
+    
+    return {
+      success: true,
+      orderId: cart.id,
+      orderReference: `SWAN-${cart.id}`,
+      orderData
+    };
+  } catch (error) {
+    logger.error('Error creating pending order:', error);
+    throw error;
+  }
+};
+
+/**
+ * POST /checkout - 7-Star Professional Checkout Experience
+ * ========================================================
+ * Intelligent payment routing with customer data capture
+ * Stripe primary → Manual payment fallback with admin integration
+ */
+router.post('/checkout', protect, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { paymentMethod = 'auto' } = req.body; // 'auto', 'stripe', 'manual'
+    
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+        code: 'AUTH_REQUIRED'
       });
     }
 
-    // Build line items for the checkout session
-    // FIXED: Changed cart.items to cart.cartItems
-    const line_items = cart.cartItems.map((item) => ({
-      price_data: {
-        currency: 'usd',
-        product_data: {
-          name: item.storefrontItem ? item.storefrontItem.name : `Training Package #${item.storefrontItemId}`,
-          description: item.storefrontItem ? item.storefrontItem.description : 'Premium training package',
-        },
-        unit_amount: Math.round(item.price * 100), // Convert dollars to cents
-      },
-      quantity: item.quantity,
-    }));
+    logger.info(`🛒 Starting 7-star checkout for user ${userId} with method: ${paymentMethod}`);
 
-    // Determine the frontend URLs for success and cancel pages
+    // Validate cart
+    const validation = await validateCartForCheckout(userId);
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        message: validation.error,
+        code: 'INVALID_CART'
+      });
+    }
+
+    const { cart, totals } = validation;
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    
-    // Session creation options for both Stripe and mock service
-    const sessionOptions = {
-      payment_method_types: ['card'],
-      line_items,
-      mode: 'payment',
-      success_url: `${baseUrl}/checkout/CheckoutSuccess`,
-      cancel_url: `${baseUrl}/checkout/CheckoutCancel`,
-      client_reference_id: userId.toString(),
+
+    // Prepare payment parameters
+    const paymentParams = {
+      amount: totals.total,
+      currency: 'usd',
+      userId,
+      cartId: cart.id,
+      customer: {
+        id: userId,
+        email: req.user.email,
+        name: `${req.user.firstName} ${req.user.lastName}`
+      },
+      items: cart.cartItems.map(item => ({
+        name: item.storefrontItem.name,
+        description: item.storefrontItem.description,
+        price: item.price,
+        quantity: item.quantity,
+        sessions: item.storefrontItem.sessions
+      })),
+      successUrl: `${baseUrl}/checkout/CheckoutSuccess?session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${baseUrl}/checkout/CheckoutCancel?cart_id=${cart.id}`,
       metadata: {
-        cartId: cart.id.toString()
+        cartId: cart.id,
+        userId,
+        orderType: 'training_package'
       }
     };
 
-    // Check if Stripe is available, otherwise use mock service
-    let session;
-    if (stripeClient) {
-      // Use real Stripe service
-      session = await stripeClient.checkout.sessions.create(sessionOptions);
-      logger.info(`Created Stripe checkout session ${session.id} for user ${userId}`);
-    } else {
-      // Use mock checkout service
-      logger.info(`Using mock checkout service for user ${userId}`);
-      session = mockCheckoutService.createSession(sessionOptions);
+    try {
+      // Attempt primary payment strategy (Stripe Checkout)
+      if (paymentMethod === 'auto' || paymentMethod === 'stripe') {
+        logger.info(`💳 Attempting Stripe checkout for user ${userId}`);
+        
+        const paymentResult = await paymentService.createPaymentIntent(paymentParams);
+        
+        if (paymentResult.success && paymentResult.checkoutUrl) {
+          logger.info(`✅ Stripe checkout created successfully: ${paymentResult.paymentIntentId}`);
+          
+          // Update cart with Stripe session info
+          await cart.update({
+            status: 'checkout_session_created',
+            checkoutSessionId: paymentResult.paymentIntentId,
+            paymentStatus: 'pending'
+          });
+          
+          return res.status(200).json({
+            success: true,
+            method: 'stripe_checkout',
+            checkoutUrl: paymentResult.checkoutUrl,
+            sessionId: paymentResult.paymentIntentId,
+            message: 'Stripe checkout session created successfully'
+          });
+        }
+      }
+      
+      // Fallback to manual payment
+      logger.info(`🔄 Falling back to manual payment for user ${userId}`);
+      
+    } catch (stripeError) {
+      logger.warn(`Stripe checkout failed, falling back to manual: ${stripeError.message}`);
     }
 
-    // Return the checkout URL to redirect the user
-    res.status(200).json({ 
-      success: true, 
-      checkoutUrl: session.url 
+    // Manual Payment Fallback - ALWAYS capture customer data
+    logger.info(`📝 Creating manual payment order for user ${userId}`);
+    
+    const pendingOrder = await createPendingOrder(userId, cart, totals, 'manual');
+    
+    if (!pendingOrder.success) {
+      throw new Error('Failed to create pending order');
+    }
+
+    // Manual payment success response
+    return res.status(200).json({
+      success: true,
+      method: 'manual_payment',
+      orderId: pendingOrder.orderId,
+      orderReference: pendingOrder.orderReference,
+      message: 'Order created successfully - Manual payment required',
+      nextSteps: {
+        title: 'Complete Your Payment',
+        description: 'We\'ve received your order and will contact you with payment instructions.',
+        actions: [
+          'Check your email for payment instructions',
+          'Our team will contact you within 24 hours',
+          'Payment can be completed via bank transfer or phone'
+        ]
+      },
+      customerInfo: pendingOrder.orderData.customerInfo,
+      paymentInstructions: {
+        title: 'Complete Your SwanStudios Payment',
+        methods: [
+          {
+            method: 'contact',
+            title: 'Contact Our Team',
+            description: 'Speak with our payment specialist for assistance',
+            details: {
+              email: process.env.CONTACT_EMAIL || 'support@swanstudios.com',
+              phone: process.env.OWNER_PHONE || 'Contact Admin',
+              hours: 'Monday-Friday 9AM-6PM EST'
+            }
+          },
+          {
+            method: 'bank_transfer',
+            title: 'Bank Transfer (ACH)',
+            description: 'Direct bank transfer - lowest fees',
+            details: {
+              accountName: 'SwanStudios Training',
+              memo: `Payment for ${pendingOrder.orderReference}`
+            }
+          }
+        ]
+      }
     });
+
   } catch (error) {
-    logger.error('Error creating checkout session:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to create checkout session. Please try again.' 
+    logger.error('💥 Critical checkout error:', error);
+    
+    // Even in error, try to capture customer intent
+    try {
+      const validation = await validateCartForCheckout(req.user.id);
+      if (validation.valid) {
+        await createPendingOrder(req.user.id, validation.cart, validation.totals, 'error_fallback');
+        logger.info(`📋 Customer intent captured despite checkout error for user ${req.user.id}`);
+      }
+    } catch (fallbackError) {
+      logger.error('Failed to capture customer intent:', fallbackError);
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Checkout process encountered an error',
+      code: 'CHECKOUT_ERROR',
+      fallback: {
+        message: 'Please contact our support team to complete your order',
+        email: process.env.CONTACT_EMAIL || 'support@swanstudios.com',
+        phone: process.env.OWNER_PHONE || 'Contact Admin'
+      }
     });
   }
 });
 
 /**
- * The original create-session route - keeping for backward compatibility
- * Creates a Stripe checkout session with userId provided in the request body.
+ * GET /payment-status/:orderId - Check payment status
+ * Professional payment tracking for admin dashboard integration
  */
-router.post('/create-session', async (req, res) => {
+router.get('/payment-status/:orderId', protect, async (req, res) => {
   try {
-    const { userId } = req.body;
+    const { orderId } = req.params;
+    const userId = req.user.id;
 
-    if (!userId) {
-      return res.status(400).json({ message: 'User ID is required.' });
-    }
-
-    // Retrieve the active shopping cart along with its items
-    // FIXED: Changed 'items' to 'cartItems' to match setupAssociations.mjs
+    // Find the cart/order
     const cart = await ShoppingCart.findOne({
-      where: { userId, status: 'active' },
-      include: [{ model: CartItem, as: 'cartItems' }], // Changed from 'items' to 'cartItems'
+      where: { 
+        id: orderId,
+        userId // Ensure user can only check their own orders
+      },
+      include: [{
+        model: CartItem,
+        as: 'cartItems',
+        include: [{
+          model: StorefrontItem,
+          as: 'storefrontItem'
+        }]
+      }]
     });
 
-    // FIXED: Changed cart.items to cart.cartItems
-    if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
-      return res.status(400).json({ message: 'Cart is empty.' });
+    if (!cart) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
     }
 
-    // Build line items for the checkout session
-    // FIXED: Changed cart.items to cart.cartItems
-    const line_items = cart.cartItems.map((item) => ({
-      price_data: {
-        currency: 'usd',
-        product_data: {
-          name: `Product #${item.storefrontItemId}`,
-        },
-        unit_amount: Math.round(item.price * 100), // Convert dollars to cents
-      },
-      quantity: item.quantity,
-    }));
-
-    // Determine frontend URL
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    
-    // Session creation options
-    const sessionOptions = {
-      payment_method_types: ['card'],
-      line_items,
-      mode: 'payment',
-      success_url: `${baseUrl}/checkout/CheckoutSuccess`,
-      cancel_url: `${baseUrl}/checkout/CheckoutCancel`,
-      client_reference_id: userId.toString(),
-      metadata: {
-        cartId: cart.id.toString()
-      }
+    // Check payment status via PaymentService if there's a checkout session
+    let paymentStatus = {
+      status: cart.paymentStatus || 'unknown',
+      method: cart.paymentMethod || 'unknown'
     };
 
-    // Check if Stripe is available, otherwise use mock service
-    let session;
-    if (stripeClient) {
-      // Use real Stripe service
-      session = await stripeClient.checkout.sessions.create(sessionOptions);
-      logger.info(`Created Stripe checkout session ${session.id} for user ${userId}`);
-    } else {
-      // Use mock checkout service
-      logger.info(`Using mock checkout service for user ${userId}`);
-      session = mockCheckoutService.createSession(sessionOptions);
+    if (cart.checkoutSessionId) {
+      try {
+        const stripeStatus = await paymentService.getPaymentStatus(cart.checkoutSessionId);
+        if (stripeStatus.success) {
+          paymentStatus = stripeStatus;
+        }
+      } catch (error) {
+        logger.warn(`Could not fetch Stripe status for ${cart.checkoutSessionId}:`, error.message);
+      }
     }
 
-    res.status(200).json({ sessionId: session.id, url: session.url });
+    res.json({
+      success: true,
+      orderId: cart.id,
+      orderReference: `SWAN-${cart.id}`,
+      status: cart.status,
+      paymentStatus: paymentStatus.status,
+      paymentMethod: paymentStatus.method,
+      total: cart.total,
+      items: cart.cartItems?.map(item => ({
+        name: item.storefrontItem?.name || 'Unknown Item',
+        quantity: item.quantity,
+        price: item.price
+      })) || [],
+      createdAt: cart.createdAt,
+      updatedAt: cart.updatedAt
+    });
+
   } catch (error) {
-    logger.error('Error creating checkout session:', error);
-    res.status(500).json({ message: 'Server error creating checkout session.' });
+    logger.error('Error checking payment status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to check payment status'
+    });
+  }
+});
+
+/**
+ * POST /confirm-payment - Admin endpoint to confirm manual payments
+ * Used by PendingOrdersAdminPanel to mark payments as complete
+ */
+router.post('/confirm-payment', protect, async (req, res) => {
+  try {
+    const { paymentIntentId, adminNotes, verifiedBy } = req.body;
+    
+    // Check if user has admin permissions
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Admin access required'
+      });
+    }
+
+    // Find the cart/order
+    const cart = await ShoppingCart.findOne({
+      where: {
+        $or: [
+          { id: paymentIntentId },
+          { checkoutSessionId: paymentIntentId }
+        ]
+      }
+    });
+
+    if (!cart) {
+      return res.status(404).json({
+        success: false,
+        message: 'Payment record not found'
+      });
+    }
+
+    // Update payment status
+    await cart.update({
+      status: 'completed',
+      paymentStatus: 'paid',
+      completedAt: new Date(),
+      adminNotes: adminNotes || 'Manually verified by admin',
+      verifiedBy: verifiedBy || req.user.email
+    });
+
+    logger.info(`💰 Payment manually confirmed by admin ${req.user.email} for order ${cart.id}`);
+
+    res.json({
+      success: true,
+      message: 'Payment confirmed successfully',
+      orderId: cart.id,
+      orderReference: `SWAN-${cart.id}`,
+      verifiedBy: req.user.email,
+      verifiedAt: new Date()
+    });
+
+  } catch (error) {
+    logger.error('Error confirming payment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to confirm payment'
+    });
+  }
+});
+
+/**
+ * GET /service-status - Payment service health check
+ * Provides real-time status of payment processing capabilities
+ */
+router.get('/service-status', async (req, res) => {
+  try {
+    const serviceStatus = paymentService.getServiceStatus();
+    const healthCheck = await paymentService.performHealthCheck();
+    
+    res.json({
+      success: true,
+      service: serviceStatus,
+      health: healthCheck,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('Error getting payment service status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Payment service status unavailable'
+    });
   }
 });
 

@@ -1,24 +1,24 @@
-import { sessionService } from './sessionService';
+import sessionService from './session-service';
 import YoloAnalysisService from './yolo-analysis-service';
 import axios from 'axios';
 
 // Services interface
 export interface Services {
-  session: typeof sessionService;
+  sessionService: typeof sessionService;
   yoloAnalysis: typeof YoloAnalysisService;
 }
 
 // Function to create services with an axios instance
 export const createServices = (axiosInstance: typeof axios): Services => {
   return {
-    session: sessionService,
+    sessionService: sessionService,
     yoloAnalysis: YoloAnalysisService
   };
 };
 
 // Centralized export of all services
 const services = {
-  session: sessionService,
+  sessionService: sessionService,
   yoloAnalysis: YoloAnalysisService
 };
 

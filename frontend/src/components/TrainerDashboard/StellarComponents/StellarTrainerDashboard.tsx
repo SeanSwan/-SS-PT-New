@@ -24,7 +24,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider, keyframes } from 'styled-components';
 import { 
-  TrainingOverview, ClientManagement, ContentStudio 
+  TrainingOverview, ClientManagement, ContentStudio, AssignedSessions 
 } from './TrainerStellarSections';
 import TrainerStellarSidebar from './TrainerStellarSidebar';
 import { useAuth } from '../../../context/AuthContext';
@@ -238,6 +238,7 @@ const TrainerParticle = styled(motion.div)`
 // === SECTION MAPPING ===
 const trainerSectionComponents = {
   overview: TrainingOverview,
+  'assigned-sessions': AssignedSessions,
   clients: ClientManagement,
   'form-checks': ContentStudio,
   'content-library': ContentStudio,
@@ -258,6 +259,7 @@ const trainerSectionComponents = {
 
 const trainerSectionTitles = {
   overview: 'Training Command Center',
+  'assigned-sessions': 'Assigned Client Sessions',
   clients: 'Client Universe',
   'form-checks': 'Form Analysis Galaxy',
   'content-library': 'Content Nebula',
@@ -278,6 +280,7 @@ const trainerSectionTitles = {
 
 const trainerSectionDescriptions = {
   overview: 'Your complete training command center and performance overview',
+  'assigned-sessions': 'View and manage your assigned client sessions and training relationships',
   clients: 'Manage and monitor your client galaxy',
   'form-checks': 'AI-powered form analysis and feedback center',
   'content-library': 'Your stellar training content repository',

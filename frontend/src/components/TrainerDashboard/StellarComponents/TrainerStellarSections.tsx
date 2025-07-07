@@ -18,7 +18,7 @@
  * - Accessibility as art with inclusive design
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
 import { 
@@ -607,5 +607,366 @@ export const ContentStudio: React.FC = () => {
   );
 };
 
+/**
+ * AssignedSessions Component
+ * =========================
+ * 
+ * Stellar section for trainers to view and manage their assigned client sessions.
+ * Features comprehensive session assignment dashboard with client management.
+ * 
+ * Key Features:
+ * - Assigned client sessions overview
+ * - Session status tracking
+ * - Client contact information
+ * - Session scheduling interface
+ * - Real-time assignment updates
+ */
+export const AssignedSessions: React.FC = () => {
+  const theme = useUniversalTheme();
+  const [assignedSessions, setAssignedSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedClient, setSelectedClient] = useState(null);
+  
+  // Mock data for now - will be replaced with real API calls
+  useEffect(() => {
+    // Simulate API call to get trainer assignments
+    const mockAssignments = {
+      totalClients: 8,
+      totalSessions: 24,
+      clients: [
+        {
+          client: {
+            id: '1',
+            firstName: 'Sarah',
+            lastName: 'Johnson',
+            email: 'sarah.j@example.com'
+          },
+          sessions: [
+            {
+              id: '1',
+              status: 'assigned',
+              duration: 60,
+              assignedAt: '2025-07-05T10:00:00Z'
+            },
+            {
+              id: '2', 
+              status: 'scheduled',
+              sessionDate: '2025-07-08T14:00:00Z',
+              duration: 60
+            }
+          ],
+          totalSessions: 4,
+          availableSessions: 2,
+          scheduledSessions: 1,
+          completedSessions: 1
+        },
+        {
+          client: {
+            id: '2',
+            firstName: 'Mike',
+            lastName: 'Chen',
+            email: 'mike.chen@example.com'
+          },
+          sessions: [
+            {
+              id: '3',
+              status: 'assigned',
+              duration: 60,
+              assignedAt: '2025-07-06T09:00:00Z'
+            }
+          ],
+          totalSessions: 6,
+          availableSessions: 3,
+          scheduledSessions: 2,
+          completedSessions: 1
+        }
+      ]
+    };
+    
+    setTimeout(() => {
+      setAssignedSessions(mockAssignments);
+      setLoading(false);
+    }, 1000);
+  }, []);
+  
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'assigned': return theme.colors?.accent || '#FFD700';
+      case 'scheduled': return theme.colors?.primary || '#00FFFF';
+      case 'completed': return theme.colors?.success || '#00FF88';
+      case 'cancelled': return theme.colors?.error || '#FF6B6B';
+      default: return theme.colors?.white || '#ffffff';
+    }
+  };
+  
+  if (loading) {
+    return (
+      <StellarSection
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <StellarSectionHeader>
+          <StellarSectionTitle>
+            🌟 Assigned Client Sessions
+          </StellarSectionTitle>
+        </StellarSectionHeader>
+        
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '200px',
+          color: theme.colors?.primary || '#00FFFF'
+        }}>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+          >
+            ⭐ Loading your stellar assignments...
+          </motion.div>
+        </div>
+      </StellarSection>
+    );
+  }
+  
+  return (
+    <StellarSection
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+    >
+      <StellarSectionHeader>
+        <StellarSectionTitle>
+          🌟 Assigned Client Sessions
+        </StellarSectionTitle>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <div style={{
+            background: `${theme.colors?.primary || '#00FFFF'}20`,
+            border: `1px solid ${theme.colors?.primary || '#00FFFF'}40`,
+            borderRadius: '8px',
+            padding: '0.5rem 1rem',
+            fontSize: '0.9rem'
+          }}>
+            {assignedSessions.totalClients} Clients
+          </div>
+          <div style={{
+            background: `${theme.colors?.accent || '#FFD700'}20`,
+            border: `1px solid ${theme.colors?.accent || '#FFD700'}40`,
+            borderRadius: '8px',
+            padding: '0.5rem 1rem',
+            fontSize: '0.9rem'
+          }}>
+            {assignedSessions.totalSessions} Sessions
+          </div>
+        </div>
+      </StellarSectionHeader>
+      
+      {/* Client Sessions Grid */}
+      <div style={{
+        display: 'grid',
+        gap: '1.5rem',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+        position: 'relative',
+        zIndex: 2
+      }}>
+        {assignedSessions.clients?.map((clientAssignment: any, index: number) => (
+          <motion.div
+            key={clientAssignment.client.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: index * 0.1 }}
+            style={{
+              background: `${theme.gradients?.card || 'rgba(30, 30, 60, 0.6)'}`,
+              backdropFilter: 'blur(10px)',
+              border: `1px solid ${theme.borders?.elegant || 'rgba(0, 255, 255, 0.3)'}`,
+              borderRadius: '16px',
+              padding: '1.5rem',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+            whileHover={{
+              scale: 1.02,
+              boxShadow: `0 8px 32px ${theme.colors?.primary || '#00FFFF'}30`
+            }}
+            onClick={() => setSelectedClient(clientAssignment)}
+          >
+            {/* Client Header */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1rem'
+            }}>
+              <div>
+                <h4 style={{
+                  margin: 0,
+                  color: theme.colors?.white || '#ffffff',
+                  fontSize: '1.2rem',
+                  fontWeight: 600
+                }}>
+                  {clientAssignment.client.firstName} {clientAssignment.client.lastName}
+                </h4>
+                <p style={{
+                  margin: '0.25rem 0 0 0',
+                  color: theme.text?.secondary || '#E8F0FF',
+                  fontSize: '0.9rem'
+                }}>
+                  {clientAssignment.client.email}
+                </p>
+              </div>
+              <User size={24} color={theme.colors?.primary || '#00FFFF'} />
+            </div>
+            
+            {/* Session Statistics */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '0.75rem',
+              marginBottom: '1rem'
+            }}>
+              <div style={{
+                background: `${theme.colors?.accent || '#FFD700'}15`,
+                border: `1px solid ${theme.colors?.accent || '#FFD700'}30`,
+                borderRadius: '8px',
+                padding: '0.75rem',
+                textAlign: 'center'
+              }}>
+                <div style={{
+                  fontSize: '1.5rem',
+                  fontWeight: 700,
+                  color: theme.colors?.accent || '#FFD700',
+                  margin: '0 0 0.25rem 0'
+                }}>
+                  {clientAssignment.availableSessions}
+                </div>
+                <div style={{
+                  fontSize: '0.8rem',
+                  color: theme.text?.secondary || '#E8F0FF'
+                }}>
+                  Available
+                </div>
+              </div>
+              
+              <div style={{
+                background: `${theme.colors?.primary || '#00FFFF'}15`,
+                border: `1px solid ${theme.colors?.primary || '#00FFFF'}30`,
+                borderRadius: '8px',
+                padding: '0.75rem',
+                textAlign: 'center'
+              }}>
+                <div style={{
+                  fontSize: '1.5rem',
+                  fontWeight: 700,
+                  color: theme.colors?.primary || '#00FFFF',
+                  margin: '0 0 0.25rem 0'
+                }}>
+                  {clientAssignment.scheduledSessions}
+                </div>
+                <div style={{
+                  fontSize: '0.8rem',
+                  color: theme.text?.secondary || '#E8F0FF'
+                }}>
+                  Scheduled
+                </div>
+              </div>
+            </div>
+            
+            {/* Recent Sessions */}
+            <div>
+              <h5 style={{
+                margin: '0 0 0.75rem 0',
+                color: theme.colors?.white || '#ffffff',
+                fontSize: '1rem'
+              }}>
+                Recent Sessions
+              </h5>
+              
+              {clientAssignment.sessions.slice(0, 2).map((session: any) => (
+                <div key={session.id} style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '0.5rem 0',
+                  borderTop: `1px solid ${theme.borders?.subtle || 'rgba(255, 255, 255, 0.1)'}`,
+                  fontSize: '0.9rem'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}>
+                    <Clock size={16} color={getStatusColor(session.status)} />
+                    <span style={{ color: theme.text?.secondary || '#E8F0FF' }}>
+                      {session.sessionDate ? 
+                        new Date(session.sessionDate).toLocaleDateString() :
+                        'Not scheduled'
+                      }
+                    </span>
+                  </div>
+                  
+                  <div style={{
+                    background: `${getStatusColor(session.status)}20`,
+                    border: `1px solid ${getStatusColor(session.status)}40`,
+                    borderRadius: '12px',
+                    padding: '0.25rem 0.75rem',
+                    fontSize: '0.8rem',
+                    color: getStatusColor(session.status),
+                    textTransform: 'capitalize'
+                  }}>
+                    {session.status}
+                  </div>
+                </div>
+              ))}
+              
+              {clientAssignment.sessions.length > 2 && (
+                <div style={{
+                  textAlign: 'center',
+                  marginTop: '0.75rem',
+                  color: theme.colors?.primary || '#00FFFF',
+                  fontSize: '0.9rem',
+                  opacity: 0.8
+                }}>
+                  +{clientAssignment.sessions.length - 2} more sessions
+                </div>
+              )}
+            </div>
+          </motion.div>
+        ))}
+      </div>
+      
+      {/* Call to Action for Empty State */}
+      {assignedSessions.clients?.length === 0 && (
+        <div style={{
+          textAlign: 'center',
+          padding: '3rem 2rem',
+          position: 'relative',
+          zIndex: 2
+        }}>
+          <Users size={48} color={theme.colors?.primary || '#00FFFF'} style={{ marginBottom: '1rem' }} />
+          <h3 style={{
+            color: theme.colors?.white || '#ffffff',
+            margin: '0 0 1rem 0'
+          }}>
+            No Assigned Clients Yet
+          </h3>
+          <p style={{
+            color: theme.text?.secondary || '#E8F0FF',
+            margin: '0 0 2rem 0',
+            maxWidth: '400px',
+            marginLeft: 'auto',
+            marginRight: 'auto'
+          }}>
+            When the admin assigns clients to you, they'll appear here with their session details and scheduling options.
+          </p>
+        </div>
+      )}
+    </StellarSection>
+  );
+};
+
 // Default export for backwards compatibility
 export const TrainerOverviewGalaxy = TrainingOverview;
+
+// Export all sections
+export { TrainingOverview, ClientManagement, ContentStudio, AssignedSessions };

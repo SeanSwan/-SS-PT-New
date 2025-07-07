@@ -18,10 +18,323 @@ import {
   sendEmailNotification,
   sendSmsNotification, // Correct case matches the export in notification.mjs
 } from "../utils/notification.mjs";
+import sessionAllocationService from '../services/SessionAllocationService.mjs';
+import trainerAssignmentService from '../services/TrainerAssignmentService.mjs';
 
-// In backend/routes/scheduleRoutes.mjs
+// Session management test endpoint
 router.get('/test', (req, res) => {
-  res.json({ message: 'Schedule API is working!' });
+  res.json({ message: 'Session API is working!' });
+});
+
+/**
+ * @route   POST /api/sessions/allocate-from-order
+ * @desc    Manually allocate sessions from completed order (Admin)
+ * @access  Private (Admin Only)
+ */
+router.post('/allocate-from-order', protect, adminOnly, async (req, res) => {
+  try {
+    const { orderId, userId } = req.body;
+    
+    if (!orderId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Order ID and User ID are required'
+      });
+    }
+    
+    const result = await sessionAllocationService.allocateSessionsFromOrder(orderId, userId);
+    
+    res.status(200).json({
+      success: true,
+      message: result.message,
+      data: result
+    });
+    
+  } catch (error) {
+    console.error('Error allocating sessions from order:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to allocate sessions'
+    });
+  }
+});
+
+/**
+ * @route   POST /api/sessions/add-to-user
+ * @desc    Manually add sessions to user (Admin)
+ * @access  Private (Admin Only)
+ */
+router.post('/add-to-user', protect, adminOnly, async (req, res) => {
+  try {
+    const { userId, sessionCount, reason } = req.body;
+    
+    if (!userId || !sessionCount) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID and session count are required'
+      });
+    }
+    
+    const adminUserId = req.user.id;
+    const result = await sessionAllocationService.addSessionsToUser(
+      userId, 
+      parseInt(sessionCount), 
+      reason || 'Manually added by admin',
+      adminUserId
+    );
+    
+    res.status(200).json({
+      success: true,
+      message: result.message,
+      data: result
+    });
+    
+  } catch (error) {
+    console.error('Error adding sessions to user:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to add sessions'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/sessions/user-summary/:userId
+ * @desc    Get session summary for specific user
+ * @access  Private (Admin Only)
+ */
+router.get('/user-summary/:userId', protect, adminOnly, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const summary = await sessionAllocationService.getUserSessionSummary(userId);
+    
+    res.status(200).json({
+      success: true,
+      data: summary
+    });
+    
+  } catch (error) {
+    console.error('Error getting user session summary:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get session summary'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/sessions/allocation-health
+ * @desc    Health check for session allocation service
+ * @access  Private (Admin Only)
+ */
+router.get('/allocation-health', protect, adminOnly, async (req, res) => {
+  try {
+    const health = await sessionAllocationService.healthCheck();
+    
+    res.status(200).json({
+      success: true,
+      data: health
+    });
+    
+  } catch (error) {
+    console.error('Error checking session allocation health:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Session allocation service health check failed'
+    });
+  }
+});
+
+/**
+ * TRAINER ASSIGNMENT ENDPOINTS
+ * ============================
+ * Enhanced trainer assignment system for client-trainer relationship management
+ */
+
+/**
+ * @route   POST /api/sessions/assign-trainer
+ * @desc    Assign trainer to client sessions (Admin)
+ * @access  Private (Admin Only)
+ */
+router.post('/assign-trainer', protect, adminOnly, async (req, res) => {
+  try {
+    const { trainerId, clientId, sessionIds } = req.body;
+    
+    if (!trainerId || !clientId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Trainer ID and Client ID are required'
+      });
+    }
+    
+    const adminUserId = req.user.id;
+    const result = await trainerAssignmentService.assignTrainerToClient(
+      trainerId, 
+      clientId, 
+      sessionIds || [], 
+      adminUserId
+    );
+    
+    res.status(200).json({
+      success: true,
+      message: result.message,
+      data: result
+    });
+    
+  } catch (error) {
+    console.error('Error assigning trainer to client:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to assign trainer'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/sessions/trainer-assignments/:trainerId
+ * @desc    Get trainer's assigned clients and sessions
+ * @access  Private (Trainer/Admin)
+ */
+router.get('/trainer-assignments/:trainerId', protect, async (req, res) => {
+  try {
+    const { trainerId } = req.params;
+    
+    // Ensure trainers can only view their own assignments (unless admin)
+    if (req.user.id.toString() !== trainerId && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only view your own trainer assignments'
+      });
+    }
+    
+    const assignments = await trainerAssignmentService.getTrainerAssignments(trainerId);
+    
+    res.status(200).json({
+      success: true,
+      data: assignments
+    });
+    
+  } catch (error) {
+    console.error('Error getting trainer assignments:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get trainer assignments'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/sessions/client-assignments/:clientId
+ * @desc    Get client's trainer assignments
+ * @access  Private (Client/Admin)
+ */
+router.get('/client-assignments/:clientId', protect, async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    
+    // Ensure clients can only view their own assignments (unless admin)
+    if (req.user.id.toString() !== clientId && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only view your own assignments'
+      });
+    }
+    
+    const assignments = await trainerAssignmentService.getClientAssignments(clientId);
+    
+    res.status(200).json({
+      success: true,
+      data: assignments
+    });
+    
+  } catch (error) {
+    console.error('Error getting client assignments:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get client assignments'
+    });
+  }
+});
+
+/**
+ * @route   POST /api/sessions/remove-trainer-assignment
+ * @desc    Remove trainer assignment from sessions (Admin)
+ * @access  Private (Admin Only)
+ */
+router.post('/remove-trainer-assignment', protect, adminOnly, async (req, res) => {
+  try {
+    const { sessionIds } = req.body;
+    
+    if (!sessionIds || !Array.isArray(sessionIds) || sessionIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Session IDs array is required'
+      });
+    }
+    
+    const adminUserId = req.user.id;
+    const result = await trainerAssignmentService.removeTrainerAssignment(sessionIds, adminUserId);
+    
+    res.status(200).json({
+      success: true,
+      message: result.message,
+      data: result
+    });
+    
+  } catch (error) {
+    console.error('Error removing trainer assignment:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to remove trainer assignment'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/sessions/assignment-statistics
+ * @desc    Get assignment statistics for admin dashboard
+ * @access  Private (Admin Only)
+ */
+router.get('/assignment-statistics', protect, adminOnly, async (req, res) => {
+  try {
+    const statistics = await trainerAssignmentService.getAssignmentStatistics();
+    
+    res.status(200).json({
+      success: true,
+      data: statistics
+    });
+    
+  } catch (error) {
+    console.error('Error getting assignment statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to get assignment statistics'
+    });
+  }
+});
+
+/**
+ * @route   GET /api/sessions/trainer-assignment-health
+ * @desc    Health check for trainer assignment service
+ * @access  Private (Admin Only)
+ */
+router.get('/trainer-assignment-health', protect, adminOnly, async (req, res) => {
+  try {
+    const health = await trainerAssignmentService.healthCheck();
+    
+    res.status(200).json({
+      success: true,
+      data: health
+    });
+    
+  } catch (error) {
+    console.error('Error checking trainer assignment health:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Trainer assignment service health check failed'
+    });
+  }
 });
 
 // Initialize router and Stripe instance using secret key from environment variables

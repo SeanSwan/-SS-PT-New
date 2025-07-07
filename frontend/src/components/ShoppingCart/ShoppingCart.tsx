@@ -9,7 +9,6 @@ import GlowButton from "../ui/buttons/GlowButton";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "../../hooks/use-toast";
-import { OptimizedCheckoutFlow } from '../Checkout';
 
 // Animations
 const shimmer = keyframes`
@@ -303,7 +302,6 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [showCheckout, setShowCheckout] = useState<boolean>(false);
 
   // Animation variants
   const containerVariants = {
@@ -338,7 +336,7 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
   const formatPrice = (price: number | undefined): string => 
     price ? price.toLocaleString() : '0';
 
-  // Simplified checkout handler - delegates to OptimizedCheckoutFlow
+  // PROFESSIONAL 7-STAR CHECKOUT HANDLER
   const handleCheckout = (): void => {
     if (!cart || cart.items.length === 0) {
       toast({
@@ -361,33 +359,18 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
       return;
     }
     
-    // Show the optimized checkout flow (cart stays mounted but hidden)
-    setShowCheckout(true);
+    // Navigate to professional checkout flow
+    console.log('🎯 [Professional Checkout] Navigating to professional checkout...');
+    onClose(); // Close the cart modal
+    navigate('/checkout'); // Navigate to professional checkout
   };
   
-  // Handle checkout close
-  const handleCheckoutClose = () => {
-    setShowCheckout(false);
-    // Note: Cart modal will automatically reappear when showCheckout becomes false
-  };
 
-  // Handle successful checkout completion
-  const handleCheckoutSuccess = () => {
-    setShowCheckout(false);
-    onClose(); // Close the entire cart component after successful purchase
-    
-    toast({
-      title: "Purchase Complete!",
-      description: "Thank you for your purchase. Your training sessions are now available.",
-      duration: 6000,
-    });
-  };
 
   return (
     <>
-      {/* Cart Modal - hidden when checkout is open */}
-      {!showCheckout && (
-        <CartModalOverlay onClick={onClose}>
+      {/* PROFESSIONAL CART MODAL */}
+      <CartModalOverlay onClick={onClose}>
           <AnimatePresence>
             <CartModalContent 
               onClick={(e) => e.stopPropagation()}
@@ -540,15 +523,6 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
           </CartModalContent>
         </AnimatePresence>
       </CartModalOverlay>
-      )}
-      
-      {/* Optimized Checkout Flow Integration */}
-      <OptimizedCheckoutFlow
-        isOpen={showCheckout}
-        onClose={handleCheckoutClose}
-        onSuccess={handleCheckoutSuccess}
-        preferredMethod="embedded"
-      />
     </>
   );
 };

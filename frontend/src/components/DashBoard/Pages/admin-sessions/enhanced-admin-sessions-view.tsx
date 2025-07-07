@@ -597,7 +597,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
     }
   };
 
-  // Handle adding sessions to client (Admin action) using our session service
+  // Handle adding sessions to client (Admin action) using enhanced session service
   const handleAddSessions = async () => {
     if (!selectedClient) {
       toast({ title: "Error", description: "Please select a client.", variant: "destructive" });
@@ -609,21 +609,30 @@ const EnhancedAdminSessionsView: React.FC = () => {
     }
 
     try {
-      // Use the session service to add sessions
+      console.log('[AdminSessions] Adding sessions to client', {
+        clientId: selectedClient,
+        sessionCount: sessionsToAdd,
+        reason: addSessionsNote
+      });
+
+      // Use the enhanced session service to add sessions
       const result = await services.session.addSessionsToClient(
         selectedClient,
         sessionsToAdd,
-        addSessionsNote // Include admin notes
+        addSessionsNote || 'Manually added by admin via dashboard'
       );
 
       if (result.success) {
+        console.log('[AdminSessions] Sessions added successfully', result.data);
+        
         toast({
           title: "Success",
           description: `Added ${sessionsToAdd} session(s) to the client.`,
         });
 
+        // Refresh all data to show updates
         fetchClients(); // Refresh client list to show updated session count
-        fetchSessions(); // Refresh sessions if adding sessions affects display (e.g., available count)
+        fetchSessions(); // Refresh sessions to show new available sessions
         setOpenAddSessionsDialog(false);
 
         // Reset add sessions form
@@ -631,6 +640,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
         setSessionsToAdd(1);
         setAddSessionsNote('');
       } else {
+        console.error('[AdminSessions] Failed to add sessions', result);
         toast({
           title: "Error",
           description: result.message || "Failed to add sessions.",
@@ -638,7 +648,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
         });
       }
     } catch (err: any) {
-      console.error('Error adding sessions:', err);
+      console.error('[AdminSessions] Error adding sessions:', err);
       const errorMsg = err.message || 'Server error adding sessions';
       toast({
         title: "Error",
@@ -648,12 +658,33 @@ const EnhancedAdminSessionsView: React.FC = () => {
     }
   };
 
-  // Refresh sessions data
-  const handleRefreshSessions = () => {
+  // Refresh sessions data with enhanced logging
+  const handleRefreshSessions = async () => {
     toast({ title: "Refreshing...", description: "Fetching latest session data." });
-    fetchSessions();
-    fetchClients(); // Also refresh clients in case their session counts changed
-    fetchTrainers();
+    
+    try {
+      // Check session allocation service health
+      const healthCheck = await services.session.checkAllocationHealth();
+      console.log('[AdminSessions] Session allocation service health:', healthCheck);
+      
+      // Refresh all data
+      await Promise.all([
+        fetchSessions(),
+        fetchClients(),
+        fetchTrainers()
+      ]);
+      
+      toast({
+        title: "Success",
+        description: "Session data refreshed successfully.",
+      });
+    } catch (error) {
+      console.error('[AdminSessions] Error during refresh:', error);
+      // Still attempt basic refresh even if health check fails
+      fetchSessions();
+      fetchClients();
+      fetchTrainers();
+    }
   };
 
   return (
@@ -1672,7 +1703,502 @@ const EnhancedAdminSessionsView: React.FC = () => {
         </DialogActions>
       </StyledDialog>
 
+      {/* TRAINER ASSIGNMENT SECTION */}
+      <motion.div
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        style={{ marginTop: '2rem' }}
+      >
+        <StyledCard>
+          <CardHeader>
+            <CardTitle>
+              <User size={24} style={{ marginRight: '0.5rem' }} />
+              Trainer Assignment Center
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <TrainerAssignmentSection
+              sessions={sessions}
+              clients={clients}
+              trainers={trainers}
+              onAssignmentSuccess={fetchSessions}
+              toast={toast}
+            />
+          </CardContent>
+        </StyledCard>
+      </motion.div>
+
     </PageContainer>
+  );
+};
+
+/**
+ * TrainerAssignmentSection Component
+ * ==================================
+ * 
+ * Comprehensive trainer assignment interface for admin dashboard.
+ * Features assignment controls, statistics, and bulk operations.
+ */
+interface TrainerAssignmentSectionProps {
+  sessions: Session[];
+  clients: Client[];
+  trainers: Trainer[];
+  onAssignmentSuccess: () => void;
+  toast: any;
+}
+
+const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
+  sessions,
+  clients,
+  trainers,
+  onAssignmentSuccess,
+  toast
+}) => {
+  const [selectedTrainer, setSelectedTrainer] = useState<string>('');
+  const [selectedClient, setSelectedClient] = useState<string>('');
+  const [assignmentMode, setAssignmentMode] = useState<'single' | 'bulk'>('single');
+  const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [assignmentStats, setAssignmentStats] = useState<any>(null);
+  const [openBulkDialog, setOpenBulkDialog] = useState(false);
+  
+  // Get unassigned sessions for the selected client
+  const getUnassignedSessions = () => {
+    return sessions.filter(session => 
+      session.status === 'available' && 
+      session.trainerId === null &&
+      (!selectedClient || session.userId === selectedClient)
+    );
+  };
+  
+  // Get assignment statistics
+  useEffect(() => {
+    const fetchAssignmentStats = async () => {
+      try {
+        const response = await services.sessionService.getAssignmentStatistics();
+        if (response.success) {
+          setAssignmentStats(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching assignment statistics:', error);
+      }
+    };
+    
+    fetchAssignmentStats();
+  }, [sessions]);
+  
+  // Handle trainer assignment
+  const handleAssignTrainer = async () => {
+    if (!selectedTrainer || !selectedClient) {
+      toast({
+        title: "Missing Information",
+        description: "Please select both a trainer and client.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const sessionIds = assignmentMode === 'bulk' ? selectedSessions : [];
+      const response = await services.sessionService.assignTrainerToClient(
+        selectedTrainer,
+        selectedClient,
+        sessionIds
+      );
+      
+      if (response.success) {
+        toast({
+          title: "Assignment Successful",
+          description: response.message,
+          variant: "default"
+        });
+        
+        // Reset form
+        setSelectedTrainer('');
+        setSelectedClient('');
+        setSelectedSessions([]);
+        setOpenBulkDialog(false);
+        
+        // Refresh data
+        onAssignmentSuccess();
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Assignment Failed",
+        description: error.message || 'Failed to assign trainer',
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Handle assignment removal
+  const handleRemoveAssignment = async (sessionIds: string[]) => {
+    if (sessionIds.length === 0) return;
+    
+    setLoading(true);
+    try {
+      const response = await services.sessionService.removeTrainerAssignment(sessionIds);
+      
+      if (response.success) {
+        toast({
+          title: "Assignment Removed",
+          description: response.message,
+          variant: "default"
+        });
+        onAssignmentSuccess();
+      } else {
+        throw new Error(response.message);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Removal Failed",
+        description: error.message || 'Failed to remove assignment',
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const unassignedSessions = getUnassignedSessions();
+  
+  return (
+    <div>
+      {/* Assignment Statistics */}
+      {assignmentStats && (
+        <Grid container spacing={2} style={{ marginBottom: '2rem' }}>
+          <Grid item xs={12} sm={3}>
+            <StatsCard>
+              <StatsIconContainer>
+                <CheckCircle size={24} />
+              </StatsIconContainer>
+              <div>
+                <StatsValue>{assignmentStats.sessionSummary?.assigned || 0}</StatsValue>
+                <StatsLabel>Assigned Sessions</StatsLabel>
+              </div>
+            </StatsCard>
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <StatsCard>
+              <StatsIconContainer>
+                <Clock size={24} />
+              </StatsIconContainer>
+              <div>
+                <StatsValue>{assignmentStats.sessionSummary?.available || 0}</StatsValue>
+                <StatsLabel>Unassigned Sessions</StatsLabel>
+              </div>
+            </StatsCard>
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <StatsCard>
+              <StatsIconContainer>
+                <User size={24} />
+              </StatsIconContainer>
+              <div>
+                <StatsValue>{trainers.length}</StatsValue>
+                <StatsLabel>Active Trainers</StatsLabel>
+              </div>
+            </StatsCard>
+          </Grid>
+          <Grid item xs={12} sm={3}>
+            <StatsCard>
+              <StatsIconContainer>
+                <Zap size={24} />
+              </StatsIconContainer>
+              <div>
+                <StatsValue>{assignmentStats.assignmentRate || 0}%</StatsValue>
+                <StatsLabel>Assignment Rate</StatsLabel>
+              </div>
+            </StatsCard>
+          </Grid>
+        </Grid>
+      )}
+      
+      {/* Assignment Controls */}
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={6}>
+          <Paper style={{ padding: '1.5rem', background: 'rgba(30, 30, 60, 0.4)', border: '1px solid rgba(0, 255, 255, 0.3)' }}>
+            <Typography variant="h6" style={{ marginBottom: '1rem', color: '#00FFFF' }}>
+              Assign Trainer to Client
+            </Typography>
+            
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Select Client</InputLabel>
+                  <Select
+                    value={selectedClient}
+                    onChange={(e) => setSelectedClient(e.target.value)}
+                    label="Select Client"
+                  >
+                    <MenuItem value="">
+                      <em>Select a client...</em>
+                    </MenuItem>
+                    {clients.map((client) => (
+                      <MenuItem key={client.id} value={client.id}>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <Avatar
+                            src={client.photo}
+                            sx={{ width: 24, height: 24 }}
+                          >
+                            {client.firstName.charAt(0)}
+                          </Avatar>
+                          <div>
+                            <Typography variant="body2">
+                              {client.firstName} {client.lastName}
+                            </Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              {client.availableSessions} sessions available
+                            </Typography>
+                          </div>
+                        </Stack>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              
+              <Grid item xs={12}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Select Trainer</InputLabel>
+                  <Select
+                    value={selectedTrainer}
+                    onChange={(e) => setSelectedTrainer(e.target.value)}
+                    label="Select Trainer"
+                  >
+                    <MenuItem value="">
+                      <em>Select a trainer...</em>
+                    </MenuItem>
+                    {trainers.map((trainer) => (
+                      <MenuItem key={trainer.id} value={trainer.id}>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <Avatar
+                            src={trainer.photo}
+                            sx={{ width: 24, height: 24 }}
+                          >
+                            {trainer.firstName.charAt(0)}
+                          </Avatar>
+                          <div>
+                            <Typography variant="body2">
+                              {trainer.firstName} {trainer.lastName}
+                            </Typography>
+                            {trainer.specialties && (
+                              <Typography variant="caption" color="textSecondary">
+                                {trainer.specialties}
+                              </Typography>
+                            )}
+                          </div>
+                        </Stack>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              
+              {selectedClient && (
+                <Grid item xs={12}>
+                  <Typography variant="body2" style={{ marginBottom: '0.5rem' }}>
+                    Unassigned Sessions: {unassignedSessions.length}
+                  </Typography>
+                  
+                  <Stack direction="row" spacing={1} style={{ marginBottom: '1rem' }}>
+                    <GlowButton
+                      text="Assign All Available"
+                      theme="cyan"
+                      size="small"
+                      onClick={() => setAssignmentMode('single')}
+                      variant={assignmentMode === 'single' ? 'solid' : 'outline'}
+                    />
+                    <GlowButton
+                      text="Select Specific"
+                      theme="purple"
+                      size="small"
+                      onClick={() => {
+                        setAssignmentMode('bulk');
+                        setOpenBulkDialog(true);
+                      }}
+                      variant={assignmentMode === 'bulk' ? 'solid' : 'outline'}
+                    />
+                  </Stack>
+                </Grid>
+              )}
+              
+              <Grid item xs={12}>
+                <GlowButton
+                  text={loading ? "Assigning..." : "Assign Trainer"}
+                  theme="emerald"
+                  size="medium"
+                  leftIcon={<User size={16} />}
+                  onClick={handleAssignTrainer}
+                  disabled={loading || !selectedTrainer || !selectedClient}
+                  fullWidth
+                />
+              </Grid>
+            </Grid>
+          </Paper>
+        </Grid>
+        
+        <Grid item xs={12} md={6}>
+          <Paper style={{ padding: '1.5rem', background: 'rgba(30, 30, 60, 0.4)', border: '1px solid rgba(255, 215, 0, 0.3)' }}>
+            <Typography variant="h6" style={{ marginBottom: '1rem', color: '#FFD700' }}>
+              Assignment Quick Actions
+            </Typography>
+            
+            <Stack spacing={2}>
+              <GlowButton
+                text="View Assignment Statistics"
+                theme="cosmic"
+                size="small"
+                leftIcon={<Eye size={16} />}
+                onClick={() => {
+                  // Could open a detailed statistics modal
+                  console.log('Assignment stats:', assignmentStats);
+                }}
+                fullWidth
+              />
+              
+              <GlowButton
+                text="Bulk Remove Assignments"
+                theme="red"
+                size="small"
+                leftIcon={<RefreshCw size={16} />}
+                onClick={() => {
+                  const assignedSessionIds = sessions
+                    .filter(session => session.trainerId && session.status === 'assigned')
+                    .map(session => session.id);
+                  
+                  if (assignedSessionIds.length > 0) {
+                    handleRemoveAssignment(assignedSessionIds);
+                  } else {
+                    toast({
+                      title: "No Assignments Found",
+                      description: "No assigned sessions to remove.",
+                      variant: "default"
+                    });
+                  }
+                }}
+                fullWidth
+              />
+              
+              <GlowButton
+                text="Export Assignment Report"
+                theme="purple"
+                size="small"
+                leftIcon={<Download size={16} />}
+                onClick={() => {
+                  // Generate and download assignment report
+                  const reportData = {
+                    assignmentStats,
+                    trainerWorkload: assignmentStats?.trainerWorkload || [],
+                    timestamp: new Date().toISOString()
+                  };
+                  
+                  const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `trainer-assignments-${new Date().toISOString().split('T')[0]}.json`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+                fullWidth
+              />
+            </Stack>
+          </Paper>
+        </Grid>
+      </Grid>
+      
+      {/* Bulk Selection Dialog */}
+      <Dialog
+        open={openBulkDialog}
+        onClose={() => setOpenBulkDialog(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Select Sessions to Assign</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" style={{ marginBottom: '1rem' }}>
+            Select specific sessions to assign to the trainer:
+          </Typography>
+          
+          {unassignedSessions.length > 0 ? (
+            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              {unassignedSessions.map((session) => (
+                <div
+                  key={session.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '0.5rem',
+                    border: selectedSessions.includes(session.id) ? '2px solid #00FFFF' : '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '8px',
+                    margin: '0.5rem 0',
+                    cursor: 'pointer',
+                    background: selectedSessions.includes(session.id) ? 'rgba(0, 255, 255, 0.1)' : 'transparent'
+                  }}
+                  onClick={() => {
+                    setSelectedSessions(prev => 
+                      prev.includes(session.id)
+                        ? prev.filter(id => id !== session.id)
+                        : [...prev, session.id]
+                    );
+                  }}
+                >
+                  <CheckSquare 
+                    size={20} 
+                    color={selectedSessions.includes(session.id) ? '#00FFFF' : '#666'}
+                    style={{ marginRight: '0.5rem' }}
+                  />
+                  <div>
+                    <Typography variant="body2">
+                      Session {session.id} - {session.duration} minutes
+                    </Typography>
+                    <Typography variant="caption" color="textSecondary">
+                      Location: {session.location || 'Not specified'}
+                    </Typography>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Typography variant="body2" color="textSecondary">
+              No unassigned sessions available for this client.
+            </Typography>
+          )}
+          
+          <Typography variant="body2" style={{ marginTop: '1rem' }}>
+            Selected: {selectedSessions.length} sessions
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <GlowButton
+            text="Cancel"
+            theme="cosmic"
+            size="small"
+            onClick={() => {
+              setOpenBulkDialog(false);
+              setSelectedSessions([]);
+            }}
+          />
+          <GlowButton
+            text={`Assign ${selectedSessions.length} Sessions`}
+            theme="emerald"
+            size="small"
+            onClick={() => {
+              setAssignmentMode('bulk');
+              setOpenBulkDialog(false);
+            }}
+            disabled={selectedSessions.length === 0}
+          />
+        </DialogActions>
+      </Dialog>
+    </div>
   );
 };
 

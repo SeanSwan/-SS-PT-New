@@ -548,6 +548,7 @@ const adminNavigationItems: AdminNavItemData[] = [
   
   // 📊 BUSINESS INTELLIGENCE
   { id: 'revenue', label: 'Revenue Analytics', icon: DollarSign, section: 'analytics', route: '/dashboard/revenue' },
+  { id: 'pending-orders', label: 'Pending Orders', icon: AlertTriangle, section: 'analytics', route: '/dashboard/pending-orders', badge: 2 },
   { id: 'performance', label: 'Performance Metrics', icon: TrendingUp, section: 'analytics', route: '/dashboard/reports' },
   { id: 'gamification', label: 'Gamification Engine', icon: Star, section: 'analytics', route: '/dashboard/gamification' },
   { id: 'notifications', label: 'Notification Center', icon: MessageSquare, section: 'analytics', route: '/dashboard/notifications', badge: 3 },
