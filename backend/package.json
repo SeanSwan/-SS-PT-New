@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
+    "start:minimal": "node server-minimal.mjs",
     "dev": "nodemon server.mjs",
     "dev:mongodb": "node scripts/check-mongodb.mjs && nodemon server.mjs",
     "migrate": "npx sequelize-cli db:migrate --config config/config.cjs --migrations-path migrations --models-path models --env development",

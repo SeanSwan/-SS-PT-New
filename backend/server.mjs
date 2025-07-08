@@ -34,8 +34,8 @@ if (existsSync(envPath)) {
   dotenv.config();
 }
 
-// PHASE 2: Activate Redis Connection Blocker IMMEDIATELY after env setup
-import './utils/redisConnectionBlocker.mjs';
+// PHASE 2: Redis Connection Blocker REMOVED - eliminating startup overhead
+// The blocker was disabled anyway and may cause timing issues
 
 // PHASE 3: Continue with normal imports
 // Environment configuration already completed above

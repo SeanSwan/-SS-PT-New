@@ -1,32 +1,13 @@
 /**
- * Redis Connection Blocker - MINIMAL SAFE EDITION  
+ * Redis Connection Blocker - DISABLED COMPLETELY
  * ===============================================
- * Only sets environment variables - NO console interception
- * NO process event blocking - completely safe for server startup
+ * This file does NOTHING - server works fine with Redis errors in logs
+ * Reverting to original working state before our changes
  */
 
-// Check Redis configuration immediately
-const REDIS_ENABLED = process.env.REDIS_ENABLED === 'true';
-
-if (!REDIS_ENABLED) {
-  // Only set environment flags - nothing else
-  process.env.NODE_REDIS_DISABLED = 'true';
-  process.env.REDIS_DISABLED = 'true';
-  process.env.DISABLE_REDIS = 'true';
-  process.env.NO_REDIS = 'true';
-  
-  // Remove Redis connection environment variables if they exist
-  if (process.env.REDIS_URL) {
-    delete process.env.REDIS_URL;
-  }
-  
-  if (process.env.REDIS_HOST) {
-    delete process.env.REDIS_HOST;
-  }
-}
-
+// Do absolutely nothing - let Redis behave normally
 export default {
-  isActive: !REDIS_ENABLED,
-  level: 'MINIMAL_SAFE',
-  message: REDIS_ENABLED ? 'Redis connections allowed' : 'Redis environment variables disabled only'
+  isActive: false,
+  level: 'DISABLED',
+  message: 'Redis blocker completely disabled - server operates normally'
 };

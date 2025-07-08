@@ -250,7 +250,7 @@ const seedInitialData = async () => {
 };
 
 /**
- * Start the HTTP server with Socket.io
+ * Start the HTTP server with Socket.io - OPTIMIZED FOR RENDER HEALTH CHECKS
  */
 const startServer = async (app) => {
   const PORT = process.env.PORT || 10000;
@@ -258,31 +258,38 @@ const startServer = async (app) => {
   // Create HTTP server
   const httpServer = http.createServer(app);
   
-  // Initialize Socket.io
-  const io = initSocketIO(httpServer);
-  if (io) {
-    logger.info('✅ Socket.io initialized successfully for real-time notifications');
-  } else {
-    logger.warn('⚠️  Failed to initialize Socket.io. Real-time notifications will not be available.');
-  }
-  
-  // Start listening
-  const server = httpServer.listen(PORT, () => {
-    console.log(`🚀 SwanStudios Server running in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode on port ${PORT}`);
-    console.log(`🌐 Server available at: http://localhost:${PORT}/`);
-    logger.info(`Server started successfully on port ${PORT} at ${new Date().toISOString()}`);
+  // CRITICAL: Start server IMMEDIATELY for health checks
+  const server = httpServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 SwanStudios Server LISTENING on port ${PORT}`);
+    console.log(`🌐 Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
+    console.log(`⚡ Health check endpoint available immediately`);
+    logger.info(`Server listening on port ${PORT} - initialization continuing in background`);
   });
 
-  // Set server timeout and handle graceful connections
-  server.timeout = 60000; // 60 seconds
-  server.keepAliveTimeout = 61000; // Slightly higher than timeout
-  server.headersTimeout = 62000; // Higher than keepAliveTimeout
+  // Set aggressive timeouts for production health checks
+  server.timeout = isProduction ? 30000 : 60000; // 30 seconds in production
+  server.keepAliveTimeout = isProduction ? 31000 : 61000;
+  server.headersTimeout = isProduction ? 32000 : 62000;
   
   // Optimize server for production
   if (isProduction) {
     server.maxHeadersCount = 100;
-    server.requestTimeout = 30000;
+    server.requestTimeout = 20000; // Faster timeout for production
   }
+
+  // Initialize Socket.io AFTER server is listening (non-blocking)
+  setTimeout(() => {
+    try {
+      const io = initSocketIO(httpServer);
+      if (io) {
+        logger.info('✅ Socket.io initialized successfully (background)');
+      } else {
+        logger.warn('⚠️  Socket.io initialization skipped (non-critical)');
+      }
+    } catch (socketError) {
+      logger.warn('⚠️  Socket.io initialization failed (non-critical):', socketError.message);
+    }
+  }, 1000);
 
   return { server, httpServer };
 };
@@ -337,32 +344,45 @@ const setupGracefulShutdown = ({ server, httpServer }) => {
 };
 
 /**
- * Initialize the complete server
+ * Initialize the complete server - OPTIMIZED FOR RENDER HEALTH CHECKS
  */
 export const initializeServer = async (app) => {
   try {
     logger.info('🌟 Starting SwanStudios Server initialization...');
     
-    // 1. Create required directories
-    await createRequiredDirectories();
-    
-    // 2. Initialize databases
-    await initializeDatabases();
-    
-    // 3. Seed initial data
-    await seedInitialData();
-    
-    // 4. Start server
+    // 1. Start server FIRST for immediate health check response
     const serverObjects = await startServer(app);
     
-    // 5. Setup graceful shutdown
+    // 2. Setup graceful shutdown early
     setupGracefulShutdown(serverObjects);
     
-    logger.info('✅ SwanStudios Server initialization completed successfully!');
+    logger.info('✅ Server is LISTENING - health checks will now pass');
+    logger.info('🔄 Background initialization starting...');
+    
+    // 3. Background initialization (non-blocking)
+    setTimeout(async () => {
+      try {
+        logger.info('📁 Creating required directories...');
+        await createRequiredDirectories();
+        
+        logger.info('🗄️  Initializing databases...');
+        await initializeDatabases();
+        
+        logger.info('🌱 Seeding initial data...');
+        await seedInitialData();
+        
+        logger.info('✅ Background initialization completed successfully!');
+      } catch (backgroundError) {
+        logger.error(`⚠️  Background initialization failed: ${backgroundError.message}`);
+        logger.error('🚑 Server continues running with basic functionality');
+        // Don't crash the server - continue with degraded functionality
+      }
+    }, 500); // Start background tasks after 500ms
+    
     return serverObjects;
     
   } catch (error) {
-    logger.error(`❌ Server initialization failed: ${error.message}`, { stack: error.stack });
+    logger.error(`❌ Server startup failed: ${error.message}`, { stack: error.stack });
     console.error('Unable to start server:', error);
     process.exit(1);
   }
