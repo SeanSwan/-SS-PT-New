@@ -1,22 +1,23 @@
 /**
- * Redis Wrapper Service - SIMPLE MEMORY CACHE ONLY
+ * Redis Wrapper Service - ORIGINAL WORKING VERSION
  * ================================================
- * Provides a simple memory cache interface without any Redis complexity
- * Safe for production deployment - no Redis imports or connection attempts
+ * Memory cache fallback that was working before our changes
+ * Simple, safe, no Redis import blocking
  */
 
 import { EventEmitter } from 'events';
+import logger from '../../utils/logger.mjs';
 
 class RedisWrapper extends EventEmitter {
   constructor() {
     super();
     
-    this.enabled = false; // Always use memory cache
+    this.enabled = false; // Always disabled for production
     this.connected = false;
     this.client = null;
-    this.initialized = true; // Always ready
+    this.initialized = true;
     
-    // Simple in-memory cache
+    // In-memory cache fallback
     this.memoryCache = new Map();
     this.memoryTTL = new Map();
     
@@ -25,6 +26,8 @@ class RedisWrapper extends EventEmitter {
     
     // Emit ready immediately
     setTimeout(() => this.emit('ready'), 0);
+    
+    logger.info('Redis wrapper initialized with memory cache fallback');
   }
   
   async set(key, value, ttl = null) {
@@ -36,6 +39,7 @@ class RedisWrapper extends EventEmitter {
   }
   
   async get(key) {
+    // Check TTL first
     if (this.memoryTTL.has(key)) {
       const expiry = this.memoryTTL.get(key);
       if (Date.now() > expiry) {
@@ -55,6 +59,7 @@ class RedisWrapper extends EventEmitter {
   }
   
   async exists(key) {
+    // Check TTL first
     if (this.memoryTTL.has(key)) {
       const expiry = this.memoryTTL.get(key);
       if (Date.now() > expiry) {
@@ -81,12 +86,12 @@ class RedisWrapper extends EventEmitter {
   }
   
   async info() {
-    return `# Memory Cache Only
+    return `# Memory Cache Fallback
 memory_cache_enabled:1
 memory_cache_keys:${this.memoryCache.size}
 memory_cache_with_ttl:${this.memoryTTL.size}
-redis_enabled:false
-redis_connected:false`;
+redis_enabled:${this.enabled}
+redis_connected:${this.connected}`;
   }
   
   cleanupExpiredEntries() {
@@ -107,22 +112,21 @@ redis_connected:false`;
   }
   
   isConnected() {
-    return false; // Always false - we're using memory cache
+    return this.connected;
   }
   
   getStatus() {
     return {
-      enabled: false,
-      connected: false,
+      enabled: this.enabled,
+      connected: this.connected,
       using_memory_fallback: true,
       memory_cache_size: this.memoryCache.size,
-      memory_ttl_entries: this.memoryTTL.size,
-      redis_completely_disabled: true
+      memory_ttl_entries: this.memoryTTL.size
     };
   }
 }
 
-// Simple singleton instance
+// Singleton instance
 let redisInstance = null;
 
 export const redis = (() => {

@@ -5,79 +5,133 @@
  */
 
 import express from 'express';
-import { getStorefrontItem } from '../models/index.mjs';
+
+// Dynamic import to handle initialization timing
+let getStorefrontItem;
+try {
+  const modelsModule = await import('../models/index.mjs');
+  getStorefrontItem = modelsModule.getStorefrontItem;
+} catch (importError) {
+  console.log('Health routes: Models not yet available, using graceful degradation');
+  getStorefrontItem = () => null;
+}
 
 const router = express.Router();
 
-// Basic health check
+// Basic health check - RENDER OPTIMIZED (no database dependency)
 router.get('/', async (req, res) => {
   try {
-    const StorefrontItem = getStorefrontItem();
-    
-    // Check database connection by counting packages
-    const packageCount = await StorefrontItem.count();
-    const activePackages = await StorefrontItem.count({ where: { isActive: true } });
-    
-    // Check if we have packages with valid pricing
-    const validPricedPackages = await StorefrontItem.count({
-      where: {
-        isActive: true,
-        price: { [StorefrontItem.sequelize.Op.gt]: 0 }
-      }
-    });
-
-    const status = {
+    // IMMEDIATE RESPONSE for health checks - no database required
+    const basicStatus = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || 'development',
-      database: 'connected',
-      store: {
-        totalPackages: packageCount,
-        activePackages: activePackages,
-        validPricedPackages: validPricedPackages,
-        ready: validPricedPackages > 0
-      },
-      genesis: {
-        paymentSystem: 'ready',
-        checkoutFlow: 'active',
-        stripeConfigured: !!(process.env.STRIPE_SECRET_KEY && process.env.STRIPE_PUBLISHABLE_KEY)
+      server: 'listening',
+      uptime: process.uptime(),
+      memory: {
+        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024)
       }
     };
 
-    // Determine overall health
-    if (validPricedPackages === 0) {
-      status.status = 'degraded';
-      status.message = 'Store not ready: No training packages with valid pricing found';
-    } else if (!status.genesis.stripeConfigured) {
-      status.status = 'degraded';
-      status.message = 'Payment system not configured: Missing Stripe keys';
-    } else {
-      status.message = 'Genesis Checkout System fully operational';
+    // Try enhanced status with database (non-blocking)
+    try {
+      const StorefrontItem = getStorefrontItem();
+      
+      if (StorefrontItem) {
+        // Quick timeout for database queries
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Database query timeout')), 2000)
+        );
+        
+        const queryPromise = Promise.all([
+          StorefrontItem.count(),
+          StorefrontItem.count({ where: { isActive: true } }),
+          StorefrontItem.count({
+            where: {
+              isActive: true,
+              price: { [StorefrontItem.sequelize.Op.gt]: 0 }
+            }
+          })
+        ]);
+
+        const [packageCount, activePackages, validPricedPackages] = await Promise.race([
+          queryPromise,
+          timeoutPromise
+        ]);
+
+        // Add enhanced status if database is available
+        basicStatus.database = 'connected';
+        basicStatus.store = {
+          totalPackages: packageCount,
+          activePackages: activePackages,
+          validPricedPackages: validPricedPackages,
+          ready: validPricedPackages > 0
+        };
+        basicStatus.genesis = {
+          paymentSystem: 'ready',
+          checkoutFlow: 'active',
+          stripeConfigured: !!(process.env.STRIPE_SECRET_KEY && process.env.VITE_STRIPE_PUBLISHABLE_KEY)
+        };
+
+        // Determine overall health
+        if (validPricedPackages === 0) {
+          basicStatus.status = 'degraded';
+          basicStatus.message = 'Store not ready: No training packages with valid pricing found';
+        } else if (!basicStatus.genesis.stripeConfigured) {
+          basicStatus.status = 'degraded';
+          basicStatus.message = 'Payment system not configured: Missing Stripe keys';
+        } else {
+          basicStatus.message = 'Genesis Checkout System fully operational';
+        }
+      }
+    } catch (dbError) {
+      // Database not ready yet - still return healthy for basic server operation
+      basicStatus.database = 'initializing';
+      basicStatus.message = 'Server healthy - database initializing in background';
+      console.log('Health check: Database not ready yet:', dbError.message);
     }
 
-    const httpStatus = status.status === 'healthy' ? 200 : 503;
-    res.status(httpStatus).json(status);
+    // Always return 200 OK for basic server health
+    res.status(200).json(basicStatus);
 
   } catch (error) {
+    // Only fail health check for server-level issues
     res.status(503).json({
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
-      error: 'Database connection failed',
+      error: 'Server error',
       message: error.message
     });
   }
 });
 
-// Store readiness check
+// Store readiness check - ENHANCED WITH GRACEFUL DEGRADATION
 router.get('/store', async (req, res) => {
   try {
     const StorefrontItem = getStorefrontItem();
     
-    const packages = await StorefrontItem.findAll({
+    if (!StorefrontItem) {
+      return res.json({
+        success: false,
+        ready: false,
+        status: 'initializing',
+        message: 'Database models not yet initialized'
+      });
+    }
+
+    // Add timeout for store queries
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Store query timeout')), 3000)
+    );
+    
+    const queryPromise = StorefrontItem.findAll({
       where: { isActive: true },
       order: [['displayOrder', 'ASC'], ['id', 'ASC']],
       attributes: ['id', 'name', 'price', 'totalCost', 'sessions', 'totalSessions', 'packageType']
     });
+
+    const packages = await Promise.race([queryPromise, timeoutPromise]);
 
     res.json({
       success: true,
@@ -93,10 +147,13 @@ router.get('/store', async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({
+    // Graceful degradation for store check
+    res.status(200).json({
       success: false,
       ready: false,
-      error: error.message
+      status: 'initializing',
+      error: error.message,
+      message: 'Store data not yet available - initialization in progress'
     });
   }
 });
