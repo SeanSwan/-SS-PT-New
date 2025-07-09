@@ -1,1 +1,460 @@
-/**\n * AdvancedCartInteractions.tsx - AAA 7-STAR INTERACTION PATTERNS\n * ===============================================================\n * \n * \ud83c\udfae ADVANCED INTERACTION FEATURES:\n * - Contextual tooltips with smart positioning\n * - Progressive disclosure animations\n * - Micro-interactions with haptic feedback\n * - Smart notifications with contextual actions\n * - Session progress visualizations\n * - Advanced gesture support\n * \n * \ud83c\udf86 DELIGHT PATTERNS:\n * - Celebration animations on successful actions\n * - Smart loading states with progress indication\n * - Contextual help system\n * - Session accumulation animations\n * - Price change animations\n * - Smart quantity recommendations\n */\n\nimport React, { useState, useEffect, useCallback, useRef } from 'react';\nimport styled, { keyframes } from 'styled-components';\nimport { motion, AnimatePresence } from 'framer-motion';\nimport { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';\nimport { HelpCircle, TrendingUp, Zap, Star, Target } from 'lucide-react';\n\n// Celebration animations\nconst celebrate = keyframes`\n  0% { transform: scale(1) rotate(0deg); }\n  25% { transform: scale(1.1) rotate(-2deg); }\n  50% { transform: scale(1.2) rotate(2deg); }\n  75% { transform: scale(1.1) rotate(-1deg); }\n  100% { transform: scale(1) rotate(0deg); }\n`;\n\nconst sparkle = keyframes`\n  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }\n  50% { opacity: 1; transform: scale(1) rotate(180deg); }\n`;\n\nconst priceUpdate = keyframes`\n  0% { background-color: rgba(0, 255, 255, 0.2); transform: scale(1); }\n  50% { background-color: rgba(0, 255, 255, 0.4); transform: scale(1.05); }\n  100% { background-color: transparent; transform: scale(1); }\n`;\n\n// Interactive tooltip component\nconst ContextualTooltip = styled(motion.div)`\n  background: linear-gradient(135deg, rgba(0, 255, 255, 0.95), rgba(120, 81, 169, 0.95));\n  color: white;\n  padding: 0.75rem 1rem;\n  border-radius: 8px;\n  font-size: 0.85rem;\n  font-weight: 500;\n  backdrop-filter: blur(10px);\n  border: 1px solid rgba(255, 255, 255, 0.2);\n  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);\n  z-index: 1200;\n  max-width: 200px;\n  text-align: center;\n  \n  &::after {\n    content: '';\n    position: absolute;\n    bottom: -5px;\n    left: 50%;\n    transform: translateX(-50%);\n    width: 0;\n    height: 0;\n    border-left: 5px solid transparent;\n    border-right: 5px solid transparent;\n    border-top: 5px solid rgba(0, 255, 255, 0.95);\n  }\n`;\n\n// Progress indicator for session accumulation\nconst SessionProgress = styled(motion.div)`\n  background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(120, 81, 169, 0.1));\n  border: 1px solid rgba(0, 255, 255, 0.3);\n  border-radius: 12px;\n  padding: 1rem;\n  margin: 1rem 0;\n  position: relative;\n  overflow: hidden;\n  \n  &::before {\n    content: '';\n    position: absolute;\n    top: 0;\n    left: 0;\n    height: 100%;\n    background: linear-gradient(90deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.2));\n    transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);\n  }\n`;\n\nconst ProgressText = styled.div`\n  position: relative;\n  z-index: 2;\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  \n  .progress-label {\n    font-size: 0.9rem;\n    color: rgba(255, 255, 255, 0.8);\n  }\n  \n  .progress-value {\n    font-size: 1.1rem;\n    font-weight: 600;\n    color: #00ffff;\n  }\n`;\n\n// Celebration particles\nconst CelebrationParticle = styled(motion.div)`\n  position: absolute;\n  width: 6px;\n  height: 6px;\n  background: #00ffff;\n  border-radius: 50%;\n  pointer-events: none;\n`;\n\n// Smart notification component\nconst SmartNotification = styled(motion.div)`\n  position: fixed;\n  top: 2rem;\n  right: 2rem;\n  background: linear-gradient(135deg, rgba(0, 255, 255, 0.95), rgba(120, 81, 169, 0.95));\n  color: white;\n  padding: 1rem 1.5rem;\n  border-radius: 12px;\n  backdrop-filter: blur(15px);\n  border: 1px solid rgba(255, 255, 255, 0.2);\n  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);\n  z-index: 1300;\n  max-width: 300px;\n  \n  @media (max-width: 768px) {\n    top: 1rem;\n    right: 1rem;\n    left: 1rem;\n    max-width: none;\n  }\n`;\n\n// Price change indicator\nconst PriceChangeIndicator = styled(motion.div)`\n  display: inline-flex;\n  align-items: center;\n  gap: 0.25rem;\n  font-size: 0.8rem;\n  color: #00ffff;\n  margin-left: 0.5rem;\n`;\n\n// Interactive help icon\nconst HelpIcon = styled(motion.button)`\n  background: rgba(255, 255, 255, 0.1);\n  border: 1px solid rgba(255, 255, 255, 0.2);\n  border-radius: 50%;\n  width: 24px;\n  height: 24px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  cursor: pointer;\n  color: rgba(255, 255, 255, 0.7);\n  transition: all 0.2s ease;\n  \n  &:hover {\n    background: rgba(0, 255, 255, 0.2);\n    border-color: rgba(0, 255, 255, 0.4);\n    color: #00ffff;\n    transform: scale(1.1);\n  }\n`;\n\n// Component interfaces\ninterface TooltipInfo {\n  id: string;\n  content: string;\n  trigger: string;\n}\n\ninterface CelebrationEffect {\n  id: string;\n  x: number;\n  y: number;\n  type: 'add' | 'remove' | 'checkout';\n}\n\ninterface PriceChange {\n  itemId: number;\n  oldPrice: number;\n  newPrice: number;\n  timestamp: number;\n}\n\ninterface SmartNotification {\n  id: string;\n  message: string;\n  type: 'success' | 'info' | 'warning';\n  action?: {\n    label: string;\n    onClick: () => void;\n  };\n}\n\n// Main interaction hook\nexport const useAdvancedCartInteractions = () => {\n  const [tooltips, setTooltips] = useState<TooltipInfo[]>([]);\n  const [celebrations, setCelebrations] = useState<CelebrationEffect[]>([]);\n  const [priceChanges, setPriceChanges] = useState<PriceChange[]>([]);\n  const [notifications, setNotifications] = useState<SmartNotification[]>([]);\n  const [sessionProgress, setSessionProgress] = useState(0);\n  \n  // Haptic feedback function\n  const triggerHaptic = useCallback((pattern: 'light' | 'medium' | 'heavy' = 'light') => {\n    if ('vibrate' in navigator) {\n      const patterns = {\n        light: 10,\n        medium: 50,\n        heavy: [100, 50, 100]\n      };\n      navigator.vibrate(patterns[pattern]);\n    }\n  }, []);\n  \n  // Celebration effect\n  const triggerCelebration = useCallback((x: number, y: number, type: CelebrationEffect['type']) => {\n    const id = Math.random().toString(36).substr(2, 9);\n    setCelebrations(prev => [...prev, { id, x, y, type }]);\n    \n    // Trigger haptic feedback\n    triggerHaptic(type === 'checkout' ? 'heavy' : 'medium');\n    \n    // Remove celebration after animation\n    setTimeout(() => {\n      setCelebrations(prev => prev.filter(c => c.id !== id));\n    }, 2000);\n  }, [triggerHaptic]);\n  \n  // Price change animation\n  const animatePriceChange = useCallback((itemId: number, oldPrice: number, newPrice: number) => {\n    const id = Date.now();\n    setPriceChanges(prev => [...prev, { itemId, oldPrice, newPrice, timestamp: id }]);\n    \n    setTimeout(() => {\n      setPriceChanges(prev => prev.filter(p => p.timestamp !== id));\n    }, 1000);\n  }, []);\n  \n  // Smart notification\n  const showNotification = useCallback((message: string, type: SmartNotification['type'], action?: SmartNotification['action']) => {\n    const id = Math.random().toString(36).substr(2, 9);\n    setNotifications(prev => [...prev, { id, message, type, action }]);\n    \n    setTimeout(() => {\n      setNotifications(prev => prev.filter(n => n.id !== id));\n    }, 5000);\n  }, []);\n  \n  // Session progress update\n  const updateSessionProgress = useCallback((totalSessions: number, targetSessions: number = 12) => {\n    const progress = Math.min((totalSessions / targetSessions) * 100, 100);\n    setSessionProgress(progress);\n  }, []);\n  \n  return {\n    tooltips,\n    celebrations,\n    priceChanges,\n    notifications,\n    sessionProgress,\n    triggerHaptic,\n    triggerCelebration,\n    animatePriceChange,\n    showNotification,\n    updateSessionProgress\n  };\n};\n\n// Tooltip component\nexport const SmartTooltip: React.FC<{\n  content: string;\n  children: React.ReactNode;\n  delay?: number;\n}> = ({ content, children, delay = 500 }) => {\n  const [isVisible, setIsVisible] = useState(false);\n  const timeoutRef = useRef<NodeJS.Timeout>();\n  \n  const showTooltip = useCallback(() => {\n    timeoutRef.current = setTimeout(() => setIsVisible(true), delay);\n  }, [delay]);\n  \n  const hideTooltip = useCallback(() => {\n    if (timeoutRef.current) {\n      clearTimeout(timeoutRef.current);\n    }\n    setIsVisible(false);\n  }, []);\n  \n  return (\n    <div\n      onMouseEnter={showTooltip}\n      onMouseLeave={hideTooltip}\n      style={{ position: 'relative', display: 'inline-block' }}\n    >\n      {children}\n      <AnimatePresence>\n        {isVisible && (\n          <ContextualTooltip\n            initial={{ opacity: 0, y: 10, scale: 0.9 }}\n            animate={{ opacity: 1, y: 0, scale: 1 }}\n            exit={{ opacity: 0, y: 10, scale: 0.9 }}\n            transition={{ duration: 0.2 }}\n            style={{\n              position: 'absolute',\n              bottom: '100%',\n              left: '50%',\n              transform: 'translateX(-50%)',\n              marginBottom: '0.5rem'\n            }}\n          >\n            {content}\n          </ContextualTooltip>\n        )}\n      </AnimatePresence>\n    </div>\n  );\n};\n\n// Session progress component\nexport const SessionProgressIndicator: React.FC<{\n  currentSessions: number;\n  targetSessions?: number;\n  className?: string;\n}> = ({ currentSessions, targetSessions = 12, className }) => {\n  const progress = Math.min((currentSessions / targetSessions) * 100, 100);\n  \n  return (\n    <SessionProgress className={className}>\n      <div\n        style={{\n          position: 'absolute',\n          top: 0,\n          left: 0,\n          height: '100%',\n          width: `${progress}%`,\n          background: 'linear-gradient(90deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.2))',\n          transition: 'width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)'\n        }}\n      />\n      <ProgressText>\n        <div className=\"progress-label\">\n          <Target size={16} style={{ marginRight: '0.5rem', display: 'inline' }} />\n          Session Progress\n        </div>\n        <div className=\"progress-value\">\n          {currentSessions} / {targetSessions}\n        </div>\n      </ProgressText>\n    </SessionProgress>\n  );\n};\n\n// Celebration particles component\nexport const CelebrationParticles: React.FC<{\n  celebrations: CelebrationEffect[];\n}> = ({ celebrations }) => {\n  return (\n    <>\n      {celebrations.map(celebration => (\n        <div key={celebration.id}>\n          {[...Array(8)].map((_, i) => (\n            <CelebrationParticle\n              key={i}\n              initial={{\n                opacity: 0,\n                scale: 0,\n                x: celebration.x,\n                y: celebration.y\n              }}\n              animate={{\n                opacity: [0, 1, 0],\n                scale: [0, 1, 0],\n                x: celebration.x + (Math.random() - 0.5) * 100,\n                y: celebration.y + (Math.random() - 0.5) * 100\n              }}\n              transition={{\n                duration: 1.5,\n                delay: i * 0.1,\n                ease: [0.25, 0.46, 0.45, 0.94]\n              }}\n            />\n          ))}\n        </div>\n      ))}\n    </>\n  );\n};\n\n// Smart notifications component\nexport const SmartNotifications: React.FC<{\n  notifications: SmartNotification[];\n  onDismiss: (id: string) => void;\n}> = ({ notifications, onDismiss }) => {\n  return (\n    <AnimatePresence>\n      {notifications.map((notification, index) => (\n        <SmartNotification\n          key={notification.id}\n          initial={{ opacity: 0, x: 100, scale: 0.9 }}\n          animate={{ opacity: 1, x: 0, scale: 1 }}\n          exit={{ opacity: 0, x: 100, scale: 0.9 }}\n          transition={{ duration: 0.3, delay: index * 0.1 }}\n          style={{ top: `${2 + index * 5}rem` }}\n        >\n          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>\n            {notification.type === 'success' && <Star size={16} />}\n            {notification.type === 'info' && <Zap size={16} />}\n            {notification.type === 'warning' && <TrendingUp size={16} />}\n            <span>{notification.message}</span>\n          </div>\n          {notification.action && (\n            <button\n              onClick={notification.action.onClick}\n              style={{\n                background: 'rgba(255, 255, 255, 0.2)',\n                border: '1px solid rgba(255, 255, 255, 0.3)',\n                color: 'white',\n                padding: '0.25rem 0.75rem',\n                borderRadius: '6px',\n                fontSize: '0.85rem',\n                marginTop: '0.5rem',\n                cursor: 'pointer'\n              }}\n            >\n              {notification.action.label}\n            </button>\n          )}\n        </SmartNotification>\n      ))}\n    </AnimatePresence>\n  );\n};\n\n// Export all components and hooks\nexport {\n  ContextualTooltip,\n  SessionProgress,\n  PriceChangeIndicator,\n  HelpIcon,\n  celebrate,\n  sparkle,\n  priceUpdate\n};\n", "newText": "/**\n * AdvancedCartInteractions.tsx - AAA 7-STAR INTERACTION PATTERNS\n * ===============================================================\n * \n * 🎮 ADVANCED INTERACTION FEATURES:\n * - Contextual tooltips with smart positioning\n * - Progressive disclosure animations\n * - Micro-interactions with haptic feedback\n * - Smart notifications with contextual actions\n * - Session progress visualizations\n * - Advanced gesture support\n * \n * 🎆 DELIGHT PATTERNS:\n * - Celebration animations on successful actions\n * - Smart loading states with progress indication\n * - Contextual help system\n * - Session accumulation animations\n * - Price change animations\n * - Smart quantity recommendations\n */\n\nimport React, { useState, useEffect, useCallback, useRef } from 'react';\nimport styled, { keyframes } from 'styled-components';\nimport { motion, AnimatePresence } from 'framer-motion';\nimport { HelpCircle, TrendingUp, Zap, Star, Target } from 'lucide-react';\n\n// Celebration animations\nconst celebrate = keyframes`\n  0% { transform: scale(1) rotate(0deg); }\n  25% { transform: scale(1.1) rotate(-2deg); }\n  50% { transform: scale(1.2) rotate(2deg); }\n  75% { transform: scale(1.1) rotate(-1deg); }\n  100% { transform: scale(1) rotate(0deg); }\n`;\n\nconst sparkle = keyframes`\n  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }\n  50% { opacity: 1; transform: scale(1) rotate(180deg); }\n`;\n\nconst priceUpdate = keyframes`\n  0% { background-color: rgba(0, 255, 255, 0.2); transform: scale(1); }\n  50% { background-color: rgba(0, 255, 255, 0.4); transform: scale(1.05); }\n  100% { background-color: transparent; transform: scale(1); }\n`;\n\n// Interactive tooltip component\nconst ContextualTooltip = styled(motion.div)`\n  background: linear-gradient(135deg, rgba(0, 255, 255, 0.95), rgba(120, 81, 169, 0.95));\n  color: white;\n  padding: 0.75rem 1rem;\n  border-radius: 8px;\n  font-size: 0.85rem;\n  font-weight: 500;\n  backdrop-filter: blur(10px);\n  border: 1px solid rgba(255, 255, 255, 0.2);\n  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);\n  z-index: 1200;\n  max-width: 200px;\n  text-align: center;\n  \n  &::after {\n    content: '';\n    position: absolute;\n    bottom: -5px;\n    left: 50%;\n    transform: translateX(-50%);\n    width: 0;\n    height: 0;\n    border-left: 5px solid transparent;\n    border-right: 5px solid transparent;\n    border-top: 5px solid rgba(0, 255, 255, 0.95);\n  }\n`;\n\n// Progress indicator for session accumulation\nconst SessionProgress = styled(motion.div)`\n  background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(120, 81, 169, 0.1));\n  border: 1px solid rgba(0, 255, 255, 0.3);\n  border-radius: 12px;\n  padding: 1rem;\n  margin: 1rem 0;\n  position: relative;\n  overflow: hidden;\n  \n  &::before {\n    content: '';\n    position: absolute;\n    top: 0;\n    left: 0;\n    height: 100%;\n    background: linear-gradient(90deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.2));\n    transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);\n  }\n`;\n\nconst ProgressText = styled.div`\n  position: relative;\n  z-index: 2;\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  \n  .progress-label {\n    font-size: 0.9rem;\n    color: rgba(255, 255, 255, 0.8);\n  }\n  \n  .progress-value {\n    font-size: 1.1rem;\n    font-weight: 600;\n    color: #00ffff;\n  }\n`;\n\n// Celebration particles\nconst CelebrationParticle = styled(motion.div)`\n  position: absolute;\n  width: 6px;\n  height: 6px;\n  background: #00ffff;\n  border-radius: 50%;\n  pointer-events: none;\n`;\n\n// Smart notification component\nconst SmartNotification = styled(motion.div)`\n  position: fixed;\n  top: 2rem;\n  right: 2rem;\n  background: linear-gradient(135deg, rgba(0, 255, 255, 0.95), rgba(120, 81, 169, 0.95));\n  color: white;\n  padding: 1rem 1.5rem;\n  border-radius: 12px;\n  backdrop-filter: blur(15px);\n  border: 1px solid rgba(255, 255, 255, 0.2);\n  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);\n  z-index: 1300;\n  max-width: 300px;\n  \n  @media (max-width: 768px) {\n    top: 1rem;\n    right: 1rem;\n    left: 1rem;\n    max-width: none;\n  }\n`;\n\n// Price change indicator\nconst PriceChangeIndicator = styled(motion.div)`\n  display: inline-flex;\n  align-items: center;\n  gap: 0.25rem;\n  font-size: 0.8rem;\n  color: #00ffff;\n  margin-left: 0.5rem;\n`;\n\n// Interactive help icon\nconst HelpIcon = styled(motion.button)`\n  background: rgba(255, 255, 255, 0.1);\n  border: 1px solid rgba(255, 255, 255, 0.2);\n  border-radius: 50%;\n  width: 24px;\n  height: 24px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  cursor: pointer;\n  color: rgba(255, 255, 255, 0.7);\n  transition: all 0.2s ease;\n  \n  &:hover {\n    background: rgba(0, 255, 255, 0.2);\n    border-color: rgba(0, 255, 255, 0.4);\n    color: #00ffff;\n    transform: scale(1.1);\n  }\n`;\n\n// Component interfaces\ninterface TooltipInfo {\n  id: string;\n  content: string;\n  trigger: string;\n}\n\ninterface CelebrationEffect {\n  id: string;\n  x: number;\n  y: number;\n  type: 'add' | 'remove' | 'checkout';\n}\n\ninterface PriceChange {\n  itemId: number;\n  oldPrice: number;\n  newPrice: number;\n  timestamp: number;\n}\n\ninterface SmartNotificationData {\n  id: string;\n  message: string;\n  type: 'success' | 'info' | 'warning';\n  action?: {\n    label: string;\n    onClick: () => void;\n  };\n}\n\n// Main interaction hook\nexport const useAdvancedCartInteractions = () => {\n  const [tooltips, setTooltips] = useState<TooltipInfo[]>([]);\n  const [celebrations, setCelebrations] = useState<CelebrationEffect[]>([]);\n  const [priceChanges, setPriceChanges] = useState<PriceChange[]>([]);\n  const [notifications, setNotifications] = useState<SmartNotificationData[]>([]);\n  const [sessionProgress, setSessionProgress] = useState(0);\n  \n  // Haptic feedback function\n  const triggerHaptic = useCallback((pattern: 'light' | 'medium' | 'heavy' = 'light') => {\n    if ('vibrate' in navigator) {\n      const patterns = {\n        light: 10,\n        medium: 50,\n        heavy: [100, 50, 100]\n      };\n      navigator.vibrate(patterns[pattern]);\n    }\n  }, []);\n  \n  // Celebration effect\n  const triggerCelebration = useCallback((x: number, y: number, type: CelebrationEffect['type']) => {\n    const id = Math.random().toString(36).substr(2, 9);\n    setCelebrations(prev => [...prev, { id, x, y, type }]);\n    \n    // Trigger haptic feedback\n    triggerHaptic(type === 'checkout' ? 'heavy' : 'medium');\n    \n    // Remove celebration after animation\n    setTimeout(() => {\n      setCelebrations(prev => prev.filter(c => c.id !== id));\n    }, 2000);\n  }, [triggerHaptic]);\n  \n  // Price change animation\n  const animatePriceChange = useCallback((itemId: number, oldPrice: number, newPrice: number) => {\n    const id = Date.now();\n    setPriceChanges(prev => [...prev, { itemId, oldPrice, newPrice, timestamp: id }]);\n    \n    setTimeout(() => {\n      setPriceChanges(prev => prev.filter(p => p.timestamp !== id));\n    }, 1000);\n  }, []);\n  \n  // Smart notification\n  const showNotification = useCallback((message: string, type: SmartNotificationData['type'], action?: SmartNotificationData['action']) => {\n    const id = Math.random().toString(36).substr(2, 9);\n    setNotifications(prev => [...prev, { id, message, type, action }]);\n    \n    setTimeout(() => {\n      setNotifications(prev => prev.filter(n => n.id !== id));\n    }, 5000);\n  }, []);\n  \n  // Session progress update\n  const updateSessionProgress = useCallback((totalSessions: number, targetSessions: number = 12) => {\n    const progress = Math.min((totalSessions / targetSessions) * 100, 100);\n    setSessionProgress(progress);\n  }, []);\n  \n  return {\n    tooltips,\n    celebrations,\n    priceChanges,\n    notifications,\n    sessionProgress,\n    triggerHaptic,\n    triggerCelebration,\n    animatePriceChange,\n    showNotification,\n    updateSessionProgress\n  };\n};\n\n// Tooltip component\nexport const SmartTooltip: React.FC<{\n  content: string;\n  children: React.ReactNode;\n  delay?: number;\n}> = ({ content, children, delay = 500 }) => {\n  const [isVisible, setIsVisible] = useState(false);\n  const timeoutRef = useRef<NodeJS.Timeout>();\n  \n  const showTooltip = useCallback(() => {\n    timeoutRef.current = setTimeout(() => setIsVisible(true), delay);\n  }, [delay]);\n  \n  const hideTooltip = useCallback(() => {\n    if (timeoutRef.current) {\n      clearTimeout(timeoutRef.current);\n    }\n    setIsVisible(false);\n  }, []);\n  \n  return (\n    <div\n      onMouseEnter={showTooltip}\n      onMouseLeave={hideTooltip}\n      style={{ position: 'relative', display: 'inline-block' }}\n    >\n      {children}\n      <AnimatePresence>\n        {isVisible && (\n          <ContextualTooltip\n            initial={{ opacity: 0, y: 10, scale: 0.9 }}\n            animate={{ opacity: 1, y: 0, scale: 1 }}\n            exit={{ opacity: 0, y: 10, scale: 0.9 }}\n            transition={{ duration: 0.2 }}\n            style={{\n              position: 'absolute',\n              bottom: '100%',\n              left: '50%',\n              transform: 'translateX(-50%)',\n              marginBottom: '0.5rem'\n            }}\n          >\n            {content}\n          </ContextualTooltip>\n        )}\n      </AnimatePresence>\n    </div>\n  );\n};\n\n// Session progress component\nexport const SessionProgressIndicator: React.FC<{\n  currentSessions: number;\n  targetSessions?: number;\n  className?: string;\n}> = ({ currentSessions, targetSessions = 12, className }) => {\n  const progress = Math.min((currentSessions / targetSessions) * 100, 100);\n  \n  return (\n    <SessionProgress className={className}>\n      <div\n        style={{\n          position: 'absolute',\n          top: 0,\n          left: 0,\n          height: '100%',\n          width: `${progress}%`,\n          background: 'linear-gradient(90deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.2))',\n          transition: 'width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)'\n        }}\n      />\n      <ProgressText>\n        <div className=\"progress-label\">\n          <Target size={16} style={{ marginRight: '0.5rem', display: 'inline' }} />\n          Session Progress\n        </div>\n        <div className=\"progress-value\">\n          {currentSessions} / {targetSessions}\n        </div>\n      </ProgressText>\n    </SessionProgress>\n  );\n};\n\n// Celebration particles component\nexport const CelebrationParticles: React.FC<{\n  celebrations: CelebrationEffect[];\n}> = ({ celebrations }) => {\n  return (\n    <>\n      {celebrations.map(celebration => (\n        <div key={celebration.id}>\n          {[...Array(8)].map((_, i) => (\n            <CelebrationParticle\n              key={i}\n              initial={{\n                opacity: 0,\n                scale: 0,\n                x: celebration.x,\n                y: celebration.y\n              }}\n              animate={{\n                opacity: [0, 1, 0],\n                scale: [0, 1, 0],\n                x: celebration.x + (Math.random() - 0.5) * 100,\n                y: celebration.y + (Math.random() - 0.5) * 100\n              }}\n              transition={{\n                duration: 1.5,\n                delay: i * 0.1,\n                ease: [0.25, 0.46, 0.45, 0.94]\n              }}\n            />\n          ))}\n        </div>\n      ))}\n    </>\n  );\n};\n\n// Smart notifications component\nexport const SmartNotifications: React.FC<{\n  notifications: SmartNotificationData[];\n  onDismiss: (id: string) => void;\n}> = ({ notifications, onDismiss }) => {\n  return (\n    <AnimatePresence>\n      {notifications.map((notification, index) => (\n        <SmartNotification\n          key={notification.id}\n          initial={{ opacity: 0, x: 100, scale: 0.9 }}\n          animate={{ opacity: 1, x: 0, scale: 1 }}\n          exit={{ opacity: 0, x: 100, scale: 0.9 }}\n          transition={{ duration: 0.3, delay: index * 0.1 }}\n          style={{ top: `${2 + index * 5}rem` }}\n        >\n          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>\n            {notification.type === 'success' && <Star size={16} />}\n            {notification.type === 'info' && <Zap size={16} />}\n            {notification.type === 'warning' && <TrendingUp size={16} />}\n            <span>{notification.message}</span>\n          </div>\n          {notification.action && (\n            <button\n              onClick={notification.action.onClick}\n              style={{\n                background: 'rgba(255, 255, 255, 0.2)',\n                border: '1px solid rgba(255, 255, 255, 0.3)',\n                color: 'white',\n                padding: '0.25rem 0.75rem',\n                borderRadius: '6px',\n                fontSize: '0.85rem',\n                marginTop: '0.5rem',\n                cursor: 'pointer'\n              }}\n            >\n              {notification.action.label}\n            </button>\n          )}\n        </SmartNotification>\n      ))}\n    </AnimatePresence>\n  );\n};\n\n// Export all components and hooks\nexport {\n  ContextualTooltip,\n  SessionProgress,\n  PriceChangeIndicator,\n  HelpIcon,\n  celebrate,\n  sparkle,\n  priceUpdate\n};\n"}]
+/**
+ * AdvancedCartInteractions.tsx - AAA 7-STAR INTERACTION PATTERNS
+ * ===============================================================
+ * 
+ * 🎮 ADVANCED INTERACTION FEATURES:
+ * - Contextual tooltips with smart positioning
+ * - Progressive disclosure animations
+ * - Micro-interactions with haptic feedback
+ * - Smart notifications with contextual actions
+ * - Session progress visualizations
+ * - Advanced gesture support
+ * 
+ * 🎆 DELIGHT PATTERNS:
+ * - Celebration animations on successful actions
+ * - Smart loading states with progress indication
+ * - Contextual help system
+ * - Session accumulation animations
+ * - Price change animations
+ * - Smart quantity recommendations
+ */
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import styled, { keyframes } from 'styled-components';
+import { motion, AnimatePresence } from 'framer-motion';
+import { HelpCircle, TrendingUp, Zap, Star, Target } from 'lucide-react';
+
+// Celebration animations
+const celebrate = keyframes`
+  0% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.1) rotate(-2deg); }
+  50% { transform: scale(1.2) rotate(2deg); }
+  75% { transform: scale(1.1) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0deg); }
+`;
+
+const sparkle = keyframes`
+  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(180deg); }
+`;
+
+const priceUpdate = keyframes`
+  0% { background-color: rgba(0, 255, 255, 0.2); transform: scale(1); }
+  50% { background-color: rgba(0, 255, 255, 0.4); transform: scale(1.05); }
+  100% { background-color: transparent; transform: scale(1); }
+`;
+
+// Interactive tooltip component
+const ContextualTooltip = styled(motion.div)`
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.95), rgba(120, 81, 169, 0.95));
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+  z-index: 1200;
+  max-width: 200px;
+  text-align: center;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid rgba(0, 255, 255, 0.95);
+  }
+`;
+
+// Progress indicator for session accumulation
+const SessionProgress = styled(motion.div)`
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(120, 81, 169, 0.1));
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1rem 0;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.2));
+    transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+`;
+
+const ProgressText = styled.div`
+  position: relative;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  
+  .progress-label {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  .progress-value {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #00ffff;
+  }
+`;
+
+// Celebration particles
+const CelebrationParticle = styled(motion.div)`
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #00ffff;
+  border-radius: 50%;
+  pointer-events: none;
+`;
+
+// Smart notification component
+const SmartNotification = styled(motion.div)`
+  position: fixed;
+  top: 2rem;
+  right: 2rem;
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.95), rgba(120, 81, 169, 0.95));
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  z-index: 1300;
+  max-width: 300px;
+  
+  @media (max-width: 768px) {
+    top: 1rem;
+    right: 1rem;
+    left: 1rem;
+    max-width: none;
+  }
+`;
+
+// Price change indicator
+const PriceChangeIndicator = styled(motion.div)`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: #00ffff;
+  margin-left: 0.5rem;
+`;
+
+// Interactive help icon
+const HelpIcon = styled(motion.button)`
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.7);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(0, 255, 255, 0.2);
+    border-color: rgba(0, 255, 255, 0.4);
+    color: #00ffff;
+    transform: scale(1.1);
+  }
+`;
+
+// Component interfaces
+interface TooltipInfo {
+  id: string;
+  content: string;
+  trigger: string;
+}
+
+interface CelebrationEffect {
+  id: string;
+  x: number;
+  y: number;
+  type: 'add' | 'remove' | 'checkout';
+}
+
+interface PriceChange {
+  itemId: number;
+  oldPrice: number;
+  newPrice: number;
+  timestamp: number;
+}
+
+interface SmartNotificationData {
+  id: string;
+  message: string;
+  type: 'success' | 'info' | 'warning';
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+}
+
+// Main interaction hook
+export const useAdvancedCartInteractions = () => {
+  const [tooltips, setTooltips] = useState<TooltipInfo[]>([]);
+  const [celebrations, setCelebrations] = useState<CelebrationEffect[]>([]);
+  const [priceChanges, setPriceChanges] = useState<PriceChange[]>([]);
+  const [notifications, setNotifications] = useState<SmartNotificationData[]>([]);
+  const [sessionProgress, setSessionProgress] = useState(0);
+  
+  // Haptic feedback function
+  const triggerHaptic = useCallback((pattern: 'light' | 'medium' | 'heavy' = 'light') => {
+    if ('vibrate' in navigator) {
+      const patterns = {
+        light: 10,
+        medium: 50,
+        heavy: [100, 50, 100]
+      };
+      navigator.vibrate(patterns[pattern]);
+    }
+  }, []);
+  
+  // Celebration effect
+  const triggerCelebration = useCallback((x: number, y: number, type: CelebrationEffect['type']) => {
+    const id = Math.random().toString(36).substr(2, 9);
+    setCelebrations(prev => [...prev, { id, x, y, type }]);
+    
+    // Trigger haptic feedback
+    triggerHaptic(type === 'checkout' ? 'heavy' : 'medium');
+    
+    // Remove celebration after animation
+    setTimeout(() => {
+      setCelebrations(prev => prev.filter(c => c.id !== id));
+    }, 2000);
+  }, [triggerHaptic]);
+  
+  // Price change animation
+  const animatePriceChange = useCallback((itemId: number, oldPrice: number, newPrice: number) => {
+    const id = Date.now();
+    setPriceChanges(prev => [...prev, { itemId, oldPrice, newPrice, timestamp: id }]);
+    
+    setTimeout(() => {
+      setPriceChanges(prev => prev.filter(p => p.timestamp !== id));
+    }, 1000);
+  }, []);
+  
+  // Smart notification
+  const showNotification = useCallback((message: string, type: SmartNotificationData['type'], action?: SmartNotificationData['action']) => {
+    const id = Math.random().toString(36).substr(2, 9);
+    setNotifications(prev => [...prev, { id, message, type, action }]);
+    
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 5000);
+  }, []);
+  
+  // Session progress update
+  const updateSessionProgress = useCallback((totalSessions: number, targetSessions: number = 12) => {
+    const progress = Math.min((totalSessions / targetSessions) * 100, 100);
+    setSessionProgress(progress);
+  }, []);
+  
+  return {
+    tooltips,
+    celebrations,
+    priceChanges,
+    notifications,
+    sessionProgress,
+    triggerHaptic,
+    triggerCelebration,
+    animatePriceChange,
+    showNotification,
+    updateSessionProgress
+  };
+};
+
+// Tooltip component
+export const SmartTooltip: React.FC<{
+  content: string;
+  children: React.ReactNode;
+  delay?: number;
+}> = ({ content, children, delay = 500 }) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  
+  const showTooltip = useCallback(() => {
+    timeoutRef.current = setTimeout(() => setIsVisible(true), delay);
+  }, [delay]);
+  
+  const hideTooltip = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    setIsVisible(false);
+  }, []);
+  
+  return (
+    <div
+      onMouseEnter={showTooltip}
+      onMouseLeave={hideTooltip}
+      style={{ position: 'relative', display: 'inline-block' }}
+    >
+      {children}
+      <AnimatePresence>
+        {isVisible && (
+          <ContextualTooltip
+            initial={{ opacity: 0, y: 10, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.9 }}
+            transition={{ duration: 0.2 }}
+            style={{
+              position: 'absolute',
+              bottom: '100%',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              marginBottom: '0.5rem'
+            }}
+          >
+            {content}
+          </ContextualTooltip>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// Session progress component
+export const SessionProgressIndicator: React.FC<{
+  currentSessions: number;
+  targetSessions?: number;
+  className?: string;
+}> = ({ currentSessions, targetSessions = 12, className }) => {
+  const progress = Math.min((currentSessions / targetSessions) * 100, 100);
+  
+  return (
+    <SessionProgress className={className}>
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          height: '100%',
+          width: `${progress}%`,
+          background: 'linear-gradient(90deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.2))',
+          transition: 'width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+        }}
+      />
+      <ProgressText>
+        <div className="progress-label">
+          <Target size={16} style={{ marginRight: '0.5rem', display: 'inline' }} />
+          Session Progress
+        </div>
+        <div className="progress-value">
+          {currentSessions} / {targetSessions}
+        </div>
+      </ProgressText>
+    </SessionProgress>
+  );
+};
+
+// Celebration particles component
+export const CelebrationParticles: React.FC<{
+  celebrations: CelebrationEffect[];
+}> = ({ celebrations }) => {
+  return (
+    <>
+      {celebrations.map(celebration => (
+        <div key={celebration.id}>
+          {[...Array(8)].map((_, i) => (
+            <CelebrationParticle
+              key={i}
+              initial={{
+                opacity: 0,
+                scale: 0,
+                x: celebration.x,
+                y: celebration.y
+              }}
+              animate={{
+                opacity: [0, 1, 0],
+                scale: [0, 1, 0],
+                x: celebration.x + (Math.random() - 0.5) * 100,
+                y: celebration.y + (Math.random() - 0.5) * 100
+              }}
+              transition={{
+                duration: 1.5,
+                delay: i * 0.1,
+                ease: [0.25, 0.46, 0.45, 0.94]
+              }}
+            />
+          ))}
+        </div>
+      ))}
+    </>
+  );
+};
+
+// Smart notifications component
+export const SmartNotifications: React.FC<{
+  notifications: SmartNotificationData[];
+  onDismiss: (id: string) => void;
+}> = ({ notifications, onDismiss }) => {
+  return (
+    <AnimatePresence>
+      {notifications.map((notification, index) => (
+        <SmartNotification
+          key={notification.id}
+          initial={{ opacity: 0, x: 100, scale: 0.9 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          exit={{ opacity: 0, x: 100, scale: 0.9 }}
+          transition={{ duration: 0.3, delay: index * 0.1 }}
+          style={{ top: `${2 + index * 5}rem` }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {notification.type === 'success' && <Star size={16} />}
+            {notification.type === 'info' && <Zap size={16} />}
+            {notification.type === 'warning' && <TrendingUp size={16} />}
+            <span>{notification.message}</span>
+          </div>
+          {notification.action && (
+            <button
+              onClick={notification.action.onClick}
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                color: 'white',
+                padding: '0.25rem 0.75rem',
+                borderRadius: '6px',
+                fontSize: '0.85rem',
+                marginTop: '0.5rem',
+                cursor: 'pointer'
+              }}
+            >
+              {notification.action.label}
+            </button>
+          )}
+        </SmartNotification>
+      ))}
+    </AnimatePresence>
+  );
+};
+
+// Export all components and hooks
+export {
+  ContextualTooltip,
+  SessionProgress,
+  PriceChangeIndicator,
+  HelpIcon,
+  celebrate,
+  sparkle,
+  priceUpdate
+};
