@@ -54,7 +54,7 @@ import './styles/animation-performance-fallbacks.css'; // Performance-optimized 
 import './styles/cosmic-elegance-utilities.css'; // ✨ Cosmic Elegance Utility System
 import './styles/cosmic-mobile-navigation.css'; // ✨ Cosmic Mobile Navigation System
 import './styles/universal-theme-styles.css'; // ✨ Universal Theme Integration System
-import './styles/cart-mobile-optimizations.css'; // 🛒 AAA 7-Star Cart Mobile Experience
+// import './styles/cart-mobile-optimizations.css'; // 🛒 AAA 7-Star Cart Mobile Experience (DISABLED - file removed)
 // Galaxy-Swan theme integration with Cosmic Elegance
 import ImprovedGlobalStyle from './styles/ImprovedGlobalStyle';
 import CosmicEleganceGlobalStyle, { detectDeviceCapability } from './styles/CosmicEleganceGlobalStyle';
