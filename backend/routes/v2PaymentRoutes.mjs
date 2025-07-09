@@ -31,10 +31,8 @@
 import express from 'express';
 import Stripe from 'stripe';
 import { protect } from '../middleware/authMiddleware.mjs';
-import ShoppingCart from '../models/ShoppingCart.mjs';
-import CartItem from '../models/CartItem.mjs';
-import StorefrontItem from '../models/StorefrontItem.mjs';
-import User from '../models/User.mjs';
+// 🎯 P0 FIX: Use coordinated model getters to prevent race condition
+import { getShoppingCart, getCartItem, getStorefrontItem, getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -97,15 +95,21 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
     logger.info(`[v2 Payment] Creating checkout session for user ${userId}`);
     console.log('🚀 [v2 Payment] Genesis Checkout Session Creation Starting...');
 
-    // Add comprehensive error handling and logging
+    // 🎯 P0 FIX: Get fully associated models from coordinated cache
+    let ShoppingCart, CartItem, StorefrontItem, User;
     try {
-      console.log('🔍 [DEBUG] Checking model availability...');
-      console.log('🔍 [DEBUG] ShoppingCart model:', !!ShoppingCart);
-      console.log('🔍 [DEBUG] CartItem model:', !!CartItem);
-      console.log('🔍 [DEBUG] StorefrontItem model:', !!StorefrontItem);
-      console.log('🔍 [DEBUG] User model:', !!User);
+      console.log('🔍 [DEBUG] Loading coordinated models with associations...');
+      ShoppingCart = getShoppingCart();
+      CartItem = getCartItem();
+      StorefrontItem = getStorefrontItem();
+      User = getUser();
+      
+      console.log('✅ [DEBUG] Coordinated models loaded successfully');
+      console.log('🔍 [DEBUG] ShoppingCart associations:', Object.keys(ShoppingCart.associations || {}));
+      console.log('🔍 [DEBUG] CartItem associations:', Object.keys(CartItem.associations || {}));
     } catch (debugError) {
-      console.error('❌ [DEBUG] Model check failed:', debugError.message);
+      console.error('❌ [DEBUG] Coordinated model loading failed:', debugError.message);
+      throw new Error('Models not properly initialized. Server may still be starting up.');
     }
 
     // Step 1: Validate and fetch cart data
@@ -413,6 +417,12 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
       });
     }
 
+    // 🎯 P0 FIX: Get coordinated models for verify-session endpoint
+    const ShoppingCart = getShoppingCart();
+    const CartItem = getCartItem();
+    const StorefrontItem = getStorefrontItem();
+    const User = getUser();
+    
     // Find and update the cart
     const cart = await ShoppingCart.findOne({
       where: { 
