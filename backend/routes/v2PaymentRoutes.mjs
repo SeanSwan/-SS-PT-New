@@ -97,28 +97,63 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
     logger.info(`[v2 Payment] Creating checkout session for user ${userId}`);
     console.log('🚀 [v2 Payment] Genesis Checkout Session Creation Starting...');
 
+    // Add comprehensive error handling and logging
+    try {
+      console.log('🔍 [DEBUG] Checking model availability...');
+      console.log('🔍 [DEBUG] ShoppingCart model:', !!ShoppingCart);
+      console.log('🔍 [DEBUG] CartItem model:', !!CartItem);
+      console.log('🔍 [DEBUG] StorefrontItem model:', !!StorefrontItem);
+      console.log('🔍 [DEBUG] User model:', !!User);
+    } catch (debugError) {
+      console.error('❌ [DEBUG] Model check failed:', debugError.message);
+    }
+
     // Step 1: Validate and fetch cart data
-    const cart = await ShoppingCart.findOne({
-      where: { 
-        userId, 
-        status: 'active'
-      },
-      include: [
-        { 
-          model: CartItem, 
-          as: 'cartItems',
-          include: [{ 
-            model: StorefrontItem, 
-            as: 'storefrontItem' 
-          }]
+    console.log('🔍 [DEBUG] Starting cart query for userId:', userId);
+    
+    let cart;
+    try {
+      cart = await ShoppingCart.findOne({
+        where: { 
+          userId, 
+          status: 'active'
         },
-        {
-          model: User,
-          as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'stripeCustomerId']
-        }
-      ]
-    });
+        include: [
+          { 
+            model: CartItem, 
+            as: 'cartItems',
+            include: [{ 
+              model: StorefrontItem, 
+              as: 'storefrontItem' 
+            }]
+          },
+          {
+            model: User,
+            as: 'user',
+            attributes: ['id', 'firstName', 'lastName', 'email', 'phone']
+            // Note: stripeCustomerId will be added after migration is run
+          }
+        ]
+      });
+      
+      console.log('✅ [DEBUG] Cart query completed. Cart found:', !!cart);
+      if (cart) {
+        console.log('🔍 [DEBUG] Cart items count:', cart.cartItems?.length || 0);
+        console.log('🔍 [DEBUG] User data:', {
+          id: cart.user?.id,
+          email: cart.user?.email,
+          hasUser: !!cart.user
+        });
+      }
+    } catch (cartQueryError) {
+      console.error('❌ [DEBUG] Cart query failed:', {
+        message: cartQueryError.message,
+        stack: cartQueryError.stack?.split('\n')[0],
+        sql: cartQueryError.sql || 'No SQL',
+        name: cartQueryError.name
+      });
+      throw cartQueryError;
+    }
 
     if (!cart || !cart.cartItems || cart.cartItems.length === 0) {
       return res.status(400).json({
@@ -164,15 +199,19 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
     let stripeCustomer = null;
     const user = cart.user;
     
-    if (user.stripeCustomerId) {
-      try {
-        stripeCustomer = await stripe.customers.retrieve(user.stripeCustomerId);
-        console.log('👤 [v2 Payment] Using existing Stripe customer:', user.stripeCustomerId);
-      } catch (error) {
-        logger.warn('[v2 Payment] Existing Stripe customer not found, creating new one');
-        stripeCustomer = null;
-      }
-    }
+    // TODO: Uncomment after migration adds stripeCustomerId column
+    // if (user.stripeCustomerId) {
+    //   try {
+    //     stripeCustomer = await stripe.customers.retrieve(user.stripeCustomerId);
+    //     console.log('👤 [v2 Payment] Using existing Stripe customer:', user.stripeCustomerId);
+    //   } catch (error) {
+    //     logger.warn('[v2 Payment] Existing Stripe customer not found, creating new one');
+    //     stripeCustomer = null;
+    //   }
+    // }
+    
+    // TEMPORARY: Always create new customer until migration is complete
+    console.log('⚠️ [v2 Payment] Creating new customer (stripeCustomerId not yet available)');
 
     if (!stripeCustomer) {
       stripeCustomer = await stripe.customers.create({
@@ -186,12 +225,16 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       });
 
       // Update user with Stripe Customer ID for admin dashboard
+      // TODO: Uncomment after migration adds stripeCustomerId column
       await user.update({
-        stripeCustomerId: stripeCustomer.id,
+        // stripeCustomerId: stripeCustomer.id, // TODO: Enable after migration
         // Update customer info if provided
         ...(customerInfo?.email && { email: customerInfo.email }),
         ...(customerInfo?.phone && { phone: customerInfo.phone })
       });
+      
+      // TEMPORARY: Log the Stripe customer ID for manual tracking
+      console.log('⚠️ [v2 Payment] Stripe Customer ID created but not stored:', stripeCustomer.id);
 
       console.log('✅ [v2 Payment] Created new Stripe customer:', stripeCustomer.id);
     }
@@ -309,7 +352,15 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
 
   } catch (error) {
     logger.error('[v2 Payment] Error creating checkout session:', error);
-    console.error('💥 [v2 Payment] Checkout session creation failed:', error.message);
+    console.error('💥 [v2 Payment] Checkout session creation failed:');
+    console.error('💥 [DEBUG] Error details:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack?.split('\n').slice(0, 3).join('\n'),
+      sql: error.sql || 'No SQL query',
+      code: error.code || 'No error code',
+      type: error.type || 'No error type'
+    });
     
     // Return appropriate error response
     const statusCode = error.type === 'StripeCardError' ? 400 : 500;
@@ -318,7 +369,12 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
       message: 'Failed to create checkout session',
       error: {
         code: error.code || 'CHECKOUT_CREATION_FAILED',
-        details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        details: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+        debugInfo: process.env.NODE_ENV === 'development' ? {
+          name: error.name,
+          sql: error.sql || 'No SQL',
+          originalMessage: error.message
+        } : undefined
       }
     });
   }
