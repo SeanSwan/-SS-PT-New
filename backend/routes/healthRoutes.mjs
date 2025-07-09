@@ -39,26 +39,33 @@ router.get('/', async (req, res) => {
       const StorefrontItem = getStorefrontItem();
       
       if (StorefrontItem) {
-        // Quick timeout for database queries
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Database query timeout')), 2000)
-        );
-        
-        const queryPromise = Promise.all([
-          StorefrontItem.count(),
-          StorefrontItem.count({ where: { isActive: true } }),
-          StorefrontItem.count({
-            where: {
-              isActive: true,
-              price: { [StorefrontItem.sequelize.Op.gt]: 0 }
-            }
-          })
-        ]);
-
-        const [packageCount, activePackages, validPricedPackages] = await Promise.race([
-          queryPromise,
-          timeoutPromise
-        ]);
+        // Quick timeout for database queries with proper error handling
+        try {
+          const queryPromise = Promise.all([
+            StorefrontItem.count(),
+            StorefrontItem.count({ where: { isActive: true } }),
+            StorefrontItem.count({
+              where: {
+                isActive: true,
+                price: { [StorefrontItem.sequelize.Op.gt]: 0 }
+              }
+            })
+          ]);
+          
+          // Use AbortController for clean timeout handling
+          const timeoutController = new AbortController();
+          const timeoutId = setTimeout(() => timeoutController.abort(), 2000);
+          
+          const [packageCount, activePackages, validPricedPackages] = await Promise.race([
+            queryPromise,
+            new Promise((_, reject) => {
+              timeoutController.signal.addEventListener('abort', () => {
+                reject(new Error('Database query timeout'));
+              });
+            })
+          ]);
+          
+          clearTimeout(timeoutId);
 
         // Add enhanced status if database is available
         basicStatus.database = 'connected';
@@ -83,6 +90,13 @@ router.get('/', async (req, res) => {
           basicStatus.message = 'Payment system not configured: Missing Stripe keys';
         } else {
           basicStatus.message = 'Genesis Checkout System fully operational';
+        }
+        
+        } catch (dbQueryError) {
+          // Database query failed - fallback gracefully
+          basicStatus.database = 'query_failed';
+          basicStatus.message = 'Server healthy - database queries timing out';
+          console.log('Health check: Database query failed:', dbQueryError.message);
         }
       }
     } catch (dbError) {
@@ -120,10 +134,9 @@ router.get('/store', async (req, res) => {
       });
     }
 
-    // Add timeout for store queries
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Store query timeout')), 3000)
-    );
+    // Add timeout for store queries with proper error handling
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(() => timeoutController.abort(), 3000);
     
     const queryPromise = StorefrontItem.findAll({
       where: { isActive: true },
@@ -131,7 +144,16 @@ router.get('/store', async (req, res) => {
       attributes: ['id', 'name', 'price', 'totalCost', 'sessions', 'totalSessions', 'packageType']
     });
 
-    const packages = await Promise.race([queryPromise, timeoutPromise]);
+    const packages = await Promise.race([
+      queryPromise,
+      new Promise((_, reject) => {
+        timeoutController.signal.addEventListener('abort', () => {
+          reject(new Error('Store query timeout'));
+        });
+      })
+    ]);
+    
+    clearTimeout(timeoutId);
 
     res.json({
       success: true,

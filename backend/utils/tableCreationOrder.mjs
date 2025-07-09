@@ -21,7 +21,7 @@ const TABLE_CREATION_ORDER = [
   'GamificationSettings',
   
   // PHASE 2: Core reference tables 
-  'muscle_groups',  // FIXED: MuscleGroup model uses 'muscle_groups'
+  'MuscleGroups',  // FIXED: MuscleGroup model uses 'MuscleGroups' 
   'Equipment', 
   'Exercises',  // Exercise model uses "Exercises" (quoted)
   'Achievements',
@@ -30,55 +30,55 @@ const TABLE_CREATION_ORDER = [
   
   // PHASE 3: User-dependent tables
   'Sessions',
-  'ClientProgress',
-  'Gamification',
+  'client_progress',  // FIXED: ClientProgress uses 'client_progress'
+  'Gamifications',   // FIXED: Gamification uses 'Gamifications'
   'Orientations',
   'Notifications',
   'Contacts',
-  'ShoppingCarts',
-  'UserAchievements',
-  'UserRewards', 
-  'UserMilestones',
-  'PointTransactions',
+  'shopping_carts',  // FIXED: ShoppingCart uses 'shopping_carts'
+  'user_achievements',  // FIXED: UserAchievement uses 'user_achievements'
+  'user_rewards',       // FIXED: UserReward uses 'user_rewards'
+  'user_milestones',    // FIXED: UserMilestone uses 'user_milestones'
+  'point_transactions', // FIXED: PointTransaction uses 'point_transactions'
   
   // PHASE 4: Product and storefront tables
-  'StorefrontItems',
-  'FoodIngredients',
-  'FoodProducts',
+  'storefront_items',   // FIXED: StorefrontItem uses 'storefront_items'
+  'food_ingredients',   // FIXED: FoodIngredient uses 'food_ingredients'
+  'food_products',      // FIXED: FoodProduct uses 'food_products'
   
   // PHASE 5: Cart and order tables (depend on storefront)
-  'CartItems',
+  'cart_items',  // FIXED: CartItem uses 'cart_items'
   'Orders',
-  'OrderItems',
+  'order_items', // FIXED: OrderItem uses 'order_items'
   
   // PHASE 6: Workout structure tables (depend on exercises/users)
-  'WorkoutPlans',  // WorkoutPlan model uses 'WorkoutPlans'
-  'WorkoutPlanDays',
-  'workout_sessions',  // FIXED: WorkoutSession model uses 'workout_sessions'
-  'WorkoutExercises',
-  'WorkoutPlanDayExercises',
+  'workout_plans',      // FIXED: WorkoutPlan uses 'workout_plans'
+  'WorkoutPlanDays',    // FIXED: WorkoutPlanDay uses 'WorkoutPlanDays'
+  'workout_sessions',   // FIXED: WorkoutSession uses 'workout_sessions'
+  'workout_exercises',  // FIXED: WorkoutExercise uses 'workout_exercises'
+  'workout_plan_day_exercises', // FIXED: WorkoutPlanDayExercise uses 'workout_plan_day_exercises'
   
   // PHASE 7: Exercise junction tables (depend on exercises and muscle groups)
-  'ExerciseMuscleGroups',
-  'ExerciseEquipment', 
+  'exercise_muscle_groups',  // FIXED: ExerciseMuscleGroup uses 'exercise_muscle_groups'
+  'exercise_equipment',      // FIXED: ExerciseEquipment uses 'exercise_equipment'
   'Sets',
   
   // PHASE 8: Food tracking (depends on users and products)
-  'FoodScanHistory',
+  'food_scan_history',  // FIXED: FoodScanHistory uses 'food_scan_history'
   
   // PHASE 9: Social features (depend on users)
-  'SocialPosts',
-  'SocialComments', 
-  'SocialLikes',
+  'social_posts',        // FIXED: SocialPost uses 'social_posts'
+  'social_comments',     // FIXED: SocialComment uses 'social_comments'
+  'social_likes',        // FIXED: SocialLike uses 'social_likes'
   'Friendships',
   'Challenges',
-  'ChallengeParticipants',
-  'ChallengeTeams',
+  'challenge_participants', // FIXED: ChallengeParticipant uses 'challenge_participants'
+  'challenge_teams',        // FIXED: ChallengeTeam uses 'challenge_teams'
   
   // PHASE 10: Financial tracking (depends on orders and users)
-  'financial_transactions',  // FIXED: FinancialTransaction model uses 'financial_transactions'
-  'BusinessMetrics',
-  'AdminNotifications'
+  'financial_transactions', // FIXED: FinancialTransaction uses 'financial_transactions'
+  'business_metrics',       // FIXED: BusinessMetrics uses 'business_metrics'
+  'admin_notifications'     // FIXED: AdminNotification uses 'admin_notifications'
 ];
 
 /**
