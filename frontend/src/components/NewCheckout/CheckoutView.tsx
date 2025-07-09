@@ -71,13 +71,19 @@ const CheckoutContainer = styled(motion.div)`
   position: relative;
   overflow: hidden;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1400px; /* Increased from 1200px */
   margin: 2rem auto;
   padding: 0;
+  min-height: 600px;
+  
+  @media (max-width: 1440px) {
+    max-width: 95%;
+    margin: 1.5rem auto;
+  }
   
   @media (max-width: 768px) {
     max-width: 100%;
-    margin: 1rem;
+    margin: 0.5rem;
     border-radius: 16px;
   }
   
@@ -131,9 +137,16 @@ const CheckoutSubtitle = styled.p`
 
 const CheckoutContent = styled.div`
   display: grid;
-  grid-template-columns: 1fr 400px;
-  gap: 2rem;
-  padding: 2rem;
+  grid-template-columns: 2fr 1fr; /* Better ratio for wider layouts */
+  gap: 3rem;
+  padding: 2rem 3rem;
+  min-height: 500px;
+  
+  @media (max-width: 1200px) {
+    grid-template-columns: 1.5fr 1fr;
+    gap: 2rem;
+    padding: 2rem;
+  }
   
   @media (max-width: 1024px) {
     grid-template-columns: 1fr 350px;
@@ -144,6 +157,11 @@ const CheckoutContent = styled.div`
     grid-template-columns: 1fr;
     gap: 1.5rem;
     padding: 1.5rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 1rem;
+    gap: 1rem;
   }
 `;
 
@@ -193,8 +211,16 @@ const CheckoutSection = styled(motion.div)`
   border: 1px solid rgba(0, 255, 255, 0.2);
   padding: 2rem;
   
+  @media (max-width: 1024px) {
+    padding: 1.75rem;
+  }
+  
   @media (max-width: 768px) {
     padding: 1.5rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 1.25rem;
   }
 `;
 
@@ -210,17 +236,36 @@ const SectionTitle = styled.h3`
 
 const CheckoutInfoGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
   margin-bottom: 2rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    margin-bottom: 1.5rem;
+  }
 `;
 
 const InfoCard = styled.div`
   background: rgba(0, 255, 255, 0.05);
   border: 1px solid rgba(0, 255, 255, 0.2);
   border-radius: 12px;
-  padding: 1rem;
+  padding: 1.25rem;
   text-align: center;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+    min-height: 100px;
+  }
 `;
 
 const InfoCardIcon = styled.div`
@@ -388,7 +433,25 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
       console.log('🚀 [Genesis Checkout] Creating Stripe Checkout Session...');
       console.log('💰 [Genesis Checkout] Total:', total.toFixed(2));
       console.log('🎯 [Genesis Checkout] Sessions:', sessionCount);
+      console.log('📊 [Genesis Checkout] Cart ID:', cart.id);
+      console.log('👤 [Genesis Checkout] User ID:', user.id);
 
+      // First check if the payment system is healthy
+      console.log('🔍 [Genesis Checkout] Testing payment system health...');
+      try {
+        const healthResponse = await api.get('/api/v2/payments/health');
+        console.log('✅ [Genesis Checkout] Payment system health:', healthResponse.data);
+        
+        if (!healthResponse.data?.success || healthResponse.data?.data?.status !== 'healthy') {
+          console.warn('⚠️ [Genesis Checkout] Payment system not fully healthy:', healthResponse.data);
+        }
+      } catch (healthError) {
+        console.warn('⚠️ [Genesis Checkout] Payment health check failed:', healthError);
+        // Continue anyway, the health endpoint might not exist
+      }
+      
+      console.log('🔍 [Genesis Checkout] Proceeding with checkout session creation...');
+      
       const response = await api.post('/api/v2/payments/create-checkout-session', {
         cartId: cart.id,
         customerInfo: checkoutState.customerInfo,
@@ -446,19 +509,49 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
       }
 
     } catch (error: any) {
-      console.error('💥 [Genesis Checkout] Failed:', error.message);
+      console.error('💥 [Genesis Checkout] Failed:', error);
+      console.error('💥 [Genesis Checkout] Error response:', error.response);
+      console.error('💥 [Genesis Checkout] Error data:', error.response?.data);
       
-      const errorMessage = error.response?.data?.message || error.message || 'Checkout failed. Please try again.';
+      let errorMessage = 'Checkout failed. Please try again.';
+      let errorDetails = '';
+      
+      if (error.response) {
+        // Server responded with error status
+        const status = error.response.status;
+        const serverMessage = error.response.data?.message || error.response.data?.error?.details;
+        
+        if (status === 500) {
+          errorMessage = 'Server error occurred. Our team has been notified.';
+          errorDetails = 'This may be due to payment system configuration. Please try again in a moment.';
+        } else if (status === 503) {
+          errorMessage = 'Payment processing temporarily unavailable.';
+          errorDetails = 'Stripe payment service is not configured. Please contact support.';
+        } else if (status === 400) {
+          errorMessage = serverMessage || 'Invalid checkout request.';
+        } else {
+          errorMessage = serverMessage || `Server error (${status})`;
+        }
+      } else if (error.request) {
+        // Network error
+        errorMessage = 'Unable to connect to payment service.';
+        errorDetails = 'Please check your internet connection and try again.';
+      } else {
+        // Other error
+        errorMessage = error.message || 'An unexpected error occurred.';
+      }
+      
+      const fullErrorMessage = errorDetails ? `${errorMessage} ${errorDetails}` : errorMessage;
       
       setCheckoutState(prev => ({
         ...prev,
-        error: errorMessage,
+        error: fullErrorMessage,
         isProcessing: false
       }));
 
       toast({
         title: "Checkout Error",
-        description: errorMessage,
+        description: fullErrorMessage,
         variant: "destructive",
         duration: 5000,
       });
