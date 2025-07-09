@@ -1,1 +1,353 @@
-/**\n * CartMobileOptimizations.css - AAA 7-STAR MOBILE CART EXPERIENCE\n * =================================================================\n * \n * 🎯 MOBILE-FIRST RESPONSIVE OPTIMIZATIONS:\n * - Touch-optimized interaction zones\n * - Swipe gestures for cart management\n * - Adaptive typography and spacing\n * - Accessible touch targets (44px minimum)\n * - Smooth scroll behaviors\n * - Progressive enhancement for various screen sizes\n * \n * 📱 BREAKPOINT STRATEGY:\n * - Mobile: 320px - 768px (touch-first)\n * - Tablet: 769px - 1024px (hybrid)\n * - Desktop: 1025px+ (cursor-first)\n */\n\n/* === MOBILE-FIRST BASE STYLES === */\n@media (max-width: 768px) {\n  /* Cart Modal Mobile Positioning */\n  .cart-modal-overlay {\n    padding: 0 !important;\n    align-items: flex-end !important;\n  }\n  \n  .cart-modal-content {\n    width: 100% !important;\n    max-width: 100% !important;\n    border-radius: 20px 20px 0 0 !important;\n    max-height: 90vh !important;\n    margin: 0 !important;\n  }\n  \n  /* Enhanced Touch Targets */\n  .cart-item-container {\n    padding: 1.25rem !important;\n    margin-bottom: 1rem !important;\n  }\n  \n  .quantity-button {\n    min-width: 44px !important;\n    min-height: 44px !important;\n    font-size: 1.2rem !important;\n  }\n  \n  .remove-button {\n    min-width: 44px !important;\n    min-height: 44px !important;\n    top: 1rem !important;\n    right: 1rem !important;\n  }\n  \n  /* Typography Scaling */\n  .cart-title {\n    font-size: 1.5rem !important;\n  }\n  \n  .item-name {\n    font-size: 1.1rem !important;\n    line-height: 1.4 !important;\n  }\n  \n  .item-price {\n    font-size: 1.2rem !important;\n  }\n  \n  /* Session Information Mobile Layout */\n  .session-info {\n    padding: 1rem !important;\n    margin-top: 0.75rem !important;\n  }\n  \n  .session-count {\n    font-size: 1rem !important;\n  }\n  \n  /* Button Container Mobile Stack */\n  .buttons-container {\n    grid-template-columns: 1fr !important;\n    gap: 0.75rem !important;\n    padding: 1rem 0 !important;\n  }\n  \n  /* Cart Summary Mobile Optimization */\n  .cart-summary {\n    padding: 1.25rem !important;\n    margin: 1rem 0 !important;\n  }\n  \n  .summary-row {\n    font-size: 0.95rem !important;\n    margin-bottom: 0.75rem !important;\n  }\n  \n  .summary-row.total {\n    font-size: 1.2rem !important;\n    padding-top: 1rem !important;\n    margin-top: 1rem !important;\n  }\n}\n\n/* === SMALL MOBILE OPTIMIZATION === */\n@media (max-width: 480px) {\n  .cart-header {\n    padding: 1.25rem 1.5rem !important;\n  }\n  \n  .cart-body {\n    padding: 0 1.5rem !important;\n  }\n  \n  .cart-footer {\n    padding: 1.25rem 1.5rem !important;\n  }\n  \n  .cart-item-container {\n    padding: 1rem !important;\n  }\n  \n  .item-layout {\n    grid-template-columns: 1fr !important;\n    gap: 1rem !important;\n  }\n  \n  .price-container {\n    align-items: flex-start !important;\n    min-width: auto !important;\n  }\n  \n  .quantity-controls {\n    justify-content: flex-start !important;\n    margin-top: 0.75rem !important;\n  }\n}\n\n/* === LANDSCAPE MOBILE OPTIMIZATION === */\n@media (max-width: 768px) and (orientation: landscape) {\n  .cart-modal-content {\n    max-height: 85vh !important;\n  }\n  \n  .cart-header {\n    padding: 1rem 2rem !important;\n  }\n  \n  .cart-footer {\n    padding: 1rem 2rem !important;\n  }\n  \n  .cart-title {\n    font-size: 1.4rem !important;\n  }\n}\n\n/* === TABLET OPTIMIZATION === */\n@media (min-width: 769px) and (max-width: 1024px) {\n  .cart-modal-content {\n    width: 85% !important;\n    max-width: 600px !important;\n  }\n  \n  .cart-item-container {\n    padding: 1.25rem !important;\n  }\n  \n  .buttons-container {\n    grid-template-columns: 1fr 2fr !important;\n  }\n}\n\n/* === TOUCH DEVICE ENHANCEMENTS === */\n@media (hover: none) and (pointer: coarse) {\n  /* Enhanced touch feedback */\n  .cart-button:active,\n  .quantity-button:active,\n  .remove-button:active {\n    transform: scale(0.95) !important;\n    transition: transform 0.1s ease !important;\n  }\n  \n  /* Remove hover states on touch devices */\n  .cart-item-container:hover {\n    transform: none !important;\n    box-shadow: inherit !important;\n  }\n  \n  /* Ensure minimum touch target sizes */\n  .modal-close-button {\n    min-width: 44px !important;\n    min-height: 44px !important;\n  }\n}\n\n/* === ACCESSIBILITY ENHANCEMENTS === */\n@media (prefers-reduced-motion: reduce) {\n  .cart-modal-overlay,\n  .cart-modal-content,\n  .cart-item-container {\n    animation: none !important;\n    transition: opacity 0.2s ease !important;\n  }\n}\n\n@media (prefers-contrast: high) {\n  .cart-modal-content {\n    border: 2px solid #ffffff !important;\n  }\n  \n  .cart-item-container {\n    border: 1px solid rgba(255, 255, 255, 0.3) !important;\n  }\n  \n  .session-info {\n    border: 1px solid rgba(0, 255, 255, 0.5) !important;\n  }\n}\n\n/* === FLOATING CART MOBILE OPTIMIZATION === */\n@media (max-width: 768px) {\n  .cart-follow-button {\n    bottom: 1.5rem !important;\n    right: 1.5rem !important;\n    width: 65px !important;\n    height: 65px !important;\n    font-size: 1.7rem !important;\n  }\n  \n  .cart-count {\n    width: 26px !important;\n    height: 26px !important;\n    font-size: 0.8rem !important;\n    top: -8px !important;\n    right: -8px !important;\n  }\n}\n\n@media (max-width: 480px) {\n  .cart-follow-button {\n    bottom: 1.25rem !important;\n    right: 1.25rem !important;\n    width: 60px !important;\n    height: 60px !important;\n    font-size: 1.6rem !important;\n  }\n  \n  .cart-count {\n    width: 24px !important;\n    height: 24px !important;\n    font-size: 0.75rem !important;\n    top: -6px !important;\n    right: -6px !important;\n  }\n}\n\n/* === SAFE AREA INSETS FOR MODERN MOBILES === */\n@supports (padding-bottom: env(safe-area-inset-bottom)) {\n  @media (max-width: 768px) {\n    .cart-footer {\n      padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)) !important;\n    }\n    \n    .cart-follow-button {\n      bottom: calc(1.5rem + env(safe-area-inset-bottom)) !important;\n    }\n  }\n}\n\n/* === PROGRESSIVE ENHANCEMENT === */\n@supports (backdrop-filter: blur(10px)) {\n  .cart-modal-overlay {\n    backdrop-filter: blur(15px) !important;\n  }\n}\n\n@supports (display: grid) {\n  @media (min-width: 481px) {\n    .item-layout {\n      display: grid !important;\n      grid-template-columns: 1fr auto !important;\n    }\n  }\n}\n\n/* === DARK MODE SUPPORT === */\n@media (prefers-color-scheme: light) {\n  .cart-modal-content {\n    /* Maintain dark theme for brand consistency */\n    background: linear-gradient(135deg, #1e1e3f, #0a0a1a) !important;\n  }\n}\n\n/* === PERFORMANCE OPTIMIZATIONS === */\n.cart-modal-overlay,\n.cart-modal-content {\n  will-change: transform, opacity;\n  transform: translateZ(0); /* Hardware acceleration */\n}\n\n.cart-item-container {\n  contain: layout style paint;\n}\n\n/* === SCROLL BEHAVIOR === */\n.cart-body {\n  scroll-behavior: smooth;\n  -webkit-overflow-scrolling: touch;\n  overscroll-behavior: contain;\n}\n\n/* === FOCUS MANAGEMENT === */\n@media (max-width: 768px) {\n  .modal-close-button:focus {\n    outline: 3px solid rgba(0, 255, 255, 0.8) !important;\n    outline-offset: 2px !important;\n  }\n  \n  .cart-modal-content:focus {\n    outline: none !important;\n  }\n}\n\n/* === LOADING STATE MOBILE === */\n@media (max-width: 768px) {\n  .loading-container {\n    min-height: 150px !important;\n    padding: 1.5rem !important;\n  }\n  \n  .loading-spinner {\n    width: 40px !important;\n    height: 40px !important;\n  }\n}\n\n/* === EMPTY CART MOBILE === */\n@media (max-width: 768px) {\n  .empty-cart-message {\n    padding: 2rem 1.5rem !important;\n  }\n  \n  .empty-icon {\n    font-size: 3rem !important;\n  }\n  \n  .empty-cart-message h3 {\n    font-size: 1.3rem !important;\n  }\n  \n  .empty-cart-message p {\n    font-size: 1rem !important;\n  }\n}\n
+/**
+ * CartMobileOptimizations.css - AAA 7-STAR MOBILE CART EXPERIENCE
+ * =================================================================
+ * 
+ * 🎯 MOBILE-FIRST RESPONSIVE OPTIMIZATIONS:
+ * - Touch-optimized interaction zones
+ * - Swipe gestures for cart management
+ * - Adaptive typography and spacing
+ * - Accessible touch targets (44px minimum)
+ * - Smooth scroll behaviors
+ * - Progressive enhancement for various screen sizes
+ * 
+ * 📱 BREAKPOINT STRATEGY:
+ * - Mobile: 320px - 768px (touch-first)
+ * - Tablet: 769px - 1024px (hybrid)
+ * - Desktop: 1025px+ (cursor-first)
+ */
+
+/* === MOBILE-FIRST BASE STYLES === */
+@media (max-width: 768px) {
+  /* Cart Modal Mobile Positioning */
+  .cart-modal-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+  
+  .cart-modal-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 90vh !important;
+    margin: 0 !important;
+  }
+  
+  /* Enhanced Touch Targets */
+  .cart-item-container {
+    padding: 1.25rem !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  .quantity-button {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    font-size: 1.2rem !important;
+  }
+  
+  .remove-button {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    top: 1rem !important;
+    right: 1rem !important;
+  }
+  
+  /* Typography Scaling */
+  .cart-title {
+    font-size: 1.5rem !important;
+  }
+  
+  .item-name {
+    font-size: 1.1rem !important;
+    line-height: 1.4 !important;
+  }
+  
+  .item-price {
+    font-size: 1.2rem !important;
+  }
+  
+  /* Session Information Mobile Layout */
+  .session-info {
+    padding: 1rem !important;
+    margin-top: 0.75rem !important;
+  }
+  
+  .session-count {
+    font-size: 1rem !important;
+  }
+  
+  /* Button Container Mobile Stack */
+  .buttons-container {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+    padding: 1rem 0 !important;
+  }
+  
+  /* Cart Summary Mobile Optimization */
+  .cart-summary {
+    padding: 1.25rem !important;
+    margin: 1rem 0 !important;
+  }
+  
+  .summary-row {
+    font-size: 0.95rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+  
+  .summary-row.total {
+    font-size: 1.2rem !important;
+    padding-top: 1rem !important;
+    margin-top: 1rem !important;
+  }
+}
+
+/* === SMALL MOBILE OPTIMIZATION === */
+@media (max-width: 480px) {
+  .cart-header {
+    padding: 1.25rem 1.5rem !important;
+  }
+  
+  .cart-body {
+    padding: 0 1.5rem !important;
+  }
+  
+  .cart-footer {
+    padding: 1.25rem 1.5rem !important;
+  }
+  
+  .cart-item-container {
+    padding: 1rem !important;
+  }
+  
+  .item-layout {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+  
+  .price-container {
+    align-items: flex-start !important;
+    min-width: auto !important;
+  }
+  
+  .quantity-controls {
+    justify-content: flex-start !important;
+    margin-top: 0.75rem !important;
+  }
+}
+
+/* === LANDSCAPE MOBILE OPTIMIZATION === */
+@media (max-width: 768px) and (orientation: landscape) {
+  .cart-modal-content {
+    max-height: 85vh !important;
+  }
+  
+  .cart-header {
+    padding: 1rem 2rem !important;
+  }
+  
+  .cart-footer {
+    padding: 1rem 2rem !important;
+  }
+  
+  .cart-title {
+    font-size: 1.4rem !important;
+  }
+}
+
+/* === TABLET OPTIMIZATION === */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .cart-modal-content {
+    width: 85% !important;
+    max-width: 600px !important;
+  }
+  
+  .cart-item-container {
+    padding: 1.25rem !important;
+  }
+  
+  .buttons-container {
+    grid-template-columns: 1fr 2fr !important;
+  }
+}
+
+/* === TOUCH DEVICE ENHANCEMENTS === */
+@media (hover: none) and (pointer: coarse) {
+  /* Enhanced touch feedback */
+  .cart-button:active,
+  .quantity-button:active,
+  .remove-button:active {
+    transform: scale(0.95) !important;
+    transition: transform 0.1s ease !important;
+  }
+  
+  /* Remove hover states on touch devices */
+  .cart-item-container:hover {
+    transform: none !important;
+    box-shadow: inherit !important;
+  }
+  
+  /* Ensure minimum touch target sizes */
+  .modal-close-button {
+    min-width: 44px !important;
+    min-height: 44px !important;
+  }
+}
+
+/* === ACCESSIBILITY ENHANCEMENTS === */
+@media (prefers-reduced-motion: reduce) {
+  .cart-modal-overlay,
+  .cart-modal-content,
+  .cart-item-container {
+    animation: none !important;
+    transition: opacity 0.2s ease !important;
+  }
+}
+
+@media (prefers-contrast: high) {
+  .cart-modal-content {
+    border: 2px solid #ffffff !important;
+  }
+  
+  .cart-item-container {
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  }
+  
+  .session-info {
+    border: 1px solid rgba(0, 255, 255, 0.5) !important;
+  }
+}
+
+/* === FLOATING CART MOBILE OPTIMIZATION === */
+@media (max-width: 768px) {
+  .cart-follow-button {
+    bottom: 1.5rem !important;
+    right: 1.5rem !important;
+    width: 65px !important;
+    height: 65px !important;
+    font-size: 1.7rem !important;
+  }
+  
+  .cart-count {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 0.8rem !important;
+    top: -8px !important;
+    right: -8px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .cart-follow-button {
+    bottom: 1.25rem !important;
+    right: 1.25rem !important;
+    width: 60px !important;
+    height: 60px !important;
+    font-size: 1.6rem !important;
+  }
+  
+  .cart-count {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 0.75rem !important;
+    top: -6px !important;
+    right: -6px !important;
+  }
+}
+
+/* === SAFE AREA INSETS FOR MODERN MOBILES === */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  @media (max-width: 768px) {
+    .cart-footer {
+      padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)) !important;
+    }
+    
+    .cart-follow-button {
+      bottom: calc(1.5rem + env(safe-area-inset-bottom)) !important;
+    }
+  }
+}
+
+/* === PROGRESSIVE ENHANCEMENT === */
+@supports (backdrop-filter: blur(10px)) {
+  .cart-modal-overlay {
+    backdrop-filter: blur(15px) !important;
+  }
+}
+
+@supports (display: grid) {
+  @media (min-width: 481px) {
+    .item-layout {
+      display: grid !important;
+      grid-template-columns: 1fr auto !important;
+    }
+  }
+}
+
+/* === DARK MODE SUPPORT === */
+@media (prefers-color-scheme: light) {
+  .cart-modal-content {
+    /* Maintain dark theme for brand consistency */
+    background: linear-gradient(135deg, #1e1e3f, #0a0a1a) !important;
+  }
+}
+
+/* === PERFORMANCE OPTIMIZATIONS === */
+.cart-modal-overlay,
+.cart-modal-content {
+  will-change: transform, opacity;
+  transform: translateZ(0); /* Hardware acceleration */
+}
+
+.cart-item-container {
+  contain: layout style paint;
+}
+
+/* === SCROLL BEHAVIOR === */
+.cart-body {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* === FOCUS MANAGEMENT === */
+@media (max-width: 768px) {
+  .modal-close-button:focus {
+    outline: 3px solid rgba(0, 255, 255, 0.8) !important;
+    outline-offset: 2px !important;
+  }
+  
+  .cart-modal-content:focus {
+    outline: none !important;
+  }
+}
+
+/* === LOADING STATE MOBILE === */
+@media (max-width: 768px) {
+  .loading-container {
+    min-height: 150px !important;
+    padding: 1.5rem !important;
+  }
+  
+  .loading-spinner {
+    width: 40px !important;
+    height: 40px !important;
+  }
+}
+
+/* === EMPTY CART MOBILE === */
+@media (max-width: 768px) {
+  .empty-cart-message {
+    padding: 2rem 1.5rem !important;
+  }
+  
+  .empty-icon {
+    font-size: 3rem !important;
+  }
+  
+  .empty-cart-message h3 {
+    font-size: 1.3rem !important;
+  }
+  
+  .empty-cart-message p {
+    font-size: 1rem !important;
+  }
+}
