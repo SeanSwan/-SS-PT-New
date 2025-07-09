@@ -12,6 +12,7 @@
 
 import logger from '../utils/logger.mjs';
 import getModels from './associations.mjs';
+import { Op } from '../database.mjs';
 
 // Global models cache - initialized once during server startup
 let modelsCache = null;
@@ -113,6 +114,9 @@ export const getNotification = () => getModel('Notification');
 export const getContact = () => getModel('Contact');
 export const getFinancialTransaction = () => getModel('FinancialTransaction');
 export const getAdminNotification = () => getModel('AdminNotification');
+
+// Export Sequelize operators for routes
+export { Op };
 
 // Legacy exports for backward compatibility
 export { default } from './associations.mjs';
