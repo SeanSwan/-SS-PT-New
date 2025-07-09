@@ -49,6 +49,25 @@ import { createApp } from './core/app.mjs';
 import { initializeServer } from './core/startup.mjs';
 import logger from './utils/logger.mjs';
 
+// ===================== GLOBAL ERROR HANDLERS =====================
+// Prevent server crashes from unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  logger.error('Unhandled Promise Rejection:', { promise, reason: reason?.message || reason });
+  // Log but don't crash the server in production
+  if (process.env.NODE_ENV === 'production') {
+    logger.error('Critical: Unhandled rejection in production. Server will continue.', { timestamp: new Date().toISOString() });
+  } else {
+    logger.error('Critical: Unhandled rejection in development. Server will shut down for safety.', { timestamp: new Date().toISOString() });
+    process.exit(1);
+  }
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error('Uncaught Exception:', { error: error.message, stack: error.stack });
+  // Always exit on uncaught exceptions
+  process.exit(1);
+});
+
 // ===================== MAIN SERVER EXECUTION =====================
 (async () => {
   try {
