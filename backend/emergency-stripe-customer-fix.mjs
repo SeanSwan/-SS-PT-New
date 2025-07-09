@@ -36,11 +36,15 @@ async function addStripeCustomerIdColumn() {
       return;
     }
     
-    // Add the column
+    // Add the column (PostgreSQL compatible)
     await sequelize.query(`
       ALTER TABLE "Users" 
-      ADD COLUMN "stripeCustomerId" VARCHAR(255) NULL 
-      COMMENT 'Stripe customer ID for payment processing';
+      ADD COLUMN "stripeCustomerId" VARCHAR(255) NULL;
+    `);
+    
+    // Add comment separately (PostgreSQL syntax)
+    await sequelize.query(`
+      COMMENT ON COLUMN "Users"."stripeCustomerId" IS 'Stripe customer ID for payment processing';
     `);
     
     console.log('✅ stripeCustomerId column added successfully');
