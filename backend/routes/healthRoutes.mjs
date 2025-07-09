@@ -7,13 +7,15 @@
 import express from 'express';
 
 // Dynamic import to handle initialization timing
-let getStorefrontItem;
+let getStorefrontItem, Op;
 try {
   const modelsModule = await import('../models/index.mjs');
   getStorefrontItem = modelsModule.getStorefrontItem;
+  Op = modelsModule.Op;
 } catch (importError) {
   console.log('Health routes: Models not yet available, using graceful degradation');
   getStorefrontItem = () => null;
+  Op = null;
 }
 
 const router = express.Router();
@@ -38,7 +40,7 @@ router.get('/', async (req, res) => {
     try {
       const StorefrontItem = getStorefrontItem();
       
-      if (StorefrontItem) {
+      if (StorefrontItem && Op) {
         // Quick timeout for database queries with proper error handling
         try {
           const queryPromise = Promise.all([
@@ -47,7 +49,7 @@ router.get('/', async (req, res) => {
             StorefrontItem.count({
               where: {
                 isActive: true,
-                price: { [StorefrontItem.sequelize.Op.gt]: 0 }
+                price: { [Op.gt]: 0 }
               }
             })
           ]);
