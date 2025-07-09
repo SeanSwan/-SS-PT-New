@@ -300,7 +300,7 @@ router.post('/create-checkout-session', protect, checkStripeAvailability, async 
         name: 'auto'
       },
       billing_address_collection: 'auto',
-      shipping_address_collection: null, // Not needed for digital services
+      // shipping_address_collection removed - not needed for digital services
       allow_promotion_codes: true,
       automatic_tax: {
         enabled: false // We're handling tax manually
