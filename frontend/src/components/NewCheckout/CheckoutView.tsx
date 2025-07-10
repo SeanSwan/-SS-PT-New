@@ -464,9 +464,15 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
       });
 
       if (response.data.success) {
-        const { checkoutUrl, sessionId } = response.data;
+        const { checkoutUrl, sessionId } = response.data.data; // 🎯 P0 FIX: Extract from data.data
+        
+        // 🛡️ DEFENSIVE VALIDATION: Ensure critical data exists
+        if (!sessionId || !checkoutUrl) {
+          throw new Error(`Missing critical checkout data: sessionId=${!!sessionId}, checkoutUrl=${!!checkoutUrl}`);
+        }
         
         console.log('✅ [Genesis Checkout] Session created successfully');
+        console.log('🔗 [Genesis Checkout] Session ID:', sessionId);
         console.log('🔗 [Genesis Checkout] Redirecting to Stripe...');
 
         // ADMIN DASHBOARD CONNECTION: Track checkout initiation
