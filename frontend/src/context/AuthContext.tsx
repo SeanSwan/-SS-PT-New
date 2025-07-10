@@ -103,7 +103,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     adminClient: createAdminClientService(apiService)
   };
   
-  // Token refresh function
+  // Token refresh function - Properly memoized to prevent re-creation
   const refreshToken = useCallback(async (): Promise<boolean> => {
     try {
       const token = tokenCleanup.getValidatedToken();
@@ -126,9 +126,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       tokenCleanup.handleTokenError(error);
       return false;
     }
-  }, []);
+  }, []); // No dependencies - this function is stable
   
-  // Check if user has permission
+  // Check if user has permission - Memoized with stable user.role dependency
   const checkPermission = useCallback((permission: string): boolean => {
     if (!user) return false;
     
@@ -137,11 +137,21 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       p === permission || 
       p.endsWith(':all') && permission.startsWith(p.split(':')[0])
     );
-  }, [user]);
+  }, [user?.role]); // Only depend on user.role, not entire user object
   
   // Check authentication status on mount - PRODUCTION ONLY
+  // CRITICAL FIX: Proper dependency management to prevent infinite loops
   useEffect(() => {
+    let isMounted = true; // Prevent state updates if component unmounts
+    
     const checkAuthStatus = async () => {
+      // Guard: Only run if no user is currently set (prevents unnecessary re-runs)
+      if (user) {
+        console.log('User already authenticated, skipping auth check');
+        setLoading(false);
+        return;
+      }
+      
       setLoading(true);
       setError(null);
       
@@ -152,8 +162,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         
         if (!token) {
           console.log('No valid token found');
-          setUser(null);
-          setLoading(false);
+          if (isMounted) {
+            setUser(null);
+            setLoading(false);
+          }
           return;
         }
         
@@ -168,7 +180,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
             
             if (!refreshed) {
               console.log('Token refresh failed, logging out');
-              logout();
+              if (isMounted) logout();
               return;
             }
           }
@@ -176,7 +188,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         
         // Set token in API service
         apiService.setAuthToken(token);
-        setToken(token);
+        if (isMounted) setToken(token);
         
         // Verify token with backend - REQUIRED IN PRODUCTION
         const response = await apiService.get('/api/auth/me');
@@ -200,28 +212,39 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
             clientInfo: userData.clientInfo
           };
           
-          setUser(formattedUser);
-          
-          // Update Redux if available
-          if (dispatch) {
-            dispatch(setReduxUser(formattedUser));
+          if (isMounted) {
+            setUser(formattedUser);
+            
+            // Update Redux if available
+            if (dispatch) {
+              dispatch(setReduxUser(formattedUser));
+            }
+            
+            console.log('Authentication restored:', formattedUser.username, formattedUser.role);
           }
-          
-          console.log('Authentication restored:', formattedUser.username, formattedUser.role);
         } else {
           throw new Error('Invalid user data from server');
         }
       } catch (error) {
         console.error('Auth check failed:', error);
-        setError('Authentication failed');
-        logout();
+        if (isMounted) {
+          setError('Authentication failed');
+          logout();
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
     
     checkAuthStatus();
-  }, []);
+    
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Empty dependency array - only run once on mount
   
   // Login function - PRODUCTION ONLY
   const login = async (username: string, password: string): Promise<{success: boolean, user: User | null, error?: string}> => {

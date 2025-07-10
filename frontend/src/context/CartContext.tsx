@@ -84,8 +84,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const [error, setError] = useState<string | null>(null);
   const [showCart, setShowCart] = useState<boolean>(false);
 
-  // Prevent multiple fetch operations
+  // Prevent multiple fetch operations and track initialization
   const fetchInProgress = useRef<boolean>(false);
+  const hasInitialized = useRef<boolean>(false);
   
   const fetchCart = useCallback(async (): Promise<void> => {
     // PRODUCTION: Only fetch cart if user is authenticated
@@ -140,26 +141,29 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       setLoading(false);
       fetchInProgress.current = false;
     }
-  }, [isAuthenticated, token, authAxios, user]);
+  }, [isAuthenticated, token, authAxios, user?.username]); // CRITICAL: Only depend on user.username, not entire user object
 
-  // Fetch cart on authentication
+  // Fetch cart on authentication - CRITICAL FIX: Removed fetchCart dependency to break infinite loop
   useEffect(() => {
-    if (isAuthenticated && user && token && !cart) {
-      console.log('User authenticated, fetching cart');
+    // Only fetch if authenticated and haven't initialized yet
+    if (isAuthenticated && user && token && !hasInitialized.current) {
+      console.log('User authenticated, initializing cart');
+      hasInitialized.current = true;
       fetchCart();
     } else if (!isAuthenticated) {
-      // Clear cart when user logs out
+      // Clear cart when user logs out and reset initialization flag
       setCart(null);
       setError(null);
+      hasInitialized.current = false;
     }
-  }, [isAuthenticated, user, token, fetchCart]);
+  }, [isAuthenticated, user?.id, token]); // CRITICAL: Depend on primitive values only, not functions
   
   const refreshCart = useCallback(() => {
     if (isAuthenticated && user && token) {
       console.log('Manual cart refresh requested');
       fetchCart();
     }
-  }, [isAuthenticated, user, token, fetchCart]);
+  }, [isAuthenticated, user?.id, token, fetchCart]); // Stable dependencies
   
   // Success notification
   const showCartNotification = useCallback((message: string, type: 'success' | 'error' = 'success') => {
