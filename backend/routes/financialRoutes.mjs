@@ -29,8 +29,112 @@ import logger from '../utils/logger.mjs';
 
 const router = express.Router();
 
-// Apply authentication to all financial routes
+// DEPLOYMENT TEST: Simple endpoint to verify financial routes are loaded
+router.get('/test', (req, res) => {
+  console.log('💡 Financial routes test endpoint hit - deployment confirmed!');
+  res.json({
+    success: true,
+    message: 'Financial routes are working!',
+    endpoint: '/api/financial/test',
+    timestamp: new Date().toISOString(),
+    deploymentStatus: 'NEW_CODE_DEPLOYED'
+  });
+});
+
+// Apply authentication to all financial routes EXCEPT test endpoint
 router.use(protect);
+
+// DEPLOYMENT DEBUG: Log that financial routes are loaded
+console.log('🔧 FINANCIAL ROUTES LOADED - track-checkout-start endpoint available');
+logger.info('Financial routes module loaded with track-checkout-start endpoint');
+
+/**
+ * POST /api/financial/track-checkout-start
+ * Track checkout initiation for admin dashboard analytics
+ * Called when user begins checkout process for real-time monitoring
+ */
+router.post('/track-checkout-start', async (req, res) => {
+  // DEPLOYMENT DEBUG: Log that endpoint is being hit
+  console.log('🚨 track-checkout-start endpoint HIT - new code is deployed!');
+  logger.info('track-checkout-start endpoint accessed', {
+    userId: req.user?.id,
+    path: req.path,
+    method: req.method,
+    timestamp: new Date().toISOString()
+  });
+  
+  try {
+    const userId = req.user.id;
+    const {
+      sessionId,
+      cartId,
+      amount,
+      sessionCount,
+      timestamp
+    } = req.body;
+
+    // Validate required fields
+    if (!sessionId || !cartId || !amount) {
+      return res.status(400).json({
+        success: false,
+        message: 'Session ID, cart ID, and amount are required'
+      });
+    }
+
+    // Create checkout tracking entry for admin analytics
+    const trackingData = {
+      userId,
+      cartId: parseInt(cartId),
+      stripePaymentIntentId: sessionId, // Use session ID as tracking reference
+      amount: parseFloat(amount),
+      currency: 'USD',
+      status: 'checkout_started',
+      description: `Checkout initiated - ${sessionCount || 0} sessions`,
+      metadata: JSON.stringify({
+        sessionCount: sessionCount || 0,
+        checkoutStartedAt: timestamp || new Date().toISOString(),
+        source: 'genesis_checkout_tracking'
+      }),
+      ipAddress: req.ip || req.connection.remoteAddress,
+      userAgent: req.headers['user-agent']
+    };
+
+    // Log the checkout start event
+    const trackingRecord = await FinancialTransaction.create(trackingData);
+
+    logger.info(`Checkout tracking started: ${trackingRecord.id} for user ${userId}, cart ${cartId}, amount ${amount}`);
+
+    // Update business metrics for real-time dashboard
+    try {
+      // Note: Business metrics will be calculated in batch processes
+      // This tracking creates the raw data for later aggregation
+      logger.info(`Checkout metrics data created for future aggregation on ${new Date().toISOString().split('T')[0]}`);
+    } catch (metricsError) {
+      logger.warn('Failed to log metrics info:', metricsError.message);
+      // Don't fail the tracking for metrics errors
+    }
+
+    res.json({
+      success: true,
+      message: 'Checkout start tracked successfully',
+      data: {
+        trackingId: trackingRecord.id,
+        sessionId,
+        cartId,
+        amount: trackingRecord.amount,
+        timestamp: trackingRecord.createdAt
+      }
+    });
+
+  } catch (error) {
+    logger.error('Error tracking checkout start:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to track checkout start',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
 
 /**
  * POST /api/financial/log-transaction
