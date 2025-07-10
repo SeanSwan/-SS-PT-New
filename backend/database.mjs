@@ -147,8 +147,11 @@ try {
   }
 }
 
-// Export Sequelize Op (operators)
+// Export Sequelize Op (operators) - CRITICAL for production health checks
 export const Op = Sequelize.Op;
+
+// Export Sequelize class for model usage
+export { Sequelize };
 
 /**
  * Tests the database connection and logs the result
