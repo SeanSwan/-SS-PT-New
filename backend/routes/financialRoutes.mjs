@@ -63,6 +63,18 @@ router.post('/track-checkout-start', async (req, res) => {
     timestamp: new Date().toISOString()
   });
   
+  // DEBUG: Log the exact request body to see what's missing
+  console.log('🔍 [DEBUG] Request body received:', JSON.stringify(req.body, null, 2));
+  logger.info('track-checkout-start request data', {
+    body: req.body,
+    hasSessionId: !!req.body.sessionId,
+    hasCartId: !!req.body.cartId,
+    hasAmount: !!req.body.amount,
+    sessionIdValue: req.body.sessionId,
+    cartIdValue: req.body.cartId,
+    amountValue: req.body.amount
+  });
+  
   try {
     const userId = req.user.id;
     const {
@@ -73,11 +85,32 @@ router.post('/track-checkout-start', async (req, res) => {
       timestamp
     } = req.body;
 
-    // Validate required fields
-    if (!sessionId || !cartId || !amount) {
+    // Validate required fields with detailed error messaging
+    const missingFields = [];
+    if (!sessionId) missingFields.push('sessionId');
+    if (!cartId) missingFields.push('cartId');
+    if (!amount) missingFields.push('amount');
+    
+    if (missingFields.length > 0) {
+      console.log('⚠️ [VALIDATION ERROR] Missing required fields:', missingFields);
+      console.log('🔍 [VALIDATION DEBUG] Received values:', {
+        sessionId: sessionId || 'MISSING',
+        cartId: cartId || 'MISSING',
+        amount: amount || 'MISSING'
+      });
+      
       return res.status(400).json({
         success: false,
-        message: 'Session ID, cart ID, and amount are required'
+        message: `Missing required fields: ${missingFields.join(', ')}`,
+        details: {
+          required: ['sessionId', 'cartId', 'amount'],
+          missing: missingFields,
+          received: {
+            sessionId: sessionId || null,
+            cartId: cartId || null,
+            amount: amount || null
+          }
+        }
       });
     }
 
