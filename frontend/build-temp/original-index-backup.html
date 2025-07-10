@@ -1,0 +1,33 @@
+BACKUP - Original index.html content before cleanup
+========================================================
+
+Current asset references in local build:
+- JS: /assets/index-lvQzA3OO.js
+- CSS: /assets/index-DqCXoU41.css
+
+Browser was requesting (old deployed version):
+- JS: /assets/index-DBt8F-0d.js  
+- CSS: /assets/index-BJzF3EbV.css
+
+This confirms deployment sync issue - local and production are out of sync.
+
+Original index.html content:
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Swan Studios Favicon - Proper Order -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" href="/Logo.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/Logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Swan Studios - Personal Training</title>
+    <script type="module" crossorigin src="/assets/index-lvQzA3OO.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-Bghueu-_.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-DqCXoU41.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
