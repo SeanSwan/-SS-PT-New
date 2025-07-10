@@ -284,7 +284,7 @@ const OrderReviewStep: React.FC<OrderReviewStepProps> = ({
         const itemPrice = parseFloat(item.price) || 0;
         const itemQuantity = item.quantity || 0;
         const itemTotal = itemPrice * itemQuantity;
-        const itemSessions = (item.storefrontItem?.sessions || 0) * itemQuantity;
+        const itemSessions = (item.storefrontItem?.sessions || item.storefrontItem?.totalSessions || 0) * itemQuantity; // 🎯 SESSIONS FIX: Handle both package types
         
         return (
           <OrderItem key={item.id || index}>

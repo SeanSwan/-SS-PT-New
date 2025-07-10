@@ -377,7 +377,9 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
   const tax = subtotal * 0.08; // 8% tax
   const total = subtotal + tax;
   const sessionCount = cartItems.reduce((sum, item) => {
-    return sum + ((item.storefrontItem?.sessions || 0) * (item.quantity || 0));
+    // 🎯 SESSIONS FIX: Handle both fixed packages (sessions) and monthly packages (totalSessions)
+    const itemSessions = item.storefrontItem?.sessions || item.storefrontItem?.totalSessions || 0;
+    return sum + (itemSessions * (item.quantity || 0));
   }, 0);
 
   // Load cart data on mount
