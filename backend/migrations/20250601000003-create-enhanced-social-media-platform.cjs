@@ -148,11 +148,12 @@ module.exports = {
         },
         communityId: {
           type: Sequelize.UUID,
-          allowNull: true,
-          references: {
-            model: 'Communities',
-            key: 'id'
-          }
+          allowNull: true
+          // TODO: Add foreign key constraint after Communities table is created
+          // references: {
+          //   model: 'Communities',
+          //   key: 'id'
+          // }
         },
         isPromoted: {
           type: Sequelize.BOOLEAN,
