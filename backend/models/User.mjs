@@ -242,6 +242,14 @@ User.init(
     // Remove the problematic foreign key reference
     // badgesPrimary field removed
     
+    // ========== STRIPE INTEGRATION FIELDS ==========
+    // Stripe customer ID for payment processing
+    stripeCustomerId: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: 'Stripe customer ID for payment processing and subscription management'
+    },
+    
     // Authentication fields
     refreshTokenHash: {
       type: DataTypes.STRING,
