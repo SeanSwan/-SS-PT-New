@@ -16,9 +16,6 @@ const router = express.Router();
 // Apply auth middleware to all routes
 router.use(protect);
 
-// Get User model through centralized loader
-const User = getUser();
-
 // Social gamification point rules
 const SOCIAL_POINT_RULES = {
   post_create_general: 10,
@@ -174,7 +171,7 @@ router.get('/feed', async (req, res) => {
       order: [['createdAt', 'DESC']], 
       include: [
         {
-          model: User,
+          model: getUser(),
           as: 'user',
           attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
         }
@@ -263,7 +260,7 @@ router.get('/user/:userId', async (req, res) => {
     const offset = parseInt(req.query.offset) || 0;
     
     // Check if user exists
-    const user = await User.findByPk(userId, {
+    const user = await getUser().findByPk(userId, {
       attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
     });
     
@@ -310,7 +307,7 @@ router.get('/user/:userId', async (req, res) => {
       order: [['createdAt', 'DESC']],
       include: [
         {
-          model: User,
+          model: getUser(),
           as: 'user',
           attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
         }
@@ -445,7 +442,7 @@ router.post('/', upload.single('media'), async (req, res) => {
     const fullPost = await SocialPost.findByPk(post.id, {
       include: [
         {
-          model: User,
+          model: getUser(),
           as: 'user',
           attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
         }
@@ -497,7 +494,7 @@ router.get('/:postId', async (req, res) => {
     const post = await SocialPost.findByPk(postId, {
       include: [
         {
-          model: User,
+          model: getUser(),
           as: 'user',
           attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
         }
@@ -544,7 +541,7 @@ router.get('/:postId', async (req, res) => {
       order: [['createdAt', 'ASC']],
       include: [
         {
-          model: User,
+          model: getUser(),
           as: 'user',
           attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
         }
@@ -615,7 +612,7 @@ router.put('/:postId', async (req, res) => {
     const updatedPost = await SocialPost.findByPk(post.id, {
       include: [
         {
-          model: User,
+          model: getUser(),
           as: 'user',
           attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
         }
@@ -867,7 +864,7 @@ router.post('/:postId/comments', async (req, res) => {
     const fullComment = await SocialComment.findByPk(comment.id, {
       include: [
         {
-          model: User,
+          model: getUser(),
           as: 'user',
           attributes: ['id', 'firstName', 'lastName', 'username', 'photo', 'role']
         }
