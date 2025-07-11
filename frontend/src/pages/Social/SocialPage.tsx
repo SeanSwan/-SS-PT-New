@@ -10,7 +10,12 @@ import {
   Divider,
   Button,
   useMediaQuery,
-  useTheme
+  useTheme,
+  Chip,
+  Avatar,
+  Tooltip,
+  Badge,
+  LinearProgress
 } from '@mui/material';
 import {
   Home,
@@ -18,9 +23,15 @@ import {
   Trophy,
   Bell,
   Settings,
-  PlusCircle
+  PlusCircle,
+  Star,
+  Zap,
+  Target,
+  TrendingUp,
+  Award
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useGamificationData } from '../../hooks/gamification/useGamificationData';
 import SocialFeed from '../../components/Social/Feed/SocialFeed';
 import FriendsList from '../../components/Social/Friends/FriendsList';
 import styled from 'styled-components';
@@ -60,15 +71,63 @@ const MenuButton = styled(Button)<{ active?: boolean }>`
   }
 `;
 
+const GamificationSidebar = styled(Box)`
+  background: linear-gradient(135deg, #1976d2, #42a5f5);
+  color: white;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+`;
+
+const PointsSection = styled(Box)`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+`;
+
+const StreakSection = styled(Box)`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+`;
+
+const ProgressSection = styled(Box)`
+  margin-top: 16px;
+`;
+
+const QuickActionButton = styled(Button)`
+  margin-bottom: 8px;
+  justify-content: flex-start;
+  text-transform: none;
+  
+  &:hover {
+    transform: translateX(4px);
+    transition: transform 0.2s ease;
+  }
+`;
+
+const NotificationBadge = styled(Badge)`
+  .MuiBadge-badge {
+    background: linear-gradient(135deg, #ff6b35, #f7931e);
+    color: white;
+  }
+`;
+
 /**
  * Main Social Page Component
  * Displays the social feed and provides navigation to other social features
  */
 const SocialPage: React.FC = () => {
   const { user } = useAuth();
+  const { profile } = useGamificationData();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [activeTab, setActiveTab] = useState<'feed' | 'friends' | 'challenges'>('feed');
+  
+  // Mock notification count for demo
+  const notificationCount = 3;
   
   // Handle tab change
   const handleTabChange = (tab: 'feed' | 'friends' | 'challenges') => {
@@ -139,9 +198,64 @@ const SocialPage: React.FC = () => {
         // Desktop layout with sidebar
         <Grid container spacing={3}>
           <Grid item xs={12} md={3}>
+            {/* Gamification Section */}
+            {profile.data && (
+              <GamificationSidebar>
+                <PointsSection>
+                  <Box>
+                    <Typography variant="h6" fontWeight="600">
+                      {profile.data.points?.toLocaleString() || 0}
+                    </Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                      Points
+                    </Typography>
+                  </Box>
+                  <Chip 
+                    icon={<Star size={16} />}
+                    label={`Level ${profile.data.level || 1}`}
+                    size="small"
+                    sx={{ 
+                      background: 'rgba(255, 255, 255, 0.2)', 
+                      color: 'white',
+                      backdropFilter: 'blur(10px)'
+                    }}
+                  />
+                </PointsSection>
+                
+                <StreakSection>
+                  <Zap size={18} />
+                  <Typography variant="body2">
+                    {profile.data.streakDays || 0} day streak
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                    🔥
+                  </Typography>
+                </StreakSection>
+                
+                <ProgressSection>
+                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                    Next Level Progress
+                  </Typography>
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={profile.data.nextLevelProgress || 0}
+                    sx={{ 
+                      mt: 1, 
+                      height: 6, 
+                      borderRadius: 3,
+                      backgroundColor: 'rgba(255, 255, 255, 0.2)'
+                    }}
+                  />
+                  <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                    {profile.data.nextLevelProgress || 0}% to Level {(profile.data.level || 1) + 1}
+                  </Typography>
+                </ProgressSection>
+              </GamificationSidebar>
+            )}
+            
             <SidebarContainer elevation={1}>
               <Typography variant="h6" gutterBottom>
-                Social
+                Social Hub
               </Typography>
               <SidebarMenu>
                 <MenuButton
@@ -169,7 +283,11 @@ const SocialPage: React.FC = () => {
                   Challenges
                 </MenuButton>
                 <MenuButton
-                  startIcon={<Bell size={20} />}
+                  startIcon={
+                    <NotificationBadge badgeContent={notificationCount} color="primary">
+                      <Bell size={20} />
+                    </NotificationBadge>
+                  }
                   fullWidth
                   disabled
                 >
@@ -180,17 +298,35 @@ const SocialPage: React.FC = () => {
               <Divider sx={{ my: 2 }} />
               
               <Typography variant="subtitle2" gutterBottom>
-                Create
+                Quick Actions
               </Typography>
-              <Button
+              
+              <QuickActionButton
                 variant="outlined"
                 startIcon={<PlusCircle size={18} />}
                 fullWidth
                 onClick={() => handleTabChange('feed')}
-                sx={{ textTransform: 'none', justifyContent: 'flex-start', py: 1.5 }}
+                sx={{ mb: 1 }}
               >
                 Create Post
-              </Button>
+              </QuickActionButton>
+              
+              <QuickActionButton
+                variant="outlined"
+                startIcon={<Target size={18} />}
+                fullWidth
+                sx={{ mb: 1 }}
+              >
+                Set Goal
+              </QuickActionButton>
+              
+              <QuickActionButton
+                variant="outlined"
+                startIcon={<Award size={18} />}
+                fullWidth
+              >
+                View Rewards
+              </QuickActionButton>
             </SidebarContainer>
           </Grid>
           

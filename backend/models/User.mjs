@@ -1,4 +1,4 @@
-// backend/models/User.simplified.mjs
+// backend/models/User.mjs
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
 import bcrypt from 'bcryptjs';
