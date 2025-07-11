@@ -1,0 +1,15 @@
+# SwanStudios - Elite Personal Training SEO Optimization
+User-agent: *
+Allow: /
+
+# Priority pages for local SEO
+Allow: /
+Allow: /contact
+Allow: /store
+Allow: /about
+
+# Sitemap location
+Sitemap: https://swanstudios.com/sitemap.xml
+
+# Crawl-delay for better server performance
+Crawl-delay: 1

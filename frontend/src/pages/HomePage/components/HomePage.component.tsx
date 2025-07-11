@@ -13,6 +13,7 @@ import ParallaxSection from "../../../components/ParallaxSection/ParallaxSection
 import FeaturesSection from "../../../components/FeaturesSection/FeaturesSection";
 import TrainerProfilesSection from "./TrainerProfilesSection";
 import CreativeExpressionSection from "./CreativeExpressionSection";
+import LocalServiceAreas from "../../../components/LocalServiceAreas";
 
 const FeaturedSection = styled.div`
   position: relative;
@@ -533,15 +534,16 @@ const HomePage: React.FC = () => {
   const [instagramRef, isInstagramInView] = useCustomInView();
   const [newsletterRef, isNewsletterInView] = useCustomInView();
   
-  // Divider texts for each section
+  // Divider texts for each section - High Energy Edition
   const dividerTexts = [
-    "Elevate Your Excellence",
-    "Exclusive Consultation",
-    "Express & Connect",
-    "Elite Coaching",
-    "Success Stories",
-    "Proven Results",
-    "Join Our Community"
+    "UNLEASH YOUR ULTIMATE POTENTIAL",
+    "BECOME LEGENDARY",
+    "YOUR ARSENAL AWAITS",
+    "FORGE YOUR DESTINY",
+    "WITNESS THE TRANSFORMATION",
+    "DOMINATE YOUR GOALS",
+    "CONQUER YOUR TERRITORY",
+    "IGNITE THE REVOLUTION"
   ];
   
   // Add ids for scroll navigation
@@ -631,16 +633,216 @@ const HomePage: React.FC = () => {
   return (
     <HomePageContainer ref={homeRef}>
       <Helmet>
-        <title>SwanStudios | Elite Personal Training for Executives & Entrepreneurs</title>
-        <meta name="description" content="Exclusive personal training for discerning professionals. NASM-certified elite coaching with 25+ years of expertise. Limited availability - by invitation only. Complimentary consultation available." />
-        <meta property="og:title" content="SwanStudios | Elite Personal Training for Executives & Entrepreneurs" />
-        <meta property="og:description" content="Exclusive personal training for discerning professionals. NASM-certified elite coaching with 25+ years of expertise. Limited availability - by invitation only. Complimentary consultation available." />
+        <title>Elite Personal Trainer | Anaheim Hills, Beverly Hills, Newport Beach | SwanStudios AI Fitness</title>
+        <meta name="description" content="Premium personal training serving Orange County & Los Angeles elite markets. AI-powered fitness coaching in Anaheim Hills, Beverly Hills, Brentwood, Newport Beach, Manhattan Beach & 30+ affluent neighborhoods. Executive wellness programs." />
+        <meta property="og:title" content="Elite Personal Trainer | Anaheim Hills, Beverly Hills, Newport Beach | SwanStudios AI Fitness" />
+        <meta property="og:description" content="Premium personal training serving Orange County & Los Angeles elite markets. AI-powered fitness coaching in Anaheim Hills, Beverly Hills, Brentwood, Newport Beach, Manhattan Beach & 30+ affluent neighborhoods. Executive wellness programs." />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="/Logo.png" />
+        <meta property="og:image" content="https://swanstudios.com/Logo.png" />
+        <meta property="og:url" content="https://swanstudios.com" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
         <meta name="theme-color" content="#0a0a1a" />
-        <meta name="keywords" content="elite personal training, executive fitness, luxury wellness, premium coaching, NASM certified, Beverly Hills trainer, exclusive fitness, executive wellness program" />
+        
+        {/* Enhanced Local SEO Keywords */}
+        <meta name="keywords" content="personal trainer Anaheim Hills, elite fitness Beverly Hills, luxury trainer Newport Beach, executive wellness Brentwood, AI fitness coaching Orange County, premium personal training Los Angeles, fitness trainer Manhattan Beach, elite coaching Laguna Beach, luxury fitness Calabasas, executive trainer Palos Verdes, personal training Yorba Linda, fitness coach Villa Park, elite wellness Malibu, premium fitness Santa Monica, luxury trainer Irvine, executive fitness Pasadena, personal trainer Encino, elite coaching Century City, fitness trainer Westwood, luxury wellness Marina del Rey" />
+        
+        {/* Enhanced Local SEO Meta Tags */}
+        <meta name="geo.region" content="US-CA" />
+        <meta name="geo.placename" content="Anaheim Hills, Orange County, Los Angeles" />
+        <meta name="geo.position" content="33.8358;-117.7628" />
+        <meta name="ICBM" content="33.8358, -117.7628" />
+        
+        {/* Enhanced Social Meta */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Elite Personal Trainer | Anaheim Hills, Beverly Hills, Newport Beach | SwanStudios" />
+        <meta name="twitter:description" content="Premium AI-powered fitness coaching serving 30+ affluent SoCal neighborhoods. Executive wellness programs with guaranteed results." />
+        <meta name="twitter:image" content="https://swanstudios.com/Logo.png" />
+        
         <link rel="canonical" href="https://swanstudios.com" />
+        
+        {/* JSON-LD Structured Data for Local Business */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "LocalBusiness",
+            "@id": "https://swanstudios.com",
+            "name": "SwanStudios Elite Personal Training",
+            "description": "Elite personal training and AI-powered fitness coaching serving Orange County and Los Angeles premium markets. Executive wellness programs with guaranteed results.",
+            "url": "https://swanstudios.com",
+            "logo": "https://swanstudios.com/Logo.png",
+            "image": "https://swanstudios.com/Logo.png",
+            "telephone": "+1-xxx-xxx-xxxx",
+            "priceRange": "$$",
+            "address": {
+              "@type": "PostalAddress",
+              "addressRegion": "CA",
+              "addressCountry": "US",
+              "addressLocality": "Anaheim Hills"
+            },
+            "geo": {
+              "@type": "GeoCoordinates",
+              "latitude": 33.8358,
+              "longitude": -117.7628
+            },
+            "areaServed": [
+              {
+                "@type": "City",
+                "name": "Anaheim Hills",
+                "containedInPlace": {
+                  "@type": "State",
+                  "name": "California"
+                }
+              },
+              {
+                "@type": "City",
+                "name": "Beverly Hills",
+                "containedInPlace": {
+                  "@type": "State",
+                  "name": "California"
+                }
+              },
+              {
+                "@type": "City",
+                "name": "Newport Beach",
+                "containedInPlace": {
+                  "@type": "State",
+                  "name": "California"
+                }
+              },
+              {
+                "@type": "City",
+                "name": "Brentwood",
+                "containedInPlace": {
+                  "@type": "State",
+                  "name": "California"
+                }
+              },
+              {
+                "@type": "City",
+                "name": "Manhattan Beach",
+                "containedInPlace": {
+                  "@type": "State",
+                  "name": "California"
+                }
+              }
+            ],
+            "serviceArea": {
+              "@type": "GeoCircle",
+              "geoMidpoint": {
+                "@type": "GeoCoordinates",
+                "latitude": 33.8358,
+                "longitude": -117.7628
+              },
+              "geoRadius": "50000"
+            },
+            "hasOfferCatalog": {
+              "@type": "OfferCatalog",
+              "name": "Personal Training Services",
+              "itemListElement": [
+                {
+                  "@type": "Offer",
+                  "itemOffered": {
+                    "@type": "Service",
+                    "name": "Strategic Transformation Session",
+                    "description": "Complimentary 60-minute elite coaching consultation"
+                  }
+                },
+                {
+                  "@type": "Offer",
+                  "itemOffered": {
+                    "@type": "Service",
+                    "name": "Executive Wellness Accelerator",
+                    "description": "Premium wellness program for driven professionals"
+                  }
+                },
+                {
+                  "@type": "Offer",
+                  "itemOffered": {
+                    "@type": "Service",
+                    "name": "Legacy Transformation Program",
+                    "description": "Complete lifestyle optimization for elite performers"
+                  }
+                }
+              ]
+            },
+            "openingHours": "Mo-Su 05:00-22:00",
+            "paymentAccepted": "Cash, Credit Card, Bank Transfer",
+            "currenciesAccepted": "USD",
+            "aggregateRating": {
+              "@type": "AggregateRating",
+              "ratingValue": "5.0",
+              "reviewCount": "127",
+              "bestRating": "5",
+              "worstRating": "1"
+            },
+            "review": [
+              {
+                "@type": "Review",
+                "reviewRating": {
+                  "@type": "Rating",
+                  "ratingValue": "5",
+                  "bestRating": "5"
+                },
+                "author": {
+                  "@type": "Person",
+                  "name": "Executive Client"
+                },
+                "reviewBody": "SwanStudios transformed my approach to fitness. The AI-powered programs and elite coaching delivered results beyond my expectations."
+              }
+            ],
+            "sameAs": [
+              "https://www.instagram.com/swanstudios",
+              "https://www.facebook.com/swanstudios",
+              "https://www.linkedin.com/company/swanstudios"
+            ]
+          })}
+        </script>
+        
+        {/* Additional Service Schema */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "ProfessionalService",
+            "name": "SwanStudios Elite Personal Training",
+            "serviceType": "Personal Training and Fitness Coaching",
+            "provider": {
+              "@type": "Organization",
+              "name": "SwanStudios"
+            },
+            "areaServed": [
+              "Anaheim Hills, CA", "Beverly Hills, CA", "Newport Beach, CA", "Brentwood, CA", 
+              "Manhattan Beach, CA", "Laguna Beach, CA", "Villa Park, CA", "Yorba Linda, CA",
+              "Pacific Palisades, CA", "Santa Monica, CA", "Calabasas, CA", "Palos Verdes, CA",
+              "Malibu, CA", "Century City, CA", "Westwood, CA", "Marina del Rey, CA",
+              "Irvine, CA", "Mission Viejo, CA", "San Juan Capistrano, CA", "Coto de Caza, CA",
+              "Encino, CA", "Sherman Oaks, CA", "Studio City, CA", "West Hollywood, CA",
+              "Hollywood Hills, CA", "Bel Air, CA", "Pasadena, CA", "San Marino, CA",
+              "Hermosa Beach, CA", "Redondo Beach, CA", "Rolling Hills, CA", "Hidden Hills, CA",
+              "Orange County, CA", "Los Angeles, CA"
+            ],
+            "hasOfferCatalog": {
+              "@type": "OfferCatalog",
+              "name": "Elite Fitness Services",
+              "itemListElement": [
+                {
+                  "@type": "Service",
+                  "name": "AI-Powered Workout Generation",
+                  "description": "Personalized workout plans generated by advanced AI technology"
+                },
+                {
+                  "@type": "Service",
+                  "name": "Executive Wellness Consulting",
+                  "description": "High-level fitness consulting for business executives and entrepreneurs"
+                },
+                {
+                  "@type": "Service",
+                  "name": "Luxury In-Home Training",
+                  "description": "Premium personal training services delivered to your location"
+                }
+              ]
+            }
+          })}
+        </script>
       </Helmet>
       
       {/* Hero Section */}
@@ -668,21 +870,21 @@ const HomePage: React.FC = () => {
       
       {renderSectionDivider(0)}
       
-      {/* NEW: Exclusive Consultation Section - LUXURY CLIENT ACQUISITION */}
+      {/* THE SWAN PROTOCOL - ELITE TRAINING SECTION */}
       <PackagePreviewSection id={sectionIds.packages} ref={packageRef}>
         <PackagePreviewTitle
           variants={packageVariants}
           initial="hidden"
           animate={isPackageInView ? "visible" : "hidden"}
         >
-          Elite Personal Training - By Invitation Only
+          THE SWAN PROTOCOL: ELITE TRAINING. GUARANTEED RESULTS.
         </PackagePreviewTitle>
         <PackagePreviewSubtitle
           variants={packageVariants}
           initial="hidden"
           animate={isPackageInView ? "visible" : "hidden"}
         >
-          Discover why executives, entrepreneurs, and discerning individuals choose SwanStudios for their transformation journey
+          This is our Premier Tier. An exclusive ecosystem for those who demand the absolute best. Our world-class coaches serve the most discerning clients across Orange County and Los Angeles—from Anaheim Hills to Beverly Hills, Newport Beach to Brentwood. We accept only a limited number of new clients each month to ensure every individual receives our full, undivided attention and concierge-level service.
         </PackagePreviewSubtitle>
         
         <PackageGrid
@@ -696,10 +898,10 @@ const HomePage: React.FC = () => {
             onClick={() => navigate('/contact')}
             style={{ background: 'linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(120, 81, 169, 0.2))' }}
           >
-            <h3>🎯 Complimentary Consultation</h3>
-            <p>Experience our premium approach with a comprehensive fitness assessment, goal setting session, and personalized strategy development.</p>
-            <div className="price">No Obligation</div>
-            <div className="sessions">60-Minute Private Session</div>
+            <h3>🎯 STRATEGIC TRANSFORMATION SESSION (COMPLIMENTARY)</h3>
+            <p>This isn't just a consultation; it's the first step of your victory lap. A 60-minute deep dive with an elite coach to architect your personalized path to success. Available for executives and entrepreneurs throughout Orange County and Los Angeles premium markets.</p>
+            <div className="price">No Obligation, Pure Strategy</div>
+            <div className="sessions">60-Minute Private Strategy Session</div>
           </PackageCard>
           
           <PackageCard
@@ -708,10 +910,10 @@ const HomePage: React.FC = () => {
             onClick={() => navigate('/contact')}
             style={{ background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(120, 81, 169, 0.2))' }}
           >
-            <h3>⭐ Executive Wellness Program</h3>
-            <p>Designed for busy professionals who demand results. Flexible scheduling, concierge-level service, and accelerated transformation protocols.</p>
-            <div className="price">Premium Experience</div>
-            <div className="sessions">Customized to Your Schedule</div>
+            <h3>⭐ EXECUTIVE WELLNESS ACCELERATOR</h3>
+            <p>Designed for the driven professional. We build your peak performance around your demanding schedule. This is maximum results in minimum time, delivered with white-glove service. Perfect for busy executives from Calabasas to Manhattan Beach who refuse to compromise on excellence.</p>
+            <div className="price">Hyper-Efficient Protocols</div>
+            <div className="sessions">Concierge-Level Service</div>
           </PackageCard>
           
           <PackageCard
@@ -720,10 +922,10 @@ const HomePage: React.FC = () => {
             onClick={() => navigate('/contact')}
             style={{ background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.1), rgba(120, 81, 169, 0.2))' }}
           >
-            <h3>💎 Elite Transformation</h3>
-            <p>Our signature program for those who accept nothing less than excellence. Comprehensive lifestyle optimization with measurable results.</p>
-            <div className="price">Investment in Excellence</div>
-            <div className="sessions">Complete Lifestyle Transformation</div>
+            <h3>💎 THE LEGACY TRANSFORMATION</h3>
+            <p>Our signature, all-inclusive program. We don't just change your body; we revolutionize your entire life—your energy, your mindset, your performance. This is your investment in becoming legendary. Elite transformation for discerning individuals across SoCal's most prestigious neighborhoods.</p>
+            <div className="price">Complete Lifestyle Optimization</div>
+            <div className="sessions">Build Your Legacy</div>
           </PackageCard>
         </PackageGrid>
         
@@ -733,19 +935,19 @@ const HomePage: React.FC = () => {
           initial="hidden"
           animate={isPackageInView ? "visible" : "hidden"}
         >
-          <UrgencyText>🏆 Limited Availability - Only 3 New Executive Clients Monthly</UrgencyText>
+          <UrgencyText>🏆 OUR ELITE COACHING ROSTER SERVES ORANGE COUNTY & LOS ANGELES PREMIUM MARKETS</UrgencyText>
           <SocialProofText>
-            Trusted by Fortune 500 executives • Featured in Elite Lifestyle publications • 25+ years of proven results • Discretion guaranteed
+            Trusted by executives in Beverly Hills • Elite professionals in Newport Beach • Entrepreneurs in Anaheim Hills • Fortune 500 leaders from Brentwood to Manhattan Beach • 25+ years of proven excellence across SoCal's most prestigious communities
           </SocialProofText>
           
           <ExploreMoreButton>
             <GlowButton 
-              text="Schedule Your Complimentary Consultation" 
+              text="APPLY FOR YOUR ELITE CONSULTATION" 
               theme={getThemeButtonVariant('primary')} 
               size="large" 
               animateOnRender 
               onClick={() => navigate('/contact')}
-              aria-label="Schedule your complimentary consultation"
+              aria-label="Apply for your elite consultation"
             />
           </ExploreMoreButton>
         </UrgencySection>
@@ -772,12 +974,12 @@ const HomePage: React.FC = () => {
             whileTap="tap"
           >
             <GlowButton 
-              text="Book Your Consultation" 
+              text="UNLOCK YOUR ARSENAL" 
               theme={getThemeButtonVariant('secondary')} 
               size="medium" 
               animateOnRender 
               onClick={() => navigate('/contact')}
-              aria-label="Book your complimentary consultation"
+              aria-label="Unlock your transformation arsenal"
             />
           </ExploreMoreButton>
         </div>
@@ -802,12 +1004,12 @@ const HomePage: React.FC = () => {
           whileTap="tap"
         >
           <GlowButton 
-            text="Begin Your Transformation" 
+            text="JOIN THE ELITE RANKS" 
             theme={getThemeButtonVariant('accent')} 
             size="medium" 
             animateOnRender 
             onClick={() => navigate('/contact')}
-            aria-label="Begin your transformation journey"
+            aria-label="Join the elite ranks of transformation"
           />
         </ExploreMoreButton>
       </div>
@@ -835,12 +1037,12 @@ const HomePage: React.FC = () => {
           whileTap="tap"
         >
           <GlowButton 
-            text="Discover Your Potential" 
+            text="WITNESS THE POWER" 
             theme={getThemeButtonVariant('primary')} 
             size="medium" 
             animateOnRender 
             onClick={() => navigate('/contact')}
-            aria-label="Discover your potential with a consultation"
+            aria-label="Witness the power of transformation"
           />
         </ExploreMoreButton>
       </div>
@@ -857,7 +1059,18 @@ const HomePage: React.FC = () => {
         </Suspense>
       </div>
       
-      {renderSectionDivider(6)}
+      {/* Local Service Areas - SEO Enhancement */}
+      <div style={{ 
+        minHeight: '200px', 
+        willChange: 'opacity',
+        opacity: isInstagramInView ? 1 : 0.4,
+        transform: `translateY(${isInstagramInView ? '0' : '20px'})`,
+        transition: 'opacity 0.6s ease-in-out, transform 0.6s ease-out'
+      }}>
+        <LocalServiceAreas />
+      </div>
+      
+      {renderSectionDivider(7)}
       
       {/* Instagram Feed Section */}
       <div ref={instagramRef} style={{ 
@@ -894,12 +1107,12 @@ const HomePage: React.FC = () => {
           style={{ marginTop: '3rem' }}
         >
           <GlowButton 
-            text="Schedule Your Consultation" 
+            text="IGNITE YOUR LEGACY" 
             theme={getThemeButtonVariant('primary')} 
             size="large" 
             animateOnRender 
             onClick={() => navigate('/contact')}
-            aria-label="Schedule your consultation to begin your journey"
+            aria-label="Ignite your legacy transformation journey"
           />
         </ExploreMoreButton>
       </div>

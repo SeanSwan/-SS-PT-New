@@ -338,7 +338,13 @@ const ButtonsContainer = styled(motion.div)`
 
     & > button, & > div {
       width: 100%;
-      max-width: 250px;
+      max-width: 300px; /* Increased to accommodate longer button text */
+    }
+  }
+  
+  @media (max-width: 480px) {
+    & > button, & > div {
+      max-width: 90vw; /* Ensure buttons don't overflow on very small screens */
     }
   }
 `;
@@ -484,37 +490,37 @@ const HeroSection: React.FC = () => {
         </LogoContainer>
 
         <HeroContent>
-          <Title variants={itemVariants}>SWAN STUDIOS</Title>
+          <Title variants={itemVariants}>WHERE HUMAN EXCELLENCE MEETS AI PRECISION</Title>
 
           <TaglineContainer variants={itemVariants}>
             <Tagline>
-              Elite Performance Training & <span>Creative Expression</span>
+              This is Not Another Fitness App. <span>This is Your New Universe.</span>
             </Tagline>
           </TaglineContainer>
 
           <HeroDescription variants={itemVariants}>
-            Experience our <strong>elite performance training</strong> meticulously crafted by Sean Swan.
-            Leveraging over 25 years of championship coaching and proven NASM protocols, our personalized
-            approach empowers you to achieve <strong>peak physical condition</strong> while also nurturing
-            <strong> creative expression</strong> in a supportive community that values excellence.
+            Welcome to SwanStudios—the world's first <strong>Fitness Social Ecosystem</strong> where every workout, 
+            every meal, and every connection is supercharged. We fuse the passion of <strong>elite trainers</strong> with the 
+            power of intelligent AI to unleash your ultimate potential. Serving Orange County's most discerning professionals from Anaheim Hills to Newport Beach, and Los Angeles elite from Beverly Hills to Manhattan Beach. Your transformation isn't just possible—
+            <strong>it's inevitable. ARE YOU READY?!</strong>
           </HeroDescription>
 
           <ButtonsContainer variants={itemVariants}>
             <GlowButton
-              text="Book Consultation"
+              text="BEGIN YOUR ELITE TRANSFORMATION"
               theme={getThemeButtonVariant('primary')}
               size="large"
               animateOnRender={false}
               onClick={() => setShowOrientation(true)}
-              aria-label="Book a free consultation"
+              aria-label="Begin your elite transformation journey"
             />
             <GlowButton
-              text="Explore Classes"
+              text="JOIN THE MOVEMENT FOR FREE"
               theme={getThemeButtonVariant('secondary')}
               size="large"
               animateOnRender={false}
               onClick={() => navigate("/store")}
-              aria-label="Explore our fitness and creative classes"
+              aria-label="Join the SwanStudios movement for free"
             />
           </ButtonsContainer>
         </HeroContent>
