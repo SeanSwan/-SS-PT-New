@@ -1,9 +1,46 @@
-// backend/routes/contactRoutes.mjs
-// ENHANCED BULLETPROOF CONTACT ROUTE - WITH SENDGRID & TWILIO SUPPORT
 import express from "express";
 import Contact from '../models/contact.mjs';
+import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
 
 const router = express.Router();
+
+// ADMIN: Get contacts list with pagination
+router.get("/", protect, adminOnly, async (req, res) => {
+  try {
+    console.log('📋 Admin fetching contacts list');
+    
+    const { limit = 10, offset = 0, sortBy = 'createdAt', sortOrder = 'DESC' } = req.query;
+    
+    const contacts = await Contact.findAll({
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [[sortBy, sortOrder]],
+      attributes: ['id', 'name', 'email', 'message', 'priority', 'createdAt', 'updatedAt']
+    });
+    
+    const totalContacts = await Contact.count();
+    
+    console.log(`✅ Returning ${contacts.length} contacts (total: ${totalContacts})`);
+    
+    res.json({
+      success: true,
+      contacts: contacts,
+      pagination: {
+        total: totalContacts,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        hasMore: parseInt(offset) + parseInt(limit) < totalContacts
+      }
+    });
+  } catch (error) {
+    console.error('💥 Error fetching contacts:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch contacts',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
 
 // Enhanced Contact Route - Database First + Smart External Services
 router.post("/", async (req, res) => {
