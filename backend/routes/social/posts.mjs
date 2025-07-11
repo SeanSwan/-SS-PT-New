@@ -1,6 +1,6 @@
 import express from 'express';
 import { SocialPost, SocialComment, SocialLike, Friendship } from '../../models/social/index.mjs';
-import User from '../../models/User.mjs';
+import { getUser } from '../../models/index.mjs';
 import { protect } from '../../middleware/authMiddleware.mjs';
 import { Op } from 'sequelize';
 import sequelize from '../../database.mjs';
@@ -8,11 +8,101 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
+import { gamificationEngine } from '../../services/gamification/GamificationEngine.mjs';
+import PointTransaction from '../../models/PointTransaction.mjs';
 
 const router = express.Router();
 
 // Apply auth middleware to all routes
 router.use(protect);
+
+// Get User model through centralized loader
+const User = getUser();
+
+// Social gamification point rules
+const SOCIAL_POINT_RULES = {
+  post_create_general: 10,
+  post_create_workout: 25,
+  post_create_transformation: 50,
+  post_create_achievement: 30,
+  post_create_challenge: 20,
+  post_like_received: 2,
+  post_like_given: 1,
+  comment_created: 5,
+  comment_received: 3
+};
+
+/**
+ * Award points for social actions with proper tracking
+ * @param {string} userId - The user ID to award points to
+ * @param {string} action - The social action performed
+ * @param {Object} metadata - Additional context for the action
+ * @returns {Object} Point award result
+ */
+async function awardSocialPoints(userId, action, metadata = {}) {
+  try {
+    const pointsToAward = SOCIAL_POINT_RULES[action];
+    
+    if (!pointsToAward) {
+      console.log(`No points defined for social action: ${action}`);
+      return { pointsAwarded: 0, success: false };
+    }
+
+    // Get current user balance
+    const lastTransaction = await PointTransaction.findOne({
+      where: { userId },
+      order: [['createdAt', 'DESC']]
+    });
+    
+    const currentBalance = lastTransaction ? lastTransaction.balance : 0;
+    const newBalance = currentBalance + pointsToAward;
+
+    // Create point transaction record
+    await PointTransaction.create({
+      userId,
+      points: pointsToAward,
+      balance: newBalance,
+      transactionType: 'earn',
+      source: 'social_engagement',
+      description: `Social Action: ${action.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`,
+      metadata: {
+        socialAction: action,
+        ...metadata
+      }
+    });
+
+    console.log(`✅ Awarded ${pointsToAward} points to user ${userId} for ${action}`);
+    
+    return {
+      pointsAwarded: pointsToAward,
+      newBalance,
+      success: true,
+      action
+    };
+  } catch (error) {
+    console.error(`❌ Error awarding social points for ${action}:`, error);
+    return { pointsAwarded: 0, success: false, error: error.message };
+  }
+}
+
+/**
+ * Award points to a user who receives engagement (likes/comments) on their posts
+ * @param {string} postOwnerId - The user who owns the post
+ * @param {string} action - The type of engagement received
+ * @param {Object} metadata - Additional context
+ */
+async function awardEngagementReceivedPoints(postOwnerId, action, metadata = {}) {
+  try {
+    const result = await awardSocialPoints(postOwnerId, action, metadata);
+    if (result.success) {
+      console.log(`🎉 Post owner ${postOwnerId} earned ${result.pointsAwarded} points for receiving ${action}`);
+    }
+    return result;
+  } catch (error) {
+    console.error('Error awarding engagement received points:', error);
+    return { pointsAwarded: 0, success: false };
+  }
+}
 
 // Set up multer for file uploads
 const storage = multer.diskStorage({
@@ -342,6 +432,15 @@ router.post('/', upload.single('media'), async (req, res) => {
     // Create the post
     const post = await SocialPost.create(postData);
     
+    // Award points for post creation based on type
+    const pointAction = `post_create_${type}`;
+    const pointResult = await awardSocialPoints(req.user.id, pointAction, {
+      postId: post.id,
+      postType: type,
+      hasMedia: !!req.file,
+      visibility
+    });
+    
     // Fetch the full post with user data
     const fullPost = await SocialPost.findByPk(post.id, {
       include: [
@@ -353,11 +452,20 @@ router.post('/', upload.single('media'), async (req, res) => {
       ]
     });
     
-    return res.status(201).json({
+    // Add point information to response
+    const responseData = {
       success: true,
       message: 'Post created successfully',
       post: fullPost
-    });
+    };
+    
+    if (pointResult.success) {
+      responseData.pointsAwarded = pointResult.pointsAwarded;
+      responseData.newBalance = pointResult.newBalance;
+      responseData.pointMessage = `🎉 You earned ${pointResult.pointsAwarded} points for creating a ${type} post!`;
+    }
+    
+    return res.status(201).json(responseData);
   } catch (error) {
     console.error('Error creating post:', error);
     
@@ -619,10 +727,37 @@ router.post('/:postId/like', async (req, res) => {
     // Create the like
     await SocialLike.likePost(req.user.id, postId);
     
-    return res.status(200).json({
+    // Award points to the user who liked the post
+    const likeGivenResult = await awardSocialPoints(req.user.id, 'post_like_given', {
+      postId,
+      postOwnerId: post.userId
+    });
+    
+    // Award points to the post owner for receiving a like (but not if they liked their own post)
+    let likeReceivedResult = { success: false };
+    if (post.userId !== req.user.id) {
+      likeReceivedResult = await awardEngagementReceivedPoints(post.userId, 'post_like_received', {
+        postId,
+        likedByUserId: req.user.id
+      });
+    }
+    
+    const responseData = {
       success: true,
       message: 'Post liked successfully'
-    });
+    };
+    
+    // Add point information if points were awarded
+    if (likeGivenResult.success) {
+      responseData.pointsAwarded = likeGivenResult.pointsAwarded;
+      responseData.pointMessage = `+${likeGivenResult.pointsAwarded} points for liking a post!`;
+    }
+    
+    if (likeReceivedResult.success) {
+      responseData.ownerPointsAwarded = likeReceivedResult.pointsAwarded;
+    }
+    
+    return res.status(200).json(responseData);
   } catch (error) {
     console.error('Error liking post:', error);
     return res.status(500).json({
@@ -711,6 +846,23 @@ router.post('/:postId/comments', async (req, res) => {
     post.commentsCount += 1;
     await post.save();
     
+    // Award points to the user who created the comment
+    const commentCreatedResult = await awardSocialPoints(req.user.id, 'comment_created', {
+      postId,
+      commentId: comment.id,
+      postOwnerId: post.userId
+    });
+    
+    // Award points to the post owner for receiving a comment (but not if they commented on their own post)
+    let commentReceivedResult = { success: false };
+    if (post.userId !== req.user.id) {
+      commentReceivedResult = await awardEngagementReceivedPoints(post.userId, 'comment_received', {
+        postId,
+        commentId: comment.id,
+        commentedByUserId: req.user.id
+      });
+    }
+    
     // Return the comment with user data
     const fullComment = await SocialComment.findByPk(comment.id, {
       include: [
@@ -722,11 +874,23 @@ router.post('/:postId/comments', async (req, res) => {
       ]
     });
     
-    return res.status(201).json({
+    const responseData = {
       success: true,
       message: 'Comment added successfully',
       comment: fullComment
-    });
+    };
+    
+    // Add point information if points were awarded
+    if (commentCreatedResult.success) {
+      responseData.pointsAwarded = commentCreatedResult.pointsAwarded;
+      responseData.pointMessage = `+${commentCreatedResult.pointsAwarded} points for commenting!`;
+    }
+    
+    if (commentReceivedResult.success) {
+      responseData.ownerPointsAwarded = commentReceivedResult.pointsAwarded;
+    }
+    
+    return res.status(201).json(responseData);
   } catch (error) {
     console.error('Error adding comment:', error);
     return res.status(500).json({

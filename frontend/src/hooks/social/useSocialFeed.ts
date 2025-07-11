@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../use-toast';
+import { useGamificationData } from '../gamification/useGamificationData';
 
 // Types
 interface User {
@@ -23,7 +24,7 @@ interface Comment {
 interface Post {
   id: string;
   content: string;
-  type: 'general' | 'workout' | 'achievement' | 'challenge';
+  type: 'general' | 'workout' | 'achievement' | 'challenge' | 'transformation';
   visibility: 'public' | 'friends' | 'private';
   createdAt: string;
   user: User;
@@ -35,16 +36,65 @@ interface Post {
   workoutSessionId?: string;
   achievementId?: string;
   challengeId?: string;
+  workoutData?: {
+    duration?: string;
+    exerciseCount?: string;
+    totalWeight?: string;
+    caloriesBurned?: string;
+  };
+  transformationData?: {
+    hasBeforeImage?: boolean;
+    hasAfterImage?: boolean;
+    beforeImageUrl?: string;
+    afterImageUrl?: string;
+  };
+  achievementData?: {
+    title?: string;
+    description?: string;
+    points?: number;
+  };
+  challengeData?: {
+    title?: string;
+    difficulty?: string;
+    duration?: string;
+  };
 }
 
 interface CreatePostParams {
   content: string;
-  type?: 'general' | 'workout' | 'achievement' | 'challenge';
+  type?: 'general' | 'workout' | 'achievement' | 'challenge' | 'transformation';
   visibility?: 'public' | 'friends' | 'private';
   media?: File | null;
   workoutSessionId?: string;
   achievementId?: string;
   challengeId?: string;
+  workoutData?: {
+    duration?: string;
+    exerciseCount?: string;
+    totalWeight?: string;
+    caloriesBurned?: string;
+  };
+  transformationData?: {
+    hasBeforeImage?: boolean;
+    hasAfterImage?: boolean;
+  };
+  achievementData?: {
+    title?: string;
+    description?: string;
+    points?: number;
+  };
+  challengeData?: {
+    title?: string;
+    difficulty?: string;
+    duration?: string;
+  };
+}
+
+interface PointResult {
+  pointsAwarded: number;
+  newBalance: number;
+  success: boolean;
+  pointMessage?: string;
 }
 
 /**
@@ -53,6 +103,7 @@ interface CreatePostParams {
 export const useSocialFeed = () => {
   const { authAxios, user } = useAuth();
   const { toast } = useToast();
+  const { profile, invalidateProfile } = useGamificationData();
   
   // State for posts data
   const [posts, setPosts] = useState<Post[]>([]);
@@ -149,6 +200,23 @@ export const useSocialFeed = () => {
         formData.append('challengeId', postData.challengeId);
       }
       
+      // Add type-specific data
+      if (postData.workoutData) {
+        formData.append('workoutData', JSON.stringify(postData.workoutData));
+      }
+      
+      if (postData.transformationData) {
+        formData.append('transformationData', JSON.stringify(postData.transformationData));
+      }
+      
+      if (postData.achievementData) {
+        formData.append('achievementData', JSON.stringify(postData.achievementData));
+      }
+      
+      if (postData.challengeData) {
+        formData.append('challengeData', JSON.stringify(postData.challengeData));
+      }
+      
       const response = await authAxios.post('/api/social/posts', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
@@ -159,13 +227,31 @@ export const useSocialFeed = () => {
       const newPost = response.data.post;
       setPosts(prevPosts => [newPost, ...prevPosts]);
       
-      toast({
-        title: 'Post created',
-        description: 'Your post has been published successfully.',
-        variant: 'default'
-      });
+      // Handle point notifications
+      if (response.data.pointsAwarded) {
+        toast({
+          title: 'Post created & Points earned! 🎉',
+          description: response.data.pointMessage || `You earned ${response.data.pointsAwarded} points!`,
+          variant: 'default'
+        });
+        
+        // Invalidate gamification profile to update point balance
+        invalidateProfile();
+      } else {
+        toast({
+          title: 'Post created',
+          description: 'Your post has been published successfully.',
+          variant: 'default'
+        });
+      }
       
-      return newPost;
+      // Return enhanced result with point information
+      return {
+        ...newPost,
+        pointsAwarded: response.data.pointsAwarded || 0,
+        newBalance: response.data.newBalance,
+        pointMessage: response.data.pointMessage
+      };
     } catch (err: any) {
       console.error('Error creating post:', err);
       toast({
@@ -180,11 +266,11 @@ export const useSocialFeed = () => {
   }, [authAxios, user, toast]);
   
   // Like a post
-  const likePost = useCallback(async (postId: string) => {
+  const likePost = useCallback(async (postId: string): Promise<PointResult | boolean> => {
     if (!user) return false;
     
     try {
-      await authAxios.post(`/api/social/posts/${postId}/like`);
+      const response = await authAxios.post(`/api/social/posts/${postId}/like`);
       
       // Update the post in the list
       setPosts(prevPosts => 
@@ -199,12 +285,25 @@ export const useSocialFeed = () => {
         )
       );
       
+      // Handle point notifications
+      if (response.data.pointsAwarded) {
+        // Invalidate gamification profile to update point balance
+        invalidateProfile();
+        
+        return {
+          pointsAwarded: response.data.pointsAwarded,
+          newBalance: response.data.newBalance || 0,
+          success: true,
+          pointMessage: response.data.pointMessage
+        };
+      }
+      
       return true;
     } catch (err) {
       console.error('Error liking post:', err);
       return false;
     }
-  }, [authAxios, user]);
+  }, [authAxios, user, invalidateProfile]);
   
   // Unlike a post
   const unlikePost = useCallback(async (postId: string) => {
@@ -261,6 +360,18 @@ export const useSocialFeed = () => {
         })
       );
       
+      // Handle point notifications for commenting
+      if (response.data.pointsAwarded) {
+        toast({
+          title: 'Comment added & Points earned! 🎉',
+          description: response.data.pointMessage || `You earned ${response.data.pointsAwarded} points!`,
+          variant: 'default'
+        });
+        
+        // Invalidate gamification profile to update point balance
+        invalidateProfile();
+      }
+      
       return newComment;
     } catch (err) {
       console.error('Error adding comment:', err);
@@ -271,7 +382,7 @@ export const useSocialFeed = () => {
       });
       return null;
     }
-  }, [authAxios, user, toast]);
+  }, [authAxios, user, toast, invalidateProfile]);
   
   // Get a single post with full details
   const getPostDetails = useCallback(async (postId: string) => {
