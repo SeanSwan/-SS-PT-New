@@ -483,17 +483,21 @@ const EnhancedHeader = () => {
   };
 
   // Function to determine if a dashboard option should be enabled based on user role
-  const isRoleEnabled = (requiredRole: string | string[]) => {
+  const isRoleEnabled = (dashboardType: string) => {
     if (!user || !user.role) return false;
     
-    // Admin can access everything
-    if (user.role === 'admin') return true;
-    
-    if (Array.isArray(requiredRole)) {
-      return requiredRole.includes(user.role);
+    switch (dashboardType) {
+      case 'admin':
+        return user.role === 'admin';
+      case 'trainer':
+        return user.role === 'admin' || user.role === 'trainer';
+      case 'client':
+        return user.role === 'admin' || user.role === 'client';
+      case 'user':
+        return true; // All authenticated users can access user dashboard
+      default:
+        return false;
     }
-    
-    return user.role === requiredRole;
   };
 
   /**
@@ -579,7 +583,7 @@ const EnhancedHeader = () => {
             </MobileNavLink>
           )}
           
-          {isRoleEnabled(['admin', 'trainer']) && (
+          {isRoleEnabled('trainer') && (
             <MobileNavLink
               to="/trainer-dashboard"
               onClick={() => setMobileMenuOpen(false)}

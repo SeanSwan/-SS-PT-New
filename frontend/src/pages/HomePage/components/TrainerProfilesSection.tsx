@@ -644,7 +644,7 @@ const TrainerProfilesSection: React.FC = () => {
     return (
       <SectionContainer id="trainers">
         <ContentWrapper>
-           <SectionTitle>Meet Our Elite Coaching Team</SectionTitle>
+           <SectionTitle>Meet Our Expert Coaching Team</SectionTitle>
            <div>Loading trainer details...</div> {/* Provide a loading state */}
         </ContentWrapper>
       </SectionContainer>
@@ -674,7 +674,7 @@ const TrainerProfilesSection: React.FC = () => {
     <SectionContainer id="trainers">
       <GridLines />
       <ContentWrapper>
-        <SectionTitle>Meet Our Elite Coaching Team</SectionTitle>
+        <SectionTitle>Meet Our Expert Coaching Team</SectionTitle>
         <SectionSubtitle
           variants={subtitleVariants}
           initial="hidden"
@@ -725,7 +725,7 @@ const TrainerProfilesSection: React.FC = () => {
                 </SpecialtiesContainer>
                 <CardFooter>
                    <GlowButton
-                        text="Book Session"
+                        text="Schedule My Session"
                         theme={getThemeButtonVariant()}
                         size="medium"
                         animateOnRender={false}

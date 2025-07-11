@@ -507,20 +507,20 @@ const HeroSection: React.FC = () => {
 
           <ButtonsContainer variants={itemVariants}>
             <GlowButton
-              text="BEGIN YOUR ELITE TRANSFORMATION"
+              text="START MY FITNESS JOURNEY"
               theme={getThemeButtonVariant('primary')}
               size="large"
               animateOnRender={false}
               onClick={() => setShowOrientation(true)}
-              aria-label="Begin your elite transformation journey"
+              aria-label="Start your personalized fitness journey"
             />
             <GlowButton
-              text="JOIN THE MOVEMENT FOR FREE"
+              text="PREVIEW MY UNIVERSE"
               theme={getThemeButtonVariant('secondary')}
               size="large"
               animateOnRender={false}
               onClick={() => navigate("/store")}
-              aria-label="Join the SwanStudios movement for free"
+              aria-label="Preview your personalized SwanStudios universe"
             />
           </ButtonsContainer>
         </HeroContent>
