@@ -633,10 +633,10 @@ const HomePage: React.FC = () => {
   return (
     <HomePageContainer ref={homeRef}>
       <Helmet>
-        <title>Elite Personal Trainer | Anaheim Hills, Beverly Hills, Newport Beach | SwanStudios AI Fitness</title>
-        <meta name="description" content="Premium personal training serving Orange County & Los Angeles elite markets. AI-powered fitness coaching in Anaheim Hills, Beverly Hills, Brentwood, Newport Beach, Manhattan Beach & 30+ affluent neighborhoods. Executive wellness programs." />
-        <meta property="og:title" content="Elite Personal Trainer | Anaheim Hills, Beverly Hills, Newport Beach | SwanStudios AI Fitness" />
-        <meta property="og:description" content="Premium personal training serving Orange County & Los Angeles elite markets. AI-powered fitness coaching in Anaheim Hills, Beverly Hills, Brentwood, Newport Beach, Manhattan Beach & 30+ affluent neighborhoods. Executive wellness programs." />
+        <title>Expert Personal Trainer | Anaheim Hills, Beverly Hills, Newport Beach | SwanStudios AI Fitness</title>
+        <meta name="description" content="Professional personal training serving Orange County & Los Angeles. AI-powered fitness coaching in Anaheim Hills, Beverly Hills, Brentwood, Newport Beach, Manhattan Beach & 30+ Southern California neighborhoods. Expert wellness programs." />
+        <meta property="og:title" content="Expert Personal Trainer | Anaheim Hills, Beverly Hills, Newport Beach | SwanStudios AI Fitness" />
+        <meta property="og:description" content="Professional personal training serving Orange County & Los Angeles. AI-powered fitness coaching in Anaheim Hills, Beverly Hills, Brentwood, Newport Beach, Manhattan Beach & 30+ Southern California neighborhoods. Expert wellness programs." />
         <meta property="og:type" content="website" />
         <meta property="og:image" content="https://swanstudios.com/Logo.png" />
         <meta property="og:url" content="https://swanstudios.com" />
@@ -644,7 +644,7 @@ const HomePage: React.FC = () => {
         <meta name="theme-color" content="#0a0a1a" />
         
         {/* Enhanced Local SEO Keywords */}
-        <meta name="keywords" content="personal trainer Anaheim Hills, elite fitness Beverly Hills, luxury trainer Newport Beach, executive wellness Brentwood, AI fitness coaching Orange County, premium personal training Los Angeles, fitness trainer Manhattan Beach, elite coaching Laguna Beach, luxury fitness Calabasas, executive trainer Palos Verdes, personal training Yorba Linda, fitness coach Villa Park, elite wellness Malibu, premium fitness Santa Monica, luxury trainer Irvine, executive fitness Pasadena, personal trainer Encino, elite coaching Century City, fitness trainer Westwood, luxury wellness Marina del Rey" />
+        <meta name="keywords" content="personal trainer Anaheim Hills, expert fitness Beverly Hills, professional trainer Newport Beach, wellness coaching Brentwood, AI fitness coaching Orange County, personal training Los Angeles, fitness trainer Manhattan Beach, coaching Laguna Beach, fitness Calabasas, trainer Palos Verdes, personal training Yorba Linda, fitness coach Villa Park, wellness Malibu, fitness Santa Monica, trainer Irvine, fitness Pasadena, personal trainer Encino, coaching Century City, fitness trainer Westwood, wellness Marina del Rey" />
         
         {/* Enhanced Local SEO Meta Tags */}
         <meta name="geo.region" content="US-CA" />
@@ -654,8 +654,8 @@ const HomePage: React.FC = () => {
         
         {/* Enhanced Social Meta */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Elite Personal Trainer | Anaheim Hills, Beverly Hills, Newport Beach | SwanStudios" />
-        <meta name="twitter:description" content="Premium AI-powered fitness coaching serving 30+ affluent SoCal neighborhoods. Executive wellness programs with guaranteed results." />
+        <meta name="twitter:title" content="Expert Personal Trainer | Anaheim Hills, Beverly Hills, Newport Beach | SwanStudios" />
+        <meta name="twitter:description" content="Professional AI-powered fitness coaching serving 30+ SoCal neighborhoods. Expert wellness programs with guaranteed results." />
         <meta name="twitter:image" content="https://swanstudios.com/Logo.png" />
         
         <link rel="canonical" href="https://swanstudios.com" />
@@ -666,8 +666,8 @@ const HomePage: React.FC = () => {
             "@context": "https://schema.org",
             "@type": "LocalBusiness",
             "@id": "https://swanstudios.com",
-            "name": "SwanStudios Elite Personal Training",
-            "description": "Elite personal training and AI-powered fitness coaching serving Orange County and Los Angeles premium markets. Executive wellness programs with guaranteed results.",
+            "name": "SwanStudios Expert Personal Training",
+            "description": "Expert personal training and AI-powered fitness coaching serving Orange County and Los Angeles. Professional wellness programs with guaranteed results.",
             "url": "https://swanstudios.com",
             "logo": "https://swanstudios.com/Logo.png",
             "image": "https://swanstudios.com/Logo.png",
@@ -803,7 +803,7 @@ const HomePage: React.FC = () => {
           {JSON.stringify({
             "@context": "https://schema.org",
             "@type": "ProfessionalService",
-            "name": "SwanStudios Elite Personal Training",
+            "name": "SwanStudios Expert Personal Training",
             "serviceType": "Personal Training and Fitness Coaching",
             "provider": {
               "@type": "Organization",
@@ -822,7 +822,7 @@ const HomePage: React.FC = () => {
             ],
             "hasOfferCatalog": {
               "@type": "OfferCatalog",
-              "name": "Elite Fitness Services",
+              "name": "Expert Fitness Services",
               "itemListElement": [
                 {
                   "@type": "Service",
@@ -831,13 +831,13 @@ const HomePage: React.FC = () => {
                 },
                 {
                   "@type": "Service",
-                  "name": "Executive Wellness Consulting",
-                  "description": "High-level fitness consulting for business executives and entrepreneurs"
+                  "name": "Expert Wellness Consulting",
+                  "description": "High-level fitness consulting for business professionals and entrepreneurs"
                 },
                 {
                   "@type": "Service",
-                  "name": "Luxury In-Home Training",
-                  "description": "Premium personal training services delivered to your location"
+                  "name": "Professional In-Home Training",
+                  "description": "Expert personal training services delivered to your location"
                 }
               ]
             }
@@ -884,7 +884,7 @@ const HomePage: React.FC = () => {
           initial="hidden"
           animate={isPackageInView ? "visible" : "hidden"}
         >
-          This is our Premier Tier. An exclusive ecosystem for those who demand the absolute best. Our world-class coaches serve the most discerning clients across Orange County and Los Angeles—from Anaheim Hills to Beverly Hills, Newport Beach to Brentwood. We accept only a limited number of new clients each month to ensure every individual receives our full, undivided attention and concierge-level service.
+          This is our Premier Tier. An exclusive ecosystem for those who demand the absolute best. Our world-class coaches serve the most dedicated clients across Orange County and Los Angeles—from Anaheim Hills to Beverly Hills, Newport Beach to Brentwood. We accept only a limited number of new clients each month to ensure every individual receives our full, undivided attention and concierge-level service.
         </PackagePreviewSubtitle>
         
         <PackageGrid
@@ -899,7 +899,7 @@ const HomePage: React.FC = () => {
             style={{ background: 'linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(120, 81, 169, 0.2))' }}
           >
             <h3>🎯 STRATEGIC TRANSFORMATION SESSION (COMPLIMENTARY)</h3>
-            <p>This isn't just a consultation; it's the first step of your victory lap. A 60-minute deep dive with an elite coach to architect your personalized path to success. Available for executives and entrepreneurs throughout Orange County and Los Angeles premium markets.</p>
+            <p>This isn't just a consultation; it's the first step of your victory lap. A 60-minute deep dive with an expert coach to architect your personalized path to success. Available for professionals and entrepreneurs throughout Orange County and Los Angeles.</p>
             <div className="price">No Obligation, Pure Strategy</div>
             <div className="sessions">60-Minute Private Strategy Session</div>
           </PackageCard>
@@ -911,7 +911,7 @@ const HomePage: React.FC = () => {
             style={{ background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(120, 81, 169, 0.2))' }}
           >
             <h3>⭐ EXECUTIVE WELLNESS ACCELERATOR</h3>
-            <p>Designed for the driven professional. We build your peak performance around your demanding schedule. This is maximum results in minimum time, delivered with white-glove service. Perfect for busy executives from Calabasas to Manhattan Beach who refuse to compromise on excellence.</p>
+            <p>Designed for the driven professional. We build your peak performance around your demanding schedule. This is maximum results in minimum time, delivered with white-glove service. Perfect for busy professionals from Calabasas to Manhattan Beach who refuse to compromise on excellence.</p>
             <div className="price">Hyper-Efficient Protocols</div>
             <div className="sessions">Concierge-Level Service</div>
           </PackageCard>
@@ -923,7 +923,7 @@ const HomePage: React.FC = () => {
             style={{ background: 'linear-gradient(135deg, rgba(138, 43, 226, 0.1), rgba(120, 81, 169, 0.2))' }}
           >
             <h3>💎 THE LEGACY TRANSFORMATION</h3>
-            <p>Our signature, all-inclusive program. We don't just change your body; we revolutionize your entire life—your energy, your mindset, your performance. This is your investment in becoming legendary. Elite transformation for discerning individuals across SoCal's most prestigious neighborhoods.</p>
+            <p>Our signature, all-inclusive program. We don't just change your body; we revolutionize your entire life—your energy, your mindset, your performance. This is your investment in becoming legendary. Complete transformation for dedicated individuals across SoCal's most beautiful neighborhoods.</p>
             <div className="price">Complete Lifestyle Optimization</div>
             <div className="sessions">Build Your Legacy</div>
           </PackageCard>
@@ -935,9 +935,9 @@ const HomePage: React.FC = () => {
           initial="hidden"
           animate={isPackageInView ? "visible" : "hidden"}
         >
-          <UrgencyText>🏆 OUR ELITE COACHING ROSTER SERVES ORANGE COUNTY & LOS ANGELES PREMIUM MARKETS</UrgencyText>
+          <UrgencyText>🏆 OUR EXPERT COACHING ROSTER SERVES ORANGE COUNTY & LOS ANGELES</UrgencyText>
           <SocialProofText>
-            Trusted by executives in Beverly Hills • Elite professionals in Newport Beach • Entrepreneurs in Anaheim Hills • Fortune 500 leaders from Brentwood to Manhattan Beach • 25+ years of proven excellence across SoCal's most prestigious communities
+            Trusted by professionals in Beverly Hills • Business leaders in Newport Beach • Entrepreneurs in Anaheim Hills • Dedicated clients from Brentwood to Manhattan Beach • 25+ years of proven excellence across Southern California's most beautiful communities
           </SocialProofText>
           
           <ExploreMoreButton>
