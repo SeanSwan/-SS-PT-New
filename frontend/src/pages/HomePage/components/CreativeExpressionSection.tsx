@@ -329,45 +329,45 @@ const CreativeExpressionSection: React.FC = () => {
     {
       title: "Dance",
       icon: <FaMusic />,
-      description: "Express yourself through movement and rhythm with our specialized dance training programs.",
+      description: "Unleash your power through rhythm. Express your warrior spirit through movement that connects your body to your soul.",
       benefits: [
-        "Build core strength and flexibility",
-        "Improve coordination and balance",
-        "Reduce stress and boost mood",
-        "Connect with others through group sessions"
+        "Build explosive core strength and flexibility",
+        "Master coordination and balance like a fighter",
+        "Channel stress into pure energy and euphoria",
+        "Unite with your tribe through powerful group sessions"
       ]
     },
     {
       title: "Art & Visual Expression",
       icon: <FaPaintBrush />,
-      description: "Explore your creative side with guidance from experts in various visual art techniques.",
+      description: "Channel your intensity onto the canvas. Transform your inner fire into visual masterpieces that tell your transformation story.",
       benefits: [
-        "Develop fine motor skills",
-        "Enhance problem-solving abilities",
-        "Express emotions in a healthy way",
-        "Create personalized visual journals"
+        "Develop precision and control in every stroke",
+        "Unlock creative problem-solving superpowers",
+        "Transform emotions into powerful visual statements",
+        "Create your personal victory gallery"
       ]
     },
     {
       title: "Vocal & Sound Work",
       icon: <FaMicrophone />,
-      description: "Find your voice through singing and vocal techniques that connect mind, body, and spirit.",
+      description: "Find the strength in your own voice. Unleash the power within through vocal techniques that amplify your inner warrior.",
       benefits: [
-        "Improve breathing and lung capacity",
-        "Reduce anxiety through vocal release",
-        "Build confidence in self-expression",
-        "Connect with ancestral singing traditions"
+        "Build breathing power and explosive lung capacity",
+        "Transform anxiety into vocal strength and confidence",
+        "Command attention with unshakeable self-expression",
+        "Connect with the primal power of sound and rhythm"
       ]
     },
     {
       title: "Community & Heart",
       icon: <FaHeart />,
-      description: "Be part of a family that truly cares. Here, we lift each other up with love, trust, and a shared commitment to righteousness in all we do.",
+      description: "Connect with a tribe that shares your fire. Plug into a global family that grinds together, grows together, and celebrates every single victory. No more training alone!",
       benefits: [
-        "Find strength in genuine friendship and acceptance",
-        "Grow together with others who share your values",
-        "Experience the joy of being part of something meaningful",
-        "Discover your best self in a team that believes in you"
+        "Feel the power of collective energy fueling your journey",
+        "Unite with warriors who share your relentless drive",
+        "Experience the adrenaline of being part of a movement",
+        "Unleash your ultimate potential in a team that believes in greatness"
       ]
     }
   ];
@@ -376,13 +376,13 @@ const CreativeExpressionSection: React.FC = () => {
     <SectionContainer id="creative-expression" ref={ref}>
       <GlowEffect />
       <ContentWrapper>
-        <SectionTitle>Creative Expression & Community</SectionTitle>
+        <SectionTitle>FORGE YOUR BODY, FREE YOUR SPIRIT</SectionTitle>
         <SectionDescription
           variants={textVariants}
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}
         >
-          At SwanStudios, while our <span>elite performance training</span> remains our foundation, we believe true wellness emerges when physical fitness is complemented by <span>creative expression</span> and <span>community connection</span>. Together, we strengthen both body and spirit.
+          At SwanStudios, we build <span>warriors and artists</span>. True power is found when peak physical strength is united with unbridled creative expression. Here, we don't just lift weights; we lift each other. <strong>EVERY POSITIVE ACTION IS REWARDED</strong> - your journey is holistic. You earn points for everything: crushing a workout, creating art, motivating a teammate. In this ecosystem, your growth in body, mind, and spirit is our most valued currency.
         </SectionDescription>
         
         <motion.div 
