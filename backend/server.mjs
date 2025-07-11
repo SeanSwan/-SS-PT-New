@@ -47,6 +47,7 @@ if (existsSync(envPath)) {
 import { checkApiKeys } from './utils/apiKeyChecker.mjs';
 import { createApp } from './core/app.mjs';
 import { initializeServer } from './core/startup.mjs';
+import { initializeModelsCache } from './models/index.mjs';
 import logger from './utils/logger.mjs';
 
 // ===================== GLOBAL ERROR HANDLERS =====================
@@ -82,6 +83,16 @@ process.on('uncaughtException', (error) => {
     
     // Check API keys early
     checkApiKeys();
+    
+    // 🎯 CRITICAL: Initialize models cache BEFORE app creation to prevent import timing issues
+    logger.info('🚀 Initializing models cache for production readiness...');
+    try {
+      await initializeModelsCache();
+      logger.info('✅ Models cache initialized successfully - all routes can now access models');
+    } catch (modelsError) {
+      logger.error('💥 CRITICAL: Models cache initialization failed:', modelsError);
+      throw new Error(`Models initialization failed: ${modelsError.message}`);
+    }
     
     // Create Express application
     logger.info('Creating Express application...');
