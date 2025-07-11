@@ -413,7 +413,7 @@ const MainRoutes: RouteObject = {
     {
       path: 'client-dashboard',
       element: (
-        <ProtectedRoute requiredRole="client">
+        <ProtectedRoute allowedRoles={['client', 'admin']}>
           <Suspense fallback={<PageLoader />}>
             <RevolutionaryClientDashboard />
           </Suspense>
@@ -423,7 +423,7 @@ const MainRoutes: RouteObject = {
     {
       path: 'client-dashboard-legacy',
       element: (
-        <ProtectedRoute requiredRole="client">
+        <ProtectedRoute allowedRoles={['client', 'admin']}>
           <Suspense fallback={<PageLoader />}>
             <NewClientDashboard />
           </Suspense>

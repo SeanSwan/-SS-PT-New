@@ -125,17 +125,21 @@ const DashboardSelector: React.FC = () => {
   const isUserDashboard = currentPath.includes('/user-dashboard');
   
   // Function to determine if a dashboard option should be enabled based on user role
-  const isEnabled = (requiredRole: string | string[]) => {
+  const isEnabled = (dashboardType: string) => {
     if (!user || !user.role) return false;
     
-    // Admin can access everything
-    if (user.role === 'admin') return true;
-    
-    if (Array.isArray(requiredRole)) {
-      return requiredRole.includes(user.role);
+    switch (dashboardType) {
+      case 'admin':
+        return user.role === 'admin';
+      case 'trainer':
+        return user.role === 'admin' || user.role === 'trainer';
+      case 'client':
+        return user.role === 'admin' || user.role === 'client';
+      case 'user':
+        return true; // All authenticated users can access user dashboard
+      default:
+        return false;
     }
-    
-    return user.role === requiredRole;
   };
   
   // Toggle the dropdown
@@ -163,6 +167,13 @@ const DashboardSelector: React.FC = () => {
     return 'Dashboard';
   };
   
+  // Check if user has access to multiple dashboards (to determine if selector should be shown)
+  const hasMultipleDashboards = () => {
+    const dashboards = ['admin', 'trainer', 'client', 'user'];
+    const accessibleDashboards = dashboards.filter(dashboard => isEnabled(dashboard));
+    return accessibleDashboards.length > 1;
+  };
+  
   // Close dropdown on outside click
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -181,6 +192,11 @@ const DashboardSelector: React.FC = () => {
     };
   }, [isOpen]);
   
+  // Don't render the selector if user only has access to one dashboard
+  if (!user || !hasMultipleDashboards()) {
+    return null;
+  }
+  
   return (
     <SelectorContainer data-dashboard-selector="true">
       <SelectorButton onClick={toggleDropdown}>
@@ -190,57 +206,63 @@ const DashboardSelector: React.FC = () => {
       </SelectorButton>
       
       <DropdownMenu isOpen={isOpen}>
-        <DropdownItem
-          active={isAdminDashboard}
-          onClick={() => handleSelectDashboard('/dashboard/default')}
-          disabled={!isEnabled(['admin'])}
-        >
-          <ItemIcon disabled={!isEnabled(['admin'])}>
-            <LayoutDashboard size={16} color="#00ffff" />
-          </ItemIcon>
-          <ItemContent>
-            <ItemTitle>Admin Dashboard</ItemTitle>
-            <ItemDescription>Manage all aspects of the platform</ItemDescription>
-          </ItemContent>
-          {user?.role === 'admin' && <RoleBadge>ADMIN</RoleBadge>}
-        </DropdownItem>
+        {/* Admin Dashboard - Only for Admin */}
+        {isEnabled('admin') && (
+          <DropdownItem
+            active={isAdminDashboard}
+            onClick={() => handleSelectDashboard('/dashboard/default')}
+          >
+            <ItemIcon>
+              <LayoutDashboard size={16} color="#00ffff" />
+            </ItemIcon>
+            <ItemContent>
+              <ItemTitle>Admin Dashboard</ItemTitle>
+              <ItemDescription>Manage all aspects of the platform</ItemDescription>
+            </ItemContent>
+            <RoleBadge>ADMIN</RoleBadge>
+          </DropdownItem>
+        )}
         
-        <DropdownItem
-          active={isTrainerDashboard}
-          onClick={() => handleSelectDashboard('/trainer-dashboard')}
-          disabled={!isEnabled(['admin', 'trainer'])}
-        >
-          <ItemIcon disabled={!isEnabled(['admin', 'trainer'])}>
-            <Users size={16} color="#7851a9" />
-          </ItemIcon>
-          <ItemContent>
-            <ItemTitle>Trainer Dashboard</ItemTitle>
-            <ItemDescription>Manage clients and training programs</ItemDescription>
-          </ItemContent>
-          {isEnabled(['admin', 'trainer']) && <RoleBadge>TRAINER</RoleBadge>}
-        </DropdownItem>
+        {/* Trainer Dashboard - For Admin and Trainer */}
+        {isEnabled('trainer') && (
+          <DropdownItem
+            active={isTrainerDashboard}
+            onClick={() => handleSelectDashboard('/trainer-dashboard')}
+          >
+            <ItemIcon>
+              <Users size={16} color="#7851a9" />
+            </ItemIcon>
+            <ItemContent>
+              <ItemTitle>Trainer Dashboard</ItemTitle>
+              <ItemDescription>Manage clients and training programs</ItemDescription>
+            </ItemContent>
+            <RoleBadge>TRAINER</RoleBadge>
+          </DropdownItem>
+        )}
         
-        <DropdownItem
-          active={isClientDashboard}
-          onClick={() => handleSelectDashboard('/client-dashboard')}
-          disabled={!isEnabled(['client'])}
-        >
-          <ItemIcon disabled={!isEnabled(['client'])}>
-            <User size={16} color="#FF6B6B" />
-          </ItemIcon>
-          <ItemContent>
-            <ItemTitle>Client Dashboard</ItemTitle>
-            <ItemDescription>Training progress and sessions</ItemDescription>
-          </ItemContent>
-          {(user?.role === 'client' || user?.role === 'admin') && <RoleBadge>CLIENT</RoleBadge>}
-        </DropdownItem>
+        {/* Client Dashboard - For Admin and Client */}
+        {isEnabled('client') && (
+          <DropdownItem
+            active={isClientDashboard}
+            onClick={() => handleSelectDashboard('/client-dashboard')}
+          >
+            <ItemIcon>
+              <User size={16} color="#FF6B6B" />
+            </ItemIcon>
+            <ItemContent>
+              <ItemTitle>Client Dashboard</ItemTitle>
+              <ItemDescription>Training progress and sessions</ItemDescription>
+            </ItemContent>
+            <RoleBadge>CLIENT</RoleBadge>
+          </DropdownItem>
+        )}
         
+        {/* User Dashboard - Available to all authenticated users */}
         <DropdownItem
           active={isUserDashboard}
           onClick={() => handleSelectDashboard('/user-dashboard')}
-          disabled={false}
         >
-          <ItemIcon disabled={false}>
+          <ItemIcon>
             <UserCircle size={16} color="#32CD32" />
           </ItemIcon>
           <ItemContent>

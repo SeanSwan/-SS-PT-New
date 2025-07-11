@@ -877,14 +877,14 @@ const HomePage: React.FC = () => {
           initial="hidden"
           animate={isPackageInView ? "visible" : "hidden"}
         >
-          THE SWAN PROTOCOL: ELITE TRAINING. GUARANTEED RESULTS.
+          THE SWAN PROTOCOL: EXPERT TRAINING. GUARANTEED RESULTS.
         </PackagePreviewTitle>
         <PackagePreviewSubtitle
           variants={packageVariants}
           initial="hidden"
           animate={isPackageInView ? "visible" : "hidden"}
         >
-          This is our Premier Tier. An exclusive ecosystem for those who demand the absolute best. Our world-class coaches serve the most dedicated clients across Orange County and Los Angeles—from Anaheim Hills to Beverly Hills, Newport Beach to Brentwood. We accept only a limited number of new clients each month to ensure every individual receives our full, undivided attention and concierge-level service.
+          This is our Premier Tier. A professional fitness ecosystem designed for those who are committed to excellence. Our expert coaches serve dedicated clients across Orange County and Los Angeles—from Anaheim Hills to Beverly Hills, Newport Beach to Brentwood. We work with a focused group of clients each month to ensure every individual receives our full, personalized attention and professional-level service.
         </PackagePreviewSubtitle>
         
         <PackageGrid
@@ -898,8 +898,8 @@ const HomePage: React.FC = () => {
             onClick={() => navigate('/contact')}
             style={{ background: 'linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(120, 81, 169, 0.2))' }}
           >
-            <h3>🎯 STRATEGIC TRANSFORMATION SESSION (COMPLIMENTARY)</h3>
-            <p>This isn't just a consultation; it's the first step of your victory lap. A 60-minute deep dive with an expert coach to architect your personalized path to success. Available for professionals and entrepreneurs throughout Orange County and Los Angeles.</p>
+            <h3>🎯 STRATEGIC COACHING SESSION (COMPLIMENTARY)</h3>
+            <p>This isn't just a consultation; it's the first step of your transformation journey. A 60-minute deep dive with an expert coach to architect your personalized path to success. Available for dedicated individuals throughout Orange County and Los Angeles.</p>
             <div className="price">No Obligation, Pure Strategy</div>
             <div className="sessions">60-Minute Private Strategy Session</div>
           </PackageCard>
@@ -910,8 +910,8 @@ const HomePage: React.FC = () => {
             onClick={() => navigate('/contact')}
             style={{ background: 'linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(120, 81, 169, 0.2))' }}
           >
-            <h3>⭐ EXECUTIVE WELLNESS ACCELERATOR</h3>
-            <p>Designed for the driven professional. We build your peak performance around your demanding schedule. This is maximum results in minimum time, delivered with white-glove service. Perfect for busy professionals from Calabasas to Manhattan Beach who refuse to compromise on excellence.</p>
+            <h3>⭐ PROFESSIONAL WELLNESS ACCELERATOR</h3>
+            <p>Designed for the driven individual. We build your peak performance around your demanding schedule. This is maximum results in minimum time, delivered with expert service. Perfect for busy professionals from Calabasas to Manhattan Beach who are committed to excellence.</p>
             <div className="price">Hyper-Efficient Protocols</div>
             <div className="sessions">Concierge-Level Service</div>
           </PackageCard>
@@ -937,17 +937,17 @@ const HomePage: React.FC = () => {
         >
           <UrgencyText>🏆 OUR EXPERT COACHING ROSTER SERVES ORANGE COUNTY & LOS ANGELES</UrgencyText>
           <SocialProofText>
-            Trusted by professionals in Beverly Hills • Business leaders in Newport Beach • Entrepreneurs in Anaheim Hills • Dedicated clients from Brentwood to Manhattan Beach • 25+ years of proven excellence across Southern California's most beautiful communities
+            Trusted by professionals in Beverly Hills • Business leaders in Newport Beach • Dedicated individuals in Anaheim Hills • Committed clients from Brentwood to Manhattan Beach • 25+ years of proven excellence across Southern California's most beautiful communities
           </SocialProofText>
           
           <ExploreMoreButton>
             <GlowButton 
-              text="APPLY FOR YOUR ELITE CONSULTATION" 
+              text="GET MY PERSONALIZED PLAN" 
               theme={getThemeButtonVariant('primary')} 
               size="large" 
               animateOnRender 
               onClick={() => navigate('/contact')}
-              aria-label="Apply for your elite consultation"
+              aria-label="Get your personalized training plan"
             />
           </ExploreMoreButton>
         </UrgencySection>
@@ -974,12 +974,12 @@ const HomePage: React.FC = () => {
             whileTap="tap"
           >
             <GlowButton 
-              text="UNLOCK YOUR ARSENAL" 
+              text="UNLOCK MY POTENTIAL" 
               theme={getThemeButtonVariant('secondary')} 
               size="medium" 
               animateOnRender 
               onClick={() => navigate('/contact')}
-              aria-label="Unlock your transformation arsenal"
+              aria-label="Unlock your transformation potential"
             />
           </ExploreMoreButton>
         </div>
@@ -1004,12 +1004,12 @@ const HomePage: React.FC = () => {
           whileTap="tap"
         >
           <GlowButton 
-            text="JOIN THE ELITE RANKS" 
+            text="CONNECT WITH MY TRIBE" 
             theme={getThemeButtonVariant('accent')} 
             size="medium" 
             animateOnRender 
             onClick={() => navigate('/contact')}
-            aria-label="Join the elite ranks of transformation"
+            aria-label="Connect with your transformation tribe"
           />
         </ExploreMoreButton>
       </div>
@@ -1037,12 +1037,12 @@ const HomePage: React.FC = () => {
           whileTap="tap"
         >
           <GlowButton 
-            text="WITNESS THE POWER" 
+            text="JOIN MY CHALLENGE" 
             theme={getThemeButtonVariant('primary')} 
             size="medium" 
             animateOnRender 
             onClick={() => navigate('/contact')}
-            aria-label="Witness the power of transformation"
+            aria-label="Join your personalized fitness challenge"
           />
         </ExploreMoreButton>
       </div>
@@ -1107,12 +1107,12 @@ const HomePage: React.FC = () => {
           style={{ marginTop: '3rem' }}
         >
           <GlowButton 
-            text="IGNITE YOUR LEGACY" 
+            text="START MY TRANSFORMATION" 
             theme={getThemeButtonVariant('primary')} 
             size="large" 
             animateOnRender 
             onClick={() => navigate('/contact')}
-            aria-label="Ignite your legacy transformation journey"
+            aria-label="Start your transformation journey today"
           />
         </ExploreMoreButton>
       </div>
