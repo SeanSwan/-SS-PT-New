@@ -37,10 +37,10 @@ export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 
 // Initialize the Redux store with default values to prevent undefined errors
-// This ensures the schedule slice is always populated
+// This ensures the schedule slice is always populated with Universal Calendar state
 const initialState = store.getState();
 if (!initialState.schedule || !initialState.schedule.sessions) {
-  console.warn('Schedule state not properly initialized, applying default state');
+  console.warn('Schedule state not properly initialized, applying enhanced default state');
   store.dispatch(setInitialState({
       sessions: [],
       trainers: [],
@@ -57,7 +57,13 @@ if (!initialState.schedule || !initialState.schedule.sessions) {
       },
       status: 'idle',
       error: null,
-      fetched: false
+      fetched: false,
+      // Universal Calendar View State (Enhanced)
+      view: 'month',
+      selectedDate: new Date().toISOString().split('T')[0],
+      // Role-based context
+      currentUserRole: null,
+      currentUserId: null
   }));
 }
 

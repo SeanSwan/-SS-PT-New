@@ -1,20 +1,33 @@
 import React from 'react';
 import { Route, Routes, Navigate } from 'react-router-dom';
 
-// Import Dashboard Layouts
-import UnifiedAdminDashboardLayout from '../components/DashBoard/UnifiedAdminDashboardLayout';
-import ClientDashboard from '../components/ClientDashboard/ClientDashboard';
-import TrainerDashboard from '../components/TrainerDashboard/TrainerDashboard';
+// Import the Revolutionary Universal Dashboard Layout
+import UniversalDashboardLayout from '../components/DashBoard/UniversalDashboardLayout';
 import DashboardPage from '../components/DashboardView/DashboardPage';
 
 // Import Protected Route component
 import ProtectedRoute from '../components/ProtectedRoutes/ProtectedRoute';
 
 /**
- * DashboardRoutes Component
+ * DashboardRoutes Component - REVOLUTIONARY UNIFIED EDITION
  * 
- * Centralized routing for all dashboard types (Admin, Trainer, Client)
- * Ensures consistent navigation and authorization across the application
+ * THE GRAND UNIFICATION: Single routing system for all dashboard types
+ * Implements the dashboard revolution from Alchemist's Opus v42
+ * 
+ * BREAKING CHANGES:
+ * - All dashboards now use unified /dashboard/* pattern
+ * - Role-based rendering through UniversalDashboardLayout
+ * - Eliminates fragmented routing (no more /trainer/*, /client/*)
+ * - Single source of truth for all dashboard navigation
+ * 
+ * UNIFIED ARCHITECTURE:
+ * - Admin: /dashboard/admin/*
+ * - Trainer: /dashboard/trainer/*  
+ * - Client: /dashboard/client/*
+ * 
+ * The UniversalDashboardLayout intelligently renders the appropriate
+ * sidebar and content based on the user's role, creating seamless
+ * data sharing and unified user experience.
  */
 const DashboardRoutes: React.FC = () => {
   return (
@@ -32,20 +45,21 @@ const DashboardRoutes: React.FC = () => {
         }
       />
       
-      {/* Admin Dashboard Routes - Executive Command Intelligence */}
+      {/* UNIVERSAL DASHBOARD SYSTEM - All roles use /dashboard/* */}
       <Route 
         path="/dashboard/*" 
         element={
           <ProtectedRoute 
-            allowedRoles={['admin']} 
+            allowedRoles={['admin', 'trainer', 'client']} 
             fallbackPath="/unauthorized"
           >
-            <UnifiedAdminDashboardLayout />
+            <UniversalDashboardLayout />
           </ProtectedRoute>
         } 
       />
       
-      {/* Trainer Dashboard Routes */}
+      {/* LEGACY ROUTE REDIRECTS - Maintain backward compatibility */}
+      {/* Redirect old trainer routes to unified system */}
       <Route 
         path="/trainer/*" 
         element={
@@ -53,12 +67,12 @@ const DashboardRoutes: React.FC = () => {
             allowedRoles={['trainer', 'admin']} 
             fallbackPath="/unauthorized"
           >
-            <TrainerDashboard />
+            <Navigate to="/dashboard/trainer/overview" replace />
           </ProtectedRoute>
         } 
       />
       
-      {/* Client Dashboard Routes */}
+      {/* Redirect old client routes to unified system */}
       <Route 
         path="/client/*" 
         element={
@@ -66,13 +80,26 @@ const DashboardRoutes: React.FC = () => {
             allowedRoles={['client', 'trainer', 'admin']} 
             fallbackPath="/unauthorized"
           >
-            <ClientDashboard />
+            <Navigate to="/dashboard/client/overview" replace />
           </ProtectedRoute>
         } 
       />
       
-      {/* Default redirect */}
-      <Route path="/" element={<Navigate to="/dashboards" replace />} />
+      {/* Redirect old admin routes to unified system */}
+      <Route 
+        path="/admin/*" 
+        element={
+          <ProtectedRoute 
+            allowedRoles={['admin']} 
+            fallbackPath="/unauthorized"
+          >
+            <Navigate to="/dashboard/admin/overview" replace />
+          </ProtectedRoute>
+        } 
+      />
+      
+      {/* Default redirect to unified dashboard */}
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 };
