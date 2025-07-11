@@ -212,7 +212,7 @@ const HighlightDescription = styled.p`
 // Service areas data
 const serviceAreas = [
   {
-    region: "Orange County Elite",
+    region: "Orange County Communities",
     cities: [
       "Anaheim Hills", "Newport Beach", "Laguna Beach", "Villa Park", 
       "Yorba Linda", "Mission Viejo", "San Juan Capistrano", "Coto de Caza",
@@ -221,7 +221,7 @@ const serviceAreas = [
     ]
   },
   {
-    region: "Los Angeles Premium",
+    region: "Los Angeles Communities",
     cities: [
       "Beverly Hills", "Bel Air", "Brentwood", "Pacific Palisades",
       "Santa Monica", "Venice", "Manhattan Beach", "Hermosa Beach",
@@ -230,7 +230,7 @@ const serviceAreas = [
     ]
   },
   {
-    region: "Valley & Inland Elite",
+    region: "Valley & Inland Communities",
     cities: [
       "Calabasas", "Hidden Hills", "Malibu", "Encino", "Tarzana",
       "Sherman Oaks", "Studio City", "Pasadena", "San Marino",
@@ -277,11 +277,11 @@ const LocalServiceAreas: React.FC = () => {
           animate={isInView ? "visible" : "hidden"}
         >
           <SectionTitle variants={itemVariants}>
-            Serving Southern California's Elite Markets
+            Serving Southern California's Fitness Community
           </SectionTitle>
           
           <SectionSubtitle variants={itemVariants}>
-            Premium personal training and AI-powered fitness coaching across Orange County and Los Angeles' most prestigious communities
+            Expert personal training and AI-powered fitness coaching across Orange County and Los Angeles neighborhoods
           </SectionSubtitle>
 
           <RegionsGrid>
@@ -302,11 +302,11 @@ const LocalServiceAreas: React.FC = () => {
 
           <HighlightSection variants={itemVariants}>
             <HighlightText>
-              Elite Training Where You Are <FaStar />
+              Expert Training Where You Are <FaStar />
             </HighlightText>
             <HighlightDescription>
-              From private estates in Newport Coast to executive offices in Century City, 
-              we bring world-class training to your location. Serving 35+ premium neighborhoods 
+              From home gyms in Newport Coast to busy offices in Century City, 
+              we bring world-class training to your location. Serving 35+ neighborhoods 
               across Southern California with the same commitment to excellence that defines SwanStudios.
             </HighlightDescription>
           </HighlightSection>

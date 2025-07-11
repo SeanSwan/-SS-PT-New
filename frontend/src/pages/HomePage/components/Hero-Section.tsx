@@ -500,8 +500,8 @@ const HeroSection: React.FC = () => {
 
           <HeroDescription variants={itemVariants}>
             Welcome to SwanStudios—the world's first <strong>Fitness Social Ecosystem</strong> where every workout, 
-            every meal, and every connection is supercharged. We fuse the passion of <strong>elite trainers</strong> with the 
-            power of intelligent AI to unleash your ultimate potential. Serving Orange County's most discerning professionals from Anaheim Hills to Newport Beach, and Los Angeles elite from Beverly Hills to Manhattan Beach. Your transformation isn't just possible—
+            every meal, and every connection is supercharged. We fuse the passion of <strong>expert trainers</strong> with the 
+            power of intelligent AI to unleash your ultimate potential. Serving Orange County's most dedicated professionals from Anaheim Hills to Newport Beach, and Los Angeles from Beverly Hills to Manhattan Beach. Your transformation isn't just possible—
             <strong>it's inevitable. ARE YOU READY?!</strong>
           </HeroDescription>
 
