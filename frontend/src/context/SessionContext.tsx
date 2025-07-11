@@ -101,6 +101,10 @@ interface SessionContextType {
   fetchSessionAnalytics: () => Promise<void>;
   saveSessionData: () => Promise<void>;
   
+  // User Session Booking (NEW - FIXED ENDPOINTS)
+  fetchAvailableSessions: () => Promise<WorkoutSession[]>;
+  bookAvailableSession: (sessionId: string) => Promise<void>;
+  
   // Role-based data access (NEW)
   fetchClientSessions: (clientId?: string) => Promise<WorkoutSession[]>;
   fetchAllUserSessions: () => Promise<WorkoutSession[]>; // Admin only
@@ -135,6 +139,8 @@ const SessionContext = createContext<SessionContextType>({
   fetchSessions: async () => {},
   fetchSessionAnalytics: async () => {},
   saveSessionData: async () => {},
+  fetchAvailableSessions: async () => [],
+  bookAvailableSession: async () => {},
   fetchClientSessions: async () => [],
   fetchAllUserSessions: async () => [],
   fetchTrainerStats: async () => ({}),
@@ -443,15 +449,10 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
         updatedAt: new Date().toISOString()
       };
 
-      // Try to save to backend
-      try {
-        const response = await apiService.post('/api/sessions', newSession);
-        if (response.data) {
-          newSession.id = response.data.id;
-        }
-      } catch (apiError) {
-        console.warn('Failed to save session to backend, using local storage:', apiError);
-      }
+      // FIXED: Don't use admin-only endpoint for workout sessions
+      // Workout sessions are user-generated and managed locally (offline-first design)
+      // Only booking of pre-existing available sessions should hit the backend
+      console.log('Creating local workout session (offline-first design)');
 
       setCurrentSession(newSession);
       
@@ -474,7 +475,7 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated, user, currentSession, showSessionNotification, resetTimer, startTimer]);
+  }, [isAuthenticated, user, currentSession, showSessionNotification, resetTimer, startTimer, isActiveTab]);
 
   const pauseSession = useCallback(async (): Promise<void> => {
     if (!currentSession || currentSession.status !== 'active') {
@@ -744,9 +745,12 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     
     setLoading(true);
     try {
-      const response = await apiService.get(`/api/sessions?limit=${limit}`);
+      // FIXED: Use user-level endpoint instead of admin-only endpoint
+      const response = await apiService.get(`/api/sessions/${user.id}`);
       if (response.data) {
-        setSessions(response.data);
+        // Apply limit client-side since user endpoint doesn't accept limit param
+        const limitedSessions = Array.isArray(response.data) ? response.data.slice(0, limit) : [];
+        setSessions(limitedSessions);
       }
     } catch (error) {
       console.warn('Failed to fetch sessions from backend, using local storage');
@@ -783,6 +787,42 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       setSessionAnalytics(basicAnalytics);
     }
   }, [isAuthenticated, user, sessions]);
+
+  // NEW USER-LEVEL SESSION BOOKING FUNCTIONS (FIXED ENDPOINTS)
+  const fetchAvailableSessions = useCallback(async (): Promise<WorkoutSession[]> => {
+    try {
+      // FIXED: Use public endpoint for available sessions
+      const response = await apiService.get('/api/sessions/available');
+      return response.data || [];
+    } catch (error) {
+      console.warn('Failed to fetch available sessions from backend');
+      return [];
+    }
+  }, []);
+
+  const bookAvailableSession = useCallback(async (sessionId: string): Promise<void> => {
+    if (!isAuthenticated || !user) {
+      throw new Error('User must be logged in to book a session');
+    }
+
+    setLoading(true);
+    try {
+      // FIXED: Use user-level booking endpoint
+      await apiService.post(`/api/sessions/book/${user.id}`, { sessionId });
+      
+      showSessionNotification('Session booked successfully! 📅', 'success');
+      
+      // Refresh user sessions after booking
+      await fetchSessions();
+    } catch (error: any) {
+      const message = error.response?.data?.message || error.message || 'Failed to book session';
+      setError(message);
+      showSessionNotification(message, 'error');
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated, user, showSessionNotification, fetchSessions]);
 
   // Role-based data access functions
   const fetchClientSessions = useCallback(async (clientId?: string): Promise<WorkoutSession[]> => {
@@ -935,6 +975,8 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     fetchSessions,
     fetchSessionAnalytics,
     saveSessionData,
+    fetchAvailableSessions,
+    bookAvailableSession,
     fetchClientSessions,
     fetchAllUserSessions,
     fetchTrainerStats,
