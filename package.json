@@ -77,7 +77,13 @@
     "production-verify": "node render-production-verify.mjs",
     "render-verify": "node render-production-verify.mjs",
     "check-env": "node backend/utils/quickEnvCheck.mjs",
-    "check-stripe": "node backend/utils/manualDiagnostics.mjs"
+    "check-stripe": "node backend/utils/manualDiagnostics.mjs",
+    "test-database": "node test-database.mjs",
+    "test-database-quick": "node test-database.mjs quick",
+    "test-database-comprehensive": "node test-database.mjs comprehensive",
+    "verify-persistence": "node backend/tests/persistence/quick-production-check.mjs",
+    "verify-signups": "node backend/tests/persistence/comprehensive-persistence-test.mjs",
+    "verify-integration": "node verify-integration.mjs"
   },
   "devDependencies": {
     "concurrently": "^8.2.2",

@@ -22,6 +22,7 @@ import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from
 import { useSelector, useDispatch } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider } from 'styled-components';
+import { useAuth } from '../../../../context/AuthContext';
 
 // AdminStellarSidebar now handled by UnifiedAdminDashboardLayout
 // import AdminStellarSidebar from './AdminStellarSidebar';
@@ -53,6 +54,7 @@ import AIMonitoringPanel from './components/AIMonitoringPanel';
 import SecurityMonitoringPanel from './components/SecurityMonitoringPanel';
 import SystemHealthPanel from './components/SystemHealthPanel';
 import ContactNotifications from './components/ContactNotifications';
+import RealTimeSignupMonitoring from './components/RealTimeSignupMonitoring';
 
 // Import admin section components
 import UsersManagementSection from './UsersManagementSection';
@@ -842,6 +844,13 @@ const CommandCenterOverview: React.FC = () => {
 
   return (
     <div>
+      {/* PRIORITY: Real-time Signup Monitoring - Critical for database persistence verification */}
+      <RealTimeSignupMonitoring 
+        authAxios={useAuth().authAxios}
+        autoRefresh={true}
+        refreshInterval={30000}
+      />
+      
       {/* PRIORITY: Contact Notifications - Critical for new client acquisition */}
       <ContactNotifications 
         autoRefresh={true}
