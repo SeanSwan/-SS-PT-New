@@ -18,6 +18,11 @@ router.put('/users/:id', userManagementController.updateUser);
 router.post('/promote-client', userManagementController.promoteToClient);
 router.post('/promote-admin', userManagementController.promoteToAdmin);
 
+// 🚀 ENHANCED: Real-time monitoring endpoints for admin dashboard
+router.get('/recent-signups', userManagementController.getRecentSignups);
+router.get('/dashboard-stats', userManagementController.getDashboardStats);
+router.get('/database-health', userManagementController.getDatabaseHealth);
+
 // Contact management endpoints
 router.get('/contacts', async (req, res) => {
   try {
