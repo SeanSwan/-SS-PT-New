@@ -1,6 +1,8 @@
 /**
  * styled-component-helpers.ts
- * Utility functions to help with styled-components prop forwarding
+ * Comprehensive utility functions for styled-components prop management
+ * 
+ * CONSOLIDATED from styled-component-helpers.ts + styled-components-helpers.ts
  */
 
 /**
@@ -12,6 +14,28 @@
  */
 export const shouldForwardProp = (props: string[]) => {
   return (prop: string) => !props.includes(prop);
+};
+
+/**
+ * filterStyledProps
+ * 
+ * Filters out props that shouldn't be passed to DOM elements
+ * from a styled component's props
+ * 
+ * @param props The props to filter
+ * @param propNames Array of prop names to filter out
+ * @returns Filtered props object
+ */
+export const filterStyledProps = (props: any, propNames: string[]) => {
+  const filteredProps = { ...props };
+  
+  propNames.forEach(propName => {
+    if (propName in filteredProps) {
+      delete filteredProps[propName];
+    }
+  });
+  
+  return filteredProps;
 };
 
 /**
@@ -48,7 +72,18 @@ export const commonStyleProps = [
   '$disabled',
   '$customColor',
   '$customSize',
-  '$customVariant'
+  '$customVariant',
+  'active',
+  'variant',
+  'expanded',
+  'isOpen',
+  'hovered',
+  'selected',
+  'size',
+  'color',
+  'theme',
+  'as',
+  'forwardedAs'
 ];
 
 /**
@@ -75,3 +110,26 @@ export const allNonForwardedProps = [
  * ```
  */
 export const defaultShouldForwardProp = (prop: string) => !allNonForwardedProps.includes(prop);
+
+/**
+ * Legacy alias for compatibility
+ * @deprecated Use defaultShouldForwardProp instead
+ */
+export const shouldForwardStyledProp = defaultShouldForwardProp;
+
+/**
+ * Legacy commonStyledProps for compatibility
+ * @deprecated Use commonStyleProps instead
+ */
+export const commonStyledProps = commonStyleProps;
+
+// Default export for backward compatibility
+export default {
+  filterStyledProps,
+  shouldForwardStyledProp: defaultShouldForwardProp,
+  defaultShouldForwardProp,
+  commonStyledProps: commonStyleProps,
+  commonStyleProps,
+  commonAnimationProps,
+  allNonForwardedProps
+};
