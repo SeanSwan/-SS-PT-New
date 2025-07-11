@@ -73,6 +73,12 @@ interface ScheduleState {
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   error: string | null;
   fetched: boolean;
+  // Universal Calendar View State (per Alchemist's Opus)
+  view: 'month' | 'week' | 'day';
+  selectedDate: string; // ISO date string
+  // Role-based context
+  currentUserRole: 'admin' | 'trainer' | 'client' | 'user' | null;
+  currentUserId: string | null;
 }
 
 // Initial state
@@ -92,10 +98,76 @@ const initialState: ScheduleState = {
   },
   status: 'idle',
   error: null,
-  fetched: false
+  fetched: false,
+  // Universal Calendar View State
+  view: 'month',
+  selectedDate: new Date().toISOString().split('T')[0], // Today's date
+  // Role-based context
+  currentUserRole: null,
+  currentUserId: null
 };
 
 // Async thunks
+
+// Universal fetchEvents - Role-based data fetching (per Alchemist's Opus)
+export const fetchEvents = createAsyncThunk(
+  'schedule/fetchEvents',
+  async (params: { role: 'admin' | 'trainer' | 'client' | 'user'; userId: string }, { rejectWithValue }) => {
+    try {
+      let sessions: SessionEvent[] = [];
+      
+      // Role-based data fetching logic
+      switch (params.role) {
+        case 'admin':
+          // Admin sees ALL sessions across platform
+          sessions = await enhancedScheduleService.getSessions();
+          break;
+        case 'trainer':
+          // Trainer sees their own sessions and availability
+          sessions = await enhancedScheduleService.getTrainerSessions(params.userId);
+          break;
+        case 'client':
+          // Client sees their own sessions and trainer availability
+          sessions = await enhancedScheduleService.getClientSessions(params.userId);
+          break;
+        case 'user':
+        default:
+          // Regular users see limited public availability
+          sessions = await enhancedScheduleService.getPublicAvailability();
+          break;
+      }
+      
+      // Calculate stats
+      const stats = {
+        total: sessions.length,
+        available: sessions.filter(s => s.status === 'available').length,
+        booked: sessions.filter(s => s.status === 'booked').length,
+        confirmed: sessions.filter(s => s.status === 'confirmed').length,
+        completed: sessions.filter(s => s.status === 'completed').length,
+        cancelled: sessions.filter(s => s.status === 'cancelled').length,
+        blocked: sessions.filter(s => s.status === 'blocked').length,
+        upcoming: sessions.filter(s => 
+          ['available', 'booked', 'confirmed'].includes(s.status) && 
+          new Date(s.start) > new Date()
+        ).length
+      };
+      
+      return { 
+        sessions, 
+        stats, 
+        role: params.role, 
+        userId: params.userId 
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        return rejectWithValue(error.message);
+      }
+      return rejectWithValue('An unknown error occurred');
+    }
+  }
+);
+
+// Legacy fetchSessions for backward compatibility
 export const fetchSessions = createAsyncThunk(
   'schedule/fetchSessions',
   async (_, { rejectWithValue }) => {
@@ -157,8 +229,29 @@ export const fetchClients = createAsyncThunk(
   }
 );
 
+// Enhanced bookSession with transactional database operation (per Alchemist's Opus)
 export const bookSession = createAsyncThunk(
   'schedule/bookSession',
+  async (sessionData: { sessionId: string; clientId: string; packageType?: string }, { rejectWithValue }) => {
+    try {
+      // This will trigger the backend transactional operation:
+      // 1. Create the new session record
+      // 2. Decrement the client's session count
+      // Both operations are wrapped in a database transaction
+      const result = await enhancedScheduleService.bookSessionWithTransaction(sessionData);
+      return result;
+    } catch (error) {
+      if (error instanceof Error) {
+        return rejectWithValue(error.message);
+      }
+      return rejectWithValue('Booking failed: An unknown error occurred');
+    }
+  }
+);
+
+// Legacy bookSession for backward compatibility
+export const bookSessionLegacy = createAsyncThunk(
+  'schedule/bookSessionLegacy',
   async (sessionId: string, { rejectWithValue }) => {
     try {
       const result = await enhancedScheduleService.bookSession(sessionId);
@@ -297,11 +390,39 @@ const scheduleSlice = createSlice({
           ).length
         };
       }
+    },
+    // Universal Calendar View Management (per Alchemist's Opus)
+    setCalendarView: (state, action: PayloadAction<'month' | 'week' | 'day'>) => {
+      state.view = action.payload;
+    },
+    setSelectedDate: (state, action: PayloadAction<string>) => {
+      state.selectedDate = action.payload;
+    },
+    setUserContext: (state, action: PayloadAction<{ role: 'admin' | 'trainer' | 'client' | 'user' | null; userId: string | null }>) => {
+      state.currentUserRole = action.payload.role;
+      state.currentUserId = action.payload.userId;
     }
   },
   extraReducers: (builder) => {
     builder
-      // Fetch sessions
+      // Universal fetchEvents (Primary)
+      .addCase(fetchEvents.pending, (state) => {
+        state.status = 'loading';
+      })
+      .addCase(fetchEvents.fulfilled, (state, action) => {
+        state.status = 'succeeded';
+        state.sessions = action.payload.sessions;
+        state.stats = action.payload.stats;
+        state.currentUserRole = action.payload.role;
+        state.currentUserId = action.payload.userId;
+        state.fetched = true;
+      })
+      .addCase(fetchEvents.rejected, (state, action) => {
+        state.status = 'failed';
+        state.error = action.payload as string;
+      })
+      
+      // Legacy fetch sessions (Backward compatibility)
       .addCase(fetchSessions.pending, (state) => {
         state.status = 'loading';
       })
@@ -326,8 +447,24 @@ const scheduleSlice = createSlice({
         state.clients = action.payload;
       })
       
-      // Book session
+      // Enhanced Book session with transaction
       .addCase(bookSession.fulfilled, (state, action) => {
+        const { sessionId, clientData, transactionSuccessful } = action.payload;
+        const sessionIndex = state.sessions.findIndex(s => s.id === sessionId);
+        
+        if (sessionIndex !== -1 && transactionSuccessful) {
+          state.sessions[sessionIndex].status = 'booked';
+          state.sessions[sessionIndex].userId = clientData?.id;
+          state.sessions[sessionIndex].client = clientData;
+          
+          // Update stats
+          state.stats.available--;
+          state.stats.booked++;
+        }
+      })
+      
+      // Legacy Book session
+      .addCase(bookSessionLegacy.fulfilled, (state, action) => {
         const { sessionId } = action.payload;
         const sessionIndex = state.sessions.findIndex(s => s.id === sessionId);
         
@@ -463,7 +600,15 @@ const scheduleSlice = createSlice({
 });
 
 // Export actions and reducer
-export const { resetScheduleStatus, updateSession, setInitialState } = scheduleSlice.actions;
+export const { 
+  resetScheduleStatus, 
+  updateSession, 
+  setInitialState,
+  // Universal Calendar Actions
+  setCalendarView,
+  setSelectedDate,
+  setUserContext
+} = scheduleSlice.actions;
 export default scheduleSlice.reducer;
 
 // Selectors with null/undefined safety
@@ -495,3 +640,13 @@ export const selectClientSessions = (state: RootState, clientId: string) =>
   state?.schedule?.sessions?.filter(session => session?.userId === clientId) || [];
 export const selectTrainerSessions = (state: RootState, trainerId: string) =>
   state?.schedule?.sessions?.filter(session => session?.trainerId === trainerId) || [];
+
+// Universal Calendar Selectors (per Alchemist's Opus)
+export const selectCalendarView = (state: RootState) => state?.schedule?.view || 'month';
+export const selectSelectedDate = (state: RootState) => state?.schedule?.selectedDate || new Date().toISOString().split('T')[0];
+export const selectCurrentUserRole = (state: RootState) => state?.schedule?.currentUserRole || null;
+export const selectCurrentUserId = (state: RootState) => state?.schedule?.currentUserId || null;
+export const selectUserContext = (state: RootState) => ({
+  role: state?.schedule?.currentUserRole || null,
+  userId: state?.schedule?.currentUserId || null
+});

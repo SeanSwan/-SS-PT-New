@@ -207,6 +207,29 @@ const setupAssociations = async () => {
       otherKey: 'userId',
       as: 'users'
     });
+    
+    // 🎯 CRITICAL FIX: Direct UserAchievement ↔ Achievement associations
+    // These direct associations are required for getUserAchievements to work properly
+    UserAchievement.belongsTo(Achievement, {
+      foreignKey: 'achievementId',
+      as: 'achievement'
+    });
+    
+    Achievement.hasMany(UserAchievement, {
+      foreignKey: 'achievementId',
+      as: 'userAchievements'
+    });
+    
+    // User ↔ UserAchievement associations
+    UserAchievement.belongsTo(User, {
+      foreignKey: 'userId',
+      as: 'user'
+    });
+    
+    User.hasMany(UserAchievement, {
+      foreignKey: 'userId',
+      as: 'userAchievements'
+    });
 
     // E-COMMERCE ASSOCIATIONS
     // ======================
