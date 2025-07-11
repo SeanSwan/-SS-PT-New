@@ -192,9 +192,55 @@ const DashboardSelector: React.FC = () => {
     };
   }, [isOpen]);
   
-  // Don't render the selector if user only has access to one dashboard
-  if (!user || !hasMultipleDashboards()) {
+  // Don't render the selector if user is not logged in
+  if (!user) {
     return null;
+  }
+  
+  // If user only has access to one dashboard, show a direct link instead of dropdown
+  if (!hasMultipleDashboards()) {
+    const accessibleDashboards = ['admin', 'trainer', 'client', 'user'].filter(dashboard => isEnabled(dashboard));
+    const singleDashboard = accessibleDashboards[0];
+    
+    let dashboardPath = '/user-dashboard';
+    let dashboardName = 'My Dashboard';
+    let dashboardIcon = <UserCircle size={16} />;
+    
+    switch (singleDashboard) {
+      case 'admin':
+        dashboardPath = '/dashboard/default';
+        dashboardName = 'Admin Dashboard';
+        dashboardIcon = <LayoutDashboard size={16} />;
+        break;
+      case 'trainer':
+        dashboardPath = '/trainer-dashboard';
+        dashboardName = 'Trainer Dashboard';
+        dashboardIcon = <Users size={16} />;
+        break;
+      case 'client':
+        dashboardPath = '/client-dashboard';
+        dashboardName = 'Client Dashboard';
+        dashboardIcon = <User size={16} />;
+        break;
+      case 'user':
+      default:
+        dashboardPath = '/user-dashboard';
+        dashboardName = 'My Dashboard';
+        dashboardIcon = <UserCircle size={16} />;
+        break;
+    }
+    
+    return (
+      <SelectorContainer>
+        <SelectorButton 
+          onClick={() => navigate(dashboardPath)}
+          style={{ cursor: 'pointer' }}
+        >
+          {dashboardIcon}
+          {dashboardName}
+        </SelectorButton>
+      </SelectorContainer>
+    );
   }
   
   return (
