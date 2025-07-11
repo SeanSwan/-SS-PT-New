@@ -1,4 +1,4 @@
-import { useAuth } from '../context/AuthContext';
+import apiService from './api.service';
 
 // Type definitions
 interface Session {
@@ -64,8 +64,8 @@ const mockSessions: Session[] = [
 
 // Session service implementation
 export const sessionService = {
-  // Get all sessions
-  getSessions: async (): Promise<ServiceResponse<Session[]>> => {
+  // Get user's own sessions (FIXED: Use user-level endpoint)
+  getSessions: async (userId?: string): Promise<ServiceResponse<Session[]>> => {
     try {
       // For development or if API is not available, return mock data
       if (process.env.NODE_ENV === 'development' || process.env.VITE_DEV_MODE === 'true') {
@@ -76,9 +76,12 @@ export const sessionService = {
         };
       }
 
-      // In production, make a real API call
-      const { authAxios } = useAuth();
-      const response = await authAxios.get('/api/sessions');
+      // FIXED: Use user-level endpoint instead of admin-only endpoint
+      if (!userId) {
+        throw new Error('User ID is required to fetch sessions');
+      }
+      
+      const response = await apiService.get(`/api/sessions/${userId}`);
       
       return {
         success: true,
@@ -89,6 +92,65 @@ export const sessionService = {
       return {
         success: false,
         message: error.message || 'Failed to fetch sessions'
+      };
+    }
+  },
+
+  // Get available sessions for booking (NEW - FIXED ENDPOINT)
+  getAvailableSessions: async (): Promise<ServiceResponse<Session[]>> => {
+    try {
+      // For development or if API is not available, return mock data
+      if (process.env.NODE_ENV === 'development' || process.env.VITE_DEV_MODE === 'true') {
+        console.log('[DEV MODE] Using mock available sessions data');
+        const availableSessions = mockSessions.filter(s => s.status === 'available');
+        return {
+          success: true,
+          data: availableSessions
+        };
+      }
+
+      // FIXED: Use public endpoint for available sessions
+      const response = await apiService.get('/api/sessions/available');
+      
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error: any) {
+      console.error('Error fetching available sessions:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to fetch available sessions'
+      };
+    }
+  },
+
+  // Book an available session (NEW - FIXED ENDPOINT)
+  bookSession: async (sessionId: string, userId: string): Promise<ServiceResponse<any>> => {
+    try {
+      // For development or if API is not available, simulate success
+      if (process.env.NODE_ENV === 'development' || process.env.VITE_DEV_MODE === 'true') {
+        console.log(`[DEV MODE] Booked session ${sessionId} for user ${userId}`);
+        return {
+          success: true,
+          data: { sessionId, userId, status: 'booked' }
+        };
+      }
+
+      // FIXED: Use user-level booking endpoint
+      const response = await apiService.post(`/api/sessions/book/${userId}`, {
+        sessionId
+      });
+      
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error: any) {
+      console.error('Error booking session:', error);
+      return {
+        success: false,
+        message: error.message || 'Failed to book session'
       };
     }
   },
@@ -113,8 +175,7 @@ export const sessionService = {
       }
 
       // In production, make a real API call
-      const { authAxios } = useAuth();
-      const response = await authAxios.post('/api/clients/sessions', {
+      const response = await apiService.post('/api/clients/sessions', {
         clientId,
         count: sessionsCount,
         notes
@@ -136,5 +197,11 @@ export const sessionService = {
 
 // Index file for all services
 export default {
-  session: sessionService
+  session: {
+    ...sessionService,
+    // Re-export with clearer naming for the context
+    getUserSessions: sessionService.getSessions,
+    getAvailableSessions: sessionService.getAvailableSessions,
+    bookSession: sessionService.bookSession
+  }
 };

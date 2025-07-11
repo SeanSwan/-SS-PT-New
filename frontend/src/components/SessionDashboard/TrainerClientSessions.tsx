@@ -7,7 +7,6 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSession } from '../../context/SessionContext';
 import { useAuth } from '../../context/AuthContext';
 import apiService from '../../services/api.service';
 import SessionErrorBoundary from './SessionErrorBoundary';
