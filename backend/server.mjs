@@ -34,8 +34,9 @@ if (existsSync(envPath)) {
   dotenv.config();
 }
 
-// PHASE 2: Redis Connection Blocker REMOVED - eliminating startup overhead
-// The blocker was disabled anyway and may cause timing issues
+// PHASE 2: Redis Error Suppression for Production
+// Suppress ioredis unhandled error events on Render deployment
+import './utils/redisErrorSuppressor.mjs';
 
 // PHASE 3: Continue with normal imports
 // Environment configuration already completed above
