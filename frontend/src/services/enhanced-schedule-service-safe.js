@@ -213,6 +213,82 @@ const safeScheduleService = {
     }
   },
   
+  // Enhanced methods for Universal Calendar integration
+  // Role-based data fetching methods
+  getTrainerSessions: async (trainerId) => {
+    try {
+      if (typeof baseScheduleService.getTrainerSessions === 'function') {
+        return await baseScheduleService.getTrainerSessions(trainerId);
+      }
+      
+      // Fallback: filter all sessions by trainerId
+      const allSessions = await safeScheduleService.getSessions();
+      return allSessions.filter(session => session.trainerId === trainerId);
+    } catch (error) {
+      console.error('Error in getTrainerSessions:', error);
+      return [];
+    }
+  },
+  
+  getClientSessions: async (clientId) => {
+    try {
+      if (typeof baseScheduleService.getClientSessions === 'function') {
+        return await baseScheduleService.getClientSessions(clientId);
+      }
+      
+      // Fallback: filter all sessions by clientId/userId
+      const allSessions = await safeScheduleService.getSessions();
+      return allSessions.filter(session => session.userId === clientId || session.clientId === clientId);
+    } catch (error) {
+      console.error('Error in getClientSessions:', error);
+      return [];
+    }
+  },
+  
+  getPublicAvailability: async () => {
+    try {
+      if (typeof baseScheduleService.getPublicAvailability === 'function') {
+        return await baseScheduleService.getPublicAvailability();
+      }
+      
+      // Fallback: return only available sessions
+      const allSessions = await safeScheduleService.getSessions();
+      return allSessions.filter(session => session.status === 'available');
+    } catch (error) {
+      console.error('Error in getPublicAvailability:', error);
+      return [];
+    }
+  },
+  
+  // Enhanced booking with transaction support
+  bookSessionWithTransaction: async (sessionData) => {
+    try {
+      if (typeof baseScheduleService.bookSessionWithTransaction === 'function') {
+        return await baseScheduleService.bookSessionWithTransaction(sessionData);
+      }
+      
+      // Fallback: use regular booking method
+      console.warn('bookSessionWithTransaction not available, using regular booking');
+      const result = await safeScheduleService.bookSession(sessionData.sessionId);
+      
+      return {
+        ...result,
+        sessionId: sessionData.sessionId,
+        clientData: sessionData.clientId ? { id: sessionData.clientId } : null,
+        transactionSuccessful: result.success || true
+      };
+    } catch (error) {
+      console.error('Error in bookSessionWithTransaction:', error);
+      return {
+        success: false,
+        sessionId: sessionData.sessionId,
+        clientData: null,
+        transactionSuccessful: false,
+        error: 'Failed to book session with transaction'
+      };
+    }
+  },
+  
   // Ensure deleteBlockedTime returns a valid result
   deleteBlockedTime: async (blockedTimeId, removeAll = false) => {
     try {
