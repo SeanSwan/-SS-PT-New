@@ -9,6 +9,8 @@ import express from 'express';
 import cors from 'cors';
 import compression from 'compression';
 import helmet from 'helmet';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { setupMiddleware } from './middleware/index.mjs';
 import { setupRoutes } from './routes.mjs';
 import { setupErrorHandling } from './middleware/errorHandler.mjs';
@@ -20,6 +22,11 @@ import logger from '../utils/logger.mjs';
 export const createApp = async () => {
   const app = express();
   const isProduction = process.env.NODE_ENV === 'production';
+
+  // ===================== PATH SETUP FOR STATIC FILES =====================
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const frontendBuildPath = path.join(__dirname, '..', '..', 'frontend', 'dist');
 
   // ===================== ULTRA-AGGRESSIVE OPTIONS HANDLING (LAYER 1) =====================
   // This runs BEFORE any other middleware to catch ALL OPTIONS requests
@@ -202,6 +209,32 @@ export const createApp = async () => {
 
   // ===================== ROUTES SETUP =====================
   await setupRoutes(app);
+
+  // ===================== STATIC FILE SERVING FOR FRONTEND =====================
+  // Serve static files from the React app's build directory
+  // This MUST come AFTER API routes to avoid conflicts
+  app.use(express.static(frontendBuildPath, {
+    maxAge: isProduction ? '1y' : '0', // Cache static assets in production
+    etag: true,
+    lastModified: true
+  }));
+
+  logger.info(`📁 Static files configured: serving from ${frontendBuildPath}`);
+
+  // ===================== SPA CATCH-ALL ROUTE =====================
+  // The "catchall" handler: for any request that doesn't match an API route,
+  // send back the main index.html file. This enables React Router to work.
+  app.get('*', (req, res) => {
+    const indexPath = path.join(frontendBuildPath, 'index.html');
+    logger.info(`🔄 SPA Catch-all: ${req.url} -> serving index.html from ${indexPath}`);
+    
+    res.sendFile(indexPath, (err) => {
+      if (err) {
+        logger.error(`❌ Failed to serve index.html: ${err.message}`);
+        res.status(500).send('Error loading application');
+      }
+    });
+  });
 
   // ===================== ERROR HANDLING =====================
   setupErrorHandling(app);
