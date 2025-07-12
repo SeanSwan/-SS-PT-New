@@ -12,7 +12,7 @@
  */
 
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import enhancedScheduleService from '../../services/enhanced-schedule-service-safe';
+import enhancedScheduleService from '../../services/enhanced-schedule-service-safe.js';
 import { RootState } from '../store';
 
 // Define types
