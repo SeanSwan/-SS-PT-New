@@ -115,6 +115,12 @@ export const getContact = () => getModel('Contact');
 export const getFinancialTransaction = () => getModel('FinancialTransaction');
 export const getAdminNotification = () => getModel('AdminNotification');
 
+// Exercise Models
+export const getExercise = () => getModel('Exercise');
+
+// Workout Session Models (aliases for compatibility)
+export const getWorkoutSession = () => getModel('Session'); // Alias for Session model
+
 // NASM Workout Tracking Models
 export const getClientTrainerAssignment = () => getModel('ClientTrainerAssignment');
 export const getTrainerPermissions = () => getModel('TrainerPermissions');
