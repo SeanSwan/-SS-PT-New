@@ -224,13 +224,20 @@ export const createApp = async () => {
   // ===================== SPA CATCH-ALL ROUTE =====================
   // The "catchall" handler: for any request that doesn't match an API route,
   // send back the main index.html file. This enables React Router to work.
+  // 🎯 P0 FIX: Explicit MIME type to prevent text/plain serving
   app.get('*', (req, res) => {
     const indexPath = path.join(frontendBuildPath, 'index.html');
     logger.info(`🔄 SPA Catch-all: ${req.url} -> serving index.html from ${indexPath}`);
     
+    // 🎯 P0 CRITICAL: Set explicit Content-Type before serving to prevent MIME issues
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', isProduction ? 'public, max-age=300' : 'no-cache');
+    
     res.sendFile(indexPath, (err) => {
       if (err) {
         logger.error(`❌ Failed to serve index.html: ${err.message}`);
+        // Reset headers and send error
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         res.status(500).send('Error loading application');
       }
     });

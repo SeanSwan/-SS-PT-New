@@ -115,6 +115,11 @@ export const getContact = () => getModel('Contact');
 export const getFinancialTransaction = () => getModel('FinancialTransaction');
 export const getAdminNotification = () => getModel('AdminNotification');
 
+// NASM Workout Tracking Models
+export const getClientTrainerAssignment = () => getModel('ClientTrainerAssignment');
+export const getTrainerPermissions = () => getModel('TrainerPermissions');
+export const getDailyWorkoutForm = () => getModel('DailyWorkoutForm');
+
 // Export Sequelize operators for routes
 export { Op };
 
