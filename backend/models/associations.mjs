@@ -360,7 +360,7 @@ const setupAssociations = async () => {
     ClientTrainerAssignment.belongsTo(User, { foreignKey: 'assignedBy', as: 'assignedByUser' });
     
     // Trainer Permission Associations
-    User.hasMany(TrainerPermissions, { foreignKey: 'trainerId', as: 'permissions' });
+    User.hasMany(TrainerPermissions, { foreignKey: 'trainerId', as: 'trainerPermissions' });
     TrainerPermissions.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
     TrainerPermissions.belongsTo(User, { foreignKey: 'grantedBy', as: 'grantedByUser' });
     
