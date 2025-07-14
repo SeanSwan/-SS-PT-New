@@ -8,7 +8,7 @@
  * Run with: node backend/scripts/seedExercises.mjs
  */
 
-import { getAllModels } from '../models/index.mjs';
+import { getAllModels, initializeModelsCache } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
 const basicExercises = [
@@ -117,6 +117,10 @@ const basicExercises = [
 const seedExercises = async () => {
   try {
     logger.info('🌱 Starting exercise seeding...');
+    
+    // Initialize models cache first
+    logger.info('🔧 Initializing models cache...');
+    await initializeModelsCache();
     
     // Get models
     const models = await getAllModels();
