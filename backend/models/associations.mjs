@@ -67,6 +67,11 @@ const setupAssociations = async () => {
     const FinancialTransactionModule = await import('./financial/FinancialTransaction.mjs');
     const BusinessMetricsModule = await import('./financial/BusinessMetrics.mjs');
     const AdminNotificationModule = await import('./financial/AdminNotification.mjs');
+    
+    // NASM Workout Tracking Models (Sequelize)
+    const ClientTrainerAssignmentModule = await import('./ClientTrainerAssignment.mjs');
+    const TrainerPermissionsModule = await import('./TrainerPermissions.mjs');
+    const DailyWorkoutFormModule = await import('./DailyWorkoutForm.mjs');
 
     console.log('Extracting Sequelize models...');
     
@@ -122,6 +127,11 @@ const setupAssociations = async () => {
     const FinancialTransaction = FinancialTransactionModule.default;
     const BusinessMetrics = BusinessMetricsModule.default;
     const AdminNotification = AdminNotificationModule.default;
+    
+    // NASM Workout Tracking Models
+    const ClientTrainerAssignment = ClientTrainerAssignmentModule.default;
+    const TrainerPermissions = TrainerPermissionsModule.default;
+    const DailyWorkoutForm = DailyWorkoutFormModule.default;
 
     console.log('Setting up Sequelize associations only...');
     
@@ -164,7 +174,8 @@ const setupAssociations = async () => {
         WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, WorkoutSession, WorkoutExercise, Exercise, Set,
         MuscleGroup, ExerciseMuscleGroup, Equipment, ExerciseEquipment,
         Orientation, Notification, NotificationSettings, AdminSettings, Contact,
-        FinancialTransaction, BusinessMetrics, AdminNotification
+        FinancialTransaction, BusinessMetrics, AdminNotification,
+        ClientTrainerAssignment, TrainerPermissions, DailyWorkoutForm
       };
     }
     
@@ -336,8 +347,34 @@ const setupAssociations = async () => {
     // Admin Notifications -> Read By (admin user)
     AdminNotification.belongsTo(User, { foreignKey: 'readBy', as: 'readByUser' });
 
+    // NASM WORKOUT TRACKING ASSOCIATIONS
+    // ==================================
+    
+    // Client-Trainer Assignment Associations
+    User.hasMany(ClientTrainerAssignment, { foreignKey: 'clientId', as: 'clientAssignments' });
+    User.hasMany(ClientTrainerAssignment, { foreignKey: 'trainerId', as: 'trainerAssignments' });
+    User.hasMany(ClientTrainerAssignment, { foreignKey: 'assignedBy', as: 'assignmentsMade' });
+    
+    ClientTrainerAssignment.belongsTo(User, { foreignKey: 'clientId', as: 'client' });
+    ClientTrainerAssignment.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+    ClientTrainerAssignment.belongsTo(User, { foreignKey: 'assignedBy', as: 'assignedByUser' });
+    
+    // Trainer Permission Associations
+    User.hasMany(TrainerPermissions, { foreignKey: 'trainerId', as: 'permissions' });
+    TrainerPermissions.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+    TrainerPermissions.belongsTo(User, { foreignKey: 'grantedBy', as: 'grantedByUser' });
+    
+    // Daily Workout Form Associations
+    User.hasMany(DailyWorkoutForm, { foreignKey: 'clientId', as: 'workoutForms' });
+    User.hasMany(DailyWorkoutForm, { foreignKey: 'trainerId', as: 'trainedWorkouts' });
+    DailyWorkoutForm.belongsTo(User, { foreignKey: 'clientId', as: 'client' });
+    DailyWorkoutForm.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+    DailyWorkoutForm.belongsTo(WorkoutSession, { foreignKey: 'sessionId', as: 'session' });
+    WorkoutSession.hasMany(DailyWorkoutForm, { foreignKey: 'sessionId', as: 'dailyForms' });
+
     console.log('✅ Sequelize model associations established successfully');
     console.log('✅ Financial Intelligence models integrated');
+    console.log('✅ NASM Workout Tracking models integrated');
     
     // Return ONLY SEQUELIZE models for exporting
     return {
@@ -400,7 +437,12 @@ const setupAssociations = async () => {
       // Financial Models
       FinancialTransaction,
       BusinessMetrics,
-      AdminNotification
+      AdminNotification,
+      
+      // NASM Workout Tracking Models
+      ClientTrainerAssignment,
+      TrainerPermissions,
+      DailyWorkoutForm
     };
   } catch (error) {
     console.error('❌ Error setting up Sequelize model associations:', error);

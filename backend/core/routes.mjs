@@ -81,6 +81,11 @@ import clientProgressRoutes from '../routes/clientProgressRoutes.mjs';
 import exerciseRoutes from '../routes/exerciseRoutes.mjs';
 import roleRoutes from '../routes/roleRoutes.mjs';
 
+// ===================== NASM WORKOUT TRACKING SYSTEM =====================
+import clientTrainerAssignmentRoutes from '../routes/clientTrainerAssignmentRoutes.mjs';
+import trainerPermissionsRoutes from '../routes/trainerPermissionsRoutes.mjs';
+import dailyWorkoutFormRoutes from '../routes/dailyWorkoutFormRoutes.mjs';
+
 // ===================== WEBHOOKS =====================
 import stripeWebhookRouter from '../webhooks/stripeWebhook.mjs';
 
@@ -180,6 +185,11 @@ export const setupRoutes = async (app) => {
   // ===================== NASM PROTOCOL ROUTES =====================
   app.use('/api/client-progress', clientProgressRoutes);
   app.use('/api/exercises', exerciseRoutes);
+  
+  // ===================== NASM WORKOUT TRACKING SYSTEM ROUTES =====================
+  app.use('/api/assignments', clientTrainerAssignmentRoutes);
+  app.use('/api/trainer-permissions', trainerPermissionsRoutes);
+  app.use('/api/workout-forms', dailyWorkoutFormRoutes);
 
   // ===================== WEBHOOKS =====================
   app.use('/webhooks/stripe', stripeWebhookRouter);
