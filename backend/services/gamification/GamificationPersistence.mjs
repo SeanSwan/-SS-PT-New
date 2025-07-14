@@ -1,4 +1,5 @@
-import Redis from 'ioredis';
+// 🎯 P0 PRODUCTION FIX: Conditional Redis import to prevent crashes
+// import Redis from 'ioredis'; // REMOVED - causing production crashes
 import { MongoClient } from 'mongodb';
 import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
 import sequelize from '../../database.mjs';
@@ -11,17 +12,19 @@ import sequelize from '../../database.mjs';
 
 class GamificationPersistence {
   constructor() {
-    // Initialize Redis for fast operations
-    this.redis = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: process.env.REDIS_PORT || 6379,
-      password: process.env.REDIS_PASSWORD,
-      retryAttempts: 3,
-      retryDelayOnFailover: 100,
-      enableReadyCheck: true,
-      lazyConnect: true,
-      maxLoadingTimeout: 1000
-    });
+    // 🎯 P0 PRODUCTION FIX: Initialize Redis conditionally
+    this.redis = null;
+    this.redisEnabled = false;
+    
+    // Initialize Redis only in development or when explicitly enabled
+    const isProduction = process.env.NODE_ENV === 'production';
+    const redisForced = process.env.FORCE_REDIS === 'true';
+    
+    if (!isProduction || redisForced) {
+      this.initializeRedis();
+    } else {
+      console.log('🎯 PRODUCTION SAFE: Redis disabled for gamification - using PostgreSQL fallback');
+    }
 
     // Fallback storage options
     this.usePostgreSQL = true;
@@ -83,14 +86,51 @@ class GamificationPersistence {
       'challenge_completion': { base: 100, multiplier: 1.3 }
     };
 
-    // Connect to Redis
-    this.connectRedis();
+    // Connect to Redis conditionally
+    if (this.redisEnabled) {
+      this.connectRedis();
+    }
+  }
+
+  /**
+   * 🎯 P0 PRODUCTION FIX: Initialize Redis with conditional import
+   */
+  async initializeRedis() {
+    try {
+      // Dynamically import Redis only when needed
+      const { default: Redis } = await import('ioredis');
+      
+      this.redis = new Redis({
+        host: process.env.REDIS_HOST || 'localhost',
+        port: process.env.REDIS_PORT || 6379,
+        password: process.env.REDIS_PASSWORD,
+        retryAttempts: 3,
+        retryDelayOnFailover: 100,
+        enableReadyCheck: true,
+        lazyConnect: true,
+        maxLoadingTimeout: 1000
+      });
+      
+      this.redisEnabled = true;
+      console.log('✅ Redis initialized for gamification');
+      
+    } catch (error) {
+      console.log('🎯 Redis not available for gamification, using PostgreSQL fallback');
+      this.redis = null;
+      this.redisEnabled = false;
+    }
   }
 
   /**
    * Connect to Redis with error handling
+   * 🎯 P0 PRODUCTION FIX: Handle Redis not being available
    */
   async connectRedis() {
+    if (!this.redis || !this.redisEnabled) {
+      console.log('🎯 Redis not initialized, skipping connection');
+      return;
+    }
+    
     try {
       await this.redis.connect();
       piiSafeLogger.info('Gamification Redis connected successfully');
@@ -98,6 +138,8 @@ class GamificationPersistence {
       piiSafeLogger.error('Redis connection failed, using fallback storage', {
         error: error.message
       });
+      this.redisEnabled = false;
+      this.redis = null;
     }
   }
 
@@ -121,6 +163,7 @@ class GamificationPersistence {
 
   /**
    * Award points to user with atomic operations
+   * 🎯 P0 PRODUCTION FIX: Handle Redis not being available
    * @param {string} userId - User ID
    * @param {number} points - Points to award
    * @param {string} reason - Reason for points
@@ -137,23 +180,31 @@ class GamificationPersistence {
       const category = this.pointCategories[reason] || this.pointCategories['workout_completion'];
       const finalPoints = Math.round(points * category.multiplier);
 
-      // Redis atomic operations
-      const redisOps = this.redis.multi()
-        .hincrby(`user:${userId}:points`, 'total', finalPoints)
-        .zadd('leaderboard:daily', finalPoints, userId)
-        .zadd('leaderboard:weekly', finalPoints, userId)
-        .zadd('leaderboard:monthly', finalPoints, userId)
-        .lpush(`user:${userId}:point_history`, JSON.stringify({
-          points: finalPoints,
-          reason,
-          timestamp: Date.now(),
-          metadata
-        }))
-        .ltrim(`user:${userId}:point_history`, 0, 99) // Keep last 100 entries
-        .expire(`user:${userId}:points`, 86400 * 30) // 30 days expiry
-        .expire(`user:${userId}:point_history`, 86400 * 30);
+      // 🎯 P0 FIX: Use Redis only if available, otherwise go straight to database
+      if (this.redisEnabled && this.redis) {
+        try {
+          // Redis atomic operations
+          const redisOps = this.redis.multi()
+            .hincrby(`user:${userId}:points`, 'total', finalPoints)
+            .zadd('leaderboard:daily', finalPoints, userId)
+            .zadd('leaderboard:weekly', finalPoints, userId)
+            .zadd('leaderboard:monthly', finalPoints, userId)
+            .lpush(`user:${userId}:point_history`, JSON.stringify({
+              points: finalPoints,
+              reason,
+              timestamp: Date.now(),
+              metadata
+            }))
+            .ltrim(`user:${userId}:point_history`, 0, 99) // Keep last 100 entries
+            .expire(`user:${userId}:points`, 86400 * 30) // 30 days expiry
+            .expire(`user:${userId}:point_history`, 86400 * 30);
 
-      await redisOps.exec();
+          await redisOps.exec();
+        } catch (redisError) {
+          console.log('🎯 Redis operation failed, using database fallback:', redisError.message);
+          this.redisEnabled = false;
+        }
+      }
 
       // Persistent storage with backup (PostgreSQL or MongoDB)
       await this.persistPointTransaction(userId, finalPoints, reason, metadata);
@@ -301,6 +352,7 @@ class GamificationPersistence {
 
   /**
    * Check and unlock achievements
+   * 🎯 P0 PRODUCTION FIX: Handle Redis not being available
    * @param {string} userId - User ID
    * @param {string} reason - Action that triggered check
    * @param {Object} metadata - Additional context
@@ -312,7 +364,31 @@ class GamificationPersistence {
 
       // Check each achievement
       for (const [achievementId, achievement] of Object.entries(this.achievements)) {
-        const hasAchievement = await this.redis.sismember(`user:${userId}:achievements`, achievementId);
+        let hasAchievement = false;
+        
+        // Check if user has achievement (Redis or database fallback)
+        if (this.redisEnabled && this.redis) {
+          try {
+            hasAchievement = await this.redis.sismember(`user:${userId}:achievements`, achievementId);
+          } catch (redisError) {
+            console.log('🎯 Redis achievement check failed, using database fallback');
+            this.redisEnabled = false;
+            // Fall through to database check
+          }
+        }
+        
+        // Database fallback for achievement check
+        if (!this.redisEnabled) {
+          try {
+            const dbAchievement = await sequelize.models.UserAchievements.findOne({
+              where: { userId, achievementId }
+            });
+            hasAchievement = !!dbAchievement;
+          } catch (dbError) {
+            console.log('🎯 Database achievement check failed, assuming no achievement');
+            hasAchievement = false;
+          }
+        }
         
         if (!hasAchievement && await this.checkAchievementCondition(achievementId, userStats, reason, metadata)) {
           await this.unlockAchievement(userId, achievementId);
@@ -365,6 +441,7 @@ class GamificationPersistence {
 
   /**
    * Unlock achievement for user
+   * 🎯 P0 PRODUCTION FIX: Handle Redis not being available
    * @param {string} userId - User ID
    * @param {string} achievementId - Achievement ID
    */
@@ -373,9 +450,16 @@ class GamificationPersistence {
       const achievement = this.achievements[achievementId];
       if (!achievement) return false;
 
-      // Add to Redis
-      await this.redis.sadd(`user:${userId}:achievements`, achievementId);
-      await this.redis.zadd('achievement_leaderboard', Date.now(), `${userId}:${achievementId}`);
+      // Add to Redis if available
+      if (this.redisEnabled && this.redis) {
+        try {
+          await this.redis.sadd(`user:${userId}:achievements`, achievementId);
+          await this.redis.zadd('achievement_leaderboard', Date.now(), `${userId}:${achievementId}`);
+        } catch (redisError) {
+          console.log('🎯 Redis unlock achievement failed, continuing with database');
+          this.redisEnabled = false;
+        }
+      }
 
       // Award achievement points
       await this.awardPoints(userId, achievement.points, `achievement_${achievementId}`, {
@@ -383,15 +467,19 @@ class GamificationPersistence {
         category: achievement.category
       });
 
-      // Persist to database
+      // Persist to database (always do this)
       if (this.usePostgreSQL) {
-        await sequelize.models.UserAchievements.create({
-          userId,
-          achievementId,
-          achievementName: achievement.name,
-          pointsAwarded: achievement.points,
-          unlockedAt: new Date()
-        });
+        try {
+          await sequelize.models.UserAchievements.create({
+            userId,
+            achievementId,
+            achievementName: achievement.name,
+            pointsAwarded: achievement.points,
+            unlockedAt: new Date()
+          });
+        } catch (dbError) {
+          console.log('🎯 Database achievement persist failed:', dbError.message);
+        }
       }
 
       // Track achievement unlock
@@ -415,13 +503,24 @@ class GamificationPersistence {
 
   /**
    * Get user's total points
+   * 🎯 P0 PRODUCTION FIX: Handle Redis not being available
    * @param {string} userId - User ID
    */
   async getTotalPoints(userId) {
     try {
-      const points = await this.redis.hget(`user:${userId}:points`, 'total');
-      return parseInt(points) || 0;
-    } catch (error) {
+      // Try Redis first if available
+      if (this.redisEnabled && this.redis) {
+        try {
+          const points = await this.redis.hget(`user:${userId}:points`, 'total');
+          if (points !== null) {
+            return parseInt(points) || 0;
+          }
+        } catch (redisError) {
+          console.log('🎯 Redis getTotalPoints failed, using database fallback');
+          this.redisEnabled = false;
+        }
+      }
+      
       // Fallback to database
       try {
         const result = await sequelize.models.UserPointsLedger.sum('points', {
@@ -435,27 +534,44 @@ class GamificationPersistence {
         });
         return 0;
       }
+    } catch (error) {
+      piiSafeLogger.error('Failed to get total points', {
+        error: error.message,
+        userId
+      });
+      return 0;
     }
   }
 
   /**
    * Get user statistics for achievement checking
+   * 🎯 P0 PRODUCTION FIX: Handle Redis not being available
    * @param {string} userId - User ID
    */
   async getUserStatistics(userId) {
     try {
-      // Try to get from Redis first
-      const stats = await this.redis.hmget(`user:${userId}:stats`,
-        'totalWorkouts', 'currentStreak', 'perfectFormCount', 'sharedWorkouts', 'accessibilityUsage'
-      );
+      // Try to get from Redis first if available
+      if (this.redisEnabled && this.redis) {
+        try {
+          const stats = await this.redis.hmget(`user:${userId}:stats`,
+            'totalWorkouts', 'currentStreak', 'perfectFormCount', 'sharedWorkouts', 'accessibilityUsage'
+          );
 
-      return {
-        totalWorkouts: parseInt(stats[0]) || 0,
-        currentStreak: parseInt(stats[1]) || 0,
-        perfectFormCount: parseInt(stats[2]) || 0,
-        sharedWorkouts: parseInt(stats[3]) || 0,
-        accessibilityUsage: parseInt(stats[4]) || 0
-      };
+          return {
+            totalWorkouts: parseInt(stats[0]) || 0,
+            currentStreak: parseInt(stats[1]) || 0,
+            perfectFormCount: parseInt(stats[2]) || 0,
+            sharedWorkouts: parseInt(stats[3]) || 0,
+            accessibilityUsage: parseInt(stats[4]) || 0
+          };
+        } catch (redisError) {
+          console.log('🎯 Redis getUserStatistics failed, using database fallback');
+          this.redisEnabled = false;
+        }
+      }
+      
+      // Fallback to calculating from database
+      return await this.calculateStatsFromDatabase(userId);
     } catch (error) {
       // Fallback to calculating from database
       return await this.calculateStatsFromDatabase(userId);
@@ -874,10 +990,13 @@ class GamificationPersistence {
 
   /**
    * Close connections
+   * 🎯 P0 PRODUCTION FIX: Handle Redis not being available
    */
   async close() {
     try {
-      await this.redis.disconnect();
+      if (this.redis && this.redisEnabled) {
+        await this.redis.disconnect();
+      }
       if (this.mongoClient) {
         await this.mongoClient.close();
       }
