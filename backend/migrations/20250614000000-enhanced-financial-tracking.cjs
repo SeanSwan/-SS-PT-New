@@ -37,7 +37,7 @@ module.exports = {
           type: DataTypes.INTEGER,
           allowNull: false,
           references: {
-            model: 'Users',
+            model: 'users',
             key: 'id'
           },
           onUpdate: 'CASCADE',
@@ -48,7 +48,7 @@ module.exports = {
           type: DataTypes.INTEGER,
           allowNull: true,
           references: {
-            model: 'Orders',
+            model: 'orders',
             key: 'id'
           },
           onUpdate: 'CASCADE',
@@ -59,7 +59,7 @@ module.exports = {
           type: DataTypes.INTEGER,
           allowNull: true,
           references: {
-            model: 'ShoppingCarts',
+            model: 'shopping_carts',
             key: 'id'
           },
           onUpdate: 'CASCADE',
@@ -260,7 +260,7 @@ module.exports = {
           type: DataTypes.INTEGER,
           allowNull: true,
           references: {
-            model: 'StorefrontItems',
+            model: 'storefront_items',
             key: 'id'
           },
           comment: 'Best selling package for the period'
@@ -323,7 +323,7 @@ module.exports = {
           type: DataTypes.INTEGER,
           allowNull: true,
           references: {
-            model: 'Users',
+            model: 'users',
             key: 'id'
           },
           onUpdate: 'CASCADE',
@@ -367,7 +367,7 @@ module.exports = {
           type: DataTypes.INTEGER,
           allowNull: true,
           references: {
-            model: 'Users',
+            model: 'users',
             key: 'id'
           },
           comment: 'Admin user who read the notification'
@@ -555,21 +555,21 @@ module.exports = {
 
       // Add columns to existing tables if they don't exist
       
-      // Add payment intent tracking to ShoppingCarts
+      // Add payment intent tracking to shopping_carts
       try {
-        await queryInterface.addColumn('ShoppingCarts', 'paymentIntentId', {
+        await queryInterface.addColumn('shopping_carts', 'paymentIntentId', {
           type: DataTypes.STRING(255),
           allowNull: true,
           comment: 'Stripe Payment Intent ID for this cart'
         }, { transaction });
       } catch (error) {
         // Column might already exist
-        console.log('paymentIntentId column may already exist in ShoppingCarts');
+        console.log('paymentIntentId column may already exist in shopping_carts');
       }
 
-      // Add purchase tracking to Users
+      // Add purchase tracking to users
       try {
-        await queryInterface.addColumn('Users', 'hasPurchasedBefore', {
+        await queryInterface.addColumn('users', 'hasPurchasedBefore', {
           type: DataTypes.BOOLEAN,
           allowNull: false,
           defaultValue: false,
@@ -577,33 +577,33 @@ module.exports = {
         }, { transaction });
       } catch (error) {
         // Column might already exist
-        console.log('hasPurchasedBefore column may already exist in Users');
+        console.log('hasPurchasedBefore column may already exist in users');
       }
 
       try {
-        await queryInterface.addColumn('Users', 'firstPurchaseAt', {
+        await queryInterface.addColumn('users', 'firstPurchaseAt', {
           type: DataTypes.DATE,
           allowNull: true,
           comment: 'Date of first purchase'
         }, { transaction });
       } catch (error) {
         // Column might already exist
-        console.log('firstPurchaseAt column may already exist in Users');
+        console.log('firstPurchaseAt column may already exist in users');
       }
 
       try {
-        await queryInterface.addColumn('Users', 'lastPurchaseAt', {
+        await queryInterface.addColumn('users', 'lastPurchaseAt', {
           type: DataTypes.DATE,
           allowNull: true,
           comment: 'Date of most recent purchase'
         }, { transaction });
       } catch (error) {
         // Column might already exist
-        console.log('lastPurchaseAt column may already exist in Users');
+        console.log('lastPurchaseAt column may already exist in users');
       }
 
       try {
-        await queryInterface.addColumn('Users', 'totalSpent', {
+        await queryInterface.addColumn('users', 'totalSpent', {
           type: DataTypes.DECIMAL(10, 2),
           allowNull: false,
           defaultValue: 0,
@@ -611,7 +611,7 @@ module.exports = {
         }, { transaction });
       } catch (error) {
         // Column might already exist
-        console.log('totalSpent column may already exist in Users');
+        console.log('totalSpent column may already exist in users');
       }
 
       await transaction.commit();
@@ -630,11 +630,11 @@ module.exports = {
     try {
       // Remove added columns first
       try {
-        await queryInterface.removeColumn('Users', 'totalSpent', { transaction });
-        await queryInterface.removeColumn('Users', 'lastPurchaseAt', { transaction });
-        await queryInterface.removeColumn('Users', 'firstPurchaseAt', { transaction });
-        await queryInterface.removeColumn('Users', 'hasPurchasedBefore', { transaction });
-        await queryInterface.removeColumn('ShoppingCarts', 'paymentIntentId', { transaction });
+        await queryInterface.removeColumn('users', 'totalSpent', { transaction });
+        await queryInterface.removeColumn('users', 'lastPurchaseAt', { transaction });
+        await queryInterface.removeColumn('users', 'firstPurchaseAt', { transaction });
+        await queryInterface.removeColumn('users', 'hasPurchasedBefore', { transaction });
+        await queryInterface.removeColumn('shopping_carts', 'paymentIntentId', { transaction });
       } catch (error) {
         console.log('Some columns may not exist to remove');
       }
