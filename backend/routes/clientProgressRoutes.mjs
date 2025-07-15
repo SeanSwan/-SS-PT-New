@@ -1,8 +1,7 @@
 // backend/routes/clientProgressRoutes.mjs
 import express from 'express';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
-import ClientProgress from '../models/ClientProgress.mjs';
-import User from '../models/User.mjs';
+import { getClientProgress, getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -17,6 +16,8 @@ router.get('/',
   // authorize(['client']), 
   async (req, res) => {
     try {
+      const ClientProgress = getClientProgress();
+      
       // Find or create progress record for the current user
       const [clientProgress, created] = await ClientProgress.findOrCreate({
         where: { userId: req.user?.id || 'default-user' },
@@ -57,6 +58,8 @@ router.put('/',
   authorize(['client']),
   async (req, res) => {
     try {
+      const ClientProgress = getClientProgress();
+      
       const { 
         experiencePoints,
         levelUpdates,
@@ -178,12 +181,15 @@ router.get('/leaderboard',
   protect,
   async (req, res) => {
     try {
+      const ClientProgress = getClientProgress();
+      const User = getUser();
+      
       const leaderboard = await ClientProgress.findAll({
         attributes: ['overallLevel', 'userId'],
         include: [
           {
             model: User,
-            as: 'client',
+            as: 'user',
             attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
           }
         ],
@@ -218,6 +224,9 @@ router.get('/:userId',
   async (req, res) => {
     try {
       const { userId } = req.params;
+      
+      const ClientProgress = getClientProgress();
+      const User = getUser();
       
       // Verify the client exists and is actually a client
       const client = await User.findOne({
@@ -275,6 +284,9 @@ router.put('/:userId',
     try {
       const { userId } = req.params;
       const updates = req.body;
+      
+      const ClientProgress = getClientProgress();
+      const User = getUser();
       
       // Verify the client exists and is actually a client
       const client = await User.findOne({

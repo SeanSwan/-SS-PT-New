@@ -9,8 +9,7 @@ import express from "express";
 const router = express.Router(); // Define router first
 
 import { protect, adminOnly } from "../middleware/authMiddleware.mjs";
-import Session from "../models/Session.mjs";
-import User from "../models/User.mjs";
+import { getSession, getUser } from "../models/index.mjs";
 import { Op } from "sequelize";
 import stripe from "stripe";
 import moment from "moment";
@@ -349,6 +348,9 @@ const stripeInstance = process.env.STRIPE_SECRET_KEY ?
  */
 router.get("/", protect, adminOnly, async (req, res) => {
   try {
+    const Session = getSession();
+    const User = getUser();
+    
     const sessions = await Session.findAll({
       include: [
         {
@@ -379,6 +381,8 @@ router.get("/", protect, adminOnly, async (req, res) => {
  */
 router.post("/admin/create", protect, adminOnly, async (req, res) => {
   try {
+    const Session = getSession();
+    
     const { sessionDate, notes, duration, location, trainerId } = req.body;
 
     // Prevent creating sessions in the past

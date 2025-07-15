@@ -20,10 +20,7 @@
 import express from 'express';
 import { protect, authorize } from '../../middleware/authMiddleware.mjs';
 import { Op, literal, fn, col } from 'sequelize';
-import ShoppingCart from '../../models/ShoppingCart.mjs';
-import CartItem from '../../models/CartItem.mjs';
-import StorefrontItem from '../../models/StorefrontItem.mjs';
-import User from '../../models/User.mjs';
+import { getShoppingCart, getCartItem, getStorefrontItem, getUser } from '../../models/index.mjs';
 import logger from '../../utils/logger.mjs';
 
 const router = express.Router();
@@ -39,6 +36,12 @@ router.use(authorize(['admin']));
 router.get('/overview', async (req, res) => {
   try {
     const { timeRange = '30d' } = req.query;
+    
+    // Get models
+    const ShoppingCart = getShoppingCart();
+    const CartItem = getCartItem();
+    const StorefrontItem = getStorefrontItem();
+    const User = getUser();
     
     // Calculate time boundaries
     const now = new Date();
@@ -253,6 +256,12 @@ router.get('/transactions', async (req, res) => {
       sortOrder = 'DESC'
     } = req.query;
     
+    // Get models
+    const ShoppingCart = getShoppingCart();
+    const CartItem = getCartItem();
+    const StorefrontItem = getStorefrontItem();
+    const User = getUser();
+    
     const offset = (page - 1) * limit;
     
     // Build where conditions - ENHANCED to include all cart statuses
@@ -400,6 +409,12 @@ router.get('/metrics', async (req, res) => {
   try {
     const { timeRange = '30d' } = req.query;
     
+    // Get models
+    const ShoppingCart = getShoppingCart();
+    const CartItem = getCartItem();
+    const StorefrontItem = getStorefrontItem();
+    const User = getUser();
+    
     // Time calculations
     const now = new Date();
     const timeRanges = {
@@ -542,6 +557,10 @@ router.get('/metrics', async (req, res) => {
  */
 router.get('/notifications', async (req, res) => {
   try {
+    // Get models
+    const ShoppingCart = getShoppingCart();
+    const User = getUser();
+    
     const notifications = [];
     
     // Check for large transactions in the last 24 hours
@@ -627,6 +646,12 @@ router.get('/export', async (req, res) => {
   try {
     const { format = 'json', startDate, endDate, type = 'transactions' } = req.query;
     
+    // Get models
+    const ShoppingCart = getShoppingCart();
+    const CartItem = getCartItem();
+    const StorefrontItem = getStorefrontItem();
+    const User = getUser();
+    
     const whereConditions = {
       status: 'completed',
       paymentStatus: 'paid'
@@ -697,6 +722,66 @@ router.get('/export', async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to export financial data',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/trainers
+ * Get all trainers for admin management
+ * @access Private (Admin Only)
+ */
+router.get('/trainers', async (req, res) => {
+  try {
+    // Get models
+    const User = getUser();
+    
+    const trainers = await User.findAll({
+      where: {
+        role: 'trainer'
+      },
+      attributes: [
+        'id', 'firstName', 'lastName', 'email', 'phone', 'photo', 
+        'specialties', 'createdAt', 'updatedAt', 'lastLoginAt'
+      ],
+      order: [['createdAt', 'DESC']]
+    });
+    
+    // Format trainers data for admin dashboard
+    const formattedTrainers = trainers.map(trainer => ({
+      id: trainer.id,
+      name: `${trainer.firstName} ${trainer.lastName}`,
+      email: trainer.email,
+      phone: trainer.phone,
+      photo: trainer.photo,
+      specialty: trainer.specialties ? trainer.specialties.split(',').map(s => s.trim()) : [],
+      certifications: ['NASM-CPT'], // Mock for now - can be enhanced later
+      verified: true, // Mock for now - can be enhanced later
+      status: 'active', // Mock for now - can be enhanced later
+      joinedAt: trainer.createdAt,
+      lastActive: trainer.lastLoginAt || trainer.updatedAt,
+      stats: {
+        activeClients: 0, // Will be calculated from actual data
+        totalSessions: 0,
+        monthlyRevenue: 0,
+        rating: 4.5, // Mock for now
+        completedCertifications: 1
+      },
+      location: 'Studio', // Mock for now
+      bio: 'Professional trainer'
+    }));
+    
+    res.json({
+      success: true,
+      trainers: formattedTrainers
+    });
+    
+  } catch (error) {
+    logger.error('Error fetching trainers for admin:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch trainers',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
