@@ -18,29 +18,37 @@ module.exports = {
     try {
       console.log('[Migration] Adding trainer assignment fields to sessions table...');
 
-      // Add assignedAt column
-      await queryInterface.addColumn('sessions', 'assignedAt', {
-        type: Sequelize.DATE,
-        allowNull: true,
-        comment: 'When the trainer was assigned to this session'
-      }, { transaction });
+      // Add assignedAt column (check if it exists first)
+      const columns = await queryInterface.describeTable('sessions');
+      
+      if (!columns.assignedAt) {
+        await queryInterface.addColumn('sessions', 'assignedAt', {
+          type: Sequelize.DATE,
+          allowNull: true,
+          comment: 'When the trainer was assigned to this session'
+        }, { transaction });
+        console.log('[Migration] ✅ Added assignedAt column');
+      } else {
+        console.log('[Migration] ⚪ assignedAt column already exists');
+      }
 
-      console.log('[Migration] ✅ Added assignedAt column');
-
-      // Add assignedBy column
-      await queryInterface.addColumn('sessions', 'assignedBy', {
-        type: Sequelize.INTEGER,
-        allowNull: true,
-        comment: 'Admin user who assigned the trainer to this session',
-        references: {
-          model: 'users',
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL'
-      }, { transaction });
-
-      console.log('[Migration] ✅ Added assignedBy column');
+      // Add assignedBy column (check if it exists first)
+      if (!columns.assignedBy) {
+        await queryInterface.addColumn('sessions', 'assignedBy', {
+          type: Sequelize.INTEGER,
+          allowNull: true,
+          comment: 'Admin user who assigned the trainer to this session',
+          references: {
+            model: 'users',
+            key: 'id'
+          },
+          onUpdate: 'CASCADE',
+          onDelete: 'SET NULL'
+        }, { transaction });
+        console.log('[Migration] ✅ Added assignedBy column');
+      } else {
+        console.log('[Migration] ⚪ assignedBy column already exists');
+      }
 
       // Update existing sessions with default values if needed
       await queryInterface.sequelize.query(`
