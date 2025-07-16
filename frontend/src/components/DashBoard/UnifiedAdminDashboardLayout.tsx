@@ -38,6 +38,9 @@ import AdminPackagesView from './Pages/admin-packages/admin-packages-view';
 import TrainersManagementSection from './Pages/admin-dashboard/TrainersManagementSection';
 import AdminGamificationView from './Pages/admin-gamification/admin-gamification-view';
 
+// Import Universal Master Schedule
+import AdminScheduleIntegration from '../UniversalMasterSchedule/AdminScheduleIntegration';
+
 // Import Financial Management Components
 import RevenueAnalyticsPanel from './Pages/admin-dashboard/components/RevenueAnalyticsPanel';
 import PendingOrdersAdminPanel from './Pages/admin-dashboard/components/PendingOrdersAdminPanel';
@@ -511,6 +514,18 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                 />
                 <Route path="/client-management" element={<AdminClientProgressView />} />
                 <Route path="/admin-sessions" element={<EnhancedAdminSessionsView />} />
+                <Route 
+                  path="/admin/master-schedule" 
+                  element={
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <AdminScheduleIntegration />
+                    </ExecutivePageContainer>
+                  } 
+                />
                 <Route path="/admin-packages" element={<AdminPackagesView />} />
                 <Route 
                   path="/content" 
