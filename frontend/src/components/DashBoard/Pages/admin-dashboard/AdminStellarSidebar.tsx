@@ -543,6 +543,7 @@ const adminNavigationItems: AdminNavItemData[] = [
   { id: 'trainers', label: 'Trainer Management', icon: UserCheck, section: 'management', route: '/dashboard/trainers' },
   { id: 'clients', label: 'Client Management', icon: Star, section: 'management', route: '/dashboard/client-management' },
   { id: 'sessions', label: 'Session Scheduling', icon: Calendar, section: 'management', route: '/dashboard/admin-sessions' },
+  { id: 'master-schedule', label: 'Universal Master Schedule', icon: Calendar, section: 'management', route: '/dashboard/admin/master-schedule' },
   { id: 'packages', label: 'Package Management', icon: Package, section: 'management', route: '/dashboard/admin-packages' },
   { id: 'content', label: 'Content Moderation', icon: FileText, section: 'management', route: '/dashboard/content' },
   
