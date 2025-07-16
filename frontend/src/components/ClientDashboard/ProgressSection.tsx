@@ -7,8 +7,8 @@ import SafeMainContent, {
   Button
 } from "./SafeMainContent";
 
-// Import the new ProgressDashboard component
-import ProgressDashboard from "../FitnessStats/ProgressDashboard";
+// Import the new ClientProgressCharts component (FIXED: Build error resolution)
+import ClientProgressCharts from "../ClientProgressCharts";
 import SyncStatus from "../FitnessStats/SyncStatus";
 
 // Import custom hooks for MCP integration
@@ -72,8 +72,8 @@ const ProgressSection: React.FC = () => {
           </CardContent>
         </Card>
       ) : (
-        /* Render the ProgressDashboard component which handles loading state */
-        <ProgressDashboard />
+        /* Render the ClientProgressCharts component which handles loading state */
+        <ClientProgressCharts />
       )}
     </SafeMainContent>
   );
