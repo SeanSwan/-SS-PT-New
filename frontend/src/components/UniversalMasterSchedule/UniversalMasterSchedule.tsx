@@ -39,7 +39,7 @@ import styled, { ThemeProvider } from 'styled-components';
 import { Calendar, momentLocalizer, Views, SlotInfo } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import moment from 'moment';
-import { toast } from 'react-toastify';
+import { useToast } from '../../hooks/use-toast';
 
 // Material-UI Components
 import {
@@ -68,4 +68,1373 @@ import {
   Badge,
   Card,
   CardContent
-} from '@mui/material';\n\n// Icons\nimport {\n  Calendar as CalendarIcon,\n  Users,\n  Filter,\n  Search,\n  Settings,\n  UserPlus,\n  Clock,\n  MapPin,\n  Star,\n  CheckCircle,\n  AlertCircle,\n  Info,\n  Refresh,\n  Download,\n  Upload,\n  Eye,\n  EyeOff,\n  Maximize2,\n  Minimize2,\n  RotateCcw,\n  Save,\n  X,\n  Plus,\n  Minus,\n  Edit,\n  Trash2,\n  Move,\n  Copy,\n  ArrowRight,\n  ArrowLeft,\n  ChevronUp,\n  ChevronDown,\n  MoreHorizontal,\n  Target,\n  Zap,\n  Activity,\n  TrendingUp,\n  DollarSign,\n  Award,\n  Shield,\n  Lock,\n  Unlock\n} from 'lucide-react';\n\n// Context and Services\nimport { useAuth } from '../../context/AuthContext';\nimport { ApiService } from '../../services/api.service';\nimport { clientTrainerAssignmentService } from '../../services/clientTrainerAssignmentService';\nimport { sessionService } from '../../services/sessionService';\n\n// Custom Components\nimport GlowButton from '../ui/buttons/GlowButton';\nimport { LoadingSpinner } from '../ui/LoadingSpinner';\nimport { ErrorBoundary } from '../ui/ErrorBoundary';\n\n// Styled Components and Theme\nimport { stellarTheme, CommandCenterTheme } from './UniversalMasterScheduleTheme';\n\n// Types and Interfaces\nimport {\n  Session,\n  Client,\n  Trainer,\n  ClientTrainerAssignment,\n  SessionEvent,\n  FilterOptions,\n  ScheduleStats\n} from './types';\n\n// Initialize localizer and drag-and-drop calendar\nconst localizer = momentLocalizer(moment);\nconst DragAndDropCalendar = withDragAndDrop(Calendar);\n\n// Import styles\nimport 'react-big-calendar/lib/css/react-big-calendar.css';\nimport 'react-big-calendar/lib/addons/dragAndDrop/styles.css';\n\n/**\n * Universal Master Schedule Component\n * \n * The command center for all scheduling operations with advanced\n * drag-and-drop capabilities and real-time collaboration.\n */\nconst UniversalMasterSchedule: React.FC = () => {\n  const { user, authAxios } = useAuth();\n  const dispatch = useDispatch();\n  \n  // ==================== STATE MANAGEMENT ====================\n  \n  // Core Data State\n  const [sessions, setSessions] = useState<Session[]>([]);\n  const [clients, setClients] = useState<Client[]>([]);\n  const [trainers, setTrainers] = useState<Trainer[]>([]);\n  const [assignments, setAssignments] = useState<ClientTrainerAssignment[]>([]);\n  \n  // UI State\n  const [loading, setLoading] = useState(true);\n  const [error, setError] = useState<string | null>(null);\n  const [view, setView] = useState<'month' | 'week' | 'day' | 'agenda'>('week');\n  const [selectedDate, setSelectedDate] = useState(new Date());\n  const [selectedEvent, setSelectedEvent] = useState<SessionEvent | null>(null);\n  \n  // Filter and Search State\n  const [filterOptions, setFilterOptions] = useState<FilterOptions>({\n    trainerId: '',\n    clientId: '',\n    status: 'all',\n    dateRange: 'all',\n    location: '',\n    searchTerm: ''\n  });\n  \n  // Dialog State\n  const [showEventDialog, setShowEventDialog] = useState(false);\n  const [showAssignmentDialog, setShowAssignmentDialog] = useState(false);\n  const [showStatsDialog, setShowStatsDialog] = useState(false);\n  \n  // Advanced Features State\n  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);\n  const [multiSelectMode, setMultiSelectMode] = useState(false);\n  const [selectedEvents, setSelectedEvents] = useState<string[]>([]);\n  const [bulkActionMode, setBulkActionMode] = useState(false);\n  \n  // Statistics State\n  const [scheduleStats, setScheduleStats] = useState<ScheduleStats>({\n    totalSessions: 0,\n    availableSessions: 0,\n    bookedSessions: 0,\n    completedSessions: 0,\n    cancelledSessions: 0,\n    revenue: 0,\n    utilizationRate: 0,\n    averageSessionDuration: 0,\n    topTrainer: null,\n    topClient: null\n  });\n  \n  // ==================== COMPUTED VALUES ====================\n  \n  // Transform sessions to calendar events\n  const calendarEvents = useMemo(() => {\n    return sessions\n      .filter(session => {\n        // Apply filters\n        if (filterOptions.trainerId && session.trainerId !== filterOptions.trainerId) return false;\n        if (filterOptions.clientId && session.userId !== filterOptions.clientId) return false;\n        if (filterOptions.status !== 'all' && session.status !== filterOptions.status) return false;\n        if (filterOptions.location && session.location !== filterOptions.location) return false;\n        if (filterOptions.searchTerm) {\n          const searchLower = filterOptions.searchTerm.toLowerCase();\n          const clientName = session.client ? `${session.client.firstName} ${session.client.lastName}`.toLowerCase() : '';\n          const trainerName = session.trainer ? `${session.trainer.firstName} ${session.trainer.lastName}`.toLowerCase() : '';\n          if (!clientName.includes(searchLower) && !trainerName.includes(searchLower) && \n              !session.location?.toLowerCase().includes(searchLower) && \n              !session.notes?.toLowerCase().includes(searchLower)) {\n            return false;\n          }\n        }\n        return true;\n      })\n      .map(session => ({\n        id: session.id,\n        title: session.client ? \n          `${session.client.firstName} ${session.client.lastName}` : \n          'Available Slot',\n        start: new Date(session.sessionDate),\n        end: new Date(new Date(session.sessionDate).getTime() + (session.duration || 60) * 60000),\n        allDay: false,\n        status: session.status,\n        userId: session.userId,\n        trainerId: session.trainerId,\n        client: session.client,\n        trainer: session.trainer,\n        location: session.location,\n        notes: session.notes,\n        duration: session.duration,\n        resource: session // Store full session data\n      }));\n  }, [sessions, filterOptions]);\n  \n  // Get unique locations for filter dropdown\n  const uniqueLocations = useMemo(() => {\n    const locations = sessions.map(s => s.location).filter(Boolean);\n    return [...new Set(locations)];\n  }, [sessions]);\n  \n  // ==================== API FUNCTIONS ====================\n  \n  // Fetch all required data\n  const fetchData = useCallback(async () => {\n    setLoading(true);\n    setError(null);\n    \n    try {\n      const [sessionsRes, clientsRes, trainersRes, assignmentsRes] = await Promise.all([\n        authAxios.get('/api/sessions'),\n        authAxios.get('/api/sessions/clients'),\n        authAxios.get('/api/sessions/trainers'),\n        authAxios.get('/api/client-trainer-assignments')\n      ]);\n      \n      setSessions(sessionsRes.data);\n      setClients(clientsRes.data);\n      setTrainers(trainersRes.data);\n      setAssignments(assignmentsRes.data);\n      \n      // Calculate statistics\n      calculateStatistics(sessionsRes.data);\n      \n      toast.success('Schedule data loaded successfully');\n    } catch (err: any) {\n      console.error('Error fetching schedule data:', err);\n      setError(err.response?.data?.message || 'Failed to load schedule data');\n      toast.error('Failed to load schedule data');\n    } finally {\n      setLoading(false);\n    }\n  }, [authAxios]);\n  \n  // Calculate schedule statistics\n  const calculateStatistics = useCallback((sessionData: Session[]) => {\n    const stats: ScheduleStats = {\n      totalSessions: sessionData.length,\n      availableSessions: sessionData.filter(s => s.status === 'available').length,\n      bookedSessions: sessionData.filter(s => ['scheduled', 'confirmed'].includes(s.status)).length,\n      completedSessions: sessionData.filter(s => s.status === 'completed').length,\n      cancelledSessions: sessionData.filter(s => s.status === 'cancelled').length,\n      revenue: 0, // TODO: Calculate based on pricing\n      utilizationRate: 0,\n      averageSessionDuration: 0,\n      topTrainer: null,\n      topClient: null\n    };\n    \n    // Calculate utilization rate\n    const totalBookedAndCompleted = stats.bookedSessions + stats.completedSessions;\n    stats.utilizationRate = stats.totalSessions > 0 ? \n      Math.round((totalBookedAndCompleted / stats.totalSessions) * 100) : 0;\n    \n    // Calculate average session duration\n    const durationsSum = sessionData.reduce((sum, s) => sum + (s.duration || 60), 0);\n    stats.averageSessionDuration = sessionData.length > 0 ? \n      Math.round(durationsSum / sessionData.length) : 0;\n    \n    setScheduleStats(stats);\n  }, []);\n  \n  // ==================== DRAG AND DROP HANDLERS ====================\n  \n  // Handle moving events (drag and drop)\n  const handleEventDrop = useCallback(async ({ event, start, end, isAllDay }: any) => {\n    if (!user || user.role !== 'admin') {\n      toast.error('Only administrators can move sessions');\n      return;\n    }\n    \n    try {\n      const sessionId = event.id;\n      const updatedData = {\n        sessionDate: start.toISOString(),\n        duration: Math.round((end.getTime() - start.getTime()) / 60000) // Convert to minutes\n      };\n      \n      await authAxios.put(`/api/sessions/${sessionId}`, updatedData);\n      \n      // Update local state\n      setSessions(prev => prev.map(session => \n        session.id === sessionId ? {\n          ...session,\n          sessionDate: start.toISOString(),\n          duration: updatedData.duration\n        } : session\n      ));\n      \n      toast.success('Session moved successfully');\n    } catch (err: any) {\n      console.error('Error moving session:', err);\n      toast.error('Failed to move session');\n    }\n  }, [user, authAxios]);\n  \n  // Handle resizing events\n  const handleEventResize = useCallback(async ({ event, start, end }: any) => {\n    if (!user || user.role !== 'admin') {\n      toast.error('Only administrators can resize sessions');\n      return;\n    }\n    \n    try {\n      const sessionId = event.id;\n      const updatedData = {\n        sessionDate: start.toISOString(),\n        duration: Math.round((end.getTime() - start.getTime()) / 60000)\n      };\n      \n      await authAxios.put(`/api/sessions/${sessionId}`, updatedData);\n      \n      // Update local state\n      setSessions(prev => prev.map(session => \n        session.id === sessionId ? {\n          ...session,\n          sessionDate: start.toISOString(),\n          duration: updatedData.duration\n        } : session\n      ));\n      \n      toast.success('Session duration updated successfully');\n    } catch (err: any) {\n      console.error('Error resizing session:', err);\n      toast.error('Failed to resize session');\n    }\n  }, [user, authAxios]);\n  \n  // Handle creating new sessions by clicking on empty slots\n  const handleSlotSelect = useCallback(async (slotInfo: SlotInfo) => {\n    if (!user || user.role !== 'admin') {\n      toast.error('Only administrators can create new sessions');\n      return;\n    }\n    \n    try {\n      const newSessionData = {\n        sessionDate: slotInfo.start.toISOString(),\n        duration: Math.round((slotInfo.end.getTime() - slotInfo.start.getTime()) / 60000),\n        status: 'available',\n        location: 'Main Studio',\n        notes: 'Available slot created by admin'\n      };\n      \n      const response = await authAxios.post('/api/sessions', newSessionData);\n      \n      // Add to local state\n      setSessions(prev => [...prev, response.data.session]);\n      \n      toast.success('New session slot created successfully');\n    } catch (err: any) {\n      console.error('Error creating session:', err);\n      toast.error('Failed to create new session slot');\n    }\n  }, [user, authAxios]);\n  \n  // Handle selecting events\n  const handleEventSelect = useCallback((event: SessionEvent) => {\n    setSelectedEvent(event);\n    setShowEventDialog(true);\n  }, []);\n  \n  // ==================== CLIENT-TRAINER ASSIGNMENT FUNCTIONS ====================\n  \n  // Assign client to trainer\n  const assignClientToTrainer = useCallback(async (clientId: string, trainerId: string) => {\n    try {\n      await authAxios.post('/api/client-trainer-assignments', {\n        clientId,\n        trainerId,\n        assignedBy: user?.id\n      });\n      \n      // Refresh assignments\n      const assignmentsRes = await authAxios.get('/api/client-trainer-assignments');\n      setAssignments(assignmentsRes.data);\n      \n      toast.success('Client assigned to trainer successfully');\n    } catch (err: any) {\n      console.error('Error assigning client to trainer:', err);\n      toast.error('Failed to assign client to trainer');\n    }\n  }, [user, authAxios]);\n  \n  // Get trainer assignments for a client\n  const getClientTrainerAssignments = useCallback((clientId: string) => {\n    return assignments.filter(a => a.clientId === clientId && a.isActive);\n  }, [assignments]);\n  \n  // ==================== BULK ACTIONS ====================\n  \n  // Handle bulk session operations\n  const handleBulkAction = useCallback(async (action: 'confirm' | 'cancel' | 'delete' | 'reassign') => {\n    if (selectedEvents.length === 0) {\n      toast.error('No sessions selected');\n      return;\n    }\n    \n    try {\n      const promises = selectedEvents.map(eventId => {\n        const session = sessions.find(s => s.id === eventId);\n        if (!session) return Promise.resolve();\n        \n        switch (action) {\n          case 'confirm':\n            return authAxios.put(`/api/sessions/${eventId}`, { status: 'confirmed' });\n          case 'cancel':\n            return authAxios.put(`/api/sessions/${eventId}`, { status: 'cancelled' });\n          case 'delete':\n            return authAxios.delete(`/api/sessions/${eventId}`);\n          default:\n            return Promise.resolve();\n        }\n      });\n      \n      await Promise.all(promises);\n      \n      // Refresh data\n      await fetchData();\n      \n      // Clear selection\n      setSelectedEvents([]);\n      setBulkActionMode(false);\n      \n      toast.success(`Bulk ${action} completed successfully`);\n    } catch (err: any) {\n      console.error(`Error performing bulk ${action}:`, err);\n      toast.error(`Failed to perform bulk ${action}`);\n    }\n  }, [selectedEvents, sessions, authAxios, fetchData]);\n  \n  // ==================== EFFECTS ====================\n  \n  // Load data on component mount\n  useEffect(() => {\n    fetchData();\n  }, [fetchData]);\n  \n  // ==================== RENDER ====================\n  \n  if (loading) {\n    return (\n      <LoadingContainer>\n        <LoadingSpinner />\n        <Typography variant=\"h6\" sx={{ mt: 2, color: 'white' }}>\n          Loading Universal Master Schedule...\n        </Typography>\n      </LoadingContainer>\n    );\n  }\n  \n  if (error) {\n    return (\n      <ErrorContainer>\n        <AlertCircle size={48} color=\"#ff6b6b\" />\n        <Typography variant=\"h6\" sx={{ mt: 2, color: 'white' }}>\n          Error: {error}\n        </Typography>\n        <GlowButton\n          text=\"Retry\"\n          theme=\"ruby\"\n          onClick={fetchData}\n          leftIcon={<Refresh size={18} />}\n        />\n      </ErrorContainer>\n    );\n  }\n  \n  return (\n    <ThemeProvider theme={stellarTheme}>\n      <ErrorBoundary>\n        <ScheduleContainer>\n          <ScheduleHeader>\n            <HeaderRow>\n              <HeaderTitle>\n                <CalendarIcon size={32} />\n                <Typography variant=\"h4\" component=\"span\">\n                  Universal Master Schedule\n                </Typography>\n                <Badge badgeContent={scheduleStats.availableSessions} color=\"primary\">\n                  <Chip \n                    label={`${scheduleStats.utilizationRate}% Utilization`}\n                    color=\"info\"\n                    size=\"small\"\n                  />\n                </Badge>\n              </HeaderTitle>\n              \n              <HeaderActions>\n                <GlowButton\n                  text=\"Statistics\"\n                  theme=\"cosmic\"\n                  size=\"small\"\n                  leftIcon={<Activity size={16} />}\n                  onClick={() => setShowStatsDialog(true)}\n                />\n                <GlowButton\n                  text=\"Assignments\"\n                  theme=\"emerald\"\n                  size=\"small\"\n                  leftIcon={<Users size={16} />}\n                  onClick={() => setShowAssignmentDialog(true)}\n                />\n                <GlowButton\n                  text=\"Refresh\"\n                  theme=\"purple\"\n                  size=\"small\"\n                  leftIcon={<Refresh size={16} />}\n                  onClick={fetchData}\n                />\n              </HeaderActions>\n            </HeaderRow>\n            \n            <FilterRow>\n              <FilterContainer>\n                <FormControl size=\"small\" sx={{ minWidth: 120 }}>\n                  <InputLabel>Trainer</InputLabel>\n                  <Select\n                    value={filterOptions.trainerId}\n                    onChange={(e) => setFilterOptions(prev => ({ ...prev, trainerId: e.target.value }))}\n                    label=\"Trainer\"\n                  >\n                    <MenuItem value=\"\">All Trainers</MenuItem>\n                    {trainers.map(trainer => (\n                      <MenuItem key={trainer.id} value={trainer.id}>\n                        <Stack direction=\"row\" spacing={1} alignItems=\"center\">\n                          <Avatar src={trainer.photo} sx={{ width: 24, height: 24 }}>\n                            {trainer.firstName[0]}\n                          </Avatar>\n                          <span>{trainer.firstName} {trainer.lastName}</span>\n                        </Stack>\n                      </MenuItem>\n                    ))}\n                  </Select>\n                </FormControl>\n                \n                <FormControl size=\"small\" sx={{ minWidth: 120 }}>\n                  <InputLabel>Client</InputLabel>\n                  <Select\n                    value={filterOptions.clientId}\n                    onChange={(e) => setFilterOptions(prev => ({ ...prev, clientId: e.target.value }))}\n                    label=\"Client\"\n                  >\n                    <MenuItem value=\"\">All Clients</MenuItem>\n                    {clients.map(client => (\n                      <MenuItem key={client.id} value={client.id}>\n                        <Stack direction=\"row\" spacing={1} alignItems=\"center\">\n                          <Avatar src={client.photo} sx={{ width: 24, height: 24 }}>\n                            {client.firstName[0]}\n                          </Avatar>\n                          <span>{client.firstName} {client.lastName}</span>\n                          <Chip size=\"small\" label={`${client.availableSessions} sessions`} />\n                        </Stack>\n                      </MenuItem>\n                    ))}\n                  </Select>\n                </FormControl>\n                \n                <FormControl size=\"small\" sx={{ minWidth: 120 }}>\n                  <InputLabel>Status</InputLabel>\n                  <Select\n                    value={filterOptions.status}\n                    onChange={(e) => setFilterOptions(prev => ({ ...prev, status: e.target.value }))}\n                    label=\"Status\"\n                  >\n                    <MenuItem value=\"all\">All Status</MenuItem>\n                    <MenuItem value=\"available\">Available</MenuItem>\n                    <MenuItem value=\"scheduled\">Scheduled</MenuItem>\n                    <MenuItem value=\"confirmed\">Confirmed</MenuItem>\n                    <MenuItem value=\"completed\">Completed</MenuItem>\n                    <MenuItem value=\"cancelled\">Cancelled</MenuItem>\n                  </Select>\n                </FormControl>\n                \n                <TextField\n                  size=\"small\"\n                  placeholder=\"Search sessions...\"\n                  value={filterOptions.searchTerm}\n                  onChange={(e) => setFilterOptions(prev => ({ ...prev, searchTerm: e.target.value }))}\n                  InputProps={{\n                    startAdornment: (\n                      <InputAdornment position=\"start\">\n                        <Search size={20} />\n                      </InputAdornment>\n                    )\n                  }}\n                />\n                \n                <FormControlLabel\n                  control={\n                    <Switch\n                      checked={multiSelectMode}\n                      onChange={(e) => setMultiSelectMode(e.target.checked)}\n                      size=\"small\"\n                    />\n                  }\n                  label=\"Multi-Select\"\n                />\n              </FilterContainer>\n            </FilterRow>\n          </ScheduleHeader>\n          \n          <CalendarContainer>\n            <DragAndDropCalendar\n              localizer={localizer}\n              events={calendarEvents}\n              startAccessor=\"start\"\n              endAccessor=\"end\"\n              views={['month', 'week', 'day', 'agenda']}\n              view={view}\n              onView={setView}\n              date={selectedDate}\n              onNavigate={setSelectedDate}\n              onEventDrop={handleEventDrop}\n              onEventResize={handleEventResize}\n              onSelectSlot={handleSlotSelect}\n              onSelectEvent={handleEventSelect}\n              selectable\n              resizable\n              popup\n              showMultiDayTimes\n              step={30}\n              timeslots={2}\n              defaultDate={new Date()}\n              defaultView=\"week\"\n              style={{ height: '600px' }}\n              eventPropGetter={(event) => {\n                const { status } = event;\n                let backgroundColor = '#3174ad';\n                let color = 'white';\n                \n                switch (status) {\n                  case 'available':\n                    backgroundColor = '#28a745';\n                    break;\n                  case 'scheduled':\n                    backgroundColor = '#007bff';\n                    break;\n                  case 'confirmed':\n                    backgroundColor = '#17a2b8';\n                    break;\n                  case 'completed':\n                    backgroundColor = '#6c757d';\n                    break;\n                  case 'cancelled':\n                    backgroundColor = '#dc3545';\n                    break;\n                  default:\n                    backgroundColor = '#3174ad';\n                }\n                \n                return {\n                  style: {\n                    backgroundColor,\n                    color,\n                    border: 'none',\n                    borderRadius: '4px',\n                    cursor: 'pointer'\n                  }\n                };\n              }}\n              components={{\n                event: ({ event }) => (\n                  <motion.div\n                    whileHover={{ scale: 1.05 }}\n                    whileTap={{ scale: 0.95 }}\n                    style={{\n                      padding: '2px 4px',\n                      borderRadius: '4px',\n                      fontSize: '12px',\n                      lineHeight: '1.2'\n                    }}\n                  >\n                    <div style={{ fontWeight: 'bold' }}>{event.title}</div>\n                    {event.trainer && (\n                      <div style={{ fontSize: '10px', opacity: 0.8 }}>\n                        {event.trainer.firstName} {event.trainer.lastName}\n                      </div>\n                    )}\n                    {event.location && (\n                      <div style={{ fontSize: '10px', opacity: 0.8 }}>\n                        📍 {event.location}\n                      </div>\n                    )}\n                  </motion.div>\n                )\n              }}\n            />\n          </CalendarContainer>\n          \n          {/* Bulk Actions Panel */}\n          <AnimatePresence>\n            {bulkActionMode && selectedEvents.length > 0 && (\n              <motion.div\n                initial={{ opacity: 0, y: 50 }}\n                animate={{ opacity: 1, y: 0 }}\n                exit={{ opacity: 0, y: 50 }}\n                style={{\n                  position: 'fixed',\n                  bottom: 20,\n                  left: '50%',\n                  transform: 'translateX(-50%)',\n                  zIndex: 1000\n                }}\n              >\n                <Paper \n                  elevation={8} \n                  sx={{ \n                    p: 2, \n                    background: 'rgba(0,0,0,0.9)',\n                    backdropFilter: 'blur(10px)',\n                    borderRadius: '12px',\n                    border: '1px solid rgba(255,255,255,0.1)'\n                  }}\n                >\n                  <Stack direction=\"row\" spacing={2} alignItems=\"center\">\n                    <Typography variant=\"body2\" color=\"white\">\n                      {selectedEvents.length} session(s) selected\n                    </Typography>\n                    <GlowButton\n                      text=\"Confirm\"\n                      theme=\"emerald\"\n                      size=\"small\"\n                      onClick={() => handleBulkAction('confirm')}\n                    />\n                    <GlowButton\n                      text=\"Cancel\"\n                      theme=\"ruby\"\n                      size=\"small\"\n                      onClick={() => handleBulkAction('cancel')}\n                    />\n                    <GlowButton\n                      text=\"Delete\"\n                      theme=\"cosmic\"\n                      size=\"small\"\n                      onClick={() => handleBulkAction('delete')}\n                    />\n                    <IconButton\n                      onClick={() => {\n                        setSelectedEvents([]);\n                        setBulkActionMode(false);\n                      }}\n                      sx={{ color: 'white' }}\n                    >\n                      <X size={20} />\n                    </IconButton>\n                  </Stack>\n                </Paper>\n              </motion.div>\n            )}\n          </AnimatePresence>\n          \n          {/* Event Details Dialog */}\n          <Dialog\n            open={showEventDialog}\n            onClose={() => setShowEventDialog(false)}\n            maxWidth=\"sm\"\n            fullWidth\n            PaperProps={{\n              sx: {\n                background: 'rgba(0,0,0,0.9)',\n                backdropFilter: 'blur(20px)',\n                border: '1px solid rgba(255,255,255,0.1)',\n                borderRadius: '16px'\n              }\n            }}\n          >\n            <DialogTitle sx={{ color: 'white' }}>\n              <Stack direction=\"row\" spacing={2} alignItems=\"center\">\n                <CalendarIcon size={24} />\n                <Typography variant=\"h6\">\n                  Session Details\n                </Typography>\n              </Stack>\n            </DialogTitle>\n            <DialogContent>\n              {selectedEvent && (\n                <Grid container spacing={2}>\n                  <Grid item xs={12}>\n                    <Typography variant=\"h6\" color=\"white\">\n                      {selectedEvent.title}\n                    </Typography>\n                    <Chip \n                      label={selectedEvent.status}\n                      color={selectedEvent.status === 'confirmed' ? 'success' : 'primary'}\n                      size=\"small\"\n                      sx={{ mt: 1 }}\n                    />\n                  </Grid>\n                  \n                  <Grid item xs={12} sm={6}>\n                    <Typography variant=\"subtitle2\" color=\"rgba(255,255,255,0.7)\">\n                      Date & Time\n                    </Typography>\n                    <Typography variant=\"body2\" color=\"white\">\n                      {moment(selectedEvent.start).format('MMMM Do YYYY, h:mm A')}\n                    </Typography>\n                  </Grid>\n                  \n                  <Grid item xs={12} sm={6}>\n                    <Typography variant=\"subtitle2\" color=\"rgba(255,255,255,0.7)\">\n                      Duration\n                    </Typography>\n                    <Typography variant=\"body2\" color=\"white\">\n                      {selectedEvent.duration} minutes\n                    </Typography>\n                  </Grid>\n                  \n                  {selectedEvent.client && (\n                    <Grid item xs={12}>\n                      <Typography variant=\"subtitle2\" color=\"rgba(255,255,255,0.7)\">\n                        Client\n                      </Typography>\n                      <Stack direction=\"row\" spacing={1} alignItems=\"center\">\n                        <Avatar src={selectedEvent.client.photo} sx={{ width: 32, height: 32 }}>\n                          {selectedEvent.client.firstName[0]}\n                        </Avatar>\n                        <Typography variant=\"body2\" color=\"white\">\n                          {selectedEvent.client.firstName} {selectedEvent.client.lastName}\n                        </Typography>\n                      </Stack>\n                    </Grid>\n                  )}\n                  \n                  {selectedEvent.trainer && (\n                    <Grid item xs={12}>\n                      <Typography variant=\"subtitle2\" color=\"rgba(255,255,255,0.7)\">\n                        Trainer\n                      </Typography>\n                      <Stack direction=\"row\" spacing={1} alignItems=\"center\">\n                        <Avatar src={selectedEvent.trainer.photo} sx={{ width: 32, height: 32 }}>\n                          {selectedEvent.trainer.firstName[0]}\n                        </Avatar>\n                        <Typography variant=\"body2\" color=\"white\">\n                          {selectedEvent.trainer.firstName} {selectedEvent.trainer.lastName}\n                        </Typography>\n                      </Stack>\n                    </Grid>\n                  )}\n                  \n                  {selectedEvent.location && (\n                    <Grid item xs={12}>\n                      <Typography variant=\"subtitle2\" color=\"rgba(255,255,255,0.7)\">\n                        Location\n                      </Typography>\n                      <Typography variant=\"body2\" color=\"white\">\n                        📍 {selectedEvent.location}\n                      </Typography>\n                    </Grid>\n                  )}\n                  \n                  {selectedEvent.notes && (\n                    <Grid item xs={12}>\n                      <Typography variant=\"subtitle2\" color=\"rgba(255,255,255,0.7)\">\n                        Notes\n                      </Typography>\n                      <Typography variant=\"body2\" color=\"white\">\n                        {selectedEvent.notes}\n                      </Typography>\n                    </Grid>\n                  )}\n                </Grid>\n              )}\n            </DialogContent>\n            <DialogActions>\n              <GlowButton\n                text=\"Close\"\n                theme=\"cosmic\"\n                size=\"small\"\n                onClick={() => setShowEventDialog(false)}\n              />\n              <GlowButton\n                text=\"Edit\"\n                theme=\"emerald\"\n                size=\"small\"\n                leftIcon={<Edit size={16} />}\n                onClick={() => {\n                  // TODO: Implement edit functionality\n                  toast.info('Edit functionality coming soon');\n                }}\n              />\n            </DialogActions>\n          </Dialog>\n          \n          {/* Statistics Dialog */}\n          <Dialog\n            open={showStatsDialog}\n            onClose={() => setShowStatsDialog(false)}\n            maxWidth=\"md\"\n            fullWidth\n            PaperProps={{\n              sx: {\n                background: 'rgba(0,0,0,0.9)',\n                backdropFilter: 'blur(20px)',\n                border: '1px solid rgba(255,255,255,0.1)',\n                borderRadius: '16px'\n              }\n            }}\n          >\n            <DialogTitle sx={{ color: 'white' }}>\n              <Stack direction=\"row\" spacing={2} alignItems=\"center\">\n                <TrendingUp size={24} />\n                <Typography variant=\"h6\">\n                  Schedule Statistics\n                </Typography>\n              </Stack>\n            </DialogTitle>\n            <DialogContent>\n              <Grid container spacing={3}>\n                <Grid item xs={12} sm={6} md={3}>\n                  <Card sx={{ background: 'rgba(40, 167, 69, 0.1)', border: '1px solid rgba(40, 167, 69, 0.3)' }}>\n                    <CardContent>\n                      <Typography variant=\"h4\" color=\"#28a745\" align=\"center\">\n                        {scheduleStats.totalSessions}\n                      </Typography>\n                      <Typography variant=\"body2\" color=\"white\" align=\"center\">\n                        Total Sessions\n                      </Typography>\n                    </CardContent>\n                  </Card>\n                </Grid>\n                \n                <Grid item xs={12} sm={6} md={3}>\n                  <Card sx={{ background: 'rgba(0, 123, 255, 0.1)', border: '1px solid rgba(0, 123, 255, 0.3)' }}>\n                    <CardContent>\n                      <Typography variant=\"h4\" color=\"#007bff\" align=\"center\">\n                        {scheduleStats.bookedSessions}\n                      </Typography>\n                      <Typography variant=\"body2\" color=\"white\" align=\"center\">\n                        Booked Sessions\n                      </Typography>\n                    </CardContent>\n                  </Card>\n                </Grid>\n                \n                <Grid item xs={12} sm={6} md={3}>\n                  <Card sx={{ background: 'rgba(108, 117, 125, 0.1)', border: '1px solid rgba(108, 117, 125, 0.3)' }}>\n                    <CardContent>\n                      <Typography variant=\"h4\" color=\"#6c757d\" align=\"center\">\n                        {scheduleStats.completedSessions}\n                      </Typography>\n                      <Typography variant=\"body2\" color=\"white\" align=\"center\">\n                        Completed Sessions\n                      </Typography>\n                    </CardContent>\n                  </Card>\n                </Grid>\n                \n                <Grid item xs={12} sm={6} md={3}>\n                  <Card sx={{ background: 'rgba(220, 53, 69, 0.1)', border: '1px solid rgba(220, 53, 69, 0.3)' }}>\n                    <CardContent>\n                      <Typography variant=\"h4\" color=\"#dc3545\" align=\"center\">\n                        {scheduleStats.utilizationRate}%\n                      </Typography>\n                      <Typography variant=\"body2\" color=\"white\" align=\"center\">\n                        Utilization Rate\n                      </Typography>\n                    </CardContent>\n                  </Card>\n                </Grid>\n              </Grid>\n            </DialogContent>\n            <DialogActions>\n              <GlowButton\n                text=\"Close\"\n                theme=\"cosmic\"\n                size=\"small\"\n                onClick={() => setShowStatsDialog(false)}\n              />\n            </DialogActions>\n          </Dialog>\n          \n          {/* Assignment Management Dialog */}\n          <Dialog\n            open={showAssignmentDialog}\n            onClose={() => setShowAssignmentDialog(false)}\n            maxWidth=\"lg\"\n            fullWidth\n            PaperProps={{\n              sx: {\n                background: 'rgba(0,0,0,0.9)',\n                backdropFilter: 'blur(20px)',\n                border: '1px solid rgba(255,255,255,0.1)',\n                borderRadius: '16px'\n              }\n            }}\n          >\n            <DialogTitle sx={{ color: 'white' }}>\n              <Stack direction=\"row\" spacing={2} alignItems=\"center\">\n                <Users size={24} />\n                <Typography variant=\"h6\">\n                  Client-Trainer Assignments\n                </Typography>\n              </Stack>\n            </DialogTitle>\n            <DialogContent>\n              <Typography variant=\"body2\" color=\"rgba(255,255,255,0.7)\" sx={{ mb: 2 }}>\n                Drag and drop clients to assign them to trainers. This will automatically\n                create client-trainer relationships in the system.\n              </Typography>\n              \n              <Grid container spacing={3}>\n                <Grid item xs={12} md={6}>\n                  <Typography variant=\"h6\" color=\"white\" gutterBottom>\n                    Unassigned Clients\n                  </Typography>\n                  <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>\n                    {clients\n                      .filter(client => !getClientTrainerAssignments(client.id).length)\n                      .map(client => (\n                        <Card key={client.id} sx={{ mb: 1, background: 'rgba(255,255,255,0.05)' }}>\n                          <CardContent sx={{ p: 2 }}>\n                            <Stack direction=\"row\" spacing={2} alignItems=\"center\">\n                              <Avatar src={client.photo} sx={{ width: 32, height: 32 }}>\n                                {client.firstName[0]}\n                              </Avatar>\n                              <Box>\n                                <Typography variant=\"body2\" color=\"white\">\n                                  {client.firstName} {client.lastName}\n                                </Typography>\n                                <Chip\n                                  size=\"small\"\n                                  label={`${client.availableSessions} sessions`}\n                                  color={client.availableSessions > 0 ? 'success' : 'error'}\n                                />\n                              </Box>\n                            </Stack>\n                          </CardContent>\n                        </Card>\n                      ))\n                    }\n                  </Box>\n                </Grid>\n                \n                <Grid item xs={12} md={6}>\n                  <Typography variant=\"h6\" color=\"white\" gutterBottom>\n                    Trainers & Assignments\n                  </Typography>\n                  <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>\n                    {trainers.map(trainer => {\n                      const trainerAssignments = assignments.filter(a => a.trainerId === trainer.id && a.isActive);\n                      \n                      return (\n                        <Card key={trainer.id} sx={{ mb: 2, background: 'rgba(255,255,255,0.1)' }}>\n                          <CardContent sx={{ p: 2 }}>\n                            <Stack direction=\"row\" spacing={2} alignItems=\"center\" sx={{ mb: 1 }}>\n                              <Avatar src={trainer.photo} sx={{ width: 32, height: 32 }}>\n                                {trainer.firstName[0]}\n                              </Avatar>\n                              <Box>\n                                <Typography variant=\"body2\" color=\"white\">\n                                  {trainer.firstName} {trainer.lastName}\n                                </Typography>\n                                <Typography variant=\"caption\" color=\"rgba(255,255,255,0.7)\">\n                                  {trainerAssignments.length} client(s) assigned\n                                </Typography>\n                              </Box>\n                            </Stack>\n                            \n                            {trainerAssignments.map(assignment => {\n                              const client = clients.find(c => c.id === assignment.clientId);\n                              return client ? (\n                                <Box key={assignment.id} sx={{ ml: 4, mb: 1 }}>\n                                  <Stack direction=\"row\" spacing={1} alignItems=\"center\">\n                                    <Avatar src={client.photo} sx={{ width: 20, height: 20 }}>\n                                      {client.firstName[0]}\n                                    </Avatar>\n                                    <Typography variant=\"caption\" color=\"rgba(255,255,255,0.8)\">\n                                      {client.firstName} {client.lastName}\n                                    </Typography>\n                                  </Stack>\n                                </Box>\n                              ) : null;\n                            })}\n                          </CardContent>\n                        </Card>\n                      );\n                    })}\n                  </Box>\n                </Grid>\n              </Grid>\n            </DialogContent>\n            <DialogActions>\n              <GlowButton\n                text=\"Close\"\n                theme=\"cosmic\"\n                size=\"small\"\n                onClick={() => setShowAssignmentDialog(false)}\n              />\n            </DialogActions>\n          </Dialog>\n          \n        </ScheduleContainer>\n      </ErrorBoundary>\n    </ThemeProvider>\n  );\n};\n\nexport default UniversalMasterSchedule;\n\n// ==================== STYLED COMPONENTS ====================\n\nconst ScheduleContainer = styled(motion.div)`\n  width: 100%;\n  height: 100vh;\n  display: flex;\n  flex-direction: column;\n  background: linear-gradient(135deg, \n    rgba(10, 10, 15, 0.95) 0%, \n    rgba(30, 58, 138, 0.1) 50%, \n    rgba(14, 165, 233, 0.05) 100%\n  );\n  position: relative;\n  overflow: hidden;\n  \n  &::before {\n    content: '';\n    position: absolute;\n    inset: 0;\n    background: radial-gradient(circle at 50% 50%, \n      rgba(59, 130, 246, 0.1) 0%, \n      transparent 70%\n    );\n    pointer-events: none;\n  }\n`;\n\nconst ScheduleHeader = styled.div`\n  padding: 1.5rem;\n  background: rgba(0, 0, 0, 0.3);\n  backdrop-filter: blur(20px);\n  border-bottom: 1px solid rgba(255, 255, 255, 0.1);\n  z-index: 10;\n`;\n\nconst HeaderRow = styled.div`\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  margin-bottom: 1rem;\n`;\n\nconst HeaderTitle = styled.div`\n  display: flex;\n  align-items: center;\n  gap: 1rem;\n  \n  h4 {\n    color: white;\n    font-weight: 300;\n    margin: 0;\n  }\n  \n  svg {\n    color: #3b82f6;\n  }\n`;\n\nconst HeaderActions = styled.div`\n  display: flex;\n  gap: 0.5rem;\n`;\n\nconst FilterRow = styled.div`\n  display: flex;\n  align-items: center;\n  gap: 1rem;\n  flex-wrap: wrap;\n`;\n\nconst FilterContainer = styled.div`\n  display: flex;\n  align-items: center;\n  gap: 1rem;\n  flex: 1;\n  flex-wrap: wrap;\n  \n  .MuiFormControl-root {\n    min-width: 120px;\n  }\n  \n  .MuiOutlinedInput-root {\n    color: white;\n    \n    .MuiOutlinedInput-notchedOutline {\n      border-color: rgba(255, 255, 255, 0.3);\n    }\n    \n    &:hover .MuiOutlinedInput-notchedOutline {\n      border-color: rgba(255, 255, 255, 0.5);\n    }\n    \n    &.Mui-focused .MuiOutlinedInput-notchedOutline {\n      border-color: #3b82f6;\n    }\n  }\n  \n  .MuiInputLabel-root {\n    color: rgba(255, 255, 255, 0.7);\n    \n    &.Mui-focused {\n      color: #3b82f6;\n    }\n  }\n  \n  .MuiSelect-icon {\n    color: rgba(255, 255, 255, 0.7);\n  }\n  \n  .MuiFormControlLabel-label {\n    color: rgba(255, 255, 255, 0.9);\n  }\n`;\n\nconst CalendarContainer = styled.div`\n  flex: 1;\n  padding: 1rem;\n  \n  .rbc-calendar {\n    background: rgba(0, 0, 0, 0.2);\n    border: 1px solid rgba(255, 255, 255, 0.1);\n    border-radius: 12px;\n    color: white;\n    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;\n  }\n  \n  .rbc-toolbar {\n    background: rgba(0, 0, 0, 0.3);\n    border-bottom: 1px solid rgba(255, 255, 255, 0.1);\n    padding: 1rem;\n    \n    .rbc-toolbar-label {\n      color: white;\n      font-weight: 500;\n    }\n    \n    .rbc-btn-group {\n      button {\n        background: rgba(255, 255, 255, 0.1);\n        border: 1px solid rgba(255, 255, 255, 0.2);\n        color: white;\n        transition: all 0.2s;\n        \n        &:hover {\n          background: rgba(255, 255, 255, 0.2);\n          border-color: rgba(255, 255, 255, 0.3);\n        }\n        \n        &.rbc-active {\n          background: #3b82f6;\n          border-color: #3b82f6;\n        }\n      }\n    }\n  }\n  \n  .rbc-month-view,\n  .rbc-time-view {\n    background: transparent;\n  }\n  \n  .rbc-header {\n    background: rgba(0, 0, 0, 0.2);\n    border-bottom: 1px solid rgba(255, 255, 255, 0.1);\n    color: rgba(255, 255, 255, 0.9);\n    padding: 0.5rem;\n    font-weight: 500;\n  }\n  \n  .rbc-day-bg {\n    background: rgba(0, 0, 0, 0.1);\n    border: 1px solid rgba(255, 255, 255, 0.05);\n    \n    &.rbc-today {\n      background: rgba(59, 130, 246, 0.1);\n    }\n  }\n  \n  .rbc-time-slot {\n    border-color: rgba(255, 255, 255, 0.05);\n  }\n  \n  .rbc-time-header {\n    border-color: rgba(255, 255, 255, 0.1);\n  }\n  \n  .rbc-time-content {\n    border-color: rgba(255, 255, 255, 0.05);\n  }\n  \n  .rbc-time-gutter {\n    background: rgba(0, 0, 0, 0.2);\n    border-right: 1px solid rgba(255, 255, 255, 0.1);\n    \n    .rbc-timeslot-group {\n      border-bottom: 1px solid rgba(255, 255, 255, 0.05);\n    }\n    \n    .rbc-time-slot {\n      color: rgba(255, 255, 255, 0.6);\n      font-size: 0.75rem;\n    }\n  }\n  \n  .rbc-current-time-indicator {\n    background: #3b82f6;\n    height: 2px;\n    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);\n  }\n  \n  .rbc-event {\n    border-radius: 4px;\n    border: none;\n    padding: 2px 4px;\n    font-size: 0.75rem;\n    font-weight: 500;\n    cursor: pointer;\n    transition: all 0.2s;\n    \n    &:hover {\n      transform: translateY(-1px);\n      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);\n    }\n  }\n  \n  .rbc-event-selected {\n    box-shadow: 0 0 0 2px #3b82f6;\n  }\n  \n  .rbc-show-more {\n    color: #3b82f6;\n    background: rgba(59, 130, 246, 0.1);\n    border: 1px solid rgba(59, 130, 246, 0.3);\n    \n    &:hover {\n      background: rgba(59, 130, 246, 0.2);\n    }\n  }\n  \n  .rbc-overlay {\n    background: rgba(0, 0, 0, 0.9);\n    backdrop-filter: blur(10px);\n    border: 1px solid rgba(255, 255, 255, 0.1);\n    border-radius: 8px;\n    \n    .rbc-overlay-header {\n      background: rgba(255, 255, 255, 0.1);\n      border-bottom: 1px solid rgba(255, 255, 255, 0.1);\n      color: white;\n      padding: 0.5rem;\n    }\n  }\n`;\n\nconst LoadingContainer = styled.div`\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  height: 100vh;\n  background: linear-gradient(135deg, \n    rgba(10, 10, 15, 0.95) 0%, \n    rgba(30, 58, 138, 0.1) 50%, \n    rgba(14, 165, 233, 0.05) 100%\n  );\n`;\n\nconst ErrorContainer = styled.div`\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  height: 100vh;\n  background: linear-gradient(135deg, \n    rgba(10, 10, 15, 0.95) 0%, \n    rgba(30, 58, 138, 0.1) 50%, \n    rgba(14, 165, 233, 0.05) 100%\n  );\n  gap: 1rem;\n`;
+} from '@mui/material';
+
+// Icons
+import {
+  Calendar as CalendarIcon,
+  Users,
+  Filter,
+  Search,
+  Settings,
+  UserPlus,
+  Clock,
+  MapPin,
+  Star,
+  CheckCircle,
+  AlertCircle,
+  Info,
+  Refresh,
+  Download,
+  Upload,
+  Eye,
+  EyeOff,
+  Maximize2,
+  Minimize2,
+  RotateCcw,
+  Save,
+  X,
+  Plus,
+  Minus,
+  Edit,
+  Trash2,
+  Move,
+  Copy,
+  ArrowRight,
+  ArrowLeft,
+  ChevronUp,
+  ChevronDown,
+  MoreHorizontal,
+  Target,
+  Zap,
+  Activity,
+  TrendingUp,
+  DollarSign,
+  Award,
+  Shield,
+  Lock,
+  Unlock
+} from 'lucide-react';
+
+// Context and Services
+import { useAuth } from '../../context/AuthContext';
+import { ApiService } from '../../services/api.service';
+import { clientTrainerAssignmentService } from '../../services/clientTrainerAssignmentService';
+import { sessionService } from '../../services/sessionService';
+
+// Custom Components
+import GlowButton from '../ui/buttons/GlowButton';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
+
+// Styled Components and Theme
+import { stellarTheme, CommandCenterTheme } from './UniversalMasterScheduleTheme';
+
+// Types and Interfaces
+import {
+  Session,
+  Client,
+  Trainer,
+  ClientTrainerAssignment,
+  SessionEvent,
+  FilterOptions,
+  ScheduleStats
+} from './types';
+
+// Initialize localizer and drag-and-drop calendar
+const localizer = momentLocalizer(moment);
+const DragAndDropCalendar = withDragAndDrop(Calendar);
+
+// Import styles
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
+
+/**
+ * Universal Master Schedule Component
+ * 
+ * The command center for all scheduling operations with advanced
+ * drag-and-drop capabilities and real-time collaboration.
+ */
+const UniversalMasterSchedule: React.FC = () => {
+  const { user, authAxios } = useAuth();
+  const dispatch = useDispatch();
+  const { toast } = useToast();
+  
+  // ==================== STATE MANAGEMENT ====================
+  
+  // Core Data State
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [trainers, setTrainers] = useState<Trainer[]>([]);
+  const [assignments, setAssignments] = useState<ClientTrainerAssignment[]>([]);
+  
+  // UI State
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<'month' | 'week' | 'day' | 'agenda'>('week');
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedEvent, setSelectedEvent] = useState<SessionEvent | null>(null);
+  
+  // Filter and Search State
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
+    trainerId: '',
+    clientId: '',
+    status: 'all',
+    dateRange: 'all',
+    location: '',
+    searchTerm: ''
+  });
+  
+  // Dialog State
+  const [showEventDialog, setShowEventDialog] = useState(false);
+  const [showAssignmentDialog, setShowAssignmentDialog] = useState(false);
+  const [showStatsDialog, setShowStatsDialog] = useState(false);
+  
+  // Advanced Features State
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [multiSelectMode, setMultiSelectMode] = useState(false);
+  const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
+  const [bulkActionMode, setBulkActionMode] = useState(false);
+  
+  // Statistics State
+  const [scheduleStats, setScheduleStats] = useState<ScheduleStats>({
+    totalSessions: 0,
+    availableSessions: 0,
+    bookedSessions: 0,
+    completedSessions: 0,
+    cancelledSessions: 0,
+    revenue: 0,
+    utilizationRate: 0,
+    averageSessionDuration: 0,
+    topTrainer: null,
+    topClient: null
+  });
+  
+  // ==================== COMPUTED VALUES ====================
+  
+  // Transform sessions to calendar events
+  const calendarEvents = useMemo(() => {
+    return sessions
+      .filter(session => {
+        // Apply filters
+        if (filterOptions.trainerId && session.trainerId !== filterOptions.trainerId) return false;
+        if (filterOptions.clientId && session.userId !== filterOptions.clientId) return false;
+        if (filterOptions.status !== 'all' && session.status !== filterOptions.status) return false;
+        if (filterOptions.location && session.location !== filterOptions.location) return false;
+        if (filterOptions.searchTerm) {
+          const searchLower = filterOptions.searchTerm.toLowerCase();
+          const clientName = session.client ? `${session.client.firstName} ${session.client.lastName}`.toLowerCase() : '';
+          const trainerName = session.trainer ? `${session.trainer.firstName} ${session.trainer.lastName}`.toLowerCase() : '';
+          if (!clientName.includes(searchLower) && !trainerName.includes(searchLower) && 
+              !session.location?.toLowerCase().includes(searchLower) && 
+              !session.notes?.toLowerCase().includes(searchLower)) {
+            return false;
+          }
+        }
+        return true;
+      })
+      .map(session => ({
+        id: session.id,
+        title: session.client ? 
+          `${session.client.firstName} ${session.client.lastName}` : 
+          'Available Slot',
+        start: new Date(session.sessionDate),
+        end: new Date(new Date(session.sessionDate).getTime() + (session.duration || 60) * 60000),
+        allDay: false,
+        status: session.status,
+        userId: session.userId,
+        trainerId: session.trainerId,
+        client: session.client,
+        trainer: session.trainer,
+        location: session.location,
+        notes: session.notes,
+        duration: session.duration,
+        resource: session // Store full session data
+      }));
+  }, [sessions, filterOptions]);
+  
+  // Get unique locations for filter dropdown
+  const uniqueLocations = useMemo(() => {
+    const locations = sessions.map(s => s.location).filter(Boolean);
+    return [...new Set(locations)];
+  }, [sessions]);
+  
+  // ==================== API FUNCTIONS ====================
+  
+  // Fetch all required data
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const [sessionsRes, clientsRes, trainersRes, assignmentsRes] = await Promise.all([
+        authAxios.get('/api/sessions'),
+        authAxios.get('/api/sessions/clients'),
+        authAxios.get('/api/sessions/trainers'),
+        authAxios.get('/api/client-trainer-assignments')
+      ]);
+      
+      setSessions(sessionsRes.data);
+      setClients(clientsRes.data);
+      setTrainers(trainersRes.data);
+      setAssignments(assignmentsRes.data);
+      
+      // Calculate statistics
+      calculateStatistics(sessionsRes.data);
+      
+      toast({ title: 'Success', description: 'Schedule data loaded successfully', variant: 'default' });
+    } catch (err: any) {
+      console.error('Error fetching schedule data:', err);
+      setError(err.response?.data?.message || 'Failed to load schedule data');
+      toast({ title: 'Error', description: 'Failed to load schedule data', variant: 'destructive' });
+    } finally {
+      setLoading(false);
+    }
+  }, [authAxios, toast]);
+  
+  // Calculate schedule statistics
+  const calculateStatistics = useCallback((sessionData: Session[]) => {
+    const stats: ScheduleStats = {
+      totalSessions: sessionData.length,
+      availableSessions: sessionData.filter(s => s.status === 'available').length,
+      bookedSessions: sessionData.filter(s => ['scheduled', 'confirmed'].includes(s.status)).length,
+      completedSessions: sessionData.filter(s => s.status === 'completed').length,
+      cancelledSessions: sessionData.filter(s => s.status === 'cancelled').length,
+      revenue: 0, // TODO: Calculate based on pricing
+      utilizationRate: 0,
+      averageSessionDuration: 0,
+      topTrainer: null,
+      topClient: null
+    };
+    
+    // Calculate utilization rate
+    const totalBookedAndCompleted = stats.bookedSessions + stats.completedSessions;
+    stats.utilizationRate = stats.totalSessions > 0 ? 
+      Math.round((totalBookedAndCompleted / stats.totalSessions) * 100) : 0;
+    
+    // Calculate average session duration
+    const durationsSum = sessionData.reduce((sum, s) => sum + (s.duration || 60), 0);
+    stats.averageSessionDuration = sessionData.length > 0 ? 
+      Math.round(durationsSum / sessionData.length) : 0;
+    
+    setScheduleStats(stats);
+  }, []);
+  
+  // ==================== DRAG AND DROP HANDLERS ====================
+  
+  // Handle moving events (drag and drop)
+  const handleEventDrop = useCallback(async ({ event, start, end, isAllDay }: any) => {
+    if (!user || user.role !== 'admin') {
+      toast({ title: 'Error', description: 'Only administrators can move sessions', variant: 'destructive' });
+      return;
+    }
+    
+    try {
+      const sessionId = event.id;
+      const updatedData = {
+        sessionDate: start.toISOString(),
+        duration: Math.round((end.getTime() - start.getTime()) / 60000) // Convert to minutes
+      };
+      
+      await authAxios.put(`/api/sessions/${sessionId}`, updatedData);
+      
+      // Update local state
+      setSessions(prev => prev.map(session => 
+        session.id === sessionId ? {
+          ...session,
+          sessionDate: start.toISOString(),
+          duration: updatedData.duration
+        } : session
+      ));
+      
+      toast({ title: 'Success', description: 'Session moved successfully', variant: 'default' });
+    } catch (err: any) {
+      console.error('Error moving session:', err);
+      toast({ title: 'Error', description: 'Failed to move session', variant: 'destructive' });
+    }
+  }, [user, authAxios, toast]);
+  
+  // Handle resizing events
+  const handleEventResize = useCallback(async ({ event, start, end }: any) => {
+    if (!user || user.role !== 'admin') {
+      toast({ title: 'Error', description: 'Only administrators can resize sessions', variant: 'destructive' });
+      return;
+    }
+    
+    try {
+      const sessionId = event.id;
+      const updatedData = {
+        sessionDate: start.toISOString(),
+        duration: Math.round((end.getTime() - start.getTime()) / 60000)
+      };
+      
+      await authAxios.put(`/api/sessions/${sessionId}`, updatedData);
+      
+      // Update local state
+      setSessions(prev => prev.map(session => 
+        session.id === sessionId ? {
+          ...session,
+          sessionDate: start.toISOString(),
+          duration: updatedData.duration
+        } : session
+      ));
+      
+      toast({ title: 'Success', description: 'Session duration updated successfully', variant: 'default' });
+    } catch (err: any) {
+      console.error('Error resizing session:', err);
+      toast({ title: 'Error', description: 'Failed to resize session', variant: 'destructive' });
+    }
+  }, [user, authAxios, toast]);
+  
+  // Handle creating new sessions by clicking on empty slots
+  const handleSlotSelect = useCallback(async (slotInfo: SlotInfo) => {
+    if (!user || user.role !== 'admin') {
+      toast({ title: 'Error', description: 'Only administrators can create new sessions', variant: 'destructive' });
+      return;
+    }
+    
+    try {
+      const newSessionData = {
+        sessionDate: slotInfo.start.toISOString(),
+        duration: Math.round((slotInfo.end.getTime() - slotInfo.start.getTime()) / 60000),
+        status: 'available',
+        location: 'Main Studio',
+        notes: 'Available slot created by admin'
+      };
+      
+      const response = await authAxios.post('/api/sessions', newSessionData);
+      
+      // Add to local state
+      setSessions(prev => [...prev, response.data.session]);
+      
+      toast({ title: 'Success', description: 'New session slot created successfully', variant: 'default' });
+    } catch (err: any) {
+      console.error('Error creating session:', err);
+      toast({ title: 'Error', description: 'Failed to create new session slot', variant: 'destructive' });
+    }
+  }, [user, authAxios, toast]);
+  
+  // Handle selecting events
+  const handleEventSelect = useCallback((event: SessionEvent) => {
+    setSelectedEvent(event);
+    setShowEventDialog(true);
+  }, []);
+  
+  // ==================== CLIENT-TRAINER ASSIGNMENT FUNCTIONS ====================
+  
+  // Assign client to trainer
+  const assignClientToTrainer = useCallback(async (clientId: string, trainerId: string) => {
+    try {
+      await authAxios.post('/api/client-trainer-assignments', {
+        clientId,
+        trainerId,
+        assignedBy: user?.id
+      });
+      
+      // Refresh assignments
+      const assignmentsRes = await authAxios.get('/api/client-trainer-assignments');
+      setAssignments(assignmentsRes.data);
+      
+      toast({ title: 'Success', description: 'Client assigned to trainer successfully', variant: 'default' });
+    } catch (err: any) {
+      console.error('Error assigning client to trainer:', err);
+      toast({ title: 'Error', description: 'Failed to assign client to trainer', variant: 'destructive' });
+    }
+  }, [user, authAxios, toast]);
+  
+  // Get trainer assignments for a client
+  const getClientTrainerAssignments = useCallback((clientId: string) => {
+    return assignments.filter(a => a.clientId === clientId && a.isActive);
+  }, [assignments]);
+  
+  // ==================== BULK ACTIONS ====================
+  
+  // Handle bulk session operations
+  const handleBulkAction = useCallback(async (action: 'confirm' | 'cancel' | 'delete' | 'reassign') => {
+    if (selectedEvents.length === 0) {
+      toast({ title: 'Error', description: 'No sessions selected', variant: 'destructive' });
+      return;
+    }
+    
+    try {
+      const promises = selectedEvents.map(eventId => {
+        const session = sessions.find(s => s.id === eventId);
+        if (!session) return Promise.resolve();
+        
+        switch (action) {
+          case 'confirm':
+            return authAxios.put(`/api/sessions/${eventId}`, { status: 'confirmed' });
+          case 'cancel':
+            return authAxios.put(`/api/sessions/${eventId}`, { status: 'cancelled' });
+          case 'delete':
+            return authAxios.delete(`/api/sessions/${eventId}`);
+          default:
+            return Promise.resolve();
+        }
+      });
+      
+      await Promise.all(promises);
+      
+      // Refresh data
+      await fetchData();
+      
+      // Clear selection
+      setSelectedEvents([]);
+      setBulkActionMode(false);
+      
+      toast({ title: 'Success', description: `Bulk ${action} completed successfully`, variant: 'default' });
+    } catch (err: any) {
+      console.error(`Error performing bulk ${action}:`, err);
+      toast({ title: 'Error', description: `Failed to perform bulk ${action}`, variant: 'destructive' });
+    }
+  }, [selectedEvents, sessions, authAxios, fetchData, toast]);
+  
+  // ==================== EFFECTS ====================
+  
+  // Load data on component mount
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+  
+  // ==================== RENDER ====================
+  
+  if (loading) {
+    return (
+      <LoadingContainer>
+        <LoadingSpinner />
+        <Typography variant="h6" sx={{ mt: 2, color: 'white' }}>
+          Loading Universal Master Schedule...
+        </Typography>
+      </LoadingContainer>
+    );
+  }
+  
+  if (error) {
+    return (
+      <ErrorContainer>
+        <AlertCircle size={48} color="#ff6b6b" />
+        <Typography variant="h6" sx={{ mt: 2, color: 'white' }}>
+          Error: {error}
+        </Typography>
+        <GlowButton
+          text="Retry"
+          theme="ruby"
+          onClick={fetchData}
+          leftIcon={<Refresh size={18} />}
+        />
+      </ErrorContainer>
+    );
+  }
+  
+  return (
+    <ThemeProvider theme={stellarTheme}>
+      <ErrorBoundary>
+        <ScheduleContainer>
+          <ScheduleHeader>
+            <HeaderRow>
+              <HeaderTitle>
+                <CalendarIcon size={32} />
+                <Typography variant="h4" component="span">
+                  Universal Master Schedule
+                </Typography>
+                <Badge badgeContent={scheduleStats.availableSessions} color="primary">
+                  <Chip 
+                    label={`${scheduleStats.utilizationRate}% Utilization`}
+                    color="info"
+                    size="small"
+                  />
+                </Badge>
+              </HeaderTitle>
+              
+              <HeaderActions>
+                <GlowButton
+                  text="Statistics"
+                  theme="cosmic"
+                  size="small"
+                  leftIcon={<Activity size={16} />}
+                  onClick={() => setShowStatsDialog(true)}
+                />
+                <GlowButton
+                  text="Assignments"
+                  theme="emerald"
+                  size="small"
+                  leftIcon={<Users size={16} />}
+                  onClick={() => setShowAssignmentDialog(true)}
+                />
+                <GlowButton
+                  text="Refresh"
+                  theme="purple"
+                  size="small"
+                  leftIcon={<Refresh size={16} />}
+                  onClick={fetchData}
+                />
+              </HeaderActions>
+            </HeaderRow>
+            
+            <FilterRow>
+              <FilterContainer>
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                  <InputLabel>Trainer</InputLabel>
+                  <Select
+                    value={filterOptions.trainerId}
+                    onChange={(e) => setFilterOptions(prev => ({ ...prev, trainerId: e.target.value }))}
+                    label="Trainer"
+                  >
+                    <MenuItem value="">All Trainers</MenuItem>
+                    {trainers.map(trainer => (
+                      <MenuItem key={trainer.id} value={trainer.id}>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Avatar src={trainer.photo} sx={{ width: 24, height: 24 }}>
+                            {trainer.firstName[0]}
+                          </Avatar>
+                          <span>{trainer.firstName} {trainer.lastName}</span>
+                        </Stack>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                  <InputLabel>Client</InputLabel>
+                  <Select
+                    value={filterOptions.clientId}
+                    onChange={(e) => setFilterOptions(prev => ({ ...prev, clientId: e.target.value }))}
+                    label="Client"
+                  >
+                    <MenuItem value="">All Clients</MenuItem>
+                    {clients.map(client => (
+                      <MenuItem key={client.id} value={client.id}>
+                        <Stack direction="row" spacing={1} alignItems="center">
+                          <Avatar src={client.photo} sx={{ width: 24, height: 24 }}>
+                            {client.firstName[0]}
+                          </Avatar>
+                          <span>{client.firstName} {client.lastName}</span>
+                          <Chip size="small" label={`${client.availableSessions} sessions`} />
+                        </Stack>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                
+                <FormControl size="small" sx={{ minWidth: 120 }}>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={filterOptions.status}
+                    onChange={(e) => setFilterOptions(prev => ({ ...prev, status: e.target.value }))}
+                    label="Status"
+                  >
+                    <MenuItem value="all">All Status</MenuItem>
+                    <MenuItem value="available">Available</MenuItem>
+                    <MenuItem value="scheduled">Scheduled</MenuItem>
+                    <MenuItem value="confirmed">Confirmed</MenuItem>
+                    <MenuItem value="completed">Completed</MenuItem>
+                    <MenuItem value="cancelled">Cancelled</MenuItem>
+                  </Select>
+                </FormControl>
+                
+                <TextField
+                  size="small"
+                  placeholder="Search sessions..."
+                  value={filterOptions.searchTerm}
+                  onChange={(e) => setFilterOptions(prev => ({ ...prev, searchTerm: e.target.value }))}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search size={20} />
+                      </InputAdornment>
+                    )
+                  }}
+                />
+                
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={multiSelectMode}
+                      onChange={(e) => setMultiSelectMode(e.target.checked)}
+                      size="small"
+                    />
+                  }
+                  label="Multi-Select"
+                />
+              </FilterContainer>
+            </FilterRow>
+          </ScheduleHeader>
+          
+          <CalendarContainer>
+            <DragAndDropCalendar
+              localizer={localizer}
+              events={calendarEvents}
+              startAccessor="start"
+              endAccessor="end"
+              views={['month', 'week', 'day', 'agenda']}
+              view={view}
+              onView={setView}
+              date={selectedDate}
+              onNavigate={setSelectedDate}
+              onEventDrop={handleEventDrop}
+              onEventResize={handleEventResize}
+              onSelectSlot={handleSlotSelect}
+              onSelectEvent={handleEventSelect}
+              selectable
+              resizable
+              popup
+              showMultiDayTimes
+              step={30}
+              timeslots={2}
+              defaultDate={new Date()}
+              defaultView="week"
+              style={{ height: '600px' }}
+              eventPropGetter={(event) => {
+                const { status } = event;
+                let backgroundColor = '#3174ad';
+                let color = 'white';
+                
+                switch (status) {
+                  case 'available':
+                    backgroundColor = '#28a745';
+                    break;
+                  case 'scheduled':
+                    backgroundColor = '#007bff';
+                    break;
+                  case 'confirmed':
+                    backgroundColor = '#17a2b8';
+                    break;
+                  case 'completed':
+                    backgroundColor = '#6c757d';
+                    break;
+                  case 'cancelled':
+                    backgroundColor = '#dc3545';
+                    break;
+                  default:
+                    backgroundColor = '#3174ad';
+                }
+                
+                return {
+                  style: {
+                    backgroundColor,
+                    color,
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }
+                };
+              }}
+              components={{
+                event: ({ event }) => (
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    style={{
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      lineHeight: '1.2'
+                    }}
+                  >
+                    <div style={{ fontWeight: 'bold' }}>{event.title}</div>
+                    {event.trainer && (
+                      <div style={{ fontSize: '10px', opacity: 0.8 }}>
+                        {event.trainer.firstName} {event.trainer.lastName}
+                      </div>
+                    )}
+                    {event.location && (
+                      <div style={{ fontSize: '10px', opacity: 0.8 }}>
+                        📍 {event.location}
+                      </div>
+                    )}
+                  </motion.div>
+                )
+              }}
+            />
+          </CalendarContainer>
+          
+          {/* Bulk Actions Panel */}
+          <AnimatePresence>
+            {bulkActionMode && selectedEvents.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 50 }}
+                style={{
+                  position: 'fixed',
+                  bottom: 20,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  zIndex: 1000
+                }}
+              >
+                <Paper 
+                  elevation={8} 
+                  sx={{ 
+                    p: 2, 
+                    background: 'rgba(0,0,0,0.9)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: '12px',
+                    border: '1px solid rgba(255,255,255,0.1)'
+                  }}
+                >
+                  <Stack direction="row" spacing={2} alignItems="center">
+                    <Typography variant="body2" color="white">
+                      {selectedEvents.length} session(s) selected
+                    </Typography>
+                    <GlowButton
+                      text="Confirm"
+                      theme="emerald"
+                      size="small"
+                      onClick={() => handleBulkAction('confirm')}
+                    />
+                    <GlowButton
+                      text="Cancel"
+                      theme="ruby"
+                      size="small"
+                      onClick={() => handleBulkAction('cancel')}
+                    />
+                    <GlowButton
+                      text="Delete"
+                      theme="cosmic"
+                      size="small"
+                      onClick={() => handleBulkAction('delete')}
+                    />
+                    <IconButton
+                      onClick={() => {
+                        setSelectedEvents([]);
+                        setBulkActionMode(false);
+                      }}
+                      sx={{ color: 'white' }}
+                    >
+                      <X size={20} />
+                    </IconButton>
+                  </Stack>
+                </Paper>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          {/* Event Details Dialog */}
+          <Dialog
+            open={showEventDialog}
+            onClose={() => setShowEventDialog(false)}
+            maxWidth="sm"
+            fullWidth
+            PaperProps={{
+              sx: {
+                background: 'rgba(0,0,0,0.9)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '16px'
+              }
+            }}
+          >
+            <DialogTitle sx={{ color: 'white' }}>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <CalendarIcon size={24} />
+                <Typography variant="h6">
+                  Session Details
+                </Typography>
+              </Stack>
+            </DialogTitle>
+            <DialogContent>
+              {selectedEvent && (
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Typography variant="h6" color="white">
+                      {selectedEvent.title}
+                    </Typography>
+                    <Chip 
+                      label={selectedEvent.status}
+                      color={selectedEvent.status === 'confirmed' ? 'success' : 'primary'}
+                      size="small"
+                      sx={{ mt: 1 }}
+                    />
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" color="rgba(255,255,255,0.7)">
+                      Date & Time
+                    </Typography>
+                    <Typography variant="body2" color="white">
+                      {moment(selectedEvent.start).format('MMMM Do YYYY, h:mm A')}
+                    </Typography>
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" color="rgba(255,255,255,0.7)">
+                      Duration
+                    </Typography>
+                    <Typography variant="body2" color="white">
+                      {selectedEvent.duration} minutes
+                    </Typography>
+                  </Grid>
+                  
+                  {selectedEvent.client && (
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" color="rgba(255,255,255,0.7)">
+                        Client
+                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Avatar src={selectedEvent.client.photo} sx={{ width: 32, height: 32 }}>
+                          {selectedEvent.client.firstName[0]}
+                        </Avatar>
+                        <Typography variant="body2" color="white">
+                          {selectedEvent.client.firstName} {selectedEvent.client.lastName}
+                        </Typography>
+                      </Stack>
+                    </Grid>
+                  )}
+                  
+                  {selectedEvent.trainer && (
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" color="rgba(255,255,255,0.7)">
+                        Trainer
+                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Avatar src={selectedEvent.trainer.photo} sx={{ width: 32, height: 32 }}>
+                          {selectedEvent.trainer.firstName[0]}
+                        </Avatar>
+                        <Typography variant="body2" color="white">
+                          {selectedEvent.trainer.firstName} {selectedEvent.trainer.lastName}
+                        </Typography>
+                      </Stack>
+                    </Grid>
+                  )}
+                  
+                  {selectedEvent.location && (
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" color="rgba(255,255,255,0.7)">
+                        Location
+                      </Typography>
+                      <Typography variant="body2" color="white">
+                        📍 {selectedEvent.location}
+                      </Typography>
+                    </Grid>
+                  )}
+                  
+                  {selectedEvent.notes && (
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" color="rgba(255,255,255,0.7)">
+                        Notes
+                      </Typography>
+                      <Typography variant="body2" color="white">
+                        {selectedEvent.notes}
+                      </Typography>
+                    </Grid>
+                  )}
+                </Grid>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <GlowButton
+                text="Close"
+                theme="cosmic"
+                size="small"
+                onClick={() => setShowEventDialog(false)}
+              />
+              <GlowButton
+                text="Edit"
+                theme="emerald"
+                size="small"
+                leftIcon={<Edit size={16} />}
+                onClick={() => {
+                  // TODO: Implement edit functionality
+                  toast({ title: 'Info', description: 'Edit functionality coming soon', variant: 'default' });
+                }}
+              />
+            </DialogActions>
+          </Dialog>
+          
+          {/* Statistics Dialog */}
+          <Dialog
+            open={showStatsDialog}
+            onClose={() => setShowStatsDialog(false)}
+            maxWidth="md"
+            fullWidth
+            PaperProps={{
+              sx: {
+                background: 'rgba(0,0,0,0.9)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '16px'
+              }
+            }}
+          >
+            <DialogTitle sx={{ color: 'white' }}>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <TrendingUp size={24} />
+                <Typography variant="h6">
+                  Schedule Statistics
+                </Typography>
+              </Stack>
+            </DialogTitle>
+            <DialogContent>
+              <Grid container spacing={3}>
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ background: 'rgba(40, 167, 69, 0.1)', border: '1px solid rgba(40, 167, 69, 0.3)' }}>
+                    <CardContent>
+                      <Typography variant="h4" color="#28a745" align="center">
+                        {scheduleStats.totalSessions}
+                      </Typography>
+                      <Typography variant="body2" color="white" align="center">
+                        Total Sessions
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ background: 'rgba(0, 123, 255, 0.1)', border: '1px solid rgba(0, 123, 255, 0.3)' }}>
+                    <CardContent>
+                      <Typography variant="h4" color="#007bff" align="center">
+                        {scheduleStats.bookedSessions}
+                      </Typography>
+                      <Typography variant="body2" color="white" align="center">
+                        Booked Sessions
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ background: 'rgba(108, 117, 125, 0.1)', border: '1px solid rgba(108, 117, 125, 0.3)' }}>
+                    <CardContent>
+                      <Typography variant="h4" color="#6c757d" align="center">
+                        {scheduleStats.completedSessions}
+                      </Typography>
+                      <Typography variant="body2" color="white" align="center">
+                        Completed Sessions
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                
+                <Grid item xs={12} sm={6} md={3}>
+                  <Card sx={{ background: 'rgba(220, 53, 69, 0.1)', border: '1px solid rgba(220, 53, 69, 0.3)' }}>
+                    <CardContent>
+                      <Typography variant="h4" color="#dc3545" align="center">
+                        {scheduleStats.utilizationRate}%
+                      </Typography>
+                      <Typography variant="body2" color="white" align="center">
+                        Utilization Rate
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+            </DialogContent>
+            <DialogActions>
+              <GlowButton
+                text="Close"
+                theme="cosmic"
+                size="small"
+                onClick={() => setShowStatsDialog(false)}
+              />
+            </DialogActions>
+          </Dialog>
+          
+          {/* Assignment Management Dialog */}
+          <Dialog
+            open={showAssignmentDialog}
+            onClose={() => setShowAssignmentDialog(false)}
+            maxWidth="lg"
+            fullWidth
+            PaperProps={{
+              sx: {
+                background: 'rgba(0,0,0,0.9)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '16px'
+              }
+            }}
+          >
+            <DialogTitle sx={{ color: 'white' }}>
+              <Stack direction="row" spacing={2} alignItems="center">
+                <Users size={24} />
+                <Typography variant="h6">
+                  Client-Trainer Assignments
+                </Typography>
+              </Stack>
+            </DialogTitle>
+            <DialogContent>
+              <Typography variant="body2" color="rgba(255,255,255,0.7)" sx={{ mb: 2 }}>
+                Drag and drop clients to assign them to trainers. This will automatically
+                create client-trainer relationships in the system.
+              </Typography>
+              
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="h6" color="white" gutterBottom>
+                    Unassigned Clients
+                  </Typography>
+                  <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
+                    {clients
+                      .filter(client => !getClientTrainerAssignments(client.id).length)
+                      .map(client => (
+                        <Card key={client.id} sx={{ mb: 1, background: 'rgba(255,255,255,0.05)' }}>
+                          <CardContent sx={{ p: 2 }}>
+                            <Stack direction="row" spacing={2} alignItems="center">
+                              <Avatar src={client.photo} sx={{ width: 32, height: 32 }}>
+                                {client.firstName[0]}
+                              </Avatar>
+                              <Box>
+                                <Typography variant="body2" color="white">
+                                  {client.firstName} {client.lastName}
+                                </Typography>
+                                <Chip
+                                  size="small"
+                                  label={`${client.availableSessions} sessions`}
+                                  color={client.availableSessions > 0 ? 'success' : 'error'}
+                                />
+                              </Box>
+                            </Stack>
+                          </CardContent>
+                        </Card>
+                      ))
+                    }
+                  </Box>
+                </Grid>
+                
+                <Grid item xs={12} md={6}>
+                  <Typography variant="h6" color="white" gutterBottom>
+                    Trainers & Assignments
+                  </Typography>
+                  <Box sx={{ maxHeight: 300, overflowY: 'auto' }}>
+                    {trainers.map(trainer => {
+                      const trainerAssignments = assignments.filter(a => a.trainerId === trainer.id && a.isActive);
+                      
+                      return (
+                        <Card key={trainer.id} sx={{ mb: 2, background: 'rgba(255,255,255,0.1)' }}>
+                          <CardContent sx={{ p: 2 }}>
+                            <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
+                              <Avatar src={trainer.photo} sx={{ width: 32, height: 32 }}>
+                                {trainer.firstName[0]}
+                              </Avatar>
+                              <Box>
+                                <Typography variant="body2" color="white">
+                                  {trainer.firstName} {trainer.lastName}
+                                </Typography>
+                                <Typography variant="caption" color="rgba(255,255,255,0.7)">
+                                  {trainerAssignments.length} client(s) assigned
+                                </Typography>
+                              </Box>
+                            </Stack>
+                            
+                            {trainerAssignments.map(assignment => {
+                              const client = clients.find(c => c.id === assignment.clientId);
+                              return client ? (
+                                <Box key={assignment.id} sx={{ ml: 4, mb: 1 }}>
+                                  <Stack direction="row" spacing={1} alignItems="center">
+                                    <Avatar src={client.photo} sx={{ width: 20, height: 20 }}>
+                                      {client.firstName[0]}
+                                    </Avatar>
+                                    <Typography variant="caption" color="rgba(255,255,255,0.8)">
+                                      {client.firstName} {client.lastName}
+                                    </Typography>
+                                  </Stack>
+                                </Box>
+                              ) : null;
+                            })}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </Box>
+                </Grid>
+              </Grid>
+            </DialogContent>
+            <DialogActions>
+              <GlowButton
+                text="Close"
+                theme="cosmic"
+                size="small"
+                onClick={() => setShowAssignmentDialog(false)}
+              />
+            </DialogActions>
+          </Dialog>
+          
+        </ScheduleContainer>
+      </ErrorBoundary>
+    </ThemeProvider>
+  );
+};
+
+export default UniversalMasterSchedule;
+
+// ==================== STYLED COMPONENTS ====================
+
+const ScheduleContainer = styled(motion.div)`
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, 
+    rgba(10, 10, 15, 0.95) 0%, 
+    rgba(30, 58, 138, 0.1) 50%, 
+    rgba(14, 165, 233, 0.05) 100%
+  );
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, 
+      rgba(59, 130, 246, 0.1) 0%, 
+      transparent 70%
+    );
+    pointer-events: none;
+  }
+`;
+
+const ScheduleHeader = styled.div`
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 10;
+`;
+
+const HeaderRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+`;
+
+const HeaderTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  
+  h4 {
+    color: white;
+    font-weight: 300;
+    margin: 0;
+  }
+  
+  svg {
+    color: #3b82f6;
+  }
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const FilterRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+`;
+
+const FilterContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  flex-wrap: wrap;
+  
+  .MuiFormControl-root {
+    min-width: 120px;
+  }
+  
+  .MuiOutlinedInput-root {
+    color: white;
+    
+    .MuiOutlinedInput-notchedOutline {
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+    
+    &:hover .MuiOutlinedInput-notchedOutline {
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+    
+    &.Mui-focused .MuiOutlinedInput-notchedOutline {
+      border-color: #3b82f6;
+    }
+  }
+  
+  .MuiInputLabel-root {
+    color: rgba(255, 255, 255, 0.7);
+    
+    &.Mui-focused {
+      color: #3b82f6;
+    }
+  }
+  
+  .MuiSelect-icon {
+    color: rgba(255, 255, 255, 0.7);
+  }
+  
+  .MuiFormControlLabel-label {
+    color: rgba(255, 255, 255, 0.9);
+  }
+`;
+
+const CalendarContainer = styled.div`
+  flex: 1;
+  padding: 1rem;
+  
+  .rbc-calendar {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: white;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  
+  .rbc-toolbar {
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 1rem;
+    
+    .rbc-toolbar-label {
+      color: white;
+      font-weight: 500;
+    }
+    
+    .rbc-btn-group {
+      button {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        transition: all 0.2s;
+        
+        &:hover {
+          background: rgba(255, 255, 255, 0.2);
+          border-color: rgba(255, 255, 255, 0.3);
+        }
+        
+        &.rbc-active {
+          background: #3b82f6;
+          border-color: #3b82f6;
+        }
+      }
+    }
+  }
+  
+  .rbc-month-view,
+  .rbc-time-view {
+    background: transparent;
+  }
+  
+  .rbc-header {
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 0.5rem;
+    font-weight: 500;
+  }
+  
+  .rbc-day-bg {
+    background: rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    
+    &.rbc-today {
+      background: rgba(59, 130, 246, 0.1);
+    }
+  }
+  
+  .rbc-time-slot {
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  .rbc-time-header {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .rbc-time-content {
+    border-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  .rbc-time-gutter {
+    background: rgba(0, 0, 0, 0.2);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    
+    .rbc-timeslot-group {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    
+    .rbc-time-slot {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.75rem;
+    }
+  }
+  
+  .rbc-current-time-indicator {
+    background: #3b82f6;
+    height: 2px;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  }
+  
+  .rbc-event {
+    border-radius: 4px;
+    border: none;
+    padding: 2px 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+  }
+  
+  .rbc-event-selected {
+    box-shadow: 0 0 0 2px #3b82f6;
+  }
+  
+  .rbc-show-more {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    
+    &:hover {
+      background: rgba(59, 130, 246, 0.2);
+    }
+  }
+  
+  .rbc-overlay {
+    background: rgba(0, 0, 0, 0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    
+    .rbc-overlay-header {
+      background: rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      color: white;
+      padding: 0.5rem;
+    }
+  }
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: linear-gradient(135deg, 
+    rgba(10, 10, 15, 0.95) 0%, 
+    rgba(30, 58, 138, 0.1) 50%, 
+    rgba(14, 165, 233, 0.05) 100%
+  );
+`;
+
+const ErrorContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: linear-gradient(135deg, 
+    rgba(10, 10, 15, 0.95) 0%, 
+    rgba(30, 58, 138, 0.1) 50%, 
+    rgba(14, 165, 233, 0.05) 100%
+  );
+  gap: 1rem;
+`;
