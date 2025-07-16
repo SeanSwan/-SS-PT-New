@@ -1,1 +1,487 @@
-/**\n * Universal Master Schedule - Theme Configuration\n * =============================================\n * Stellar Command Center theme aligned with SwanStudios design system\n * \n * This theme provides the visual foundation for the Universal Master Schedule,\n * featuring the professional blue-focused palette, stellar gradients, and\n * premium glass-morphism effects that define the admin command center aesthetic.\n */\n\nimport { createTheme } from '@mui/material/styles';\n\n// ==================== COLOR PALETTE ====================\n\nexport const stellarColors = {\n  // Primary Command Center Colors\n  deepSpace: '#0a0a0f',\n  commandNavy: '#1e3a8a',\n  stellarBlue: '#3b82f6',\n  cyberBlue: '#0ea5e9',\n  arcticBlue: '#0891b2',\n  \n  // Accent Colors\n  cosmicPurple: '#8b5cf6',\n  emeraldGreen: '#10b981',\n  rubyRed: '#ef4444',\n  amberGold: '#f59e0b',\n  \n  // Neutral Colors\n  stellarWhite: '#ffffff',\n  platinumSilver: '#e5e7eb',\n  cosmicGray: '#9ca3af',\n  darkMatter: '#374151',\n  \n  // Status Colors\n  success: '#22c55e',\n  warning: '#f59e0b',\n  error: '#ef4444',\n  info: '#3b82f6',\n  \n  // Transparency Levels\n  alpha: {\n    5: 'rgba(255, 255, 255, 0.05)',\n    10: 'rgba(255, 255, 255, 0.1)',\n    20: 'rgba(255, 255, 255, 0.2)',\n    30: 'rgba(255, 255, 255, 0.3)',\n    50: 'rgba(255, 255, 255, 0.5)',\n    70: 'rgba(255, 255, 255, 0.7)',\n    90: 'rgba(255, 255, 255, 0.9)',\n  }\n};\n\n// ==================== GRADIENTS ====================\n\nexport const stellarGradients = {\n  // Command Center Gradients\n  commandCenter: 'linear-gradient(135deg, rgba(30, 58, 138, 0.95) 0%, rgba(14, 165, 233, 0.1) 50%, rgba(8, 145, 178, 0.05) 100%)',\n  executiveGlass: 'linear-gradient(135deg, rgba(30, 58, 138, 0.1) 0%, rgba(14, 165, 233, 0.05) 100%)',\n  \n  // Status Gradients\n  success: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',\n  warning: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',\n  error: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',\n  info: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',\n  \n  // Overlay Gradients\n  overlay: 'linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 100%)',\n  glassMorphism: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',\n  \n  // Radial Gradients\n  stellarRadial: 'radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 70%)',\n  commandRadial: 'radial-gradient(circle at 50% 50%, rgba(30, 58, 138, 0.2) 0%, transparent 60%)',\n};\n\n// ==================== SPACING SYSTEM ====================\n\nexport const stellarSpacing = {\n  xs: '0.25rem',   // 4px\n  sm: '0.5rem',    // 8px\n  md: '1rem',      // 16px\n  lg: '1.5rem',    // 24px\n  xl: '2rem',      // 32px\n  '2xl': '3rem',   // 48px\n  '3xl': '4rem',   // 64px\n  '4xl': '6rem',   // 96px\n  '5xl': '8rem',   // 128px\n};\n\n// ==================== BREAKPOINTS ====================\n\nexport const stellarBreakpoints = {\n  mobile: '640px',\n  tablet: '768px',\n  desktop: '1024px',\n  wide: '1280px',\n  ultrawide: '1536px',\n};\n\n// ==================== TYPOGRAPHY ====================\n\nexport const stellarTypography = {\n  fontFamily: {\n    primary: '\"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif',\n    mono: '\"Fira Code\", \"JetBrains Mono\", Consolas, Monaco, monospace',\n  },\n  fontSize: {\n    xs: '0.75rem',   // 12px\n    sm: '0.875rem',  // 14px\n    base: '1rem',    // 16px\n    lg: '1.125rem',  // 18px\n    xl: '1.25rem',   // 20px\n    '2xl': '1.5rem', // 24px\n    '3xl': '1.875rem', // 30px\n    '4xl': '2.25rem',  // 36px\n    '5xl': '3rem',     // 48px\n  },\n  fontWeight: {\n    light: 300,\n    normal: 400,\n    medium: 500,\n    semibold: 600,\n    bold: 700,\n  },\n  lineHeight: {\n    tight: 1.2,\n    normal: 1.5,\n    relaxed: 1.8,\n  },\n};\n\n// ==================== SHADOWS ====================\n\nexport const stellarShadows = {\n  sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',\n  md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',\n  lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',\n  xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',\n  '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',\n  inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',\n  \n  // Glow effects\n  glow: {\n    blue: '0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)',\n    purple: '0 0 20px rgba(139, 92, 246, 0.5), 0 0 40px rgba(139, 92, 246, 0.3)',\n    emerald: '0 0 20px rgba(16, 185, 129, 0.5), 0 0 40px rgba(16, 185, 129, 0.3)',\n    ruby: '0 0 20px rgba(239, 68, 68, 0.5), 0 0 40px rgba(239, 68, 68, 0.3)',\n  },\n  \n  // Command center shadows\n  command: '0 8px 32px rgba(30, 58, 138, 0.3), 0 4px 16px rgba(0, 0, 0, 0.2)',\n  stellar: '0 8px 32px rgba(59, 130, 246, 0.2), 0 4px 16px rgba(0, 0, 0, 0.15)',\n};\n\n// ==================== BORDER RADIUS ====================\n\nexport const stellarBorderRadius = {\n  none: '0',\n  sm: '0.125rem',  // 2px\n  md: '0.375rem',  // 6px\n  lg: '0.5rem',    // 8px\n  xl: '0.75rem',   // 12px\n  '2xl': '1rem',   // 16px\n  '3xl': '1.5rem', // 24px\n  full: '9999px',\n};\n\n// ==================== ANIMATION DURATIONS ====================\n\nexport const stellarAnimations = {\n  duration: {\n    fast: '150ms',\n    normal: '300ms',\n    slow: '500ms',\n    slower: '1000ms',\n  },\n  easing: {\n    easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)',\n    easeOut: 'cubic-bezier(0, 0, 0.2, 1)',\n    easeIn: 'cubic-bezier(0.4, 0, 1, 1)',\n    bounce: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',\n  },\n};\n\n// ==================== STELLAR THEME OBJECT ====================\n\nexport const stellarTheme = {\n  colors: stellarColors,\n  gradients: stellarGradients,\n  spacing: stellarSpacing,\n  breakpoints: stellarBreakpoints,\n  typography: stellarTypography,\n  shadows: stellarShadows,\n  borderRadius: stellarBorderRadius,\n  animations: stellarAnimations,\n};\n\n// ==================== MATERIAL-UI THEME ====================\n\nexport const CommandCenterTheme = createTheme({\n  palette: {\n    mode: 'dark',\n    primary: {\n      main: stellarColors.stellarBlue,\n      light: stellarColors.cyberBlue,\n      dark: stellarColors.commandNavy,\n      contrastText: stellarColors.stellarWhite,\n    },\n    secondary: {\n      main: stellarColors.cosmicPurple,\n      light: stellarColors.platinumSilver,\n      dark: stellarColors.darkMatter,\n      contrastText: stellarColors.stellarWhite,\n    },\n    error: {\n      main: stellarColors.error,\n    },\n    warning: {\n      main: stellarColors.warning,\n    },\n    info: {\n      main: stellarColors.info,\n    },\n    success: {\n      main: stellarColors.success,\n    },\n    background: {\n      default: stellarColors.deepSpace,\n      paper: 'rgba(0, 0, 0, 0.8)',\n    },\n    text: {\n      primary: stellarColors.stellarWhite,\n      secondary: stellarColors.cosmicGray,\n    },\n    divider: stellarColors.alpha[20],\n  },\n  typography: {\n    fontFamily: stellarTypography.fontFamily.primary,\n    h1: {\n      fontSize: stellarTypography.fontSize['4xl'],\n      fontWeight: stellarTypography.fontWeight.light,\n      lineHeight: stellarTypography.lineHeight.tight,\n    },\n    h2: {\n      fontSize: stellarTypography.fontSize['3xl'],\n      fontWeight: stellarTypography.fontWeight.light,\n      lineHeight: stellarTypography.lineHeight.tight,\n    },\n    h3: {\n      fontSize: stellarTypography.fontSize['2xl'],\n      fontWeight: stellarTypography.fontWeight.normal,\n      lineHeight: stellarTypography.lineHeight.tight,\n    },\n    h4: {\n      fontSize: stellarTypography.fontSize.xl,\n      fontWeight: stellarTypography.fontWeight.medium,\n      lineHeight: stellarTypography.lineHeight.normal,\n    },\n    h5: {\n      fontSize: stellarTypography.fontSize.lg,\n      fontWeight: stellarTypography.fontWeight.medium,\n      lineHeight: stellarTypography.lineHeight.normal,\n    },\n    h6: {\n      fontSize: stellarTypography.fontSize.base,\n      fontWeight: stellarTypography.fontWeight.semibold,\n      lineHeight: stellarTypography.lineHeight.normal,\n    },\n    body1: {\n      fontSize: stellarTypography.fontSize.base,\n      fontWeight: stellarTypography.fontWeight.normal,\n      lineHeight: stellarTypography.lineHeight.normal,\n    },\n    body2: {\n      fontSize: stellarTypography.fontSize.sm,\n      fontWeight: stellarTypography.fontWeight.normal,\n      lineHeight: stellarTypography.lineHeight.normal,\n    },\n    caption: {\n      fontSize: stellarTypography.fontSize.xs,\n      fontWeight: stellarTypography.fontWeight.normal,\n      lineHeight: stellarTypography.lineHeight.normal,\n    },\n    button: {\n      fontSize: stellarTypography.fontSize.sm,\n      fontWeight: stellarTypography.fontWeight.medium,\n      textTransform: 'none',\n    },\n  },\n  shape: {\n    borderRadius: 8,\n  },\n  shadows: [\n    'none',\n    stellarShadows.sm,\n    stellarShadows.md,\n    stellarShadows.lg,\n    stellarShadows.xl,\n    stellarShadows['2xl'],\n    stellarShadows.command,\n    stellarShadows.stellar,\n    stellarShadows.glow.blue,\n    stellarShadows.glow.purple,\n    stellarShadows.glow.emerald,\n    stellarShadows.glow.ruby,\n    stellarShadows.inner,\n    stellarShadows.sm,\n    stellarShadows.md,\n    stellarShadows.lg,\n    stellarShadows.xl,\n    stellarShadows['2xl'],\n    stellarShadows.command,\n    stellarShadows.stellar,\n    stellarShadows.glow.blue,\n    stellarShadows.glow.purple,\n    stellarShadows.glow.emerald,\n    stellarShadows.glow.ruby,\n    stellarShadows.inner,\n  ],\n  breakpoints: {\n    values: {\n      xs: 0,\n      sm: parseInt(stellarBreakpoints.mobile),\n      md: parseInt(stellarBreakpoints.tablet),\n      lg: parseInt(stellarBreakpoints.desktop),\n      xl: parseInt(stellarBreakpoints.wide),\n    },\n  },\n  components: {\n    MuiButton: {\n      styleOverrides: {\n        root: {\n          borderRadius: stellarBorderRadius.lg,\n          textTransform: 'none',\n          fontWeight: stellarTypography.fontWeight.medium,\n          transition: `all ${stellarAnimations.duration.normal} ${stellarAnimations.easing.easeInOut}`,\n        },\n      },\n    },\n    MuiCard: {\n      styleOverrides: {\n        root: {\n          backgroundImage: stellarGradients.glassMorphism,\n          backdropFilter: 'blur(20px)',\n          border: `1px solid ${stellarColors.alpha[10]}`,\n          borderRadius: stellarBorderRadius.xl,\n        },\n      },\n    },\n    MuiDialog: {\n      styleOverrides: {\n        paper: {\n          backgroundImage: stellarGradients.overlay,\n          backdropFilter: 'blur(20px)',\n          border: `1px solid ${stellarColors.alpha[10]}`,\n          borderRadius: stellarBorderRadius['2xl'],\n        },\n      },\n    },\n    MuiTextField: {\n      styleOverrides: {\n        root: {\n          '& .MuiOutlinedInput-root': {\n            '& fieldset': {\n              borderColor: stellarColors.alpha[30],\n            },\n            '&:hover fieldset': {\n              borderColor: stellarColors.alpha[50],\n            },\n            '&.Mui-focused fieldset': {\n              borderColor: stellarColors.stellarBlue,\n            },\n          },\n        },\n      },\n    },\n    MuiSelect: {\n      styleOverrides: {\n        root: {\n          '& .MuiOutlinedInput-notchedOutline': {\n            borderColor: stellarColors.alpha[30],\n          },\n          '&:hover .MuiOutlinedInput-notchedOutline': {\n            borderColor: stellarColors.alpha[50],\n          },\n          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {\n            borderColor: stellarColors.stellarBlue,\n          },\n        },\n      },\n    },\n    MuiChip: {\n      styleOverrides: {\n        root: {\n          borderRadius: stellarBorderRadius.lg,\n          fontWeight: stellarTypography.fontWeight.medium,\n        },\n      },\n    },\n    MuiTooltip: {\n      styleOverrides: {\n        tooltip: {\n          backgroundColor: 'rgba(0, 0, 0, 0.9)',\n          backdropFilter: 'blur(10px)',\n          border: `1px solid ${stellarColors.alpha[20]}`,\n          borderRadius: stellarBorderRadius.lg,\n          fontSize: stellarTypography.fontSize.sm,\n        },\n      },\n    },\n  },\n});\n\n// ==================== CALENDAR THEME ====================\n\nexport const calendarTheme = {\n  // Calendar-specific colors\n  eventColors: {\n    available: {\n      background: stellarColors.success,\n      border: stellarColors.success,\n      text: stellarColors.stellarWhite,\n    },\n    scheduled: {\n      background: stellarColors.stellarBlue,\n      border: stellarColors.stellarBlue,\n      text: stellarColors.stellarWhite,\n    },\n    confirmed: {\n      background: stellarColors.cyberBlue,\n      border: stellarColors.cyberBlue,\n      text: stellarColors.stellarWhite,\n    },\n    completed: {\n      background: stellarColors.cosmicGray,\n      border: stellarColors.cosmicGray,\n      text: stellarColors.stellarWhite,\n    },\n    cancelled: {\n      background: stellarColors.error,\n      border: stellarColors.error,\n      text: stellarColors.stellarWhite,\n    },\n    requested: {\n      background: stellarColors.warning,\n      border: stellarColors.warning,\n      text: stellarColors.stellarWhite,\n    },\n  },\n  \n  // Calendar layout colors\n  layout: {\n    background: 'rgba(0, 0, 0, 0.2)',\n    border: stellarColors.alpha[10],\n    header: {\n      background: 'rgba(0, 0, 0, 0.3)',\n      border: stellarColors.alpha[10],\n      text: stellarColors.stellarWhite,\n    },\n    cell: {\n      background: 'rgba(0, 0, 0, 0.1)',\n      border: stellarColors.alpha[5],\n      today: 'rgba(59, 130, 246, 0.1)',\n    },\n    timeGutter: {\n      background: 'rgba(0, 0, 0, 0.2)',\n      border: stellarColors.alpha[10],\n      text: stellarColors.cosmicGray,\n    },\n  },\n  \n  // Calendar toolbar\n  toolbar: {\n    background: 'rgba(0, 0, 0, 0.3)',\n    border: stellarColors.alpha[10],\n    button: {\n      background: stellarColors.alpha[10],\n      border: stellarColors.alpha[20],\n      text: stellarColors.stellarWhite,\n      hover: stellarColors.alpha[20],\n      active: stellarColors.stellarBlue,\n    },\n  },\n};\n\n// ==================== EXPORT DEFAULT ====================\n\nexport default stellarTheme;\n"
+/**
+ * Universal Master Schedule - Theme Configuration
+ * =============================================
+ * Stellar Command Center theme aligned with SwanStudios design system
+ * 
+ * This theme provides the visual foundation for the Universal Master Schedule,
+ * featuring the professional blue-focused palette, stellar gradients, and
+ * premium glass-morphism effects that define the admin command center aesthetic.
+ */
+
+import { createTheme } from '@mui/material/styles';
+
+// ==================== COLOR PALETTE ====================
+
+export const stellarColors = {
+  // Primary Command Center Colors
+  deepSpace: '#0a0a0f',
+  commandNavy: '#1e3a8a',
+  stellarBlue: '#3b82f6',
+  cyberBlue: '#0ea5e9',
+  arcticBlue: '#0891b2',
+  
+  // Accent Colors
+  cosmicPurple: '#8b5cf6',
+  emeraldGreen: '#10b981',
+  rubyRed: '#ef4444',
+  amberGold: '#f59e0b',
+  
+  // Neutral Colors
+  stellarWhite: '#ffffff',
+  platinumSilver: '#e5e7eb',
+  cosmicGray: '#9ca3af',
+  darkMatter: '#374151',
+  
+  // Status Colors
+  success: '#22c55e',
+  warning: '#f59e0b',
+  error: '#ef4444',
+  info: '#3b82f6',
+  
+  // Transparency Levels
+  alpha: {
+    5: 'rgba(255, 255, 255, 0.05)',
+    10: 'rgba(255, 255, 255, 0.1)',
+    20: 'rgba(255, 255, 255, 0.2)',
+    30: 'rgba(255, 255, 255, 0.3)',
+    50: 'rgba(255, 255, 255, 0.5)',
+    70: 'rgba(255, 255, 255, 0.7)',
+    90: 'rgba(255, 255, 255, 0.9)',
+  }
+};
+
+// ==================== GRADIENTS ====================
+
+export const stellarGradients = {
+  // Command Center Gradients
+  commandCenter: 'linear-gradient(135deg, rgba(30, 58, 138, 0.95) 0%, rgba(14, 165, 233, 0.1) 50%, rgba(8, 145, 178, 0.05) 100%)',
+  executiveGlass: 'linear-gradient(135deg, rgba(30, 58, 138, 0.1) 0%, rgba(14, 165, 233, 0.05) 100%)',
+  
+  // Status Gradients
+  success: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)',
+  warning: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+  error: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+  info: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+  
+  // Overlay Gradients
+  overlay: 'linear-gradient(135deg, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.6) 100%)',
+  glassMorphism: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%)',
+  
+  // Radial Gradients
+  stellarRadial: 'radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 70%)',
+  commandRadial: 'radial-gradient(circle at 50% 50%, rgba(30, 58, 138, 0.2) 0%, transparent 60%)',
+};
+
+// ==================== SPACING SYSTEM ====================
+
+export const stellarSpacing = {
+  xs: '0.25rem',   // 4px
+  sm: '0.5rem',    // 8px
+  md: '1rem',      // 16px
+  lg: '1.5rem',    // 24px
+  xl: '2rem',      // 32px
+  '2xl': '3rem',   // 48px
+  '3xl': '4rem',   // 64px
+  '4xl': '6rem',   // 96px
+  '5xl': '8rem',   // 128px
+};
+
+// ==================== BREAKPOINTS ====================
+
+export const stellarBreakpoints = {
+  mobile: '640px',
+  tablet: '768px',
+  desktop: '1024px',
+  wide: '1280px',
+  ultrawide: '1536px',
+};
+
+// ==================== TYPOGRAPHY ====================
+
+export const stellarTypography = {
+  fontFamily: {
+    primary: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    mono: '"Fira Code", "JetBrains Mono", Consolas, Monaco, monospace',
+  },
+  fontSize: {
+    xs: '0.75rem',   // 12px
+    sm: '0.875rem',  // 14px
+    base: '1rem',    // 16px
+    lg: '1.125rem',  // 18px
+    xl: '1.25rem',   // 20px
+    '2xl': '1.5rem', // 24px
+    '3xl': '1.875rem', // 30px
+    '4xl': '2.25rem',  // 36px
+    '5xl': '3rem',     // 48px
+  },
+  fontWeight: {
+    light: 300,
+    normal: 400,
+    medium: 500,
+    semibold: 600,
+    bold: 700,
+  },
+  lineHeight: {
+    tight: 1.2,
+    normal: 1.5,
+    relaxed: 1.8,
+  },
+};
+
+// ==================== SHADOWS ====================
+
+export const stellarShadows = {
+  sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+  md: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+  lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+  xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+  '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+  inner: 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)',
+  
+  // Glow effects
+  glow: {
+    blue: '0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)',
+    purple: '0 0 20px rgba(139, 92, 246, 0.5), 0 0 40px rgba(139, 92, 246, 0.3)',
+    emerald: '0 0 20px rgba(16, 185, 129, 0.5), 0 0 40px rgba(16, 185, 129, 0.3)',
+    ruby: '0 0 20px rgba(239, 68, 68, 0.5), 0 0 40px rgba(239, 68, 68, 0.3)',
+  },
+  
+  // Command center shadows
+  command: '0 8px 32px rgba(30, 58, 138, 0.3), 0 4px 16px rgba(0, 0, 0, 0.2)',
+  stellar: '0 8px 32px rgba(59, 130, 246, 0.2), 0 4px 16px rgba(0, 0, 0, 0.15)',
+};
+
+// ==================== BORDER RADIUS ====================
+
+export const stellarBorderRadius = {
+  none: '0',
+  sm: '0.125rem',  // 2px
+  md: '0.375rem',  // 6px
+  lg: '0.5rem',    // 8px
+  xl: '0.75rem',   // 12px
+  '2xl': '1rem',   // 16px
+  '3xl': '1.5rem', // 24px
+  full: '9999px',
+};
+
+// ==================== ANIMATION DURATIONS ====================
+
+export const stellarAnimations = {
+  duration: {
+    fast: '150ms',
+    normal: '300ms',
+    slow: '500ms',
+    slower: '1000ms',
+  },
+  easing: {
+    easeInOut: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    easeOut: 'cubic-bezier(0, 0, 0.2, 1)',
+    easeIn: 'cubic-bezier(0.4, 0, 1, 1)',
+    bounce: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+  },
+};
+
+// ==================== STELLAR THEME OBJECT ====================
+
+export const stellarTheme = {
+  colors: stellarColors,
+  gradients: stellarGradients,
+  spacing: stellarSpacing,
+  breakpoints: stellarBreakpoints,
+  typography: stellarTypography,
+  shadows: stellarShadows,
+  borderRadius: stellarBorderRadius,
+  animations: stellarAnimations,
+};
+
+// ==================== MATERIAL-UI THEME ====================
+
+export const CommandCenterTheme = createTheme({
+  palette: {
+    mode: 'dark',
+    primary: {
+      main: stellarColors.stellarBlue,
+      light: stellarColors.cyberBlue,
+      dark: stellarColors.commandNavy,
+      contrastText: stellarColors.stellarWhite,
+    },
+    secondary: {
+      main: stellarColors.cosmicPurple,
+      light: stellarColors.platinumSilver,
+      dark: stellarColors.darkMatter,
+      contrastText: stellarColors.stellarWhite,
+    },
+    error: {
+      main: stellarColors.error,
+    },
+    warning: {
+      main: stellarColors.warning,
+    },
+    info: {
+      main: stellarColors.info,
+    },
+    success: {
+      main: stellarColors.success,
+    },
+    background: {
+      default: stellarColors.deepSpace,
+      paper: 'rgba(0, 0, 0, 0.8)',
+    },
+    text: {
+      primary: stellarColors.stellarWhite,
+      secondary: stellarColors.cosmicGray,
+    },
+    divider: stellarColors.alpha[20],
+  },
+  typography: {
+    fontFamily: stellarTypography.fontFamily.primary,
+    h1: {
+      fontSize: stellarTypography.fontSize['4xl'],
+      fontWeight: stellarTypography.fontWeight.light,
+      lineHeight: stellarTypography.lineHeight.tight,
+    },
+    h2: {
+      fontSize: stellarTypography.fontSize['3xl'],
+      fontWeight: stellarTypography.fontWeight.light,
+      lineHeight: stellarTypography.lineHeight.tight,
+    },
+    h3: {
+      fontSize: stellarTypography.fontSize['2xl'],
+      fontWeight: stellarTypography.fontWeight.normal,
+      lineHeight: stellarTypography.lineHeight.tight,
+    },
+    h4: {
+      fontSize: stellarTypography.fontSize.xl,
+      fontWeight: stellarTypography.fontWeight.medium,
+      lineHeight: stellarTypography.lineHeight.normal,
+    },
+    h5: {
+      fontSize: stellarTypography.fontSize.lg,
+      fontWeight: stellarTypography.fontWeight.medium,
+      lineHeight: stellarTypography.lineHeight.normal,
+    },
+    h6: {
+      fontSize: stellarTypography.fontSize.base,
+      fontWeight: stellarTypography.fontWeight.semibold,
+      lineHeight: stellarTypography.lineHeight.normal,
+    },
+    body1: {
+      fontSize: stellarTypography.fontSize.base,
+      fontWeight: stellarTypography.fontWeight.normal,
+      lineHeight: stellarTypography.lineHeight.normal,
+    },
+    body2: {
+      fontSize: stellarTypography.fontSize.sm,
+      fontWeight: stellarTypography.fontWeight.normal,
+      lineHeight: stellarTypography.lineHeight.normal,
+    },
+    caption: {
+      fontSize: stellarTypography.fontSize.xs,
+      fontWeight: stellarTypography.fontWeight.normal,
+      lineHeight: stellarTypography.lineHeight.normal,
+    },
+    button: {
+      fontSize: stellarTypography.fontSize.sm,
+      fontWeight: stellarTypography.fontWeight.medium,
+      textTransform: 'none',
+    },
+  },
+  shape: {
+    borderRadius: 8,
+  },
+  shadows: [
+    'none',
+    stellarShadows.sm,
+    stellarShadows.md,
+    stellarShadows.lg,
+    stellarShadows.xl,
+    stellarShadows['2xl'],
+    stellarShadows.command,
+    stellarShadows.stellar,
+    stellarShadows.glow.blue,
+    stellarShadows.glow.purple,
+    stellarShadows.glow.emerald,
+    stellarShadows.glow.ruby,
+    stellarShadows.inner,
+    stellarShadows.sm,
+    stellarShadows.md,
+    stellarShadows.lg,
+    stellarShadows.xl,
+    stellarShadows['2xl'],
+    stellarShadows.command,
+    stellarShadows.stellar,
+    stellarShadows.glow.blue,
+    stellarShadows.glow.purple,
+    stellarShadows.glow.emerald,
+    stellarShadows.glow.ruby,
+    stellarShadows.inner,
+  ],
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: parseInt(stellarBreakpoints.mobile),
+      md: parseInt(stellarBreakpoints.tablet),
+      lg: parseInt(stellarBreakpoints.desktop),
+      xl: parseInt(stellarBreakpoints.wide),
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: stellarBorderRadius.lg,
+          textTransform: 'none',
+          fontWeight: stellarTypography.fontWeight.medium,
+          transition: `all ${stellarAnimations.duration.normal} ${stellarAnimations.easing.easeInOut}`,
+        },
+      },
+    },
+    MuiCard: {
+      styleOverrides: {
+        root: {
+          backgroundImage: stellarGradients.glassMorphism,
+          backdropFilter: 'blur(20px)',
+          border: `1px solid ${stellarColors.alpha[10]}`,
+          borderRadius: stellarBorderRadius.xl,
+        },
+      },
+    },
+    MuiDialog: {
+      styleOverrides: {
+        paper: {
+          backgroundImage: stellarGradients.overlay,
+          backdropFilter: 'blur(20px)',
+          border: `1px solid ${stellarColors.alpha[10]}`,
+          borderRadius: stellarBorderRadius['2xl'],
+        },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-root': {
+            '& fieldset': {
+              borderColor: stellarColors.alpha[30],
+            },
+            '&:hover fieldset': {
+              borderColor: stellarColors.alpha[50],
+            },
+            '&.Mui-focused fieldset': {
+              borderColor: stellarColors.stellarBlue,
+            },
+          },
+        },
+      },
+    },
+    MuiSelect: {
+      styleOverrides: {
+        root: {
+          '& .MuiOutlinedInput-notchedOutline': {
+            borderColor: stellarColors.alpha[30],
+          },
+          '&:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: stellarColors.alpha[50],
+          },
+          '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: stellarColors.stellarBlue,
+          },
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          borderRadius: stellarBorderRadius.lg,
+          fontWeight: stellarTypography.fontWeight.medium,
+        },
+      },
+    },
+    MuiTooltip: {
+      styleOverrides: {
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          backdropFilter: 'blur(10px)',
+          border: `1px solid ${stellarColors.alpha[20]}`,
+          borderRadius: stellarBorderRadius.lg,
+          fontSize: stellarTypography.fontSize.sm,
+        },
+      },
+    },
+  },
+});
+
+// ==================== CALENDAR THEME ====================
+
+export const calendarTheme = {
+  // Calendar-specific colors
+  eventColors: {
+    available: {
+      background: stellarColors.success,
+      border: stellarColors.success,
+      text: stellarColors.stellarWhite,
+    },
+    scheduled: {
+      background: stellarColors.stellarBlue,
+      border: stellarColors.stellarBlue,
+      text: stellarColors.stellarWhite,
+    },
+    confirmed: {
+      background: stellarColors.cyberBlue,
+      border: stellarColors.cyberBlue,
+      text: stellarColors.stellarWhite,
+    },
+    completed: {
+      background: stellarColors.cosmicGray,
+      border: stellarColors.cosmicGray,
+      text: stellarColors.stellarWhite,
+    },
+    cancelled: {
+      background: stellarColors.error,
+      border: stellarColors.error,
+      text: stellarColors.stellarWhite,
+    },
+    requested: {
+      background: stellarColors.warning,
+      border: stellarColors.warning,
+      text: stellarColors.stellarWhite,
+    },
+  },
+  
+  // Calendar layout colors
+  layout: {
+    background: 'rgba(0, 0, 0, 0.2)',
+    border: stellarColors.alpha[10],
+    header: {
+      background: 'rgba(0, 0, 0, 0.3)',
+      border: stellarColors.alpha[10],
+      text: stellarColors.stellarWhite,
+    },
+    cell: {
+      background: 'rgba(0, 0, 0, 0.1)',
+      border: stellarColors.alpha[5],
+      today: 'rgba(59, 130, 246, 0.1)',
+    },
+    timeGutter: {
+      background: 'rgba(0, 0, 0, 0.2)',
+      border: stellarColors.alpha[10],
+      text: stellarColors.cosmicGray,
+    },
+  },
+  
+  // Calendar toolbar
+  toolbar: {
+    background: 'rgba(0, 0, 0, 0.3)',
+    border: stellarColors.alpha[10],
+    button: {
+      background: stellarColors.alpha[10],
+      border: stellarColors.alpha[20],
+      text: stellarColors.stellarWhite,
+      hover: stellarColors.alpha[20],
+      active: stellarColors.stellarBlue,
+    },
+  },
+};
+
+// ==================== EXPORT DEFAULT ====================
+
+export default stellarTheme;
