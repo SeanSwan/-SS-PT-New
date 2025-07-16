@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { toast } from 'react-toastify';
+import { useToast } from './use-toast';
 
 // Types
 export interface Notification {
@@ -68,6 +68,7 @@ let mockNotifications: Notification[] = [
 export const useNotifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   // Get unread notifications count
   const unreadCount = useMemo(() => {
@@ -102,20 +103,19 @@ export const useNotifications = () => {
       position = 'top-right'
     } = options;
 
-    switch (type) {
-      case 'success':
-        toast.success(message, { autoClose, position });
-        break;
-      case 'error':
-        toast.error(message, { autoClose, position });
-        break;
-      case 'warning':
-        toast.warning(message, { autoClose, position });
-        break;
-      default:
-        toast.info(message, { autoClose, position });
+    // Convert type to variant for the project's toast system
+    let variant: 'default' | 'destructive' = 'default';
+    if (type === 'error') {
+      variant = 'destructive';
     }
-  }, []);
+
+    const title = type === 'success' ? 'Success' : 
+                  type === 'error' ? 'Error' : 
+                  type === 'warning' ? 'Warning' : 
+                  'Info';
+
+    toast({ title, description: message, variant });
+  }, [toast]);
 
   // Mark notification as read
   const markAsRead = useCallback((notificationId: string) => {
