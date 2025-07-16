@@ -20,7 +20,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider } from 'styled-components';
-import { toast } from 'react-toastify';
+import { useToast } from '../../hooks/use-toast';
 
 // Material-UI Components
 import {
@@ -110,6 +110,7 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
   const { user } = useAuth();
   const { notifications } = useNotifications();
   const { hasPermission } = usePermissions();
+  const { toast } = useToast();
   
   // Component State
   const [isLoading, setIsLoading] = useState(true);
@@ -162,20 +163,20 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
         console.log('Session selected:', session);
       },
       onSessionCreate: (session) => {
-        toast.success(SUCCESS_MESSAGES.SESSION_CREATED);
+        toast({ title: 'Success', description: SUCCESS_MESSAGES.SESSION_CREATED, variant: 'default' });
         updateSessionStats();
       },
       onSessionUpdate: (session) => {
-        toast.success(SUCCESS_MESSAGES.SESSION_UPDATED);
+        toast({ title: 'Success', description: SUCCESS_MESSAGES.SESSION_UPDATED, variant: 'default' });
         updateSessionStats();
       },
       onSessionDelete: (sessionId) => {
-        toast.success(SUCCESS_MESSAGES.SESSION_DELETED);
+        toast({ title: 'Success', description: SUCCESS_MESSAGES.SESSION_DELETED, variant: 'default' });
         updateSessionStats();
       },
       onError: (error) => {
         setError(error);
-        toast.error(error);
+        toast({ title: 'Error', description: error, variant: 'destructive' });
       },
       theme: 'dark',
       compactMode: false,
@@ -189,12 +190,12 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
             action.action();
           } catch (error) {
             console.error('Custom action error:', error);
-            toast.error('Failed to execute action');
+            toast({ title: 'Error', description: 'Failed to execute action', variant: 'destructive' });
           }
         }
       }))
     };
-  }, [permissions, customActions]);
+  }, [permissions, customActions, toast, updateSessionStats]);
   
   // Event Handlers
   const handleFullscreenToggle = useCallback(() => {
@@ -205,8 +206,8 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
   
   const handleError = useCallback((error: string) => {
     setError(error);
-    toast.error(error);
-  }, []);
+    toast({ title: 'Error', description: error, variant: 'destructive' });
+  }, [toast]);
   
   const handleRefresh = useCallback(() => {
     setIsLoading(true);
@@ -214,9 +215,9 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
     // Trigger refresh in the Universal Master Schedule
     setTimeout(() => {
       setIsLoading(false);
-      toast.success('Schedule refreshed successfully');
+      toast({ title: 'Success', description: 'Schedule refreshed successfully', variant: 'default' });
     }, 1000);
-  }, []);
+  }, [toast]);
   
   const updateSessionStats = useCallback(() => {
     // This would be replaced with actual API call to get session statistics
