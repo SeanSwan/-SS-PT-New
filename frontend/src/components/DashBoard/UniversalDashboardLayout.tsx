@@ -52,6 +52,9 @@ import AdminGamificationView from './Pages/admin-gamification/admin-gamification
 import RevenueAnalyticsPanel from './Pages/admin-dashboard/components/RevenueAnalyticsPanel';
 import PendingOrdersAdminPanel from './Pages/admin-dashboard/components/PendingOrdersAdminPanel';
 
+// Import Universal Master Schedule Integration
+import AdminScheduleIntegration from '../UniversalMasterSchedule/AdminScheduleIntegration';
+
 // Lazy load the UniversalCalendar (to be created next)
 const UniversalCalendar = React.lazy(() => Promise.resolve({ 
   default: () => <div>Universal Calendar Component (Coming Next)</div> 
@@ -331,6 +334,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/trainers', component: TrainersManagementSection, title: 'Trainer Management', description: 'Coaching team oversight' },
       { path: '/client-management', component: AdminClientProgressView, title: 'Client Management', description: 'Client progress monitoring' },
       { path: '/admin-sessions', component: EnhancedAdminSessionsView, title: 'Master Schedule', description: 'Universal scheduling control' },
+      { path: '/master-schedule', component: AdminScheduleIntegration, title: 'Universal Master Schedule', description: 'Advanced drag-and-drop scheduling command center' },
       { path: '/admin-packages', component: AdminPackagesView, title: 'Package Management', description: 'Training package configuration' },
       { path: '/revenue', component: RevenueAnalyticsPanel, title: 'Revenue Analytics', description: 'Financial performance tracking' },
       { path: '/pending-orders', component: PendingOrdersAdminPanel, title: 'Pending Orders', description: 'Order management system' },
