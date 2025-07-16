@@ -55,6 +55,12 @@ import PendingOrdersAdminPanel from './Pages/admin-dashboard/components/PendingO
 // Import Universal Master Schedule Integration
 import AdminScheduleIntegration from '../UniversalMasterSchedule/AdminScheduleIntegration';
 
+// Import NASM Workout Tracking System Components
+import ClientTrainerAssignments from '../Admin/ClientTrainerAssignments';
+import TrainerPermissionsManager from '../Admin/TrainerPermissionsManager';
+import WorkoutLogger from '../WorkoutLogger/WorkoutLogger';
+import NASMProgressCharts from '../Client/NASMProgressCharts';
+
 // Lazy load the UniversalCalendar (to be created next)
 const UniversalCalendar = React.lazy(() => Promise.resolve({ 
   default: () => <div>Universal Calendar Component (Coming Next)</div> 
@@ -335,6 +341,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/client-management', component: AdminClientProgressView, title: 'Client Management', description: 'Client progress monitoring' },
       { path: '/admin-sessions', component: EnhancedAdminSessionsView, title: 'Master Schedule', description: 'Universal scheduling control' },
       { path: '/master-schedule', component: AdminScheduleIntegration, title: 'Universal Master Schedule', description: 'Advanced drag-and-drop scheduling command center' },
+      { path: '/client-trainer-assignments', component: ClientTrainerAssignments, title: 'Client-Trainer Assignments', description: 'Drag-and-drop client assignment management' },
+      { path: '/trainer-permissions', component: TrainerPermissionsManager, title: 'Trainer Permissions', description: 'Granular trainer permission control' },
       { path: '/admin-packages', component: AdminPackagesView, title: 'Package Management', description: 'Training package configuration' },
       { path: '/revenue', component: RevenueAnalyticsPanel, title: 'Revenue Analytics', description: 'Financial performance tracking' },
       { path: '/pending-orders', component: PendingOrdersAdminPanel, title: 'Pending Orders', description: 'Order management system' },
@@ -346,6 +354,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
     routes: [
       { path: '/overview', component: () => <div>Trainer Overview (Coming Soon)</div>, title: 'Training Overview', description: 'Your coaching dashboard' },
       { path: '/clients', component: () => <div>My Clients (Coming Soon)</div>, title: 'My Clients', description: 'Assigned client management' },
+      { path: '/log-workout', component: () => <WorkoutLogger clientId={0} onComplete={() => {}} onCancel={() => {}} />, title: 'Log Client Workout', description: 'NASM-compliant workout logging interface' },
       { path: '/client-progress', component: () => <div>Client Progress (Coming Soon)</div>, title: 'Client Progress', description: 'Detailed progress analytics' },
       { path: '/assessments', component: () => <div>Form Assessments (Coming Soon)</div>, title: 'Form Assessments', description: 'YOLO AI form checking' },
       { path: '/videos', component: () => <div>Training Videos (Coming Soon)</div>, title: 'Training Videos', description: 'Video content library' },
@@ -359,7 +368,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
     routes: [
       { path: '/overview', component: () => <div>Galaxy Overview (Coming Soon)</div>, title: 'Overview', description: 'Your fitness journey hub' },
       { path: '/workouts', component: () => <div>My Workouts (Coming Soon)</div>, title: 'My Workouts', description: 'Assigned workout plans' },
-      { path: '/progress', component: () => <div>My Progress (Coming Soon)</div>, title: 'My Progress', description: 'Personal analytics dashboard' },
+      { path: '/progress', component: () => <NASMProgressCharts clientId={user?.id || 0} />, title: 'My Progress', description: 'NASM progress visualization dashboard' },
       { path: '/workout-forge', component: () => <div>AI Workout Forge (Coming Soon)</div>, title: 'AI Workout Forge', description: 'Self-serve workout generation' },
       { path: '/meal-planner', component: () => <div>AI Meal Planner (Coming Soon)</div>, title: 'AI Meal Planner', description: 'Culinary Codex interface' },
       { path: '/schedule', component: UniversalCalendar, title: 'Book My Session', description: 'Session booking interface' },

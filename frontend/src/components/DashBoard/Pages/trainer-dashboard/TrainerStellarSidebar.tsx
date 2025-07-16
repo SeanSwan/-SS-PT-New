@@ -333,6 +333,12 @@ const trainerNavigationConfig = [
         description: 'List of assigned clients with progress tracking'
       },
       { 
+        label: 'Log Client Workout', 
+        path: '/dashboard/trainer/log-workout', 
+        icon: ClipboardCheck,
+        description: 'NASM-compliant workout logging interface'
+      },
+      { 
         label: 'Client Progress', 
         path: '/trainer/client-progress', 
         icon: BarChart3,
@@ -341,7 +347,7 @@ const trainerNavigationConfig = [
       { 
         label: 'Form Assessments', 
         path: '/trainer/assessments', 
-        icon: ClipboardCheck,
+        icon: Target,
         description: 'YOLO AI form check interface and corrections'
       }
     ]
