@@ -419,6 +419,8 @@ router.post("/admin/create", protect, adminOnly, async (req, res) => {
  */
 router.post("/", protect, adminOnly, async (req, res) => {
   try {
+    const Session = getSession();
+    const User = getUser();
     const { sessionDate, notes, duration, location, trainerId, userId, status } = req.body;
 
     const newSession = await Session.create({
@@ -464,6 +466,8 @@ router.post("/", protect, adminOnly, async (req, res) => {
  */
 router.put("/:id", protect, adminOnly, async (req, res) => {
   try {
+    const Session = getSession();
+    const User = getUser();
     const { id } = req.params;
     const { sessionDate, notes, duration, location, trainerId, userId, status } = req.body;
 
@@ -516,6 +520,7 @@ router.put("/:id", protect, adminOnly, async (req, res) => {
  */
 router.get("/clients", protect, adminOnly, async (req, res) => {
   try {
+    const User = getUser();
     const clients = await User.findAll({
       where: {
         role: 'client'
@@ -537,6 +542,7 @@ router.get("/clients", protect, adminOnly, async (req, res) => {
  */
 router.get("/trainers", protect, adminOnly, async (req, res) => {
   try {
+    const User = getUser();
     const trainers = await User.findAll({
       where: {
         role: 'trainer'
@@ -558,6 +564,8 @@ router.get("/trainers", protect, adminOnly, async (req, res) => {
  */
 router.post("/book/:userId", protect, async (req, res) => {
   try {
+    const Session = getSession();
+    const User = getUser();
     const { userId } = req.params;
     const { sessionId } = req.body;
 
@@ -662,6 +670,8 @@ router.post("/book/:userId", protect, async (req, res) => {
  */
 router.put("/reschedule/:sessionId", protect, async (req, res) => {
   try {
+    const Session = getSession();
+    const User = getUser();
     const { sessionId } = req.params;
     const { newSessionDate } = req.body;
 
@@ -800,6 +810,8 @@ router.put("/reschedule/:sessionId", protect, async (req, res) => {
  */
 router.delete("/cancel/:sessionId", protect, async (req, res) => {
   try {
+    const Session = getSession();
+    const User = getUser();
     const { sessionId } = req.params;
     const { reason } = req.body;
     
@@ -901,6 +913,7 @@ router.delete("/cancel/:sessionId", protect, async (req, res) => {
  */
 router.get("/analytics", protect, async (req, res) => {
   try {
+    const Session = getSession();
     const userId = req.user.id;
     
     // Get all completed sessions for the user
@@ -1028,6 +1041,8 @@ router.get("/analytics", protect, async (req, res) => {
  */
 router.get("/available", async (req, res) => {
   try {
+    const Session = getSession();
+    const User = getUser();
     const availableSessions = await Session.findAll({
       where: { 
         status: "available",
@@ -1060,6 +1075,8 @@ router.get("/available", async (req, res) => {
  */
 router.get("/:userId", protect, async (req, res) => {
   try {
+    const Session = getSession();
+    const User = getUser();
     const { userId } = req.params;
     
     // Ensure users can only view their own sessions (unless admin)
@@ -1107,6 +1124,7 @@ router.get("/:userId", protect, async (req, res) => {
  */
 router.post("/available", protect, adminOnly, async (req, res) => {
   try {
+    const Session = getSession();
     const { slots } = req.body;
     
     if (!slots || !Array.isArray(slots) || slots.length === 0) {
@@ -1146,6 +1164,7 @@ router.post("/available", protect, adminOnly, async (req, res) => {
  */
 router.post("/recurring", protect, adminOnly, async (req, res) => {
   try {
+    const Session = getSession();
     const { 
       startDate, 
       endDate, 
@@ -1222,6 +1241,7 @@ router.post("/recurring", protect, adminOnly, async (req, res) => {
  */
 router.put("/notes/:sessionId", protect, async (req, res) => {
   try {
+    const Session = getSession();
     // Ensure only trainers and admins can add notes
     if (req.user.role !== "admin" && req.user.role !== "trainer") {
       return res.status(403).json({ message: "Not authorized to add notes" });
@@ -1251,6 +1271,7 @@ router.put("/notes/:sessionId", protect, async (req, res) => {
  */
 router.put("/complete/:sessionId", protect, async (req, res) => {
   try {
+    const Session = getSession();
     // Ensure only trainers and admins can mark sessions complete
     if (req.user.role !== "admin" && req.user.role !== "trainer") {
       return res.status(403).json({ message: "Not authorized to complete session" });
