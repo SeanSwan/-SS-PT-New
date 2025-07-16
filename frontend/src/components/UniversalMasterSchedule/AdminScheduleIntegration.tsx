@@ -1,1 +1,664 @@
-/**\n * Universal Master Schedule Integration Component\n * =============================================\n * Integration wrapper for the Universal Master Schedule in the admin dashboard\n * \n * This component provides seamless integration of the Universal Master Schedule\n * into the existing SwanStudios admin dashboard layout, maintaining consistency\n * with the stellar command center theme while providing full scheduling functionality.\n * \n * INTEGRATION FEATURES:\n * - Seamless integration with existing admin dashboard layout\n * - Maintains stellar command center theme consistency\n * - Role-based access control and permissions\n * - Real-time updates and notifications\n * - Mobile-responsive design\n * - Error handling and recovery\n * - Performance optimization\n */\n\nimport React, { useState, useEffect, useCallback, useMemo } from 'react';\nimport { motion, AnimatePresence } from 'framer-motion';\nimport styled, { ThemeProvider } from 'styled-components';\nimport { toast } from 'react-toastify';\n\n// Material-UI Components\nimport {\n  Box,\n  Paper,\n  Typography,\n  Breadcrumbs,\n  Link,\n  Alert,\n  Snackbar,\n  Backdrop,\n  CircularProgress,\n  Fab,\n  Badge,\n  Tooltip\n} from '@mui/material';\n\n// Icons\nimport {\n  Calendar as CalendarIcon,\n  Home,\n  Settings,\n  Refresh,\n  Maximize,\n  Minimize,\n  HelpCircle,\n  Bell,\n  Filter,\n  Download,\n  Upload,\n  User,\n  Users,\n  Activity,\n  TrendingUp,\n  AlertTriangle,\n  CheckCircle,\n  Info,\n  X\n} from 'lucide-react';\n\n// Context and Hooks\nimport { useAuth } from '../../context/AuthContext';\nimport { useNotifications } from '../../hooks/useNotifications';\nimport { usePermissions } from '../../hooks/usePermissions';\n\n// Components\nimport {\n  UniversalMasterSchedule,\n  stellarTheme,\n  CommandCenterTheme,\n  UniversalMasterScheduleProps,\n  PERMISSIONS,\n  ERROR_MESSAGES,\n  SUCCESS_MESSAGES\n} from './index';\nimport GlowButton from '../ui/buttons/GlowButton';\nimport { LoadingSpinner } from '../ui/LoadingSpinner';\nimport { ErrorBoundary } from '../ui/ErrorBoundary';\n\n// Types\ninterface AdminScheduleIntegrationProps {\n  fullscreen?: boolean;\n  onFullscreenToggle?: (isFullscreen: boolean) => void;\n  showHeader?: boolean;\n  showBreadcrumbs?: boolean;\n  customActions?: Array<{\n    label: string;\n    action: () => void;\n    icon?: React.ReactNode;\n    color?: string;\n  }>;\n}\n\n/**\n * Admin Schedule Integration Component\n * \n * Provides a fully integrated Universal Master Schedule experience\n * within the SwanStudios admin dashboard architecture.\n */\nconst AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({\n  fullscreen = false,\n  onFullscreenToggle,\n  showHeader = true,\n  showBreadcrumbs = true,\n  customActions = []\n}) => {\n  const { user } = useAuth();\n  const { notifications } = useNotifications();\n  const { hasPermission } = usePermissions();\n  \n  // Component State\n  const [isLoading, setIsLoading] = useState(true);\n  const [error, setError] = useState<string | null>(null);\n  const [isFullscreen, setIsFullscreen] = useState(fullscreen);\n  const [showNotifications, setShowNotifications] = useState(false);\n  const [sessionStats, setSessionStats] = useState({\n    totalSessions: 0,\n    availableSessions: 0,\n    bookedSessions: 0,\n    completedSessions: 0,\n    utilizationRate: 0\n  });\n  \n  // Notifications\n  const scheduleNotifications = useMemo(() => {\n    return notifications.filter(n => \n      n.type.includes('session_') || n.type.includes('assignment_')\n    );\n  }, [notifications]);\n  \n  const unreadNotifications = useMemo(() => {\n    return scheduleNotifications.filter(n => !n.read).length;\n  }, [scheduleNotifications]);\n  \n  // Permissions\n  const permissions = useMemo(() => {\n    return {\n      canViewAll: hasPermission(PERMISSIONS.VIEW_ALL_SESSIONS),\n      canCreate: hasPermission(PERMISSIONS.CREATE_SESSIONS),\n      canEdit: hasPermission(PERMISSIONS.EDIT_SESSIONS),\n      canDelete: hasPermission(PERMISSIONS.DELETE_SESSIONS),\n      canAssign: hasPermission(PERMISSIONS.ASSIGN_TRAINERS),\n      canBulkAction: hasPermission(PERMISSIONS.BULK_OPERATIONS),\n      canViewStats: hasPermission(PERMISSIONS.VIEW_STATISTICS),\n      canExport: hasPermission(PERMISSIONS.EXPORT_DATA),\n      canImport: hasPermission(PERMISSIONS.IMPORT_DATA)\n    };\n  }, [hasPermission]);\n  \n  // Universal Master Schedule Props\n  const scheduleProps: UniversalMasterScheduleProps = useMemo(() => {\n    return {\n      initialView: 'week',\n      initialDate: new Date(),\n      autoRefresh: true,\n      refreshInterval: 30000,\n      permissions: Object.keys(permissions).filter(key => permissions[key]),\n      onSessionSelect: (session) => {\n        console.log('Session selected:', session);\n      },\n      onSessionCreate: (session) => {\n        toast.success(SUCCESS_MESSAGES.SESSION_CREATED);\n        updateSessionStats();\n      },\n      onSessionUpdate: (session) => {\n        toast.success(SUCCESS_MESSAGES.SESSION_UPDATED);\n        updateSessionStats();\n      },\n      onSessionDelete: (sessionId) => {\n        toast.success(SUCCESS_MESSAGES.SESSION_DELETED);\n        updateSessionStats();\n      },\n      onError: (error) => {\n        setError(error);\n        toast.error(error);\n      },\n      theme: 'dark',\n      compactMode: false,\n      showStatistics: permissions.canViewStats,\n      showFilters: true,\n      showBulkActions: permissions.canBulkAction,\n      customActions: customActions.map(action => ({\n        ...action,\n        action: () => {\n          try {\n            action.action();\n          } catch (error) {\n            console.error('Custom action error:', error);\n            toast.error('Failed to execute action');\n          }\n        }\n      }))\n    };\n  }, [permissions, customActions]);\n  \n  // Event Handlers\n  const handleFullscreenToggle = useCallback(() => {\n    const newFullscreen = !isFullscreen;\n    setIsFullscreen(newFullscreen);\n    onFullscreenToggle?.(newFullscreen);\n  }, [isFullscreen, onFullscreenToggle]);\n  \n  const handleError = useCallback((error: string) => {\n    setError(error);\n    toast.error(error);\n  }, []);\n  \n  const handleRefresh = useCallback(() => {\n    setIsLoading(true);\n    setError(null);\n    // Trigger refresh in the Universal Master Schedule\n    setTimeout(() => {\n      setIsLoading(false);\n      toast.success('Schedule refreshed successfully');\n    }, 1000);\n  }, []);\n  \n  const updateSessionStats = useCallback(() => {\n    // This would be replaced with actual API call to get session statistics\n    // For now, it's a placeholder\n    console.log('Updating session statistics...');\n  }, []);\n  \n  // Initialize component\n  useEffect(() => {\n    const initializeComponent = async () => {\n      try {\n        setIsLoading(true);\n        \n        // Check permissions\n        if (!permissions.canViewAll) {\n          throw new Error('You do not have permission to view the schedule');\n        }\n        \n        // Load initial data\n        await updateSessionStats();\n        \n        setIsLoading(false);\n      } catch (error) {\n        console.error('Error initializing admin schedule:', error);\n        setError(error.message || ERROR_MESSAGES.UNKNOWN_ERROR);\n        setIsLoading(false);\n      }\n    };\n    \n    initializeComponent();\n  }, [permissions.canViewAll, updateSessionStats]);\n  \n  // Error Recovery\n  const handleRetry = useCallback(() => {\n    setError(null);\n    setIsLoading(true);\n    window.location.reload();\n  }, []);\n  \n  // Render error state\n  if (error && !isLoading) {\n    return (\n      <ErrorContainer>\n        <motion.div\n          initial={{ opacity: 0, y: 20 }}\n          animate={{ opacity: 1, y: 0 }}\n          transition={{ duration: 0.3 }}\n        >\n          <AlertTriangle size={48} color=\"#ef4444\" />\n          <Typography variant=\"h6\" sx={{ mt: 2, color: 'white' }}>\n            {error}\n          </Typography>\n          <GlowButton\n            text=\"Retry\"\n            theme=\"ruby\"\n            onClick={handleRetry}\n            leftIcon={<Refresh size={18} />}\n          />\n        </motion.div>\n      </ErrorContainer>\n    );\n  }\n  \n  // Render loading state\n  if (isLoading) {\n    return (\n      <LoadingContainer>\n        <motion.div\n          initial={{ opacity: 0 }}\n          animate={{ opacity: 1 }}\n          transition={{ duration: 0.3 }}\n        >\n          <LoadingSpinner size={48} />\n          <Typography variant=\"h6\" sx={{ mt: 2, color: 'white' }}>\n            Loading Universal Master Schedule...\n          </Typography>\n        </motion.div>\n      </LoadingContainer>\n    );\n  }\n  \n  return (\n    <ThemeProvider theme={stellarTheme}>\n      <ErrorBoundary>\n        <ScheduleContainer isFullscreen={isFullscreen}>\n          {/* Header Section */}\n          {showHeader && (\n            <ScheduleHeader>\n              <motion.div\n                initial={{ opacity: 0, y: -20 }}\n                animate={{ opacity: 1, y: 0 }}\n                transition={{ duration: 0.3 }}\n              >\n                {/* Breadcrumbs */}\n                {showBreadcrumbs && (\n                  <Breadcrumbs\n                    aria-label=\"breadcrumb\"\n                    sx={{ mb: 2, color: 'rgba(255, 255, 255, 0.7)' }}\n                  >\n                    <Link\n                      color=\"inherit\"\n                      href=\"/dashboard\"\n                      sx={{ display: 'flex', alignItems: 'center' }}\n                    >\n                      <Home size={16} style={{ marginRight: '4px' }} />\n                      Dashboard\n                    </Link>\n                    <Typography\n                      color=\"white\"\n                      sx={{ display: 'flex', alignItems: 'center' }}\n                    >\n                      <CalendarIcon size={16} style={{ marginRight: '4px' }} />\n                      Universal Master Schedule\n                    </Typography>\n                  </Breadcrumbs>\n                )}\n                \n                {/* Header Content */}\n                <HeaderContent>\n                  <HeaderTitle>\n                    <CalendarIcon size={28} />\n                    <Typography variant=\"h4\" component=\"h1\">\n                      Universal Master Schedule\n                    </Typography>\n                    <Badge badgeContent={sessionStats.availableSessions} color=\"primary\">\n                      <Typography variant=\"body2\" color=\"rgba(255, 255, 255, 0.7)\">\n                        {sessionStats.utilizationRate}% Utilization\n                      </Typography>\n                    </Badge>\n                  </HeaderTitle>\n                  \n                  <HeaderActions>\n                    {/* Notifications */}\n                    <Tooltip title=\"Schedule Notifications\">\n                      <IconButton\n                        onClick={() => setShowNotifications(!showNotifications)}\n                        sx={{ color: 'white' }}\n                      >\n                        <Badge badgeContent={unreadNotifications} color=\"error\">\n                          <Bell size={20} />\n                        </Badge>\n                      </IconButton>\n                    </Tooltip>\n                    \n                    {/* Refresh */}\n                    <GlowButton\n                      text=\"Refresh\"\n                      theme=\"cosmic\"\n                      size=\"small\"\n                      leftIcon={<Refresh size={16} />}\n                      onClick={handleRefresh}\n                      disabled={isLoading}\n                    />\n                    \n                    {/* Fullscreen Toggle */}\n                    {onFullscreenToggle && (\n                      <Tooltip title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}>\n                        <IconButton\n                          onClick={handleFullscreenToggle}\n                          sx={{ color: 'white' }}\n                        >\n                          {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}\n                        </IconButton>\n                      </Tooltip>\n                    )}\n                    \n                    {/* Settings */}\n                    <Tooltip title=\"Schedule Settings\">\n                      <IconButton sx={{ color: 'white' }}>\n                        <Settings size={20} />\n                      </IconButton>\n                    </Tooltip>\n                  </HeaderActions>\n                </HeaderContent>\n              </motion.div>\n            </ScheduleHeader>\n          )}\n          \n          {/* Main Schedule Content */}\n          <ScheduleContent>\n            <motion.div\n              initial={{ opacity: 0, y: 20 }}\n              animate={{ opacity: 1, y: 0 }}\n              transition={{ duration: 0.3, delay: 0.1 }}\n              style={{ height: '100%' }}\n            >\n              <UniversalMasterSchedule {...scheduleProps} />\n            </motion.div>\n          </ScheduleContent>\n          \n          {/* Notifications Panel */}\n          <AnimatePresence>\n            {showNotifications && (\n              <motion.div\n                initial={{ opacity: 0, x: 300 }}\n                animate={{ opacity: 1, x: 0 }}\n                exit={{ opacity: 0, x: 300 }}\n                transition={{ duration: 0.3 }}\n                style={{\n                  position: 'absolute',\n                  top: 0,\n                  right: 0,\n                  width: '320px',\n                  height: '100%',\n                  background: 'rgba(0, 0, 0, 0.9)',\n                  backdropFilter: 'blur(20px)',\n                  border: '1px solid rgba(255, 255, 255, 0.1)',\n                  borderRadius: '16px 0 0 16px',\n                  padding: '1rem',\n                  zIndex: 1000\n                }}\n              >\n                <NotificationPanel>\n                  <NotificationHeader>\n                    <Typography variant=\"h6\" color=\"white\">\n                      Schedule Notifications\n                    </Typography>\n                    <IconButton\n                      onClick={() => setShowNotifications(false)}\n                      sx={{ color: 'white' }}\n                    >\n                      <X size={20} />\n                    </IconButton>\n                  </NotificationHeader>\n                  \n                  <NotificationList>\n                    {scheduleNotifications.length > 0 ? (\n                      scheduleNotifications.map(notification => (\n                        <NotificationItem key={notification.id} read={notification.read}>\n                          <Typography variant=\"body2\" color=\"white\">\n                            {notification.title}\n                          </Typography>\n                          <Typography variant=\"caption\" color=\"rgba(255, 255, 255, 0.7)\">\n                            {notification.message}\n                          </Typography>\n                        </NotificationItem>\n                      ))\n                    ) : (\n                      <Typography variant=\"body2\" color=\"rgba(255, 255, 255, 0.7)\">\n                        No notifications\n                      </Typography>\n                    )}\n                  </NotificationList>\n                </NotificationPanel>\n              </motion.div>\n            )}\n          </AnimatePresence>\n          \n          {/* Error Snackbar */}\n          <Snackbar\n            open={!!error}\n            autoHideDuration={6000}\n            onClose={() => setError(null)}\n            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}\n          >\n            <Alert\n              onClose={() => setError(null)}\n              severity=\"error\"\n              sx={{ width: '100%' }}\n            >\n              {error}\n            </Alert>\n          </Snackbar>\n          \n          {/* Loading Backdrop */}\n          <Backdrop\n            sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}\n            open={isLoading}\n          >\n            <CircularProgress color=\"inherit\" />\n          </Backdrop>\n        </ScheduleContainer>\n      </ErrorBoundary>\n    </ThemeProvider>\n  );\n};\n\nexport default AdminScheduleIntegration;\n\n// ==================== STYLED COMPONENTS ====================\n\nconst ScheduleContainer = styled(motion.div)<{ isFullscreen: boolean }>`\n  width: 100%;\n  height: ${props => props.isFullscreen ? '100vh' : '100%'};\n  display: flex;\n  flex-direction: column;\n  background: linear-gradient(135deg, \n    rgba(10, 10, 15, 0.95) 0%, \n    rgba(30, 58, 138, 0.1) 50%, \n    rgba(14, 165, 233, 0.05) 100%\n  );\n  position: ${props => props.isFullscreen ? 'fixed' : 'relative'};\n  top: ${props => props.isFullscreen ? '0' : 'auto'};\n  left: ${props => props.isFullscreen ? '0' : 'auto'};\n  z-index: ${props => props.isFullscreen ? '9999' : 'auto'};\n  \n  &::before {\n    content: '';\n    position: absolute;\n    inset: 0;\n    background: radial-gradient(circle at 50% 50%, \n      rgba(59, 130, 246, 0.1) 0%, \n      transparent 70%\n    );\n    pointer-events: none;\n  }\n`;\n\nconst ScheduleHeader = styled.div`\n  padding: 1.5rem 2rem;\n  background: rgba(0, 0, 0, 0.3);\n  backdrop-filter: blur(20px);\n  border-bottom: 1px solid rgba(255, 255, 255, 0.1);\n  z-index: 10;\n  \n  @media (max-width: 768px) {\n    padding: 1rem;\n  }\n`;\n\nconst HeaderContent = styled.div`\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  \n  @media (max-width: 768px) {\n    flex-direction: column;\n    gap: 1rem;\n    align-items: flex-start;\n  }\n`;\n\nconst HeaderTitle = styled.div`\n  display: flex;\n  align-items: center;\n  gap: 1rem;\n  \n  h4 {\n    color: white;\n    font-weight: 300;\n    margin: 0;\n  }\n  \n  svg {\n    color: #3b82f6;\n  }\n  \n  @media (max-width: 768px) {\n    h4 {\n      font-size: 1.5rem;\n    }\n  }\n`;\n\nconst HeaderActions = styled.div`\n  display: flex;\n  align-items: center;\n  gap: 0.5rem;\n  \n  @media (max-width: 768px) {\n    width: 100%;\n    justify-content: space-between;\n  }\n`;\n\nconst IconButton = styled.button`\n  background: rgba(255, 255, 255, 0.1);\n  border: 1px solid rgba(255, 255, 255, 0.2);\n  border-radius: 8px;\n  padding: 0.5rem;\n  cursor: pointer;\n  transition: all 0.2s;\n  \n  &:hover {\n    background: rgba(255, 255, 255, 0.2);\n    border-color: rgba(255, 255, 255, 0.3);\n  }\n  \n  &:disabled {\n    opacity: 0.5;\n    cursor: not-allowed;\n  }\n`;\n\nconst ScheduleContent = styled.div`\n  flex: 1;\n  overflow: hidden;\n  display: flex;\n  flex-direction: column;\n`;\n\nconst NotificationPanel = styled.div`\n  height: 100%;\n  display: flex;\n  flex-direction: column;\n`;\n\nconst NotificationHeader = styled.div`\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  padding-bottom: 1rem;\n  border-bottom: 1px solid rgba(255, 255, 255, 0.1);\n  margin-bottom: 1rem;\n`;\n\nconst NotificationList = styled.div`\n  flex: 1;\n  overflow-y: auto;\n  display: flex;\n  flex-direction: column;\n  gap: 0.5rem;\n`;\n\nconst NotificationItem = styled.div<{ read: boolean }>`\n  padding: 0.75rem;\n  background: ${props => props.read ? 'rgba(255, 255, 255, 0.05)' : 'rgba(59, 130, 246, 0.1)'};\n  border: 1px solid ${props => props.read ? 'rgba(255, 255, 255, 0.1)' : 'rgba(59, 130, 246, 0.3)'};\n  border-radius: 8px;\n  cursor: pointer;\n  transition: all 0.2s;\n  \n  &:hover {\n    background: rgba(255, 255, 255, 0.1);\n  }\n`;\n\nconst LoadingContainer = styled.div`\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  height: 100%;\n  min-height: 400px;\n`;\n\nconst ErrorContainer = styled.div`\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  height: 100%;\n  min-height: 400px;\n  gap: 1rem;\n`;\n"
+/**
+ * Universal Master Schedule Integration Component
+ * =============================================
+ * Integration wrapper for the Universal Master Schedule in the admin dashboard
+ * 
+ * This component provides seamless integration of the Universal Master Schedule
+ * into the existing SwanStudios admin dashboard layout, maintaining consistency
+ * with the stellar command center theme while providing full scheduling functionality.
+ * 
+ * INTEGRATION FEATURES:
+ * - Seamless integration with existing admin dashboard layout
+ * - Maintains stellar command center theme consistency
+ * - Role-based access control and permissions
+ * - Real-time updates and notifications
+ * - Mobile-responsive design
+ * - Error handling and recovery
+ * - Performance optimization
+ */
+
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import styled, { ThemeProvider } from 'styled-components';
+import { toast } from 'react-toastify';
+
+// Material-UI Components
+import {
+  Box,
+  Paper,
+  Typography,
+  Breadcrumbs,
+  Link,
+  Alert,
+  Snackbar,
+  Backdrop,
+  CircularProgress,
+  Fab,
+  Badge,
+  Tooltip
+} from '@mui/material';
+
+// Icons
+import {
+  Calendar as CalendarIcon,
+  Home,
+  Settings,
+  Refresh,
+  Maximize,
+  Minimize,
+  HelpCircle,
+  Bell,
+  Filter,
+  Download,
+  Upload,
+  User,
+  Users,
+  Activity,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle,
+  Info,
+  X
+} from 'lucide-react';
+
+// Context and Hooks
+import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../hooks/useNotifications';
+import { usePermissions } from '../../hooks/usePermissions';
+
+// Components
+import {
+  UniversalMasterSchedule,
+  stellarTheme,
+  CommandCenterTheme,
+  UniversalMasterScheduleProps,
+  PERMISSIONS,
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES
+} from './index';
+import GlowButton from '../ui/buttons/GlowButton';
+import { LoadingSpinner } from '../ui/LoadingSpinner';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
+
+// Types
+interface AdminScheduleIntegrationProps {
+  fullscreen?: boolean;
+  onFullscreenToggle?: (isFullscreen: boolean) => void;
+  showHeader?: boolean;
+  showBreadcrumbs?: boolean;
+  customActions?: Array<{
+    label: string;
+    action: () => void;
+    icon?: React.ReactNode;
+    color?: string;
+  }>;
+}
+
+/**
+ * Admin Schedule Integration Component
+ * 
+ * Provides a fully integrated Universal Master Schedule experience
+ * within the SwanStudios admin dashboard architecture.
+ */
+const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
+  fullscreen = false,
+  onFullscreenToggle,
+  showHeader = true,
+  showBreadcrumbs = true,
+  customActions = []
+}) => {
+  const { user } = useAuth();
+  const { notifications } = useNotifications();
+  const { hasPermission } = usePermissions();
+  
+  // Component State
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(fullscreen);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [sessionStats, setSessionStats] = useState({
+    totalSessions: 0,
+    availableSessions: 0,
+    bookedSessions: 0,
+    completedSessions: 0,
+    utilizationRate: 0
+  });
+  
+  // Notifications
+  const scheduleNotifications = useMemo(() => {
+    return notifications.filter(n => 
+      n.type.includes('session_') || n.type.includes('assignment_')
+    );
+  }, [notifications]);
+  
+  const unreadNotifications = useMemo(() => {
+    return scheduleNotifications.filter(n => !n.read).length;
+  }, [scheduleNotifications]);
+  
+  // Permissions
+  const permissions = useMemo(() => {
+    return {
+      canViewAll: hasPermission(PERMISSIONS.VIEW_ALL_SESSIONS),
+      canCreate: hasPermission(PERMISSIONS.CREATE_SESSIONS),
+      canEdit: hasPermission(PERMISSIONS.EDIT_SESSIONS),
+      canDelete: hasPermission(PERMISSIONS.DELETE_SESSIONS),
+      canAssign: hasPermission(PERMISSIONS.ASSIGN_TRAINERS),
+      canBulkAction: hasPermission(PERMISSIONS.BULK_OPERATIONS),
+      canViewStats: hasPermission(PERMISSIONS.VIEW_STATISTICS),
+      canExport: hasPermission(PERMISSIONS.EXPORT_DATA),
+      canImport: hasPermission(PERMISSIONS.IMPORT_DATA)
+    };
+  }, [hasPermission]);
+  
+  // Universal Master Schedule Props
+  const scheduleProps: UniversalMasterScheduleProps = useMemo(() => {
+    return {
+      initialView: 'week',
+      initialDate: new Date(),
+      autoRefresh: true,
+      refreshInterval: 30000,
+      permissions: Object.keys(permissions).filter(key => permissions[key]),
+      onSessionSelect: (session) => {
+        console.log('Session selected:', session);
+      },
+      onSessionCreate: (session) => {
+        toast.success(SUCCESS_MESSAGES.SESSION_CREATED);
+        updateSessionStats();
+      },
+      onSessionUpdate: (session) => {
+        toast.success(SUCCESS_MESSAGES.SESSION_UPDATED);
+        updateSessionStats();
+      },
+      onSessionDelete: (sessionId) => {
+        toast.success(SUCCESS_MESSAGES.SESSION_DELETED);
+        updateSessionStats();
+      },
+      onError: (error) => {
+        setError(error);
+        toast.error(error);
+      },
+      theme: 'dark',
+      compactMode: false,
+      showStatistics: permissions.canViewStats,
+      showFilters: true,
+      showBulkActions: permissions.canBulkAction,
+      customActions: customActions.map(action => ({
+        ...action,
+        action: () => {
+          try {
+            action.action();
+          } catch (error) {
+            console.error('Custom action error:', error);
+            toast.error('Failed to execute action');
+          }
+        }
+      }))
+    };
+  }, [permissions, customActions]);
+  
+  // Event Handlers
+  const handleFullscreenToggle = useCallback(() => {
+    const newFullscreen = !isFullscreen;
+    setIsFullscreen(newFullscreen);
+    onFullscreenToggle?.(newFullscreen);
+  }, [isFullscreen, onFullscreenToggle]);
+  
+  const handleError = useCallback((error: string) => {
+    setError(error);
+    toast.error(error);
+  }, []);
+  
+  const handleRefresh = useCallback(() => {
+    setIsLoading(true);
+    setError(null);
+    // Trigger refresh in the Universal Master Schedule
+    setTimeout(() => {
+      setIsLoading(false);
+      toast.success('Schedule refreshed successfully');
+    }, 1000);
+  }, []);
+  
+  const updateSessionStats = useCallback(() => {
+    // This would be replaced with actual API call to get session statistics
+    // For now, it's a placeholder
+    console.log('Updating session statistics...');
+  }, []);
+  
+  // Initialize component
+  useEffect(() => {
+    const initializeComponent = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Check permissions
+        if (!permissions.canViewAll) {
+          throw new Error('You do not have permission to view the schedule');
+        }
+        
+        // Load initial data
+        await updateSessionStats();
+        
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error initializing admin schedule:', error);
+        setError(error.message || ERROR_MESSAGES.UNKNOWN_ERROR);
+        setIsLoading(false);
+      }
+    };
+    
+    initializeComponent();
+  }, [permissions.canViewAll, updateSessionStats]);
+  
+  // Error Recovery
+  const handleRetry = useCallback(() => {
+    setError(null);
+    setIsLoading(true);
+    window.location.reload();
+  }, []);
+  
+  // Render error state
+  if (error && !isLoading) {
+    return (
+      <ErrorContainer>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <AlertTriangle size={48} color="#ef4444" />
+          <Typography variant="h6" sx={{ mt: 2, color: 'white' }}>
+            {error}
+          </Typography>
+          <GlowButton
+            text="Retry"
+            theme="ruby"
+            onClick={handleRetry}
+            leftIcon={<Refresh size={18} />}
+          />
+        </motion.div>
+      </ErrorContainer>
+    );
+  }
+  
+  // Render loading state
+  if (isLoading) {
+    return (
+      <LoadingContainer>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <LoadingSpinner size={48} />
+          <Typography variant="h6" sx={{ mt: 2, color: 'white' }}>
+            Loading Universal Master Schedule...
+          </Typography>
+        </motion.div>
+      </LoadingContainer>
+    );
+  }
+  
+  return (
+    <ThemeProvider theme={stellarTheme}>
+      <ErrorBoundary>
+        <ScheduleContainer isFullscreen={isFullscreen}>
+          {/* Header Section */}
+          {showHeader && (
+            <ScheduleHeader>
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                {/* Breadcrumbs */}
+                {showBreadcrumbs && (
+                  <Breadcrumbs
+                    aria-label="breadcrumb"
+                    sx={{ mb: 2, color: 'rgba(255, 255, 255, 0.7)' }}
+                  >
+                    <Link
+                      color="inherit"
+                      href="/dashboard"
+                      sx={{ display: 'flex', alignItems: 'center' }}
+                    >
+                      <Home size={16} style={{ marginRight: '4px' }} />
+                      Dashboard
+                    </Link>
+                    <Typography
+                      color="white"
+                      sx={{ display: 'flex', alignItems: 'center' }}
+                    >
+                      <CalendarIcon size={16} style={{ marginRight: '4px' }} />
+                      Universal Master Schedule
+                    </Typography>
+                  </Breadcrumbs>
+                )}
+                
+                {/* Header Content */}
+                <HeaderContent>
+                  <HeaderTitle>
+                    <CalendarIcon size={28} />
+                    <Typography variant="h4" component="h1">
+                      Universal Master Schedule
+                    </Typography>
+                    <Badge badgeContent={sessionStats.availableSessions} color="primary">
+                      <Typography variant="body2" color="rgba(255, 255, 255, 0.7)">
+                        {sessionStats.utilizationRate}% Utilization
+                      </Typography>
+                    </Badge>
+                  </HeaderTitle>
+                  
+                  <HeaderActions>
+                    {/* Notifications */}
+                    <Tooltip title="Schedule Notifications">
+                      <IconButton
+                        onClick={() => setShowNotifications(!showNotifications)}
+                        sx={{ color: 'white' }}
+                      >
+                        <Badge badgeContent={unreadNotifications} color="error">
+                          <Bell size={20} />
+                        </Badge>
+                      </IconButton>
+                    </Tooltip>
+                    
+                    {/* Refresh */}
+                    <GlowButton
+                      text="Refresh"
+                      theme="cosmic"
+                      size="small"
+                      leftIcon={<Refresh size={16} />}
+                      onClick={handleRefresh}
+                      disabled={isLoading}
+                    />
+                    
+                    {/* Fullscreen Toggle */}
+                    {onFullscreenToggle && (
+                      <Tooltip title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}>
+                        <IconButton
+                          onClick={handleFullscreenToggle}
+                          sx={{ color: 'white' }}
+                        >
+                          {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    
+                    {/* Settings */}
+                    <Tooltip title="Schedule Settings">
+                      <IconButton sx={{ color: 'white' }}>
+                        <Settings size={20} />
+                      </IconButton>
+                    </Tooltip>
+                  </HeaderActions>
+                </HeaderContent>
+              </motion.div>
+            </ScheduleHeader>
+          )}
+          
+          {/* Main Schedule Content */}
+          <ScheduleContent>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+              style={{ height: '100%' }}
+            >
+              <UniversalMasterSchedule {...scheduleProps} />
+            </motion.div>
+          </ScheduleContent>
+          
+          {/* Notifications Panel */}
+          <AnimatePresence>
+            {showNotifications && (
+              <motion.div
+                initial={{ opacity: 0, x: 300 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 300 }}
+                transition={{ duration: 0.3 }}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  right: 0,
+                  width: '320px',
+                  height: '100%',
+                  background: 'rgba(0, 0, 0, 0.9)',
+                  backdropFilter: 'blur(20px)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '16px 0 0 16px',
+                  padding: '1rem',
+                  zIndex: 1000
+                }}
+              >
+                <NotificationPanel>
+                  <NotificationHeader>
+                    <Typography variant="h6" color="white">
+                      Schedule Notifications
+                    </Typography>
+                    <IconButton
+                      onClick={() => setShowNotifications(false)}
+                      sx={{ color: 'white' }}
+                    >
+                      <X size={20} />
+                    </IconButton>
+                  </NotificationHeader>
+                  
+                  <NotificationList>
+                    {scheduleNotifications.length > 0 ? (
+                      scheduleNotifications.map(notification => (
+                        <NotificationItem key={notification.id} read={notification.read}>
+                          <Typography variant="body2" color="white">
+                            {notification.title}
+                          </Typography>
+                          <Typography variant="caption" color="rgba(255, 255, 255, 0.7)">
+                            {notification.message}
+                          </Typography>
+                        </NotificationItem>
+                      ))
+                    ) : (
+                      <Typography variant="body2" color="rgba(255, 255, 255, 0.7)">
+                        No notifications
+                      </Typography>
+                    )}
+                  </NotificationList>
+                </NotificationPanel>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          {/* Error Snackbar */}
+          <Snackbar
+            open={!!error}
+            autoHideDuration={6000}
+            onClose={() => setError(null)}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+          >
+            <Alert
+              onClose={() => setError(null)}
+              severity="error"
+              sx={{ width: '100%' }}
+            >
+              {error}
+            </Alert>
+          </Snackbar>
+          
+          {/* Loading Backdrop */}
+          <Backdrop
+            sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+            open={isLoading}
+          >
+            <CircularProgress color="inherit" />
+          </Backdrop>
+        </ScheduleContainer>
+      </ErrorBoundary>
+    </ThemeProvider>
+  );
+};
+
+export default AdminScheduleIntegration;
+
+// ==================== STYLED COMPONENTS ====================
+
+const ScheduleContainer = styled(motion.div)<{ isFullscreen: boolean }>`
+  width: 100%;
+  height: ${props => props.isFullscreen ? '100vh' : '100%'};
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, 
+    rgba(10, 10, 15, 0.95) 0%, 
+    rgba(30, 58, 138, 0.1) 50%, 
+    rgba(14, 165, 233, 0.05) 100%
+  );
+  position: ${props => props.isFullscreen ? 'fixed' : 'relative'};
+  top: ${props => props.isFullscreen ? '0' : 'auto'};
+  left: ${props => props.isFullscreen ? '0' : 'auto'};
+  z-index: ${props => props.isFullscreen ? '9999' : 'auto'};
+  
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, 
+      rgba(59, 130, 246, 0.1) 0%, 
+      transparent 70%
+    );
+    pointer-events: none;
+  }
+`;
+
+const ScheduleHeader = styled.div`
+  padding: 1.5rem 2rem;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 10;
+  
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
+`;
+
+const HeaderContent = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+`;
+
+const HeaderTitle = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  
+  h4 {
+    color: white;
+    font-weight: 300;
+    margin: 0;
+  }
+  
+  svg {
+    color: #3b82f6;
+  }
+  
+  @media (max-width: 768px) {
+    h4 {
+      font-size: 1.5rem;
+    }
+  }
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: space-between;
+  }
+`;
+
+const IconButton = styled.button`
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const ScheduleContent = styled.div`
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+`;
+
+const NotificationPanel = styled.div`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+`;
+
+const NotificationHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 1rem;
+`;
+
+const NotificationList = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const NotificationItem = styled.div<{ read: boolean }>`
+  padding: 0.75rem;
+  background: ${props => props.read ? 'rgba(255, 255, 255, 0.05)' : 'rgba(59, 130, 246, 0.1)'};
+  border: 1px solid ${props => props.read ? 'rgba(255, 255, 255, 0.1)' : 'rgba(59, 130, 246, 0.3)'};
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 400px;
+`;
+
+const ErrorContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 400px;
+  gap: 1rem;
+`;
