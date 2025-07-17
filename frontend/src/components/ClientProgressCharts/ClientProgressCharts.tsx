@@ -43,7 +43,7 @@ import NASMCategoryRadar from './charts/NASMCategoryRadar';
 
 // Services and Hooks
 import { useAuth } from '../../context/AuthContext';
-import apiService from '../../services/api.service';
+import productionApiService from '../../services/api.service';
 
 // Types and Interfaces
 import { 
@@ -309,7 +309,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
       setError(null);
 
       // Fetch workout forms progress data (FIXED: Using correct backend endpoint)
-      const response = await apiService.get(`/api/workout-forms/client/${targetUserId}/progress`, {
+      const response = await productionApiService.get(`/api/workout-forms/client/${targetUserId}/progress`, {
         params: { timeRange }
       });
 
