@@ -16,9 +16,9 @@
  * - WCAG AA accessibility compliance
  * 
  * Backend Integration:
- * - /api/admin/trainers (GET, PUT, DELETE)
- * - /api/admin/trainer-stats (GET)
- * - /api/admin/certifications (GET, POST, PUT)
+ * - /api/auth/trainers (GET) - Get all trainers
+ * - /api/auth/user/:id (PUT) - Update trainer information
+ * - /api/auth/user/:id (DELETE) - Deactivate trainer
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -429,11 +429,37 @@ const TrainersManagementSection: React.FC = () => {
   const [specialtyFilter, setSpecialtyFilter] = useState('all');
   const [activeActionMenu, setActiveActionMenu] = useState<string | null>(null);
 
+  // Map backend trainer data to frontend format
+  const mapBackendTrainerData = (backendTrainers: any[]): Trainer[] => {
+    return backendTrainers.map(trainer => ({
+      id: trainer.id?.toString() || '',
+      name: `${trainer.firstName || ''} ${trainer.lastName || ''}`.trim(),
+      email: trainer.email || '',
+      phone: trainer.phone || '',
+      avatar: trainer.photo || '',
+      specialty: trainer.specialties ? trainer.specialties.split(',').map((s: string) => s.trim()) : [],
+      certifications: trainer.certifications ? trainer.certifications.split(',').map((c: string) => c.trim()) : [],
+      verified: true, // All trainers in the system are considered verified
+      status: 'active', // Default status
+      joinedAt: trainer.createdAt || new Date().toISOString(),
+      lastActive: trainer.lastLogin || trainer.createdAt || new Date().toISOString(),
+      stats: {
+        activeClients: 0, // Would need to be calculated from actual data
+        totalSessions: 0,
+        monthlyRevenue: 0,
+        rating: 0,
+        completedCertifications: trainer.certifications ? trainer.certifications.split(',').length : 0
+      },
+      location: '', // Not available in current backend
+      bio: trainer.bio || ''
+    }));
+  };
+
   // Fetch trainers from backend
   const fetchTrainers = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/trainers', {
+      const response = await fetch('/api/auth/trainers', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
@@ -442,8 +468,9 @@ const TrainersManagementSection: React.FC = () => {
       
       if (response.ok) {
         const data = await response.json();
-        setTrainers(data.trainers || []);
-        calculateStats(data.trainers || []);
+        const mappedTrainers = mapBackendTrainerData(data || []);
+        setTrainers(mappedTrainers);
+        calculateStats(mappedTrainers);
       } else {
         console.error('Failed to fetch trainers:', response.statusText);
         setMockData();
@@ -566,12 +593,16 @@ const TrainersManagementSection: React.FC = () => {
   // Handle trainer actions
   const handleVerifyTrainer = async (trainerId: string) => {
     try {
-      const response = await fetch(`/api/admin/trainers/${trainerId}/verify`, {
+      const response = await fetch(`/api/auth/user/${trainerId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          // Add verified field or update status - depends on your user model
+          // This would require backend support for a verified field
+        })
       });
       
       if (response.ok) {
@@ -596,8 +627,24 @@ const TrainersManagementSection: React.FC = () => {
   };
 
   const handleDeactivateTrainer = async (trainerId: string) => {
-    console.log('Deactivate trainer:', trainerId);
-    setActiveActionMenu(null);
+    try {
+      const response = await fetch(`/api/auth/user/${trainerId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        await fetchTrainers();
+        setActiveActionMenu(null);
+      } else {
+        console.error('Failed to deactivate trainer');
+      }
+    } catch (error) {
+      console.error('Error deactivating trainer:', error);
+    }
   };
 
   const getUserInitials = (name: string) => {
