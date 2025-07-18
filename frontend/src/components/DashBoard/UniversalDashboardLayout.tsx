@@ -61,6 +61,11 @@ import TrainerPermissionsManager from '../Admin/TrainerPermissionsManager';
 import WorkoutLogger from '../WorkoutLogger/WorkoutLogger';
 import NASMProgressCharts from '../Client/NASMProgressCharts';
 
+// Import Trainer Dashboard Components
+import MyClientsView from '../TrainerDashboard/ClientManagement';
+import EnhancedWorkoutLogger from '../TrainerDashboard/WorkoutLogging';
+import { EnhancedClientProgressView } from '../TrainerDashboard/ClientProgress';
+
 // Lazy load the UniversalCalendar (to be created next)
 const UniversalCalendar = React.lazy(() => Promise.resolve({ 
   default: () => <div>Universal Calendar Component (Coming Next)</div> 
@@ -353,9 +358,9 @@ const roleConfigurations: Record<string, RoleConfig> = {
   trainer: {
     routes: [
       { path: '/overview', component: () => <div>Trainer Overview (Coming Soon)</div>, title: 'Training Overview', description: 'Your coaching dashboard' },
-      { path: '/clients', component: () => <div>My Clients (Coming Soon)</div>, title: 'My Clients', description: 'Assigned client management' },
-      { path: '/log-workout', component: () => <WorkoutLogger clientId={0} onComplete={() => {}} onCancel={() => {}} />, title: 'Log Client Workout', description: 'NASM-compliant workout logging interface' },
-      { path: '/client-progress', component: () => <div>Client Progress (Coming Soon)</div>, title: 'Client Progress', description: 'Detailed progress analytics' },
+      { path: '/clients', component: MyClientsView, title: 'My Clients', description: 'Assigned client management' },
+      { path: '/log-workout', component: EnhancedWorkoutLogger, title: 'Log Client Workout', description: 'Enhanced NASM-compliant workout logging interface with client integration' },
+      { path: '/client-progress', component: EnhancedClientProgressView, title: 'Client Progress Analytics', description: 'Advanced client progress tracking with comparison analytics, injury risk assessment, and goal management' },
       { path: '/assessments', component: () => <div>Form Assessments (Coming Soon)</div>, title: 'Form Assessments', description: 'YOLO AI form checking' },
       { path: '/videos', component: () => <div>Training Videos (Coming Soon)</div>, title: 'Training Videos', description: 'Video content library' },
       { path: '/workout-forge', component: () => <div>AI Workout Forge (Coming Soon)</div>, title: 'AI Workout Forge', description: 'Olympian\'s Forge interface' },

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
   Box, 
   Typography, 
@@ -24,7 +25,17 @@ import {
   Tab,
   Avatar,
   Divider,
-  Tooltip
+  Tooltip,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Alert,
+  AlertTitle,
+  LinearProgress,
+  IconButton,
+  Badge,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import { 
   BarChart as BarChartIcon, 
@@ -41,7 +52,22 @@ import {
   Heart,
   Zap,
   Check,
-  X
+  X,
+  TrendingUp,
+  TrendingDown,
+  Target,
+  Calendar,
+  Clock,
+  AlertTriangle,
+  Bookmark,
+  ExpandMore,
+  CompareArrows,
+  Assessment,
+  Timeline,
+  FitnessCenter,
+  ShowChart,
+  Speed,
+  Warning
 } from 'lucide-react';
 
 // Import MCP hooks
@@ -102,49 +128,118 @@ function a11yProps(index: number) {
  */
 const ClientProgressView: React.FC = () => {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tabValue, setTabValue] = useState(0);
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(
+    searchParams.get('clientId') || null
+  );
   const [clients, setClients] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Get progress data for the selected client
+  // Enhanced state for advanced analytics
   const [clientProgress, setClientProgress] = useState<any>(null);
   const [clientGamification, setClientGamification] = useState<any>(null);
+  const [workoutHistory, setWorkoutHistory] = useState<any[]>([]);
+  const [progressComparison, setProgressComparison] = useState<any>(null);
+  const [injuryRiskAssessment, setInjuryRiskAssessment] = useState<any>(null);
+  const [goalTracking, setGoalTracking] = useState<any[]>([]);
   
-  // Load all clients
+  // Analytics view options
+  const [showComparison, setShowComparison] = useState(false);
+  const [dateRange, setDateRange] = useState('3months');
+  const [analyticsMode, setAnalyticsMode] = useState<'basic' | 'advanced'>('basic');
+  const [selectedMetrics, setSelectedMetrics] = useState<string[]>(['strength', 'cardio', 'flexibility']);
+  
+  // Enhanced mock data generator
+  const generateEnhancedMockData = useMemo(() => {
+    return {
+      clients: [
+        { 
+          id: '1', 
+          firstName: 'John', 
+          lastName: 'Doe', 
+          username: 'johndoe', 
+          photo: undefined,
+          startDate: '2024-01-15',
+          totalSessions: 45,
+          completedSessions: 38,
+          riskLevel: 'low',
+          primaryGoals: ['Weight Loss', 'Strength Building']
+        },
+        { 
+          id: '2', 
+          firstName: 'Jane', 
+          lastName: 'Smith', 
+          username: 'janesmith', 
+          photo: undefined,
+          startDate: '2024-02-20',
+          totalSessions: 32,
+          completedSessions: 29,
+          riskLevel: 'medium',
+          primaryGoals: ['Endurance', 'Flexibility']
+        },
+        { 
+          id: '3', 
+          firstName: 'Bob', 
+          lastName: 'Johnson', 
+          username: 'bjohnson', 
+          photo: undefined,
+          startDate: '2024-03-10',
+          totalSessions: 28,
+          completedSessions: 24,
+          riskLevel: 'low',
+          primaryGoals: ['Muscle Building', 'Performance']
+        },
+        { 
+          id: '4', 
+          firstName: 'Alice', 
+          lastName: 'Williams', 
+          username: 'awilliams', 
+          photo: undefined,
+          startDate: '2024-04-05',
+          totalSessions: 15,
+          completedSessions: 12,
+          riskLevel: 'high',
+          primaryGoals: ['Rehabilitation', 'Core Strength']
+        },
+      ]
+    };
+  }, []);
+  
+  // Load all clients with enhanced data
   useEffect(() => {
-    // In a real implementation, this would fetch clients from an API
-    // For now, we'll use mock data
-    const mockClients = [
-      { id: '1', firstName: 'John', lastName: 'Doe', username: 'johndoe', photo: undefined },
-      { id: '2', firstName: 'Jane', lastName: 'Smith', username: 'janesmith', photo: undefined },
-      { id: '3', firstName: 'Bob', lastName: 'Johnson', username: 'bjohnson', photo: undefined },
-      { id: '4', firstName: 'Alice', lastName: 'Williams', username: 'awilliams', photo: undefined },
-    ];
+    setClients(generateEnhancedMockData.clients);
     
-    setClients(mockClients);
-    
-    // Select first client by default
-    if (mockClients.length > 0 && !selectedClientId) {
-      setSelectedClientId(mockClients[0].id);
+    // Handle URL parameter for client selection
+    const urlClientId = searchParams.get('clientId');
+    if (urlClientId && generateEnhancedMockData.clients.find(c => c.id === urlClientId)) {
+      setSelectedClientId(urlClientId);
+    } else if (generateEnhancedMockData.clients.length > 0 && !selectedClientId) {
+      setSelectedClientId(generateEnhancedMockData.clients[0].id);
     }
     
     setLoading(false);
-  }, []);
+  }, [generateEnhancedMockData, searchParams, selectedClientId]);
   
-  // Load client progress data when a client is selected
+  // Update URL when client selection changes
   useEffect(() => {
-    if (!selectedClientId) return;
+    if (selectedClientId) {
+      setSearchParams({ clientId: selectedClientId });
+    }
+  }, [selectedClientId, setSearchParams]);
+  
+  // Enhanced mock data generation for selected client
+  const generateClientProgressData = useMemo(() => {
+    if (!selectedClientId) return null;
     
-    setLoading(true);
+    const selectedClient = generateEnhancedMockData.clients.find(c => c.id === selectedClientId);
+    if (!selectedClient) return null;
     
-    // In a real implementation, this would use the MCP hooks to fetch data
-    // For now, we'll set mock data after a delay
-    setTimeout(() => {
-      // Clone the mock data from the workoutMcpService.ts file
-      const mockProgressData = {
+    // Generate enhanced mock progress data based on client profile
+    const baseProgress = {
+      clientInfo: selectedClient,
         lastUpdated: new Date().toISOString(),
         bodyStats: {
           weight: {

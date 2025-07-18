@@ -84,7 +84,7 @@ import {
   CheckCircle,
   AlertCircle,
   Info,
-  Refresh,
+  RefreshCw, // Fixed import - was causing build error
   Download,
   Upload,
   Eye,
@@ -520,7 +520,7 @@ const UniversalMasterSchedule: React.FC = () => {
           text="Retry"
           theme="ruby"
           onClick={fetchData}
-          leftIcon={<Refresh size={18} />}
+          leftIcon={<RefreshCw size={18} />}
         />
       </ErrorContainer>
     );
@@ -565,7 +565,7 @@ const UniversalMasterSchedule: React.FC = () => {
                   text="Refresh"
                   theme="purple"
                   size="small"
-                  leftIcon={<Refresh size={16} />}
+                  leftIcon={<RefreshCw size={16} />}
                   onClick={fetchData}
                 />
               </HeaderActions>
