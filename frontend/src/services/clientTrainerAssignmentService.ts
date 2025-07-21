@@ -16,7 +16,7 @@
  * - Audit trail and assignment history
  */
 
-import { ApiService } from './api.service';
+import apiService from './api.service';
 import {
   ClientTrainerAssignment,
   AssignmentRequest,
@@ -31,10 +31,10 @@ import {
  * Client-Trainer Assignment Service Class
  */
 class ClientTrainerAssignmentService {
-  private apiService: ApiService;
+  private apiService: typeof apiService;
   
   constructor() {
-    this.apiService = new ApiService();
+    this.apiService = apiService;
   }
   
   // ==================== ASSIGNMENT CRUD OPERATIONS ====================
