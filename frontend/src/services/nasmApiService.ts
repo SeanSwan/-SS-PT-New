@@ -16,7 +16,7 @@
  * Designed for SwanStudios Platform - Production Ready
  */
 
-import { ApiService } from './api.service';
+import apiService from './api.service';
 
 // ==================== TYPE DEFINITIONS ====================
 
@@ -182,10 +182,10 @@ export interface ApiResponse<T> {
 // ==================== CLIENT-TRAINER ASSIGNMENTS ====================
 
 export class ClientTrainerAssignmentService {
-  private api: ApiService;
+  private api: typeof apiService;
 
   constructor() {
-    this.api = new ApiService();
+    this.api = apiService;
   }
 
   /**
@@ -346,10 +346,10 @@ export class ClientTrainerAssignmentService {
 // ==================== TRAINER PERMISSIONS ====================
 
 export class TrainerPermissionService {
-  private api: ApiService;
+  private api: typeof apiService;
 
   constructor() {
-    this.api = new ApiService();
+    this.api = apiService;
   }
 
   /**
@@ -523,10 +523,10 @@ export class TrainerPermissionService {
 // ==================== DAILY WORKOUT FORMS ====================
 
 export class DailyWorkoutFormService {
-  private api: ApiService;
+  private api: typeof apiService;
 
   constructor() {
-    this.api = new ApiService();
+    this.api = apiService;
   }
 
   /**
