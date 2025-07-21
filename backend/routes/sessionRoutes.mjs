@@ -1299,4 +1299,667 @@ router.put("/complete/:sessionId", protect, async (req, res) => {
   }
 });
 
+// ==================== UNIVERSAL MASTER SCHEDULE ENHANCEMENTS ====================
+// Enhanced endpoints for production-ready Universal Master Schedule
+
+/**
+ * @route   POST /api/sessions/bulk-update
+ * @desc    Update multiple sessions (Admin only) - For drag-and-drop operations
+ * @access  Private (Admin Only)
+ */
+router.post("/bulk-update", protect, adminOnly, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const { updates } = req.body;
+    
+    if (!updates || !Array.isArray(updates) || updates.length === 0) {
+      return res.status(400).json({ 
+        success: false,
+        message: "No valid updates provided" 
+      });
+    }
+    
+    const updatedSessions = [];
+    const errors = [];
+    
+    // Process each update
+    for (const update of updates) {
+      try {
+        const { id, ...updateData } = update;
+        
+        const session = await Session.findByPk(id);
+        if (!session) {
+          errors.push({ id, error: "Session not found" });
+          continue;
+        }
+        
+        // Update session fields
+        Object.keys(updateData).forEach(key => {
+          if (updateData[key] !== undefined) {
+            session[key] = updateData[key];
+          }
+        });
+        
+        await session.save();
+        
+        // Fetch updated session with relations
+        const updatedSession = await Session.findByPk(id, {
+          include: [
+            {
+              model: User,
+              as: 'client',
+              attributes: ['id', 'firstName', 'lastName', 'email', 'photo']
+            },
+            {
+              model: User,
+              as: 'trainer',
+              attributes: ['id', 'firstName', 'lastName', 'email', 'photo']
+            }
+          ]
+        });
+        
+        updatedSessions.push(updatedSession);
+        
+      } catch (updateError) {
+        console.error(`Error updating session ${update.id}:`, updateError);
+        errors.push({ id: update.id, error: updateError.message });
+      }
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: `Updated ${updatedSessions.length} sessions successfully`,
+      data: {
+        updated: updatedSessions,
+        errors: errors
+      }
+    });
+    
+  } catch (error) {
+    console.error("Error in bulk update:", error.message);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error during bulk update" 
+    });
+  }
+});
+
+/**
+ * @route   POST /api/sessions/bulk-assign-trainer
+ * @desc    Assign trainer to multiple sessions (Admin only)
+ * @access  Private (Admin Only)
+ */
+router.post("/bulk-assign-trainer", protect, adminOnly, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const { sessionIds, trainerId, assignedBy } = req.body;
+    
+    if (!sessionIds || !Array.isArray(sessionIds) || sessionIds.length === 0) {
+      return res.status(400).json({ 
+        success: false,
+        message: "No session IDs provided" 
+      });
+    }
+    
+    if (!trainerId) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Trainer ID is required" 
+      });
+    }
+    
+    // Verify trainer exists
+    const trainer = await User.findOne({
+      where: { id: trainerId, role: 'trainer' }
+    });
+    
+    if (!trainer) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Invalid trainer ID" 
+      });
+    }
+    
+    // Update sessions
+    const [updatedCount] = await Session.update(
+      { 
+        trainerId: trainerId,
+        assignedBy: assignedBy || req.user.id,
+        assignedAt: new Date()
+      },
+      { 
+        where: { 
+          id: { [Op.in]: sessionIds }
+        }
+      }
+    );
+    
+    // Fetch updated sessions with relations
+    const updatedSessions = await Session.findAll({
+      where: { id: { [Op.in]: sessionIds } },
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'photo']
+        },
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'photo']
+        }
+      ]
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: `Assigned trainer to ${updatedCount} sessions`,
+      data: {
+        updatedSessions,
+        trainer: {
+          id: trainer.id,
+          firstName: trainer.firstName,
+          lastName: trainer.lastName
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error("Error in bulk trainer assignment:", error.message);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error during bulk trainer assignment" 
+    });
+  }
+});
+
+/**
+ * @route   POST /api/sessions/bulk-delete
+ * @desc    Delete multiple sessions (Admin only)
+ * @access  Private (Admin Only)
+ */
+router.post("/bulk-delete", protect, adminOnly, async (req, res) => {
+  try {
+    const Session = getSession();
+    const { sessionIds } = req.body;
+    
+    if (!sessionIds || !Array.isArray(sessionIds) || sessionIds.length === 0) {
+      return res.status(400).json({ 
+        success: false,
+        message: "No session IDs provided" 
+      });
+    }
+    
+    // Check for booked sessions that shouldn't be deleted
+    const bookedSessions = await Session.findAll({
+      where: {
+        id: { [Op.in]: sessionIds },
+        status: { [Op.in]: ['scheduled', 'confirmed', 'completed'] },
+        userId: { [Op.not]: null }
+      }
+    });
+    
+    if (bookedSessions.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete ${bookedSessions.length} sessions that are booked or completed`,
+        data: {
+          bookedSessionIds: bookedSessions.map(s => s.id)
+        }
+      });
+    }
+    
+    // Delete sessions (soft delete if paranoid is enabled)
+    const deletedCount = await Session.destroy({
+      where: { id: { [Op.in]: sessionIds } }
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: `Deleted ${deletedCount} sessions successfully`,
+      data: {
+        deletedCount,
+        deletedIds: sessionIds
+      }
+    });
+    
+  } catch (error) {
+    console.error("Error in bulk delete:", error.message);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error during bulk delete" 
+    });
+  }
+});
+
+/**
+ * @route   GET /api/sessions/statistics
+ * @desc    Get comprehensive session statistics for dashboard analytics
+ * @access  Private (Admin Only)
+ */
+router.get("/statistics", protect, adminOnly, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const { startDate, endDate, trainerId } = req.query;
+    
+    // Build date filter
+    const dateFilter = {};
+    if (startDate && endDate) {
+      dateFilter.sessionDate = {
+        [Op.between]: [new Date(startDate), new Date(endDate)]
+      };
+    } else {
+      // Default to last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      dateFilter.sessionDate = {
+        [Op.gte]: thirtyDaysAgo
+      };
+    }
+    
+    // Add trainer filter if provided
+    if (trainerId) {
+      dateFilter.trainerId = trainerId;
+    }
+    
+    // Get session counts by status
+    const sessionCounts = await Session.findAll({
+      where: dateFilter,
+      attributes: [
+        'status',
+        [Session.sequelize.fn('COUNT', Session.sequelize.col('id')), 'count']
+      ],
+      group: ['status']
+    });
+    
+    // Get total sessions and utilization
+    const totalSessions = await Session.count({ where: dateFilter });
+    const bookedSessions = await Session.count({ 
+      where: { 
+        ...dateFilter, 
+        status: { [Op.in]: ['scheduled', 'confirmed', 'completed'] }
+      }
+    });
+    
+    const utilizationRate = totalSessions > 0 ? Math.round((bookedSessions / totalSessions) * 100) : 0;
+    
+    // Get trainer statistics
+    const trainerStats = await Session.findAll({
+      where: {
+        ...dateFilter,
+        trainerId: { [Op.not]: null }
+      },
+      attributes: [
+        'trainerId',
+        [Session.sequelize.fn('COUNT', Session.sequelize.col('Session.id')), 'sessionCount']
+      ],
+      include: [
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName']
+        }
+      ],
+      group: ['trainerId', 'trainer.id'],
+      order: [[Session.sequelize.literal('sessionCount'), 'DESC']]
+    });
+    
+    // Get upcoming sessions count
+    const upcomingSessions = await Session.count({
+      where: {
+        sessionDate: { [Op.gt]: new Date() },
+        status: { [Op.in]: ['available', 'scheduled', 'confirmed'] }
+      }
+    });
+    
+    // Get revenue potential (if sessions had pricing)
+    const avgSessionPrice = 75; // This could come from a settings table
+    const potentialRevenue = bookedSessions * avgSessionPrice;
+    
+    // Calculate the actual start date for response
+    const actualStartDate = startDate || (() => {
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      return thirtyDaysAgo.toISOString();
+    })();
+    
+    const statistics = {
+      overview: {
+        totalSessions,
+        bookedSessions,
+        availableSessions: totalSessions - bookedSessions,
+        utilizationRate,
+        upcomingSessions,
+        potentialRevenue
+      },
+      sessionsByStatus: sessionCounts.reduce((acc, item) => {
+        acc[item.dataValues.status] = parseInt(item.dataValues.count);
+        return acc;
+      }, {}),
+      topTrainers: trainerStats.map(stat => ({
+        trainer: stat.trainer,
+        sessionCount: parseInt(stat.dataValues.sessionCount)
+      })),
+      dateRange: {
+        startDate: actualStartDate,
+        endDate: endDate || new Date().toISOString()
+      }
+    };
+    
+    res.status(200).json({
+      success: true,
+      data: statistics
+    });
+    
+  } catch (error) {
+    console.error("Error fetching session statistics:", error.message);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error fetching statistics" 
+    });
+  }
+});
+
+/**
+ * @route   GET /api/sessions/calendar-events
+ * @desc    Get sessions formatted for calendar display
+ * @access  Private (Admin/Trainer)
+ */
+router.get("/calendar-events", protect, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const { start, end, trainerId, clientId, view } = req.query;
+    
+    if (!start || !end) {
+      return res.status(400).json({
+        success: false,
+        message: "Start and end dates are required"
+      });
+    }
+    
+    // Build filter
+    const filter = {
+      sessionDate: {
+        [Op.between]: [new Date(start), new Date(end)]
+      }
+    };
+    
+    // Role-based filtering
+    if (req.user.role === 'trainer') {
+      filter.trainerId = req.user.id;
+    } else if (req.user.role === 'client') {
+      filter[Op.or] = [
+        { userId: req.user.id },
+        { status: 'available' }
+      ];
+    }
+    
+    // Additional filters
+    if (trainerId && req.user.role === 'admin') {
+      filter.trainerId = trainerId;
+    }
+    
+    if (clientId && (req.user.role === 'admin' || req.user.role === 'trainer')) {
+      filter.userId = clientId;
+    }
+    
+    const sessions = await Session.findAll({
+      where: filter,
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'photo']
+        },
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'photo']
+        }
+      ],
+      order: [['sessionDate', 'ASC']]
+    });
+    
+    // Format sessions for calendar display
+    const calendarEvents = sessions.map(session => {
+      const startTime = new Date(session.sessionDate);
+      const endTime = new Date(startTime.getTime() + (session.duration * 60 * 1000));
+      
+      let title = 'Available Session';
+      let backgroundColor = '#3b82f6'; // Blue for available
+      
+      if (session.status === 'scheduled' || session.status === 'confirmed') {
+        const clientName = session.client ? 
+          `${session.client.firstName} ${session.client.lastName}` : 'Unknown Client';
+        title = `Session - ${clientName}`;
+        backgroundColor = '#10b981'; // Green for booked
+      } else if (session.status === 'completed') {
+        const clientName = session.client ? 
+          `${session.client.firstName} ${session.client.lastName}` : 'Unknown Client';
+        title = `Completed - ${clientName}`;
+        backgroundColor = '#6b7280'; // Gray for completed
+      } else if (session.status === 'cancelled') {
+        title = 'Cancelled Session';
+        backgroundColor = '#ef4444'; // Red for cancelled
+      }
+      
+      return {
+        id: session.id,
+        title,
+        start: startTime.toISOString(),
+        end: endTime.toISOString(),
+        backgroundColor,
+        borderColor: backgroundColor,
+        allDay: false,
+        extendedProps: {
+          sessionId: session.id,
+          status: session.status,
+          duration: session.duration,
+          location: session.location,
+          notes: session.notes,
+          client: session.client,
+          trainer: session.trainer,
+          userId: session.userId,
+          trainerId: session.trainerId
+        }
+      };
+    });
+    
+    res.status(200).json({
+      success: true,
+      data: calendarEvents
+    });
+    
+  } catch (error) {
+    console.error("Error fetching calendar events:", error.message);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error fetching calendar events" 
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/sessions/drag-drop/:id
+ * @desc    Optimized endpoint for drag-and-drop session updates
+ * @access  Private (Admin Only)
+ */
+router.put("/drag-drop/:id", protect, adminOnly, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const { id } = req.params;
+    const { sessionDate, duration, trainerId, userId } = req.body;
+    
+    const session = await Session.findByPk(id);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found"
+      });
+    }
+    
+    // Update only the fields that can be changed via drag-and-drop
+    if (sessionDate) {
+      session.sessionDate = new Date(sessionDate);
+    }
+    
+    if (duration) {
+      session.duration = duration;
+    }
+    
+    if (trainerId !== undefined) {
+      session.trainerId = trainerId;
+      if (trainerId) {
+        session.assignedBy = req.user.id;
+        session.assignedAt = new Date();
+      }
+    }
+    
+    if (userId !== undefined) {
+      session.userId = userId;
+      // Update status based on assignment
+      if (userId && session.status === 'available') {
+        session.status = 'scheduled';
+      } else if (!userId && session.status === 'scheduled') {
+        session.status = 'available';
+      }
+    }
+    
+    await session.save();
+    
+    // Fetch updated session with relations for response
+    const updatedSession = await Session.findByPk(id, {
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'photo']
+        },
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'photo']
+        }
+      ]
+    });
+    
+    res.status(200).json({
+      success: true,
+      message: "Session updated successfully",
+      data: updatedSession
+    });
+    
+  } catch (error) {
+    console.error("Error in drag-drop update:", error.message);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error updating session" 
+    });
+  }
+});
+
+/**
+ * @route   GET /api/sessions/utilization-stats
+ * @desc    Get detailed utilization statistics by time period
+ * @access  Private (Admin Only)
+ */
+router.get("/utilization-stats", protect, adminOnly, async (req, res) => {
+  try {
+    const Session = getSession();
+    const { period = 'week', trainerId } = req.query;
+    
+    let periodStart, periodEnd, groupBy;
+    
+    // Define period and grouping
+    switch (period) {
+      case 'day':
+        periodStart = new Date();
+        periodStart.setHours(0, 0, 0, 0);
+        periodEnd = new Date();
+        periodEnd.setHours(23, 59, 59, 999);
+        groupBy = Session.sequelize.fn('DATE_FORMAT', Session.sequelize.col('sessionDate'), '%H');
+        break;
+      case 'week':
+        periodStart = new Date();
+        periodStart.setDate(periodStart.getDate() - 7);
+        periodEnd = new Date();
+        groupBy = Session.sequelize.fn('DATE_FORMAT', Session.sequelize.col('sessionDate'), '%Y-%m-%d');
+        break;
+      case 'month':
+        periodStart = new Date();
+        periodStart.setDate(periodStart.getDate() - 30);
+        periodEnd = new Date();
+        groupBy = Session.sequelize.fn('DATE_FORMAT', Session.sequelize.col('sessionDate'), '%Y-%m-%d');
+        break;
+      default:
+        periodStart = new Date();
+        periodStart.setDate(periodStart.getDate() - 7);
+        periodEnd = new Date();
+        groupBy = Session.sequelize.fn('DATE_FORMAT', Session.sequelize.col('sessionDate'), '%Y-%m-%d');
+    }
+    
+    const filter = {
+      sessionDate: {
+        [Op.between]: [periodStart, periodEnd]
+      }
+    };
+    
+    if (trainerId) {
+      filter.trainerId = trainerId;
+    }
+    
+    const utilizationData = await Session.findAll({
+      where: filter,
+      attributes: [
+        [groupBy, 'period'],
+        'status',
+        [Session.sequelize.fn('COUNT', Session.sequelize.col('id')), 'count']
+      ],
+      group: [groupBy, 'status'],
+      order: [[Session.sequelize.literal('period'), 'ASC']]
+    });
+    
+    // Transform data for chart display
+    const chartData = {};
+    utilizationData.forEach(item => {
+      const period = item.dataValues.period;
+      const status = item.dataValues.status;
+      const count = parseInt(item.dataValues.count);
+      
+      if (!chartData[period]) {
+        chartData[period] = { period };
+      }
+      
+      chartData[period][status] = count;
+    });
+    
+    const formattedData = Object.values(chartData);
+    
+    res.status(200).json({
+      success: true,
+      data: {
+        utilizationData: formattedData,
+        period,
+        dateRange: {
+          start: periodStart.toISOString(),
+          end: periodEnd.toISOString()
+        }
+      }
+    });
+    
+  } catch (error) {
+    console.error("Error fetching utilization stats:", error.message);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error fetching utilization statistics" 
+    });
+  }
+});
+
+
 export default router;
