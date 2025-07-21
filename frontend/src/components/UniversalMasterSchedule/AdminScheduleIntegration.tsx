@@ -43,7 +43,7 @@ import {
   Calendar as CalendarIcon,
   Home,
   Settings,
-  Refresh,
+  RefreshCw,
   Maximize,
   Minimize,
   HelpCircle,
@@ -274,7 +274,7 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
             text="Retry"
             theme="ruby"
             onClick={handleRetry}
-            leftIcon={<Refresh size={18} />}
+            leftIcon={<RefreshCw size={18} />}
           />
         </motion.div>
       </ErrorContainer>
@@ -367,7 +367,7 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
                       text="Refresh"
                       theme="cosmic"
                       size="small"
-                      leftIcon={<Refresh size={16} />}
+                      leftIcon={<RefreshCw size={16} />}
                       onClick={handleRefresh}
                       disabled={isLoading}
                     />
