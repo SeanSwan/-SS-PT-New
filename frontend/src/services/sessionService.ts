@@ -17,7 +17,7 @@
  * - Session history and audit trail
  */
 
-import { ApiService } from './api.service';
+import apiService from './api.service';
 import {
   Session,
   SessionRequest,
@@ -35,10 +35,10 @@ import {
  * Enhanced Session Service Class
  */
 class SessionService {
-  private apiService: ApiService;
+  private apiService: typeof apiService;
   
   constructor() {
-    this.apiService = new ApiService();
+    this.apiService = apiService;
   }
   
   // ==================== SESSION CRUD OPERATIONS ====================
