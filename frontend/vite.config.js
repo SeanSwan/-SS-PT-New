@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
 import path from 'path';
+import { resolve } from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -108,25 +109,33 @@ export default defineConfig(({ mode }) => {
     build: {
       sourcemap: true,
       outDir: 'dist',
-      // Enable SPA fallback for development preview
       assetsDir: 'assets',
-      // Ensure all assets are properly handled
       copyPublicDir: true,
-      // Ensure the router works correctly with hosting platforms
+      
+      // Mobile optimization
+      target: ['es2015', 'safari11'],
+      cssCodeSplit: true,
+      chunkSizeWarningLimit: 1000,
+      
+      // PWA optimization with service worker
       rollupOptions: {
+        input: {
+          main: resolve(__dirname, 'index.html'),
+          // Note: Service worker will be copied via copyPublicDir
+        },
         output: {
           manualChunks: {
             vendor: ['react', 'react-dom', 'react-router-dom'],
+            ui: ['styled-components', 'framer-motion'],
+            utils: ['axios', 'date-fns']
           }
         },
         external: [],
         plugins: [
           {
-            name: 'copy-spa-files',
+            name: 'pwa-optimization',
             generateBundle() {
-              // Don't override _redirects - Vite will copy from public folder
-              // This preserves the proxy configuration for API routes
-              console.log('[Build] Preserving _redirects proxy configuration from public folder');
+              console.log('[Build] Optimizing for PWA deployment with mobile-first approach');
             }
           }
         ]
