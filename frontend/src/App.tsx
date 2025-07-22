@@ -26,6 +26,9 @@ import { ConnectionStatusBanner, useBackendConnection } from './hooks/useBackend
 import { DevToolsProvider } from './components/DevTools';
 import ThemeStatusIndicator from './components/ThemeStatusIndicator';
 
+// PWA Components
+import { TouchGestureProvider, PWAInstallPrompt, NetworkStatus } from './components/PWA';
+
 // Routes configuration
 import MainRoutes from './routes/main-routes';
 
@@ -54,6 +57,9 @@ import './styles/animation-performance-fallbacks.css'; // Performance-optimized 
 import './styles/cosmic-elegance-utilities.css'; // ✨ Cosmic Elegance Utility System
 import './styles/cosmic-mobile-navigation.css'; // ✨ Cosmic Mobile Navigation System
 import './styles/universal-theme-styles.css'; // ✨ Universal Theme Integration System
+// Mobile-First Styles
+import './styles/mobile/mobile-base.css';
+import './styles/mobile/mobile-workout.css';
 // import './styles/cart-mobile-optimizations.css'; // 🛒 AAA 7-Star Cart Mobile Experience (DISABLED - file removed)
 // Galaxy-Swan theme integration with Cosmic Elegance
 import ImprovedGlobalStyle from './styles/ImprovedGlobalStyle';
@@ -178,9 +184,19 @@ const AppContent = () => {
   return (
     <>
       <CosmicEleganceGlobalStyle deviceCapability={deviceCapability} />
+      
+      {/* Network & Connection Status */}
+      <NetworkStatus position="top" autoHide={true} />
       <ConnectionStatusBanner connection={connection} />
+      
+      {/* Development Tools */}
       <ThemeStatusIndicator enabled={process.env.NODE_ENV === 'development'} />
+      
+      {/* Main App Router */}
       <RouterProvider router={router} />
+      
+      {/* PWA Install Prompt */}
+      <PWAInstallPrompt />
     </>
   );
 };
@@ -200,9 +216,11 @@ const App = () => {
                       <ToastProvider>
                         <CartProvider>
                           <SessionProvider>
-                            <DevToolsProvider>
-                              <AppContent />
-                            </DevToolsProvider>
+                            <TouchGestureProvider>
+                              <DevToolsProvider>
+                                <AppContent />
+                              </DevToolsProvider>
+                            </TouchGestureProvider>
                           </SessionProvider>
                         </CartProvider>
                       </ToastProvider>

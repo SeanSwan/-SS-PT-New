@@ -28,6 +28,9 @@ import './utils/storeInitSafeguard';
 // Import SPA routing fix for handling refresh and direct URL access
 import { initializeAllSPAFixes } from './utils/spaRoutingFix';
 
+// Import PWA service worker registration
+import { initializePWA } from './utils/serviceWorkerRegistration';
+
 // Initialize viewport fixes for better mobile experience
 initViewportFixes();
 
@@ -36,6 +39,18 @@ imageErrorHandler.initialize();
 
 // Initialize SPA routing fixes to handle refresh and direct URL access issues
 initializeAllSPAFixes();
+
+// Initialize PWA features (service worker, offline support, etc.)
+initializePWA().then((pwaInfo) => {
+  console.log('PWA initialized:', pwaInfo);
+  
+  // Add PWA info to window for debugging
+  if (import.meta.env.DEV) {
+    window.__PWA_INFO__ = pwaInfo;
+  }
+}).catch((error) => {
+  console.warn('PWA initialization failed:', error);
+});
 
 // Get the root element - remove the TypeScript non-null assertion (!)
 const rootElement = document.getElementById('root');

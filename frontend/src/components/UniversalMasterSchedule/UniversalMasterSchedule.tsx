@@ -118,9 +118,8 @@ import {
 
 // Context and Services
 import { useAuth } from '../../context/AuthContext';
-import { ApiService } from '../../services/api.service';
+import { universalMasterScheduleService } from '../../services/universal-master-schedule-service';
 import { clientTrainerAssignmentService } from '../../services/clientTrainerAssignmentService';
-import { sessionService } from '../../services/sessionService';
 
 // Custom Components
 import GlowButton from '../ui/buttons/GlowButton';
@@ -156,7 +155,7 @@ import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
  * drag-and-drop capabilities and real-time collaboration.
  */
 const UniversalMasterSchedule: React.FC = () => {
-  const { user, authAxios } = useAuth();
+  const { user } = useAuth();
   const dispatch = useDispatch();
   const { toast } = useToast();
   
@@ -267,58 +266,35 @@ const UniversalMasterSchedule: React.FC = () => {
     setError(null);
     
     try {
-      const [sessionsRes, clientsRes, trainersRes, assignmentsRes] = await Promise.all([
-        authAxios.get('/api/sessions'),
-        authAxios.get('/api/sessions/clients'),
-        authAxios.get('/api/sessions/trainers'),
-        authAxios.get('/api/client-trainer-assignments')
+      const [sessionsData, clientsData, trainersData, assignmentsData, statsData] = await Promise.all([
+        universalMasterScheduleService.getSessions(filterOptions),
+        universalMasterScheduleService.getClients(),
+        universalMasterScheduleService.getTrainers(),
+        clientTrainerAssignmentService.getAssignments(),
+        universalMasterScheduleService.getStatistics()
       ]);
       
-      setSessions(sessionsRes.data);
-      setClients(clientsRes.data);
-      setTrainers(trainersRes.data);
-      setAssignments(assignmentsRes.data);
+      setSessions(sessionsData);
+      setClients(clientsData);
+      setTrainers(trainersData);
+      setAssignments(assignmentsData);
+      setScheduleStats(statsData);
       
-      // Calculate statistics
-      calculateStatistics(sessionsRes.data);
+      // Only show success message on manual refresh, not on initial load
+      if (sessions.length > 0) {
+        toast({ title: 'Success', description: 'Schedule data refreshed successfully', variant: 'default' });
+      }
       
-      toast({ title: 'Success', description: 'Schedule data loaded successfully', variant: 'default' });
     } catch (err: any) {
       console.error('Error fetching schedule data:', err);
-      setError(err.response?.data?.message || 'Failed to load schedule data');
+      setError(err.message || 'Failed to load schedule data');
       toast({ title: 'Error', description: 'Failed to load schedule data', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  }, [authAxios, toast]);
+  }, [filterOptions]);
   
-  // Calculate schedule statistics
-  const calculateStatistics = useCallback((sessionData: Session[]) => {
-    const stats: ScheduleStats = {
-      totalSessions: sessionData.length,
-      availableSessions: sessionData.filter(s => s.status === 'available').length,
-      bookedSessions: sessionData.filter(s => ['scheduled', 'confirmed'].includes(s.status)).length,
-      completedSessions: sessionData.filter(s => s.status === 'completed').length,
-      cancelledSessions: sessionData.filter(s => s.status === 'cancelled').length,
-      revenue: 0, // TODO: Calculate based on pricing
-      utilizationRate: 0,
-      averageSessionDuration: 0,
-      topTrainer: null,
-      topClient: null
-    };
-    
-    // Calculate utilization rate
-    const totalBookedAndCompleted = stats.bookedSessions + stats.completedSessions;
-    stats.utilizationRate = stats.totalSessions > 0 ? 
-      Math.round((totalBookedAndCompleted / stats.totalSessions) * 100) : 0;
-    
-    // Calculate average session duration
-    const durationsSum = sessionData.reduce((sum, s) => sum + (s.duration || 60), 0);
-    stats.averageSessionDuration = sessionData.length > 0 ? 
-      Math.round(durationsSum / sessionData.length) : 0;
-    
-    setScheduleStats(stats);
-  }, []);
+
   
   // ==================== DRAG AND DROP HANDLERS ====================
   
@@ -331,20 +307,16 @@ const UniversalMasterSchedule: React.FC = () => {
     
     try {
       const sessionId = event.id;
-      const updatedData = {
-        sessionDate: start.toISOString(),
-        duration: Math.round((end.getTime() - start.getTime()) / 60000) // Convert to minutes
-      };
+      const duration = Math.round((end.getTime() - start.getTime()) / 60000);
       
-      await authAxios.put(`/api/sessions/${sessionId}`, updatedData);
+      const updatedSession = await universalMasterScheduleService.dragDropUpdate(sessionId, {
+        sessionDate: start.toISOString(),
+        duration
+      });
       
       // Update local state
       setSessions(prev => prev.map(session => 
-        session.id === sessionId ? {
-          ...session,
-          sessionDate: start.toISOString(),
-          duration: updatedData.duration
-        } : session
+        session.id === sessionId ? updatedSession : session
       ));
       
       toast({ title: 'Success', description: 'Session moved successfully', variant: 'default' });
@@ -352,7 +324,7 @@ const UniversalMasterSchedule: React.FC = () => {
       console.error('Error moving session:', err);
       toast({ title: 'Error', description: 'Failed to move session', variant: 'destructive' });
     }
-  }, [user, authAxios, toast]);
+  }, [user, toast]);
   
   // Handle resizing events
   const handleEventResize = useCallback(async ({ event, start, end }: any) => {
@@ -363,20 +335,16 @@ const UniversalMasterSchedule: React.FC = () => {
     
     try {
       const sessionId = event.id;
-      const updatedData = {
-        sessionDate: start.toISOString(),
-        duration: Math.round((end.getTime() - start.getTime()) / 60000)
-      };
+      const duration = Math.round((end.getTime() - start.getTime()) / 60000);
       
-      await authAxios.put(`/api/sessions/${sessionId}`, updatedData);
+      const updatedSession = await universalMasterScheduleService.dragDropUpdate(sessionId, {
+        sessionDate: start.toISOString(),
+        duration
+      });
       
       // Update local state
       setSessions(prev => prev.map(session => 
-        session.id === sessionId ? {
-          ...session,
-          sessionDate: start.toISOString(),
-          duration: updatedData.duration
-        } : session
+        session.id === sessionId ? updatedSession : session
       ));
       
       toast({ title: 'Success', description: 'Session duration updated successfully', variant: 'default' });
@@ -384,7 +352,7 @@ const UniversalMasterSchedule: React.FC = () => {
       console.error('Error resizing session:', err);
       toast({ title: 'Error', description: 'Failed to resize session', variant: 'destructive' });
     }
-  }, [user, authAxios, toast]);
+  }, [user, toast]);
   
   // Handle creating new sessions by clicking on empty slots
   const handleSlotSelect = useCallback(async (slotInfo: SlotInfo) => {
@@ -397,22 +365,22 @@ const UniversalMasterSchedule: React.FC = () => {
       const newSessionData = {
         sessionDate: slotInfo.start.toISOString(),
         duration: Math.round((slotInfo.end.getTime() - slotInfo.start.getTime()) / 60000),
-        status: 'available',
+        status: 'available' as const,
         location: 'Main Studio',
         notes: 'Available slot created by admin'
       };
       
-      const response = await authAxios.post('/api/sessions', newSessionData);
+      const newSession = await universalMasterScheduleService.createSession(newSessionData);
       
       // Add to local state
-      setSessions(prev => [...prev, response.data.session]);
+      setSessions(prev => [...prev, newSession]);
       
       toast({ title: 'Success', description: 'New session slot created successfully', variant: 'default' });
     } catch (err: any) {
       console.error('Error creating session:', err);
       toast({ title: 'Error', description: 'Failed to create new session slot', variant: 'destructive' });
     }
-  }, [user, authAxios, toast]);
+  }, [user, toast]);
   
   // Handle selecting events
   const handleEventSelect = useCallback((event: SessionEvent) => {
@@ -425,22 +393,18 @@ const UniversalMasterSchedule: React.FC = () => {
   // Assign client to trainer
   const assignClientToTrainer = useCallback(async (clientId: string, trainerId: string) => {
     try {
-      await authAxios.post('/api/client-trainer-assignments', {
-        clientId,
-        trainerId,
-        assignedBy: user?.id
-      });
+      await clientTrainerAssignmentService.assignClientToTrainer(clientId, trainerId);
       
       // Refresh assignments
-      const assignmentsRes = await authAxios.get('/api/client-trainer-assignments');
-      setAssignments(assignmentsRes.data);
+      const assignmentsData = await clientTrainerAssignmentService.getAssignments();
+      setAssignments(assignmentsData);
       
       toast({ title: 'Success', description: 'Client assigned to trainer successfully', variant: 'default' });
     } catch (err: any) {
       console.error('Error assigning client to trainer:', err);
       toast({ title: 'Error', description: 'Failed to assign client to trainer', variant: 'destructive' });
     }
-  }, [user, authAxios, toast]);
+  }, []);
   
   // Get trainer assignments for a client
   const getClientTrainerAssignments = useCallback((clientId: string) => {
@@ -457,23 +421,21 @@ const UniversalMasterSchedule: React.FC = () => {
     }
     
     try {
-      const promises = selectedEvents.map(eventId => {
-        const session = sessions.find(s => s.id === eventId);
-        if (!session) return Promise.resolve();
-        
-        switch (action) {
-          case 'confirm':
-            return authAxios.put(`/api/sessions/${eventId}`, { status: 'confirmed' });
-          case 'cancel':
-            return authAxios.put(`/api/sessions/${eventId}`, { status: 'cancelled' });
-          case 'delete':
-            return authAxios.delete(`/api/sessions/${eventId}`);
-          default:
-            return Promise.resolve();
-        }
-      });
-      
-      await Promise.all(promises);
+      switch (action) {
+        case 'confirm':
+          const confirmUpdates = selectedEvents.map(id => ({ id, status: 'confirmed' }));
+          await universalMasterScheduleService.bulkUpdateSessions(confirmUpdates);
+          break;
+        case 'cancel':
+          const cancelUpdates = selectedEvents.map(id => ({ id, status: 'cancelled' }));
+          await universalMasterScheduleService.bulkUpdateSessions(cancelUpdates);
+          break;
+        case 'delete':
+          await universalMasterScheduleService.bulkDeleteSessions(selectedEvents);
+          break;
+        default:
+          return;
+      }
       
       // Refresh data
       await fetchData();
@@ -487,7 +449,7 @@ const UniversalMasterSchedule: React.FC = () => {
       console.error(`Error performing bulk ${action}:`, err);
       toast({ title: 'Error', description: `Failed to perform bulk ${action}`, variant: 'destructive' });
     }
-  }, [selectedEvents, sessions, authAxios, fetchData, toast]);
+  }, [selectedEvents, fetchData, toast]);
   
   // ==================== EFFECTS ====================
   

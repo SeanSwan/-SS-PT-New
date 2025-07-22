@@ -1,0 +1,104 @@
+{
+  "name": "Swan Studios - Personal Training",
+  "short_name": "Swan Studios",
+  "description": "Revolutionary gamified fitness social ecosystem with AI-powered personal training and nutrition planning",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#16213e",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en-US",
+  "dir": "ltr",
+  "categories": ["health", "fitness", "lifestyle", "productivity"],
+  "screenshots": [
+    {
+      "src": "/Logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Swan Studios Dashboard"
+    }
+  ],
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "16x16 32x32 48x48",
+      "type": "image/x-icon",
+      "purpose": "any"
+    },
+    {
+      "src": "/Logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/swan-tile.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/swan-tile-big.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Workout Logger",
+      "short_name": "Log Workout",
+      "description": "Quickly log a workout session",
+      "url": "/dashboard/trainer",
+      "icons": [
+        {
+          "src": "/Logo.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Schedule",
+      "short_name": "Schedule",
+      "description": "View training schedule",
+      "url": "/dashboard/admin/master-schedule",
+      "icons": [
+        {
+          "src": "/Logo.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Progress",
+      "short_name": "Progress",
+      "description": "View client progress",
+      "url": "/dashboard/client",
+      "icons": [
+        {
+          "src": "/Logo.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "handle_links": "preferred",
+  "protocol_handlers": [
+    {
+      "protocol": "web+swanstudios",
+      "url": "/?handler=%s"
+    }
+  ]
+}

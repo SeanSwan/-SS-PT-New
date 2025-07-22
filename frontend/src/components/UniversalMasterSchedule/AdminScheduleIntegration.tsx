@@ -63,22 +63,21 @@ import {
 
 // Context and Hooks
 import { useAuth } from '../../context/AuthContext';
-import { useNotifications } from '../../hooks/useNotifications';
-import { usePermissions } from '../../hooks/usePermissions';
 
 // Components
-import {
-  UniversalMasterSchedule,
-  stellarTheme,
-  CommandCenterTheme,
-  UniversalMasterScheduleProps,
-  PERMISSIONS,
-  ERROR_MESSAGES,
-  SUCCESS_MESSAGES
-} from './index';
+import UniversalMasterSchedule from './UniversalMasterSchedule';
+import { stellarTheme } from './UniversalMasterScheduleTheme';
 import GlowButton from '../ui/buttons/GlowButton';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
+
+// Types
+import type {
+  Session,
+  Client,
+  Trainer,
+  ScheduleStats
+} from './types';
 
 // Types
 interface AdminScheduleIntegrationProps {
@@ -108,8 +107,6 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
   customActions = []
 }) => {
   const { user } = useAuth();
-  const { notifications } = useNotifications();
-  const { hasPermission } = usePermissions();
   const { toast } = useToast();
   
   // Component State
@@ -125,77 +122,10 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
     utilizationRate: 0
   });
   
-  // Notifications
-  const scheduleNotifications = useMemo(() => {
-    return notifications.filter(n => 
-      n.type.includes('session_') || n.type.includes('assignment_')
-    );
-  }, [notifications]);
-  
-  const unreadNotifications = useMemo(() => {
-    return scheduleNotifications.filter(n => !n.read).length;
-  }, [scheduleNotifications]);
-  
-  // Permissions
-  const permissions = useMemo(() => {
-    return {
-      canViewAll: hasPermission(PERMISSIONS.VIEW_ALL_SESSIONS),
-      canCreate: hasPermission(PERMISSIONS.CREATE_SESSIONS),
-      canEdit: hasPermission(PERMISSIONS.EDIT_SESSIONS),
-      canDelete: hasPermission(PERMISSIONS.DELETE_SESSIONS),
-      canAssign: hasPermission(PERMISSIONS.ASSIGN_TRAINERS),
-      canBulkAction: hasPermission(PERMISSIONS.BULK_OPERATIONS),
-      canViewStats: hasPermission(PERMISSIONS.VIEW_STATISTICS),
-      canExport: hasPermission(PERMISSIONS.EXPORT_DATA),
-      canImport: hasPermission(PERMISSIONS.IMPORT_DATA)
-    };
-  }, [hasPermission]);
-  
-  // Universal Master Schedule Props
-  const scheduleProps: UniversalMasterScheduleProps = useMemo(() => {
-    return {
-      initialView: 'week',
-      initialDate: new Date(),
-      autoRefresh: true,
-      refreshInterval: 30000,
-      permissions: Object.keys(permissions).filter(key => permissions[key]),
-      onSessionSelect: (session) => {
-        console.log('Session selected:', session);
-      },
-      onSessionCreate: (session) => {
-        toast({ title: 'Success', description: SUCCESS_MESSAGES.SESSION_CREATED, variant: 'default' });
-        updateSessionStats();
-      },
-      onSessionUpdate: (session) => {
-        toast({ title: 'Success', description: SUCCESS_MESSAGES.SESSION_UPDATED, variant: 'default' });
-        updateSessionStats();
-      },
-      onSessionDelete: (sessionId) => {
-        toast({ title: 'Success', description: SUCCESS_MESSAGES.SESSION_DELETED, variant: 'default' });
-        updateSessionStats();
-      },
-      onError: (error) => {
-        setError(error);
-        toast({ title: 'Error', description: error, variant: 'destructive' });
-      },
-      theme: 'dark',
-      compactMode: false,
-      showStatistics: permissions.canViewStats,
-      showFilters: true,
-      showBulkActions: permissions.canBulkAction,
-      customActions: customActions.map(action => ({
-        ...action,
-        action: () => {
-          try {
-            action.action();
-          } catch (error) {
-            console.error('Custom action error:', error);
-            toast({ title: 'Error', description: 'Failed to execute action', variant: 'destructive' });
-          }
-        }
-      }))
-    };
-  }, [permissions, customActions, toast, updateSessionStats]);
+  // Check if user has admin permissions
+  const hasAdminPermissions = useMemo(() => {
+    return user?.role === 'admin';
+  }, [user]);
   
   // Event Handlers
   const handleFullscreenToggle = useCallback(() => {
@@ -210,19 +140,7 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
   }, [toast]);
   
   const handleRefresh = useCallback(() => {
-    setIsLoading(true);
-    setError(null);
-    // Trigger refresh in the Universal Master Schedule
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({ title: 'Success', description: 'Schedule refreshed successfully', variant: 'default' });
-    }, 1000);
-  }, [toast]);
-  
-  const updateSessionStats = useCallback(() => {
-    // This would be replaced with actual API call to get session statistics
-    // For now, it's a placeholder
-    console.log('Updating session statistics...');
+    window.location.reload();
   }, []);
   
   // Initialize component
@@ -232,23 +150,23 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
         setIsLoading(true);
         
         // Check permissions
-        if (!permissions.canViewAll) {
-          throw new Error('You do not have permission to view the schedule');
+        if (!hasAdminPermissions) {
+          throw new Error('You do not have permission to access the Universal Master Schedule');
         }
         
-        // Load initial data
-        await updateSessionStats();
+        // Simulate loading time
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         setIsLoading(false);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error initializing admin schedule:', error);
-        setError(error.message || ERROR_MESSAGES.UNKNOWN_ERROR);
+        setError(error.message || 'Failed to initialize Universal Master Schedule');
         setIsLoading(false);
       }
     };
     
     initializeComponent();
-  }, [permissions.canViewAll, updateSessionStats]);
+  }, [hasAdminPermissions]);
   
   // Error Recovery
   const handleRetry = useCallback(() => {
@@ -350,18 +268,6 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
                   </HeaderTitle>
                   
                   <HeaderActions>
-                    {/* Notifications */}
-                    <Tooltip title="Schedule Notifications">
-                      <IconButton
-                        onClick={() => setShowNotifications(!showNotifications)}
-                        sx={{ color: 'white' }}
-                      >
-                        <Badge badgeContent={unreadNotifications} color="error">
-                          <Bell size={20} />
-                        </Badge>
-                      </IconButton>
-                    </Tooltip>
-                    
                     {/* Refresh */}
                     <GlowButton
                       text="Refresh"
@@ -404,67 +310,9 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
               transition={{ duration: 0.3, delay: 0.1 }}
               style={{ height: '100%' }}
             >
-              <UniversalMasterSchedule {...scheduleProps} />
+              <UniversalMasterSchedule />
             </motion.div>
           </ScheduleContent>
-          
-          {/* Notifications Panel */}
-          <AnimatePresence>
-            {showNotifications && (
-              <motion.div
-                initial={{ opacity: 0, x: 300 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 300 }}
-                transition={{ duration: 0.3 }}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  right: 0,
-                  width: '320px',
-                  height: '100%',
-                  background: 'rgba(0, 0, 0, 0.9)',
-                  backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '16px 0 0 16px',
-                  padding: '1rem',
-                  zIndex: 1000
-                }}
-              >
-                <NotificationPanel>
-                  <NotificationHeader>
-                    <Typography variant="h6" color="white">
-                      Schedule Notifications
-                    </Typography>
-                    <IconButton
-                      onClick={() => setShowNotifications(false)}
-                      sx={{ color: 'white' }}
-                    >
-                      <X size={20} />
-                    </IconButton>
-                  </NotificationHeader>
-                  
-                  <NotificationList>
-                    {scheduleNotifications.length > 0 ? (
-                      scheduleNotifications.map(notification => (
-                        <NotificationItem key={notification.id} read={notification.read}>
-                          <Typography variant="body2" color="white">
-                            {notification.title}
-                          </Typography>
-                          <Typography variant="caption" color="rgba(255, 255, 255, 0.7)">
-                            {notification.message}
-                          </Typography>
-                        </NotificationItem>
-                      ))
-                    ) : (
-                      <Typography variant="body2" color="rgba(255, 255, 255, 0.7)">
-                        No notifications
-                      </Typography>
-                    )}
-                  </NotificationList>
-                </NotificationPanel>
-              </motion.div>
-            )}
-          </AnimatePresence>
           
           {/* Error Snackbar */}
           <Snackbar
@@ -607,42 +455,6 @@ const ScheduleContent = styled.div`
   overflow: hidden;
   display: flex;
   flex-direction: column;
-`;
-
-const NotificationPanel = styled.div`
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-`;
-
-const NotificationHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  margin-bottom: 1rem;
-`;
-
-const NotificationList = styled.div`
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-`;
-
-const NotificationItem = styled.div<{ read: boolean }>`
-  padding: 0.75rem;
-  background: ${props => props.read ? 'rgba(255, 255, 255, 0.05)' : 'rgba(59, 130, 246, 0.1)'};
-  border: 1px solid ${props => props.read ? 'rgba(255, 255, 255, 0.1)' : 'rgba(59, 130, 246, 0.3)'};
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.1);
-  }
 `;
 
 const LoadingContainer = styled.div`
