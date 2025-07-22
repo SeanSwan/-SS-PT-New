@@ -126,6 +126,9 @@ import GlowButton from '../ui/buttons/GlowButton';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 
+// Mobile PWA Components
+import { useTouchGesture, useElementGesture } from '../PWA/TouchGestureProvider';
+
 // Styled Components and Theme
 import { stellarTheme, CommandCenterTheme } from './UniversalMasterScheduleTheme';
 
@@ -148,6 +151,10 @@ const DragAndDropCalendar = withDragAndDrop(Calendar);
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 
+// Import mobile styles
+import '../../styles/mobile/mobile-base.css';
+import '../../styles/mobile/mobile-admin.css';
+
 /**
  * Universal Master Schedule Component
  * 
@@ -158,6 +165,16 @@ const UniversalMasterSchedule: React.FC = () => {
   const { user } = useAuth();
   const dispatch = useDispatch();
   const { toast } = useToast();
+  
+  // Mobile PWA hooks
+  const { hapticFeedback, isTouch } = useTouchGesture();
+  
+  // Mobile-specific state
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showQuickActions, setShowQuickActions] = useState(false);
+  const [touchDragEnabled, setTouchDragEnabled] = useState(true);
+  const [mobileCalendarHeight, setMobileCalendarHeight] = useState(600);
   
   // ==================== STATE MANAGEMENT ====================
   
@@ -298,11 +315,16 @@ const UniversalMasterSchedule: React.FC = () => {
   
   // ==================== DRAG AND DROP HANDLERS ====================
   
-  // Handle moving events (drag and drop)
+  // Handle moving events (drag and drop with mobile optimization)
   const handleEventDrop = useCallback(async ({ event, start, end, isAllDay }: any) => {
     if (!user || user.role !== 'admin') {
       toast({ title: 'Error', description: 'Only administrators can move sessions', variant: 'destructive' });
       return;
+    }
+    
+    // Haptic feedback for mobile devices
+    if (isMobile && hapticFeedback) {
+      hapticFeedback('medium');
     }
     
     try {
@@ -319,12 +341,23 @@ const UniversalMasterSchedule: React.FC = () => {
         session.id === sessionId ? updatedSession : session
       ));
       
+      // Success haptic feedback
+      if (isMobile && hapticFeedback) {
+        hapticFeedback('heavy');
+      }
+      
       toast({ title: 'Success', description: 'Session moved successfully', variant: 'default' });
     } catch (err: any) {
       console.error('Error moving session:', err);
+      
+      // Error haptic feedback
+      if (isMobile && hapticFeedback) {
+        hapticFeedback('light');
+      }
+      
       toast({ title: 'Error', description: 'Failed to move session', variant: 'destructive' });
     }
-  }, [user, toast]);
+  }, [user, toast, isMobile, hapticFeedback]);
   
   // Handle resizing events
   const handleEventResize = useCallback(async ({ event, start, end }: any) => {
@@ -458,6 +491,49 @@ const UniversalMasterSchedule: React.FC = () => {
     fetchData();
   }, [fetchData]);
   
+  // Mobile detection and responsive setup
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      
+      // Calculate mobile calendar height
+      if (mobile) {
+        const headerHeight = 180;
+        const availableHeight = window.innerHeight - headerHeight;
+        setMobileCalendarHeight(Math.max(400, availableHeight));
+      } else {
+        setMobileCalendarHeight(600);
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
+  
+  // Handle orientation change on mobile
+  useEffect(() => {
+    if (isMobile) {
+      const handleOrientationChange = () => {
+        setTimeout(() => {
+          const headerHeight = 180;
+          const availableHeight = window.innerHeight - headerHeight;
+          setMobileCalendarHeight(Math.max(400, availableHeight));
+        }, 300); // Delay to account for browser UI changes
+      };
+      
+      window.addEventListener('orientationchange', handleOrientationChange);
+      
+      return () => {
+        window.removeEventListener('orientationchange', handleOrientationChange);
+      };
+    }
+  }, [isMobile]);
+  
   // ==================== RENDER ====================
   
   if (loading) {
@@ -491,21 +567,23 @@ const UniversalMasterSchedule: React.FC = () => {
   return (
     <ThemeProvider theme={stellarTheme}>
       <ErrorBoundary>
-        <ScheduleContainer>
-          <ScheduleHeader>
-            <HeaderRow>
-              <HeaderTitle>
-                <CalendarIcon size={32} />
-                <Typography variant="h4" component="span">
-                  Universal Master Schedule
+        <ScheduleContainer className={`mobile-admin-container ${isMobile ? 'mobile-view' : ''}`}>
+          <ScheduleHeader className="mobile-admin-header">
+            <HeaderRow className="mobile-admin-header-row">
+              <HeaderTitle className="mobile-admin-title">
+                <CalendarIcon size={isMobile ? 24 : 32} />
+                <Typography variant={isMobile ? "h5" : "h4"} component="span">
+                  {isMobile ? 'Master Schedule' : 'Universal Master Schedule'}
                 </Typography>
-                <Badge badgeContent={scheduleStats.availableSessions} color="primary">
-                  <Chip 
-                    label={`${scheduleStats.utilizationRate}% Utilization`}
-                    color="info"
-                    size="small"
-                  />
-                </Badge>
+                {!isMobile && (
+                  <Badge badgeContent={scheduleStats.availableSessions} color="primary">
+                    <Chip 
+                      label={`${scheduleStats.utilizationRate}% Utilization`}
+                      color="info"
+                      size="small"
+                    />
+                  </Badge>
+                )}
               </HeaderTitle>
               
               <HeaderActions>
@@ -534,7 +612,17 @@ const UniversalMasterSchedule: React.FC = () => {
             </HeaderRow>
             
             <FilterRow>
-              <FilterContainer>
+              {isMobile && (
+                <GlowButton
+                  text="Filters"
+                  theme="cosmic"
+                  size="small"
+                  leftIcon={<Filter size={16} />}
+                  onClick={() => setShowMobileFilters(!showMobileFilters)}
+                  className="mobile-admin-filter-toggle"
+                />
+              )}
+              <FilterContainer className={`mobile-admin-filters ${isMobile && showMobileFilters ? 'expanded' : ''}`}>
                 <FormControl size="small" sx={{ minWidth: 120 }}>
                   <InputLabel>Trainer</InputLabel>
                   <Select
@@ -622,7 +710,7 @@ const UniversalMasterSchedule: React.FC = () => {
             </FilterRow>
           </ScheduleHeader>
           
-          <CalendarContainer>
+          <CalendarContainer className="mobile-calendar-container">
             <DragAndDropCalendar
               localizer={localizer}
               events={calendarEvents}
@@ -638,14 +726,21 @@ const UniversalMasterSchedule: React.FC = () => {
               onSelectSlot={handleSlotSelect}
               onSelectEvent={handleEventSelect}
               selectable
-              resizable
+              resizable={!isMobile || touchDragEnabled}
               popup
               showMultiDayTimes
-              step={30}
-              timeslots={2}
+              step={isMobile ? 60 : 30}
+              timeslots={isMobile ? 1 : 2}
               defaultDate={new Date()}
-              defaultView="week"
-              style={{ height: '600px' }}
+              defaultView={isMobile ? 'day' : 'week'}
+              style={{ height: `${mobileCalendarHeight}px` }}
+              formats={{
+                timeGutterFormat: isMobile ? 'h A' : 'h:mm A',
+                eventTimeRangeFormat: ({ start, end }) => {
+                  const format = isMobile ? 'h:mm A' : 'h:mm A';
+                  return `${moment(start).format(format)} - ${moment(end).format(format)}`;
+                }
+              }}
               eventPropGetter={(event) => {
                 const { status } = event;
                 let backgroundColor = '#3174ad';
@@ -778,12 +873,13 @@ const UniversalMasterSchedule: React.FC = () => {
             onClose={() => setShowEventDialog(false)}
             maxWidth="sm"
             fullWidth
+            className={isMobile ? 'mobile-bottom-sheet' : ''}
             PaperProps={{
               sx: {
                 background: 'rgba(0,0,0,0.9)',
                 backdropFilter: 'blur(20px)',
                 border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '16px'
+                borderRadius: isMobile ? '16px 16px 0 0' : '16px'
               }
             }}
           >
@@ -1111,6 +1207,67 @@ const UniversalMasterSchedule: React.FC = () => {
               />
             </DialogActions>
           </Dialog>
+          
+          {/* Mobile Floating Action Button */}
+          {isMobile && (
+            <>
+              <motion.button
+                className="mobile-admin-fab"
+                onClick={() => setShowQuickActions(!showQuickActions)}
+                whileTap={{ scale: 0.95 }}
+                animate={{ rotate: showQuickActions ? 45 : 0 }}
+              >
+                <Plus size={24} />
+              </motion.button>
+              
+              <AnimatePresence>
+                <div className={`mobile-quick-actions ${showQuickActions ? 'expanded' : ''}`}>
+                  <motion.button
+                    className="mobile-quick-action"
+                    onClick={() => {
+                      setShowStatsDialog(true);
+                      setShowQuickActions(false);
+                      if (hapticFeedback) hapticFeedback('light');
+                    }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <Activity size={20} />
+                  </motion.button>
+                  
+                  <motion.button
+                    className="mobile-quick-action"
+                    onClick={() => {
+                      setShowAssignmentDialog(true);
+                      setShowQuickActions(false);
+                      if (hapticFeedback) hapticFeedback('light');
+                    }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <Users size={20} />
+                  </motion.button>
+                  
+                  <motion.button
+                    className="mobile-quick-action"
+                    onClick={() => {
+                      fetchData();
+                      setShowQuickActions(false);
+                      if (hapticFeedback) hapticFeedback('medium');
+                    }}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <RefreshCw size={20} />
+                  </motion.button>
+                </div>
+              </AnimatePresence>
+            </>
+          )}
+          
+          {/* Mobile Status Indicator */}
+          {isMobile && (
+            <div className={`mobile-status-bar ${loading ? '' : 'hidden'}`}>
+              {loading ? 'Loading...' : `${sessions.length} sessions loaded`}
+            </div>
+          )}
           
         </ScheduleContainer>
       </ErrorBoundary>
