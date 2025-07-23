@@ -52,6 +52,18 @@ import AdminGamificationView from './Pages/admin-gamification/admin-gamification
 import RevenueAnalyticsPanel from './Pages/admin-dashboard/components/RevenueAnalyticsPanel';
 import PendingOrdersAdminPanel from './Pages/admin-dashboard/components/PendingOrdersAdminPanel';
 
+// 🔥 BUSINESS-CRITICAL: Import Client Management System Components
+import ClientManagementDashboard from './Pages/admin-clients/ClientManagementDashboard';
+import EnhancedAdminClientManagementView from './Pages/admin-clients/EnhancedAdminClientManagementView';
+import ClientOnboardingWizard from './Pages/admin-clients/components/ClientOnboardingWizard';
+
+// 🏢 COMPREHENSIVE DATA MANAGEMENT: Import Enhanced User & Trainer Management
+import EnhancedUserDataManagement from './Pages/admin-users/EnhancedUserDataManagement';
+import EnhancedTrainerDataManagement from './Pages/admin-trainers/EnhancedTrainerDataManagement';
+
+// 🚀 UNIFIED DATA COLLECTION: Import Comprehensive Onboarding System
+import UnifiedOnboardingWizard from './Pages/admin-onboarding/UnifiedOnboardingWizard';
+
 // Import Universal Master Schedule Integration
 import AdminScheduleIntegration from '../UniversalMasterSchedule/AdminScheduleIntegration';
 
@@ -341,16 +353,38 @@ const roleConfigurations: Record<string, RoleConfig> = {
   admin: {
     routes: [
       { path: '/overview', component: RevolutionaryAdminDashboard, title: 'Command Center', description: 'Administrative oversight' },
-      { path: '/user-management', component: ModernUserManagementSystem, title: 'User Management', description: 'Platform user control' },
-      { path: '/trainers', component: TrainersManagementSection, title: 'Trainer Management', description: 'Coaching team oversight' },
-      { path: '/client-management', component: AdminClientProgressView, title: 'Client Management', description: 'Client progress monitoring' },
-      { path: '/admin-sessions', component: EnhancedAdminSessionsView, title: 'Master Schedule', description: 'Universal scheduling control' },
+      
+      // 🏢 COMPREHENSIVE USER DATA MANAGEMENT SUITE
+      { path: '/user-management', component: EnhancedUserDataManagement, title: 'User Data Management', description: 'Complete user data collection & lifecycle management' },
+      { path: '/user-management-legacy', component: ModernUserManagementSystem, title: 'User Management (Legacy)', description: 'Traditional user management interface' },
+      
+      // 🏋️ ENHANCED TRAINER DATA MANAGEMENT
+      { path: '/trainer-management', component: EnhancedTrainerDataManagement, title: 'Trainer Data Management', description: 'Complete trainer data collection, certs & performance' },
+      { path: '/trainer-management-legacy', component: TrainersManagementSection, title: 'Trainer Management (Legacy)', description: 'Traditional trainer oversight interface' },
+      
+      // 💪 COMPREHENSIVE CLIENT DATA MANAGEMENT
+      { path: '/client-management', component: ClientManagementDashboard, title: 'Client Management Hub', description: 'Complete client data collection & management' },
+      { path: '/client-details', component: EnhancedAdminClientManagementView, title: 'Advanced Client Management', description: 'Detailed client management interface' },
+      { path: '/client-onboarding', component: ClientOnboardingWizard, title: 'Client Onboarding', description: 'New client data collection workflow' },
+      { path: '/client-progress-tracking', component: AdminClientProgressView, title: 'Client Progress Analytics', description: 'Client progress monitoring & analytics' },
+      
+      // 🚀 UNIFIED DATA COLLECTION SYSTEM
+      { path: '/unified-onboarding', component: UnifiedOnboardingWizard, title: 'Unified Onboarding', description: 'Complete data collection for all user types' },
+      { path: '/user-onboarding', component: UnifiedOnboardingWizard, title: 'Add New User', description: 'General user registration' },
+      { path: '/trainer-onboarding', component: UnifiedOnboardingWizard, title: 'Add New Trainer', description: 'Trainer registration with certifications' },
+      
+      // 📅 SCHEDULING & OPERATIONS
+      { path: '/admin-sessions', component: EnhancedAdminSessionsView, title: 'Session Management', description: 'Universal session control' },
       { path: '/master-schedule', component: AdminScheduleIntegration, title: 'Universal Master Schedule', description: 'Advanced drag-and-drop scheduling command center' },
       { path: '/client-trainer-assignments', component: ClientTrainerAssignments, title: 'Client-Trainer Assignments', description: 'Drag-and-drop client assignment management' },
       { path: '/trainer-permissions', component: TrainerPermissionsManager, title: 'Trainer Permissions', description: 'Granular trainer permission control' },
+      
+      // 💰 BUSINESS & FINANCIAL MANAGEMENT
       { path: '/admin-packages', component: AdminPackagesView, title: 'Package Management', description: 'Training package configuration' },
       { path: '/revenue', component: RevenueAnalyticsPanel, title: 'Revenue Analytics', description: 'Financial performance tracking' },
       { path: '/pending-orders', component: PendingOrdersAdminPanel, title: 'Pending Orders', description: 'Order management system' },
+      
+      // 🎮 ENGAGEMENT & SYSTEMS
       { path: '/gamification', component: AdminGamificationView, title: 'Gamification Engine', description: 'Achievement system control' }
     ],
     defaultPath: '/overview'
