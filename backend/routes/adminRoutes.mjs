@@ -12,16 +12,48 @@ const router = express.Router();
 router.use(authenticateToken);
 router.use(authorizeAdmin);
 
-// User management endpoints that actually exist
+// 🏢 COMPREHENSIVE USER DATA MANAGEMENT
+// Enhanced user management endpoints
 router.get('/users', userManagementController.getAllUsers);
 router.put('/users/:id', userManagementController.updateUser);
 router.post('/promote-client', userManagementController.promoteToClient);
 router.post('/promote-admin', userManagementController.promoteToAdmin);
-
-// 🚀 ENHANCED: Real-time monitoring endpoints for admin dashboard
 router.get('/recent-signups', userManagementController.getRecentSignups);
 router.get('/dashboard-stats', userManagementController.getDashboardStats);
 router.get('/database-health', userManagementController.getDatabaseHealth);
+
+// 🏋️ ENHANCED TRAINER DATA MANAGEMENT
+// Trainer management endpoints (comprehensive data collection)
+router.get('/trainers', async (req, res) => {
+  try {
+    console.log('🔍 Admin /trainers endpoint called');
+    
+    const trainers = await sequelize.models.User.findAll({
+      where: { role: 'trainer' },
+      order: [['createdAt', 'DESC']],
+      attributes: { exclude: ['password', 'refreshTokenHash'] }
+    });
+    
+    console.log(`📋 Found ${trainers.length} trainers`);
+    
+    res.json({
+      success: true,
+      trainers: trainers
+    });
+  } catch (error) {
+    console.error('❌ Error fetching trainers:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch trainers',
+      error: error.message
+    });
+  }
+});
+
+// 💪 COMPREHENSIVE CLIENT DATA MANAGEMENT  
+// Import and mount client management routes
+import adminClientRoutes from './adminClientRoutes.mjs';
+router.use('/clients', adminClientRoutes);
 
 // Contact management endpoints
 router.get('/contacts', async (req, res) => {
