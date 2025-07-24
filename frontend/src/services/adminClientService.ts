@@ -414,6 +414,32 @@ class AdminClientService {
   }
 }
 
+// TypeScript interface for the service
+export interface AdminClientServiceInterface {
+  getClients(params?: any): Promise<any>;
+  getClientDetails(clientId: string): Promise<any>;
+  createClient(clientData: any): Promise<any>;
+  updateClient(clientId: string, updateData: any): Promise<any>;
+  deleteClient(clientId: string): Promise<boolean>;
+  assignTrainer(clientId: string, trainerId: string): Promise<any>;
+  resetClientPassword(clientId: string): Promise<any>;
+  getClientWorkoutStats(clientId: string): Promise<any>;
+  generateWorkoutPlan(clientId: string, planData: any): Promise<any>;
+  bulkUpdate(clientIds: string[], updateData: any): Promise<any>;
+  exportClients(format?: string, filters?: any): Promise<boolean>;
+  getClientAnalytics(timeRange?: string): Promise<any>;
+  searchClients(searchQuery: string, filters?: any): Promise<any>;
+  getClientSessions(clientId: string, params?: any): Promise<any>;
+  getClientPayments(clientId: string, params?: any): Promise<any>;
+  addSessions(clientId: string, sessionCount: number, packageId?: string | null): Promise<any>;
+  getMCPStatus(): Promise<any>;
+}
+
+// Factory function for creating the service with custom API instance
+export const createAdminClientService = (apiInstance?: any): AdminClientServiceInterface => {
+  return new AdminClientService();
+};
+
 // Export singleton instance
 export const adminClientService = new AdminClientService();
 export default adminClientService;
