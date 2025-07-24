@@ -1,1 +1,419 @@
-/**\n * Admin Client Service - Business-Critical API Integration\n * ======================================================\n * \n * Service layer for all admin client management operations\n * Integrates with existing backend adminClientController\n * \n * FUNCTIONALITY:\n * - Client CRUD operations (Create, Read, Update, Delete)\n * - Client data collection and onboarding\n * - Trainer assignment management\n * - Client analytics and reporting\n * - Bulk operations for multiple clients\n * - Integration with payment/session systems\n */\n\nimport axios from 'axios';\n\n// Base API configuration\nconst API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';\nconst api = axios.create({\n  baseURL: `${API_BASE_URL}/api`,\n  headers: {\n    'Content-Type': 'application/json'\n  }\n});\n\n// Add auth token to requests\napi.interceptors.request.use((config) => {\n  const token = localStorage.getItem('token');\n  if (token) {\n    config.headers.Authorization = `Bearer ${token}`;\n  }\n  return config;\n});\n\n// Response interceptor for error handling\napi.interceptors.response.use(\n  (response) => response,\n  (error) => {\n    console.error('API Error:', error.response?.data || error.message);\n    throw error;\n  }\n);\n\n/**\n * Admin Client Service Class\n */\nclass AdminClientService {\n  /**\n   * Get all clients with filtering and pagination\n   */\n  async getClients(params = {}) {\n    try {\n      const response = await api.get('/admin/clients', { params });\n      return {\n        clients: response.data.clients || [],\n        stats: {\n          totalClients: response.data.count || 0,\n          activeClients: response.data.clients?.filter(c => c.isActive)?.length || 0,\n          newThisMonth: response.data.newThisMonth || 0,\n          totalRevenue: response.data.totalRevenue || 0,\n          sessionsBooked: response.data.sessionsBooked || 0,\n          averageSessionsPerClient: response.data.averageSessionsPerClient || 0\n        }\n      };\n    } catch (error) {\n      console.error('Error fetching clients:', error);\n      throw new Error('Failed to fetch clients');\n    }\n  }\n  \n  /**\n   * Get detailed information for a specific client\n   */\n  async getClientDetails(clientId) {\n    try {\n      const response = await api.get(`/admin/clients/${clientId}`);\n      return response.data;\n    } catch (error) {\n      console.error('Error fetching client details:', error);\n      throw new Error('Failed to fetch client details');\n    }\n  }\n  \n  /**\n   * Create a new client with comprehensive data\n   */\n  async createClient(clientData) {\n    try {\n      const response = await api.post('/admin/clients', {\n        ...clientData,\n        // Set initial password (client will be prompted to change)\n        password: this.generateTempPassword(),\n        // Ensure client role\n        role: 'client',\n        isActive: true,\n        // Set available sessions from package\n        availableSessions: clientData.availableSessions || 0\n      });\n      \n      return response.data;\n    } catch (error) {\n      console.error('Error creating client:', error);\n      if (error.response?.data?.message) {\n        throw new Error(error.response.data.message);\n      }\n      throw new Error('Failed to create client');\n    }\n  }\n  \n  /**\n   * Update existing client information\n   */\n  async updateClient(clientId, updateData) {\n    try {\n      const response = await api.put(`/admin/clients/${clientId}`, updateData);\n      return response.data;\n    } catch (error) {\n      console.error('Error updating client:', error);\n      if (error.response?.data?.message) {\n        throw new Error(error.response.data.message);\n      }\n      throw new Error('Failed to update client');\n    }\n  }\n  \n  /**\n   * Delete a client (soft delete - mark as inactive)\n   */\n  async deleteClient(clientId) {\n    try {\n      await api.delete(`/admin/clients/${clientId}`);\n      return true;\n    } catch (error) {\n      console.error('Error deleting client:', error);\n      throw new Error('Failed to delete client');\n    }\n  }\n  \n  /**\n   * Assign trainer to client\n   */\n  async assignTrainer(clientId, trainerId) {\n    try {\n      const response = await api.post(`/admin/clients/${clientId}/assign-trainer`, {\n        trainerId\n      });\n      return response.data;\n    } catch (error) {\n      console.error('Error assigning trainer:', error);\n      throw new Error('Failed to assign trainer');\n    }\n  }\n  \n  /**\n   * Reset client password\n   */\n  async resetClientPassword(clientId) {\n    try {\n      const response = await api.post(`/admin/clients/${clientId}/reset-password`);\n      return response.data;\n    } catch (error) {\n      console.error('Error resetting password:', error);\n      throw new Error('Failed to reset password');\n    }\n  }\n  \n  /**\n   * Get client workout statistics\n   */\n  async getClientWorkoutStats(clientId) {\n    try {\n      const response = await api.get(`/admin/clients/${clientId}/workout-stats`);\n      return response.data;\n    } catch (error) {\n      console.error('Error fetching workout stats:', error);\n      throw new Error('Failed to fetch workout statistics');\n    }\n  }\n  \n  /**\n   * Generate workout plan for client\n   */\n  async generateWorkoutPlan(clientId, planData) {\n    try {\n      const response = await api.post(`/admin/clients/${clientId}/generate-workout-plan`, planData);\n      return response.data;\n    } catch (error) {\n      console.error('Error generating workout plan:', error);\n      throw new Error('Failed to generate workout plan');\n    }\n  }\n  \n  /**\n   * Bulk operations for multiple clients\n   */\n  async bulkUpdate(clientIds, updateData) {\n    try {\n      const response = await api.post('/admin/clients/bulk-update', {\n        clientIds,\n        updateData\n      });\n      return response.data;\n    } catch (error) {\n      console.error('Error in bulk update:', error);\n      throw new Error('Failed to update clients');\n    }\n  }\n  \n  /**\n   * Export client data\n   */\n  async exportClients(format = 'csv', filters = {}) {\n    try {\n      const response = await api.get('/admin/clients/export', {\n        params: { format, ...filters },\n        responseType: 'blob'\n      });\n      \n      // Create download link\n      const url = window.URL.createObjectURL(new Blob([response.data]));\n      const link = document.createElement('a');\n      link.href = url;\n      link.setAttribute('download', `clients-export-${new Date().toISOString().split('T')[0]}.${format}`);\n      document.body.appendChild(link);\n      link.click();\n      link.remove();\n      window.URL.revokeObjectURL(url);\n      \n      return true;\n    } catch (error) {\n      console.error('Error exporting clients:', error);\n      throw new Error('Failed to export client data');\n    }\n  }\n  \n  /**\n   * Get client analytics dashboard data\n   */\n  async getClientAnalytics(timeRange = '30d') {\n    try {\n      const response = await api.get('/admin/clients/analytics', {\n        params: { timeRange }\n      });\n      return response.data;\n    } catch (error) {\n      console.error('Error fetching analytics:', error);\n      throw new Error('Failed to fetch analytics data');\n    }\n  }\n  \n  /**\n   * Search clients with advanced filters\n   */\n  async searchClients(searchQuery, filters = {}) {\n    try {\n      const response = await api.get('/admin/clients/search', {\n        params: {\n          q: searchQuery,\n          ...filters\n        }\n      });\n      return response.data;\n    } catch (error) {\n      console.error('Error searching clients:', error);\n      throw new Error('Failed to search clients');\n    }\n  }\n  \n  /**\n   * Get client session history\n   */\n  async getClientSessions(clientId, params = {}) {\n    try {\n      const response = await api.get(`/admin/clients/${clientId}/sessions`, { params });\n      return response.data;\n    } catch (error) {\n      console.error('Error fetching client sessions:', error);\n      throw new Error('Failed to fetch client sessions');\n    }\n  }\n  \n  /**\n   * Get client payment history\n   */\n  async getClientPayments(clientId, params = {}) {\n    try {\n      const response = await api.get(`/admin/clients/${clientId}/payments`, { params });\n      return response.data;\n    } catch (error) {\n      console.error('Error fetching client payments:', error);\n      throw new Error('Failed to fetch client payments');\n    }\n  }\n  \n  /**\n   * Add sessions to client account\n   */\n  async addSessions(clientId, sessionCount, packageId = null) {\n    try {\n      const response = await api.post(`/admin/clients/${clientId}/add-sessions`, {\n        sessionCount,\n        packageId\n      });\n      return response.data;\n    } catch (error) {\n      console.error('Error adding sessions:', error);\n      throw new Error('Failed to add sessions');\n    }\n  }\n  \n  /**\n   * Get MCP (AI) system status for client features\n   */\n  async getMCPStatus() {\n    try {\n      const response = await api.get('/admin/mcp-status');\n      return response.data;\n    } catch (error) {\n      console.error('Error fetching MCP status:', error);\n      // Don't throw error for MCP status - it's not critical\n      return { status: 'unavailable' };\n    }\n  }\n  \n  // ==================== UTILITY FUNCTIONS ====================\n  \n  /**\n   * Generate temporary password for new clients\n   */\n  generateTempPassword() {\n    const length = 12;\n    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';\n    let password = '';\n    \n    // Ensure at least one of each type\n    password += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)];\n    password += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];\n    password += '0123456789'[Math.floor(Math.random() * 10)];\n    password += '!@#$%^&*'[Math.floor(Math.random() * 8)];\n    \n    // Fill remaining length\n    for (let i = 4; i < length; i++) {\n      password += charset[Math.floor(Math.random() * charset.length)];\n    }\n    \n    // Shuffle the password\n    return password.split('').sort(() => Math.random() - 0.5).join('');\n  }\n  \n  /**\n   * Format client data for display\n   */\n  formatClientData(client) {\n    return {\n      ...client,\n      fullName: `${client.firstName} ${client.lastName}`,\n      age: client.dateOfBirth ? this.calculateAge(client.dateOfBirth) : null,\n      memberSince: client.createdAt ? new Date(client.createdAt).getFullYear() : null,\n      lastActivity: client.lastActivity ? new Date(client.lastActivity) : null\n    };\n  }\n  \n  /**\n   * Calculate age from date of birth\n   */\n  calculateAge(dateOfBirth) {\n    const today = new Date();\n    const birthDate = new Date(dateOfBirth);\n    let age = today.getFullYear() - birthDate.getFullYear();\n    const monthDiff = today.getMonth() - birthDate.getMonth();\n    \n    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {\n      age--;\n    }\n    \n    return age;\n  }\n  \n  /**\n   * Validate client data before submission\n   */\n  validateClientData(clientData) {\n    const errors = {};\n    \n    // Required fields\n    if (!clientData.firstName?.trim()) {\n      errors.firstName = 'First name is required';\n    }\n    \n    if (!clientData.lastName?.trim()) {\n      errors.lastName = 'Last name is required';\n    }\n    \n    if (!clientData.email?.trim()) {\n      errors.email = 'Email is required';\n    } else if (!/\\S+@\\S+\\.\\S+/.test(clientData.email)) {\n      errors.email = 'Please enter a valid email address';\n    }\n    \n    if (!clientData.phone?.trim()) {\n      errors.phone = 'Phone number is required';\n    }\n    \n    if (!clientData.dateOfBirth) {\n      errors.dateOfBirth = 'Date of birth is required';\n    }\n    \n    return {\n      isValid: Object.keys(errors).length === 0,\n      errors\n    };\n  }\n}\n\n// Export singleton instance\nexport const adminClientService = new AdminClientService();\nexport default adminClientService;
+/**
+ * Admin Client Service - Business-Critical API Integration
+ * ======================================================
+ * 
+ * Service layer for all admin client management operations
+ * Integrates with existing backend adminClientController
+ * 
+ * FUNCTIONALITY:
+ * - Client CRUD operations (Create, Read, Update, Delete)
+ * - Client data collection and onboarding
+ * - Trainer assignment management
+ * - Client analytics and reporting
+ * - Bulk operations for multiple clients
+ * - Integration with payment/session systems
+ */
+
+import axios from 'axios';
+
+// Base API configuration
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
+const api = axios.create({
+  baseURL: `${API_BASE_URL}/api`,
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
+
+// Add auth token to requests
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Response interceptor for error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('API Error:', error.response?.data || error.message);
+    throw error;
+  }
+);
+
+/**
+ * Admin Client Service Class
+ */
+class AdminClientService {
+  /**
+   * Get all clients with filtering and pagination
+   */
+  async getClients(params = {}) {
+    try {
+      const response = await api.get('/admin/clients', { params });
+      return {
+        clients: response.data.clients || [],
+        stats: {
+          totalClients: response.data.count || 0,
+          activeClients: response.data.clients?.filter(c => c.isActive)?.length || 0,
+          newThisMonth: response.data.newThisMonth || 0,
+          totalRevenue: response.data.totalRevenue || 0,
+          sessionsBooked: response.data.sessionsBooked || 0,
+          averageSessionsPerClient: response.data.averageSessionsPerClient || 0
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching clients:', error);
+      throw new Error('Failed to fetch clients');
+    }
+  }
+  
+  /**
+   * Get detailed information for a specific client
+   */
+  async getClientDetails(clientId) {
+    try {
+      const response = await api.get(`/admin/clients/${clientId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching client details:', error);
+      throw new Error('Failed to fetch client details');
+    }
+  }
+  
+  /**
+   * Create a new client with comprehensive data
+   */
+  async createClient(clientData) {
+    try {
+      const response = await api.post('/admin/clients', {
+        ...clientData,
+        // Set initial password (client will be prompted to change)
+        password: this.generateTempPassword(),
+        // Ensure client role
+        role: 'client',
+        isActive: true,
+        // Set available sessions from package
+        availableSessions: clientData.availableSessions || 0
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error('Error creating client:', error);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to create client');
+    }
+  }
+  
+  /**
+   * Update existing client information
+   */
+  async updateClient(clientId, updateData) {
+    try {
+      const response = await api.put(`/admin/clients/${clientId}`, updateData);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating client:', error);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to update client');
+    }
+  }
+  
+  /**
+   * Delete a client (soft delete - mark as inactive)
+   */
+  async deleteClient(clientId) {
+    try {
+      await api.delete(`/admin/clients/${clientId}`);
+      return true;
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      throw new Error('Failed to delete client');
+    }
+  }
+  
+  /**
+   * Assign trainer to client
+   */
+  async assignTrainer(clientId, trainerId) {
+    try {
+      const response = await api.post(`/admin/clients/${clientId}/assign-trainer`, {
+        trainerId
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error assigning trainer:', error);
+      throw new Error('Failed to assign trainer');
+    }
+  }
+  
+  /**
+   * Reset client password
+   */
+  async resetClientPassword(clientId) {
+    try {
+      const response = await api.post(`/admin/clients/${clientId}/reset-password`);
+      return response.data;
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      throw new Error('Failed to reset password');
+    }
+  }
+  
+  /**
+   * Get client workout statistics
+   */
+  async getClientWorkoutStats(clientId) {
+    try {
+      const response = await api.get(`/admin/clients/${clientId}/workout-stats`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching workout stats:', error);
+      throw new Error('Failed to fetch workout statistics');
+    }
+  }
+  
+  /**
+   * Generate workout plan for client
+   */
+  async generateWorkoutPlan(clientId, planData) {
+    try {
+      const response = await api.post(`/admin/clients/${clientId}/generate-workout-plan`, planData);
+      return response.data;
+    } catch (error) {
+      console.error('Error generating workout plan:', error);
+      throw new Error('Failed to generate workout plan');
+    }
+  }
+  
+  /**
+   * Bulk operations for multiple clients
+   */
+  async bulkUpdate(clientIds, updateData) {
+    try {
+      const response = await api.post('/admin/clients/bulk-update', {
+        clientIds,
+        updateData
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error in bulk update:', error);
+      throw new Error('Failed to update clients');
+    }
+  }
+  
+  /**
+   * Export client data
+   */
+  async exportClients(format = 'csv', filters = {}) {
+    try {
+      const response = await api.get('/admin/clients/export', {
+        params: { format, ...filters },
+        responseType: 'blob'
+      });
+      
+      // Create download link
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `clients-export-${new Date().toISOString().split('T')[0]}.${format}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      
+      return true;
+    } catch (error) {
+      console.error('Error exporting clients:', error);
+      throw new Error('Failed to export client data');
+    }
+  }
+  
+  /**
+   * Get client analytics dashboard data
+   */
+  async getClientAnalytics(timeRange = '30d') {
+    try {
+      const response = await api.get('/admin/clients/analytics', {
+        params: { timeRange }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching analytics:', error);
+      throw new Error('Failed to fetch analytics data');
+    }
+  }
+  
+  /**
+   * Search clients with advanced filters
+   */
+  async searchClients(searchQuery, filters = {}) {
+    try {
+      const response = await api.get('/admin/clients/search', {
+        params: {
+          q: searchQuery,
+          ...filters
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error searching clients:', error);
+      throw new Error('Failed to search clients');
+    }
+  }
+  
+  /**
+   * Get client session history
+   */
+  async getClientSessions(clientId, params = {}) {
+    try {
+      const response = await api.get(`/admin/clients/${clientId}/sessions`, { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching client sessions:', error);
+      throw new Error('Failed to fetch client sessions');
+    }
+  }
+  
+  /**
+   * Get client payment history
+   */
+  async getClientPayments(clientId, params = {}) {
+    try {
+      const response = await api.get(`/admin/clients/${clientId}/payments`, { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching client payments:', error);
+      throw new Error('Failed to fetch client payments');
+    }
+  }
+  
+  /**
+   * Add sessions to client account
+   */
+  async addSessions(clientId, sessionCount, packageId = null) {
+    try {
+      const response = await api.post(`/admin/clients/${clientId}/add-sessions`, {
+        sessionCount,
+        packageId
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error adding sessions:', error);
+      throw new Error('Failed to add sessions');
+    }
+  }
+  
+  /**
+   * Get MCP (AI) system status for client features
+   */
+  async getMCPStatus() {
+    try {
+      const response = await api.get('/admin/mcp-status');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching MCP status:', error);
+      // Don't throw error for MCP status - it's not critical
+      return { status: 'unavailable' };
+    }
+  }
+  
+  // ==================== UTILITY FUNCTIONS ====================
+  
+  /**
+   * Generate temporary password for new clients
+   */
+  generateTempPassword() {
+    const length = 12;
+    const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+    let password = '';
+    
+    // Ensure at least one of each type
+    password += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random() * 26)];
+    password += 'abcdefghijklmnopqrstuvwxyz'[Math.floor(Math.random() * 26)];
+    password += '0123456789'[Math.floor(Math.random() * 10)];
+    password += '!@#$%^&*'[Math.floor(Math.random() * 8)];
+    
+    // Fill remaining length
+    for (let i = 4; i < length; i++) {
+      password += charset[Math.floor(Math.random() * charset.length)];
+    }
+    
+    // Shuffle the password
+    return password.split('').sort(() => Math.random() - 0.5).join('');
+  }
+  
+  /**
+   * Format client data for display
+   */
+  formatClientData(client) {
+    return {
+      ...client,
+      fullName: `${client.firstName} ${client.lastName}`,
+      age: client.dateOfBirth ? this.calculateAge(client.dateOfBirth) : null,
+      memberSince: client.createdAt ? new Date(client.createdAt).getFullYear() : null,
+      lastActivity: client.lastActivity ? new Date(client.lastActivity) : null
+    };
+  }
+  
+  /**
+   * Calculate age from date of birth
+   */
+  calculateAge(dateOfBirth) {
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
+  }
+  
+  /**
+   * Validate client data before submission
+   */
+  validateClientData(clientData) {
+    const errors = {};
+    
+    // Required fields
+    if (!clientData.firstName?.trim()) {
+      errors.firstName = 'First name is required';
+    }
+    
+    if (!clientData.lastName?.trim()) {
+      errors.lastName = 'Last name is required';
+    }
+    
+    if (!clientData.email?.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(clientData.email)) {
+      errors.email = 'Please enter a valid email address';
+    }
+    
+    if (!clientData.phone?.trim()) {
+      errors.phone = 'Phone number is required';
+    }
+    
+    if (!clientData.dateOfBirth) {
+      errors.dateOfBirth = 'Date of birth is required';
+    }
+    
+    return {
+      isValid: Object.keys(errors).length === 0,
+      errors
+    };
+  }
+}
+
+// Export singleton instance
+export const adminClientService = new AdminClientService();
+export default adminClientService;
