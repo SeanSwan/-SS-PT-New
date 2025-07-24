@@ -1,1 +1,331 @@
-/**\n * Mobile Workout Logger Styles\n * ============================\n * \n * Specialized styles for the mobile workout logging interface\n * Optimized for tablet and smartphone use in gym environments\n */\n\n/* ==========================================================================\n   MOBILE WORKOUT LOGGER LAYOUT\n   ========================================================================== */\n\n.mobile-workout-container {\n  display: flex;\n  flex-direction: column;\n  height: 100vh;\n  height: -webkit-fill-available;\n  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);\n  color: #f8fafc;\n  position: relative;\n  overflow: hidden;\n  user-select: none;\n  -webkit-user-select: none;\n  -webkit-touch-callout: none;\n  -webkit-tap-highlight-color: transparent;\n}\n\n/* Mobile header */\n.mobile-workout-header {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: var(--space-md) var(--mobile-padding);\n  background: rgba(30, 41, 59, 0.95);\n  backdrop-filter: blur(10px);\n  border-bottom: 1px solid rgba(71, 85, 105, 0.3);\n  position: sticky;\n  top: 0;\n  z-index: var(--z-mobile-sticky);\n  min-height: 60px;\n  \n  /* Safe area support */\n  padding-top: max(var(--space-md), env(safe-area-inset-top));\n  padding-left: max(var(--mobile-padding), env(safe-area-inset-left));\n  padding-right: max(var(--mobile-padding), env(safe-area-inset-right));\n}\n\n/* Client info section */\n.mobile-client-info {\n  display: flex;\n  align-items: center;\n  gap: var(--space-sm);\n  flex: 1;\n  min-width: 0;\n}\n\n.mobile-client-avatar {\n  width: 40px;\n  height: 40px;\n  border-radius: 50%;\n  background: linear-gradient(135deg, var(--primary-mobile), var(--primary-dark));\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  font-weight: 600;\n  font-size: 16px;\n  color: white;\n  flex-shrink: 0;\n}\n\n.mobile-client-details {\n  flex: 1;\n  min-width: 0;\n}\n\n.mobile-client-name {\n  margin: 0;\n  font-size: 18px;\n  font-weight: 600;\n  line-height: 1.2;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n.mobile-session-info {\n  margin: 0;\n  font-size: 14px;\n  color: #94a3b8;\n  line-height: 1.2;\n  white-space: nowrap;\n  overflow: hidden;\n  text-overflow: ellipsis;\n}\n\n/* Header actions */\n.mobile-header-actions {\n  display: flex;\n  align-items: center;\n  gap: var(--space-sm);\n  flex-shrink: 0;\n}\n\n/* ==========================================================================\n   MOBILE ICON BUTTONS\n   ========================================================================== */\n\n.mobile-icon-button {\n  width: var(--touch-target-min);\n  height: var(--touch-target-min);\n  border-radius: var(--mobile-border-radius);\n  border: none;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  cursor: pointer;\n  transition: all var(--transition-mobile-normal);\n  touch-action: manipulation;\n  background: var(--secondary-mobile);\n  color: #ffffff;\n  \n  /* Prevent text selection */\n  -webkit-user-select: none;\n  user-select: none;\n}\n\n.mobile-icon-button:hover {\n  transform: translateY(-1px);\n  box-shadow: var(--shadow-mobile-md);\n}\n\n.mobile-icon-button:active {\n  transform: translateY(0) scale(0.95);\n}\n\n.mobile-icon-button.active {\n  background: var(--primary-mobile);\n  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);\n}\n\n.mobile-icon-button.success {\n  background: var(--success-mobile);\n}\n\n.mobile-icon-button.warning {\n  background: var(--warning-mobile);\n}\n\n.mobile-icon-button.danger {\n  background: var(--error-mobile);\n}\n\n/* Large icon buttons */\n.mobile-icon-button-large {\n  width: var(--touch-target-large);\n  height: var(--touch-target-large);\n}\n\n/* Small icon buttons */\n.mobile-icon-button-small {\n  width: 36px;\n  height: 36px;\n  font-size: 16px;\n}\n\n/* ==========================================================================\n   SWIPEABLE EXERCISE CONTAINER\n   ========================================================================== */\n\n.mobile-swipeable-container {\n  flex: 1;\n  position: relative;\n  overflow: hidden;\n  touch-action: pan-y;\n}\n\n.mobile-exercise-card {\n  position: absolute;\n  top: 0;\n  left: 0;\n  right: 0;\n  bottom: 0;\n  background: rgba(51, 65, 85, 0.9);\n  border-radius: var(--mobile-border-radius-lg) var(--mobile-border-radius-lg) 0 0;\n  padding: var(--space-lg) var(--mobile-padding);\n  margin: 0 var(--space-md);\n  backdrop-filter: blur(10px);\n  border: 1px solid rgba(71, 85, 105, 0.3);\n  overflow-y: auto;\n  -webkit-overflow-scrolling: touch;\n  \n  /* Safe area support */\n  margin-left: max(var(--space-md), env(safe-area-inset-left));\n  margin-right: max(var(--space-md), env(safe-area-inset-right));\n}\n\n/* Exercise header */\n.mobile-exercise-header {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  margin-bottom: var(--space-lg);\n  padding-bottom: var(--space-md);\n  border-bottom: 1px solid rgba(71, 85, 105, 0.3);\n}\n\n.mobile-exercise-title {\n  margin: 0;\n  font-size: 20px;\n  font-weight: 600;\n  color: var(--primary-mobile);\n  flex: 1;\n  min-width: 0;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n.mobile-exercise-nav {\n  display: flex;\n  align-items: center;\n  gap: var(--space-sm);\n  flex-shrink: 0;\n}\n\n.mobile-exercise-counter {\n  font-size: 14px;\n  color: #94a3b8;\n  min-width: 40px;\n  text-align: center;\n}\n\n/* ==========================================================================\n   MOBILE SET CARDS\n   ========================================================================== */\n\n.mobile-sets-list {\n  display: flex;\n  flex-direction: column;\n  gap: var(--space-md);\n  margin-bottom: var(--space-lg);\n}\n\n.mobile-set-card {\n  background: rgba(71, 85, 105, 0.5);\n  border: 1px solid rgba(71, 85, 105, 0.5);\n  border-radius: var(--mobile-border-radius-lg);\n  padding: var(--space-lg);\n  position: relative;\n  overflow: hidden;\n  transition: all var(--transition-mobile-normal);\n}\n\n.mobile-set-card.completed {\n  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.1));\n  border-color: var(--success-mobile);\n}\n\n.mobile-set-card::before {\n  content: '';\n  position: absolute;\n  top: 0;\n  left: 0;\n  right: 0;\n  height: 3px;\n  background: linear-gradient(90deg, var(--primary-mobile), var(--primary-dark));\n}\n\n.mobile-set-card.completed::before {\n  background: linear-gradient(90deg, var(--success-mobile), #059669);\n}\n\n/* Set header */\n.mobile-set-header {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  margin-bottom: var(--space-md);\n}\n\n.mobile-set-number {\n  display: flex;\n  align-items: center;\n  gap: var(--space-sm);\n  font-size: 18px;\n  font-weight: 600;\n}\n\n.mobile-set-actions {\n  display: flex;\n  gap: var(--space-sm);\n}\n\n/* ==========================================================================\n   MOBILE INPUT GRID\n   ========================================================================== */\n\n.mobile-set-inputs {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: var(--space-sm);\n  margin-bottom: var(--space-md);\n}\n\n/* Single column on very small screens */\n@media (max-width: 360px) {\n  .mobile-set-inputs {\n    grid-template-columns: 1fr;\n    gap: var(--space-xs);\n  }\n}\n\n.mobile-input-group {\n  display: flex;\n  flex-direction: column;\n  gap: var(--space-xs);\n}\n\n.mobile-input-label {\n  font-size: 14px;\n  font-weight: 500;\n  color: #cbd5e1;\n  margin: 0;\n}\n\n.mobile-touch-input {\n  width: 100%;\n  height: var(--touch-target-comfortable);\n  padding: 0 var(--space-md);\n  background: rgba(71, 85, 105, 0.8);\n  border: 2px solid rgba(71, 85, 105, 0.5);\n  border-radius: var(--mobile-border-radius);\n  color: #f8fafc;\n  font-size: 16px; /* Prevent zoom on iOS */\n  font-weight: 500;\n  transition: all var(--transition-mobile-fast);\n  \n  /* Prevent zoom and improve mobile experience */\n  -webkit-appearance: none;\n  appearance: none;\n  \n  /* Remove spinner buttons on number inputs */\n  -moz-appearance: textfield;\n}\n\n.mobile-touch-input::-webkit-outer-spin-button,\n.mobile-touch-input::-webkit-inner-spin-button {\n  -webkit-appearance: none;\n  margin: 0;\n}\n\n.mobile-touch-input:focus {\n  outline: none;\n  border-color: var(--primary-mobile);\n  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);\n}\n\n.mobile-touch-input::placeholder {\n  color: #94a3b8;\n}\n\n.mobile-touch-input:disabled {\n  opacity: 0.6;\n  cursor: not-allowed;\n}\n\n/* ==========================================================================\n   MOBILE SLIDERS & RATINGS\n   ========================================================================== */\n\n.mobile-slider-container {\n  display: flex;\n  flex-direction: column;\n  gap: var(--space-sm);\n  grid-column: 1 / -1;\n}\n\n.mobile-slider-track {\n  position: relative;\n  height: 8px;\n  background: rgba(71, 85, 105, 0.5);\n  border-radius: 4px;\n  overflow: hidden;\n  cursor: pointer;\n}\n\n.mobile-slider-fill {\n  position: absolute;\n  top: 0;\n  left: 0;\n  height: 100%;\n  background: linear-gradient(90deg, var(--primary-mobile), var(--primary-dark));\n  border-radius: 4px;\n  transition: width var(--transition-mobile-fast);\n}\n\n.mobile-slider-thumb {\n  position: absolute;\n  top: 50%;\n  width: 24px;\n  height: 24px;\n  background: var(--primary-mobile);\n  border: 3px solid #ffffff;\n  border-radius: 50%;\n  transform: translate(-50%, -50%);\n  cursor: pointer;\n  transition: all var(--transition-mobile-fast);\n  touch-action: pan-x;\n}\n\n.mobile-slider-thumb:hover,\n.mobile-slider-thumb:active {\n  transform: translate(-50%, -50%) scale(1.2);\n}\n\n/* Star rating */\n.mobile-star-rating {\n  display: flex;\n  gap: 4px;\n  align-items: center;\n}\n\n.mobile-star-button {\n  width: 32px;\n  height: 32px;\n  border: none;\n  background: none;\n  cursor: pointer;\n  color: #64748b;\n  transition: all var(--transition-mobile-fast);\n  touch-action: manipulation;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n}\n\n.mobile-star-button.filled {\n  color: var(--warning-mobile);\n}\n\n.mobile-star-button:hover,\n.mobile-star-button:active {\n  color: var(--warning-mobile);\n  transform: scale(1.1);\n}\n\n.mobile-star-button:disabled {\n  opacity: 0.6;\n  cursor: not-allowed;\n  transform: none;\n}\n\n/* ==========================================================================\n   MOBILE ACTION BUTTONS\n   ========================================================================== */\n\n.mobile-bottom-actions {\n  padding: var(--space-lg);\n  background: rgba(30, 41, 59, 0.95);\n  backdrop-filter: blur(10px);\n  border-top: 1px solid rgba(71, 85, 105, 0.3);\n  display: flex;\n  gap: var(--space-sm);\n  \n  /* Safe area support */\n  padding-bottom: max(var(--space-lg), env(safe-area-inset-bottom));\n  padding-left: max(var(--space-lg), env(safe-area-inset-left));\n  padding-right: max(var(--space-lg), env(safe-area-inset-right));\n}\n\n.mobile-action-button {\n  flex: 1;\n  height: var(--touch-target-large);\n  border-radius: var(--mobile-border-radius-lg);\n  border: none;\n  font-size: 16px;\n  font-weight: 600;\n  cursor: pointer;\n  transition: all var(--transition-mobile-normal);\n  touch-action: manipulation;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: var(--space-sm);\n  background: var(--primary-mobile);\n  color: #ffffff;\n}\n\n.mobile-action-button.secondary {\n  background: var(--secondary-mobile);\n}\n\n.mobile-action-button.success {\n  background: var(--success-mobile);\n}\n\n.mobile-action-button.danger {\n  background: var(--error-mobile);\n}\n\n.mobile-action-button:hover {\n  transform: translateY(-2px);\n  box-shadow: var(--shadow-mobile-lg);\n}\n\n.mobile-action-button:active {\n  transform: translateY(0) scale(0.98);\n}\n\n.mobile-action-button:disabled {\n  opacity: 0.5;\n  cursor: not-allowed;\n  transform: none;\n}\n\n/* Add set button */\n.mobile-add-set-button {\n  width: 100%;\n  height: var(--touch-target-comfortable);\n  background: var(--secondary-mobile);\n  color: #ffffff;\n  border: 2px dashed rgba(255, 255, 255, 0.3);\n  border-radius: var(--mobile-border-radius);\n  font-size: 16px;\n  font-weight: 500;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: var(--space-sm);\n  cursor: pointer;\n  transition: all var(--transition-mobile-normal);\n  touch-action: manipulation;\n}\n\n.mobile-add-set-button:hover {\n  background: #475569;\n  border-color: rgba(255, 255, 255, 0.5);\n}\n\n.mobile-add-set-button:active {\n  transform: scale(0.98);\n}\n\n/* ==========================================================================\n   MOBILE VOICE INPUT & FEEDBACK\n   ========================================================================== */\n\n.mobile-voice-input {\n  position: fixed;\n  bottom: 24px;\n  left: 50%;\n  transform: translateX(-50%);\n  background: var(--error-mobile);\n  color: white;\n  padding: var(--space-md) var(--space-lg);\n  border-radius: 24px;\n  box-shadow: var(--shadow-mobile-xl);\n  backdrop-filter: blur(10px);\n  border: 1px solid rgba(255, 255, 255, 0.2);\n  display: flex;\n  align-items: center;\n  gap: var(--space-sm);\n  z-index: var(--z-mobile-modal);\n  max-width: calc(100vw - 48px);\n}\n\n.mobile-voice-input.listening {\n  background: var(--error-mobile);\n  animation: breathe 2s infinite;\n}\n\n.mobile-voice-input.idle {\n  background: var(--primary-mobile);\n}\n\n@keyframes breathe {\n  0%, 100% {\n    transform: translateX(-50%) scale(1);\n  }\n  50% {\n    transform: translateX(-50%) scale(1.05);\n  }\n}\n\n.mobile-voice-text {\n  font-size: 14px;\n  font-weight: 500;\n  max-width: 200px;\n  overflow: hidden;\n  text-overflow: ellipsis;\n  white-space: nowrap;\n}\n\n/* ==========================================================================\n   MOBILE STATUS INDICATORS\n   ========================================================================== */\n\n.mobile-offline-indicator {\n  position: absolute;\n  top: var(--space-md);\n  right: var(--space-md);\n  background: rgba(239, 68, 68, 0.9);\n  color: white;\n  padding: var(--space-xs) var(--space-sm);\n  border-radius: 20px;\n  font-size: 12px;\n  font-weight: 500;\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  z-index: var(--z-mobile-toast);\n  backdrop-filter: blur(10px);\n}\n\n.mobile-autosave-indicator {\n  position: fixed;\n  top: calc(80px + env(safe-area-inset-top));\n  right: var(--mobile-padding);\n  background: rgba(16, 185, 129, 0.9);\n  color: white;\n  padding: var(--space-xs) var(--space-sm);\n  border-radius: 20px;\n  font-size: 12px;\n  font-weight: 500;\n  display: flex;\n  align-items: center;\n  gap: 6px;\n  z-index: var(--z-mobile-toast);\n  backdrop-filter: blur(10px);\n  pointer-events: none;\n  transition: opacity var(--transition-mobile-normal);\n}\n\n/* ==========================================================================\n   MOBILE WORKOUT TIMER\n   ========================================================================== */\n\n.mobile-timer-display {\n  font-family: 'Courier New', monospace;\n  font-size: 14px;\n  font-weight: 600;\n  color: #cbd5e1;\n  background: rgba(71, 85, 105, 0.3);\n  padding: 4px 8px;\n  border-radius: 6px;\n  min-width: 60px;\n  text-align: center;\n}\n\n/* ==========================================================================\n   MOBILE ACCESSIBILITY ENHANCEMENTS\n   ========================================================================== */\n\n/* High contrast mode adjustments */\n@media (prefers-contrast: high) {\n  .mobile-set-card {\n    border-width: 2px;\n  }\n  \n  .mobile-touch-input {\n    border-width: 3px;\n  }\n  \n  .mobile-action-button {\n    border: 2px solid rgba(255, 255, 255, 0.5);\n  }\n}\n\n/* Reduced motion adjustments */\n@media (prefers-reduced-motion: reduce) {\n  .mobile-exercise-card {\n    transition: none;\n  }\n  \n  .mobile-voice-input.listening {\n    animation: none;\n  }\n  \n  .mobile-slider-thumb:hover,\n  .mobile-slider-thumb:active {\n    transform: translate(-50%, -50%);\n  }\n}\n\n/* Focus management for keyboard users */\n.mobile-workout-container:focus-within .mobile-touch-input:focus {\n  z-index: var(--z-mobile-popover);\n}\n\n/* ==========================================================================\n   MOBILE WORKOUT PERFORMANCE OPTIMIZATIONS\n   ========================================================================== */\n\n/* GPU acceleration for smooth scrolling */\n.mobile-exercise-card {\n  transform: translateZ(0);\n  will-change: transform;\n}\n\n/* Optimize touch interactions */\n.mobile-swipeable-container {\n  contain: layout style paint;\n}\n\n/* Improve scrolling performance */\n.mobile-sets-list {\n  contain: layout;\n}\n\n/* ==========================================================================\n   MOBILE WORKOUT RESPONSIVE BREAKPOINTS\n   ========================================================================== */\n\n/* Small phones (320px - 359px) */\n@media (max-width: 359px) {\n  .mobile-exercise-card {\n    margin: 0 var(--space-xs);\n    padding: var(--space-md);\n  }\n  \n  .mobile-exercise-title {\n    font-size: 18px;\n  }\n  \n  .mobile-set-card {\n    padding: var(--space-md);\n  }\n}\n\n/* Large phones (360px - 479px) */\n@media (min-width: 360px) and (max-width: 479px) {\n  .mobile-exercise-title {\n    font-size: 19px;\n  }\n}\n\n/* Small tablets (480px - 767px) */\n@media (min-width: 480px) {\n  .mobile-set-inputs {\n    grid-template-columns: repeat(3, 1fr);\n  }\n  \n  .mobile-slider-container {\n    grid-column: 1 / -1;\n  }\n  \n  .mobile-star-rating {\n    grid-column: 1 / -1;\n  }\n}\n\n/* Large tablets (768px+) */\n@media (min-width: 768px) {\n  .mobile-workout-container {\n    max-width: 768px;\n    margin: 0 auto;\n    box-shadow: var(--shadow-mobile-xl);\n  }\n  \n  .mobile-set-inputs {\n    grid-template-columns: repeat(4, 1fr);\n  }\n  \n  .mobile-slider-container {\n    grid-column: 1 / 3;\n  }\n  \n  .mobile-star-rating {\n    grid-column: 3 / 5;\n    justify-content: center;\n  }\n}
+/**
+ * Mobile Workout Logger Styles
+ * ============================
+ * 
+ * Specialized styles for the mobile workout logging interface
+ * Optimized for tablet and smartphone use in gym environments
+ */
+
+/* ==========================================================================
+   MOBILE WORKOUT LOGGER LAYOUT
+   ========================================================================== */
+
+.mobile-workout-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: -webkit-fill-available;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #f8fafc;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Mobile header */
+.mobile-workout-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-md) var(--mobile-padding);
+  background: rgba(30, 41, 59, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(71, 85, 105, 0.3);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-mobile-sticky);
+  min-height: 60px;
+}
+
+/* Client info section */
+.mobile-client-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-client-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-mobile), var(--primary-dark));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 16px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.mobile-client-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-client-name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-session-info {
+  margin: 0;
+  font-size: 14px;
+  color: #94a3b8;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Header actions */
+.mobile-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   MOBILE ICON BUTTONS
+   ========================================================================== */
+
+.mobile-icon-button {
+  width: var(--touch-target-min);
+  height: var(--touch-target-min);
+  border-radius: var(--mobile-border-radius);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-mobile-normal);
+  touch-action: manipulation;
+  background: var(--secondary-mobile);
+  color: #ffffff;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.mobile-icon-button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-mobile-md);
+}
+
+.mobile-icon-button:active {
+  transform: translateY(0) scale(0.95);
+}
+
+.mobile-icon-button.active {
+  background: var(--primary-mobile);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+.mobile-icon-button.success {
+  background: var(--success-mobile);
+}
+
+.mobile-icon-button.warning {
+  background: var(--warning-mobile);
+}
+
+.mobile-icon-button.danger {
+  background: var(--error-mobile);
+}
+
+/* ==========================================================================
+   MOBILE SETS & EXERCISES
+   ========================================================================== */
+
+.mobile-sets-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.mobile-set-card {
+  background: rgba(71, 85, 105, 0.5);
+  border: 1px solid rgba(71, 85, 105, 0.5);
+  border-radius: var(--mobile-border-radius-lg);
+  padding: var(--space-lg);
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-mobile-normal);
+}
+
+.mobile-set-card.completed {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.1));
+  border-color: var(--success-mobile);
+}
+
+/* ==========================================================================
+   MOBILE INPUT GRID
+   ========================================================================== */
+
+.mobile-set-inputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+@media (max-width: 360px) {
+  .mobile-set-inputs {
+    grid-template-columns: 1fr;
+    gap: var(--space-xs);
+  }
+}
+
+.mobile-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.mobile-input-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #cbd5e1;
+  margin: 0;
+}
+
+.mobile-touch-input {
+  width: 100%;
+  height: var(--touch-target-comfortable);
+  padding: 0 var(--space-md);
+  background: rgba(71, 85, 105, 0.8);
+  border: 2px solid rgba(71, 85, 105, 0.5);
+  border-radius: var(--mobile-border-radius);
+  color: #f8fafc;
+  font-size: 16px;
+  font-weight: 500;
+  transition: all var(--transition-mobile-fast);
+  -webkit-appearance: none;
+  appearance: none;
+  -moz-appearance: textfield;
+}
+
+.mobile-touch-input::-webkit-outer-spin-button,
+.mobile-touch-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.mobile-touch-input:focus {
+  outline: none;
+  border-color: var(--primary-mobile);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.mobile-touch-input::placeholder {
+  color: #94a3b8;
+}
+
+/* ==========================================================================
+   MOBILE ACTION BUTTONS
+   ========================================================================== */
+
+.mobile-bottom-actions {
+  padding: var(--space-lg);
+  background: rgba(30, 41, 59, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(71, 85, 105, 0.3);
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.mobile-action-button {
+  flex: 1;
+  height: var(--touch-target-large);
+  border-radius: var(--mobile-border-radius-lg);
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-mobile-normal);
+  touch-action: manipulation;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  background: var(--primary-mobile);
+  color: #ffffff;
+}
+
+.mobile-action-button.secondary {
+  background: var(--secondary-mobile);
+}
+
+.mobile-action-button.success {
+  background: var(--success-mobile);
+}
+
+.mobile-action-button.danger {
+  background: var(--error-mobile);
+}
+
+.mobile-action-button:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-mobile-lg);
+}
+
+.mobile-action-button:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.mobile-action-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ==========================================================================
+   MOBILE ACCESSIBILITY & RESPONSIVENESS
+   ========================================================================== */
+
+@media (prefers-contrast: high) {
+  .mobile-set-card {
+    border-width: 2px;
+  }
+  
+  .mobile-touch-input {
+    border-width: 3px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-set-card {
+    transition: none;
+  }
+}
+
+/* Small phones */
+@media (max-width: 359px) {
+  .mobile-set-card {
+    padding: var(--space-md);
+  }
+}
+
+/* Large tablets */
+@media (min-width: 768px) {
+  .mobile-workout-container {
+    max-width: 768px;
+    margin: 0 auto;
+    box-shadow: var(--shadow-mobile-xl);
+  }
+  
+  .mobile-set-inputs {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
