@@ -1,1 +1,424 @@
-import React, { createContext, useContext, useRef, useCallback, useEffect } from 'react';\n\n// Types\ninterface TouchPoint {\n  x: number;\n  y: number;\n  timestamp: number;\n}\n\ninterface GestureState {\n  isActive: boolean;\n  startPoint: TouchPoint | null;\n  currentPoint: TouchPoint | null;\n  velocity: { x: number; y: number };\n  distance: number;\n  duration: number;\n  direction: 'up' | 'down' | 'left' | 'right' | null;\n}\n\ninterface GestureCallbacks {\n  onSwipeLeft?: (gesture: GestureState) => void;\n  onSwipeRight?: (gesture: GestureState) => void;\n  onSwipeUp?: (gesture: GestureState) => void;\n  onSwipeDown?: (gesture: GestureState) => void;\n  onTap?: (point: TouchPoint) => void;\n  onDoubleTap?: (point: TouchPoint) => void;\n  onLongPress?: (point: TouchPoint) => void;\n  onPinchStart?: (scale: number) => void;\n  onPinchMove?: (scale: number, delta: number) => void;\n  onPinchEnd?: (scale: number) => void;\n}\n\ninterface GestureOptions {\n  swipeThreshold?: number;\n  velocityThreshold?: number;\n  longPressDelay?: number;\n  doubleTapDelay?: number;\n  enablePinch?: boolean;\n  enableSwipe?: boolean;\n  enableTap?: boolean;\n  enableLongPress?: boolean;\n}\n\nconst defaultOptions: Required<GestureOptions> = {\n  swipeThreshold: 50,\n  velocityThreshold: 0.3,\n  longPressDelay: 500,\n  doubleTapDelay: 300,\n  enablePinch: true,\n  enableSwipe: true,\n  enableTap: true,\n  enableLongPress: true,\n};\n\n// Context\ninterface TouchGestureContextType {\n  registerElement: (element: HTMLElement, callbacks: GestureCallbacks, options?: GestureOptions) => () => void;\n  hapticFeedback: (type: 'light' | 'medium' | 'heavy') => void;\n  isTouch: boolean;\n}\n\nconst TouchGestureContext = createContext<TouchGestureContextType | null>(null);\n\n// Hook\nexport const useTouchGesture = () => {\n  const context = useContext(TouchGestureContext);\n  if (!context) {\n    throw new Error('useTouchGesture must be used within a TouchGestureProvider');\n  }\n  return context;\n};\n\n// Helper functions\nconst getDistance = (point1: TouchPoint, point2: TouchPoint): number => {\n  const dx = point2.x - point1.x;\n  const dy = point2.y - point1.y;\n  return Math.sqrt(dx * dx + dy * dy);\n};\n\nconst getDirection = (start: TouchPoint, end: TouchPoint): 'up' | 'down' | 'left' | 'right' => {\n  const dx = end.x - start.x;\n  const dy = end.y - start.y;\n  \n  if (Math.abs(dx) > Math.abs(dy)) {\n    return dx > 0 ? 'right' : 'left';\n  } else {\n    return dy > 0 ? 'down' : 'up';\n  }\n};\n\nconst getVelocity = (start: TouchPoint, end: TouchPoint): { x: number; y: number } => {\n  const dt = end.timestamp - start.timestamp;\n  if (dt === 0) return { x: 0, y: 0 };\n  \n  return {\n    x: (end.x - start.x) / dt,\n    y: (end.y - start.y) / dt,\n  };\n};\n\nconst getTouchPoint = (touch: Touch): TouchPoint => ({\n  x: touch.clientX,\n  y: touch.clientY,\n  timestamp: Date.now(),\n});\n\nconst getPinchDistance = (touches: TouchList): number => {\n  if (touches.length < 2) return 0;\n  const point1 = getTouchPoint(touches[0]);\n  const point2 = getTouchPoint(touches[1]);\n  return getDistance(point1, point2);\n};\n\n// Main Provider Component\ninterface TouchGestureProviderProps {\n  children: React.ReactNode;\n}\n\nconst TouchGestureProvider: React.FC<TouchGestureProviderProps> = ({ children }) => {\n  const gestureStates = useRef(new Map<HTMLElement, {\n    state: GestureState;\n    callbacks: GestureCallbacks;\n    options: Required<GestureOptions>;\n    timers: {\n      longPress?: NodeJS.Timeout;\n      doubleTap?: NodeJS.Timeout;\n    };\n    lastTap?: TouchPoint;\n    pinchState?: {\n      initialDistance: number;\n      currentScale: number;\n    };\n  }>());\n  \n  const isTouch = useRef(false);\n\n  // Check for touch support\n  useEffect(() => {\n    isTouch.current = 'ontouchstart' in window || navigator.maxTouchPoints > 0;\n  }, []);\n\n  // Haptic feedback function\n  const hapticFeedback = useCallback((type: 'light' | 'medium' | 'heavy') => {\n    if ('vibrate' in navigator) {\n      const patterns = {\n        light: 10,\n        medium: 20,\n        heavy: 50,\n      };\n      navigator.vibrate(patterns[type]);\n    }\n  }, []);\n\n  const handleTouchStart = useCallback((event: TouchEvent, element: HTMLElement) => {\n    const elementState = gestureStates.current.get(element);\n    if (!elementState) return;\n\n    const { state, callbacks, options, timers } = elementState;\n    const touch = event.touches[0];\n    const point = getTouchPoint(touch);\n\n    // Clear existing timers\n    if (timers.longPress) clearTimeout(timers.longPress);\n    if (timers.doubleTap) clearTimeout(timers.doubleTap);\n\n    // Update state\n    state.isActive = true;\n    state.startPoint = point;\n    state.currentPoint = point;\n    state.velocity = { x: 0, y: 0 };\n    state.distance = 0;\n    state.duration = 0;\n    state.direction = null;\n\n    // Handle pinch gestures\n    if (options.enablePinch && event.touches.length === 2) {\n      const pinchDistance = getPinchDistance(event.touches);\n      elementState.pinchState = {\n        initialDistance: pinchDistance,\n        currentScale: 1,\n      };\n      callbacks.onPinchStart?.(1);\n      return;\n    }\n\n    // Set up long press timer\n    if (options.enableLongPress && callbacks.onLongPress) {\n      timers.longPress = setTimeout(() => {\n        if (state.isActive && state.distance < options.swipeThreshold) {\n          hapticFeedback('medium');\n          callbacks.onLongPress!(point);\n        }\n      }, options.longPressDelay);\n    }\n  }, [hapticFeedback]);\n\n  const handleTouchMove = useCallback((event: TouchEvent, element: HTMLElement) => {\n    const elementState = gestureStates.current.get(element);\n    if (!elementState || !elementState.state.isActive) return;\n\n    const { state, callbacks, options } = elementState;\n    const touch = event.touches[0];\n    const point = getTouchPoint(touch);\n\n    if (!state.startPoint) return;\n\n    // Handle pinch gestures\n    if (options.enablePinch && event.touches.length === 2 && elementState.pinchState) {\n      const currentDistance = getPinchDistance(event.touches);\n      const scale = currentDistance / elementState.pinchState.initialDistance;\n      const delta = scale - elementState.pinchState.currentScale;\n      \n      elementState.pinchState.currentScale = scale;\n      callbacks.onPinchMove?.(scale, delta);\n      return;\n    }\n\n    // Update state\n    state.currentPoint = point;\n    state.distance = getDistance(state.startPoint, point);\n    state.duration = point.timestamp - state.startPoint.timestamp;\n    state.velocity = getVelocity(state.startPoint, point);\n    state.direction = getDirection(state.startPoint, point);\n\n    // Clear long press if moved too much\n    if (state.distance > options.swipeThreshold && elementState.timers.longPress) {\n      clearTimeout(elementState.timers.longPress);\n      elementState.timers.longPress = undefined;\n    }\n\n    // Prevent default scrolling for certain gestures\n    if (state.distance > 10) {\n      event.preventDefault();\n    }\n  }, []);\n\n  const handleTouchEnd = useCallback((event: TouchEvent, element: HTMLElement) => {\n    const elementState = gestureStates.current.get(element);\n    if (!elementState || !elementState.state.isActive) return;\n\n    const { state, callbacks, options, timers } = elementState;\n    \n    // Handle pinch end\n    if (elementState.pinchState) {\n      callbacks.onPinchEnd?.(elementState.pinchState.currentScale);\n      elementState.pinchState = undefined;\n      state.isActive = false;\n      return;\n    }\n\n    if (!state.startPoint || !state.currentPoint) {\n      state.isActive = false;\n      return;\n    }\n\n    // Clear timers\n    if (timers.longPress) {\n      clearTimeout(timers.longPress);\n      timers.longPress = undefined;\n    }\n\n    const isSwipe = state.distance > options.swipeThreshold;\n    const hasVelocity = Math.abs(state.velocity.x) > options.velocityThreshold || \n                       Math.abs(state.velocity.y) > options.velocityThreshold;\n\n    // Handle swipe gestures\n    if (options.enableSwipe && (isSwipe || hasVelocity) && state.direction) {\n      hapticFeedback('light');\n      \n      switch (state.direction) {\n        case 'left':\n          callbacks.onSwipeLeft?.(state);\n          break;\n        case 'right':\n          callbacks.onSwipeRight?.(state);\n          break;\n        case 'up':\n          callbacks.onSwipeUp?.(state);\n          break;\n        case 'down':\n          callbacks.onSwipeDown?.(state);\n          break;\n      }\n    }\n    // Handle tap gestures\n    else if (options.enableTap && state.distance < options.swipeThreshold) {\n      const currentPoint = state.currentPoint;\n      \n      // Check for double tap\n      if (elementState.lastTap && callbacks.onDoubleTap) {\n        const timeBetween = currentPoint.timestamp - elementState.lastTap.timestamp;\n        const distanceBetween = getDistance(elementState.lastTap, currentPoint);\n        \n        if (timeBetween < options.doubleTapDelay && distanceBetween < 50) {\n          hapticFeedback('medium');\n          callbacks.onDoubleTap(currentPoint);\n          elementState.lastTap = undefined;\n          if (timers.doubleTap) {\n            clearTimeout(timers.doubleTap);\n            timers.doubleTap = undefined;\n          }\n        } else {\n          elementState.lastTap = currentPoint;\n          // Single tap with delay\n          timers.doubleTap = setTimeout(() => {\n            hapticFeedback('light');\n            callbacks.onTap?.(currentPoint);\n          }, options.doubleTapDelay);\n        }\n      } else {\n        elementState.lastTap = currentPoint;\n        // Single tap with delay to check for double tap\n        if (callbacks.onDoubleTap) {\n          timers.doubleTap = setTimeout(() => {\n            hapticFeedback('light');\n            callbacks.onTap?.(currentPoint);\n          }, options.doubleTapDelay);\n        } else {\n          hapticFeedback('light');\n          callbacks.onTap?.(currentPoint);\n        }\n      }\n    }\n\n    // Reset state\n    state.isActive = false;\n    state.startPoint = null;\n    state.currentPoint = null;\n  }, [hapticFeedback]);\n\n  const registerElement = useCallback((element: HTMLElement, callbacks: GestureCallbacks, options: GestureOptions = {}) => {\n    const mergedOptions = { ...defaultOptions, ...options };\n    \n    const elementState = {\n      state: {\n        isActive: false,\n        startPoint: null,\n        currentPoint: null,\n        velocity: { x: 0, y: 0 },\n        distance: 0,\n        duration: 0,\n        direction: null,\n      } as GestureState,\n      callbacks,\n      options: mergedOptions,\n      timers: {} as any,\n    };\n\n    gestureStates.current.set(element, elementState);\n\n    // Event handlers\n    const onTouchStart = (e: TouchEvent) => handleTouchStart(e, element);\n    const onTouchMove = (e: TouchEvent) => handleTouchMove(e, element);\n    const onTouchEnd = (e: TouchEvent) => handleTouchEnd(e, element);\n    const onTouchCancel = (e: TouchEvent) => handleTouchEnd(e, element);\n\n    // Add event listeners\n    element.addEventListener('touchstart', onTouchStart, { passive: false });\n    element.addEventListener('touchmove', onTouchMove, { passive: false });\n    element.addEventListener('touchend', onTouchEnd, { passive: false });\n    element.addEventListener('touchcancel', onTouchCancel, { passive: false });\n\n    // Return cleanup function\n    return () => {\n      // Clear timers\n      if (elementState.timers.longPress) clearTimeout(elementState.timers.longPress);\n      if (elementState.timers.doubleTap) clearTimeout(elementState.timers.doubleTap);\n      \n      // Remove event listeners\n      element.removeEventListener('touchstart', onTouchStart);\n      element.removeEventListener('touchmove', onTouchMove);\n      element.removeEventListener('touchend', onTouchEnd);\n      element.removeEventListener('touchcancel', onTouchCancel);\n      \n      // Remove from state\n      gestureStates.current.delete(element);\n    };\n  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);\n\n  const contextValue: TouchGestureContextType = {\n    registerElement,\n    hapticFeedback,\n    isTouch: isTouch.current,\n  };\n\n  return (\n    <TouchGestureContext.Provider value={contextValue}>\n      {children}\n    </TouchGestureContext.Provider>\n  );\n};\n\nexport default TouchGestureProvider;\n\n// Hook for easy element registration\nexport const useElementGesture = (callbacks: GestureCallbacks, options?: GestureOptions) => {\n  const { registerElement } = useTouchGesture();\n  const elementRef = useRef<HTMLElement | null>(null);\n  const cleanupRef = useRef<(() => void) | null>(null);\n\n  const ref = useCallback((element: HTMLElement | null) => {\n    // Cleanup previous registration\n    if (cleanupRef.current) {\n      cleanupRef.current();\n      cleanupRef.current = null;\n    }\n\n    // Register new element\n    if (element) {\n      elementRef.current = element;\n      cleanupRef.current = registerElement(element, callbacks, options);\n    }\n  }, [registerElement, callbacks, options]);\n\n  useEffect(() => {\n    return () => {\n      if (cleanupRef.current) {\n        cleanupRef.current();\n      }\n    };\n  }, []);\n\n  return ref;\n};
+import React, { createContext, useContext, useRef, useCallback, useEffect } from 'react';
+
+// Types
+interface TouchPoint {
+  x: number;
+  y: number;
+  timestamp: number;
+}
+
+interface GestureState {
+  isActive: boolean;
+  startPoint: TouchPoint | null;
+  currentPoint: TouchPoint | null;
+  velocity: { x: number; y: number };
+  distance: number;
+  duration: number;
+  direction: 'up' | 'down' | 'left' | 'right' | null;
+}
+
+interface GestureCallbacks {
+  onSwipeLeft?: (gesture: GestureState) => void;
+  onSwipeRight?: (gesture: GestureState) => void;
+  onSwipeUp?: (gesture: GestureState) => void;
+  onSwipeDown?: (gesture: GestureState) => void;
+  onTap?: (point: TouchPoint) => void;
+  onDoubleTap?: (point: TouchPoint) => void;
+  onLongPress?: (point: TouchPoint) => void;
+  onPinchStart?: (scale: number) => void;
+  onPinchMove?: (scale: number, delta: number) => void;
+  onPinchEnd?: (scale: number) => void;
+}
+
+interface GestureOptions {
+  swipeThreshold?: number;
+  velocityThreshold?: number;
+  longPressDelay?: number;
+  doubleTapDelay?: number;
+  enablePinch?: boolean;
+  enableSwipe?: boolean;
+  enableTap?: boolean;
+  enableLongPress?: boolean;
+}
+
+const defaultOptions: Required<GestureOptions> = {
+  swipeThreshold: 50,
+  velocityThreshold: 0.3,
+  longPressDelay: 500,
+  doubleTapDelay: 300,
+  enablePinch: true,
+  enableSwipe: true,
+  enableTap: true,
+  enableLongPress: true,
+};
+
+// Context
+interface TouchGestureContextType {
+  registerElement: (element: HTMLElement, callbacks: GestureCallbacks, options?: GestureOptions) => () => void;
+  hapticFeedback: (type: 'light' | 'medium' | 'heavy') => void;
+  isTouch: boolean;
+}
+
+const TouchGestureContext = createContext<TouchGestureContextType | null>(null);
+
+// Hook
+export const useTouchGesture = () => {
+  const context = useContext(TouchGestureContext);
+  if (!context) {
+    throw new Error('useTouchGesture must be used within a TouchGestureProvider');
+  }
+  return context;
+};
+
+// Helper functions
+const getDistance = (point1: TouchPoint, point2: TouchPoint): number => {
+  const dx = point2.x - point1.x;
+  const dy = point2.y - point1.y;
+  return Math.sqrt(dx * dx + dy * dy);
+};
+
+const getDirection = (start: TouchPoint, end: TouchPoint): 'up' | 'down' | 'left' | 'right' => {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  
+  if (Math.abs(dx) > Math.abs(dy)) {
+    return dx > 0 ? 'right' : 'left';
+  } else {
+    return dy > 0 ? 'down' : 'up';
+  }
+};
+
+const getVelocity = (start: TouchPoint, end: TouchPoint): { x: number; y: number } => {
+  const dt = end.timestamp - start.timestamp;
+  if (dt === 0) return { x: 0, y: 0 };
+  
+  return {
+    x: (end.x - start.x) / dt,
+    y: (end.y - start.y) / dt,
+  };
+};
+
+const getTouchPoint = (touch: Touch): TouchPoint => ({
+  x: touch.clientX,
+  y: touch.clientY,
+  timestamp: Date.now(),
+});
+
+const getPinchDistance = (touches: TouchList): number => {
+  if (touches.length < 2) return 0;
+  const point1 = getTouchPoint(touches[0]);
+  const point2 = getTouchPoint(touches[1]);
+  return getDistance(point1, point2);
+};
+
+// Main Provider Component
+interface TouchGestureProviderProps {
+  children: React.ReactNode;
+}
+
+const TouchGestureProvider: React.FC<TouchGestureProviderProps> = ({ children }) => {
+  const gestureStates = useRef(new Map<HTMLElement, {
+    state: GestureState;
+    callbacks: GestureCallbacks;
+    options: Required<GestureOptions>;
+    timers: {
+      longPress?: NodeJS.Timeout;
+      doubleTap?: NodeJS.Timeout;
+    };
+    lastTap?: TouchPoint;
+    pinchState?: {
+      initialDistance: number;
+      currentScale: number;
+    };
+  }>());
+  
+  const isTouch = useRef(false);
+
+  // Check for touch support
+  useEffect(() => {
+    isTouch.current = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  }, []);
+
+  // Haptic feedback function
+  const hapticFeedback = useCallback((type: 'light' | 'medium' | 'heavy') => {
+    if ('vibrate' in navigator) {
+      const patterns = {
+        light: 10,
+        medium: 20,
+        heavy: 50,
+      };
+      navigator.vibrate(patterns[type]);
+    }
+  }, []);
+
+  const handleTouchStart = useCallback((event: TouchEvent, element: HTMLElement) => {
+    const elementState = gestureStates.current.get(element);
+    if (!elementState) return;
+
+    const { state, callbacks, options, timers } = elementState;
+    const touch = event.touches[0];
+    const point = getTouchPoint(touch);
+
+    // Clear existing timers
+    if (timers.longPress) clearTimeout(timers.longPress);
+    if (timers.doubleTap) clearTimeout(timers.doubleTap);
+
+    // Update state
+    state.isActive = true;
+    state.startPoint = point;
+    state.currentPoint = point;
+    state.velocity = { x: 0, y: 0 };
+    state.distance = 0;
+    state.duration = 0;
+    state.direction = null;
+
+    // Handle pinch gestures
+    if (options.enablePinch && event.touches.length === 2) {
+      const pinchDistance = getPinchDistance(event.touches);
+      elementState.pinchState = {
+        initialDistance: pinchDistance,
+        currentScale: 1,
+      };
+      callbacks.onPinchStart?.(1);
+      return;
+    }
+
+    // Set up long press timer
+    if (options.enableLongPress && callbacks.onLongPress) {
+      timers.longPress = setTimeout(() => {
+        if (state.isActive && state.distance < options.swipeThreshold) {
+          hapticFeedback('medium');
+          callbacks.onLongPress!(point);
+        }
+      }, options.longPressDelay);
+    }
+  }, [hapticFeedback]);
+
+  const handleTouchMove = useCallback((event: TouchEvent, element: HTMLElement) => {
+    const elementState = gestureStates.current.get(element);
+    if (!elementState || !elementState.state.isActive) return;
+
+    const { state, callbacks, options } = elementState;
+    const touch = event.touches[0];
+    const point = getTouchPoint(touch);
+
+    if (!state.startPoint) return;
+
+    // Handle pinch gestures
+    if (options.enablePinch && event.touches.length === 2 && elementState.pinchState) {
+      const currentDistance = getPinchDistance(event.touches);
+      const scale = currentDistance / elementState.pinchState.initialDistance;
+      const delta = scale - elementState.pinchState.currentScale;
+      
+      elementState.pinchState.currentScale = scale;
+      callbacks.onPinchMove?.(scale, delta);
+      return;
+    }
+
+    // Update state
+    state.currentPoint = point;
+    state.distance = getDistance(state.startPoint, point);
+    state.duration = point.timestamp - state.startPoint.timestamp;
+    state.velocity = getVelocity(state.startPoint, point);
+    state.direction = getDirection(state.startPoint, point);
+
+    // Clear long press if moved too much
+    if (state.distance > options.swipeThreshold && elementState.timers.longPress) {
+      clearTimeout(elementState.timers.longPress);
+      elementState.timers.longPress = undefined;
+    }
+
+    // Prevent default scrolling for certain gestures
+    if (state.distance > 10) {
+      event.preventDefault();
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback((event: TouchEvent, element: HTMLElement) => {
+    const elementState = gestureStates.current.get(element);
+    if (!elementState || !elementState.state.isActive) return;
+
+    const { state, callbacks, options, timers } = elementState;
+    
+    // Handle pinch end
+    if (elementState.pinchState) {
+      callbacks.onPinchEnd?.(elementState.pinchState.currentScale);
+      elementState.pinchState = undefined;
+      state.isActive = false;
+      return;
+    }
+
+    if (!state.startPoint || !state.currentPoint) {
+      state.isActive = false;
+      return;
+    }
+
+    // Clear timers
+    if (timers.longPress) {
+      clearTimeout(timers.longPress);
+      timers.longPress = undefined;
+    }
+
+    const isSwipe = state.distance > options.swipeThreshold;
+    const hasVelocity = Math.abs(state.velocity.x) > options.velocityThreshold || 
+                       Math.abs(state.velocity.y) > options.velocityThreshold;
+
+    // Handle swipe gestures
+    if (options.enableSwipe && (isSwipe || hasVelocity) && state.direction) {
+      hapticFeedback('light');
+      
+      switch (state.direction) {
+        case 'left':
+          callbacks.onSwipeLeft?.(state);
+          break;
+        case 'right':
+          callbacks.onSwipeRight?.(state);
+          break;
+        case 'up':
+          callbacks.onSwipeUp?.(state);
+          break;
+        case 'down':
+          callbacks.onSwipeDown?.(state);
+          break;
+      }
+    }
+    // Handle tap gestures
+    else if (options.enableTap && state.distance < options.swipeThreshold) {
+      const currentPoint = state.currentPoint;
+      
+      // Check for double tap
+      if (elementState.lastTap && callbacks.onDoubleTap) {
+        const timeBetween = currentPoint.timestamp - elementState.lastTap.timestamp;
+        const distanceBetween = getDistance(elementState.lastTap, currentPoint);
+        
+        if (timeBetween < options.doubleTapDelay && distanceBetween < 50) {
+          hapticFeedback('medium');
+          callbacks.onDoubleTap(currentPoint);
+          elementState.lastTap = undefined;
+          if (timers.doubleTap) {
+            clearTimeout(timers.doubleTap);
+            timers.doubleTap = undefined;
+          }
+        } else {
+          elementState.lastTap = currentPoint;
+          // Single tap with delay
+          timers.doubleTap = setTimeout(() => {
+            hapticFeedback('light');
+            callbacks.onTap?.(currentPoint);
+          }, options.doubleTapDelay);
+        }
+      } else {
+        elementState.lastTap = currentPoint;
+        // Single tap with delay to check for double tap
+        if (callbacks.onDoubleTap) {
+          timers.doubleTap = setTimeout(() => {
+            hapticFeedback('light');
+            callbacks.onTap?.(currentPoint);
+          }, options.doubleTapDelay);
+        } else {
+          hapticFeedback('light');
+          callbacks.onTap?.(currentPoint);
+        }
+      }
+    }
+
+    // Reset state
+    state.isActive = false;
+    state.startPoint = null;
+    state.currentPoint = null;
+  }, [hapticFeedback]);
+
+  const registerElement = useCallback((element: HTMLElement, callbacks: GestureCallbacks, options: GestureOptions = {}) => {
+    const mergedOptions = { ...defaultOptions, ...options };
+    
+    const elementState = {
+      state: {
+        isActive: false,
+        startPoint: null,
+        currentPoint: null,
+        velocity: { x: 0, y: 0 },
+        distance: 0,
+        duration: 0,
+        direction: null,
+      } as GestureState,
+      callbacks,
+      options: mergedOptions,
+      timers: {} as any,
+    };
+
+    gestureStates.current.set(element, elementState);
+
+    // Event handlers
+    const onTouchStart = (e: TouchEvent) => handleTouchStart(e, element);
+    const onTouchMove = (e: TouchEvent) => handleTouchMove(e, element);
+    const onTouchEnd = (e: TouchEvent) => handleTouchEnd(e, element);
+    const onTouchCancel = (e: TouchEvent) => handleTouchEnd(e, element);
+
+    // Add event listeners
+    element.addEventListener('touchstart', onTouchStart, { passive: false });
+    element.addEventListener('touchmove', onTouchMove, { passive: false });
+    element.addEventListener('touchend', onTouchEnd, { passive: false });
+    element.addEventListener('touchcancel', onTouchCancel, { passive: false });
+
+    // Return cleanup function
+    return () => {
+      // Clear timers
+      if (elementState.timers.longPress) clearTimeout(elementState.timers.longPress);
+      if (elementState.timers.doubleTap) clearTimeout(elementState.timers.doubleTap);
+      
+      // Remove event listeners
+      element.removeEventListener('touchstart', onTouchStart);
+      element.removeEventListener('touchmove', onTouchMove);
+      element.removeEventListener('touchend', onTouchEnd);
+      element.removeEventListener('touchcancel', onTouchCancel);
+      
+      // Remove from state
+      gestureStates.current.delete(element);
+    };
+  }, [handleTouchStart, handleTouchMove, handleTouchEnd]);
+
+  const contextValue: TouchGestureContextType = {
+    registerElement,
+    hapticFeedback,
+    isTouch: isTouch.current,
+  };
+
+  return (
+    <TouchGestureContext.Provider value={contextValue}>
+      {children}
+    </TouchGestureContext.Provider>
+  );
+};
+
+export default TouchGestureProvider;
+
+// Hook for easy element registration
+export const useElementGesture = (callbacks: GestureCallbacks, options?: GestureOptions) => {
+  const { registerElement } = useTouchGesture();
+  const elementRef = useRef<HTMLElement | null>(null);
+  const cleanupRef = useRef<(() => void) | null>(null);
+
+  const ref = useCallback((element: HTMLElement | null) => {
+    // Cleanup previous registration
+    if (cleanupRef.current) {
+      cleanupRef.current();
+      cleanupRef.current = null;
+    }
+
+    // Register new element
+    if (element) {
+      elementRef.current = element;
+      cleanupRef.current = registerElement(element, callbacks, options);
+    }
+  }, [registerElement, callbacks, options]);
+
+  useEffect(() => {
+    return () => {
+      if (cleanupRef.current) {
+        cleanupRef.current();
+      }
+    };
+  }, []);
+
+  return ref;
+};
