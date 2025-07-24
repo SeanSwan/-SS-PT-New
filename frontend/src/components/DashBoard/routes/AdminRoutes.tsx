@@ -12,7 +12,7 @@ import { CircularProgress, Box } from '@mui/material';
 
 // Lazy load admin components for performance
 const ClientManagementDashboard = React.lazy(() => import('../Pages/admin-clients/ClientManagementDashboard'));
-const UniversalMasterSchedule = React.lazy(() => import('../UniversalMasterSchedule/UniversalMasterSchedule'));
+const UniversalMasterSchedule = React.lazy(() => import('../../UniversalMasterSchedule/UniversalMasterSchedule'));
 const AdminDashboardOverview = React.lazy(() => import('../Pages/admin-dashboard/AdminDashboardOverview'));
 const TrainerManagement = React.lazy(() => import('../Pages/admin-dashboard/TrainerManagement'));
 const FinancialDashboard = React.lazy(() => import('../Pages/admin-dashboard/FinancialDashboard'));
