@@ -1,1 +1,7 @@
-// PWA Components\nexport { default as PWAInstallPrompt } from './PWAInstallPrompt';\nexport { default as NetworkStatus } from './NetworkStatus';\nexport { default as TouchGestureProvider, useTouchGesture, useElementGesture } from './TouchGestureProvider';\n\n// Types\nexport type { GestureCallbacks, GestureOptions } from './TouchGestureProvider';
+// PWA Components
+export { default as PWAInstallPrompt } from './PWAInstallPrompt';
+export { default as NetworkStatus } from './NetworkStatus';
+export { default as TouchGestureProvider, useTouchGesture, useElementGesture } from './TouchGestureProvider';
+
+// Types
+export type { GestureCallbacks, GestureOptions } from './TouchGestureProvider';

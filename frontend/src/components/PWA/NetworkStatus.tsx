@@ -1,1 +1,350 @@
-import React, { useState, useEffect } from 'react';\nimport styled, { keyframes } from 'styled-components';\n\n// Animations\nconst slideDown = keyframes`\n  from {\n    transform: translateY(-100%);\n    opacity: 0;\n  }\n  to {\n    transform: translateY(0);\n    opacity: 1;\n  }\n`;\n\nconst slideUp = keyframes`\n  from {\n    transform: translateY(0);\n    opacity: 1;\n  }\n  to {\n    transform: translateY(-100%);\n    opacity: 0;\n  }\n`;\n\nconst pulse = keyframes`\n  0%, 100% {\n    opacity: 1;\n  }\n  50% {\n    opacity: 0.6;\n  }\n`;\n\n// Styled Components\nconst NetworkStatusContainer = styled.div<{ \n  show: boolean; \n  isOnline: boolean;\n  position: 'top' | 'bottom';\n}>`\n  position: fixed;\n  ${props => props.position === 'top' ? 'top: 0' : 'bottom: 0'};\n  left: 0;\n  right: 0;\n  z-index: 9999;\n  background: ${props => \n    props.isOnline \n      ? 'linear-gradient(90deg, #10b981, #059669)' \n      : 'linear-gradient(90deg, #ef4444, #dc2626)'\n  };\n  color: white;\n  padding: 8px 16px;\n  text-align: center;\n  font-size: 14px;\n  font-weight: 500;\n  box-shadow: ${props => \n    props.position === 'top' \n      ? '0 2px 8px rgba(0, 0, 0, 0.15)' \n      : '0 -2px 8px rgba(0, 0, 0, 0.15)'\n  };\n  animation: ${props => props.show ? slideDown : slideUp} 0.3s ease-out;\n  display: ${props => props.show ? 'block' : 'none'};\n  \n  @media (max-width: 768px) {\n    font-size: 13px;\n    padding: 10px 16px;\n  }\n`;\n\nconst StatusContent = styled.div`\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  gap: 8px;\n  max-width: 1200px;\n  margin: 0 auto;\n`;\n\nconst StatusIcon = styled.span<{ isOnline: boolean; isConnecting?: boolean }>`\n  display: inline-block;\n  width: 8px;\n  height: 8px;\n  border-radius: 50%;\n  background: ${props => props.isOnline ? '#ffffff' : '#ffffff'};\n  animation: ${props => props.isConnecting ? pulse : 'none'} 1.5s infinite;\n  flex-shrink: 0;\n`;\n\nconst StatusText = styled.span`\n  line-height: 1.2;\n`;\n\nconst RetryButton = styled.button`\n  background: rgba(255, 255, 255, 0.2);\n  color: white;\n  border: 1px solid rgba(255, 255, 255, 0.3);\n  border-radius: 4px;\n  padding: 4px 8px;\n  font-size: 12px;\n  font-weight: 500;\n  cursor: pointer;\n  transition: all 0.2s ease;\n  margin-left: 8px;\n  \n  &:hover {\n    background: rgba(255, 255, 255, 0.3);\n  }\n  \n  &:active {\n    transform: scale(0.95);\n  }\n  \n  @media (max-width: 768px) {\n    padding: 6px 10px;\n    touch-action: manipulation;\n  }\n`;\n\nconst CloseButton = styled.button`\n  background: none;\n  border: none;\n  color: white;\n  font-size: 16px;\n  cursor: pointer;\n  padding: 0;\n  margin-left: auto;\n  opacity: 0.8;\n  transition: opacity 0.2s ease;\n  \n  &:hover {\n    opacity: 1;\n  }\n  \n  @media (max-width: 768px) {\n    font-size: 14px;\n    padding: 4px;\n    touch-action: manipulation;\n  }\n`;\n\ninterface NetworkStatusProps {\n  position?: 'top' | 'bottom';\n  autoHide?: boolean;\n  autoHideDelay?: number;\n}\n\nconst NetworkStatus: React.FC<NetworkStatusProps> = ({ \n  position = 'top',\n  autoHide = true,\n  autoHideDelay = 3000\n}) => {\n  const [isOnline, setIsOnline] = useState(navigator.onLine);\n  const [showStatus, setShowStatus] = useState(false);\n  const [isConnecting, setIsConnecting] = useState(false);\n  const [connectionQuality, setConnectionQuality] = useState<'fast' | 'slow' | 'unknown'>('unknown');\n  const [lastOfflineTime, setLastOfflineTime] = useState<Date | null>(null);\n\n  useEffect(() => {\n    let hideTimeout: NodeJS.Timeout;\n    let connectionCheckTimeout: NodeJS.Timeout;\n\n    const handleOnline = () => {\n      console.log('Network: Connection restored');\n      setIsConnecting(true);\n      \n      // Test connection quality\n      testConnectionQuality();\n      \n      // Show reconnected status\n      setIsOnline(true);\n      setShowStatus(true);\n      \n      // Hide connecting indicator after a moment\n      setTimeout(() => {\n        setIsConnecting(false);\n      }, 1000);\n      \n      // Auto-hide after success message\n      if (autoHide) {\n        hideTimeout = setTimeout(() => {\n          setShowStatus(false);\n        }, autoHideDelay);\n      }\n    };\n\n    const handleOffline = () => {\n      console.log('Network: Connection lost');\n      setIsOnline(false);\n      setShowStatus(true);\n      setIsConnecting(false);\n      setConnectionQuality('unknown');\n      setLastOfflineTime(new Date());\n      \n      // Clear any hide timeout when going offline\n      if (hideTimeout) {\n        clearTimeout(hideTimeout);\n      }\n    };\n\n    const testConnectionQuality = async () => {\n      try {\n        const startTime = performance.now();\n        \n        // Try to fetch a small resource from your backend\n        const response = await fetch('/api/health', {\n          method: 'GET',\n          cache: 'no-cache'\n        });\n        \n        const endTime = performance.now();\n        const responseTime = endTime - startTime;\n        \n        if (response.ok) {\n          setConnectionQuality(responseTime < 1000 ? 'fast' : 'slow');\n        } else {\n          setConnectionQuality('slow');\n        }\n      } catch (error) {\n        console.log('Network: Connection quality test failed:', error);\n        setConnectionQuality('slow');\n      }\n    };\n\n    // Initial connection quality test if online\n    if (navigator.onLine) {\n      testConnectionQuality();\n    }\n\n    // Add event listeners\n    window.addEventListener('online', handleOnline);\n    window.addEventListener('offline', handleOffline);\n\n    // Periodic connection check\n    const startPeriodicCheck = () => {\n      connectionCheckTimeout = setTimeout(async () => {\n        if (navigator.onLine) {\n          try {\n            await fetch('/api/health', {\n              method: 'HEAD',\n              cache: 'no-cache',\n              signal: AbortSignal.timeout(5000)\n            });\n          } catch (error) {\n            // If fetch fails but navigator.onLine is true, show degraded connection\n            if (isOnline) {\n              setConnectionQuality('slow');\n            }\n          }\n        }\n        startPeriodicCheck();\n      }, 30000); // Check every 30 seconds\n    };\n\n    startPeriodicCheck();\n\n    // Cleanup\n    return () => {\n      window.removeEventListener('online', handleOnline);\n      window.removeEventListener('offline', handleOffline);\n      if (hideTimeout) clearTimeout(hideTimeout);\n      if (connectionCheckTimeout) clearTimeout(connectionCheckTimeout);\n    };\n  }, [autoHide, autoHideDelay, isOnline]);\n\n  const handleRetry = async () => {\n    setIsConnecting(true);\n    \n    try {\n      // Force a page refresh to reconnect\n      const response = await fetch('/api/health', {\n        cache: 'no-cache'\n      });\n      \n      if (response.ok) {\n        setIsOnline(true);\n        setConnectionQuality('fast');\n        if (autoHide) {\n          setTimeout(() => setShowStatus(false), 2000);\n        }\n      } else {\n        throw new Error('Health check failed');\n      }\n    } catch (error) {\n      console.log('Network: Retry failed:', error);\n      setConnectionQuality('slow');\n    } finally {\n      setIsConnecting(false);\n    }\n  };\n\n  const handleClose = () => {\n    setShowStatus(false);\n  };\n\n  const getStatusMessage = () => {\n    if (!isOnline) {\n      return 'You\\'re offline. Some features may not work.';\n    }\n    \n    if (isConnecting) {\n      return 'Reconnecting...';\n    }\n    \n    if (connectionQuality === 'slow') {\n      return 'Connection restored, but seems slow.';\n    }\n    \n    if (lastOfflineTime) {\n      return 'You\\'re back online!';\n    }\n    \n    return 'Connection restored';\n  };\n\n  // Don't show if online and never been offline\n  if (isOnline && !lastOfflineTime && !showStatus) {\n    return null;\n  }\n\n  return (\n    <NetworkStatusContainer \n      show={showStatus || !isOnline}\n      isOnline={isOnline}\n      position={position}\n    >\n      <StatusContent>\n        <StatusIcon \n          isOnline={isOnline} \n          isConnecting={isConnecting}\n        />\n        <StatusText>{getStatusMessage()}</StatusText>\n        \n        {!isOnline && (\n          <RetryButton onClick={handleRetry} disabled={isConnecting}>\n            {isConnecting ? 'Trying...' : 'Retry'}\n          </RetryButton>\n        )}\n        \n        {(isOnline || position === 'bottom') && (\n          <CloseButton onClick={handleClose} aria-label=\"Close network status\">\n            ×\n          </CloseButton>\n        )}\n      </StatusContent>\n    </NetworkStatusContainer>\n  );\n};\n\nexport default NetworkStatus;
+import React, { useState, useEffect } from 'react';
+import styled, { keyframes } from 'styled-components';
+
+// Animations
+const slideDown = keyframes`
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+`;
+
+const slideUp = keyframes`
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+`;
+
+const pulse = keyframes`
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+`;
+
+// Styled Components
+const NetworkStatusContainer = styled.div<{ 
+  show: boolean; 
+  isOnline: boolean;
+  position: 'top' | 'bottom';
+}>`
+  position: fixed;
+  ${props => props.position === 'top' ? 'top: 0' : 'bottom: 0'};
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: ${props => 
+    props.isOnline 
+      ? 'linear-gradient(90deg, #10b981, #059669)' 
+      : 'linear-gradient(90deg, #ef4444, #dc2626)'
+  };
+  color: white;
+  padding: 8px 16px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: ${props => 
+    props.position === 'top' 
+      ? '0 2px 8px rgba(0, 0, 0, 0.15)' 
+      : '0 -2px 8px rgba(0, 0, 0, 0.15)'
+  };
+  animation: ${props => props.show ? slideDown : slideUp} 0.3s ease-out;
+  display: ${props => props.show ? 'block' : 'none'};
+  
+  @media (max-width: 768px) {
+    font-size: 13px;
+    padding: 10px 16px;
+  }
+`;
+
+const StatusContent = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  max-width: 1200px;
+  margin: 0 auto;
+`;
+
+const StatusIcon = styled.span<{ isOnline: boolean; isConnecting?: boolean }>`
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: ${props => props.isOnline ? '#ffffff' : '#ffffff'};
+  animation: ${props => props.isConnecting ? pulse : 'none'} 1.5s infinite;
+  flex-shrink: 0;
+`;
+
+const StatusText = styled.span`
+  line-height: 1.2;
+`;
+
+const RetryButton = styled.button`
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: 8px;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
+  
+  @media (max-width: 768px) {
+    padding: 6px 10px;
+    touch-action: manipulation;
+  }
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: auto;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+  
+  &:hover {
+    opacity: 1;
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 14px;
+    padding: 4px;
+    touch-action: manipulation;
+  }
+`;
+
+interface NetworkStatusProps {
+  position?: 'top' | 'bottom';
+  autoHide?: boolean;
+  autoHideDelay?: number;
+}
+
+const NetworkStatus: React.FC<NetworkStatusProps> = ({ 
+  position = 'top',
+  autoHide = true,
+  autoHideDelay = 3000
+}) => {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [showStatus, setShowStatus] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connectionQuality, setConnectionQuality] = useState<'fast' | 'slow' | 'unknown'>('unknown');
+  const [lastOfflineTime, setLastOfflineTime] = useState<Date | null>(null);
+
+  useEffect(() => {
+    let hideTimeout: NodeJS.Timeout;
+    let connectionCheckTimeout: NodeJS.Timeout;
+
+    const handleOnline = () => {
+      console.log('Network: Connection restored');
+      setIsConnecting(true);
+      
+      // Test connection quality
+      testConnectionQuality();
+      
+      // Show reconnected status
+      setIsOnline(true);
+      setShowStatus(true);
+      
+      // Hide connecting indicator after a moment
+      setTimeout(() => {
+        setIsConnecting(false);
+      }, 1000);
+      
+      // Auto-hide after success message
+      if (autoHide) {
+        hideTimeout = setTimeout(() => {
+          setShowStatus(false);
+        }, autoHideDelay);
+      }
+    };
+
+    const handleOffline = () => {
+      console.log('Network: Connection lost');
+      setIsOnline(false);
+      setShowStatus(true);
+      setIsConnecting(false);
+      setConnectionQuality('unknown');
+      setLastOfflineTime(new Date());
+      
+      // Clear any hide timeout when going offline
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
+      }
+    };
+
+    const testConnectionQuality = async () => {
+      try {
+        const startTime = performance.now();
+        
+        // Try to fetch a small resource from your backend
+        const response = await fetch('/api/health', {
+          method: 'GET',
+          cache: 'no-cache'
+        });
+        
+        const endTime = performance.now();
+        const responseTime = endTime - startTime;
+        
+        if (response.ok) {
+          setConnectionQuality(responseTime < 1000 ? 'fast' : 'slow');
+        } else {
+          setConnectionQuality('slow');
+        }
+      } catch (error) {
+        console.log('Network: Connection quality test failed:', error);
+        setConnectionQuality('slow');
+      }
+    };
+
+    // Initial connection quality test if online
+    if (navigator.onLine) {
+      testConnectionQuality();
+    }
+
+    // Add event listeners
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Periodic connection check
+    const startPeriodicCheck = () => {
+      connectionCheckTimeout = setTimeout(async () => {
+        if (navigator.onLine) {
+          try {
+            await fetch('/api/health', {
+              method: 'HEAD',
+              cache: 'no-cache',
+              signal: AbortSignal.timeout(5000)
+            });
+          } catch (error) {
+            // If fetch fails but navigator.onLine is true, show degraded connection
+            if (isOnline) {
+              setConnectionQuality('slow');
+            }
+          }
+        }
+        startPeriodicCheck();
+      }, 30000); // Check every 30 seconds
+    };
+
+    startPeriodicCheck();
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      if (hideTimeout) clearTimeout(hideTimeout);
+      if (connectionCheckTimeout) clearTimeout(connectionCheckTimeout);
+    };
+  }, [autoHide, autoHideDelay, isOnline]);
+
+  const handleRetry = async () => {
+    setIsConnecting(true);
+    
+    try {
+      // Force a page refresh to reconnect
+      const response = await fetch('/api/health', {
+        cache: 'no-cache'
+      });
+      
+      if (response.ok) {
+        setIsOnline(true);
+        setConnectionQuality('fast');
+        if (autoHide) {
+          setTimeout(() => setShowStatus(false), 2000);
+        }
+      } else {
+        throw new Error('Health check failed');
+      }
+    } catch (error) {
+      console.log('Network: Retry failed:', error);
+      setConnectionQuality('slow');
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  const handleClose = () => {
+    setShowStatus(false);
+  };
+
+  const getStatusMessage = () => {
+    if (!isOnline) {
+      return 'You\'re offline. Some features may not work.';
+    }
+    
+    if (isConnecting) {
+      return 'Reconnecting...';
+    }
+    
+    if (connectionQuality === 'slow') {
+      return 'Connection restored, but seems slow.';
+    }
+    
+    if (lastOfflineTime) {
+      return 'You\'re back online!';
+    }
+    
+    return 'Connection restored';
+  };
+
+  // Don't show if online and never been offline
+  if (isOnline && !lastOfflineTime && !showStatus) {
+    return null;
+  }
+
+  return (
+    <NetworkStatusContainer 
+      show={showStatus || !isOnline}
+      isOnline={isOnline}
+      position={position}
+    >
+      <StatusContent>
+        <StatusIcon 
+          isOnline={isOnline} 
+          isConnecting={isConnecting}
+        />
+        <StatusText>{getStatusMessage()}</StatusText>
+        
+        {!isOnline && (
+          <RetryButton onClick={handleRetry} disabled={isConnecting}>
+            {isConnecting ? 'Trying...' : 'Retry'}
+          </RetryButton>
+        )}
+        
+        {(isOnline || position === 'bottom') && (
+          <CloseButton onClick={handleClose} aria-label="Close network status">
+            ×
+          </CloseButton>
+        )}
+      </StatusContent>
+    </NetworkStatusContainer>
+  );
+};
+
+export default NetworkStatus;
