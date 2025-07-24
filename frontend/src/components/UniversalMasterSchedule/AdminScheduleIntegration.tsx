@@ -20,7 +20,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider } from 'styled-components';
-import { useToast } from '../../hooks/use-toast';
 
 // Material-UI Components
 import {
@@ -63,6 +62,7 @@ import {
 
 // Context and Hooks
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../hooks/use-toast';
 
 // Components
 import UniversalMasterSchedule from './UniversalMasterSchedule';
@@ -190,9 +190,9 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
           </Typography>
           <GlowButton
             text="Retry"
-            theme="ruby"
-            onClick={handleRetry}
+            variant="ruby"
             leftIcon={<RefreshCw size={18} />}
+            onClick={handleRetry}
           />
         </motion.div>
       </ErrorContainer>
@@ -271,7 +271,7 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
                     {/* Refresh */}
                     <GlowButton
                       text="Refresh"
-                      theme="cosmic"
+                      variant="cosmic"
                       size="small"
                       leftIcon={<RefreshCw size={16} />}
                       onClick={handleRefresh}
@@ -308,7 +308,7 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.1 }}
-              style={{ height: '100%' }}
+              style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
             >
               <UniversalMasterSchedule />
             </motion.div>
