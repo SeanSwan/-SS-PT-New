@@ -51,9 +51,9 @@ router.get('/trainers', async (req, res) => {
 });
 
 // 💪 COMPREHENSIVE CLIENT DATA MANAGEMENT  
-// Import and mount client management routes
+// Import and mount client management routes (fix route conflict)
 import adminClientRoutes from './adminClientRoutes.mjs';
-router.use('/clients', adminClientRoutes);
+router.use('/', adminClientRoutes); // Mount at root since routes already have /clients prefix
 
 // Contact management endpoints
 router.get('/contacts', async (req, res) => {
