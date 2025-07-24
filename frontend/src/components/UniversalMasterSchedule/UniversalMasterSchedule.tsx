@@ -22,7 +22,6 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider } from 'styled-components';
 import { Calendar, momentLocalizer, Views, SlotInfo } from 'react-big-calendar';
@@ -196,7 +195,6 @@ import {
 
 // Import styles
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 
 // Initialize localizer and drag-and-drop calendar
 const localizer = momentLocalizer(moment);
@@ -223,8 +221,10 @@ const UniversalMasterSchedule: React.FC = () => {
   const scheduleError = useAppSelector(selectScheduleError);
   const scheduleStats = useAppSelector(selectScheduleStats);
   
-  // Mobile PWA hooks
-  const { hapticFeedback, isTouch } = useTouchGesture();
+  // Mobile PWA hooks - with error handling
+  const touchGestureContext = useTouchGesture();
+  const hapticFeedback = touchGestureContext?.hapticFeedback;
+  const isTouch = touchGestureContext?.isTouch || false;
   
   // Refs
   const calendarRef = useRef<any>(null);
@@ -318,8 +318,20 @@ const UniversalMasterSchedule: React.FC = () => {
   
   // Initialize component
   useEffect(() => {
-    initializeComponent();
-    setupEventListeners();
+    const initializeComponentSafe = async () => {
+      try {
+        await initializeComponent();
+        setupEventListeners();
+      } catch (error) {
+        console.error('Failed to initialize Universal Master Schedule:', error);
+        setError(prev => ({ 
+          ...prev, 
+          sessions: 'Failed to initialize schedule. Please refresh and try again.' 
+        }));
+      }
+    };
+    
+    initializeComponentSafe();
     
     return () => {
       cleanupEventListeners();
@@ -342,7 +354,9 @@ const UniversalMasterSchedule: React.FC = () => {
   useEffect(() => {
     if (autoRefresh) {
       const interval = setInterval(() => {
-        refreshData();
+        refreshData().catch(error => {
+          console.error('Auto-refresh failed:', error);
+        });
       }, 30000); // Refresh every 30 seconds
       
       return () => clearInterval(interval);
@@ -351,7 +365,11 @@ const UniversalMasterSchedule: React.FC = () => {
   
   // Filter effect
   useEffect(() => {
-    applyFilters();
+    try {
+      applyFilters();
+    } catch (error) {
+      console.error('Filter application failed:', error);
+    }
   }, [sessions, filterOptions]);
   
   // ==================== CORE FUNCTIONS ====================
@@ -469,11 +487,12 @@ const UniversalMasterSchedule: React.FC = () => {
   }, []);
   
   const applyFilters = useCallback(() => {
+    // Fixed: Use proper property names from Redux state
     let filteredEvents = sessions.map(session => ({
       id: session.id,
       title: getSessionTitle(session),
-      start: new Date(session.sessionDate),
-      end: new Date(new Date(session.sessionDate).getTime() + (session.duration || 60) * 60000),
+      start: new Date(session.start),
+      end: new Date(session.end),
       status: session.status,
       userId: session.userId,
       trainerId: session.trainerId,
@@ -707,7 +726,7 @@ const UniversalMasterSchedule: React.FC = () => {
   
   // ==================== UTILITY FUNCTIONS ====================
   
-  const getSessionTitle = (session: Session): string => {
+  const getSessionTitle = (session: any): string => {
     if (session.client) {
       return `${session.client.firstName} ${session.client.lastName}`;
     }
