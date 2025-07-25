@@ -425,21 +425,23 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
       <p>{error}</p>
       <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
         <ExecutiveButton
-          onClick={handleRetry}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-        >
+        onClick={handleRetry}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+          aria-label="Retry admin access verification"
+          >
           Retry Access
         </ExecutiveButton>
         <ExecutiveButton
-          onClick={handleLogout}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          style={{ 
-            background: 'rgba(239, 68, 68, 0.2)',
-            borderColor: 'rgba(239, 68, 68, 0.4)'
-          }}
-        >
+        onClick={handleLogout}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        style={{ 
+        background: 'rgba(239, 68, 68, 0.2)',
+        borderColor: 'rgba(239, 68, 68, 0.4)'
+        }}
+          aria-label="Logout from admin dashboard"
+          >
           Logout
         </ExecutiveButton>
       </div>
@@ -480,6 +482,8 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
+          role="main"
+          aria-label="Admin dashboard main content"
         >
           <AnimatePresence mode="wait">
             <Suspense fallback={<LoadingState />}>

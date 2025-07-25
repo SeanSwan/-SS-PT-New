@@ -1,1 +1,396 @@
-/**\n * Social Media Integration Analytics\n * =================================\n * \n * Advanced analytics for social media and community engagement:\n * - Workout completion to social post correlation\n * - Gamification engagement metrics\n * - Community challenge performance\n * - Client acquisition through social channels\n * - Viral coefficient and organic growth tracking\n * - Influencer trainer identification\n * \n * Critical for measuring the social media impact on business growth.\n */\n\nimport React, { useState, useEffect, useMemo } from 'react';\nimport { motion, AnimatePresence } from 'framer-motion';\nimport styled from 'styled-components';\nimport {\n  Grid,\n  Card,\n  CardContent,\n  Typography,\n  Avatar,\n  Chip,\n  LinearProgress,\n  Button,\n  Box,\n  List,\n  ListItem,\n  ListItemText,\n  ListItemAvatar,\n  IconButton,\n  Tooltip,\n  Badge,\n  AvatarGroup\n} from '@mui/material';\nimport {\n  TrendingUp,\n  Heart,\n  MessageSquare,\n  Share2,\n  Award,\n  Target,\n  Users,\n  Zap,\n  Camera,\n  Video,\n  Instagram,\n  Twitter,\n  Facebook,\n  Youtube,\n  Star,\n  Flame,\n  Trophy,\n  Crown,\n  ThumbsUp,\n  Eye,\n  Play,\n  ArrowUp,\n  TrendingDown,\n  Calendar,\n  Clock,\n  MapPin,\n  Tag\n} from 'lucide-react';\n\ninterface SocialMetrics {\n  totalPosts: number;\n  totalLikes: number;\n  totalShares: number;\n  totalComments: number;\n  engagementRate: number;\n  viralCoefficient: number;\n  organicReach: number;\n  hashtagPerformance: Record<string, number>;\n  bestPostingTimes: string[];\n  topInfluencers: Array<{\n    id: string;\n    name: string;\n    avatar?: string;\n    followers: number;\n    engagement: number;\n    posts: number;\n  }>;\n}\n\ninterface GamificationMetrics {\n  totalPoints: number;\n  challengesCompleted: number;\n  badgesEarned: number;\n  leaderboardRank: number;\n  streakDays: number;\n  communityEngagement: number;\n  referrals: number;\n  socialShares: number;\n}\n\ninterface CommunityChallenge {\n  id: string;\n  name: string;\n  description: string;\n  participants: number;\n  completions: number;\n  startDate: string;\n  endDate: string;\n  prize: string;\n  hashtag: string;\n  trending: boolean;\n  socialPosts: number;\n  engagement: number;\n}\n\ninterface SocialIntegrationAnalyticsProps {\n  sessions: any[];\n  clients: any[];\n  trainers: any[];\n  dateRange: string;\n}\n\nconst SocialIntegrationAnalytics: React.FC<SocialIntegrationAnalyticsProps> = ({\n  sessions,\n  clients,\n  trainers,\n  dateRange\n}) => {\n  const [activeTab, setActiveTab] = useState<'overview' | 'challenges' | 'influencers' | 'content'>('overview');\n  const [selectedChallenge, setSelectedChallenge] = useState<string | null>(null);\n  \n  // Mock comprehensive social data\n  const socialMetrics = useMemo<SocialMetrics>(() => ({\n    totalPosts: 1247,\n    totalLikes: 18500,\n    totalShares: 3200,\n    totalComments: 5600,\n    engagementRate: 8.5,\n    viralCoefficient: 1.4,\n    organicReach: 85000,\n    hashtagPerformance: {\n      '#SwanStudiosStrong': 1250,\n      '#FitnessJourney': 890,\n      '#TransformationTuesday': 750,\n      '#WorkoutWednesday': 650,\n      '#MotivationMonday': 580,\n      '#FitnessMotivation': 520,\n      '#SwanStudiosFamily': 480,\n      '#HealthyLifestyle': 420\n    },\n    bestPostingTimes: ['6:00 AM', '12:00 PM', '6:00 PM', '8:00 PM'],\n    topInfluencers: [\n      {\n        id: '1',\n        name: 'Sarah Johnson',\n        followers: 15000,\n        engagement: 12.5,\n        posts: 45\n      },\n      {\n        id: '2', \n        name: 'Mike Chen',\n        followers: 8500,\n        engagement: 9.8,\n        posts: 38\n      },\n      {\n        id: '3',\n        name: 'Emma Rodriguez',\n        followers: 6200,\n        engagement: 15.2,\n        posts: 29\n      }\n    ]\n  }), []);\n  \n  const gamificationMetrics = useMemo<GamificationMetrics>(() => ({\n    totalPoints: 156780,\n    challengesCompleted: 89,\n    badgesEarned: 234,\n    leaderboardRank: 1,\n    streakDays: 45,\n    communityEngagement: 92,\n    referrals: 28,\n    socialShares: 156\n  }), []);\n  \n  const activeChallenges = useMemo<CommunityChallenge[]>(() => [\n    {\n      id: '1',\n      name: '30-Day Transformation Challenge',\n      description: 'Complete 30 days of structured workouts and nutrition tracking',\n      participants: 145,\n      completions: 89,\n      startDate: '2025-07-01',\n      endDate: '2025-07-30',\n      prize: '$500 SwanStudios Credit',\n      hashtag: '#Swan30Transform',\n      trending: true,\n      socialPosts: 234,\n      engagement: 18.5\n    },\n    {\n      id: '2',\n      name: 'Summer Strength Series',\n      description: 'Build functional strength with progressive overload',\n      participants: 98,\n      completions: 67,\n      startDate: '2025-06-15',\n      endDate: '2025-08-15',\n      prize: 'Personal Training Package',\n      hashtag: '#SummerStrength',\n      trending: false,\n      socialPosts: 156,\n      engagement: 14.2\n    },\n    {\n      id: '3',\n      name: 'HIIT It Hard July',\n      description: 'High-intensity interval training focus month',\n      participants: 123,\n      completions: 45,\n      startDate: '2025-07-01',\n      endDate: '2025-07-31',\n      prize: 'Nutrition Coaching Session',\n      hashtag: '#HIITItHard',\n      trending: true,\n      socialPosts: 189,\n      engagement: 16.8\n    }\n  ], []);\n  \n  // Calculate social conversion metrics\n  const conversionMetrics = useMemo(() => {\n    const socialTrafficConversion = 15.8; // % of social traffic that converts\n    const organicGrowthRate = 12.5; // Monthly organic growth %\n    const influencerROI = 340; // % ROI from influencer partnerships\n    const communityRetention = 89; // % retention for community-engaged users\n    \n    return {\n      socialTrafficConversion,\n      organicGrowthRate,\n      influencerROI,\n      communityRetention,\n      estimatedRevenue: Math.round(socialMetrics.organicReach * 0.02 * 150) // Rough calculation\n    };\n  }, [socialMetrics]);\n  \n  const getEngagementColor = (rate: number) => {\n    if (rate >= 15) return '#22c55e';\n    if (rate >= 10) return '#3b82f6';\n    if (rate >= 5) return '#f59e0b';\n    return '#ef4444';\n  };\n  \n  const getTrendingIcon = (trending: boolean) => {\n    return trending ? <Flame color=\"#f59e0b\" size={16} /> : <TrendingDown color=\"#6b7280\" size={16} />;\n  };\n\n  return (\n    <SocialAnalyticsContainer>\n      <motion.div\n        initial={{ opacity: 0, y: 20 }}\n        animate={{ opacity: 1, y: 0 }}\n        transition={{ duration: 0.5 }}\n      >\n        {/* Header with Tab Navigation */}\n        <HeaderSection>\n          <div>\n            <Typography variant=\"h4\" sx={{ color: 'white', fontWeight: 300 }}>\n              Social Media & Community Analytics\n            </Typography>\n            <Typography variant=\"subtitle1\" sx={{ color: 'rgba(255,255,255,0.7)' }}>\n              Track social engagement impact on business growth\n            </Typography>\n          </div>\n          \n          <TabNavigation>\n            {['overview', 'challenges', 'influencers', 'content'].map((tab) => (\n              <TabButton\n                key={tab}\n                active={activeTab === tab}\n                onClick={() => setActiveTab(tab as any)}\n              >\n                {tab.charAt(0).toUpperCase() + tab.slice(1)}\n              </TabButton>\n            ))}\n          </TabNavigation>\n        </HeaderSection>\n\n        {/* Key Social Metrics */}\n        {activeTab === 'overview' && (\n          <>\n            <MetricsOverview>\n              <Grid container spacing={3}>\n                <Grid item xs={12} md={3}>\n                  <SocialMetricCard>\n                    <SocialIcon>\n                      <Eye size={24} />\n                    </SocialIcon>\n                    <MetricContent>\n                      <MetricValue>{socialMetrics.organicReach.toLocaleString()}</MetricValue>\n                      <MetricLabel>Organic Reach</MetricLabel>\n                      <MetricTrend>\n                        <ArrowUp size={14} color=\"#22c55e\" />\n                        +{conversionMetrics.organicGrowthRate}% this month\n                      </MetricTrend>\n                    </MetricContent>\n                  </SocialMetricCard>\n                </Grid>\n                \n                <Grid item xs={12} md={3}>\n                  <SocialMetricCard>\n                    <SocialIcon>\n                      <Heart size={24} />\n                    </SocialIcon>\n                    <MetricContent>\n                      <MetricValue>{socialMetrics.engagementRate}%</MetricValue>\n                      <MetricLabel>Engagement Rate</MetricLabel>\n                      <MetricTrend>\n                        <ArrowUp size={14} color=\"#22c55e\" />\n                        Industry leading\n                      </MetricTrend>\n                    </MetricContent>\n                  </SocialMetricCard>\n                </Grid>\n                \n                <Grid item xs={12} md={3}>\n                  <SocialMetricCard>\n                    <SocialIcon>\n                      <Users size={24} />\n                    </SocialIcon>\n                    <MetricContent>\n                      <MetricValue>${conversionMetrics.estimatedRevenue.toLocaleString()}</MetricValue>\n                      <MetricLabel>Social Revenue</MetricLabel>\n                      <MetricTrend>\n                        <ArrowUp size={14} color=\"#22c55e\" />\n                        {conversionMetrics.socialTrafficConversion}% conversion\n                      </MetricTrend>\n                    </MetricContent>\n                  </SocialMetricCard>\n                </Grid>\n                \n                <Grid item xs={12} md={3}>\n                  <SocialMetricCard>\n                    <SocialIcon>\n                      <Zap size={24} />\n                    </SocialIcon>\n                    <MetricContent>\n                      <MetricValue>{socialMetrics.viralCoefficient}</MetricValue>\n                      <MetricLabel>Viral Coefficient</MetricLabel>\n                      <MetricTrend>\n                        <ArrowUp size={14} color=\"#22c55e\" />\n                        Excellent virality\n                      </MetricTrend>\n                    </MetricContent>\n                  </SocialMetricCard>\n                </Grid>\n              </Grid>\n            </MetricsOverview>\n\n            {/* Content Performance & Hashtag Analytics */}\n            <ContentAnalyticsSection>\n              <Grid container spacing={3}>\n                <Grid item xs={12} lg={6}>\n                  <AnalyticsCard>\n                    <Typography variant=\"h6\" sx={{ color: 'white', mb: 2 }}>\n                      Top Performing Hashtags\n                    </Typography>\n                    \n                    <HashtagList>\n                      {Object.entries(socialMetrics.hashtagPerformance)\n                        .sort((a, b) => b[1] - a[1])\n                        .slice(0, 6)\n                        .map(([hashtag, count]) => (\n                          <HashtagItem key={hashtag}>\n                            <HashtagText>\n                              <Tag size={16} color=\"#3b82f6\" />\n                              <Typography variant=\"body2\" color=\"white\">\n                                {hashtag}\n                              </Typography>\n                            </HashtagText>\n                            <HashtagMetrics>\n                              <Typography variant=\"body2\" color=\"white\" sx={{ fontWeight: 600 }}>\n                                {count.toLocaleString()}\n                              </Typography>\n                              <Typography variant=\"caption\" color=\"rgba(255,255,255,0.7)\">\n                                posts\n                              </Typography>\n                            </HashtagMetrics>\n                          </HashtagItem>\n                        ))}\n                    </HashtagList>\n                  </AnalyticsCard>\n                </Grid>\n                \n                <Grid item xs={12} lg={6}>\n                  <AnalyticsCard>\n                    <Typography variant=\"h6\" sx={{ color: 'white', mb: 2 }}>\n                      Optimal Posting Schedule\n                    </Typography>\n                    \n                    <PostingSchedule>\n                      {socialMetrics.bestPostingTimes.map((time, index) => (\n                        <PostingTimeSlot key={time}>\n                          <Clock size={16} color=\"#22c55e\" />\n                          <div>\n                            <Typography variant=\"body2\" color=\"white\">\n                              {time}\n                            </Typography>\n                            <Typography variant=\"caption\" color=\"rgba(255,255,255,0.7)\">\n                              {index === 0 ? 'Peak engagement' : \n                               index === 1 ? 'High reach' :\n                               index === 2 ? 'Good conversion' : 'Solid performance'}\n                            </Typography>\n                          </div>\n                          <EngagementBar value={(4 - index) * 25} />\n                        </PostingTimeSlot>\n                      ))}\n                    </PostingSchedule>\n                    \n                    <Box sx={{ mt: 2, p: 1, background: 'rgba(59, 130, 246, 0.1)', borderRadius: 1 }}>\n                      <Typography variant=\"body2\" color=\"#3b82f6\" sx={{ fontWeight: 600 }}>\n                        💡 Pro Tip: Schedule posts during peak times for maximum engagement\n                      </Typography>\n                    </Box>\n                  </AnalyticsCard>\n                </Grid>\n              </Grid>\n            </ContentAnalyticsSection>\n\n            {/* Gamification Dashboard */}\n            <GamificationSection>\n              <Typography variant=\"h6\" sx={{ color: 'white', mb: 2 }}>\n                Community Gamification Performance\n              </Typography>\n              \n              <Grid container spacing={3}>\n                <Grid item xs={12} md={6}>\n                  <GamificationCard>\n                    <GamificationHeader>\n                      <Trophy size={24} color=\"#f59e0b\" />\n                      <Typography variant=\"h6\" color=\"white\">\n                        Community Leaderboard\n                      </Typography>\n                    </GamificationHeader>\n                    \n                    <GamificationStats>\n                      <GamificationStat>\n                        <Award size={20} color=\"#3b82f6\" />\n                        <div>\n                          <Typography variant=\"body2\" color=\"white\">\n                            {gamificationMetrics.totalPoints.toLocaleString()} Points Awarded\n                          </Typography>\n                          <Typography variant=\"caption\" color=\"rgba(255,255,255,0.7)\">\n                            Across all challenges\n                          </Typography>\n                        </div>\n                      </GamificationStat>\n                      \n                      <GamificationStat>\n                        <Target size={20} color=\"#22c55e\" />\n                        <div>\n                          <Typography variant=\"body2\" color=\"white\">\n                            {gamificationMetrics.challengesCompleted} Challenges Completed\n                          </Typography>\n                          <Typography variant=\"caption\" color=\"rgba(255,255,255,0.7)\">\n                            89% completion rate\n                          </Typography>\n                        </div>\n                      </GamificationStat>\n                      \n                      <GamificationStat>\n                        <Star size={20} color=\"#8b5cf6\" />\n                        <div>\n                          <Typography variant=\"body2\" color=\"white\">\n                            {gamificationMetrics.badgesEarned} Badges Earned\n                          </Typography>\n                          <Typography variant=\"caption\" color=\"rgba(255,255,255,0.7)\">\n                            Achievement unlocked!\n                          </Typography>\n                        </div>\n                      </GamificationStat>\n                      \n                      <GamificationStat>\n                        <Flame size={20} color=\"#ef4444\" />\n                        <div>\n                          <Typography variant=\"body2\" color=\"white\">\n                            {gamificationMetrics.streakDays} Day Streak\n                          </Typography>\n                          <Typography variant=\"caption\" color=\"rgba(255,255,255,0.7)\">\n                            Community record!\n                          </Typography>\n                        </div>\n                      </GamificationStat>\n                    </GamificationStats>\n                  </GamificationCard>\n                </Grid>\n                \n                <Grid item xs={12} md={6}>\n                  <GamificationCard>\n                    <GamificationHeader>\n                      <Share2 size={24} color=\"#22c55e\" />\n                      <Typography variant=\"h6\" color=\"white\">\n                        Social Amplification\n                      </Typography>\n                    </GamificationHeader>\n                    \n                    <SocialAmplificationMetrics>\n                      <AmplificationMetric>\n                        <Typography variant=\"body2\" color=\"white\">\n                          Referrals Generated: {gamificationMetrics.referrals}\n                        </Typography>\n                        <LinearProgress \n                          variant=\"determinate\" \n                          value={(gamificationMetrics.referrals / 50) * 100} \n                          sx={{ \n                            backgroundColor: 'rgba(255,255,255,0.1)',\n                            '& .MuiLinearProgress-bar': {\n                              backgroundColor: '#22c55e'\n                            }\n                          }} \n                        />\n                      </AmplificationMetric>\n                      \n                      <AmplificationMetric>\n                        <Typography variant=\"body2\" color=\"white\">\n                          Social Shares: {gamificationMetrics.socialShares}\n                        </Typography>\n                        <LinearProgress \n                          variant=\"determinate\" \n                          value={(gamificationMetrics.socialShares / 200) * 100} \n                          sx={{ \n                            backgroundColor: 'rgba(255,255,255,0.1)',\n                            '& .MuiLinearProgress-bar': {\n                              backgroundColor: '#3b82f6'\n                            }\n                          }} \n                        />\n                      </AmplificationMetric>\n                      \n                      <AmplificationMetric>\n                        <Typography variant=\"body2\" color=\"white\">\n                          Community Engagement: {gamificationMetrics.communityEngagement}%\n                        </Typography>\n                        <LinearProgress \n                          variant=\"determinate\" \n                          value={gamificationMetrics.communityEngagement} \n                          sx={{ \n                            backgroundColor: 'rgba(255,255,255,0.1)',\n                            '& .MuiLinearProgress-bar': {\n                              backgroundColor: '#8b5cf6'\n                            }\n                          }} \n                        />\n                      </AmplificationMetric>\n                    </SocialAmplificationMetrics>\n                    \n                    <Box sx={{ mt: 2, textAlign: 'center' }}>\n                      <Chip\n                        label={`#${gamificationMetrics.leaderboardRank} Community Leader`}\n                        sx={{\n                          backgroundColor: 'rgba(245, 158, 11, 0.2)',\n                          color: '#f59e0b',\n                          fontWeight: 600\n                        }}\n                      />\n                    </Box>\n                  </GamificationCard>\n                </Grid>\n              </Grid>\n            </GamificationSection>\n          </>\n        )}\n\n        {/* Community Challenges Tab */}\n        {activeTab === 'challenges' && (\n          <ChallengesSection>\n            <Typography variant=\"h6\" sx={{ color: 'white', mb: 2 }}>\n              Active Community Challenges\n            </Typography>\n            \n            <Grid container spacing={3}>\n              {activeChallenges.map((challenge) => (\n                <Grid item xs={12} lg={4} key={challenge.id}>\n                  <ChallengeCard>\n                    <ChallengeHeader>\n                      <div>\n                        <Typography variant=\"h6\" color=\"white\">\n                          {challenge.name}\n                        </Typography>\n                        <Typography variant=\"body2\" color=\"rgba(255,255,255,0.7)\">\n                          {challenge.description}\n                        </Typography>\n                      </div>\n                      {getTrendingIcon(challenge.trending)}\n                    </ChallengeHeader>\n                    \n                    <ChallengeMetrics>\n                      <ChallengeMetric>\n                        <Users size={16} color=\"#3b82f6\" />\n                        <Typography variant=\"body2\" color=\"white\">\n                          {challenge.participants} participants\n                        </Typography>\n                      </ChallengeMetric>\n                      \n                      <ChallengeMetric>\n                        <CheckCircle size={16} color=\"#22c55e\" />\n                        <Typography variant=\"body2\" color=\"white\">\n                          {challenge.completions} completed\n                        </Typography>\n                      </ChallengeMetric>\n                      \n                      <ChallengeMetric>\n                        <Camera size={16} color=\"#8b5cf6\" />\n                        <Typography variant=\"body2\" color=\"white\">\n                          {challenge.socialPosts} social posts\n                        </Typography>\n                      </ChallengeMetric>\n                    </ChallengeMetrics>\n                    \n                    <ChallengeProgress>\n                      <Typography variant=\"body2\" color=\"white\" sx={{ mb: 1 }}>\n                        Completion Rate: {Math.round((challenge.completions / challenge.participants) * 100)}%\n                      </Typography>\n                      <LinearProgress \n                        variant=\"determinate\" \n                        value={(challenge.completions / challenge.participants) * 100} \n                        sx={{ \n                          backgroundColor: 'rgba(255,255,255,0.1)',\n                          '& .MuiLinearProgress-bar': {\n                            backgroundColor: getEngagementColor(challenge.engagement)\n                          }\n                        }} \n                      />\n                    </ChallengeProgress>\n                    \n                    <ChallengeFooter>\n                      <Chip\n                        label={challenge.hashtag}\n                        size=\"small\"\n                        sx={{\n                          backgroundColor: 'rgba(59, 130, 246, 0.2)',\n                          color: '#3b82f6'\n                        }}\n                      />\n                      <Typography variant=\"caption\" color=\"rgba(255,255,255,0.7)\">\n                        Prize: {challenge.prize}\n                      </Typography>\n                    </ChallengeFooter>\n                  </ChallengeCard>\n                </Grid>\n              ))}\n            </Grid>\n          </ChallengesSection>\n        )}\n\n        {/* Top Influencers Tab */}\n        {activeTab === 'influencers' && (\n          <InfluencersSection>\n            <Typography variant=\"h6\" sx={{ color: 'white', mb: 2 }}>\n              Top Community Influencers\n            </Typography>\n            \n            <Grid container spacing={3}>\n              {socialMetrics.topInfluencers.map((influencer, index) => (\n                <Grid item xs={12} md={4} key={influencer.id}>\n                  <InfluencerCard>\n                    <InfluencerHeader>\n                      <Avatar sx={{ width: 60, height: 60 }}>\n                        {influencer.name.split(' ').map(n => n[0]).join('')}\n                      </Avatar>\n                      <div>\n                        <Typography variant=\"h6\" color=\"white\">\n                          {influencer.name}\n                        </Typography>\n                        <Typography variant=\"body2\" color=\"rgba(255,255,255,0.7)\">\n                          Rank #{index + 1} Influencer\n                        </Typography>\n                      </div>\n                      {index === 0 && <Crown size={24} color=\"#f59e0b\" />}\n                    </InfluencerHeader>\n                    \n                    <InfluencerStats>\n                      <InfluencerStat>\n                        <Typography variant=\"body2\" color=\"rgba(255,255,255,0.7)\">\n                          Followers\n                        </Typography>\n                        <Typography variant=\"h6\" color=\"white\">\n                          {influencer.followers.toLocaleString()}\n                        </Typography>\n                      </InfluencerStat>\n                      \n                      <InfluencerStat>\n                        <Typography variant=\"body2\" color=\"rgba(255,255,255,0.7)\">\n                          Engagement\n                        </Typography>\n                        <Typography variant=\"h6\" sx={{ color: getEngagementColor(influencer.engagement) }}>\n                          {influencer.engagement}%\n                        </Typography>\n                      </InfluencerStat>\n                      \n                      <InfluencerStat>\n                        <Typography variant=\"body2\" color=\"rgba(255,255,255,0.7)\">\n                          Posts\n                        </Typography>\n                        <Typography variant=\"h6\" color=\"white\">\n                          {influencer.posts}\n                        </Typography>\n                      </InfluencerStat>\n                    </InfluencerStats>\n                    \n                    <InfluencerActions>\n                      <Button\n                        variant=\"outlined\"\n                        size=\"small\"\n                        sx={{\n                          borderColor: 'rgba(255,255,255,0.3)',\n                          color: 'white',\n                          '&:hover': {\n                            borderColor: '#3b82f6',\n                            backgroundColor: 'rgba(59, 130, 246, 0.1)'\n                          }\n                        }}\n                      >\n                        View Profile\n                      </Button>\n                      <Button\n                        variant=\"contained\"\n                        size=\"small\"\n                        sx={{\n                          background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)'\n                        }}\n                      >\n                        Partner\n                      </Button>\n                    </InfluencerActions>\n                  </InfluencerCard>\n                </Grid>\n              ))}\n            </Grid>\n          </InfluencersSection>\n        )}\n      </motion.div>\n    </SocialAnalyticsContainer>\n  );\n};\n\nexport default SocialIntegrationAnalytics;\n\n// ==================== STYLED COMPONENTS ====================\n\nconst SocialAnalyticsContainer = styled.div`\n  padding: 2rem;\n  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);\n`;\n\nconst HeaderSection = styled.div`\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  margin-bottom: 2rem;\n  \n  @media (max-width: 768px) {\n    flex-direction: column;\n    gap: 1rem;\n    align-items: flex-start;\n  }\n`;\n\nconst TabNavigation = styled.div`\n  display: flex;\n  gap: 0.5rem;\n`;\n\nconst TabButton = styled.button<{ active: boolean }>`\n  background: ${props => props.active ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)'};\n  border: 1px solid ${props => props.active ? 'rgba(59, 130, 246, 0.5)' : 'rgba(255, 255, 255, 0.1)'};\n  border-radius: 8px;\n  color: ${props => props.active ? '#3b82f6' : 'rgba(255, 255, 255, 0.7)'};\n  padding: 0.5rem 1rem;\n  cursor: pointer;\n  transition: all 0.2s;\n  font-weight: ${props => props.active ? 600 : 400};\n  \n  &:hover {\n    background: rgba(59, 130, 246, 0.1);\n    border-color: rgba(59, 130, 246, 0.3);\n  }\n`;\n\nconst MetricsOverview = styled.div`\n  margin-bottom: 2rem;\n`;\n\nconst SocialMetricCard = styled.div`\n  background: rgba(255, 255, 255, 0.05);\n  border: 1px solid rgba(255, 255, 255, 0.1);\n  border-radius: 12px;\n  padding: 1.5rem;\n  display: flex;\n  align-items: center;\n  gap: 1rem;\n  backdrop-filter: blur(10px);\n  \n  &:hover {\n    background: rgba(255, 255, 255, 0.08);\n    border-color: rgba(255, 255, 255, 0.2);\n  }\n`;\n\nconst SocialIcon = styled.div`\n  width: 48px;\n  height: 48px;\n  border-radius: 50%;\n  background: linear-gradient(135deg, #3b82f6, #1d4ed8);\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  color: white;\n`;\n\nconst MetricContent = styled.div`\n  flex: 1;\n`;\n\nconst MetricValue = styled.div`\n  font-size: 1.75rem;\n  font-weight: 600;\n  color: white;\n  margin-bottom: 0.25rem;\n`;\n\nconst MetricLabel = styled.div`\n  font-size: 0.875rem;\n  color: rgba(255, 255, 255, 0.7);\n  margin-bottom: 0.5rem;\n`;\n\nconst MetricTrend = styled.div`\n  display: flex;\n  align-items: center;\n  gap: 0.25rem;\n  font-size: 0.75rem;\n  color: #22c55e;\n`;\n\nconst ContentAnalyticsSection = styled.div`\n  margin-bottom: 2rem;\n`;\n\nconst AnalyticsCard = styled.div`\n  background: rgba(255, 255, 255, 0.05);\n  border: 1px solid rgba(255, 255, 255, 0.1);\n  border-radius: 12px;\n  padding: 1.5rem;\n  backdrop-filter: blur(10px);\n  height: 100%;\n`;\n\nconst HashtagList = styled.div`\n  display: flex;\n  flex-direction: column;\n  gap: 0.75rem;\n`;\n\nconst HashtagItem = styled.div`\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  padding: 0.75rem;\n  background: rgba(255, 255, 255, 0.03);\n  border-radius: 8px;\n  border: 1px solid rgba(255, 255, 255, 0.05);\n`;\n\nconst HashtagText = styled.div`\n  display: flex;\n  align-items: center;\n  gap: 0.5rem;\n`;\n\nconst HashtagMetrics = styled.div`\n  text-align: right;\n`;\n\nconst PostingSchedule = styled.div`\n  display: flex;\n  flex-direction: column;\n  gap: 1rem;\n`;\n\nconst PostingTimeSlot = styled.div`\n  display: flex;\n  align-items: center;\n  gap: 0.75rem;\n  padding: 0.75rem;\n  background: rgba(255, 255, 255, 0.03);\n  border-radius: 8px;\n`;\n\nconst EngagementBar = styled.div<{ value: number }>`\n  width: 60px;\n  height: 4px;\n  background: rgba(255, 255, 255, 0.1);\n  border-radius: 2px;\n  position: relative;\n  \n  &::after {\n    content: '';\n    position: absolute;\n    top: 0;\n    left: 0;\n    width: ${props => props.value}%;\n    height: 100%;\n    background: #22c55e;\n    border-radius: 2px;\n  }\n`;\n\nconst GamificationSection = styled.div`\n  margin-bottom: 2rem;\n`;\n\nconst GamificationCard = styled.div`\n  background: rgba(255, 255, 255, 0.05);\n  border: 1px solid rgba(255, 255, 255, 0.1);\n  border-radius: 12px;\n  padding: 1.5rem;\n  backdrop-filter: blur(10px);\n  height: 100%;\n`;\n\nconst GamificationHeader = styled.div`\n  display: flex;\n  align-items: center;\n  gap: 0.75rem;\n  margin-bottom: 1.5rem;\n`;\n\nconst GamificationStats = styled.div`\n  display: flex;\n  flex-direction: column;\n  gap: 1rem;\n`;\n\nconst GamificationStat = styled.div`\n  display: flex;\n  align-items: center;\n  gap: 0.75rem;\n  padding: 0.75rem;\n  background: rgba(255, 255, 255, 0.03);\n  border-radius: 8px;\n`;\n\nconst SocialAmplificationMetrics = styled.div`\n  display: flex;\n  flex-direction: column;\n  gap: 1rem;\n`;\n\nconst AmplificationMetric = styled.div`\n  padding: 0.75rem;\n  background: rgba(255, 255, 255, 0.03);\n  border-radius: 8px;\n`;\n\nconst ChallengesSection = styled.div``;\n\nconst ChallengeCard = styled.div`\n  background: rgba(255, 255, 255, 0.05);\n  border: 1px solid rgba(255, 255, 255, 0.1);\n  border-radius: 12px;\n  padding: 1.5rem;\n  backdrop-filter: blur(10px);\n  height: 100%;\n  display: flex;\n  flex-direction: column;\n`;\n\nconst ChallengeHeader = styled.div`\n  display: flex;\n  justify-content: space-between;\n  align-items: flex-start;\n  margin-bottom: 1rem;\n`;\n\nconst ChallengeMetrics = styled.div`\n  display: flex;\n  flex-direction: column;\n  gap: 0.5rem;\n  margin-bottom: 1rem;\n`;\n\nconst ChallengeMetric = styled.div`\n  display: flex;\n  align-items: center;\n  gap: 0.5rem;\n`;\n\nconst ChallengeProgress = styled.div`\n  margin: 1rem 0;\n`;\n\nconst ChallengeFooter = styled.div`\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  margin-top: auto;\n`;\n\nconst InfluencersSection = styled.div``;\n\nconst InfluencerCard = styled.div`\n  background: rgba(255, 255, 255, 0.05);\n  border: 1px solid rgba(255, 255, 255, 0.1);\n  border-radius: 12px;\n  padding: 1.5rem;\n  backdrop-filter: blur(10px);\n  height: 100%;\n  display: flex;\n  flex-direction: column;\n`;\n\nconst InfluencerHeader = styled.div`\n  display: flex;\n  align-items: center;\n  gap: 1rem;\n  margin-bottom: 1.5rem;\n`;\n\nconst InfluencerStats = styled.div`\n  display: grid;\n  grid-template-columns: repeat(3, 1fr);\n  gap: 1rem;\n  margin-bottom: 1.5rem;\n`;\n\nconst InfluencerStat = styled.div`\n  text-align: center;\n  padding: 0.75rem;\n  background: rgba(255, 255, 255, 0.03);\n  border-radius: 8px;\n`;\n\nconst InfluencerActions = styled.div`\n  display: flex;\n  gap: 0.5rem;\n  margin-top: auto;\n`;
+/**
+ * Social Media Integration Analytics
+ * =================================
+ *
+ * Advanced analytics for social media and community engagement:
+ * - Workout completion to social post correlation
+ * - Gamification engagement metrics
+ * - Community challenge performance
+ * - Client acquisition through social channels
+ * - Viral coefficient and organic growth tracking
+ * - Influencer trainer identification
+ *
+ * Critical for measuring the social media impact on business growth.
+ */
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import styled from 'styled-components';
+import {
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  Avatar,
+  Chip,
+  LinearProgress,
+  Button,
+  Box,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemAvatar,
+  IconButton,
+  Tooltip,
+  Badge,
+  AvatarGroup
+} from '@mui/material';
+import {
+  TrendingUp,
+  Heart,
+  MessageSquare,
+  Share2,
+  Award,
+  Target,
+  Users,
+  Zap,
+  Camera,
+  Video,
+  Instagram,
+  Twitter,
+  Facebook,
+  Youtube,
+  Star,
+  Flame,
+  Trophy,
+  Crown,
+  ThumbsUp,
+  Eye,
+  Play,
+  ArrowUp,
+  TrendingDown,
+  Calendar,
+  Clock,
+  MapPin,
+  Tag
+} from 'lucide-react';
+
+interface SocialMetrics {
+  totalPosts: number;
+  totalLikes: number;
+  totalShares: number;
+  totalComments: number;
+  engagementRate: number;
+  viralCoefficient: number;
+  organicReach: number;
+  hashtagPerformance: Record<string, number>;
+  bestPostingTimes: string[];
+  topInfluencers: Array<{
+    id: string;
+    name: string;
+    avatar?: string;
+    followers: number;
+    engagement: number;
+    posts: number;
+  }>;
+}
+
+interface GamificationMetrics {
+  totalPoints: number;
+  challengesCompleted: number;
+  badgesEarned: number;
+  leaderboardRank: number;
+  streakDays: number;
+  communityEngagement: number;
+  referrals: number;
+  socialShares: number;
+}
+
+interface SocialIntegrationAnalyticsProps {
+  sessions: any[];
+  clients: any[];
+  trainers: any[];
+  dateRange: string;
+}
+
+const SocialIntegrationAnalytics: React.FC<SocialIntegrationAnalyticsProps> = ({
+  sessions,
+  clients,
+  trainers,
+  dateRange
+}) => {
+  const [activeTab, setActiveTab] = useState<'overview' | 'challenges' | 'influencers' | 'content'>('overview');
+  
+  // Mock comprehensive social data
+  const socialMetrics = useMemo<SocialMetrics>(() => ({
+    totalPosts: 1247,
+    totalLikes: 18500,
+    totalShares: 3200,
+    totalComments: 5600,
+    engagementRate: 8.5,
+    viralCoefficient: 1.4,
+    organicReach: 85000,
+    hashtagPerformance: {
+      '#SwanStudiosStrong': 1250,
+      '#FitnessJourney': 890,
+      '#TransformationTuesday': 750,
+      '#WorkoutWednesday': 650,
+      '#MotivationMonday': 580,
+      '#FitnessMotivation': 520,
+      '#SwanStudiosFamily': 480,
+      '#HealthyLifestyle': 420
+    },
+    bestPostingTimes: ['6:00 AM', '12:00 PM', '6:00 PM', '8:00 PM'],
+    topInfluencers: [
+      {
+        id: '1',
+        name: 'Sarah Johnson',
+        followers: 15000,
+        engagement: 12.5,  
+        posts: 45
+      },
+      {
+        id: '2', 
+        name: 'Mike Chen',
+        followers: 8500,
+        engagement: 9.8,
+        posts: 38
+      },
+      {
+        id: '3',
+        name: 'Emma Rodriguez',
+        followers: 6200,
+        engagement: 15.2,
+        posts: 29
+      }
+    ]
+  }), []);
+  
+  const gamificationMetrics = useMemo<GamificationMetrics>(() => ({
+    totalPoints: 156780,
+    challengesCompleted: 89,
+    badgesEarned: 234,
+    leaderboardRank: 1,
+    streakDays: 45,
+    communityEngagement: 92,
+    referrals: 28,
+    socialShares: 156
+  }), []);
+  
+  // Calculate social conversion metrics
+  const conversionMetrics = useMemo(() => {
+    const socialTrafficConversion = 15.8; // % of social traffic that converts
+    const organicGrowthRate = 12.5; // Monthly organic growth %
+    const influencerROI = 340; // % ROI from influencer partnerships
+    const communityRetention = 89; // % retention for community-engaged users
+    
+    return {
+      socialTrafficConversion,
+      organicGrowthRate,
+      influencerROI,
+      communityRetention,
+      estimatedRevenue: Math.round(socialMetrics.organicReach * 0.02 * 150) // Rough calculation
+    };
+  }, [socialMetrics]);
+  
+  const getEngagementColor = (rate: number) => {
+    if (rate >= 15) return '#22c55e';
+    if (rate >= 10) return '#3b82f6';
+    if (rate >= 5) return '#f59e0b';
+    return '#ef4444';
+  };
+
+  return (
+    <SocialAnalyticsContainer>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        {/* Header with Tab Navigation */}
+        <HeaderSection>
+          <div>
+            <Typography variant="h4" sx={{ color: 'white', fontWeight: 300 }}>
+              Social Media & Community Analytics
+            </Typography>
+            <Typography variant="subtitle1" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+              Track social engagement impact on business growth
+            </Typography>
+          </div>
+          
+          <TabNavigation>
+            {['overview', 'challenges', 'influencers', 'content'].map((tab) => (
+              <TabButton
+                key={tab}
+                active={activeTab === tab}
+                onClick={() => setActiveTab(tab as any)}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </TabButton>
+            ))}
+          </TabNavigation>
+        </HeaderSection>
+
+        {/* Key Social Metrics */}
+        {activeTab === 'overview' && (
+          <MetricsOverview>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={3}>
+                <SocialMetricCard>
+                  <SocialIcon>
+                    <Eye size={24} />
+                  </SocialIcon>
+                  <MetricContent>
+                    <MetricValue>{socialMetrics.organicReach.toLocaleString()}</MetricValue>
+                    <MetricLabel>Organic Reach</MetricLabel>
+                    <MetricTrend>
+                      <ArrowUp size={14} color="#22c55e" />
+                      +{conversionMetrics.organicGrowthRate}% this month
+                    </MetricTrend>
+                  </MetricContent>
+                </SocialMetricCard>
+              </Grid>
+              
+              <Grid item xs={12} md={3}>
+                <SocialMetricCard>
+                  <SocialIcon>
+                    <Heart size={24} />
+                  </SocialIcon>
+                  <MetricContent>
+                    <MetricValue>{socialMetrics.engagementRate}%</MetricValue>
+                    <MetricLabel>Engagement Rate</MetricLabel>
+                    <MetricTrend>
+                      <ArrowUp size={14} color="#22c55e" />
+                      Industry leading
+                    </MetricTrend>
+                  </MetricContent>
+                </SocialMetricCard>
+              </Grid>
+              
+              <Grid item xs={12} md={3}>
+                <SocialMetricCard>
+                  <SocialIcon>
+                    <Users size={24} />
+                  </SocialIcon>
+                  <MetricContent>
+                    <MetricValue>${conversionMetrics.estimatedRevenue.toLocaleString()}</MetricValue>
+                    <MetricLabel>Social Revenue</MetricLabel>
+                    <MetricTrend>
+                      <ArrowUp size={14} color="#22c55e" />
+                      {conversionMetrics.socialTrafficConversion}% conversion
+                    </MetricTrend>
+                  </MetricContent>
+                </SocialMetricCard>
+              </Grid>
+              
+              <Grid item xs={12} md={3}>
+                <SocialMetricCard>
+                  <SocialIcon>
+                    <Zap size={24} />
+                  </SocialIcon>
+                  <MetricContent>
+                    <MetricValue>{socialMetrics.viralCoefficient}</MetricValue>
+                    <MetricLabel>Viral Coefficient</MetricLabel>
+                    <MetricTrend>
+                      <ArrowUp size={14} color="#22c55e" />
+                      Excellent virality
+                    </MetricTrend>
+                  </MetricContent>
+                </SocialMetricCard>
+              </Grid>
+            </Grid>
+          </MetricsOverview>
+        )}
+      </motion.div>
+    </SocialAnalyticsContainer>
+  );
+};
+
+export default SocialIntegrationAnalytics;
+
+// ==================== STYLED COMPONENTS ====================
+
+const SocialAnalyticsContainer = styled.div`
+  padding: 2rem;
+  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+`;
+
+const HeaderSection = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+`;
+
+const TabNavigation = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const TabButton = styled.button<{ active: boolean }>`
+  background: ${props => props.active ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)'};
+  border: 1px solid ${props => props.active ? 'rgba(59, 130, 246, 0.5)' : 'rgba(255, 255, 255, 0.1)'};
+  border-radius: 8px;
+  color: ${props => props.active ? '#3b82f6' : 'rgba(255, 255, 255, 0.7)'};
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: ${props => props.active ? 600 : 400};
+  
+  &:hover {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+`;
+
+const MetricsOverview = styled.div`
+  margin-bottom: 2rem;
+`;
+
+const SocialMetricCard = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  backdrop-filter: blur(10px);
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+`;
+
+const SocialIcon = styled.div`
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+`;
+
+const MetricContent = styled.div`
+  flex: 1;
+`;
+
+const MetricValue = styled.div`
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 0.25rem;
+`;
+
+const MetricLabel = styled.div`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.5rem;
+`;
+
+const MetricTrend = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #22c55e;
+`;

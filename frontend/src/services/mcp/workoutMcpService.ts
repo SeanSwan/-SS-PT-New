@@ -13,7 +13,7 @@
  * @module services/mcp/workoutMcpService
  */
 
-import { api } from '../api.service';
+import productionApiService from '../api.service';
 import { mcpConfig, McpHealth } from './mcpConfig';
 import {
   WorkoutMcpApi,
@@ -152,7 +152,7 @@ const workoutMcpApi: WorkoutMcpApi = {
       }
       
       // Get detailed status from backend
-      const response = await api.get('/mcp/status');
+      const response = await productionApiService.get('/mcp/status');
       
       return {
         data: {
@@ -213,7 +213,7 @@ const workoutMcpApi: WorkoutMcpApi = {
       };
       
       // Call backend MCP analysis endpoint
-      const response = await api.post('/mcp/analyze', analysisRequest);
+      const response = await productionApiService.post('/mcp/analyze', analysisRequest);
       
       if (response.data.success && response.data.metadata?.fallbackMode) {
         // Backend returned fallback data
@@ -318,7 +318,7 @@ const workoutMcpApi: WorkoutMcpApi = {
         }
       };
       
-      const response = await api.post('/mcp/analyze', analysisRequest);
+      const response = await productionApiService.post('/mcp/analyze', analysisRequest);
       
       // Return enhanced fallback data with AI analysis
       return {
@@ -431,7 +431,7 @@ const workoutMcpApi: WorkoutMcpApi = {
         }
       };
       
-      const response = await api.post('/mcp/generate', programRequest);
+      const response = await productionApiService.post('/mcp/generate', programRequest);
       
       // For now, return enhanced fallback data with AI-generated insights
       const fallbackProgram = {
@@ -569,7 +569,7 @@ const workoutMcpApi: WorkoutMcpApi = {
         }
       };
       
-      const response = await api.post('/mcp/generate', recommendationRequest);
+      const response = await productionApiService.post('/mcp/generate', recommendationRequest);
       
       // Return enhanced recommendations with AI content
       const aiRecommendations = [

@@ -8,7 +8,7 @@
  * @module services/mcp/mcpConfig
  */
 
-import { api } from '../api.service';
+import productionApiService from '../api.service';
 
 export interface McpServerStatus {
   status: 'online' | 'offline' | 'fallback' | 'disabled';
@@ -48,7 +48,7 @@ class McpConfigService {
     }
     
     try {
-      const response = await api.get('/mcp/health');
+      const response = await productionApiService.get('/mcp/health');
       this.healthCache = response.data;
       this.lastHealthCheck = now;
       
@@ -103,7 +103,7 @@ class McpConfigService {
    */
   async getStatus() {
     try {
-      const response = await api.get('/mcp/status');
+      const response = await productionApiService.get('/mcp/status');
       return response.data;
     } catch (error) {
       console.error('[MCP Config] Status check failed:', error);

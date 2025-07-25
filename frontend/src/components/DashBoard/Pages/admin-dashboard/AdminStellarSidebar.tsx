@@ -683,6 +683,9 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         aria-label="Toggle admin navigation menu"
+        aria-expanded={isMobileOpen}
+        role="button"
+        tabIndex={0}
       >
         {isMobileOpen ? <X size={24} /> : <Menu size={24} />}
       </AdminMobileToggle>
@@ -729,6 +732,9 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
               whileHover={{ rotate: 180 }}
               whileTap={{ scale: 0.9 }}
               aria-label={isCollapsed ? 'Expand admin sidebar' : 'Collapse admin sidebar'}
+              aria-expanded={!isCollapsed}
+              role="button"
+              tabIndex={0}
             >
               {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
             </AdminCollapseToggle>
@@ -736,7 +742,10 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
         </AdminSidebarHeader>
         
         {/* Navigation */}
-        <AdminNavigationSection>
+        <AdminNavigationSection
+          role="navigation"
+          aria-label="Admin dashboard navigation"
+        >
           <motion.div
             variants={contentVariants}
             initial="hidden"
@@ -747,6 +756,8 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
                 <AdminSectionTitle 
                   isCollapsed={isMobile ? !isMobileOpen : isCollapsed}
                   variants={itemVariants}
+                  role="heading"
+                  aria-level={3}
                 >
                   {adminSectionTitles[section as keyof typeof adminSectionTitles]}
                 </AdminSectionTitle>
@@ -770,8 +781,9 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
                       variants={itemVariants}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      aria-label={`Navigate to ${item.label}`}
-                      role="button"
+                      aria-label={`Navigate to ${item.label}${item.badge ? ` - ${item.badge} pending items` : ''}`}
+                      aria-current={isActive ? 'page' : undefined}
+                      role="menuitem"
                       tabIndex={0}
                     >
                       <div className="admin-nav-icon">

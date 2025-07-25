@@ -254,8 +254,8 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
                 )}
                 
                 {/* Header Content */}
-                <HeaderContent>
-                  <HeaderTitle>
+                <HeaderContent role="banner">
+                  <HeaderTitle role="heading" aria-level={1}>
                     <CalendarIcon size={28} />
                     <Typography variant="h4" component="h1">
                       Universal Master Schedule
@@ -276,6 +276,7 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
                       leftIcon={<RefreshCw size={16} />}
                       onClick={handleRefresh}
                       disabled={isLoading}
+                      aria-label="Refresh schedule data"
                     />
                     
                     {/* Fullscreen Toggle */}
@@ -284,6 +285,7 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
                         <IconButton
                           onClick={handleFullscreenToggle}
                           sx={{ color: 'white' }}
+                          aria-label={isFullscreen ? 'Exit fullscreen mode' : 'Enter fullscreen mode'}
                         >
                           {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
                         </IconButton>
@@ -292,7 +294,10 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
                     
                     {/* Settings */}
                     <Tooltip title="Schedule Settings">
-                      <IconButton sx={{ color: 'white' }}>
+                      <IconButton 
+                        sx={{ color: 'white' }}
+                        aria-label="Open schedule settings"
+                      >
                         <Settings size={20} />
                       </IconButton>
                     </Tooltip>
@@ -303,12 +308,17 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
           )}
           
           {/* Main Schedule Content */}
-          <ScheduleContent>
+          <ScheduleContent
+            role="region"
+            aria-label="Schedule management interface"
+          >
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: 0.1 }}
               style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+              role="application"
+              aria-label="Universal Master Schedule Calendar"
             >
               <UniversalMasterSchedule />
             </motion.div>

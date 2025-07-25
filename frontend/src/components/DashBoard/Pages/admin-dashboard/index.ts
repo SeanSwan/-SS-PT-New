@@ -17,5 +17,4 @@ export { default as AIMonitoringPanel } from './components/AIMonitoringPanel';
 export { default as SecurityMonitoringPanel } from './components/SecurityMonitoringPanel';
 export { default as SystemHealthPanel } from './components/SystemHealthPanel';
 
-// Legacy components
-export { default as LegacyAdminDashboardView } from './legacy-admin-dashboard-view';
+// Legacy components - File removed, functionality integrated into main dashboard
