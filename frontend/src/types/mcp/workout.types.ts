@@ -1,17 +1,18 @@
 /**
  * Workout MCP Types
  * 
- * Type definitions for the Workout MCP service
+ * ENHANCED - Type definitions for the Workout MCP service
+ * Added AI integration properties and enhanced interfaces
  * 
  * @module types/mcp/workout.types
  */
 
-import { McpApiResponse, SuccessResponse, ServerStatus } from './service.types';
+import { McpApiResponse, SuccessResponse, ServerStatus, AiEnhancedResponse } from './service.types';
 
 /**
- * Overall workout progress data
+ * Overall workout progress data - ENHANCED
  */
-export interface WorkoutProgress {
+export interface WorkoutProgress extends AiEnhancedResponse {
   lastUpdated: string;
   bodyStats: {
     weight: {
@@ -75,9 +76,9 @@ export interface WorkoutProgress {
 }
 
 /**
- * Workout statistics
+ * Workout statistics - ENHANCED
  */
-export interface WorkoutStatistics {
+export interface WorkoutStatistics extends AiEnhancedResponse {
   totalWorkouts: number;
   totalMinutes: number;
   averageDuration: number;
@@ -100,7 +101,7 @@ export interface WorkoutStatistics {
 }
 
 /**
- * Training program data
+ * Training program data - ENHANCED
  */
 export interface TrainingProgramData {
   activeProgram: {
@@ -113,6 +114,8 @@ export interface TrainingProgramData {
     daysPerWeek: number;
     currentWeek: number;
     totalWeeks: number;
+    aiGenerated?: boolean;
+    generatedContent?: string;
   };
   upcomingWorkouts: {
     id: string;
@@ -125,6 +128,7 @@ export interface TrainingProgramData {
       reps: string;
       rest: number;
     }[];
+    aiOptimized?: boolean;
   }[];
   completedWorkouts: {
     id: string;
@@ -144,9 +148,9 @@ export interface TrainingProgramData {
 }
 
 /**
- * Workout recommendation
+ * Workout recommendation - ENHANCED
  */
-export interface WorkoutRecommendation {
+export interface WorkoutRecommendation extends AiEnhancedResponse {
   id: string;
   name: string;
   description: string;
