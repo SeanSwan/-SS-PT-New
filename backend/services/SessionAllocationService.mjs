@@ -329,6 +329,7 @@ class SessionAllocationService {
   /**
    * Manually add sessions to user (Admin function)
    * Used by admin to add complimentary or bonus sessions
+   * 🚨 CRITICAL FIX: Now updates user.availableSessions for consistency with store purchases
    * 
    * @param {number} userId - User ID
    * @param {number} sessionCount - Sessions to add
@@ -354,7 +355,11 @@ class SessionAllocationService {
         throw new Error(`User ${userId} not found`);
       }
 
-      // Create available sessions
+      // 🚨 CRITICAL FIX: Update user.availableSessions for consistency with store purchases
+      user.availableSessions = (user.availableSessions || 0) + sessionCount;
+      await user.save();
+
+      // Also create individual session records for detailed tracking (optional)
       const sessionsToCreate = [];
       for (let i = 0; i < sessionCount; i++) {
         sessionsToCreate.push({
@@ -377,14 +382,16 @@ class SessionAllocationService {
         userId,
         sessionIds: createdSessions.map(s => s.id),
         reason,
-        adminUserId
+        adminUserId,
+        newAvailableSessionsCount: user.availableSessions
       });
 
       return {
         success: true,
         added: createdSessions.length,
+        availableSessions: user.availableSessions,
         sessions: createdSessions,
-        message: `Successfully added ${createdSessions.length} sessions to ${user.firstName} ${user.lastName}`
+        message: `Successfully added ${createdSessions.length} sessions to ${user.firstName} ${user.lastName}. Total available: ${user.availableSessions}`
       };
 
     } catch (error) {
@@ -402,6 +409,7 @@ class SessionAllocationService {
   /**
    * Get user session summary
    * Returns current session availability for user
+   * 🚨 CRITICAL FIX: Now reads from user.availableSessions for consistency
    * 
    * @param {number} userId - User ID
    * @returns {Object} Session summary
@@ -409,7 +417,15 @@ class SessionAllocationService {
   async getUserSessionSummary(userId) {
     try {
       const Session = getSession();
+      const User = getUser();
       
+      // Get user data for available sessions count
+      const user = await User.findByPk(userId);
+      if (!user) {
+        throw new Error(`User ${userId} not found`);
+      }
+      
+      // Get detailed session breakdown from session records
       const summary = await Session.findAll({
         attributes: [
           'status',
@@ -422,16 +438,26 @@ class SessionAllocationService {
 
       const result = {
         userId,
-        available: 0,
+        available: user.availableSessions || 0, // 🚨 CRITICAL: Use user field for consistency
         scheduled: 0,
         completed: 0,
         cancelled: 0,
         total: 0
       };
 
+      // Fill in other session statuses from session records
       summary.forEach(item => {
-        result[item.status] = parseInt(item.count);
-        result.total += parseInt(item.count);
+        if (item.status !== 'available') {
+          result[item.status] = parseInt(item.count);
+        }
+      });
+
+      // Calculate total (available from user field + other statuses from records)
+      result.total = result.available + result.scheduled + result.completed + result.cancelled;
+
+      logger.info(`[SessionAllocation] User session summary retrieved`, {
+        userId,
+        summary: result
       });
 
       return result;

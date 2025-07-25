@@ -70,6 +70,7 @@ import AdminScheduleIntegration from '../UniversalMasterSchedule/AdminScheduleIn
 // Import NASM Workout Tracking System Components
 import ClientTrainerAssignments from '../Admin/ClientTrainerAssignments';
 import TrainerPermissionsManager from '../Admin/TrainerPermissionsManager';
+import SessionAllocationManager from '../Admin/SessionAllocationManager';
 import WorkoutLogger from '../WorkoutLogger/WorkoutLogger';
 import NASMProgressCharts from '../Client/NASMProgressCharts';
 
@@ -376,6 +377,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       // 📅 SCHEDULING & OPERATIONS
       { path: '/admin-sessions', component: EnhancedAdminSessionsView, title: 'Session Management', description: 'Universal session control' },
       { path: '/master-schedule', component: AdminScheduleIntegration, title: 'Universal Master Schedule', description: 'Advanced drag-and-drop scheduling command center' },
+      { path: '/session-allocation', component: SessionAllocationManager, title: 'Session Allocation Manager', description: 'Manage client session counts and allocation' },
       { path: '/client-trainer-assignments', component: ClientTrainerAssignments, title: 'Client-Trainer Assignments', description: 'Drag-and-drop client assignment management' },
       { path: '/trainer-permissions', component: TrainerPermissionsManager, title: 'Trainer Permissions', description: 'Granular trainer permission control' },
       

@@ -10,6 +10,7 @@
 
 // Main Component
 export { default as UniversalMasterSchedule } from './UniversalMasterSchedule';
+export { default as SessionCountDisplay } from './SessionCountDisplay';
 
 // Types and Interfaces
 export * from './types';

@@ -29,7 +29,7 @@ import {
   Shield, Users, UserCheck, Calendar, Package, BarChart3, 
   Database, Settings, Monitor, TrendingUp, ShieldCheck, 
   ChevronLeft, ChevronRight, Menu, X, Command, AlertTriangle,
-  Activity, DollarSign, MessageSquare, FileText, Star
+  Activity, DollarSign, MessageSquare, FileText, Star, CreditCard
 } from 'lucide-react';
 
 // === ADMIN COMMAND CENTER THEME ===
@@ -553,6 +553,7 @@ const adminNavigationItems: AdminNavItemData[] = [
   // 📅 SCHEDULING & OPERATIONS
   { id: 'admin-sessions', label: 'Session Management', icon: Calendar, section: 'management', route: '/dashboard/admin/admin-sessions' },
   { id: 'master-schedule', label: 'Universal Master Schedule', icon: Calendar, section: 'management', route: '/dashboard/admin/master-schedule' },
+  { id: 'session-allocation', label: 'Session Allocation Manager', icon: CreditCard, section: 'management', route: '/dashboard/admin/session-allocation' },
   { id: 'client-trainer-assignments', label: 'Client-Trainer Assignments', icon: Users, section: 'management', route: '/dashboard/admin/client-trainer-assignments' },
   { id: 'trainer-permissions', label: 'Trainer Permissions', icon: ShieldCheck, section: 'management', route: '/dashboard/admin/trainer-permissions' },
   
