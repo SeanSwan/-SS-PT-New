@@ -1,7 +1,8 @@
 /**
  * Gamification MCP Types
  * 
- * Type definitions for the Gamification MCP service
+ * UPDATED - Type definitions for the Gamification MCP service
+ * Fixed interface mismatches and added missing properties
  * 
  * @module types/mcp/gamification.types
  */
@@ -20,64 +21,128 @@ export interface GamificationProfile {
   questsCompleted: number;
   powerups: number;
   boosts: number;
+  lastUpdated?: string;
+  mcpEnhanced?: boolean;
+  errorMessage?: string;
 }
 
 /**
- * Achievement data
+ * Achievement data - ENHANCED
  */
 export interface Achievement {
   id: string;
   name: string;
   description: string;
-  progress: number;
-  completed?: boolean;
   icon: string;
-  color: string;
+  category: string;
+  rarity: 'common' | 'uncommon' | 'rare' | 'legendary';
+  pointsAwarded: number;
+  unlockedAt: string | null;
+  isUnlocked: boolean;
+  progress?: number;
+  target?: number;
+  mcpEnhanced?: boolean;
+  lastChecked?: string;
 }
 
 /**
- * Challenge data
+ * Challenge data - ENHANCED
  */
 export interface Challenge {
   id: string;
   name: string;
   description: string;
-  progress: number;
-  joined: boolean;
-  participants: number;
+  startDate: string;
   endDate: string;
+  status: 'active' | 'completed' | 'expired';
+  progress: number;
+  target: number;
+  participants: number;
+  rewards: {
+    points: number;
+    badge?: {
+      name: string;
+      icon: string;
+    };
+  };
+  category: 'daily' | 'weekly' | 'monthly' | 'special';
+  mcpEnhanced?: boolean;
+  lastUpdated?: string;
 }
 
 /**
- * Kindness quest data
+ * Kindness quest data - ENHANCED
  */
 export interface KindnessQuest {
   id: string;
   name: string;
   description: string;
-  completed: boolean;
-  points: number;
+  type: 'community_support' | 'mentorship' | 'encouragement' | 'sharing';
+  difficulty: 'easy' | 'medium' | 'hard';
+  timeLimit: string;
+  progress: number;
+  target: number;
+  rewards: {
+    kindnessPoints: number;
+    experiencePoints: number;
+    badge?: {
+      name: string;
+      icon: string;
+    };
+  };
+  isActive: boolean;
+  completedAt: string | null;
+  mcpEnhanced?: boolean;
+  lastUpdated?: string;
 }
 
 /**
- * Board position data
+ * Board position data - ENHANCED
  */
 export interface BoardPosition {
-  position: number;
-  lastRoll: number;
-  canRoll: boolean;
-  nextRollTime: string | null;
+  currentPosition: number;
+  totalSpaces: number;
+  currentSpace: {
+    id: string;
+    name: string;
+    description: string;
+    type: 'normal' | 'checkpoint' | 'special' | 'bonus';
+    bonus?: {
+      type: 'points' | 'energy' | 'powerup';
+      amount: number;
+    };
+  };
+  movesRemaining: number;
+  canRollDice: boolean;
+  lastMoveAt: string;
+  mcpEnhanced?: boolean;
+  lastUpdated?: string;
+  errorMessage?: string;
 }
 
 /**
- * Dice roll result
+ * Dice roll result - ENHANCED
  */
 export interface DiceRollResult {
-  roll: number;
+  diceValue: number;
+  diceType: 'standard' | 'bonus' | 'power';
+  bonusMultiplier: number;
   newPosition: number;
-  rewardsEarned: boolean;
+  spaceReached: {
+    id: string;
+    name: string;
+    description: string;
+    type: 'normal' | 'checkpoint' | 'special' | 'bonus';
+    bonus?: {
+      type: 'points' | 'energy' | 'powerup';
+      amount: number;
+    };
+  };
   pointsEarned: number;
-  nextRollTime: string;
+  achievementsUnlocked: string[];
+  rolledAt: string;
+  mcpEnhanced?: boolean;
+  mcpResponse?: string;
 }
 
 /**
@@ -92,8 +157,8 @@ export interface GetGamificationProfileParams {
  */
 export interface GetAchievementsParams {
   userId: string;
-  includeCompleted?: boolean;
-  includeInProgress?: boolean;
+  category?: string;
+  includeProgress?: boolean;
 }
 
 /**
@@ -108,7 +173,7 @@ export interface GetBoardPositionParams {
  */
 export interface RollDiceParams {
   userId: string;
-  useBoost?: boolean;
+  diceType?: 'standard' | 'bonus' | 'power';
 }
 
 /**
@@ -116,7 +181,8 @@ export interface RollDiceParams {
  */
 export interface GetChallengesParams {
   userId: string;
-  limit?: number;
+  status?: 'active' | 'completed' | 'expired';
+  category?: 'daily' | 'weekly' | 'monthly' | 'special';
 }
 
 /**
@@ -132,7 +198,8 @@ export interface JoinChallengeParams {
  */
 export interface GetKindnessQuestsParams {
   userId: string;
-  limit?: number;
+  status?: 'active' | 'completed';
+  difficulty?: 'easy' | 'medium' | 'hard';
 }
 
 /**
@@ -141,27 +208,31 @@ export interface GetKindnessQuestsParams {
 export interface CompleteKindnessQuestParams {
   userId: string;
   questId: string;
+  completionData?: any;
 }
 
 /**
- * Response for completing a quest
+ * Response for completing a quest - ENHANCED
  */
 export interface CompleteQuestResponse extends SuccessResponse {
   pointsEarned?: number;
-  kindnessPoints?: number;
+  kindnessPointsEarned?: number;
+  achievementsUnlocked?: string[];
+  newLevel?: number | null;
+  mcpEnhanced?: boolean;
 }
 
 /**
- * Gamification MCP API interface
+ * Gamification MCP API interface - CORRECTED
  */
 export interface GamificationMcpApi {
   checkServerStatus: () => Promise<McpApiResponse<ServerStatus>>;
-  getGamificationProfile: (params: GetGamificationProfileParams) => Promise<McpApiResponse<{ profile: GamificationProfile }>>;
-  getAchievements: (params: GetAchievementsParams) => Promise<McpApiResponse<{ achievements: Achievement[] }>>;
-  getBoardPosition: (params: GetBoardPositionParams) => Promise<McpApiResponse<{ position: BoardPosition }>>;
-  rollDice: (params: RollDiceParams) => Promise<McpApiResponse<{ result: DiceRollResult }>>;
-  getChallenges: (params: GetChallengesParams) => Promise<McpApiResponse<{ challenges: Challenge[] }>>;
+  getGamificationProfile: (params: GetGamificationProfileParams) => Promise<McpApiResponse<GamificationProfile>>;
+  getAchievements: (params: GetAchievementsParams) => Promise<McpApiResponse<Achievement[]>>;
+  getBoardPosition: (params: GetBoardPositionParams) => Promise<McpApiResponse<BoardPosition>>;
+  rollDice: (params: RollDiceParams) => Promise<McpApiResponse<DiceRollResult>>;
+  getChallenges: (params: GetChallengesParams) => Promise<McpApiResponse<Challenge[]>>;
   joinChallenge: (params: JoinChallengeParams) => Promise<McpApiResponse<SuccessResponse>>;
-  getKindnessQuests: (params: GetKindnessQuestsParams) => Promise<McpApiResponse<{ quests: KindnessQuest[] }>>;
+  getKindnessQuests: (params: GetKindnessQuestsParams) => Promise<McpApiResponse<KindnessQuest[]>>;
   completeKindnessQuest: (params: CompleteKindnessQuestParams) => Promise<McpApiResponse<CompleteQuestResponse>>;
 }
