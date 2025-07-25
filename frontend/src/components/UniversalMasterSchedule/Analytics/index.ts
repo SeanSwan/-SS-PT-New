@@ -1,1 +1,46 @@
-/**\n * Analytics Module Index\n * ======================\n * \n * Central export point for all Universal Master Schedule analytics components.\n * Provides comprehensive business intelligence capabilities for personal training business.\n */\n\nexport { default as AdvancedAnalyticsDashboard } from './AdvancedAnalyticsDashboard';\nexport { default as TrainerPerformanceAnalytics } from './TrainerPerformanceAnalytics';\nexport { default as SocialIntegrationAnalytics } from './SocialIntegrationAnalytics';\n\n// Analytics Types\nexport interface AnalyticsProps {\n  sessions: any[];\n  clients: any[];\n  trainers: any[];\n  dateRange: string;\n  onDateRangeChange?: (range: string) => void;\n}\n\nexport interface BusinessMetrics {\n  totalRevenue: number;\n  utilizationRate: number;\n  clientRetention: number;\n  completionRate: number;\n  socialEngagement: number;\n  trainerPerformance: number;\n}\n\nexport interface SocialMetrics {\n  organicReach: number;\n  engagementRate: number;\n  viralCoefficient: number;\n  hashtagPerformance: Record<string, number>;\n  influencerMetrics: any[];\n}\n\nexport interface TrainerMetrics {\n  revenue: number;\n  clientSatisfaction: number;\n  utilizationRate: number;\n  socialImpact: number;\n  nasmCompliance: number;\n  burnoutRisk: 'low' | 'medium' | 'high';\n}
+/**
+ * Analytics Module Index
+ * ======================
+ *
+ * Central export point for all Universal Master Schedule analytics components.
+ * Provides comprehensive business intelligence capabilities for personal training business.
+ */
+
+export { default as AdvancedAnalyticsDashboard } from './AdvancedAnalyticsDashboard';
+export { default as TrainerPerformanceAnalytics } from './TrainerPerformanceAnalytics';
+export { default as SocialIntegrationAnalytics } from './SocialIntegrationAnalytics';
+
+// Analytics Types
+export interface AnalyticsProps {
+  sessions: any[];
+  clients: any[];
+  trainers: any[];
+  dateRange: string;
+  onDateRangeChange?: (range: string) => void;
+}
+
+export interface BusinessMetrics {
+  totalRevenue: number;
+  utilizationRate: number;
+  clientRetention: number;
+  completionRate: number;
+  socialEngagement: number;
+  trainerPerformance: number;
+}
+
+export interface SocialMetrics {
+  organicReach: number;
+  engagementRate: number;
+  viralCoefficient: number;
+  hashtagPerformance: Record<string, number>;
+  influencerMetrics: any[];
+}
+
+export interface TrainerMetrics {
+  revenue: number;
+  clientSatisfaction: number;
+  utilizationRate: number;
+  socialImpact: number;
+  nasmCompliance: number;
+  burnoutRisk: 'low' | 'medium' | 'high';
+}

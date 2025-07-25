@@ -33,7 +33,7 @@ import {
   Calendar, Filter, RefreshCw, Eye, EyeOff,
   ChevronLeft, ChevronRight, Settings, Download
 } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { useToast } from '../../hooks/use-toast';
 
 // Chart Components
 import VolumeOverTimeChart from './charts/VolumeOverTimeChart';
@@ -278,6 +278,7 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
   defaultTimeRange = '30d',
   className
 }) => {
+  const { toast } = useToast();
   // ==================== STATE ====================
   
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
@@ -336,7 +337,11 @@ const ClientProgressCharts: React.FC<ClientProgressChartsProps> = ({
     } catch (err) {
       console.error('Error fetching progress data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load progress data');
-      toast.error('Failed to load progress data');
+      toast({
+        title: 'Error',
+        description: 'Failed to load progress data',
+        variant: 'destructive'
+      });
     } finally {
       setLoading(false);
       setRefreshing(false);

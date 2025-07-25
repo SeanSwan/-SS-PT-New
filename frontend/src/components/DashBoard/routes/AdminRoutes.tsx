@@ -13,10 +13,10 @@ import { CircularProgress, Box } from '@mui/material';
 // Lazy load admin components for performance
 const ClientManagementDashboard = React.lazy(() => import('../Pages/admin-clients/ClientManagementDashboard'));
 const UniversalMasterSchedule = React.lazy(() => import('../../UniversalMasterSchedule/UniversalMasterSchedule'));
-const AdminDashboardOverview = React.lazy(() => import('../Pages/admin-dashboard/AdminDashboardOverview'));
-const TrainerManagement = React.lazy(() => import('../Pages/admin-dashboard/TrainerManagement'));
-const FinancialDashboard = React.lazy(() => import('../Pages/admin-dashboard/FinancialDashboard'));
-const SystemSettings = React.lazy(() => import('../Pages/admin-dashboard/SystemSettings'));
+const RevolutionaryAdminDashboard = React.lazy(() => import('../Pages/admin-dashboard/admin-dashboard-view'));
+const TrainersManagementSection = React.lazy(() => import('../Pages/admin-dashboard/TrainersManagementSection'));
+const RevenueAnalyticsPanel = React.lazy(() => import('../Pages/admin-dashboard/components/RevenueAnalyticsPanel'));
+const SystemHealthManagementSection = React.lazy(() => import('../Pages/admin-dashboard/SystemHealthManagementSection'));
 
 // Loading component
 const LoadingFallback = () => (
@@ -35,7 +35,7 @@ const AdminRoutes: React.FC = () => {
       <Routes>
         {/* Admin Dashboard Overview */}
         <Route path="/" element={<Navigate to="/overview" replace />} />
-        <Route path="/overview" element={<AdminDashboardOverview />} />
+        <Route path="/overview" element={<RevolutionaryAdminDashboard />} />
         
         {/* CLIENT MANAGEMENT - Primary business function */}
         <Route path="/clients" element={<ClientManagementDashboard />} />
@@ -46,14 +46,14 @@ const AdminRoutes: React.FC = () => {
         <Route path="/master-schedule" element={<UniversalMasterSchedule />} />
         
         {/* TRAINER MANAGEMENT */}
-        <Route path="/trainers" element={<TrainerManagement />} />
+        <Route path="/trainers" element={<TrainersManagementSection />} />
         
         {/* FINANCIAL MANAGEMENT */}
-        <Route path="/financial" element={<FinancialDashboard />} />
-        <Route path="/revenue" element={<FinancialDashboard />} />
+        <Route path="/financial" element={<RevenueAnalyticsPanel />} />
+        <Route path="/revenue" element={<RevenueAnalyticsPanel />} />
         
         {/* SYSTEM SETTINGS */}
-        <Route path="/settings" element={<SystemSettings />} />
+        <Route path="/settings" element={<SystemHealthManagementSection />} />
         
         {/* Catch all - redirect to overview */}
         <Route path="*" element={<Navigate to="/overview" replace />} />

@@ -1,1 +1,389 @@
-/**\n * Trainer Performance Analytics Center\n * ===================================\n * \n * Deep-dive analytics for trainer performance optimization:\n * - Individual trainer metrics and comparisons\n * - Client retention and satisfaction scores\n * - Revenue generation and efficiency\n * - Social engagement correlation\n * - NASM compliance and certification tracking\n * - Scheduling optimization recommendations\n * \n * Critical for trainer management and business growth.\n */\n\nimport React, { useState, useEffect, useMemo } from 'react';\nimport { motion, AnimatePresence } from 'framer-motion';\nimport styled from 'styled-components';\nimport {\n  Grid,\n  Card,\n  CardContent,\n  Typography,\n  Avatar,\n  Chip,\n  LinearProgress,\n  Button,\n  Table,\n  TableBody,\n  TableCell,\n  TableContainer,\n  TableHead,\n  TableRow,\n  Paper,\n  Select,\n  MenuItem,\n  FormControl,\n  InputLabel,\n  Box,\n  Divider,\n  Rating\n} from '@mui/material';\nimport {\n  TrendingUp,\n  TrendingDown,\n  Star,\n  Users,\n  DollarSign,\n  Calendar,\n  Award,\n  Target,\n  Activity,\n  Clock,\n  MessageSquare,\n  Heart,\n  Zap,\n  ArrowUp,\n  ArrowDown,\n  Medal,\n  Trophy,\n  BookOpen,\n  CheckCircle\n} from 'lucide-react';\n\ninterface TrainerMetrics {\n  id: string;\n  name: string;\n  avatar?: string;\n  email: string;\n  specializations: string[];\n  certifications: string[];\n  \n  // Performance Metrics\n  totalRevenue: number;\n  revenueGrowth: number;\n  sessionsCompleted: number;\n  clientRetention: number;\n  averageRating: number;\n  totalReviews: number;\n  \n  // Efficiency Metrics\n  utilizationRate: number;\n  averageSessionDuration: number;\n  noShowRate: number;\n  cancellationRate: number;\n  rebookingRate: number;\n  \n  // Social & Engagement\n  socialPosts: number;\n  clientEngagement: number;\n  challengesCreated: number;\n  communityScore: number;\n  \n  // NASM Compliance\n  assessmentsCompleted: number;\n  correctiveExercises: number;\n  continuingEducation: number;\n  complianceScore: number;\n  \n  // Schedule Optimization\n  peakHours: string[];\n  preferredClients: number;\n  workloadScore: number;\n  burnoutRisk: 'low' | 'medium' | 'high';\n}\n\ninterface TrainerPerformanceAnalyticsProps {\n  trainers: any[];\n  sessions: any[];\n  selectedTrainer?: string;\n  onTrainerSelect: (trainerId: string) => void;\n  dateRange: string;\n}\n\nconst TrainerPerformanceAnalytics: React.FC<TrainerPerformanceAnalyticsProps> = ({\n  trainers,\n  sessions,\n  selectedTrainer,\n  onTrainerSelect,\n  dateRange\n}) => {\n  const [viewMode, setViewMode] = useState<'overview' | 'detailed' | 'comparison'>('overview');\n  const [sortBy, setSortBy] = useState<'revenue' | 'rating' | 'retention' | 'efficiency'>('revenue');\n  \n  // Generate comprehensive trainer metrics\n  const trainerMetrics = useMemo(() => {\n    return trainers.map(trainer => {\n      // Mock comprehensive data - in real app, this would come from API\n      const baseRevenue = 3000 + Math.random() * 4000;\n      const efficiency = 0.7 + Math.random() * 0.3;\n      \n      return {\n        id: trainer.id,\n        name: `${trainer.firstName} ${trainer.lastName}`,\n        email: trainer.email || `${trainer.firstName.toLowerCase()}@swanstudios.com`,\n        avatar: trainer.avatar,\n        specializations: ['Strength Training', 'HIIT', 'Mobility'].slice(0, Math.floor(Math.random() * 3) + 1),\n        certifications: ['NASM-CPT', 'NASM-CES', 'NASM-PES'].slice(0, Math.floor(Math.random() * 3) + 1),\n        \n        // Performance Metrics\n        totalRevenue: Math.round(baseRevenue),\n        revenueGrowth: Math.round((Math.random() - 0.3) * 30),\n        sessionsCompleted: Math.round(baseRevenue / 75), // ~$75 per session\n        clientRetention: Math.round(75 + Math.random() * 20),\n        averageRating: 4.0 + Math.random() * 1.0,\n        totalReviews: Math.round(20 + Math.random() * 80),\n        \n        // Efficiency Metrics\n        utilizationRate: Math.round(efficiency * 100),\n        averageSessionDuration: 55 + Math.random() * 20,\n        noShowRate: Math.round(Math.random() * 8),\n        cancellationRate: Math.round(Math.random() * 12),\n        rebookingRate: Math.round(80 + Math.random() * 15),\n        \n        // Social & Engagement\n        socialPosts: Math.round(10 + Math.random() * 40),\n        clientEngagement: Math.round(60 + Math.random() * 35),\n        challengesCreated: Math.round(Math.random() * 8),\n        communityScore: Math.round(70 + Math.random() * 25),\n        \n        // NASM Compliance\n        assessmentsCompleted: Math.round(5 + Math.random() * 15),\n        correctiveExercises: Math.round(10 + Math.random() * 30),\n        continuingEducation: Math.round(Math.random() * 40),\n        complianceScore: Math.round(85 + Math.random() * 15),\n        \n        // Schedule Optimization\n        peakHours: ['6:00 AM', '12:00 PM', '6:00 PM'].slice(0, Math.floor(Math.random() * 3) + 1),\n        preferredClients: Math.round(5 + Math.random() * 15),\n        workloadScore: Math.round(efficiency * 100),\n        burnoutRisk: efficiency > 0.85 ? 'high' : efficiency > 0.75 ? 'medium' : 'low'\n      } as TrainerMetrics;\n    }).sort((a, b) => {\n      switch (sortBy) {\n        case 'revenue': return b.totalRevenue - a.totalRevenue;\n        case 'rating': return b.averageRating - a.averageRating;\n        case 'retention': return b.clientRetention - a.clientRetention;\n        case 'efficiency': return b.utilizationRate - a.utilizationRate;\n        default: return 0;\n      }\n    });\n  }, [trainers, sortBy]);\n  \n  const selectedTrainerData = useMemo(() => {\n    return trainerMetrics.find(t => t.id === selectedTrainer);\n  }, [trainerMetrics, selectedTrainer]);\n  \n  // Team averages for comparison\n  const teamAverages = useMemo(() => {\n    const metrics = trainerMetrics;\n    return {\n      revenue: Math.round(metrics.reduce((sum, t) => sum + t.totalRevenue, 0) / metrics.length),\n      rating: metrics.reduce((sum, t) => sum + t.averageRating, 0) / metrics.length,\n      retention: Math.round(metrics.reduce((sum, t) => sum + t.clientRetention, 0) / metrics.length),\n      utilization: Math.round(metrics.reduce((sum, t) => sum + t.utilizationRate, 0) / metrics.length),\n      compliance: Math.round(metrics.reduce((sum, t) => sum + t.complianceScore, 0) / metrics.length)\n    };\n  }, [trainerMetrics]);\n  \n  const getBurnoutColor = (risk: string) => {\n    switch (risk) {\n      case 'high': return '#ef4444';\n      case 'medium': return '#f59e0b';\n      case 'low': return '#22c55e';\n      default: return '#6b7280';\n    }\n  };\n  \n  const getPerformanceColor = (value: number, average: number) => {\n    if (value > average * 1.1) return '#22c55e';\n    if (value < average * 0.9) return '#ef4444';\n    return '#3b82f6';\n  };\n\n  return (\n    <AnalyticsContainer>\n      <motion.div\n        initial={{ opacity: 0, y: 20 }}\n        animate={{ opacity: 1, y: 0 }}\n        transition={{ duration: 0.5 }}\n      >\n        {/* Header Controls */}\n        <HeaderSection>\n          <div>\n            <Typography variant=\"h4\" sx={{ color: 'white', fontWeight: 300 }}>\n              Trainer Performance Center\n            </Typography>\n            <Typography variant=\"subtitle1\" sx={{ color: 'rgba(255,255,255,0.7)' }}>\n              Advanced trainer analytics and optimization\n            </Typography>\n          </div>\n          \n          <ControlsSection>\n            <FormControl sx={{ minWidth: 120 }}>\n              <InputLabel sx={{ color: 'white' }}>View</InputLabel>\n              <Select\n                value={viewMode}\n                onChange={(e) => setViewMode(e.target.value as any)}\n                sx={{ color: 'white', '& .MuiSvgIcon-root': { color: 'white' } }}\n              >\n                <MenuItem value=\"overview\">Overview</MenuItem>\n                <MenuItem value=\"detailed\">Detailed</MenuItem>\n                <MenuItem value=\"comparison\">Comparison</MenuItem>\n              </Select>\n            </FormControl>\n            \n            <FormControl sx={{ minWidth: 120 }}>\n              <InputLabel sx={{ color: 'white' }}>Sort By</InputLabel>\n              <Select\n                value={sortBy}\n                onChange={(e) => setSortBy(e.target.value as any)}\n                sx={{ color: 'white', '& .MuiSvgIcon-root': { color: 'white' } }}\n              >\n                <MenuItem value=\"revenue\">Revenue</MenuItem>\n                <MenuItem value=\"rating\">Rating</MenuItem>\n                <MenuItem value=\"retention\">Retention</MenuItem>\n                <MenuItem value=\"efficiency\">Efficiency</MenuItem>\n              </Select>\n            </FormControl>\n          </ControlsSection>\n        </HeaderSection>\n\n        {/* Team Overview Cards */}\n        <TeamOverviewSection>\n          <Grid container spacing={3}>\n            <Grid item xs={12} md={3}>\n              <OverviewCard>\n                <OverviewIcon>\n                  <Users size={24} />\n                </OverviewIcon>\n                <OverviewContent>\n                  <OverviewValue>{trainerMetrics.length}</OverviewValue>\n                  <OverviewLabel>Active Trainers</OverviewLabel>\n                  <OverviewTrend>\n                    <TrendingUp size={14} color=\"#22c55e\" />\n                    All performing well\n                  </OverviewTrend>\n                </OverviewContent>\n              </OverviewCard>\n            </Grid>\n            \n            <Grid item xs={12} md={3}>\n              <OverviewCard>\n                <OverviewIcon>\n                  <DollarSign size={24} />\n                </OverviewIcon>\n                <OverviewContent>\n                  <OverviewValue>${teamAverages.revenue.toLocaleString()}</OverviewValue>\n                  <OverviewLabel>Average Revenue</OverviewLabel>\n                  <OverviewTrend>\n                    <TrendingUp size={14} color=\"#22c55e\" />\n                    12% above industry\n                  </OverviewTrend>\n                </OverviewContent>\n              </OverviewCard>\n            </Grid>\n            \n            <Grid item xs={12} md={3}>\n              <OverviewCard>\n                <OverviewIcon>\n                  <Star size={24} />\n                </OverviewIcon>\n                <OverviewContent>\n                  <OverviewValue>{teamAverages.rating.toFixed(1)}</OverviewValue>\n                  <OverviewLabel>Team Rating</OverviewLabel>\n                  <OverviewTrend>\n                    <TrendingUp size={14} color=\"#22c55e\" />\n                    Excellent service\n                  </OverviewTrend>\n                </OverviewContent>\n              </OverviewCard>\n            </Grid>\n            \n            <Grid item xs={12} md={3}>\n              <OverviewCard>\n                <OverviewIcon>\n                  <Target size={24} />\n                </OverviewIcon>\n                <OverviewContent>\n                  <OverviewValue>{teamAverages.retention}%</OverviewValue>\n                  <OverviewLabel>Retention Rate</OverviewLabel>\n                  <OverviewTrend>\n                    <TrendingUp size={14} color=\"#22c55e\" />\n                    Industry leading\n                  </OverviewTrend>\n                </OverviewContent>\n              </OverviewCard>\n            </Grid>\n          </Grid>\n        </TeamOverviewSection>\n\n        {/* Trainer Performance Table */}\n        <PerformanceTableSection>\n          <Typography variant=\"h6\" sx={{ color: 'white', mb: 2 }}>\n            Individual Performance Metrics\n          </Typography>\n          \n          <TableContainer component={Paper} sx={{ background: 'rgba(255,255,255,0.05)' }}>\n            <Table>\n              <TableHead>\n                <TableRow>\n                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Trainer</TableCell>\n                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Revenue</TableCell>\n                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Rating</TableCell>\n                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Retention</TableCell>\n                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Utilization</TableCell>\n                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Compliance</TableCell>\n                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Burnout Risk</TableCell>\n                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Actions</TableCell>\n                </TableRow>\n              </TableHead>\n              <TableBody>\n                {trainerMetrics.map((trainer) => (\n                  <TableRow key={trainer.id} sx={{ '&:hover': { background: 'rgba(255,255,255,0.03)' } }}>\n                    <TableCell>\n                      <TrainerCell>\n                        <Avatar sx={{ width: 40, height: 40 }}>\n                          {trainer.name.split(' ').map(n => n[0]).join('')}\n                        </Avatar>\n                        <div>\n                          <Typography variant=\"body2\" sx={{ color: 'white', fontWeight: 500 }}>\n                            {trainer.name}\n                          </Typography>\n                          <Typography variant=\"caption\" sx={{ color: 'rgba(255,255,255,0.7)' }}>\n                            {trainer.specializations.slice(0, 2).join(', ')}\n                          </Typography>\n                        </div>\n                      </TrainerCell>\n                    </TableCell>\n                    \n                    <TableCell>\n                      <MetricCell>\n                        <Typography \n                          variant=\"body2\" \n                          sx={{ \n                            color: getPerformanceColor(trainer.totalRevenue, teamAverages.revenue),\n                            fontWeight: 600 \n                          }}\n                        >\n                          ${trainer.totalRevenue.toLocaleString()}\n                        </Typography>\n                        <Typography variant=\"caption\" sx={{ color: 'rgba(255,255,255,0.7)' }}>\n                          {trainer.revenueGrowth > 0 ? '+' : ''}{trainer.revenueGrowth}%\n                        </Typography>\n                      </MetricCell>\n                    </TableCell>\n                    \n                    <TableCell>\n                      <MetricCell>\n                        <Rating value={trainer.averageRating} precision={0.1} readOnly size=\"small\" />\n                        <Typography variant=\"caption\" sx={{ color: 'rgba(255,255,255,0.7)' }}>\n                          ({trainer.totalReviews} reviews)\n                        </Typography>\n                      </MetricCell>\n                    </TableCell>\n                    \n                    <TableCell>\n                      <MetricCell>\n                        <Typography \n                          variant=\"body2\" \n                          sx={{ \n                            color: getPerformanceColor(trainer.clientRetention, teamAverages.retention),\n                            fontWeight: 600 \n                          }}\n                        >\n                          {trainer.clientRetention}%\n                        </Typography>\n                        <LinearProgress \n                          variant=\"determinate\" \n                          value={trainer.clientRetention} \n                          sx={{ \n                            width: '60px',\n                            backgroundColor: 'rgba(255,255,255,0.1)',\n                            '& .MuiLinearProgress-bar': {\n                              backgroundColor: getPerformanceColor(trainer.clientRetention, teamAverages.retention)\n                            }\n                          }} \n                        />\n                      </MetricCell>\n                    </TableCell>\n                    \n                    <TableCell>\n                      <MetricCell>\n                        <Typography \n                          variant=\"body2\" \n                          sx={{ \n                            color: getPerformanceColor(trainer.utilizationRate, teamAverages.utilization),\n                            fontWeight: 600 \n                          }}\n                        >\n                          {trainer.utilizationRate}%\n                        </Typography>\n                        <Typography variant=\"caption\" sx={{ color: 'rgba(255,255,255,0.7)' }}>\n                          {trainer.sessionsCompleted} sessions\n                        </Typography>\n                      </MetricCell>\n                    </TableCell>\n                    \n                    <TableCell>\n                      <MetricCell>\n                        <Typography \n                          variant=\"body2\" \n                          sx={{ \n                            color: getPerformanceColor(trainer.complianceScore, teamAverages.compliance),\n                            fontWeight: 600 \n                          }}\n                        >\n                          {trainer.complianceScore}%\n                        </Typography>\n                        <Box sx={{ display: 'flex', gap: 0.5 }}>\n                          {trainer.certifications.map(cert => (\n                            <Chip\n                              key={cert}\n                              label={cert}\n                              size=\"small\"\n                              sx={{ \n                                backgroundColor: 'rgba(34, 197, 94, 0.2)',\n                                color: '#22c55e',\n                                fontSize: '0.6rem',\n                                height: '16px'\n                              }}\n                            />\n                          ))}\n                        </Box>\n                      </MetricCell>\n                    </TableCell>\n                    \n                    <TableCell>\n                      <Chip\n                        label={trainer.burnoutRisk.toUpperCase()}\n                        size=\"small\"\n                        sx={{\n                          backgroundColor: `${getBurnoutColor(trainer.burnoutRisk)}20`,\n                          color: getBurnoutColor(trainer.burnoutRisk),\n                          fontWeight: 600\n                        }}\n                      />\n                    </TableCell>\n                    \n                    <TableCell>\n                      <Button\n                        size=\"small\"\n                        variant=\"outlined\"\n                        onClick={() => onTrainerSelect(trainer.id)}\n                        sx={{\n                          borderColor: 'rgba(255,255,255,0.3)',\n                          color: 'white',\n                          '&:hover': {\n                            borderColor: '#3b82f6',\n                            backgroundColor: 'rgba(59, 130, 246, 0.1)'\n                          }\n                        }}\n                      >\n                        View Details\n                      </Button>\n                    </TableCell>\n                  </TableRow>\n                ))}\n              </TableBody>\n            </Table>\n          </TableContainer>\n        </PerformanceTableSection>\n\n        {/* Detailed Trainer View */}\n        <AnimatePresence>\n          {selectedTrainerData && (\n            <DetailedViewSection\n              initial={{ opacity: 0, height: 0 }}\n              animate={{ opacity: 1, height: 'auto' }}\n              exit={{ opacity: 0, height: 0 }}\n              transition={{ duration: 0.3 }}\n            >\n              <Typography variant=\"h6\" sx={{ color: 'white', mb: 2 }}>\n                Detailed Analytics: {selectedTrainerData.name}\n              </Typography>\n              \n              <Grid container spacing={3}>\n                {/* Performance Deep Dive */}\n                <Grid item xs={12} lg={6}>\n                  <DetailCard>\n                    <Typography variant=\"h6\" sx={{ color: 'white', mb: 2 }}>\n                      Performance Deep Dive\n                    </Typography>\n                    \n                    <DetailMetricRow>\n                      <DetailMetricLabel>Monthly Revenue</DetailMetricLabel>\n                      <DetailMetricValue>${selectedTrainerData.totalRevenue.toLocaleString()}</DetailMetricValue>\n                      <DetailMetricTrend positive={selectedTrainerData.revenueGrowth > 0}>\n                        {selectedTrainerData.revenueGrowth > 0 ? <ArrowUp size={14} /> : <ArrowDown size={14} />}\n                        {Math.abs(selectedTrainerData.revenueGrowth)}%\n                      </DetailMetricTrend>\n                    </DetailMetricRow>\n                    \n                    <DetailMetricRow>\n                      <DetailMetricLabel>Sessions Completed</DetailMetricLabel>\n                      <DetailMetricValue>{selectedTrainerData.sessionsCompleted}</DetailMetricValue>\n                      <DetailMetricTrend positive={true}>\n                        <Activity size={14} />\n                        Avg: {Math.round(selectedTrainerData.averageSessionDuration)}min\n                      </DetailMetricTrend>\n                    </DetailMetricRow>\n                    \n                    <DetailMetricRow>\n                      <DetailMetricLabel>No-Show Rate</DetailMetricLabel>\n                      <DetailMetricValue>{selectedTrainerData.noShowRate}%</DetailMetricValue>\n                      <DetailMetricTrend positive={selectedTrainerData.noShowRate < 5}>\n                        {selectedTrainerData.noShowRate < 5 ? 'Excellent' : 'Needs Attention'}\n                      </DetailMetricTrend>\n                    </DetailMetricRow>\n                    \n                    <DetailMetricRow>\n                      <DetailMetricLabel>Rebooking Rate</DetailMetricLabel>\n                      <DetailMetricValue>{selectedTrainerData.rebookingRate}%</DetailMetricValue>\n                      <LinearProgress \n                        variant=\"determinate\" \n                        value={selectedTrainerData.rebookingRate} \n                        sx={{ \n                          flex: 1,\n                          backgroundColor: 'rgba(255,255,255,0.1)',\n                          '& .MuiLinearProgress-bar': {\n                            backgroundColor: '#3b82f6'\n                          }\n                        }} \n                      />\n                    </DetailMetricRow>\n                  </DetailCard>\n                </Grid>\n                \n                {/* Social & Engagement */}\n                <Grid item xs={12} lg={6}>\n                  <DetailCard>\n                    <Typography variant=\"h6\" sx={{ color: 'white', mb: 2 }}>\n                      Social & Community Impact\n                    </Typography>\n                    \n                    <SocialMetricGrid>\n                      <SocialMetricItem>\n                        <MessageSquare size={20} color=\"#3b82f6\" />\n                        <div>\n                          <Typography variant=\"body2\" color=\"white\">\n                            {selectedTrainerData.socialPosts} Social Posts\n                          </Typography>\n                          <Typography variant=\"caption\" color=\"rgba(255,255,255,0.7)\">\n                            Client workout highlights\n                          </Typography>\n                        </div>\n                      </SocialMetricItem>\n                      \n                      <SocialMetricItem>\n                        <Heart size={20} color=\"#ef4444\" />\n                        <div>\n                          <Typography variant=\"body2\" color=\"white\">\n                            {selectedTrainerData.clientEngagement}% Engagement\n                          </Typography>\n                          <Typography variant=\"caption\" color=\"rgba(255,255,255,0.7)\">\n                            Client interaction rate\n                          </Typography>\n                        </div>\n                      </SocialMetricItem>\n                      \n                      <SocialMetricItem>\n                        <Trophy size={20} color=\"#f59e0b\" />\n                        <div>\n                          <Typography variant=\"body2\" color=\"white\">\n                            {selectedTrainerData.challengesCreated} Challenges Created\n                          </Typography>\n                          <Typography variant=\"caption\" color=\"rgba(255,255,255,0.7)\">\n                            Community challenges\n                          </Typography>\n                        </div>\n                      </SocialMetricItem>\n                      \n                      <SocialMetricItem>\n                        <Zap size={20} color=\"#8b5cf6\" />\n                        <div>\n                          <Typography variant=\"body2\" color=\"white\">\n                            {selectedTrainerData.communityScore}% Community Score\n                          </Typography>\n                          <Typography variant=\"caption\" color=\"rgba(255,255,255,0.7)\">\n                            Overall social impact\n                          </Typography>\n                        </div>\n                      </SocialMetricItem>\n                    </SocialMetricGrid>\n                  </DetailCard>\n                </Grid>\n                \n                {/* NASM & Professional Development */}\n                <Grid item xs={12} lg={6}>\n                  <DetailCard>\n                    <Typography variant=\"h6\" sx={{ color: 'white', mb: 2 }}>\n                      NASM & Professional Development\n                    </Typography>\n                    \n                    <Box sx={{ mb: 2 }}>\n                      <Typography variant=\"body2\" color=\"white\" sx={{ mb: 1 }}>\n                        Compliance Score: {selectedTrainerData.complianceScore}%\n                      </Typography>\n                      <LinearProgress \n                        variant=\"determinate\" \n                        value={selectedTrainerData.complianceScore} \n                        sx={{ \n                          backgroundColor: 'rgba(255,255,255,0.1)',\n                          '& .MuiLinearProgress-bar': {\n                            backgroundColor: '#22c55e'\n                          }\n                        }} \n                      />\n                    </Box>\n                    \n                    <ComplianceGrid>\n                      <ComplianceItem>\n                        <CheckCircle size={16} color=\"#22c55e\" />\n                        <Typography variant=\"body2\" color=\"white\">\n                          {selectedTrainerData.assessmentsCompleted} Assessments\n                        </Typography>\n                      </ComplianceItem>\n                      \n                      <ComplianceItem>\n                        <BookOpen size={16} color=\"#3b82f6\" />\n                        <Typography variant=\"body2\" color=\"white\">\n                          {selectedTrainerData.correctiveExercises} Corrective Plans\n                        </Typography>\n                      </ComplianceItem>\n                      \n                      <ComplianceItem>\n                        <Award size={16} color=\"#f59e0b\" />\n                        <Typography variant=\"body2\" color=\"white\">\n                          {selectedTrainerData.continuingEducation}h CE Credits\n                        </Typography>\n                      </ComplianceItem>\n                    </ComplianceGrid>\n                    \n                    <Box sx={{ mt: 2 }}>\n                      <Typography variant=\"body2\" color=\"white\" sx={{ mb: 1 }}>\n                        Current Certifications:\n                      </Typography>\n                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>\n                        {selectedTrainerData.certifications.map(cert => (\n                          <Chip\n                            key={cert}\n                            label={cert}\n                            size=\"small\"\n                            sx={{ \n                              backgroundColor: 'rgba(34, 197, 94, 0.2)',\n                              color: '#22c55e'\n                            }}\n                          />\n                        ))}\n                      </Box>\n                    </Box>\n                  </DetailCard>\n                </Grid>\n                \n                {/* Schedule Optimization */}\n                <Grid item xs={12} lg={6}>\n                  <DetailCard>\n                    <Typography variant=\"h6\" sx={{ color: 'white', mb: 2 }}>\n                      Schedule Optimization\n                    </Typography>\n                    \n                    <OptimizationMetric>\n                      <Typography variant=\"body2\" color=\"white\">\n                        Peak Hours:\n                      </Typography>\n                      <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>\n                        {selectedTrainerData.peakHours.map(hour => (\n                          <Chip\n                            key={hour}\n                            label={hour}\n                            size=\"small\"\n                            sx={{ \n                              backgroundColor: 'rgba(59, 130, 246, 0.2)',\n                              color: '#3b82f6'\n                            }}\n                          />\n                        ))}\n                      </Box>\n                    </OptimizationMetric>\n                    \n                    <OptimizationMetric>\n                      <Typography variant=\"body2\" color=\"white\">\n                        Workload Score: {selectedTrainerData.workloadScore}%\n                      </Typography>\n                      <LinearProgress \n                        variant=\"determinate\" \n                        value={selectedTrainerData.workloadScore} \n                        sx={{ \n                          backgroundColor: 'rgba(255,255,255,0.1)',\n                          '& .MuiLinearProgress-bar': {\n                            backgroundColor: getBurnoutColor(selectedTrainerData.burnoutRisk)\n                          }\n                        }} \n                      />\n                    </OptimizationMetric>\n                    \n                    <OptimizationMetric>\n                      <Typography variant=\"body2\" color=\"white\">\n                        Preferred Client Count: {selectedTrainerData.preferredClients}\n                      </Typography>\n                      <Typography variant=\"caption\" color=\"rgba(255,255,255,0.7)\">\n                        Optimal client relationship management\n                      </Typography>\n                    </OptimizationMetric>\n                    \n                    <Box sx={{ mt: 2, p: 1, background: `${getBurnoutColor(selectedTrainerData.burnoutRisk)}20`, borderRadius: 1 }}>\n                      <Typography variant=\"body2\" sx={{ color: getBurnoutColor(selectedTrainerData.burnoutRisk), fontWeight: 600 }}>\n                        Burnout Risk: {selectedTrainerData.burnoutRisk.toUpperCase()}\n                      </Typography>\n                      <Typography variant=\"caption\" color=\"rgba(255,255,255,0.7)\">\n                        {selectedTrainerData.burnoutRisk === 'low' && 'Healthy work-life balance maintained'}\n                        {selectedTrainerData.burnoutRisk === 'medium' && 'Monitor workload and client satisfaction'}\n                        {selectedTrainerData.burnoutRisk === 'high' && 'Consider reducing workload or additional support'}\n                      </Typography>\n                    </Box>\n                  </DetailCard>\n                </Grid>\n              </Grid>\n            </DetailedViewSection>\n          )}\n        </AnimatePresence>\n      </motion.div>\n    </AnalyticsContainer>\n  );\n};\n\nexport default TrainerPerformanceAnalytics;\n\n// ==================== STYLED COMPONENTS ====================\n\nconst AnalyticsContainer = styled.div`\n  padding: 2rem;\n  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);\n`;\n\nconst HeaderSection = styled.div`\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  margin-bottom: 2rem;\n  \n  @media (max-width: 768px) {\n    flex-direction: column;\n    gap: 1rem;\n    align-items: flex-start;\n  }\n`;\n\nconst ControlsSection = styled.div`\n  display: flex;\n  gap: 1rem;\n  \n  @media (max-width: 768px) {\n    width: 100%;\n    justify-content: space-between;\n  }\n`;\n\nconst TeamOverviewSection = styled.div`\n  margin-bottom: 2rem;\n`;\n\nconst OverviewCard = styled.div`\n  background: rgba(255, 255, 255, 0.05);\n  border: 1px solid rgba(255, 255, 255, 0.1);\n  border-radius: 12px;\n  padding: 1.5rem;\n  display: flex;\n  align-items: center;\n  gap: 1rem;\n  backdrop-filter: blur(10px);\n  \n  &:hover {\n    background: rgba(255, 255, 255, 0.08);\n    border-color: rgba(255, 255, 255, 0.2);\n  }\n`;\n\nconst OverviewIcon = styled.div`\n  width: 48px;\n  height: 48px;\n  border-radius: 50%;\n  background: linear-gradient(135deg, #3b82f6, #1d4ed8);\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  color: white;\n`;\n\nconst OverviewContent = styled.div`\n  flex: 1;\n`;\n\nconst OverviewValue = styled.div`\n  font-size: 1.75rem;\n  font-weight: 600;\n  color: white;\n  margin-bottom: 0.25rem;\n`;\n\nconst OverviewLabel = styled.div`\n  font-size: 0.875rem;\n  color: rgba(255, 255, 255, 0.7);\n  margin-bottom: 0.5rem;\n`;\n\nconst OverviewTrend = styled.div`\n  display: flex;\n  align-items: center;\n  gap: 0.25rem;\n  font-size: 0.75rem;\n  color: #22c55e;\n`;\n\nconst PerformanceTableSection = styled.div`\n  margin-bottom: 2rem;\n`;\n\nconst TrainerCell = styled.div`\n  display: flex;\n  align-items: center;\n  gap: 0.75rem;\n`;\n\nconst MetricCell = styled.div`\n  display: flex;\n  flex-direction: column;\n  gap: 0.25rem;\n`;\n\nconst DetailedViewSection = styled(motion.div)`\n  margin-top: 2rem;\n  padding-top: 2rem;\n  border-top: 1px solid rgba(255, 255, 255, 0.1);\n`;\n\nconst DetailCard = styled.div`\n  background: rgba(255, 255, 255, 0.05);\n  border: 1px solid rgba(255, 255, 255, 0.1);\n  border-radius: 12px;\n  padding: 1.5rem;\n  backdrop-filter: blur(10px);\n  height: 100%;\n`;\n\nconst DetailMetricRow = styled.div`\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  padding: 0.75rem 0;\n  border-bottom: 1px solid rgba(255, 255, 255, 0.1);\n  \n  &:last-child {\n    border-bottom: none;\n  }\n`;\n\nconst DetailMetricLabel = styled.div`\n  color: rgba(255, 255, 255, 0.7);\n  font-size: 0.875rem;\n  flex: 1;\n`;\n\nconst DetailMetricValue = styled.div`\n  color: white;\n  font-weight: 600;\n  margin-right: 1rem;\n`;\n\nconst DetailMetricTrend = styled.div<{ positive: boolean }>`\n  display: flex;\n  align-items: center;\n  gap: 0.25rem;\n  font-size: 0.75rem;\n  color: ${props => props.positive ? '#22c55e' : '#ef4444'};\n`;\n\nconst SocialMetricGrid = styled.div`\n  display: grid;\n  gap: 1rem;\n  grid-template-columns: 1fr;\n`;\n\nconst SocialMetricItem = styled.div`\n  display: flex;\n  align-items: center;\n  gap: 0.75rem;\n  padding: 0.75rem;\n  background: rgba(255, 255, 255, 0.03);\n  border-radius: 8px;\n  border: 1px solid rgba(255, 255, 255, 0.05);\n`;\n\nconst ComplianceGrid = styled.div`\n  display: grid;\n  gap: 0.75rem;\n  grid-template-columns: 1fr;\n`;\n\nconst ComplianceItem = styled.div`\n  display: flex;\n  align-items: center;\n  gap: 0.5rem;\n`;\n\nconst OptimizationMetric = styled.div`\n  margin-bottom: 1rem;\n  padding: 0.75rem;\n  background: rgba(255, 255, 255, 0.03);\n  border-radius: 8px;\n`;
+/**
+ * Trainer Performance Analytics Center
+ * ===================================
+ *
+ * Deep-dive analytics for trainer performance optimization:
+ * - Individual trainer metrics and comparisons
+ * - Client retention and satisfaction scores
+ * - Revenue generation and efficiency
+ * - Social engagement correlation
+ * - NASM compliance and certification tracking
+ * - Scheduling optimization recommendations
+ *
+ * Critical for trainer management and business growth.
+ */
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import styled from 'styled-components';
+import {
+  Grid,
+  Card,
+  CardContent,
+  Typography,
+  Avatar,
+  Chip,
+  LinearProgress,
+  Button,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Box,
+  Divider,
+  Rating
+} from '@mui/material';
+import {
+  TrendingUp,
+  TrendingDown,
+  Star,
+  Users,
+  DollarSign,
+  Calendar,
+  Award,
+  Target,
+  Activity,
+  Clock,
+  MessageSquare,
+  Heart,
+  Zap,
+  ArrowUp,
+  ArrowDown,
+  Medal,
+  Trophy,
+  BookOpen,
+  CheckCircle
+} from 'lucide-react';
+
+interface TrainerMetrics {
+  id: string;
+  name: string;
+  avatar?: string;
+  email: string;
+  specializations: string[];
+  certifications: string[];
+  
+  // Performance Metrics
+  totalRevenue: number;
+  revenueGrowth: number;
+  sessionsCompleted: number;
+  clientRetention: number;
+  averageRating: number;
+  totalReviews: number;
+  
+  // Efficiency Metrics
+  utilizationRate: number;
+  averageSessionDuration: number;
+  noShowRate: number;
+  cancellationRate: number;
+  rebookingRate: number;
+  
+  // Social & Engagement
+  socialPosts: number;
+  clientEngagement: number;
+  challengesCreated: number;
+  communityScore: number;
+  
+  // NASM Compliance
+  assessmentsCompleted: number;
+  correctiveExercises: number;
+  continuingEducation: number;
+  complianceScore: number;
+  
+  // Schedule Optimization
+  peakHours: string[];
+  preferredClients: number;
+  workloadScore: number;
+  burnoutRisk: 'low' | 'medium' | 'high';
+}
+
+interface TrainerPerformanceAnalyticsProps {
+  trainers: any[];
+  sessions: any[];
+  selectedTrainer?: string;
+  onTrainerSelect: (trainerId: string) => void;
+  dateRange: string;
+}
+
+const TrainerPerformanceAnalytics: React.FC<TrainerPerformanceAnalyticsProps> = ({
+  trainers,
+  sessions,
+  selectedTrainer,
+  onTrainerSelect,
+  dateRange
+}) => {
+  const [viewMode, setViewMode] = useState<'overview' | 'detailed' | 'comparison'>('overview');
+  const [sortBy, setSortBy] = useState<'revenue' | 'rating' | 'retention' | 'efficiency'>('revenue');
+  
+  // Generate comprehensive trainer metrics
+  const trainerMetrics = useMemo(() => {
+    return trainers.map(trainer => {
+      // Mock comprehensive data - in real app, this would come from API
+      const baseRevenue = 3000 + Math.random() * 4000;
+      const efficiency = 0.7 + Math.random() * 0.3;
+      
+      return {
+        id: trainer.id,
+        name: `${trainer.firstName} ${trainer.lastName}`,
+        email: trainer.email || `${trainer.firstName.toLowerCase()}@swanstudios.com`,
+        avatar: trainer.avatar,
+        specializations: ['Strength Training', 'HIIT', 'Mobility'].slice(0, Math.floor(Math.random() * 3) + 1),
+        certifications: ['NASM-CPT', 'NASM-CES', 'NASM-PES'].slice(0, Math.floor(Math.random() * 3) + 1),
+        
+        // Performance Metrics
+        totalRevenue: Math.round(baseRevenue),
+        revenueGrowth: Math.round((Math.random() - 0.3) * 30),
+        sessionsCompleted: Math.round(baseRevenue / 75), // ~$75 per session
+        clientRetention: Math.round(75 + Math.random() * 20),
+        averageRating: 4.0 + Math.random() * 1.0,
+        totalReviews: Math.round(20 + Math.random() * 80),
+        
+        // Efficiency Metrics
+        utilizationRate: Math.round(efficiency * 100),
+        averageSessionDuration: 55 + Math.random() * 20,
+        noShowRate: Math.round(Math.random() * 8),
+        cancellationRate: Math.round(Math.random() * 12),
+        rebookingRate: Math.round(80 + Math.random() * 15),
+        
+        // Social & Engagement
+        socialPosts: Math.round(10 + Math.random() * 40),
+        clientEngagement: Math.round(60 + Math.random() * 35),
+        challengesCreated: Math.round(Math.random() * 8),
+        communityScore: Math.round(70 + Math.random() * 25),
+        
+        // NASM Compliance
+        assessmentsCompleted: Math.round(5 + Math.random() * 15),
+        correctiveExercises: Math.round(10 + Math.random() * 30),
+        continuingEducation: Math.round(Math.random() * 40),
+        complianceScore: Math.round(85 + Math.random() * 15),
+        
+        // Schedule Optimization
+        peakHours: ['6:00 AM', '12:00 PM', '6:00 PM'].slice(0, Math.floor(Math.random() * 3) + 1),
+        preferredClients: Math.round(5 + Math.random() * 15),
+        workloadScore: Math.round(efficiency * 100),
+        burnoutRisk: efficiency > 0.85 ? 'high' : efficiency > 0.75 ? 'medium' : 'low'
+      } as TrainerMetrics;
+    }).sort((a, b) => {
+      switch (sortBy) {
+        case 'revenue': return b.totalRevenue - a.totalRevenue;
+        case 'rating': return b.averageRating - a.averageRating;
+        case 'retention': return b.clientRetention - a.clientRetention;
+        case 'efficiency': return b.utilizationRate - a.utilizationRate;
+        default: return 0;
+      }
+    });
+  }, [trainers, sortBy]);
+  
+  const selectedTrainerData = useMemo(() => {
+    return trainerMetrics.find(t => t.id === selectedTrainer);
+  }, [trainerMetrics, selectedTrainer]);
+  
+  // Team averages for comparison
+  const teamAverages = useMemo(() => {
+    const metrics = trainerMetrics;
+    return {
+      revenue: Math.round(metrics.reduce((sum, t) => sum + t.totalRevenue, 0) / metrics.length),
+      rating: metrics.reduce((sum, t) => sum + t.averageRating, 0) / metrics.length,
+      retention: Math.round(metrics.reduce((sum, t) => sum + t.clientRetention, 0) / metrics.length),
+      utilization: Math.round(metrics.reduce((sum, t) => sum + t.utilizationRate, 0) / metrics.length),
+      compliance: Math.round(metrics.reduce((sum, t) => sum + t.complianceScore, 0) / metrics.length)
+    };
+  }, [trainerMetrics]);
+  
+  const getBurnoutColor = (risk: string) => {
+    switch (risk) {
+      case 'high': return '#ef4444';
+      case 'medium': return '#f59e0b';
+      case 'low': return '#22c55e';
+      default: return '#6b7280';
+    }
+  };
+  
+  const getPerformanceColor = (value: number, average: number) => {
+    if (value > average * 1.1) return '#22c55e';
+    if (value < average * 0.9) return '#ef4444';
+    return '#3b82f6';
+  };
+
+  return (
+    <AnalyticsContainer>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        {/* Header Controls */}
+        <HeaderSection>
+          <div>
+            <Typography variant="h4" sx={{ color: 'white', fontWeight: 300 }}>
+              Trainer Performance Center
+            </Typography>
+            <Typography variant="subtitle1" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+              Advanced trainer analytics and optimization
+            </Typography>
+          </div>
+          
+          <ControlsSection>
+            <FormControl sx={{ minWidth: 120 }}>
+              <InputLabel sx={{ color: 'white' }}>View</InputLabel>
+              <Select
+                value={viewMode}
+                onChange={(e) => setViewMode(e.target.value as any)}
+                sx={{ color: 'white', '& .MuiSvgIcon-root': { color: 'white' } }}
+              >
+                <MenuItem value="overview">Overview</MenuItem>
+                <MenuItem value="detailed">Detailed</MenuItem>
+                <MenuItem value="comparison">Comparison</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <FormControl sx={{ minWidth: 120 }}>
+              <InputLabel sx={{ color: 'white' }}>Sort By</InputLabel>
+              <Select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                sx={{ color: 'white', '& .MuiSvgIcon-root': { color: 'white' } }}
+              >
+                <MenuItem value="revenue">Revenue</MenuItem>
+                <MenuItem value="rating">Rating</MenuItem>
+                <MenuItem value="retention">Retention</MenuItem>
+                <MenuItem value="efficiency">Efficiency</MenuItem>
+              </Select>
+            </FormControl>
+          </ControlsSection>
+        </HeaderSection>
+
+        {/* Trainer Performance Table */}
+        <PerformanceTableSection>
+          <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+            Trainer Performance Analytics
+          </Typography>
+          
+          <TableContainer component={Paper} sx={{ background: 'rgba(255,255,255,0.05)' }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Trainer</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Revenue</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Rating</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Sessions</TableCell>
+                  <TableCell sx={{ color: 'white', fontWeight: 600 }}>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {trainerMetrics.map((trainer) => (
+                  <TableRow key={trainer.id} sx={{ '&:hover': { background: 'rgba(255,255,255,0.03)' } }}>
+                    <TableCell>
+                      <TrainerCell>
+                        <Avatar sx={{ width: 40, height: 40 }}>
+                          {trainer.name.split(' ').map(n => n[0]).join('')}
+                        </Avatar>
+                        <div>
+                          <Typography variant="body2" sx={{ color: 'white', fontWeight: 500 }}>
+                            {trainer.name}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                            {trainer.specializations.slice(0, 2).join(', ')}
+                          </Typography>
+                        </div>
+                      </TrainerCell>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          color: getPerformanceColor(trainer.totalRevenue, teamAverages.revenue),
+                          fontWeight: 600 
+                        }}
+                      >
+                        ${trainer.totalRevenue.toLocaleString()}
+                      </Typography>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <Rating value={trainer.averageRating} precision={0.1} readOnly size="small" />
+                    </TableCell>
+                    
+                    <TableCell>
+                      <Typography variant="body2" sx={{ color: 'white' }}>
+                        {trainer.sessionsCompleted}
+                      </Typography>
+                    </TableCell>
+                    
+                    <TableCell>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => onTrainerSelect(trainer.id)}
+                        sx={{
+                          borderColor: 'rgba(255,255,255,0.3)',
+                          color: 'white',
+                          '&:hover': {
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)'
+                          }
+                        }}
+                      >
+                        View Details
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </PerformanceTableSection>
+      </motion.div>
+    </AnalyticsContainer>
+  );
+};
+
+export default TrainerPerformanceAnalytics;
+
+// ==================== STYLED COMPONENTS ====================
+
+const AnalyticsContainer = styled.div`
+  padding: 2rem;
+  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+`;
+
+const HeaderSection = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+`;
+
+const ControlsSection = styled.div`
+  display: flex;
+  gap: 1rem;
+  
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: space-between;
+  }
+`;
+
+const PerformanceTableSection = styled.div`
+  margin-bottom: 2rem;
+`;
+
+const TrainerCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;

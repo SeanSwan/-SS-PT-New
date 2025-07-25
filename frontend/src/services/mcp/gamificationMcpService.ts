@@ -12,7 +12,7 @@
  * @module services/mcp/gamificationMcpService
  */
 
-import { api } from '../api.service';
+import productionApiService from '../api.service';
 import { mcpConfig } from './mcpConfig';
 import {
   GamificationMcpApi,
@@ -177,7 +177,7 @@ const gamificationMcpApi: GamificationMcpApi = {
         };
       }
       
-      const response = await api.get('/mcp/status');
+      const response = await productionApiService.get('/mcp/status');
       
       return {
         data: {
@@ -226,7 +226,7 @@ const gamificationMcpApi: GamificationMcpApi = {
       };
       
       // Call backend gamification MCP endpoint
-      const response = await api.post('/mcp/gamification/award-points', profileRequest);
+      const response = await productionApiService.post('/mcp/gamification/award-points', profileRequest);
       
       if (response.data.success) {
         // Return enhanced profile data
@@ -285,7 +285,7 @@ const gamificationMcpApi: GamificationMcpApi = {
       };
       
       // Call backend gamification MCP endpoint
-      const response = await api.post('/mcp/gamification/unlock-achievement', achievementRequest);
+      const response = await productionApiService.post('/mcp/gamification/unlock-achievement', achievementRequest);
       
       // Return enhanced achievements with AI insights
       const { fallbackAchievements } = generateFallbackGamificationData();
@@ -411,7 +411,7 @@ const gamificationMcpApi: GamificationMcpApi = {
           timestamp: new Date().toISOString()
         };
         
-        const response = await api.post('/mcp/gamification/create-challenge', diceRequest);
+        const response = await productionApiService.post('/mcp/gamification/create-challenge', diceRequest);
         
         // Return enhanced roll result
         return {
@@ -461,7 +461,7 @@ const gamificationMcpApi: GamificationMcpApi = {
         timestamp: new Date().toISOString()
       };
       
-      const response = await api.post('/mcp/gamification/create-challenge', challengeRequest);
+      const response = await productionApiService.post('/mcp/gamification/create-challenge', challengeRequest);
       
       // Return enhanced challenges
       const { fallbackChallenges } = generateFallbackGamificationData();
@@ -510,7 +510,7 @@ const gamificationMcpApi: GamificationMcpApi = {
         timestamp: new Date().toISOString()
       };
       
-      const response = await api.post('/mcp/gamification/create-challenge', joinRequest);
+      const response = await productionApiService.post('/mcp/gamification/create-challenge', joinRequest);
       
       return {
         data: {
@@ -556,7 +556,7 @@ const gamificationMcpApi: GamificationMcpApi = {
         timestamp: new Date().toISOString()
       };
       
-      const response = await api.post('/mcp/gamification/create-challenge', questRequest);
+      const response = await productionApiService.post('/mcp/gamification/create-challenge', questRequest);
       
       // Return enhanced quests
       const { fallbackQuests } = generateFallbackGamificationData();
@@ -609,7 +609,7 @@ const gamificationMcpApi: GamificationMcpApi = {
         timestamp: new Date().toISOString()
       };
       
-      const response = await api.post('/mcp/gamification/update-leaderboard', completionRequest);
+      const response = await productionApiService.post('/mcp/gamification/update-leaderboard', completionRequest);
       
       return {
         data: {

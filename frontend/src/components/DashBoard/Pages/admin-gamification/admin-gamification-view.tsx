@@ -988,7 +988,7 @@ const AdminGamificationView: React.FC = () => {
   );
 
   return (
-    <PageContainer>
+    <PageContainer role="main" aria-label="Gamification management dashboard">
       <Typography variant="h4" component="h1" gutterBottom>
         Gamification System Administration
       </Typography>
@@ -1004,14 +1004,39 @@ const AdminGamificationView: React.FC = () => {
         <Tabs 
           value={tabValue} 
           onChange={handleTabChange} 
-          aria-label="gamification admin tabs"
+          aria-label="Gamification management tabs"
           variant="scrollable"
           scrollButtons="auto"
+          role="tablist"
         >
-          <Tab label="Achievements" icon={<Trophy size={16} />} iconPosition="start" {...a11yProps(0)} />
-          <Tab label="Rewards" icon={<Gift size={16} />} iconPosition="start" {...a11yProps(1)} />
-          <Tab label="System Settings" icon={<Settings size={16} />} iconPosition="start" {...a11yProps(2)} />
-          <Tab label="Analytics" icon={<Users size={16} />} iconPosition="start" {...a11yProps(3)} />
+          <Tab 
+            label="Achievements" 
+            icon={<Trophy size={16} />} 
+            iconPosition="start" 
+            {...a11yProps(0)} 
+            aria-label="Manage achievements and badges"
+          />
+          <Tab 
+            label="Rewards" 
+            icon={<Gift size={16} />} 
+            iconPosition="start" 
+            {...a11yProps(1)} 
+            aria-label="Manage rewards and redemptions"
+          />
+          <Tab 
+            label="System Settings" 
+            icon={<Settings size={16} />} 
+            iconPosition="start" 
+            {...a11yProps(2)} 
+            aria-label="Configure gamification settings"
+          />
+          <Tab 
+            label="Analytics" 
+            icon={<Users size={16} />} 
+            iconPosition="start" 
+            {...a11yProps(3)} 
+            aria-label="View gamification analytics and reports"
+          />
         </Tabs>
       </Box>
       
