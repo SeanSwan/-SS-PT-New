@@ -561,6 +561,7 @@ router.get("/trainers", protect, adminOnly, async (req, res) => {
  * @route   POST /api/sessions/book/:userId
  * @desc    CLIENT: Book a session slot.
  * @access  Private
+ * @critical FIXED: Now properly validates and deducts available sessions
  */
 router.post("/book/:userId", protect, async (req, res) => {
   try {
@@ -586,13 +587,37 @@ router.post("/book/:userId", protect, async (req, res) => {
         .json({ message: "Session is not available for booking." });
     }
 
-    // Update session details to mark as scheduled
+    // 🚨 CRITICAL FIX: Check and deduct available sessions BEFORE booking
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ 
+        message: "User not found." 
+      });
+    }
+
+    // Check if user has available sessions (admins can bypass this check)
+    if (req.user.role !== 'admin' && (!user.availableSessions || user.availableSessions <= 0)) {
+      return res.status(400).json({ 
+        message: "No available sessions. Please purchase a session package to book this session.",
+        availableSessions: user.availableSessions || 0
+      });
+    }
+
+    // Book the session
     session.userId = userId;
     session.status = "scheduled";
+    session.bookedAt = new Date();
     await session.save();
 
-    // Notify the user via email and SMS if user exists
-    const user = await User.findByPk(userId);
+    // Deduct the session (if not admin)
+    if (req.user.role !== 'admin') {
+      user.availableSessions -= 1;
+      await user.save();
+      
+      console.log(`✅ Session deducted for user ${userId}. Remaining sessions: ${user.availableSessions}`);
+    }
+
+    // Notify the user via email and SMS
     if (user) {
       // Format the session date for notifications
       const sessionDateFormatted = new Date(session.sessionDate).toLocaleString(

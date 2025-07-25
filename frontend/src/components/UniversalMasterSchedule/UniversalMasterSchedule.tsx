@@ -19,6 +19,7 @@
  * - Framer Motion animations for premium UX
  * - TypeScript for complete type safety
  * - WCAG AA accessibility compliance
+ * - Real Recharts implementation for data visualization
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
@@ -170,6 +171,23 @@ import GlowButton from '../ui/buttons/GlowButton';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 
+// Enhanced Dialog Components
+import {
+  SessionFormDialog,
+  BulkActionsConfirmationDialog,
+  AdvancedFilterDialog
+} from './Dialogs';
+
+// Real Chart Components (NEW!)
+import {
+  RevenueLineChart,
+  TrainerPerformanceBarChart,
+  SessionDistributionPieChart,
+  processRevenueData,
+  processTrainerData,
+  processSessionDistribution
+} from './Charts';
+
 // Advanced Analytics Components
 import {
   AdvancedAnalyticsDashboard,
@@ -214,7 +232,7 @@ const DragAndDropCalendar = withDragAndDrop(Calendar);
  * - Advanced drag-and-drop capabilities
  * - Bulk operations for efficiency
  * - Real-time collaboration
- * - Comprehensive analytics
+ * - Comprehensive analytics with REAL charts
  * - Professional export capabilities
  */
 const UniversalMasterSchedule: React.FC = () => {
@@ -229,7 +247,7 @@ const UniversalMasterSchedule: React.FC = () => {
   const scheduleStats = useAppSelector(selectScheduleStats);
   
   // Mobile PWA hooks - with error handling
-  const touchGestureContext = useTouchGesture();
+  const touchGestureContext = useTouchGesture?.() || null;
   const hapticFeedback = touchGestureContext?.hapticFeedback;
   const isTouch = touchGestureContext?.isTouch || false;
   
@@ -278,6 +296,11 @@ const UniversalMasterSchedule: React.FC = () => {
     sessionFormDialog: false
   });
   
+  // Enhanced dialog state
+  const [sessionFormMode, setSessionFormMode] = useState<'create' | 'edit' | 'duplicate'>('create');
+  const [bulkActionType, setBulkActionType] = useState<BulkActionType>('confirm');
+  const [sessionFormInitialData, setSessionFormInitialData] = useState<any>(null);
+  
   // Filter and Search State
   const [filterOptions, setFilterOptions] = useState<FilterOptions>({
     trainerId: '',
@@ -310,16 +333,6 @@ const UniversalMasterSchedule: React.FC = () => {
   const [analyticsView, setAnalyticsView] = useState<'calendar' | 'business' | 'trainers' | 'social'>('calendar');
   const [dateRange, setDateRange] = useState('month');
   const [selectedTrainer, setSelectedTrainer] = useState<string | null>(null);
-  
-  // Analytics State
-  const [analyticsData, setAnalyticsData] = useState({
-    utilizationRate: 0,
-    revenueToday: 0,
-    sessionsCompleted: 0,
-    activeTrainers: 0,
-    pendingBookings: 0,
-    averageSessionDuration: 60
-  });
   
   // Mobile State
   const [isMobile, setIsMobile] = useState(false);
@@ -395,8 +408,7 @@ const UniversalMasterSchedule: React.FC = () => {
         loadSessions(),
         loadClients(),
         loadTrainers(),
-        loadAssignments(),
-        loadAnalytics()
+        loadAssignments()
       ]);
       
       setLoading(prev => ({ ...prev, sessions: false }));
@@ -468,30 +480,10 @@ const UniversalMasterSchedule: React.FC = () => {
     }
   };
   
-  const loadAnalytics = async () => {
-    try {
-      setLoading(prev => ({ ...prev, statistics: true }));
-      // Implementation would call analytics service
-      setAnalyticsData({
-        utilizationRate: 75,
-        revenueToday: 2450,
-        sessionsCompleted: 12,
-        activeTrainers: 8,
-        pendingBookings: 5,
-        averageSessionDuration: 62
-      });
-      setLoading(prev => ({ ...prev, statistics: false }));
-    } catch (error) {
-      setError(prev => ({ ...prev, statistics: 'Failed to load analytics' }));
-      setLoading(prev => ({ ...prev, statistics: false }));
-    }
-  };
-  
   const refreshData = useCallback(async () => {
     try {
       await Promise.all([
-        loadSessions(),
-        loadAnalytics()
+        loadSessions()
       ]);
     } catch (error) {
       console.error('Error refreshing data:', error);
@@ -688,17 +680,32 @@ const UniversalMasterSchedule: React.FC = () => {
     };
   }, [comprehensiveBusinessMetrics]);
   
+  // ==================== REAL CHART DATA PROCESSING ====================
+  
+  const revenueChartData = useMemo(() => {
+    return processRevenueData(sessions);
+  }, [sessions]);
+  
+  const trainerChartData = useMemo(() => {
+    return processTrainerData(trainers, sessions);
+  }, [trainers, sessions]);
+  
+  const sessionDistributionData = useMemo(() => {
+    return processSessionDistribution(sessions);
+  }, [sessions]);
+  
+  // ==================== EVENT HANDLERS ====================
+  
   const handleSelectSlot = useCallback((slotInfo: SlotInfo) => {
     if (multiSelect.enabled) return;
     
     // Create new session slot
-    setSelectedEvent({
-      id: '',
-      title: 'New Session',
+    setSessionFormMode('create');
+    setSessionFormInitialData({
       start: slotInfo.start,
       end: slotInfo.end,
-      status: 'available',
-      resource: null
+      initialDate: slotInfo.start,
+      initialTrainer: ''
     });
     
     openDialog('sessionFormDialog');
@@ -714,8 +721,16 @@ const UniversalMasterSchedule: React.FC = () => {
       return;
     }
     
+    // Edit existing session
+    setSessionFormMode('edit');
     setSelectedEvent(event);
-    openDialog('eventDialog');
+    setSessionFormInitialData({
+      session: event,
+      initialDate: event.start,
+      initialTrainer: event.trainerId || ''
+    });
+    
+    openDialog('sessionFormDialog');
     
     if (hapticFeedback) {
       hapticFeedback();
@@ -819,38 +834,37 @@ const UniversalMasterSchedule: React.FC = () => {
     }));
   }, []);
   
-  const executeBulkAction = useCallback(async (action: BulkActionType) => {
+  const initiateBulkAction = useCallback((action: BulkActionType) => {
     if (multiSelect.selectedEvents.length === 0) return;
     
-    try {
-      setLoading(prev => ({ ...prev, bulkOperation: true }));
-      
-      // Execute bulk action via service
-      await sessionService.bulkSessionAction(multiSelect.selectedEvents, action);
-      
-      // Refresh data
-      await refreshData();
-      
-      // Clear selection
-      clearSelection();
-      
-      toast({
-        title: 'Bulk Action Completed',
-        description: `Successfully ${action}ed ${multiSelect.selectedEvents.length} sessions`,
-        variant: 'default'
-      });
-      
-    } catch (error) {
-      console.error('Error executing bulk action:', error);
-      toast({
-        title: 'Error',
-        description: `Failed to ${action} sessions. Please try again.`,
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(prev => ({ ...prev, bulkOperation: false }));
-    }
-  }, [multiSelect.selectedEvents, refreshData, clearSelection, toast]);
+    setBulkActionType(action);
+    openDialog('bulkActionDialog');
+  }, [multiSelect.selectedEvents]);
+  
+  const handleBulkActionComplete = useCallback(async (results: any[]) => {
+    // Refresh data after bulk action completion
+    await refreshData();
+    
+    // Clear selection
+    clearSelection();
+    
+    // Close dialog
+    closeDialog('bulkActionDialog');
+  }, [refreshData, clearSelection]);
+  
+  const handleSessionSaved = useCallback(async (session: Session) => {
+    // Refresh data after session is saved
+    await refreshData();
+    
+    // Close dialog
+    closeDialog('sessionFormDialog');
+    
+    toast({
+      title: 'Session Saved',
+      description: `Session has been ${sessionFormMode === 'create' ? 'created' : 'updated'} successfully`,
+      variant: 'default'
+    });
+  }, [refreshData, sessionFormMode, toast]);
   
   // ==================== DIALOG MANAGEMENT ====================
   
@@ -945,26 +959,6 @@ const UniversalMasterSchedule: React.FC = () => {
     // WebSocket or similar real-time update implementation
     console.log('Real-time updates initialized');
   };
-  
-  // ==================== MEMOIZED VALUES ====================
-  
-  const filteredClients = useMemo(() => {
-    return clients.filter(client => 
-      client.firstName.toLowerCase().includes(filterOptions.searchTerm.toLowerCase()) ||
-      client.lastName.toLowerCase().includes(filterOptions.searchTerm.toLowerCase())
-    );
-  }, [clients, filterOptions.searchTerm]);
-  
-  const filteredTrainers = useMemo(() => {
-    return trainers.filter(trainer => 
-      trainer.firstName.toLowerCase().includes(filterOptions.searchTerm.toLowerCase()) ||
-      trainer.lastName.toLowerCase().includes(filterOptions.searchTerm.toLowerCase())
-    );
-  }, [trainers, filterOptions.searchTerm]);
-  
-  const selectedEventsData = useMemo(() => {
-    return calendarEvents.filter(event => multiSelect.selectedEvents.includes(event.id));
-  }, [calendarEvents, multiSelect.selectedEvents]);
   
   // ==================== RENDER CONDITIONS ====================
   
@@ -1205,7 +1199,7 @@ const UniversalMasterSchedule: React.FC = () => {
                             variant="emerald"
                             size="small"
                             leftIcon={<CheckCircle size={16} />}
-                            onClick={() => executeBulkAction('confirm')}
+                            onClick={() => initiateBulkAction('confirm')}
                             disabled={multiSelect.selectedEvents.length === 0 || loading.bulkOperation}
                           />
                           
@@ -1214,7 +1208,7 @@ const UniversalMasterSchedule: React.FC = () => {
                             variant="ruby"
                             size="small"
                             leftIcon={<X size={16} />}
-                            onClick={() => executeBulkAction('cancel')}
+                            onClick={() => initiateBulkAction('cancel')}
                             disabled={multiSelect.selectedEvents.length === 0 || loading.bulkOperation}
                           />
                           
@@ -1223,7 +1217,7 @@ const UniversalMasterSchedule: React.FC = () => {
                             variant="cosmic"
                             size="small"
                             leftIcon={<Move size={16} />}
-                            onClick={() => openDialog('assignmentDialog')}
+                            onClick={() => initiateBulkAction('reassign')}
                             disabled={multiSelect.selectedEvents.length === 0}
                           />
                           
@@ -1232,7 +1226,7 @@ const UniversalMasterSchedule: React.FC = () => {
                             variant="ruby"
                             size="small"
                             leftIcon={<Trash2 size={16} />}
-                            onClick={() => executeBulkAction('delete')}
+                            onClick={() => initiateBulkAction('delete')}
                             disabled={multiSelect.selectedEvents.length === 0 || loading.bulkOperation}
                           />
                         </BulkActionButtons>
@@ -1305,15 +1299,114 @@ const UniversalMasterSchedule: React.FC = () => {
               </>
             )}
             
-            {/* Business Intelligence Dashboard */}
+            {/* Business Intelligence Dashboard with REAL CHARTS */}
             {analyticsView === 'business' && (
-              <AdvancedAnalyticsDashboard
-                sessions={sessions}
-                clients={clients}
-                trainers={trainers}
-                dateRange={dateRange}
-                onDateRangeChange={handleDateRangeChange}
-              />
+              <BusinessAnalyticsContainer>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <Grid container spacing={3}>
+                    {/* Revenue Analytics with REAL LINE CHART */}
+                    <Grid item xs={12} lg={6}>
+                      <MetricCard>
+                        <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                          Revenue Analytics
+                        </Typography>
+                        <RevenueLineChart 
+                          data={revenueChartData} 
+                          height={250}
+                          showProjection={true}
+                          timeRange={dateRange as any}
+                        />
+                      </MetricCard>
+                    </Grid>
+
+                    {/* Trainer Performance with REAL BAR CHART */}
+                    <Grid item xs={12} lg={6}>
+                      <MetricCard>
+                        <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                          Trainer Performance
+                        </Typography>
+                        <TrainerPerformanceBarChart 
+                          data={trainerChartData}
+                          height={250}
+                          metric="revenue"
+                          showComparison={true}
+                          sortBy="revenue"
+                        />
+                      </MetricCard>
+                    </Grid>
+
+                    {/* Session Distribution with REAL PIE CHART */}
+                    <Grid item xs={12} lg={4}>
+                      <MetricCard>
+                        <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                          Session Distribution
+                        </Typography>
+                        <SessionDistributionPieChart 
+                          data={sessionDistributionData}
+                          height={250}
+                          showLegend={true}
+                          showLabels={true}
+                        />
+                      </MetricCard>
+                    </Grid>
+
+                    {/* Additional metrics cards */}
+                    <Grid item xs={12} lg={8}>
+                      <MetricCard>
+                        <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
+                          Key Performance Indicators
+                        </Typography>
+                        <Grid container spacing={2}>
+                          <Grid item xs={6} md={3}>
+                            <MetricItem>
+                              <Typography variant="body2" color="rgba(255,255,255,0.7)">
+                                Revenue/Session
+                              </Typography>
+                              <Typography variant="h6" color="white">
+                                ${executiveKPIs.revenuePerSession}
+                              </Typography>
+                            </MetricItem>
+                          </Grid>
+                          <Grid item xs={6} md={3}>
+                            <MetricItem>
+                              <Typography variant="body2" color="rgba(255,255,255,0.7)">
+                                Client LTV
+                              </Typography>
+                              <Typography variant="h6" color="white">
+                                ${executiveKPIs.clientLifetimeValue.toLocaleString()}
+                              </Typography>
+                            </MetricItem>
+                          </Grid>
+                          <Grid item xs={6} md={3}>
+                            <MetricItem>
+                              <Typography variant="body2" color="rgba(255,255,255,0.7)">
+                                CAC
+                              </Typography>
+                              <Typography variant="h6" color="white">
+                                ${executiveKPIs.customerAcquisitionCost}
+                              </Typography>
+                            </MetricItem>
+                          </Grid>
+                          <Grid item xs={6} md={3}>
+                            <MetricItem>
+                              <Typography variant="body2" color="rgba(255,255,255,0.7)">
+                                NPS Score
+                              </Typography>
+                              <Typography variant="h6" color="white">
+                                {executiveKPIs.netPromoterScore}
+                              </Typography>
+                            </MetricItem>
+                          </Grid>
+                        </Grid>
+                      </MetricCard>
+                    </Grid>
+                  </Grid>
+                </motion.div>
+              </BusinessAnalyticsContainer>
             )}
             
             {/* Trainer Performance Analytics */}
@@ -1356,167 +1449,46 @@ const UniversalMasterSchedule: React.FC = () => {
           </motion.div>
         </ScheduleContainer>
         
-        {/* Dialogs and Modals */}
-        {/* Filter Dialog */}
-        <Dialog
+        {/* Enhanced Dialogs */}
+        
+        {/* Session Form Dialog */}
+        <SessionFormDialog
+          open={dialogs.sessionFormDialog}
+          onClose={() => closeDialog('sessionFormDialog')}
+          mode={sessionFormMode}
+          session={sessionFormInitialData?.session}
+          clients={clients}
+          trainers={trainers}
+          onSessionSaved={handleSessionSaved}
+          initialDate={sessionFormInitialData?.initialDate}
+          initialTrainer={sessionFormInitialData?.initialTrainer}
+        />
+        
+        {/* Bulk Actions Confirmation Dialog */}
+        <BulkActionsConfirmationDialog
+          open={dialogs.bulkActionDialog}
+          onClose={() => closeDialog('bulkActionDialog')}
+          action={bulkActionType}
+          selectedSessions={calendarEvents.filter(event => 
+            multiSelect.selectedEvents.includes(event.id)
+          )}
+          onActionComplete={handleBulkActionComplete}
+        />
+        
+        {/* Advanced Filter Dialog */}
+        <AdvancedFilterDialog
           open={dialogs.filterDialog}
           onClose={() => closeDialog('filterDialog')}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle>Advanced Filters</DialogTitle>
-          <DialogContent>
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Trainer</InputLabel>
-                  <Select
-                    value={filterOptions.trainerId}
-                    onChange={(e) => setFilterOptions(prev => ({ 
-                      ...prev, 
-                      trainerId: e.target.value 
-                    }))}
-                  >
-                    <MenuItem value="">All Trainers</MenuItem>
-                    {trainers.map(trainer => (
-                      <MenuItem key={trainer.id} value={trainer.id}>
-                        {trainer.firstName} {trainer.lastName}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    value={filterOptions.status}
-                    onChange={(e) => setFilterOptions(prev => ({ 
-                      ...prev, 
-                      status: e.target.value as any
-                    }))}
-                  >
-                    <MenuItem value="all">All Statuses</MenuItem>
-                    <MenuItem value="available">Available</MenuItem>
-                    <MenuItem value="booked">Booked</MenuItem>
-                    <MenuItem value="scheduled">Scheduled</MenuItem>
-                    <MenuItem value="confirmed">Confirmed</MenuItem>
-                    <MenuItem value="completed">Completed</MenuItem>
-                    <MenuItem value="cancelled">Cancelled</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Search sessions, clients, trainers..."
-                  value={filterOptions.searchTerm}
-                  onChange={(e) => setFilterOptions(prev => ({ 
-                    ...prev, 
-                    searchTerm: e.target.value 
-                  }))}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search size={20} />
-                      </InputAdornment>
-                    )
-                  }}
-                />
-              </Grid>
-            </Grid>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => {
-              setFilterOptions({
-                trainerId: '',
-                clientId: '',
-                status: 'all',
-                dateRange: 'all',
-                location: '',
-                searchTerm: '',
-                customDateStart: '',
-                customDateEnd: ''
-              });
-            }}>
-              Clear Filters
-            </Button>
-            <Button onClick={() => closeDialog('filterDialog')} variant="contained">
-              Apply Filters
-            </Button>
-          </DialogActions>
-        </Dialog>
-        
-        {/* Analytics Dialog */}
-        <Dialog
-          open={dialogs.statsDialog}
-          onClose={() => closeDialog('statsDialog')}
-          maxWidth="lg"
-          fullWidth
-        >
-          <DialogTitle>Schedule Analytics</DialogTitle>
-          <DialogContent>
-            <Grid container spacing={3} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={4}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      Utilization Rate
-                    </Typography>
-                    <Typography variant="h3" color="primary">
-                      {analyticsData.utilizationRate}%
-                    </Typography>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={analyticsData.utilizationRate} 
-                      sx={{ mt: 1 }}
-                    />
-                  </CardContent>
-                </Card>
-              </Grid>
-              
-              <Grid item xs={12} md={4}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      Revenue Today
-                    </Typography>
-                    <Typography variant="h3" color="success.main">
-                      ${analyticsData.revenueToday}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      +12% from yesterday
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-              
-              <Grid item xs={12} md={4}>
-                <Card>
-                  <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      Sessions Completed
-                    </Typography>
-                    <Typography variant="h3" color="info.main">
-                      {analyticsData.sessionsCompleted}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {analyticsData.pendingBookings} pending
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => closeDialog('statsDialog')}>Close</Button>
-            <Button variant="contained" startIcon={<Download />}>
-              Export Report
-            </Button>
-          </DialogActions>
-        </Dialog>
+          currentFilters={filterOptions}
+          onFiltersChange={setFilterOptions}
+          sessions={sessions}
+          clients={clients}
+          trainers={trainers}
+          onExportFiltered={(filteredSessions) => {
+            // Handle export functionality
+            console.log('Exporting filtered sessions:', filteredSessions);
+          }}
+        />
       </ErrorBoundary>
     </ThemeProvider>
   );
@@ -1581,67 +1553,6 @@ const HeaderActions = styled.div`
     flex-wrap: wrap;
   }
 `;
-
-const StatsBar = styled.div`
-  display: flex;
-  gap: 1rem;
-  padding: 1rem 2rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  overflow-x: auto;
-  
-  @media (max-width: 768px) {
-    padding: 0.75rem 1rem;
-    gap: 0.75rem;
-  }
-`;
-
-const StatCard = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 1rem;
-  min-width: 140px;
-  backdrop-filter: blur(10px);
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
-  }
-`;
-
-const StatIcon = styled.div`
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-`;
-
-const StatContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const StatValue = styled.div`
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: white;
-`;
-
-const StatLabel = styled.div`
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
-`;
-
-// ==================== NEW STYLED COMPONENTS FOR PHASE 2 ====================
 
 // View Toggle Components
 const ViewToggleGroup = styled.div`
@@ -1793,100 +1704,6 @@ const KPILabel = styled.div`
   text-overflow: ellipsis;
 `;
 
-// Analytics View Container
-const AnalyticsViewContainer = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-`;
-
-// Enhanced Icon Button
-const IconButton = styled.button`
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  padding: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.3);
-    transform: translateY(-1px);
-  }
-  
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-  }
-  
-  &:disabled:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
-    transform: none;
-  }
-`;
-
-// Responsive adjustments for mobile
-const ResponsiveContainer = styled.div`
-  @media (max-width: 768px) {
-    ${ViewToggleGroup} {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0.25rem;
-    }
-    
-    ${ViewToggleButton} {
-      font-size: 0.75rem;
-      padding: 0.4rem 0.6rem;
-      min-width: 60px;
-      
-      svg {
-        width: 14px;
-        height: 14px;
-      }
-    }
-    
-    ${ExecutiveKPIBar} {
-      flex-wrap: wrap;
-      justify-content: space-between;
-    }
-    
-    ${KPIItem} {
-      min-width: calc(50% - 0.5rem);
-      margin-bottom: 0.5rem;
-    }
-    
-    ${KPIValue} {
-      font-size: 1rem;
-    }
-    
-    ${KPILabel} {
-      font-size: 0.7rem;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    ${ViewToggleButton} {
-      span {
-        display: none;
-      }
-    }
-    
-    ${KPIItem} {
-      min-width: 100%;
-    }
-  }
-`;
-
 const BulkActionsBar = styled(motion.div)`
   background: rgba(59, 130, 246, 0.1);
   border-bottom: 1px solid rgba(59, 130, 246, 0.3);
@@ -2017,6 +1834,29 @@ const CalendarContainer = styled.div`
   }
 `;
 
+const BusinessAnalyticsContainer = styled.div`
+  flex: 1;
+  padding: 2rem;
+  overflow-y: auto;
+`;
+
+const MetricCard = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  height: 100%;
+`;
+
+const MetricItem = styled.div`
+  text-align: center;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+`;
+
 const LoadingContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -2051,507 +1891,33 @@ const LoadingOverlay = styled(motion.div)`
   backdrop-filter: blur(4px);
 `;
 
-// Missing styled components for the component
-const ScheduleContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  padding: 1.5rem;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
-  min-height: 100vh;
-  width: 100%;
-`;
-
-const StatsContainer = styled.div`
-  margin-bottom: 1.5rem;
-`;
-
-const StatCard = styled.div`
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  backdrop-filter: blur(10px);
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
-  }
-`;
-
-const StatIcon = styled.div`
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+// Enhanced Icon Button
+const IconButton = styled.button`
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-`;
-
-const StatContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-`;
-
-const StatValue = styled.div`
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: white;
-`;
-
-const StatLabel = styled.div`
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
-`;
-
-// ==================== MAIN COMPONENT ====================
-
-/**
- * Universal Master Schedule Component - Complete Business Intelligence Center
- */
-const UniversalMasterSchedule: React.FC = () => {
-  const { user } = useAuth();
-  const dispatch = useAppDispatch();
-  const { toast } = useToast();
   
-  // Redux selectors
-  const sessions = useAppSelector(selectAllSessions);
-  const scheduleStatus = useAppSelector(selectScheduleStatus);
-  const scheduleError = useAppSelector(selectScheduleError);
-  const scheduleStats = useAppSelector(selectScheduleStats);
-  
-  // Mobile PWA hooks - with error handling
-  const touchGestureContext = useTouchGesture?.() || null;
-  const hapticFeedback = touchGestureContext?.hapticFeedback;
-  const isTouch = touchGestureContext?.isTouch || false;
-  
-  // Refs
-  const calendarRef = useRef<any>(null);
-  const bulkActionRef = useRef<HTMLDivElement>(null);
-  
-  // ==================== STATE MANAGEMENT ====================
-  
-  // Core Data State
-  const [clients, setClients] = useState<Client[]>([]);
-  const [trainers, setTrainers] = useState<Trainer[]>([]);
-  const [assignments, setAssignments] = useState<ClientTrainerAssignment[]>([]);
-  const [calendarEvents, setCalendarEvents] = useState<SessionEvent[]>([]);
-  
-  // UI State
-  const [loading, setLoading] = useState({
-    sessions: true,
-    clients: false,
-    trainers: false,
-    assignments: false,
-    statistics: false,
-    bulkOperation: false
-  });
-  
-  const [error, setError] = useState({
-    sessions: null,
-    clients: null,
-    trainers: null,
-    assignments: null,
-    statistics: null,
-    bulkOperation: null
-  });
-  
-  const [view, setView] = useState<any>('week');
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
-  
-  // Dialog State
-  const [dialogs, setDialogs] = useState({
-    eventDialog: false,
-    assignmentDialog: false,
-    statsDialog: false,
-    filterDialog: false,
-    bulkActionDialog: false,
-    sessionFormDialog: false
-  });
-  
-  // Filter and Search State
-  const [filterOptions, setFilterOptions] = useState({
-    trainerId: '',
-    clientId: '',
-    status: 'all',
-    dateRange: 'all',
-    location: '',
-    searchTerm: '',
-    customDateStart: '',
-    customDateEnd: ''
-  });
-  
-  // Multi-select and Bulk Operations
-  const [multiSelect, setMultiSelect] = useState({
-    enabled: false,
-    selectedEvents: [],
-    bulkActionMode: false,
-    selectedAction: null
-  });
-  
-  // Advanced Features State
-  const [realTimeEnabled, setRealTimeEnabled] = useState(true);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [compactView, setCompactView] = useState(false);
-  const [showStatistics, setShowStatistics] = useState(true);
-  const [highContrastMode, setHighContrastMode] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  
-  // ==================== DATA FETCHING ====================
-  
-  // Load initial data
-  useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        setLoading(prev => ({ ...prev, sessions: true, clients: true, trainers: true }));
-        
-        // Load sessions via Redux
-        await dispatch(fetchEvents({ role: 'admin', userId: user?.id || '' }));
-        
-        // Load clients and trainers
-        const [clientsResponse, trainersResponse] = await Promise.all([
-          fetch('/api/users?role=client'),
-          fetch('/api/users?role=trainer')
-        ]);
-        
-        if (clientsResponse.ok && trainersResponse.ok) {
-          const clientsData = await clientsResponse.json();
-          const trainersData = await trainersResponse.json();
-          
-          setClients(clientsData);
-          setTrainers(trainersData);
-        }
-        
-        setLoading(prev => ({ ...prev, sessions: false, clients: false, trainers: false }));
-      } catch (error) {
-        console.error('Failed to load initial data:', error);
-        setError(prev => ({ ...prev, sessions: 'Failed to load data' }));
-        setLoading(prev => ({ ...prev, sessions: false, clients: false, trainers: false }));
-      }
-    };
-    
-    loadInitialData();
-  }, [dispatch]);
-  
-  // Convert sessions to calendar events
-  const calendarEventsMemo = useMemo(() => {
-    return sessions.map(session => ({
-      id: session.id,
-      title: `${session.client?.name || 'Available'} - ${session.trainer?.name || 'Unassigned'}`,
-      start: new Date(session.sessionDate || session.start),
-      end: new Date(session.sessionDate ? new Date(session.sessionDate).getTime() + (session.duration || 60) * 60000 : session.end),
-      resource: session,
-      allDay: false
-    }));
-  }, [sessions]);
-  
-  // ==================== EVENT HANDLERS ====================
-  
-  const handleSelectEvent = useCallback((event: any) => {
-    setSelectedEvent(event);
-    setDialogs(prev => ({ ...prev, eventDialog: true }));
-  }, []);
-  
-  const handleSelectSlot = useCallback((slotInfo: SlotInfo) => {
-    // Create new session in selected slot
-    console.log('Selected slot:', slotInfo);
-    setDialogs(prev => ({ ...prev, sessionFormDialog: true }));
-  }, []);
-  
-  const handleEventDrop = useCallback(async (args: any) => {
-    const { event, start, end } = args;
-    
-    try {
-      // Update session time via API
-      const response = await fetch(`/api/sessions/${event.resource.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionDate: start.toISOString(),
-          duration: Math.round((end.getTime() - start.getTime()) / 60000)
-        })
-      });
-      
-      if (response.ok) {
-        toast({
-          title: 'Success',
-          description: 'Session time updated successfully',
-        });
-        
-        // Refresh data
-        dispatch(fetchEvents({ role: 'admin', userId: user?.id || '' }));
-      } else {
-        throw new Error('Failed to update session');
-      }
-    } catch (error) {
-      console.error('Failed to update session:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update session time',
-        variant: 'destructive',
-      });
-    }
-  }, [dispatch, toast]);
-  
-  const handleEventResize = useCallback(async (args: any) => {
-    const { event, start, end } = args;
-    
-    try {
-      const response = await fetch(`/api/sessions/${event.resource.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionDate: start.toISOString(),
-          duration: Math.round((end.getTime() - start.getTime()) / 60000)
-        })
-      });
-      
-      if (response.ok) {
-        toast({
-          title: 'Success',
-          description: 'Session duration updated successfully',
-        });
-        
-        dispatch(fetchEvents({ role: 'admin', userId: user?.id || '' }));
-      } else {
-        throw new Error('Failed to resize session');
-      }
-    } catch (error) {
-      console.error('Failed to resize session:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update session duration',
-        variant: 'destructive',
-      });
-    }
-  }, [dispatch, toast]);
-  
-  // ==================== BUSINESS INTELLIGENCE CALCULATIONS ====================
-  
-  const businessMetrics = useMemo(() => {
-    const totalSessions = sessions.length;
-    const scheduledSessions = sessions.filter(s => s.status === 'scheduled' || s.status === 'confirmed').length;
-    const completedSessions = sessions.filter(s => s.status === 'completed').length;
-    const availableSessions = sessions.filter(s => s.status === 'available').length;
-    
-    const utilizationRate = totalSessions > 0 ? Math.round((scheduledSessions / totalSessions) * 100) : 0;
-    const completionRate = scheduledSessions > 0 ? Math.round((completedSessions / (completedSessions + scheduledSessions)) * 100) : 0;
-    
-    // Revenue calculations (assuming session values)
-    const estimatedRevenue = scheduledSessions * 100; // $100 per session average
-    const completedRevenue = completedSessions * 100;
-    
-    return {
-      totalSessions,
-      scheduledSessions,
-      completedSessions,
-      availableSessions,
-      utilizationRate,
-      completionRate,
-      estimatedRevenue,
-      completedRevenue
-    };
-  }, [sessions]);
-  
-  // ==================== RENDER HELPER COMPONENTS ====================
-  
-  const StatsPanel = () => (
-    <StatsContainer>
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={3}>
-          <StatCard>
-            <StatIcon>
-              <CalendarIcon size={16} />
-            </StatIcon>
-            <StatContent>
-              <StatValue>{businessMetrics.totalSessions}</StatValue>
-              <StatLabel>Total Sessions</StatLabel>
-            </StatContent>
-          </StatCard>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <StatCard>
-            <StatIcon>
-              <CheckCircle size={16} />
-            </StatIcon>
-            <StatContent>
-              <StatValue>{businessMetrics.utilizationRate}%</StatValue>
-              <StatLabel>Utilization Rate</StatLabel>
-            </StatContent>
-          </StatCard>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <StatCard>
-            <StatIcon>
-              <DollarSign size={16} />
-            </StatIcon>
-            <StatContent>
-              <StatValue>${businessMetrics.estimatedRevenue.toLocaleString()}</StatValue>
-              <StatLabel>Projected Revenue</StatLabel>
-            </StatContent>
-          </StatCard>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <StatCard>
-            <StatIcon>
-              <TrendingUp size={16} />
-            </StatIcon>
-            <StatContent>
-              <StatValue>{businessMetrics.completionRate}%</StatValue>
-              <StatLabel>Completion Rate</StatLabel>
-            </StatContent>
-          </StatCard>
-        </Grid>
-      </Grid>
-    </StatsContainer>
-  );
-  
-  const LoadingState = () => (
-    <LoadingContainer>
-      <CircularProgress sx={{ color: '#3b82f6' }} />
-      <Typography variant="h6" sx={{ mt: 2, color: 'white' }}>
-        Loading Schedule Data...
-      </Typography>
-    </LoadingContainer>
-  );
-  
-  const ErrorState = () => (
-    <ErrorContainer>
-      <AlertCircle size={48} color="#ef4444" />
-      <Typography variant="h6" sx={{ color: 'white' }}>
-        Failed to Load Schedule
-      </Typography>
-      <Button
-        variant="contained"
-        onClick={() => dispatch(fetchEvents({ role: 'admin', userId: user?.id || '' }))}
-        sx={{
-          background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-          color: 'white'
-        }}
-      >
-        Retry
-      </Button>
-    </ErrorContainer>
-  );
-  
-  // ==================== MAIN RENDER ====================
-  
-  if (loading.sessions) {
-    return (
-      <ThemeProvider theme={stellarTheme}>
-        <ScheduleContainer>
-          <LoadingState />
-        </ScheduleContainer>
-      </ThemeProvider>
-    );
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
   }
   
-  if (error.sessions) {
-    return (
-      <ThemeProvider theme={stellarTheme}>
-        <ScheduleContainer>
-          <ErrorState />
-        </ScheduleContainer>
-      </ThemeProvider>
-    );
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
   }
   
-  return (
-    <ThemeProvider theme={stellarTheme}>
-      <ScheduleContainer>
-        <AnimatePresence>
-          {/* Statistics Panel */}
-          {showStatistics && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <StatsPanel />
-            </motion.div>
-          )}
-          
-          {/* Main Calendar Container */}
-          <CalendarContainer>
-            <DragAndDropCalendar
-              ref={calendarRef}
-              localizer={localizer}
-              events={calendarEventsMemo}
-              startAccessor="start"
-              endAccessor="end"
-              view={view}
-              onView={setView}
-              date={selectedDate}
-              onNavigate={setSelectedDate}
-              onSelectEvent={handleSelectEvent}
-              onSelectSlot={handleSelectSlot}
-              onEventDrop={handleEventDrop}
-              onEventResize={handleEventResize}
-              selectable
-              resizable
-              style={{ height: 600 }}
-              eventPropGetter={(event) => ({
-                style: {
-                  backgroundColor: event.resource.status === 'available' ? '#22c55e' :
-                                   event.resource.status === 'scheduled' ? '#3b82f6' :
-                                   event.resource.status === 'completed' ? '#6c757d' :
-                                   event.resource.status === 'cancelled' ? '#ef4444' : '#f59e0b',
-                  border: 'none',
-                  borderRadius: '4px'
-                }
-              })}
-            />
-          </CalendarContainer>
-          
-          {/* Session Details Dialog */}
-          <Dialog
-            open={dialogs.eventDialog}
-            onClose={() => setDialogs(prev => ({ ...prev, eventDialog: false }))}
-            maxWidth="md"
-            fullWidth
-          >
-            <DialogTitle sx={{ background: 'linear-gradient(135deg, #1e3a8a, #3b82f6)', color: 'white' }}>
-              Session Details
-            </DialogTitle>
-            <DialogContent sx={{ background: '#0a0a0f', color: 'white' }}>
-              {selectedEvent && (
-                <Box sx={{ pt: 2 }}>
-                  <Typography variant="h6" gutterBottom>
-                    {selectedEvent.title}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                    Status: {selectedEvent.resource.status}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                    Start: {selectedEvent.start.toLocaleString()}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                    End: {selectedEvent.end.toLocaleString()}
-                  </Typography>
-                </Box>
-              )}
-            </DialogContent>
-            <DialogActions sx={{ background: '#0a0a0f' }}>
-              <Button
-                onClick={() => setDialogs(prev => ({ ...prev, eventDialog: false }))}
-                sx={{ color: 'white' }}
-              >
-                Close
-              </Button>
-            </DialogActions>
-          </Dialog>
-        </AnimatePresence>
-      </ScheduleContainer>
-    </ThemeProvider>
-  );
-};
-
-export default UniversalMasterSchedule;
+  &:disabled:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: none;
+  }
+`;
