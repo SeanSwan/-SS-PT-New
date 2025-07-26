@@ -1921,6 +1921,3 @@ const IconButton = styled.button`
     transform: none;
   }
 `;
-
-// Export the main component
-export default UniversalMasterSchedule;
