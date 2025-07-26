@@ -244,3 +244,5 @@ export type { ToastOptions };
 
 // Global toast function for use outside React components
 (window as any).showToast = createToast;
+
+console.log('✨ Enhanced toast system loaded - visual notifications ready!');
