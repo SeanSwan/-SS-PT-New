@@ -211,7 +211,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
     setError(null); // Reset error on new fetch
     try {
       // Use the session service to fetch sessions
-      const result = await services.session.getSessions();
+      const result = await services.sessionService.getSessions();
 
       if (result.success && result.data && Array.isArray(result.data)) {
         setSessions(result.data);
