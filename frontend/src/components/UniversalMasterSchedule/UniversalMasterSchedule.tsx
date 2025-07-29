@@ -147,7 +147,8 @@ import {
   Database,
   Server,
   Cloud,
-  HardDrive
+  HardDrive,
+  CreditCard
 } from 'lucide-react';
 
 // Context and Services
