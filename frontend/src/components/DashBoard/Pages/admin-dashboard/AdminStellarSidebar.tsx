@@ -535,44 +535,35 @@ interface AdminNavItemData {
 
 const adminNavigationItems: AdminNavItemData[] = [
   // 🛡️ COMMAND CENTER
-  { id: 'overview', label: 'Overview Dashboard', icon: Shield, section: 'overview', route: '/dashboard/admin/overview' },
+  { id: 'overview', label: 'Overview Dashboard', icon: Shield, section: 'overview', route: '/dashboard/default' },
+  { id: 'analytics', label: 'Real-Time Analytics Hub', icon: BarChart3, section: 'overview', route: '/dashboard/analytics' },
   
-  // 👥 COMPREHENSIVE DATA MANAGEMENT
-  { id: 'user-management', label: 'User Data Management', icon: Users, section: 'management', route: '/dashboard/admin/user-management' },
-  { id: 'user-onboarding', label: 'Add New User', icon: Users, section: 'management', route: '/dashboard/admin/user-onboarding' },
-  { id: 'trainer-management', label: 'Trainer Data Management', icon: UserCheck, section: 'management', route: '/dashboard/admin/trainer-management' },
-  { id: 'trainer-onboarding', label: 'Add New Trainer', icon: UserCheck, section: 'management', route: '/dashboard/admin/trainer-onboarding' },
-  { id: 'client-management', label: 'Client Management Hub', icon: Star, section: 'management', route: '/dashboard/admin/client-management' },
-  { id: 'client-details', label: 'Advanced Client Interface', icon: Star, section: 'management', route: '/dashboard/admin/client-details' },
-  { id: 'client-onboarding', label: 'New Client Workflow', icon: Star, section: 'management', route: '/dashboard/admin/client-onboarding' },
-  { id: 'client-progress-tracking', label: 'Progress Analytics', icon: BarChart3, section: 'management', route: '/dashboard/admin/client-progress-tracking' },
-  
-  // 🚀 UNIFIED ONBOARDING SYSTEM
-  { id: 'unified-onboarding', label: 'Unified Onboarding', icon: Shield, section: 'management', route: '/dashboard/admin/unified-onboarding' },
-  
-  // 📅 SCHEDULING & OPERATIONS
-  { id: 'admin-sessions', label: 'Session Management', icon: Calendar, section: 'management', route: '/dashboard/admin/admin-sessions' },
+  // 👥 PLATFORM MANAGEMENT
+  { id: 'user-management', label: 'User Management', icon: Users, section: 'management', route: '/dashboard/user-management' },
+  { id: 'trainers', label: 'Trainer Management', icon: UserCheck, section: 'management', route: '/dashboard/trainers' },
+  { id: 'client-management', label: 'Client Management', icon: Star, section: 'management', route: '/dashboard/client-management' },
+  { id: 'admin-sessions', label: 'Session Management', icon: Calendar, section: 'management', route: '/dashboard/admin-sessions' },
   { id: 'master-schedule', label: 'Universal Master Schedule', icon: Calendar, section: 'management', route: '/dashboard/admin/master-schedule' },
-  { id: 'session-allocation', label: 'Session Allocation Manager', icon: CreditCard, section: 'management', route: '/dashboard/admin/session-allocation' },
-  { id: 'client-trainer-assignments', label: 'Client-Trainer Assignments', icon: Users, section: 'management', route: '/dashboard/admin/client-trainer-assignments' },
-  { id: 'trainer-permissions', label: 'Trainer Permissions', icon: ShieldCheck, section: 'management', route: '/dashboard/admin/trainer-permissions' },
+  { id: 'admin-packages', label: 'Package Management', icon: Package, section: 'management', route: '/dashboard/admin-packages' },
+  { id: 'content', label: 'Content Moderation', icon: MessageSquare, section: 'management', route: '/dashboard/content' },
   
-  // 💰 BUSINESS & FINANCIAL MANAGEMENT
-  { id: 'admin-packages', label: 'Package Management', icon: Package, section: 'analytics', route: '/dashboard/admin/admin-packages' },
-  { id: 'revenue', label: 'Revenue Analytics', icon: DollarSign, section: 'analytics', route: '/dashboard/admin/revenue' },
-  { id: 'pending-orders', label: 'Pending Orders', icon: AlertTriangle, section: 'analytics', route: '/dashboard/admin/pending-orders', badge: 2 },
+  // 💰 BUSINESS INTELLIGENCE
+  { id: 'revenue', label: 'Revenue Analytics', icon: DollarSign, section: 'analytics', route: '/dashboard/revenue' },
+  { id: 'pending-orders', label: 'Pending Orders', icon: AlertTriangle, section: 'analytics', route: '/dashboard/pending-orders', badge: 2 },
+  { id: 'reports', label: 'Performance Reports', icon: FileText, section: 'analytics', route: '/dashboard/reports' },
+  { id: 'gamification', label: 'Gamification Engine', icon: Star, section: 'analytics', route: '/dashboard/gamification' },
+  { id: 'notifications', label: 'Notifications', icon: MessageSquare, section: 'analytics', route: '/dashboard/notifications' },
   
-  // 🎮 ENGAGEMENT SYSTEMS
-  { id: 'gamification', label: 'Gamification Engine', icon: Star, section: 'analytics', route: '/dashboard/admin/gamification' },
-  
-  // ⚙️ SYSTEM OPERATIONS (Legacy routes maintained)
-  { id: 'user-management-legacy', label: 'User Management (Legacy)', icon: Users, section: 'system', route: '/dashboard/admin/user-management-legacy' },
-  { id: 'trainer-management-legacy', label: 'Trainer Management (Legacy)', icon: UserCheck, section: 'system', route: '/dashboard/admin/trainer-management-legacy' }
+  // ⚙️ SYSTEM OPERATIONS
+  { id: 'system-health', label: 'System Health', icon: Monitor, section: 'system', route: '/dashboard/system-health' },
+  { id: 'security', label: 'Security Center', icon: ShieldCheck, section: 'system', route: '/dashboard/security' },
+  { id: 'mcp-servers', label: 'MCP Servers', icon: Database, section: 'system', route: '/dashboard/mcp-servers' },
+  { id: 'settings', label: 'Settings', icon: Settings, section: 'system', route: '/dashboard/settings' }
 ];
 
 const adminSectionTitles = {
   overview: '🛡️ Command Center',
-  management: '👥 Comprehensive Data Management',
+  management: '👥 Platform Management',
   analytics: '📊 Business Intelligence',
   system: '⚙️ System Operations'
 };

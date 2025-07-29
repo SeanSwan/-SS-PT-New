@@ -155,6 +155,7 @@ import { useAuth } from '../../context/AuthContext';
 import { universalMasterScheduleService } from '../../services/universal-master-schedule-service';
 import { clientTrainerAssignmentService } from '../../services/clientTrainerAssignmentService';
 import sessionService from '../../services/sessionService';
+import { gamificationMCPService } from '../../services/gamificationMCPService';
 
 // Redux
 import { useAppDispatch, useAppSelector } from '../../redux/hooks';
@@ -170,6 +171,9 @@ import {
 import GlowButton from '../ui/buttons/GlowButton';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
+
+// Session Allocation Manager - NEW!
+import SessionAllocationManager from './SessionAllocationManager';
 
 // Enhanced Dialog Components
 import {
@@ -194,6 +198,9 @@ import {
   TrainerPerformanceAnalytics,
   SocialIntegrationAnalytics
 } from './Analytics';
+
+// Fallback Calendar Component
+import CalendarFallback from './CalendarFallback';
 
 // Mobile PWA Components
 import { useTouchGesture } from '../PWA/TouchGestureProvider';
@@ -221,9 +228,24 @@ import {
 // Import styles
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
-// Initialize localizer and drag-and-drop calendar
-const localizer = momentLocalizer(moment);
-const DragAndDropCalendar = withDragAndDrop(Calendar);
+// Safe calendar initialization with error handling
+let localizer: any;
+let DragAndDropCalendar: any;
+
+try {
+  // Ensure moment is properly configured
+  if (moment && typeof moment === 'function') {
+    localizer = momentLocalizer(moment);
+    DragAndDropCalendar = withDragAndDrop(Calendar);
+    console.log('✅ Calendar localizer initialized successfully');
+  } else {
+    console.error('❌ Moment.js not properly loaded');
+  }
+} catch (error) {
+  console.error('❌ Error initializing calendar:', error);
+  // Fallback - use basic Calendar without moment localizer
+  DragAndDropCalendar = Calendar;
+}
 
 /**
  * Universal Master Schedule Component
@@ -330,7 +352,7 @@ const UniversalMasterSchedule: React.FC = () => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   
   // Analytics View State
-  const [analyticsView, setAnalyticsView] = useState<'calendar' | 'business' | 'trainers' | 'social'>('calendar');
+  const [analyticsView, setAnalyticsView] = useState<'calendar' | 'business' | 'trainers' | 'social' | 'allocations'>('calendar');
   const [dateRange, setDateRange] = useState('month');
   const [selectedTrainer, setSelectedTrainer] = useState<string | null>(null);
   
@@ -541,9 +563,102 @@ const UniversalMasterSchedule: React.FC = () => {
     setCalendarEvents(filteredEvents);
   }, [sessions, filterOptions]);
   
+  // ==================== GAMIFICATION MCP INTEGRATION ====================
+  
+  const triggerGamificationReward = useCallback(async (sessionId: string, clientId: string, action: 'session_completed' | 'milestone_reached' | 'streak_achieved') => {
+    try {
+      // Integration with Gamification MCP Server
+      const gamificationPayload = {
+        userId: clientId,
+        action,
+        sessionId,
+        points: action === 'session_completed' ? 50 : action === 'milestone_reached' ? 100 : 75,
+        timestamp: new Date().toISOString()
+      };
+      
+      // Call MCP gamification service
+      const result = await gamificationMCPService.awardPoints(gamificationPayload);
+      
+      if (result.success) {
+        // Generate social media post
+        await gamificationMCPService.generateWorkoutPost({
+          userId: clientId,
+          type: action === 'session_completed' ? 'workout_completion' : 'achievement_unlock',
+          sessionId,
+          autoGenerate: true,
+          includeStats: true
+        });
+        
+        console.log('🎮 Gamification reward triggered successfully:', result);
+        
+        toast({
+          title: result.achievement ? 'Achievement Unlocked! 🏆' : 'Points Earned! ✨',
+          description: result.achievement 
+            ? `${result.achievement.title} - ${result.points} points!`
+            : `Earned ${gamificationPayload.points} points! Total: ${result.newTotal}`,
+          variant: 'default'
+        });
+        
+        // If level up occurred, show special celebration
+        if (result.levelUp) {
+          toast({
+            title: 'LEVEL UP! 🎆',
+            description: 'Congratulations on reaching a new level!',
+            variant: 'default'
+          });
+        }
+      }
+      
+    } catch (error) {
+      console.error('Error triggering gamification reward:', error);
+      // Still show success message to user even if gamification fails
+      toast({
+        title: 'Session Completed! ✅',
+        description: 'Great work on completing your training session!',
+        variant: 'default'
+      });
+    }
+  }, [toast]);
+  
+  const handleSessionCompletion = useCallback(async (sessionId: string, clientId: string) => {
+    try {
+      // Mark session as completed
+      await sessionService.updateSession(sessionId, { status: 'completed' });
+      
+      // Trigger gamification rewards
+      await triggerGamificationReward(sessionId, clientId, 'session_completed');
+      
+      // Check for milestones (every 10 sessions)
+      const clientSessions = sessions.filter(s => s.userId === clientId && s.status === 'completed');
+      if (clientSessions.length % 10 === 0) {
+        await triggerGamificationReward(sessionId, clientId, 'milestone_reached');
+      }
+      
+      // Check for streaks (5 consecutive weeks)
+      const recentSessions = clientSessions
+        .filter(s => new Date(s.sessionDate) >= new Date(Date.now() - 35 * 24 * 60 * 60 * 1000))
+        .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime());
+      
+      if (recentSessions.length >= 5) {
+        await triggerGamificationReward(sessionId, clientId, 'streak_achieved');
+      }
+      
+      // Refresh data
+      await refreshData();
+      
+    } catch (error) {
+      console.error('Error handling session completion:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to complete session. Please try again.',
+        variant: 'destructive'
+      });
+    }
+  }, [sessions, triggerGamificationReward, refreshData, toast]);
+  
   // ==================== ANALYTICS HANDLERS ====================
   
-  const handleAnalyticsViewChange = useCallback((view: 'calendar' | 'business' | 'trainers' | 'social') => {
+  const handleAnalyticsViewChange = useCallback((view: 'calendar' | 'business' | 'trainers' | 'social' | 'allocations') => {
     setAnalyticsView(view);
     
     if (hapticFeedback) {
@@ -1062,6 +1177,13 @@ const UniversalMasterSchedule: React.FC = () => {
                     <Activity size={16} />
                     Social
                   </ViewToggleButton>
+                  <ViewToggleButton 
+                    active={analyticsView === 'allocations'}
+                    onClick={() => handleAnalyticsViewChange('allocations')}
+                  >
+                    <CreditCard size={16} />
+                    Allocations
+                  </ViewToggleButton>
                 </ViewToggleGroup>
                 
                 {/* Multi-select toggle */}
@@ -1237,64 +1359,72 @@ const UniversalMasterSchedule: React.FC = () => {
                 
                 {/* Calendar Container */}
                 <CalendarContainer>
-                  <DragAndDropCalendar
-                    ref={calendarRef}
-                    localizer={localizer}
-                    events={calendarEvents}
-                    startAccessor="start"
-                    endAccessor="end"
-                    style={{ height: '100%' }}
-                    view={view}
-                    onView={setView}
-                    date={selectedDate}
-                    onNavigate={setSelectedDate}
-                    onSelectSlot={handleSelectSlot}
-                    onSelectEvent={handleSelectEvent}
-                    onEventDrop={handleEventDrop}
-                    onEventResize={handleEventResize}
-                    selectable
-                    resizable
-                    popup
-                    eventPropGetter={event => ({
-                      style: {
-                        ...getEventStyle(event),
-                        opacity: multiSelect.selectedEvents.includes(event.id) ? 0.8 : 1,
-                        border: multiSelect.selectedEvents.includes(event.id) 
-                          ? '2px solid #00ffff' 
-                          : 'none'
-                      }
-                    })}
-                    views={['month', 'week', 'day', 'agenda']}
-                    step={15}
-                    timeslots={4}
-                    min={new Date(2024, 0, 1, 6, 0)}
-                    max={new Date(2024, 0, 1, 22, 0)}
-                    formats={{
-                      timeGutterFormat: 'h:mm A',
-                      eventTimeRangeFormat: ({ start, end }, culture, localizer) =>
-                        `${localizer.format(start, 'h:mm A', culture)} - ${localizer.format(end, 'h:mm A', culture)}`
-                    }}
-                    components={{
-                      event: ({ event }) => (
-                        <motion.div
-                          style={{ height: '100%', width: '100%' }}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <div style={{ padding: '2px 4px' }}>
-                            <div style={{ fontWeight: 'bold', fontSize: '0.7rem' }}>
-                              {event.title}
-                            </div>
-                            {event.trainer && (
-                              <div style={{ fontSize: '0.6rem', opacity: 0.9 }}>
-                                {event.trainer.firstName}
+                  {localizer ? (
+                    <DragAndDropCalendar
+                      ref={calendarRef}
+                      localizer={localizer}
+                      events={calendarEvents}
+                      startAccessor="start"
+                      endAccessor="end"
+                      style={{ height: '100%' }}
+                      view={view}
+                      onView={setView}
+                      date={selectedDate}
+                      onNavigate={setSelectedDate}
+                      onSelectSlot={handleSelectSlot}
+                      onSelectEvent={handleSelectEvent}
+                      onEventDrop={handleEventDrop}
+                      onEventResize={handleEventResize}
+                      selectable
+                      resizable
+                      popup
+                      eventPropGetter={event => ({
+                        style: {
+                          ...getEventStyle(event),
+                          opacity: multiSelect.selectedEvents.includes(event.id) ? 0.8 : 1,
+                          border: multiSelect.selectedEvents.includes(event.id) 
+                            ? '2px solid #00ffff' 
+                            : 'none'
+                        }
+                      })}
+                      views={['month', 'week', 'day', 'agenda']}
+                      step={15}
+                      timeslots={4}
+                      min={new Date(2024, 0, 1, 6, 0)}
+                      max={new Date(2024, 0, 1, 22, 0)}
+                      formats={{
+                        timeGutterFormat: 'h:mm A',
+                        eventTimeRangeFormat: ({ start, end }, culture, localizer) =>
+                          `${localizer.format(start, 'h:mm A', culture)} - ${localizer.format(end, 'h:mm A', culture)}`
+                      }}
+                      components={{
+                        event: ({ event }) => (
+                          <motion.div
+                            style={{ height: '100%', width: '100%' }}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            <div style={{ padding: '2px 4px' }}>
+                              <div style={{ fontWeight: 'bold', fontSize: '0.7rem' }}>
+                                {event.title}
                               </div>
-                            )}
-                          </div>
-                        </motion.div>
-                      )
-                    }}
-                  />
+                              {event.trainer && (
+                                <div style={{ fontSize: '0.6rem', opacity: 0.9 }}>
+                                  {event.trainer.firstName}
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )
+                      }}
+                    />
+                  ) : (
+                    <CalendarFallback
+                      events={calendarEvents}
+                      onEventClick={handleSelectEvent}
+                      onSlotClick={(date) => handleSelectSlot({ start: date, end: date })}
+                    />
+                  )}
                 </CalendarContainer>
               </>
             )}
@@ -1429,6 +1559,25 @@ const UniversalMasterSchedule: React.FC = () => {
                 trainers={trainers}
                 dateRange={dateRange}
               />
+            )}
+            
+            {/* Session Allocation Manager */}
+            {analyticsView === 'allocations' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+              >
+                <SessionAllocationManager 
+                  onAllocationUpdate={(allocation) => {
+                    console.log('💰 Session allocation updated:', allocation);
+                    // Trigger dashboard sync
+                    refreshData();
+                  }}
+                  showControls={true}
+                  compactView={false}
+                />
+              </motion.div>
             )}
             
             {/* Loading Overlay */}
