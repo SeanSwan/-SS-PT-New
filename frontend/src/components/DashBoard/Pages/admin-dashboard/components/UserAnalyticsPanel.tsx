@@ -87,7 +87,8 @@ import {
   ThumbUp,
   Message,
   VideoCall,
-  Share
+  Share,
+  Lightbulb
 } from '@mui/icons-material';
 
 import {
