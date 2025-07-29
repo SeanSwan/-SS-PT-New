@@ -45,6 +45,18 @@ import AdminScheduleIntegration from '../UniversalMasterSchedule/AdminScheduleIn
 import RevenueAnalyticsPanel from './Pages/admin-dashboard/components/RevenueAnalyticsPanel';
 import PendingOrdersAdminPanel from './Pages/admin-dashboard/components/PendingOrdersAdminPanel';
 
+// Import System Management Components
+import UserAnalyticsPanel from './Pages/admin-dashboard/components/UserAnalyticsPanel';
+import SystemHealthPanel from './Pages/admin-dashboard/components/SystemHealthPanel';
+import SecurityMonitoringPanel from './Pages/admin-dashboard/components/SecurityMonitoringPanel';
+import NotificationSettingsList from './Pages/admin-dashboard/components/NotificationSettingsList';
+
+// Import Enterprise Management Components
+import ContentModerationPanel from './Pages/admin-dashboard/components/ContentModerationPanel';
+import PerformanceReportsPanel from './Pages/admin-dashboard/components/PerformanceReportsPanel';
+import MCPManagementPanel from './Pages/admin-dashboard/components/MCPManagementPanel';
+import AdminSettingsPanel from './Pages/admin-dashboard/components/AdminSettingsPanel';
+
 // === EXECUTIVE COMMAND INTELLIGENCE THEME ===
 const executiveCommandTheme = {
   colors: {
@@ -494,11 +506,13 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                 <Route 
                   path="/analytics" 
                   element={
-                    <LazyPlaceholder 
-                      title="Real-Time Analytics Hub"
-                      description="Comprehensive real-time analytics, business intelligence metrics, and predictive insights for strategic decision making."
-                      icon="📊"
-                    />
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <UserAnalyticsPanel />
+                    </ExecutivePageContainer>
                   } 
                 />
                 
@@ -534,11 +548,13 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                 <Route 
                   path="/content" 
                   element={
-                    <LazyPlaceholder 
-                      title="Content Moderation Suite"
-                      description="Review, moderate, and manage user-generated content with AI-powered analysis and community guidelines enforcement."
-                      icon="🔍"
-                    />
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <ContentModerationPanel />
+                    </ExecutivePageContainer>
                   } 
                 />
                 
@@ -570,11 +586,13 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                 <Route 
                   path="/reports" 
                   element={
-                    <LazyPlaceholder 
-                      title="Performance Metrics Center"
-                      description="Comprehensive performance reports, trend analysis, and KPI monitoring for operational excellence."
-                      icon="📈"
-                    />
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <PerformanceReportsPanel />
+                    </ExecutivePageContainer>
                   } 
                 />
                 <Route 
@@ -592,11 +610,13 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                 <Route 
                   path="/notifications" 
                   element={
-                    <LazyPlaceholder 
-                      title="Notification Command Center"
-                      description="Manage platform-wide notifications, alert systems, and communication templates for optimal user engagement."
-                      icon="🔔"
-                    />
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <NotificationSettingsList />
+                    </ExecutivePageContainer>
                   } 
                 />
                 
@@ -604,41 +624,49 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                 <Route 
                   path="/system-health" 
                   element={
-                    <LazyPlaceholder 
-                      title="System Health Monitor"
-                      description="Real-time system monitoring, performance metrics, server health checks, and infrastructure oversight."
-                      icon="🖥️"
-                    />
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <SystemHealthPanel />
+                    </ExecutivePageContainer>
                   } 
                 />
                 <Route 
                   path="/security" 
                   element={
-                    <LazyPlaceholder 
-                      title="Security Operations Center"
-                      description="Advanced security monitoring, threat detection, access control management, and incident response protocols."
-                      icon="🔒"
-                    />
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <SecurityMonitoringPanel />
+                    </ExecutivePageContainer>
                   } 
                 />
                 <Route 
                   path="/mcp-servers" 
                   element={
-                    <LazyPlaceholder 
-                      title="MCP Server Command"
-                      description="Monitor and manage MCP server status, configurations, and performance metrics for optimal system operations."
-                      icon="🛠️"
-                    />
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <MCPManagementPanel />
+                    </ExecutivePageContainer>
                   } 
                 />
                 <Route 
                   path="/settings" 
                   element={
-                    <LazyPlaceholder 
-                      title="Administrative Settings"
-                      description="Platform configuration, administrative preferences, integration settings, and system-wide controls."
-                      icon="⚙️"
-                    />
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <AdminSettingsPanel />
+                    </ExecutivePageContainer>
                   } 
                 />
                 
