@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
 import { ClientProgressData, LeaderboardEntry } from '../../../../services/client-progress-service';
@@ -108,6 +109,7 @@ function a11yProps(index: number) {
 const AdminClientProgressView: React.FC = () => {
   const { authAxios, user, services } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Client state
   const [clients, setClients] = useState<{ id: string; firstName: string; lastName: string; username: string; photo?: string }[]>([]);
@@ -1232,11 +1234,55 @@ const AdminClientProgressView: React.FC = () => {
 
   return (
     <Box sx={{ p: 3, bgcolor: '#121420' }}>
-      <Box sx={{ mb: 3, bgcolor: '#1d1f2b', p: 2, borderRadius: 1, boxShadow: '0 4px 12px rgba(0, 255, 255, 0.1)' }}>
-      <Typography variant="h4" sx={{ color: '#E0E0E0' }}>Client Progress Dashboard</Typography>
-      <Typography variant="body1" sx={{ color: '#A0A0A0' }}>
-      Monitor and manage client progression through the NASM protocol system
-      </Typography>
+      <Box sx={{ 
+        mb: 3, 
+        bgcolor: '#1d1f2b', 
+        p: 2, 
+        borderRadius: 1, 
+        boxShadow: '0 4px 12px rgba(0, 255, 255, 0.1)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center'
+      }}>
+        <Box>
+          <Typography variant="h4" sx={{ color: '#E0E0E0' }}>Client Progress Dashboard</Typography>
+          <Typography variant="body1" sx={{ color: '#A0A0A0' }}>
+            Monitor and manage client progression through the NASM protocol system
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<Users size={18} />}
+            onClick={() => navigate('/dashboard/client-trainer-assignments')}
+            sx={{
+              color: '#00ffff',
+              borderColor: '#00ffff',
+              '&:hover': {
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)'
+              }
+            }}
+          >
+            Manage Assignments
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<RefreshCcw size={18} />}
+            onClick={() => {
+              fetchClients();
+              fetchLeaderboard();
+            }}
+            sx={{
+              background: 'linear-gradient(45deg, #3b82f6 0%, #00ffff 100%)',
+              '&:hover': {
+                background: 'linear-gradient(45deg, #2563eb 0%, #00e6ff 100%)'
+              }
+            }}
+          >
+            Refresh Data
+          </Button>
+        </Box>
       </Box>
 
       <Box sx={{ width: '100%', mb: 3 }}>

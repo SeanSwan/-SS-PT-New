@@ -29,7 +29,8 @@ import {
   Shield, Users, UserCheck, Calendar, Package, BarChart3, 
   Database, Settings, Monitor, TrendingUp, ShieldCheck, 
   ChevronLeft, ChevronRight, Menu, X, Command, AlertTriangle,
-  Activity, DollarSign, MessageSquare, FileText, Star, CreditCard
+  Activity, DollarSign, MessageSquare, FileText, Star, CreditCard,
+  Award, Heart
 } from 'lucide-react';
 
 // === ADMIN COMMAND CENTER THEME ===
@@ -541,17 +542,20 @@ const adminNavigationItems: AdminNavItemData[] = [
   // 👥 PLATFORM MANAGEMENT
   { id: 'user-management', label: 'User Management', icon: Users, section: 'management', route: '/dashboard/user-management' },
   { id: 'trainers', label: 'Trainer Management', icon: UserCheck, section: 'management', route: '/dashboard/trainers' },
+  { id: 'client-trainer-assignments', label: 'Client-Trainer Assignments', icon: Users, section: 'management', route: '/dashboard/client-trainer-assignments' },
   { id: 'client-management', label: 'Client Management', icon: Star, section: 'management', route: '/dashboard/client-management' },
   { id: 'admin-sessions', label: 'Session Management', icon: Calendar, section: 'management', route: '/dashboard/admin-sessions' },
   { id: 'master-schedule', label: 'Universal Master Schedule', icon: Calendar, section: 'management', route: '/dashboard/admin/master-schedule' },
   { id: 'admin-packages', label: 'Package Management', icon: Package, section: 'management', route: '/dashboard/admin-packages' },
   { id: 'content', label: 'Content Moderation', icon: MessageSquare, section: 'management', route: '/dashboard/content' },
+  { id: 'social-management', label: 'Social Media Management', icon: Heart, section: 'management', route: '/dashboard/social-management' },
   
   // 💰 BUSINESS INTELLIGENCE
   { id: 'revenue', label: 'Revenue Analytics', icon: DollarSign, section: 'analytics', route: '/dashboard/revenue' },
   { id: 'pending-orders', label: 'Pending Orders', icon: AlertTriangle, section: 'analytics', route: '/dashboard/pending-orders', badge: 2 },
   { id: 'reports', label: 'Performance Reports', icon: FileText, section: 'analytics', route: '/dashboard/reports' },
   { id: 'gamification', label: 'Gamification Engine', icon: Star, section: 'analytics', route: '/dashboard/gamification' },
+  { id: 'nasm-compliance', label: 'NASM Compliance', icon: Award, section: 'analytics', route: '/dashboard/nasm-compliance' },
   { id: 'notifications', label: 'Notifications', icon: MessageSquare, section: 'analytics', route: '/dashboard/notifications' },
   
   // ⚙️ SYSTEM OPERATIONS

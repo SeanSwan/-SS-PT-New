@@ -2,24 +2,28 @@
  * ContentModerationPanel.tsx
  * ==========================
  * 
- * Enterprise-Grade Content Moderation System
- * Advanced content management with AI-powered analysis and community guidelines enforcement
+ * Enhanced Enterprise-Grade Content Moderation System
+ * Advanced content management with AI-powered analysis and social media integration
  * Designed by Seraphina, The Digital Alchemist
  * 
- * Features:
- * - Real-time content queue management
+ * Enhanced Features v2.0:
+ * - Real-time content queue management with social integration
  * - AI-powered content analysis with risk scoring
- * - Community guidelines enforcement
+ * - Community guidelines enforcement with social context
  * - User-generated content moderation workflow
  * - Advanced filtering and search capabilities
- * - Bulk moderation actions
- * - Audit trail and reporting
- * - Integration with gamification system
+ * - Bulk moderation actions with social-specific controls
+ * - Social media engagement tracking and moderation
+ * - Social post and comment management
+ * - Community interaction oversight
+ * - Audit trail and reporting with social analytics
+ * - Integration with gamification and social systems
  * 
  * Master Prompt Alignment:
  * - Enterprise-level content safety
  * - 7-star administrative control
  * - Professional moderation workflow
+ * - Social media management integration
  */
 
 import React, { useState, useEffect } from 'react';
@@ -42,7 +46,14 @@ import {
   MoreHorizontal,
   UserX,
   Ban,
-  CheckSquare
+  CheckSquare,
+  Heart,
+  Share2,
+  MessageCircle,
+  ThumbsUp,
+  ThumbsDown,
+  Star,
+  Activity
 } from 'lucide-react';
 
 // === STYLED COMPONENTS ===

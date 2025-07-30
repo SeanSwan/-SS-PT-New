@@ -57,6 +57,16 @@ import PerformanceReportsPanel from './Pages/admin-dashboard/components/Performa
 import MCPManagementPanel from './Pages/admin-dashboard/components/MCPManagementPanel';
 import AdminSettingsPanel from './Pages/admin-dashboard/components/AdminSettingsPanel';
 
+// Import Trainer Permissions Manager
+import TrainerPermissionsManager from '../Admin/TrainerPermissionsManager';
+
+// Import Client-Trainer Assignments
+import ClientTrainerAssignments from '../Admin/ClientTrainerAssignments';
+
+// Import Enhanced Admin Components
+import AdminSocialManagementView from './Pages/admin-dashboard/components/AdminSocialManagementView';
+import NASMCompliancePanel from './Pages/admin-dashboard/components/NASMCompliancePanel';
+
 // === EXECUTIVE COMMAND INTELLIGENCE THEME ===
 const executiveCommandTheme = {
   colors: {
@@ -530,6 +540,30 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                     </ExecutivePageContainer>
                   } 
                 />
+                <Route 
+                  path="/trainers/permissions" 
+                  element={
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <TrainerPermissionsManager onPermissionChange={() => {/* Optional callback */}} />
+                    </ExecutivePageContainer>
+                  } 
+                />
+                <Route 
+                  path="/client-trainer-assignments" 
+                  element={
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <ClientTrainerAssignments onAssignmentChange={() => {/* Optional callback */}} />
+                    </ExecutivePageContainer>
+                  } 
+                />
                 <Route path="/client-management" element={<AdminClientProgressView />} />
                 <Route path="/admin-sessions" element={<EnhancedAdminSessionsView />} />
                 <Route 
@@ -666,6 +700,33 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                       transition={{ duration: 0.6 }}
                     >
                       <AdminSettingsPanel />
+                    </ExecutivePageContainer>
+                  } 
+                />
+                
+                {/* Enhanced Admin Features */}
+                <Route 
+                  path="/social-management" 
+                  element={
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <AdminSocialManagementView />
+                    </ExecutivePageContainer>
+                  } 
+                />
+                
+                <Route 
+                  path="/nasm-compliance" 
+                  element={
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <NASMCompliancePanel />
                     </ExecutivePageContainer>
                   } 
                 />
