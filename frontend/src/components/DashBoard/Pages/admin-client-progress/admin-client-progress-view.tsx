@@ -199,16 +199,7 @@ const AdminClientProgressView: React.FC = () => {
       variant: "default"
     });
   };
-        { id: '4', firstName: 'Alice', lastName: 'Williams', username: 'awilliams', photo: undefined },
-      ];
-      setClients(mockClients);
-      if (!selectedClientId && mockClients.length > 0) {
-        setSelectedClientId(mockClients[0].id);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   // Fetch client progress from API
   const fetchClientProgress = async (clientId: string) => {
