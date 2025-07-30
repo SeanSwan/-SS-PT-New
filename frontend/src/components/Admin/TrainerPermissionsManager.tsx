@@ -27,7 +27,7 @@ import {
   CheckCircle, XCircle, Plus, Minus, Edit, Trash2, Info,
   BarChart3, Activity, Target, Award, Zap, Lock, Unlock,
   Search, Filter, RefreshCw, Download, Save, X, ChevronDown,
-  ChevronUp, HelpCircle, Star, Crown, Key
+  ChevronUp, HelpCircle, Star, Crown, Key, MessageSquare
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
@@ -49,6 +49,22 @@ interface PermissionType {
   description: string;
   critical: boolean;
   icon: React.ComponentType<{ size?: number }>;
+}
+
+interface PermissionRequest {
+  id: string;
+  trainerId: number;
+  trainerName: string;
+  permissionType: string;
+  reason: string;
+  requestedAt: string;
+  status: 'pending' | 'approved' | 'denied';
+}
+
+interface BulkPermissionOperation {
+  action: 'grant' | 'revoke';
+  permissionType: string;
+  trainerIds: number[];
 }
 
 interface TrainerWithPermissions {
@@ -546,6 +562,152 @@ const SearchInput = styled.input`
   }
 `;
 
+const TemplateSelector = styled.select`
+  padding: ${permissionTheme.spacing.md};
+  background: ${permissionTheme.colors.inputBg};
+  border: 1px solid ${permissionTheme.colors.border};
+  border-radius: ${permissionTheme.borderRadius.md};
+  color: ${permissionTheme.colors.text};
+  font-size: 0.9rem;
+  min-width: 200px;
+
+  &:focus {
+    outline: none;
+    border-color: ${permissionTheme.colors.primary};
+  }
+
+  option {
+    background: ${permissionTheme.colors.surface};
+    color: ${permissionTheme.colors.text};
+  }
+`;
+
+const BulkActionBar = styled(motion.div)`
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: ${permissionTheme.colors.surface};
+  border: 1px solid ${permissionTheme.colors.primary};
+  border-radius: ${permissionTheme.borderRadius.lg};
+  padding: ${permissionTheme.spacing.lg};
+  display: flex;
+  align-items: center;
+  gap: ${permissionTheme.spacing.md};
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  backdrop-filter: blur(20px);
+`;
+
+const BulkActionText = styled.div`
+  color: ${permissionTheme.colors.text};
+  font-weight: 600;
+  margin-right: ${permissionTheme.spacing.md};
+`;
+
+const TrainerCheckbox = styled.input`
+  position: absolute;
+  top: ${permissionTheme.spacing.md};
+  left: ${permissionTheme.spacing.md};
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  z-index: 10;
+`;
+
+const RequestsBadge = styled.div`
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: ${permissionTheme.colors.warning};
+  color: ${permissionTheme.colors.background};
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: ${warningPulse} 2s ease-in-out infinite;
+`;
+
+const RequestsPanel = styled(motion.div)`
+  background: ${permissionTheme.colors.surface};
+  border-radius: ${permissionTheme.borderRadius.lg};
+  border: 1px solid ${permissionTheme.colors.border};
+  margin-bottom: ${permissionTheme.spacing.xl};
+  overflow: hidden;
+`;
+
+const RequestItem = styled(motion.div)`
+  padding: ${permissionTheme.spacing.lg};
+  border-bottom: 1px solid ${permissionTheme.colors.border};
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const RequestInfo = styled.div`
+  flex: 1;
+  
+  h4 {
+    margin: 0 0 ${permissionTheme.spacing.xs} 0;
+    color: ${permissionTheme.colors.text};
+    font-size: 0.95rem;
+  }
+  
+  p {
+    margin: 0;
+    color: ${permissionTheme.colors.textSecondary};
+    font-size: 0.85rem;
+  }
+`;
+
+const RequestActions = styled.div`
+  display: flex;
+  gap: ${permissionTheme.spacing.sm};
+`;
+
+// ==================== PERMISSION TEMPLATES ====================
+
+const PERMISSION_TEMPLATES = {
+  senior_trainer: {
+    name: 'Senior Trainer',
+    description: 'Full access for experienced trainers',
+    permissions: ['edit_workouts', 'view_progress', 'manage_clients', 'access_nutrition', 'modify_schedules', 'view_analytics'],
+    color: '#7c3aed'
+  },
+  new_trainer: {
+    name: 'New Trainer',
+    description: 'Basic permissions for new team members',
+    permissions: ['edit_workouts', 'view_progress'],
+    color: '#10b981'
+  },
+  specialist: {
+    name: 'Nutrition Specialist',
+    description: 'Specialized access for nutrition experts',
+    permissions: ['edit_workouts', 'view_progress', 'access_nutrition'],
+    color: '#f59e0b'
+  },
+  session_manager: {
+    name: 'Session Manager',
+    description: 'Scheduling and session management focus',
+    permissions: ['edit_workouts', 'view_progress', 'modify_schedules', 'view_analytics'],
+    color: '#06b6d4'
+  },
+  limited_access: {
+    name: 'Limited Access',
+    description: 'Minimal permissions for contractors',
+    permissions: ['view_progress'],
+    color: '#8b5cf6'
+  }
+};
+
 // ==================== PERMISSION TYPES ====================
 
 const PERMISSION_TYPES: PermissionType[] = [
@@ -605,6 +767,13 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [processingPermissions, setProcessingPermissions] = useState<Set<string>>(new Set());
+  
+  // New state for enhancements
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [selectedTrainers, setSelectedTrainers] = useState<Set<number>>(new Set());
+  const [permissionRequests, setPermissionRequests] = useState<PermissionRequest[]>([]);
+  const [showRequests, setShowRequests] = useState(false);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   // Load data on mount
   useEffect(() => {
@@ -742,6 +911,190 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
     }
   };
 
+  // ==================== ENHANCEMENT FUNCTIONS ====================
+
+  // Template Application
+  const applyTemplate = async (templateKey: string, trainerIds: number[]) => {
+    if (!templateKey || trainerIds.length === 0) return;
+
+    const template = PERMISSION_TEMPLATES[templateKey as keyof typeof PERMISSION_TEMPLATES];
+    if (!template) return;
+
+    setBulkProcessing(true);
+    try {
+      const operations = [];
+      
+      for (const trainerId of trainerIds) {
+        // First revoke all permissions for clean slate
+        const trainer = trainers.find(t => t.id === trainerId);
+        if (trainer) {
+          for (const existingPermission of trainer.permissions) {
+            if (existingPermission.isActive) {
+              operations.push(
+                trainerPermissionService.revokePermission(existingPermission.id, `Template: ${template.name} applied`)
+              );
+            }
+          }
+        }
+        
+        // Then grant template permissions
+        for (const permissionType of template.permissions) {
+          operations.push(
+            trainerPermissionService.grantPermission({
+              trainerId,
+              permissionType,
+              notes: `Applied template: ${template.name}`
+            })
+          );
+        }
+      }
+
+      await Promise.all(operations);
+      await loadData();
+      onPermissionChange?.();
+      
+      toast.success(`Template "${template.name}" applied to ${trainerIds.length} trainer(s)`);
+      setSelectedTemplate('');
+      setSelectedTrainers(new Set());
+      
+    } catch (error: any) {
+      console.error('Failed to apply template:', error);
+      toast.error('Failed to apply template');
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  // Bulk Operations
+  const performBulkOperation = async (operation: BulkPermissionOperation) => {
+    if (operation.trainerIds.length === 0) return;
+
+    setBulkProcessing(true);
+    try {
+      const operations = [];
+      
+      for (const trainerId of operation.trainerIds) {
+        if (operation.action === 'grant') {
+          operations.push(
+            trainerPermissionService.grantPermission({
+              trainerId,
+              permissionType: operation.permissionType,
+              notes: 'Bulk operation'
+            })
+          );
+        } else {
+          // Find and revoke permission
+          const trainer = trainers.find(t => t.id === trainerId);
+          const permission = trainer?.permissions.find(p => 
+            p.permissionType === operation.permissionType && p.isActive
+          );
+          if (permission) {
+            operations.push(
+              trainerPermissionService.revokePermission(permission.id, 'Bulk operation')
+            );
+          }
+        }
+      }
+
+      await Promise.all(operations);
+      await loadData();
+      onPermissionChange?.();
+      
+      toast.success(`Bulk ${operation.action} completed for ${operation.trainerIds.length} trainer(s)`);
+      setSelectedTrainers(new Set());
+      
+    } catch (error: any) {
+      console.error('Failed to perform bulk operation:', error);
+      toast.error('Failed to perform bulk operation');
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  // Permission Requests (Mock implementation - would need backend)
+  const loadPermissionRequests = async () => {
+    // Mock data - in production this would come from backend
+    const mockRequests: PermissionRequest[] = [
+      {
+        id: '1',
+        trainerId: 2,
+        trainerName: 'Sarah Johnson',
+        permissionType: 'access_nutrition',
+        reason: 'I am completing my nutrition certification and need access to client nutrition data to provide comprehensive guidance.',
+        requestedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'pending'
+      },
+      {
+        id: '2',
+        trainerId: 3,
+        trainerName: 'Mike Wilson',
+        permissionType: 'modify_schedules',
+        reason: 'I would like to help with scheduling coordination for our gym location.',
+        requestedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+        status: 'pending'
+      }
+    ];
+    
+    setPermissionRequests(mockRequests.filter(r => r.status === 'pending'));
+  };
+
+  const handlePermissionRequest = async (requestId: string, action: 'approve' | 'deny') => {
+    const request = permissionRequests.find(r => r.id === requestId);
+    if (!request) return;
+
+    try {
+      if (action === 'approve') {
+        await trainerPermissionService.grantPermission({
+          trainerId: request.trainerId,
+          permissionType: request.permissionType,
+          notes: `Approved request: ${request.reason.substring(0, 100)}...`
+        });
+        toast.success(`Permission request approved for ${request.trainerName}`);
+      } else {
+        toast.success(`Permission request denied for ${request.trainerName}`);
+      }
+
+      // Remove from pending requests
+      setPermissionRequests(prev => prev.filter(r => r.id !== requestId));
+      
+      if (action === 'approve') {
+        await loadData();
+        onPermissionChange?.();
+      }
+      
+    } catch (error: any) {
+      console.error('Failed to handle request:', error);
+      toast.error('Failed to process request');
+    }
+  };
+
+  // Selection handlers
+  const toggleTrainerSelection = (trainerId: number) => {
+    setSelectedTrainers(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(trainerId)) {
+        newSet.delete(trainerId);
+      } else {
+        newSet.add(trainerId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllTrainers = () => {
+    const allTrainerIds = filteredTrainers.map(t => t.id);
+    setSelectedTrainers(new Set(allTrainerIds));
+  };
+
+  const clearAllSelection = () => {
+    setSelectedTrainers(new Set());
+  };
+
+  // Load permission requests on mount
+  useEffect(() => {
+    loadPermissionRequests();
+  }, []);
+
   const filteredTrainers = useMemo(() => {
     return trainers.filter(trainer => {
       const matchesSearch = searchQuery === '' || 
@@ -794,10 +1147,53 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
               <p>Manage granular permissions for trainer access control</p>
             </TitleSection>
             <HeaderActions>
+              <TemplateSelector
+                value={selectedTemplate}
+                onChange={(e) => setSelectedTemplate(e.target.value)}
+                title="Select a permission template to apply to selected trainers"
+              >
+                <option value="">Select Template</option>
+                {Object.entries(PERMISSION_TEMPLATES).map(([key, template]) => (
+                  <option key={key} value={key}>
+                    {template.name} ({template.permissions.length} permissions)
+                  </option>
+                ))}
+              </TemplateSelector>
+              
+              <Button 
+                variant="primary" 
+                onClick={() => {
+                  if (selectedTemplate && selectedTrainers.size > 0) {
+                    applyTemplate(selectedTemplate, Array.from(selectedTrainers));
+                  } else {
+                    toast.warning('Select trainers and a template first');
+                  }
+                }}
+                disabled={!selectedTemplate || selectedTrainers.size === 0 || bulkProcessing}
+              >
+                <Award size={16} />
+                Apply Template
+              </Button>
+              
+              <div style={{ position: 'relative' }}>
+                <Button 
+                  variant={permissionRequests.length > 0 ? "warning" : "secondary"} 
+                  onClick={() => setShowRequests(!showRequests)}
+                  title={`${permissionRequests.length} pending permission requests`}
+                >
+                  <MessageSquare size={16} />
+                  Requests
+                </Button>
+                {permissionRequests.length > 0 && (
+                  <RequestsBadge>{permissionRequests.length}</RequestsBadge>
+                )}
+              </div>
+              
               <Button variant="secondary" onClick={loadData}>
                 <RefreshCw size={16} />
                 Refresh
               </Button>
+              
               <Button variant="primary">
                 <Download size={16} />
                 Export Report
@@ -839,6 +1235,77 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
           )}
         </Header>
 
+        {/* Permission Requests Panel */}
+        <AnimatePresence>
+          {showRequests && permissionRequests.length > 0 && (
+            <RequestsPanel
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div style={{ 
+                padding: permissionTheme.spacing.lg,
+                borderBottom: `1px solid ${permissionTheme.colors.border}`,
+                background: permissionTheme.colors.background
+              }}>
+                <h3 style={{ 
+                  margin: 0, 
+                  color: permissionTheme.colors.text,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: permissionTheme.spacing.sm
+                }}>
+                  <AlertTriangle size={20} color={permissionTheme.colors.warning} />
+                  Pending Permission Requests ({permissionRequests.length})
+                </h3>
+              </div>
+              
+              {permissionRequests.map((request) => {
+                const permissionType = PERMISSION_TYPES.find(p => p.key === request.permissionType);
+                return (
+                  <RequestItem
+                    key={request.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <RequestInfo>
+                      <h4>
+                        {request.trainerName} requests "{permissionType?.label || request.permissionType}"
+                      </h4>
+                      <p>
+                        <strong>Reason:</strong> {request.reason}
+                      </p>
+                      <p style={{ marginTop: permissionTheme.spacing.xs }}>
+                        <Clock size={14} style={{ marginRight: '4px' }} />
+                        Requested {new Date(request.requestedAt).toLocaleDateString()}
+                      </p>
+                    </RequestInfo>
+                    
+                    <RequestActions>
+                      <Button
+                        variant="success"
+                        onClick={() => handlePermissionRequest(request.id, 'approve')}
+                      >
+                        <CheckCircle size={16} />
+                        Approve
+                      </Button>
+                      <Button
+                        variant="danger"
+                        onClick={() => handlePermissionRequest(request.id, 'deny')}
+                      >
+                        <XCircle size={16} />
+                        Deny
+                      </Button>
+                    </RequestActions>
+                  </RequestItem>
+                );
+              })}
+            </RequestsPanel>
+          )}
+        </AnimatePresence>
+
         {!trainerId && (
           <SearchBar>
             <SearchInput
@@ -847,10 +1314,44 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <Button variant="secondary">
-              <Filter size={16} />
-              Filter
-            </Button>
+            
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              {selectedTrainers.size > 0 && (
+                <>
+                  <Button 
+                    variant="secondary" 
+                    onClick={selectAllTrainers}
+                    disabled={selectedTrainers.size === filteredTrainers.length}
+                  >
+                    <Users size={16} />
+                    Select All ({filteredTrainers.length})
+                  </Button>
+                  
+                  <Button 
+                    variant="secondary" 
+                    onClick={clearAllSelection}
+                  >
+                    <X size={16} />
+                    Clear ({selectedTrainers.size})
+                  </Button>
+                </>
+              )}
+              
+              {selectedTrainers.size === 0 && (
+                <Button 
+                  variant="secondary" 
+                  onClick={selectAllTrainers}
+                >
+                  <Users size={16} />
+                  Select All
+                </Button>
+              )}
+              
+              <Button variant="secondary">
+                <Filter size={16} />
+                Filter
+              </Button>
+            </div>
           </SearchBar>
         )}
 
@@ -861,7 +1362,15 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: trainer.id * 0.1 }}
+              style={{ position: 'relative' }}
             >
+              {/* Selection Checkbox */}
+              <TrainerCheckbox
+                type="checkbox"
+                checked={selectedTrainers.has(trainer.id)}
+                onChange={() => toggleTrainerSelection(trainer.id)}
+                title={`Select ${trainer.firstName} ${trainer.lastName} for bulk operations`}
+              />
               <TrainerHeader>
                 <h3>
                   <User size={20} />
@@ -971,6 +1480,76 @@ const TrainerPermissionsManager: React.FC<TrainerPermissionsManagerProps> = ({
             {searchQuery ? 'No trainers match your search' : 'No trainers found'}
           </div>
         )}
+
+        {/* Bulk Action Bar */}
+        <AnimatePresence>
+          {selectedTrainers.size > 0 && (
+            <BulkActionBar
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 50 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            >
+              <BulkActionText>
+                {selectedTrainers.size} trainer{selectedTrainers.size > 1 ? 's' : ''} selected
+              </BulkActionText>
+              
+              <div style={{ display: 'flex', gap: permissionTheme.spacing.sm }}>
+                {/* Quick Permission Actions */}
+                <Button
+                  variant="success"
+                  onClick={() => performBulkOperation({
+                    action: 'grant',
+                    permissionType: 'edit_workouts',
+                    trainerIds: Array.from(selectedTrainers)
+                  })}
+                  disabled={bulkProcessing}
+                  title="Grant Edit Workouts permission to selected trainers"
+                >
+                  <Activity size={16} />
+                  Grant Workouts
+                </Button>
+                
+                <Button
+                  variant="success"
+                  onClick={() => performBulkOperation({
+                    action: 'grant',
+                    permissionType: 'view_progress',
+                    trainerIds: Array.from(selectedTrainers)
+                  })}
+                  disabled={bulkProcessing}
+                  title="Grant View Progress permission to selected trainers"
+                >
+                  <BarChart3 size={16} />
+                  Grant Progress
+                </Button>
+                
+                <Button
+                  variant="warning"
+                  onClick={() => performBulkOperation({
+                    action: 'revoke',
+                    permissionType: 'access_nutrition',
+                    trainerIds: Array.from(selectedTrainers)
+                  })}
+                  disabled={bulkProcessing}
+                  title="Revoke Nutrition Access from selected trainers"
+                >
+                  <Target size={16} />
+                  Revoke Nutrition
+                </Button>
+                
+                <Button
+                  variant="secondary"
+                  onClick={clearAllSelection}
+                  disabled={bulkProcessing}
+                >
+                  <X size={16} />
+                  Cancel
+                </Button>
+              </div>
+            </BulkActionBar>
+          )}
+        </AnimatePresence>
       </PermissionsContainer>
     </ThemeProvider>
   );

@@ -23,6 +23,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import {
   UserCheck, Dumbbell, Calendar, DollarSign, Users, Star,
@@ -415,6 +416,7 @@ interface TrainerStats {
 
 // === MAIN COMPONENT ===
 const TrainersManagementSection: React.FC = () => {
+  const navigate = useNavigate();
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [stats, setStats] = useState<TrainerStats>({
     totalTrainers: 0,
@@ -647,6 +649,10 @@ const TrainersManagementSection: React.FC = () => {
     }
   };
 
+  const handleManagePermissions = () => {
+    navigate('/dashboard/trainers/permissions');
+  };
+
   const getUserInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
@@ -763,6 +769,26 @@ const TrainersManagementSection: React.FC = () => {
         </SearchContainer>
         
         <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <CommandButton
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleManagePermissions}
+            title="Manage trainer permissions and access control"
+          >
+            <Shield size={16} />
+            Manage Permissions
+          </CommandButton>
+          
+          <CommandButton
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => navigate('/dashboard/client-trainer-assignments')}
+            title="Manage client-trainer assignments with drag-and-drop interface"
+          >
+            <Users size={16} />
+            Manage Assignments
+          </CommandButton>
+          
           <CommandButton
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
