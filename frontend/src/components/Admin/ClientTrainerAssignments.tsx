@@ -6,7 +6,7 @@
  * Enables seamless client-trainer relationship management with visual assignment board.
  * 
  * Core Features:
- * - Intuitive drag-and-drop assignment interface
+ * - Intuitive drag-and-drop assignment interface using Framer Motion
  * - Real-time assignment status tracking
  * - Comprehensive assignment statistics and analytics
  * - Mobile-responsive design with touch optimization
@@ -19,8 +19,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import styled, { ThemeProvider, keyframes } from 'styled-components';
 import { 
   Users, UserCheck, UserPlus, UserMinus, Search, Filter, 
@@ -31,10 +30,6 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../../context/AuthContext';
-import { 
-  clientTrainerAssignmentService, 
-  ClientTrainerAssignment 
-} from '../../services/nasmApiService';
 
 // ==================== INTERFACES ====================
 
@@ -48,8 +43,9 @@ interface Client {
   lastName: string;
   email: string;
   availableSessions: number;
-  createdAt: string;
-  assignedTrainer?: Trainer;
+  profilePicture?: string;
+  lastActivity?: string;
+  status: 'active' | 'inactive' | 'pending';
 }
 
 interface Trainer {
@@ -57,598 +53,840 @@ interface Trainer {
   firstName: string;
   lastName: string;
   email: string;
-  role: string;
-  assignedClients: Client[];
+  specialization: string;
+  maxClients: number;
+  currentClients: number;
+  profilePicture?: string;
+  rating: number;
+  isAvailable: boolean;
+}
+
+interface Assignment {
+  id: number;
+  clientId: number;
+  trainerId: number;
+  startDate: string;
+  status: 'active' | 'inactive' | 'pending';
+  sessionsUsed: number;
+  totalSessions: number;
+  lastSession?: string;
+  notes?: string;
 }
 
 interface AssignmentStats {
   totalAssignments: number;
   activeAssignments: number;
-  totalTrainers: number;
-  totalClients: number;
+  pendingAssignments: number;
   unassignedClients: number;
-  assignmentRate: string;
-  averageClientsPerTrainer: string;
-  trainerWorkload: Array<{
-    trainerId: number;
-    trainerName: string;
-    activeClients: number;
-  }>;
+  trainerUtilization: number;
+  averageSessionsPerClient: number;
 }
 
-// ==================== STYLED COMPONENTS ====================
-
-const stellarGlow = keyframes`
-  0% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.3); }
-  50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.6), 0 0 30px rgba(59, 130, 246, 0.4); }
-  100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.3); }
-`;
+// ==================== THEME ====================
 
 const assignmentTheme = {
   colors: {
     primary: '#3b82f6',
-    secondary: '#1e40af',
-    accent: '#06b6d4',
+    primaryHover: '#2563eb',
+    secondary: '#64748b',
     success: '#10b981',
     warning: '#f59e0b',
-    error: '#ef4444',
-    background: '#0f172a',
-    surface: '#1e293b',
-    cardBg: '#334155',
-    text: '#f8fafc',
-    textSecondary: '#cbd5e1',
-    border: '#475569',
-    inputBg: '#475569',
-    dragOver: '#3b82f640',
-    unassigned: '#64748b',
-    assigned: '#10b981'
+    danger: '#ef4444',
+    background: '#f8fafc',
+    surface: '#ffffff',
+    text: '#1e293b',
+    textSecondary: '#64748b',
+    border: '#e2e8f0',
+    shadow: 'rgba(0, 0, 0, 0.1)',
+    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    stellarBlue: '#0ea5e9',
+    cosmicPurple: '#8b5cf6',
+    energyGreen: '#10b981'
   },
-  spacing: {
-    xs: '0.25rem',
-    sm: '0.5rem',
-    md: '1rem',
-    lg: '1.5rem',
-    xl: '2rem',
-    xxl: '3rem'
+  shadows: {
+    sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+    md: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+    xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+    glow: '0 0 20px rgba(59, 130, 246, 0.3)'
   },
-  borderRadius: {
-    sm: '0.375rem',
-    md: '0.5rem',
-    lg: '0.75rem',
-    xl: '1rem'
+  animation: {
+    spring: { type: "spring", damping: 20, stiffness: 300 },
+    smooth: { duration: 0.3, ease: "easeInOut" }
   }
 };
 
+// ==================== STYLED COMPONENTS ====================
+
 const AssignmentContainer = styled(motion.div)`
+  padding: 2rem;
   min-height: 100vh;
-  background: linear-gradient(135deg, ${assignmentTheme.colors.background} 0%, #1a202c 100%);
-  padding: ${assignmentTheme.spacing.lg};
-  color: ${assignmentTheme.colors.text};
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-
-  @media (max-width: 768px) {
-    padding: ${assignmentTheme.spacing.md};
-  }
 `;
 
-const Header = styled.div`
-  background: ${assignmentTheme.colors.surface};
-  border-radius: ${assignmentTheme.borderRadius.lg};
-  padding: ${assignmentTheme.spacing.xl};
-  margin-bottom: ${assignmentTheme.spacing.xl};
-  border: 1px solid ${assignmentTheme.colors.border};
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, ${assignmentTheme.colors.primary}, ${assignmentTheme.colors.accent});
-  }
-`;
-
-const HeaderTop = styled.div`
+const Header = styled(motion.div)`
   display: flex;
-  justify-content: between;
-  align-items: flex-start;
-  gap: ${assignmentTheme.spacing.lg};
-  margin-bottom: ${assignmentTheme.spacing.lg};
-
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 16px;
+  box-shadow: ${props => props.theme.shadows.md};
+  border: 1px solid ${props => props.theme.colors.border};
+  
   @media (max-width: 768px) {
     flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
   }
 `;
 
-const TitleSection = styled.div`
-  flex: 1;
-  
+const HeaderTitle = styled.div`
   h1 {
-    margin: 0 0 ${assignmentTheme.spacing.sm} 0;
-    font-size: 1.75rem;
+    font-size: 1.875rem;
     font-weight: 700;
-    color: ${assignmentTheme.colors.text};
-    display: flex;
-    align-items: center;
-    gap: ${assignmentTheme.spacing.sm};
+    color: ${props => props.theme.colors.text};
+    margin: 0 0 0.5rem 0;
+    background: ${props => props.theme.colors.gradient};
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
-
+  
   p {
+    color: ${props => props.theme.colors.textSecondary};
     margin: 0;
-    color: ${assignmentTheme.colors.textSecondary};
     font-size: 1rem;
   }
 `;
 
 const HeaderActions = styled.div`
   display: flex;
-  gap: ${assignmentTheme.spacing.md};
-  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  
+  @media (max-width: 768px) {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 `;
 
-const Button = styled(motion.button)<{ variant: 'primary' | 'secondary' | 'success' | 'warning' | 'danger' }>`
-  padding: ${assignmentTheme.spacing.sm} ${assignmentTheme.spacing.lg};
-  border-radius: ${assignmentTheme.borderRadius.md};
+const ActionButton = styled(motion.button)<{ $variant?: 'primary' | 'secondary' | 'danger' }>`
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  border: 2px solid ${props => {
+    switch (props.$variant) {
+      case 'primary': return props.theme.colors.primary;
+      case 'danger': return props.theme.colors.danger;
+      default: return props.theme.colors.border;
+    }
+  }};
+  background: ${props => {
+    switch (props.$variant) {
+      case 'primary': return props.theme.colors.primary;
+      case 'danger': return props.theme.colors.danger;
+      default: return 'white';
+    }
+  }};
+  color: ${props => props.$variant === 'primary' || props.$variant === 'danger' ? 'white' : props.theme.colors.text};
   font-weight: 600;
-  font-size: 0.9rem;
   cursor: pointer;
-  border: none;
   display: flex;
   align-items: center;
-  gap: ${assignmentTheme.spacing.sm};
+  gap: 0.5rem;
   transition: all 0.3s ease;
-  min-width: 120px;
-  justify-content: center;
-
-  background: ${props => 
-    props.variant === 'primary' ? assignmentTheme.colors.primary :
-    props.variant === 'success' ? assignmentTheme.colors.success :
-    props.variant === 'warning' ? assignmentTheme.colors.warning :
-    props.variant === 'danger' ? assignmentTheme.colors.error :
-    assignmentTheme.colors.cardBg
-  };
+  white-space: nowrap;
   
-  color: ${assignmentTheme.colors.text};
-
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px ${props => 
-      props.variant === 'primary' ? `${assignmentTheme.colors.primary}40` :
-      props.variant === 'success' ? `${assignmentTheme.colors.success}40` :
-      props.variant === 'warning' ? `${assignmentTheme.colors.warning}40` :
-      props.variant === 'danger' ? `${assignmentTheme.colors.error}40` :
-      `${assignmentTheme.colors.cardBg}40`
-    };
+    box-shadow: ${props => props.theme.shadows.lg};
   }
-
+  
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
-    box-shadow: none;
   }
 `;
 
 const StatsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: ${assignmentTheme.spacing.lg};
-  margin-bottom: ${assignmentTheme.spacing.xl};
+  gap: 1.5rem;
+  margin-bottom: 2rem;
 `;
 
-const StatCard = styled(motion.div)<{ type: 'primary' | 'success' | 'warning' | 'info' }>`
-  background: ${assignmentTheme.colors.cardBg};
-  border-radius: ${assignmentTheme.borderRadius.lg};
-  padding: ${assignmentTheme.spacing.lg};
-  border: 1px solid ${assignmentTheme.colors.border};
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: ${props => 
-      props.type === 'primary' ? assignmentTheme.colors.primary :
-      props.type === 'success' ? assignmentTheme.colors.success :
-      props.type === 'warning' ? assignmentTheme.colors.warning :
-      assignmentTheme.colors.accent
-    };
+const StatCard = styled(motion.div)`
+  background: white;
+  padding: 1.5rem;
+  border-radius: 16px;
+  box-shadow: ${props => props.theme.shadows.md};
+  border: 1px solid ${props => props.theme.colors.border};
+  text-align: center;
+  
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: ${props => props.theme.colors.primary};
+    margin-bottom: 0.5rem;
   }
-
-  &:hover {
-    border-color: ${props => 
-      props.type === 'primary' ? assignmentTheme.colors.primary :
-      props.type === 'success' ? assignmentTheme.colors.success :
-      props.type === 'warning' ? assignmentTheme.colors.warning :
-      assignmentTheme.colors.accent
-    };
-    animation: ${stellarGlow} 2s ease-in-out infinite;
+  
+  .stat-label {
+    color: ${props => props.theme.colors.textSecondary};
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
-`;
-
-const StatValue = styled.div`
-  font-size: 2rem;
-  font-weight: 700;
-  color: ${assignmentTheme.colors.text};
-  margin-bottom: ${assignmentTheme.spacing.xs};
-`;
-
-const StatLabel = styled.div`
-  font-size: 0.9rem;
-  color: ${assignmentTheme.colors.textSecondary};
-  display: flex;
-  align-items: center;
-  gap: ${assignmentTheme.spacing.xs};
+  
+  .stat-change {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    
+    &.positive {
+      color: ${props => props.theme.colors.success};
+    }
+    
+    &.negative {
+      color: ${props => props.theme.colors.danger};
+    }
+  }
 `;
 
 const AssignmentBoard = styled.div`
   display: grid;
   grid-template-columns: 300px 1fr;
-  gap: ${assignmentTheme.spacing.xl};
+  gap: 2rem;
   min-height: 600px;
-
+  
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
-    gap: ${assignmentTheme.spacing.lg};
+    gap: 1rem;
   }
 `;
 
-const UnassignedColumn = styled.div`
-  background: ${assignmentTheme.colors.surface};
-  border-radius: ${assignmentTheme.borderRadius.lg};
-  border: 1px solid ${assignmentTheme.colors.border};
+const ClientsPanel = styled(motion.div)`
+  background: white;
+  border-radius: 16px;
+  box-shadow: ${props => props.theme.shadows.md};
+  border: 1px solid ${props => props.theme.colors.border};
   overflow: hidden;
+  
+  .panel-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid ${props => props.theme.colors.border};
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(255, 255, 255, 1) 100%);
+    
+    h3 {
+      margin: 0 0 1rem 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: ${props => props.theme.colors.text};
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+  }
+  
+  .search-box {
+    position: relative;
+    
+    input {
+      width: 100%;
+      padding: 0.75rem 1rem 0.75rem 2.5rem;
+      border: 1px solid ${props => props.theme.colors.border};
+      border-radius: 8px;
+      font-size: 0.875rem;
+      
+      &:focus {
+        outline: none;
+        border-color: ${props => props.theme.colors.primary};
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+    }
+    
+    .search-icon {
+      position: absolute;
+      left: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: ${props => props.theme.colors.textSecondary};
+    }
+  }
+  
+  .clients-list {
+    max-height: 500px;
+    overflow-y: auto;
+  }
 `;
 
-const ColumnHeader = styled.div`
-  padding: ${assignmentTheme.spacing.lg};
-  background: ${assignmentTheme.colors.background};
-  border-bottom: 1px solid ${assignmentTheme.colors.border};
+const ClientCard = styled(motion.div)<{ $isDragging?: boolean }>`
+  padding: 1rem;
+  margin: 0.5rem;
+  background: ${props => props.$isDragging ? 'rgba(59, 130, 246, 0.1)' : 'white'};
+  border: 2px solid ${props => props.$isDragging ? props.theme.colors.primary : 'transparent'};
+  border-radius: 12px;
+  cursor: grab;
+  transition: all 0.3s ease;
+  box-shadow: ${props => props.$isDragging ? props.theme.shadows.glow : props.theme.shadows.sm};
   
-  h3 {
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: ${assignmentTheme.colors.text};
+  &:hover {
+    background: rgba(59, 130, 246, 0.05);
+    border-color: ${props => props.theme.colors.primary};
+    transform: translateY(-2px);
+    box-shadow: ${props => props.theme.shadows.md};
+  }
+  
+  &:active {
+    cursor: grabbing;
+  }
+  
+  .client-info {
     display: flex;
     align-items: center;
-    gap: ${assignmentTheme.spacing.sm};
+    gap: 0.75rem;
+    
+    .client-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: ${props => props.theme.colors.gradient};
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      font-size: 0.875rem;
+    }
+    
+    .client-details {
+      flex: 1;
+      
+      .client-name {
+        font-weight: 600;
+        color: ${props => props.theme.colors.text};
+        margin-bottom: 0.25rem;
+      }
+      
+      .client-meta {
+        font-size: 0.75rem;
+        color: ${props => props.theme.colors.textSecondary};
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+    }
   }
-`;
-
-const ClientCount = styled.span`
-  font-size: 0.85rem;
-  color: ${assignmentTheme.colors.textSecondary};
-  font-weight: normal;
+  
+  .session-badge {
+    background: ${props => props.theme.colors.primary};
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    margin-top: 0.5rem;
+  }
 `;
 
 const TrainersGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: ${assignmentTheme.spacing.lg};
-
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
 `;
 
-const TrainerColumn = styled.div`
-  background: ${assignmentTheme.colors.surface};
-  border-radius: ${assignmentTheme.borderRadius.lg};
-  border: 1px solid ${assignmentTheme.colors.border};
+const TrainerColumn = styled(motion.div)<{ $isOver?: boolean }>`
+  background: white;
+  border-radius: 16px;
+  box-shadow: ${props => props.theme.shadows.md};
+  border: 2px solid ${props => props.$isOver ? props.theme.colors.primary : 'transparent'};
   overflow: hidden;
   min-height: 400px;
-`;
-
-const ClientList = styled.div<{ isDraggingOver?: boolean }>`
-  padding: ${assignmentTheme.spacing.md};
-  min-height: 300px;
-  background: ${props => props.isDraggingOver ? assignmentTheme.colors.dragOver : 'transparent'};
-  transition: background 0.3s ease;
-`;
-
-const ClientCard = styled(motion.div)<{ assigned?: boolean; isDragging?: boolean }>`
-  background: ${props => props.assigned ? assignmentTheme.colors.success : assignmentTheme.colors.unassigned}20;
-  border: 1px solid ${props => props.assigned ? assignmentTheme.colors.success : assignmentTheme.colors.unassigned};
-  border-radius: ${assignmentTheme.borderRadius.md};
-  padding: ${assignmentTheme.spacing.md};
-  margin-bottom: ${assignmentTheme.spacing.sm};
-  cursor: grab;
   transition: all 0.3s ease;
-  position: relative;
   
-  opacity: ${props => props.isDragging ? 0.5 : 1};
-  transform: ${props => props.isDragging ? 'rotate(5deg)' : 'rotate(0deg)'};
+  .trainer-header {
+    padding: 1.5rem;
+    background: ${props => props.$isOver ? 'rgba(59, 130, 246, 0.1)' : 'linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(255, 255, 255, 1) 100%)'};
+    border-bottom: 1px solid ${props => props.theme.colors.border};
+    
+    .trainer-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      
+      .trainer-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: ${props => props.theme.colors.gradient};
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 1rem;
+      }
+      
+      .trainer-details {
+        flex: 1;
+        
+        .trainer-name {
+          font-weight: 600;
+          color: ${props => props.theme.colors.text};
+          margin-bottom: 0.25rem;
+        }
+        
+        .trainer-specialization {
+          font-size: 0.875rem;
+          color: ${props => props.theme.colors.textSecondary};
+        }
+      }
+    }
+    
+    .trainer-stats {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      
+      .capacity {
+        font-size: 0.875rem;
+        color: ${props => props.theme.colors.textSecondary};
+      }
+      
+      .rating {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.875rem;
+        color: ${props => props.theme.colors.warning};
+      }
+    }
+  }
+  
+  .assigned-clients {
+    padding: 1rem;
+    min-height: 300px;
+    
+    .no-clients {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 200px;
+      color: ${props => props.theme.colors.textSecondary};
+      text-align: center;
+      
+      .icon {
+        margin-bottom: 1rem;
+        opacity: 0.5;
+      }
+    }
+  }
+`;
 
+const AssignedClientCard = styled(motion.div)`
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 12px;
+  
+  .assignment-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    .client-name {
+      font-weight: 600;
+      color: ${props => props.theme.colors.text};
+    }
+    
+    .assignment-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+  }
+  
+  .assignment-meta {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: ${props => props.theme.colors.textSecondary};
+    display: flex;
+    justify-content: space-between;
+  }
+`;
+
+const ActionIcon = styled(motion.button)<{ $variant?: 'edit' | 'delete' | 'info' }>`
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  background: ${props => {
+    switch (props.$variant) {
+      case 'edit': return 'rgba(59, 130, 246, 0.1)';
+      case 'delete': return 'rgba(239, 68, 68, 0.1)';
+      case 'info': return 'rgba(16, 185, 129, 0.1)';
+      default: return 'rgba(107, 114, 128, 0.1)';
+    }
+  }};
+  color: ${props => {
+    switch (props.$variant) {
+      case 'edit': return '#3b82f6';
+      case 'delete': return '#ef4444';
+      case 'info': return '#10b981';
+      default: return '#6b7280';
+    }
+  }};
+  
   &:hover {
-    transform: translateY(-2px) ${props => props.isDragging ? 'rotate(5deg)' : 'rotate(0deg)'};
-    box-shadow: 0 4px 12px ${props => props.assigned ? `${assignmentTheme.colors.success}40` : `${assignmentTheme.colors.unassigned}40`};
-  }
-
-  &:active {
-    cursor: grabbing;
-  }
-
-  &:last-child {
-    margin-bottom: 0;
-  }
-`;
-
-const ClientName = styled.div`
-  font-weight: 600;
-  color: ${assignmentTheme.colors.text};
-  margin-bottom: ${assignmentTheme.spacing.xs};
-  font-size: 0.95rem;
-`;
-
-const ClientEmail = styled.div`
-  font-size: 0.8rem;
-  color: ${assignmentTheme.colors.textSecondary};
-  margin-bottom: ${assignmentTheme.spacing.xs};
-`;
-
-const ClientMeta = styled.div`
-  display: flex;
-  justify-content: between;
-  align-items: center;
-  gap: ${assignmentTheme.spacing.sm};
-  font-size: 0.8rem;
-`;
-
-const SessionBadge = styled.div<{ type: 'good' | 'low' | 'none' }>`
-  padding: ${assignmentTheme.spacing.xs} ${assignmentTheme.spacing.sm};
-  border-radius: ${assignmentTheme.borderRadius.sm};
-  font-weight: 500;
-  
-  background: ${props => 
-    props.type === 'good' ? `${assignmentTheme.colors.success}20` :
-    props.type === 'low' ? `${assignmentTheme.colors.warning}20` :
-    `${assignmentTheme.colors.error}20`
-  };
-  
-  color: ${props => 
-    props.type === 'good' ? assignmentTheme.colors.success :
-    props.type === 'low' ? assignmentTheme.colors.warning :
-    assignmentTheme.colors.error
-  };
-  
-  border: 1px solid ${props => 
-    props.type === 'good' ? assignmentTheme.colors.success :
-    props.type === 'low' ? assignmentTheme.colors.warning :
-    assignmentTheme.colors.error
-  };
-`;
-
-const LoadingSpinner = styled.div`
-  display: inline-block;
-  width: 20px;
-  height: 20px;
-  border: 2px solid ${assignmentTheme.colors.border};
-  border-radius: 50%;
-  border-top-color: ${assignmentTheme.colors.text};
-  animation: spin 1s ease-in-out infinite;
-
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-`;
-
-const SearchAndFilterBar = styled.div`
-  display: flex;
-  gap: ${assignmentTheme.spacing.md};
-  margin-bottom: ${assignmentTheme.spacing.xl};
-  align-items: center;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
-`;
-
-const SearchInput = styled.input`
-  flex: 1;
-  padding: ${assignmentTheme.spacing.md};
-  background: ${assignmentTheme.colors.inputBg};
-  border: 1px solid ${assignmentTheme.colors.border};
-  border-radius: ${assignmentTheme.borderRadius.md};
-  color: ${assignmentTheme.colors.text};
-  font-size: 0.9rem;
-
-  &:focus {
-    outline: none;
-    border-color: ${assignmentTheme.colors.primary};
-  }
-
-  &::placeholder {
-    color: ${assignmentTheme.colors.textSecondary};
+    transform: scale(1.1);
   }
 `;
 
 // ==================== MAIN COMPONENT ====================
 
-const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onAssignmentChange }) => {
+const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ 
+  onAssignmentChange 
+}) => {
+  // ==================== STATE ====================
   const { user } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [trainers, setTrainers] = useState<Trainer[]>([]);
-  const [unassignedClients, setUnassignedClients] = useState<Client[]>([]);
-  const [assignments, setAssignments] = useState<ClientTrainerAssignment[]>([]);
-  const [stats, setStats] = useState<AssignmentStats | null>(null);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [stats, setStats] = useState<AssignmentStats>({
+    totalAssignments: 0,
+    activeAssignments: 0,
+    pendingAssignments: 0,
+    unassignedClients: 0,
+    trainerUtilization: 0,
+    averageSessionsPerClient: 0
+  });
+  
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [draggedClient, setDraggedClient] = useState<Client | null>(null);
+  const [dropTarget, setDropTarget] = useState<number | null>(null);
 
-  // Load data on mount
+  // ==================== EFFECTS ====================
   useEffect(() => {
     loadData();
   }, []);
 
+  useEffect(() => {
+    calculateStats();
+  }, [clients, trainers, assignments]);
+
+  // ==================== DATA LOADING ====================
   const loadData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      
-      const [assignmentsResponse, unassignedResponse, statsResponse] = await Promise.all([
-        clientTrainerAssignmentService.getAssignments({ includeInactive: false }),
-        clientTrainerAssignmentService.getUnassignedClients(),
-        clientTrainerAssignmentService.getAssignmentStats()
+      await Promise.all([
+        loadClients(),
+        loadTrainers(),
+        loadAssignments()
       ]);
-
-      if (assignmentsResponse.success && assignmentsResponse.data) {
-        setAssignments(assignmentsResponse.data);
-        processAssignmentData(assignmentsResponse.data);
-      }
-
-      if (unassignedResponse.success && unassignedResponse.data) {
-        setUnassignedClients(unassignedResponse.data);
-      }
-
-      if (statsResponse.success && statsResponse.data) {
-        setStats(statsResponse.data);
-      }
-
-    } catch (error) {
-      console.error('Failed to load assignment data:', error);
+    } catch (err) {
+      console.error('Error loading assignment data:', err);
+      setError('Failed to load assignment data');
       toast.error('Failed to load assignment data');
     } finally {
       setLoading(false);
     }
   };
 
-  const processAssignmentData = useCallback((assignmentData: ClientTrainerAssignment[]) => {
-    // Group assignments by trainer
-    const trainerMap = new Map<number, Trainer>();
-    const clientMap = new Map<number, Client>();
-
-    assignmentData.forEach(assignment => {
-      if (assignment.trainer && assignment.client) {
-        // Add trainer
-        if (!trainerMap.has(assignment.trainerId)) {
-          trainerMap.set(assignment.trainerId, {
-            id: assignment.trainer.id,
-            firstName: assignment.trainer.firstName,
-            lastName: assignment.trainer.lastName,
-            email: assignment.trainer.email,
-            role: 'trainer',
-            assignedClients: []
-          });
-        }
-
-        // Add client to trainer
-        const trainer = trainerMap.get(assignment.trainerId)!;
-        const client: Client = {
-          id: assignment.client.id,
-          firstName: assignment.client.firstName,
-          lastName: assignment.client.lastName,
-          email: assignment.client.email,
-          availableSessions: assignment.client.availableSessions || 0,
-          createdAt: assignment.createdAt
-        };
-
-        trainer.assignedClients.push(client);
-        clientMap.set(client.id, client);
+  const loadClients = async () => {
+    // Mock data for clients
+    const mockClients: Client[] = [
+      {
+        id: 1,
+        firstName: 'Sarah',
+        lastName: 'Johnson',
+        email: 'sarah.johnson@email.com',
+        availableSessions: 12,
+        status: 'active',
+        lastActivity: '2 days ago'
+      },
+      {
+        id: 2,
+        firstName: 'Mike',
+        lastName: 'Chen',
+        email: 'mike.chen@email.com',
+        availableSessions: 8,
+        status: 'active',
+        lastActivity: '1 day ago'
+      },
+      {
+        id: 3,
+        firstName: 'Emily',
+        lastName: 'Rodriguez',
+        email: 'emily.rodriguez@email.com',
+        availableSessions: 15,
+        status: 'pending',
+        lastActivity: '5 days ago'
+      },
+      {
+        id: 4,
+        firstName: 'David',
+        lastName: 'Wilson',
+        email: 'david.wilson@email.com',
+        availableSessions: 6,
+        status: 'active',
+        lastActivity: '3 hours ago'
       }
-    });
-
-    setTrainers(Array.from(trainerMap.values()));
-    setClients(Array.from(clientMap.values()));
-  }, []);
-
-  const handleDragEnd = async (result: DropResult) => {
-    setIsDragging(false);
+    ];
     
-    if (!result.destination) return;
+    setClients(mockClients);
+  };
 
-    const { source, destination, draggableId } = result;
-    const clientId = parseInt(draggableId);
-
-    if (source.droppableId === destination.droppableId) return;
-
-    try {
-      // Handle assignment logic
-      if (destination.droppableId.startsWith('trainer-')) {
-        const trainerId = parseInt(destination.droppableId.replace('trainer-', ''));
-        await assignClientToTrainer(clientId, trainerId);
-      } else if (destination.droppableId === 'unassigned') {
-        await unassignClient(clientId);
+  const loadTrainers = async () => {
+    // Mock data for trainers
+    const mockTrainers: Trainer[] = [
+      {
+        id: 1,
+        firstName: 'Alex',
+        lastName: 'Thompson',
+        email: 'alex.thompson@sswanstudios.com',
+        specialization: 'Strength & Conditioning',
+        maxClients: 15,
+        currentClients: 8,
+        rating: 4.9,
+        isAvailable: true
+      },
+      {
+        id: 2,
+        firstName: 'Jessica',
+        lastName: 'Martinez',
+        email: 'jessica.martinez@sswanstudios.com',
+        specialization: 'NASM Corrective Exercise',
+        maxClients: 12,
+        currentClients: 10,
+        rating: 4.8,
+        isAvailable: true
+      },
+      {
+        id: 3,
+        firstName: 'Ryan',
+        lastName: 'Davis',
+        email: 'ryan.davis@sswanstudios.com',
+        specialization: 'Athletic Performance',
+        maxClients: 10,
+        currentClients: 7,
+        rating: 4.7,
+        isAvailable: true
       }
+    ];
+    
+    setTrainers(mockTrainers);
+  };
 
-      // Reload data to reflect changes
-      await loadData();
-      onAssignmentChange?.();
+  const loadAssignments = async () => {
+    // Mock data for assignments
+    const mockAssignments: Assignment[] = [
+      {
+        id: 1,
+        clientId: 1,
+        trainerId: 1,
+        startDate: '2024-01-15',
+        status: 'active',
+        sessionsUsed: 4,
+        totalSessions: 12,
+        lastSession: '2024-01-28'
+      },
+      {
+        id: 2,
+        clientId: 2,
+        trainerId: 2,
+        startDate: '2024-01-20',
+        status: 'active',
+        sessionsUsed: 2,
+        totalSessions: 8,
+        lastSession: '2024-01-29'
+      }
+    ];
+    
+    setAssignments(mockAssignments);
+  };
+
+  // ==================== CALCULATIONS ====================
+  const calculateStats = () => {
+    const unassignedClients = clients.filter(client => 
+      !assignments.some(assignment => assignment.clientId === client.id)
+    );
+    
+    const activeAssignments = assignments.filter(assignment => assignment.status === 'active');
+    const pendingAssignments = assignments.filter(assignment => assignment.status === 'pending');
+    
+    const totalCapacity = trainers.reduce((sum, trainer) => sum + trainer.maxClients, 0);
+    const utilization = totalCapacity > 0 ? (assignments.length / totalCapacity) * 100 : 0;
+    
+    const avgSessions = assignments.length > 0 
+      ? assignments.reduce((sum, assignment) => sum + assignment.totalSessions, 0) / assignments.length 
+      : 0;
+
+    setStats({
+      totalAssignments: assignments.length,
+      activeAssignments: activeAssignments.length,
+      pendingAssignments: pendingAssignments.length,
+      unassignedClients: unassignedClients.length,
+      trainerUtilization: Math.round(utilization),
+      averageSessionsPerClient: Math.round(avgSessions * 10) / 10
+    });
+  };
+
+  // ==================== DRAG AND DROP ====================
+  const handleDragStart = (client: Client) => {
+    setDraggedClient(client);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedClient(null);
+    setDropTarget(null);
+  };
+
+  const handleDrop = async (trainerId: number) => {
+    if (!draggedClient) return;
+    
+    try {
+      // Check if trainer has capacity
+      const trainer = trainers.find(t => t.id === trainerId);
+      if (!trainer || trainer.currentClients >= trainer.maxClients) {
+        toast.error('Trainer has reached maximum capacity');
+        return;
+      }
+      
+      // Check if client is already assigned to this trainer
+      const existingAssignment = assignments.find(a => 
+        a.clientId === draggedClient.id && a.trainerId === trainerId
+      );
+      
+      if (existingAssignment) {
+        toast.warning('Client is already assigned to this trainer');
+        return;
+      }
+      
+      // Create new assignment
+      const newAssignment: Assignment = {
+        id: Date.now(), // In real app, this would come from backend
+        clientId: draggedClient.id,
+        trainerId: trainerId,
+        startDate: new Date().toISOString().split('T')[0],
+        status: 'active',
+        sessionsUsed: 0,
+        totalSessions: draggedClient.availableSessions,
+        notes: `Assigned via drag-and-drop on ${new Date().toLocaleDateString()}`
+      };
+      
+      setAssignments(prev => [...prev, newAssignment]);
+      
+      // Update trainer's current client count
+      setTrainers(prev => prev.map(trainer => 
+        trainer.id === trainerId 
+          ? { ...trainer, currentClients: trainer.currentClients + 1 }
+          : trainer
+      ));
+      
+      toast.success(`${draggedClient.firstName} ${draggedClient.lastName} assigned to ${trainer.firstName} ${trainer.lastName}`);
+      
+      if (onAssignmentChange) {
+        onAssignmentChange();
+      }
       
     } catch (error) {
-      console.error('Assignment operation failed:', error);
-      toast.error('Failed to update assignment');
+      console.error('Error creating assignment:', error);
+      toast.error('Failed to create assignment');
     }
+    
+    handleDragEnd();
   };
 
-  const assignClientToTrainer = async (clientId: number, trainerId: number) => {
+  // ==================== FILTERING ====================
+  const filteredClients = useMemo(() => {
+    const unassigned = clients.filter(client => 
+      !assignments.some(assignment => assignment.clientId === client.id)
+    );
+    
+    if (!searchTerm) return unassigned;
+    
+    return unassigned.filter(client => 
+      `${client.firstName} ${client.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.email.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [clients, assignments, searchTerm]);
+
+  const getAssignedClients = (trainerId: number) => {
+    const trainerAssignments = assignments.filter(assignment => assignment.trainerId === trainerId);
+    return trainerAssignments.map(assignment => {
+      const client = clients.find(c => c.id === assignment.clientId);
+      return { assignment, client };
+    }).filter(item => item.client);
+  };
+
+  // ==================== ACTIONS ====================
+  const handleRemoveAssignment = async (assignmentId: number) => {
     try {
-      const response = await clientTrainerAssignmentService.createAssignment({
-        clientId,
-        trainerId
-      });
-
-      if (response.success) {
-        toast.success('Client assigned successfully');
-      } else {
-        throw new Error(response.message || 'Failed to assign client');
+      const assignment = assignments.find(a => a.id === assignmentId);
+      if (!assignment) return;
+      
+      setAssignments(prev => prev.filter(a => a.id !== assignmentId));
+      
+      // Update trainer's current client count
+      setTrainers(prev => prev.map(trainer => 
+        trainer.id === assignment.trainerId 
+          ? { ...trainer, currentClients: Math.max(0, trainer.currentClients - 1) }
+          : trainer
+      ));
+      
+      toast.success('Assignment removed successfully');
+      
+      if (onAssignmentChange) {
+        onAssignmentChange();
       }
-    } catch (error: any) {
-      console.error('Assignment failed:', error);
-      throw error;
+      
+    } catch (error) {
+      console.error('Error removing assignment:', error);
+      toast.error('Failed to remove assignment');
     }
   };
 
-  const unassignClient = async (clientId: number) => {
-    try {
-      // Find the current assignment
-      const currentAssignment = assignments.find(a => a.clientId === clientId && a.status === 'active');
-      
-      if (currentAssignment) {
-        const response = await clientTrainerAssignmentService.updateAssignment(currentAssignment.id, {
-          status: 'inactive'
-        });
-
-        if (response.success) {
-          toast.success('Client unassigned successfully');
-        } else {
-          throw new Error(response.message || 'Failed to unassign client');
-        }
-      }
-    } catch (error: any) {
-      console.error('Unassignment failed:', error);
-      throw error;
-    }
-  };
-
-  const filteredUnassignedClients = useMemo(() => {
-    return unassignedClients.filter(client => {
-      const matchesSearch = searchQuery === '' || 
-        `${client.firstName} ${client.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        client.email.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      return matchesSearch;
-    });
-  }, [unassignedClients, searchQuery]);
-
-  const getSessionBadgeType = (sessions: number): 'good' | 'low' | 'none' => {
-    if (sessions === 0) return 'none';
-    if (sessions <= 3) return 'low';
-    return 'good';
-  };
-
+  // ==================== RENDER ====================
   if (loading) {
     return (
       <AssignmentContainer>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
-          <LoadingSpinner />
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            style={{ width: '40px', height: '40px', border: '4px solid #e2e8f0', borderTop: '4px solid #3b82f6', borderRadius: '50%' }}
+          />
+        </div>
+      </AssignmentContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <AssignmentContainer>
+        <div style={{ textAlign: 'center', padding: '2rem', color: '#ef4444' }}>
+          <AlertTriangle size={48} style={{ marginBottom: '1rem' }} />
+          <h2>Error Loading Data</h2>
+          <p>{error}</p>
+          <ActionButton $variant="primary" onClick={loadData} style={{ marginTop: '1rem' }}>
+            <RefreshCw size={16} />
+            Retry
+          </ActionButton>
         </div>
       </AssignmentContainer>
     );
@@ -659,228 +897,264 @@ const ClientTrainerAssignments: React.FC<ClientTrainerAssignmentsProps> = ({ onA
       <AssignmentContainer
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.6 }}
       >
-        <Header>
-          <HeaderTop>
-            <TitleSection>
-              <h1>
-                <Users size={28} />
-                Client-Trainer Assignments
-              </h1>
-              <p>Manage client-trainer relationships with drag-and-drop assignment board</p>
-            </TitleSection>
-            <HeaderActions>
-              <Button variant="secondary" onClick={loadData}>
-                <RefreshCw size={16} />
-                Refresh
-              </Button>
-              <Button variant="primary">
-                <Download size={16} />
-                Export
-              </Button>
-            </HeaderActions>
-          </HeaderTop>
-
-          {stats && (
-            <StatsGrid>
-              <StatCard type="primary" whileHover={{ scale: 1.02 }}>
-                <StatValue>{stats.totalClients}</StatValue>
-                <StatLabel>
-                  <Users size={16} />
-                  Total Clients
-                </StatLabel>
-              </StatCard>
-              <StatCard type="success" whileHover={{ scale: 1.02 }}>
-                <StatValue>{stats.activeAssignments}</StatValue>
-                <StatLabel>
-                  <UserCheck size={16} />
-                  Assigned Clients
-                </StatLabel>
-              </StatCard>
-              <StatCard type="warning" whileHover={{ scale: 1.02 }}>
-                <StatValue>{stats.unassignedClients}</StatValue>
-                <StatLabel>
-                  <UserMinus size={16} />
-                  Unassigned Clients
-                </StatLabel>
-              </StatCard>
-              <StatCard type="info" whileHover={{ scale: 1.02 }}>
-                <StatValue>{stats.assignmentRate}%</StatValue>
-                <StatLabel>
-                  <TrendingUp size={16} />
-                  Assignment Rate
-                </StatLabel>
-              </StatCard>
-            </StatsGrid>
-          )}
+        {/* Header */}
+        <Header
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+        >
+          <HeaderTitle>
+            <h1>
+              <Users size={28} style={{ display: 'inline', marginRight: '0.5rem', verticalAlign: 'middle' }} />
+              Client-Trainer Assignments
+            </h1>
+            <p>Manage client-trainer relationships with intuitive drag-and-drop interface</p>
+          </HeaderTitle>
+          
+          <HeaderActions>
+            <ActionButton
+              onClick={loadData}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <RefreshCw size={16} />
+              Refresh
+            </ActionButton>
+            
+            <ActionButton
+              $variant="primary"
+              onClick={() => toast.info('Bulk assignment feature coming soon!')}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <UserPlus size={16} />
+              Bulk Assign
+            </ActionButton>
+          </HeaderActions>
         </Header>
 
-        <SearchAndFilterBar>
-          <SearchInput
-            type="text"
-            placeholder="Search clients by name or email..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <Button variant="secondary">
-            <Filter size={16} />
-            Filter
-          </Button>
-        </SearchAndFilterBar>
+        {/* Statistics */}
+        <StatsGrid>
+          <StatCard
+            whileHover={{ y: -4 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="stat-value">{stats.totalAssignments}</div>
+            <div className="stat-label">Total Assignments</div>
+            <div className="stat-change positive">
+              <TrendingUp size={12} />
+              +{stats.activeAssignments} active
+            </div>
+          </StatCard>
 
-        <DragDropContext 
-          onDragEnd={handleDragEnd}
-          onDragStart={() => setIsDragging(true)}
-        >
-          <AssignmentBoard>
-            <UnassignedColumn>
-              <ColumnHeader>
-                <h3>
-                  <UserMinus size={20} />
-                  Unassigned Clients
-                  <ClientCount>({filteredUnassignedClients.length})</ClientCount>
-                </h3>
-              </ColumnHeader>
-              <Droppable droppableId="unassigned">
-                {(provided, snapshot) => (
-                  <ClientList
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    isDraggingOver={snapshot.isDraggingOver}
-                  >
-                    {filteredUnassignedClients.map((client, index) => (
-                      <Draggable
-                        key={client.id}
-                        draggableId={client.id.toString()}
-                        index={index}
-                      >
-                        {(provided, snapshot) => (
-                          <ClientCard
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            isDragging={snapshot.isDragging}
-                            whileHover={{ scale: 1.02 }}
-                          >
-                            <ClientName>
-                              {client.firstName} {client.lastName}
-                            </ClientName>
-                            <ClientEmail>{client.email}</ClientEmail>
-                            <ClientMeta>
-                              <SessionBadge type={getSessionBadgeType(client.availableSessions)}>
-                                {client.availableSessions} sessions
-                              </SessionBadge>
-                              <div style={{ fontSize: '0.75rem', color: assignmentTheme.colors.textSecondary }}>
-                                <Calendar size={12} style={{ marginRight: '4px' }} />
-                                {new Date(client.createdAt).toLocaleDateString()}
-                              </div>
-                            </ClientMeta>
-                          </ClientCard>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                    {filteredUnassignedClients.length === 0 && (
-                      <div style={{ 
-                        textAlign: 'center', 
-                        color: assignmentTheme.colors.textSecondary,
-                        padding: assignmentTheme.spacing.xl,
-                        fontStyle: 'italic'
-                      }}>
-                        {searchQuery ? 'No clients match your search' : 'All clients are assigned'}
-                      </div>
-                    )}
-                  </ClientList>
-                )}
-              </Droppable>
-            </UnassignedColumn>
+          <StatCard
+            whileHover={{ y: -4 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="stat-value">{stats.unassignedClients}</div>
+            <div className="stat-label">Unassigned Clients</div>
+            <div className="stat-change">
+              <Users size={12} />
+              Need assignment
+            </div>
+          </StatCard>
 
-            <TrainersGrid>
-              {trainers.map((trainer) => (
-                <TrainerColumn key={trainer.id}>
-                  <ColumnHeader>
-                    <h3>
-                      <UserCheck size={20} />
-                      {trainer.firstName} {trainer.lastName}
-                      <ClientCount>({trainer.assignedClients.length} clients)</ClientCount>
-                    </h3>
-                  </ColumnHeader>
-                  
-                  <Droppable droppableId={`trainer-${trainer.id}`}>
-                    {(provided, snapshot) => (
-                      <ClientList
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        isDraggingOver={snapshot.isDraggingOver}
-                      >
-                        {trainer.assignedClients.map((client, index) => (
-                          <Draggable
-                            key={client.id}
-                            draggableId={client.id.toString()}
-                            index={index}
-                          >
-                            {(provided, snapshot) => (
-                              <ClientCard
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                assigned
-                                isDragging={snapshot.isDragging}
-                                whileHover={{ scale: 1.02 }}
-                              >
-                                <ClientName>
-                                  {client.firstName} {client.lastName}
-                                </ClientName>
-                                <ClientEmail>{client.email}</ClientEmail>
-                                <ClientMeta>
-                                  <SessionBadge type={getSessionBadgeType(client.availableSessions)}>
-                                    {client.availableSessions} sessions
-                                  </SessionBadge>
-                                  <div style={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    color: assignmentTheme.colors.success 
-                                  }}>
-                                    <CheckCircle size={12} style={{ marginRight: '4px' }} />
-                                    Assigned
-                                  </div>
-                                </ClientMeta>
-                              </ClientCard>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                        {trainer.assignedClients.length === 0 && (
-                          <div style={{ 
-                            textAlign: 'center', 
-                            color: assignmentTheme.colors.textSecondary,
-                            padding: assignmentTheme.spacing.xl,
-                            fontStyle: 'italic'
-                          }}>
-                            No clients assigned
-                          </div>
-                        )}
-                      </ClientList>
-                    )}
-                  </Droppable>
-                </TrainerColumn>
-              ))}
+          <StatCard
+            whileHover={{ y: -4 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="stat-value">{stats.trainerUtilization}%</div>
+            <div className="stat-label">Trainer Utilization</div>
+            <div className={`stat-change ${stats.trainerUtilization > 80 ? 'negative' : 'positive'}`}>
+              <Activity size={12} />
+              Capacity used
+            </div>
+          </StatCard>
+
+          <StatCard
+            whileHover={{ y: -4 }}
+            transition={{ duration: 0.2 }}
+          >
+            <div className="stat-value">{stats.averageSessionsPerClient}</div>
+            <div className="stat-label">Avg Sessions</div>
+            <div className="stat-change">
+              <Target size={12} />
+              Per client
+            </div>
+          </StatCard>
+        </StatsGrid>
+
+        {/* Assignment Board */}
+        <AssignmentBoard>
+          {/* Unassigned Clients Panel */}
+          <ClientsPanel
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <div className="panel-header">
+              <h3>
+                <UserMinus size={20} />
+                Unassigned Clients ({filteredClients.length})
+              </h3>
               
-              {trainers.length === 0 && (
-                <div style={{ 
-                  gridColumn: '1 / -1',
-                  textAlign: 'center', 
-                  color: assignmentTheme.colors.textSecondary,
-                  padding: assignmentTheme.spacing.xxl,
-                  fontSize: '1.1rem'
-                }}>
-                  No trainers available. Create trainer accounts to enable assignments.
+              <div className="search-box">
+                <Search size={16} className="search-icon" />
+                <input
+                  type="text"
+                  placeholder="Search clients..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+            </div>
+            
+            <div className="clients-list">
+              <AnimatePresence>
+                {filteredClients.map((client) => (
+                  <ClientCard
+                    key={client.id}
+                    drag
+                    dragConstraints={{ top: 0, bottom: 0, left: 0, right: 0 }}
+                    onDragStart={() => handleDragStart(client)}
+                    onDragEnd={handleDragEnd}
+                    $isDragging={draggedClient?.id === client.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileDrag={{ scale: 1.05, zIndex: 1000 }}
+                  >
+                    <div className="client-info">
+                      <div className="client-avatar">
+                        {client.firstName[0]}{client.lastName[0]}
+                      </div>
+                      <div className="client-details">
+                        <div className="client-name">
+                          {client.firstName} {client.lastName}
+                        </div>
+                        <div className="client-meta">
+                          <CheckCircle size={12} style={{ color: client.status === 'active' ? '#10b981' : '#f59e0b' }} />
+                          {client.status} • {client.lastActivity}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="session-badge">
+                      {client.availableSessions} sessions available
+                    </div>
+                  </ClientCard>
+                ))}
+              </AnimatePresence>
+              
+              {filteredClients.length === 0 && (
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>
+                  <CheckCircle size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+                  <p>All clients have been assigned!</p>
                 </div>
               )}
-            </TrainersGrid>
-          </AssignmentBoard>
-        </DragDropContext>
+            </div>
+          </ClientsPanel>
+
+          {/* Trainers Grid */}
+          <TrainersGrid>
+            {trainers.map((trainer) => (
+              <TrainerColumn
+                key={trainer.id}
+                $isOver={dropTarget === trainer.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 + (trainer.id * 0.1) }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDropTarget(trainer.id);
+                }}
+                onDragLeave={() => setDropTarget(null)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  handleDrop(trainer.id);
+                }}
+              >
+                <div className="trainer-header">
+                  <div className="trainer-info">
+                    <div className="trainer-avatar">
+                      {trainer.firstName[0]}{trainer.lastName[0]}
+                    </div>
+                    <div className="trainer-details">
+                      <div className="trainer-name">
+                        {trainer.firstName} {trainer.lastName}
+                      </div>
+                      <div className="trainer-specialization">
+                        {trainer.specialization}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="trainer-stats">
+                    <div className="capacity">
+                      {trainer.currentClients}/{trainer.maxClients} clients
+                    </div>
+                    <div className="rating">
+                      <Star size={14} fill="currentColor" />
+                      {trainer.rating}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="assigned-clients">
+                  {getAssignedClients(trainer.id).length === 0 ? (
+                    <div className="no-clients">
+                      <UserPlus size={48} className="icon" />
+                      <p>No clients assigned</p>
+                      <small>Drag clients here to assign</small>
+                    </div>
+                  ) : (
+                    <AnimatePresence>
+                      {getAssignedClients(trainer.id).map(({ assignment, client }) => (
+                        <AssignedClientCard
+                          key={assignment.id}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          whileHover={{ scale: 1.02 }}
+                        >
+                          <div className="assignment-info">
+                            <div className="client-name">
+                              {client!.firstName} {client!.lastName}
+                            </div>
+                            <div className="assignment-actions">
+                              <ActionIcon
+                                $variant="info"
+                                onClick={() => toast.info(`Assignment details for ${client!.firstName}`)}
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                              >
+                                <Info size={14} />
+                              </ActionIcon>
+                              <ActionIcon
+                                $variant="delete"
+                                onClick={() => handleRemoveAssignment(assignment.id)}
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.9 }}
+                              >
+                                <Trash2 size={14} />
+                              </ActionIcon>
+                            </div>
+                          </div>
+                          <div className="assignment-meta">
+                            <span>{assignment.sessionsUsed}/{assignment.totalSessions} sessions used</span>
+                            <span>Started {new Date(assignment.startDate).toLocaleDateString()}</span>
+                          </div>
+                        </AssignedClientCard>
+                      ))}
+                    </AnimatePresence>
+                  )}
+                </div>
+              </TrainerColumn>
+            ))}
+          </TrainersGrid>
+        </AssignmentBoard>
       </AssignmentContainer>
     </ThemeProvider>
   );
