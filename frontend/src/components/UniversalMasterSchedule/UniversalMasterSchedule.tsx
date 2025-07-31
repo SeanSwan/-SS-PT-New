@@ -25,9 +25,11 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider } from 'styled-components';
-import { Calendar, momentLocalizer, Views, SlotInfo } from 'react-big-calendar';
+import { Calendar, Views, SlotInfo } from 'react-big-calendar';
+import { dateFnsLocalizer } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
-import moment from 'moment';
+import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { enUS } from 'date-fns/locale';
 import { useToast } from '../../hooks/use-toast';
 
 // Material-UI Components
@@ -229,31 +231,49 @@ import {
 // Import styles
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
-// Safe calendar initialization with comprehensive error handling
-let localizer: any;
-let DragAndDropCalendar: any;
+// Enhanced calendar initialization with date-fns localizer (Production-Ready)
+let localizer: any = null;
+let DragAndDropCalendar: any = null;
 let isCalendarInitialized = false;
 
+// Calendar initialization with robust error handling
 try {
-  // Ensure moment is properly configured
-  if (moment && typeof moment === 'function') {
-    // Create localizer with default moment configuration
-    localizer = momentLocalizer(moment);
-    DragAndDropCalendar = withDragAndDrop(Calendar);
-    isCalendarInitialized = true;
-    console.log('✅ Calendar localizer initialized successfully');
-  } else {
-    console.error('❌ Moment.js not properly loaded');
-    isCalendarInitialized = false;
-    localizer = null;
-    DragAndDropCalendar = Calendar;
-  }
+  // Configure date-fns localizer with comprehensive locale support
+  const locales = {
+    'en-US': enUS,
+  };
+  
+  // Create date-fns localizer (more reliable than moment)
+  localizer = dateFnsLocalizer({
+    format,
+    parse,
+    startOfWeek,
+    getDay,
+    locales,
+  });
+  
+  // Initialize drag-and-drop calendar
+  DragAndDropCalendar = withDragAndDrop(Calendar);
+  isCalendarInitialized = true;
+  
+  console.log('✅ Calendar initialized with date-fns localizer - Production Ready');
+  
 } catch (error) {
   console.error('❌ Error initializing calendar:', error);
-  isCalendarInitialized = false;
-  localizer = null;
-  // Fallback - use CalendarFallback component
-  DragAndDropCalendar = Calendar;
+  
+  // Graceful fallback initialization
+  try {
+    // Attempt basic calendar without drag-and-drop
+    DragAndDropCalendar = Calendar;
+    isCalendarInitialized = false;
+    localizer = null;
+    console.log('⚠️ Calendar initialized in fallback mode');
+  } catch (fallbackError) {
+    console.error('❌ Complete calendar initialization failure:', fallbackError);
+    isCalendarInitialized = false;
+    localizer = null;
+    DragAndDropCalendar = null;
+  }
 }
 
 /**
@@ -837,7 +857,7 @@ const UniversalMasterSchedule: React.FC = () => {
     if (hapticFeedback) {
       hapticFeedback();
     }
-  }, [multiSelect.enabled, hapticFeedback]);
+  }, [multiSelect.enabled, hapticFeedback, openDialog, setSessionFormMode, setSessionFormInitialData]);
   
   const handleSelectEvent = useCallback((event: SessionEvent) => {
     if (multiSelect.enabled) {
@@ -1368,7 +1388,7 @@ const UniversalMasterSchedule: React.FC = () => {
                 
                 {/* Calendar Container */}
                 <CalendarContainer>
-                  {isCalendarInitialized && localizer ? (
+                  {isCalendarInitialized && localizer && DragAndDropCalendar ? (
                     <ErrorBoundary>
                       <DragAndDropCalendar
                         ref={calendarRef}
@@ -1425,30 +1445,33 @@ const UniversalMasterSchedule: React.FC = () => {
                       />
                     </ErrorBoundary>
                   ) : (
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      height: '100%',
-                      minHeight: '400px',
-                      color: 'white',
-                      textAlign: 'center',
-                      gap: '1rem'
-                    }}>
-                      <CalendarIcon size={64} style={{ opacity: 0.5 }} />
-                      <Typography variant="h5" color="white">
-                        Calendar Loading...
-                      </Typography>
-                      <Typography variant="body1" color="rgba(255, 255, 255, 0.7)">
-                        Initializing calendar components
-                      </Typography>
-                      <CalendarFallback
-                        events={calendarEvents}
-                        onEventClick={handleSelectEvent}
-                        onSlotClick={(date) => handleSelectSlot({ start: date, end: date })}
-                      />
-                    </div>
+                    <CalendarFallback
+                      events={calendarEvents}
+                      onEventClick={handleSelectEvent}
+                      onSlotClick={(date) => handleSelectSlot({ start: date, end: new Date(date.getTime() + 60 * 60 * 1000) } as SlotInfo)}
+                      onCreateSession={() => {
+                        setSessionFormMode('create');
+                        setSessionFormInitialData({
+                          start: new Date(),
+                          end: new Date(Date.now() + 60 * 60 * 1000),
+                          initialDate: new Date(),
+                          initialTrainer: ''
+                        });
+                        openDialog('sessionFormDialog');
+                      }}
+                      onFilterChange={(filters) => {
+                        setFilterOptions(prev => ({
+                          ...prev,
+                          status: filters.status || 'all',
+                          searchTerm: filters.search || ''
+                        }));
+                      }}
+                      showQuickActions={true}
+                      compactView={compactView}
+                      clientsCount={comprehensiveBusinessMetrics.activeClients}
+                      utilizationRate={comprehensiveBusinessMetrics.utilizationRate}
+                      completionRate={comprehensiveBusinessMetrics.completionRate}
+                    />
                   )}
                 </CalendarContainer>
               </>
