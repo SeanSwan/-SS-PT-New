@@ -106,6 +106,25 @@ export const useCalendarData = () => {
     return 'Available Slot';
   }, []);
   
+  // ==================== REAL-TIME UPDATES ====================
+  
+  const initializeRealTimeUpdates = useCallback(() => {
+    // WebSocket or similar real-time update implementation
+    console.log('🔄 Real-time updates initialized');
+    
+    // TODO: Implement WebSocket connection
+    // const ws = new WebSocket('ws://localhost:3001/schedule-updates');
+    // ws.onmessage = (event) => {
+    //   const update = JSON.parse(event.data);
+    //   if (update.type === 'session-updated') {
+    //     refreshData();
+    //   }
+    // };
+    
+    // Return cleanup function
+    // return () => ws.close();
+  }, []);
+  
   // ==================== DATA LOADING FUNCTIONS ====================
   
   const loadSessions = useCallback(async () => {
@@ -199,25 +218,6 @@ export const useCalendarData = () => {
       console.error('Error refreshing data:', error);
     }
   }, [loadSessions]);
-  
-  // ==================== REAL-TIME UPDATES ====================
-  
-  const initializeRealTimeUpdates = useCallback(() => {
-    // WebSocket or similar real-time update implementation
-    console.log('🔄 Real-time updates initialized');
-    
-    // TODO: Implement WebSocket connection
-    // const ws = new WebSocket('ws://localhost:3001/schedule-updates');
-    // ws.onmessage = (event) => {
-    //   const update = JSON.parse(event.data);
-    //   if (update.type === 'session-updated') {
-    //     refreshData();
-    //   }
-    // };
-    
-    // Return cleanup function
-    // return () => ws.close();
-  }, []);
   
   // ==================== FILTERING LOGIC ====================
   
@@ -362,7 +362,10 @@ export const useCalendarData = () => {
     setClients,
     setTrainers,
     setAssignments,
-    setCalendarEvents
+    setCalendarEvents,
+    
+    // Filtering
+    applyFilters
   };
   
   return { ...values, ...actions };
