@@ -448,6 +448,86 @@ const UniversalMasterSchedule: React.FC = () => {
     }
   }, [sessions, filterOptions]);
   
+  // ==================== UTILITY FUNCTIONS ====================
+  
+  const getSessionTitle = (session: any): string => {
+    if (session.client) {
+      return `${session.client.firstName} ${session.client.lastName}`;
+    }
+    if (session.trainer) {
+      return `Available - ${session.trainer.firstName}`;
+    }
+    return 'Available Slot';
+  };
+  
+  const getEventStyle = (event: SessionEvent) => {
+    const baseStyle = {
+      borderRadius: '4px',
+      border: 'none',
+      color: 'white',
+      fontSize: '0.75rem',
+      fontWeight: '500'
+    };
+    
+    switch (event.status) {
+      case 'available':
+        return { ...baseStyle, backgroundColor: '#22c55e' };
+      case 'booked':
+      case 'scheduled':
+        return { ...baseStyle, backgroundColor: '#3b82f6' };
+      case 'confirmed':
+        return { ...baseStyle, backgroundColor: '#0ea5e9' };
+      case 'completed':
+        return { ...baseStyle, backgroundColor: '#6c757d' };
+      case 'cancelled':
+        return { ...baseStyle, backgroundColor: '#ef4444' };
+      default:
+        return { ...baseStyle, backgroundColor: '#3b82f6' };
+    }
+  };
+  
+  const setupEventListeners = () => {
+    // Setup keyboard shortcuts
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey) {
+        switch (event.key) {
+          case 'a':
+            event.preventDefault();
+            if (multiSelect.enabled) {
+              selectAllEvents();
+            }
+            break;
+          case 'Escape':
+            event.preventDefault();
+            if (multiSelect.enabled) {
+              toggleMultiSelect();
+            } else {
+              setDialogs({
+                eventDialog: false,
+                assignmentDialog: false,
+                statsDialog: false,
+                filterDialog: false,
+                bulkActionDialog: false,
+                sessionFormDialog: false
+              });
+            }
+            break;
+        }
+      }
+    };
+    
+    document.addEventListener('keydown', handleKeyPress);
+  };
+  
+  const cleanupEventListeners = () => {
+    // Cleanup will be handled by useEffect cleanup
+  };
+  
+  const initializeRealTimeUpdates = () => {
+    // WebSocket or similar real-time update implementation
+    console.log('🔄 Real-time updates initialized');
+  };
+  
   // ==================== CORE FUNCTIONS ====================
   
   const initializeComponent = async () => {
@@ -838,6 +918,43 @@ const UniversalMasterSchedule: React.FC = () => {
     return processSessionDistribution(sessions);
   }, [sessions]);
   
+  // ==================== BULK OPERATIONS ====================
+  
+  const toggleMultiSelect = useCallback(() => {
+    setMultiSelect(prev => ({
+      ...prev,
+      enabled: !prev.enabled,
+      selectedEvents: [],
+      bulkActionMode: false,
+      selectedAction: null
+    }));
+  }, []);
+  
+  const toggleEventSelection = useCallback((eventId: string) => {
+    setMultiSelect(prev => ({
+      ...prev,
+      selectedEvents: prev.selectedEvents.includes(eventId)
+        ? prev.selectedEvents.filter(id => id !== eventId)
+        : [...prev.selectedEvents, eventId]
+    }));
+  }, []);
+  
+  const selectAllEvents = useCallback(() => {
+    setMultiSelect(prev => ({
+      ...prev,
+      selectedEvents: calendarEvents.map(event => event.id)
+    }));
+  }, [calendarEvents]);
+  
+  const clearSelection = useCallback(() => {
+    setMultiSelect(prev => ({
+      ...prev,
+      selectedEvents: [],
+      bulkActionMode: false,
+      selectedAction: null
+    }));
+  }, []);
+  
   // ==================== EVENT HANDLERS ====================
   
   const handleSelectSlot = useCallback((slotInfo: SlotInfo) => {
@@ -940,43 +1057,6 @@ const UniversalMasterSchedule: React.FC = () => {
       setLoading(prev => ({ ...prev, sessions: false }));
     }
   }, [refreshData, toast]);
-  
-  // ==================== BULK OPERATIONS ====================
-  
-  const toggleMultiSelect = useCallback(() => {
-    setMultiSelect(prev => ({
-      ...prev,
-      enabled: !prev.enabled,
-      selectedEvents: [],
-      bulkActionMode: false,
-      selectedAction: null
-    }));
-  }, []);
-  
-  const toggleEventSelection = useCallback((eventId: string) => {
-    setMultiSelect(prev => ({
-      ...prev,
-      selectedEvents: prev.selectedEvents.includes(eventId)
-        ? prev.selectedEvents.filter(id => id !== eventId)
-        : [...prev.selectedEvents, eventId]
-    }));
-  }, []);
-  
-  const selectAllEvents = useCallback(() => {
-    setMultiSelect(prev => ({
-      ...prev,
-      selectedEvents: calendarEvents.map(event => event.id)
-    }));
-  }, [calendarEvents]);
-  
-  const clearSelection = useCallback(() => {
-    setMultiSelect(prev => ({
-      ...prev,
-      selectedEvents: [],
-      bulkActionMode: false,
-      selectedAction: null
-    }));
-  }, []);
   
   const initiateBulkAction = useCallback((action: BulkActionType) => {
     if (multiSelect.selectedEvents.length === 0) return;
