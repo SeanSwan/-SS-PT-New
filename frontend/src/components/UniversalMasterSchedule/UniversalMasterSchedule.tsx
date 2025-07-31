@@ -1,28 +1,27 @@
 /**
- * Universal Master Schedule - AAA 7-Star Admin Command Center
- * ========================================================
+ * Universal Master Schedule - AAA 7-Star Admin Command Center (REFACTORED)
+ * ========================================================================
  * The ultimate scheduling management system for SwanStudios admins
  * 
- * 🌟 7-STAR FEATURES:
- * ✅ Advanced Bulk Operations - Multi-select with comprehensive actions
- * ✅ Drag-and-Drop Client-Trainer Assignment - Visual assignment management
- * ✅ Enhanced Analytics Dashboard - Real-time metrics and performance data
- * ✅ Advanced Filtering System - Multi-criteria filtering and search
- * ✅ Data Export/Import - Professional reporting capabilities
- * ✅ Real-time Collaboration - Multiple admin simultaneous editing
- * ✅ Mobile Admin Interface - Touch-optimized tablet administration
+ * 🌟 ARCHITECTURAL TRANSFORMATION:
+ * ✅ Modular Hook-Based Architecture - Clean separation of concerns
+ * ✅ Enterprise-Grade Error Handling - Resilient and fault-tolerant
+ * ✅ Performance-Optimized State Management - Minimal re-renders
+ * ✅ Advanced Accessibility Support - WCAG AA compliant
+ * ✅ Real-time Collaboration Ready - WebSocket integration points
+ * ✅ Mobile-First Progressive Web App - Touch-optimized interactions
+ * ✅ Comprehensive Business Intelligence - Executive-level insights
  * 
- * TECHNICAL IMPLEMENTATION:
- * - Built on react-big-calendar with enhanced drag-and-drop
- * - Redux state management with real-time updates
- * - Styled-components with Stellar Command Center theme
- * - Framer Motion animations for premium UX
- * - TypeScript for complete type safety
- * - WCAG AA accessibility compliance
- * - Real Recharts implementation for data visualization
+ * REFACTORED DESIGN PRINCIPLES:
+ * - Single Responsibility: Each hook handles one domain
+ * - Separation of Concerns: UI, data, handlers, bulk ops, and BI are isolated
+ * - Dependency Injection: Clean interfaces between components
+ * - Immutable State: Predictable state updates
+ * - Error Boundaries: Graceful failure handling
+ * - Performance: Memoized calculations and lazy loading
  */
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider } from 'styled-components';
 import { Calendar, Views, SlotInfo } from 'react-big-calendar';
@@ -34,52 +33,11 @@ import { useToast } from '../../hooks/use-toast';
 
 // Material-UI Components
 import {
-  Box,
-  Paper,
   Typography,
   Grid,
-  Chip,
-  Avatar,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  TextField,
-  InputAdornment,
-  Switch,
-  FormControlLabel,
-  Tooltip,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Stack,
   Divider,
-  Badge,
-  Card,
-  CardContent,
-  Checkbox,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  Fab,
-  SpeedDial,
-  SpeedDialAction,
-  SpeedDialIcon,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Button,
-  ButtonGroup,
-  ToggleButton,
-  ToggleButtonGroup,
-  Slider,
-  LinearProgress,
   CircularProgress,
-  Snackbar,
-  Alert
+  Tooltip
 } from '@mui/material';
 
 // Icons
@@ -87,95 +45,27 @@ import {
   Calendar as CalendarIcon,
   Users,
   Filter,
-  Search,
-  Settings,
-  UserPlus,
-  Clock,
-  MapPin,
-  Star,
-  CheckCircle,
-  AlertCircle,
-  Info,
   RefreshCw,
-  Download,
-  Upload,
-  Eye,
-  EyeOff,
-  Maximize2,
-  Minimize2,
-  RotateCcw,
-  Save,
   X,
-  Plus,
-  Minus,
-  Edit,
-  Trash2,
-  Move,
-  Copy,
-  ArrowRight,
-  ArrowLeft,
-  ChevronUp,
-  ChevronDown,
-  MoreHorizontal,
-  Target,
-  Zap,
-  Activity,
-  TrendingUp,
-  DollarSign,
-  Award,
-  Shield,
-  Lock,
-  Unlock,
   Layers,
-  Grid as GridIcon,
-  List as ListIcon,
+  CheckCircle,
+  Move,
+  Trash2,
   BarChart3,
-  PieChart,
-  LineChart,
-  Calendar as CalendarViewIcon,
-  Clock4,
-  Users2,
-  UserCheck,
-  UserX,
-  FileText,
-  FileSpreadsheet,
-  FilePdf,
-  Share2,
-  Bell,
-  Volume2,
-  VolumeX,
-  Wifi,
-  WifiOff,
-  Database,
-  Server,
-  Cloud,
-  HardDrive,
-  CreditCard
+  Activity,
+  CreditCard,
+  DollarSign,
+  Target,
+  Star,
+  AlertCircle
 } from 'lucide-react';
-
-// Context and Services
-import { useAuth } from '../../context/AuthContext';
-import { universalMasterScheduleService } from '../../services/universal-master-schedule-service';
-import { clientTrainerAssignmentService } from '../../services/clientTrainerAssignmentService';
-import sessionService from '../../services/sessionService';
-import { gamificationMCPService } from '../../services/gamificationMCPService';
-
-// Redux
-import { useAppDispatch, useAppSelector } from '../../redux/hooks';
-import {
-  fetchEvents,
-  selectAllSessions,
-  selectScheduleStatus,
-  selectScheduleError,
-  selectScheduleStats
-} from '../../redux/slices/scheduleSlice';
 
 // Custom Components
 import GlowButton from '../ui/buttons/GlowButton';
 import { LoadingSpinner } from '../ui/LoadingSpinner';
 import { ErrorBoundary } from '../ui/ErrorBoundary';
 
-// Session Allocation Manager - NEW!
+// Session Allocation Manager
 import SessionAllocationManager from './SessionAllocationManager';
 
 // Enhanced Dialog Components
@@ -185,14 +75,11 @@ import {
   AdvancedFilterDialog
 } from './Dialogs';
 
-// Real Chart Components (NEW!)
+// Real Chart Components
 import {
   RevenueLineChart,
   TrainerPerformanceBarChart,
-  SessionDistributionPieChart,
-  processRevenueData,
-  processTrainerData,
-  processSessionDistribution
+  SessionDistributionPieChart
 } from './Charts';
 
 // Advanced Analytics Components
@@ -205,65 +92,39 @@ import {
 // Fallback Calendar Component
 import CalendarFallback from './CalendarFallback';
 
-// Mobile PWA Components
-import { useTouchGesture } from '../PWA/TouchGestureProvider';
-
 // Styled Components and Theme
-import { stellarTheme, CommandCenterTheme } from './UniversalMasterScheduleTheme';
+import { CommandCenterTheme } from './UniversalMasterScheduleTheme';
 
-// Types and Interfaces
+// Modular Hooks - The Heart of the Refactored Architecture
 import {
-  Session,
-  Client,
-  Trainer,
-  ClientTrainerAssignment,
-  SessionEvent,
-  FilterOptions,
-  ScheduleStats,
-  BulkActionType,
-  CalendarView,
-  DialogState,
-  MultiSelectState,
-  LoadingState,
-  ErrorState
-} from './types';
+  useCalendarState,
+  useCalendarData,
+  useCalendarHandlers,
+  useBulkOperations,
+  useBusinessIntelligence
+} from './hooks';
+
+// Utility Functions
+import { renderCalendar } from './utils/renderCalendar';
 
 // Import styles
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
-// Enhanced calendar initialization with date-fns localizer (Production-Ready)
+// Enhanced calendar initialization with robust error handling
 let localizer: any = null;
 let DragAndDropCalendar: any = null;
 let isCalendarInitialized = false;
 
-// Calendar initialization with robust error handling
+// Calendar initialization (kept from original for stability)
 try {
-  // Configure date-fns localizer with comprehensive locale support
-  const locales = {
-    'en-US': enUS,
-  };
-  
-  // Create date-fns localizer (more reliable than moment)
-  localizer = dateFnsLocalizer({
-    format,
-    parse,
-    startOfWeek,
-    getDay,
-    locales,
-  });
-  
-  // Initialize drag-and-drop calendar
+  const locales = { 'en-US': enUS };
+  localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
   DragAndDropCalendar = withDragAndDrop(Calendar);
   isCalendarInitialized = true;
-  
   console.log('✅ Calendar initialized with date-fns localizer - Production Ready');
-  
 } catch (error) {
   console.error('❌ Error initializing calendar:', error);
-  
-  // Graceful fallback initialization
   try {
-    // Attempt basic calendar without drag-and-drop
     DragAndDropCalendar = Calendar;
     isCalendarInitialized = false;
     localizer = null;
@@ -277,154 +138,174 @@ try {
 }
 
 /**
- * Universal Master Schedule Component
+ * Universal Master Schedule Component - REFACTORED EDITION
  * 
- * The ultimate admin command center for scheduling operations with:
- * - Advanced drag-and-drop capabilities
- * - Bulk operations for efficiency
- * - Real-time collaboration
- * - Comprehensive analytics with REAL charts
- * - Professional export capabilities
+ * Clean, declarative orchestrator component that delegates all complex logic
+ * to specialized hooks, resulting in a maintainable, testable, and scalable architecture.
  */
 const UniversalMasterSchedule: React.FC = () => {
-  const { user } = useAuth();
-  const dispatch = useAppDispatch();
   const { toast } = useToast();
-  
-  // Redux selectors
-  const sessions = useAppSelector(selectAllSessions);
-  const scheduleStatus = useAppSelector(selectScheduleStatus);
-  const scheduleError = useAppSelector(selectScheduleError);
-  const scheduleStats = useAppSelector(selectScheduleStats);
-  
-  // Mobile PWA hooks - with error handling
-  const touchGestureContext = useTouchGesture?.() || null;
-  const hapticFeedback = touchGestureContext?.hapticFeedback;
-  const isTouch = touchGestureContext?.isTouch || false;
   
   // Refs
   const calendarRef = useRef<any>(null);
   const bulkActionRef = useRef<HTMLDivElement>(null);
   
-  // ==================== STATE MANAGEMENT ====================
+  // ==================== MODULAR HOOKS ORCHESTRATION ====================
   
-  // Core Data State
-  const [clients, setClients] = useState<Client[]>([]);
-  const [trainers, setTrainers] = useState<Trainer[]>([]);
-  const [assignments, setAssignments] = useState<ClientTrainerAssignment[]>([]);
-  const [calendarEvents, setCalendarEvents] = useState<SessionEvent[]>([]);
+  // 1. Core UI State Management
+  const {
+    loading,
+    error,
+    view,
+    selectedDate,
+    selectedEvent,
+    dialogs,
+    sessionFormMode,
+    sessionFormInitialData,
+    filterOptions,
+    setFilterOptions,
+    analyticsView,
+    dateRange,
+    selectedTrainer,
+    isMobile,
+    openDialog,
+    closeDialog,
+    setView,
+    setSelectedDate,
+    setLoading,
+    setError,
+    setDialogs,
+    setSessionFormMode,
+    setSessionFormInitialData,
+    setSelectedEvent,
+    setAnalyticsView,
+    setDateRange,
+    setSelectedTrainer,
+    closeAllDialogs,
+    autoRefresh,
+    realTimeEnabled
+  } = useCalendarState();
   
-  // UI State
-  const [loading, setLoading] = useState<LoadingState>({
-    sessions: true,
-    clients: false,
-    trainers: false,
-    assignments: false,
-    statistics: false,
-    bulkOperation: false
+  // 2. Data Fetching & Management
+  const {
+    sessions,
+    clients,
+    trainers,
+    assignments,
+    calendarEvents,
+    scheduleStatus,
+    scheduleError,
+    scheduleStats,
+    initializeComponent,
+    refreshData,
+    applyFilters
+  } = useCalendarData();
+  
+  // 3. Event Handler Logic
+  const {
+    handleSelectSlot,
+    handleSelectEvent,
+    handleEventDrop,
+    handleEventResize,
+    handleSessionSaved,
+    handleAnalyticsViewChange,
+    handleDateRangeChange,
+    handleTrainerSelect,
+    setupEventListeners,
+    cleanupEventListeners,
+    hapticFeedback,
+    isTouch
+  } = useCalendarHandlers({
+    sessions,
+    refreshData,
+    setLoading,
+    setDialogs,
+    sessionFormMode,
+    setSessionFormMode,
+    setSessionFormInitialData,
+    setSelectedEvent,
+    setAnalyticsView,
+    setDateRange,
+    setSelectedTrainer,
+    closeAllDialogs
   });
   
-  const [error, setError] = useState<ErrorState>({
-    sessions: null,
-    clients: null,
-    trainers: null,
-    assignments: null,
-    statistics: null,
-    bulkOperation: null
+  // 4. Bulk Operations Management
+  const {
+    multiSelect,
+    bulkActionType,
+    selectedSessionsData,
+    canPerformBulkActions,
+    selectedCount,
+    toggleMultiSelect,
+    selectAllEvents,
+    clearSelection,
+    initiateBulkAction,
+    handleBulkActionComplete
+  } = useBulkOperations({
+    calendarEvents,
+    refreshData,
+    setLoading,
+    setDialogs,
+    loading
   });
   
-  const [view, setView] = useState<CalendarView>('week');
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedEvent, setSelectedEvent] = useState<SessionEvent | null>(null);
-  
-  // Dialog State
-  const [dialogs, setDialogs] = useState<DialogState>({
-    eventDialog: false,
-    assignmentDialog: false,
-    statsDialog: false,
-    filterDialog: false,
-    bulkActionDialog: false,
-    sessionFormDialog: false
+  // 5. Business Intelligence & Analytics
+  const {
+    comprehensiveBusinessMetrics,
+    executiveKPIs,
+    revenueChartData,
+    trainerChartData,
+    sessionDistributionData,
+    generateInsights,
+    identifyOpportunities,
+    flagRisks
+  } = useBusinessIntelligence({
+    sessions,
+    clients,
+    trainers
   });
   
-  // Enhanced dialog state
-  const [sessionFormMode, setSessionFormMode] = useState<'create' | 'edit' | 'duplicate'>('create');
-  const [bulkActionType, setBulkActionType] = useState<BulkActionType>('confirm');
-  const [sessionFormInitialData, setSessionFormInitialData] = useState<any>(null);
+  // ==================== COMPONENT INITIALIZATION ====================
   
-  // Filter and Search State
-  const [filterOptions, setFilterOptions] = useState<FilterOptions>({
-    trainerId: '',
-    clientId: '',
-    status: 'all',
-    dateRange: 'all',
-    location: '',
-    searchTerm: '',
-    customDateStart: '',
-    customDateEnd: ''
-  });
-  
-  // Multi-select and Bulk Operations
-  const [multiSelect, setMultiSelect] = useState<MultiSelectState>({
-    enabled: false,
-    selectedEvents: [],
-    bulkActionMode: false,
-    selectedAction: null
-  });
-  
-  // Advanced Features State
-  const [realTimeEnabled, setRealTimeEnabled] = useState(true);
-  const [autoRefresh, setAutoRefresh] = useState(true);
-  const [compactView, setCompactView] = useState(false);
-  const [showStatistics, setShowStatistics] = useState(true);
-  const [highContrastMode, setHighContrastMode] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  
-  // Analytics View State
-  const [analyticsView, setAnalyticsView] = useState<'calendar' | 'business' | 'trainers' | 'social' | 'allocations'>('calendar');
-  const [dateRange, setDateRange] = useState('month');
-  const [selectedTrainer, setSelectedTrainer] = useState<string | null>(null);
-  
-  // Mobile State
-  const [isMobile, setIsMobile] = useState(false);
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
-  
-  // ==================== EFFECTS AND INITIALIZATION ====================
-  
-  // Initialize component
   useEffect(() => {
     const initializeComponentSafe = async () => {
       try {
-        await initializeComponent();
-        setupEventListeners();
+        await initializeComponent({
+          setLoading,
+          setError,
+          realTimeEnabled
+        });
+        const cleanup = setupEventListeners();
+        return cleanup;
       } catch (error) {
         console.error('Failed to initialize Universal Master Schedule:', error);
-        setError(prev => ({ 
-          ...prev, 
-          sessions: 'Failed to initialize schedule. Please refresh and try again.' 
-        }));
+        toast({
+          title: 'Initialization Error',
+          description: 'Failed to initialize schedule. Please refresh and try again.',
+          variant: 'destructive'
+        });
       }
     };
     
-    initializeComponentSafe();
+    const cleanupPromise = initializeComponentSafe();
     
     return () => {
+      cleanupPromise.then(cleanup => {
+        if (cleanup) cleanup();
+      });
       cleanupEventListeners();
     };
-  }, []);
+  }, [initializeComponent, setupEventListeners, cleanupEventListeners, toast, setLoading, setError, realTimeEnabled]);
   
-  // Initialize mobile detection
+  // Apply filters effect
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+    try {
+      applyFilters(filterOptions);
+    } catch (error) {
+      console.error('Filter application failed:', error);
+    }
+  }, [sessions, filterOptions, applyFilters]);
   
   // Auto-refresh effect
   useEffect(() => {
@@ -437,754 +318,9 @@ const UniversalMasterSchedule: React.FC = () => {
       
       return () => clearInterval(interval);
     }
-  }, [autoRefresh]);
+  }, [autoRefresh, refreshData]);
   
-  // Filter effect
-  useEffect(() => {
-    try {
-      applyFilters();
-    } catch (error) {
-      console.error('Filter application failed:', error);
-    }
-  }, [sessions, filterOptions]);
-  
-  // ==================== UTILITY FUNCTIONS ====================
-  
-  const getSessionTitle = (session: any): string => {
-    if (session.client) {
-      return `${session.client.firstName} ${session.client.lastName}`;
-    }
-    if (session.trainer) {
-      return `Available - ${session.trainer.firstName}`;
-    }
-    return 'Available Slot';
-  };
-  
-  const getEventStyle = (event: SessionEvent) => {
-    const baseStyle = {
-      borderRadius: '4px',
-      border: 'none',
-      color: 'white',
-      fontSize: '0.75rem',
-      fontWeight: '500'
-    };
-    
-    switch (event.status) {
-      case 'available':
-        return { ...baseStyle, backgroundColor: '#22c55e' };
-      case 'booked':
-      case 'scheduled':
-        return { ...baseStyle, backgroundColor: '#3b82f6' };
-      case 'confirmed':
-        return { ...baseStyle, backgroundColor: '#0ea5e9' };
-      case 'completed':
-        return { ...baseStyle, backgroundColor: '#6c757d' };
-      case 'cancelled':
-        return { ...baseStyle, backgroundColor: '#ef4444' };
-      default:
-        return { ...baseStyle, backgroundColor: '#3b82f6' };
-    }
-  };
-  
-  const setupEventListeners = () => {
-    // Setup keyboard shortcuts
-    const handleKeyPress = (event: KeyboardEvent) => {
-      if (event.ctrlKey || event.metaKey) {
-        switch (event.key) {
-          case 'a':
-            event.preventDefault();
-            if (multiSelect.enabled) {
-              selectAllEvents();
-            }
-            break;
-          case 'Escape':
-            event.preventDefault();
-            if (multiSelect.enabled) {
-              toggleMultiSelect();
-            } else {
-              setDialogs({
-                eventDialog: false,
-                assignmentDialog: false,
-                statsDialog: false,
-                filterDialog: false,
-                bulkActionDialog: false,
-                sessionFormDialog: false
-              });
-            }
-            break;
-        }
-      }
-    };
-    
-    document.addEventListener('keydown', handleKeyPress);
-  };
-  
-  const cleanupEventListeners = () => {
-    // Cleanup will be handled by useEffect cleanup
-  };
-  
-  const initializeRealTimeUpdates = () => {
-    // WebSocket or similar real-time update implementation
-    console.log('🔄 Real-time updates initialized');
-  };
-  
-  // ==================== CORE FUNCTIONS ====================
-  
-  const initializeComponent = async () => {
-    try {
-      setLoading(prev => ({ ...prev, sessions: true }));
-      
-      // Load initial data
-      await Promise.all([
-        loadSessions(),
-        loadClients(),
-        loadTrainers(),
-        loadAssignments()
-      ]);
-      
-      setLoading(prev => ({ ...prev, sessions: false }));
-      
-      // Initialize real-time updates if enabled
-      if (realTimeEnabled) {
-        initializeRealTimeUpdates();
-      }
-      
-      toast({
-        title: 'Universal Master Schedule Loaded',
-        description: 'All systems operational',
-        variant: 'default'
-      });
-      
-    } catch (error) {
-      console.error('Error initializing Universal Master Schedule:', error);
-      setError(prev => ({ 
-        ...prev, 
-        sessions: 'Failed to initialize schedule. Please refresh and try again.' 
-      }));
-      setLoading(prev => ({ ...prev, sessions: false }));
-    }
-  };
-  
-  const loadSessions = async () => {
-    try {
-      await dispatch(fetchEvents({ role: 'admin', userId: user?.id || '' }));
-    } catch (error) {
-      throw new Error('Failed to load sessions');
-    }
-  };
-  
-  const loadClients = async () => {
-    try {
-      setLoading(prev => ({ ...prev, clients: true }));
-      // Implementation would call client service
-      // const clientsData = await clientService.getClients();
-      // setClients(clientsData);
-      setLoading(prev => ({ ...prev, clients: false }));
-    } catch (error) {
-      setError(prev => ({ ...prev, clients: 'Failed to load clients' }));
-      setLoading(prev => ({ ...prev, clients: false }));
-    }
-  };
-  
-  const loadTrainers = async () => {
-    try {
-      setLoading(prev => ({ ...prev, trainers: true }));
-      // Implementation would call trainer service
-      // const trainersData = await trainerService.getTrainers();
-      // setTrainers(trainersData);
-      setLoading(prev => ({ ...prev, trainers: false }));
-    } catch (error) {
-      setError(prev => ({ ...prev, trainers: 'Failed to load trainers' }));
-      setLoading(prev => ({ ...prev, trainers: false }));
-    }
-  };
-  
-  const loadAssignments = async () => {
-    try {
-      setLoading(prev => ({ ...prev, assignments: true }));
-      const assignmentsData = await clientTrainerAssignmentService.getAssignments();
-      setAssignments(assignmentsData);
-      setLoading(prev => ({ ...prev, assignments: false }));
-    } catch (error) {
-      setError(prev => ({ ...prev, assignments: 'Failed to load assignments' }));
-      setLoading(prev => ({ ...prev, assignments: false }));
-    }
-  };
-  
-  const refreshData = useCallback(async () => {
-    try {
-      await Promise.all([
-        loadSessions()
-      ]);
-    } catch (error) {
-      console.error('Error refreshing data:', error);
-    }
-  }, []);
-  
-  const applyFilters = useCallback(() => {
-    // Fixed: Use proper property names from Redux state
-    let filteredEvents = sessions.map(session => ({
-      id: session.id,
-      title: getSessionTitle(session),
-      start: new Date(session.start),
-      end: new Date(session.end),
-      status: session.status,
-      userId: session.userId,
-      trainerId: session.trainerId,
-      client: session.client,
-      trainer: session.trainer,
-      location: session.location,
-      notes: session.notes,
-      duration: session.duration,
-      resource: session
-    }));
-    
-    // Apply filters
-    if (filterOptions.trainerId) {
-      filteredEvents = filteredEvents.filter(event => event.trainerId === filterOptions.trainerId);
-    }
-    
-    if (filterOptions.clientId) {
-      filteredEvents = filteredEvents.filter(event => event.userId === filterOptions.clientId);
-    }
-    
-    if (filterOptions.status !== 'all') {
-      filteredEvents = filteredEvents.filter(event => event.status === filterOptions.status);
-    }
-    
-    if (filterOptions.location) {
-      filteredEvents = filteredEvents.filter(event => 
-        event.location?.toLowerCase().includes(filterOptions.location.toLowerCase())
-      );
-    }
-    
-    if (filterOptions.searchTerm) {
-      const searchTerm = filterOptions.searchTerm.toLowerCase();
-      filteredEvents = filteredEvents.filter(event =>
-        event.title.toLowerCase().includes(searchTerm) ||
-        event.client?.firstName?.toLowerCase().includes(searchTerm) ||
-        event.client?.lastName?.toLowerCase().includes(searchTerm) ||
-        event.trainer?.firstName?.toLowerCase().includes(searchTerm) ||
-        event.trainer?.lastName?.toLowerCase().includes(searchTerm)
-      );
-    }
-    
-    setCalendarEvents(filteredEvents);
-  }, [sessions, filterOptions]);
-  
-  // ==================== GAMIFICATION MCP INTEGRATION ====================
-  
-  const triggerGamificationReward = useCallback(async (sessionId: string, clientId: string, action: 'session_completed' | 'milestone_reached' | 'streak_achieved') => {
-    try {
-      // Integration with Gamification MCP Server
-      const gamificationPayload = {
-        userId: clientId,
-        action,
-        sessionId,
-        points: action === 'session_completed' ? 50 : action === 'milestone_reached' ? 100 : 75,
-        timestamp: new Date().toISOString()
-      };
-      
-      // Call MCP gamification service
-      const result = await gamificationMCPService.awardPoints(gamificationPayload);
-      
-      if (result.success) {
-        // Generate social media post
-        await gamificationMCPService.generateWorkoutPost({
-          userId: clientId,
-          type: action === 'session_completed' ? 'workout_completion' : 'achievement_unlock',
-          sessionId,
-          autoGenerate: true,
-          includeStats: true
-        });
-        
-        console.log('🎮 Gamification reward triggered successfully:', result);
-        
-        toast({
-          title: result.achievement ? 'Achievement Unlocked! 🏆' : 'Points Earned! ✨',
-          description: result.achievement 
-            ? `${result.achievement.title} - ${result.points} points!`
-            : `Earned ${gamificationPayload.points} points! Total: ${result.newTotal}`,
-          variant: 'default'
-        });
-        
-        // If level up occurred, show special celebration
-        if (result.levelUp) {
-          toast({
-            title: 'LEVEL UP! 🎆',
-            description: 'Congratulations on reaching a new level!',
-            variant: 'default'
-          });
-        }
-      }
-      
-    } catch (error) {
-      console.error('Error triggering gamification reward:', error);
-      // Still show success message to user even if gamification fails
-      toast({
-        title: 'Session Completed! ✅',
-        description: 'Great work on completing your training session!',
-        variant: 'default'
-      });
-    }
-  }, [toast]);
-  
-  const handleSessionCompletion = useCallback(async (sessionId: string, clientId: string) => {
-    try {
-      // Mark session as completed
-      await sessionService.updateSession(sessionId, { status: 'completed' });
-      
-      // Trigger gamification rewards
-      await triggerGamificationReward(sessionId, clientId, 'session_completed');
-      
-      // Check for milestones (every 10 sessions)
-      const clientSessions = sessions.filter(s => s.userId === clientId && s.status === 'completed');
-      if (clientSessions.length % 10 === 0) {
-        await triggerGamificationReward(sessionId, clientId, 'milestone_reached');
-      }
-      
-      // Check for streaks (5 consecutive weeks)
-      const recentSessions = clientSessions
-        .filter(s => new Date(s.sessionDate) >= new Date(Date.now() - 35 * 24 * 60 * 60 * 1000))
-        .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime());
-      
-      if (recentSessions.length >= 5) {
-        await triggerGamificationReward(sessionId, clientId, 'streak_achieved');
-      }
-      
-      // Refresh data
-      await refreshData();
-      
-    } catch (error) {
-      console.error('Error handling session completion:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to complete session. Please try again.',
-        variant: 'destructive'
-      });
-    }
-  }, [sessions, triggerGamificationReward, refreshData, toast]);
-  
-  // ==================== ANALYTICS HANDLERS ====================
-  
-  const handleAnalyticsViewChange = useCallback((view: 'calendar' | 'business' | 'trainers' | 'social' | 'allocations') => {
-    setAnalyticsView(view);
-    
-    if (hapticFeedback) {
-      hapticFeedback('light');
-    }
-  }, [hapticFeedback]);
-  
-  const handleDateRangeChange = useCallback((range: string) => {
-    setDateRange(range);
-    // Trigger data refresh with new date range
-    refreshData();
-  }, [refreshData]);
-  
-  const handleTrainerSelect = useCallback((trainerId: string) => {
-    setSelectedTrainer(trainerId);
-    setAnalyticsView('trainers');
-  }, []);
-  
-  // ==================== BUSINESS INTELLIGENCE CALCULATIONS ====================
-  
-  const comprehensiveBusinessMetrics = useMemo(() => {
-    const totalSessions = sessions.length;
-    const scheduledSessions = sessions.filter(s => s.status === 'scheduled' || s.status === 'confirmed').length;
-    const completedSessions = sessions.filter(s => s.status === 'completed').length;
-    const availableSessions = sessions.filter(s => s.status === 'available').length;
-    const cancelledSessions = sessions.filter(s => s.status === 'cancelled').length;
-    
-    const utilizationRate = totalSessions > 0 ? Math.round((scheduledSessions / totalSessions) * 100) : 0;
-    const completionRate = scheduledSessions > 0 ? Math.round((completedSessions / (completedSessions + scheduledSessions)) * 100) : 0;
-    const cancellationRate = totalSessions > 0 ? Math.round((cancelledSessions / totalSessions) * 100) : 0;
-    
-    // Advanced Revenue Calculations
-    const averageSessionValue = 125; // Premium personal training rate
-    const estimatedRevenue = scheduledSessions * averageSessionValue;
-    const completedRevenue = completedSessions * averageSessionValue;
-    const projectedMonthlyRevenue = estimatedRevenue * 4; // Weekly to monthly
-    
-    // Client Metrics
-    const activeClients = clients.length;
-    const newClientsThisMonth = Math.round(activeClients * 0.15); // 15% growth assumption
-    const clientRetentionRate = 89; // Industry-leading retention
-    const averageClientLifetime = 18; // months
-    const clientLifetimeValue = averageClientLifetime * averageSessionValue * 4; // monthly sessions
-    
-    // Trainer Metrics
-    const activeTrainers = trainers.length;
-    const averageTrainerUtilization = 78;
-    const trainerSatisfactionScore = 94;
-    const averageTrainerRevenue = completedRevenue / Math.max(activeTrainers, 1);
-    
-    // Social & Engagement Metrics
-    const socialEngagementRate = 12.5;
-    const workoutPostsGenerated = completedSessions * 0.65; // 65% post rate
-    const communityGrowthRate = 8.2;
-    const viralCoefficient = 1.3;
-    
-    // NASM Compliance & Quality Metrics
-    const nasmComplianceScore = 96;
-    const assessmentsCompleted = Math.round(activeClients * 0.45);
-    const correctiveExercisePlans = Math.round(assessmentsCompleted * 0.8);
-    const clientProgressTracking = 94;
-    
-    // Operational Efficiency
-    const averageSessionDuration = 62; // minutes
-    const noShowRate = 3.2;
-    const rebookingRate = 87;
-    const referralRate = 23;
-    
-    return {
-      // Core Session Metrics
-      totalSessions,
-      scheduledSessions,
-      completedSessions,
-      availableSessions,
-      cancelledSessions,
-      utilizationRate,
-      completionRate,
-      cancellationRate,
-      
-      // Revenue Metrics
-      averageSessionValue,
-      estimatedRevenue,
-      completedRevenue,
-      projectedMonthlyRevenue,
-      
-      // Client Metrics
-      activeClients,
-      newClientsThisMonth,
-      clientRetentionRate,
-      averageClientLifetime,
-      clientLifetimeValue,
-      
-      // Trainer Metrics
-      activeTrainers,
-      averageTrainerUtilization,
-      trainerSatisfactionScore,
-      averageTrainerRevenue,
-      
-      // Social & Engagement
-      socialEngagementRate,
-      workoutPostsGenerated,
-      communityGrowthRate,
-      viralCoefficient,
-      
-      // NASM & Quality
-      nasmComplianceScore,
-      assessmentsCompleted,
-      correctiveExercisePlans,
-      clientProgressTracking,
-      
-      // Operational Efficiency
-      averageSessionDuration,
-      noShowRate,
-      rebookingRate,
-      referralRate
-    };
-  }, [sessions, clients, trainers]);
-  
-  // Key Performance Indicators for Executive Dashboard
-  const executiveKPIs = useMemo(() => {
-    const metrics = comprehensiveBusinessMetrics;
-    
-    return {
-      monthlyRecurringRevenue: metrics.projectedMonthlyRevenue,
-      customerAcquisitionCost: 85, // Industry average
-      clientLifetimeValue: metrics.clientLifetimeValue,
-      churnRate: 100 - metrics.clientRetentionRate,
-      netPromoterScore: 72, // Excellent NPS
-      revenuePerSession: metrics.averageSessionValue,
-      trainerProductivity: metrics.averageTrainerRevenue,
-      operationalEfficiency: (metrics.utilizationRate + metrics.completionRate) / 2,
-      socialROI: metrics.socialEngagementRate * 15, // Social engagement impact
-      complianceScore: metrics.nasmComplianceScore
-    };
-  }, [comprehensiveBusinessMetrics]);
-  
-  // ==================== REAL CHART DATA PROCESSING ====================
-  
-  const revenueChartData = useMemo(() => {
-    return processRevenueData(sessions);
-  }, [sessions]);
-  
-  const trainerChartData = useMemo(() => {
-    return processTrainerData(trainers, sessions);
-  }, [trainers, sessions]);
-  
-  const sessionDistributionData = useMemo(() => {
-    return processSessionDistribution(sessions);
-  }, [sessions]);
-  
-  // ==================== BULK OPERATIONS ====================
-  
-  const toggleMultiSelect = useCallback(() => {
-    setMultiSelect(prev => ({
-      ...prev,
-      enabled: !prev.enabled,
-      selectedEvents: [],
-      bulkActionMode: false,
-      selectedAction: null
-    }));
-  }, []);
-  
-  const toggleEventSelection = useCallback((eventId: string) => {
-    setMultiSelect(prev => ({
-      ...prev,
-      selectedEvents: prev.selectedEvents.includes(eventId)
-        ? prev.selectedEvents.filter(id => id !== eventId)
-        : [...prev.selectedEvents, eventId]
-    }));
-  }, []);
-  
-  const selectAllEvents = useCallback(() => {
-    setMultiSelect(prev => ({
-      ...prev,
-      selectedEvents: calendarEvents.map(event => event.id)
-    }));
-  }, [calendarEvents]);
-  
-  const clearSelection = useCallback(() => {
-    setMultiSelect(prev => ({
-      ...prev,
-      selectedEvents: [],
-      bulkActionMode: false,
-      selectedAction: null
-    }));
-  }, []);
-  
-  // ==================== EVENT HANDLERS ====================
-  
-  const handleSelectSlot = useCallback((slotInfo: SlotInfo) => {
-    if (multiSelect.enabled) return;
-    
-    // Create new session slot
-    setSessionFormMode('create');
-    setSessionFormInitialData({
-      start: slotInfo.start,
-      end: slotInfo.end,
-      initialDate: slotInfo.start,
-      initialTrainer: ''
-    });
-    
-    setDialogs(prev => ({ ...prev, sessionFormDialog: true }));
-    
-    if (hapticFeedback) {
-      hapticFeedback();
-    }
-  }, [multiSelect.enabled, hapticFeedback]);
-  
-  const handleSelectEvent = useCallback((event: SessionEvent) => {
-    if (multiSelect.enabled) {
-      toggleEventSelection(event.id);
-      return;
-    }
-    
-    // Edit existing session
-    setSessionFormMode('edit');
-    setSelectedEvent(event);
-    setSessionFormInitialData({
-      session: event,
-      initialDate: event.start,
-      initialTrainer: event.trainerId || ''
-    });
-    
-    setDialogs(prev => ({ ...prev, sessionFormDialog: true }));
-    
-    if (hapticFeedback) {
-      hapticFeedback();
-    }
-  }, [multiSelect.enabled, hapticFeedback, toggleEventSelection]);
-  
-  const handleEventDrop = useCallback(async ({ event, start, end }) => {
-    try {
-      setLoading(prev => ({ ...prev, sessions: true }));
-      
-      // Update session via service
-      await sessionService.moveSession(event.id, start, end);
-      
-      // Refresh data
-      await refreshData();
-      
-      toast({
-        title: 'Session Updated',
-        description: 'Session has been moved successfully',
-        variant: 'default'
-      });
-      
-      if (hapticFeedback) {
-        hapticFeedback();
-      }
-      
-    } catch (error) {
-      console.error('Error moving session:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to move session. Please try again.',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(prev => ({ ...prev, sessions: false }));
-    }
-  }, [refreshData, toast, hapticFeedback]);
-  
-  const handleEventResize = useCallback(async ({ event, start, end }) => {
-    try {
-      setLoading(prev => ({ ...prev, sessions: true }));
-      
-      // Update session duration via service
-      await sessionService.resizeSession(event.id, start, end);
-      
-      // Refresh data
-      await refreshData();
-      
-      toast({
-        title: 'Session Updated',
-        description: 'Session duration has been updated',
-        variant: 'default'
-      });
-      
-    } catch (error) {
-      console.error('Error resizing session:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update session duration. Please try again.',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(prev => ({ ...prev, sessions: false }));
-    }
-  }, [refreshData, toast]);
-  
-  const initiateBulkAction = useCallback((action: BulkActionType) => {
-    if (multiSelect.selectedEvents.length === 0) return;
-    
-    setBulkActionType(action);
-    setDialogs(prev => ({ ...prev, bulkActionDialog: true }));
-  }, [multiSelect.selectedEvents]);
-  
-  const handleBulkActionComplete = useCallback(async (results: any[]) => {
-    // Refresh data after bulk action completion
-    await refreshData();
-    
-    // Clear selection
-    clearSelection();
-    
-    // Close dialog
-    setDialogs(prev => ({ ...prev, bulkActionDialog: false }));
-  }, [refreshData, clearSelection]);
-  
-  const handleSessionSaved = useCallback(async (session: Session) => {
-    // Refresh data after session is saved
-    await refreshData();
-    
-    // Close dialog
-    setDialogs(prev => ({ ...prev, sessionFormDialog: false }));
-    
-    toast({
-      title: 'Session Saved',
-      description: `Session has been ${sessionFormMode === 'create' ? 'created' : 'updated'} successfully`,
-      variant: 'default'
-    });
-  }, [refreshData, sessionFormMode, toast]);
-  
-  // ==================== DIALOG MANAGEMENT ====================
-  
-  const openDialog = useCallback((dialogName: keyof DialogState) => {
-    setDialogs(prev => ({ ...prev, [dialogName]: true }));
-  }, []);
-  
-  const closeDialog = useCallback((dialogName: keyof DialogState) => {
-    setDialogs(prev => ({ ...prev, [dialogName]: false }));
-  }, []);
-  
-  const closeAllDialogs = useCallback(() => {
-    setDialogs({
-      eventDialog: false,
-      assignmentDialog: false,
-      statsDialog: false,
-      filterDialog: false,
-      bulkActionDialog: false,
-      sessionFormDialog: false
-    });
-  }, []);
-  
-  // ==================== UTILITY FUNCTIONS ====================
-  
-  const getSessionTitle = (session: any): string => {
-    if (session.client) {
-      return `${session.client.firstName} ${session.client.lastName}`;
-    }
-    if (session.trainer) {
-      return `Available - ${session.trainer.firstName}`;
-    }
-    return 'Available Slot';
-  };
-  
-  const getEventStyle = (event: SessionEvent) => {
-    const baseStyle = {
-      borderRadius: '4px',
-      border: 'none',
-      color: 'white',
-      fontSize: '0.75rem',
-      fontWeight: '500'
-    };
-    
-    switch (event.status) {
-      case 'available':
-        return { ...baseStyle, backgroundColor: '#22c55e' };
-      case 'booked':
-      case 'scheduled':
-        return { ...baseStyle, backgroundColor: '#3b82f6' };
-      case 'confirmed':
-        return { ...baseStyle, backgroundColor: '#0ea5e9' };
-      case 'completed':
-        return { ...baseStyle, backgroundColor: '#6c757d' };
-      case 'cancelled':
-        return { ...baseStyle, backgroundColor: '#ef4444' };
-      default:
-        return { ...baseStyle, backgroundColor: '#3b82f6' };
-    }
-  };
-  
-  const setupEventListeners = () => {
-    // Setup keyboard shortcuts
-    const handleKeyPress = (event: KeyboardEvent) => {
-      if (event.ctrlKey || event.metaKey) {
-        switch (event.key) {
-          case 'a':
-            event.preventDefault();
-            if (multiSelect.enabled) {
-              selectAllEvents();
-            }
-            break;
-          case 'Escape':
-            event.preventDefault();
-            if (multiSelect.enabled) {
-              toggleMultiSelect();
-            } else {
-              closeAllDialogs();
-            }
-            break;
-        }
-      }
-    };
-    
-    document.addEventListener('keydown', handleKeyPress);
-  };
-  
-  const cleanupEventListeners = () => {
-    // Cleanup will be handled by useEffect cleanup
-  };
-  
-  const initializeRealTimeUpdates = () => {
-    // WebSocket or similar real-time update implementation
-    console.log('\uD83D\uDD04 Real-time updates initialized');
-  };
-  
-  // ==================== RENDER CONDITIONS ====================
+  // ==================== LOADING STATE ====================
   
   if (loading.sessions && calendarEvents.length === 0) {
     return (
@@ -1199,6 +335,8 @@ const UniversalMasterSchedule: React.FC = () => {
       </LoadingContainer>
     );
   }
+  
+  // ==================== ERROR STATE ====================
   
   if (error.sessions && calendarEvents.length === 0) {
     return (
@@ -1220,7 +358,6 @@ const UniversalMasterSchedule: React.FC = () => {
             variant="primary"
             leftIcon={<RefreshCw size={18} />}
             onClick={() => {
-              setError(prev => ({ ...prev, sessions: null }));
               initializeComponent();
             }}
           />
@@ -1312,27 +449,29 @@ const UniversalMasterSchedule: React.FC = () => {
                   variant="emerald"
                   size="small"
                   leftIcon={<Filter size={16} />}
-                  onClick={() => setDialogs(prev => ({ ...prev, filterDialog: true }))}
+                  onClick={() => openDialog('filterDialog')}
                 />
                 
                 {/* Refresh */}
                 <Tooltip title="Refresh Data">
-                  <IconButton
+                  <EnhancedIconButton
                     onClick={refreshData}
                     disabled={loading.sessions}
-                    sx={{ color: 'white' }}
                   >
                     <RefreshCw size={20} style={{ 
                       animation: loading.sessions ? 'spin 1s linear infinite' : 'none' 
                     }} />
-                  </IconButton>
+                  </EnhancedIconButton>
                 </Tooltip>
               </HeaderActions>
             </HeaderSection>
             
             {/* Executive KPI Bar - Always Visible */}
             <ExecutiveKPIBar>
-              <KPIItem>
+              <KPIItem 
+                onClick={() => handleAnalyticsViewChange('business')}
+                style={{ cursor: 'pointer' }}
+              >
                 <KPIIcon>
                   <DollarSign size={18} />
                 </KPIIcon>
@@ -1342,7 +481,10 @@ const UniversalMasterSchedule: React.FC = () => {
                 </KPIContent>
               </KPIItem>
               
-              <KPIItem>
+              <KPIItem
+                onClick={() => handleAnalyticsViewChange('trainers')}
+                style={{ cursor: 'pointer' }}
+              >
                 <KPIIcon>
                   <Users size={18} />
                 </KPIIcon>
@@ -1352,7 +494,13 @@ const UniversalMasterSchedule: React.FC = () => {
                 </KPIContent>
               </KPIItem>
               
-              <KPIItem>
+              <KPIItem
+                onClick={() => {
+                  setFilterOptions(prev => ({ ...prev, status: 'scheduled' }));
+                  openDialog('filterDialog');
+                }}
+                style={{ cursor: 'pointer' }}
+              >
                 <KPIIcon>
                   <Target size={18} />
                 </KPIIcon>
@@ -1372,7 +520,10 @@ const UniversalMasterSchedule: React.FC = () => {
                 </KPIContent>
               </KPIItem>
               
-              <KPIItem>
+              <KPIItem
+                onClick={() => handleAnalyticsViewChange('social')}
+                style={{ cursor: 'pointer' }}
+              >
                 <KPIIcon>
                   <Activity size={18} />
                 </KPIIcon>
@@ -1399,7 +550,7 @@ const UniversalMasterSchedule: React.FC = () => {
                       <BulkActionsContent>
                         <div>
                           <Typography variant="h6" sx={{ color: 'white' }}>
-                            {multiSelect.selectedEvents.length} sessions selected
+                            {selectedCount} sessions selected
                           </Typography>
                           <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                             Choose an action to apply to all selected sessions
@@ -1431,7 +582,7 @@ const UniversalMasterSchedule: React.FC = () => {
                             size="small"
                             leftIcon={<CheckCircle size={16} />}
                             onClick={() => initiateBulkAction('confirm')}
-                            disabled={multiSelect.selectedEvents.length === 0 || loading.bulkOperation}
+                            disabled={!canPerformBulkActions}
                           />
                           
                           <GlowButton
@@ -1440,7 +591,7 @@ const UniversalMasterSchedule: React.FC = () => {
                             size="small"
                             leftIcon={<X size={16} />}
                             onClick={() => initiateBulkAction('cancel')}
-                            disabled={multiSelect.selectedEvents.length === 0 || loading.bulkOperation}
+                            disabled={!canPerformBulkActions}
                           />
                           
                           <GlowButton
@@ -1449,7 +600,7 @@ const UniversalMasterSchedule: React.FC = () => {
                             size="small"
                             leftIcon={<Move size={16} />}
                             onClick={() => initiateBulkAction('reassign')}
-                            disabled={multiSelect.selectedEvents.length === 0}
+                            disabled={!canPerformBulkActions}
                           />
                           
                           <GlowButton
@@ -1458,7 +609,7 @@ const UniversalMasterSchedule: React.FC = () => {
                             size="small"
                             leftIcon={<Trash2 size={16} />}
                             onClick={() => initiateBulkAction('delete')}
-                            disabled={multiSelect.selectedEvents.length === 0 || loading.bulkOperation}
+                            disabled={!canPerformBulkActions}
                           />
                         </BulkActionButtons>
                       </BulkActionsContent>
@@ -1466,93 +617,29 @@ const UniversalMasterSchedule: React.FC = () => {
                   )}
                 </AnimatePresence>
                 
-                {/* Calendar Container */}
+                {/* Calendar Container - Using Extracted Render Logic */}
                 <CalendarContainer>
-                  {isCalendarInitialized && localizer && DragAndDropCalendar ? (
-                    <ErrorBoundary>
-                      <DragAndDropCalendar
-                        ref={calendarRef}
-                        localizer={localizer}
-                        events={calendarEvents}
-                        startAccessor="start"
-                        endAccessor="end"
-                        style={{ height: '100%' }}
-                        view={view}
-                        onView={setView}
-                        date={selectedDate}
-                        onNavigate={setSelectedDate}
-                        onSelectSlot={handleSelectSlot}
-                        onSelectEvent={handleSelectEvent}
-                        onEventDrop={handleEventDrop}
-                        onEventResize={handleEventResize}
-                        selectable
-                        resizable
-                        popup
-                        eventPropGetter={event => ({
-                          style: {
-                            ...getEventStyle(event),
-                            opacity: multiSelect.selectedEvents.includes(event.id) ? 0.8 : 1,
-                            border: multiSelect.selectedEvents.includes(event.id) 
-                              ? '2px solid #00ffff' 
-                              : 'none'
-                          }
-                        })}
-                        views={['month', 'week', 'day', 'agenda']}
-                        step={15}
-                        timeslots={4}
-                        min={new Date(2024, 0, 1, 6, 0)}
-                        max={new Date(2024, 0, 1, 22, 0)}
-                        components={{
-                          event: ({ event }) => (
-                            <motion.div
-                              style={{ height: '100%', width: '100%' }}
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                            >
-                              <div style={{ padding: '2px 4px' }}>
-                                <div style={{ fontWeight: 'bold', fontSize: '0.7rem' }}>
-                                  {event.title}
-                                </div>
-                                {event.trainer && (
-                                  <div style={{ fontSize: '0.6rem', opacity: 0.9 }}>
-                                    {event.trainer.firstName}
-                                  </div>
-                                )}
-                              </div>
-                            </motion.div>
-                          )
-                        }}
-                      />
-                    </ErrorBoundary>
-                  ) : (
-                    <CalendarFallback
-                      events={calendarEvents}
-                      onEventClick={handleSelectEvent}
-                      onSlotClick={(date) => handleSelectSlot({ start: date, end: new Date(date.getTime() + 60 * 60 * 1000) } as SlotInfo)}
-                      onCreateSession={() => {
-                        setSessionFormMode('create');
-                        setSessionFormInitialData({
-                          start: new Date(),
-                          end: new Date(Date.now() + 60 * 60 * 1000),
-                          initialDate: new Date(),
-                          initialTrainer: ''
-                        });
-                        setDialogs(prev => ({ ...prev, sessionFormDialog: true }));
-                      }}
-                      onFilterChange={(filters) => {
-                        setFilterOptions(prev => ({
-                          ...prev,
-                          status: filters.status || 'all',
-                          searchTerm: filters.search || ''
-                        }));
-                      }}
-                      showQuickActions={true}
-                      compactView={compactView}
-                      clientsCount={comprehensiveBusinessMetrics.activeClients}
-                      utilizationRate={comprehensiveBusinessMetrics.utilizationRate}
-                      completionRate={comprehensiveBusinessMetrics.completionRate}
-                    />
-                  )}
+                  {renderCalendar({
+                    isCalendarInitialized,
+                    localizer,
+                    DragAndDropCalendar,
+                    calendarEvents,
+                    view,
+                    selectedDate,
+                    onSelectSlot: handleSelectSlot,
+                    onSelectEvent: handleSelectEvent,
+                    onEventDrop: handleEventDrop,
+                    onEventResize: handleEventResize,
+                    onView: setView,
+                    onNavigate: setSelectedDate,
+                    multiSelectEnabled: multiSelect.enabled,
+                    selectedEvents: multiSelect.selectedEvents,
+                    compactView: false,
+                    clientsCount: comprehensiveBusinessMetrics.activeClients,
+                    utilizationRate: comprehensiveBusinessMetrics.utilizationRate,
+                    completionRate: comprehensiveBusinessMetrics.completionRate,
+                    calendarRef
+                  })}
                 </CalendarContainer>
               </>
             )}
@@ -1612,11 +699,11 @@ const UniversalMasterSchedule: React.FC = () => {
                       </MetricCard>
                     </Grid>
 
-                    {/* Additional metrics cards */}
+                    {/* Enhanced KPIs with Insights */}
                     <Grid item xs={12} lg={8}>
                       <MetricCard>
                         <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
-                          Key Performance Indicators
+                          Key Performance Indicators & Insights
                         </Typography>
                         <Grid container spacing={2}>
                           <Grid item xs={6} md={3}>
@@ -1660,6 +747,22 @@ const UniversalMasterSchedule: React.FC = () => {
                             </MetricItem>
                           </Grid>
                         </Grid>
+                        
+                        {/* AI-Generated Insights */}
+                        <div style={{ marginTop: '1.5rem' }}>
+                          <Typography variant="subtitle1" sx={{ color: 'white', mb: 1 }}>
+                            💡 AI-Generated Insights
+                          </Typography>
+                          {generateInsights().map((insight, index) => (
+                            <Typography 
+                              key={index}
+                              variant="body2" 
+                              sx={{ color: 'rgba(255, 255, 255, 0.8)', mb: 0.5 }}
+                            >
+                              {insight}
+                            </Typography>
+                          ))}
+                        </div>
                       </MetricCard>
                     </Grid>
                   </Grid>
@@ -1699,7 +802,6 @@ const UniversalMasterSchedule: React.FC = () => {
                 <SessionAllocationManager 
                   onAllocationUpdate={(allocation) => {
                     console.log('💰 Session allocation updated:', allocation);
-                    // Trigger dashboard sync
                     refreshData();
                   }}
                   showControls={true}
@@ -1731,7 +833,7 @@ const UniversalMasterSchedule: React.FC = () => {
         {/* Session Form Dialog */}
         <SessionFormDialog
           open={dialogs.sessionFormDialog}
-          onClose={() => setDialogs(prev => ({ ...prev, sessionFormDialog: false }))}
+          onClose={() => closeDialog('sessionFormDialog')}
           mode={sessionFormMode}
           session={sessionFormInitialData?.session}
           clients={clients}
@@ -1744,25 +846,22 @@ const UniversalMasterSchedule: React.FC = () => {
         {/* Bulk Actions Confirmation Dialog */}
         <BulkActionsConfirmationDialog
           open={dialogs.bulkActionDialog}
-          onClose={() => setDialogs(prev => ({ ...prev, bulkActionDialog: false }))}
+          onClose={() => closeDialog('bulkActionDialog')}
           action={bulkActionType}
-          selectedSessions={calendarEvents.filter(event => 
-            multiSelect.selectedEvents.includes(event.id)
-          )}
+          selectedSessions={selectedSessionsData}
           onActionComplete={handleBulkActionComplete}
         />
         
         {/* Advanced Filter Dialog */}
         <AdvancedFilterDialog
           open={dialogs.filterDialog}
-          onClose={() => setDialogs(prev => ({ ...prev, filterDialog: false }))}
+          onClose={() => closeDialog('filterDialog')}
           currentFilters={filterOptions}
           onFiltersChange={setFilterOptions}
           sessions={sessions}
           clients={clients}
           trainers={trainers}
           onExportFiltered={(filteredSessions) => {
-            // Handle export functionality
             console.log('Exporting filtered sessions:', filteredSessions);
           }}
         />
@@ -1773,7 +872,7 @@ const UniversalMasterSchedule: React.FC = () => {
 
 export default UniversalMasterSchedule;
 
-// ==================== STYLED COMPONENTS ====================
+// ==================== STYLED COMPONENTS (Unchanged for Visual Consistency) ====================
 
 const ScheduleContainer = styled.div`
   height: 100%;
@@ -1831,7 +930,6 @@ const HeaderActions = styled.div`
   }
 `;
 
-// View Toggle Components
 const ViewToggleGroup = styled.div`
   display: flex;
   background: rgba(255, 255, 255, 0.05);
@@ -1887,7 +985,6 @@ const ViewToggleButton = styled.button<{ active: boolean }>`
   }
 `;
 
-// Executive KPI Bar Components
 const ExecutiveKPIBar = styled.div`
   display: flex;
   gap: 1.5rem;
@@ -2168,8 +1265,7 @@ const LoadingOverlay = styled(motion.div)`
   backdrop-filter: blur(4px);
 `;
 
-// Enhanced Icon Button
-const IconButton = styled.button`
+const EnhancedIconButton = styled.button`
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
@@ -2179,6 +1275,7 @@ const IconButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
+  color: white;
   
   &:hover {
     background: rgba(255, 255, 255, 0.2);
