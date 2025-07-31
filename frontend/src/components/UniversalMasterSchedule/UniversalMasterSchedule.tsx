@@ -852,12 +852,12 @@ const UniversalMasterSchedule: React.FC = () => {
       initialTrainer: ''
     });
     
-    openDialog('sessionFormDialog');
+    setDialogs(prev => ({ ...prev, sessionFormDialog: true }));
     
     if (hapticFeedback) {
       hapticFeedback();
     }
-  }, [multiSelect.enabled, hapticFeedback, openDialog, setSessionFormMode, setSessionFormInitialData]);
+  }, [multiSelect.enabled, hapticFeedback]);
   
   const handleSelectEvent = useCallback((event: SessionEvent) => {
     if (multiSelect.enabled) {
@@ -874,12 +874,12 @@ const UniversalMasterSchedule: React.FC = () => {
       initialTrainer: event.trainerId || ''
     });
     
-    openDialog('sessionFormDialog');
+    setDialogs(prev => ({ ...prev, sessionFormDialog: true }));
     
     if (hapticFeedback) {
       hapticFeedback();
     }
-  }, [multiSelect.enabled, hapticFeedback]);
+  }, [multiSelect.enabled, hapticFeedback, toggleEventSelection]);
   
   const handleEventDrop = useCallback(async ({ event, start, end }) => {
     try {
@@ -982,7 +982,7 @@ const UniversalMasterSchedule: React.FC = () => {
     if (multiSelect.selectedEvents.length === 0) return;
     
     setBulkActionType(action);
-    openDialog('bulkActionDialog');
+    setDialogs(prev => ({ ...prev, bulkActionDialog: true }));
   }, [multiSelect.selectedEvents]);
   
   const handleBulkActionComplete = useCallback(async (results: any[]) => {
@@ -993,7 +993,7 @@ const UniversalMasterSchedule: React.FC = () => {
     clearSelection();
     
     // Close dialog
-    closeDialog('bulkActionDialog');
+    setDialogs(prev => ({ ...prev, bulkActionDialog: false }));
   }, [refreshData, clearSelection]);
   
   const handleSessionSaved = useCallback(async (session: Session) => {
@@ -1001,7 +1001,7 @@ const UniversalMasterSchedule: React.FC = () => {
     await refreshData();
     
     // Close dialog
-    closeDialog('sessionFormDialog');
+    setDialogs(prev => ({ ...prev, sessionFormDialog: false }));
     
     toast({
       title: 'Session Saved',
@@ -1232,7 +1232,7 @@ const UniversalMasterSchedule: React.FC = () => {
                   variant="emerald"
                   size="small"
                   leftIcon={<Filter size={16} />}
-                  onClick={() => openDialog('filterDialog')}
+                  onClick={() => setDialogs(prev => ({ ...prev, filterDialog: true }))}
                 />
                 
                 {/* Refresh */}
@@ -1457,7 +1457,7 @@ const UniversalMasterSchedule: React.FC = () => {
                           initialDate: new Date(),
                           initialTrainer: ''
                         });
-                        openDialog('sessionFormDialog');
+                        setDialogs(prev => ({ ...prev, sessionFormDialog: true }));
                       }}
                       onFilterChange={(filters) => {
                         setFilterOptions(prev => ({
@@ -1651,7 +1651,7 @@ const UniversalMasterSchedule: React.FC = () => {
         {/* Session Form Dialog */}
         <SessionFormDialog
           open={dialogs.sessionFormDialog}
-          onClose={() => closeDialog('sessionFormDialog')}
+          onClose={() => setDialogs(prev => ({ ...prev, sessionFormDialog: false }))}
           mode={sessionFormMode}
           session={sessionFormInitialData?.session}
           clients={clients}
@@ -1664,7 +1664,7 @@ const UniversalMasterSchedule: React.FC = () => {
         {/* Bulk Actions Confirmation Dialog */}
         <BulkActionsConfirmationDialog
           open={dialogs.bulkActionDialog}
-          onClose={() => closeDialog('bulkActionDialog')}
+          onClose={() => setDialogs(prev => ({ ...prev, bulkActionDialog: false }))}
           action={bulkActionType}
           selectedSessions={calendarEvents.filter(event => 
             multiSelect.selectedEvents.includes(event.id)
@@ -1675,7 +1675,7 @@ const UniversalMasterSchedule: React.FC = () => {
         {/* Advanced Filter Dialog */}
         <AdvancedFilterDialog
           open={dialogs.filterDialog}
-          onClose={() => closeDialog('filterDialog')}
+          onClose={() => setDialogs(prev => ({ ...prev, filterDialog: false }))}
           currentFilters={filterOptions}
           onFiltersChange={setFilterOptions}
           sessions={sessions}
