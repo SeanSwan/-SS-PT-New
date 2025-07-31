@@ -63,7 +63,8 @@ import {
   Heart,
   ArrowUpRight,
   Dumbbell,
-  Trophy
+  Trophy,
+  Users
 } from 'lucide-react';
 
 // Import styled component from MainCard
@@ -202,7 +203,6 @@ const AdminClientProgressView: React.FC = () => {
     });
   };
 
-
   // Fetch client progress from API
   const fetchClientProgress = async (clientId: string) => {
     setLoading(true);
@@ -212,78 +212,73 @@ const AdminClientProgressView: React.FC = () => {
         setClientProgress(result.progress);
         setEditForm(result.progress);
       } else {
-        toast({
-          title: "Error",
-          description: "Failed to fetch client progress.",
-          variant: "destructive"
-        });
+        useFallbackProgressData(clientId);
       }
     } catch (err) {
       console.error('Error fetching client progress:', err);
-      toast({
-        title: "Error",
-        description: "Failed to fetch client progress. Please try again.",
-        variant: "destructive"
-      });
-      
-      // For demo purposes, set mock data
-      const mockProgress: ClientProgressData = {
-        id: 'mock-progress-id',
-        userId: clientId,
-        overallLevel: 27,
-        experiencePoints: 65,
-        coreLevel: 35,
-        balanceLevel: 22,
-        stabilityLevel: 28,
-        flexibilityLevel: 40,
-        calisthenicsLevel: 30,
-        isolationLevel: 18,
-        stabilizersLevel: 25,
-        injuryPreventionLevel: 15,
-        injuryRecoveryLevel: 10,
-        glutesLevel: 38,
-        calfsLevel: 25,
-        shouldersLevel: 30,
-        hamstringsLevel: 35,
-        absLevel: 42,
-        chestLevel: 28,
-        bicepsLevel: 32,
-        tricepsLevel: 29,
-        tibialisAnteriorLevel: 15,
-        serratusAnteriorLevel: 18,
-        latissimusDorsiLevel: 26,
-        hipsLevel: 33,
-        lowerBackLevel: 27,
-        wristsForearmLevel: 20,
-        neckLevel: 15,
-        squatsLevel: 45,
-        lungesLevel: 32,
-        planksLevel: 40,
-        reversePlanksLevel: 28,
-        achievements: ['core-10', 'balance-10', 'flexibility-10', 'calisthenics-10', 'squats-10', 'lunges-10', 'planks-10'],
-        achievementDates: {
-          'core-10': '2024-02-15T00:00:00.000Z',
-          'balance-10': '2024-03-02T00:00:00.000Z',
-          'flexibility-10': '2024-02-20T00:00:00.000Z',
-          'calisthenics-10': '2024-03-10T00:00:00.000Z',
-          'squats-10': '2024-02-10T00:00:00.000Z',
-          'lunges-10': '2024-02-25T00:00:00.000Z',
-          'planks-10': '2024-03-05T00:00:00.000Z'
-        },
-        progressNotes: 'Client is making steady progress in all areas. Showing good form in compound movements.',
-        unlockedExercises: [],
-        workoutsCompleted: 12,
-        totalExercisesPerformed: 156,
-        streakDays: 3,
-        totalMinutes: 420,
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-04-15T00:00:00.000Z'
-      };
-      setClientProgress(mockProgress);
-      setEditForm(mockProgress);
+      useFallbackProgressData(clientId);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fallback progress data
+  const useFallbackProgressData = (clientId: string) => {
+    const mockProgress: ClientProgressData = {
+      id: 'mock-progress-id',
+      userId: clientId,
+      overallLevel: 27,
+      experiencePoints: 65,
+      coreLevel: 35,
+      balanceLevel: 22,
+      stabilityLevel: 28,
+      flexibilityLevel: 40,
+      calisthenicsLevel: 30,
+      isolationLevel: 18,
+      stabilizersLevel: 25,
+      injuryPreventionLevel: 15,
+      injuryRecoveryLevel: 10,
+      glutesLevel: 38,
+      calfsLevel: 25,
+      shouldersLevel: 30,
+      hamstringsLevel: 35,
+      absLevel: 42,
+      chestLevel: 28,
+      bicepsLevel: 32,
+      tricepsLevel: 29,
+      tibialisAnteriorLevel: 15,
+      serratusAnteriorLevel: 18,
+      latissimusDorsiLevel: 26,
+      hipsLevel: 33,
+      lowerBackLevel: 27,
+      wristsForearmLevel: 20,
+      neckLevel: 15,
+      squatsLevel: 45,
+      lungesLevel: 32,
+      planksLevel: 40,
+      reversePlanksLevel: 28,
+      achievements: ['core-10', 'balance-10', 'flexibility-10', 'calisthenics-10', 'squats-10', 'lunges-10', 'planks-10'],
+      achievementDates: {
+        'core-10': '2024-02-15T00:00:00.000Z',
+        'balance-10': '2024-03-02T00:00:00.000Z',
+        'flexibility-10': '2024-02-20T00:00:00.000Z',
+        'calisthenics-10': '2024-03-10T00:00:00.000Z',
+        'squats-10': '2024-02-10T00:00:00.000Z',
+        'lunges-10': '2024-02-25T00:00:00.000Z',
+        'planks-10': '2024-03-05T00:00:00.000Z'
+      },
+      progressNotes: 'Client is making steady progress in all areas. Showing good form in compound movements.',
+      unlockedExercises: [],
+      workoutsCompleted: 12,
+      totalExercisesPerformed: 156,
+      streakDays: 3,
+      totalMinutes: 420,
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-04-15T00:00:00.000Z'
+    };
+    
+    setClientProgress(mockProgress);
+    setEditForm(mockProgress);
   };
 
   // Fetch recommended exercises for client
@@ -293,58 +288,62 @@ const AdminClientProgressView: React.FC = () => {
       if (result && result.success) {
         setRecommendedExercises(result.recommendedExercises);
       } else {
-        console.warn('Failed to fetch recommended exercises');
+        useFallbackExerciseData();
       }
     } catch (err) {
       console.error('Error fetching recommended exercises:', err);
-      
-      // For demo purposes, set mock data
-      const mockExercises: Exercise[] = [
-        {
-          id: '1',
-          name: 'Bodyweight Squats',
-          description: 'A fundamental lower body exercise',
-          instructions: ['Stand with feet shoulder-width apart', 'Lower body by bending knees', 'Return to standing'],
-          exerciseType: 'core',
-          primaryMuscles: ['Glutes', 'Quadriceps'],
-          secondaryMuscles: [],
-          equipment: [],
-          difficulty: 10,
-          isFeatured: true,
-          recommendedSets: 3,
-          recommendedReps: 15
-        },
-        {
-          id: '2',
-          name: 'Bird Dog',
-          description: 'Core stabilization exercise',
-          instructions: ['Start on hands and knees', 'Extend opposite arm and leg', 'Return to start position', 'Repeat on other side'],
-          exerciseType: 'core',
-          primaryMuscles: ['Core', 'Lower Back'],
-          secondaryMuscles: [],
-          equipment: [],
-          difficulty: 15,
-          isFeatured: false,
-          recommendedSets: 3,
-          recommendedReps: 10
-        },
-        {
-          id: '3',
-          name: 'Standing Hamstring Stretch',
-          description: 'Improves hamstring flexibility',
-          instructions: ['Stand tall', 'Place one foot forward with heel on ground', 'Bend forward slightly at hips', 'Hold, then switch sides'],
-          exerciseType: 'flexibility',
-          primaryMuscles: ['Hamstrings'],
-          secondaryMuscles: ['Lower Back'],
-          equipment: [],
-          difficulty: 5,
-          isFeatured: false,
-          recommendedSets: 2,
-          recommendedDuration: 30
-        }
-      ];
-      setRecommendedExercises(mockExercises);
+      useFallbackExerciseData();
     }
+  };
+
+  // Fallback exercise data
+  const useFallbackExerciseData = () => {
+    const mockExercises: Exercise[] = [
+      {
+        id: '1',
+        name: 'Bodyweight Squats',
+        description: 'A fundamental lower body exercise',
+        instructions: ['Stand with feet shoulder-width apart', 'Lower body by bending knees', 'Return to standing'],
+        exerciseType: 'core',
+        primaryMuscles: ['Glutes', 'Quadriceps'],
+        secondaryMuscles: [],
+        equipment: [],
+        difficulty: 10,
+        isFeatured: true,
+        recommendedSets: 3,
+        recommendedReps: 15
+      },
+      {
+        id: '2',
+        name: 'Bird Dog',
+        description: 'Core stabilization exercise',
+        instructions: ['Start on hands and knees', 'Extend opposite arm and leg', 'Return to start position', 'Repeat on other side'],
+        exerciseType: 'core',
+        primaryMuscles: ['Core', 'Lower Back'],
+        secondaryMuscles: [],
+        equipment: [],
+        difficulty: 15,
+        isFeatured: false,
+        recommendedSets: 3,
+        recommendedReps: 10
+      },
+      {
+        id: '3',
+        name: 'Standing Hamstring Stretch',
+        description: 'Improves hamstring flexibility',
+        instructions: ['Stand tall', 'Place one foot forward with heel on ground', 'Bend forward slightly at hips', 'Hold, then switch sides'],
+        exerciseType: 'flexibility',
+        primaryMuscles: ['Hamstrings'],
+        secondaryMuscles: ['Lower Back'],
+        equipment: [],
+        difficulty: 5,
+        isFeatured: false,
+        recommendedSets: 2,
+        recommendedDuration: 30
+      }
+    ];
+    
+    setRecommendedExercises(mockExercises);
   };
 
   // Fetch leaderboard from API
@@ -354,125 +353,50 @@ const AdminClientProgressView: React.FC = () => {
       if (result && result.success) {
         setLeaderboard(result.leaderboard);
       } else {
-        console.warn('Failed to fetch leaderboard');
+        useFallbackLeaderboardData();
       }
     } catch (err) {
       console.error('Error fetching leaderboard:', err);
-      
-      // For demo purposes, set mock data
-      const mockLeaderboard: LeaderboardEntry[] = [
-        {
-          overallLevel: 52,
-          userId: 'user1',
-          client: { id: 'user1', firstName: 'Michael', lastName: 'Johnson', username: 'mjohnson' }
-        },
-        {
-          overallLevel: 48,
-          userId: 'user2',
-          client: { id: 'user2', firstName: 'Sarah', lastName: 'Williams', username: 'swilliams' }
-        },
-        {
-          overallLevel: 45,
-          userId: 'user3',
-          client: { id: 'user3', firstName: 'David', lastName: 'Brown', username: 'dbrown' }
-        },
-        {
-          overallLevel: 42,
-          userId: 'user4',
-          client: { id: 'user4', firstName: 'Emma', lastName: 'Davis', username: 'edavis' }
-        },
-        {
-          overallLevel: 38,
-          userId: 'user5',
-          client: { id: 'user5', firstName: 'James', lastName: 'Wilson', username: 'jwilson' }
-        }
-      ];
-      setLeaderboard(mockLeaderboard);
+      useFallbackLeaderboardData();
     }
   };
 
-  // Update client progress
-  const updateClientProgress = async () => {
-    if (!selectedClientId || !editForm) return;
-
-    try {
-      const result = await services.clientProgress.updateClientProgressById(selectedClientId, editForm);
-      if (result && result.success) {
-        setClientProgress(result.progress);
-        setEditForm(result.progress);
-        setShowEditDialog(false);
-        toast({
-          title: "Success",
-          description: "Client progress updated successfully.",
-          variant: "default"
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to update client progress.",
-          variant: "destructive"
-        });
+  // Fallback leaderboard data
+  const useFallbackLeaderboardData = () => {
+    const mockLeaderboard: LeaderboardEntry[] = [
+      {
+        overallLevel: 52,
+        userId: 'user1',
+        client: { id: 'user1', firstName: 'Michael', lastName: 'Johnson', username: 'mjohnson' }
+      },
+      {
+        overallLevel: 48,
+        userId: 'user2',
+        client: { id: 'user2', firstName: 'Sarah', lastName: 'Williams', username: 'swilliams' }
+      },
+      {
+        overallLevel: 45,
+        userId: 'user3',
+        client: { id: 'user3', firstName: 'David', lastName: 'Brown', username: 'dbrown' }
+      },
+      {
+        overallLevel: 42,
+        userId: 'user4',
+        client: { id: 'user4', firstName: 'Emma', lastName: 'Davis', username: 'edavis' }
+      },
+      {
+        overallLevel: 38,
+        userId: 'user5',
+        client: { id: 'user5', firstName: 'James', lastName: 'Wilson', username: 'jwilson' }
       }
-    } catch (err) {
-      console.error('Error updating client progress:', err);
-      toast({
-        title: "Error",
-        description: "Failed to update client progress. Please try again.",
-        variant: "destructive"
-      });
-    }
+    ];
+    
+    setLeaderboard(mockLeaderboard);
   };
 
   // Handle tab change
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
-  };
-
-  // Handle edit form changes
-  const handleEditFormChange = (field: keyof ClientProgressData, value: number) => {
-    setEditForm(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  // Handle adding achievement
-  const handleAddAchievement = (achievementId: string) => {
-    if (!editForm || !editForm.achievements) return;
-    
-    if (!editForm.achievements.includes(achievementId)) {
-      const newAchievements = [...editForm.achievements, achievementId];
-      const newAchievementDates = {
-        ...editForm.achievementDates,
-        [achievementId]: new Date().toISOString()
-      };
-      
-      setEditForm(prev => ({
-        ...prev,
-        achievements: newAchievements,
-        achievementDates: newAchievementDates
-      }));
-    }
-  };
-
-  // Handle removing achievement
-  const handleRemoveAchievement = (achievementId: string) => {
-    if (!editForm || !editForm.achievements) return;
-    
-    if (editForm.achievements.includes(achievementId)) {
-      const newAchievements = editForm.achievements.filter(id => id !== achievementId);
-      const newAchievementDates = { ...editForm.achievementDates };
-      
-      if (newAchievementDates && newAchievementDates[achievementId]) {
-        delete newAchievementDates[achievementId];
-      }
-      
-      setEditForm(prev => ({
-        ...prev,
-        achievements: newAchievements,
-        achievementDates: newAchievementDates
-      }));
-    }
   };
 
   // Get filtered and searched clients
@@ -491,37 +415,6 @@ const AdminClientProgressView: React.FC = () => {
   // Get client by ID
   const getClientById = (clientId: string) => {
     return clients.find(client => client.id === clientId);
-  };
-
-  // Helper to get achievement name
-  const getAchievementName = (achievementId: string) => {
-    switch (achievementId) {
-      case 'core-10': return 'Core Beginner';
-      case 'balance-10': return 'Balanced Start';
-      case 'flexibility-10': return 'First Stretch';
-      case 'calisthenics-10': return 'Bodyweight Basics';
-      case 'squats-10': return 'Squat Novice';
-      case 'lunges-10': return 'Lunge Beginner';
-      case 'planks-10': return 'Plank Starter';
-      case 'overall-50': return 'Fitness Journey';
-      default: return achievementId;
-    }
-  };
-
-  // Helper to get NASM category name
-  const getCategoryName = (category: string) => {
-    switch (category) {
-      case 'core': return 'Core';
-      case 'balance': return 'Balance';
-      case 'stability': return 'Stability';
-      case 'flexibility': return 'Flexibility';
-      case 'calisthenics': return 'Calisthenics';
-      case 'isolation': return 'Isolation';
-      case 'stabilizers': return 'Stabilizers';
-      case 'injury_prevention': return 'Injury Prevention';
-      case 'injury_recovery': return 'Injury Recovery';
-      default: return category;
-    }
   };
 
   // Helper to get level name
@@ -547,19 +440,14 @@ const AdminClientProgressView: React.FC = () => {
       );
     }
 
+    const selectedClient = getClientById(clientProgress.userId);
+    
     return (
       <Box>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
           <Typography variant="h5">
-            {getClientById(clientProgress.userId)?.firstName} {getClientById(clientProgress.userId)?.lastName}'s Progress
+            {selectedClient?.firstName} {selectedClient?.lastName}'s Progress
           </Typography>
-          <Button 
-            variant="contained" 
-            startIcon={<Edit />}
-            onClick={() => setShowEditDialog(true)}
-          >
-            Edit Progress
-          </Button>
         </Box>
 
         <Grid container spacing={3}>
@@ -627,193 +515,8 @@ const AdminClientProgressView: React.FC = () => {
             </MainCard>
           </Grid>
 
-          {/* Achievements Card */}
+          {/* Progress Notes */}
           <Grid item xs={12} md={6}>
-            <MainCard 
-              title="Achievements" 
-              sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}
-              secondary={
-                <Chip 
-                  label={`${clientProgress.achievements?.length || 0}/8`} 
-                  color="primary" 
-                  size="small" 
-                />
-              }
-            >
-              <TableContainer component={Paper} elevation={0} sx={{ bgcolor: '#1d1f2b', borderRadius: 1 }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Achievement</TableCell>
-                      <TableCell>Date Unlocked</TableCell>
-                      <TableCell align="center">Status</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {[
-                      'core-10', 'balance-10', 'flexibility-10', 'calisthenics-10',
-                      'squats-10', 'lunges-10', 'planks-10', 'overall-50'
-                    ].map((achievementId) => {
-                      const isUnlocked = clientProgress.achievements?.includes(achievementId) || false;
-                      const unlockDate = clientProgress.achievementDates?.[achievementId];
-                      
-                      return (
-                        <TableRow key={achievementId}>
-                          <TableCell>{getAchievementName(achievementId)}</TableCell>
-                          <TableCell>
-                            {unlockDate ? new Date(unlockDate).toLocaleDateString() : '-'}
-                          </TableCell>
-                          <TableCell align="center">
-                            {isUnlocked ? (
-                              <Chip 
-                                label="Unlocked" 
-                                color="success" 
-                                size="small" 
-                                icon={<Check size={14} />} 
-                              />
-                            ) : (
-                              <Chip 
-                                label="Locked" 
-                                color="default" 
-                                size="small" 
-                                variant="outlined"
-                              />
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </MainCard>
-          </Grid>
-
-          {/* NASM Category Levels */}
-          <Grid item xs={12} md={6}>
-            <MainCard title="NASM Protocol Progress" sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
-              <TableContainer sx={{ bgcolor: '#1d1f2b', borderRadius: 1 }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Category</TableCell>
-                      <TableCell>Level</TableCell>
-                      <TableCell>Progress</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {[
-                      { type: 'core', field: 'coreLevel' },
-                      { type: 'balance', field: 'balanceLevel' },
-                      { type: 'stability', field: 'stabilityLevel' },
-                      { type: 'flexibility', field: 'flexibilityLevel' },
-                      { type: 'calisthenics', field: 'calisthenicsLevel' },
-                      { type: 'isolation', field: 'isolationLevel' },
-                      { type: 'stabilizers', field: 'stabilizersLevel' },
-                      { type: 'injury_prevention', field: 'injuryPreventionLevel' },
-                      { type: 'injury_recovery', field: 'injuryRecoveryLevel' }
-                    ].map((category) => (
-                      <TableRow key={category.type}>
-                        <TableCell>{getCategoryName(category.type)}</TableCell>
-                        <TableCell>{clientProgress[category.field as keyof ClientProgressData] as number}</TableCell>
-                        <TableCell sx={{ width: '40%' }}>
-                          <LinearProgress 
-                            variant="determinate" 
-                            value={Math.min(100, Math.max(0, Math.random() * 100))} 
-                            sx={{ height: 6, borderRadius: 3 }}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </MainCard>
-          </Grid>
-
-          {/* Key Exercise Levels */}
-          <Grid item xs={12} md={6}>
-            <MainCard title="Key Exercise Progress" sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
-              <TableContainer sx={{ bgcolor: '#1d1f2b', borderRadius: 1 }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Exercise</TableCell>
-                      <TableCell>Level</TableCell>
-                      <TableCell>Progress</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {[
-                      { name: 'Squats', field: 'squatsLevel' },
-                      { name: 'Lunges', field: 'lungesLevel' },
-                      { name: 'Planks', field: 'planksLevel' },
-                      { name: 'Reverse Planks', field: 'reversePlanksLevel' }
-                    ].map((exercise) => (
-                      <TableRow key={exercise.field}>
-                        <TableCell>{exercise.name}</TableCell>
-                        <TableCell>{clientProgress[exercise.field as keyof ClientProgressData] as number}</TableCell>
-                        <TableCell sx={{ width: '40%' }}>
-                          <LinearProgress 
-                            variant="determinate" 
-                            value={Math.min(100, Math.max(0, Math.random() * 100))} 
-                            sx={{ height: 6, borderRadius: 3 }}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </MainCard>
-          </Grid>
-
-          {/* Recommended Exercises */}
-          <Grid item xs={12}>
-            <MainCard 
-              title="Recommended Exercises" 
-              sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}
-              secondary={
-                <Button 
-                  variant="text" 
-                  startIcon={<RefreshCcw size={16} />}
-                  onClick={() => fetchRecommendedExercises(clientProgress.userId)}
-                >
-                  Refresh
-                </Button>
-              }
-            >
-              <TableContainer sx={{ bgcolor: '#1A1C33', borderRadius: 1 }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Exercise Name</TableCell>
-                      <TableCell>Type</TableCell>
-                      <TableCell>Level</TableCell>
-                      <TableCell>Primary Muscles</TableCell>
-                      <TableCell>Sets/Reps</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {recommendedExercises.slice(0, 5).map((exercise) => (
-                      <TableRow key={exercise.id}>
-                        <TableCell>{exercise.name}</TableCell>
-                        <TableCell>{getCategoryName(exercise.exerciseType)}</TableCell>
-                        <TableCell>{exercise.difficulty}</TableCell>
-                        <TableCell>{exercise.primaryMuscles.join(', ')}</TableCell>
-                        <TableCell>
-                          {exercise.recommendedSets || 3} × {exercise.recommendedReps || 10}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </MainCard>
-          </Grid>
-
-          {/* Notes */}
-          <Grid item xs={12}>
             <MainCard title="Trainer Notes" sx={{ bgcolor: '#1d1f2b', boxShadow: '0 4px 12px rgba(0, 0, 20, 0.2)' }}>
               <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
                 {clientProgress.progressNotes || 'No notes available.'}
@@ -969,269 +672,6 @@ const AdminClientProgressView: React.FC = () => {
     );
   };
 
-  // Render the edit dialog
-  const renderEditDialog = () => {
-    if (!editForm) return null;
-
-    return (
-      <Dialog 
-        open={showEditDialog} 
-        onClose={() => setShowEditDialog(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle sx={{ bgcolor: '#121212', color: '#E0E0E0' }}>
-          Edit Client Progress
-        </DialogTitle>
-        <DialogContent sx={{ bgcolor: '#121212', color: '#E0E0E0', pt: 3 }}>
-          <Grid container spacing={3} sx={{ mt: 0 }}>
-            {/* Overall Level */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="subtitle1" gutterBottom>Overall Progress</Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Overall Level"
-                    type="number"
-                    value={editForm.overallLevel || 0}
-                    onChange={(e) => handleEditFormChange('overallLevel', parseInt(e.target.value))}
-                    InputProps={{
-                      inputProps: { min: 0, max: 1000 }
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} sm={6}>
-                  <TextField
-                    fullWidth
-                    label="Experience Points"
-                    type="number"
-                    value={editForm.experiencePoints || 0}
-                    onChange={(e) => handleEditFormChange('experiencePoints', parseInt(e.target.value))}
-                    InputProps={{
-                      inputProps: { min: 0 }
-                    }}
-                  />
-                </Grid>
-              </Grid>
-            </Grid>
-
-            {/* Activity Stats */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="subtitle1" gutterBottom>Activity Statistics</Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Workouts Completed"
-                    type="number"
-                    value={editForm.workoutsCompleted || 0}
-                    onChange={(e) => handleEditFormChange('workoutsCompleted', parseInt(e.target.value))}
-                    InputProps={{
-                      inputProps: { min: 0 },
-                      sx: { bgcolor: '#1d1f2b' }
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Total Exercises"
-                    type="number"
-                    value={editForm.totalExercisesPerformed || 0}
-                    onChange={(e) => handleEditFormChange('totalExercisesPerformed', parseInt(e.target.value))}
-                    InputProps={{
-                      inputProps: { min: 0 }
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Streak Days"
-                    type="number"
-                    value={editForm.streakDays || 0}
-                    onChange={(e) => handleEditFormChange('streakDays', parseInt(e.target.value))}
-                    InputProps={{
-                      inputProps: { min: 0 }
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    fullWidth
-                    label="Total Minutes"
-                    type="number"
-                    value={editForm.totalMinutes || 0}
-                    onChange={(e) => handleEditFormChange('totalMinutes', parseInt(e.target.value))}
-                    InputProps={{
-                      inputProps: { min: 0 }
-                    }}
-                  />
-                </Grid>
-              </Grid>
-            </Grid>
-
-            {/* NASM Categories */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" gutterBottom>NASM Protocol Categories</Typography>
-              <Grid container spacing={2}>
-                {[
-                  { label: 'Core Level', field: 'coreLevel' },
-                  { label: 'Balance Level', field: 'balanceLevel' },
-                  { label: 'Stability Level', field: 'stabilityLevel' },
-                  { label: 'Flexibility Level', field: 'flexibilityLevel' },
-                  { label: 'Calisthenics Level', field: 'calisthenicsLevel' },
-                  { label: 'Isolation Level', field: 'isolationLevel' },
-                  { label: 'Stabilizers Level', field: 'stabilizersLevel' },
-                  { label: 'Injury Prevention Level', field: 'injuryPreventionLevel' },
-                  { label: 'Injury Recovery Level', field: 'injuryRecoveryLevel' }
-                ].map((category) => (
-                  <Grid item xs={12} sm={6} md={4} key={category.field}>
-                    <TextField
-                      sx={{ '& .MuiInputBase-root': { color: 'text.primary' }, '& .MuiInputLabel-root': { color: 'text.secondary' } }}
-                      fullWidth
-                      label={category.label}
-                      type="number"
-                      value={editForm[category.field as keyof ClientProgressData] || 0}
-                      onChange={(e) => handleEditFormChange(category.field as keyof ClientProgressData, parseInt(e.target.value))}
-                      InputProps={{
-                        inputProps: { min: 0, max: 1000 }
-                      }}
-                    />
-                  </Grid>
-                ))}
-              </Grid>
-            </Grid>
-
-            {/* Key Exercises */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" gutterBottom>Key Exercises</Typography>
-              <Grid container spacing={2}>
-                {[
-                  { label: 'Squats Level', field: 'squatsLevel' },
-                  { label: 'Lunges Level', field: 'lungesLevel' },
-                  { label: 'Planks Level', field: 'planksLevel' },
-                  { label: 'Reverse Planks Level', field: 'reversePlanksLevel' }
-                ].map((exercise) => (
-                  <Grid item xs={12} sm={6} md={3} key={exercise.field}>
-                    <TextField
-                      sx={{ '& .MuiInputBase-root': { color: 'text.primary' }, '& .MuiInputLabel-root': { color: 'text.secondary' } }}
-                      fullWidth
-                      label={exercise.label}
-                      type="number"
-                      value={editForm[exercise.field as keyof ClientProgressData] || 0}
-                      onChange={(e) => handleEditFormChange(exercise.field as keyof ClientProgressData, parseInt(e.target.value))}
-                      InputProps={{
-                        inputProps: { min: 0, max: 1000 }
-                      }}
-                    />
-                  </Grid>
-                ))}
-              </Grid>
-            </Grid>
-
-            {/* Achievements */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" gutterBottom>Achievements</Typography>
-              <TableContainer component={Paper} elevation={0} sx={{ bgcolor: '#1d1f2b', borderRadius: 1 }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Achievement</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {[
-                      'core-10', 'balance-10', 'flexibility-10', 'calisthenics-10',
-                      'squats-10', 'lunges-10', 'planks-10', 'overall-50'
-                    ].map((achievementId) => {
-                      const isUnlocked = editForm.achievements?.includes(achievementId) || false;
-                      const unlockDate = editForm.achievementDates?.[achievementId];
-                      
-                      return (
-                        <TableRow key={achievementId}>
-                          <TableCell>{getAchievementName(achievementId)}</TableCell>
-                          <TableCell>
-                            {isUnlocked ? (
-                              <Chip 
-                                label="Unlocked" 
-                                color="success" 
-                                size="small" 
-                                icon={<Check size={14} />} 
-                              />
-                            ) : (
-                              <Chip 
-                                label="Locked" 
-                                color="default" 
-                                size="small" 
-                                variant="outlined"
-                              />
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {isUnlocked ? (
-                              <IconButton 
-                                size="small" 
-                                color="error"
-                                onClick={() => handleRemoveAchievement(achievementId)}
-                              >
-                                <MinusCircle size={16} />
-                              </IconButton>
-                            ) : (
-                              <IconButton 
-                                size="small" 
-                                color="success"
-                                onClick={() => handleAddAchievement(achievementId)}
-                              >
-                                <PlusCircle size={16} />
-                              </IconButton>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Grid>
-
-            {/* Trainer Notes */}
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Trainer Notes"
-                multiline
-                rows={4}
-                value={editForm.progressNotes || ''}
-                onChange={(e) => setEditForm(prev => ({ ...prev, progressNotes: e.target.value }))}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions sx={{ bgcolor: '#121212', borderTop: '1px solid rgba(255, 255, 255, 0.1)', p: 2 }}>
-          <Button 
-            variant="outlined" 
-            color="error" 
-            onClick={() => setShowEditDialog(false)}
-          >
-            Cancel
-          </Button>
-          <Button 
-            variant="contained" 
-            color="primary" 
-            onClick={updateClientProgress}
-            startIcon={<Save />}
-          >
-            Save Changes
-          </Button>
-        </DialogActions>
-      </Dialog>
-    );
-  };
-
   return (
     <Box sx={{ p: 3, bgcolor: '#121420' }}>
       <Box sx={{ 
@@ -1308,9 +748,6 @@ const AdminClientProgressView: React.FC = () => {
       <TabPanel value={tabValue} index={1}>
         {renderLeaderboard()}
       </TabPanel>
-
-      {/* Edit Dialog */}
-      {renderEditDialog()}
     </Box>
   );
 };

@@ -229,22 +229,30 @@ import {
 // Import styles
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 
-// Safe calendar initialization with error handling
+// Safe calendar initialization with comprehensive error handling
 let localizer: any;
 let DragAndDropCalendar: any;
+let isCalendarInitialized = false;
 
 try {
   // Ensure moment is properly configured
   if (moment && typeof moment === 'function') {
+    // Create localizer with default moment configuration
     localizer = momentLocalizer(moment);
     DragAndDropCalendar = withDragAndDrop(Calendar);
+    isCalendarInitialized = true;
     console.log('✅ Calendar localizer initialized successfully');
   } else {
     console.error('❌ Moment.js not properly loaded');
+    isCalendarInitialized = false;
+    localizer = null;
+    DragAndDropCalendar = Calendar;
   }
 } catch (error) {
   console.error('❌ Error initializing calendar:', error);
-  // Fallback - use basic Calendar without moment localizer
+  isCalendarInitialized = false;
+  localizer = null;
+  // Fallback - use CalendarFallback component
   DragAndDropCalendar = Calendar;
 }
 
@@ -1073,7 +1081,7 @@ const UniversalMasterSchedule: React.FC = () => {
   
   const initializeRealTimeUpdates = () => {
     // WebSocket or similar real-time update implementation
-    console.log('Real-time updates initialized');
+    console.log('\uD83D\uDD04 Real-time updates initialized');
   };
   
   // ==================== RENDER CONDITIONS ====================
@@ -1360,71 +1368,87 @@ const UniversalMasterSchedule: React.FC = () => {
                 
                 {/* Calendar Container */}
                 <CalendarContainer>
-                  {localizer ? (
-                    <DragAndDropCalendar
-                      ref={calendarRef}
-                      localizer={localizer}
-                      events={calendarEvents}
-                      startAccessor="start"
-                      endAccessor="end"
-                      style={{ height: '100%' }}
-                      view={view}
-                      onView={setView}
-                      date={selectedDate}
-                      onNavigate={setSelectedDate}
-                      onSelectSlot={handleSelectSlot}
-                      onSelectEvent={handleSelectEvent}
-                      onEventDrop={handleEventDrop}
-                      onEventResize={handleEventResize}
-                      selectable
-                      resizable
-                      popup
-                      eventPropGetter={event => ({
-                        style: {
-                          ...getEventStyle(event),
-                          opacity: multiSelect.selectedEvents.includes(event.id) ? 0.8 : 1,
-                          border: multiSelect.selectedEvents.includes(event.id) 
-                            ? '2px solid #00ffff' 
-                            : 'none'
-                        }
-                      })}
-                      views={['month', 'week', 'day', 'agenda']}
-                      step={15}
-                      timeslots={4}
-                      min={new Date(2024, 0, 1, 6, 0)}
-                      max={new Date(2024, 0, 1, 22, 0)}
-                      formats={{
-                        timeGutterFormat: 'h:mm A',
-                        eventTimeRangeFormat: ({ start, end }, culture, localizer) =>
-                          `${localizer.format(start, 'h:mm A', culture)} - ${localizer.format(end, 'h:mm A', culture)}`
-                      }}
-                      components={{
-                        event: ({ event }) => (
-                          <motion.div
-                            style={{ height: '100%', width: '100%' }}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                          >
-                            <div style={{ padding: '2px 4px' }}>
-                              <div style={{ fontWeight: 'bold', fontSize: '0.7rem' }}>
-                                {event.title}
-                              </div>
-                              {event.trainer && (
-                                <div style={{ fontSize: '0.6rem', opacity: 0.9 }}>
-                                  {event.trainer.firstName}
+                  {isCalendarInitialized && localizer ? (
+                    <ErrorBoundary>
+                      <DragAndDropCalendar
+                        ref={calendarRef}
+                        localizer={localizer}
+                        events={calendarEvents}
+                        startAccessor="start"
+                        endAccessor="end"
+                        style={{ height: '100%' }}
+                        view={view}
+                        onView={setView}
+                        date={selectedDate}
+                        onNavigate={setSelectedDate}
+                        onSelectSlot={handleSelectSlot}
+                        onSelectEvent={handleSelectEvent}
+                        onEventDrop={handleEventDrop}
+                        onEventResize={handleEventResize}
+                        selectable
+                        resizable
+                        popup
+                        eventPropGetter={event => ({
+                          style: {
+                            ...getEventStyle(event),
+                            opacity: multiSelect.selectedEvents.includes(event.id) ? 0.8 : 1,
+                            border: multiSelect.selectedEvents.includes(event.id) 
+                              ? '2px solid #00ffff' 
+                              : 'none'
+                          }
+                        })}
+                        views={['month', 'week', 'day', 'agenda']}
+                        step={15}
+                        timeslots={4}
+                        min={new Date(2024, 0, 1, 6, 0)}
+                        max={new Date(2024, 0, 1, 22, 0)}
+                        components={{
+                          event: ({ event }) => (
+                            <motion.div
+                              style={{ height: '100%', width: '100%' }}
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                            >
+                              <div style={{ padding: '2px 4px' }}>
+                                <div style={{ fontWeight: 'bold', fontSize: '0.7rem' }}>
+                                  {event.title}
                                 </div>
-                              )}
-                            </div>
-                          </motion.div>
-                        )
-                      }}
-                    />
+                                {event.trainer && (
+                                  <div style={{ fontSize: '0.6rem', opacity: 0.9 }}>
+                                    {event.trainer.firstName}
+                                  </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          )
+                        }}
+                      />
+                    </ErrorBoundary>
                   ) : (
-                    <CalendarFallback
-                      events={calendarEvents}
-                      onEventClick={handleSelectEvent}
-                      onSlotClick={(date) => handleSelectSlot({ start: date, end: date })}
-                    />
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      height: '100%',
+                      minHeight: '400px',
+                      color: 'white',
+                      textAlign: 'center',
+                      gap: '1rem'
+                    }}>
+                      <CalendarIcon size={64} style={{ opacity: 0.5 }} />
+                      <Typography variant="h5" color="white">
+                        Calendar Loading...
+                      </Typography>
+                      <Typography variant="body1" color="rgba(255, 255, 255, 0.7)">
+                        Initializing calendar components
+                      </Typography>
+                      <CalendarFallback
+                        events={calendarEvents}
+                        onEventClick={handleSelectEvent}
+                        onSlotClick={(date) => handleSelectSlot({ start: date, end: date })}
+                      />
+                    </div>
                   )}
                 </CalendarContainer>
               </>
