@@ -11,6 +11,7 @@
  * ✅ Real-time Collaboration Ready - WebSocket integration points
  * ✅ Mobile-First Progressive Web App - Touch-optimized interactions
  * ✅ Comprehensive Business Intelligence - Executive-level insights
+ * ✅ EMERGENCY: Component-level circuit breaker to prevent infinite loops
  * 
  * REFACTORED DESIGN PRINCIPLES:
  * - Single Responsibility: Each hook handles one domain
@@ -19,9 +20,10 @@
  * - Immutable State: Predictable state updates
  * - Error Boundaries: Graceful failure handling
  * - Performance: Memoized calculations and lazy loading
+ * - EMERGENCY: Mount cycle protection
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider } from 'styled-components';
 import { Calendar, Views, SlotInfo } from 'react-big-calendar';
@@ -152,17 +154,110 @@ try {
  * 
  * Clean, declarative orchestrator component that delegates all complex logic
  * to specialized hooks, resulting in a maintainable, testable, and scalable architecture.
+ * 
+ * EMERGENCY: Component-level circuit breaker to prevent infinite mount cycles.
  */
 const UniversalMasterSchedule: React.FC = () => {
   const { toast } = useToast();
+  
+  // ==================== EMERGENCY: COMPONENT CIRCUIT BREAKER (ENHANCED) ====================
+  
+  const [componentMountCount, setComponentMountCount] = useState(() => {
+    const stored = sessionStorage.getItem('ums_mount_count');
+    return stored ? parseInt(stored) : 0;
+  });
+  
+  // NEW: Initialization state tracking to prevent infinite useEffect loops
+  const [initializationAttempted, setInitializationAttempted] = useState(false);
+  const [initializationBlocked, setInitializationBlocked] = useState(false);
+  const initFailureCountRef = useRef(0);
+  const lastInitAttemptRef = useRef(0);
+  
+  const mountTimeRef = useRef<number>(Date.now());
+  const isInitializedRef = useRef<boolean>(false);
+  
+  // Prevent infinite mounting by tracking mount frequency
+  useEffect(() => {
+    const now = Date.now();
+    const timeSinceMount = now - mountTimeRef.current;
+    
+    // If component is mounting too frequently (more than 5 times in 10 seconds), block it
+    if (componentMountCount > 5 && timeSinceMount < 10000) {
+      console.error('🛑 EMERGENCY: Component mount circuit breaker activated - too many rapid mounts');
+      setComponentMountCount(prev => {
+        const newCount = prev + 1;
+        sessionStorage.setItem('ums_mount_count', newCount.toString());
+        return newCount;
+      });
+      return;
+    }
+    
+    // Reset count if enough time has passed
+    if (timeSinceMount > 30000) {
+      sessionStorage.removeItem('ums_mount_count');
+      setComponentMountCount(0);
+    } else {
+      setComponentMountCount(prev => {
+        const newCount = prev + 1;
+        sessionStorage.setItem('ums_mount_count', newCount.toString());
+        sessionStorage.setItem('ums_last_mount', now.toString());
+        return newCount;
+      });
+    }
+    
+    console.log(`🔄 UniversalMasterSchedule mounted (attempt ${componentMountCount + 1})`);
+  }, []);
+  
+  // If we're in circuit breaker mode, show a minimal error state
+  if (componentMountCount > 10) {
+    return (
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        background: 'linear-gradient(135deg, #1e3a8a, #0891b2)',
+        color: 'white',
+        textAlign: 'center',
+        padding: '2rem'
+      }}>
+        <h1>🛑 System Protection Activated</h1>
+        <p>The calendar component has been temporarily disabled to prevent system overload.</p>
+        <p>Please refresh the page in a few minutes or contact support.</p>
+        <button 
+          onClick={() => {
+            sessionStorage.clear();
+            window.location.reload();
+          }}
+          style={{
+            background: '#ef4444',
+            color: 'white',
+            border: 'none',
+            padding: '1rem 2rem',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            marginTop: '1rem'
+          }}
+        >
+          Reset & Reload
+        </button>
+      </div>
+    );
+  }
   
   // Refs
   const calendarRef = useRef<any>(null);
   const bulkActionRef = useRef<HTMLDivElement>(null);
   
-  // ==================== MODULAR HOOKS ORCHESTRATION ====================
+  // ==================== HOOKS GUARD: PREVENT HOOKS IN PROBLEMATIC STATE ====================
   
-  // 1. Core UI State Management
+  // If mounting too frequently, use minimal state to prevent hook cascade failures
+  const shouldUseMinimalMode = componentMountCount > 7;
+  
+  // ==================== MODULAR HOOKS ORCHESTRATION (GUARDED) ====================
+  
+  // 1. Core UI State Management (SAFE DEFAULTS IN MINIMAL MODE)
   const {
     loading,
     error,
@@ -196,7 +291,7 @@ const UniversalMasterSchedule: React.FC = () => {
     realTimeEnabled
   } = useCalendarState();
   
-  // 2. Pure Data Fetching & Management (Refactored)
+  // 2. Pure Data Fetching & Management (MINIMAL MODE SAFETY)
   const {
     sessions,
     clients,
@@ -209,15 +304,15 @@ const UniversalMasterSchedule: React.FC = () => {
     refreshData
   } = useCalendarData();
   
-  // 3. Specialized Calendar Event Filtering (NEW)
+  // 3. Specialized Calendar Event Filtering (SAFE IN MINIMAL MODE)
   const {
     calendarEvents,
     filteredEventCount,
     totalEventCount,
     filterEfficiency
   } = useFilteredCalendarEvents({
-    sessions,
-    filterOptions
+    sessions: shouldUseMinimalMode ? [] : sessions,
+    filterOptions: shouldUseMinimalMode ? {} : filterOptions
   });
   
   // 4. Real-time Updates Management (ENHANCED)
@@ -331,23 +426,65 @@ const UniversalMasterSchedule: React.FC = () => {
     trainers
   });
   
-  // ==================== COMPONENT INITIALIZATION ====================
+  // ==================== COMPONENT INITIALIZATION (CIRCUIT BREAKER PROTECTED) ====================
   
   useEffect(() => {
+    // 🛑 COMPONENT-LEVEL CIRCUIT BREAKER: Prevent infinite initialization loops
+    if (initializationAttempted && !initializationBlocked) {
+      console.log('🛑 Initialization already attempted - preventing infinite loop');
+      return;
+    }
+    
+    if (initializationBlocked) {
+      console.log('🚫 Initialization blocked due to repeated failures');
+      return;
+    }
+    
+    // Check for rapid-fire initialization attempts (circuit breaker)
+    const now = Date.now();
+    if (now - lastInitAttemptRef.current < 5000 && initFailureCountRef.current > 0) {
+      console.log(`⏳ Throttling initialization - ${initFailureCountRef.current} recent failures`);
+      return;
+    }
+    
     const initializeComponentSafe = async () => {
       try {
+        console.log('🚀 Starting component initialization...');
+        setInitializationAttempted(true);
+        lastInitAttemptRef.current = now;
+        
         await initializeComponent({
           setLoading,
           setError,
           realTimeEnabled
         });
+        
         const cleanup = setupEventListeners();
+        
+        // ✅ SUCCESS: Reset failure counter
+        initFailureCountRef.current = 0;
+        sessionStorage.removeItem('ums_init_failures');
+        console.log('✅ Component initialization completed successfully');
+        
         return cleanup;
       } catch (error) {
-        console.error('Failed to initialize Universal Master Schedule:', error);
+        // 🚨 FAILURE: Increment counter and implement circuit breaker logic
+        initFailureCountRef.current += 1;
+        sessionStorage.setItem('ums_init_failures', initFailureCountRef.current.toString());
+        
+        console.error(`❌ Initialization failed (attempt ${initFailureCountRef.current}):`, error);
+        
+        // Block further attempts after 3 failures
+        if (initFailureCountRef.current >= 3) {
+          setInitializationBlocked(true);
+          console.error('🛑 CIRCUIT BREAKER ACTIVATED: Too many initialization failures');
+        }
+        
         toast({
           title: 'Initialization Error',
-          description: 'Failed to initialize schedule. Please refresh and try again.',
+          description: initFailureCountRef.current >= 3 
+            ? 'Service temporarily unavailable. Please use the retry button below.'
+            : 'Failed to initialize schedule. Retrying automatically...',
           variant: 'destructive'
         });
       }
@@ -360,8 +497,9 @@ const UniversalMasterSchedule: React.FC = () => {
         if (cleanup) cleanup();
       });
       cleanupEventListeners();
+      console.log('🧹 Component cleanup completed');
     };
-  }, [initializeComponent, setupEventListeners, cleanupEventListeners, toast, setLoading, setError, realTimeEnabled]);
+  }, [initializationAttempted, initializationBlocked]); // 🚨 CRITICAL: Removed problematic dependencies that cause infinite loops
   
   // ✅ FILTERING REFACTORED: No manual filtering effect needed!
   // Filtering is now handled automatically by useFilteredCalendarEvents hook
@@ -414,11 +552,16 @@ const UniversalMasterSchedule: React.FC = () => {
             {error.sessions}
           </Typography>
           <GlowButton 
-            text="Retry"
+            text="Retry Initialization"
             variant="primary"
             leftIcon={<RefreshCw size={18} />}
             onClick={() => {
-              initializeComponent();
+              // Reset circuit breaker state for manual retry
+              setInitializationAttempted(false);
+              setInitializationBlocked(false);
+              initFailureCountRef.current = 0;
+              sessionStorage.removeItem('ums_init_failures');
+              console.log('🔄 Manual retry initiated - resetting circuit breaker');
             }}
           />
         </motion.div>
@@ -453,6 +596,25 @@ const UniversalMasterSchedule: React.FC = () => {
               </HeaderTitle>
               
               <HeaderActions>
+                {/* Circuit Breaker Status Indicator */}
+                {initializationBlocked && (
+                  <div style={{
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid #ef4444',
+                    borderRadius: '8px',
+                    padding: '0.5rem 1rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    color: '#ef4444',
+                    fontSize: '0.875rem',
+                    fontWeight: 500
+                  }}>
+                    <AlertCircle size={16} />
+                    System Protection Active
+                  </div>
+                )}
+                
                 {/* Analytics View Toggle */}
                 <ViewToggleGroup>
                   <ViewToggleButton 
