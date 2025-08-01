@@ -113,9 +113,31 @@ export const useCalendarData = () => {
   // ==================== DATA LOADING FUNCTIONS ====================
   
   const loadSessions = useCallback(async () => {
+    // Circuit breaker to prevent infinite retries
+    const endpoint = 'sessions';
+    const failureKey = `${endpoint}_failures`;
+    const lastAttemptKey = `${endpoint}_last_attempt`;
+    
+    const now = Date.now();
+    const failures = parseInt(sessionStorage.getItem(failureKey) || '0');
+    const lastAttempt = parseInt(sessionStorage.getItem(lastAttemptKey) || '0');
+    
+    // If we've failed too many times recently, skip this attempt
+    if (failures >= 3 && (now - lastAttempt) < 30000) {
+      console.warn('🛑 Circuit breaker: Skipping session load due to repeated failures');
+      throw new Error('Circuit breaker: Too many recent failures');
+    }
+    
     try {
+      sessionStorage.setItem(lastAttemptKey, now.toString());
       await dispatch(fetchEvents({ role: 'admin', userId: user?.id || '' }));
+      // Success - reset failure count
+      sessionStorage.removeItem(failureKey);
     } catch (error) {
+      // Record failure
+      const newFailures = failures + 1;
+      sessionStorage.setItem(failureKey, newFailures.toString());
+      console.error(`Session load failed (attempt ${newFailures}/3):`, error);
       throw new Error('Failed to load sessions');
     }
   }, [dispatch, user?.id]);
@@ -147,12 +169,36 @@ export const useCalendarData = () => {
   }, []);
   
   const loadAssignments = useCallback(async (setLoading: (updates: any) => void, setError: (updates: any) => void) => {
+    // Circuit breaker to prevent infinite retries
+    const endpoint = 'assignments';
+    const failureKey = `${endpoint}_failures`;
+    const lastAttemptKey = `${endpoint}_last_attempt`;
+    
+    const now = Date.now();
+    const failures = parseInt(sessionStorage.getItem(failureKey) || '0');
+    const lastAttempt = parseInt(sessionStorage.getItem(lastAttemptKey) || '0');
+    
+    // If we've failed too many times recently, skip this attempt
+    if (failures >= 3 && (now - lastAttempt) < 30000) {
+      console.warn('🛑 Circuit breaker: Skipping assignments load due to repeated failures');
+      setError({ assignments: 'Service temporarily unavailable - will retry later' });
+      setLoading({ assignments: false });
+      return;
+    }
+    
     try {
       setLoading({ assignments: true });
+      sessionStorage.setItem(lastAttemptKey, now.toString());
       const assignmentsData = await clientTrainerAssignmentService.getAssignments();
       setAssignments(assignmentsData);
+      // Success - reset failure count
+      sessionStorage.removeItem(failureKey);
       setLoading({ assignments: false });
     } catch (error) {
+      // Record failure
+      const newFailures = failures + 1;
+      sessionStorage.setItem(failureKey, newFailures.toString());
+      console.error(`Assignments load failed (attempt ${newFailures}/3):`, error);
       setError({ assignments: 'Failed to load assignments' });
       setLoading({ assignments: false });
     }
@@ -167,18 +213,39 @@ export const useCalendarData = () => {
   }) => {
     const { setLoading, setError, realTimeEnabled } = params;
     
+    // Check if we should delay initialization due to previous failures
+    const initFailures = parseInt(sessionStorage.getItem('init_failures') || '0');
+    const lastInitAttempt = parseInt(sessionStorage.getItem('last_init_attempt') || '0');
+    const now = Date.now();
+    
+    if (initFailures > 0 && (now - lastInitAttempt) < 10000) {
+      console.log(`🕰️ Delaying initialization due to ${initFailures} previous failures`);
+      await new Promise(resolve => setTimeout(resolve, 2000 * initFailures)); // Progressive delay
+    }
+    
     try {
       setLoading({ sessions: true });
+      sessionStorage.setItem('last_init_attempt', now.toString());
       
-      // Load initial data in parallel
-      await Promise.all([
+      // Load initial data in parallel with error handling
+      const results = await Promise.allSettled([
         loadSessions(),
         loadClients(setLoading, setError),
         loadTrainers(setLoading, setError),
         loadAssignments(setLoading, setError)
       ]);
       
+      // Check if any critical operations failed
+      const sessionResult = results[0];
+      if (sessionResult.status === 'rejected') {
+        console.warn('Sessions failed to load:', sessionResult.reason);
+        // Don't throw - let the app continue with empty sessions
+      }
+      
       setLoading({ sessions: false });
+      
+      // Success - reset failure count
+      sessionStorage.removeItem('init_failures');
       
       // Initialize real-time updates if enabled (using inline function to avoid TDZ)
       if (realTimeEnabled) {
@@ -194,8 +261,15 @@ export const useCalendarData = () => {
       
     } catch (error) {
       console.error('Error initializing Universal Master Schedule:', error);
+      
+      // Record initialization failure
+      const newFailures = initFailures + 1;
+      sessionStorage.setItem('init_failures', newFailures.toString());
+      
       setError({ 
-        sessions: 'Failed to initialize schedule. Please refresh and try again.' 
+        sessions: newFailures >= 3 
+          ? 'Service temporarily unavailable. Please try again later.' 
+          : 'Failed to initialize schedule. Please refresh and try again.' 
       });
       setLoading({ sessions: false });
     }
