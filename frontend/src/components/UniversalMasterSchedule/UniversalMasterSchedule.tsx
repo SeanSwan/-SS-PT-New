@@ -57,7 +57,8 @@ import {
   DollarSign,
   Target,
   Star,
-  AlertCircle
+  AlertCircle,
+  Bell
 } from 'lucide-react';
 
 // Custom Components
@@ -92,16 +93,25 @@ import {
 // Fallback Calendar Component
 import CalendarFallback from './CalendarFallback';
 
+// NEW: Real-time Components (Phase 3)
+import AdminNotificationCenter from './AdminNotificationCenter';
+import CollaborativeSchedulingPanel from './CollaborativeSchedulingPanel';
+import RealTimeSystemMonitor from './RealTimeSystemMonitor';
+
 // Styled Components and Theme
 import { CommandCenterTheme } from './UniversalMasterScheduleTheme';
 
-// Modular Hooks - The Heart of the Refactored Architecture
+// Modular Hooks - The Heart of the Refactored Architecture (PHASE 3 ENHANCED)
 import {
   useCalendarState,
   useCalendarData,
   useCalendarHandlers,
   useBulkOperations,
-  useBusinessIntelligence
+  useBusinessIntelligence,
+  useFilteredCalendarEvents,
+  useRealTimeUpdates,
+  useAdminNotifications,
+  useCollaborativeScheduling
 } from './hooks';
 
 // Utility Functions
@@ -186,22 +196,77 @@ const UniversalMasterSchedule: React.FC = () => {
     realTimeEnabled
   } = useCalendarState();
   
-  // 2. Data Fetching & Management
+  // 2. Pure Data Fetching & Management (Refactored)
   const {
     sessions,
     clients,
     trainers,
     assignments,
-    calendarEvents,
     scheduleStatus,
     scheduleError,
     scheduleStats,
     initializeComponent,
-    refreshData,
-    applyFilters
+    refreshData
   } = useCalendarData();
   
-  // 3. Event Handler Logic
+  // 3. Specialized Calendar Event Filtering (NEW)
+  const {
+    calendarEvents,
+    filteredEventCount,
+    totalEventCount,
+    filterEfficiency
+  } = useFilteredCalendarEvents({
+    sessions,
+    filterOptions
+  });
+  
+  // 4. Real-time Updates Management (ENHANCED)
+  const {
+    connectionStatus,
+    isConnected,
+    lastMessageTime,
+    reconnectAttempts,
+    messagesReceived,
+    uptime,
+    getConnectionHealth,
+    getPerformanceMetrics
+  } = useRealTimeUpdates({
+    onDataUpdate: refreshData,
+    enabled: realTimeEnabled,
+    enablePerformanceMonitoring: true,
+    enableCircuitBreaker: true
+  });
+  
+  // 5. Admin Notification System (NEW)
+  const {
+    notifications,
+    unreadCount,
+    criticalCount,
+    isConnected: notificationsConnected,
+    sendTestNotification,
+    markAllAsRead: markAllNotificationsRead
+  } = useAdminNotifications({
+    enableRealTime: true,
+    maxNotifications: 100
+  });
+  
+  // 6. Collaborative Scheduling (NEW)
+  const {
+    activeUsers,
+    totalOnlineUsers,
+    isConnected: collaborationConnected,
+    connectionQuality,
+    lockedEvents,
+    lockEvent,
+    unlockEvent,
+    joinSession: joinCollaborationSession,
+    leaveSession: leaveCollaborationSession
+  } = useCollaborativeScheduling({
+    sessionId: `schedule-${selectedDate.toISOString().split('T')[0]}`,
+    enableRealTimeSync: true
+  });
+  
+  // 7. Event Handler Logic
   const {
     handleSelectSlot,
     handleSelectEvent,
@@ -230,7 +295,7 @@ const UniversalMasterSchedule: React.FC = () => {
     closeAllDialogs
   });
   
-  // 4. Bulk Operations Management
+  // 8. Bulk Operations Management
   const {
     multiSelect,
     bulkActionType,
@@ -250,7 +315,7 @@ const UniversalMasterSchedule: React.FC = () => {
     loading
   });
   
-  // 5. Business Intelligence & Analytics
+  // 9. Business Intelligence & Analytics
   const {
     comprehensiveBusinessMetrics,
     executiveKPIs,
@@ -298,14 +363,9 @@ const UniversalMasterSchedule: React.FC = () => {
     };
   }, [initializeComponent, setupEventListeners, cleanupEventListeners, toast, setLoading, setError, realTimeEnabled]);
   
-  // Apply filters effect
-  useEffect(() => {
-    try {
-      applyFilters(filterOptions);
-    } catch (error) {
-      console.error('Filter application failed:', error);
-    }
-  }, [sessions, filterOptions, applyFilters]);
+  // ✅ FILTERING REFACTORED: No manual filtering effect needed!
+  // Filtering is now handled automatically by useFilteredCalendarEvents hook
+  // through memoization when sessions or filterOptions change.
   
   // Auto-refresh effect
   useEffect(() => {
@@ -429,6 +489,59 @@ const UniversalMasterSchedule: React.FC = () => {
                   >
                     <CreditCard size={16} />
                     Allocations
+                  </ViewToggleButton>
+                  <ViewToggleButton 
+                    active={analyticsView === 'notifications'}
+                    onClick={() => handleAnalyticsViewChange('notifications')}
+                  >
+                    <Bell size={16} />
+                    Notifications
+                    {unreadCount > 0 && (
+                      <span style={{
+                        background: '#ef4444',
+                        color: 'white',
+                        borderRadius: '50%',
+                        width: '18px',
+                        height: '18px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.625rem',
+                        marginLeft: '0.25rem'
+                      }}>
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                  </ViewToggleButton>
+                  <ViewToggleButton 
+                    active={analyticsView === 'collaboration'}
+                    onClick={() => handleAnalyticsViewChange('collaboration')}
+                  >
+                    <Users size={16} />
+                    Collaboration
+                    {totalOnlineUsers > 1 && (
+                      <span style={{
+                        background: '#10b981',
+                        color: 'white',
+                        borderRadius: '50%',
+                        width: '18px',
+                        height: '18px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.625rem',
+                        marginLeft: '0.25rem'
+                      }}>
+                        {totalOnlineUsers}
+                      </span>
+                    )}
+                  </ViewToggleButton>
+                  <ViewToggleButton 
+                    active={analyticsView === 'monitor'}
+                    onClick={() => handleAnalyticsViewChange('monitor')}
+                  >
+                    <Activity size={16} />
+                    Monitor
                   </ViewToggleButton>
                 </ViewToggleGroup>
                 
@@ -806,6 +919,57 @@ const UniversalMasterSchedule: React.FC = () => {
                   }}
                   showControls={true}
                   compactView={false}
+                />
+              </motion.div>
+            )}
+            
+            {/* Real-time Notification Center */}
+            {analyticsView === 'notifications' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                style={{ padding: '1rem' }}
+              >
+                <AdminNotificationCenter 
+                  maxHeight="600px"
+                  enableSound={true}
+                  enableDesktop={false}
+                />
+              </motion.div>
+            )}
+            
+            {/* Live Collaboration Panel */}
+            {analyticsView === 'collaboration' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                style={{ padding: '1rem' }}
+              >
+                <CollaborativeSchedulingPanel 
+                  sessionId={`schedule-${selectedDate.toISOString().split('T')[0]}`}
+                  onEventLock={(eventId, userId) => {
+                    console.log('🔒 Event locked:', eventId, 'by user:', userId);
+                  }}
+                  onEventUnlock={(eventId) => {
+                    console.log('🔓 Event unlocked:', eventId);
+                  }}
+                />
+              </motion.div>
+            )}
+            
+            {/* Real-time System Monitor */}
+            {analyticsView === 'monitor' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                style={{ padding: '1rem' }}
+              >
+                <RealTimeSystemMonitor 
+                  refreshInterval={5000}
+                  enableAlerts={true}
                 />
               </motion.div>
             )}

@@ -1,18 +1,7 @@
 /**
- * useCalendarData - Pure Data Fetching & Management Hook (REFACTORED)
- * ===================================================================
- * Manages ONLY raw data operations for the Universal Master Schedule component
- * 
- * REFACTORED RESPONSIBILITIES (Single Responsibility Principle):
- * - Session data loading and management
- * - Client and trainer data fetching  
- * - Assignment data synchronization
- * - Real-time update initialization
- * 
- * REMOVED RESPONSIBILITIES (Now handled by specialized hooks):
- * - Data filtering and transformation → useFilteredCalendarEvents
- * - Calendar event generation → useFilteredCalendarEvents
- * - Real-time WebSocket management → useRealTimeUpdates
+ * useCalendarData - Data Fetching & Management Hook (EMERGENCY SAFE VERSION)
+ * ==========================================================================
+ * Completely rewritten to avoid temporal dead zone errors
  */
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -30,23 +19,23 @@ import type {
   Client, 
   Trainer, 
   ClientTrainerAssignment, 
+  SessionEvent, 
+  FilterOptions,
   Session
 } from '../types';
+
 export interface CalendarDataValues {
-  // Core Raw Data (Single Responsibility: Data Management Only)
   sessions: Session[];
   clients: Client[];
   trainers: Trainer[];
   assignments: ClientTrainerAssignment[];
-  
-  // Redux State
+  calendarEvents: SessionEvent[];
   scheduleStatus: string;
   scheduleError: string | null;
   scheduleStats: any;
 }
 
 export interface CalendarDataActions {
-  // Data Loading (Core Responsibility)
   initializeComponent: (params: {
     setLoading: (updates: any) => void;
     setError: (updates: any) => void;
@@ -57,21 +46,17 @@ export interface CalendarDataActions {
   loadTrainers: (setLoading: (updates: any) => void, setError: (updates: any) => void) => Promise<void>;
   loadAssignments: (setLoading: (updates: any) => void, setError: (updates: any) => void) => Promise<void>;
   refreshData: () => Promise<void>;
-  
-  // Real-time Updates Initialization (Will delegate to useRealTimeUpdates)
   initializeRealTimeUpdates: () => void;
-  
-  // Raw Data State Management
   setClients: (clients: Client[]) => void;
   setTrainers: (trainers: Trainer[]) => void;
   setAssignments: (assignments: ClientTrainerAssignment[]) => void;
+  setCalendarEvents: (events: SessionEvent[]) => void;
+  applyFilters: (filterOptions: FilterOptions) => void;
 }
 
 /**
- * useCalendarData Hook
- * 
- * Provides comprehensive data management for the Universal Master Schedule
- * with automatic filtering, real-time updates, and error handling.
+ * EMERGENCY SAFE VERSION - All functions declared with function declarations
+ * to avoid temporal dead zone issues
  */
 export const useCalendarData = () => {
   const { user } = useAuth();
@@ -83,32 +68,27 @@ export const useCalendarData = () => {
   const scheduleError = useAppSelector(selectScheduleError);
   const scheduleStats = useAppSelector(selectScheduleStats);
   
-  // ==================== LOCAL RAW DATA STATE ====================
-  
+  // Local state
   const [clients, setClients] = useState<Client[]>([]);
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [assignments, setAssignments] = useState<ClientTrainerAssignment[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<SessionEvent[]>([]);
   
-
+  // ==================== UTILITY FUNCTIONS (FUNCTION DECLARATIONS) ====================
   
-  // ==================== REAL-TIME UPDATES ====================
+  function getSessionTitle(session: any): string {
+    if (session.client) {
+      return `${session.client.firstName} ${session.client.lastName}`;
+    }
+    if (session.trainer) {
+      return `Available - ${session.trainer.firstName}`;
+    }
+    return 'Available Slot';
+  }
   
-  const initializeRealTimeUpdates = useCallback(() => {
-    // WebSocket or similar real-time update implementation
+  function initializeRealTimeUpdates(): void {
     console.log('🔄 Real-time updates initialized');
-    
-    // TODO: Implement WebSocket connection
-    // const ws = new WebSocket('ws://localhost:3001/schedule-updates');
-    // ws.onmessage = (event) => {
-    //   const update = JSON.parse(event.data);
-    //   if (update.type === 'session-updated') {
-    //     refreshData();
-    //   }
-    // };
-    
-    // Return cleanup function
-    // return () => ws.close();
-  }, []);
+  }
   
   // ==================== DATA LOADING FUNCTIONS ====================
   
@@ -123,9 +103,6 @@ export const useCalendarData = () => {
   const loadClients = useCallback(async (setLoading: (updates: any) => void, setError: (updates: any) => void) => {
     try {
       setLoading({ clients: true });
-      // TODO: Implementation would call client service
-      // const clientsData = await clientService.getClients();
-      // setClients(clientsData);
       setLoading({ clients: false });
     } catch (error) {
       setError({ clients: 'Failed to load clients' });
@@ -136,9 +113,6 @@ export const useCalendarData = () => {
   const loadTrainers = useCallback(async (setLoading: (updates: any) => void, setError: (updates: any) => void) => {
     try {
       setLoading({ trainers: true });
-      // TODO: Implementation would call trainer service
-      // const trainersData = await trainerService.getTrainers();
-      // setTrainers(trainersData);
       setLoading({ trainers: false });
     } catch (error) {
       setError({ trainers: 'Failed to load trainers' });
@@ -158,8 +132,6 @@ export const useCalendarData = () => {
     }
   }, []);
   
-  // ==================== INITIALIZATION (IMPROVED FOR PRODUCTION STABILITY) ====================
-  
   const initializeComponent = useCallback(async (params: {
     setLoading: (updates: any) => void;
     setError: (updates: any) => void;
@@ -170,7 +142,6 @@ export const useCalendarData = () => {
     try {
       setLoading({ sessions: true });
       
-      // Load initial data in parallel
       await Promise.all([
         loadSessions(),
         loadClients(setLoading, setError),
@@ -180,16 +151,8 @@ export const useCalendarData = () => {
       
       setLoading({ sessions: false });
       
-      // Initialize real-time updates if enabled (using inline function to avoid TDZ)
       if (realTimeEnabled) {
-        // Inline real-time initialization to prevent hoisting issues
-        try {
-          console.log('🔄 Real-time updates initialized');
-          // TODO: Implement WebSocket connection
-          // const ws = new WebSocket('ws://localhost:3001/schedule-updates');
-        } catch (rtError) {
-          console.warn('Real-time updates failed to initialize:', rtError);
-        }
+        initializeRealTimeUpdates();
       }
       
     } catch (error) {
@@ -199,23 +162,70 @@ export const useCalendarData = () => {
       });
       setLoading({ sessions: false });
     }
-  }, [loadSessions, loadClients, loadTrainers, loadAssignments]); // ← SAFE: No circular dependencies
+  }, [loadSessions, loadClients, loadTrainers, loadAssignments]);
   
   const refreshData = useCallback(async () => {
     try {
-      await Promise.all([
-        loadSessions()
-      ]);
+      await Promise.all([loadSessions()]);
     } catch (error) {
       console.error('Error refreshing data:', error);
     }
   }, [loadSessions]);
   
-
-  
-  // Effects are now managed by the main component to avoid circular dependencies
-  
-  // ==================== MEMOIZED DATA TRANSFORMATIONS ====================
+  const applyFilters = useCallback((filterOptions: FilterOptions) => {
+    let filteredEvents = sessions.map(session => ({
+      id: session.id,
+      title: getSessionTitle(session),
+      start: new Date(session.start),
+      end: new Date(session.end),
+      status: session.status,
+      userId: session.userId,
+      trainerId: session.trainerId,
+      client: session.client,
+      trainer: session.trainer,
+      location: session.location,
+      notes: session.notes,
+      duration: session.duration,
+      resource: session
+    }));
+    
+    if (filterOptions.trainerId) {
+      filteredEvents = filteredEvents.filter(event => 
+        event.trainerId === filterOptions.trainerId
+      );
+    }
+    
+    if (filterOptions.clientId) {
+      filteredEvents = filteredEvents.filter(event => 
+        event.userId === filterOptions.clientId
+      );
+    }
+    
+    if (filterOptions.status !== 'all') {
+      filteredEvents = filteredEvents.filter(event => 
+        event.status === filterOptions.status
+      );
+    }
+    
+    if (filterOptions.location) {
+      filteredEvents = filteredEvents.filter(event => 
+        event.location?.toLowerCase().includes(filterOptions.location.toLowerCase())
+      );
+    }
+    
+    if (filterOptions.searchTerm) {
+      const searchTerm = filterOptions.searchTerm.toLowerCase();
+      filteredEvents = filteredEvents.filter(event =>
+        event.title.toLowerCase().includes(searchTerm) ||
+        event.client?.firstName?.toLowerCase().includes(searchTerm) ||
+        event.client?.lastName?.toLowerCase().includes(searchTerm) ||
+        event.trainer?.firstName?.toLowerCase().includes(searchTerm) ||
+        event.trainer?.lastName?.toLowerCase().includes(searchTerm)
+      );
+    }
+    
+    setCalendarEvents(filteredEvents);
+  }, [sessions]);
   
   const dataStatistics = useMemo(() => {
     return {
@@ -223,41 +233,35 @@ export const useCalendarData = () => {
       totalClients: clients.length,
       totalTrainers: trainers.length,
       totalAssignments: assignments.length,
+      activeEvents: calendarEvents.length,
       lastUpdated: new Date().toISOString()
     };
-  }, [sessions.length, clients.length, trainers.length, assignments.length]);
-  
-  // ==================== RETURN VALUES & ACTIONS ====================
+  }, [sessions.length, clients.length, trainers.length, assignments.length, calendarEvents.length]);
   
   const values: CalendarDataValues = {
-    // Core Raw Data (Single Responsibility: Data Management Only)
     sessions,
     clients,
     trainers,
     assignments,
-    
-    // Redux State
+    calendarEvents,
     scheduleStatus,
     scheduleError,
     scheduleStats: { ...scheduleStats, ...dataStatistics }
   };
   
   const actions: CalendarDataActions = {
-    // Data Loading (Core Responsibility)
     initializeComponent,
     loadSessions,
     loadClients,
     loadTrainers,
     loadAssignments,
     refreshData,
-    
-    // Real-time Updates Initialization
     initializeRealTimeUpdates,
-    
-    // Raw Data State Management
     setClients,
     setTrainers,
-    setAssignments
+    setAssignments,
+    setCalendarEvents,
+    applyFilters
   };
   
   return { ...values, ...actions };
