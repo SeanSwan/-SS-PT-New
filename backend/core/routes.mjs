@@ -57,6 +57,8 @@ import adminClientRoutes from '../routes/adminClientRoutes.mjs';
 import adminPackageRoutes from '../routes/adminPackageRoutes.mjs';
 import adminFinanceRoutes from '../routes/admin/adminFinanceRoutes.mjs';
 import adminStoreRoutes from '../routes/admin/adminStoreRoutes.mjs';
+import adminMcpRoutes from '../routes/adminMcpRoutes.mjs';
+import adminEnterpriseRoutes from '../routes/adminEnterpriseRoutes.mjs';
 
 // ===================== SPECIALIZED FEATURES =====================
 import orientationRoutes from '../routes/orientationRoutes.mjs';
@@ -172,6 +174,8 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin/storefront', adminPackageRoutes);
   app.use('/api/admin/finance', adminFinanceRoutes);
   app.use('/api/admin/store', adminStoreRoutes);
+  app.use('/api/admin/mcp-servers', adminMcpRoutes);
+  app.use('/api/admin', adminEnterpriseRoutes);
 
   // ===================== DASHBOARD ROUTES =====================
   app.use('/api/dashboard', dashboardRoutes);

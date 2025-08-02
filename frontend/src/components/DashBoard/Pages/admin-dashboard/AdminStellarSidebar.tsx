@@ -30,7 +30,7 @@ import {
   Database, Settings, Monitor, TrendingUp, ShieldCheck, 
   ChevronLeft, ChevronRight, Menu, X, Command, AlertTriangle,
   Activity, DollarSign, MessageSquare, FileText, Star, CreditCard,
-  Award, Heart
+  Award, Heart, Dumbbell, Gamepad2, Eye, Zap, HardDrive
 } from 'lucide-react';
 
 // === ADMIN COMMAND CENTER THEME ===
@@ -524,52 +524,150 @@ const AdminMobileToggle = styled(motion.button)`
   }
 `;
 
-// === ADMIN NAVIGATION DATA ===
+// === ENHANCED ADMIN NAVIGATION DATA WITH MCP INTEGRATION ===
 interface AdminNavItemData {
   id: string;
   label: string;
   icon: React.ComponentType<any>;
-  section: 'overview' | 'management' | 'analytics' | 'system';
+  section: 'overview' | 'management' | 'analytics' | 'system' | 'mcp' | 'social' | 'intelligence';
   badge?: number;
-  route?: string; // Add route mapping
+  route?: string;
+  status?: 'online' | 'offline' | 'warning' | 'error';
+  isNew?: boolean;
+  isEnterprise?: boolean;
+  subItems?: AdminNavItemData[];
+}
+
+// 🚀 MCP SERVER STATUS MONITORING
+interface MCPServerStatus {
+  id: string;
+  name: string;
+  status: 'online' | 'offline' | 'starting' | 'error';
+  port: number;
+  uptime?: string;
+  lastSeen?: string;
+  memoryUsage?: number;
+  cpuUsage?: number;
 }
 
 const adminNavigationItems: AdminNavItemData[] = [
   // 🛡️ COMMAND CENTER
-  { id: 'overview', label: 'Overview Dashboard', icon: Shield, section: 'overview', route: '/dashboard/default' },
-  { id: 'analytics', label: 'Real-Time Analytics Hub', icon: BarChart3, section: 'overview', route: '/dashboard/analytics' },
+  { id: 'overview', label: 'Executive Dashboard', icon: Shield, section: 'overview', route: '/dashboard/default', isEnterprise: true },
+  { id: 'analytics', label: 'Real-Time Analytics Hub', icon: BarChart3, section: 'overview', route: '/dashboard/analytics', isEnterprise: true },
+  { id: 'business-intelligence', label: 'Business Intelligence Suite', icon: TrendingUp, section: 'overview', route: '/dashboard/business-intelligence', isNew: true, isEnterprise: true },
+  
+  // 🤖 MCP SERVER COMMAND CENTER
+  { id: 'mcp-overview', label: 'MCP Command Center', icon: Database, section: 'mcp', route: '/dashboard/mcp-overview', isEnterprise: true },
+  { id: 'workout-mcp', label: 'AI Workout Generator', icon: Dumbbell, section: 'mcp', route: '/dashboard/mcp/workout', status: 'online' },
+  { id: 'gamification-mcp', label: 'Gamification Engine', icon: Gamepad2, section: 'mcp', route: '/dashboard/mcp/gamification', status: 'online' },
+  { id: 'enhanced-gamification-mcp', label: 'Enhanced Gamification', icon: Star, section: 'mcp', route: '/dashboard/mcp/enhanced-gamification', status: 'online', isNew: true },
+  { id: 'financial-events-mcp', label: 'Financial Events Engine', icon: DollarSign, section: 'mcp', route: '/dashboard/mcp/financial', status: 'online' },
+  { id: 'yolo-mcp', label: 'YOLO Computer Vision', icon: Eye, section: 'mcp', route: '/dashboard/mcp/yolo', status: 'warning' },
+  
+  // 🌟 SOCIAL MEDIA & COMMUNITY COMMAND CENTER
+  { id: 'social-overview', label: 'Social Media Command Center', icon: Heart, section: 'social', route: '/dashboard/social-overview', isEnterprise: true },
+  { id: 'content-moderation', label: 'Content Moderation', icon: MessageSquare, section: 'social', route: '/dashboard/content-moderation', badge: 5 },
+  { id: 'community-management', label: 'Community Management', icon: Users, section: 'social', route: '/dashboard/community', isEnterprise: true },
+  { id: 'social-analytics', label: 'Social Analytics & Trends', icon: TrendingUp, section: 'social', route: '/dashboard/social-analytics', isNew: true },
+  { id: 'engagement-optimization', label: 'Engagement Optimization', icon: Activity, section: 'social', route: '/dashboard/engagement', isEnterprise: true },
   
   // 👥 PLATFORM MANAGEMENT
-  { id: 'user-management', label: 'User Management', icon: Users, section: 'management', route: '/dashboard/user-management' },
+  { id: 'user-management', label: 'User Management Suite', icon: Users, section: 'management', route: '/dashboard/user-management', isEnterprise: true },
   { id: 'trainers', label: 'Trainer Management', icon: UserCheck, section: 'management', route: '/dashboard/trainers' },
   { id: 'client-trainer-assignments', label: 'Client-Trainer Assignments', icon: Users, section: 'management', route: '/dashboard/client-trainer-assignments' },
-  { id: 'client-management', label: 'Client Management', icon: Star, section: 'management', route: '/dashboard/client-management' },
+  { id: 'client-management', label: 'Client Lifecycle Management', icon: Star, section: 'management', route: '/dashboard/client-management', isEnterprise: true },
   { id: 'admin-sessions', label: 'Session Management', icon: Calendar, section: 'management', route: '/dashboard/admin-sessions' },
-  { id: 'master-schedule', label: 'Universal Master Schedule', icon: Calendar, section: 'management', route: '/dashboard/admin/master-schedule' },
+  { id: 'master-schedule', label: 'Universal Master Schedule', icon: Calendar, section: 'management', route: '/dashboard/admin/master-schedule', isEnterprise: true },
+  { id: 'session-allocation', label: 'Session Allocation Manager', icon: CreditCard, section: 'management', route: '/dashboard/admin/session-allocation', isEnterprise: true },
   { id: 'admin-packages', label: 'Package Management', icon: Package, section: 'management', route: '/dashboard/admin-packages' },
-  { id: 'content', label: 'Content Moderation', icon: MessageSquare, section: 'management', route: '/dashboard/content' },
-  { id: 'social-management', label: 'Social Media Management', icon: Heart, section: 'management', route: '/dashboard/social-management' },
   
-  // 💰 BUSINESS INTELLIGENCE
-  { id: 'revenue', label: 'Revenue Analytics', icon: DollarSign, section: 'analytics', route: '/dashboard/revenue' },
-  { id: 'pending-orders', label: 'Pending Orders', icon: AlertTriangle, section: 'analytics', route: '/dashboard/pending-orders', badge: 2 },
-  { id: 'reports', label: 'Performance Reports', icon: FileText, section: 'analytics', route: '/dashboard/reports' },
-  { id: 'gamification', label: 'Gamification Engine', icon: Star, section: 'analytics', route: '/dashboard/gamification' },
-  { id: 'nasm-compliance', label: 'NASM Compliance', icon: Award, section: 'analytics', route: '/dashboard/nasm-compliance' },
-  { id: 'notifications', label: 'Notifications', icon: MessageSquare, section: 'analytics', route: '/dashboard/notifications' },
+  // 📊 ADVANCED BUSINESS INTELLIGENCE
+  { id: 'revenue-forecasting', label: 'Revenue Forecasting', icon: DollarSign, section: 'intelligence', route: '/dashboard/revenue-forecasting', isNew: true, isEnterprise: true },
+  { id: 'predictive-analytics', label: 'Predictive Analytics', icon: TrendingUp, section: 'intelligence', route: '/dashboard/predictive-analytics', isNew: true, isEnterprise: true },
+  { id: 'client-retention', label: 'Client Retention Analysis', icon: Heart, section: 'intelligence', route: '/dashboard/client-retention', isEnterprise: true },
+  { id: 'performance-optimization', label: 'Performance Optimization', icon: Zap, section: 'intelligence', route: '/dashboard/performance-optimization', isEnterprise: true },
+  { id: 'pending-orders', label: 'Order Management', icon: AlertTriangle, section: 'intelligence', route: '/dashboard/pending-orders', badge: 2 },
+  { id: 'reports', label: 'Executive Reports', icon: FileText, section: 'intelligence', route: '/dashboard/reports', isEnterprise: true },
+  { id: 'nasm-compliance', label: 'NASM Compliance Monitor', icon: Award, section: 'intelligence', route: '/dashboard/nasm-compliance' },
   
-  // ⚙️ SYSTEM OPERATIONS
-  { id: 'system-health', label: 'System Health', icon: Monitor, section: 'system', route: '/dashboard/system-health' },
-  { id: 'security', label: 'Security Center', icon: ShieldCheck, section: 'system', route: '/dashboard/security' },
-  { id: 'mcp-servers', label: 'MCP Servers', icon: Database, section: 'system', route: '/dashboard/mcp-servers' },
-  { id: 'settings', label: 'Settings', icon: Settings, section: 'system', route: '/dashboard/settings' }
+  // ⚙️ ENTERPRISE SYSTEM OPERATIONS
+  { id: 'system-health', label: 'System Health Monitor', icon: Monitor, section: 'system', route: '/dashboard/system-health', status: 'online', isEnterprise: true },
+  { id: 'database-optimization', label: 'Database Optimization', icon: Database, section: 'system', route: '/dashboard/database-optimization', isNew: true, isEnterprise: true },
+  { id: 'api-monitoring', label: 'API Performance Monitor', icon: Activity, section: 'system', route: '/dashboard/api-monitoring', isEnterprise: true },
+  { id: 'security', label: 'Security Command Center', icon: ShieldCheck, section: 'system', route: '/dashboard/security', isEnterprise: true },
+  { id: 'audit-logs', label: 'Audit & Compliance Logs', icon: FileText, section: 'system', route: '/dashboard/audit-logs', isEnterprise: true },
+  { id: 'backup-recovery', label: 'Backup & Recovery', icon: HardDrive, section: 'system', route: '/dashboard/backup-recovery', isEnterprise: true },
+  { id: 'notifications', label: 'System Notifications', icon: MessageSquare, section: 'system', route: '/dashboard/notifications' },
+  { id: 'settings', label: 'Enterprise Settings', icon: Settings, section: 'system', route: '/dashboard/settings', isEnterprise: true }
 ];
 
 const adminSectionTitles = {
-  overview: '🛡️ Command Center',
+  overview: '🛡️ Executive Command Center',
+  mcp: '🤖 MCP Server Operations',
+  social: '🌟 Social Media & Community',
   management: '👥 Platform Management',
-  analytics: '📊 Business Intelligence',
-  system: '⚙️ System Operations'
+  intelligence: '📊 Business Intelligence',
+  system: '⚙️ Enterprise System Operations'
+};
+
+// 🚀 MCP SERVER STATUS HOOKS
+const useMCPServerStatus = () => {
+  const [mcpServers, setMcpServers] = React.useState<MCPServerStatus[]>([
+    { id: 'workout-mcp', name: 'AI Workout Generator', status: 'online', port: 3001, uptime: '2d 14h', memoryUsage: 45, cpuUsage: 12 },
+    { id: 'gamification-mcp', name: 'Gamification Engine', status: 'online', port: 3002, uptime: '2d 14h', memoryUsage: 38, cpuUsage: 8 },
+    { id: 'enhanced-gamification-mcp', name: 'Enhanced Gamification', status: 'online', port: 3003, uptime: '1d 8h', memoryUsage: 52, cpuUsage: 15 },
+    { id: 'financial-events-mcp', name: 'Financial Events', status: 'online', port: 3004, uptime: '2d 14h', memoryUsage: 41, cpuUsage: 10 },
+    { id: 'yolo-mcp', name: 'YOLO Computer Vision', status: 'warning', port: 3005, uptime: '6h 23m', memoryUsage: 78, cpuUsage: 25 }
+  ]);
+  
+  // TODO: Replace with real API calls
+  React.useEffect(() => {
+    const fetchMCPStatus = async () => {
+      try {
+        // const response = await fetch('/api/admin/mcp-status');
+        // const data = await response.json();
+        // setMcpServers(data.servers);
+      } catch (error) {
+        console.warn('MCP status fetch failed, using mock data');
+      }
+    };
+    
+    fetchMCPStatus();
+    const interval = setInterval(fetchMCPStatus, 30000); // Update every 30s
+    
+    return () => clearInterval(interval);
+  }, []);
+  
+  return mcpServers;
+};
+
+// 🌟 MCP STATUS INDICATOR COMPONENT
+const MCPStatusIndicator: React.FC<{ status: 'online' | 'offline' | 'starting' | 'error' | 'warning' }> = ({ status }) => {
+  const getStatusColor = () => {
+    switch (status) {
+      case 'online': return '#10b981';
+      case 'warning': return '#f59e0b';
+      case 'error': return '#ef4444';
+      case 'starting': return '#3b82f6';
+      default: return '#6b7280';
+    }
+  };
+  
+  return (
+    <div
+      style={{
+        width: '8px',
+        height: '8px',
+        borderRadius: '50%',
+        backgroundColor: getStatusColor(),
+        position: 'absolute',
+        top: '2px',
+        right: '2px',
+        boxShadow: `0 0 6px ${getStatusColor()}`,
+        animation: status === 'online' ? `${commandPulse} 2s ease-in-out infinite` : 'none'
+      }}
+    />
+  );
 };
 
 // === COMPONENT PROPS ===
@@ -590,6 +688,9 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  
+  // 🚀 MCP Server Status Integration
+  const mcpServers = useMCPServerStatus();
   
   // Determine active section from current route if not provided as prop
   const currentRoute = location.pathname;
@@ -761,6 +862,10 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
                   const IconComponent = item.icon;
                   const isActive = activeSection === item.id;
                   
+                  // 🚀 Get MCP server status if this is an MCP item
+                  const mcpServer = mcpServers.find(server => server.id === item.id);
+                  const effectiveStatus = item.status || mcpServer?.status;
+                  
                   return (
                     <AdminNavItem
                       key={item.id}
@@ -776,13 +881,20 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
                       variants={itemVariants}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      aria-label={`Navigate to ${item.label}${item.badge ? ` - ${item.badge} pending items` : ''}`}
+                      aria-label={`Navigate to ${item.label}${item.badge ? ` - ${item.badge} pending items` : ''}${effectiveStatus ? ` - Status: ${effectiveStatus}` : ''}`}
                       aria-current={isActive ? 'page' : undefined}
                       role="menuitem"
                       tabIndex={0}
                     >
                       <div className="admin-nav-icon">
                         <IconComponent size={20} />
+                        
+                        {/* 🌟 MCP Status Indicator */}
+                        {effectiveStatus && (
+                          <MCPStatusIndicator status={effectiveStatus} />
+                        )}
+                        
+                        {/* 🔔 Badge for pending items */}
                         {item.badge && (
                           <span style={{
                             position: 'absolute',
@@ -796,14 +908,86 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
                             fontSize: '0.7rem',
                             display: 'flex',
                             alignItems: 'center',
-                            justifyContent: 'center'
+                            justifyContent: 'center',
+                            zIndex: 2
                           }}>
                             {item.badge}
                           </span>
                         )}
+                        
+                        {/* ⭐ Enterprise Badge */}
+                        {item.isEnterprise && (
+                          <span style={{
+                            position: 'absolute',
+                            bottom: '-2px',
+                            right: '-2px',
+                            background: adminCommandTheme.gradients.commandCenter,
+                            color: adminCommandTheme.colors.deepSpace,
+                            borderRadius: '3px',
+                            width: '10px',
+                            height: '6px',
+                            fontSize: '0.5rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 'bold',
+                            zIndex: 2
+                          }}>
+                            E
+                          </span>
+                        )}
                       </div>
-                      <span className="admin-nav-text">{item.label}</span>
-                      <div className="admin-nav-tooltip">{item.label}</div>
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+                        <span className="admin-nav-text">{item.label}</span>
+                        
+                        {/* 🆕 NEW Badge */}
+                        {item.isNew && (
+                          <span style={{
+                            background: adminCommandTheme.colors.successGreen,
+                            color: 'white',
+                            fontSize: '0.6rem',
+                            padding: '0.125rem 0.25rem',
+                            borderRadius: '4px',
+                            fontWeight: 'bold',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                            animation: `${commandPulse} 3s ease-in-out infinite`
+                          }}>
+                            NEW
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* 📊 Enhanced Tooltip with Status and Server Info */}
+                      <div className="admin-nav-tooltip" style={{
+                        minWidth: '200px',
+                        padding: '0.75rem 1rem'
+                      }}>
+                        <div style={{ fontWeight: 'bold', marginBottom: '0.25rem' }}>
+                          {item.label}
+                        </div>
+                        {mcpServer && (
+                          <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>
+                            <div>Port: {mcpServer.port}</div>
+                            <div>Status: {mcpServer.status}</div>
+                            <div>Uptime: {mcpServer.uptime}</div>
+                            <div>Memory: {mcpServer.memoryUsage}%</div>
+                            <div>CPU: {mcpServer.cpuUsage}%</div>
+                          </div>
+                        )}
+                        {item.isEnterprise && (
+                          <div style={{ 
+                            fontSize: '0.6rem', 
+                            color: adminCommandTheme.colors.cyberCyan,
+                            marginTop: '0.25rem',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                          }}>
+                            ENTERPRISE FEATURE
+                          </div>
+                        )}
+                      </div>
                     </AdminNavItem>
                   );
                 })}
