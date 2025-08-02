@@ -67,6 +67,13 @@ import ClientTrainerAssignments from '../Admin/ClientTrainerAssignments';
 import AdminSocialManagementView from './Pages/admin-dashboard/components/AdminSocialManagementView';
 import NASMCompliancePanel from './Pages/admin-dashboard/components/NASMCompliancePanel';
 
+// ============================================
+// ENTERPRISE MCP & BUSINESS INTELLIGENCE IMPORTS
+// ============================================
+import { MCPServerCommandCenter } from './Pages/admin-dashboard/components/MCPServerManagement';
+import { SocialMediaCommandCenter } from './Pages/admin-dashboard/components/SocialMediaCommand';
+import { EnterpriseBusinessIntelligenceSuite } from './Pages/admin-dashboard/components/BusinessIntelligence';
+
 // === EXECUTIVE COMMAND INTELLIGENCE THEME ===
 const executiveCommandTheme = {
   colors: {
@@ -700,6 +707,52 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                       transition={{ duration: 0.6 }}
                     >
                       <AdminSettingsPanel />
+                    </ExecutivePageContainer>
+                  } 
+                />
+                
+                {/* ============================================= */}
+                {/* ENTERPRISE MCP & BUSINESS INTELLIGENCE ROUTES */}
+                {/* ============================================= */}
+                
+                {/* MCP Command Center Route */}
+                <Route 
+                  path="/mcp-overview" 
+                  element={
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <MCPServerCommandCenter />
+                    </ExecutivePageContainer>
+                  } 
+                />
+                
+                {/* Social Media Command Center Route */}
+                <Route 
+                  path="/social-overview" 
+                  element={
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <SocialMediaCommandCenter />
+                    </ExecutivePageContainer>
+                  } 
+                />
+                
+                {/* Business Intelligence Suite Route */}
+                <Route 
+                  path="/business-intelligence" 
+                  element={
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <EnterpriseBusinessIntelligenceSuite />
                     </ExecutivePageContainer>
                   } 
                 />
