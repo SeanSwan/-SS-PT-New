@@ -68,14 +68,14 @@ import AdminSocialManagementView from './Pages/admin-dashboard/components/AdminS
 import NASMCompliancePanel from './Pages/admin-dashboard/components/NASMCompliancePanel';
 
 // Import Admin Exercise Command Center
-import { AdminExerciseCommandCenter } from './Pages/admin-exercises';
+import AdminExerciseCommandCenter from './Pages/admin-exercises';
 
 // ============================================
 // ENTERPRISE MCP & BUSINESS INTELLIGENCE IMPORTS
 // ============================================
-import { MCPServerCommandCenter } from './Pages/admin-dashboard/components/MCPServerManagement';
-import { SocialMediaCommandCenter } from './Pages/admin-dashboard/components/SocialMediaCommand';
-import { EnterpriseBusinessIntelligenceSuite } from './Pages/admin-dashboard/components/BusinessIntelligence';
+import MCPServerCommandCenter from './Pages/admin-dashboard/components/MCPServerManagement/MCPServerCommandCenter';
+import SocialMediaCommandCenter from './Pages/admin-dashboard/components/SocialMediaCommand/SocialMediaCommandCenter';
+import EnterpriseBusinessIntelligenceSuite from './Pages/admin-dashboard/components/BusinessIntelligence/EnterpriseBusinessIntelligenceSuite';
 
 // === EXECUTIVE COMMAND INTELLIGENCE THEME ===
 const executiveCommandTheme = {
