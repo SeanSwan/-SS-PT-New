@@ -1,1 +1,58 @@
-/**\n * Social Media Command Components Index\n * ====================================\n * \n * Export all social media management components\n */\n\nexport { default as SocialMediaCommandCenter } from './SocialMediaCommandCenter';\n\n// Re-export types\nexport interface SocialMediaPost {\n  id: string;\n  platform: 'instagram' | 'facebook' | 'twitter' | 'tiktok' | 'youtube';\n  author: {\n    id: string;\n    username: string;\n    displayName: string;\n    avatar: string;\n    isVerified: boolean;\n    followerCount: number;\n  };\n  content: {\n    text?: string;\n    images: string[];\n    videos: string[];\n    hashtags: string[];\n    mentions: string[];\n  };\n  engagement: {\n    likes: number;\n    comments: number;\n    shares: number;\n    views: number;\n    saves: number;\n  };\n  moderation: {\n    status: 'pending' | 'approved' | 'rejected' | 'flagged';\n    flagReasons: string[];\n    reviewedBy?: string;\n    reviewedAt?: string;\n    aiConfidenceScore: number;\n    sentimentScore: number;\n  };\n}\n\nexport interface CommunityAnalytics {\n  totalPosts: number;\n  totalEngagement: number;\n  activeUsers: number;\n  growthRate: number;\n  topHashtags: Array<{ tag: string; count: number; growth: number }>;\n  platformDistribution: Array<{ platform: string; percentage: number; posts: number }>;\n  sentimentAnalysis: {\n    positive: number;\n    neutral: number;\n    negative: number;\n  };\n}\n
+/**
+ * Social Media Command Components Index
+ * ====================================
+ * 
+ * Export all social media management components
+ */
+
+export { default as SocialMediaCommandCenter } from './SocialMediaCommandCenter';
+
+// Re-export types
+export interface SocialMediaPost {
+  id: string;
+  platform: 'instagram' | 'facebook' | 'twitter' | 'tiktok' | 'youtube';
+  author: {
+    id: string;
+    username: string;
+    displayName: string;
+    avatar: string;
+    isVerified: boolean;
+    followerCount: number;
+  };
+  content: {
+    text?: string;
+    images: string[];
+    videos: string[];
+    hashtags: string[];
+    mentions: string[];
+  };
+  engagement: {
+    likes: number;
+    comments: number;
+    shares: number;
+    views: number;
+    saves: number;
+  };
+  moderation: {
+    status: 'pending' | 'approved' | 'rejected' | 'flagged';
+    flagReasons: string[];
+    reviewedBy?: string;
+    reviewedAt?: string;
+    aiConfidenceScore: number;
+    sentimentScore: number;
+  };
+}
+
+export interface CommunityAnalytics {
+  totalPosts: number;
+  totalEngagement: number;
+  activeUsers: number;
+  growthRate: number;
+  topHashtags: Array<{ tag: string; count: number; growth: number }>;
+  platformDistribution: Array<{ platform: string; percentage: number; posts: number }>;
+  sentimentAnalysis: {
+    positive: number;
+    neutral: number;
+    negative: number;
+  };
+}
