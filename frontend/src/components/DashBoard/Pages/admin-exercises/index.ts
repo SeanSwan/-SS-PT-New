@@ -15,7 +15,9 @@
  */
 
 // === MAIN COMPONENT ===
-export { default as AdminExerciseCommandCenter } from './AdminExerciseCommandCenter';
+import AdminExerciseCommandCenter from './AdminExerciseCommandCenter';
+export { AdminExerciseCommandCenter };
+export default AdminExerciseCommandCenter;
 
 // === CORE COMPONENTS ===
 export { default as VideoUploadProcessor } from './components/VideoUploadProcessor';
@@ -236,4 +238,4 @@ export const POINT_MULTIPLIERS = {
 };
 
 // === DEFAULT EXPORT ===
-export default AdminExerciseCommandCenter;
+// Already exported at the top of the file
