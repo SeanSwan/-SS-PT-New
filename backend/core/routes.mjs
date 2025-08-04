@@ -67,6 +67,8 @@ import adminAnalyticsRoutes from '../routes/adminAnalyticsRoutes.mjs';
 import adminMCPRoutes from '../routes/adminMCPRoutes.mjs';
 // 📦 Real Order Management with Stripe Integration
 import adminOrdersRoutes from '../routes/adminOrdersRoutes.mjs';
+// 🔍 Data Verification and Debugging
+import adminDataVerificationRoutes from '../routes/adminDataVerificationRoutes.mjs';
 
 // ===================== SPECIALIZED FEATURES =====================
 import orientationRoutes from '../routes/orientationRoutes.mjs';
@@ -192,6 +194,8 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin', adminMCPRoutes);
   // 📦 Comprehensive Order Management with Real Stripe Integration
   app.use('/api/admin', adminOrdersRoutes);
+  // 🔍 Data Verification and Debugging Tools (verify data accuracy)
+  app.use('/api/admin', adminDataVerificationRoutes);
 
   // ===================== DASHBOARD ROUTES =====================
   app.use('/api/dashboard', dashboardRoutes);
