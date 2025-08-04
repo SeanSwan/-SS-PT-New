@@ -67,6 +67,9 @@ import ClientTrainerAssignments from '../Admin/ClientTrainerAssignments';
 import AdminSocialManagementView from './Pages/admin-dashboard/components/AdminSocialManagementView';
 import NASMCompliancePanel from './Pages/admin-dashboard/components/NASMCompliancePanel';
 
+// Import Admin Exercise Command Center
+import { AdminExerciseCommandCenter } from './Pages/admin-exercises';
+
 // ============================================
 // ENTERPRISE MCP & BUSINESS INTELLIGENCE IMPORTS
 // ============================================
@@ -780,6 +783,20 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                       transition={{ duration: 0.6 }}
                     >
                       <NASMCompliancePanel />
+                    </ExecutivePageContainer>
+                  } 
+                />
+                
+                {/* === ADMIN EXERCISE COMMAND CENTER ROUTE === */}
+                <Route 
+                  path="/exercise-management" 
+                  element={
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <AdminExerciseCommandCenter />
                     </ExecutivePageContainer>
                   } 
                 />
