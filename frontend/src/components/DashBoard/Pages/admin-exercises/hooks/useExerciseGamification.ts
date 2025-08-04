@@ -16,8 +16,8 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useAuth } from '../../../../../../context/AuthContext';
-import { useToast } from '../../../../../../hooks/use-toast';
+import { useAuth } from '../../../../../context/AuthContext';
+import { useToast } from '../../../../../hooks/use-toast';
 
 // === INTERFACES ===
 
