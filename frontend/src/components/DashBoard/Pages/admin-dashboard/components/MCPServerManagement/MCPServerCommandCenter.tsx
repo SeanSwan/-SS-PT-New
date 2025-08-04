@@ -41,7 +41,7 @@ import {
 } from 'recharts';
 
 // Import Enterprise Admin API Service for REAL DATA
-import enterpriseAdminApiService, { MCPServerStatus } from '../../../../../../services/enterpriseAdminApiService';
+import enterpriseAdminApiService, { MCPServerStatus } from '../../../../../services/enterpriseAdminApiService';
 
 // Use the real API types
 type EnhancedMCPServer = MCPServerStatus;
