@@ -450,62 +450,6 @@ const PendingOrdersAdminPanel: React.FC = () => {
       setLoading(false);
     }
   }, [authAxios, statusFilter, sortBy, sortOrder, searchTerm]);
-            orderReference: `ORD-${transaction.id}`,
-            paymentReference: `SWAN-${transaction.id}`,
-            customer: transaction.customer || {
-              id: 0,
-              name: 'Unknown Customer',
-              email: 'unknown@email.com'
-            },
-            amount: transaction.amount,
-            currency: 'USD',
-            status: 'pending_manual_payment',
-            createdAt: transaction.date,
-            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-            items: transaction.items?.map(item => ({
-              id: item.id,
-              name: item.name,
-              quantity: item.quantity,
-              price: item.price,
-              sessions: item.sessions
-            })) || [],
-            paymentInstructions: {
-              title: 'Complete Your SwanStudios Payment',
-              methods: [
-                {
-                  method: 'bank_transfer',
-                  title: 'Bank Transfer (ACH)',
-                  description: 'Direct bank transfer - lowest fees',
-                  details: {
-                    accountName: 'SwanStudios Training',
-                    memo: `Payment for ${transaction.id}`
-                  }
-                },
-                {
-                  method: 'contact',
-                  title: 'Contact Support',
-                  description: 'Speak with our team for payment assistance',
-                  details: {
-                    email: 'support@swanstudios.com',
-                    phone: process.env.OWNER_PHONE || 'Contact Admin'
-                  }
-                }
-              ]
-            },
-            priority: transaction.amount >= 500 ? 'high' : 
-                     transaction.amount >= 200 ? 'medium' : 'low'
-          }));
-
-        setOrders(pendingOrders);
-      } else {
-        setError(response.data.message || 'Failed to load pending orders');
-      }
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load pending orders');
-    } finally {
-      setLoading(false);
-    }
-  }, [authAxios, statusFilter, sortBy, sortOrder]);
 
   // Mark order as paid
   const markAsPaid = useCallback(async (orderId: string) => {
