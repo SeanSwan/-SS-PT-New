@@ -45,7 +45,7 @@ import {
 } from 'recharts';
 
 // Import Enterprise Admin API Service for real data integration
-import enterpriseAdminApiService from '../../../../../services/enterpriseAdminApiService';
+import enterpriseAdminApiService from '../../../../../../services/enterpriseAdminApiService';
 
 // Business Intelligence Interfaces
 interface ExecutiveKPIs {
