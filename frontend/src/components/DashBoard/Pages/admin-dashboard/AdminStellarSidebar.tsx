@@ -574,6 +574,7 @@ const adminNavigationItems: AdminNavItemData[] = [
   // 👥 PLATFORM MANAGEMENT
   { id: 'user-management', label: 'User Management Suite', icon: Users, section: 'management', route: '/dashboard/user-management', isEnterprise: true },
   { id: 'trainers', label: 'Trainer Management', icon: UserCheck, section: 'management', route: '/dashboard/trainers' },
+  { id: 'exercise-management', label: 'Exercise Command Center', icon: Dumbbell, section: 'management', route: '/dashboard/exercise-management', isNew: true, isEnterprise: true },
   { id: 'client-trainer-assignments', label: 'Client-Trainer Assignments', icon: Users, section: 'management', route: '/dashboard/client-trainer-assignments' },
   { id: 'client-management', label: 'Client Lifecycle Management', icon: Star, section: 'management', route: '/dashboard/client-management', isEnterprise: true },
   { id: 'admin-sessions', label: 'Session Management', icon: Calendar, section: 'management', route: '/dashboard/admin-sessions' },
