@@ -40,7 +40,7 @@ import {
 } from 'recharts';
 
 // Import Enterprise Admin API Service for REAL DATA
-import enterpriseAdminApiService, { SocialMediaPost } from '../../../../../../../services/enterpriseAdminApiService';
+import enterpriseAdminApiService, { SocialMediaPost } from '../../../../../../services/enterpriseAdminApiService';
 
 // Social Media Command Theme
 const socialCommandTheme = {
