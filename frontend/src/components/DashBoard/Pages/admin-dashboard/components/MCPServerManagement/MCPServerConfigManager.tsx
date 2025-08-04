@@ -1,1 +1,786 @@
-/**\n * MCPServerConfigManager.tsx\n * ===========================\n * \n * Enterprise-grade configuration management for MCP servers\n * Real-time configuration editing with validation and deployment\n * \n * FEATURES:\n * - Real-time configuration editing with syntax highlighting\n * - Schema validation for configuration files\n * - Environment variable management with encryption\n * - Configuration versioning and rollback capability\n * - Hot-reload functionality for configuration changes\n * - Security audit logging for configuration changes\n * - Import/Export configuration templates\n * - Multi-environment support (dev, staging, production)\n */\n\nimport React, { useState, useEffect, useCallback } from 'react';\nimport { motion, AnimatePresence } from 'framer-motion';\nimport styled from 'styled-components';\nimport {\n  Settings, Save, RefreshCw, Download, Upload, Eye, EyeOff,\n  Lock, Unlock, AlertTriangle, CheckCircle, Info, Edit3,\n  Trash2, Plus, Copy, RotateCcw, Shield, Key, Database\n} from 'lucide-react';\n\ninterface ConfigurationItem {\n  key: string;\n  value: string | number | boolean;\n  type: 'string' | 'number' | 'boolean' | 'password' | 'json';\n  description?: string;\n  required?: boolean;\n  sensitive?: boolean;\n  validation?: {\n    min?: number;\n    max?: number;\n    pattern?: string;\n    options?: string[];\n  };\n}\n\ninterface ServerConfiguration {\n  serverId: string;\n  serverName: string;\n  version: string;\n  environment: 'development' | 'staging' | 'production';\n  lastModified: string;\n  modifiedBy: string;\n  \n  general: ConfigurationItem[];\n  performance: ConfigurationItem[];\n  security: ConfigurationItem[];\n  logging: ConfigurationItem[];\n  features: ConfigurationItem[];\n  \n  environmentVariables: Record<string, string>;\n  \n  status: {\n    isValid: boolean;\n    errors: Array<{ field: string; message: string }>;\n    warnings: Array<{ field: string; message: string }>;\n  };\n}\n\ninterface ConfigManagerProps {\n  serverId: string;\n  onConfigSaved?: (config: ServerConfiguration) => void;\n  readOnly?: boolean;\n}\n\nconst ConfigContainer = styled.div`\n  background: rgba(10, 10, 15, 0.95);\n  border-radius: 12px;\n  border: 1px solid rgba(59, 130, 246, 0.2);\n  overflow: hidden;\n  color: white;\n`;\n\nconst ConfigHeader = styled.div`\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  padding: 1.5rem 2rem;\n  background: rgba(30, 58, 138, 0.1);\n  border-bottom: 1px solid rgba(59, 130, 246, 0.2);\n  \n  h2 {\n    margin: 0;\n    display: flex;\n    align-items: center;\n    gap: 0.75rem;\n    font-size: 1.25rem;\n    font-weight: 600;\n  }\n`;\n\nconst ConfigActions = styled.div`\n  display: flex;\n  gap: 0.5rem;\n  align-items: center;\n`;\n\nconst ActionButton = styled(motion.button)<{ variant?: 'primary' | 'secondary' | 'success' | 'danger' }>`\n  padding: 0.5rem 1rem;\n  border-radius: 6px;\n  border: none;\n  font-size: 0.875rem;\n  font-weight: 500;\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  gap: 0.5rem;\n  transition: all 0.2s ease;\n  \n  background: ${props => {\n    switch (props.variant) {\n      case 'success': return '#10b981';\n      case 'danger': return '#ef4444';\n      case 'secondary': return 'rgba(255, 255, 255, 0.1)';\n      default: return '#3b82f6';\n    }\n  }};\n  \n  color: white;\n  \n  &:hover {\n    transform: translateY(-1px);\n    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);\n  }\n  \n  &:disabled {\n    opacity: 0.5;\n    cursor: not-allowed;\n    transform: none;\n  }\n`;\n\nconst ConfigContent = styled.div`\n  max-height: 600px;\n  overflow-y: auto;\n  \n  /* Custom scrollbar */\n  &::-webkit-scrollbar {\n    width: 8px;\n  }\n  \n  &::-webkit-scrollbar-track {\n    background: rgba(10, 10, 15, 0.3);\n  }\n  \n  &::-webkit-scrollbar-thumb {\n    background: rgba(59, 130, 246, 0.5);\n    border-radius: 4px;\n  }\n`;\n\nconst ConfigSection = styled.div`\n  border-bottom: 1px solid rgba(255, 255, 255, 0.1);\n  \n  &:last-child {\n    border-bottom: none;\n  }\n`;\n\nconst SectionHeader = styled.div<{ expanded: boolean }>`\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  padding: 1rem 2rem;\n  background: rgba(255, 255, 255, 0.02);\n  cursor: pointer;\n  transition: background-color 0.2s ease;\n  \n  &:hover {\n    background: rgba(255, 255, 255, 0.05);\n  }\n  \n  h3 {\n    margin: 0;\n    display: flex;\n    align-items: center;\n    gap: 0.5rem;\n    font-size: 1rem;\n    font-weight: 600;\n  }\n  \n  .expand-icon {\n    transform: rotate(${props => props.expanded ? '90deg' : '0deg'});\n    transition: transform 0.2s ease;\n  }\n`;\n\nconst SectionContent = styled(motion.div)`\n  padding: 0 2rem 1rem;\n`;\n\nconst ConfigGroup = styled.div`\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));\n  gap: 1rem;\n  margin-bottom: 1.5rem;\n`;\n\nconst ConfigField = styled.div<{ hasError?: boolean; hasWarning?: boolean }>`\n  display: flex;\n  flex-direction: column;\n  gap: 0.5rem;\n  \n  .field-label {\n    display: flex;\n    align-items: center;\n    gap: 0.5rem;\n    font-size: 0.875rem;\n    font-weight: 500;\n    color: rgba(255, 255, 255, 0.9);\n    \n    .required {\n      color: #ef4444;\n    }\n    \n    .sensitive {\n      color: #f59e0b;\n    }\n  }\n  \n  .field-description {\n    font-size: 0.75rem;\n    color: rgba(255, 255, 255, 0.6);\n    margin-top: -0.25rem;\n  }\n  \n  .field-input {\n    padding: 0.75rem;\n    border-radius: 6px;\n    border: 1px solid ${props => {\n      if (props.hasError) return '#ef4444';\n      if (props.hasWarning) return '#f59e0b';\n      return 'rgba(255, 255, 255, 0.2)';\n    }};\n    background: rgba(255, 255, 255, 0.05);\n    color: white;\n    font-size: 0.875rem;\n    transition: border-color 0.2s ease;\n    \n    &:focus {\n      outline: none;\n      border-color: #3b82f6;\n      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);\n    }\n    \n    &::placeholder {\n      color: rgba(255, 255, 255, 0.4);\n    }\n  }\n  \n  .field-error {\n    font-size: 0.75rem;\n    color: #ef4444;\n    display: flex;\n    align-items: center;\n    gap: 0.25rem;\n  }\n  \n  .field-warning {\n    font-size: 0.75rem;\n    color: #f59e0b;\n    display: flex;\n    align-items: center;\n    gap: 0.25rem;\n  }\n`;\n\nconst ToggleSwitch = styled.div<{ enabled: boolean }>`\n  width: 48px;\n  height: 24px;\n  border-radius: 12px;\n  background: ${props => props.enabled ? '#10b981' : 'rgba(255, 255, 255, 0.2)'};\n  position: relative;\n  cursor: pointer;\n  transition: background-color 0.2s ease;\n  \n  &::after {\n    content: '';\n    position: absolute;\n    width: 20px;\n    height: 20px;\n    border-radius: 50%;\n    background: white;\n    top: 2px;\n    left: ${props => props.enabled ? '26px' : '2px'};\n    transition: left 0.2s ease;\n  }\n`;\n\nconst StatusIndicator = styled.div<{ status: 'valid' | 'warning' | 'error' }>`\n  display: flex;\n  align-items: center;\n  gap: 0.5rem;\n  padding: 0.5rem 1rem;\n  border-radius: 6px;\n  font-size: 0.875rem;\n  \n  background: ${props => {\n    switch (props.status) {\n      case 'valid': return 'rgba(16, 185, 129, 0.1)';\n      case 'warning': return 'rgba(245, 158, 11, 0.1)';\n      case 'error': return 'rgba(239, 68, 68, 0.1)';\n    }\n  }};\n  \n  color: ${props => {\n    switch (props.status) {\n      case 'valid': return '#10b981';\n      case 'warning': return '#f59e0b';\n      case 'error': return '#ef4444';\n    }\n  }};\n  \n  border: 1px solid ${props => {\n    switch (props.status) {\n      case 'valid': return 'rgba(16, 185, 129, 0.3)';\n      case 'warning': return 'rgba(245, 158, 11, 0.3)';\n      case 'error': return 'rgba(239, 68, 68, 0.3)';\n    }\n  }};\n`;\n\nconst MCPServerConfigManager: React.FC<ConfigManagerProps> = ({ \n  serverId, \n  onConfigSaved,\n  readOnly = false \n}) => {\n  const [config, setConfig] = useState<ServerConfiguration | null>(null);\n  const [loading, setLoading] = useState(true);\n  const [saving, setSaving] = useState(false);\n  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({\n    general: true,\n    performance: false,\n    security: false,\n    logging: false,\n    features: false\n  });\n  const [showSensitive, setShowSensitive] = useState(false);\n  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);\n  \n  // Mock configuration data\n  const mockConfig: ServerConfiguration = {\n    serverId: 'workout-mcp',\n    serverName: 'AI Workout Generator',\n    version: '2.1.0',\n    environment: 'production',\n    lastModified: '2025-08-01T10:30:25Z',\n    modifiedBy: 'admin@sswanstudios.com',\n    \n    general: [\n      {\n        key: 'port',\n        value: 3001,\n        type: 'number',\n        description: 'Port number for the server to listen on',\n        required: true,\n        validation: { min: 1024, max: 65535 }\n      },\n      {\n        key: 'host',\n        value: '0.0.0.0',\n        type: 'string',\n        description: 'Host address to bind the server to',\n        required: true\n      },\n      {\n        key: 'environment',\n        value: 'production',\n        type: 'string',\n        description: 'Runtime environment',\n        required: true,\n        validation: { options: ['development', 'staging', 'production'] }\n      }\n    ],\n    \n    performance: [\n      {\n        key: 'maxMemory',\n        value: 512,\n        type: 'number',\n        description: 'Maximum memory allocation in MB',\n        validation: { min: 128, max: 2048 }\n      },\n      {\n        key: 'maxCpuUsage',\n        value: 80,\n        type: 'number',\n        description: 'Maximum CPU usage percentage',\n        validation: { min: 10, max: 100 }\n      },\n      {\n        key: 'workerThreads',\n        value: 4,\n        type: 'number',\n        description: 'Number of worker threads for parallel processing',\n        validation: { min: 1, max: 16 }\n      },\n      {\n        key: 'cacheEnabled',\n        value: true,\n        type: 'boolean',\n        description: 'Enable in-memory caching for improved performance'\n      }\n    ],\n    \n    security: [\n      {\n        key: 'apiKey',\n        value: '••••••••••••••••',\n        type: 'password',\n        description: 'API key for external service authentication',\n        required: true,\n        sensitive: true\n      },\n      {\n        key: 'jwtSecret',\n        value: '••••••••••••••••',\n        type: 'password',\n        description: 'Secret key for JWT token signing',\n        required: true,\n        sensitive: true\n      },\n      {\n        key: 'rateLimitEnabled',\n        value: true,\n        type: 'boolean',\n        description: 'Enable rate limiting for API endpoints'\n      },\n      {\n        key: 'maxRequestsPerMinute',\n        value: 60,\n        type: 'number',\n        description: 'Maximum requests per minute per client',\n        validation: { min: 1, max: 1000 }\n      }\n    ],\n    \n    logging: [\n      {\n        key: 'logLevel',\n        value: 'info',\n        type: 'string',\n        description: 'Minimum log level to output',\n        validation: { options: ['debug', 'info', 'warn', 'error'] }\n      },\n      {\n        key: 'logToFile',\n        value: true,\n        type: 'boolean',\n        description: 'Enable logging to file system'\n      },\n      {\n        key: 'maxLogFileSize',\n        value: 10,\n        type: 'number',\n        description: 'Maximum log file size in MB',\n        validation: { min: 1, max: 100 }\n      }\n    ],\n    \n    features: [\n      {\n        key: 'aiOptimizationEnabled',\n        value: true,\n        type: 'boolean',\n        description: 'Enable AI-powered workout optimization'\n      },\n      {\n        key: 'nasmComplianceCheck',\n        value: true,\n        type: 'boolean',\n        description: 'Enforce NASM compliance in generated workouts'\n      },\n      {\n        key: 'personalizedRecommendations',\n        value: true,\n        type: 'boolean',\n        description: 'Enable personalized workout recommendations'\n      }\n    ],\n    \n    environmentVariables: {\n      NODE_ENV: 'production',\n      DEBUG: 'false',\n      DATABASE_URL: '••••••••••••••••',\n      REDIS_URL: '••••••••••••••••'\n    },\n    \n    status: {\n      isValid: true,\n      errors: [],\n      warnings: [\n        { field: 'maxMemory', message: 'Consider increasing memory allocation for better performance' }\n      ]\n    }\n  };\n  \n  useEffect(() => {\n    // TODO: Replace with actual API call\n    setTimeout(() => {\n      setConfig(mockConfig);\n      setLoading(false);\n    }, 1000);\n  }, [serverId]);\n  \n  const toggleSection = (section: string) => {\n    setExpandedSections(prev => ({\n      ...prev,\n      [section]: !prev[section]\n    }));\n  };\n  \n  const updateConfigValue = useCallback((section: keyof ServerConfiguration, index: number, value: any) => {\n    if (!config) return;\n    \n    setConfig(prev => {\n      if (!prev) return prev;\n      \n      const updated = { ...prev };\n      if (Array.isArray(updated[section])) {\n        const sectionArray = [...(updated[section] as ConfigurationItem[])];\n        sectionArray[index] = { ...sectionArray[index], value };\n        (updated[section] as ConfigurationItem[]) = sectionArray;\n      }\n      \n      return updated;\n    });\n    \n    setHasUnsavedChanges(true);\n  }, [config]);\n  \n  const handleSave = async () => {\n    if (!config) return;\n    \n    setSaving(true);\n    try {\n      // TODO: Replace with actual API call\n      await new Promise(resolve => setTimeout(resolve, 2000));\n      \n      setHasUnsavedChanges(false);\n      if (onConfigSaved) {\n        onConfigSaved(config);\n      }\n    } catch (error) {\n      console.error('Failed to save configuration:', error);\n    } finally {\n      setSaving(false);\n    }\n  };\n  \n  const renderConfigField = (item: ConfigurationItem, section: keyof ServerConfiguration, index: number) => {\n    const error = config?.status.errors.find(e => e.field === item.key);\n    const warning = config?.status.warnings.find(w => w.field === item.key);\n    \n    return (\n      <ConfigField key={item.key} hasError={!!error} hasWarning={!!warning}>\n        <div className=\"field-label\">\n          {item.key}\n          {item.required && <span className=\"required\">*</span>}\n          {item.sensitive && <Lock size={12} className=\"sensitive\" />}\n        </div>\n        \n        {item.description && (\n          <div className=\"field-description\">{item.description}</div>\n        )}\n        \n        {item.type === 'boolean' ? (\n          <ToggleSwitch\n            enabled={item.value as boolean}\n            onClick={() => !readOnly && updateConfigValue(section, index, !item.value)}\n          />\n        ) : item.type === 'password' ? (\n          <div style={{ position: 'relative' }}>\n            <input\n              type={showSensitive ? 'text' : 'password'}\n              className=\"field-input\"\n              value={showSensitive ? 'actual-secret-value' : item.value as string}\n              onChange={(e) => !readOnly && updateConfigValue(section, index, e.target.value)}\n              readOnly={readOnly}\n            />\n            <button\n              type=\"button\"\n              onClick={() => setShowSensitive(!showSensitive)}\n              style={{\n                position: 'absolute',\n                right: '8px',\n                top: '50%',\n                transform: 'translateY(-50%)',\n                background: 'none',\n                border: 'none',\n                color: 'rgba(255, 255, 255, 0.6)',\n                cursor: 'pointer'\n              }}\n            >\n              {showSensitive ? <EyeOff size={16} /> : <Eye size={16} />}\n            </button>\n          </div>\n        ) : item.validation?.options ? (\n          <select\n            className=\"field-input\"\n            value={item.value as string}\n            onChange={(e) => !readOnly && updateConfigValue(section, index, e.target.value)}\n            disabled={readOnly}\n            style={{ cursor: readOnly ? 'not-allowed' : 'pointer' }}\n          >\n            {item.validation.options.map(option => (\n              <option key={option} value={option}>{option}</option>\n            ))}\n          </select>\n        ) : (\n          <input\n            type={item.type === 'number' ? 'number' : 'text'}\n            className=\"field-input\"\n            value={item.value}\n            onChange={(e) => {\n              const value = item.type === 'number' ? parseFloat(e.target.value) : e.target.value;\n              !readOnly && updateConfigValue(section, index, value);\n            }}\n            readOnly={readOnly}\n            min={item.validation?.min}\n            max={item.validation?.max}\n            pattern={item.validation?.pattern}\n          />\n        )}\n        \n        {error && (\n          <div className=\"field-error\">\n            <AlertTriangle size={12} />\n            {error.message}\n          </div>\n        )}\n        \n        {warning && (\n          <div className=\"field-warning\">\n            <Info size={12} />\n            {warning.message}\n          </div>\n        )}\n      </ConfigField>\n    );\n  };\n  \n  const renderSection = (title: string, key: keyof ServerConfiguration, icon: React.ReactNode) => {\n    const items = config?.[key] as ConfigurationItem[];\n    if (!items || !Array.isArray(items)) return null;\n    \n    return (\n      <ConfigSection>\n        <SectionHeader \n          expanded={expandedSections[key]}\n          onClick={() => toggleSection(key)}\n        >\n          <h3>\n            {icon}\n            {title}\n            <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>\n              ({items.length} settings)\n            </span>\n          </h3>\n          <div className=\"expand-icon\">\n            <motion.div\n              animate={{ rotate: expandedSections[key] ? 90 : 0 }}\n              transition={{ duration: 0.2 }}\n            >\n              ▶\n            </motion.div>\n          </div>\n        </SectionHeader>\n        \n        <AnimatePresence>\n          {expandedSections[key] && (\n            <SectionContent\n              initial={{ height: 0, opacity: 0 }}\n              animate={{ height: 'auto', opacity: 1 }}\n              exit={{ height: 0, opacity: 0 }}\n              transition={{ duration: 0.3 }}\n            >\n              <ConfigGroup>\n                {items.map((item, index) => renderConfigField(item, key, index))}\n              </ConfigGroup>\n            </SectionContent>\n          )}\n        </AnimatePresence>\n      </ConfigSection>\n    );\n  };\n  \n  if (loading) {\n    return (\n      <ConfigContainer>\n        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>\n          <RefreshCw size={32} className=\"animate-spin\" style={{ color: '#3b82f6' }} />\n          <span style={{ marginLeft: '1rem', fontSize: '1.125rem' }}>Loading configuration...</span>\n        </div>\n      </ConfigContainer>\n    );\n  }\n  \n  if (!config) {\n    return (\n      <ConfigContainer>\n        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px', flexDirection: 'column', gap: '1rem' }}>\n          <AlertTriangle size={48} style={{ color: '#ef4444' }} />\n          <span style={{ fontSize: '1.125rem' }}>Failed to load configuration</span>\n        </div>\n      </ConfigContainer>\n    );\n  }\n  \n  return (\n    <ConfigContainer>\n      <ConfigHeader>\n        <h2>\n          <Settings size={24} />\n          {config.serverName} Configuration\n          <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)', fontWeight: 'normal' }}>\n            v{config.version} • {config.environment}\n          </div>\n        </h2>\n        \n        <ConfigActions>\n          <StatusIndicator status={config.status.isValid ? 'valid' : config.status.errors.length > 0 ? 'error' : 'warning'}>\n            {config.status.isValid ? <CheckCircle size={16} /> : config.status.errors.length > 0 ? <AlertTriangle size={16} /> : <Info size={16} />}\n            {config.status.isValid ? 'Valid' : config.status.errors.length > 0 ? `${config.status.errors.length} Errors` : `${config.status.warnings.length} Warnings`}\n          </StatusIndicator>\n          \n          {!readOnly && (\n            <>\n              <ActionButton\n                variant=\"secondary\"\n                onClick={() => setShowSensitive(!showSensitive)}\n                whileHover={{ scale: 1.05 }}\n                whileTap={{ scale: 0.95 }}\n              >\n                {showSensitive ? <EyeOff size={16} /> : <Eye size={16} />}\n                {showSensitive ? 'Hide' : 'Show'} Sensitive\n              </ActionButton>\n              \n              <ActionButton\n                variant=\"success\"\n                onClick={handleSave}\n                disabled={saving || !hasUnsavedChanges}\n                whileHover={{ scale: 1.05 }}\n                whileTap={{ scale: 0.95 }}\n              >\n                {saving ? <RefreshCw size={16} className=\"animate-spin\" /> : <Save size={16} />}\n                {saving ? 'Saving...' : 'Save Changes'}\n              </ActionButton>\n            </>\n          )}\n        </ConfigActions>\n      </ConfigHeader>\n      \n      <ConfigContent>\n        {renderSection('General Settings', 'general', <Database size={18} />)}\n        {renderSection('Performance', 'performance', <RefreshCw size={18} />)}\n        {renderSection('Security', 'security', <Shield size={18} />)}\n        {renderSection('Logging', 'logging', <Edit3 size={18} />)}\n        {renderSection('Features', 'features', <Settings size={18} />)}\n      </ConfigContent>\n      \n      {hasUnsavedChanges && (\n        <div style={{ \n          padding: '1rem 2rem', \n          background: 'rgba(245, 158, 11, 0.1)', \n          borderTop: '1px solid rgba(245, 158, 11, 0.3)',\n          display: 'flex',\n          alignItems: 'center',\n          gap: '0.5rem',\n          color: '#f59e0b'\n        }}>\n          <AlertTriangle size={16} />\n          You have unsaved changes. Don't forget to save your configuration.\n        </div>\n      )}\n    </ConfigContainer>\n  );\n};\n\nexport default MCPServerConfigManager;\n
+/**
+ * MCPServerConfigManager.tsx
+ * ===========================
+ * 
+ * Enterprise-grade configuration management for MCP servers
+ * Real-time configuration editing with validation and deployment
+ * 
+ * FEATURES:
+ * - Real-time configuration editing with syntax highlighting
+ * - Schema validation for configuration files
+ * - Environment variable management with encryption
+ * - Configuration versioning and rollback capability
+ * - Hot-reload functionality for configuration changes
+ * - Security audit logging for configuration changes
+ * - Import/Export configuration templates
+ * - Multi-environment support (dev, staging, production)
+ */
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import styled from 'styled-components';
+import {
+  Settings, Save, RefreshCw, Download, Upload, Eye, EyeOff,
+  Lock, Unlock, AlertTriangle, CheckCircle, Info, Edit3,
+  Trash2, Plus, Copy, RotateCcw, Shield, Key, Database
+} from 'lucide-react';
+
+interface ConfigurationItem {
+  key: string;
+  value: string | number | boolean;
+  type: 'string' | 'number' | 'boolean' | 'password' | 'json';
+  description?: string;
+  required?: boolean;
+  sensitive?: boolean;
+  validation?: {
+    min?: number;
+    max?: number;
+    pattern?: string;
+    options?: string[];
+  };
+}
+
+interface ServerConfiguration {
+  serverId: string;
+  serverName: string;
+  version: string;
+  environment: 'development' | 'staging' | 'production';
+  lastModified: string;
+  modifiedBy: string;
+  
+  general: ConfigurationItem[];
+  performance: ConfigurationItem[];
+  security: ConfigurationItem[];
+  logging: ConfigurationItem[];
+  features: ConfigurationItem[];
+  
+  environmentVariables: Record<string, string>;
+  
+  status: {
+    isValid: boolean;
+    errors: Array<{ field: string; message: string }>;
+    warnings: Array<{ field: string; message: string }>;
+  };
+}
+
+interface ConfigManagerProps {
+  serverId: string;
+  onConfigSaved?: (config: ServerConfiguration) => void;
+  readOnly?: boolean;
+}
+
+const ConfigContainer = styled.div`
+  background: rgba(10, 10, 15, 0.95);
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  overflow: hidden;
+  color: white;
+`;
+
+const ConfigHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: rgba(30, 58, 138, 0.1);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  
+  h2 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+  }
+`;
+
+const ConfigActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+`;
+
+const ActionButton = styled(motion.button)<{ variant?: 'primary' | 'secondary' | 'success' | 'danger' }>`
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  
+  background: ${props => {
+    switch (props.variant) {
+      case 'success': return '#10b981';
+      case 'danger': return '#ef4444';
+      case 'secondary': return 'rgba(255, 255, 255, 0.1)';
+      default: return '#3b82f6';
+    }
+  }};
+  
+  color: white;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+const ConfigContent = styled.div`
+  max-height: 600px;
+  overflow-y: auto;
+  
+  /* Custom scrollbar */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(10, 10, 15, 0.3);
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.5);
+    border-radius: 4px;
+  }
+`;
+
+const ConfigSection = styled.div`
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const SectionHeader = styled.div<{ expanded: boolean }>`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: rgba(255, 255, 255, 0.02);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  h3 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  
+  .expand-icon {
+    transform: rotate(${props => props.expanded ? '90deg' : '0deg'});
+    transition: transform 0.2s ease;
+  }
+`;
+
+const SectionContent = styled(motion.div)`
+  padding: 0 2rem 1rem;
+`;
+
+const ConfigGroup = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+`;
+
+const ConfigField = styled.div<{ hasError?: boolean; hasWarning?: boolean }>`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  
+  .field-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.9);
+    
+    .required {
+      color: #ef4444;
+    }
+    
+    .sensitive {
+      color: #f59e0b;
+    }
+  }
+  
+  .field-description {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: -0.25rem;
+  }
+  
+  .field-input {
+    padding: 0.75rem;
+    border-radius: 6px;
+    border: 1px solid ${props => {
+      if (props.hasError) return '#ef4444';
+      if (props.hasWarning) return '#f59e0b';
+      return 'rgba(255, 255, 255, 0.2)';
+    }};
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+    font-size: 0.875rem;
+    transition: border-color 0.2s ease;
+    
+    &:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+    
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.4);
+    }
+  }
+  
+  .field-error {
+    font-size: 0.75rem;
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  
+  .field-warning {
+    font-size: 0.75rem;
+    color: #f59e0b;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+`;
+
+const ToggleSwitch = styled.div<{ enabled: boolean }>`
+  width: 48px;
+  height: 24px;
+  border-radius: 12px;
+  background: ${props => props.enabled ? '#10b981' : 'rgba(255, 255, 255, 0.2)'};
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    top: 2px;
+    left: ${props => props.enabled ? '26px' : '2px'};
+    transition: left 0.2s ease;
+  }
+`;
+
+const StatusIndicator = styled.div<{ status: 'valid' | 'warning' | 'error' }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  
+  background: ${props => {
+    switch (props.status) {
+      case 'valid': return 'rgba(16, 185, 129, 0.1)';
+      case 'warning': return 'rgba(245, 158, 11, 0.1)';
+      case 'error': return 'rgba(239, 68, 68, 0.1)';
+    }
+  }};
+  
+  color: ${props => {
+    switch (props.status) {
+      case 'valid': return '#10b981';
+      case 'warning': return '#f59e0b';
+      case 'error': return '#ef4444';
+    }
+  }};
+  
+  border: 1px solid ${props => {
+    switch (props.status) {
+      case 'valid': return 'rgba(16, 185, 129, 0.3)';
+      case 'warning': return 'rgba(245, 158, 11, 0.3)';
+      case 'error': return 'rgba(239, 68, 68, 0.3)';
+    }
+  }};
+`;
+
+const MCPServerConfigManager: React.FC<ConfigManagerProps> = ({ 
+  serverId, 
+  onConfigSaved,
+  readOnly = false 
+}) => {
+  const [config, setConfig] = useState<ServerConfiguration | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    general: true,
+    performance: false,
+    security: false,
+    logging: false,
+    features: false
+  });
+  const [showSensitive, setShowSensitive] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  
+  // Mock configuration data
+  const mockConfig: ServerConfiguration = {
+    serverId: 'workout-mcp',
+    serverName: 'AI Workout Generator',
+    version: '2.1.0',
+    environment: 'production',
+    lastModified: '2025-08-01T10:30:25Z',
+    modifiedBy: 'admin@sswanstudios.com',
+    
+    general: [
+      {
+        key: 'port',
+        value: 3001,
+        type: 'number',
+        description: 'Port number for the server to listen on',
+        required: true,
+        validation: { min: 1024, max: 65535 }
+      },
+      {
+        key: 'host',
+        value: '0.0.0.0',
+        type: 'string',
+        description: 'Host address to bind the server to',
+        required: true
+      },
+      {
+        key: 'environment',
+        value: 'production',
+        type: 'string',
+        description: 'Runtime environment',
+        required: true,
+        validation: { options: ['development', 'staging', 'production'] }
+      }
+    ],
+    
+    performance: [
+      {
+        key: 'maxMemory',
+        value: 512,
+        type: 'number',
+        description: 'Maximum memory allocation in MB',
+        validation: { min: 128, max: 2048 }
+      },
+      {
+        key: 'maxCpuUsage',
+        value: 80,
+        type: 'number',
+        description: 'Maximum CPU usage percentage',
+        validation: { min: 10, max: 100 }
+      },
+      {
+        key: 'workerThreads',
+        value: 4,
+        type: 'number',
+        description: 'Number of worker threads for parallel processing',
+        validation: { min: 1, max: 16 }
+      },
+      {
+        key: 'cacheEnabled',
+        value: true,
+        type: 'boolean',
+        description: 'Enable in-memory caching for improved performance'
+      }
+    ],
+    
+    security: [
+      {
+        key: 'apiKey',
+        value: '••••••••••••••••',
+        type: 'password',
+        description: 'API key for external service authentication',
+        required: true,
+        sensitive: true
+      },
+      {
+        key: 'jwtSecret',
+        value: '••••••••••••••••',
+        type: 'password',
+        description: 'Secret key for JWT token signing',
+        required: true,
+        sensitive: true
+      },
+      {
+        key: 'rateLimitEnabled',
+        value: true,
+        type: 'boolean',
+        description: 'Enable rate limiting for API endpoints'
+      },
+      {
+        key: 'maxRequestsPerMinute',
+        value: 60,
+        type: 'number',
+        description: 'Maximum requests per minute per client',
+        validation: { min: 1, max: 1000 }
+      }
+    ],
+    
+    logging: [
+      {
+        key: 'logLevel',
+        value: 'info',
+        type: 'string',
+        description: 'Minimum log level to output',
+        validation: { options: ['debug', 'info', 'warn', 'error'] }
+      },
+      {
+        key: 'logToFile',
+        value: true,
+        type: 'boolean',
+        description: 'Enable logging to file system'
+      },
+      {
+        key: 'maxLogFileSize',
+        value: 10,
+        type: 'number',
+        description: 'Maximum log file size in MB',
+        validation: { min: 1, max: 100 }
+      }
+    ],
+    
+    features: [
+      {
+        key: 'aiOptimizationEnabled',
+        value: true,
+        type: 'boolean',
+        description: 'Enable AI-powered workout optimization'
+      },
+      {
+        key: 'nasmComplianceCheck',
+        value: true,
+        type: 'boolean',
+        description: 'Enforce NASM compliance in generated workouts'
+      },
+      {
+        key: 'personalizedRecommendations',
+        value: true,
+        type: 'boolean',
+        description: 'Enable personalized workout recommendations'
+      }
+    ],
+    
+    environmentVariables: {
+      NODE_ENV: 'production',
+      DEBUG: 'false',
+      DATABASE_URL: '••••••••••••••••',
+      REDIS_URL: '••••••••••••••••'
+    },
+    
+    status: {
+      isValid: true,
+      errors: [],
+      warnings: [
+        { field: 'maxMemory', message: 'Consider increasing memory allocation for better performance' }
+      ]
+    }
+  };
+  
+  useEffect(() => {
+    // TODO: Replace with actual API call
+    setTimeout(() => {
+      setConfig(mockConfig);
+      setLoading(false);
+    }, 1000);
+  }, [serverId]);
+  
+  const toggleSection = (section: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
+  
+  const updateConfigValue = useCallback((section: keyof ServerConfiguration, index: number, value: any) => {
+    if (!config) return;
+    
+    setConfig(prev => {
+      if (!prev) return prev;
+      
+      const updated = { ...prev };
+      if (Array.isArray(updated[section])) {
+        const sectionArray = [...(updated[section] as ConfigurationItem[])];
+        sectionArray[index] = { ...sectionArray[index], value };
+        (updated[section] as ConfigurationItem[]) = sectionArray;
+      }
+      
+      return updated;
+    });
+    
+    setHasUnsavedChanges(true);
+  }, [config]);
+  
+  const handleSave = async () => {
+    if (!config) return;
+    
+    setSaving(true);
+    try {
+      // TODO: Replace with actual API call
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      setHasUnsavedChanges(false);
+      if (onConfigSaved) {
+        onConfigSaved(config);
+      }
+    } catch (error) {
+      console.error('Failed to save configuration:', error);
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  const renderConfigField = (item: ConfigurationItem, section: keyof ServerConfiguration, index: number) => {
+    const error = config?.status.errors.find(e => e.field === item.key);
+    const warning = config?.status.warnings.find(w => w.field === item.key);
+    
+    return (
+      <ConfigField key={item.key} hasError={!!error} hasWarning={!!warning}>
+        <div className="field-label">
+          {item.key}
+          {item.required && <span className="required">*</span>}
+          {item.sensitive && <Lock size={12} className="sensitive" />}
+        </div>
+        
+        {item.description && (
+          <div className="field-description">{item.description}</div>
+        )}
+        
+        {item.type === 'boolean' ? (
+          <ToggleSwitch
+            enabled={item.value as boolean}
+            onClick={() => !readOnly && updateConfigValue(section, index, !item.value)}
+          />
+        ) : item.type === 'password' ? (
+          <div style={{ position: 'relative' }}>
+            <input
+              type={showSensitive ? 'text' : 'password'}
+              className="field-input"
+              value={showSensitive ? 'actual-secret-value' : item.value as string}
+              onChange={(e) => !readOnly && updateConfigValue(section, index, e.target.value)}
+              readOnly={readOnly}
+            />
+            <button
+              type="button"
+              onClick={() => setShowSensitive(!showSensitive)}
+              style={{
+                position: 'absolute',
+                right: '8px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'none',
+                border: 'none',
+                color: 'rgba(255, 255, 255, 0.6)',
+                cursor: 'pointer'
+              }}
+            >
+              {showSensitive ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+        ) : item.validation?.options ? (
+          <select
+            className="field-input"
+            value={item.value as string}
+            onChange={(e) => !readOnly && updateConfigValue(section, index, e.target.value)}
+            disabled={readOnly}
+            style={{ cursor: readOnly ? 'not-allowed' : 'pointer' }}
+          >
+            {item.validation.options.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type={item.type === 'number' ? 'number' : 'text'}
+            className="field-input"
+            value={item.value}
+            onChange={(e) => {
+              const value = item.type === 'number' ? parseFloat(e.target.value) : e.target.value;
+              !readOnly && updateConfigValue(section, index, value);
+            }}
+            readOnly={readOnly}
+            min={item.validation?.min}
+            max={item.validation?.max}
+            pattern={item.validation?.pattern}
+          />
+        )}
+        
+        {error && (
+          <div className="field-error">
+            <AlertTriangle size={12} />
+            {error.message}
+          </div>
+        )}
+        
+        {warning && (
+          <div className="field-warning">
+            <Info size={12} />
+            {warning.message}
+          </div>
+        )}
+      </ConfigField>
+    );
+  };
+  
+  const renderSection = (title: string, key: keyof ServerConfiguration, icon: React.ReactNode) => {
+    const items = config?.[key] as ConfigurationItem[];
+    if (!items || !Array.isArray(items)) return null;
+    
+    return (
+      <ConfigSection>
+        <SectionHeader 
+          expanded={expandedSections[key]}
+          onClick={() => toggleSection(key)}
+        >
+          <h3>
+            {icon}
+            {title}
+            <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>
+              ({items.length} settings)
+            </span>
+          </h3>
+          <div className="expand-icon">
+            <motion.div
+              animate={{ rotate: expandedSections[key] ? 90 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              ▶
+            </motion.div>
+          </div>
+        </SectionHeader>
+        
+        <AnimatePresence>
+          {expandedSections[key] && (
+            <SectionContent
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <ConfigGroup>
+                {items.map((item, index) => renderConfigField(item, key, index))}
+              </ConfigGroup>
+            </SectionContent>
+          )}
+        </AnimatePresence>
+      </ConfigSection>
+    );
+  };
+  
+  if (loading) {
+    return (
+      <ConfigContainer>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
+          <RefreshCw size={32} className="animate-spin" style={{ color: '#3b82f6' }} />
+          <span style={{ marginLeft: '1rem', fontSize: '1.125rem' }}>Loading configuration...</span>
+        </div>
+      </ConfigContainer>
+    );
+  }
+  
+  if (!config) {
+    return (
+      <ConfigContainer>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px', flexDirection: 'column', gap: '1rem' }}>
+          <AlertTriangle size={48} style={{ color: '#ef4444' }} />
+          <span style={{ fontSize: '1.125rem' }}>Failed to load configuration</span>
+        </div>
+      </ConfigContainer>
+    );
+  }
+  
+  return (
+    <ConfigContainer>
+      <ConfigHeader>
+        <h2>
+          <Settings size={24} />
+          {config.serverName} Configuration
+          <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)', fontWeight: 'normal' }}>
+            v{config.version} • {config.environment}
+          </div>
+        </h2>
+        
+        <ConfigActions>
+          <StatusIndicator status={config.status.isValid ? 'valid' : config.status.errors.length > 0 ? 'error' : 'warning'}>
+            {config.status.isValid ? <CheckCircle size={16} /> : config.status.errors.length > 0 ? <AlertTriangle size={16} /> : <Info size={16} />}
+            {config.status.isValid ? 'Valid' : config.status.errors.length > 0 ? `${config.status.errors.length} Errors` : `${config.status.warnings.length} Warnings`}
+          </StatusIndicator>
+          
+          {!readOnly && (
+            <>
+              <ActionButton
+                variant="secondary"
+                onClick={() => setShowSensitive(!showSensitive)}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {showSensitive ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showSensitive ? 'Hide' : 'Show'} Sensitive
+              </ActionButton>
+              
+              <ActionButton
+                variant="success"
+                onClick={handleSave}
+                disabled={saving || !hasUnsavedChanges}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {saving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
+                {saving ? 'Saving...' : 'Save Changes'}
+              </ActionButton>
+            </>
+          )}
+        </ConfigActions>
+      </ConfigHeader>
+      
+      <ConfigContent>
+        {renderSection('General Settings', 'general', <Database size={18} />)}
+        {renderSection('Performance', 'performance', <RefreshCw size={18} />)}
+        {renderSection('Security', 'security', <Shield size={18} />)}
+        {renderSection('Logging', 'logging', <Edit3 size={18} />)}
+        {renderSection('Features', 'features', <Settings size={18} />)}
+      </ConfigContent>
+      
+      {hasUnsavedChanges && (
+        <div style={{ 
+          padding: '1rem 2rem', 
+          background: 'rgba(245, 158, 11, 0.1)', 
+          borderTop: '1px solid rgba(245, 158, 11, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+          color: '#f59e0b'
+        }}>
+          <AlertTriangle size={16} />
+          You have unsaved changes. Don't forget to save your configuration.
+        </div>
+      )}
+    </ConfigContainer>
+  );
+};
+
+export default MCPServerConfigManager;

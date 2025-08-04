@@ -1,1 +1,664 @@
-/**\n * MCPServerLogViewer.tsx\n * ======================\n * \n * Real-time log monitoring and analysis for MCP servers\n * Enterprise-grade log management with filtering, search, and export\n * \n * FEATURES:\n * - Real-time log streaming with WebSocket integration\n * - Advanced filtering by level, source, and time range\n * - Full-text search with highlighting\n * - Log export functionality (JSON, CSV, plain text)\n * - Auto-scroll and pause functionality\n * - Color-coded log levels with severity indicators\n * - Performance-optimized virtual scrolling for large logs\n */\n\nimport React, { useState, useEffect, useRef, useMemo } from 'react';\nimport { motion, AnimatePresence } from 'framer-motion';\nimport styled from 'styled-components';\nimport {\n  Terminal, Search, Filter, Download, Play, Pause,\n  AlertCircle, Info, AlertTriangle, Bug, Trash2,\n  Eye, EyeOff, Clock, Database, RefreshCw\n} from 'lucide-react';\n\ninterface LogEntry {\n  id: string;\n  timestamp: string;\n  level: 'debug' | 'info' | 'warn' | 'error';\n  message: string;\n  source: string;\n  serverId: string;\n  serverName: string;\n  metadata?: Record<string, any>;\n}\n\ninterface LogViewerProps {\n  serverId?: string;\n  height?: string;\n  showControls?: boolean;\n}\n\nconst LogViewerContainer = styled.div<{ height: string }>`\n  background: rgba(10, 10, 15, 0.95);\n  border-radius: 12px;\n  border: 1px solid rgba(59, 130, 246, 0.2);\n  overflow: hidden;\n  height: ${props => props.height};\n  display: flex;\n  flex-direction: column;\n`;\n\nconst LogHeader = styled.div`\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  padding: 1rem 1.5rem;\n  background: rgba(30, 58, 138, 0.1);\n  border-bottom: 1px solid rgba(59, 130, 246, 0.2);\n  \n  h3 {\n    color: white;\n    margin: 0;\n    display: flex;\n    align-items: center;\n    gap: 0.5rem;\n    font-size: 1rem;\n    font-weight: 600;\n  }\n`;\n\nconst LogControls = styled.div`\n  display: flex;\n  gap: 0.5rem;\n  align-items: center;\n  \n  @media (max-width: 768px) {\n    flex-wrap: wrap;\n  }\n`;\n\nconst SearchInput = styled.input`\n  background: rgba(255, 255, 255, 0.1);\n  border: 1px solid rgba(255, 255, 255, 0.2);\n  border-radius: 6px;\n  padding: 0.5rem;\n  color: white;\n  font-size: 0.875rem;\n  width: 200px;\n  \n  &::placeholder {\n    color: rgba(255, 255, 255, 0.5);\n  }\n  \n  &:focus {\n    outline: none;\n    border-color: #3b82f6;\n    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);\n  }\n  \n  @media (max-width: 768px) {\n    width: 150px;\n  }\n`;\n\nconst FilterSelect = styled.select`\n  background: rgba(255, 255, 255, 0.1);\n  border: 1px solid rgba(255, 255, 255, 0.2);\n  border-radius: 6px;\n  padding: 0.5rem;\n  color: white;\n  font-size: 0.875rem;\n  cursor: pointer;\n  \n  option {\n    background: #1e3a8a;\n    color: white;\n  }\n  \n  &:focus {\n    outline: none;\n    border-color: #3b82f6;\n  }\n`;\n\nconst ControlButton = styled(motion.button)<{ variant?: 'primary' | 'secondary' | 'danger' }>`\n  padding: 0.5rem;\n  border-radius: 6px;\n  border: none;\n  background: ${props => {\n    switch (props.variant) {\n      case 'danger': return '#ef4444';\n      case 'secondary': return 'rgba(255, 255, 255, 0.1)';\n      default: return '#3b82f6';\n    }\n  }};\n  color: white;\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  transition: all 0.2s ease;\n  \n  &:hover {\n    background: ${props => {\n      switch (props.variant) {\n        case 'danger': return '#dc2626';\n        case 'secondary': return 'rgba(255, 255, 255, 0.2)';\n        default: return '#2563eb';\n      }\n    }};\n    transform: translateY(-1px);\n  }\n  \n  &:disabled {\n    opacity: 0.5;\n    cursor: not-allowed;\n    transform: none;\n  }\n`;\n\nconst LogContent = styled.div`\n  flex: 1;\n  overflow-y: auto;\n  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;\n  font-size: 0.8rem;\n  line-height: 1.4;\n  \n  /* Custom scrollbar */\n  &::-webkit-scrollbar {\n    width: 8px;\n  }\n  \n  &::-webkit-scrollbar-track {\n    background: rgba(10, 10, 15, 0.3);\n  }\n  \n  &::-webkit-scrollbar-thumb {\n    background: rgba(59, 130, 246, 0.5);\n    border-radius: 4px;\n    \n    &:hover {\n      background: rgba(59, 130, 246, 0.7);\n    }\n  }\n`;\n\nconst LogEntry = styled(motion.div)<{ level: string; highlighted?: boolean }>`\n  padding: 0.5rem 1rem;\n  border-left: 3px solid ${props => {\n    switch (props.level) {\n      case 'error': return '#ef4444';\n      case 'warn': return '#f59e0b';\n      case 'info': return '#3b82f6';\n      case 'debug': return '#6b7280';\n      default: return 'transparent';\n    }\n  }};\n  background: ${props => {\n    if (props.highlighted) return 'rgba(59, 130, 246, 0.2)';\n    switch (props.level) {\n      case 'error': return 'rgba(239, 68, 68, 0.1)';\n      case 'warn': return 'rgba(245, 158, 11, 0.1)';\n      default: return 'transparent';\n    }\n  }};\n  color: white;\n  transition: background-color 0.2s ease;\n  \n  &:hover {\n    background: rgba(255, 255, 255, 0.05);\n  }\n  \n  .log-timestamp {\n    color: rgba(255, 255, 255, 0.5);\n    font-size: 0.75rem;\n    margin-right: 0.5rem;\n  }\n  \n  .log-level {\n    display: inline-block;\n    padding: 0.125rem 0.375rem;\n    border-radius: 4px;\n    font-size: 0.65rem;\n    font-weight: 600;\n    text-transform: uppercase;\n    margin-right: 0.5rem;\n    min-width: 50px;\n    text-align: center;\n    \n    &.error {\n      background: #ef4444;\n      color: white;\n    }\n    \n    &.warn {\n      background: #f59e0b;\n      color: #1f2937;\n    }\n    \n    &.info {\n      background: #3b82f6;\n      color: white;\n    }\n    \n    &.debug {\n      background: #6b7280;\n      color: white;\n    }\n  }\n  \n  .log-source {\n    color: rgba(59, 130, 246, 0.8);\n    font-size: 0.75rem;\n    margin-right: 0.5rem;\n    font-weight: 500;\n  }\n  \n  .log-server {\n    color: rgba(16, 185, 129, 0.8);\n    font-size: 0.75rem;\n    margin-right: 0.5rem;\n    font-weight: 500;\n  }\n  \n  .log-message {\n    color: rgba(255, 255, 255, 0.9);\n    \n    mark {\n      background: #f59e0b;\n      color: #1f2937;\n      padding: 0.125rem 0.25rem;\n      border-radius: 2px;\n    }\n  }\n`;\n\nconst LogStats = styled.div`\n  display: flex;\n  gap: 1rem;\n  padding: 0.75rem 1.5rem;\n  background: rgba(30, 58, 138, 0.05);\n  border-top: 1px solid rgba(59, 130, 246, 0.2);\n  font-size: 0.75rem;\n  color: rgba(255, 255, 255, 0.7);\n  \n  .stat-item {\n    display: flex;\n    align-items: center;\n    gap: 0.25rem;\n    \n    .count {\n      color: white;\n      font-weight: 600;\n    }\n  }\n`;\n\nconst MCPServerLogViewer: React.FC<LogViewerProps> = ({ \n  serverId,\n  height = '500px',\n  showControls = true \n}) => {\n  const [logs, setLogs] = useState<LogEntry[]>([]);\n  const [filteredLogs, setFilteredLogs] = useState<LogEntry[]>([]);\n  const [searchTerm, setSearchTerm] = useState('');\n  const [levelFilter, setLevelFilter] = useState<string>('all');\n  const [sourceFilter, setSourceFilter] = useState<string>('all');\n  const [isPaused, setIsPaused] = useState(false);\n  const [autoScroll, setAutoScroll] = useState(true);\n  const [isConnected, setIsConnected] = useState(false);\n  const logContentRef = useRef<HTMLDivElement>(null);\n  const wsRef = useRef<WebSocket | null>(null);\n  \n  // Mock log data for demonstration\n  const generateMockLog = (): LogEntry => {\n    const levels: Array<'debug' | 'info' | 'warn' | 'error'> = ['debug', 'info', 'warn', 'error'];\n    const sources = ['workout-generator', 'health-monitor', 'api-handler', 'database', 'cache-manager'];\n    const servers = [\n      { id: 'workout-mcp', name: 'AI Workout Generator' },\n      { id: 'gamification-mcp', name: 'Gamification Engine' },\n      { id: 'enhanced-gamification-mcp', name: 'Enhanced Gamification' },\n      { id: 'financial-events-mcp', name: 'Financial Events Engine' },\n      { id: 'yolo-mcp', name: 'YOLO Computer Vision' }\n    ];\n    \n    const messages = {\n      debug: [\n        'Function execution completed in 23ms',\n        'Cache hit for key: user_workout_preferences_12345',\n        'Database query executed: SELECT * FROM exercises WHERE category = $1',\n        'Memory usage: 45.2% of allocated heap'\n      ],\n      info: [\n        'Workout generated successfully for user 67890',\n        'Health check passed - all systems operational',\n        'New client connected from IP 192.168.1.100',\n        'Configuration reloaded from environment variables'\n      ],\n      warn: [\n        'High memory usage detected: 78% of allocated heap',\n        'Slow query detected: execution time 2.3 seconds',\n        'Rate limit approaching for API endpoint /generate',\n        'Connection pool at 85% capacity'\n      ],\n      error: [\n        'Failed to connect to external API after 3 retries',\n        'Database connection timeout after 30 seconds',\n        'Model inference failed: CUDA out of memory',\n        'Webhook validation failed: invalid signature'\n      ]\n    };\n    \n    const level = levels[Math.floor(Math.random() * levels.length)];\n    const source = sources[Math.floor(Math.random() * sources.length)];\n    const server = servers[Math.floor(Math.random() * servers.length)];\n    const messageOptions = messages[level];\n    const message = messageOptions[Math.floor(Math.random() * messageOptions.length)];\n    \n    return {\n      id: Date.now().toString() + Math.random(),\n      timestamp: new Date().toISOString(),\n      level,\n      message,\n      source,\n      serverId: server.id,\n      serverName: server.name\n    };\n  };\n  \n  // Initialize logs and WebSocket connection\n  useEffect(() => {\n    // Generate initial logs\n    const initialLogs = Array.from({ length: 50 }, generateMockLog)\n      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());\n    setLogs(initialLogs);\n    \n    // Simulate WebSocket connection\n    setIsConnected(true);\n    \n    // Generate new logs periodically\n    const logInterval = setInterval(() => {\n      if (!isPaused) {\n        const newLog = generateMockLog();\n        setLogs(prev => {\n          const updated = [...prev, newLog];\n          // Keep only last 1000 logs for performance\n          return updated.slice(-1000);\n        });\n      }\n    }, 2000 + Math.random() * 3000); // Random interval between 2-5 seconds\n    \n    return () => {\n      clearInterval(logInterval);\n      if (wsRef.current) {\n        wsRef.current.close();\n      }\n    };\n  }, [isPaused]);\n  \n  // Filter logs based on search term and filters\n  useEffect(() => {\n    let filtered = logs;\n    \n    // Filter by server if specified\n    if (serverId) {\n      filtered = filtered.filter(log => log.serverId === serverId);\n    }\n    \n    // Filter by level\n    if (levelFilter !== 'all') {\n      filtered = filtered.filter(log => log.level === levelFilter);\n    }\n    \n    // Filter by source\n    if (sourceFilter !== 'all') {\n      filtered = filtered.filter(log => log.source === sourceFilter);\n    }\n    \n    // Filter by search term\n    if (searchTerm) {\n      const searchLower = searchTerm.toLowerCase();\n      filtered = filtered.filter(log => \n        log.message.toLowerCase().includes(searchLower) ||\n        log.source.toLowerCase().includes(searchLower) ||\n        log.serverName.toLowerCase().includes(searchLower)\n      );\n    }\n    \n    setFilteredLogs(filtered);\n  }, [logs, searchTerm, levelFilter, sourceFilter, serverId]);\n  \n  // Auto-scroll to bottom when new logs arrive\n  useEffect(() => {\n    if (autoScroll && logContentRef.current) {\n      logContentRef.current.scrollTop = logContentRef.current.scrollHeight;\n    }\n  }, [filteredLogs, autoScroll]);\n  \n  // Get unique sources for filter dropdown\n  const uniqueSources = useMemo(() => {\n    const sources = new Set(logs.map(log => log.source));\n    return Array.from(sources).sort();\n  }, [logs]);\n  \n  // Calculate log statistics\n  const logStats = useMemo(() => {\n    const stats = filteredLogs.reduce((acc, log) => {\n      acc[log.level] = (acc[log.level] || 0) + 1;\n      return acc;\n    }, {} as Record<string, number>);\n    \n    return {\n      total: filteredLogs.length,\n      error: stats.error || 0,\n      warn: stats.warn || 0,\n      info: stats.info || 0,\n      debug: stats.debug || 0\n    };\n  }, [filteredLogs]);\n  \n  const handleExportLogs = () => {\n    const dataStr = JSON.stringify(filteredLogs, null, 2);\n    const dataBlob = new Blob([dataStr], { type: 'application/json' });\n    const url = URL.createObjectURL(dataBlob);\n    const link = document.createElement('a');\n    link.href = url;\n    link.download = `mcp-logs-${new Date().toISOString().split('T')[0]}.json`;\n    link.click();\n    URL.revokeObjectURL(url);\n  };\n  \n  const clearLogs = () => {\n    setLogs([]);\n    setFilteredLogs([]);\n  };\n  \n  const highlightSearchTerm = (text: string, searchTerm: string) => {\n    if (!searchTerm) return text;\n    \n    const regex = new RegExp(`(${searchTerm})`, 'gi');\n    return text.replace(regex, '<mark>$1</mark>');\n  };\n  \n  return (\n    <LogViewerContainer height={height}>\n      {showControls && (\n        <LogHeader>\n          <h3>\n            <Terminal size={18} />\n            {serverId ? `Server Logs - ${logs.find(l => l.serverId === serverId)?.serverName || serverId}` : 'All Server Logs'}\n            <div style={{ \n              width: '8px', \n              height: '8px', \n              borderRadius: '50%', \n              background: isConnected ? '#10b981' : '#6b7280',\n              marginLeft: '0.5rem',\n              animation: isConnected ? 'pulse 2s infinite' : 'none'\n            }} />\n          </h3>\n          \n          <LogControls>\n            <div style={{ position: 'relative' }}>\n              <Search size={16} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255, 255, 255, 0.5)' }} />\n              <SearchInput\n                type=\"text\"\n                placeholder=\"Search logs...\"\n                value={searchTerm}\n                onChange={(e) => setSearchTerm(e.target.value)}\n                style={{ paddingLeft: '2rem' }}\n              />\n            </div>\n            \n            <FilterSelect\n              value={levelFilter}\n              onChange={(e) => setLevelFilter(e.target.value)}\n            >\n              <option value=\"all\">All Levels</option>\n              <option value=\"debug\">Debug</option>\n              <option value=\"info\">Info</option>\n              <option value=\"warn\">Warning</option>\n              <option value=\"error\">Error</option>\n            </FilterSelect>\n            \n            <FilterSelect\n              value={sourceFilter}\n              onChange={(e) => setSourceFilter(e.target.value)}\n            >\n              <option value=\"all\">All Sources</option>\n              {uniqueSources.map(source => (\n                <option key={source} value={source}>{source}</option>\n              ))}\n            </FilterSelect>\n            \n            <ControlButton\n              onClick={() => setIsPaused(!isPaused)}\n              whileHover={{ scale: 1.05 }}\n              whileTap={{ scale: 0.95 }}\n              title={isPaused ? 'Resume log stream' : 'Pause log stream'}\n            >\n              {isPaused ? <Play size={16} /> : <Pause size={16} />}\n            </ControlButton>\n            \n            <ControlButton\n              onClick={() => setAutoScroll(!autoScroll)}\n              variant={autoScroll ? 'primary' : 'secondary'}\n              whileHover={{ scale: 1.05 }}\n              whileTap={{ scale: 0.95 }}\n              title={autoScroll ? 'Disable auto-scroll' : 'Enable auto-scroll'}\n            >\n              {autoScroll ? <Eye size={16} /> : <EyeOff size={16} />}\n            </ControlButton>\n            \n            <ControlButton\n              onClick={handleExportLogs}\n              whileHover={{ scale: 1.05 }}\n              whileTap={{ scale: 0.95 }}\n              title=\"Export logs\"\n            >\n              <Download size={16} />\n            </ControlButton>\n            \n            <ControlButton\n              onClick={clearLogs}\n              variant=\"danger\"\n              whileHover={{ scale: 1.05 }}\n              whileTap={{ scale: 0.95 }}\n              title=\"Clear all logs\"\n            >\n              <Trash2 size={16} />\n            </ControlButton>\n          </LogControls>\n        </LogHeader>\n      )}\n      \n      <LogContent ref={logContentRef}>\n        <AnimatePresence>\n          {filteredLogs.map((log, index) => (\n            <LogEntry\n              key={log.id}\n              level={log.level}\n              highlighted={searchTerm && log.message.toLowerCase().includes(searchTerm.toLowerCase())}\n              initial={{ opacity: 0, x: -20 }}\n              animate={{ opacity: 1, x: 0 }}\n              transition={{ duration: 0.2, delay: index * 0.01 }}\n            >\n              <span className=\"log-timestamp\">\n                {new Date(log.timestamp).toLocaleTimeString()}\n              </span>\n              <span className={`log-level ${log.level}`}>\n                {log.level}\n              </span>\n              {!serverId && (\n                <span className=\"log-server\">\n                  [{log.serverName}]\n                </span>\n              )}\n              <span className=\"log-source\">\n                {log.source}:\n              </span>\n              <span \n                className=\"log-message\"\n                dangerouslySetInnerHTML={{\n                  __html: highlightSearchTerm(log.message, searchTerm)\n                }}\n              />\n            </LogEntry>\n          ))}\n        </AnimatePresence>\n        \n        {filteredLogs.length === 0 && (\n          <div style={{ \n            display: 'flex', \n            alignItems: 'center', \n            justifyContent: 'center', \n            height: '200px',\n            color: 'rgba(255, 255, 255, 0.5)',\n            flexDirection: 'column',\n            gap: '0.5rem'\n          }}>\n            <Database size={32} />\n            <span>No logs match the current filters</span>\n          </div>\n        )}\n      </LogContent>\n      \n      <LogStats>\n        <div className=\"stat-item\">\n          <Database size={14} />\n          Total: <span className=\"count\">{logStats.total}</span>\n        </div>\n        {logStats.error > 0 && (\n          <div className=\"stat-item\">\n            <AlertCircle size={14} style={{ color: '#ef4444' }} />\n            Errors: <span className=\"count\" style={{ color: '#ef4444' }}>{logStats.error}</span>\n          </div>\n        )}\n        {logStats.warn > 0 && (\n          <div className=\"stat-item\">\n            <AlertTriangle size={14} style={{ color: '#f59e0b' }} />\n            Warnings: <span className=\"count\" style={{ color: '#f59e0b' }}>{logStats.warn}</span>\n          </div>\n        )}\n        <div className=\"stat-item\">\n          <Info size={14} style={{ color: '#3b82f6' }} />\n          Info: <span className=\"count\">{logStats.info}</span>\n        </div>\n        <div className=\"stat-item\">\n          <Bug size={14} style={{ color: '#6b7280' }} />\n          Debug: <span className=\"count\">{logStats.debug}</span>\n        </div>\n        <div className=\"stat-item\">\n          <Clock size={14} />\n          Status: <span className=\"count\" style={{ color: isConnected ? '#10b981' : '#ef4444' }}>\n            {isConnected ? 'Connected' : 'Disconnected'}\n          </span>\n        </div>\n      </LogStats>\n    </LogViewerContainer>\n  );\n};\n\nexport default MCPServerLogViewer;\n
+/**
+ * MCPServerLogViewer.tsx
+ * ======================
+ * 
+ * Real-time log monitoring and analysis for MCP servers
+ * Enterprise-grade log management with filtering, search, and export
+ * 
+ * FEATURES:
+ * - Real-time log streaming with WebSocket integration
+ * - Advanced filtering by level, source, and time range
+ * - Full-text search with highlighting
+ * - Log export functionality (JSON, CSV, plain text)
+ * - Auto-scroll and pause functionality
+ * - Color-coded log levels with severity indicators
+ * - Performance-optimized virtual scrolling for large logs
+ */
+
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import styled from 'styled-components';
+import {
+  Terminal, Search, Filter, Download, Play, Pause,
+  AlertCircle, Info, AlertTriangle, Bug, Trash2,
+  Eye, EyeOff, Clock, Database, RefreshCw
+} from 'lucide-react';
+
+interface LogEntry {
+  id: string;
+  timestamp: string;
+  level: 'debug' | 'info' | 'warn' | 'error';
+  message: string;
+  source: string;
+  serverId: string;
+  serverName: string;
+  metadata?: Record<string, any>;
+}
+
+interface LogViewerProps {
+  serverId?: string;
+  height?: string;
+  showControls?: boolean;
+}
+
+const LogViewerContainer = styled.div<{ height: string }>`
+  background: rgba(10, 10, 15, 0.95);
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  overflow: hidden;
+  height: ${props => props.height};
+  display: flex;
+  flex-direction: column;
+`;
+
+const LogHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: rgba(30, 58, 138, 0.1);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  
+  h3 {
+    color: white;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+`;
+
+const LogControls = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  
+  @media (max-width: 768px) {
+    flex-wrap: wrap;
+  }
+`;
+
+const SearchInput = styled.input`
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 0.5rem;
+  color: white;
+  font-size: 0.875rem;
+  width: 200px;
+  
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  }
+  
+  @media (max-width: 768px) {
+    width: 150px;
+  }
+`;
+
+const FilterSelect = styled.select`
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  padding: 0.5rem;
+  color: white;
+  font-size: 0.875rem;
+  cursor: pointer;
+  
+  option {
+    background: #1e3a8a;
+    color: white;
+  }
+  
+  &:focus {
+    outline: none;
+    border-color: #3b82f6;
+  }
+`;
+
+const ControlButton = styled(motion.button)<{ variant?: 'primary' | 'secondary' | 'danger' }>`
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: none;
+  background: ${props => {
+    switch (props.variant) {
+      case 'danger': return '#ef4444';
+      case 'secondary': return 'rgba(255, 255, 255, 0.1)';
+      default: return '#3b82f6';
+    }
+  }};
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: ${props => {
+      switch (props.variant) {
+        case 'danger': return '#dc2626';
+        case 'secondary': return 'rgba(255, 255, 255, 0.2)';
+        default: return '#2563eb';
+      }
+    }};
+    transform: translateY(-1px);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+const LogContent = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  
+  /* Custom scrollbar */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(10, 10, 15, 0.3);
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.5);
+    border-radius: 4px;
+    
+    &:hover {
+      background: rgba(59, 130, 246, 0.7);
+    }
+  }
+`;
+
+const LogEntryStyled = styled(motion.div)<{ level: string; highlighted?: boolean }>`
+  padding: 0.5rem 1rem;
+  border-left: 3px solid ${props => {
+    switch (props.level) {
+      case 'error': return '#ef4444';
+      case 'warn': return '#f59e0b';
+      case 'info': return '#3b82f6';
+      case 'debug': return '#6b7280';
+      default: return 'transparent';
+    }
+  }};
+  background: ${props => {
+    if (props.highlighted) return 'rgba(59, 130, 246, 0.2)';
+    switch (props.level) {
+      case 'error': return 'rgba(239, 68, 68, 0.1)';
+      case 'warn': return 'rgba(245, 158, 11, 0.1)';
+      default: return 'transparent';
+    }
+  }};
+  color: white;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  .log-timestamp {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.75rem;
+    margin-right: 0.5rem;
+  }
+  
+  .log-level {
+    display: inline-block;
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-right: 0.5rem;
+    min-width: 50px;
+    text-align: center;
+    
+    &.error {
+      background: #ef4444;
+      color: white;
+    }
+    
+    &.warn {
+      background: #f59e0b;
+      color: #1f2937;
+    }
+    
+    &.info {
+      background: #3b82f6;
+      color: white;
+    }
+    
+    &.debug {
+      background: #6b7280;
+      color: white;
+    }
+  }
+  
+  .log-source {
+    color: rgba(59, 130, 246, 0.8);
+    font-size: 0.75rem;
+    margin-right: 0.5rem;
+    font-weight: 500;
+  }
+  
+  .log-server {
+    color: rgba(16, 185, 129, 0.8);
+    font-size: 0.75rem;
+    margin-right: 0.5rem;
+    font-weight: 500;
+  }
+  
+  .log-message {
+    color: rgba(255, 255, 255, 0.9);
+    
+    mark {
+      background: #f59e0b;
+      color: #1f2937;
+      padding: 0.125rem 0.25rem;
+      border-radius: 2px;
+    }
+  }
+`;
+
+const LogStats = styled.div`
+  display: flex;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(30, 58, 138, 0.05);
+  border-top: 1px solid rgba(59, 130, 246, 0.2);
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  
+  .stat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    
+    .count {
+      color: white;
+      font-weight: 600;
+    }
+  }
+`;
+
+const MCPServerLogViewer: React.FC<LogViewerProps> = ({ 
+  serverId,
+  height = '500px',
+  showControls = true 
+}) => {
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [filteredLogs, setFilteredLogs] = useState<LogEntry[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [levelFilter, setLevelFilter] = useState<string>('all');
+  const [sourceFilter, setSourceFilter] = useState<string>('all');
+  const [isPaused, setIsPaused] = useState(false);
+  const [autoScroll, setAutoScroll] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+  const logContentRef = useRef<HTMLDivElement>(null);
+  const wsRef = useRef<WebSocket | null>(null);
+  
+  // Mock log data for demonstration
+  const generateMockLog = (): LogEntry => {
+    const levels: Array<'debug' | 'info' | 'warn' | 'error'> = ['debug', 'info', 'warn', 'error'];
+    const sources = ['workout-generator', 'health-monitor', 'api-handler', 'database', 'cache-manager'];
+    const servers = [
+      { id: 'workout-mcp', name: 'AI Workout Generator' },
+      { id: 'gamification-mcp', name: 'Gamification Engine' },
+      { id: 'enhanced-gamification-mcp', name: 'Enhanced Gamification' },
+      { id: 'financial-events-mcp', name: 'Financial Events Engine' },
+      { id: 'yolo-mcp', name: 'YOLO Computer Vision' }
+    ];
+    
+    const messages = {
+      debug: [
+        'Function execution completed in 23ms',
+        'Cache hit for key: user_workout_preferences_12345',
+        'Database query executed: SELECT * FROM exercises WHERE category = $1',
+        'Memory usage: 45.2% of allocated heap'
+      ],
+      info: [
+        'Workout generated successfully for user 67890',
+        'Health check passed - all systems operational',
+        'New client connected from IP 192.168.1.100',
+        'Configuration reloaded from environment variables'
+      ],
+      warn: [
+        'High memory usage detected: 78% of allocated heap',
+        'Slow query detected: execution time 2.3 seconds',
+        'Rate limit approaching for API endpoint /generate',
+        'Connection pool at 85% capacity'
+      ],
+      error: [
+        'Failed to connect to external API after 3 retries',
+        'Database connection timeout after 30 seconds',
+        'Model inference failed: CUDA out of memory',
+        'Webhook validation failed: invalid signature'
+      ]
+    };
+    
+    const level = levels[Math.floor(Math.random() * levels.length)];
+    const source = sources[Math.floor(Math.random() * sources.length)];
+    const server = servers[Math.floor(Math.random() * servers.length)];
+    const messageOptions = messages[level];
+    const message = messageOptions[Math.floor(Math.random() * messageOptions.length)];
+    
+    return {
+      id: Date.now().toString() + Math.random(),
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+      source,
+      serverId: server.id,
+      serverName: server.name
+    };
+  };
+  
+  // Initialize logs and WebSocket connection
+  useEffect(() => {
+    // Generate initial logs
+    const initialLogs = Array.from({ length: 50 }, generateMockLog)
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    setLogs(initialLogs);
+    
+    // Simulate WebSocket connection
+    setIsConnected(true);
+    
+    // Generate new logs periodically
+    const logInterval = setInterval(() => {
+      if (!isPaused) {
+        const newLog = generateMockLog();
+        setLogs(prev => {
+          const updated = [...prev, newLog];
+          // Keep only last 1000 logs for performance
+          return updated.slice(-1000);
+        });
+      }
+    }, 2000 + Math.random() * 3000); // Random interval between 2-5 seconds
+    
+    return () => {
+      clearInterval(logInterval);
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [isPaused]);
+  
+  // Filter logs based on search term and filters
+  useEffect(() => {
+    let filtered = logs;
+    
+    // Filter by server if specified
+    if (serverId) {
+      filtered = filtered.filter(log => log.serverId === serverId);
+    }
+    
+    // Filter by level
+    if (levelFilter !== 'all') {
+      filtered = filtered.filter(log => log.level === levelFilter);
+    }
+    
+    // Filter by source
+    if (sourceFilter !== 'all') {
+      filtered = filtered.filter(log => log.source === sourceFilter);
+    }
+    
+    // Filter by search term
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(log => 
+        log.message.toLowerCase().includes(searchLower) ||
+        log.source.toLowerCase().includes(searchLower) ||
+        log.serverName.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    setFilteredLogs(filtered);
+  }, [logs, searchTerm, levelFilter, sourceFilter, serverId]);
+  
+  // Auto-scroll to bottom when new logs arrive
+  useEffect(() => {
+    if (autoScroll && logContentRef.current) {
+      logContentRef.current.scrollTop = logContentRef.current.scrollHeight;
+    }
+  }, [filteredLogs, autoScroll]);
+  
+  // Get unique sources for filter dropdown
+  const uniqueSources = useMemo(() => {
+    const sources = new Set(logs.map(log => log.source));
+    return Array.from(sources).sort();
+  }, [logs]);
+  
+  // Calculate log statistics
+  const logStats = useMemo(() => {
+    const stats = filteredLogs.reduce((acc, log) => {
+      acc[log.level] = (acc[log.level] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    return {
+      total: filteredLogs.length,
+      error: stats.error || 0,
+      warn: stats.warn || 0,
+      info: stats.info || 0,
+      debug: stats.debug || 0
+    };
+  }, [filteredLogs]);
+  
+  const handleExportLogs = () => {
+    const dataStr = JSON.stringify(filteredLogs, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `mcp-logs-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+  
+  const clearLogs = () => {
+    setLogs([]);
+    setFilteredLogs([]);
+  };
+  
+  const highlightSearchTerm = (text: string, searchTerm: string) => {
+    if (!searchTerm) return text;
+    
+    const regex = new RegExp(`(${searchTerm})`, 'gi');
+    return text.replace(regex, '<mark>$1</mark>');
+  };
+  
+  return (
+    <LogViewerContainer height={height}>
+      {showControls && (
+        <LogHeader>
+          <h3>
+            <Terminal size={18} />
+            {serverId ? `Server Logs - ${logs.find(l => l.serverId === serverId)?.serverName || serverId}` : 'All Server Logs'}
+            <div style={{ 
+              width: '8px', 
+              height: '8px', 
+              borderRadius: '50%', 
+              background: isConnected ? '#10b981' : '#6b7280',
+              marginLeft: '0.5rem',
+              animation: isConnected ? 'pulse 2s infinite' : 'none'
+            }} />
+          </h3>
+          
+          <LogControls>
+            <div style={{ position: 'relative' }}>
+              <Search size={16} style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(255, 255, 255, 0.5)' }} />
+              <SearchInput
+                type="text"
+                placeholder="Search logs..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{ paddingLeft: '2rem' }}
+              />
+            </div>
+            
+            <FilterSelect
+              value={levelFilter}
+              onChange={(e) => setLevelFilter(e.target.value)}
+            >
+              <option value="all">All Levels</option>
+              <option value="debug">Debug</option>
+              <option value="info">Info</option>
+              <option value="warn">Warning</option>
+              <option value="error">Error</option>
+            </FilterSelect>
+            
+            <FilterSelect
+              value={sourceFilter}
+              onChange={(e) => setSourceFilter(e.target.value)}
+            >
+              <option value="all">All Sources</option>
+              {uniqueSources.map(source => (
+                <option key={source} value={source}>{source}</option>
+              ))}
+            </FilterSelect>
+            
+            <ControlButton
+              onClick={() => setIsPaused(!isPaused)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              title={isPaused ? 'Resume log stream' : 'Pause log stream'}
+            >
+              {isPaused ? <Play size={16} /> : <Pause size={16} />}
+            </ControlButton>
+            
+            <ControlButton
+              onClick={() => setAutoScroll(!autoScroll)}
+              variant={autoScroll ? 'primary' : 'secondary'}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              title={autoScroll ? 'Disable auto-scroll' : 'Enable auto-scroll'}
+            >
+              {autoScroll ? <Eye size={16} /> : <EyeOff size={16} />}
+            </ControlButton>
+            
+            <ControlButton
+              onClick={handleExportLogs}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              title="Export logs"
+            >
+              <Download size={16} />
+            </ControlButton>
+            
+            <ControlButton
+              onClick={clearLogs}
+              variant="danger"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              title="Clear all logs"
+            >
+              <Trash2 size={16} />
+            </ControlButton>
+          </LogControls>
+        </LogHeader>
+      )}
+      
+      <LogContent ref={logContentRef}>
+        <AnimatePresence>
+          {filteredLogs.map((log, index) => (
+            <LogEntryStyled
+              key={log.id}
+              level={log.level}
+              highlighted={searchTerm && log.message.toLowerCase().includes(searchTerm.toLowerCase())}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.2, delay: index * 0.01 }}
+            >
+              <span className="log-timestamp">
+                {new Date(log.timestamp).toLocaleTimeString()}
+              </span>
+              <span className={`log-level ${log.level}`}>
+                {log.level}
+              </span>
+              {!serverId && (
+                <span className="log-server">
+                  [{log.serverName}]
+                </span>
+              )}
+              <span className="log-source">
+                {log.source}:
+              </span>
+              <span 
+                className="log-message"
+                dangerouslySetInnerHTML={{
+                  __html: highlightSearchTerm(log.message, searchTerm)
+                }}
+              />
+            </LogEntryStyled>
+          ))}
+        </AnimatePresence>
+        
+        {filteredLogs.length === 0 && (
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            height: '200px',
+            color: 'rgba(255, 255, 255, 0.5)',
+            flexDirection: 'column',
+            gap: '0.5rem'
+          }}>
+            <Database size={32} />
+            <span>No logs match the current filters</span>
+          </div>
+        )}
+      </LogContent>
+      
+      <LogStats>
+        <div className="stat-item">
+          <Database size={14} />
+          Total: <span className="count">{logStats.total}</span>
+        </div>
+        {logStats.error > 0 && (
+          <div className="stat-item">
+            <AlertCircle size={14} style={{ color: '#ef4444' }} />
+            Errors: <span className="count" style={{ color: '#ef4444' }}>{logStats.error}</span>
+          </div>
+        )}
+        {logStats.warn > 0 && (
+          <div className="stat-item">
+            <AlertTriangle size={14} style={{ color: '#f59e0b' }} />
+            Warnings: <span className="count" style={{ color: '#f59e0b' }}>{logStats.warn}</span>
+          </div>
+        )}
+        <div className="stat-item">
+          <Info size={14} style={{ color: '#3b82f6' }} />
+          Info: <span className="count">{logStats.info}</span>
+        </div>
+        <div className="stat-item">
+          <Bug size={14} style={{ color: '#6b7280' }} />
+          Debug: <span className="count">{logStats.debug}</span>
+        </div>
+        <div className="stat-item">
+          <Clock size={14} />
+          Status: <span className="count" style={{ color: isConnected ? '#10b981' : '#ef4444' }}>
+            {isConnected ? 'Connected' : 'Disconnected'}
+          </span>
+        </div>
+      </LogStats>
+    </LogViewerContainer>
+  );
+};
+
+export default MCPServerLogViewer;
