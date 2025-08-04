@@ -35,7 +35,7 @@ import {
 } from 'lucide-react';
 
 // Import theme and animations
-import { exerciseCommandTheme, mediaQueries } from '../styles/exerciseCommandTheme';
+import { exerciseCommandTheme, mediaQueries } from './styles/exerciseCommandTheme';
 import { 
   motionVariants, 
   achievementUnlock, 
@@ -48,23 +48,23 @@ import {
   confettiParticle,
   accessibleAnimation,
   animationPerformance
-} from '../styles/gamificationAnimations';
+} from './styles/gamificationAnimations';
 
 // Import hooks and services
 import { useAuth } from '../../../../../context/AuthContext';
 import { useToast } from '../../../../../hooks/use-toast';
-import { useExerciseGamification } from '../hooks/useExerciseGamification';
-import { useVideoUpload } from '../hooks/useVideoUpload';
-import { useExerciseStats } from '../hooks/useExerciseStats';
-import { useNASMValidation } from '../hooks/useNASMValidation';
+import { useExerciseGamification } from './hooks/useExerciseGamification';
+import { useVideoUpload } from './hooks/useVideoUpload';
+import { useExerciseStats } from './hooks/useExerciseStats';
+import { useNASMValidation } from './hooks/useNASMValidation';
 
 // Import components
-import VideoUploadProcessor from '../components/VideoUploadProcessor';
-import ExerciseCreationWizard from '../components/ExerciseCreationWizard';
-import ExercisePreviewModal from '../components/ExercisePreviewModal';
-import ExerciseStatsPanel from '../components/ExerciseStatsPanel';
-import AdminAchievementCelebration from '../components/AdminAchievementCelebration';
-import ExerciseLibraryManager from '../components/ExerciseLibraryManager';
+import VideoUploadProcessor from './components/VideoUploadProcessor';
+import ExerciseCreationWizard from './components/ExerciseCreationWizard';
+import ExercisePreviewModal from './components/ExercisePreviewModal';
+import ExerciseStatsPanel from './components/ExerciseStatsPanel';
+import AdminAchievementCelebration from './components/AdminAchievementCelebration';
+import ExerciseLibraryManager from './components/ExerciseLibraryManager';
 
 // === STYLED COMPONENTS ===
 
