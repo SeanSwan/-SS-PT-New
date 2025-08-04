@@ -51,8 +51,8 @@ import {
 } from './styles/gamificationAnimations';
 
 // Import hooks and services
-import { useAuth } from '../../../../../context/AuthContext';
-import { useToast } from '../../../../../hooks/use-toast';
+import { useAuth } from '../../../../context/AuthContext';
+import { useToast } from '../../../../hooks/use-toast';
 import { useExerciseGamification } from './hooks/useExerciseGamification';
 import { useVideoUpload } from './hooks/useVideoUpload';
 import { useExerciseStats } from './hooks/useExerciseStats';
