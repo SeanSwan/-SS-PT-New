@@ -10,7 +10,7 @@ import express from 'express';
 import { protect as authMiddleware } from '../middleware/authMiddleware.mjs';
 import { requireAdmin } from '../middleware/adminMiddleware.mjs';
 import logger from '../utils/logger.mjs';
-import { getDBConnection } from '../utils/database.mjs';
+import { getClient, query } from '../utils/database.mjs';
 
 const router = express.Router();
 
@@ -28,13 +28,11 @@ router.use(requireAdmin);
  */
 router.get('/business-intelligence/metrics', async (req, res) => {
   try {
-    const db = await getDBConnection();
-    
     // Fetch real business metrics from database
     const [userStats, sessionStats, revenueStats] = await Promise.all([
-      fetchUserMetrics(db),
-      fetchSessionMetrics(db),
-      fetchRevenueMetrics(db)
+      fetchUserMetrics(),
+      fetchSessionMetrics(),
+      fetchRevenueMetrics()
     ]);
 
     const businessMetrics = {
@@ -94,9 +92,7 @@ router.get('/business-intelligence/metrics', async (req, res) => {
  */
 router.get('/analytics/dashboard', async (req, res) => {
   try {
-    const db = await getDBConnection();
-    
-    const analytics = await fetchAdminAnalytics(db);
+    const analytics = await fetchAdminAnalytics();
 
     res.json({
       success: true,
@@ -121,9 +117,8 @@ router.get('/analytics/dashboard', async (req, res) => {
 router.get('/analytics/revenue', async (req, res) => {
   try {
     const { range = 'month' } = req.query;
-    const db = await getDBConnection();
     
-    const revenueAnalytics = await fetchRevenueAnalytics(db, range);
+    const revenueAnalytics = await fetchRevenueAnalytics(range);
 
     res.json({
       success: true,
@@ -153,10 +148,9 @@ router.get('/analytics/revenue', async (req, res) => {
 router.get('/social-media/posts', async (req, res) => {
   try {
     const { platform, status, limit = 50, offset = 0 } = req.query;
-    const db = await getDBConnection();
     
-    const posts = await fetchSocialMediaPosts(db, { platform, status, limit, offset });
-    const total = await getSocialMediaPostsCount(db, { platform, status });
+    const posts = await fetchSocialMediaPosts({ platform, status, limit, offset });
+    const total = await getSocialMediaPostsCount({ platform, status });
 
     res.json({
       success: true,
@@ -185,11 +179,10 @@ router.post('/social-media/posts/:postId/moderate', async (req, res) => {
   try {
     const { postId } = req.params;
     const { action, reason } = req.body;
-    const db = await getDBConnection();
     
     logger.info(`Admin ${req.user.id} moderating post ${postId}: ${action}`);
     
-    const result = await moderateSocialMediaPost(db, postId, action, reason, req.user.id);
+    const result = await moderateSocialMediaPost(postId, action, reason, req.user.id);
 
     res.json({
       success: true,
@@ -215,9 +208,7 @@ router.post('/social-media/posts/:postId/moderate', async (req, res) => {
  */
 router.get('/social-media/analytics', async (req, res) => {
   try {
-    const db = await getDBConnection();
-    
-    const analytics = await fetchSocialMediaAnalytics(db);
+    const analytics = await fetchSocialMediaAnalytics();
 
     res.json({
       success: true,
@@ -387,13 +378,317 @@ router.get('/features/availability', async (req, res) => {
 });
 
 // =====================================================
+// MCP SERVER MANAGEMENT
+// =====================================================
+
+/**
+ * Get all MCP servers status
+ * GET /api/admin/mcp-servers
+ */
+router.get('/mcp-servers', async (req, res) => {
+  try {
+    // Mock MCP server data for now
+    const servers = [
+      {
+        id: 'workout-mcp',
+        name: 'AI Workout Generator',
+        description: 'Generates personalized workout plans using NASM principles',
+        status: 'online',
+        port: 3001,
+        pid: 12345,
+        uptime: '2d 14h 23m',
+        lastSeen: new Date().toISOString(),
+        version: '1.2.0',
+        performance: {
+          cpu: 12,
+          memory: 45,
+          network: { in: 1200, out: 800 },
+          requests: 15420,
+          errors: 2,
+          responseTime: 85
+        },
+        config: {
+          autoRestart: true,
+          maxMemory: 512,
+          maxCpu: 80,
+          logLevel: 'info',
+          environment: {}
+        },
+        healthChecks: {
+          last: new Date().toISOString(),
+          status: 'healthy',
+          checks: [
+            { name: 'Database Connection', status: 'pass', message: 'Connected', duration: 45 },
+            { name: 'API Response', status: 'pass', message: 'Responding normally', duration: 120 }
+          ]
+        }
+      },
+      {
+        id: 'gamification-mcp',
+        name: 'Gamification Engine',
+        description: 'Handles user achievements, points, and progress tracking',
+        status: 'online',
+        port: 3002,
+        pid: 12346,
+        uptime: '2d 14h 20m',
+        lastSeen: new Date().toISOString(),
+        version: '1.1.5',
+        performance: {
+          cpu: 8,
+          memory: 38,
+          network: { in: 900, out: 600 },
+          requests: 8750,
+          errors: 0,
+          responseTime: 65
+        },
+        config: {
+          autoRestart: true,
+          maxMemory: 256,
+          maxCpu: 70,
+          logLevel: 'info',
+          environment: {}
+        },
+        healthChecks: {
+          last: new Date().toISOString(),
+          status: 'healthy',
+          checks: [
+            { name: 'Achievement System', status: 'pass', message: 'Processing normally', duration: 30 },
+            { name: 'Points Calculation', status: 'pass', message: 'Active', duration: 25 }
+          ]
+        }
+      },
+      {
+        id: 'financial-events-mcp',
+        name: 'Financial Events Engine',
+        description: 'Processes payments, subscriptions, and financial events',
+        status: 'online',
+        port: 3004,
+        pid: 12348,
+        uptime: '2d 14h 18m',
+        lastSeen: new Date().toISOString(),
+        version: '1.0.8',
+        performance: {
+          cpu: 15,
+          memory: 52,
+          network: { in: 2100, out: 1800 },
+          requests: 3250,
+          errors: 1,
+          responseTime: 95
+        },
+        config: {
+          autoRestart: true,
+          maxMemory: 512,
+          maxCpu: 80,
+          logLevel: 'info',
+          environment: {}
+        },
+        healthChecks: {
+          last: new Date().toISOString(),
+          status: 'healthy',
+          checks: [
+            { name: 'Payment Processing', status: 'pass', message: 'Stripe integration active', duration: 150 },
+            { name: 'Webhook Handler', status: 'pass', message: 'Processing events', duration: 75 }
+          ]
+        }
+      },
+      {
+        id: 'yolo-mcp',
+        name: 'YOLO Computer Vision',
+        description: 'Provides computer vision capabilities for form analysis',
+        status: 'warning',
+        port: 3005,
+        pid: 12349,
+        uptime: '6h 23m',
+        lastSeen: new Date(Date.now() - 300000).toISOString(),
+        version: '0.9.2',
+        performance: {
+          cpu: 25,
+          memory: 78,
+          network: { in: 3500, out: 2200 },
+          requests: 850,
+          errors: 12,
+          responseTime: 450
+        },
+        config: {
+          autoRestart: true,
+          maxMemory: 1024,
+          maxCpu: 90,
+          logLevel: 'debug',
+          environment: { GPU_ENABLED: 'true' }
+        },
+        healthChecks: {
+          last: new Date(Date.now() - 300000).toISOString(),
+          status: 'degraded',
+          checks: [
+            { name: 'Model Loading', status: 'warn', message: 'High memory usage', duration: 2500 },
+            { name: 'GPU Availability', status: 'pass', message: 'CUDA available', duration: 100 }
+          ]
+        }
+      }
+    ];
+
+    res.json({
+      success: true,
+      servers,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error('Failed to fetch MCP servers:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch MCP server status',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Start an MCP server
+ * POST /api/admin/mcp-servers/:serverId/start
+ */
+router.post('/mcp-servers/:serverId/start', async (req, res) => {
+  try {
+    const { serverId } = req.params;
+    
+    logger.info(`Admin ${req.user.id} starting MCP server ${serverId}`);
+    
+    // TODO: Implement actual server start logic
+    // For now, return success
+    
+    res.json({
+      success: true,
+      message: `MCP server ${serverId} start command sent`,
+      serverId,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error(`Failed to start MCP server ${req.params.serverId}:`, error);
+    res.status(500).json({
+      success: false,
+      message: `Failed to start MCP server ${req.params.serverId}`,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Stop an MCP server
+ * POST /api/admin/mcp-servers/:serverId/stop
+ */
+router.post('/mcp-servers/:serverId/stop', async (req, res) => {
+  try {
+    const { serverId } = req.params;
+    
+    logger.info(`Admin ${req.user.id} stopping MCP server ${serverId}`);
+    
+    // TODO: Implement actual server stop logic
+    
+    res.json({
+      success: true,
+      message: `MCP server ${serverId} stop command sent`,
+      serverId,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error(`Failed to stop MCP server ${req.params.serverId}:`, error);
+    res.status(500).json({
+      success: false,
+      message: `Failed to stop MCP server ${req.params.serverId}`,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Restart an MCP server
+ * POST /api/admin/mcp-servers/:serverId/restart
+ */
+router.post('/mcp-servers/:serverId/restart', async (req, res) => {
+  try {
+    const { serverId } = req.params;
+    
+    logger.info(`Admin ${req.user.id} restarting MCP server ${serverId}`);
+    
+    // TODO: Implement actual server restart logic
+    
+    res.json({
+      success: true,
+      message: `MCP server ${serverId} restart command sent`,
+      serverId,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error(`Failed to restart MCP server ${req.params.serverId}:`, error);
+    res.status(500).json({
+      success: false,
+      message: `Failed to restart MCP server ${req.params.serverId}`,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Get MCP server logs
+ * GET /api/admin/mcp-servers/:serverId/logs
+ */
+router.get('/mcp-servers/:serverId/logs', async (req, res) => {
+  try {
+    const { serverId } = req.params;
+    const { limit = 100 } = req.query;
+    
+    // Mock log data for now
+    const logs = [
+      {
+        id: '1',
+        timestamp: new Date().toISOString(),
+        level: 'info',
+        message: 'Server started successfully',
+        source: 'main',
+        serverId,
+        serverName: 'MCP Server',
+        metadata: { port: 3001 }
+      },
+      {
+        id: '2',
+        timestamp: new Date(Date.now() - 60000).toISOString(),
+        level: 'info',
+        message: 'Processing workout generation request',
+        source: 'workout-generator',
+        serverId,
+        serverName: 'MCP Server',
+        metadata: { userId: 123, duration: 450 }
+      }
+    ];
+
+    res.json({
+      success: true,
+      logs: logs.slice(0, parseInt(limit)),
+      serverId,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error(`Failed to fetch MCP server logs for ${req.params.serverId}:`, error);
+    res.status(500).json({
+      success: false,
+      message: `Failed to fetch logs for MCP server ${req.params.serverId}`,
+      error: error.message
+    });
+  }
+});
+
+// =====================================================
 // UTILITY FUNCTIONS
 // =====================================================
 
-async function fetchUserMetrics(db) {
+async function fetchUserMetrics() {
   try {
     // Fetch user statistics from database
-    const result = await db.query(`
+    const result = await query(`
       SELECT 
         COUNT(*) as total_users,
         COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END) as new_users_30d,
@@ -430,9 +725,9 @@ async function fetchUserMetrics(db) {
   }
 }
 
-async function fetchSessionMetrics(db) {
+async function fetchSessionMetrics() {
   try {
-    const result = await db.query(`
+    const result = await query(`
       SELECT 
         COUNT(*) as total_sessions,
         COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_sessions
@@ -463,9 +758,9 @@ async function fetchSessionMetrics(db) {
   }
 }
 
-async function fetchRevenueMetrics(db) {
+async function fetchRevenueMetrics() {
   try {
-    const result = await db.query(`
+    const result = await query(`
       SELECT 
         COALESCE(SUM(amount), 0) as total_revenue,
         COUNT(*) as total_orders
@@ -504,12 +799,12 @@ async function fetchRevenueMetrics(db) {
   }
 }
 
-async function fetchAdminAnalytics(db) {
+async function fetchAdminAnalytics() {
   try {
     const [userMetrics, sessionMetrics, revenueMetrics] = await Promise.all([
-      fetchUserMetrics(db),
-      fetchSessionMetrics(db),
-      fetchRevenueMetrics(db)
+      fetchUserMetrics(),
+      fetchSessionMetrics(),
+      fetchRevenueMetrics()
     ]);
 
     return {
@@ -555,7 +850,7 @@ async function fetchAdminAnalytics(db) {
   }
 }
 
-async function fetchRevenueAnalytics(db, range) {
+async function fetchRevenueAnalytics(range) {
   // TODO: Implement real revenue analytics based on range
   return {
     totalRevenue: 50000,
@@ -568,22 +863,22 @@ async function fetchRevenueAnalytics(db, range) {
   };
 }
 
-async function fetchSocialMediaPosts(db, filters) {
+async function fetchSocialMediaPosts(filters) {
   // TODO: Implement real social media posts fetching
   return [];
 }
 
-async function getSocialMediaPostsCount(db, filters) {
+async function getSocialMediaPostsCount(filters) {
   // TODO: Implement real count
   return 0;
 }
 
-async function moderateSocialMediaPost(db, postId, action, reason, adminId) {
+async function moderateSocialMediaPost(postId, action, reason, adminId) {
   // TODO: Implement real post moderation
   return { success: true };
 }
 
-async function fetchSocialMediaAnalytics(db) {
+async function fetchSocialMediaAnalytics() {
   // TODO: Implement real social media analytics
   return {
     totalPosts: 0,
@@ -595,11 +890,9 @@ async function fetchSocialMediaAnalytics(db) {
 
 async function checkSystemHealth() {
   try {
-    const db = await getDBConnection();
-    
     // Test database connection
     const dbStart = Date.now();
-    await db.query('SELECT 1');
+    await query('SELECT 1');
     const dbResponseTime = Date.now() - dbStart;
 
     return {
