@@ -353,15 +353,19 @@ const RevenueAnalyticsPanel: React.FC = () => {
       setLoading(true);
       setError(null);
 
+      // 🚀 REAL API CALL: Using new enterprise admin analytics endpoint
       const response = await authAxios.get(`/api/admin/finance/overview?timeRange=${timeRange}`);
 
       if (response.data.success) {
         setRevenueData(response.data.data);
+        console.log('✅ Real Stripe financial data loaded successfully');
       } else {
         setError(response.data.message || 'Failed to load financial data');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to load financial data');
+      const errorMessage = err.response?.data?.message || 'Failed to load financial data';
+      setError(errorMessage);
+      console.error('❌ Failed to load real Stripe financial data:', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -388,20 +392,25 @@ const RevenueAnalyticsPanel: React.FC = () => {
   // Handle export
   const handleExport = async () => {
     try {
-      const response = await authAxios.get(`/api/admin/finance/export?format=csv&timeRange=${timeRange}`);
+      // 🚀 REAL API CALL: Using new enterprise admin analytics export endpoint
+      const response = await authAxios.get(`/api/admin/finance/export?format=csv&timeRange=${timeRange}`, {
+        responseType: 'blob' // Important for CSV download
+      });
       
       // Create and download CSV file
       const blob = new Blob([response.data], { type: 'text/csv' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `swanstudios-revenue-${timeRange}.csv`;
+      a.download = `swanstudios-revenue-${timeRange}-${Date.now()}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
+      console.log('✅ Financial data exported successfully');
     } catch (err) {
-      console.error('Export failed:', err);
+      console.error('❌ Export failed:', err);
+      setError('Failed to export financial data');
     }
   };
 

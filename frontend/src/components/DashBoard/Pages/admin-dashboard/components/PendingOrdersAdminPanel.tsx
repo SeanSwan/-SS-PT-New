@@ -382,22 +382,74 @@ const PendingOrdersAdminPanel: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch pending manual payments
-      const response = await authAxios.get('/api/admin/finance/transactions', {
+      // 🚀 REAL API CALL: Using new enterprise admin orders endpoint
+      const response = await authAxios.get('/api/admin/orders/pending', {
         params: {
-          status: statusFilter === 'all' ? undefined : statusFilter,
           sortBy,
           sortOrder,
-          limit: 50
+          limit: 50,
+          search: searchTerm || undefined,
+          status: statusFilter === 'all' ? undefined : statusFilter
         }
       });
 
       if (response.data.success) {
-        // Transform transactions into pending orders format
-        const pendingOrders = response.data.data.transactions
-          .filter(transaction => transaction.status === 'pending_manual_payment')
-          .map(transaction => ({
-            id: transaction.id,
+        // Use real order data from PostgreSQL and Stripe
+        const pendingOrders = response.data.orders.map(order => ({
+          id: order.id,
+          orderReference: order.id,
+          paymentReference: order.checkoutSessionId || 'N/A',
+          customer: {
+            id: order.user?.id || 0,
+            name: order.user ? `${order.user.firstName} ${order.user.lastName}`.trim() : 'Unknown Customer',
+            email: order.user?.email || 'N/A',
+            phone: order.user?.phone || undefined
+          },
+          amount: parseFloat(order.totalAmount || 0),
+          currency: 'USD',
+          status: order.status === 'pending' ? 'pending_manual_payment' : order.status,
+          createdAt: order.createdAt,
+          expiresAt: order.expiresAt || new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now if no expiry
+          items: order.cartItems?.map(item => ({
+            id: item.id,
+            name: item.storefrontItem?.name || 'Unknown Item',
+            quantity: item.quantity,
+            price: parseFloat(item.price),
+            sessions: item.storefrontItem?.sessions || undefined
+          })) || [],
+          paymentInstructions: {
+            title: 'Complete Payment',
+            methods: [
+              {
+                method: 'stripe',
+                title: 'Credit/Debit Card',
+                description: 'Pay securely with your credit or debit card',
+                details: { processor: 'Stripe' }
+              },
+              {
+                method: 'manual',
+                title: 'Manual Payment',
+                description: 'Contact admin to complete payment manually',
+                details: { contact: 'admin@swanstudios.com' }
+              }
+            ]
+          },
+          priority: parseFloat(order.totalAmount || 0) > 200 ? 'high' : parseFloat(order.totalAmount || 0) > 100 ? 'medium' : 'low'
+        }));
+        
+        setOrders(pendingOrders);
+        console.log(`✅ Loaded ${pendingOrders.length} pending orders from real data`);
+      } else {
+        setError(response.data.message || 'Failed to load pending orders');
+      }
+    } catch (err: any) {
+      const errorMessage = err.response?.data?.message || 'Failed to load pending orders';
+      setError(errorMessage);
+      console.error('❌ Failed to load pending orders:', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, [authAxios, statusFilter, sortBy, sortOrder, searchTerm]);
             orderReference: `ORD-${transaction.id}`,
             paymentReference: `SWAN-${transaction.id}`,
             customer: transaction.customer || {
