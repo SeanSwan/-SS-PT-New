@@ -60,7 +60,10 @@ import {
   Target,
   Star,
   AlertCircle,
-  Bell
+  Bell,
+  // PHASE 2: Mobile Navigation Icons
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 // Custom Components
@@ -113,7 +116,9 @@ import {
   useFilteredCalendarEvents,
   useRealTimeUpdates,
   useAdminNotifications,
-  useCollaborativeScheduling
+  useCollaborativeScheduling,
+  // PHASE 2: Mobile-First Responsive Optimization
+  useMobileCalendarOptimization
 } from './hooks';
 
 // Utility Functions
@@ -426,6 +431,48 @@ const UniversalMasterSchedule: React.FC = () => {
     trainers
   });
   
+  // 10. PHASE 2: Mobile-First Responsive Optimization
+  const {
+    // Mobile Detection & State
+    isMobile: mobileOptimized,
+    isTablet,
+    isSmallMobile,
+    orientation,
+    preferredMobileView,
+    supportedMobileViews,
+    
+    // Touch Interactions
+    isDragging,
+    swipeDirection,
+    
+    // Mobile UI States
+    showMobileControls,
+    mobileHeaderCollapsed,
+    reducedAnimations,
+    optimizedRendering,
+    
+    // Mobile Actions
+    setOptimalMobileView,
+    cycleMobileViews,
+    navigatePrevious,
+    navigateNext,
+    navigateToToday,
+    toggleMobileControls,
+    collapseMobileHeader,
+    optimizeForMobile,
+    
+    // Mobile Calendar Optimizations
+    getMobileCalendarProps,
+    getMobileEventProps,
+    getTouchEventProps
+  } = useMobileCalendarOptimization({
+    currentView: view,
+    setView,
+    selectedDate,
+    setSelectedDate,
+    events: calendarEvents
+  });
+  
   // ==================== COMPONENT INITIALIZATION (CIRCUIT BREAKER PROTECTED) ====================
   
   useEffect(() => {
@@ -581,23 +628,39 @@ const UniversalMasterSchedule: React.FC = () => {
             transition={{ duration: 0.5 }}
             style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
           >
-            {/* Header Section */}
-            <HeaderSection>
+            {/* Header Section - Enhanced with Mobile Optimizations */}
+            <HeaderSection mobileCollapsed={mobileHeaderCollapsed} isSmallMobile={isSmallMobile}>
               <HeaderTitle>
-                <CalendarIcon size={28} />
+                <CalendarIcon size={isSmallMobile ? 24 : 28} />
                 <div>
-                  <Typography variant="h4" component="h1">
-                    Universal Master Schedule
+                  <Typography variant={isSmallMobile ? "h5" : "h4"} component="h1">
+                    {isSmallMobile ? "Master Schedule" : "Universal Master Schedule"}
                   </Typography>
-                  <Typography variant="subtitle1" color="rgba(255, 255, 255, 0.7)">
-                    Advanced scheduling & business intelligence center
-                  </Typography>
+                  {!mobileHeaderCollapsed && (
+                    <Typography variant="subtitle1" color="rgba(255, 255, 255, 0.7)">
+                      {isSmallMobile 
+                        ? "Scheduling center" 
+                        : "Advanced scheduling & business intelligence center"
+                      }
+                    </Typography>
+                  )}
                 </div>
               </HeaderTitle>
               
-              <HeaderActions>
+              <HeaderActions isMobile={mobileOptimized} showMobileControls={showMobileControls}>
+                {/* Mobile Header Collapse Toggle */}
+                {mobileOptimized && (
+                  <Tooltip title={mobileHeaderCollapsed ? 'Expand header' : 'Collapse header'}>
+                    <EnhancedIconButton
+                      onClick={() => collapseMobileHeader(!mobileHeaderCollapsed)}
+                    >
+                      {mobileHeaderCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+                    </EnhancedIconButton>
+                  </Tooltip>
+                )}
+                
                 {/* Circuit Breaker Status Indicator */}
-                {initializationBlocked && (
+                {initializationBlocked && !isSmallMobile && (
                   <div style={{
                     background: 'rgba(239, 68, 68, 0.1)',
                     border: '1px solid #ef4444',
@@ -611,12 +674,12 @@ const UniversalMasterSchedule: React.FC = () => {
                     fontWeight: 500
                   }}>
                     <AlertCircle size={16} />
-                    System Protection Active
+                    {isSmallMobile ? 'Protected' : 'System Protection Active'}
                   </div>
                 )}
                 
-                {/* Analytics View Toggle */}
-                <ViewToggleGroup>
+                {/* Analytics View Toggle - Mobile Enhanced */}
+                <ViewToggleGroup isMobile={mobileOptimized} isSmallMobile={isSmallMobile}>
                   <ViewToggleButton 
                     active={analyticsView === 'calendar'}
                     onClick={() => handleAnalyticsViewChange('calendar')}
@@ -892,8 +955,36 @@ const UniversalMasterSchedule: React.FC = () => {
                   )}
                 </AnimatePresence>
                 
-                {/* Calendar Container - Using Extracted Render Logic */}
-                <CalendarContainer>
+                {/* Mobile Navigation Controls */}
+                {mobileOptimized && (
+                  <MobileNavigationBar>
+                    <MobileNavButton onClick={navigatePrevious}>
+                      <ChevronLeft size={18} />
+                      Previous
+                    </MobileNavButton>
+                    
+                    <MobileViewCycler onClick={cycleMobileViews}>
+                      {view.charAt(0).toUpperCase() + view.slice(1)} View
+                    </MobileViewCycler>
+                    
+                    <MobileNavButton onClick={navigateToToday}>
+                      Today
+                    </MobileNavButton>
+                    
+                    <MobileNavButton onClick={navigateNext}>
+                      Next
+                      <ChevronRight size={18} />
+                    </MobileNavButton>
+                  </MobileNavigationBar>
+                )}
+                
+                {/* Calendar Container - Enhanced with Mobile Optimizations */}
+                <CalendarContainer 
+                  isMobile={mobileOptimized} 
+                  isSmallMobile={isSmallMobile}
+                  reducedAnimations={reducedAnimations}
+                  {...getTouchEventProps()}
+                >
                   {renderCalendar({
                     isCalendarInitialized,
                     localizer,
@@ -909,11 +1000,14 @@ const UniversalMasterSchedule: React.FC = () => {
                     onNavigate: setSelectedDate,
                     multiSelectEnabled: multiSelect.enabled,
                     selectedEvents: multiSelect.selectedEvents,
-                    compactView: false,
+                    compactView: mobileOptimized,
                     clientsCount: comprehensiveBusinessMetrics.activeClients,
                     utilizationRate: comprehensiveBusinessMetrics.utilizationRate,
                     completionRate: comprehensiveBusinessMetrics.completionRate,
-                    calendarRef
+                    calendarRef,
+                    // PHASE 2: Mobile Calendar Optimizations
+                    ...getMobileCalendarProps(),
+                    ...getMobileEventProps()
                   })}
                 </CalendarContainer>
               </>
@@ -1213,18 +1307,24 @@ const ScheduleContainer = styled.div`
   overflow: hidden;
 `;
 
-const HeaderSection = styled.div`
+const HeaderSection = styled.div<{ mobileCollapsed?: boolean; isSmallMobile?: boolean }>`
   background: rgba(0, 0, 0, 0.3);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 1.5rem 2rem;
+  padding: ${props => {
+    if (props.isSmallMobile) return props.mobileCollapsed ? '0.75rem 1rem' : '1rem';
+    return '1.5rem 2rem';
+  }};
   display: flex;
   justify-content: space-between;
   align-items: center;
+  transition: all 0.3s ease;
+  height: ${props => props.mobileCollapsed ? '60px' : 'auto'};
+  overflow: hidden;
   
   @media (max-width: 768px) {
     flex-direction: column;
-    gap: 1rem;
-    padding: 1rem;
+    gap: ${props => props.mobileCollapsed ? '0.5rem' : '1rem'};
+    padding: ${props => props.mobileCollapsed ? '0.75rem 1rem' : '1rem'};
   }
 `;
 
@@ -1244,29 +1344,50 @@ const HeaderTitle = styled.div`
   }
 `;
 
-const HeaderActions = styled.div`
+const HeaderActions = styled.div<{ isMobile?: boolean; showMobileControls?: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  opacity: ${props => props.isMobile && !props.showMobileControls ? 0.7 : 1};
+  transition: all 0.3s ease;
   
   @media (max-width: 768px) {
     width: 100%;
     justify-content: space-between;
     flex-wrap: wrap;
+    gap: ${props => props.isMobile ? '0.25rem' : '0.5rem'};
+  }
+  
+  @media (max-width: 480px) {
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.5rem;
   }
 `;
 
-const ViewToggleGroup = styled.div`
+const ViewToggleGroup = styled.div<{ isMobile?: boolean; isSmallMobile?: boolean }>`
   display: flex;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 12px;
-  padding: 4px;
+  border-radius: ${props => props.isSmallMobile ? '8px' : '12px'};
+  padding: ${props => props.isSmallMobile ? '2px' : '4px'};
   border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
+  overflow-x: auto;
+  
+  /* Hide scrollbar on mobile */
+  &::-webkit-scrollbar {
+    display: ${props => props.isMobile ? 'none' : 'block'};
+  }
   
   @media (max-width: 768px) {
     width: 100%;
-    justify-content: space-between;
+    justify-content: ${props => props.isSmallMobile ? 'flex-start' : 'space-between'};
+    gap: ${props => props.isSmallMobile ? '2px' : '4px'};
+  }
+  
+  @media (max-width: 480px) {
+    padding: 2px;
+    border-radius: 8px;
   }
 `;
 
@@ -1435,12 +1556,17 @@ const BulkActionButtons = styled.div`
   }
 `;
 
-const CalendarContainer = styled.div`
+const CalendarContainer = styled.div<{ isMobile?: boolean; isSmallMobile?: boolean; reducedAnimations?: boolean }>`
   flex: 1;
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 0;
   overflow: hidden;
+  touch-action: ${props => props.isMobile ? 'pan-x pan-y' : 'auto'};
+  
+  /* Mobile-specific touch optimizations */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   
   .rbc-calendar {
     background: transparent;
@@ -1619,5 +1745,73 @@ const EnhancedIconButton = styled.button`
     background: rgba(255, 255, 255, 0.1);
     border-color: rgba(255, 255, 255, 0.2);
     transform: none;
+  }
+`;
+
+// ==================== PHASE 2: MOBILE-SPECIFIC STYLED COMPONENTS ====================
+
+const MobileNavigationBar = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 0, 0, 0.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  gap: 0.5rem;
+  
+  @media (min-width: 769px) {
+    display: none;
+  }
+`;
+
+const MobileNavButton = styled.button`
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 40px;
+  
+  &:active {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.5);
+    transform: scale(0.98);
+  }
+  
+  &:hover {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.4);
+  }
+`;
+
+const MobileViewCycler = styled.button`
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border: 1px solid rgba(59, 130, 246, 0.5);
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 40px;
+  flex: 1;
+  max-width: 120px;
+  
+  &:active {
+    transform: scale(0.98);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+  
+  &:hover {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
   }
 `;

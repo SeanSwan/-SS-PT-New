@@ -22,6 +22,9 @@ export { useRealTimeUpdates } from './useRealTimeUpdates';
 export { useAdminNotifications } from './useAdminNotifications';
 export { useCollaborativeScheduling } from './useCollaborativeScheduling';
 
+// PHASE 2: Mobile-First Responsive Optimization Hooks
+export { useMobileCalendarOptimization } from './useMobileCalendarOptimization';
+
 // Type exports for external consumption
 export type { CalendarStateValues, CalendarStateActions } from './useCalendarState';
 export type { CalendarDataValues, CalendarDataActions } from './useCalendarData';
@@ -58,3 +61,10 @@ export type {
   CollaborationConflict,
   LiveMessage
 } from './useCollaborativeScheduling';
+
+// PHASE 2: Mobile Optimization Hook Types
+export type {
+  MobileCalendarState,
+  MobileCalendarActions,
+  MobileCalendarOptimizations
+} from './useMobileCalendarOptimization';
