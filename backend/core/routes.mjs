@@ -63,8 +63,7 @@ import adminEnterpriseRoutes from '../routes/adminEnterpriseRoutes.mjs';
 // ===================== ENTERPRISE ADMIN ANALYTICS & INTELLIGENCE =====================
 // 🚀 Real Stripe Business Analytics (replaces mock data)
 import adminAnalyticsRoutes from '../routes/adminAnalyticsRoutes.mjs';
-// 🤖 MCP Server Management and Monitoring
-import adminMcpRoutes from '../routes/adminMcpRoutes.mjs';
+// 🤖 MCP Server Management and Monitoring (already imported above)
 // 📦 Real Order Management with Stripe Integration
 import adminOrdersRoutes from '../routes/adminOrdersRoutes.mjs';
 // 🔍 Data Verification and Debugging
