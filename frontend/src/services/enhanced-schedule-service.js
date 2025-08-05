@@ -54,11 +54,8 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     
-    // Fix for double API prefix issue - if the URL already starts with /api, don't add it again
-    if (config.url && config.url.startsWith('/api')) {
-      // Remove the leading /api since baseURL already has it
-      config.url = config.url.substring(4);
-    }
+    // Log request for debugging
+    console.log(`API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     
     return config;
   },
@@ -270,8 +267,8 @@ const enhancedScheduleService = {
         throw new Error('Authentication required. Please log in again.');
       }
       
-      // Using our enhanced API endpoint
-      const response = await api.get('/sessions');
+      // Using our enhanced API endpoint (matches backend routes)
+      const response = await api.get('/api/sessions');
       
       // Validate received data
       if (!response.data || !Array.isArray(response.data)) {
@@ -316,7 +313,7 @@ const enhancedScheduleService = {
         return { stats: MOCK_STATS };
       }
       
-      const response = await api.get('/sessions/stats');
+      const response = await api.get('/api/sessions/stats');
       return response.data;
     } catch (error) {
       console.error('Error fetching schedule stats:', error);
@@ -343,7 +340,7 @@ const enhancedScheduleService = {
         return MOCK_TRAINERS;
       }
       
-      const response = await api.get('/sessions/users/trainers');
+      const response = await api.get('/api/sessions/users/trainers');
       
       // Validate response
       if (!response.data || !Array.isArray(response.data)) {
@@ -376,7 +373,7 @@ const enhancedScheduleService = {
         return MOCK_CLIENTS;
       }
       
-      const response = await api.get('/sessions/users/clients');
+      const response = await api.get('/api/sessions/users/clients');
       
       // Validate response
       if (!response.data || !Array.isArray(response.data)) {
@@ -439,7 +436,7 @@ const enhancedScheduleService = {
         };
       }
       
-      const response = await api.post(`/sessions/${sessionId}/book`);
+      const response = await api.post(`/api/sessions/${sessionId}/book`);
       
       // Validate response
       if (!response.data) {
@@ -544,7 +541,7 @@ const enhancedScheduleService = {
         };
       }
       
-      const response = await api.post('/sessions', data);
+      const response = await api.post('/api/sessions', data);
       
       // Validate response
       if (!response.data) {
@@ -636,7 +633,7 @@ const enhancedScheduleService = {
   }
   
   // Assume the API has an endpoint for creating blocked time
-  const response = await api.post('/sessions/block', {
+  const response = await api.post('/api/sessions/block', {
   ...data,
   status: 'blocked'
   });
@@ -796,7 +793,7 @@ const enhancedScheduleService = {
         return generatedSessions;
       }
       
-      const response = await api.post('/sessions/recurring', recurringData);
+      const response = await api.post('/api/sessions/recurring', recurringData);
       
       // Validate response
       if (!response.data) {
@@ -862,7 +859,7 @@ const enhancedScheduleService = {
         };
       }
       
-      const response = await api.patch(`/sessions/${sessionId}/assign`, { trainerId });
+      const response = await api.patch(`/api/sessions/${sessionId}/assign`, { trainerId });
       
       // Validate response
       if (!response.data) {
@@ -921,7 +918,7 @@ const enhancedScheduleService = {
         };
       }
       
-      const response = await api.patch(`/sessions/${sessionId}/cancel`, { reason });
+      const response = await api.patch(`/api/sessions/${sessionId}/cancel`, { reason });
       
       // Validate response
       if (!response.data) {
@@ -993,7 +990,7 @@ const enhancedScheduleService = {
         };
       }
       
-      const response = await api.patch(`/sessions/${sessionId}/complete`, { notes });
+      const response = await api.patch(`/api/sessions/${sessionId}/complete`, { notes });
       
       // Validate response
       if (!response.data) {
@@ -1073,7 +1070,7 @@ const enhancedScheduleService = {
         };
       }
       
-      const response = await api.patch(`/sessions/${sessionId}/confirm`);
+      const response = await api.patch(`/api/sessions/${sessionId}/confirm`);
       
       // Validate response
       if (!response.data) {
@@ -1208,8 +1205,8 @@ const enhancedScheduleService = {
       
       // Regular API mode
       const endpoint = removeAll 
-        ? `/sessions/block/${blockedTimeId}?removeAll=true`
-        : `/sessions/block/${blockedTimeId}`;
+        ? `/api/sessions/block/${blockedTimeId}?removeAll=true`
+        : `/api/sessions/block/${blockedTimeId}`;
         
       const response = await api.delete(endpoint);
       
@@ -1279,7 +1276,7 @@ const enhancedScheduleService = {
       }
       
       // Assume the API has an endpoint for creating orientation sessions
-      const response = await api.post('/sessions/orientation', {
+      const response = await api.post('/api/sessions/orientation', {
         ...orientationData,
         status: 'requested'
       });
@@ -1340,7 +1337,7 @@ const enhancedScheduleService = {
       }
       
       // Assume the API has an endpoint for resolving orientation sessions
-      const response = await api.patch(`/sessions/${orientationId}/resolve-orientation`, {
+      const response = await api.patch(`/api/sessions/${orientationId}/resolve-orientation`, {
         approved,
         status: approved ? 'confirmed' : 'cancelled'
       });
@@ -1394,7 +1391,7 @@ const enhancedScheduleService = {
         };
       }
       
-      const response = await api.get(`/sessions/${sessionId}`);
+      const response = await api.get(`/api/sessions/${sessionId}`);
       
       // Validate response
       if (!response.data) {
