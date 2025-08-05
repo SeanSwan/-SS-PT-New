@@ -166,21 +166,30 @@ export const useMobileCalendarOptimization = (dependencies: {
       const isSmallMobile = width <= MOBILE_BREAKPOINTS.smallMobile;
       const orientation = height > width ? 'portrait' : 'landscape';
       
-      setDeviceInfo({
-        isMobile,
-        isTablet,
-        isSmallMobile,
-        orientation
+      setDeviceInfo(prev => {
+        // Only update if values actually changed
+        if (prev.isMobile !== isMobile || 
+            prev.isTablet !== isTablet || 
+            prev.isSmallMobile !== isSmallMobile || 
+            prev.orientation !== orientation) {
+          return { isMobile, isTablet, isSmallMobile, orientation };
+        }
+        return prev;
       });
       
-      // Automatically optimize for mobile devices
-      if (isMobile && !mobileUIState.optimizedRendering) {
-        setMobileUIState(prev => ({
-          ...prev,
-          reducedAnimations: true,
-          optimizedRendering: true,
-          lazyLoadEvents: events.length > 50
-        }));
+      // Automatically optimize for mobile devices (only once)
+      if (isMobile) {
+        setMobileUIState(prev => {
+          if (!prev.optimizedRendering) {
+            return {
+              ...prev,
+              reducedAnimations: true,
+              optimizedRendering: true,
+              lazyLoadEvents: events.length > 50
+            };
+          }
+          return prev;
+        });
       }
     };
     
@@ -194,7 +203,7 @@ export const useMobileCalendarOptimization = (dependencies: {
       window.removeEventListener('resize', detectDevice);
       window.removeEventListener('orientationchange', detectDevice);
     };
-  }, [events.length, mobileUIState.optimizedRendering]);
+  }, [events.length]); // Removed mobileUIState.optimizedRendering from dependencies
   
   // ==================== MOBILE VIEW OPTIMIZATION ====================
   
