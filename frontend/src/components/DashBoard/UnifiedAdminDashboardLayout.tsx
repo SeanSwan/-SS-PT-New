@@ -49,13 +49,20 @@ import PendingOrdersAdminPanel from './Pages/admin-dashboard/components/PendingO
 import UserAnalyticsPanel from './Pages/admin-dashboard/components/UserAnalyticsPanel';
 import SystemHealthPanel from './Pages/admin-dashboard/components/SystemHealthPanel';
 import SecurityMonitoringPanel from './Pages/admin-dashboard/components/SecurityMonitoringPanel';
-import NotificationSettingsList from './Pages/admin-dashboard/components/NotificationSettingsList';
+// NotificationSettingsList replaced by NotificationsSection above
 
-// Import Enterprise Management Components
-import ContentModerationPanel from './Pages/admin-dashboard/components/ContentModerationPanel';
+// Import Enterprise Management Components (Legacy - keeping for reports)
 import PerformanceReportsPanel from './Pages/admin-dashboard/components/PerformanceReportsPanel';
-import MCPManagementPanel from './Pages/admin-dashboard/components/MCPManagementPanel';
-import AdminSettingsPanel from './Pages/admin-dashboard/components/AdminSettingsPanel';
+
+// Import Comprehensive Admin Sections (Phase 1 Complete)
+import {
+  ClientsManagementSection,
+  PackagesManagementSection,
+  ContentModerationSection,
+  NotificationsSection,
+  MCPServersSection,
+  AdminSettingsSection
+} from './Pages/admin-dashboard/sections';
 
 // Import Trainer Permissions Manager
 import TrainerPermissionsManager from '../Admin/TrainerPermissionsManager';
@@ -575,6 +582,30 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                   } 
                 />
                 <Route path="/client-management" element={<AdminClientProgressView />} />
+                <Route 
+                  path="/clients" 
+                  element={
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <ClientsManagementSection />
+                    </ExecutivePageContainer>
+                  } 
+                />
+                <Route 
+                  path="/packages" 
+                  element={
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <PackagesManagementSection />
+                    </ExecutivePageContainer>
+                  } 
+                />
                 <Route path="/admin-sessions" element={<EnhancedAdminSessionsView />} />
                 <Route 
                   path="/admin/master-schedule" 
@@ -597,7 +628,7 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.6 }}
                     >
-                      <ContentModerationPanel />
+                      <ContentModerationSection />
                     </ExecutivePageContainer>
                   } 
                 />
@@ -659,7 +690,7 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.6 }}
                     >
-                      <NotificationSettingsList />
+                      <NotificationsSection />
                     </ExecutivePageContainer>
                   } 
                 />
@@ -697,7 +728,7 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.6 }}
                     >
-                      <MCPManagementPanel />
+                      <MCPServersSection />
                     </ExecutivePageContainer>
                   } 
                 />
@@ -709,7 +740,7 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.6 }}
                     >
-                      <AdminSettingsPanel />
+                      <AdminSettingsSection />
                     </ExecutivePageContainer>
                   } 
                 />

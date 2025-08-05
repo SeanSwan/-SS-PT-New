@@ -158,3 +158,15 @@ backend/combined.log
 backend/error.log
 backend/logs/
 PRODUCTION-SECRETS.env
+
+# Archive directory (contains cleaned up legacy files)
+.archive/
+
+# Legacy and emergency files (if any remain)
+emergency-*
+deploy-p0-*
+ARCHIVED_SCRIPTS/
+old/
+temp_fix/
+debug_solutions/
+test-build/

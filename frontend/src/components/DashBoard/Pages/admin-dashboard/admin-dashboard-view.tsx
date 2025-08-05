@@ -60,13 +60,17 @@ import RealTimeSignupMonitoring from './components/RealTimeSignupMonitoring';
 import UsersManagementSection from './UsersManagementSection';
 import TrainersManagementSection from './TrainersManagementSection';
 import AdminScheduleTab from './schedule/AdminScheduleTab';
-const ClientsManagementSection = lazy(() => Promise.resolve({ default: () => <div>Clients Management Section</div> }));
-const PackagesManagementSection = lazy(() => Promise.resolve({ default: () => <div>Packages Management Section</div> }));
-const ContentModerationSection = lazy(() => Promise.resolve({ default: () => <div>Content Moderation Section</div> }));
+
+// Import the new comprehensive admin sections
+const ClientsManagementSection = lazy(() => import('./sections/ClientsManagementSection'));
+const PackagesManagementSection = lazy(() => import('./sections/PackagesManagementSection'));
+const ContentModerationSection = lazy(() => import('./sections/ContentModerationSection'));
+const NotificationsSection = lazy(() => import('./sections/NotificationsSection'));
+const MCPServersSection = lazy(() => import('./sections/MCPServersSection'));
+const AdminSettingsSection = lazy(() => import('./sections/AdminSettingsSection'));
+
+// Keep existing gamification import
 const AdminGamificationView = lazy(() => import('../admin-gamification/admin-gamification-view'));
-const NotificationsSection = lazy(() => Promise.resolve({ default: () => <div>Notifications Section</div> }));
-const MCPServersSection = lazy(() => Promise.resolve({ default: () => <div>MCP Servers Section</div> }));
-const AdminSettingsSection = lazy(() => Promise.resolve({ default: () => <div>Admin Settings Section</div> }));
 
 // Revolutionary Data Visualization Suite
 import {
