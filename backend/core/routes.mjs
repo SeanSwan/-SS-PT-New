@@ -63,8 +63,8 @@ import adminEnterpriseRoutes from '../routes/adminEnterpriseRoutes.mjs';
 // ===================== ENTERPRISE ADMIN ANALYTICS & INTELLIGENCE =====================
 // 🚀 Real Stripe Business Analytics (replaces mock data)
 import adminAnalyticsRoutes from '../routes/adminAnalyticsRoutes.mjs';
-// 🤖 MCP Server Management and Monitoring
-import adminMCPRoutes from '../routes/adminMCPRoutes.mjs';
+// 🤖 MCP Server Management and Monitoring - TEMPORARILY DISABLED FOR DEPLOYMENT
+// import adminMCPRoutes from '../routes/adminMCPRoutes.mjs';
 // 📦 Real Order Management with Stripe Integration
 import adminOrdersRoutes from '../routes/adminOrdersRoutes.mjs';
 // 🔍 Data Verification and Debugging
@@ -190,8 +190,8 @@ export const setupRoutes = async (app) => {
   // ===================== ENTERPRISE ADMIN ANALYTICS & INTELLIGENCE =====================
   // 🚀 Real Stripe Business Analytics API (replaces mock data endpoints)
   app.use('/api/admin', adminAnalyticsRoutes);
-  // 🤖 Advanced MCP Server Management and Real-time Monitoring
-  app.use('/api/admin', adminMCPRoutes);
+  // 🤖 Advanced MCP Server Management and Real-time Monitoring - TEMPORARILY DISABLED
+  // app.use('/api/admin', adminMCPRoutes);
   // 📦 Comprehensive Order Management with Real Stripe Integration
   app.use('/api/admin', adminOrdersRoutes);
   // 🔍 Data Verification and Debugging Tools (verify data accuracy)
