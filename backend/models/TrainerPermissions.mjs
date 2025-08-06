@@ -119,6 +119,7 @@ TrainerPermissions.init(
     trainerId: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      field: 'trainer_id', // Map camelCase to snake_case
       references: { 
         model: 'users', // Table name in snake_case
         key: 'id' 
@@ -135,11 +136,13 @@ TrainerPermissions.init(
         'view_analytics'
       ),
       allowNull: false,
+      field: 'permission_type', // Map camelCase to snake_case
       comment: 'Type of permission being granted'
     },
     grantedBy: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      field: 'granted_by', // Map camelCase to snake_case
       references: { 
         model: 'users', // Table name in snake_case
         key: 'id' 
@@ -150,17 +153,20 @@ TrainerPermissions.init(
       type: DataTypes.BOOLEAN,
       defaultValue: true,
       allowNull: false,
+      field: 'is_active', // Map camelCase to snake_case
       comment: 'Whether this permission is currently active'
     },
     expiresAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'expires_at', // Map camelCase to snake_case
       comment: 'Optional expiration date for time-limited permissions'
     },
     // Audit fields for tracking permission lifecycle
     deactivatedBy: {
       type: DataTypes.INTEGER,
       allowNull: true,
+      field: 'deactivated_by', // Map camelCase to snake_case
       references: { 
         model: 'users',
         key: 'id' 
@@ -170,6 +176,7 @@ TrainerPermissions.init(
     deactivatedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'deactivated_at', // Map camelCase to snake_case
       comment: 'Timestamp when permission was deactivated'
     },
     reason: {
