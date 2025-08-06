@@ -146,6 +146,11 @@ export const setupRoutes = async (app) => {
   // Temporarily disabled for deployment hotfix - will re-enable after verification
   // app.use('/api/training-sessions', trainingSessionRoutes);
   app.use('/api/roles', roleRoutes);
+  
+  // ===================== CLIENT-TRAINER ASSIGNMENT ROUTES (EARLY REGISTRATION) =====================
+  // Place early to avoid conflicts with /api/sessions routes
+  app.use('/api/client-trainer-assignments', clientTrainerAssignmentRoutes);
+  app.use('/api/assignments', clientTrainerAssignmentRoutes);
 
   // ===================== BUSINESS LOGIC ROUTES =====================
   app.use('/api/cart', cartRoutes);
@@ -214,8 +219,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/exercises', exerciseRoutes);
   
   // ===================== NASM WORKOUT TRACKING SYSTEM ROUTES =====================
-  app.use('/api/assignments', clientTrainerAssignmentRoutes);
-  app.use('/api/client-trainer-assignments', clientTrainerAssignmentRoutes);
+  // Note: client-trainer-assignments routes registered earlier to avoid conflicts
   app.use('/api/trainer-permissions', trainerPermissionsRoutes);
   app.use('/api/workout-forms', dailyWorkoutFormRoutes);
 

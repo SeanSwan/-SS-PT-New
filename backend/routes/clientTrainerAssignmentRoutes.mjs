@@ -28,6 +28,33 @@ import { Op } from 'sequelize';
 const router = express.Router();
 
 /**
+ * @route   GET /api/assignments/test
+ * @desc    Test endpoint to verify client-trainer assignment routes are working
+ * @access  Admin Only
+ */
+router.get('/test', protect, adminOnly, async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      message: 'Client-trainer assignment routes are working correctly',
+      timestamp: new Date().toISOString(),
+      availableEndpoints: [
+        'GET /api/client-trainer-assignments',
+        'GET /api/assignments',
+        'POST /api/client-trainer-assignments',
+        'PUT /api/client-trainer-assignments/:id'
+      ]
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Route test failed',
+      error: error.message
+    });
+  }
+});
+
+/**
  * @route   GET /api/assignments
  * @desc    Get all client-trainer assignments with filtering
  * @access  Admin Only
