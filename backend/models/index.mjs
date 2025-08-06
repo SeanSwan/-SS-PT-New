@@ -125,6 +125,7 @@ export const getWorkoutSession = () => getModel('Session'); // Alias for Session
 export const getClientTrainerAssignment = () => getModel('ClientTrainerAssignment');
 export const getTrainerPermissions = () => getModel('TrainerPermissions');
 export const getDailyWorkoutForm = () => getModel('DailyWorkoutForm');
+export const getAdminSettings = () => getModel('AdminSettings');
 
 // Export Sequelize operators for routes
 export { Op };
