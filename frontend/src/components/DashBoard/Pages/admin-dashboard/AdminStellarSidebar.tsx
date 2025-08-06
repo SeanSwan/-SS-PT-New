@@ -44,23 +44,23 @@ const AdminStellarSidebar: React.FC = () => {
 
   return (
     <div className={`admin-sidebar ${isCollapsed ? 'collapsed' : ''}`}>
-      <div className=\"admin-sidebar-header\">
-        <div className=\"admin-logo\">
-          <span className=\"admin-logo-icon\">⚡</span>
-          {!isCollapsed && <span className=\"admin-logo-text\">Admin Command</span>}
+      <div className="admin-sidebar-header">
+        <div className="admin-logo">
+          <span className="admin-logo-icon">⚡</span>
+          {!isCollapsed && <span className="admin-logo-text">Admin Command</span>}
         </div>
         <button 
-          className=\"admin-collapse-btn\"
+          className="admin-collapse-btn"
           onClick={() => setIsCollapsed(!isCollapsed)}
-          aria-label=\"Toggle sidebar\"
+          aria-label="Toggle sidebar"
         >
           {isCollapsed ? '→' : '←'}
         </button>
       </div>
 
-      <nav className=\"admin-nav\">
-        <div className=\"admin-nav-section\">
-          <h3 className=\"admin-section-title\">
+      <nav className="admin-nav">
+        <div className="admin-nav-section">
+          <h3 className="admin-section-title">
             {!isCollapsed && 'Command Center'}
           </h3>
           {adminNavItems.map(item => (
@@ -70,16 +70,16 @@ const AdminStellarSidebar: React.FC = () => {
               onClick={() => handleNavigation(item.route)}
               title={item.label}
             >
-              <span className=\"admin-nav-icon\">{item.icon}</span>
-              {!isCollapsed && <span className=\"admin-nav-text\">{item.label}</span>}
+              <span className="admin-nav-icon">{item.icon}</span>
+              {!isCollapsed && <span className="admin-nav-text">{item.label}</span>}
             </button>
           ))}
         </div>
       </nav>
 
-      <div className=\"admin-sidebar-footer\">
+      <div className="admin-sidebar-footer">
         {!isCollapsed && (
-          <div className=\"admin-version-info\">
+          <div className="admin-version-info">
             Admin v1.0 - Emergency Mode
           </div>
         )}
