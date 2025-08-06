@@ -63,6 +63,7 @@ ClientTrainerAssignment.init(
     clientId: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      field: 'client_id', // Map camelCase to snake_case
       references: { 
         model: 'users', // Table name in snake_case
         key: 'id' 
@@ -72,6 +73,7 @@ ClientTrainerAssignment.init(
     trainerId: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      field: 'trainer_id', // Map camelCase to snake_case
       references: { 
         model: 'users', // Table name in snake_case
         key: 'id' 
@@ -81,6 +83,7 @@ ClientTrainerAssignment.init(
     assignedBy: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      field: 'assigned_by', // Map camelCase to snake_case
       references: { 
         model: 'users', // Table name in snake_case
         key: 'id' 
@@ -102,6 +105,7 @@ ClientTrainerAssignment.init(
     lastModifiedBy: {
       type: DataTypes.INTEGER,
       allowNull: true,
+      field: 'last_modified_by', // Map camelCase to snake_case
       references: { 
         model: 'users',
         key: 'id' 
@@ -111,6 +115,7 @@ ClientTrainerAssignment.init(
     deactivatedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'deactivated_at', // Map camelCase to snake_case
       comment: 'Timestamp when assignment was deactivated (if applicable)'
     }
   },

@@ -168,6 +168,7 @@ DailyWorkoutForm.init(
     sessionId: {
       type: DataTypes.UUID,
       allowNull: true, // Can be null initially, linked after WorkoutSession creation
+      field: 'session_id', // Map camelCase to snake_case
       references: { 
         model: 'workout_sessions', // Table name in snake_case
         key: 'id' 
@@ -177,6 +178,7 @@ DailyWorkoutForm.init(
     clientId: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      field: 'client_id', // Map camelCase to snake_case
       references: { 
         model: 'users', // Table name in snake_case
         key: 'id' 
@@ -186,6 +188,7 @@ DailyWorkoutForm.init(
     trainerId: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      field: 'trainer_id', // Map camelCase to snake_case
       references: { 
         model: 'users', // Table name in snake_case
         key: 'id' 
@@ -201,46 +204,54 @@ DailyWorkoutForm.init(
     formData: {
       type: DataTypes.JSONB, // PostgreSQL JSONB for efficient querying
       allowNull: false,
+      field: 'form_data', // Map camelCase to snake_case
       comment: 'Complete NASM form data including exercises, sets, ratings, and notes'
     },
     sessionDeducted: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
       allowNull: false,
+      field: 'session_deducted', // Map camelCase to snake_case
       comment: 'Whether this form submission resulted in session deduction from client'
     },
     totalPointsEarned: {
       type: DataTypes.INTEGER,
       defaultValue: 0,
       allowNull: false,
+      field: 'total_points_earned', // Map camelCase to snake_case
       comment: 'Gamification points earned from this workout (set by MCP server)'
     },
     mcpProcessed: {
       type: DataTypes.BOOLEAN,
       defaultValue: false,
       allowNull: false,
+      field: 'mcp_processed', // Map camelCase to snake_case
       comment: 'Whether this form has been processed by MCP servers for gamification'
     },
     submittedAt: {
       type: DataTypes.DATE,
       defaultValue: DataTypes.NOW,
       allowNull: false,
+      field: 'submitted_at', // Map camelCase to snake_case
       comment: 'Timestamp when the form was submitted by the trainer'
     },
     // Audit and processing fields
     processingStartedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'processing_started_at', // Map camelCase to snake_case
       comment: 'Timestamp when MCP processing began'
     },
     processingCompletedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      field: 'processing_completed_at', // Map camelCase to snake_case
       comment: 'Timestamp when MCP processing completed successfully'
     },
     processingErrors: {
       type: DataTypes.JSONB,
       allowNull: true,
+      field: 'processing_errors', // Map camelCase to snake_case
       comment: 'Any errors encountered during MCP processing'
     },
     // Form validation and quality metrics
@@ -248,11 +259,13 @@ DailyWorkoutForm.init(
       type: DataTypes.STRING,
       defaultValue: '1.0',
       allowNull: false,
+      field: 'form_version', // Map camelCase to snake_case
       comment: 'Version of the NASM form structure used'
     },
     estimatedDuration: {
       type: DataTypes.INTEGER,
       allowNull: true,
+      field: 'estimated_duration', // Map camelCase to snake_case
       comment: 'Estimated workout duration in minutes (calculated from form data)'
     }
   },
