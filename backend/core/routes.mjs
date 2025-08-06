@@ -63,6 +63,8 @@ import adminEnterpriseRoutes from '../routes/adminEnterpriseRoutes.mjs';
 // ===================== ENTERPRISE ADMIN ANALYTICS & INTELLIGENCE =====================
 // 🚀 Real Stripe Business Analytics (replaces mock data)
 import adminAnalyticsRoutes from '../routes/adminAnalyticsRoutes.mjs';
+// ⚙️ Admin Settings Management (system, notifications, API keys, security)
+import adminSettingsRoutes from '../routes/adminSettingsRoutes.mjs';
 // 🤖 MCP Server Management and Monitoring (already imported above)
 // 📦 Real Order Management with Stripe Integration
 import adminOrdersRoutes from '../routes/adminOrdersRoutes.mjs';
@@ -189,6 +191,8 @@ export const setupRoutes = async (app) => {
   // ===================== ENTERPRISE ADMIN ANALYTICS & INTELLIGENCE =====================
   // 🚀 Real Stripe Business Analytics API (replaces mock data endpoints)
   app.use('/api/admin', adminAnalyticsRoutes);
+  // ⚙️ Admin Settings Management (system, notifications, API keys, security)
+  app.use('/api/admin/settings', adminSettingsRoutes);
   // 🤖 Advanced MCP Server Management and Real-time Monitoring
   app.use('/api/admin', adminMcpRoutes);
   // 📦 Comprehensive Order Management with Real Stripe Integration
@@ -211,6 +215,7 @@ export const setupRoutes = async (app) => {
   
   // ===================== NASM WORKOUT TRACKING SYSTEM ROUTES =====================
   app.use('/api/assignments', clientTrainerAssignmentRoutes);
+  app.use('/api/client-trainer-assignments', clientTrainerAssignmentRoutes);
   app.use('/api/trainer-permissions', trainerPermissionsRoutes);
   app.use('/api/workout-forms', dailyWorkoutFormRoutes);
 
