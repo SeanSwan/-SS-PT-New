@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useAuthenticatedAxios } from '../../../../../../hooks/useAxios';
 import {
   Box,
   Card,
@@ -313,18 +314,79 @@ const SecurityMonitoringPanel: React.FC = () => {
   const [securityScanRunning, setSecurityScanRunning] = useState(false);
   const [showSuspiciousOnly, setShowSuspiciousOnly] = useState(false);
 
-  // Mock data - In production, this would come from API/Redux
-  const securityMetrics: SecurityMetric[] = useMemo(() => [
-    {
-      id: 'failed-logins',
-      name: 'Failed Login Attempts',
-      value: 1247,
-      change: -15.3,
-      changeType: 'decrease',
-      status: 'good',
-      description: 'Failed login attempts in the last 24 hours',
-      lastUpdated: '2024-12-10T10:30:00Z'
-    },
+  // Real API state management
+  const [securityData, setSecurityData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
+  const authAxios = useAuthenticatedAxios();
+
+  // Real API data fetching function
+  const fetchSecurityData = useCallback(async () => {
+    if (!authAxios) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await authAxios.get('/api/admin/security/metrics', {
+        params: { timeRange }
+      });
+      
+      if (response.data.success) {
+        setSecurityData(response.data.data);
+      } else {
+        setError('Failed to fetch security data');
+      }
+    } catch (error: any) {
+      console.error('Error fetching security data:', error);
+      setError(error?.response?.data?.message || 'Failed to fetch security data');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [authAxios, timeRange]);
+
+  // Auto-refresh security data
+  useEffect(() => {
+    fetchSecurityData();
+    
+    // Set up real-time refresh if enabled
+    if (isRealTime) {
+      const interval = setInterval(fetchSecurityData, 60000); // Refresh every 60 seconds
+      setRefreshInterval(interval);
+      return () => clearInterval(interval);
+    } else if (refreshInterval) {
+      clearInterval(refreshInterval);
+      setRefreshInterval(null);
+    }
+  }, [fetchSecurityData, isRealTime]);
+
+  // Refresh when timeRange changes
+  useEffect(() => {
+    if (authAxios && securityData) {
+      fetchSecurityData();
+    }
+  }, [timeRange]);
+
+  // Transform real API data to component format
+  const securityMetrics: SecurityMetric[] = useMemo(() => {
+    if (!securityData?.authenticationEvents) {
+      return [];
+    }
+
+    const { authenticationEvents, rateLimitEvents, securityScore } = securityData;
+
+    return [
+      {
+        id: 'failed-logins',
+        name: 'Failed Login Attempts',
+        value: authenticationEvents.summary.failedLogins,
+        change: Math.random() * 20 - 10, // Mock change - implement real calculation
+        changeType: 'decrease',
+        status: authenticationEvents.summary.failedLogins > 1000 ? 'warning' : 'good',
+        description: 'Failed login attempts in the last 24 hours',
+        lastUpdated: new Date().toISOString()
+      },
     {
       id: 'blocked-ips',
       name: 'Blocked IP Addresses',
@@ -1605,6 +1667,33 @@ const SecurityMonitoringPanel: React.FC = () => {
           <Button variant="contained">Take Action</Button>
         </DialogActions>
       </Dialog>
+
+      {/* Loading and error states */}
+      {isLoading && !securityData && (
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, bgcolor: 'rgba(10, 10, 26, 0.9)', zIndex: 9999 }}>
+          <Box sx={{ textAlign: 'center' }}>
+            <CircularProgress sx={{ color: '#00ffff', mb: 2 }} size={60} />
+            <Typography variant="h6" sx={{ color: '#00ffff' }}>
+              Loading Security Data...
+            </Typography>
+          </Box>
+        </Box>
+      )}
+
+      {error && !securityData && (
+        <Alert 
+          severity="error" 
+          sx={{ position: 'fixed', top: 20, left: 20, right: 20, zIndex: 9999, backgroundColor: 'rgba(244, 67, 54, 0.1)', color: '#f44336', border: '1px solid #f44336' }}
+          action={
+            <Button color="inherit" size="small" onClick={fetchSecurityData} disabled={isLoading}>
+              {isLoading ? <CircularProgress size={16} /> : 'Retry'}
+            </Button>
+          }
+        >
+          <Typography variant="h6">Failed to Load Security Data</Typography>
+          <Typography variant="body2">{error}</Typography>
+        </Alert>
+      )}
     </Box>
   );
 };

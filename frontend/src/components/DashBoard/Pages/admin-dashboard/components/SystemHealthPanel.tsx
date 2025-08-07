@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useAuthenticatedAxios } from '../../../../../../hooks/useAxios';
 import {
   Box,
   Card,
@@ -335,30 +336,91 @@ const SystemHealthPanel: React.FC = () => {
   const [expandedNodes, setExpandedNodes] = useState<string[]>([]);
   const [showOfflineOnly, setShowOfflineOnly] = useState(false);
 
-  // Mock data - In production, this would come from API/Redux
-  const systemMetrics: SystemMetric[] = useMemo(() => [
-    {
-      id: 'cpu-usage',
-      name: 'CPU Usage',
-      value: 68.5,
-      unit: '%',
-      status: 'warning',
-      threshold: { warning: 70, critical: 85 },
-      trend: -2.3,
-      description: 'Overall system CPU utilization',
-      lastUpdated: '2024-12-10T10:30:00Z'
-    },
-    {
-      id: 'memory-usage',
-      name: 'Memory Usage',
-      value: 45.2,
-      unit: '%',
-      status: 'healthy',
-      threshold: { warning: 80, critical: 90 },
-      trend: 1.7,
-      description: 'System memory utilization',
-      lastUpdated: '2024-12-10T10:29:00Z'
-    },
+  // Real API state management
+  const [systemHealthData, setSystemHealthData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
+  const authAxios = useAuthenticatedAxios();
+
+  // Real API data fetching function
+  const fetchSystemHealthData = useCallback(async () => {
+    if (!authAxios) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await authAxios.get('/api/admin/analytics/system-health', {
+        params: { timeRange }
+      });
+      
+      if (response.data.success) {
+        setSystemHealthData(response.data.data);
+      } else {
+        setError('Failed to fetch system health data');
+      }
+    } catch (error: any) {
+      console.error('Error fetching system health data:', error);
+      setError(error?.response?.data?.message || 'Failed to fetch system health data');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [authAxios, timeRange]);
+
+  // Auto-refresh system health data
+  useEffect(() => {
+    fetchSystemHealthData();
+    
+    // Set up real-time refresh if enabled
+    if (isRealTime) {
+      const interval = setInterval(fetchSystemHealthData, 60000); // Refresh every 60 seconds
+      setRefreshInterval(interval);
+      return () => clearInterval(interval);
+    } else if (refreshInterval) {
+      clearInterval(refreshInterval);
+      setRefreshInterval(null);
+    }
+  }, [fetchSystemHealthData, isRealTime]);
+
+  // Refresh when timeRange changes
+  useEffect(() => {
+    if (authAxios && systemHealthData) {
+      fetchSystemHealthData();
+    }
+  }, [timeRange]);
+
+  // Transform real API data to component format
+  const systemMetrics: SystemMetric[] = useMemo(() => {
+    if (!systemHealthData?.serverPerformance) {
+      return [];
+    }
+
+    const { serverPerformance, apiPerformance } = systemHealthData;
+
+    return [
+      {
+        id: 'cpu-usage',
+        name: 'CPU Usage',
+        value: serverPerformance.cpu.usage,
+        unit: '%',
+        status: serverPerformance.cpu.status,
+        threshold: { warning: 70, critical: 85 },
+        trend: Math.random() * 10 - 5, // Mock trend - implement real calculation
+        description: 'Overall system CPU utilization',
+        lastUpdated: new Date().toISOString()
+      },
+      {
+        id: 'memory-usage',
+        name: 'Memory Usage',
+        value: serverPerformance.memory.usage,
+        unit: '%',
+        status: serverPerformance.memory.status,
+        threshold: { warning: 80, critical: 90 },
+        trend: Math.random() * 10 - 5,
+        description: 'System memory utilization',
+        lastUpdated: new Date().toISOString()
+      },
     {
       id: 'disk-usage',
       name: 'Disk Usage',
@@ -1390,6 +1452,39 @@ const SystemHealthPanel: React.FC = () => {
       </Grid>
     </Grid>
   );
+
+  // Loading and error states
+  if (isLoading && !systemHealthData) {
+    return (
+      <Box sx={{ bgcolor: '#0a0a1a', minHeight: '100vh', p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <CircularProgress sx={{ color: '#00ffff', mb: 2 }} size={60} />
+          <Typography variant="h6" sx={{ color: '#00ffff' }}>
+            Loading System Health Data...
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (error && !systemHealthData) {
+    return (
+      <Box sx={{ bgcolor: '#0a0a1a', minHeight: '100vh', p: 3 }}>
+        <Alert 
+          severity="error" 
+          sx={{ mb: 3, backgroundColor: 'rgba(244, 67, 54, 0.1)', color: '#f44336', border: '1px solid #f44336' }}
+          action={
+            <Button color="inherit" size="small" onClick={fetchSystemHealthData} disabled={isLoading}>
+              {isLoading ? <CircularProgress size={16} /> : 'Retry'}
+            </Button>
+          }
+        >
+          <Typography variant="h6">Failed to Load System Health Data</Typography>
+          <Typography variant="body2">{error}</Typography>
+        </Alert>
+      </Box>
+    );
+  }
 
   const tabPanels = [
     renderOverviewTab(),

@@ -1,21 +1,27 @@
 /**
- * Universal Master Schedule Service
- * ===============================
- * Production-ready service connecting to the enhanced backend API
- * Supports unified data sharing across Admin, Trainer, and Client dashboards
+ * Universal Master Schedule Service (Phase 2: Frontend Orchestration)
+ * ====================================================================
+ * Production-ready service connecting to the UNIFIED backend session service
  * 
- * Features:
- * - Real-time session management with drag-and-drop
- * - Bulk operations for efficient admin workflows  
- * - Statistics and analytics for dashboard insights
- * - Role-based data access with unified data flow
- * - Cross-dashboard data synchronization
+ * ARCHITECTURAL TRANSFORMATION (Phase 2):
+ * ✅ Updated to use unified backend endpoints from Phase 1
+ * ✅ Role-based service methods for adaptive UI
+ * ✅ Simplified API calls matching actual backend routes
+ * ✅ Real-time calendar integration optimized
+ * ✅ Cross-dashboard synchronization maintained
  * 
- * Part of Universal Dashboard Architecture - Phase 2 Implementation
+ * CONNECTS TO:
+ * - backend/services/sessions/session.service.mjs (Unified Service)
+ * - backend/routes/sessions.mjs (Unified Routes)
+ * 
+ * SUPPORTS ROLES:
+ * - Admin: Full access to all operations
+ * - Trainer: Assigned sessions and management
+ * - Client: Own sessions + available booking
+ * - User: Available sessions for booking
  */
 
 import axios, { AxiosResponse } from 'axios';
-// Note: Toast notifications are handled by the service internally using react-hot-toast
 
 // Import types from Universal Master Schedule
 import type {
@@ -25,9 +31,7 @@ import type {
   Trainer,
   FilterOptions,
   ScheduleStats,
-  BulkOperationRequest,
-  ApiResponse,
-  PaginatedResponse
+  ApiResponse
 } from '../components/UniversalMasterSchedule/types';
 
 // API Configuration
@@ -50,17 +54,21 @@ function createApiClient() {
 }
 
 /**
- * Universal Master Schedule Service Class
- * Handles all scheduling operations with role-based access
+ * Universal Master Schedule Service Class (Phase 2 - Unified Backend Integration)
+ * Handles all scheduling operations with role-based access using the unified backend
  */
 class UniversalMasterScheduleService {
   private api = createApiClient();
 
-  // ==================== SESSION MANAGEMENT ====================
+  // ==================== CORE SESSION OPERATIONS ====================
 
   /**
-   * Get all sessions with comprehensive filtering
-   * Role-based access: Admin sees all, Trainer sees assigned, Client sees own + available
+   * Get all sessions with role-based filtering (matches unified backend)
+   * Role-based access handled automatically by backend service:
+   * - Admin: All sessions
+   * - Trainer: Assigned sessions only  
+   * - Client: Own sessions + available sessions
+   * - User: Available sessions only
    */
   async getSessions(filters?: FilterOptions): Promise<Session[]> {
     try {
@@ -70,369 +78,103 @@ class UniversalMasterScheduleService {
       if (filters?.customDateEnd) params.append('endDate', filters.customDateEnd);
       if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
       if (filters?.trainerId) params.append('trainerId', filters.trainerId);
-      if (filters?.clientId) params.append('clientId', filters.clientId);
+      if (filters?.clientId) params.append('userId', filters.clientId); // Backend uses 'userId' for client filtering
       if (filters?.location) params.append('location', filters.location);
-      if (filters?.searchTerm) params.append('search', filters.searchTerm);
+      if (filters?.confirmed !== undefined) params.append('confirmed', filters.confirmed.toString());
       
       const response: AxiosResponse<Session[]> = await this.api.get(`/api/sessions?${params.toString()}`);
       return response.data;
     } catch (error: any) {
       console.error('Error fetching sessions:', error);
-      // Error will be caught by component
+      throw error;
+    }
+  }
+
+  /**
+   * Get a single session by ID with role-based access control
+   */
+  async getSessionById(sessionId: string): Promise<Session | null> {
+    try {
+      const response: AxiosResponse<{ success: boolean; session: Session }> = await this.api.get(`/api/sessions/${sessionId}`);
+      
+      if (response.data.success) {
+        return response.data.session;
+      }
+      return null;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        return null;
+      }
+      console.error('Error fetching session by ID:', error);
       throw error;
     }
   }
 
   /**
    * Get sessions formatted for calendar display
-   * Optimized for React Big Calendar integration
+   * Uses the unified getSessions with date filtering
    */
   async getCalendarEvents(start: string, end: string, filters?: { trainerId?: string; clientId?: string }): Promise<SessionEvent[]> {
     try {
-      const params = new URLSearchParams();
-      params.append('start', start);
-      params.append('end', end);
+      // Use unified getSessions with date range
+      const sessions = await this.getSessions({
+        customDateStart: start,
+        customDateEnd: end,
+        trainerId: filters?.trainerId,
+        clientId: filters?.clientId
+      });
       
-      if (filters?.trainerId) params.append('trainerId', filters.trainerId);
-      if (filters?.clientId) params.append('clientId', filters.clientId);
-      
-      const response: AxiosResponse<ApiResponse<SessionEvent[]>> = await this.api.get(`/api/sessions/calendar-events?${params.toString()}`);
-      
-      if (response.data.success) {
-        return response.data.data || [];
-      } else {
-        throw new Error('Failed to fetch calendar events');
-      }
+      // Transform to calendar events format (sessions already have correct format from unified backend)
+      return sessions.map(session => ({
+        ...session,
+        start: session.start || session.sessionDate,
+        end: session.end || new Date(new Date(session.sessionDate).getTime() + (session.duration || 60) * 60000)
+      }));
     } catch (error: any) {
       console.error('Error fetching calendar events:', error);
-      // Error will be caught by component
       return []; // Return empty array for graceful degradation
     }
   }
 
-  /**
-   * Create a new session
-   * Admin-only operation
-   */
-  async createSession(sessionData: Partial<Session>): Promise<Session> {
-    try {
-      const response: AxiosResponse<{ message: string; session: Session }> = await this.api.post('/api/sessions', sessionData);
-      // Success feedback handled by component
-      return response.data.session;
-    } catch (error: any) {
-      console.error('Error creating session:', error);
-      // Error will be caught by component
-      throw error;
-    }
-  }
+  // ==================== SESSION LIFECYCLE MANAGEMENT ====================
 
   /**
-   * Update a session (regular update)
+   * Create available session slots (Admin only)
    */
-  async updateSession(sessionId: string, updates: Partial<Session>): Promise<Session> {
-    try {
-      const response: AxiosResponse<{ message: string; session: Session }> = await this.api.put(`/api/sessions/${sessionId}`, updates);
-      // Success feedback handled by component
-      return response.data.session;
-    } catch (error: any) {
-      console.error('Error updating session:', error);
-      // Error will be caught by component
-      throw error;
-    }
-  }
-
-  /**
-   * Optimized drag-and-drop session update
-   * For real-time calendar interactions
-   */
-  async dragDropUpdate(sessionId: string, changes: { 
-    sessionDate?: string; 
-    duration?: number; 
-    trainerId?: string | null; 
-    userId?: string | null; 
-  }): Promise<Session> {
-    try {
-      const response: AxiosResponse<ApiResponse<Session>> = await this.api.put(`/api/sessions/drag-drop/${sessionId}`, changes);
-      
-      if (response.data.success) {
-        // Success feedback handled by component
-        return response.data.data!;
-      } else {
-        throw new Error(response.data.message || 'Drag-drop update failed');
-      }
-    } catch (error: any) {
-      console.error('Error in drag-drop update:', error);
-      // Error will be caught by component
-      throw error;
-    }
-  }
-
-  /**
-   * Delete a session
-   */
-  async deleteSession(sessionId: string): Promise<void> {
-    try {
-      await this.api.delete(`/api/sessions/cancel/${sessionId}`);
-      // Success feedback handled by component
-    } catch (error: any) {
-      console.error('Error deleting session:', error);
-      // Error will be caught by component
-      throw error;
-    }
-  }
-
-  // ==================== BULK OPERATIONS ====================
-
-  /**
-   * Update multiple sessions simultaneously
-   * Perfect for bulk scheduling operations
-   */
-  async bulkUpdateSessions(updates: Array<{ id: string; [key: string]: any }>): Promise<{
-    updated: Session[];
-    errors: Array<{ id: string; error: string }>;
-  }> {
-    try {
-      const response: AxiosResponse<ApiResponse<{
-        updated: Session[];
-        errors: Array<{ id: string; error: string }>;
-      }>> = await this.api.post('/api/sessions/bulk-update', { updates });
-      
-      if (response.data.success) {
-        const result = response.data.data!;
-        // Success feedback handled by component
-        
-        return result;
-      } else {
-        throw new Error(response.data.message || 'Bulk update failed');
-      }
-    } catch (error: any) {
-      console.error('Error in bulk update:', error);
-      // Error will be caught by component
-      throw error;
-    }
-  }
-
-  /**
-   * Assign trainer to multiple sessions
-   */
-  async bulkAssignTrainer(sessionIds: string[], trainerId: string): Promise<{
-    updatedSessions: Session[];
-    trainer: { id: string; firstName: string; lastName: string };
-  }> {
-    try {
-      const response: AxiosResponse<ApiResponse<{
-        updatedSessions: Session[];
-        trainer: { id: string; firstName: string; lastName: string };
-      }>> = await this.api.post('/api/sessions/bulk-assign-trainer', { sessionIds, trainerId });
-      
-      if (response.data.success) {
-        const result = response.data.data!;
-        // Success feedback handled by component
-        return result;
-      } else {
-        throw new Error(response.data.message || 'Bulk trainer assignment failed');
-      }
-    } catch (error: any) {
-      console.error('Error in bulk trainer assignment:', error);
-      // Error will be caught by component
-      throw error;
-    }
-  }
-
-  /**
-   * Delete multiple sessions
-   */
-  async bulkDeleteSessions(sessionIds: string[]): Promise<{
-    deletedCount: number;
-    deletedIds: string[];
-  }> {
-    try {
-      const response: AxiosResponse<ApiResponse<{
-        deletedCount: number;
-        deletedIds: string[];
-      }>> = await this.api.post('/api/sessions/bulk-delete', { sessionIds });
-      
-      if (response.data.success) {
-        const result = response.data.data!;
-        // Success feedback handled by component
-        return result;
-      } else {
-        throw new Error(response.data.message || 'Bulk delete failed');
-      }
-    } catch (error: any) {
-      console.error('Error in bulk delete:', error);
-      // Error will be caught by component
-      throw error;
-    }
-  }
-
-  // ==================== STATISTICS & ANALYTICS ====================
-
-  /**
-   * Get comprehensive session statistics
-   * Powers dashboard analytics across all roles
-   */
-  async getStatistics(filters?: {
-    customDateStart?: string;
-    customDateEnd?: string;
-    trainerId?: string;
-  }): Promise<ScheduleStats> {
-    try {
-      const params = new URLSearchParams();
-      
-      if (filters?.customDateStart) params.append('startDate', filters.customDateStart);
-      if (filters?.customDateEnd) params.append('endDate', filters.customDateEnd);
-      if (filters?.trainerId) params.append('trainerId', filters.trainerId);
-      
-      const response: AxiosResponse<ApiResponse<ScheduleStats>> = await this.api.get(`/api/sessions/statistics?${params.toString()}`);
-      
-      if (response.data.success) {
-        return response.data.data!;
-      } else {
-        throw new Error('Failed to fetch statistics');
-      }
-    } catch (error: any) {
-      console.error('Error fetching statistics:', error);
-      // Error will be caught by component
-      throw error;
-    }
-  }
-
-  /**
-   * Get utilization statistics by time period
-   */
-  async getUtilizationStats(period: 'day' | 'week' | 'month' = 'week', trainerId?: string): Promise<{
-    utilizationData: Array<{ period: string; [status: string]: any }>;
-    period: string;
-    dateRange: { start: string; end: string };
-  }> {
-    try {
-      const params = new URLSearchParams();
-      params.append('period', period);
-      
-      if (trainerId) params.append('trainerId', trainerId);
-      
-      const response: AxiosResponse<ApiResponse<{
-        utilizationData: Array<{ period: string; [status: string]: any }>;
-        period: string;
-        dateRange: { start: string; end: string };
-      }>> = await this.api.get(`/api/sessions/utilization-stats?${params.toString()}`);
-      
-      if (response.data.success) {
-        return response.data.data!;
-      } else {
-        throw new Error('Failed to fetch utilization stats');
-      }
-    } catch (error: any) {
-      console.error('Error fetching utilization stats:', error);
-      // Error will be caught by component
-      throw error;
-    }
-  }
-
-  // ==================== USER MANAGEMENT ====================
-
-  /**
-   * Get all clients for dropdown selection
-   * Role-based: Admin sees all, Trainer sees assigned clients
-   */
-  async getClients(): Promise<Client[]> {
-    try {
-      const response: AxiosResponse<Client[]> = await this.api.get('/api/sessions/clients');
-      return response.data;
-    } catch (error: any) {
-      console.error('Error fetching clients:', error);
-      // Error will be caught by component
-      return [];
-    }
-  }
-
-  /**
-   * Get all trainers for dropdown selection
-   */
-  async getTrainers(): Promise<Trainer[]> {
-    try {
-      const response: AxiosResponse<Trainer[]> = await this.api.get('/api/sessions/trainers');
-      return response.data;
-    } catch (error: any) {
-      console.error('Error fetching trainers:', error);
-      // Error will be caught by component
-      return [];
-    }
-  }
-
-  // ==================== CLIENT BOOKING OPERATIONS ====================
-
-  /**
-   * Book a session (Client/Admin operation)
-   */
-  async bookSession(sessionId: string, userId: string): Promise<Session> {
-    try {
-      const response: AxiosResponse<{ message: string; session: Session }> = await this.api.post(`/api/sessions/book/${userId}`, { sessionId });
-      // Success feedback handled by component
-      return response.data.session;
-    } catch (error: any) {
-      console.error('Error booking session:', error);
-      // Error will be caught by component
-      throw error;
-    }
-  }
-
-  /**
-   * Cancel a session (Client/Admin operation)
-   */
-  async cancelSession(sessionId: string, reason?: string): Promise<void> {
-    try {
-      await this.api.delete(`/api/sessions/cancel/${sessionId}`, { data: { reason } });
-      // Success feedback handled by component
-    } catch (error: any) {
-      console.error('Error cancelling session:', error);
-      // Error will be caught by component
-      throw error;
-    }
-  }
-
-  /**
-   * Reschedule a session (Client/Admin operation)
-   */
-  async rescheduleSession(sessionId: string, newSessionDate: string): Promise<Session> {
-    try {
-      const response: AxiosResponse<{ message: string; session: Session }> = await this.api.put(`/api/sessions/reschedule/${sessionId}`, { newSessionDate });
-      // Success feedback handled by component
-      return response.data.session;
-    } catch (error: any) {
-      console.error('Error rescheduling session:', error);
-      // Error will be caught by component
-      throw error;
-    }
-  }
-
-  // ==================== ADMIN OPERATIONS ====================
-
-  /**
-   * Create multiple available sessions (Admin)
-   */
-  async createAvailableSlots(slots: Array<{
-    date: string;
+  async createAvailableSessions(sessions: Array<{
+    start: string;
+    end?: string;
     duration?: number;
     trainerId?: string;
     location?: string;
-  }>): Promise<{ message: string; slots: Session[] }> {
+    notes?: string;
+    sessionType?: string;
+  }>): Promise<{ sessions: Session[]; message: string }> {
     try {
-      const response: AxiosResponse<{ message: string; slots: Session[] }> = await this.api.post('/api/sessions/available', { slots });
-      // Success feedback handled by component
-      return response.data;
+      const response: AxiosResponse<{
+        success: boolean;
+        message: string;
+        sessions: Session[];
+      }> = await this.api.post('/api/sessions', { sessions });
+      
+      if (response.data.success) {
+        return {
+          sessions: response.data.sessions,
+          message: response.data.message
+        };
+      } else {
+        throw new Error(response.data.message || 'Failed to create sessions');
+      }
     } catch (error: any) {
-      console.error('Error creating available slots:', error);
-      // Error will be caught by component
+      console.error('Error creating sessions:', error);
       throw error;
     }
   }
 
   /**
-   * Create recurring available sessions (Admin)
+   * Create recurring available sessions (Admin only)
    */
-  async createRecurringSlots(config: {
+  async createRecurringSessions(config: {
     startDate: string;
     endDate: string;
     daysOfWeek: number[];
@@ -440,70 +182,286 @@ class UniversalMasterScheduleService {
     trainerId?: string;
     location?: string;
     duration?: number;
-  }): Promise<{ message: string; count: number }> {
+    sessionType?: string;
+  }): Promise<{ success: boolean; message: string; count: number }> {
     try {
-      const response: AxiosResponse<{ message: string; count: number }> = await this.api.post('/api/sessions/recurring', config);
-      // Success feedback handled by component
+      const response: AxiosResponse<{
+        success: boolean;
+        message: string;
+        count: number;
+      }> = await this.api.post('/api/sessions/recurring', config);
+      
       return response.data;
     } catch (error: any) {
-      console.error('Error creating recurring slots:', error);
-      // Error will be caught by component
+      console.error('Error creating recurring sessions:', error);
       throw error;
     }
   }
 
-  // ==================== ROLE-BASED DATA ACCESS ====================
-
   /**
-   * Get user-specific session data based on role
-   * Implements unified data sharing with role-based filtering
+   * Book a session
    */
-  async getUserSessionData(userId: string, role: 'admin' | 'trainer' | 'client'): Promise<{
-    sessions: Session[];
-    statistics: ScheduleStats;
-    accessLevel: string;
-  }> {
+  async bookSession(sessionId: string, bookingData?: any): Promise<{ success: boolean; message: string; session: Session }> {
     try {
-      // Role-based data fetching
-      let sessions: Session[] = [];
-      let stats: ScheduleStats;
-
-      switch (role) {
-        case 'admin':
-          // Admin sees everything
-          sessions = await this.getSessions();
-          stats = await this.getStatistics();
-          break;
-          
-        case 'trainer':
-          // Trainer sees their assigned sessions
-          sessions = await this.getSessions({ trainerId: userId });
-          stats = await this.getStatistics({ trainerId: userId });
-          break;
-          
-        case 'client':
-          // Client sees their sessions + available ones
-          const [userSessions, availableSessions] = await Promise.all([
-            this.getSessions({ clientId: userId }),
-            this.getSessions({ status: 'available' })
-          ]);
-          sessions = [...userSessions, ...availableSessions];
-          stats = await this.getStatistics(); // Basic stats for context
-          break;
-          
-        default:
-          throw new Error('Invalid user role');
-      }
-
-      return {
-        sessions,
-        statistics: stats,
-        accessLevel: role
-      };
+      const response: AxiosResponse<{
+        success: boolean;
+        message: string;
+        session: Session;
+      }> = await this.api.post(`/api/sessions/${sessionId}/book`, bookingData || {});
+      
+      return response.data;
     } catch (error: any) {
-      console.error('Error fetching user session data:', error);
+      console.error('Error booking session:', error);
       throw error;
     }
+  }
+
+  /**
+   * Cancel a session
+   */
+  async cancelSession(sessionId: string, reason?: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const response: AxiosResponse<{
+        success: boolean;
+        message: string;
+      }> = await this.api.patch(`/api/sessions/${sessionId}/cancel`, { reason });
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('Error cancelling session:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Confirm a session (Admin/Trainer only)
+   */
+  async confirmSession(sessionId: string): Promise<{ success: boolean; message: string; session: Session }> {
+    try {
+      const response: AxiosResponse<{
+        success: boolean;
+        message: string;
+        session: Session;
+      }> = await this.api.patch(`/api/sessions/${sessionId}/confirm`);
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('Error confirming session:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Complete a session (Admin/Trainer only)
+   */
+  async completeSession(sessionId: string, notes?: string): Promise<{ success: boolean; message: string; session: Session }> {
+    try {
+      const response: AxiosResponse<{
+        success: boolean;
+        message: string;
+        session: Session;
+      }> = await this.api.patch(`/api/sessions/${sessionId}/complete`, { notes });
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('Error completing session:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Assign trainer to session (Admin only)
+   */
+  async assignTrainer(sessionId: string, trainerId: string): Promise<{ success: boolean; message: string; session: Session }> {
+    try {
+      const response: AxiosResponse<{
+        success: boolean;
+        message: string;
+        session: Session;
+      }> = await this.api.patch(`/api/sessions/${sessionId}/assign`, { trainerId });
+      
+      return response.data;
+    } catch (error: any) {
+      console.error('Error assigning trainer:', error);
+      throw error;
+    }
+  }
+
+  // ==================== STATISTICS & ANALYTICS ====================
+
+  /**
+   * Get schedule statistics with role-based data
+   */
+  async getScheduleStats(): Promise<ScheduleStats> {
+    try {
+      const response: AxiosResponse<{
+        success: boolean;
+        stats: ScheduleStats;
+      }> = await this.api.get('/api/sessions/stats');
+      
+      if (response.data.success) {
+        return response.data.stats;
+      } else {
+        throw new Error('Failed to fetch schedule statistics');
+      }
+    } catch (error: any) {
+      console.error('Error fetching schedule statistics:', error);
+      throw error;
+    }
+  }
+
+  // ==================== USER MANAGEMENT ====================
+
+  /**
+   * Get all trainers for dropdown selection
+   */
+  async getTrainers(): Promise<Trainer[]> {
+    try {
+      const response: AxiosResponse<Trainer[]> = await this.api.get('/api/sessions/users/trainers');
+      return response.data;
+    } catch (error: any) {
+      console.error('Error fetching trainers:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get all clients for dropdown selection (Admin/Trainer only)
+   */
+  async getClients(): Promise<Client[]> {
+    try {
+      const response: AxiosResponse<Client[]> = await this.api.get('/api/sessions/users/clients');
+      return response.data;
+    } catch (error: any) {
+      console.error('Error fetching clients:', error);
+      // Return empty array if unauthorized (expected for non-admin/trainer users)
+      return [];
+    }
+  }
+
+  // ==================== LEGACY COMPATIBILITY METHODS ====================
+
+  /**
+   * Legacy method for backward compatibility
+   * @deprecated Use bookSession instead
+   */
+  async bookSessionLegacy(sessionId: string, userId: string): Promise<Session> {
+    const result = await this.bookSession(sessionId);
+    return result.session;
+  }
+
+  /**
+   * Update a session (generic update method)
+   */
+  async updateSession(sessionId: string, updates: Partial<Session>): Promise<Session> {
+    try {
+      // For now, we'll handle specific updates through dedicated methods
+      // This could be extended to support more generic updates if needed
+      
+      if (updates.trainerId) {
+        const result = await this.assignTrainer(sessionId, updates.trainerId);
+        return result.session;
+      }
+      
+      if (updates.status === 'confirmed') {
+        const result = await this.confirmSession(sessionId);
+        return result.session;
+      }
+      
+      if (updates.status === 'completed') {
+        const result = await this.completeSession(sessionId, updates.notes);
+        return result.session;
+      }
+      
+      // For other updates, we'd need to implement additional backend endpoints
+      throw new Error('Update type not supported. Use specific methods like assignTrainer, confirmSession, etc.');
+    } catch (error: any) {
+      console.error('Error updating session:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a session (alias for cancel)
+   */
+  async deleteSession(sessionId: string): Promise<void> {
+    await this.cancelSession(sessionId, 'Session deleted');
+  }
+
+  // ==================== ROLE-BASED HELPER METHODS ====================
+
+  /**
+   * Get role-appropriate session actions
+   * Returns available actions based on current user role and session state
+   */
+  getRoleBasedActions(session: Session, userRole: 'admin' | 'trainer' | 'client' | 'user'): string[] {
+    const actions: string[] = [];
+    
+    switch (userRole) {
+      case 'admin':
+        // Admin can do everything
+        if (session.status === 'available') {
+          actions.push('assign_trainer', 'delete');
+        }
+        if (['scheduled', 'requested'].includes(session.status)) {
+          actions.push('confirm', 'cancel', 'assign_trainer');
+        }
+        if (['confirmed', 'scheduled'].includes(session.status)) {
+          actions.push('complete', 'cancel');
+        }
+        actions.push('edit', 'view_details');
+        break;
+        
+      case 'trainer':
+        // Trainer can manage assigned sessions
+        if (session.trainerId && ['scheduled', 'requested'].includes(session.status)) {
+          actions.push('confirm', 'cancel');
+        }
+        if (session.trainerId && ['confirmed', 'scheduled'].includes(session.status)) {
+          actions.push('complete', 'cancel');
+        }
+        if (session.trainerId) {
+          actions.push('view_details');
+        }
+        break;
+        
+      case 'client':
+        // Client can manage their own sessions and book available ones
+        if (session.status === 'available') {
+          actions.push('book');
+        }
+        if (session.userId && ['scheduled', 'confirmed'].includes(session.status)) {
+          actions.push('cancel', 'view_details');
+        }
+        break;
+        
+      case 'user':
+        // Regular users can only book available sessions
+        if (session.status === 'available') {
+          actions.push('book');
+        }
+        break;
+    }
+    
+    return actions;
+  }
+
+  /**
+   * Check if user can perform action on session
+   */
+  canPerformAction(session: Session, action: string, userRole: 'admin' | 'trainer' | 'client' | 'user', userId?: string): boolean {
+    const allowedActions = this.getRoleBasedActions(session, userRole);
+    
+    // Additional ownership checks
+    if (userRole === 'client' && userId && (action === 'cancel' || action === 'view_details')) {
+      return allowedActions.includes(action) && session.userId === userId;
+    }
+    
+    if (userRole === 'trainer' && userId && ['confirm', 'complete', 'cancel'].includes(action)) {
+      return allowedActions.includes(action) && session.trainerId === userId;
+    }
+    
+    return allowedActions.includes(action);
   }
 
   // ==================== REAL-TIME SYNCHRONIZATION ====================
@@ -528,15 +486,15 @@ class UniversalMasterScheduleService {
     }
   }
 
-  // ==================== ERROR HANDLING & RECOVERY ====================
+  // ==================== SERVICE HEALTH & MONITORING ====================
 
   /**
    * Health check for service connectivity
    */
   async healthCheck(): Promise<boolean> {
     try {
-      const response = await this.api.get('/health');
-      return response.status === 200;
+      const response = await this.api.get('/api/sessions/health');
+      return response.status === 200 && response.data.status === 'healthy';
     } catch (error) {
       console.warn('Universal Master Schedule service health check failed:', error);
       return false;

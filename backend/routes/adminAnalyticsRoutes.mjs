@@ -306,8 +306,213 @@ router.get('/analytics/dashboard', async (req, res) => {
 });
 
 // =====================================================
-// SYSTEM HEALTH & MONITORING ENDPOINTS
+// USER ANALYTICS ENDPOINTS
 // =====================================================
+
+/**
+ * GET /api/admin/analytics/users
+ * Comprehensive user analytics for UserAnalyticsPanel
+ * Returns engagement data, segments, journey, and retention data
+ */
+router.get('/analytics/users', validateTimeRange, async (req, res) => {
+  try {
+    const timeRange = req.query.timeRange || '7d';
+    const type = req.query.type || 'all'; // all, engagement, segments, journey, retention
+    
+    logger.info(`👥 Fetching user analytics for admin ${req.user.email} (timeRange: ${timeRange}, type: ${type})`);
+    
+    const userAnalytics = await businessIntelligenceService.getUserAnalytics(timeRange, type);
+    
+    res.json({
+      success: true,
+      message: 'User analytics retrieved successfully',
+      data: userAnalytics,
+      timeRange,
+      type,
+      requestedBy: req.user.email,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error(`❌ Failed to fetch user analytics for ${req.user.email}:`, error);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve user analytics',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/analytics/user-behavior
+ * Individual user behavior analysis
+ * Returns detailed behavior data for specific users
+ */
+router.get('/analytics/user-behavior', validateTimeRange, async (req, res) => {
+  try {
+    const timeRange = req.query.timeRange || '30d';
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = parseInt(req.query.offset) || 0;
+    
+    logger.info(`🎯 Fetching user behavior analytics for admin ${req.user.email} (limit: ${limit}, offset: ${offset})`);
+    
+    const behaviorData = await businessIntelligenceService.getUserBehaviorAnalytics(timeRange, limit, offset);
+    
+    res.json({
+      success: true,
+      message: 'User behavior analytics retrieved successfully',
+      data: behaviorData.users,
+      pagination: {
+        limit,
+        offset,
+        total: behaviorData.total,
+        hasMore: behaviorData.hasMore
+      },
+      requestedBy: req.user.email,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error(`❌ Failed to fetch user behavior analytics for ${req.user.email}:`, error);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve user behavior analytics',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/analytics/user-segments
+ * User segmentation analysis
+ * Returns user segments with characteristics and metrics
+ */
+router.get('/analytics/user-segments', async (req, res) => {
+  try {
+    logger.info(`📊 Fetching user segmentation for admin ${req.user.email}`);
+    
+    const segmentData = await businessIntelligenceService.getUserSegmentation();
+    
+    res.json({
+      success: true,
+      message: 'User segmentation retrieved successfully',
+      data: segmentData,
+      requestedBy: req.user.email,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error(`❌ Failed to fetch user segmentation for ${req.user.email}:`, error);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve user segmentation',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+// =====================================================
+// SYSTEM HEALTH & MONITORING ENDPOINTS  
+// =====================================================
+
+/**
+ * GET /api/admin/analytics/system-health
+ * Comprehensive system health metrics for SystemHealthPanel
+ * Returns server metrics, database status, API response times, resource usage
+ */
+router.get('/analytics/system-health', validateTimeRange, async (req, res) => {
+  try {
+    const timeRange = req.query.timeRange || '24h';
+    
+    logger.info(`🏥 Fetching system health metrics for admin ${req.user.email} (timeRange: ${timeRange})`);
+    
+    const systemHealthMetrics = await businessIntelligenceService.getSystemHealthMetrics(timeRange);
+    
+    res.json({
+      success: true,
+      message: 'System health metrics retrieved successfully',
+      data: systemHealthMetrics,
+      timeRange,
+      requestedBy: req.user.email,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error(`❌ Failed to fetch system health metrics for ${req.user.email}:`, error);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve system health metrics',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/mcp/health
+ * MCP agents and services health monitoring for AIMonitoringPanel
+ * Returns MCP server status, agent availability, processing queues, performance metrics
+ */
+router.get('/mcp/health', async (req, res) => {
+  try {
+    logger.info(`🤖 Fetching MCP health status for admin ${req.user.email}`);
+    
+    const mcpHealthStatus = await businessIntelligenceService.getMCPHealthStatus();
+    
+    res.json({
+      success: true,
+      message: 'MCP health status retrieved successfully',
+      data: mcpHealthStatus,
+      requestedBy: req.user.email,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error(`❌ Failed to fetch MCP health status for ${req.user.email}:`, error);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve MCP health status',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/security/metrics
+ * Security monitoring and threat analysis for SecurityMonitoringPanel
+ * Returns security events, failed logins, rate limit hits, threat detection metrics
+ */
+router.get('/security/metrics', validateTimeRange, async (req, res) => {
+  try {
+    const timeRange = req.query.timeRange || '24h';
+    
+    logger.info(`🛡️ Fetching security metrics for admin ${req.user.email} (timeRange: ${timeRange})`);
+    
+    const securityMetrics = await businessIntelligenceService.getSecurityMetrics(timeRange);
+    
+    res.json({
+      success: true,
+      message: 'Security metrics retrieved successfully',
+      data: securityMetrics,
+      timeRange,
+      requestedBy: req.user.email,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    logger.error(`❌ Failed to fetch security metrics for ${req.user.email}:`, error);
+    
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve security metrics',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+});
 
 /**
  * GET /api/admin/analytics/health

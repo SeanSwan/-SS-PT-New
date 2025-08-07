@@ -42,8 +42,8 @@ import notificationsApiRoutes from '../routes/notificationsRoutes.mjs';
 import workoutRoutes from '../routes/workoutRoutes.mjs';
 import workoutPlanRoutes from '../routes/workoutPlanRoutes.mjs';
 import workoutSessionRoutes from '../routes/workoutSessionRoutes.mjs';
-import scheduleRoutes from '../routes/scheduleRoutes.mjs';
-import enhancedScheduleRoutes from '../routes/enhancedScheduleRoutes.mjs';
+// CONSOLIDATED SESSION ROUTES (Phase 1: Backend Harmonization)
+import sessionsRoutes from '../routes/sessions.mjs';
 
 // ===================== GAMIFICATION & SOCIAL =====================
 import gamificationRoutes from '../routes/gamificationRoutes.mjs';
@@ -172,8 +172,11 @@ export const setupRoutes = async (app) => {
   app.use('/api/workout', workoutRoutes);
   app.use('/api/workout/plans', workoutPlanRoutes);
   app.use('/api/workout/sessions', workoutSessionRoutes);
-  app.use('/api/schedule', enhancedScheduleRoutes);
-  app.use('/api/sessions', enhancedScheduleRoutes); // Alias
+  
+  // ===================== UNIFIED SESSIONS ROUTES (Phase 1: Backend Harmonization) =====================
+  // Consolidated from enhancedScheduleRoutes + scheduleRoutes using unified session service
+  app.use('/api/sessions', sessionsRoutes);
+  app.use('/api/schedule', sessionsRoutes); // Legacy alias for backward compatibility
   app.use('/api/orientation', orientationRoutes);
   app.use('/api/recommendations', recommendationRoutes);
   app.use('/api/food-scanner', foodScannerRoutes);
@@ -358,33 +361,7 @@ export const setupRoutes = async (app) => {
     }
   }
 
-  // ===================== CUSTOM SCHEDULE ENDPOINT =====================
-  app.get('/api/schedule', (req, res) => {
-    const { userId, includeUpcoming } = req.query;
-    if (userId) {
-      res.json({
-        success: true,
-        sessions: [
-          {
-            id: '1',
-            title: 'Personal Training Session',
-            start: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            end: new Date(Date.now() + 25 * 60 * 60 * 1000).toISOString(),
-            status: 'booked',
-            userId: userId,
-            trainerId: 'trainer1',
-            location: 'Gym A',
-            duration: 60
-          }
-        ]
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        message: 'User ID required'
-      });
-    }
-  });
+  // Custom schedule endpoint removed - handled by unified sessions routes
 
   logger.info(`Routes configured successfully - ${isProduction ? 'Production' : 'Development'} mode`);
   logger.info('✅ All API endpoints registered and ready');
