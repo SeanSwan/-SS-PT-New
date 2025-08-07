@@ -59,6 +59,7 @@ import adminFinanceRoutes from '../routes/admin/adminFinanceRoutes.mjs';
 import adminStoreRoutes from '../routes/admin/adminStoreRoutes.mjs';
 import adminMcpRoutes from '../routes/adminMcpRoutes.mjs';
 import adminEnterpriseRoutes from '../routes/adminEnterpriseRoutes.mjs';
+import adminContentModerationRoutes from '../routes/adminContentModerationRoutes.mjs';
 
 // ===================== ENTERPRISE ADMIN ANALYTICS & INTELLIGENCE =====================
 // 🚀 Real Stripe Business Analytics (replaces mock data)
@@ -189,11 +190,16 @@ export const setupRoutes = async (app) => {
   // ===================== ADMIN & MANAGEMENT ROUTES =====================
   app.use('/api/admin', adminRoutes);
   app.use('/api/admin', adminDebugRoutes);
-  app.use('/api/admin', adminClientRoutes);
-  app.use('/api/admin/storefront', adminPackageRoutes);
+  
+  // ✅ PHASE 2C FIX: Align endpoints with frontend expectations
+  app.use('/api/admin', adminClientRoutes);            // Provides: /api/admin/clients/*
+  app.use('/api/admin', adminPackageRoutes);            // Provides: /api/admin/packages/* (aliased from storefront)
+  app.use('/api/admin/storefront', adminPackageRoutes); // Legacy compatibility
+  app.use('/api/admin', adminMcpRoutes);                // Provides: /api/admin/mcp/* endpoints
+  app.use('/api/admin/content', adminContentModerationRoutes); // Provides: /api/admin/content/* endpoints
+  
   app.use('/api/admin/finance', adminFinanceRoutes);
   app.use('/api/admin/store', adminStoreRoutes);
-  app.use('/api/admin/mcp-servers', adminMcpRoutes);
   app.use('/api/admin', adminEnterpriseRoutes);
 
   // ===================== ENTERPRISE ADMIN ANALYTICS & INTELLIGENCE =====================
