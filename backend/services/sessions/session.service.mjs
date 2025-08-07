@@ -67,12 +67,56 @@ class UnifiedSessionService {
   constructor() {
     this.serviceName = 'UnifiedSessionService';
     this.version = '1.0.0';
-    this.Session = getSession();
-    this.User = getUser();
-    this.Order = getOrder();
-    this.OrderItem = getOrderItem();
-    this.StorefrontItem = getStorefrontItem();
-    this.FinancialTransaction = getFinancialTransaction();
+    // ✅ PHASE 2C FIX: Lazy-load models to avoid initialization order issues
+    this._Session = null;
+    this._User = null;
+    this._Order = null;
+    this._OrderItem = null;
+    this._StorefrontItem = null;
+    this._FinancialTransaction = null;
+  }
+
+  // ✅ PHASE 2C FIX: Lazy getters for models
+  get Session() {
+    if (!this._Session) {
+      this._Session = getSession();
+    }
+    return this._Session;
+  }
+
+  get User() {
+    if (!this._User) {
+      this._User = getUser();
+    }
+    return this._User;
+  }
+
+  get Order() {
+    if (!this._Order) {
+      this._Order = getOrder();
+    }
+    return this._Order;
+  }
+
+  get OrderItem() {
+    if (!this._OrderItem) {
+      this._OrderItem = getOrderItem();
+    }
+    return this._OrderItem;
+  }
+
+  get StorefrontItem() {
+    if (!this._StorefrontItem) {
+      this._StorefrontItem = getStorefrontItem();
+    }
+    return this._StorefrontItem;
+  }
+
+  get FinancialTransaction() {
+    if (!this._FinancialTransaction) {
+      this._FinancialTransaction = getFinancialTransaction();
+    }
+    return this._FinancialTransaction;
   }
 
   // ==================== CORE SESSION CRUD OPERATIONS ====================
