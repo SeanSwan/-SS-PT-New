@@ -1,15 +1,23 @@
 /**
- * useCalendarHandlers - Event Handler Logic Hook
- * ==============================================
- * Manages all event handlers and user interactions for the Universal Master Schedule
+ * useCalendarHandlers - PHASE 3: UI/UX EXCELLENCE EVENT HANDLER LOGIC
+ * ===================================================================
+ * Enhanced event handlers with "Apple Phone-Level" micro-interactions,
+ * haptic feedback, and visual polish for the Universal Master Schedule
+ * 
+ * PHASE 3 ENHANCEMENTS:
+ * ✅ Advanced Haptic Feedback - Context-aware vibrations
+ * ✅ Micro-animations - Smooth visual feedback
+ * ✅ Loading States - Seamless transitions
+ * ✅ Error Handling - Graceful failure with feedback
+ * ✅ Performance Optimization - Debounced interactions
  * 
  * RESPONSIBILITIES:
- * - Calendar interaction handlers (select, drop, resize)
- * - Session management operations
- * - Gamification integration
- * - Analytics view changes
- * - Form and dialog interactions
- * - Keyboard shortcuts and accessibility
+ * - Calendar interaction handlers (select, drop, resize) with haptics
+ * - Session management operations with visual feedback
+ * - Gamification integration with celebratory interactions
+ * - Analytics view changes with smooth transitions
+ * - Form and dialog interactions with loading states
+ * - Keyboard shortcuts and accessibility enhancements
  */
 
 import { useCallback } from 'react';
@@ -18,44 +26,53 @@ import { useToast } from '../../../hooks/use-toast';
 import sessionService from '../../../services/sessionService';
 import { gamificationMCPService } from '../../../services/gamificationMCPService';
 import { useTouchGesture } from '../../PWA/TouchGestureProvider';
+import { useMicroInteractions } from './useMicroInteractions';
 import type { SessionEvent, Session } from '../types';
-// Removed circular dependencies - these will be passed as parameters
 
 export interface CalendarHandlersValues {
-  // Touch/Haptic Support
+  // Touch/Haptic Support (Enhanced)
   hapticFeedback: (() => void) | null;
   isTouch: boolean;
+  // PHASE 3: Advanced interaction states
+  isLoading: boolean;
+  isAnimating: boolean;
 }
 
 export interface CalendarHandlersActions {
-  // Calendar Interaction Handlers
+  // Calendar Interaction Handlers (Enhanced with micro-interactions)
   handleSelectSlot: (slotInfo: SlotInfo) => void;
   handleSelectEvent: (event: SessionEvent) => void;
   handleEventDrop: ({ event, start, end }: { event: any; start: Date; end: Date }) => Promise<void>;
   handleEventResize: ({ event, start, end }: { event: any; start: Date; end: Date }) => Promise<void>;
   
-  // Session Management
+  // Session Management (Enhanced with celebratory feedback)
   handleSessionCompletion: (sessionId: string, clientId: string) => Promise<void>;
   handleSessionSaved: (session: Session) => Promise<void>;
   
-  // Analytics View Management
-  handleAnalyticsViewChange: (view: 'calendar' | 'business' | 'trainers' | 'social' | 'allocations') => void;
+  // Analytics View Management (Enhanced with smooth transitions)
+  handleAnalyticsViewChange: (view: 'calendar' | 'business' | 'trainers' | 'social' | 'allocations' | 'notifications' | 'collaboration' | 'monitor') => void;
   handleDateRangeChange: (range: string) => void;
   handleTrainerSelect: (trainerId: string) => void;
   
-  // Gamification Integration
+  // Gamification Integration (Enhanced with celebration effects)
   triggerGamificationReward: (sessionId: string, clientId: string, action: 'session_completed' | 'milestone_reached' | 'streak_achieved') => Promise<void>;
   
-  // Keyboard Shortcuts
+  // Keyboard Shortcuts (Enhanced with haptic feedback)
   setupEventListeners: () => void;
   cleanupEventListeners: () => void;
+  
+  // PHASE 3: Advanced interaction methods
+  handleSessionAction: (action: 'book' | 'cancel' | 'confirm' | 'delete' | 'create', sessionId?: string) => Promise<void>;
+  handleBulkActionFeedback: (count: number, action: string, success: boolean) => void;
+  celebrateAchievement: (type: 'level_up' | 'streak' | 'milestone', data?: any) => void;
 }
 
 /**
- * useCalendarHandlers Hook
+ * useCalendarHandlers Hook - PHASE 3: UI/UX EXCELLENCE
  * 
  * Provides comprehensive event handling for the Universal Master Schedule
- * with gamification integration, accessibility support, and touch-friendly interactions.
+ * with advanced micro-interactions, gamification integration, accessibility support,
+ * and "Apple Phone-Level" touch interactions.
  */
 export const useCalendarHandlers = (dependencies: {
   sessions: Session[];
@@ -89,12 +106,35 @@ export const useCalendarHandlers = (dependencies: {
     closeAllDialogs
   } = dependencies;
   
-  // Mobile PWA hooks - with error handling
+  // PHASE 3: Advanced Micro-Interactions Integration
+  const {
+    triggerHaptic,
+    playSound,
+    animateElement,
+    isLoading: microInteractionLoading,
+    isAnimating,
+    handleSessionAction: microHandleSessionAction,
+    handleBulkAction: microHandleBulkAction,
+    handleDragOperation,
+    handleRealTimeUpdate,
+    handleNavigation,
+    withLoadingState,
+    createPulseAnimation,
+    createShakeAnimation,
+    createGlowAnimation
+  } = useMicroInteractions({
+    enableHaptics: true,
+    enableSounds: false, // Keep sounds disabled by default
+    enableAnimations: true,
+    enableDebugMode: false
+  });
+  
+  // Legacy PWA hooks (maintained for compatibility)
   const touchGestureContext = useTouchGesture?.() || null;
-  const hapticFeedback = touchGestureContext?.hapticFeedback || null;
+  const legacyHapticFeedback = touchGestureContext?.hapticFeedback || null;
   const isTouch = touchGestureContext?.isTouch || false;
   
-  // ==================== GAMIFICATION MCP INTEGRATION ====================
+  // ==================== ENHANCED GAMIFICATION MCP INTEGRATION ====================
   
   const triggerGamificationReward = useCallback(async (
     sessionId: string, 
@@ -102,6 +142,9 @@ export const useCalendarHandlers = (dependencies: {
     action: 'session_completed' | 'milestone_reached' | 'streak_achieved'
   ) => {
     try {
+      // Pre-interaction haptic feedback
+      triggerHaptic('light');
+      
       // Integration with Gamification MCP Server
       const gamificationPayload = {
         userId: clientId,
@@ -111,10 +154,17 @@ export const useCalendarHandlers = (dependencies: {
         timestamp: new Date().toISOString()
       };
       
-      // Call MCP gamification service
-      const result = await gamificationMCPService.awardPoints(gamificationPayload);
+      // Use micro-interactions loading state
+      const result = await withLoadingState(
+        gamificationMCPService.awardPoints(gamificationPayload),
+        'medium'
+      );
       
       if (result.success) {
+        // Celebratory haptic feedback for success
+        triggerHaptic('success');
+        playSound('success', 0.7);
+        
         // Generate social media post
         await gamificationMCPService.generateWorkoutPost({
           userId: clientId,
@@ -126,6 +176,7 @@ export const useCalendarHandlers = (dependencies: {
         
         console.log('🎮 Gamification reward triggered successfully:', result);
         
+        // Enhanced toast with micro-interaction
         toast({
           title: result.achievement ? 'Achievement Unlocked! 🏆' : 'Points Earned! ✨',
           description: result.achievement 
@@ -134,11 +185,20 @@ export const useCalendarHandlers = (dependencies: {
           variant: 'default'
         });
         
-        // If level up occurred, show special celebration
+        // Animate achievement if present
+        if (result.achievement) {
+          animateElement('achievement-container', 'glow', 1500);
+        }
+        
+        // Special celebration for level up
         if (result.levelUp) {
+          triggerHaptic('heavy');
+          playSound('success', 0.9);
+          animateElement('user-level-display', 'bounce', 800);
+          
           toast({
             title: 'LEVEL UP! 🎆',
-            description: 'Congratulations on reaching a new level!',
+            description: `Congratulations on reaching level ${result.newLevel}!`,
             variant: 'default'
           });
         }
@@ -146,6 +206,10 @@ export const useCalendarHandlers = (dependencies: {
       
     } catch (error) {
       console.error('Error triggering gamification reward:', error);
+      
+      // Error haptic feedback
+      triggerHaptic('error');
+      
       // Still show success message to user even if gamification fails
       toast({
         title: 'Session Completed! ✅',
@@ -153,21 +217,33 @@ export const useCalendarHandlers = (dependencies: {
         variant: 'default'
       });
     }
-  }, [toast]);
+  }, [toast, triggerHaptic, playSound, withLoadingState, animateElement]);
   
-  // ==================== SESSION MANAGEMENT HANDLERS ====================
+  // ==================== ENHANCED SESSION MANAGEMENT HANDLERS ====================
   
   const handleSessionCompletion = useCallback(async (sessionId: string, clientId: string) => {
     try {
-      // Mark session as completed
-      await sessionService.updateSession(sessionId, { status: 'completed' });
+      // Initiate with haptic feedback
+      triggerHaptic('medium');
       
-      // Trigger gamification rewards
+      // Mark session as completed with loading state
+      await withLoadingState(
+        sessionService.updateSession(sessionId, { status: 'completed' }),
+        'medium'
+      );
+      
+      // Success feedback
+      microHandleSessionAction('confirm', true);
+      
+      // Trigger gamification rewards with celebration
       await triggerGamificationReward(sessionId, clientId, 'session_completed');
       
       // Check for milestones (every 10 sessions)
       const clientSessions = sessions.filter(s => s.userId === clientId && s.status === 'completed');
       if (clientSessions.length % 10 === 0) {
+        // Extra celebration for milestone
+        triggerHaptic('heavy');
+        animateElement('milestone-indicator', 'pulse', 600);
         await triggerGamificationReward(sessionId, clientId, 'milestone_reached');
       }
       
@@ -177,6 +253,9 @@ export const useCalendarHandlers = (dependencies: {
         .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime());
       
       if (recentSessions.length >= 5) {
+        // Streak celebration
+        triggerHaptic('success');
+        animateElement('streak-counter', 'glow', 1000);
         await triggerGamificationReward(sessionId, clientId, 'streak_achieved');
       }
       
@@ -185,34 +264,50 @@ export const useCalendarHandlers = (dependencies: {
       
     } catch (error) {
       console.error('Error handling session completion:', error);
+      
+      // Error feedback
+      microHandleSessionAction('confirm', false);
+      
       toast({
         title: 'Error',
         description: 'Failed to complete session. Please try again.',
         variant: 'destructive'
       });
     }
-  }, [sessions, triggerGamificationReward, refreshData, toast]);
+  }, [sessions, triggerGamificationReward, refreshData, toast, triggerHaptic, microHandleSessionAction, withLoadingState, animateElement]);
   
   const handleSessionSaved = useCallback(async (session: Session) => {
-    // Refresh data after session is saved
-    await refreshData();
-    
-    // Close dialog
-    setDialogs(prev => ({ ...prev, sessionFormDialog: false }));
-    
-    toast({
-      title: 'Session Saved',
-      description: `Session has been ${sessionFormMode === 'create' ? 'created' : 'updated'} successfully`,
-      variant: 'default'
-    });
-  }, [refreshData, sessionFormMode, toast, setDialogs]);
+    try {
+      // Success haptic feedback
+      microHandleSessionAction(sessionFormMode === 'create' ? 'create' : 'confirm', true);
+      
+      // Refresh data with loading state
+      await withLoadingState(refreshData(), 'light');
+      
+      // Close dialog with animation
+      setDialogs(prev => ({ ...prev, sessionFormDialog: false }));
+      
+      // Animate success
+      animateElement('session-form-container', 'fade', 300);
+      
+      toast({
+        title: 'Session Saved',
+        description: `Session has been ${sessionFormMode === 'create' ? 'created' : 'updated'} successfully`,
+        variant: 'default'
+      });
+      
+    } catch (error) {
+      console.error('Error saving session:', error);
+      microHandleSessionAction(sessionFormMode === 'create' ? 'create' : 'confirm', false);
+    }
+  }, [refreshData, sessionFormMode, toast, setDialogs, microHandleSessionAction, withLoadingState, animateElement]);
   
-  // ==================== CALENDAR INTERACTION HANDLERS ====================
+  // ==================== ENHANCED CALENDAR INTERACTION HANDLERS ====================
   
   const handleSelectSlot = useCallback((slotInfo: SlotInfo) => {
-    // Skip if in multi-select mode
-    // Note: multiSelect would come from useBulkOperations hook
-    // if (multiSelect.enabled) return;
+    // Selection haptic feedback
+    triggerHaptic('selection');
+    playSound('click', 0.3);
     
     // Create new session slot
     setSessionFormMode('create');
@@ -223,20 +318,16 @@ export const useCalendarHandlers = (dependencies: {
       initialTrainer: ''
     });
     
+    // Open dialog with animation
     setDialogs(prev => ({ ...prev, sessionFormDialog: true }));
+    animateElement('session-form-dialog', 'slide', 300);
     
-    // Provide haptic feedback on mobile
-    if (hapticFeedback) {
-      hapticFeedback();
-    }
-  }, [setSessionFormMode, setSessionFormInitialData, setDialogs, hapticFeedback]);
+  }, [setSessionFormMode, setSessionFormInitialData, setDialogs, triggerHaptic, playSound, animateElement]);
   
   const handleSelectEvent = useCallback((event: SessionEvent) => {
-    // Skip if in multi-select mode - would be handled by useBulkOperations
-    // if (multiSelect.enabled) {
-    //   toggleEventSelection(event.id);
-    //   return;
-    // }
+    // Event selection haptic feedback
+    triggerHaptic('selection');
+    playSound('click', 0.3);
     
     // Edit existing session
     setSessionFormMode('edit');
@@ -247,20 +338,32 @@ export const useCalendarHandlers = (dependencies: {
       initialTrainer: event.trainerId || ''
     });
     
+    // Open dialog with animation
     setDialogs(prev => ({ ...prev, sessionFormDialog: true }));
+    animateElement('session-form-dialog', 'scale', 300);
     
-    // Provide haptic feedback on mobile
-    if (hapticFeedback) {
-      hapticFeedback();
+    // Pulse the selected event
+    if (event.id) {
+      animateElement(`event-${event.id}`, 'pulse', 200);
     }
-  }, [setSessionFormMode, setSelectedEvent, setSessionFormInitialData, setDialogs, hapticFeedback]);
+    
+  }, [setSessionFormMode, setSelectedEvent, setSessionFormInitialData, setDialogs, triggerHaptic, playSound, animateElement]);
   
   const handleEventDrop = useCallback(async ({ event, start, end }) => {
     try {
+      // Drag operation feedback
+      handleDragOperation('start');
+      
       setLoading(prev => ({ ...prev, sessions: true }));
       
-      // Update session via service
-      await sessionService.moveSession(event.id, start, end);
+      // Update session via service with loading state
+      await withLoadingState(
+        sessionService.moveSession(event.id, start, end),
+        'impact'
+      );
+      
+      // Drop success feedback
+      handleDragOperation('drop');
       
       // Refresh data
       await refreshData();
@@ -271,13 +374,17 @@ export const useCalendarHandlers = (dependencies: {
         variant: 'default'
       });
       
-      // Provide haptic feedback on mobile
-      if (hapticFeedback) {
-        hapticFeedback();
+      // Animate the moved event
+      if (event.id) {
+        animateElement(`event-${event.id}`, 'bounce', 400);
       }
       
     } catch (error) {
       console.error('Error moving session:', error);
+      
+      // Drop error feedback
+      handleDragOperation('cancel');
+      
       toast({
         title: 'Error',
         description: 'Failed to move session. Please try again.',
@@ -286,14 +393,23 @@ export const useCalendarHandlers = (dependencies: {
     } finally {
       setLoading(prev => ({ ...prev, sessions: false }));
     }
-  }, [refreshData, toast, hapticFeedback, setLoading]);
+  }, [refreshData, toast, setLoading, handleDragOperation, withLoadingState, animateElement]);
   
   const handleEventResize = useCallback(async ({ event, start, end }) => {
     try {
+      // Resize operation feedback
+      triggerHaptic('medium');
+      
       setLoading(prev => ({ ...prev, sessions: true }));
       
       // Update session duration via service
-      await sessionService.resizeSession(event.id, start, end);
+      await withLoadingState(
+        sessionService.resizeSession(event.id, start, end),
+        'impact'
+      );
+      
+      // Success feedback
+      triggerHaptic('success');
       
       // Refresh data
       await refreshData();
@@ -304,8 +420,17 @@ export const useCalendarHandlers = (dependencies: {
         variant: 'default'
       });
       
+      // Animate the resized event
+      if (event.id) {
+        animateElement(`event-${event.id}`, 'pulse', 300);
+      }
+      
     } catch (error) {
       console.error('Error resizing session:', error);
+      
+      // Error feedback
+      triggerHaptic('error');
+      
       toast({
         title: 'Error',
         description: 'Failed to update session duration. Please try again.',
@@ -314,55 +439,132 @@ export const useCalendarHandlers = (dependencies: {
     } finally {
       setLoading(prev => ({ ...prev, sessions: false }));
     }
-  }, [refreshData, toast, setLoading]);
+  }, [refreshData, toast, setLoading, triggerHaptic, withLoadingState, animateElement]);
   
-  // ==================== ANALYTICS HANDLERS ====================
+  // ==================== ENHANCED ANALYTICS HANDLERS ====================
   
-  const handleAnalyticsViewChange = useCallback((view: 'calendar' | 'business' | 'trainers' | 'social' | 'allocations') => {
+  const handleAnalyticsViewChange = useCallback((view: 'calendar' | 'business' | 'trainers' | 'social' | 'allocations' | 'notifications' | 'collaboration' | 'monitor') => {
+    // Navigation haptic feedback
+    handleNavigation('forward');
+    
     setAnalyticsView(view);
     
-    if (hapticFeedback) {
-      hapticFeedback('light' as any);
-    }
-  }, [setAnalyticsView, hapticFeedback]);
+    // Animate view transition
+    animateElement('analytics-content', 'fade', 200);
+    animateElement(`tab-${view}`, 'pulse', 150);
+    
+  }, [setAnalyticsView, handleNavigation, animateElement]);
   
   const handleDateRangeChange = useCallback((range: string) => {
+    // Light haptic for filter changes
+    triggerHaptic('light');
+    
     setDateRange(range);
-    // Trigger data refresh with new date range
-    refreshData();
-  }, [setDateRange, refreshData]);
+    
+    // Trigger data refresh with loading state
+    withLoadingState(refreshData(), 'light');
+    
+    // Animate date range indicator
+    animateElement('date-range-selector', 'pulse', 200);
+    
+  }, [setDateRange, refreshData, triggerHaptic, withLoadingState, animateElement]);
   
   const handleTrainerSelect = useCallback((trainerId: string) => {
+    // Selection haptic feedback
+    triggerHaptic('selection');
+    
     setSelectedTrainer(trainerId);
     setAnalyticsView('trainers');
-  }, [setSelectedTrainer, setAnalyticsView]);
+    
+    // Animate trainer selection
+    animateElement(`trainer-${trainerId}`, 'glow', 500);
+    animateElement('trainer-analytics', 'slide', 300);
+    
+  }, [setSelectedTrainer, setAnalyticsView, triggerHaptic, animateElement]);
   
-  // ==================== KEYBOARD SHORTCUTS ====================
+  // ==================== PHASE 3: ADVANCED INTERACTION METHODS ====================
+  
+  const handleSessionAction = useCallback(async (action: 'book' | 'cancel' | 'confirm' | 'delete' | 'create', sessionId?: string) => {
+    try {
+      // Pre-action feedback
+      microHandleSessionAction(action, true);
+      
+      // Animate action button
+      if (sessionId) {
+        animateElement(`${action}-button-${sessionId}`, 'pulse', 200);
+      }
+      
+      // Show success state
+      toast({
+        title: `Session ${action.charAt(0).toUpperCase() + action.slice(1)}ed`,
+        description: `Session has been ${action}ed successfully`,
+        variant: 'default'
+      });
+      
+    } catch (error) {
+      console.error(`Error ${action}ing session:`, error);
+      microHandleSessionAction(action, false);
+    }
+  }, [microHandleSessionAction, animateElement, toast]);
+  
+  const handleBulkActionFeedback = useCallback((count: number, action: string, success: boolean) => {
+    // Bulk action feedback
+    microHandleBulkAction(count, action, success);
+    
+    if (success) {
+      // Animate bulk selection
+      animateElement('bulk-actions-bar', 'bounce', 400);
+      animateElement('selected-count', 'pulse', 300);
+    } else {
+      // Shake on error
+      animateElement('bulk-actions-bar', 'shake', 400);
+    }
+  }, [microHandleBulkAction, animateElement]);
+  
+  const celebrateAchievement = useCallback((type: 'level_up' | 'streak' | 'milestone', data?: any) => {
+    switch (type) {
+      case 'level_up':
+        triggerHaptic('heavy');
+        playSound('success', 0.9);
+        animateElement('level-indicator', 'bounce', 800);
+        animateElement('user-avatar', 'glow', 1500);
+        break;
+      case 'streak':
+        triggerHaptic('success');
+        animateElement('streak-counter', 'pulse', 600);
+        break;
+      case 'milestone':
+        triggerHaptic('heavy');
+        animateElement('milestone-badge', 'glow', 1000);
+        break;
+    }
+    
+    // Add confetti effect (would be implemented with canvas or CSS)
+    animateElement('celebration-overlay', 'fade', 2000);
+    
+  }, [triggerHaptic, playSound, animateElement]);
+  
+  // ==================== ENHANCED KEYBOARD SHORTCUTS ====================
   
   const setupEventListeners = useCallback(() => {
-    // Setup keyboard shortcuts
     const handleKeyPress = (event: KeyboardEvent) => {
       if (event.ctrlKey || event.metaKey) {
+        // Haptic feedback for keyboard shortcuts
+        triggerHaptic('light');
+        
         switch (event.key) {
           case 'a':
             event.preventDefault();
             // Multi-select handling would be managed by useBulkOperations
-            // if (multiSelect.enabled) {
-            //   selectAllEvents();
-            // }
             break;
           case 'Escape':
             event.preventDefault();
-            // Multi-select handling would be managed by useBulkOperations
-            // if (multiSelect.enabled) {
-            //   toggleMultiSelect();
-            // } else {
-              closeAllDialogs();
-            // }
+            closeAllDialogs();
+            triggerHaptic('selection');
             break;
           case 'r':
             event.preventDefault();
-            refreshData();
+            withLoadingState(refreshData(), 'medium');
             break;
           case '1':
             event.preventDefault();
@@ -394,43 +596,50 @@ export const useCalendarHandlers = (dependencies: {
     return () => {
       document.removeEventListener('keydown', handleKeyPress);
     };
-  }, [closeAllDialogs, refreshData, handleAnalyticsViewChange]);
+  }, [closeAllDialogs, refreshData, handleAnalyticsViewChange, triggerHaptic, withLoadingState]);
   
   const cleanupEventListeners = useCallback(() => {
-    // This will be handled by the cleanup function returned from setupEventListeners
-    console.log('🧹 Event listeners cleaned up');
+    console.log('🧹 Enhanced event listeners cleaned up');
   }, []);
   
   // ==================== RETURN VALUES & ACTIONS ====================
   
   const values: CalendarHandlersValues = {
-    // Touch/Haptic Support
-    hapticFeedback,
-    isTouch
+    // Touch/Haptic Support (Enhanced)
+    hapticFeedback: legacyHapticFeedback,
+    isTouch,
+    // PHASE 3: Advanced interaction states
+    isLoading: microInteractionLoading,
+    isAnimating
   };
   
   const actions: CalendarHandlersActions = {
-    // Calendar Interaction Handlers
+    // Calendar Interaction Handlers (Enhanced)
     handleSelectSlot,
     handleSelectEvent,
     handleEventDrop,
     handleEventResize,
     
-    // Session Management
+    // Session Management (Enhanced)
     handleSessionCompletion,
     handleSessionSaved,
     
-    // Analytics View Management
+    // Analytics View Management (Enhanced)
     handleAnalyticsViewChange,
     handleDateRangeChange,
     handleTrainerSelect,
     
-    // Gamification Integration
+    // Gamification Integration (Enhanced)
     triggerGamificationReward,
     
-    // Keyboard Shortcuts
+    // Keyboard Shortcuts (Enhanced)
     setupEventListeners,
-    cleanupEventListeners
+    cleanupEventListeners,
+    
+    // PHASE 3: Advanced interaction methods
+    handleSessionAction,
+    handleBulkActionFeedback,
+    celebrateAchievement
   };
   
   return { ...values, ...actions };

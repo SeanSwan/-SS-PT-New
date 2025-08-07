@@ -1,18 +1,27 @@
 /**
- * Enhanced Calendar Fallback Component - AAA 7-Star Experience
- * ===========================================================
+ * Enhanced Calendar Fallback Component - PHASE 2: ROLE-ADAPTIVE EDITION
+ * ====================================================================== 
  * A premium fallback calendar solution that provides enterprise-level functionality
- * when react-big-calendar is unavailable. Features interactive scheduling, filtering,
- * and seamless session management capabilities.
+ * when react-big-calendar is unavailable. Now featuring role-based adaptive UI
+ * that delivers "Apple Phone-Level" experience for ALL user types.
  * 
- * 🌟 ENTERPRISE FEATURES:
- * ✅ Interactive week/month view toggles
- * ✅ Drag-and-drop session creation slots
- * ✅ Advanced filtering and search
- * ✅ Quick-action scheduling buttons
- * ✅ Real-time status updates
+ * 🌟 PHASE 2 TRANSFORMATION - ROLE-ADAPTIVE FEATURES:
+ * ✅ Interactive week/month view toggles (role-based)
+ * ✅ Drag-and-drop session creation slots (admin/trainer only)
+ * ✅ Advanced filtering and search (role-appropriate)
+ * ✅ Quick-action scheduling buttons (role-specific)
+ * ✅ Real-time status updates (role-aware)
  * ✅ Mobile-optimized touch interactions
- * ✅ Executive dashboard integration
+ * ✅ Executive dashboard integration (admin only)
+ * ✅ NEW: Role-Based UI Adaptation
+ * ✅ NEW: User-Specific Action Buttons
+ * ✅ NEW: Role-Aware Event Display
+ * 
+ * ROLE-ADAPTIVE DESIGN:
+ * - Admin: Full management interface with all features
+ * - Trainer: Session management with client focus
+ * - Client: Simplified booking and personal session view
+ * - User: Public booking interface only
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
@@ -32,7 +41,12 @@ import {
   ChevronRight,
   Zap,
   Target,
-  Activity
+  Activity,
+  BookOpen,
+  User,
+  Settings,
+  Eye,
+  CheckCircle
 } from 'lucide-react';
 import { 
   Typography, 
@@ -59,6 +73,8 @@ interface SessionEvent {
   client?: any;
   trainer?: any;
   location?: string;
+  userId?: string;
+  trainerId?: string;
 }
 
 type ViewMode = 'agenda' | 'week' | 'grid';
@@ -69,13 +85,205 @@ interface CalendarFallbackProps {
   onEventClick?: (event: SessionEvent) => void;
   onSlotClick?: (date: Date) => void;
   onCreateSession?: () => void;
+  onBookSession?: (sessionId: string) => void;
   onFilterChange?: (filters: any) => void;
   showQuickActions?: boolean;
   compactMode?: boolean;
   clientsCount?: number;
   utilizationRate?: number;
   completionRate?: number;
+  // PHASE 2: Role-based props
+  userRole?: 'admin' | 'trainer' | 'client' | 'user' | null;
+  userId?: string | null;
+  calendarMode?: 'full' | 'trainer' | 'client' | 'public';
 }
+
+// ==================== PHASE 2: ROLE-BASED CONFIGURATION ====================
+
+/**
+ * Define which features are available for each user role in fallback mode
+ */
+const FALLBACK_ROLE_CONFIG = {
+  admin: {
+    showCreateSession: true,
+    showAdvancedFilters: true,
+    showAllStats: true,
+    showViewModeToggle: true,
+    enableSearch: true,
+    availableViewModes: ['agenda', 'week', 'grid'] as ViewMode[],
+    availableFilters: ['all', 'available', 'scheduled', 'completed', 'cancelled'] as FilterMode[],
+    primaryAction: 'create',
+    title: 'Schedule Management Center',
+    subtitle: 'Enhanced fallback mode - administrative control'
+  },
+  trainer: {
+    showCreateSession: false, // Trainers can't create sessions in most systems
+    showAdvancedFilters: true,
+    showAllStats: false, // Limited stats
+    showViewModeToggle: true,
+    enableSearch: true,
+    availableViewModes: ['agenda', 'week'] as ViewMode[],
+    availableFilters: ['all', 'scheduled', 'completed'] as FilterMode[],
+    primaryAction: 'manage',
+    title: 'Trainer Session Center',
+    subtitle: 'Enhanced fallback mode - manage your sessions'
+  },
+  client: {
+    showCreateSession: false,
+    showAdvancedFilters: false,
+    showAllStats: false,
+    showViewModeToggle: false, // Keep it simple
+    enableSearch: true, // Simple search only
+    availableViewModes: ['agenda'] as ViewMode[],
+    availableFilters: ['all', 'available', 'scheduled'] as FilterMode[],
+    primaryAction: 'book',
+    title: 'My Sessions',
+    subtitle: 'Book and manage your training sessions'
+  },
+  user: {
+    showCreateSession: false,
+    showAdvancedFilters: false,
+    showAllStats: false,
+    showViewModeToggle: false,
+    enableSearch: false, // No search for public users
+    availableViewModes: ['agenda'] as ViewMode[],
+    availableFilters: ['available'] as FilterMode[], // Only show available sessions
+    primaryAction: 'book',
+    title: 'Available Sessions',
+    subtitle: 'Browse and book training sessions'
+  }
+};
+
+/**
+ * Get role configuration for fallback mode
+ */
+const getFallbackRoleConfig = (role: string | null) => {
+  if (!role || !FALLBACK_ROLE_CONFIG[role as keyof typeof FALLBACK_ROLE_CONFIG]) {
+    return FALLBACK_ROLE_CONFIG.user; // Default to most restricted view
+  }
+  return FALLBACK_ROLE_CONFIG[role as keyof typeof FALLBACK_ROLE_CONFIG];
+};
+
+/**
+ * Get role-appropriate stats to display
+ */
+const getRoleFallbackStats = (role: string | null, events: SessionEvent[], userId?: string | null) => {
+  const config = getFallbackRoleConfig(role);
+  const today = new Date();
+  
+  // Filter events based on role
+  let relevantEvents = events;
+  if (role === 'trainer' && userId) {
+    relevantEvents = events.filter(event => event.trainerId === userId);
+  } else if (role === 'client' && userId) {
+    relevantEvents = events.filter(event => event.userId === userId || event.status === 'available');
+  } else if (role === 'user') {
+    relevantEvents = events.filter(event => event.status === 'available');
+  }
+  
+  const todayEvents = relevantEvents.filter(event => 
+    event.start.toDateString() === today.toDateString()
+  );
+  
+  const upcomingEvents = relevantEvents.filter(event => 
+    event.start > today && event.start <= new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+  );
+  
+  const availableSlots = relevantEvents.filter(e => e.status === 'available').length;
+  const bookedSlots = relevantEvents.filter(e => e.status === 'scheduled' || e.status === 'confirmed').length;
+  
+  // Return role-appropriate stats
+  switch (role) {
+    case 'admin':
+      return [
+        { icon: Activity, label: 'Today', value: todayEvents.length },
+        { icon: Target, label: 'This Week', value: upcomingEvents.length },
+        { icon: Zap, label: 'Available', value: availableSlots },
+        { icon: Users, label: 'Booked', value: bookedSlots }
+      ];
+    case 'trainer':
+      return [
+        { icon: Activity, label: 'My Sessions Today', value: todayEvents.length },
+        { icon: Target, label: 'This Week', value: upcomingEvents.length },
+        { icon: Users, label: 'Clients', value: bookedSlots }
+      ];
+    case 'client':
+      return [
+        { icon: Activity, label: 'My Sessions', value: todayEvents.length },
+        { icon: Zap, label: 'Available', value: availableSlots }
+      ];
+    case 'user':
+    default:
+      return [
+        { icon: Zap, label: 'Available Sessions', value: availableSlots }
+      ];
+  }
+};
+
+/**
+ * Filter events based on user role and permissions
+ */
+const getFilteredEventsByRole = (
+  events: SessionEvent[], 
+  role: string | null, 
+  userId: string | null, 
+  additionalFilters: { filterMode: FilterMode; searchTerm: string }
+) => {
+  let filtered = events;
+  
+  // First, apply role-based filtering
+  switch (role) {
+    case 'admin':
+      // Admin sees all events - no filtering needed
+      break;
+    case 'trainer':
+      if (userId) {
+        // Trainer sees their assigned sessions
+        filtered = events.filter(event => 
+          event.trainerId === userId || 
+          event.status === 'available' // Also show available slots they might take
+        );
+      }
+      break;
+    case 'client':
+      if (userId) {
+        // Client sees their own sessions + available sessions
+        filtered = events.filter(event => 
+          event.userId === userId || 
+          event.status === 'available'
+        );
+      }
+      break;
+    case 'user':
+    default:
+      // Public users only see available sessions
+      filtered = events.filter(event => event.status === 'available');
+      break;
+  }
+  
+  // Then apply additional filters
+  const { filterMode, searchTerm } = additionalFilters;
+  
+  // Apply status filter
+  if (filterMode !== 'all') {
+    filtered = filtered.filter(event => event.status === filterMode);
+  }
+  
+  // Apply search filter
+  if (searchTerm) {
+    const search = searchTerm.toLowerCase();
+    filtered = filtered.filter(event => 
+      event.title.toLowerCase().includes(search) ||
+      event.client?.firstName?.toLowerCase().includes(search) ||
+      event.client?.lastName?.toLowerCase().includes(search) ||
+      event.trainer?.firstName?.toLowerCase().includes(search) ||
+      event.trainer?.lastName?.toLowerCase().includes(search) ||
+      event.location?.toLowerCase().includes(search)
+    );
+  }
+  
+  return filtered;
+};
 
 const CalendarFallbackContainer = styled.div`
   background: rgba(0, 0, 0, 0.2);
@@ -121,8 +329,8 @@ const HeaderControls = styled.div`
 `;
 
 // Executive KPI Components
-const QuickStatsBar = styled.div`
-  display: flex;
+const QuickStatsBar = styled.div<{ show: boolean }>`
+  display: ${props => props.show ? 'flex' : 'none'};
   gap: 1rem;
   padding: 1rem 1.5rem;
   background: rgba(0, 0, 0, 0.2);
@@ -194,8 +402,8 @@ const StatLabel = styled.div`
 `;
 
 // Filter Controls
-const FilterControlsBar = styled.div`
-  display: flex;
+const FilterControlsBar = styled.div<{ show: boolean }>`
+  display: ${props => props.show ? 'flex' : 'none'};
   gap: 1rem;
   padding: 1rem 1.5rem;
   background: rgba(0, 0, 0, 0.1);
@@ -268,7 +476,7 @@ const EventsGrid = styled.div<{ viewMode: ViewMode }>`
   }
 `;
 
-const EventCard = styled(motion.div)<{ status: string }>`
+const EventCard = styled(motion.div)<{ status: string; userRole?: string }>`
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
@@ -303,6 +511,14 @@ const EventCard = styled(motion.div)<{ status: string }>`
     transform: translateY(-2px);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   }
+  
+  /* Different hover effects for different roles */
+  ${props => props.userRole === 'user' && props.status === 'available' ? `
+    &:hover {
+      border-color: #22c55e;
+      box-shadow: 0 4px 16px rgba(34, 197, 94, 0.3);
+    }
+  ` : ''}
 `;
 
 // Floating Action Button
@@ -402,79 +618,114 @@ const StatusChip = styled(Chip)<{ status: string }>`
   }
 `;
 
+// Role-based action buttons in event cards
+const EventActionButtons = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+`;
 
+const ActionButton = styled.button<{ variant?: 'primary' | 'secondary' | 'success' }>`
+  background: ${props => {
+    switch (props.variant) {
+      case 'success': return 'rgba(34, 197, 94, 0.2)';
+      case 'primary': return 'rgba(59, 130, 246, 0.2)';
+      default: return 'rgba(255, 255, 255, 0.1)';
+    }
+  }};
+  border: 1px solid ${props => {
+    switch (props.variant) {
+      case 'success': return 'rgba(34, 197, 94, 0.3)';
+      case 'primary': return 'rgba(59, 130, 246, 0.3)';
+      default: return 'rgba(255, 255, 255, 0.2)';
+    }
+  }};
+  color: ${props => {
+    switch (props.variant) {
+      case 'success': return '#22c55e';
+      case 'primary': return '#3b82f6';
+      default: return 'rgba(255, 255, 255, 0.8)';
+    }
+  }};
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  
+  &:hover {
+    background: ${props => {
+      switch (props.variant) {
+        case 'success': return 'rgba(34, 197, 94, 0.3)';
+        case 'primary': return 'rgba(59, 130, 246, 0.3)';
+        default: return 'rgba(255, 255, 255, 0.2)';
+      }
+    }};
+    transform: translateY(-1px);
+  }
+`;
 
 export const CalendarFallback: React.FC<CalendarFallbackProps> = ({
   events,
   onEventClick,
   onSlotClick,
   onCreateSession,
+  onBookSession,
   onFilterChange,
   showQuickActions = true,
   compactMode = false,
   clientsCount = 0,
   utilizationRate = 0,
-  completionRate = 0
+  completionRate = 0,
+  // PHASE 2: Role-based props
+  userRole = null,
+  userId = null,
+  calendarMode = 'public'
 }) => {
-  // Enhanced State Management
-  const [viewMode, setViewMode] = useState<ViewMode>('agenda');
-  const [filterMode, setFilterMode] = useState<FilterMode>('all');
+  // ==================== PHASE 2: ROLE-BASED STATE MANAGEMENT ====================
+  
+  // Get role configuration
+  const roleConfig = useMemo(() => getFallbackRoleConfig(userRole), [userRole]);
+  
+  // Enhanced State Management with role-aware defaults
+  const [viewMode, setViewMode] = useState<ViewMode>(roleConfig.availableViewModes[0]);
+  const [filterMode, setFilterMode] = useState<FilterMode>(
+    userRole === 'user' ? 'available' : 'all' // Public users default to available only
+  );
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  // Enhanced Event Filtering
+  
+  // Enhanced Event Filtering with role-based access
   const filteredEvents = useMemo(() => {
-    let filtered = events;
-    
-    // Apply status filter
-    if (filterMode !== 'all') {
-      filtered = filtered.filter(event => event.status === filterMode);
-    }
-    
-    // Apply search filter
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      filtered = filtered.filter(event => 
-        event.title.toLowerCase().includes(search) ||
-        event.client?.firstName?.toLowerCase().includes(search) ||
-        event.client?.lastName?.toLowerCase().includes(search) ||
-        event.trainer?.firstName?.toLowerCase().includes(search) ||
-        event.trainer?.lastName?.toLowerCase().includes(search) ||
-        event.location?.toLowerCase().includes(search)
-      );
-    }
-    
-    return filtered;
-  }, [events, filterMode, searchTerm]);
+    return getFilteredEventsByRole(events, userRole, userId, {
+      filterMode,
+      searchTerm
+    });
+  }, [events, userRole, userId, filterMode, searchTerm]);
   
-  // Quick Stats Calculation
-  const quickStats = useMemo(() => {
-    const today = new Date();
-    const todayEvents = filteredEvents.filter(event => 
-      event.start.toDateString() === today.toDateString()
-    );
-    
-    const upcomingEvents = filteredEvents.filter(event => 
-      event.start > today && event.start <= new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
-    );
-    
-    return {
-      todayCount: todayEvents.length,
-      upcomingCount: upcomingEvents.length,
-      availableSlots: filteredEvents.filter(e => e.status === 'available').length,
-      bookedSlots: filteredEvents.filter(e => e.status === 'scheduled' || e.status === 'confirmed').length
-    };
-  }, [filteredEvents]);
+  // Role-based Quick Stats Calculation
+  const roleStats = useMemo(() => {
+    return getRoleFallbackStats(userRole, events, userId);
+  }, [userRole, events, userId]);
   
-  // Event Handlers
+  // Event Handlers with role-aware logic
   const handleViewModeChange = useCallback((newMode: ViewMode) => {
-    setViewMode(newMode);
-  }, []);
+    if (roleConfig.availableViewModes.includes(newMode)) {
+      setViewMode(newMode);
+    }
+  }, [roleConfig.availableViewModes]);
   
   const handleFilterModeChange = useCallback((newFilter: FilterMode) => {
-    setFilterMode(newFilter);
-    onFilterChange?.({ status: newFilter, search: searchTerm });
-  }, [searchTerm, onFilterChange]);
+    if (roleConfig.availableFilters.includes(newFilter)) {
+      setFilterMode(newFilter);
+      onFilterChange?.({ status: newFilter, search: searchTerm });
+    }
+  }, [roleConfig.availableFilters, searchTerm, onFilterChange]);
   
   const handleSearchChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const value = event.target.value;
@@ -483,12 +734,68 @@ export const CalendarFallback: React.FC<CalendarFallbackProps> = ({
   }, [filterMode, onFilterChange]);
   
   const handleCreateSession = useCallback(() => {
-    if (onCreateSession) {
+    if (onCreateSession && roleConfig.showCreateSession) {
       onCreateSession();
-    } else {
-      setShowCreateModal(true);
     }
-  }, [onCreateSession]);
+  }, [onCreateSession, roleConfig.showCreateSession]);
+  
+  const handleBookSession = useCallback((sessionId: string) => {
+    if (onBookSession) {
+      onBookSession(sessionId);
+    }
+  }, [onBookSession]);
+  
+  // Role-based event action handler
+  const handleEventAction = useCallback((event: SessionEvent, action: string) => {
+    switch (action) {
+      case 'book':
+        if (event.status === 'available') {
+          handleBookSession(event.id);
+        }
+        break;
+      case 'view':
+        onEventClick?.(event);
+        break;
+      case 'manage':
+        onEventClick?.(event);
+        break;
+      default:
+        onEventClick?.(event);
+        break;
+    }
+  }, [handleBookSession, onEventClick]);
+  
+  // Get role-appropriate actions for an event
+  const getEventActions = useCallback((event: SessionEvent) => {
+    const actions: Array<{ label: string; action: string; variant?: 'primary' | 'secondary' | 'success'; icon?: React.ReactNode }> = [];
+    
+    switch (userRole) {
+      case 'admin':
+        actions.push({ label: 'Manage', action: 'manage', variant: 'primary', icon: <Settings size={12} /> });
+        break;
+      case 'trainer':
+        if (event.trainerId === userId) {
+          actions.push({ label: 'Manage', action: 'manage', variant: 'primary', icon: <Settings size={12} /> });
+        } else {
+          actions.push({ label: 'View', action: 'view', variant: 'secondary', icon: <Eye size={12} /> });
+        }
+        break;
+      case 'client':
+        if (event.status === 'available') {
+          actions.push({ label: 'Book', action: 'book', variant: 'success', icon: <BookOpen size={12} /> });
+        } else if (event.userId === userId) {
+          actions.push({ label: 'View', action: 'view', variant: 'primary', icon: <Eye size={12} /> });
+        }
+        break;
+      case 'user':
+        if (event.status === 'available') {
+          actions.push({ label: 'Book Session', action: 'book', variant: 'success', icon: <BookOpen size={12} /> });
+        }
+        break;
+    }
+    
+    return actions;
+  }, [userRole, userId]);
   
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('en-US', {
@@ -534,166 +841,195 @@ export const CalendarFallback: React.FC<CalendarFallbackProps> = ({
 
   const groupedEvents = groupEventsByDate(filteredEvents);
 
+  // Role-specific empty state messages
+  const getEmptyStateMessage = () => {
+    if (searchTerm || filterMode !== roleConfig.availableFilters[0]) {
+      return {
+        title: 'No Matching Sessions',
+        subtitle: 'Try adjusting your filters or search terms'
+      };
+    }
+    
+    switch (userRole) {
+      case 'admin':
+        return {
+          title: 'No Sessions Found',
+          subtitle: 'Click "New Session" to create your first session'
+        };
+      case 'trainer':
+        return {
+          title: 'No Sessions Assigned',
+          subtitle: 'You have no sessions assigned at the moment'
+        };
+      case 'client':
+        return {
+          title: 'No Sessions Available',
+          subtitle: 'Check back later for available sessions to book'
+        };
+      case 'user':
+      default:
+        return {
+          title: 'No Available Sessions',
+          subtitle: 'Please check back later for available training sessions'
+        };
+    }
+  };
+
+  const emptyStateMessage = getEmptyStateMessage();
+
   return (
     <CalendarFallbackContainer>
-      {/* Enhanced Header with Interactive Controls */}
+      {/* Enhanced Header with Role-Based Content */}
       <EnhancedHeader>
         <HeaderTitle>
           <CalendarIcon size={24} color="white" />
           <div>
             <Typography variant="h6" sx={{ color: 'white', margin: 0 }}>
-              Schedule Management Center
+              {roleConfig.title}
             </Typography>
             <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', margin: 0 }}>
-              Enhanced fallback mode - {filteredEvents.length} of {events.length} sessions shown
+              {roleConfig.subtitle} - {filteredEvents.length} of {events.length} sessions shown
             </Typography>
           </div>
         </HeaderTitle>
         
         <HeaderControls>
-          {/* View Mode Toggle */}
-          <ToggleButtonGroup
-            value={viewMode}
-            exclusive
-            onChange={(_, newMode) => newMode && handleViewModeChange(newMode)}
-            size="small"
-            sx={{ 
-              '& .MuiToggleButton-root': { 
-                color: 'rgba(255, 255, 255, 0.7)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                '&.Mui-selected': {
-                  backgroundColor: 'rgba(59, 130, 246, 0.3)',
-                  color: 'white'
-                }
-              }
-            }}
-          >
-            <ToggleButton value="agenda">
-              <List size={16} />
-            </ToggleButton>
-            <ToggleButton value="week">
-              <Calendar size={16} />
-            </ToggleButton>
-            <ToggleButton value="grid">
-              <Grid size={16} />
-            </ToggleButton>
-          </ToggleButtonGroup>
-          
-          {/* Create Session Button */}
-          {showQuickActions && (
-            <GlowButton
-              text="New Session"
-              variant="emerald"
+          {/* View Mode Toggle - Role-dependent */}
+          {roleConfig.showViewModeToggle && roleConfig.availableViewModes.length > 1 && (
+            <ToggleButtonGroup
+              value={viewMode}
+              exclusive
+              onChange={(_, newMode) => newMode && handleViewModeChange(newMode)}
               size="small"
-              leftIcon={<Plus size={16} />}
-              onClick={handleCreateSession}
-            />
+              sx={{ 
+                '& .MuiToggleButton-root': { 
+                  color: 'rgba(255, 255, 255, 0.7)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  '&.Mui-selected': {
+                    backgroundColor: 'rgba(59, 130, 246, 0.3)',
+                    color: 'white'
+                  }
+                }
+              }}
+            >
+              {roleConfig.availableViewModes.includes('agenda') && (
+                <ToggleButton value="agenda">
+                  <List size={16} />
+                </ToggleButton>
+              )}
+              {roleConfig.availableViewModes.includes('week') && (
+                <ToggleButton value="week">
+                  <Calendar size={16} />
+                </ToggleButton>
+              )}
+              {roleConfig.availableViewModes.includes('grid') && (
+                <ToggleButton value="grid">
+                  <Grid size={16} />
+                </ToggleButton>
+              )}
+            </ToggleButtonGroup>
+          )}
+          
+          {/* Role-Specific Primary Action Button */}
+          {showQuickActions && (
+            <>
+              {roleConfig.showCreateSession && (
+                <GlowButton
+                  text="New Session"
+                  variant="emerald"
+                  size="small"
+                  leftIcon={<Plus size={16} />}
+                  onClick={handleCreateSession}
+                />
+              )}
+              {roleConfig.primaryAction === 'book' && (
+                <GlowButton
+                  text="Browse Sessions"
+                  variant="cosmic"
+                  size="small"
+                  leftIcon={<BookOpen size={16} />}
+                  onClick={() => {
+                    setFilterMode('available');
+                    setSearchTerm('');
+                  }}
+                />
+              )}
+            </>
           )}
         </HeaderControls>
       </EnhancedHeader>
       
-      {/* Executive KPI Bar */}
-      <QuickStatsBar>
-        <StatItem>
-          <StatIcon>
-            <Activity size={16} />
-          </StatIcon>
-          <StatContent>
-            <StatValue>{quickStats.todayCount}</StatValue>
-            <StatLabel>Today</StatLabel>
-          </StatContent>
-        </StatItem>
-        
-        <StatItem>
-          <StatIcon>
-            <Target size={16} />
-          </StatIcon>
-          <StatContent>
-            <StatValue>{quickStats.upcomingCount}</StatValue>
-            <StatLabel>This Week</StatLabel>
-          </StatContent>
-        </StatItem>
-        
-        <StatItem>
-          <StatIcon>
-            <Zap size={16} />
-          </StatIcon>
-          <StatContent>
-            <StatValue>{quickStats.availableSlots}</StatValue>
-            <StatLabel>Available</StatLabel>
-          </StatContent>
-        </StatItem>
-        
-        <StatItem>
-          <StatIcon>
-            <Users size={16} />
-          </StatIcon>
-          <StatContent>
-            <StatValue>{quickStats.bookedSlots}</StatValue>
-            <StatLabel>Booked</StatLabel>
-          </StatContent>
-        </StatItem>
-        
-        {utilizationRate > 0 && (
-          <StatItem>
+      {/* Role-Based Quick Stats Bar */}
+      <QuickStatsBar show={roleStats.length > 0}>
+        {roleStats.map((stat, index) => (
+          <StatItem key={index}>
             <StatIcon>
-              <Target size={16} />
+              <stat.icon size={16} />
             </StatIcon>
             <StatContent>
-              <StatValue>{utilizationRate}%</StatValue>
-              <StatLabel>Utilization</StatLabel>
+              <StatValue>{stat.value}</StatValue>
+              <StatLabel>{stat.label}</StatLabel>
             </StatContent>
           </StatItem>
-        )}
+        ))}
       </QuickStatsBar>
       
-      {/* Enhanced Filter Controls */}
-      <FilterControlsBar>
-        <SearchField
-          placeholder="Search sessions, clients, trainers..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-          size="small"
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search size={18} color="rgba(255, 255, 255, 0.5)" />
-              </InputAdornment>
-            ),
-            sx: {
-              color: 'white',
-              '& .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'rgba(255, 255, 255, 0.2)'
-              },
-              '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: 'rgba(255, 255, 255, 0.4)'
-              },
-              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#3b82f6'
-              }
+      {/* Enhanced Filter Controls - Role-aware */}
+      <FilterControlsBar show={roleConfig.showAdvancedFilters || roleConfig.enableSearch}>
+        {roleConfig.enableSearch && (
+          <SearchField
+            placeholder={
+              userRole === 'admin' ? "Search sessions, clients, trainers..." :
+              userRole === 'trainer' ? "Search sessions and clients..." :
+              userRole === 'client' ? "Search available sessions..." :
+              "Search sessions..."
             }
-          }}
-        />
-        
-        <FilterChips>
-          {(['all', 'available', 'scheduled', 'completed', 'cancelled'] as FilterMode[]).map((mode) => (
-            <Chip
-              key={mode}
-              label={mode.charAt(0).toUpperCase() + mode.slice(1)}
-              onClick={() => handleFilterModeChange(mode)}
-              variant={filterMode === mode ? 'filled' : 'outlined'}
-              size="small"
-              sx={{
-                color: filterMode === mode ? 'white' : 'rgba(255, 255, 255, 0.7)',
-                backgroundColor: filterMode === mode ? '#3b82f6' : 'transparent',
-                borderColor: 'rgba(255, 255, 255, 0.3)',
-                '&:hover': {
-                  backgroundColor: filterMode === mode ? '#2563eb' : 'rgba(255, 255, 255, 0.1)'
+            value={searchTerm}
+            onChange={handleSearchChange}
+            size="small"
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search size={18} color="rgba(255, 255, 255, 0.5)" />
+                </InputAdornment>
+              ),
+              sx: {
+                color: 'white',
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(255, 255, 255, 0.2)'
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(255, 255, 255, 0.4)'
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#3b82f6'
                 }
-              }}
-            />
-          ))}
-        </FilterChips>
+              }
+            }}
+          />
+        )}
+        
+        {roleConfig.showAdvancedFilters && (
+          <FilterChips>
+            {roleConfig.availableFilters.map((mode) => (
+              <Chip
+                key={mode}
+                label={mode.charAt(0).toUpperCase() + mode.slice(1)}
+                onClick={() => handleFilterModeChange(mode)}
+                variant={filterMode === mode ? 'filled' : 'outlined'}
+                size="small"
+                sx={{
+                  color: filterMode === mode ? 'white' : 'rgba(255, 255, 255, 0.7)',
+                  backgroundColor: filterMode === mode ? '#3b82f6' : 'transparent',
+                  borderColor: 'rgba(255, 255, 255, 0.3)',
+                  '&:hover': {
+                    backgroundColor: filterMode === mode ? '#2563eb' : 'rgba(255, 255, 255, 0.1)'
+                  }
+                }}
+              />
+            ))}
+          </FilterChips>
+        )}
       </FilterControlsBar>
       
       {/* Main Content */}
@@ -709,15 +1045,12 @@ export const CalendarFallback: React.FC<CalendarFallbackProps> = ({
               <EmptyState>
                 <CalendarIcon size={48} />
                 <Typography variant="h6" sx={{ mt: 2, color: 'inherit' }}>
-                  {searchTerm || filterMode !== 'all' ? 'No Matching Sessions' : 'No Sessions Found'}
+                  {emptyStateMessage.title}
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'inherit', mb: 3 }}>
-                  {searchTerm || filterMode !== 'all' 
-                    ? 'Try adjusting your filters or search terms'
-                    : 'Click "New Session" to create your first session'
-                  }
+                  {emptyStateMessage.subtitle}
                 </Typography>
-                {showQuickActions && !searchTerm && filterMode === 'all' && (
+                {showQuickActions && !searchTerm && filterMode === roleConfig.availableFilters[0] && roleConfig.showCreateSession && (
                   <GlowButton
                     text="Create First Session"
                     variant="primary"
@@ -760,43 +1093,74 @@ export const CalendarFallback: React.FC<CalendarFallbackProps> = ({
                   </DateHeader>
                   
                   <EventsGrid viewMode={viewMode}>
-                    {events.map((event) => (
-                      <EventCard
-                        key={event.id}
-                        onClick={() => onEventClick?.(event)}
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
-                        status={event.status}
-                      >
-                        <EventTime>
-                          <Clock size={14} />
-                          {formatTime(event.start)} - {formatTime(event.end)}
-                          <StatusChip 
-                            status={event.status}
-                            label={event.status}
-                            size="small"
-                          />
-                        </EventTime>
-                        
-                        <EventTitle>{event.title}</EventTitle>
-                        
-                        <EventDetails>
-                          {event.trainer && (
-                            <EventDetail>
-                              <Users size={12} />
-                              {event.trainer.firstName} {event.trainer.lastName}
-                            </EventDetail>
-                          )}
+                    {events.map((event) => {
+                      const eventActions = getEventActions(event);
+                      
+                      return (
+                        <EventCard
+                          key={event.id}
+                          onClick={() => eventActions.length === 1 ? handleEventAction(event, eventActions[0].action) : onEventClick?.(event)}
+                          whileHover={{ scale: 1.02, y: -2 }}
+                          whileTap={{ scale: 0.98 }}
+                          status={event.status}
+                          userRole={userRole}
+                        >
+                          <EventTime>
+                            <Clock size={14} />
+                            {formatTime(event.start)} - {formatTime(event.end)}
+                            <StatusChip 
+                              status={event.status}
+                              label={event.status}
+                              size="small"
+                            />
+                          </EventTime>
                           
-                          {event.location && (
-                            <EventDetail>
-                              <MapPin size={12} />
-                              {event.location}
-                            </EventDetail>
+                          <EventTitle>{event.title}</EventTitle>
+                          
+                          <EventDetails>
+                            {event.trainer && userRole !== 'trainer' && (
+                              <EventDetail>
+                                <Users size={12} />
+                                {event.trainer.firstName} {event.trainer.lastName}
+                              </EventDetail>
+                            )}
+                            
+                            {event.client && (userRole === 'admin' || userRole === 'trainer') && (
+                              <EventDetail>
+                                <User size={12} />
+                                {event.client.firstName} {event.client.lastName}
+                              </EventDetail>
+                            )}
+                            
+                            {event.location && (
+                              <EventDetail>
+                                <MapPin size={12} />
+                                {event.location}
+                              </EventDetail>
+                            )}
+                          </EventDetails>
+                          
+                          {/* Role-Based Action Buttons */}
+                          {eventActions.length > 0 && (
+                            <EventActionButtons>
+                              {eventActions.map((action, index) => (
+                                <ActionButton
+                                  key={index}
+                                  variant={action.variant}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEventAction(event, action.action);
+                                  }}
+                                >
+                                  {action.icon}
+                                  {action.label}
+                                </ActionButton>
+                              ))}
+                            </EventActionButtons>
                           )}
-                        </EventDetails>
-                      </EventCard>
-                    ))}
+                        </EventCard>
+                      );
+                    })}
                   </EventsGrid>
                 </motion.div>
               ))}
@@ -805,20 +1169,31 @@ export const CalendarFallback: React.FC<CalendarFallbackProps> = ({
         </AnimatePresence>
       </ContentArea>
       
-      {/* Floating Action Button for Mobile */}
-      {showQuickActions && (
+      {/* Floating Action Button for Mobile - Role-aware */}
+      {showQuickActions && (roleConfig.showCreateSession || roleConfig.primaryAction === 'book') && (
         <FloatingActionContainer>
           <Fab
             color="primary"
-            onClick={handleCreateSession}
+            onClick={() => {
+              if (roleConfig.showCreateSession) {
+                handleCreateSession();
+              } else if (roleConfig.primaryAction === 'book') {
+                setFilterMode('available');
+                setSearchTerm('');
+              }
+            }}
             sx={{
-              background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+              background: roleConfig.primaryAction === 'book' 
+                ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+                : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
               '&:hover': {
-                background: 'linear-gradient(135deg, #2563eb, #1e40af)'
+                background: roleConfig.primaryAction === 'book'
+                  ? 'linear-gradient(135deg, #16a34a, #15803d)'
+                  : 'linear-gradient(135deg, #2563eb, #1e40af)'
               }
             }}
           >
-            <Plus size={24} />
+            {roleConfig.primaryAction === 'book' ? <BookOpen size={24} /> : <Plus size={24} />}
           </Fab>
         </FloatingActionContainer>
       )}

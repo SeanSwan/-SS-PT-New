@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useAuth } from '../../../../context/AuthContext';
 import {
   Box,
   Card,
@@ -43,7 +44,8 @@ import {
   TableHead,
   TableRow,
   Avatar,
-  Badge
+  Badge,
+  CircularProgress
 } from '@mui/material';
 
 import {
@@ -227,6 +229,7 @@ const HeatmapCell = styled(Box)<{ intensity: number; color: string }>(({ intensi
 }));
 
 const UserAnalyticsPanel: React.FC = () => {
+  const { authAxios } = useAuth();
   const [timeRange, setTimeRange] = useState('7d');
   const [activeTab, setActiveTab] = useState(0);
   const [userSegment, setUserSegment] = useState('all');
@@ -234,44 +237,212 @@ const UserAnalyticsPanel: React.FC = () => {
   const [selectedMetric, setSelectedMetric] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<string[]>(['overview']);
 
-  // Mock data - In production, this would come from API/Redux
-  const userSegments: UserSegment[] = useMemo(() => [
-    {
-      name: 'Premium Subscribers',
-      count: 5634,
-      percentage: 63.1,
-      growth: 12.3,
-      characteristics: ['High Engagement', 'Long Sessions', 'Feature Adoption'],
-      revenue: 89745,
-      avgSessionDuration: 47.5,
-      retentionRate: 94.2,
-      color: '#4caf50'
-    },
-    {
-      name: 'Free Active Users',
-      count: 2847,
-      percentage: 31.9,
-      growth: 8.7,
-      characteristics: ['Regular Usage', 'Conversion Potential', 'Social Engagement'],
-      revenue: 0,
-      avgSessionDuration: 23.8,
-      retentionRate: 67.5,
-      color: '#2196f3'
-    },
-    {
-      name: 'Trial Users',
-      count: 440,
-      percentage: 4.9,
-      growth: -2.1,
-      characteristics: ['Exploring Features', 'Time-Limited', 'Decision Phase'],
-      revenue: 2340,
-      avgSessionDuration: 15.3,
-      retentionRate: 23.4,
-      color: '#ff9800'
-    }
-  ], []);
+  // Real data state management
+  const [userSegments, setUserSegments] = useState<UserSegment[]>([]);
+  const [engagementData, setEngagementData] = useState<EngagementMetric[]>([]);
+  const [userBehaviorData, setUserBehaviorData] = useState<UserBehavior[]>([]);
+  const [retentionCohorts, setRetentionCohorts] = useState<RetentionCohort[]>([]);
+  const [userJourney, setUserJourney] = useState<UserJourney[]>([]);
 
-  const engagementData: EngagementMetric[] = useMemo(() => [
+  // Loading states
+  const [loading, setLoading] = useState({
+    segments: false,
+    engagement: false,
+    behavior: false,
+    retention: false,
+    journey: false
+  });
+
+  // Error states
+  const [errors, setErrors] = useState({
+    segments: null as string | null,
+    engagement: null as string | null,
+    behavior: null as string | null,
+    retention: null as string | null,
+    journey: null as string | null
+  });
+
+  // API call functions
+  const fetchUserSegments = useCallback(async () => {
+    try {
+      setLoading(prev => ({ ...prev, segments: true }));
+      setErrors(prev => ({ ...prev, segments: null }));
+      
+      const response = await authAxios.get('/api/admin/analytics/user-segments');
+      
+      if (response.data.success) {
+        setUserSegments(response.data.data);
+        console.log('✅ Real user segments data loaded successfully');
+      } else {
+        throw new Error(response.data.message || 'Failed to load user segments');
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to load user segments';
+      setErrors(prev => ({ ...prev, segments: errorMessage }));
+      console.error('❌ Failed to load real user segments data:', errorMessage);
+    } finally {
+      setLoading(prev => ({ ...prev, segments: false }));
+    }
+  }, [authAxios]);
+
+  const fetchEngagementData = useCallback(async () => {
+    try {
+      setLoading(prev => ({ ...prev, engagement: true }));
+      setErrors(prev => ({ ...prev, engagement: null }));
+      
+      const response = await authAxios.get(`/api/admin/analytics/users?type=engagement&timeRange=${timeRange}`);
+      
+      if (response.data.success) {
+        setEngagementData(response.data.data.engagementData || []);
+        console.log('✅ Real engagement data loaded successfully');
+      } else {
+        throw new Error(response.data.message || 'Failed to load engagement data');
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to load engagement data';
+      setErrors(prev => ({ ...prev, engagement: errorMessage }));
+      console.error('❌ Failed to load real engagement data:', errorMessage);
+    } finally {
+      setLoading(prev => ({ ...prev, engagement: false }));
+    }
+  }, [authAxios, timeRange]);
+
+  const fetchUserBehavior = useCallback(async () => {
+    try {
+      setLoading(prev => ({ ...prev, behavior: true }));
+      setErrors(prev => ({ ...prev, behavior: null }));
+      
+      const response = await authAxios.get(`/api/admin/analytics/user-behavior?timeRange=${timeRange}&limit=50`);
+      
+      if (response.data.success) {
+        setUserBehaviorData(response.data.data || []);
+        console.log('✅ Real user behavior data loaded successfully');
+      } else {
+        throw new Error(response.data.message || 'Failed to load user behavior data');
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to load user behavior data';
+      setErrors(prev => ({ ...prev, behavior: errorMessage }));
+      console.error('❌ Failed to load real user behavior data:', errorMessage);
+    } finally {
+      setLoading(prev => ({ ...prev, behavior: false }));
+    }
+  }, [authAxios, timeRange]);
+
+  const fetchRetentionData = useCallback(async () => {
+    try {
+      setLoading(prev => ({ ...prev, retention: true }));
+      setErrors(prev => ({ ...prev, retention: null }));
+      
+      const response = await authAxios.get(`/api/admin/analytics/users?type=retention&timeRange=${timeRange}`);
+      
+      if (response.data.success) {
+        setRetentionCohorts(response.data.data.retentionCohorts || []);
+        console.log('✅ Real retention data loaded successfully');
+      } else {
+        throw new Error(response.data.message || 'Failed to load retention data');
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to load retention data';
+      setErrors(prev => ({ ...prev, retention: errorMessage }));
+      console.error('❌ Failed to load real retention data:', errorMessage);
+    } finally {
+      setLoading(prev => ({ ...prev, retention: false }));
+    }
+  }, [authAxios, timeRange]);
+
+  const fetchUserJourney = useCallback(async () => {
+    try {
+      setLoading(prev => ({ ...prev, journey: true }));
+      setErrors(prev => ({ ...prev, journey: null }));
+      
+      const response = await authAxios.get(`/api/admin/analytics/users?type=journey&timeRange=${timeRange}`);
+      
+      if (response.data.success) {
+        setUserJourney(response.data.data.userJourney || []);
+        console.log('✅ Real user journey data loaded successfully');
+      } else {
+        throw new Error(response.data.message || 'Failed to load user journey data');
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || 'Failed to load user journey data';
+      setErrors(prev => ({ ...prev, journey: errorMessage }));
+      console.error('❌ Failed to load real user journey data:', errorMessage);
+    } finally {
+      setLoading(prev => ({ ...prev, journey: false }));
+    }
+  }, [authAxios, timeRange]);
+
+  // Refresh all data
+  const refreshAllData = useCallback(async () => {
+    console.log('🔄 Refreshing all user analytics data...');
+    await Promise.all([
+      fetchUserSegments(),
+      fetchEngagementData(),
+      fetchUserBehavior(),
+      fetchRetentionData(),
+      fetchUserJourney()
+    ]);
+    console.log('✅ All user analytics data refreshed');
+  }, [fetchUserSegments, fetchEngagementData, fetchUserBehavior, fetchRetentionData, fetchUserJourney]);
+
+  // Initial data load
+  useEffect(() => {
+    fetchUserSegments();
+    fetchEngagementData();
+    fetchUserBehavior();
+    fetchRetentionData();
+    fetchUserJourney();
+  }, [fetchUserSegments, fetchEngagementData, fetchUserBehavior, fetchRetentionData, fetchUserJourney]);
+
+  // Auto-refresh setup
+  useEffect(() => {
+    if (!isRealTime) return;
+
+    const interval = setInterval(() => {
+      refreshAllData();
+    }, 60000); // Refresh every minute when real-time is enabled
+
+    return () => clearInterval(interval);
+  }, [isRealTime, refreshAllData]);
+
+  // Update data when timeRange changes
+  useEffect(() => {
+    fetchEngagementData();
+    fetchUserBehavior();
+    fetchRetentionData();
+    fetchUserJourney();
+  }, [timeRange, fetchEngagementData, fetchUserBehavior, fetchRetentionData, fetchUserJourney]);
+
+  // Helper function to check if data is loading
+  const isLoadingData = (dataType: keyof typeof loading) => loading[dataType];
+  const hasError = (dataType: keyof typeof errors) => !!errors[dataType];
+
+  // Helper component for loading states
+  const LoadingSpinner = ({ message = 'Loading data...' }) => (
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 4 }}>
+      <CircularProgress sx={{ color: '#00ffff' }} />
+      <Typography variant="body2" color="text.secondary">{message}</Typography>
+    </Box>
+  );
+
+  // Helper component for error states
+  const ErrorMessage = ({ error, onRetry, dataType }: { error: string; onRetry: () => void; dataType: string }) => (
+    <Alert 
+      severity="error" 
+      action={
+        <Button color="inherit" size="small" onClick={onRetry} startIcon={<Refresh />}>
+          Retry
+        </Button>
+      }
+      sx={{ mb: 2, bgcolor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+    >
+      Failed to load {dataType}: {error}
+    </Alert>
+  );
+
+  // Remove old mock data arrays - they are now managed by state and real API calls
+  /*
     {
       date: '2024-06-01',
       dailyActiveUsers: 4231,
@@ -435,8 +606,53 @@ const UserAnalyticsPanel: React.FC = () => {
     );
   }, []);
 
-  const renderOverviewTab = () => (
+  const renderOverviewTab = () => {
+    // Show loading state if any critical data is loading
+    if (isLoadingData('segments') || isLoadingData('engagement')) {
+      return <LoadingSpinner message="Loading user analytics overview..." />;
+    }
+
+    return (
     <Grid container spacing={3}>
+      {/* Error State */}
+      {hasError('behavior') && (
+        <Grid item xs={12}>
+          <ErrorMessage 
+            error={errors.behavior!} 
+            onRetry={fetchUserBehavior} 
+            dataType="user behavior data" 
+          />
+        </Grid>
+      )}
+      {/* Error State */}
+      {hasError('retention') && (
+        <Grid item xs={12}>
+          <ErrorMessage 
+            error={errors.retention!} 
+            onRetry={fetchRetentionData} 
+            dataType="retention data" 
+          />
+        </Grid>
+      )}
+      {/* Error States */}
+      {hasError('segments') && (
+        <Grid item xs={12}>
+          <ErrorMessage 
+            error={errors.segments!} 
+            onRetry={fetchUserSegments} 
+            dataType="user segments" 
+          />
+        </Grid>
+      )}
+      {hasError('engagement') && (
+        <Grid item xs={12}>
+          <ErrorMessage 
+            error={errors.engagement!} 
+            onRetry={fetchEngagementData} 
+            dataType="engagement data" 
+          />
+        </Grid>
+      )}
       {/* Key Metrics Row */}
       <Grid item xs={12}>
         <Grid container spacing={2}>
@@ -752,10 +968,27 @@ const UserAnalyticsPanel: React.FC = () => {
         </GlassCard>
       </Grid>
     </Grid>
-  );
+    );
+  };
 
-  const renderRetentionTab = () => (
+  const renderRetentionTab = () => {
+    // Show loading state if retention data is loading
+    if (isLoadingData('retention')) {
+      return <LoadingSpinner message="Loading retention analysis..." />;
+    }
+
+    return (
     <Grid container spacing={3}>
+      {/* Error State */}
+      {hasError('retention') && (
+        <Grid item xs={12}>
+          <ErrorMessage 
+            error={errors.retention!} 
+            onRetry={fetchRetentionData} 
+            dataType="retention data" 
+          />
+        </Grid>
+      )}
       <Grid item xs={12} lg={8}>
         <GlassCard>
           <CardContent>
@@ -935,10 +1168,27 @@ const UserAnalyticsPanel: React.FC = () => {
         </GlassCard>
       </Grid>
     </Grid>
-  );
+    );
+  };
 
-  const renderBehaviorTab = () => (
+  const renderBehaviorTab = () => {
+    // Show loading state if behavior data is loading
+    if (isLoadingData('behavior')) {
+      return <LoadingSpinner message="Loading behavior insights..." />;
+    }
+
+    return (
     <Grid container spacing={3}>
+      {/* Error State */}
+      {hasError('behavior') && (
+        <Grid item xs={12}>
+          <ErrorMessage 
+            error={errors.behavior!} 
+            onRetry={fetchUserBehavior} 
+            dataType="user behavior data" 
+          />
+        </Grid>
+      )}
       <Grid item xs={12}>
         <GlassCard>
           <CardContent>
@@ -1150,7 +1400,8 @@ const UserAnalyticsPanel: React.FC = () => {
         </GlassCard>
       </Grid>
     </Grid>
-  );
+    );
+  };
 
   const tabPanels = [
     renderOverviewTab(),
@@ -1229,17 +1480,23 @@ const UserAnalyticsPanel: React.FC = () => {
         <SpeedDialAction
           icon={<Download />}
           tooltipTitle="Export Data"
-          onClick={() => {/* TODO: Export functionality */}}
+          onClick={() => {
+            // TODO: Implement export functionality
+            console.log('📁 Export functionality to be implemented');
+          }}
         />
         <SpeedDialAction
           icon={<FilterList />}
           tooltipTitle="Advanced Filters"
-          onClick={() => {/* TODO: Filter modal */}}
+          onClick={() => {
+            // TODO: Implement advanced filters modal
+            console.log('🔍 Advanced filters modal to be implemented');
+          }}
         />
         <SpeedDialAction
           icon={<Refresh />}
           tooltipTitle="Refresh Data"
-          onClick={() => {/* TODO: Refresh data */}}
+          onClick={refreshAllData}
         />
       </SpeedDial>
     </Box>

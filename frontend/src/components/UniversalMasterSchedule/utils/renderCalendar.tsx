@@ -1,8 +1,14 @@
 /**
- * renderCalendar - Calendar Rendering Utility Component
- * ====================================================
- * Isolated conditional rendering logic for calendar components
- * to simplify the main component's return statement.
+ * renderCalendar - Calendar Rendering Utility Component (PHASE 2: ROLE-ADAPTIVE)
+ * ===============================================================================
+ * Isolated conditional rendering logic for calendar components with role-based
+ * prop passing to ensure both main calendar and fallback provide consistent
+ * role-adaptive experiences.
+ * 
+ * PHASE 2 ENHANCEMENTS:
+ * ✅ Role-based prop passing to CalendarFallback
+ * ✅ Consistent role-aware styling
+ * ✅ Enhanced fallback integration
  */
 
 import React from 'react';
@@ -27,8 +33,8 @@ interface RenderCalendarProps {
   // Event Handlers
   onSelectSlot: (slotInfo: SlotInfo) => void;
   onSelectEvent: (event: SessionEvent) => void;
-  onEventDrop: ({ event, start, end }: { event: any; start: Date; end: Date }) => Promise<void>;
-  onEventResize: ({ event, start, end }: { event: any; start: Date; end: Date }) => Promise<void>;
+  onEventDrop?: ({ event, start, end }: { event: any; start: Date; end: Date }) => Promise<void>;
+  onEventResize?: ({ event, start, end }: { event: any; start: Date; end: Date }) => Promise<void>;
   onView: (view: string) => void;
   onNavigate: (date: Date) => void;
   
@@ -39,18 +45,24 @@ interface RenderCalendarProps {
   
   // Fallback Props
   onCreateSession?: () => void;
+  onBookSession?: (sessionId: string) => void;
   onFilterChange?: (filters: any) => void;
   showQuickActions?: boolean;
   clientsCount?: number;
   utilizationRate?: number;
   completionRate?: number;
   
+  // PHASE 2: Role-based props
+  calendarMode?: 'full' | 'trainer' | 'client' | 'public';
+  userRole?: 'admin' | 'trainer' | 'client' | 'user' | null;
+  userId?: string | null;
+  
   // Refs
   calendarRef?: React.RefObject<any>;
 }
 
 /**
- * Enhanced Calendar Event Component
+ * Enhanced Calendar Event Component with role-aware styling
  */
 const CalendarEventComponent: React.FC<{ event: SessionEvent }> = ({ event }) => (
   <motion.div
@@ -96,7 +108,113 @@ const CalendarEventComponent: React.FC<{ event: SessionEvent }> = ({ event }) =>
 );
 
 /**
- * Main Calendar Rendering Component
+ * Role-aware toolbar component
+ */
+const RoleAwareToolbar = ({ toolbarProps, userRole }: { toolbarProps: any; userRole?: string | null }) => {
+  // Determine available views based on role
+  const getAvailableViews = () => {
+    switch (userRole) {
+      case 'client':
+      case 'user':
+        return ['month', 'week']; // Simplified views for clients/users
+      case 'trainer':
+        return ['month', 'week', 'day']; // Most views for trainers
+      case 'admin':
+      default:
+        return ['month', 'week', 'day', 'agenda']; // All views for admin
+    }
+  };
+
+  const availableViews = getAvailableViews();
+
+  return (
+    <div className="rbc-toolbar" style={{ 
+      background: 'rgba(0, 0, 0, 0.3)',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      padding: '1rem',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center'
+    }}>
+      <div className="rbc-btn-group">
+        <button 
+          onClick={() => toolbarProps.onNavigate('PREV')}
+          style={{
+            background: 'rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            color: 'white',
+            padding: '0.5rem 1rem',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          ‹ Previous
+        </button>
+        <button 
+          onClick={() => toolbarProps.onNavigate('TODAY')}
+          style={{
+            background: 'rgba(59, 130, 246, 0.8)',
+            border: '1px solid rgba(59, 130, 246, 1)',
+            color: 'white',
+            padding: '0.5rem 1rem',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            margin: '0 0.5rem'
+          }}
+        >
+          Today
+        </button>
+        <button 
+          onClick={() => toolbarProps.onNavigate('NEXT')}
+          style={{
+            background: 'rgba(255, 255, 255, 0.1)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            color: 'white',
+            padding: '0.5rem 1rem',
+            borderRadius: '4px',
+            cursor: 'pointer'
+          }}
+        >
+          Next ›
+        </button>
+      </div>
+      
+      <span className="rbc-toolbar-label" style={{ 
+        color: 'white',
+        fontSize: '1.25rem',
+        fontWeight: '500'
+      }}>
+        {toolbarProps.label}
+      </span>
+      
+      <div className="rbc-btn-group">
+        {availableViews.map((viewName) => (
+          <button
+            key={viewName}
+            onClick={() => toolbarProps.onView(viewName)}
+            style={{
+              background: toolbarProps.view === viewName 
+                ? 'rgba(59, 130, 246, 0.8)' 
+                : 'rgba(255, 255, 255, 0.1)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              color: 'white',
+              padding: '0.5rem 1rem',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              margin: '0 0.25rem',
+              textTransform: 'capitalize'
+            }}
+          >
+            {viewName}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Main Calendar Rendering Component (PHASE 2: ROLE-ADAPTIVE)
  */
 export const renderCalendar = (props: RenderCalendarProps): JSX.Element => {
   const {
@@ -116,15 +234,23 @@ export const renderCalendar = (props: RenderCalendarProps): JSX.Element => {
     selectedEvents,
     compactView,
     onCreateSession,
+    onBookSession,
     onFilterChange,
     showQuickActions,
     clientsCount,
     utilizationRate,
     completionRate,
+    calendarMode = 'public',
+    userRole = null,
+    userId = null,
     calendarRef
   } = props;
 
-  // Render full-featured drag-and-drop calendar
+  // Determine if drag and drop should be enabled based on role and calendar mode
+  const isDragDropEnabled = (calendarMode === 'full' && userRole === 'admin') || 
+                           (calendarMode === 'trainer' && userRole === 'trainer');
+
+  // Render full-featured calendar (with role-based features)
   if (isCalendarInitialized && localizer && DragAndDropCalendar) {
     return (
       <ErrorBoundary>
@@ -141,10 +267,10 @@ export const renderCalendar = (props: RenderCalendarProps): JSX.Element => {
           onNavigate={onNavigate}
           onSelectSlot={onSelectSlot}
           onSelectEvent={onSelectEvent}
-          onEventDrop={onEventDrop}
-          onEventResize={onEventResize}
+          onEventDrop={isDragDropEnabled ? onEventDrop : undefined}
+          onEventResize={isDragDropEnabled ? onEventResize : undefined}
           selectable
-          resizable
+          resizable={isDragDropEnabled}
           popup
           eventPropGetter={(event: SessionEvent) => ({
             style: {
@@ -153,14 +279,22 @@ export const renderCalendar = (props: RenderCalendarProps): JSX.Element => {
               border: selectedEvents.includes(event.id) 
                 ? '2px solid #00ffff' 
                 : 'none',
-              cursor: multiSelectEnabled ? 'pointer' : 'grab',
+              cursor: isDragDropEnabled 
+                ? (multiSelectEnabled ? 'pointer' : 'grab')
+                : 'pointer',
               transition: 'all 0.2s ease'
             },
             className: multiSelectEnabled && selectedEvents.includes(event.id) 
               ? 'selected-event' 
               : undefined
           })}
-          views={['month', 'week', 'day', 'agenda']}
+          views={
+            userRole === 'client' || userRole === 'user' 
+              ? ['month', 'week']
+              : userRole === 'trainer'
+                ? ['month', 'week', 'day']
+                : ['month', 'week', 'day', 'agenda']
+          }
           step={15}
           timeslots={4}
           min={new Date(2024, 0, 1, 6, 0)}
@@ -178,88 +312,7 @@ export const renderCalendar = (props: RenderCalendarProps): JSX.Element => {
           components={{
             event: CalendarEventComponent,
             toolbar: (toolbarProps) => (
-              <div className="rbc-toolbar" style={{ 
-                background: 'rgba(0, 0, 0, 0.3)',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                padding: '1rem',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div className="rbc-btn-group">
-                  <button 
-                    onClick={() => toolbarProps.onNavigate('PREV')}
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      color: 'white',
-                      padding: '0.5rem 1rem',
-                      borderRadius: '4px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    ‹ Previous
-                  </button>
-                  <button 
-                    onClick={() => toolbarProps.onNavigate('TODAY')}
-                    style={{
-                      background: 'rgba(59, 130, 246, 0.8)',
-                      border: '1px solid rgba(59, 130, 246, 1)',
-                      color: 'white',
-                      padding: '0.5rem 1rem',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      margin: '0 0.5rem'
-                    }}
-                  >
-                    Today
-                  </button>
-                  <button 
-                    onClick={() => toolbarProps.onNavigate('NEXT')}
-                    style={{
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      color: 'white',
-                      padding: '0.5rem 1rem',
-                      borderRadius: '4px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Next ›
-                  </button>
-                </div>
-                
-                <span className="rbc-toolbar-label" style={{ 
-                  color: 'white',
-                  fontSize: '1.25rem',
-                  fontWeight: '500'
-                }}>
-                  {toolbarProps.label}
-                </span>
-                
-                <div className="rbc-btn-group">
-                  {['month', 'week', 'day', 'agenda'].map((viewName) => (
-                    <button
-                      key={viewName}
-                      onClick={() => toolbarProps.onView(viewName)}
-                      style={{
-                        background: toolbarProps.view === viewName 
-                          ? 'rgba(59, 130, 246, 0.8)' 
-                          : 'rgba(255, 255, 255, 0.1)',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        color: 'white',
-                        padding: '0.5rem 1rem',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        margin: '0 0.25rem',
-                        textTransform: 'capitalize'
-                      }}
-                    >
-                      {viewName}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <RoleAwareToolbar toolbarProps={toolbarProps} userRole={userRole} />
             ),
             month: {
               header: ({ label }) => (
@@ -307,7 +360,7 @@ export const renderCalendar = (props: RenderCalendarProps): JSX.Element => {
     );
   }
 
-  // Render fallback calendar
+  // Render role-adaptive fallback calendar
   return (
     <CalendarFallback
       events={calendarEvents}
@@ -316,13 +369,18 @@ export const renderCalendar = (props: RenderCalendarProps): JSX.Element => {
         start: date, 
         end: new Date(date.getTime() + 60 * 60 * 1000) 
       } as SlotInfo)}
-      onCreateSession={onCreateSession || (() => {})}
-      onFilterChange={onFilterChange || (() => {})}
-      showQuickActions={showQuickActions || true}
+      onCreateSession={onCreateSession}
+      onBookSession={onBookSession}
+      onFilterChange={onFilterChange}
+      showQuickActions={showQuickActions ?? true}
       compactView={compactView}
-      clientsCount={clientsCount || 0}
-      utilizationRate={utilizationRate || 0}
-      completionRate={completionRate || 0}
+      clientsCount={clientsCount ?? 0}
+      utilizationRate={utilizationRate ?? 0}
+      completionRate={completionRate ?? 0}
+      // PHASE 2: Pass role-based props to fallback
+      userRole={userRole}
+      userId={userId}
+      calendarMode={calendarMode}
     />
   );
 };
