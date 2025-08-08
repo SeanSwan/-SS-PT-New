@@ -76,45 +76,93 @@ class UnifiedSessionService {
     this._FinancialTransaction = null;
   }
 
-  // ✅ PHASE 2C FIX: Lazy getters for models
+  // ✅ ENHANCED P0 FIX: Robust lazy getters with initialization checks
   get Session() {
     if (!this._Session) {
-      this._Session = getSession();
+      try {
+        this._Session = getSession();
+        if (!this._Session) {
+          throw new Error('Session model not available - models cache may not be initialized');
+        }
+      } catch (error) {
+        logger.error('[UnifiedSessionService] Error accessing Session model:', error);
+        throw new Error(`Session model unavailable: ${error.message}`);
+      }
     }
     return this._Session;
   }
 
   get User() {
     if (!this._User) {
-      this._User = getUser();
+      try {
+        this._User = getUser();
+        if (!this._User) {
+          throw new Error('User model not available - models cache may not be initialized');
+        }
+      } catch (error) {
+        logger.error('[UnifiedSessionService] Error accessing User model:', error);
+        throw new Error(`User model unavailable: ${error.message}`);
+      }
     }
     return this._User;
   }
 
   get Order() {
     if (!this._Order) {
-      this._Order = getOrder();
+      try {
+        this._Order = getOrder();
+        if (!this._Order) {
+          throw new Error('Order model not available - models cache may not be initialized');
+        }
+      } catch (error) {
+        logger.error('[UnifiedSessionService] Error accessing Order model:', error);
+        throw new Error(`Order model unavailable: ${error.message}`);
+      }
     }
     return this._Order;
   }
 
   get OrderItem() {
     if (!this._OrderItem) {
-      this._OrderItem = getOrderItem();
+      try {
+        this._OrderItem = getOrderItem();
+        if (!this._OrderItem) {
+          throw new Error('OrderItem model not available - models cache may not be initialized');
+        }
+      } catch (error) {
+        logger.error('[UnifiedSessionService] Error accessing OrderItem model:', error);
+        throw new Error(`OrderItem model unavailable: ${error.message}`);
+      }
     }
     return this._OrderItem;
   }
 
   get StorefrontItem() {
     if (!this._StorefrontItem) {
-      this._StorefrontItem = getStorefrontItem();
+      try {
+        this._StorefrontItem = getStorefrontItem();
+        if (!this._StorefrontItem) {
+          throw new Error('StorefrontItem model not available - models cache may not be initialized');
+        }
+      } catch (error) {
+        logger.error('[UnifiedSessionService] Error accessing StorefrontItem model:', error);
+        throw new Error(`StorefrontItem model unavailable: ${error.message}`);
+      }
     }
     return this._StorefrontItem;
   }
 
   get FinancialTransaction() {
     if (!this._FinancialTransaction) {
-      this._FinancialTransaction = getFinancialTransaction();
+      try {
+        this._FinancialTransaction = getFinancialTransaction();
+        if (!this._FinancialTransaction) {
+          throw new Error('FinancialTransaction model not available - models cache may not be initialized');
+        }
+      } catch (error) {
+        logger.error('[UnifiedSessionService] Error accessing FinancialTransaction model:', error);
+        throw new Error(`FinancialTransaction model unavailable: ${error.message}`);
+      }
     }
     return this._FinancialTransaction;
   }

@@ -76,8 +76,17 @@ const initializeModelsCache = async () => {
  */
 const getAllModels = () => {
   if (!isInitialized || !modelsCache) {
+    logger.error('❌ CRITICAL: Models cache not initialized when getAllModels() was called');
+    logger.error('Stack trace:', new Error().stack);
     throw new Error('Models cache not initialized. Call initializeModelsCache() during server startup.');
   }
+  
+  // Additional validation
+  if (!modelsCache.User || !modelsCache.Session) {
+    logger.error('❌ CRITICAL: Models cache is corrupted - missing core models');
+    throw new Error('Models cache is corrupted - core models missing');
+  }
+  
   return modelsCache;
 };
 
@@ -87,11 +96,17 @@ const getAllModels = () => {
  * @returns {Object} Model with associations
  */
 const getModel = (modelName) => {
-  const models = getAllModels();
-  if (!models[modelName]) {
-    throw new Error(`Model '${modelName}' not found in cache`);
+  try {
+    const models = getAllModels();
+    if (!models[modelName]) {
+      logger.error(`❌ CRITICAL: Model '${modelName}' not found in cache. Available models:`, Object.keys(models));
+      throw new Error(`Model '${modelName}' not found in cache`);
+    }
+    return models[modelName];
+  } catch (error) {
+    logger.error(`❌ CRITICAL: Error getting model '${modelName}':`, error.message);
+    throw error;
   }
-  return models[modelName];
 };
 
 // Export initialization function (for server startup)
