@@ -195,7 +195,7 @@ interface ServiceStatus {
       name: string;
       status: boolean;
       lastCheck: string;
-    }[];
+      }[];
   };
   version: string;
   port?: number;
@@ -421,7 +421,7 @@ const SystemHealthPanel: React.FC = () => {
         description: 'System memory utilization',
         lastUpdated: new Date().toISOString()
       },
-    {
+      {
       id: 'disk-usage',
       name: 'Disk Usage',
       value: 72.1,
@@ -431,8 +431,8 @@ const SystemHealthPanel: React.FC = () => {
       trend: 0.5,
       description: 'Storage utilization across all volumes',
       lastUpdated: '2024-12-10T10:28:00Z'
-    },
-    {
+      },
+      {
       id: 'network-throughput',
       name: 'Network Throughput',
       value: 234.7,
@@ -442,8 +442,8 @@ const SystemHealthPanel: React.FC = () => {
       trend: 12.4,
       description: 'Current network throughput',
       lastUpdated: '2024-12-10T10:27:00Z'
-    },
-    {
+      },
+      {
       id: 'response-time',
       name: 'Response Time',
       value: 45.3,
@@ -453,8 +453,8 @@ const SystemHealthPanel: React.FC = () => {
       trend: -5.8,
       description: 'Average API response time',
       lastUpdated: '2024-12-10T10:26:00Z'
-    },
-    {
+      },
+      {
       id: 'error-rate',
       name: 'Error Rate',
       value: 0.12,
@@ -464,7 +464,7 @@ const SystemHealthPanel: React.FC = () => {
       trend: -0.02,
       description: 'System error rate',
       lastUpdated: '2024-12-10T10:25:00Z'
-    }
+      }
   ], []);
 
   const services: ServiceStatus[] = useMemo(() => [
