@@ -96,6 +96,9 @@ router.get('/', protect, adminOnly, async (req, res) => {
 
     const { count, rows: assignments } = await ClientTrainerAssignment.findAndCountAll({
       where: whereConditions,
+      attributes: {
+        exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
+      },
       include: [
         { 
           model: User, 
@@ -175,6 +178,9 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
         trainerId: parseInt(trainerId),
         status: 'active'
       },
+      attributes: {
+        exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
+      },
       include: [
         { 
           model: User, 
@@ -227,6 +233,9 @@ router.get('/client/:clientId', protect, adminOnly, async (req, res) => {
       where: {
         clientId: parseInt(clientId),
         status: 'active'
+      },
+      attributes: {
+        exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
       },
       include: [
         { 
@@ -329,6 +338,9 @@ router.post('/', protect, adminOnly, async (req, res) => {
         clientId: parseInt(clientId),
         trainerId: parseInt(trainerId),
         status: 'active'
+      },
+      attributes: {
+        exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
       }
     });
 
@@ -361,6 +373,9 @@ router.post('/', protect, adminOnly, async (req, res) => {
 
     // Fetch the complete assignment with related data
     const completeAssignment = await ClientTrainerAssignment.findByPk(assignment.id, {
+      attributes: {
+        exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
+      },
       include: [
         { 
           model: User, 
@@ -416,7 +431,11 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
 
     const ClientTrainerAssignment = getClientTrainerAssignment();
 
-    const assignment = await ClientTrainerAssignment.findByPk(id);
+    const assignment = await ClientTrainerAssignment.findByPk(id, {
+      attributes: {
+        exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
+      }
+    });
     if (!assignment) {
       return res.status(404).json({
         success: false,
@@ -443,6 +462,9 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
     // Fetch updated assignment with related data
     const User = getUser();
     const updatedAssignment = await ClientTrainerAssignment.findByPk(id, {
+      attributes: {
+        exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
+      },
       include: [
         { 
           model: User, 
@@ -495,7 +517,11 @@ router.delete('/:id', protect, adminOnly, async (req, res) => {
 
     const ClientTrainerAssignment = getClientTrainerAssignment();
 
-    const assignment = await ClientTrainerAssignment.findByPk(id);
+    const assignment = await ClientTrainerAssignment.findByPk(id, {
+      attributes: {
+        exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
+      }
+    });
     if (!assignment) {
       return res.status(404).json({
         success: false,
@@ -539,7 +565,7 @@ router.get('/unassigned/clients', protect, adminOnly, async (req, res) => {
     // Get all client/user IDs that have active assignments
     const assignedClientIds = await ClientTrainerAssignment.findAll({
       where: { status: 'active' },
-      attributes: ['clientId'],
+      attributes: ['clientId'], // Only select clientId, exclude lastModifiedBy
       raw: true
     }).then(assignments => assignments.map(a => a.clientId));
 
@@ -597,14 +623,14 @@ router.get('/stats', protect, adminOnly, async (req, res) => {
       User.count({ where: { role: { [Op.in]: ['client', 'user'] } } }),
       ClientTrainerAssignment.findAll({
         where: { status: 'active' },
+        attributes: ['trainerId'], // Only select trainerId, exclude lastModifiedBy
         include: [
           { 
             model: User, 
             as: 'trainer', 
             attributes: ['id', 'firstName', 'lastName'] 
           }
-        ],
-        attributes: ['trainerId']
+        ]
       })
     ]);
 
