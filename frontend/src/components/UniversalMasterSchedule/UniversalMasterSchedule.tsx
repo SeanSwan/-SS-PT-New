@@ -365,8 +365,7 @@ const UniversalMasterSchedule: React.FC = () => {
     return stored ? parseInt(stored) : 0;
   });
   
-  // NEW: Initialization state tracking to prevent infinite useEffect loops
-  const [initializationAttempted, setInitializationAttempted] = useState(false);
+  // ENHANCED: Robust initialization state tracking to prevent infinite useEffect loops
   const [initializationBlocked, setInitializationBlocked] = useState(false);
   const initFailureCountRef = useRef(0);
   const lastInitAttemptRef = useRef(0);
@@ -821,12 +820,12 @@ const UniversalMasterSchedule: React.FC = () => {
     }
   }, [currentUserRole, analyticsView, roleConfig, setAnalyticsView]);
   
-  // ==================== COMPONENT INITIALIZATION (CIRCUIT BREAKER PROTECTED) ====================
+  // ==================== ENHANCED COMPONENT INITIALIZATION (ROBUST CIRCUIT BREAKER) ====================
   
   useEffect(() => {
-    // 🛑 COMPONENT-LEVEL CIRCUIT BREAKER: Prevent infinite initialization loops
-    if (initializationAttempted && !initializationBlocked) {
-      console.log('🛑 Initialization already attempted - preventing infinite loop');
+    // 🛑 ENHANCED CIRCUIT BREAKER: Prevent infinite initialization loops with ref-based state
+    if (isInitializedRef.current && !initializationBlocked) {
+      console.log('🛑 Component already initialized - preventing re-initialization');
       return;
     }
     
@@ -845,18 +844,16 @@ const UniversalMasterSchedule: React.FC = () => {
     const initializeComponentSafe = async () => {
       try {
         console.log(`🚀 Starting component initialization for role: ${currentUserRole}...`);
-        setInitializationAttempted(true);
         lastInitAttemptRef.current = now;
         
         await initializeComponent({
-          setLoading,
-          setError,
           realTimeEnabled
         });
         
         const cleanup = setupEventListeners();
         
-        // ✅ SUCCESS: Reset failure counter
+        // ✅ SUCCESS: Mark as initialized and reset failure counter
+        isInitializedRef.current = true;
         initFailureCountRef.current = 0;
         sessionStorage.removeItem('ums_init_failures');
         console.log(`✅ Component initialization completed successfully for role: ${currentUserRole}`);
@@ -889,16 +886,19 @@ const UniversalMasterSchedule: React.FC = () => {
       }
     };
     
-    const cleanupPromise = initializeComponentSafe();
-    
-    return () => {
-      cleanupPromise.then(cleanup => {
-        if (cleanup) cleanup();
-      });
-      cleanupEventListeners();
-      console.log('🧹 Component cleanup completed');
-    };
-  }, [initializationAttempted, initializationBlocked, currentUserRole]); 
+    // Only initialize once
+    if (!isInitializedRef.current) {
+      const cleanupPromise = initializeComponentSafe();
+      
+      return () => {
+        cleanupPromise.then(cleanup => {
+          if (cleanup) cleanup();
+        });
+        cleanupEventListeners();
+        console.log('🧹 Component cleanup completed');
+      };
+    }
+  }, [currentUserRole]); // ❗ CRITICAL: Removed problematic dependencies that caused loops 
   
   // Auto-refresh effect
   useEffect(() => {
@@ -952,15 +952,19 @@ const UniversalMasterSchedule: React.FC = () => {
             leftIcon={<RefreshCw size={18} />}
             onClick={() => {
               // Reset circuit breaker state for manual retry
-              setInitializationAttempted(false);
+              isInitializedRef.current = false;
               setInitializationBlocked(false);
               initFailureCountRef.current = 0;
               sessionStorage.removeItem('ums_init_failures');
+              sessionStorage.removeItem('ums_mount_count');
               console.log('🔄 Manual retry initiated - resetting circuit breaker');
           
-          // PHASE 3: Retry feedback
-          triggerHaptic('medium');
-          animateElement('retry-button', 'pulse', 300);
+              // PHASE 3: Retry feedback
+              triggerHaptic('medium');
+              animateElement('retry-button', 'pulse', 300);
+              
+              // Force re-render to trigger useEffect
+              window.location.reload();
             }}
           />
         </motion.div>

@@ -142,7 +142,7 @@ export const useRealTimeUpdates = ({
   autoReconnect = true,
   maxReconnectAttempts = 5,
   reconnectDelay = 3000,
-  wsUrl = 'ws://localhost:3001/schedule-updates',
+  wsUrl = import.meta.env.VITE_WS_URL || (import.meta.env.PROD ? 'wss://ss-pt-new.onrender.com/schedule-updates' : 'ws://localhost:3001/schedule-updates'),
   
   // Advanced Configuration Defaults
   enableMessageQueue = true,
