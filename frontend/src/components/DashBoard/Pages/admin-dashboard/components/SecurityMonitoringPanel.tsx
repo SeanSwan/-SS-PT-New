@@ -387,7 +387,7 @@ const SecurityMonitoringPanel: React.FC = () => {
         description: 'Failed login attempts in the last 24 hours',
         lastUpdated: new Date().toISOString()
       },
-    {
+      {
       id: 'blocked-ips',
       name: 'Blocked IP Addresses',
       value: 45,
