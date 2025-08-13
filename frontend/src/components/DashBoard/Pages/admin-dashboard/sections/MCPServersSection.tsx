@@ -418,14 +418,19 @@ const ActionItem = styled(motion.button)`
   gap: 0.5rem;
   transition: all 0.2s ease;
   
-  &:hover {
+  &:hover:not(:disabled) {
     background: rgba(59, 130, 246, 0.1);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
   
   &.danger {
     color: #ef4444;
     
-    &:hover {
+    &:hover:not(:disabled) {
       background: rgba(239, 68, 68, 0.1);
     }
   }
@@ -433,7 +438,7 @@ const ActionItem = styled(motion.button)`
   &.success {
     color: #10b981;
     
-    &:hover {
+    &:hover:not(:disabled) {
       background: rgba(16, 185, 129, 0.1);
     }
   }
@@ -533,6 +538,137 @@ const LogMessage = styled.div`
   word-break: break-word;
 `;
 
+const ErrorAlert = styled(motion.div)`
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+`;
+
+const RetryButton = styled(motion.button)`
+  background: none;
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  color: #ef4444;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  margin-left: auto;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: rgba(239, 68, 68, 0.1);
+  }
+`;
+
+const LoadingSpinner = styled(motion.div)`
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid #00ffff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+`;
+
+const ConfirmationOverlay = styled(motion.div)`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+`;
+
+const ConfirmationDialog = styled(motion.div)`
+  background: rgba(10, 10, 15, 0.95);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 400px;
+  width: 90%;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+`;
+
+const ConfirmationTitle = styled.h3`
+  margin: 0 0 1rem 0;
+  color: #ffffff;
+  font-size: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const ConfirmationMessage = styled.p`
+  margin: 0 0 2rem 0;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.5;
+`;
+
+const ConfirmationActions = styled.div`
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+`;
+
+const ConfirmButton = styled(motion.button)`
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  
+  &.cancel {
+    background: rgba(107, 114, 128, 0.2);
+    color: #9ca3af;
+    border: 1px solid rgba(107, 114, 128, 0.3);
+    
+    &:hover {
+      background: rgba(107, 114, 128, 0.3);
+    }
+  }
+  
+  &.confirm {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    
+    &:hover {
+      background: rgba(239, 68, 68, 0.3);
+    }
+  }
+  
+  &.confirm.success {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    
+    &:hover {
+      background: rgba(16, 185, 129, 0.3);
+    }
+  }
+`;
+
 // === INTERFACES ===
 interface MCPServer {
   id: string;
@@ -586,13 +722,25 @@ const MCPServersSection: React.FC = () => {
   });
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [logsError, setLogsError] = useState<string | null>(null);
+  const [operationLoading, setOperationLoading] = useState<{ [serverId: string]: string }>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [activeActionMenu, setActiveActionMenu] = useState<string | null>(null);
   const [showLogs, setShowLogs] = useState(false);
+  const [confirmationDialog, setConfirmationDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    action: () => void;
+    actionType: 'danger' | 'success';
+    actionText: string;
+  } | null>(null);
 
-  // Fetch MCP servers from backend
+  // Fetch MCP servers from backend with enhanced error handling
   const fetchServers = useCallback(async () => {
     try {
       setLoading(true);
@@ -603,7 +751,7 @@ const MCPServersSection: React.FC = () => {
         }
       });
       
-      if (response.data.success) {
+      if (response.data.success && response.data.servers) {
         const serversData = response.data.servers.map((server: any) => ({
           id: server.id?.toString() || '',
           name: server.name || '',
@@ -630,21 +778,34 @@ const MCPServersSection: React.FC = () => {
         
         setServers(serversData);
         calculateStats(serversData);
+        setError(null);
       } else {
-        console.error('Failed to fetch MCP servers:', response.data.message);
-        setMockData();
+        throw new Error(response.data.message || 'Invalid server response format');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching MCP servers:', error);
-      setMockData();
+      setError(error.response?.data?.message || error.message || 'Failed to fetch MCP servers');
+      // Don't fallback to mock data in production - keep existing servers if any
+      if (servers.length === 0) {
+        setServers([]);
+        setStats({
+          totalServers: 0,
+          healthyServers: 0,
+          warningServers: 0,
+          errorServers: 0,
+          offlineServers: 0
+        });
+      }
     } finally {
       setLoading(false);
     }
-  }, [authAxios]);
+  }, [authAxios, servers.length]);
 
-  // Fetch logs
+  // Fetch logs with enhanced error handling
   const fetchLogs = useCallback(async () => {
     try {
+      setLogsLoading(true);
+      setLogsError(null);
       const response = await authAxios.get('/api/admin/mcp/logs', {
         params: {
           limit: 50,
@@ -652,174 +813,24 @@ const MCPServersSection: React.FC = () => {
         }
       });
       
-      if (response.data.success) {
+      if (response.data.success && response.data.logs) {
         setLogs(response.data.logs);
+      } else {
+        throw new Error(response.data.message || 'Invalid logs response format');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching logs:', error);
-      setMockLogs();
+      setLogsError(error.response?.data?.message || error.message || 'Failed to fetch logs');
+      // Keep existing logs if available, don't fallback to mock data
+    } finally {
+      setLogsLoading(false);
     }
   }, [authAxios]);
 
-  // Set mock data for development/testing
-  const setMockData = () => {
-    const mockServers: MCPServer[] = [
-      {
-        id: '1',
-        name: 'Olympian\'s Forge AI',
-        description: 'AI workout generation and exercise recommendation engine',
-        endpoint: 'https://ai-forge.swanstudios.internal:8001',
-        type: 'ai-agent',
-        status: 'healthy',
-        version: '2.1.3',
-        uptime: 99.8,
-        lastSeen: new Date(Date.now() - 30000).toISOString(),
-        metrics: {
-          cpuUsage: 45,
-          memoryUsage: 62,
-          requestCount: 1247,
-          responseTime: 156,
-          errorRate: 0.2
-        },
-        configuration: {
-          maxConnections: 500,
-          timeout: 30000,
-          retryCount: 3
-        }
-      },
-      {
-        id: '2',
-        name: 'Culinary Codex AI',
-        description: 'Nutrition planning and meal recommendation system',
-        endpoint: 'https://nutrition-ai.swanstudios.internal:8002',
-        type: 'ai-agent',
-        status: 'healthy',
-        version: '1.8.2',
-        uptime: 99.9,
-        lastSeen: new Date(Date.now() - 15000).toISOString(),
-        metrics: {
-          cpuUsage: 32,
-          memoryUsage: 48,
-          requestCount: 892,
-          responseTime: 89,
-          errorRate: 0.1
-        },
-        configuration: {
-          maxConnections: 300,
-          timeout: 25000,
-          retryCount: 3
-        }
-      },
-      {
-        id: '3',
-        name: 'Analytics Processor',
-        description: 'Real-time data processing and business intelligence',
-        endpoint: 'https://analytics.swanstudios.internal:8003',
-        type: 'analytics',
-        status: 'warning',
-        version: '3.2.1',
-        uptime: 97.2,
-        lastSeen: new Date(Date.now() - 120000).toISOString(),
-        metrics: {
-          cpuUsage: 78,
-          memoryUsage: 85,
-          requestCount: 2341,
-          responseTime: 245,
-          errorRate: 2.1
-        },
-        configuration: {
-          maxConnections: 1000,
-          timeout: 45000,
-          retryCount: 5
-        }
-      },
-      {
-        id: '4',
-        name: 'Social Media Processor',
-        description: 'Content moderation and social engagement analytics',
-        endpoint: 'https://social.swanstudios.internal:8004',
-        type: 'data-processor',
-        status: 'error',
-        version: '1.5.7',
-        uptime: 89.4,
-        lastSeen: new Date(Date.now() - 300000).toISOString(),
-        metrics: {
-          cpuUsage: 95,
-          memoryUsage: 92,
-          requestCount: 156,
-          responseTime: 1200,
-          errorRate: 15.3
-        },
-        configuration: {
-          maxConnections: 200,
-          timeout: 20000,
-          retryCount: 2
-        }
-      },
-      {
-        id: '5',
-        name: 'Session Scheduler',
-        description: 'Automated session scheduling and calendar management',
-        endpoint: 'https://scheduler.swanstudios.internal:8005',
-        type: 'scheduler',
-        status: 'offline',
-        version: '2.0.1',
-        uptime: 0,
-        lastSeen: new Date(Date.now() - 3600000).toISOString(),
-        metrics: {
-          cpuUsage: 0,
-          memoryUsage: 0,
-          requestCount: 0,
-          responseTime: 0,
-          errorRate: 100
-        },
-        configuration: {
-          maxConnections: 150,
-          timeout: 30000,
-          retryCount: 3
-        }
-      }
-    ];
-    
-    setServers(mockServers);
-    calculateStats(mockServers);
-  };
-
-  const setMockLogs = () => {
-    const mockLogs: LogEntry[] = [
-      {
-        timestamp: new Date(Date.now() - 60000).toISOString(),
-        level: 'info',
-        server: 'Olympian\'s Forge AI',
-        message: 'Successfully generated workout plan for user #1247'
-      },
-      {
-        timestamp: new Date(Date.now() - 120000).toISOString(),
-        level: 'warn',
-        server: 'Analytics Processor',
-        message: 'High CPU usage detected: 78%. Consider scaling resources.'
-      },
-      {
-        timestamp: new Date(Date.now() - 180000).toISOString(),
-        level: 'error',
-        server: 'Social Media Processor',
-        message: 'Connection timeout to external API. Retrying...'
-      },
-      {
-        timestamp: new Date(Date.now() - 240000).toISOString(),
-        level: 'info',
-        server: 'Culinary Codex AI',
-        message: 'Meal plan optimization completed for 45 users'
-      },
-      {
-        timestamp: new Date(Date.now() - 300000).toISOString(),
-        level: 'error',
-        server: 'Session Scheduler',
-        message: 'Service unavailable. Last heartbeat: 1 hour ago'
-      }
-    ];
-    
-    setLogs(mockLogs);
+  // Toast notification helper (to be implemented with proper toast library)
+  const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
+    console.log(`${type.toUpperCase()}: ${message}`);
+    // TODO: Integrate with proper toast notification library (react-hot-toast or similar)
   };
 
   // Calculate server statistics
@@ -867,49 +878,169 @@ const MCPServersSection: React.FC = () => {
     return matchesSearch && matchesStatus && matchesType;
   });
 
-  // Handle server actions
-  const handleStartServer = async (serverId: string) => {
+  // Confirmation dialog helper
+  const showConfirmation = (config: {
+    title: string;
+    message: string;
+    action: () => void;
+    actionType: 'danger' | 'success';
+    actionText: string;
+  }) => {
+    setConfirmationDialog({
+      isOpen: true,
+      ...config
+    });
+  };
+
+  const closeConfirmation = () => {
+    setConfirmationDialog(null);
+  };
+
+  // Enhanced server action handlers with loading states and error handling
+  const executeStartServer = async (serverId: string) => {
+    const serverName = servers.find(s => s.id === serverId)?.name || serverId;
+    showConfirmation({
+      title: 'Start Server',
+      message: `Are you sure you want to start ${serverName}? This will make the server available for requests.`,
+      action: () => performStartServer(serverId),
+      actionType: 'success',
+      actionText: 'Start Server'
+    });
+  };
+
+  const performStartServer = async (serverId: string) => {
+    closeConfirmation();
     try {
+      setOperationLoading(prev => ({ ...prev, [serverId]: 'starting' }));
+      setActiveActionMenu(null);
+      
+      // Optimistic update
+      setServers(prev => prev.map(server => 
+        server.id === serverId 
+          ? { ...server, status: 'warning' as const }
+          : server
+      ));
+      
       const response = await authAxios.post(`/api/admin/mcp/servers/${serverId}/start`);
       
       if (response.data.success) {
-        await fetchServers();
-        setActiveActionMenu(null);
+        showToast(`Server ${serverId} started successfully`, 'success');
+        await fetchServers(); // Refresh to get actual status
       } else {
-        console.error('Failed to start server');
+        throw new Error(response.data.message || 'Failed to start server');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error starting server:', error);
+      showToast(
+        error.response?.data?.message || error.message || `Failed to start server ${serverId}`,
+        'error'
+      );
+      // Revert optimistic update on error
+      await fetchServers();
+    } finally {
+      setOperationLoading(prev => {
+        const newState = { ...prev };
+        delete newState[serverId];
+        return newState;
+      });
     }
   };
 
-  const handleStopServer = async (serverId: string) => {
+  const executeStopServer = async (serverId: string) => {
+    const serverName = servers.find(s => s.id === serverId)?.name || serverId;
+    showConfirmation({
+      title: 'Stop Server',
+      message: `Are you sure you want to stop ${serverName}? This will make the server unavailable and may interrupt active requests.`,
+      action: () => performStopServer(serverId),
+      actionType: 'danger',
+      actionText: 'Stop Server'
+    });
+  };
+
+  const performStopServer = async (serverId: string) => {
+    closeConfirmation();
     try {
+      setOperationLoading(prev => ({ ...prev, [serverId]: 'stopping' }));
+      setActiveActionMenu(null);
+      
+      // Optimistic update
+      setServers(prev => prev.map(server => 
+        server.id === serverId 
+          ? { ...server, status: 'warning' as const }
+          : server
+      ));
+      
       const response = await authAxios.post(`/api/admin/mcp/servers/${serverId}/stop`);
       
       if (response.data.success) {
-        await fetchServers();
-        setActiveActionMenu(null);
+        showToast(`Server ${serverId} stopped successfully`, 'success');
+        await fetchServers(); // Refresh to get actual status
       } else {
-        console.error('Failed to stop server');
+        throw new Error(response.data.message || 'Failed to stop server');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error stopping server:', error);
+      showToast(
+        error.response?.data?.message || error.message || `Failed to stop server ${serverId}`,
+        'error'
+      );
+      // Revert optimistic update on error
+      await fetchServers();
+    } finally {
+      setOperationLoading(prev => {
+        const newState = { ...prev };
+        delete newState[serverId];
+        return newState;
+      });
     }
   };
 
-  const handleRestartServer = async (serverId: string) => {
+  const executeRestartServer = async (serverId: string) => {
+    const serverName = servers.find(s => s.id === serverId)?.name || serverId;
+    showConfirmation({
+      title: 'Restart Server',
+      message: `Are you sure you want to restart ${serverName}? This will temporarily interrupt service while the server restarts.`,
+      action: () => performRestartServer(serverId),
+      actionType: 'danger',
+      actionText: 'Restart Server'
+    });
+  };
+
+  const performRestartServer = async (serverId: string) => {
+    closeConfirmation();
     try {
+      setOperationLoading(prev => ({ ...prev, [serverId]: 'restarting' }));
+      setActiveActionMenu(null);
+      
+      // Optimistic update
+      setServers(prev => prev.map(server => 
+        server.id === serverId 
+          ? { ...server, status: 'warning' as const }
+          : server
+      ));
+      
       const response = await authAxios.post(`/api/admin/mcp/servers/${serverId}/restart`);
       
       if (response.data.success) {
-        await fetchServers();
-        setActiveActionMenu(null);
+        showToast(`Server ${serverId} restarted successfully`, 'success');
+        await fetchServers(); // Refresh to get actual status
       } else {
-        console.error('Failed to restart server');
+        throw new Error(response.data.message || 'Failed to restart server');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error restarting server:', error);
+      showToast(
+        error.response?.data?.message || error.message || `Failed to restart server ${serverId}`,
+        'error'
+      );
+      // Revert optimistic update on error
+      await fetchServers();
+    } finally {
+      setOperationLoading(prev => {
+        const newState = { ...prev };
+        delete newState[serverId];
+        return newState;
+      });
     }
   };
 
@@ -955,6 +1086,20 @@ const MCPServersSection: React.FC = () => {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     return formatDuration(diffMs);
+  };
+
+  // Enhanced refresh handler with error handling
+  const handleRefresh = async () => {
+    try {
+      setError(null);
+      await fetchServers();
+      if (showLogs) {
+        await fetchLogs();
+      }
+      showToast('Data refreshed successfully', 'success');
+    } catch (error: any) {
+      showToast('Failed to refresh data', 'error');
+    }
   };
 
   if (loading) {
@@ -1048,9 +1193,10 @@ const MCPServersSection: React.FC = () => {
           <CommandButton
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={fetchServers}
+            onClick={handleRefresh}
+            disabled={loading}
           >
-            <RefreshCw size={16} />
+            {loading ? <LoadingSpinner /> : <RefreshCw size={16} />}
             Refresh
           </CommandButton>
           
@@ -1072,6 +1218,29 @@ const MCPServersSection: React.FC = () => {
           </CommandButton>
         </div>
       </ActionBar>
+
+      {/* Error Displays */}
+      <AnimatePresence>
+        {error && (
+          <ErrorAlert
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <AlertTriangle size={16} />
+            <span>Error loading servers: {error}</span>
+            <RetryButton
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleRefresh}
+              disabled={loading}
+            >
+              Retry
+            </RetryButton>
+          </ErrorAlert>
+        )}
+      </AnimatePresence>
 
       {/* Servers Grid */}
       <ServersGrid>
@@ -1100,7 +1269,14 @@ const MCPServersSection: React.FC = () => {
                 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
                   <StatusBadge className={server.status}>
-                    {server.status}
+                    {operationLoading[server.id] ? (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                        <LoadingSpinner style={{ width: '12px', height: '12px' }} />
+                        {operationLoading[server.id]}
+                      </span>
+                    ) : (
+                      server.status
+                    )}
                   </StatusBadge>
                   
                   <ActionMenu>
@@ -1126,31 +1302,47 @@ const MCPServersSection: React.FC = () => {
                             <ActionItem
                               className="success"
                               whileHover={{ x: 4 }}
-                              onClick={() => handleStartServer(server.id)}
+                              onClick={() => executeStartServer(server.id)}
+                              disabled={operationLoading[server.id]}
                             >
-                              <Play size={16} />
-                              Start Server
+                              {operationLoading[server.id] === 'starting' ? (
+                                <LoadingSpinner />
+                              ) : (
+                                <Play size={16} />
+                              )}
+                              {operationLoading[server.id] === 'starting' ? 'Starting...' : 'Start Server'}
                             </ActionItem>
                           ) : (
                             <ActionItem
                               className="danger"
                               whileHover={{ x: 4 }}
-                              onClick={() => handleStopServer(server.id)}
+                              onClick={() => executeStopServer(server.id)}
+                              disabled={operationLoading[server.id]}
                             >
-                              <Pause size={16} />
-                              Stop Server
+                              {operationLoading[server.id] === 'stopping' ? (
+                                <LoadingSpinner />
+                              ) : (
+                                <Pause size={16} />
+                              )}
+                              {operationLoading[server.id] === 'stopping' ? 'Stopping...' : 'Stop Server'}
                             </ActionItem>
                           )}
                           <ActionItem
                             whileHover={{ x: 4 }}
-                            onClick={() => handleRestartServer(server.id)}
+                            onClick={() => executeRestartServer(server.id)}
+                            disabled={operationLoading[server.id]}
                           >
-                            <RotateCw size={16} />
-                            Restart
+                            {operationLoading[server.id] === 'restarting' ? (
+                              <LoadingSpinner />
+                            ) : (
+                              <RotateCw size={16} />
+                            )}
+                            {operationLoading[server.id] === 'restarting' ? 'Restarting...' : 'Restart'}
                           </ActionItem>
                           <ActionItem
                             whileHover={{ x: 4 }}
                             onClick={() => handleViewLogs(server.id)}
+                            disabled={operationLoading[server.id]}
                           >
                             <FileText size={16} />
                             View Logs
@@ -1158,6 +1350,7 @@ const MCPServersSection: React.FC = () => {
                           <ActionItem
                             whileHover={{ x: 4 }}
                             onClick={() => handleConfigureServer(server.id)}
+                            disabled={operationLoading[server.id]}
                           >
                             <Settings size={16} />
                             Configure
@@ -1255,17 +1448,39 @@ const MCPServersSection: React.FC = () => {
               }}>
                 <FileText size={20} />
                 Server Logs
+                {logsLoading && <LoadingSpinner />}
               </h3>
               <CommandButton
-                size="small"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={fetchLogs}
+                disabled={logsLoading}
               >
-                <RefreshCw size={14} />
+                {logsLoading ? <LoadingSpinner /> : <RefreshCw size={14} />}
                 Refresh
               </CommandButton>
             </div>
+            
+            {/* Logs Error Display */}
+            {logsError && (
+              <ErrorAlert
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <AlertTriangle size={16} />
+                <span>Error loading logs: {logsError}</span>
+                <RetryButton
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={fetchLogs}
+                  disabled={logsLoading}
+                >
+                  Retry
+                </RetryButton>
+              </ErrorAlert>
+            )}
             
             {logs.map((log, index) => (
               <LogEntry key={index}>
@@ -1305,8 +1520,67 @@ const MCPServersSection: React.FC = () => {
           <p>Try adjusting your search or filters</p>
         </motion.div>
       )}
+      
+      {/* Confirmation Dialog */}
+      <AnimatePresence>
+        {confirmationDialog && (
+          <ConfirmationOverlay
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                closeConfirmation();
+              }
+            }}
+          >
+            <ConfirmationDialog
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', duration: 0.3 }}
+            >
+              <ConfirmationTitle>
+                {confirmationDialog.actionType === 'danger' ? (
+                  <AlertTriangle size={20} color="#ef4444" />
+                ) : (
+                  <CheckCircle size={20} color="#10b981" />
+                )}
+                {confirmationDialog.title}
+              </ConfirmationTitle>
+              
+              <ConfirmationMessage>
+                {confirmationDialog.message}
+              </ConfirmationMessage>
+              
+              <ConfirmationActions>
+                <ConfirmButton
+                  className="cancel"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={closeConfirmation}
+                >
+                  Cancel
+                </ConfirmButton>
+                
+                <ConfirmButton
+                  className={`confirm ${confirmationDialog.actionType === 'success' ? 'success' : ''}`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={confirmationDialog.action}
+                >
+                  {confirmationDialog.actionText}
+                </ConfirmButton>
+              </ConfirmationActions>
+            </ConfirmationDialog>
+          </ConfirmationOverlay>
+        )}
+      </AnimatePresence>
     </ManagementContainer>
   );
 };
 
 export default MCPServersSection;
+
+// Export types for index.ts
+export type { MCPServer, MCPStats };
