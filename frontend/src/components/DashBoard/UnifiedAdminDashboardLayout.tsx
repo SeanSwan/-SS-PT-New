@@ -78,11 +78,10 @@ import NASMCompliancePanel from './Pages/admin-dashboard/components/NASMComplian
 import AdminExerciseCommandCenter from './Pages/admin-exercises';
 
 // ============================================
-// ENTERPRISE MCP & BUSINESS INTELLIGENCE IMPORTS
+// ENTERPRISE BUSINESS INTELLIGENCE IMPORTS
 // ============================================
-import MCPServerCommandCenter from './Pages/admin-dashboard/components/MCPServerManagement/MCPServerCommandCenter';
-import SocialMediaCommandCenter from './Pages/admin-dashboard/components/SocialMediaCommand/SocialMediaCommandCenter';
-import EnterpriseBusinessIntelligenceSuite from './Pages/admin-dashboard/components/BusinessIntelligence/EnterpriseBusinessIntelligenceSuite';
+const SocialMediaCommandCenter = React.lazy(() => import('./Pages/admin-dashboard/components/SocialMediaCommand/SocialMediaCommandCenter'));
+const EnterpriseBusinessIntelligenceSuite = React.lazy(() => import('./Pages/admin-dashboard/components/BusinessIntelligence/EnterpriseBusinessIntelligenceSuite'));
 
 // === EXECUTIVE COMMAND INTELLIGENCE THEME ===
 const executiveCommandTheme = {
@@ -746,10 +745,10 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                 />
                 
                 {/* ============================================= */}
-                {/* ENTERPRISE MCP & BUSINESS INTELLIGENCE ROUTES */}
+                {/* ENTERPRISE BUSINESS INTELLIGENCE ROUTES */}
                 {/* ============================================= */}
                 
-                {/* MCP Command Center Route */}
+                {/* MCP Command Center Route - Updated to use MCPServersSection */}
                 <Route 
                   path="/mcp-overview" 
                   element={
@@ -758,7 +757,7 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.6 }}
                     >
-                      <MCPServerCommandCenter />
+                      <MCPServersSection />
                     </ExecutivePageContainer>
                   } 
                 />
@@ -772,7 +771,9 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.6 }}
                     >
-                      <SocialMediaCommandCenter />
+                      <Suspense fallback={<LoadingState />}>
+                        <SocialMediaCommandCenter />
+                      </Suspense>
                     </ExecutivePageContainer>
                   } 
                 />
@@ -786,7 +787,9 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.6 }}
                     >
-                      <EnterpriseBusinessIntelligenceSuite />
+                      <Suspense fallback={<LoadingState />}>
+                        <EnterpriseBusinessIntelligenceSuite />
+                      </Suspense>
                     </ExecutivePageContainer>
                   } 
                 />
