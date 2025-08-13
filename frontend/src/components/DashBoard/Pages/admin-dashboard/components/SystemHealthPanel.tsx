@@ -1,10 +1,11 @@
 /**
  * System Health Monitoring Component
  * Real-time monitoring of system performance, infrastructure health, and resource utilization
+ * PHASE 2B: Converted from mock data to real API integration
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useAuthenticatedAxios } from '../../../../../../hooks/useAxios';
+import { useAuth } from '../../../../context/AuthContext';
 import {
   Box,
   Card,
@@ -56,8 +57,7 @@ import {
   Stepper,
   Step,
   StepLabel,
-  StepContent,
-  Gauge
+  StepContent
 } from '@mui/material';
 
 import {
@@ -157,8 +157,7 @@ import {
   Treemap,
   ScatterChart,
   Scatter,
-  ReferenceLine,
-  ResponsiveContainer as RespContainer
+  ReferenceLine
 } from 'recharts';
 
 import { styled } from '@mui/material/styles';
@@ -328,6 +327,7 @@ const StatusIndicator = styled(Box)<{ status: string }>(({ status }) => ({
 }));
 
 const SystemHealthPanel: React.FC = () => {
+  const { authAxios } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [timeRange, setTimeRange] = useState('24h');
   const [isRealTime, setIsRealTime] = useState(true);
@@ -336,59 +336,100 @@ const SystemHealthPanel: React.FC = () => {
   const [expandedNodes, setExpandedNodes] = useState<string[]>([]);
   const [showOfflineOnly, setShowOfflineOnly] = useState(false);
 
-  // Real API state management
+  // Real API state management (following UserAnalyticsPanel pattern)
   const [systemHealthData, setSystemHealthData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
-  const authAxios = useAuthenticatedAxios();
+  const [loading, setLoading] = useState({
+    overview: false,
+    services: false,
+    infrastructure: false,
+    alerts: false
+  });
+  const [errors, setErrors] = useState({
+    overview: null as string | null,
+    services: null as string | null,
+    infrastructure: null as string | null,
+    alerts: null as string | null
+  });
 
-  // Real API data fetching function
+  // API call functions
   const fetchSystemHealthData = useCallback(async () => {
-    if (!authAxios) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
     try {
+      setLoading(prev => ({ ...prev, overview: true }));
+      setErrors(prev => ({ ...prev, overview: null }));
+      
       const response = await authAxios.get('/api/admin/analytics/system-health', {
         params: { timeRange }
       });
       
       if (response.data.success) {
         setSystemHealthData(response.data.data);
+        console.log('✅ Real system health data loaded successfully');
       } else {
-        setError('Failed to fetch system health data');
+        throw new Error(response.data.message || 'Failed to load system health data');
       }
     } catch (error: any) {
-      console.error('Error fetching system health data:', error);
-      setError(error?.response?.data?.message || 'Failed to fetch system health data');
+      const errorMessage = error.response?.data?.message || 'Failed to load system health data';
+      setErrors(prev => ({ ...prev, overview: errorMessage }));
+      console.error('❌ Failed to load real system health data:', errorMessage);
     } finally {
-      setIsLoading(false);
+      setLoading(prev => ({ ...prev, overview: false }));
     }
   }, [authAxios, timeRange]);
 
-  // Auto-refresh system health data
+  // Refresh all data
+  const refreshAllData = useCallback(async () => {
+    console.log('🔄 Refreshing all system health data...');
+    await fetchSystemHealthData();
+    console.log('✅ All system health data refreshed');
+  }, [fetchSystemHealthData]);
+
+  // Initial data load
   useEffect(() => {
     fetchSystemHealthData();
-    
-    // Set up real-time refresh if enabled
-    if (isRealTime) {
-      const interval = setInterval(fetchSystemHealthData, 60000); // Refresh every 60 seconds
-      setRefreshInterval(interval);
-      return () => clearInterval(interval);
-    } else if (refreshInterval) {
-      clearInterval(refreshInterval);
-      setRefreshInterval(null);
-    }
-  }, [fetchSystemHealthData, isRealTime]);
+  }, [fetchSystemHealthData]);
 
-  // Refresh when timeRange changes
+  // Auto-refresh setup
   useEffect(() => {
-    if (authAxios && systemHealthData) {
-      fetchSystemHealthData();
-    }
-  }, [timeRange]);
+    if (!isRealTime) return;
+
+    const interval = setInterval(() => {
+      refreshAllData();
+    }, 30000); // Refresh every 30 seconds for system health
+
+    return () => clearInterval(interval);
+  }, [isRealTime, refreshAllData]);
+
+  // Update data when timeRange changes
+  useEffect(() => {
+    fetchSystemHealthData();
+  }, [timeRange, fetchSystemHealthData]);
+
+  // Helper function to check if data is loading
+  const isLoadingData = (dataType: keyof typeof loading) => loading[dataType];
+  const hasError = (dataType: keyof typeof errors) => !!errors[dataType];
+
+  // Helper component for loading states
+  const LoadingSpinner = ({ message = 'Loading data...' }) => (
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 4 }}>
+      <CircularProgress sx={{ color: '#00ffff' }} />
+      <Typography variant="body2" color="text.secondary">{message}</Typography>
+    </Box>
+  );
+
+  // Helper component for error states
+  const ErrorMessage = ({ error, onRetry, dataType }: { error: string; onRetry: () => void; dataType: string }) => (
+    <Alert 
+      severity="error" 
+      action={
+        <Button color="inherit" size="small" onClick={onRetry} startIcon={<Refresh />}>
+          Retry
+        </Button>
+      }
+      sx={{ mb: 2, bgcolor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+    >
+      Failed to load {dataType}: {error}
+    </Alert>
+  );
 
   // Transform real API data to component format
   const systemMetrics: SystemMetric[] = useMemo(() => {
@@ -402,410 +443,159 @@ const SystemHealthPanel: React.FC = () => {
       {
         id: 'cpu-usage',
         name: 'CPU Usage',
-        value: serverPerformance.cpu.usage,
+        value: serverPerformance.cpu?.usage || 0,
         unit: '%',
-        status: serverPerformance.cpu.status,
+        status: serverPerformance.cpu?.status || 'healthy',
         threshold: { warning: 70, critical: 85 },
-        trend: Math.random() * 10 - 5, // Mock trend - implement real calculation
+        trend: serverPerformance.cpu?.trend || 0,
         description: 'Overall system CPU utilization',
         lastUpdated: new Date().toISOString()
       },
       {
         id: 'memory-usage',
         name: 'Memory Usage',
-        value: serverPerformance.memory.usage,
+        value: serverPerformance.memory?.usage || 0,
         unit: '%',
-        status: serverPerformance.memory.status,
+        status: serverPerformance.memory?.status || 'healthy',
         threshold: { warning: 80, critical: 90 },
-        trend: Math.random() * 10 - 5,
+        trend: serverPerformance.memory?.trend || 0,
         description: 'System memory utilization',
         lastUpdated: new Date().toISOString()
       },
       {
-      id: 'disk-usage',
-      name: 'Disk Usage',
-      value: 72.1,
-      unit: '%',
-      status: 'warning',
-      threshold: { warning: 75, critical: 90 },
-      trend: 0.5,
-      description: 'Storage utilization across all volumes',
-      lastUpdated: '2024-12-10T10:28:00Z'
+        id: 'disk-usage',
+        name: 'Disk Usage',
+        value: serverPerformance.disk?.usage || 0,
+        unit: '%',
+        status: serverPerformance.disk?.status || 'healthy',
+        threshold: { warning: 75, critical: 90 },
+        trend: serverPerformance.disk?.trend || 0,
+        description: 'Storage utilization across all volumes',
+        lastUpdated: new Date().toISOString()
       },
       {
-      id: 'network-throughput',
-      name: 'Network Throughput',
-      value: 234.7,
-      unit: 'Mbps',
-      status: 'healthy',
-      threshold: { warning: 800, critical: 950 },
-      trend: 12.4,
-      description: 'Current network throughput',
-      lastUpdated: '2024-12-10T10:27:00Z'
+        id: 'network-throughput',
+        name: 'Network Throughput',
+        value: serverPerformance.network?.throughput || 0,
+        unit: 'Mbps',
+        status: serverPerformance.network?.status || 'healthy',
+        threshold: { warning: 800, critical: 950 },
+        trend: serverPerformance.network?.trend || 0,
+        description: 'Current network throughput',
+        lastUpdated: new Date().toISOString()
       },
       {
-      id: 'response-time',
-      name: 'Response Time',
-      value: 45.3,
-      unit: 'ms',
-      status: 'healthy',
-      threshold: { warning: 100, critical: 200 },
-      trend: -5.8,
-      description: 'Average API response time',
-      lastUpdated: '2024-12-10T10:26:00Z'
+        id: 'response-time',
+        name: 'Response Time',
+        value: apiPerformance?.averageResponseTime || 0,
+        unit: 'ms',
+        status: apiPerformance?.status || 'healthy',
+        threshold: { warning: 100, critical: 200 },
+        trend: apiPerformance?.trend || 0,
+        description: 'Average API response time',
+        lastUpdated: new Date().toISOString()
       },
       {
-      id: 'error-rate',
-      name: 'Error Rate',
-      value: 0.12,
-      unit: '%',
-      status: 'healthy',
-      threshold: { warning: 1, critical: 5 },
-      trend: -0.02,
-      description: 'System error rate',
-      lastUpdated: '2024-12-10T10:25:00Z'
+        id: 'error-rate',
+        name: 'Error Rate',
+        value: apiPerformance?.errorRate || 0,
+        unit: '%',
+        status: apiPerformance?.errorRateStatus || 'healthy',
+        threshold: { warning: 1, critical: 5 },
+        trend: apiPerformance?.errorRateTrend || 0,
+        description: 'System error rate',
+        lastUpdated: new Date().toISOString()
       }
-  ], []);
+    ];
+  }, [systemHealthData]);
 
-  const services: ServiceStatus[] = useMemo(() => [
-    {
-      name: 'API Gateway',
-      status: 'running',
-      uptime: 15.7,
-      cpu: 23.4,
-      memory: 1.2,
-      network: { in: 234.5, out: 187.3 },
-      health: {
-        score: 98.5,
-        checks: [
-          { name: 'Health Check', status: true, lastCheck: '2024-12-10T10:29:00Z' },
-          { name: 'Rate Limiting', status: true, lastCheck: '2024-12-10T10:29:00Z' },
-          { name: 'Authentication', status: true, lastCheck: '2024-12-10T10:29:00Z' }
-        ]
-      },
-      version: '2.1.0',
-      port: 8080,
-      endpoint: '/api/v1'
-    },
-    {
-      name: 'Database',
-      status: 'running',
-      uptime: 25.3,
-      cpu: 45.2,
-      memory: 8.7,
-      network: { in: 156.7, out: 123.4 },
-      health: {
-        score: 96.2,
-        checks: [
-          { name: 'Connection Pool', status: true, lastCheck: '2024-12-10T10:28:00Z' },
-          { name: 'Query Performance', status: true, lastCheck: '2024-12-10T10:28:00Z' },
-          { name: 'Backup Status', status: true, lastCheck: '2024-12-10T10:28:00Z' }
-        ]
-      },
-      version: 'PostgreSQL 14.2',
-      port: 5432
-    },
-    {
-      name: 'Redis Cache',
-      status: 'running',
-      uptime: 18.9,
-      cpu: 12.1,
-      memory: 0.8,
-      network: { in: 89.4, out: 76.2 },
-      health: {
-        score: 99.1,
-        checks: [
-          { name: 'Memory Usage', status: true, lastCheck: '2024-12-10T10:27:00Z' },
-          { name: 'Key Expiration', status: true, lastCheck: '2024-12-10T10:27:00Z' },
-          { name: 'Persistence', status: true, lastCheck: '2024-12-10T10:27:00Z' }
-        ]
-      },
-      version: '6.2.7',
-      port: 6379
-    },
-    {
-      name: 'Workout MCP',
-      status: 'running',
-      uptime: 12.5,
-      cpu: 34.7,
-      memory: 2.1,
-      network: { in: 45.6, out: 38.2 },
-      health: {
-        score: 89.4,
-        checks: [
-          { name: 'Model Loading', status: true, lastCheck: '2024-12-10T10:26:00Z' },
-          { name: 'GPU Memory', status: false, lastCheck: '2024-12-10T10:26:00Z' },
-          { name: 'Request Queue', status: true, lastCheck: '2024-12-10T10:26:00Z' }
-        ]
-      },
-      version: '1.5.0',
-      port: 8001
-    },
-    {
-      name: 'YOLO AI Service',
-      status: 'error',
-      uptime: 0,
-      cpu: 0,
-      memory: 0,
-      network: { in: 0, out: 0 },
-      health: {
-        score: 0,
-        checks: [
-          { name: 'Service Status', status: false, lastCheck: '2024-12-10T10:25:00Z' },
-          { name: 'Model Health', status: false, lastCheck: '2024-12-10T10:25:00Z' },
-          { name: 'GPU Utilization', status: false, lastCheck: '2024-12-10T10:25:00Z' }
-        ]
-      },
-      version: '2.0.1',
-      port: 8002
-    },
-    {
-      name: 'Load Balancer',
-      status: 'running',
-      uptime: 30.1,
-      cpu: 8.9,
-      memory: 0.5,
-      network: { in: 567.8, out: 523.4 },
-      health: {
-        score: 97.8,
-        checks: [
-          { name: 'Backend Health', status: true, lastCheck: '2024-12-10T10:24:00Z' },
-          { name: 'SSL Certificates', status: true, lastCheck: '2024-12-10T10:24:00Z' },
-          { name: 'Traffic Distribution', status: true, lastCheck: '2024-12-10T10:24:00Z' }
-        ]
-      },
-      version: 'Nginx 1.21.4',
-      port: 443
+  const services: ServiceStatus[] = useMemo(() => {
+    if (!systemHealthData?.services) {
+      return [];
     }
-  ], []);
 
-  const infrastructureNodes: InfrastructureNode[] = useMemo(() => [
-    {
-      id: 'web-server-01',
-      name: 'Web Server 01',
-      type: 'server',
-      status: 'online',
-      location: 'US East (Virginia)',
-      specs: {
-        cpu: '8 vCPUs',
-        memory: '32 GB',
-        storage: '500 GB SSD'
+    return systemHealthData.services.map((service: any) => ({
+      name: service.name,
+      status: service.status,
+      uptime: service.uptime || 0,
+      cpu: service.metrics?.cpu || 0,
+      memory: service.metrics?.memory || 0,
+      network: {
+        in: service.metrics?.network?.in || 0,
+        out: service.metrics?.network?.out || 0
       },
-      metrics: {
-        cpu: 45.2,
-        memory: 62.8,
-        disk: 45.1,
-        network: 234.5,
-        temperature: 45
+      health: {
+        score: service.health?.score || 0,
+        checks: service.health?.checks || []
       },
-      services: ['API Gateway', 'Load Balancer'],
-      lastPing: '2024-12-10T10:29:00Z',
-      uptime: 99.98
-    },
-    {
-      id: 'db-server-01',
-      name: 'Database Server 01',
-      type: 'database',
-      status: 'online',
-      location: 'US East (Virginia)',
-      specs: {
-        cpu: '16 vCPUs',
-        memory: '64 GB',
-        storage: '2 TB NVMe'
-      },
-      metrics: {
-        cpu: 23.7,
-        memory: 34.5,
-        disk: 67.3,
-        network: 156.2,
-        temperature: 42
-      },
-      services: ['PostgreSQL', 'Redis'],
-      lastPing: '2024-12-10T10:28:00Z',
-      uptime: 99.95
-    },
-    {
-      id: 'cache-server-01',
-      name: 'Cache Server 01',
-      type: 'cache',
-      status: 'online',
-      location: 'US West (Oregon)',
-      specs: {
-        cpu: '4 vCPUs',
-        memory: '16 GB',
-        storage: '100 GB SSD'
-      },
-      metrics: {
-        cpu: 12.3,
-        memory: 45.6,
-        disk: 23.8,
-        network: 89.4
-      },
-      services: ['Redis Cache'],
-      lastPing: '2024-12-10T10:27:00Z',
-      uptime: 99.99
-    },
-    {
-      id: 'ai-server-01',
-      name: 'AI Processing Server 01',
-      type: 'server',
-      status: 'degraded',
-      location: 'US Central (Iowa)',
-      specs: {
-        cpu: '24 vCPUs + 4x V100 GPU',
-        memory: '128 GB',
-        storage: '1 TB NVMe'
-      },
-      metrics: {
-        cpu: 78.9,
-        memory: 89.3,
-        disk: 45.2,
-        network: 45.6,
-        temperature: 72
-      },
-      services: ['YOLO AI', 'Workout MCP'],
-      lastPing: '2024-12-10T10:26:00Z',
-      uptime: 97.8
-    },
-    {
-      id: 'cdn-edge-01',
-      name: 'CDN Edge Server 01',
-      type: 'cdn',
-      status: 'online',
-      location: 'Global',
-      specs: {
-        cpu: 'Distributed',
-        memory: 'Distributed',
-        storage: '10 TB Global'
-      },
-      metrics: {
-        cpu: 15.6,
-        memory: 23.4,
-        disk: 34.5,
-        network: 1234.5
-      },
-      services: ['Content Delivery', 'Static Assets'],
-      lastPing: '2024-12-10T10:25:00Z',
-      uptime: 99.99
-    },
-    {
-      id: 'storage-server-01',
-      name: 'Storage Server 01',
-      type: 'storage',
-      status: 'maintenance',
-      location: 'US East (Virginia)',
-      specs: {
-        cpu: '8 vCPUs',
-        memory: '32 GB',
-        storage: '50 TB RAID'
-      },
-      metrics: {
-        cpu: 0,
-        memory: 0,
-        disk: 78.9,
-        network: 0
-      },
-      services: ['File Storage', 'Backup Service'],
-      lastPing: '2024-12-10T09:45:00Z',
-      uptime: 99.5
-    }
-  ], []);
+      version: service.version || 'Unknown',
+      port: service.port,
+      endpoint: service.endpoint
+    }));
+  }, [systemHealthData]);
 
-  const alerts: Alert[] = useMemo(() => [
-    {
-      id: '1',
-      title: 'High CPU Usage',
-      message: 'AI Processing Server CPU usage exceeded 75%',
-      severity: 'high',
-      source: 'ai-server-01',
-      timestamp: '2024-12-10T10:15:00Z',
-      status: 'active',
-      actions: ['Scale resources', 'Restart service', 'Investigate load']
-    },
-    {
-      id: '2',
-      title: 'Service Down',
-      message: 'YOLO AI Service is not responding',
-      severity: 'critical',
-      source: 'ai-server-01',
-      timestamp: '2024-12-10T10:05:00Z',
-      status: 'active',
-      actions: ['Restart service', 'Check logs', 'Failover to backup']
-    },
-    {
-      id: '3',
-      title: 'High Disk Usage',
-      message: 'Storage Server disk usage approaching 80%',
-      severity: 'medium',
-      source: 'storage-server-01',
-      timestamp: '2024-12-10T09:45:00Z',
-      status: 'acknowledged',
-      actions: ['Clean old backups', 'Add storage capacity', 'Archive data']
-    },
-    {
-      id: '4',
-      title: 'Maintenance Window',
-      message: 'Scheduled maintenance for Storage Server 01',
-      severity: 'low',
-      source: 'storage-server-01',
-      timestamp: '2024-12-10T09:30:00Z',
-      status: 'resolved',
-      actions: ['Complete maintenance', 'Verify backup integrity']
+  const infrastructureNodes: InfrastructureNode[] = useMemo(() => {
+    if (!systemHealthData?.infrastructure) {
+      return [];
     }
-  ], []);
 
-  const performanceData: PerformanceMetric[] = useMemo(() => [
-    {
-      timestamp: '2024-12-10T06:00:00Z',
-      cpu: 45.2,
-      memory: 56.8,
-      disk: 34.5,
-      network: 234.7,
-      responseTime: 52.3,
-      throughput: 1234,
-      errorRate: 0.15
-    },
-    {
-      timestamp: '2024-12-10T07:00:00Z',
-      cpu: 48.7,
-      memory: 58.3,
-      disk: 35.1,
-      network: 267.4,
-      responseTime: 48.9,
-      throughput: 1456,
-      errorRate: 0.12
-    },
-    {
-      timestamp: '2024-12-10T08:00:00Z',
-      cpu: 62.4,
-      memory: 61.7,
-      disk: 36.8,
-      network: 345.2,
-      responseTime: 55.7,
-      throughput: 1789,
-      errorRate: 0.18
-    },
-    {
-      timestamp: '2024-12-10T09:00:00Z',
-      cpu: 68.9,
-      memory: 64.2,
-      disk: 38.5,
-      network: 456.8,
-      responseTime: 62.4,
-      throughput: 2134,
-      errorRate: 0.23
-    },
-    {
-      timestamp: '2024-12-10T10:00:00Z',
-      cpu: 68.5,
-      memory: 45.2,
-      disk: 72.1,
-      network: 234.7,
-      responseTime: 45.3,
-      throughput: 1876,
-      errorRate: 0.12
+    return systemHealthData.infrastructure.map((node: any) => ({
+      id: node.id,
+      name: node.name,
+      type: node.type,
+      status: node.status,
+      location: node.location || 'Unknown',
+      specs: {
+        cpu: node.specs?.cpu || 'Unknown',
+        memory: node.specs?.memory || 'Unknown',
+        storage: node.specs?.storage || 'Unknown'
+      },
+      metrics: {
+        cpu: node.metrics?.cpu || 0,
+        memory: node.metrics?.memory || 0,
+        disk: node.metrics?.disk || 0,
+        network: node.metrics?.network || 0,
+        temperature: node.metrics?.temperature
+      },
+      services: node.services || [],
+      lastPing: node.lastPing || new Date().toISOString(),
+      uptime: node.uptime || 0
+    }));
+  }, [systemHealthData]);
+
+  const alerts: Alert[] = useMemo(() => {
+    if (!systemHealthData?.alerts) {
+      return [];
     }
-  ], []);
+
+    return systemHealthData.alerts.map((alert: any) => ({
+      id: alert.id,
+      title: alert.title,
+      message: alert.message,
+      severity: alert.severity,
+      source: alert.source,
+      timestamp: alert.timestamp,
+      status: alert.status,
+      actions: alert.actions || []
+    }));
+  }, [systemHealthData]);
+
+  const performanceData: PerformanceMetric[] = useMemo(() => {
+    if (!systemHealthData?.performanceHistory) {
+      return [];
+    }
+
+    return systemHealthData.performanceHistory.map((metric: any) => ({
+      timestamp: metric.timestamp,
+      cpu: metric.cpu || 0,
+      memory: metric.memory || 0,
+      disk: metric.disk || 0,
+      network: metric.network || 0,
+      responseTime: metric.responseTime || 0,
+      throughput: metric.throughput || 0,
+      errorRate: metric.errorRate || 0
+    }));
+  }, [systemHealthData]);
 
   // Helper functions
   const getStatusColor = (status: string) => {
@@ -825,6 +615,16 @@ const SystemHealthPanel: React.FC = () => {
       case 'critical': case 'error': case 'offline': return <Error />;
       case 'maintenance': case 'starting': case 'stopping': return <Engineering />;
       default: return <Info />;
+    }
+  };
+
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'critical': return '#f44336';
+      case 'high': return '#ff9800';
+      case 'medium': return '#ff9800';
+      case 'low': return '#4caf50';
+      default: return '#757575';
     }
   };
 
@@ -891,8 +691,25 @@ const SystemHealthPanel: React.FC = () => {
     </Box>
   );
 
-  const renderOverviewTab = () => (
+  const renderOverviewTab = () => {
+    // Show loading state if overview data is loading
+    if (isLoadingData('overview')) {
+      return <LoadingSpinner message="Loading system health overview..." />;
+    }
+
+    return (
     <Grid container spacing={3}>
+      {/* Error State */}
+      {hasError('overview') && (
+        <Grid item xs={12}>
+          <ErrorMessage 
+            error={errors.overview!} 
+            onRetry={fetchSystemHealthData} 
+            dataType="system health data" 
+          />
+        </Grid>
+      )}
+      
       {/* System Metrics Overview */}
       <Grid item xs={12}>
         <Typography variant="h6" gutterBottom sx={{ color: '#00ffff', mb: 3 }}>
@@ -968,8 +785,8 @@ const SystemHealthPanel: React.FC = () => {
                 <ComposedChart data={performanceData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
                   <XAxis dataKey="timestamp" stroke="#e0e0e0" />
-                  <YAxis yAxisid="left" stroke="#e0e0e0" />
-                  <YAxis yAxisid="right" orientation="right" stroke="#e0e0e0" />
+                  <YAxis yAxisId="left" stroke="#e0e0e0" />
+                  <YAxis yAxisId="right" orientation="right" stroke="#e0e0e0" />
                   <ReTooltip 
                     contentStyle={{ 
                       backgroundColor: '#1d1f2b', 
@@ -979,7 +796,7 @@ const SystemHealthPanel: React.FC = () => {
                   />
                   <Legend />
                   <Area
-                    yAxisid="left"
+                    yAxisId="left"
                     type="monotone"
                     dataKey="cpu"
                     fill="url(#cpuGradient)"
@@ -988,7 +805,7 @@ const SystemHealthPanel: React.FC = () => {
                     name="CPU (%)"
                   />
                   <Area
-                    yAxisid="left"
+                    yAxisId="left"
                     type="monotone"
                     dataKey="memory"
                     fill="url(#memoryGradient)"
@@ -997,7 +814,7 @@ const SystemHealthPanel: React.FC = () => {
                     name="Memory (%)"
                   />
                   <Line
-                    yAxisid="right"
+                    yAxisId="right"
                     type="monotone"
                     dataKey="responseTime"
                     stroke="#4caf50"
@@ -1092,7 +909,8 @@ const SystemHealthPanel: React.FC = () => {
         </GlassCard>
       </Grid>
     </Grid>
-  );
+    );
+  };
 
   const renderServicesTab = () => (
     <Grid container spacing={3}>
@@ -1111,7 +929,7 @@ const SystemHealthPanel: React.FC = () => {
               }
               label="Issues Only"
             />
-            <Button variant="outlined" startIcon={<Refresh />}>
+            <Button variant="outlined" startIcon={<Refresh />} onClick={refreshAllData}>
               Refresh All
             </Button>
           </Box>
@@ -1256,7 +1074,7 @@ const SystemHealthPanel: React.FC = () => {
           <Typography variant="h6" sx={{ color: '#00ffff' }}>
             Infrastructure Health
           </Typography>
-          <Button variant="outlined" startIcon={<Refresh />}>
+          <Button variant="outlined" startIcon={<Refresh />} onClick={refreshAllData}>
             Ping All Nodes
           </Button>
         </Box>
@@ -1454,7 +1272,7 @@ const SystemHealthPanel: React.FC = () => {
   );
 
   // Loading and error states
-  if (isLoading && !systemHealthData) {
+  if (isLoadingData('overview') && !systemHealthData) {
     return (
       <Box sx={{ bgcolor: '#0a0a1a', minHeight: '100vh', p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Box sx={{ textAlign: 'center' }}>
@@ -1467,20 +1285,20 @@ const SystemHealthPanel: React.FC = () => {
     );
   }
 
-  if (error && !systemHealthData) {
+  if (hasError('overview') && !systemHealthData) {
     return (
       <Box sx={{ bgcolor: '#0a0a1a', minHeight: '100vh', p: 3 }}>
         <Alert 
           severity="error" 
           sx={{ mb: 3, backgroundColor: 'rgba(244, 67, 54, 0.1)', color: '#f44336', border: '1px solid #f44336' }}
           action={
-            <Button color="inherit" size="small" onClick={fetchSystemHealthData} disabled={isLoading}>
-              {isLoading ? <CircularProgress size={16} /> : 'Retry'}
+            <Button color="inherit" size="small" onClick={fetchSystemHealthData} disabled={isLoadingData('overview')}>
+              {isLoadingData('overview') ? <CircularProgress size={16} /> : 'Retry'}
             </Button>
           }
         >
           <Typography variant="h6">Failed to Load System Health Data</Typography>
-          <Typography variant="body2">{error}</Typography>
+          <Typography variant="body2">{errors.overview}</Typography>
         </Alert>
       </Box>
     );

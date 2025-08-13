@@ -1,10 +1,11 @@
 /**
  * Security Monitoring Dashboard Component
  * Real-time security monitoring, threat detection, and incident management
+ * PHASE 2B: Converted from mock data to real API integration
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useAuthenticatedAxios } from '../../../../../../hooks/useAxios';
+import { useAuth } from '../../../../context/AuthContext';
 import {
   Box,
   Card,
@@ -50,7 +51,10 @@ import {
   Stepper,
   Step,
   StepLabel,
-  StepContent
+  StepContent,
+  SpeedDial,
+  SpeedDialAction,
+  SpeedDialIcon
 } from '@mui/material';
 
 import {
@@ -112,16 +116,15 @@ import {
   SupervisedUserCircle,
   ManageAccounts,
   Login,
-  LogoutIcon,
+  Logout,
   PersonPin,
   HourglassEmpty,
   HistoryToggleOff,
   QueryStats,
   DataUsage,
   Engineering,
-  BugReport as BugReportIcon,
   Dashboard,
-  Computer as ComputerIcon,
+  Computer,
   Smartphone,
   CompareArrows,
   Code,
@@ -148,109 +151,83 @@ import {
   RadialBarChart,
   RadialBar,
   Treemap,
-  ScatterChart,
-  Scatter,
   FunnelChart,
-  Funnel,
-  LabelList
+  Funnel
 } from 'recharts';
 
 import { styled } from '@mui/material/styles';
 
 // Types
-interface SecurityMetric {
+interface SecurityEvent {
+  id: string;
+  type: 'login_attempt' | 'failed_authentication' | 'suspicious_activity' | 'data_breach' | 'malware_detection' | 'unauthorized_access';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  timestamp: string;
+  source: string;
+  target: string;
+  userAgent: string;
+  ipAddress: string;
+  location: string;
+  status: 'active' | 'resolved' | 'investigating' | 'false_positive';
+  description: string;
+  affectedUsers: number;
+  mitigationSteps: string[];
+}
+
+interface ThreatMetric {
+  date: string;
+  failedLogins: number;
+  suspiciousActivities: number;
+  blockedAttacks: number;
+  successfulBreaches: number;
+  vulnerabilityScans: number;
+  malwareDetections: number;
+  dataExfiltrationAttempts: number;
+  securityScore: number;
+}
+
+interface SecurityPolicy {
   id: string;
   name: string;
-  value: number;
-  change: number;
-  changeType: 'increase' | 'decrease' | 'neutral';
-  status: 'good' | 'warning' | 'critical';
   description: string;
+  status: 'active' | 'inactive' | 'pending_review';
+  coverage: number;
+  violations: number;
   lastUpdated: string;
+  category: 'authentication' | 'authorization' | 'data_protection' | 'network_security' | 'compliance';
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  enforcementLevel: 'monitor' | 'warn' | 'block';
+  affectedUsers: number;
 }
 
-interface SecurityIncident {
+interface VulnerabilityAssessment {
   id: string;
   title: string;
-  description: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
-  status: 'new' | 'investigating' | 'contained' | 'resolved';
-  type: 'unauthorized_access' | 'ddos' | 'malware' | 'data_breach' | 'policy_violation' | 'other';
-  timestamp: string;
+  category: 'software' | 'configuration' | 'network' | 'access_control' | 'data';
+  status: 'open' | 'in_progress' | 'resolved' | 'accepted_risk';
+  discoveredDate: string;
+  lastAssessed: string;
+  cvssScore: number;
   affectedSystems: string[];
-  sourceIP?: string;
-  sourceLocation?: string;
-  userAgent?: string;
-  actions: string[];
-  assignedTo?: string;
-  resolutionTime?: number;
-  impactScore: number;
+  remediationSteps: string[];
+  estimatedEffort: string;
+  businessImpact: 'low' | 'medium' | 'high' | 'critical';
 }
 
-interface LoginAttempt {
-  id: string;
+interface AccessControlMetric {
+  userId: string;
   username: string;
-  ip: string;
-  location: string;
-  userAgent: string;
-  timestamp: string;
-  success: boolean;
-  failureReason?: string;
+  role: string;
+  lastLogin: string;
+  failedAttempts: number;
+  sessionsToday: number;
+  privilegeLevel: 'standard' | 'elevated' | 'admin' | 'super_admin';
+  mfaEnabled: boolean;
+  passwordStrength: 'weak' | 'medium' | 'strong';
   riskScore: number;
-  isSuspicious: boolean;
-}
-
-interface ThreatAnalysis {
-  threatLevel: 'low' | 'medium' | 'high' | 'critical';
-  activeThreat: string[];
-  blockedIPs: number;
-  suspiciousActivities: number;
-  vulnerabilities: {
-    critical: number;
-    high: number;
-    medium: number;
-    low: number;
-  };
-  lastScan: string;
-  recommendations: string[];
-}
-
-interface SecurityConfig {
-  passwordPolicy: {
-    minLength: number;
-    requireSpecialChars: boolean;
-    requireNumbers: boolean;
-    requireUppercase: boolean;
-    maxAge: number;
-  };
-  twoFactorAuth: {
-    enabled: boolean;
-    mandatory: boolean;
-    methods: string[];
-  };
-  sessionPolicy: {
-    maxDuration: number;
-    idleTimeout: number;
-    maxConcurrentSessions: number;
-  };
-  ipWhitelisting: {
-    enabled: boolean;
-    whitelistedIPs: string[];
-  };
-  encryption: {
-    dataAtRest: boolean;
-    dataInTransit: boolean;
-    algorithm: string;
-  };
-}
-
-interface SecurityEvent {
-  timestamp: string;
-  eventType: string;
-  description: string;
-  severity: string;
-  sourceIP: string;
-  affectedResource: string;
+  suspiciousActivity: boolean;
+  accountStatus: 'active' | 'locked' | 'suspended' | 'disabled';
 }
 
 // Styled components
@@ -267,7 +244,7 @@ const GlassCard = styled(Card)(({ theme }) => ({
   },
 }));
 
-const SecurityCard = styled(GlassCard)<{ severity?: string }>(({ severity = 'good' }) => ({
+const SecurityCard = styled(GlassCard)<{ severity?: string }>(({ severity = 'low' }) => ({
   position: 'relative',
   '&::before': {
     content: '""',
@@ -278,605 +255,467 @@ const SecurityCard = styled(GlassCard)<{ severity?: string }>(({ severity = 'goo
     height: 4,
     background: `linear-gradient(90deg, ${
       severity === 'critical' ? '#f44336' :
-      severity === 'warning' ? '#ff9800' :
-      severity === 'good' ? '#4caf50' : '#2196f3'
+      severity === 'high' ? '#ff9800' :
+      severity === 'medium' ? '#ff9800' :
+      severity === 'low' ? '#4caf50' : '#2196f3'
     }, transparent)`,
   },
 }));
 
-const ThreatLevelIndicator = styled(Box)<{ level: string }>(({ level }) => ({
+const ThreatIndicator = styled(Box)<{ level: string }>(({ level }) => ({
   width: 16,
   height: 16,
   borderRadius: '50%',
   backgroundColor: 
     level === 'critical' ? '#f44336' :
-    level === 'high' ? '#ff5722' :
-    level === 'medium' ? '#ff9800' : '#4caf50',
-  boxShadow: `0 0 10px ${
+    level === 'high' ? '#ff9800' :
+    level === 'medium' ? '#ff9800' :
+    level === 'low' ? '#4caf50' : '#2196f3',
+  boxShadow: `0 0 8px ${
     level === 'critical' ? '#f44336' :
-    level === 'high' ? '#ff5722' :
-    level === 'medium' ? '#ff9800' : '#4caf50'
+    level === 'high' ? '#ff9800' :
+    level === 'medium' ? '#ff9800' :
+    level === 'low' ? '#4caf50' : '#2196f3'
   }`,
-  animation: level === 'critical' ? 'pulse 1.5s infinite' : 'none',
+  animation: level === 'critical' ? 'pulse 2s infinite' : 'none',
   '@keyframes pulse': {
-    '0%': { transform: 'scale(1)', opacity: 1 },
-    '50%': { transform: 'scale(1.2)', opacity: 0.7 },
-    '100%': { transform: 'scale(1)', opacity: 1 },
+    '0%': {
+      boxShadow: `0 0 0 0 rgba(244, 67, 54, 0.7)`,
+    },
+    '70%': {
+      boxShadow: `0 0 0 10px rgba(244, 67, 54, 0)`,
+    },
+    '100%': {
+      boxShadow: `0 0 0 0 rgba(244, 67, 54, 0)`,
+    },
+  },
+}));
+
+const MetricCard = styled(GlassCard)<{ accentColor?: string }>(({ accentColor = '#00ffff' }) => ({
+  position: 'relative',
+  overflow: 'hidden',
+  '&::before': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 4,
+    background: `linear-gradient(90deg, ${accentColor}, transparent)`,
   },
 }));
 
 const SecurityMonitoringPanel: React.FC = () => {
+  const { authAxios } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [timeRange, setTimeRange] = useState('24h');
+  const [severityFilter, setSeverityFilter] = useState('all');
   const [isRealTime, setIsRealTime] = useState(true);
-  const [incidentDialogOpen, setIncidentDialogOpen] = useState(false);
-  const [selectedIncident, setSelectedIncident] = useState<SecurityIncident | null>(null);
-  const [securityScanRunning, setSecurityScanRunning] = useState(false);
-  const [showSuspiciousOnly, setShowSuspiciousOnly] = useState(false);
+  const [eventDialogOpen, setEventDialogOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<SecurityEvent | null>(null);
+  const [showResolvedOnly, setShowResolvedOnly] = useState(false);
 
-  // Real API state management
+  // Real API state management (following UserAnalyticsPanel pattern)
   const [securityData, setSecurityData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
-  const authAxios = useAuthenticatedAxios();
+  const [loading, setLoading] = useState({
+    overview: false,
+    events: false,
+    vulnerabilities: false,
+    policies: false
+  });
+  const [errors, setErrors] = useState({
+    overview: null as string | null,
+    events: null as string | null,
+    vulnerabilities: null as string | null,
+    policies: null as string | null
+  });
 
-  // Real API data fetching function
-  const fetchSecurityData = useCallback(async () => {
-    if (!authAxios) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
+  // API call functions
+  const fetchSecurityMetrics = useCallback(async () => {
     try {
+      setLoading(prev => ({ ...prev, overview: true }));
+      setErrors(prev => ({ ...prev, overview: null }));
+      
       const response = await authAxios.get('/api/admin/security/metrics', {
         params: { timeRange }
       });
       
       if (response.data.success) {
         setSecurityData(response.data.data);
+        console.log('✅ Real security metrics data loaded successfully');
       } else {
-        setError('Failed to fetch security data');
+        throw new Error(response.data.message || 'Failed to load security metrics');
       }
     } catch (error: any) {
-      console.error('Error fetching security data:', error);
-      setError(error?.response?.data?.message || 'Failed to fetch security data');
+      const errorMessage = error.response?.data?.message || 'Failed to load security metrics';
+      setErrors(prev => ({ ...prev, overview: errorMessage }));
+      console.error('❌ Failed to load real security metrics:', errorMessage);
     } finally {
-      setIsLoading(false);
+      setLoading(prev => ({ ...prev, overview: false }));
     }
   }, [authAxios, timeRange]);
 
-  // Auto-refresh security data
-  useEffect(() => {
-    fetchSecurityData();
-    
-    // Set up real-time refresh if enabled
-    if (isRealTime) {
-      const interval = setInterval(fetchSecurityData, 60000); // Refresh every 60 seconds
-      setRefreshInterval(interval);
-      return () => clearInterval(interval);
-    } else if (refreshInterval) {
-      clearInterval(refreshInterval);
-      setRefreshInterval(null);
-    }
-  }, [fetchSecurityData, isRealTime]);
+  // Refresh all data
+  const refreshAllData = useCallback(async () => {
+    console.log('🔄 Refreshing all security monitoring data...');
+    await fetchSecurityMetrics();
+    console.log('✅ All security monitoring data refreshed');
+  }, [fetchSecurityMetrics]);
 
-  // Refresh when timeRange changes
+  // Initial data load
   useEffect(() => {
-    if (authAxios && securityData) {
-      fetchSecurityData();
-    }
-  }, [timeRange]);
+    fetchSecurityMetrics();
+  }, [fetchSecurityMetrics]);
+
+  // Auto-refresh setup
+  useEffect(() => {
+    if (!isRealTime) return;
+
+    const interval = setInterval(() => {
+      refreshAllData();
+    }, 30000); // Refresh every 30 seconds for security monitoring
+
+    return () => clearInterval(interval);
+  }, [isRealTime, refreshAllData]);
+
+  // Update data when timeRange changes
+  useEffect(() => {
+    fetchSecurityMetrics();
+  }, [timeRange, fetchSecurityMetrics]);
+
+  // Helper function to check if data is loading
+  const isLoadingData = (dataType: keyof typeof loading) => loading[dataType];
+  const hasError = (dataType: keyof typeof errors) => !!errors[dataType];
+
+  // Helper component for loading states
+  const LoadingSpinner = ({ message = 'Loading data...' }) => (
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 4 }}>
+      <CircularProgress sx={{ color: '#00ffff' }} />
+      <Typography variant="body2" color="text.secondary">{message}</Typography>
+    </Box>
+  );
+
+  // Helper component for error states
+  const ErrorMessage = ({ error, onRetry, dataType }: { error: string; onRetry: () => void; dataType: string }) => (
+    <Alert 
+      severity="error" 
+      action={
+        <Button color="inherit" size="small" onClick={onRetry} startIcon={<Refresh />}>
+          Retry
+        </Button>
+      }
+      sx={{ mb: 2, bgcolor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+    >
+      Failed to load {dataType}: {error}
+    </Alert>
+  );
 
   // Transform real API data to component format
-  const securityMetrics: SecurityMetric[] = useMemo(() => {
-    if (!securityData?.authenticationEvents) {
+  const securityEvents: SecurityEvent[] = useMemo(() => {
+    if (!securityData?.events) {
       return [];
     }
 
-    const { authenticationEvents, rateLimitEvents, securityScore } = securityData;
+    return securityData.events.map((event: any) => ({
+      id: event.id,
+      type: event.type,
+      severity: event.severity,
+      timestamp: event.timestamp,
+      source: event.source || 'Unknown',
+      target: event.target || 'Unknown',
+      userAgent: event.userAgent || 'Unknown',
+      ipAddress: event.ipAddress || 'Unknown',
+      location: event.location || 'Unknown',
+      status: event.status,
+      description: event.description || 'No description available',
+      affectedUsers: event.affectedUsers || 0,
+      mitigationSteps: event.mitigationSteps || []
+    }));
+  }, [securityData]);
 
-    return [
-      {
-        id: 'failed-logins',
-        name: 'Failed Login Attempts',
-        value: authenticationEvents.summary.failedLogins,
-        change: Math.random() * 20 - 10, // Mock change - implement real calculation
-        changeType: 'decrease',
-        status: authenticationEvents.summary.failedLogins > 1000 ? 'warning' : 'good',
-        description: 'Failed login attempts in the last 24 hours',
-        lastUpdated: new Date().toISOString()
-      },
-      {
-      id: 'blocked-ips',
-      name: 'Blocked IP Addresses',
-      value: 45,
-      change: 8.7,
-      changeType: 'increase',
-      status: 'warning',
-      description: 'IP addresses currently blocked',
-      lastUpdated: '2024-12-10T10:25:00Z'
-    },
-    {
-      id: 'successful-logins',
-      name: 'Successful Logins',
-      value: 23456,
-      change: 12.4,
-      changeType: 'increase',
-      status: 'good',
-      description: 'Successful logins in the last 24 hours',
-      lastUpdated: '2024-12-10T10:20:00Z'
-    },
-    {
-      id: 'security-incidents',
-      name: 'Security Incidents',
-      value: 7,
-      change: 0,
-      changeType: 'neutral',
-      status: 'critical',
-      description: 'Active security incidents',
-      lastUpdated: '2024-12-10T10:15:00Z'
-    },
-    {
-      id: 'vulnerability-score',
-      name: 'Security Score',
-      value: 94.2,
-      change: 2.1,
-      changeType: 'increase',
-      status: 'good',
-      description: 'Overall security posture score',
-      lastUpdated: '2024-12-10T10:10:00Z'
-    },
-    {
-      id: 'data-encrypted',
-      name: 'Data Encryption',
-      value: 99.8,
-      change: 0.1,
-      changeType: 'increase',
-      status: 'good',
-      description: 'Percentage of data encrypted',
-      lastUpdated: '2024-12-10T10:05:00Z'
+  const threatMetrics: ThreatMetric[] = useMemo(() => {
+    if (!securityData?.threatHistory) {
+      return [];
     }
-  ], []);
 
-  const securityIncidents: SecurityIncident[] = useMemo(() => [
-    {
-      id: '1',
-      title: 'Multiple Failed Login Attempts',
-      description: 'Unusual number of failed login attempts from IP 192.168.1.100',
-      severity: 'medium',
-      status: 'investigating',
-      type: 'unauthorized_access',
-      timestamp: '2024-12-10T09:45:00Z',
-      affectedSystems: ['Authentication Service', 'User Database'],
-      sourceIP: '192.168.1.100',
-      sourceLocation: 'San Francisco, CA, USA',
-      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      actions: ['IP temporarily blocked', 'User account locked', 'Security team notified'],
-      assignedTo: 'Security Team Alpha',
-      impactScore: 6.5
-    },
-    {
-      id: '2',
-      title: 'Suspicious API Usage Pattern',
-      description: 'Abnormal API request patterns detected from multiple sources',
-      severity: 'high',
-      status: 'new',
-      type: 'ddos',
-      timestamp: '2024-12-10T08:30:00Z',
-      affectedSystems: ['API Gateway', 'Load Balancer'],
-      actions: ['Rate limiting enabled', 'Traffic analysis initiated'],
-      impactScore: 8.2
-    },
-    {
-      id: '3',
-      title: 'Unauthorized Access Attempt',
-      description: 'Admin panel access attempt with expired credentials',
-      severity: 'critical',
-      status: 'contained',
-      type: 'unauthorized_access',
-      timestamp: '2024-12-10T07:15:00Z',
-      affectedSystems: ['Admin Panel', 'Access Control'],
-      sourceIP: '10.0.0.45',
-      sourceLocation: 'Unknown',
-      actions: ['Access denied', 'Session terminated', 'Credentials revoked'],
-      assignedTo: 'Security Team Beta',
-      resolutionTime: 45,
-      impactScore: 9.1
-    },
-    {
-      id: '4',
-      title: 'Data Export Anomaly',
-      description: 'Large volume data export outside normal business hours',
-      severity: 'low',
-      status: 'resolved',
-      type: 'policy_violation',
-      timestamp: '2024-12-10T02:20:00Z',
-      affectedSystems: ['Data Export Service'],
-      actions: ['Export logged and flagged', 'User notified', 'Additional verification required'],
-      assignedTo: 'Compliance Team',
-      resolutionTime: 180,
-      impactScore: 3.2
+    return securityData.threatHistory.map((metric: any) => ({
+      date: metric.date,
+      failedLogins: metric.failedLogins || 0,
+      suspiciousActivities: metric.suspiciousActivities || 0,
+      blockedAttacks: metric.blockedAttacks || 0,
+      successfulBreaches: metric.successfulBreaches || 0,
+      vulnerabilityScans: metric.vulnerabilityScans || 0,
+      malwareDetections: metric.malwareDetections || 0,
+      dataExfiltrationAttempts: metric.dataExfiltrationAttempts || 0,
+      securityScore: metric.securityScore || 0
+    }));
+  }, [securityData]);
+
+  const securityPolicies: SecurityPolicy[] = useMemo(() => {
+    if (!securityData?.policies) {
+      return [];
     }
-  ], []);
 
-  const loginAttempts: LoginAttempt[] = useMemo(() => [
-    {
-      id: '1',
-      username: 'admin',
-      ip: '192.168.1.100',
-      location: 'San Francisco, CA',
-      userAgent: 'Chrome 91.0',
-      timestamp: '2024-12-10T09:45:23Z',
-      success: false,
-      failureReason: 'Invalid password',
-      riskScore: 8.5,
-      isSuspicious: true
-    },
-    {
-      id: '2',
-      username: 'john.doe',
-      ip: '10.0.0.45',
-      location: 'New York, NY',
-      userAgent: 'Firefox 89.0',
-      timestamp: '2024-12-10T09:40:15Z',
-      success: true,
-      riskScore: 2.1,
-      isSuspicious: false
-    },
-    {
-      id: '3',
-      username: 'admin',
-      ip: '192.168.1.100',
-      location: 'San Francisco, CA',
-      userAgent: 'Chrome 91.0',
-      timestamp: '2024-12-10T09:38:10Z',
-      success: false,
-      failureReason: 'Invalid password',
-      riskScore: 9.2,
-      isSuspicious: true
-    },
-    {
-      id: '4',
-      username: 'jane.smith',
-      ip: '10.0.0.67',
-      location: 'Austin, TX',
-      userAgent: 'Safari 14.0',
-      timestamp: '2024-12-10T09:35:42Z',
-      success: true,
-      riskScore: 1.8,
-      isSuspicious: false
-    },
-    {
-      id: '5',
-      username: 'test.user',
-      ip: '192.168.1.200',
-      location: 'Unknown',
-      userAgent: 'Unknown',
-      timestamp: '2024-12-10T09:30:05Z',
-      success: false,
-      failureReason: 'Account not found',
-      riskScore: 7.8,
-      isSuspicious: true
+    return securityData.policies.map((policy: any) => ({
+      id: policy.id,
+      name: policy.name,
+      description: policy.description || 'No description available',
+      status: policy.status,
+      coverage: policy.coverage || 0,
+      violations: policy.violations || 0,
+      lastUpdated: policy.lastUpdated,
+      category: policy.category,
+      severity: policy.severity,
+      enforcementLevel: policy.enforcementLevel,
+      affectedUsers: policy.affectedUsers || 0
+    }));
+  }, [securityData]);
+
+  const vulnerabilities: VulnerabilityAssessment[] = useMemo(() => {
+    if (!securityData?.vulnerabilities) {
+      return [];
     }
-  ], []);
 
-  const threatAnalysis: ThreatAnalysis = useMemo(() => ({
-    threatLevel: 'medium',
-    activeThreat: ['Brute Force Attack', 'Suspicious API Usage'],
-    blockedIPs: 45,
-    suspiciousActivities: 23,
-    vulnerabilities: {
-      critical: 0,
-      high: 2,
-      medium: 7,
-      low: 15
-    },
-    lastScan: '2024-12-10T08:00:00Z',
-    recommendations: [
-      'Enable stronger password policies',
-      'Implement rate limiting on authentication endpoints',
-      'Review and update firewall rules',
-      'Conduct security awareness training'
-    ]
-  }), []);
+    return securityData.vulnerabilities.map((vuln: any) => ({
+      id: vuln.id,
+      title: vuln.title,
+      severity: vuln.severity,
+      category: vuln.category,
+      status: vuln.status,
+      discoveredDate: vuln.discoveredDate,
+      lastAssessed: vuln.lastAssessed,
+      cvssScore: vuln.cvssScore || 0,
+      affectedSystems: vuln.affectedSystems || [],
+      remediationSteps: vuln.remediationSteps || [],
+      estimatedEffort: vuln.estimatedEffort || 'Unknown',
+      businessImpact: vuln.businessImpact
+    }));
+  }, [securityData]);
 
-  const securityEvents: SecurityEvent[] = useMemo(() => [
-    {
-      timestamp: '2024-12-10T09:45:23Z',
-      eventType: 'Failed Login',
-      description: 'Multiple failed login attempts for admin account',
-      severity: 'medium',
-      sourceIP: '192.168.1.100',
-      affectedResource: 'Authentication Service'
-    },
-    {
-      timestamp: '2024-12-10T09:30:15Z',
-      eventType: 'Policy Violation',
-      description: 'Data export outside business hours',
-      severity: 'low',
-      sourceIP: '10.0.0.23',
-      affectedResource: 'Data Export API'
-    },
-    {
-      timestamp: '2024-12-10T09:15:45Z',
-      eventType: 'Firewall Block',
-      description: 'Blocked suspicious traffic from known bad IP',
-      severity: 'low',
-      sourceIP: '203.0.113.45',
-      affectedResource: 'Firewall'
-    },
-    {
-      timestamp: '2024-12-10T08:45:30Z',
-      eventType: 'Privilege Escalation',
-      description: 'User attempted to access unauthorized resources',
-      severity: 'high',
-      sourceIP: '10.0.0.45',
-      affectedResource: 'Access Control'
+  const accessControlMetrics: AccessControlMetric[] = useMemo(() => {
+    if (!securityData?.accessControl) {
+      return [];
     }
-  ], []);
 
-  const securityConfig: SecurityConfig = useMemo(() => ({
-    passwordPolicy: {
-      minLength: 12,
-      requireSpecialChars: true,
-      requireNumbers: true,
-      requireUppercase: true,
-      maxAge: 90
-    },
-    twoFactorAuth: {
-      enabled: true,
-      mandatory: true,
-      methods: ['TOTP', 'SMS', 'Email']
-    },
-    sessionPolicy: {
-      maxDuration: 8,
-      idleTimeout: 30,
-      maxConcurrentSessions: 3
-    },
-    ipWhitelisting: {
-      enabled: false,
-      whitelistedIPs: []
-    },
-    encryption: {
-      dataAtRest: true,
-      dataInTransit: true,
-      algorithm: 'AES-256'
-    }
-  }), []);
+    return securityData.accessControl.map((user: any) => ({
+      userId: user.userId,
+      username: user.username,
+      role: user.role,
+      lastLogin: user.lastLogin,
+      failedAttempts: user.failedAttempts || 0,
+      sessionsToday: user.sessionsToday || 0,
+      privilegeLevel: user.privilegeLevel,
+      mfaEnabled: user.mfaEnabled || false,
+      passwordStrength: user.passwordStrength,
+      riskScore: user.riskScore || 0,
+      suspiciousActivity: user.suspiciousActivity || false,
+      accountStatus: user.accountStatus
+    }));
+  }, [securityData]);
 
-  // Chart data
-  const securityTrendData = useMemo(() => [
-    { date: '2024-12-04', failedLogins: 1456, successfulLogins: 21890, blockedIPs: 38 },
-    { date: '2024-12-05', failedLogins: 1234, successfulLogins: 22450, blockedIPs: 41 },
-    { date: '2024-12-06', failedLogins: 1678, successfulLogins: 23120, blockedIPs: 43 },
-    { date: '2024-12-07', failedLogins: 1345, successfulLogins: 23890, blockedIPs: 39 },
-    { date: '2024-12-08', failedLogins: 1567, successfulLogins: 22780, blockedIPs: 46 },
-    { date: '2024-12-09', failedLogins: 1432, successfulLogins: 23560, blockedIPs: 44 },
-    { date: '2024-12-10', failedLogins: 1247, successfulLogins: 23456, blockedIPs: 45 }
-  ], []);
-
-  const vulnerabilityData = useMemo(() => [
-    { name: 'Critical', value: threatAnalysis.vulnerabilities.critical, color: '#f44336' },
-    { name: 'High', value: threatAnalysis.vulnerabilities.high, color: '#ff5722' },
-    { name: 'Medium', value: threatAnalysis.vulnerabilities.medium, color: '#ff9800' },
-    { name: 'Low', value: threatAnalysis.vulnerabilities.low, color: '#4caf50' }
-  ], [threatAnalysis]);
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'new': return <Error sx={{ color: '#f44336' }} />;
-      case 'investigating': return <QueryStats sx={{ color: '#ff9800' }} />;
-      case 'contained': return <Shield sx={{ color: '#2196f3' }} />;
-      case 'resolved': return <CheckCircle sx={{ color: '#4caf50' }} />;
-      default: return <Info sx={{ color: '#757575' }} />;
-    }
-  };
-
+  // Helper functions
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical': return '#f44336';
-      case 'high': return '#ff5722';
+      case 'high': return '#ff9800';
       case 'medium': return '#ff9800';
       case 'low': return '#4caf50';
-      default: return '#757575';
+      default: return '#2196f3';
     }
   };
 
-  const handleIncidentClick = (incident: SecurityIncident) => {
-    setSelectedIncident(incident);
-    setIncidentDialogOpen(true);
+  const getSeverityIcon = (severity: string) => {
+    switch (severity) {
+      case 'critical': return <Error />;
+      case 'high': return <Warning />;
+      case 'medium': return <Warning />;
+      case 'low': return <Info />;
+      default: return <CheckCircle />;
+    }
   };
 
-  const runSecurityScan = useCallback(async () => {
-    setSecurityScanRunning(true);
-    // Simulate security scan
-    setTimeout(() => {
-      setSecurityScanRunning(false);
-    }, 5000);
-  }, []);
+  const getEventTypeIcon = (type: string) => {
+    switch (type) {
+      case 'login_attempt': return <Login />;
+      case 'failed_authentication': return <Lock />;
+      case 'suspicious_activity': return <Warning />;
+      case 'data_breach': return <Security />;
+      case 'malware_detection': return <BugReport />;
+      case 'unauthorized_access': return <PersonOff />;
+      default: return <Shield />;
+    }
+  };
 
-  const renderOverviewTab = () => (
+  const handleEventClick = (event: SecurityEvent) => {
+    setSelectedEvent(event);
+    setEventDialogOpen(true);
+  };
+
+  const renderOverviewTab = () => {
+    // Show loading state if overview data is loading
+    if (isLoadingData('overview')) {
+      return <LoadingSpinner message="Loading security monitoring overview..." />;
+    }
+
+    return (
     <Grid container spacing={3}>
-      {/* Security Metrics Cards */}
+      {/* Error State */}
+      {hasError('overview') && (
+        <Grid item xs={12}>
+          <ErrorMessage 
+            error={errors.overview!} 
+            onRetry={fetchSecurityMetrics} 
+            dataType="security monitoring data" 
+          />
+        </Grid>
+      )}
+      
+      {/* Security Metrics Overview */}
       <Grid item xs={12}>
+        <Typography variant="h6" gutterBottom sx={{ color: '#00ffff', mb: 3 }}>
+          Security Status Overview
+        </Typography>
         <Grid container spacing={2}>
-          {securityMetrics.map((metric) => (
-            <Grid item xs={12} sm={6} lg={4} key={metric.id}>
-              <SecurityCard severity={metric.status}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Grid item xs={12} md={3}>
+            <MetricCard accentColor="#4caf50">
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box>
+                    <Typography variant="h3" sx={{ color: '#4caf50', fontWeight: 700 }}>
+                      {securityData?.summary?.securityScore || 95}
+                    </Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {metric.name}
+                      Security Score
                     </Typography>
-                    <Chip 
-                      label={metric.status}
-                      size="small"
-                      color={
-                        metric.status === 'critical' ? 'error' :
-                        metric.status === 'warning' ? 'warning' : 'success'
-                      }
-                    />
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                      <TrendingUp sx={{ color: '#4caf50', fontSize: 16, mr: 0.5 }} />
+                      <Typography variant="caption" color="#4caf50">
+                        +2.3% this week
+                      </Typography>
+                    </Box>
                   </Box>
-                  
-                  <Typography variant="h3" sx={{ 
-                    color: metric.status === 'critical' ? '#f44336' : 
-                           metric.status === 'warning' ? '#ff9800' : '#4caf50',
-                    fontWeight: 700,
-                    mb: 1
-                  }}>
-                    {metric.id === 'vulnerability-score' || metric.id === 'data-encrypted' 
-                      ? `${metric.value}%` 
-                      : metric.value.toLocaleString()}
-                  </Typography>
-                  
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    {metric.changeType === 'increase' ? (
-                      metric.id === 'blocked-ips' || metric.id === 'security-incidents' ? (
-                        <TrendingUp sx={{ color: '#f44336', fontSize: 16 }} />
-                      ) : (
-                        <TrendingUp sx={{ color: '#4caf50', fontSize: 16 }} />
-                      )
-                    ) : metric.changeType === 'decrease' ? (
-                      metric.id === 'failed-logins' ? (
-                        <TrendingDown sx={{ color: '#4caf50', fontSize: 16 }} />
-                      ) : (
-                        <TrendingDown sx={{ color: '#f44336', fontSize: 16 }} />
-                      )
-                    ) : (
-                      <CompareArrows sx={{ color: '#757575', fontSize: 16 }} />
-                    )}
-                    <Typography 
-                      variant="caption" 
-                      color={
-                        metric.changeType === 'increase' && (metric.id === 'blocked-ips' || metric.id === 'security-incidents') ? '#f44336' :
-                        metric.changeType === 'decrease' && metric.id === 'failed-logins' ? '#4caf50' :
-                        metric.changeType === 'increase' ? '#4caf50' :
-                        metric.changeType === 'decrease' ? '#f44336' : '#757575'
-                      }
-                    >
-                      {metric.change !== 0 && (metric.change > 0 ? '+' : '')}{metric.change}% 
-                      {metric.changeType !== 'neutral' && ' from yesterday'}
+                  <Shield sx={{ fontSize: 40, color: 'rgba(76, 175, 80, 0.3)' }} />
+                </Box>
+              </CardContent>
+            </MetricCard>
+          </Grid>
+          
+          <Grid item xs={12} md={3}>
+            <MetricCard accentColor="#ff9800">
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box>
+                    <Typography variant="h3" sx={{ color: '#ff9800', fontWeight: 700 }}>
+                      {securityData?.summary?.failedLogins || 23}
                     </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Failed Logins (24h)
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                      <TrendingDown sx={{ color: '#4caf50', fontSize: 16, mr: 0.5 }} />
+                      <Typography variant="caption" color="#4caf50">
+                        -12% vs yesterday
+                      </Typography>
+                    </Box>
                   </Box>
-                  
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                    {metric.description}
-                  </Typography>
-                </CardContent>
-              </SecurityCard>
-            </Grid>
-          ))}
+                  <LockOpen sx={{ fontSize: 40, color: 'rgba(255, 152, 0, 0.3)' }} />
+                </Box>
+              </CardContent>
+            </MetricCard>
+          </Grid>
+          
+          <Grid item xs={12} md={3}>
+            <MetricCard accentColor="#f44336">
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box>
+                    <Typography variant="h3" sx={{ color: '#f44336', fontWeight: 700 }}>
+                      {securityData?.summary?.activeThreats || 2}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Active Threats
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                      <ThreatIndicator level="critical" />
+                      <Typography variant="caption" color="#f44336" sx={{ ml: 1 }}>
+                        Requires attention
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Warning sx={{ fontSize: 40, color: 'rgba(244, 67, 54, 0.3)' }} />
+                </Box>
+              </CardContent>
+            </MetricCard>
+          </Grid>
+          
+          <Grid item xs={12} md={3}>
+            <MetricCard accentColor="#2196f3">
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Box>
+                    <Typography variant="h3" sx={{ color: '#2196f3', fontWeight: 700 }}>
+                      {securityData?.summary?.blockedAttacks || 156}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Blocked Attacks (24h)
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                      <TrendingUp sx={{ color: '#4caf50', fontSize: 16, mr: 0.5 }} />
+                      <Typography variant="caption" color="#4caf50">
+                        Defense working
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Block sx={{ fontSize: 40, color: 'rgba(33, 150, 243, 0.3)' }} />
+                </Box>
+              </CardContent>
+            </MetricCard>
+          </Grid>
         </Grid>
       </Grid>
       
-      {/* Threat Level Status */}
-      <Grid item xs={12} lg={4}>
+      {/* Threat Trends Chart */}
+      <Grid item xs={12} lg={8}>
         <GlassCard>
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
               <Typography variant="h6" sx={{ color: '#00ffff', display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Shield />
-                Current Threat Level
+                <TimelineIcon />
+                Security Threat Trends
               </Typography>
-              <Button
-                variant="outlined"
-                startIcon={<Refresh />}
-                onClick={runSecurityScan}
-                disabled={securityScanRunning}
-              >
-                {securityScanRunning ? 'Scanning...' : 'Run Scan'}
-              </Button>
-            </Box>
-            
-            <Box sx={{ textAlign: 'center', mb: 3 }}>
-              <Box sx={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                {securityScanRunning ? (
-                  <CircularProgress size={120} thickness={4} sx={{ color: '#2196f3' }} />
-                ) : (
-                  <Box
-                    sx={{
-                      width: 120,
-                      height: 120,
-                      borderRadius: '50%',
-                      background: `conic-gradient(${getSeverityColor(threatAnalysis.threatLevel)}, transparent 75%)`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <FormControl size="small">
+                  <Select
+                    value={timeRange}
+                    onChange={(e) => setTimeRange(e.target.value)}
+                    sx={{ color: '#e0e0e0', minWidth: 100 }}
                   >
-                    <Box
-                      sx={{
-                        width: 100,
-                        height: 100,
-                        borderRadius: '50%',
-                        bgcolor: '#1d1f2b',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexDirection: 'column'
-                      }}
-                    >
-                      <ThreatLevelIndicator level={threatAnalysis.threatLevel} />
-                      <Typography variant="h6" sx={{ color: getSeverityColor(threatAnalysis.threatLevel), mt: 1, textTransform: 'uppercase' }}>
-                        {threatAnalysis.threatLevel}
-                      </Typography>
-                    </Box>
-                  </Box>
-                )}
+                    <MenuItem value="1h">Last Hour</MenuItem>
+                    <MenuItem value="24h">Last 24 Hours</MenuItem>
+                    <MenuItem value="7d">Last 7 Days</MenuItem>
+                    <MenuItem value="30d">Last 30 Days</MenuItem>
+                  </Select>
+                </FormControl>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={isRealTime}
+                      onChange={(e) => setIsRealTime(e.target.checked)}
+                      size="small"
+                    />
+                  }
+                  label={<Typography variant="caption">Real-time</Typography>}
+                />
               </Box>
             </Box>
             
-            <Typography variant="subtitle2" gutterBottom sx={{ color: '#00ffff' }}>
-              Active Threats
-            </Typography>
-            <List dense>
-              {threatAnalysis.activeThreat.map((threat, index) => (
-                <ListItem key={index} sx={{ px: 0 }}>
-                  <ListItemIcon>
-                    <Warning sx={{ color: '#ff9800' }} />
-                  </ListItemIcon>
-                  <ListItemText primary={threat} />
-                </ListItem>
-              ))}
-            </List>
-            
-            <Box sx={{ mt: 3 }}>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="text.secondary">Blocked IPs</Typography>
-                  <Typography variant="h5" color="#f44336">{threatAnalysis.blockedIPs}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="text.secondary">Suspicious Activity</Typography>
-                  <Typography variant="h5" color="#ff9800">{threatAnalysis.suspiciousActivities}</Typography>
-                </Grid>
-              </Grid>
-            </Box>
-            
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-              Last scan: {new Date(threatAnalysis.lastScan).toLocaleString()}
-            </Typography>
-          </CardContent>
-        </GlassCard>
-      </Grid>
-      
-      {/* Security Trends Chart */}
-      <Grid item xs={12} lg={8}>
-        <GlassCard>
-          <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ color: '#00ffff', display: 'flex', alignItems: 'center', gap: 1 }}>
-              <TimelineIcon />
-              Security Activity Trends
-            </Typography>
-            
-            <Box sx={{ height: 350 }}>
+            <Box sx={{ height: 400 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={securityTrendData}>
+                <ComposedChart data={threatMetrics}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
                   <XAxis dataKey="date" stroke="#e0e0e0" />
-                  <YAxis yAxisId="left" stroke="#e0e0e0" />
-                  <YAxis yAxisId="right" orientation="right" stroke="#e0e0e0" />
+                  <YAxis yAxisid="left" stroke="#e0e0e0" />
+                  <YAxis yAxisid="right" orientation="right" stroke="#e0e0e0" />
                   <ReTooltip 
                     contentStyle={{ 
                       backgroundColor: '#1d1f2b', 
@@ -886,34 +725,32 @@ const SecurityMonitoringPanel: React.FC = () => {
                   />
                   <Legend />
                   <Area
-                    yAxisId="left"
-                    type="monotone"
-                    dataKey="successfulLogins"
-                    fill="url(#successGradient)"
-                    stroke="#4caf50"
-                    strokeWidth={2}
-                    name="Successful Logins"
-                  />
-                  <Line
-                    yAxisId="left"
+                    yAxisid="left"
                     type="monotone"
                     dataKey="failedLogins"
-                    stroke="#f44336"
-                    strokeWidth={3}
+                    fill="url(#failedGradient)"
+                    stroke="#ff9800"
+                    strokeWidth={2}
                     name="Failed Logins"
                   />
+                  <Bar
+                    yAxisid="left"
+                    dataKey="blockedAttacks"
+                    fill="#4caf50"
+                    name="Blocked Attacks"
+                  />
                   <Line
-                    yAxisId="right"
+                    yAxisid="right"
                     type="monotone"
-                    dataKey="blockedIPs"
-                    stroke="#ff9800"
+                    dataKey="securityScore"
+                    stroke="#2196f3"
                     strokeWidth={3}
-                    name="Blocked IPs"
+                    name="Security Score"
                   />
                   <defs>
-                    <linearGradient id="successGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4caf50" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#4caf50" stopOpacity={0.1}/>
+                    <linearGradient id="failedGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ff9800" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#ff9800" stopOpacity={0.1}/>
                     </linearGradient>
                   </defs>
                 </ComposedChart>
@@ -923,122 +760,106 @@ const SecurityMonitoringPanel: React.FC = () => {
         </GlassCard>
       </Grid>
       
-      {/* Vulnerability Distribution */}
-      <Grid item xs={12} lg={6}>
+      {/* Recent Security Events */}
+      <Grid item xs={12} lg={4}>
         <GlassCard>
           <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ color: '#00ffff', display: 'flex', alignItems: 'center', gap: 1 }}>
-              <BugReport />
-              Vulnerability Distribution
-            </Typography>
-            
-            <Box sx={{ height: 300 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={vulnerabilityData}
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={100}
-                    dataKey="value"
-                    label={({ name, value }) => `${name}: ${value}`}
-                  >
-                    {vulnerabilityData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <ReTooltip />
-                </PieChart>
-              </ResponsiveContainer>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+              <Typography variant="h6" sx={{ color: '#00ffff', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <NotificationsActive />
+                Recent Security Events
+              </Typography>
+              <IconButton>
+                <FilterList />
+              </IconButton>
             </Box>
             
-            <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
-              Security Recommendations
-            </Typography>
-            <List dense>
-              {threatAnalysis.recommendations.slice(0, 3).map((recommendation, index) => (
-                <ListItem key={index} sx={{ px: 0 }}>
-                  <ListItemIcon>
-                    <CheckCircle sx={{ color: '#4caf50', fontSize: 16 }} />
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={
-                      <Typography variant="body2">
-                        {recommendation}
+            <List>
+              {securityEvents.slice(0, 5).map((event) => (
+                <ListItem 
+                  key={event.id} 
+                  sx={{ px: 0, py: 1, cursor: 'pointer' }}
+                  onClick={() => handleEventClick(event)}
+                >
+                  <Paper sx={{ 
+                    width: '100%',
+                    p: 2, 
+                    bgcolor: 'rgba(255, 255, 255, 0.02)',
+                    border: `1px solid ${getSeverityColor(event.severity)}`
+                  }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        {getEventTypeIcon(event.type)}
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          {event.type.replace(/_/g, ' ').toUpperCase()}
+                        </Typography>
+                      </Box>
+                      <Chip 
+                        label={event.severity}
+                        size="small"
+                        color={
+                          event.severity === 'critical' ? 'error' :
+                          event.severity === 'high' ? 'warning' : 'success'
+                        }
+                      />
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      {event.description}
+                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="caption" color="text.secondary">
+                        {event.source}
                       </Typography>
-                    } 
-                  />
+                      <Typography variant="caption" color="text.secondary">
+                        {new Date(event.timestamp).toLocaleTimeString()}
+                      </Typography>
+                    </Box>
+                  </Paper>
                 </ListItem>
               ))}
             </List>
-          </CardContent>
-        </GlassCard>
-      </Grid>
-      
-      {/* Recent Security Events */}
-      <Grid item xs={12} lg={6}>
-        <GlassCard>
-          <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ color: '#00ffff', display: 'flex', alignItems: 'center', gap: 1 }}>
-              <NotificationsActive />
-              Recent Security Events
-            </Typography>
             
-            <List>
-              {securityEvents.slice(0, 5).map((event, index) => (
-                <Paper key={index} sx={{ mb: 1, p: 2, bgcolor: 'rgba(255, 255, 255, 0.02)' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                    <Typography variant="subtitle2" fontWeight={600}>
-                      {event.eventType}
-                    </Typography>
-                    <Chip 
-                      label={event.severity}
-                      size="small"
-                      color={
-                        event.severity === 'critical' ? 'error' :
-                        event.severity === 'high' ? 'warning' : 'success'
-                      }
-                    />
-                  </Box>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    {event.description}
-                  </Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="caption" color="text.secondary">
-                      Source: {event.sourceIP}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {new Date(event.timestamp).toLocaleTimeString()}
-                    </Typography>
-                  </Box>
-                </Paper>
-              ))}
-            </List>
+            {securityEvents.length === 0 && (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <CheckCircle sx={{ fontSize: 64, color: '#4caf50', mb: 2 }} />
+                <Typography variant="h6" color="#4caf50" gutterBottom>
+                  No Recent Security Events
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  All systems are secure
+                </Typography>
+              </Box>
+            )}
           </CardContent>
         </GlassCard>
       </Grid>
     </Grid>
-  );
+    );
+  };
 
-  const renderIncidentsTab = () => (
+  const renderEventsTab = () => (
     <Grid container spacing={3}>
       <Grid item xs={12}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h6" sx={{ color: '#00ffff' }}>
-            Security Incidents
+            Security Events
           </Typography>
           <Box sx={{ display: 'flex', gap: 2 }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={showSuspiciousOnly}
-                  onChange={(e) => setShowSuspiciousOnly(e.target.checked)}
-                />
-              }
-              label="High Priority Only"
-            />
-            <Button variant="outlined" startIcon={<Download />}>
-              Export Report
+            <FormControl size="small">
+              <Select
+                value={severityFilter}
+                onChange={(e) => setSeverityFilter(e.target.value)}
+                sx={{ color: '#e0e0e0', minWidth: 120 }}
+              >
+                <MenuItem value="all">All Severities</MenuItem>
+                <MenuItem value="critical">Critical</MenuItem>
+                <MenuItem value="high">High</MenuItem>
+                <MenuItem value="medium">Medium</MenuItem>
+                <MenuItem value="low">Low</MenuItem>
+              </Select>
+            </FormControl>
+            <Button variant="outlined" startIcon={<Refresh />} onClick={refreshAllData}>
+              Refresh Events
             </Button>
           </Box>
         </Box>
@@ -1051,213 +872,61 @@ const SecurityMonitoringPanel: React.FC = () => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Incident</TableCell>
+                    <TableCell>Event</TableCell>
                     <TableCell>Severity</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Time</TableCell>
                     <TableCell>Source</TableCell>
-                    <TableCell>Impact Score</TableCell>
+                    <TableCell>Time</TableCell>
+                    <TableCell>Status</TableCell>
                     <TableCell>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {securityIncidents
-                    .filter(incident => !showSuspiciousOnly || ['high', 'critical'].includes(incident.severity))
-                    .map((incident) => (
-                    <TableRow key={incident.id} hover onClick={() => handleIncidentClick(incident)}>
+                  {securityEvents
+                    .filter(event => severityFilter === 'all' || event.severity === severityFilter)
+                    .map((event) => (
+                    <TableRow key={event.id} hover onClick={() => handleEventClick(event)}>
                       <TableCell>
-                        <Box>
-                          <Typography variant="subtitle2" fontWeight={600}>
-                            {incident.title}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {incident.description}
-                          </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                          {getEventTypeIcon(event.type)}
+                          <Box>
+                            <Typography variant="subtitle2" fontWeight={600}>
+                              {event.type.replace(/_/g, ' ').toUpperCase()}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              {event.description}
+                            </Typography>
+                          </Box>
                         </Box>
                       </TableCell>
                       <TableCell>
                         <Chip 
-                          label={incident.severity}
+                          label={event.severity}
                           color={
-                            incident.severity === 'critical' ? 'error' :
-                            incident.severity === 'high' ? 'warning' : 'success'
+                            event.severity === 'critical' ? 'error' :
+                            event.severity === 'high' ? 'warning' : 'success'
                           }
                           size="small"
                         />
                       </TableCell>
                       <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          {getStatusIcon(incident.status)}
-                          <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
-                            {incident.status}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {new Date(incident.timestamp).toLocaleString()}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Box>
-                          <Typography variant="body2">
-                            {incident.sourceIP || 'N/A'}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {incident.sourceLocation || 'Unknown'}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body2" fontWeight={600}>
-                            {incident.impactScore}/10
-                          </Typography>
-                          <LinearProgress
-                            variant="determinate"
-                            value={incident.impactScore * 10}
-                            sx={{
-                              width: 60,
-                              height: 6,
-                              borderRadius: 3,
-                              bgcolor: 'rgba(255, 255, 255, 0.1)',
-                              '& .MuiLinearProgress-bar': {
-                                bgcolor: incident.impactScore > 7 ? '#f44336' : incident.impactScore > 5 ? '#ff9800' : '#4caf50',
-                                borderRadius: 3
-                              }
-                            }}
-                          />
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); handleIncidentClick(incident); }}>
-                          <Launch />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </CardContent>
-        </GlassCard>
-      </Grid>
-    </Grid>
-  );
-
-  const renderLoginAttemptsTab = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h6" sx={{ color: '#00ffff' }}>
-            Login Attempts
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 2 }}>
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={showSuspiciousOnly}
-                  onChange={(e) => setShowSuspiciousOnly(e.target.checked)}
-                />
-              }
-              label="Suspicious Only"
-            />
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <Select
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value)}
-                sx={{ color: '#e0e0e0' }}
-              >
-                <MenuItem value="1h">Last Hour</MenuItem>
-                <MenuItem value="24h">Last 24 Hours</MenuItem>
-                <MenuItem value="7d">Last 7 Days</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
-        </Box>
-      </Grid>
-      
-      <Grid item xs={12}>
-        <GlassCard>
-          <CardContent>
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>User</TableCell>
-                    <TableCell>IP Address</TableCell>
-                    <TableCell>Location</TableCell>
-                    <TableCell>User Agent</TableCell>
-                    <TableCell>Time</TableCell>
-                    <TableCell>Status</TableCell>
-                    <TableCell>Risk Score</TableCell>
-                    <TableCell>Actions</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {loginAttempts
-                    .filter(attempt => !showSuspiciousOnly || attempt.isSuspicious)
-                    .map((attempt) => (
-                    <TableRow key={attempt.id} hover>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Avatar sx={{ width: 32, height: 32, fontSize: 'small' }}>
-                            {attempt.username[0].toUpperCase()}
-                          </Avatar>
-                          <Typography variant="body2" fontWeight={600}>
-                            {attempt.username}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
                         <Typography variant="body2" fontFamily="monospace">
-                          {attempt.ip}
+                          {event.source}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {event.ipAddress}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
-                          {attempt.location}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" color="text.secondary">
-                          {attempt.userAgent}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {new Date(attempt.timestamp).toLocaleString()}
+                          {new Date(event.timestamp).toLocaleString()}
                         </Typography>
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          {attempt.success ? (
-                            <CheckCircle sx={{ color: '#4caf50', fontSize: 20 }} />
-                          ) : (
-                            <Error sx={{ color: '#f44336', fontSize: 20 }} />
-                          )}
-                          <Typography variant="body2">
-                            {attempt.success ? 'Success' : 'Failed'}
+                          <ThreatIndicator level={event.status === 'resolved' ? 'low' : event.severity} />
+                          <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
+                            {event.status}
                           </Typography>
-                        </Box>
-                        {!attempt.success && (
-                          <Typography variant="caption" color="text.secondary">
-                            {attempt.failureReason}
-                          </Typography>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography 
-                            variant="body2" 
-                            fontWeight={600}
-                            color={attempt.riskScore > 7 ? '#f44336' : attempt.riskScore > 5 ? '#ff9800' : '#4caf50'}
-                          >
-                            {attempt.riskScore}/10
-                          </Typography>
-                          {attempt.isSuspicious && (
-                            <Warning sx={{ color: '#ff9800', fontSize: 16 }} />
-                          )}
                         </Box>
                       </TableCell>
                       <TableCell>
@@ -1265,9 +934,9 @@ const SecurityMonitoringPanel: React.FC = () => {
                           <IconButton size="small">
                             <Info />
                           </IconButton>
-                          {attempt.isSuspicious && (
+                          {event.status === 'active' && (
                             <IconButton size="small">
-                              <Block sx={{ color: '#f44336' }} />
+                              <Block />
                             </IconButton>
                           )}
                         </Box>
@@ -1283,212 +952,248 @@ const SecurityMonitoringPanel: React.FC = () => {
     </Grid>
   );
 
-  const renderConfigurationTab = () => (
+  const renderVulnerabilitiesTab = () => (
     <Grid container spacing={3}>
       <Grid item xs={12}>
-        <Typography variant="h6" gutterBottom sx={{ color: '#00ffff' }}>
-          Security Configuration
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h6" sx={{ color: '#00ffff' }}>
+            Vulnerability Assessment
+          </Typography>
+          <Button variant="outlined" startIcon={<Assessment />}>
+            Run New Scan
+          </Button>
+        </Box>
       </Grid>
       
-      {/* Password Policy */}
-      <Grid item xs={12} lg={6}>
-        <GlassCard>
-          <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ color: '#00ffff' }}>
-              Password Policy
-            </Typography>
-            
-            <List>
-              <ListItem>
-                <ListItemIcon>
-                  <VpnKey sx={{ color: '#2196f3' }} />
-                </ListItemIcon>
-                <ListItemText 
-                  primary="Minimum Length"
-                  secondary={`${securityConfig.passwordPolicy.minLength} characters`}
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  {securityConfig.passwordPolicy.requireSpecialChars ? 
-                    <CheckCircle sx={{ color: '#4caf50' }} /> : 
-                    <Error sx={{ color: '#f44336' }} />
-                  }
-                </ListItemIcon>
-                <ListItemText 
-                  primary="Special Characters"
-                  secondary={securityConfig.passwordPolicy.requireSpecialChars ? 'Required' : 'Not required'}
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  {securityConfig.passwordPolicy.requireNumbers ? 
-                    <CheckCircle sx={{ color: '#4caf50' }} /> : 
-                    <Error sx={{ color: '#f44336' }} />
-                  }
-                </ListItemIcon>
-                <ListItemText 
-                  primary="Numbers"
-                  secondary={securityConfig.passwordPolicy.requireNumbers ? 'Required' : 'Not required'}
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  <AccessTime sx={{ color: '#ff9800' }} />
-                </ListItemIcon>
-                <ListItemText 
-                  primary="Password Age"
-                  secondary={`${securityConfig.passwordPolicy.maxAge} days maximum`}
-                />
-              </ListItem>
-            </List>
-          </CardContent>
-        </GlassCard>
+      {vulnerabilities.map((vuln) => (
+        <Grid item xs={12} lg={6} key={vuln.id}>
+          <SecurityCard severity={vuln.severity}>
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                <Box>
+                  <Typography variant="h6" fontWeight={600}>
+                    {vuln.title}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {vuln.category} • CVSS {vuln.cvssScore}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <ThreatIndicator level={vuln.severity} />
+                  <Chip 
+                    label={vuln.severity}
+                    size="small"
+                    color={
+                      vuln.severity === 'critical' ? 'error' :
+                      vuln.severity === 'high' ? 'warning' : 'success'
+                    }
+                  />
+                </Box>
+              </Box>
+              
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Status & Impact
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <Typography variant="caption" color="text.secondary">Status</Typography>
+                    <Typography variant="body2" fontWeight={600}>
+                      {vuln.status.replace(/_/g, ' ').toUpperCase()}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={6}>
+                    <Typography variant="caption" color="text.secondary">Business Impact</Typography>
+                    <Typography variant="body2" fontWeight={600}>
+                      {vuln.businessImpact.toUpperCase()}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Box>
+              
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Affected Systems
+                </Typography>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                  {vuln.affectedSystems.slice(0, 3).map((system, index) => (
+                    <Chip key={index} label={system} size="small" variant="outlined" />
+                  ))}
+                  {vuln.affectedSystems.length > 3 && (
+                    <Chip label={`+${vuln.affectedSystems.length - 3}`} size="small" />
+                  )}
+                </Box>
+              </Box>
+              
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="caption" color="text.secondary">
+                  Discovered: {new Date(vuln.discoveredDate).toLocaleDateString()}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Effort: {vuln.estimatedEffort}
+                </Typography>
+              </Box>
+            </CardContent>
+          </SecurityCard>
+        </Grid>
+      ))}
+    </Grid>
+  );
+
+  const renderPoliciesTab = () => (
+    <Grid container spacing={3}>
+      <Grid item xs={12}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h6" sx={{ color: '#00ffff' }}>
+            Security Policies
+          </Typography>
+          <Button variant="outlined" startIcon={<Policy />}>
+            Create Policy
+          </Button>
+        </Box>
       </Grid>
       
-      {/* Two-Factor Authentication */}
-      <Grid item xs={12} lg={6}>
+      <Grid item xs={12}>
         <GlassCard>
           <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ color: '#00ffff' }}>
-              Two-Factor Authentication
-            </Typography>
-            
-            <List>
-              <ListItem>
-                <ListItemIcon>
-                  {securityConfig.twoFactorAuth.enabled ? 
-                    <CheckCircle sx={{ color: '#4caf50' }} /> : 
-                    <Error sx={{ color: '#f44336' }} />
-                  }
-                </ListItemIcon>
-                <ListItemText 
-                  primary="Status"
-                  secondary={securityConfig.twoFactorAuth.enabled ? 'Enabled' : 'Disabled'}
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  {securityConfig.twoFactorAuth.mandatory ? 
-                    <Gavel sx={{ color: '#2196f3' }} /> : 
-                    <Info sx={{ color: '#757575' }} />
-                  }
-                </ListItemIcon>
-                <ListItemText 
-                  primary="Requirement"
-                  secondary={securityConfig.twoFactorAuth.mandatory ? 'Mandatory for all users' : 'Optional'}
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  <Smartphone sx={{ color: '#9c27b0' }} />
-                </ListItemIcon>
-                <ListItemText 
-                  primary="Methods"
-                  secondary={securityConfig.twoFactorAuth.methods.join(', ')}
-                />
-              </ListItem>
-            </List>
-          </CardContent>
-        </GlassCard>
-      </Grid>
-      
-      {/* Session Policy */}
-      <Grid item xs={12} lg={6}>
-        <GlassCard>
-          <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ color: '#00ffff' }}>
-              Session Policy
-            </Typography>
-            
-            <List>
-              <ListItem>
-                <ListItemIcon>
-                  <HourglassEmpty sx={{ color: '#2196f3' }} />
-                </ListItemIcon>
-                <ListItemText 
-                  primary="Maximum Duration"
-                  secondary={`${securityConfig.sessionPolicy.maxDuration} hours`}
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  <HistoryToggleOff sx={{ color: '#ff9800' }} />
-                </ListItemIcon>
-                <ListItemText 
-                  primary="Idle Timeout"
-                  secondary={`${securityConfig.sessionPolicy.idleTimeout} minutes`}
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  <SupervisedUserCircle sx={{ color: '#9c27b0' }} />
-                </ListItemIcon>
-                <ListItemText 
-                  primary="Concurrent Sessions"
-                  secondary={`${securityConfig.sessionPolicy.maxConcurrentSessions} maximum`}
-                />
-              </ListItem>
-            </List>
-          </CardContent>
-        </GlassCard>
-      </Grid>
-      
-      {/* Encryption */}
-      <Grid item xs={12} lg={6}>
-        <GlassCard>
-          <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ color: '#00ffff' }}>
-              Encryption Settings
-            </Typography>
-            
-            <List>
-              <ListItem>
-                <ListItemIcon>
-                  {securityConfig.encryption.dataAtRest ? 
-                    <Lock sx={{ color: '#4caf50' }} /> : 
-                    <LockOpen sx={{ color: '#f44336' }} />
-                  }
-                </ListItemIcon>
-                <ListItemText 
-                  primary="Data at Rest"
-                  secondary={securityConfig.encryption.dataAtRest ? 'Encrypted' : 'Not encrypted'}
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  {securityConfig.encryption.dataInTransit ? 
-                    <Https sx={{ color: '#4caf50' }} /> : 
-                    <NoEncryption sx={{ color: '#f44336' }} />
-                  }
-                </ListItemIcon>
-                <ListItemText 
-                  primary="Data in Transit"
-                  secondary={securityConfig.encryption.dataInTransit ? 'Encrypted' : 'Not encrypted'}
-                />
-              </ListItem>
-              <ListItem>
-                <ListItemIcon>
-                  <Code sx={{ color: '#2196f3' }} />
-                </ListItemIcon>
-                <ListItemText 
-                  primary="Algorithm"
-                  secondary={securityConfig.encryption.algorithm}
-                />
-              </ListItem>
-            </List>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Policy</TableCell>
+                    <TableCell>Category</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Coverage</TableCell>
+                    <TableCell>Violations</TableCell>
+                    <TableCell>Enforcement</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {securityPolicies.map((policy) => (
+                    <TableRow key={policy.id} hover>
+                      <TableCell>
+                        <Box>
+                          <Typography variant="subtitle2" fontWeight={600}>
+                            {policy.name}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {policy.description}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={policy.category}
+                          variant="outlined"
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={policy.status}
+                          color={
+                            policy.status === 'active' ? 'success' :
+                            policy.status === 'inactive' ? 'error' : 'warning'
+                          }
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <LinearProgress
+                            variant="determinate"
+                            value={policy.coverage}
+                            sx={{
+                              width: 60,
+                              height: 6,
+                              borderRadius: 3,
+                              bgcolor: 'rgba(255, 255, 255, 0.1)',
+                              '& .MuiLinearProgress-bar': {
+                                bgcolor: policy.coverage > 80 ? '#4caf50' : policy.coverage > 60 ? '#ff9800' : '#f44336',
+                                borderRadius: 3
+                              }
+                            }}
+                          />
+                          <Typography variant="body2">
+                            {policy.coverage}%
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" color={policy.violations > 0 ? '#f44336' : '#4caf50'}>
+                          {policy.violations}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={policy.enforcementLevel}
+                          color={
+                            policy.enforcementLevel === 'block' ? 'error' :
+                            policy.enforcementLevel === 'warn' ? 'warning' : 'info'
+                          }
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <IconButton size="small">
+                            <Settings />
+                          </IconButton>
+                          <IconButton size="small">
+                            <Visibility />
+                          </IconButton>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </CardContent>
         </GlassCard>
       </Grid>
     </Grid>
   );
 
+  // Loading and error states
+  if (isLoadingData('overview') && !securityData) {
+    return (
+      <Box sx={{ bgcolor: '#0a0a1a', minHeight: '100vh', p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <CircularProgress sx={{ color: '#00ffff', mb: 2 }} size={60} />
+          <Typography variant="h6" sx={{ color: '#00ffff' }}>
+            Loading Security Monitoring Data...
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (hasError('overview') && !securityData) {
+    return (
+      <Box sx={{ bgcolor: '#0a0a1a', minHeight: '100vh', p: 3 }}>
+        <Alert 
+          severity="error" 
+          sx={{ mb: 3, backgroundColor: 'rgba(244, 67, 54, 0.1)', color: '#f44336', border: '1px solid #f44336' }}
+          action={
+            <Button color="inherit" size="small" onClick={fetchSecurityMetrics} disabled={isLoadingData('overview')}>
+              {isLoadingData('overview') ? <CircularProgress size={16} /> : 'Retry'}
+            </Button>
+          }
+        >
+          <Typography variant="h6">Failed to Load Security Monitoring Data</Typography>
+          <Typography variant="body2">{errors.overview}</Typography>
+        </Alert>
+      </Box>
+    );
+  }
+
   const tabPanels = [
     renderOverviewTab(),
-    renderIncidentsTab(),
-    renderLoginAttemptsTab(),
-    renderConfigurationTab()
+    renderEventsTab(),
+    renderVulnerabilitiesTab(),
+    renderPoliciesTab()
   ];
 
   return (
@@ -1522,24 +1227,24 @@ const SecurityMonitoringPanel: React.FC = () => {
           }}
         >
           <Tab 
-            icon={<Shield />} 
+            icon={<Security />} 
             iconPosition="start" 
             label="Overview" 
           />
           <Tab 
-            icon={<Report />} 
+            icon={<Warning />} 
             iconPosition="start" 
-            label="Incidents" 
+            label="Security Events" 
           />
           <Tab 
-            icon={<Login />} 
+            icon={<BugReport />} 
             iconPosition="start" 
-            label="Login Attempts" 
+            label="Vulnerabilities" 
           />
           <Tab 
-            icon={<Settings />} 
+            icon={<Policy />} 
             iconPosition="start" 
-            label="Configuration" 
+            label="Policies" 
           />
         </Tabs>
       </Box>
@@ -1548,152 +1253,119 @@ const SecurityMonitoringPanel: React.FC = () => {
         {tabPanels[activeTab]}
       </Box>
 
-      {/* Incident Detail Dialog */}
-      <Dialog open={incidentDialogOpen} onClose={() => setIncidentDialogOpen(false)} maxWidth="md" fullWidth>
+      {/* Event Details Dialog */}
+      <Dialog open={eventDialogOpen} onClose={() => setEventDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ color: '#00ffff' }}>
-          Security Incident Details
+          Security Event Details
         </DialogTitle>
         <DialogContent>
-          {selectedIncident && (
+          {selectedEvent && (
             <Box>
               <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12}>
                   <Typography variant="h6" gutterBottom>
-                    {selectedIncident.title}
+                    {selectedEvent.type.replace(/_/g, ' ').toUpperCase()}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" paragraph>
-                    {selectedIncident.description}
+                  <Typography variant="body1" color="text.secondary" paragraph>
+                    {selectedEvent.description}
                   </Typography>
                   
                   <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                     <Chip 
-                      label={selectedIncident.severity}
+                      label={selectedEvent.severity}
                       color={
-                        selectedIncident.severity === 'critical' ? 'error' :
-                        selectedIncident.severity === 'high' ? 'warning' : 'success'
+                        selectedEvent.severity === 'critical' ? 'error' :
+                        selectedEvent.severity === 'high' ? 'warning' : 'success'
                       }
                     />
                     <Chip 
-                      label={selectedIncident.status}
-                      color={
-                        selectedIncident.status === 'resolved' ? 'success' :
-                        selectedIncident.status === 'contained' ? 'info' : 'warning'
-                      }
+                      label={selectedEvent.status}
                       variant="outlined"
                     />
                   </Box>
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle2" gutterBottom>Details</Typography>
-                  <List dense>
-                    <ListItem>
-                      <ListItemText 
-                        primary="Time"
-                        secondary={new Date(selectedIncident.timestamp).toLocaleString()}
-                      />
-                    </ListItem>
-                    {selectedIncident.sourceIP && (
-                      <ListItem>
-                        <ListItemText 
-                          primary="Source IP"
-                          secondary={selectedIncident.sourceIP}
-                        />
-                      </ListItem>
-                    )}
-                    {selectedIncident.sourceLocation && (
-                      <ListItem>
-                        <ListItemText 
-                          primary="Location"
-                          secondary={selectedIncident.sourceLocation}
-                        />
-                      </ListItem>
-                    )}
-                    <ListItem>
-                      <ListItemText 
-                        primary="Impact Score"
-                        secondary={`${selectedIncident.impactScore}/10`}
-                      />
-                    </ListItem>
-                  </List>
                 </Grid>
               </Grid>
               
               <Divider sx={{ my: 2 }} />
               
               <Typography variant="subtitle2" gutterBottom>
-                Affected Systems
+                Event Information
               </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
-                {selectedIncident.affectedSystems.map((system, index) => (
-                  <Chip key={index} label={system} size="small" variant="outlined" />
-                ))}
-              </Box>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Source: {selectedEvent.source}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                IP Address: {selectedEvent.ipAddress}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Location: {selectedEvent.location}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Time: {new Date(selectedEvent.timestamp).toLocaleString()}
+              </Typography>
+              
+              <Divider sx={{ my: 2 }} />
               
               <Typography variant="subtitle2" gutterBottom>
-                Actions Taken
+                Mitigation Steps
               </Typography>
               <List dense>
-                {selectedIncident.actions.map((action, index) => (
+                {selectedEvent.mitigationSteps.map((step, index) => (
                   <ListItem key={index}>
                     <ListItemIcon>
                       <CheckCircle sx={{ color: '#4caf50', fontSize: 16 }} />
                     </ListItemIcon>
-                    <ListItemText primary={action} />
+                    <ListItemText primary={step} />
                   </ListItem>
                 ))}
               </List>
-              
-              {selectedIncident.assignedTo && (
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Assigned To: {selectedIncident.assignedTo}
-                  </Typography>
-                </Box>
-              )}
-              
-              {selectedIncident.resolutionTime && (
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Resolution Time: {selectedIncident.resolutionTime} minutes
-                  </Typography>
-                </Box>
-              )}
             </Box>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIncidentDialogOpen(false)}>Close</Button>
-          <Button variant="contained">Take Action</Button>
+          <Button onClick={() => setEventDialogOpen(false)}>Close</Button>
+          {selectedEvent?.status === 'active' && (
+            <Button variant="contained" color="error">Mark as Resolved</Button>
+          )}
         </DialogActions>
       </Dialog>
 
-      {/* Loading and error states */}
-      {isLoading && !securityData && (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, bgcolor: 'rgba(10, 10, 26, 0.9)', zIndex: 9999 }}>
-          <Box sx={{ textAlign: 'center' }}>
-            <CircularProgress sx={{ color: '#00ffff', mb: 2 }} size={60} />
-            <Typography variant="h6" sx={{ color: '#00ffff' }}>
-              Loading Security Data...
-            </Typography>
-          </Box>
-        </Box>
-      )}
-
-      {error && !securityData && (
-        <Alert 
-          severity="error" 
-          sx={{ position: 'fixed', top: 20, left: 20, right: 20, zIndex: 9999, backgroundColor: 'rgba(244, 67, 54, 0.1)', color: '#f44336', border: '1px solid #f44336' }}
-          action={
-            <Button color="inherit" size="small" onClick={fetchSecurityData} disabled={isLoading}>
-              {isLoading ? <CircularProgress size={16} /> : 'Retry'}
-            </Button>
+      {/* Floating Action Button */}
+      <SpeedDial
+        ariaLabel="Security Actions"
+        sx={{ 
+          position: 'fixed', 
+          bottom: 24, 
+          right: 24,
+          '& .MuiFab-primary': {
+            background: 'linear-gradient(135deg, #f44336, #ff9800)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #e53935, #fb8c00)',
+            },
           }
-        >
-          <Typography variant="h6">Failed to Load Security Data</Typography>
-          <Typography variant="body2">{error}</Typography>
-        </Alert>
-      )}
+        }}
+        icon={<SpeedDialIcon />}
+      >
+        <SpeedDialAction
+          icon={<Download />}
+          tooltipTitle="Export Security Report"
+          onClick={() => {
+            console.log('📁 Export security data functionality to be implemented');
+          }}
+        />
+        <SpeedDialAction
+          icon={<Assessment />}
+          tooltipTitle="Run Security Scan"
+          onClick={() => {
+            console.log('🔍 Security scan functionality to be implemented');
+          }}
+        />
+        <SpeedDialAction
+          icon={<Refresh />}
+          tooltipTitle="Refresh Data"
+          onClick={refreshAllData}
+        />
+      </SpeedDial>
     </Box>
   );
 };

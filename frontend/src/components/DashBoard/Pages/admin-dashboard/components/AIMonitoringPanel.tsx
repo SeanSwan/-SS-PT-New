@@ -1,10 +1,11 @@
 /**
  * AI/ML Monitoring Dashboard Component
  * Comprehensive monitoring of AI models, performance metrics, and intelligent insights
+ * PHASE 2B: Converted from mock data to real API integration
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useAuthenticatedAxios } from '../../../../../../hooks/useAxios';
+import { useAuth } from '../../../../context/AuthContext';
 import {
   Box,
   Card,
@@ -50,7 +51,10 @@ import {
   Step,
   Stepper,
   StepLabel,
-  StepContent
+  StepContent,
+  SpeedDial,
+  SpeedDialAction,
+  SpeedDialIcon
 } from '@mui/material';
 
 import {
@@ -102,7 +106,13 @@ import {
   MonitorHeart,
   Psychology as BrainIcon,
   Transform,
-  Star
+  Star,
+  NotificationsActive,
+  CloudDone,
+  CloudOff,
+  Radar,
+  DeviceHub,
+  Api
 } from '@mui/icons-material';
 
 import {
@@ -123,14 +133,13 @@ import {
   Legend,
   ComposedChart,
   RadarChart,
-  Radar,
+  Radar as RadarComponent,
   PolarGrid,
   PolarAngleAxis,
   PolarRadiusAxis,
   ScatterChart,
   Scatter,
-  Treemap,
-  ResponsiveContainer as RespContainer
+  Treemap
 } from 'recharts';
 
 import { styled } from '@mui/material/styles';
@@ -209,6 +218,24 @@ interface AIPerformanceMetric {
   costPerInference: number;
 }
 
+interface MCPAgent {
+  id: string;
+  name: string;
+  status: 'online' | 'offline' | 'error' | 'maintenance';
+  type: string;
+  version: string;
+  lastSeen: string;
+  activeConnections: number;
+  totalRequests: number;
+  successRate: number;
+  averageResponseTime: number;
+  capabilities: string[];
+  health: {
+    score: number;
+    issues: string[];
+  };
+}
+
 // Styled components
 const GlassCard = styled(Card)(({ theme }) => ({
   backgroundColor: 'rgba(255, 255, 255, 0.02)',
@@ -246,26 +273,26 @@ const StatusIndicator = styled(Box)<{ status: string }>(({ status }) => ({
   height: 12,
   borderRadius: '50%',
   backgroundColor: 
-    status === 'active' ? '#4caf50' :
+    status === 'active' || status === 'online' ? '#4caf50' :
     status === 'training' ? '#2196f3' :
-    status === 'error' ? '#f44336' :
+    status === 'error' || status === 'offline' ? '#f44336' :
     status === 'maintenance' ? '#ff9800' : '#757575',
   boxShadow: `0 0 8px ${
-    status === 'active' ? '#4caf50' :
+    status === 'active' || status === 'online' ? '#4caf50' :
     status === 'training' ? '#2196f3' :
-    status === 'error' ? '#f44336' :
+    status === 'error' || status === 'offline' ? '#f44336' :
     status === 'maintenance' ? '#ff9800' : '#757575'
   }`,
-  animation: status === 'active' ? 'pulse 2s infinite' : 'none',
+  animation: (status === 'active' || status === 'online') ? 'pulse 2s infinite' : 'none',
   '@keyframes pulse': {
     '0%': {
-      boxShadow: `0 0 0 0 ${status === 'active' ? 'rgba(76, 175, 80, 0.7)' : 'rgba(33, 150, 243, 0.7)'}`,
+      boxShadow: `0 0 0 0 ${(status === 'active' || status === 'online') ? 'rgba(76, 175, 80, 0.7)' : 'rgba(33, 150, 243, 0.7)'}`,
     },
     '70%': {
-      boxShadow: `0 0 0 10px rgba(${status === 'active' ? '76, 175, 80' : '33, 150, 243'}, 0)`,
+      boxShadow: `0 0 0 10px rgba(${(status === 'active' || status === 'online') ? '76, 175, 80' : '33, 150, 243'}, 0)`,
     },
     '100%': {
-      boxShadow: `0 0 0 0 rgba(${status === 'active' ? '76, 175, 80' : '33, 150, 243'}, 0)`,
+      boxShadow: `0 0 0 0 rgba(${(status === 'active' || status === 'online') ? '76, 175, 80' : '33, 150, 243'}, 0)`,
     },
   },
 }));
@@ -285,6 +312,7 @@ const MetricCard = styled(GlassCard)<{ accentColor?: string }>(({ accentColor = 
 }));
 
 const AIMonitoringPanel: React.FC = () => {
+  const { authAxios } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [timeRange, setTimeRange] = useState('24h');
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
@@ -292,453 +320,226 @@ const AIMonitoringPanel: React.FC = () => {
   const [showModelDetails, setShowModelDetails] = useState(false);
   const [alertDialogOpen, setAlertDialogOpen] = useState(false);
   const [expandedModels, setExpandedModels] = useState<string[]>([]);
+  const [selectedInsight, setSelectedInsight] = useState<AIInsight | null>(null);
 
-  // Real API state management
+  // Real API state management (following UserAnalyticsPanel pattern)
   const [mcpHealthData, setMcpHealthData] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
-  const authAxios = useAuthenticatedAxios();
+  const [loading, setLoading] = useState({
+    overview: false,
+    models: false,
+    insights: false,
+    performance: false
+  });
+  const [errors, setErrors] = useState({
+    overview: null as string | null,
+    models: null as string | null,
+    insights: null as string | null,
+    performance: null as string | null
+  });
 
-  // Real API data fetching function
+  // API call functions
   const fetchMCPHealthData = useCallback(async () => {
-    if (!authAxios) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
     try {
+      setLoading(prev => ({ ...prev, overview: true }));
+      setErrors(prev => ({ ...prev, overview: null }));
+      
       const response = await authAxios.get('/api/admin/mcp/health');
       
       if (response.data.success) {
         setMcpHealthData(response.data.data);
+        console.log('✅ Real MCP health data loaded successfully');
       } else {
-        setError('Failed to fetch MCP health data');
+        throw new Error(response.data.message || 'Failed to load MCP health data');
       }
     } catch (error: any) {
-      console.error('Error fetching MCP health data:', error);
-      setError(error?.response?.data?.message || 'Failed to fetch MCP health data');
+      const errorMessage = error.response?.data?.message || 'Failed to load MCP health data';
+      setErrors(prev => ({ ...prev, overview: errorMessage }));
+      console.error('❌ Failed to load real MCP health data:', errorMessage);
     } finally {
-      setIsLoading(false);
+      setLoading(prev => ({ ...prev, overview: false }));
     }
   }, [authAxios]);
 
-  // Auto-refresh MCP health data
+  // Refresh all data
+  const refreshAllData = useCallback(async () => {
+    console.log('🔄 Refreshing all AI monitoring data...');
+    await fetchMCPHealthData();
+    console.log('✅ All AI monitoring data refreshed');
+  }, [fetchMCPHealthData]);
+
+  // Initial data load
   useEffect(() => {
     fetchMCPHealthData();
-    
-    // Set up real-time refresh if enabled
-    if (isRealTime) {
-      const interval = setInterval(fetchMCPHealthData, 60000); // Refresh every 60 seconds
-      setRefreshInterval(interval);
-      return () => clearInterval(interval);
-    } else if (refreshInterval) {
-      clearInterval(refreshInterval);
-      setRefreshInterval(null);
-    }
-  }, [fetchMCPHealthData, isRealTime]);
+  }, [fetchMCPHealthData]);
+
+  // Auto-refresh setup
+  useEffect(() => {
+    if (!isRealTime) return;
+
+    const interval = setInterval(() => {
+      refreshAllData();
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [isRealTime, refreshAllData]);
+
+  // Helper function to check if data is loading
+  const isLoadingData = (dataType: keyof typeof loading) => loading[dataType];
+  const hasError = (dataType: keyof typeof errors) => !!errors[dataType];
+
+  // Helper component for loading states
+  const LoadingSpinner = ({ message = 'Loading data...' }) => (
+    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, py: 4 }}>
+      <CircularProgress sx={{ color: '#00ffff' }} />
+      <Typography variant="body2" color="text.secondary">{message}</Typography>
+    </Box>
+  );
+
+  // Helper component for error states
+  const ErrorMessage = ({ error, onRetry, dataType }: { error: string; onRetry: () => void; dataType: string }) => (
+    <Alert 
+      severity="error" 
+      action={
+        <Button color="inherit" size="small" onClick={onRetry} startIcon={<Refresh />}>
+          Retry
+        </Button>
+      }
+      sx={{ mb: 2, bgcolor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}
+    >
+      Failed to load {dataType}: {error}
+    </Alert>
+  );
 
   // Transform real API data to component format
-  const aiModels: AIModel[] = useMemo(() => {
-    if (!mcpHealthData?.servers) {
+  const mcpAgents: MCPAgent[] = useMemo(() => {
+    if (!mcpHealthData?.agents) {
       return [];
     }
 
-    return mcpHealthData.servers.map((server: any) => ({
-      id: server.name.toLowerCase().replace(/\s+/g, '-'),
-      name: server.name,
-      type: 'computer_vision' as const,
-      status: server.status === 'online' ? 'active' : 'error',
-      version: server.version,
-      lastUpdated: server.lastHeartbeat,
-      accuracy: 90 + Math.random() * 10, // Mock accuracy
-      latency: parseFloat(server.responseTime?.replace('ms', '') || '0'),
-      throughput: server.requestsProcessed || 0,
-      errorRate: server.errorRate || 0,
-      memoryUsage: Math.random() * 50 + 30, // Mock memory usage
-      cpuUsage: 45.2,
-      requests: 15672,
-      successfulPredictions: 14847,
-      confidence: {
-        average: 91.8,
-        distribution: [
-          { range: '90-100%', count: 12456 },
-          { range: '80-90%', count: 2345 },
-          { range: '70-80%', count: 567 },
-          { range: '<70%', count: 234 }
-        ]
-      },
-      performanceHistory: [
-        { timestamp: '2024-12-01', accuracy: 93.2, latency: 72, throughput: 234 },
-        { timestamp: '2024-12-02', accuracy: 93.8, latency: 70, throughput: 238 },
-        { timestamp: '2024-12-03', accuracy: 94.1, latency: 68, throughput: 242 },
-        { timestamp: '2024-12-04', accuracy: 94.3, latency: 67, throughput: 245 },
-        { timestamp: '2024-12-05', accuracy: 94.7, latency: 67, throughput: 245 }
-      ],
-      features: ['Exercise Form Detection', 'Joint Position Analysis', 'Movement Quality Scoring'],
-      trainingMetrics: {
-        epochs: 150,
-        learningRate: 0.001,
-        batchSize: 32,
-        validationAccuracy: 94.7,
-        trainingLoss: 0.123,
-        validationLoss: 0.145
+    return mcpHealthData.agents.map((agent: any) => ({
+      id: agent.id,
+      name: agent.name,
+      status: agent.status,
+      type: agent.type || 'Unknown',
+      version: agent.version || '1.0.0',
+      lastSeen: agent.lastSeen || new Date().toISOString(),
+      activeConnections: agent.metrics?.activeConnections || 0,
+      totalRequests: agent.metrics?.totalRequests || 0,
+      successRate: agent.metrics?.successRate || 0,
+      averageResponseTime: agent.metrics?.averageResponseTime || 0,
+      capabilities: agent.capabilities || [],
+      health: {
+        score: agent.health?.score || 0,
+        issues: agent.health?.issues || []
       }
-    },
-    {
-      id: 'workout-recommendation',
-      name: 'Workout Recommendation Engine',
-      type: 'recommendation',
-      status: 'active',
-      version: '3.0.1',
-      lastUpdated: '2024-12-07T14:15:00Z',
-      accuracy: 87.3,
-      latency: 23,
-      throughput: 892,
-      errorRate: 1.2,
-      memoryUsage: 45.8,
-      cpuUsage: 32.7,
-      requests: 34567,
-      successfulPredictions: 33123,
-      confidence: {
-        average: 85.6,
-        distribution: [
-          { range: '90-100%', count: 15678 },
-          { range: '80-90%', count: 12345 },
-          { range: '70-80%', count: 3456 },
-          { range: '<70%', count: 1088 }
-        ]
-      },
-      performanceHistory: [
-        { timestamp: '2024-12-01', accuracy: 86.8, latency: 25, throughput: 876 },
-        { timestamp: '2024-12-02', accuracy: 87.0, latency: 24, throughput: 883 },
-        { timestamp: '2024-12-03', accuracy: 87.1, latency: 23, throughput: 888 },
-        { timestamp: '2024-12-04', accuracy: 87.2, latency: 23, throughput: 890 },
-        { timestamp: '2024-12-05', accuracy: 87.3, latency: 23, throughput: 892 }
-      ],
-      features: ['Personalized Recommendations', 'Adaptive Difficulty', 'Progress-Based Suggestions'],
-      trainingMetrics: {
-        epochs: 100,
-        learningRate: 0.0001,
-        batchSize: 64,
-        validationAccuracy: 87.3,
-        trainingLoss: 0.234,
-        validationLoss: 0.278
-      }
-    },
-    {
-      id: 'nutrition-analysis',
-      name: 'Nutrition Analysis Model',
-      type: 'computer_vision',
-      status: 'training',
-      version: '1.5.0',
-      lastUpdated: '2024-12-09T16:45:00Z',
-      accuracy: 89.2,
-      latency: 156,
-      throughput: 123,
-      errorRate: 2.1,
-      memoryUsage: 92.3,
-      cpuUsage: 85.6,
-      requests: 8934,
-      successfulPredictions: 8745,
-      confidence: {
-        average: 87.4,
-        distribution: [
-          { range: '90-100%', count: 6789 },
-          { range: '80-90%', count: 1456 },
-          { range: '70-80%', count: 567 },
-          { range: '<70%', count: 122 }
-        ]
-      },
-      performanceHistory: [
-        { timestamp: '2024-12-01', accuracy: 88.5, latency: 165, throughput: 115 },
-        { timestamp: '2024-12-02', accuracy: 88.8, latency: 162, throughput: 118 },
-        { timestamp: '2024-12-03', accuracy: 89.0, latency: 159, throughput: 120 },
-        { timestamp: '2024-12-04', accuracy: 89.1, latency: 157, throughput: 122 },
-        { timestamp: '2024-12-05', accuracy: 89.2, latency: 156, throughput: 123 }
-      ],
-      features: ['Food Recognition', 'Nutritional Value Estimation', 'Macro Breakdown'],
-      trainingMetrics: {
-        epochs: 80,
-        learningRate: 0.0005,
-        batchSize: 16,
-        validationAccuracy: 89.2,
-        trainingLoss: 0.345,
-        validationLoss: 0.398
-      }
-    },
-    {
-      id: 'sentiment-analysis',
-      name: 'User Sentiment Analysis',
-      type: 'nlp',
-      status: 'active',
-      version: '2.3.0',
-      lastUpdated: '2024-12-06T11:20:00Z',
-      accuracy: 92.8,
-      latency: 34,
-      throughput: 567,
-      errorRate: 0.5,
-      memoryUsage: 34.7,
-      cpuUsage: 28.9,
-      requests: 23456,
-      successfulPredictions: 23339,
-      confidence: {
-        average: 90.5,
-        distribution: [
-          { range: '90-100%', count: 18456 },
-          { range: '80-90%', count: 3456 },
-          { range: '70-80%', count: 1234 },
-          { range: '<70%', count: 310 }
-        ]
-      },
-      performanceHistory: [
-        { timestamp: '2024-12-01', accuracy: 92.1, latency: 36, throughput: 545 },
-        { timestamp: '2024-12-02', accuracy: 92.3, latency: 35, throughput: 552 },
-        { timestamp: '2024-12-03', accuracy: 92.5, latency: 35, throughput: 558 },
-        { timestamp: '2024-12-04', accuracy: 92.7, latency: 34, throughput: 563 },
-        { timestamp: '2024-12-05', accuracy: 92.8, latency: 34, throughput: 567 }
-      ],
-      features: ['Feedback Analysis', 'Support Ticket Classification', 'User Mood Detection'],
-      trainingMetrics: {
-        epochs: 120,
-        learningRate: 0.0001,
-        batchSize: 32,
-        validationAccuracy: 92.8,
-        trainingLoss: 0.156,
-        validationLoss: 0.189
-      }
-    },
-    {
-      id: 'anomaly-detection',
-      name: 'Anomaly Detection Engine',
-      type: 'prediction',
-      status: 'error',
-      version: '1.2.0',
-      lastUpdated: '2024-12-09T09:10:00Z',
-      accuracy: 76.3,
-      latency: 245,
-      throughput: 45,
-      errorRate: 12.5,
-      memoryUsage: 95.2,
-      cpuUsage: 78.4,
-      requests: 2345,
-      successfulPredictions: 2052,
-      confidence: {
-        average: 72.1,
-        distribution: [
-          { range: '90-100%', count: 456 },
-          { range: '80-90%', count: 789 },
-          { range: '70-80%', count: 567 },
-          { range: '<70%', count: 533 }
-        ]
-      },
-      performanceHistory: [
-        { timestamp: '2024-12-01', accuracy: 82.1, latency: 189, throughput: 67 },
-        { timestamp: '2024-12-02', accuracy: 79.5, latency: 212, throughput: 58 },
-        { timestamp: '2024-12-03', accuracy: 77.8, latency: 223, throughput: 52 },
-        { timestamp: '2024-12-04', accuracy: 76.9, latency: 234, throughput: 48 },
-        { timestamp: '2024-12-05', accuracy: 76.3, latency: 245, throughput: 45 }
-      ],
-      features: ['Unusual Pattern Detection', 'Fraud Prevention', 'Performance Anomalies'],
-      trainingMetrics: {
-        epochs: 60,
-        learningRate: 0.001,
-        batchSize: 64,
-        validationAccuracy: 76.3,
-        trainingLoss: 0.567,
-        validationLoss: 0.623
-      }
-    }
-  ], []);
+    }));
+  }, [mcpHealthData]);
 
-  const aiInsights: AIInsight[] = useMemo(() => [
-    {
-      id: '1',
-      type: 'alert',
-      title: 'Anomaly Detection Model Performance Drop',
-      description: 'Accuracy has dropped from 82% to 76% over the past 5 days. Error rate increased to 12.5%.',
-      impact: 'high',
-      confidence: 95.2,
-      timestamp: '2024-12-10T08:30:00Z',
-      relatedModel: 'anomaly-detection',
-      actionable: true,
-      suggestedActions: [
-        'Retrain model with recent data',
-        'Check for data drift in input features',
-        'Review model architecture for potential improvements'
-      ]
-    },
-    {
-      id: '2',
-      type: 'recommendation',
-      title: 'Form Analysis Model Optimization',
-      description: 'YOLO model can be optimized by 15% latency reduction using quantization techniques.',
-      impact: 'medium',
-      confidence: 87.6,
-      timestamp: '2024-12-10T07:15:00Z',
-      relatedModel: 'yolo-form-analysis',
-      actionable: true,
-      suggestedActions: [
-        'Apply INT8 quantization to reduce model size',
-        'Implement batch processing for multiple requests',
-        'Consider pruning less important weights'
-      ]
-    },
-    {
-      id: '3',
-      type: 'optimization',
-      title: 'Recommendation Engine Hyperparameter Tuning',
-      description: 'Learning rate adjustment could improve CTR by up to 3.5% based on A/B test results.',
-      impact: 'medium',
-      confidence: 82.3,
-      timestamp: '2024-12-10T06:45:00Z',
-      relatedModel: 'workout-recommendation',
-      actionable: true,
-      suggestedActions: [
-        'Increase learning rate to 0.00015',
-        'Adjust regularization parameters',
-        'Implement adaptive learning rate scheduling'
-      ]
-    },
-    {
-      id: '4',
-      type: 'anomaly',
-      title: 'Unusual Spike in Nutrition Model Requests',
-      description: 'Nutrition analysis model receiving 300% more requests than usual. Possible bot activity.',
-      impact: 'low',
-      confidence: 74.8,
-      timestamp: '2024-12-10T05:20:00Z',
-      relatedModel: 'nutrition-analysis',
-      actionable: true,
-      suggestedActions: [
-        'Implement rate limiting',
-        'Add bot detection mechanisms',
-        'Monitor request patterns for further analysis'
-      ]
+  const aiModels: AIModel[] = useMemo(() => {
+    if (!mcpHealthData?.models) {
+      return [];
     }
-  ], []);
 
-  const modelUsageMetrics: ModelUsageMetric[] = useMemo(() => [
-    {
-      modelId: 'yolo-form-analysis',
-      feature: 'Exercise Form Checking',
-      usageCount: 15672,
-      successRate: 94.7,
-      averageConfidence: 91.8,
-      userSatisfaction: 4.6,
-      businessImpact: 8.9
-    },
-    {
-      modelId: 'workout-recommendation',
-      feature: 'Personalized Workouts',
-      usageCount: 34567,
-      successRate: 87.3,
-      averageConfidence: 85.6,
-      userSatisfaction: 4.4,
-      businessImpact: 9.2
-    },
-    {
-      modelId: 'nutrition-analysis',
-      feature: 'Food Recognition',
-      usageCount: 8934,
-      successRate: 89.2,
-      averageConfidence: 87.4,
-      userSatisfaction: 4.2,
-      businessImpact: 7.8
-    },
-    {
-      modelId: 'sentiment-analysis',
-      feature: 'Feedback Analysis',
-      usageCount: 23456,
-      successRate: 92.8,
-      averageConfidence: 90.5,
-      userSatisfaction: 4.1,
-      businessImpact: 6.5
-    }
-  ], []);
+    return mcpHealthData.models.map((model: any) => ({
+      id: model.id,
+      name: model.name,
+      type: model.type,
+      status: model.status,
+      version: model.version || '1.0.0',
+      lastUpdated: model.lastUpdated || new Date().toISOString(),
+      accuracy: model.metrics?.accuracy || 0,
+      latency: model.metrics?.latency || 0,
+      throughput: model.metrics?.throughput || 0,
+      errorRate: model.metrics?.errorRate || 0,
+      memoryUsage: model.metrics?.memoryUsage || 0,
+      cpuUsage: model.metrics?.cpuUsage || 0,
+      requests: model.metrics?.requests || 0,
+      successfulPredictions: model.metrics?.successfulPredictions || 0,
+      confidence: {
+        average: model.confidence?.average || 0,
+        distribution: model.confidence?.distribution || []
+      },
+      performanceHistory: model.performanceHistory || [],
+      features: model.features || [],
+      trainingMetrics: {
+        epochs: model.trainingMetrics?.epochs || 0,
+        learningRate: model.trainingMetrics?.learningRate || 0,
+        batchSize: model.trainingMetrics?.batchSize || 0,
+        validationAccuracy: model.trainingMetrics?.validationAccuracy || 0,
+        trainingLoss: model.trainingMetrics?.trainingLoss || 0,
+        validationLoss: model.trainingMetrics?.validationLoss || 0
+      }
+    }));
+  }, [mcpHealthData]);
 
-  const performanceData: AIPerformanceMetric[] = useMemo(() => [
-    {
-      date: '2024-12-01',
-      formAnalysisAccuracy: 93.2,
-      formAnalysisLatency: 72,
-      recommendationCTR: 23.4,
-      workoutGenerationSuccess: 89.5,
-      nutritionAnalysisAccuracy: 88.5,
-      sentimentAnalysisAccuracy: 92.1,
-      anomalyDetectionPrecision: 82.1,
-      totalInferences: 67890,
-      costPerInference: 0.0045
-    },
-    {
-      date: '2024-12-02',
-      formAnalysisAccuracy: 93.8,
-      formAnalysisLatency: 70,
-      recommendationCTR: 23.8,
-      workoutGenerationSuccess: 90.1,
-      nutritionAnalysisAccuracy: 88.8,
-      sentimentAnalysisAccuracy: 92.3,
-      anomalyDetectionPrecision: 79.5,
-      totalInferences: 69234,
-      costPerInference: 0.0047
-    },
-    {
-      date: '2024-12-03',
-      formAnalysisAccuracy: 94.1,
-      formAnalysisLatency: 68,
-      recommendationCTR: 24.1,
-      workoutGenerationSuccess: 90.4,
-      nutritionAnalysisAccuracy: 89.0,
-      sentimentAnalysisAccuracy: 92.5,
-      anomalyDetectionPrecision: 77.8,
-      totalInferences: 70567,
-      costPerInference: 0.0048
-    },
-    {
-      date: '2024-12-04',
-      formAnalysisAccuracy: 94.3,
-      formAnalysisLatency: 67,
-      recommendationCTR: 24.3,
-      workoutGenerationSuccess: 90.7,
-      nutritionAnalysisAccuracy: 89.1,
-      sentimentAnalysisAccuracy: 92.7,
-      anomalyDetectionPrecision: 76.9,
-      totalInferences: 71890,
-      costPerInference: 0.0049
-    },
-    {
-      date: '2024-12-05',
-      formAnalysisAccuracy: 94.7,
-      formAnalysisLatency: 67,
-      recommendationCTR: 24.6,
-      workoutGenerationSuccess: 91.2,
-      nutritionAnalysisAccuracy: 89.2,
-      sentimentAnalysisAccuracy: 92.8,
-      anomalyDetectionPrecision: 76.3,
-      totalInferences: 73456,
-      costPerInference: 0.0051
+  const aiInsights: AIInsight[] = useMemo(() => {
+    if (!mcpHealthData?.insights) {
+      return [];
     }
-  ], []);
+
+    return mcpHealthData.insights.map((insight: any) => ({
+      id: insight.id,
+      type: insight.type,
+      title: insight.title,
+      description: insight.description,
+      impact: insight.impact,
+      confidence: insight.confidence || 0,
+      timestamp: insight.timestamp,
+      relatedModel: insight.relatedModel || 'Unknown',
+      actionable: insight.actionable || false,
+      suggestedActions: insight.suggestedActions || [],
+      data: insight.data
+    }));
+  }, [mcpHealthData]);
+
+  const performanceMetrics: AIPerformanceMetric[] = useMemo(() => {
+    if (!mcpHealthData?.performanceHistory) {
+      return [];
+    }
+
+    return mcpHealthData.performanceHistory.map((metric: any) => ({
+      date: metric.date,
+      formAnalysisAccuracy: metric.formAnalysisAccuracy || 0,
+      formAnalysisLatency: metric.formAnalysisLatency || 0,
+      recommendationCTR: metric.recommendationCTR || 0,
+      workoutGenerationSuccess: metric.workoutGenerationSuccess || 0,
+      nutritionAnalysisAccuracy: metric.nutritionAnalysisAccuracy || 0,
+      sentimentAnalysisAccuracy: metric.sentimentAnalysisAccuracy || 0,
+      anomalyDetectionPrecision: metric.anomalyDetectionPrecision || 0,
+      totalInferences: metric.totalInferences || 0,
+      costPerInference: metric.costPerInference || 0
+    }));
+  }, [mcpHealthData]);
+
+  // Helper functions
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': case 'online': return '#4caf50';
+      case 'training': return '#2196f3';
+      case 'error': case 'offline': return '#f44336';
+      case 'maintenance': case 'idle': return '#ff9800';
+      default: return '#757575';
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'active': case 'online': return <CheckCircle />;
+      case 'training': return <ModelTraining />;
+      case 'error': case 'offline': return <Error />;
+      case 'maintenance': case 'idle': return <Engineering />;
+      default: return <Info />;
+    }
+  };
 
   const getModelTypeIcon = (type: string) => {
     switch (type) {
       case 'computer_vision': return <CameraAlt />;
       case 'nlp': return <Psychology />;
       case 'recommendation': return <RecommendRounded />;
-      case 'prediction': return <Analytics />;
-      case 'analysis': return <Assessment />;
+      case 'prediction': return <TrendingUp />;
+      case 'analysis': return <Analytics />;
       default: return <SmartToy />;
-    }
-  };
-
-  const getModelTypeColor = (type: string) => {
-    switch (type) {
-      case 'computer_vision': return '#4caf50';
-      case 'nlp': return '#2196f3';
-      case 'recommendation': return '#ff9800';
-      case 'prediction': return '#9c27b0';
-      case 'analysis': return '#00bcd4';
-      default: return '#757575';
     }
   };
 
@@ -750,269 +551,117 @@ const AIMonitoringPanel: React.FC = () => {
     );
   }, []);
 
-  const renderOverviewTab = () => (
+  const handleInsightClick = (insight: AIInsight) => {
+    setSelectedInsight(insight);
+    setAlertDialogOpen(true);
+  };
+
+  const renderOverviewTab = () => {
+    // Show loading state if overview data is loading
+    if (isLoadingData('overview')) {
+      return <LoadingSpinner message="Loading AI monitoring overview..." />;
+    }
+
+    return (
     <Grid container spacing={3}>
-      {/* Summary Cards */}
-      <Grid item xs={12}>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={3}>
-            <MetricCard accentColor="#4caf50">
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Box>
-                    <Typography variant="h3" sx={{ color: '#4caf50', fontWeight: 700 }}>
-                      {aiModels.filter(m => m.status === 'active').length}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Active Models
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                      <CheckCircle sx={{ color: '#4caf50', fontSize: 16, mr: 0.5 }} />
-                      <Typography variant="caption" color="#4caf50">
-                        {((aiModels.filter(m => m.status === 'active').length / aiModels.length) * 100).toFixed(0)}% uptime
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Psychology sx={{ fontSize: 40, color: 'rgba(76, 175, 80, 0.3)' }} />
-                </Box>
-              </CardContent>
-            </MetricCard>
-          </Grid>
-          
-          <Grid item xs={12} md={3}>
-            <MetricCard accentColor="#2196f3">
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Box>
-                    <Typography variant="h3" sx={{ color: '#2196f3', fontWeight: 700 }}>
-                      93.2%
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Average Accuracy
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                      <TrendingUp sx={{ color: '#4caf50', fontSize: 16, mr: 0.5 }} />
-                      <Typography variant="caption" color="#4caf50">
-                        +2.1% this week
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Assessment sx={{ fontSize: 40, color: 'rgba(33, 150, 243, 0.3)' }} />
-                </Box>
-              </CardContent>
-            </MetricCard>
-          </Grid>
-          
-          <Grid item xs={12} md={3}>
-            <MetricCard accentColor="#ff9800">
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Box>
-                    <Typography variant="h3" sx={{ color: '#ff9800', fontWeight: 700 }}>
-                      67ms
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Average Latency
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                      <TrendingDown sx={{ color: '#4caf50', fontSize: 16, mr: 0.5 }} />
-                      <Typography variant="caption" color="#4caf50">
-                        -5.2% vs target
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Speed sx={{ fontSize: 40, color: 'rgba(255, 152, 0, 0.3)' }} />
-                </Box>
-              </CardContent>
-            </MetricCard>
-          </Grid>
-          
-          <Grid item xs={12} md={3}>
-            <MetricCard accentColor="#f44336">
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Box>
-                    <Typography variant="h3" sx={{ color: '#f44336', fontWeight: 700 }}>
-                      3
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Critical Alerts
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                      <Warning sx={{ color: '#ff9800', fontSize: 16, mr: 0.5 }} />
-                      <Typography variant="caption" color="#ff9800">
-                        Requires attention
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Error sx={{ fontSize: 40, color: 'rgba(244, 67, 54, 0.3)' }} />
-                </Box>
-              </CardContent>
-            </MetricCard>
-          </Grid>
+      {/* Error State */}
+      {hasError('overview') && (
+        <Grid item xs={12}>
+          <ErrorMessage 
+            error={errors.overview!} 
+            onRetry={fetchMCPHealthData} 
+            dataType="AI monitoring data" 
+          />
         </Grid>
-      </Grid>
+      )}
       
-      {/* Model Status Grid */}
+      {/* MCP Agents Overview */}
       <Grid item xs={12}>
         <Typography variant="h6" gutterBottom sx={{ color: '#00ffff', mb: 3 }}>
-          AI Models Status
+          MCP Agents Status
         </Typography>
         <Grid container spacing={2}>
-          {aiModels.map((model) => (
-            <Grid item xs={12} md={6} lg={4} key={model.id}>
-              <ModelCard status={model.status}>
+          {mcpAgents.map((agent) => (
+            <Grid item xs={12} sm={6} md={4} key={agent.id}>
+              <ModelCard status={agent.status}>
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Avatar sx={{ bgcolor: `${getModelTypeColor(model.type)}20`, color: getModelTypeColor(model.type) }}>
-                        {getModelTypeIcon(model.type)}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <Avatar sx={{ 
+                        bgcolor: `${getStatusColor(agent.status)}20`,
+                        color: getStatusColor(agent.status)
+                      }}>
+                        <SmartToy />
                       </Avatar>
                       <Box>
-                        <Typography variant="subtitle1" fontWeight={600}>
-                          {model.name}
+                        <Typography variant="h6" fontWeight={600}>
+                          {agent.name}
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          v{model.version}
+                          {agent.type} • v{agent.version}
                         </Typography>
                       </Box>
                     </Box>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <StatusIndicator status={model.status} />
+                      <StatusIndicator status={agent.status} />
                       <Chip 
-                        label={model.status} 
+                        label={agent.status}
                         size="small"
                         color={
-                          model.status === 'active' ? 'success' :
-                          model.status === 'training' ? 'info' :
-                          model.status === 'error' ? 'error' : 'warning'
+                          agent.status === 'online' ? 'success' :
+                          agent.status === 'offline' ? 'error' : 'warning'
                         }
-                        variant="outlined"
                       />
                     </Box>
                   </Box>
                   
                   <Grid container spacing={2} sx={{ mb: 2 }}>
-                    <Grid item xs={4}>
-                      <Typography variant="caption" color="text.secondary">Accuracy</Typography>
-                      <Typography variant="h6" color={
-                        model.accuracy > 90 ? '#4caf50' : 
-                        model.accuracy > 80 ? '#ff9800' : '#f44336'
-                      }>
-                        {model.accuracy}%
-                      </Typography>
+                    <Grid item xs={6}>
+                      <Typography variant="caption" color="text.secondary">Connections</Typography>
+                      <Typography variant="h6" color="#4caf50">{agent.activeConnections}</Typography>
                     </Grid>
-                    <Grid item xs={4}>
-                      <Typography variant="caption" color="text.secondary">Latency</Typography>
-                      <Typography variant="h6" color={
-                        model.latency < 50 ? '#4caf50' : 
-                        model.latency < 100 ? '#ff9800' : '#f44336'
-                      }>
-                        {model.latency}ms
-                      </Typography>
+                    <Grid item xs={6}>
+                      <Typography variant="caption" color="text.secondary">Success Rate</Typography>
+                      <Typography variant="h6" color="#2196f3">{agent.successRate}%</Typography>
                     </Grid>
-                    <Grid item xs={4}>
-                      <Typography variant="caption" color="text.secondary">Requests/h</Typography>
-                      <Typography variant="h6" color="#2196f3">
-                        {model.requests}
-                      </Typography>
+                    <Grid item xs={6}>
+                      <Typography variant="caption" color="text.secondary">Requests</Typography>
+                      <Typography variant="h6" color="#ff9800">{agent.totalRequests}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="caption" color="text.secondary">Response Time</Typography>
+                      <Typography variant="h6" color="#9c27b0">{agent.averageResponseTime}ms</Typography>
                     </Grid>
                   </Grid>
                   
                   <Box sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="caption">CPU Usage</Typography>
-                      <Typography variant="caption">{model.cpuUsage}%</Typography>
+                    <Typography variant="subtitle2" gutterBottom>
+                      Health Score
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <LinearProgress
+                        variant="determinate"
+                        value={agent.health.score}
+                        sx={{
+                          flexGrow: 1,
+                          height: 8,
+                          borderRadius: 4,
+                          bgcolor: 'rgba(255, 255, 255, 0.1)',
+                          '& .MuiLinearProgress-bar': {
+                            bgcolor: agent.health.score > 95 ? '#4caf50' : agent.health.score > 80 ? '#ff9800' : '#f44336',
+                            borderRadius: 4
+                          }
+                        }}
+                      />
+                      <Typography variant="body2" fontWeight={600}>
+                        {agent.health.score}%
+                      </Typography>
                     </Box>
-                    <LinearProgress
-                      variant="determinate"
-                      value={model.cpuUsage}
-                      sx={{
-                        height: 6,
-                        borderRadius: 3,
-                        bgcolor: 'rgba(255, 255, 255, 0.1)',
-                        '& .MuiLinearProgress-bar': {
-                          bgcolor: model.cpuUsage > 80 ? '#f44336' : model.cpuUsage > 60 ? '#ff9800' : '#4caf50',
-                          borderRadius: 3
-                        }
-                      }}
-                    />
                   </Box>
                   
-                  <Box sx={{ mb: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="caption">Memory Usage</Typography>
-                      <Typography variant="caption">{model.memoryUsage}%</Typography>
-                    </Box>
-                    <LinearProgress
-                      variant="determinate"
-                      value={model.memoryUsage}
-                      sx={{
-                        height: 6,
-                        borderRadius: 3,
-                        bgcolor: 'rgba(255, 255, 255, 0.1)',
-                        '& .MuiLinearProgress-bar': {
-                          bgcolor: model.memoryUsage > 90 ? '#f44336' : model.memoryUsage > 70 ? '#ff9800' : '#4caf50',
-                          borderRadius: 3
-                        }
-                      }}
-                    />
-                  </Box>
-                  
-                  <Button
-                    fullWidth
-                    size="small"
-                    onClick={() => toggleModelExpansion(model.id)}
-                    endIcon={expandedModels.includes(model.id) ? <ExpandMore sx={{ transform: 'rotate(180deg)' }} /> : <ExpandMore />}
-                  >
-                    {expandedModels.includes(model.id) ? 'Hide Details' : 'Show Details'}
-                  </Button>
-                  
-                  {expandedModels.includes(model.id) && (
-                    <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                      <Typography variant="caption" color="text.secondary" gutterBottom>
-                        Features:
-                      </Typography>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 2 }}>
-                        {model.features.map((feature, idx) => (
-                          <Chip key={idx} label={feature} size="small" variant="outlined" />
-                        ))}
-                      </Box>
-                      
-                      <Typography variant="caption" color="text.secondary" gutterBottom>
-                        Performance Trend:
-                      </Typography>
-                      <Box sx={{ height: 150, mt: 1 }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={model.performanceHistory}>
-                            <Line 
-                              type="monotone" 
-                              dataKey="accuracy" 
-                              stroke="#4caf50" 
-                              strokeWidth={2}
-                              dot={false}
-                            />
-                            <Line 
-                              type="monotone" 
-                              dataKey="latency" 
-                              stroke="#ff9800" 
-                              strokeWidth={2}
-                              dot={false}
-                            />
-                            <XAxis dataKey="timestamp" hide />
-                            <YAxis hide />
-                            <ReTooltip 
-                              contentStyle={{ 
-                                backgroundColor: '#1d1f2b', 
-                                border: '1px solid rgba(0, 255, 255, 0.3)',
-                                borderRadius: 8
-                              }} 
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </Box>
-                    </Box>
-                  )}
+                  <Typography variant="caption" color="text.secondary">
+                    Last seen: {new Date(agent.lastSeen).toLocaleString()}
+                  </Typography>
                 </CardContent>
               </ModelCard>
             </Grid>
@@ -1020,22 +669,47 @@ const AIMonitoringPanel: React.FC = () => {
         </Grid>
       </Grid>
       
-      {/* Performance Analytics */}
+      {/* AI Models Performance */}
       <Grid item xs={12} lg={8}>
         <GlassCard>
           <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ color: '#00ffff', display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Analytics />
-              AI Performance Analytics
-            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+              <Typography variant="h6" sx={{ color: '#00ffff', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Analytics />
+                AI Models Performance
+              </Typography>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                <FormControl size="small">
+                  <Select
+                    value={timeRange}
+                    onChange={(e) => setTimeRange(e.target.value)}
+                    sx={{ color: '#e0e0e0', minWidth: 100 }}
+                  >
+                    <MenuItem value="1h">Last Hour</MenuItem>
+                    <MenuItem value="24h">Last 24 Hours</MenuItem>
+                    <MenuItem value="7d">Last 7 Days</MenuItem>
+                  </Select>
+                </FormControl>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={isRealTime}
+                      onChange={(e) => setIsRealTime(e.target.checked)}
+                      size="small"
+                    />
+                  }
+                  label={<Typography variant="caption">Real-time</Typography>}
+                />
+              </Box>
+            </Box>
             
             <Box sx={{ height: 400 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={performanceData}>
+                <ComposedChart data={performanceMetrics}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
                   <XAxis dataKey="date" stroke="#e0e0e0" />
                   <YAxis yAxisId="left" stroke="#e0e0e0" />
-                  <YAxis yAxisId="right" orientation="right" stroke="#e0e0e0" />
+                  <YAxis yAxisid="right" orientation="right" stroke="#e0e0e0" />
                   <ReTooltip 
                     contentStyle={{ 
                       backgroundColor: '#1d1f2b', 
@@ -1044,30 +718,37 @@ const AIMonitoringPanel: React.FC = () => {
                     }} 
                   />
                   <Legend />
-                  <Line 
-                    yAxisId="left"
-                    type="monotone" 
-                    dataKey="formAnalysisAccuracy" 
-                    stroke="#4caf50" 
-                    strokeWidth={3}
+                  <Area
+                    yAxisid="left"
+                    type="monotone"
+                    dataKey="formAnalysisAccuracy"
+                    fill="url(#accuracyGradient)"
+                    stroke="#4caf50"
+                    strokeWidth={2}
                     name="Form Analysis Accuracy (%)"
                   />
-                  <Line 
-                    yAxisId="left"
-                    type="monotone" 
-                    dataKey="recommendationCTR" 
-                    stroke="#2196f3" 
+                  <Line
+                    yAxisid="right"
+                    type="monotone"
+                    dataKey="formAnalysisLatency"
+                    stroke="#ff9800"
                     strokeWidth={3}
+                    name="Latency (ms)"
+                  />
+                  <Line
+                    yAxisid="left"
+                    type="monotone"
+                    dataKey="recommendationCTR"
+                    stroke="#2196f3"
+                    strokeWidth={2}
                     name="Recommendation CTR (%)"
                   />
-                  <Line 
-                    yAxisid="right"
-                    type="monotone" 
-                    dataKey="formAnalysisLatency" 
-                    stroke="#ff9800" 
-                    strokeWidth={3}
-                    name="Form Analysis Latency (ms)"
-                  />
+                  <defs>
+                    <linearGradient id="accuracyGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#4caf50" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#4caf50" stopOpacity={0.1}/>
+                    </linearGradient>
+                  </defs>
                 </ComposedChart>
               </ResponsiveContainer>
             </Box>
@@ -1084,57 +765,31 @@ const AIMonitoringPanel: React.FC = () => {
                 <Insights />
                 AI Insights
               </Typography>
-              <IconButton onClick={() => setAlertDialogOpen(true)}>
-                <Warning sx={{ color: '#ff9800' }} />
+              <IconButton>
+                <Download />
               </IconButton>
             </Box>
             
             <List>
-              {aiInsights.slice(0, 4).map((insight) => (
-                <ListItem key={insight.id} sx={{ px: 0 }}>
+              {aiInsights.slice(0, 5).map((insight) => (
+                <ListItem 
+                  key={insight.id} 
+                  sx={{ px: 0, py: 1, cursor: 'pointer' }}
+                  onClick={() => handleInsightClick(insight)}
+                >
                   <Paper sx={{ 
                     width: '100%',
                     p: 2, 
                     bgcolor: 'rgba(255, 255, 255, 0.02)',
                     border: `1px solid ${
-                      insight.type === 'alert' ? 'rgba(244, 67, 54, 0.3)' :
-                      insight.type === 'recommendation' ? 'rgba(33, 150, 243, 0.3)' :
-                      insight.type === 'optimization' ? 'rgba(76, 175, 80, 0.3)' :
-                      'rgba(255, 152, 0, 0.3)'
+                      insight.impact === 'high' ? '#f44336' :
+                      insight.impact === 'medium' ? '#ff9800' : '#4caf50'
                     }`
                   }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                      <Chip 
-                        label={insight.type}
-                        size="small"
-                        color={
-                          insight.type === 'alert' ? 'error' :
-                          insight.type === 'recommendation' ? 'info' :
-                          insight.type === 'optimization' ? 'success' : 'warning'
-                        }
-                      />
-                      <Typography variant="caption" color="text.secondary">
-                        {new Date(insight.timestamp).toLocaleTimeString()}
+                      <Typography variant="subtitle2" fontWeight={600}>
+                        {insight.title}
                       </Typography>
-                    </Box>
-                    
-                    <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                      {insight.title}
-                    </Typography>
-                    
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      {insight.description}
-                    </Typography>
-                    
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          Confidence:
-                        </Typography>
-                        <Typography variant="caption" fontWeight={600}>
-                          {insight.confidence}%
-                        </Typography>
-                      </Box>
                       <Chip 
                         label={insight.impact}
                         size="small"
@@ -1142,152 +797,277 @@ const AIMonitoringPanel: React.FC = () => {
                           insight.impact === 'high' ? 'error' :
                           insight.impact === 'medium' ? 'warning' : 'success'
                         }
-                        variant="outlined"
                       />
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                      {insight.description}
+                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="caption" color="text.secondary">
+                        {insight.relatedModel}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {insight.confidence}% confidence
+                      </Typography>
                     </Box>
                   </Paper>
                 </ListItem>
               ))}
             </List>
             
-            <Button 
-              fullWidth 
-              variant="outlined" 
-              sx={{ mt: 2 }}
-              onClick={() => setAlertDialogOpen(true)}
-            >
-              View All Insights
-            </Button>
+            {aiInsights.length === 0 && (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <BrainIcon sx={{ fontSize: 64, color: '#4caf50', mb: 2 }} />
+                <Typography variant="h6" color="#4caf50" gutterBottom>
+                  All AI Systems Optimal
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  No insights or recommendations at this time
+                </Typography>
+              </Box>
+            )}
           </CardContent>
         </GlassCard>
       </Grid>
     </Grid>
-  );
+    );
+  };
 
-  const renderModelDetailsTab = () => (
+  const renderModelsTab = () => (
     <Grid container spacing={3}>
       <Grid item xs={12}>
-        <Typography variant="h6" gutterBottom sx={{ color: '#00ffff' }}>
-          Detailed Model Analysis
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h6" sx={{ color: '#00ffff' }}>
+            AI Models Status
+          </Typography>
+          <Button variant="outlined" startIcon={<Refresh />} onClick={refreshAllData}>
+            Refresh Models
+          </Button>
+        </Box>
       </Grid>
       
-      {/* Model Usage Metrics */}
+      {aiModels.map((model) => (
+        <Grid item xs={12} lg={6} key={model.id}>
+          <ModelCard status={model.status}>
+            <CardContent>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <Avatar sx={{ 
+                    bgcolor: `${getStatusColor(model.status)}20`,
+                    color: getStatusColor(model.status)
+                  }}>
+                    {getModelTypeIcon(model.type)}
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h6" fontWeight={600}>
+                      {model.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {model.type} • v{model.version}
+                    </Typography>
+                  </Box>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <StatusIndicator status={model.status} />
+                  <Chip 
+                    label={model.status}
+                    size="small"
+                    color={
+                      model.status === 'active' ? 'success' :
+                      model.status === 'error' ? 'error' : 'warning'
+                    }
+                  />
+                </Box>
+              </Box>
+              
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid item xs={4}>
+                  <Typography variant="caption" color="text.secondary">Accuracy</Typography>
+                  <Typography variant="h6" color="#4caf50">{model.accuracy}%</Typography>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography variant="caption" color="text.secondary">Latency</Typography>
+                  <Typography variant="h6" color="#ff9800">{model.latency}ms</Typography>
+                </Grid>
+                <Grid item xs={4}>
+                  <Typography variant="caption" color="text.secondary">Requests</Typography>
+                  <Typography variant="h6" color="#2196f3">{model.requests}</Typography>
+                </Grid>
+              </Grid>
+              
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="subtitle2" gutterBottom>
+                  Resource Usage
+                </Typography>
+                <Box sx={{ mb: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="caption">CPU</Typography>
+                    <Typography variant="caption">{model.cpuUsage}%</Typography>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={model.cpuUsage}
+                    sx={{
+                      height: 4,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(255, 255, 255, 0.1)',
+                      '& .MuiLinearProgress-bar': {
+                        bgcolor: model.cpuUsage > 80 ? '#f44336' : model.cpuUsage > 60 ? '#ff9800' : '#4caf50',
+                        borderRadius: 2
+                      }
+                    }}
+                  />
+                </Box>
+                <Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="caption">Memory</Typography>
+                    <Typography variant="caption">{model.memoryUsage}%</Typography>
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={model.memoryUsage}
+                    sx={{
+                      height: 4,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(255, 255, 255, 0.1)',
+                      '& .MuiLinearProgress-bar': {
+                        bgcolor: '#2196f3',
+                        borderRadius: 2
+                      }
+                    }}
+                  />
+                </Box>
+              </Box>
+              
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button size="small" startIcon={<Visibility />}>
+                  Details
+                </Button>
+                <Button size="small" startIcon={<Tune />}>
+                  Configure
+                </Button>
+                <Button size="small" startIcon={<ModelTraining />}>
+                  Retrain
+                </Button>
+              </Box>
+            </CardContent>
+          </ModelCard>
+        </Grid>
+      ))}
+    </Grid>
+  );
+
+  const renderInsightsTab = () => (
+    <Grid container spacing={3}>
+      <Grid item xs={12}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h6" sx={{ color: '#00ffff' }}>
+            AI Insights & Recommendations
+          </Typography>
+          <Button variant="outlined" startIcon={<Download />}>
+            Export Insights
+          </Button>
+        </Box>
+      </Grid>
+      
       <Grid item xs={12}>
         <GlassCard>
           <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ color: '#00ffff' }}>
-              Model Usage Metrics
-            </Typography>
-            
             <TableContainer>
               <Table>
                 <TableHead>
                   <TableRow>
+                    <TableCell>Insight</TableCell>
+                    <TableCell>Type</TableCell>
+                    <TableCell>Impact</TableCell>
+                    <TableCell>Confidence</TableCell>
                     <TableCell>Model</TableCell>
-                    <TableCell>Feature</TableCell>
-                    <TableCell>Usage Count</TableCell>
-                    <TableCell>Success Rate</TableCell>
-                    <TableCell>Avg Confidence</TableCell>
-                    <TableCell>User Satisfaction</TableCell>
-                    <TableCell>Business Impact</TableCell>
+                    <TableCell>Actions</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {modelUsageMetrics.map((metric, index) => {
-                    const model = aiModels.find(m => m.id === metric.modelId);
-                    return (
-                      <TableRow key={index} hover>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Avatar sx={{ 
-                              bgcolor: `${getModelTypeColor(model?.type || '')}20`, 
-                              color: getModelTypeColor(model?.type || ''),
-                              width: 32,
-                              height: 32
-                            }}>
-                              {getModelTypeIcon(model?.type || '')}
-                            </Avatar>
-                            <Typography variant="body2" fontWeight={600}>
-                              {model?.name || metric.modelId}
-                            </Typography>
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {metric.feature}
+                  {aiInsights.map((insight) => (
+                    <TableRow key={insight.id} hover onClick={() => handleInsightClick(insight)}>
+                      <TableCell>
+                        <Box>
+                          <Typography variant="subtitle2" fontWeight={600}>
+                            {insight.title}
                           </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight={600}>
-                            {metric.usageCount.toLocaleString()}
+                          <Typography variant="body2" color="text.secondary">
+                            {insight.description}
                           </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="body2" fontWeight={600}>
-                              {metric.successRate}%
-                            </Typography>
-                            <LinearProgress
-                              variant="determinate"
-                              value={metric.successRate}
-                              sx={{
-                                width: 60,
-                                height: 6,
-                                borderRadius: 3,
-                                bgcolor: 'rgba(255, 255, 255, 0.1)',
-                                '& .MuiLinearProgress-bar': {
-                                  bgcolor: metric.successRate > 90 ? '#4caf50' : metric.successRate > 80 ? '#ff9800' : '#f44336',
-                                  borderRadius: 3
-                                }
-                              }}
-                            />
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight={600}>
-                            {metric.averageConfidence}%
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="body2" fontWeight={600}>
-                              {metric.userSatisfaction}/5
-                            </Typography>
-                            <Star sx={{ color: '#ffd700', fontSize: 16 }} />
-                          </Box>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight={600} color={
-                            metric.businessImpact > 8 ? '#4caf50' : 
-                            metric.businessImpact > 6 ? '#ff9800' : '#f44336'
-                          }>
-                            {metric.businessImpact}/10
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={insight.type}
+                          size="small"
+                          variant="outlined"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Chip 
+                          label={insight.impact}
+                          color={
+                            insight.impact === 'high' ? 'error' :
+                            insight.impact === 'medium' ? 'warning' : 'success'
+                          }
+                          size="small"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {insight.confidence}%
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" fontFamily="monospace">
+                          {insight.relatedModel}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
+                          <IconButton size="small">
+                            <Info />
+                          </IconButton>
+                          {insight.actionable && (
+                            <IconButton size="small">
+                              <Launch />
+                            </IconButton>
+                          )}
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </TableContainer>
           </CardContent>
         </GlassCard>
       </Grid>
+    </Grid>
+  );
+
+  const renderPerformanceTab = () => (
+    <Grid container spacing={3}>
+      <Grid item xs={12}>
+        <Typography variant="h6" sx={{ color: '#00ffff', mb: 3 }}>
+          AI Performance Analytics
+        </Typography>
+      </Grid>
       
-      {/* Confidence Distribution */}
       <Grid item xs={12} lg={6}>
         <GlassCard>
           <CardContent>
             <Typography variant="h6" gutterBottom sx={{ color: '#00ffff' }}>
-              Confidence Distribution
+              Model Accuracy Trends
             </Typography>
             
             <Box sx={{ height: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <ReBarChart data={aiModels[0].confidence.distribution}>
+                <LineChart data={performanceMetrics}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                  <XAxis dataKey="range" stroke="#e0e0e0" />
+                  <XAxis dataKey="date" stroke="#e0e0e0" />
                   <YAxis stroke="#e0e0e0" />
                   <ReTooltip 
                     contentStyle={{ 
@@ -1296,44 +1076,72 @@ const AIMonitoringPanel: React.FC = () => {
                       borderRadius: 8
                     }} 
                   />
-                  <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                    {aiModels[0].confidence.distribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={`hsl(${120 - index * 30}, 70%, 60%)`} />
-                    ))}
-                  </Bar>
-                </ReBarChart>
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="formAnalysisAccuracy"
+                    stroke="#4caf50"
+                    strokeWidth={2}
+                    name="Form Analysis"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="nutritionAnalysisAccuracy"
+                    stroke="#2196f3"
+                    strokeWidth={2}
+                    name="Nutrition Analysis"
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="sentimentAnalysisAccuracy"
+                    stroke="#ff9800"
+                    strokeWidth={2}
+                    name="Sentiment Analysis"
+                  />
+                </LineChart>
               </ResponsiveContainer>
             </Box>
           </CardContent>
         </GlassCard>
       </Grid>
       
-      {/* Training Metrics */}
       <Grid item xs={12} lg={6}>
         <GlassCard>
           <CardContent>
             <Typography variant="h6" gutterBottom sx={{ color: '#00ffff' }}>
-              Training Metrics Comparison
+              Inference Volume & Cost
             </Typography>
             
             <Box sx={{ height: 300 }}>
               <ResponsiveContainer width="100%" height="100%">
-                <RadarChart data={[
-                  { metric: 'Accuracy', formAnalysis: 94.7, recommendation: 87.3, nutrition: 89.2, sentiment: 92.8 },
-                  { metric: 'Speed', formAnalysis: 85, recommendation: 95, nutrition: 60, sentiment: 90 },
-                  { metric: 'Efficiency', formAnalysis: 78, recommendation: 88, nutrition: 65, sentiment: 85 },
-                  { metric: 'Stability', formAnalysis: 92, recommendation: 89, nutrition: 70, sentiment: 95 },
-                  { metric: 'Scalability', formAnalysis: 80, recommendation: 92, nutrition: 75, sentiment: 88 }
-                ]}>
-                  <PolarGrid />
-                  <PolarAngleAxis dataKey="metric" />
-                  <PolarRadiusAxis angle={90} domain={[0, 100]} />
-                  <Radar name="Form Analysis" dataKey="formAnalysis" stroke="#4caf50" fill="#4caf50" fillOpacity={0.1} />
-                  <Radar name="Recommendation" dataKey="recommendation" stroke="#2196f3" fill="#2196f3" fillOpacity={0.1} />
-                  <Radar name="Nutrition" dataKey="nutrition" stroke="#ff9800" fill="#ff9800" fillOpacity={0.1} />
-                  <Radar name="Sentiment" dataKey="sentiment" stroke="#9c27b0" fill="#9c27b0" fillOpacity={0.1} />
+                <ComposedChart data={performanceMetrics}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+                  <XAxis dataKey="date" stroke="#e0e0e0" />
+                  <YAxis yAxisid="left" stroke="#e0e0e0" />
+                  <YAxis yAxisid="right" orientation="right" stroke="#e0e0e0" />
+                  <ReTooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#1d1f2b', 
+                      border: '1px solid rgba(0, 255, 255, 0.3)',
+                      borderRadius: 8
+                    }} 
+                  />
                   <Legend />
-                </RadarChart>
+                  <Bar
+                    yAxisid="left"
+                    dataKey="totalInferences"
+                    fill="#4caf50"
+                    name="Total Inferences"
+                  />
+                  <Line
+                    yAxisid="right"
+                    type="monotone"
+                    dataKey="costPerInference"
+                    stroke="#f44336"
+                    strokeWidth={3}
+                    name="Cost per Inference ($)"
+                  />
+                </ComposedChart>
               </ResponsiveContainer>
             </Box>
           </CardContent>
@@ -1342,188 +1150,54 @@ const AIMonitoringPanel: React.FC = () => {
     </Grid>
   );
 
-  const renderOptimizationTab = () => (
-    <Grid container spacing={3}>
-      <Grid item xs={12}>
-        <Typography variant="h6" gutterBottom sx={{ color: '#00ffff' }}>
-          AI Optimization & Recommendations
-        </Typography>
-      </Grid>
-      
-      {/* Optimization Opportunities */}
-      <Grid item xs={12} lg={8}>
-        <GlassCard>
-          <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ color: '#00ffff' }}>
-              Optimization Opportunities
-            </Typography>
-            
-            {aiInsights.filter(insight => insight.actionable).map((insight) => (
-              <Accordion key={insight.id} sx={{ mb: 2, bgcolor: 'rgba(255, 255, 255, 0.02)' }}>
-                <AccordionSummary expandIcon={<ExpandMore />}>
-                  <Box sx={{ width: '100%' }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="subtitle1" fontWeight={600}>
-                        {insight.title}
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Chip 
-                          label={insight.type}
-                          size="small"
-                          color={
-                            insight.type === 'alert' ? 'error' :
-                            insight.type === 'recommendation' ? 'info' :
-                            insight.type === 'optimization' ? 'success' : 'warning'
-                          }
-                        />
-                        <Chip 
-                          label={`${insight.impact} impact`}
-                          size="small"
-                          color={
-                            insight.impact === 'high' ? 'error' :
-                            insight.impact === 'medium' ? 'warning' : 'success'
-                          }
-                          variant="outlined"
-                        />
-                      </Box>
-                    </Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                      {insight.description}
-                    </Typography>
-                  </Box>
-                </AccordionSummary>
-                <AccordionDetails>
-                  <Typography variant="subtitle2" gutterBottom>
-                    Suggested Actions:
-                  </Typography>
-                  <List dense>
-                    {insight.suggestedActions.map((action, idx) => (
-                      <ListItem key={idx}>
-                        <ListItemIcon>
-                          <CheckCircle sx={{ color: '#4caf50', fontSize: 16 }} />
-                        </ListItemIcon>
-                        <ListItemText primary={action} />
-                      </ListItem>
-                    ))}
-                  </List>
-                  <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                    <Button variant="contained" size="small">
-                      Implement
-                    </Button>
-                    <Button variant="outlined" size="small">
-                      Schedule
-                    </Button>
-                    <Button variant="text" size="small">
-                      Learn More
-                    </Button>
-                  </Box>
-                </AccordionDetails>
-              </Accordion>
-            ))}
-          </CardContent>
-        </GlassCard>
-      </Grid>
-      
-      {/* Cost Optimization */}
-      <Grid item xs={12} lg={4}>
-        <GlassCard>
-          <CardContent>
-            <Typography variant="h6" gutterBottom sx={{ color: '#00ffff' }}>
-              Cost Optimization
-            </Typography>
-            
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="h3" color="#4caf50" fontWeight={700}>
-                $0.0048
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Cost per Inference
-              </Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
-                <TrendingUp sx={{ color: '#f44336', fontSize: 16, mr: 0.5 }} />
-                <Typography variant="caption" color="#f44336">
-                  +8.9% this month
-                </Typography>
-              </Box>
-            </Box>
-            
-            <Typography variant="subtitle2" gutterBottom>
-              Cost Breakdown
-            </Typography>
-            
-            <List dense>
-              <ListItem sx={{ px: 0 }}>
-                <ListItemText 
-                  primary="Compute Costs"
-                  secondary="$1,234/month"
-                />
-                <Typography variant="body2" color="#ff9800">
-                  68%
-                </Typography>
-              </ListItem>
-              <ListItem sx={{ px: 0 }}>
-                <ListItemText 
-                  primary="Storage Costs"
-                  secondary="$456/month"
-                />
-                <Typography variant="body2" color="#2196f3">
-                  25%
-                </Typography>
-              </ListItem>
-              <ListItem sx={{ px: 0 }}>
-                <ListItemText 
-                  primary="Network Costs"
-                  secondary="$128/month"
-                />
-                <Typography variant="body2" color="#4caf50">
-                  7%
-                </Typography>
-              </ListItem>
-            </List>
-            
-            <Divider sx={{ my: 2 }} />
-            
-            <Typography variant="subtitle2" gutterBottom>
-              Optimization Suggestions
-            </Typography>
-            
-            <Alert severity="info" sx={{ mb: 2 }}>
-              <Typography variant="body2">
-                Batch processing could reduce costs by 25%
-              </Typography>
-            </Alert>
-            
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              <Typography variant="body2">
-                Model quantization could save 15% on compute
-              </Typography>
-            </Alert>
-            
-            <Alert severity="success">
-              <Typography variant="body2">
-                Auto-scaling is optimized for current usage
-              </Typography>
-            </Alert>
-          </CardContent>
-        </GlassCard>
-      </Grid>
-    </Grid>
-  );
+  // Loading and error states
+  if (isLoadingData('overview') && !mcpHealthData) {
+    return (
+      <Box sx={{ bgcolor: '#0a0a1a', minHeight: '100vh', p: 3, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Box sx={{ textAlign: 'center' }}>
+          <CircularProgress sx={{ color: '#00ffff', mb: 2 }} size={60} />
+          <Typography variant="h6" sx={{ color: '#00ffff' }}>
+            Loading AI Monitoring Data...
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
+
+  if (hasError('overview') && !mcpHealthData) {
+    return (
+      <Box sx={{ bgcolor: '#0a0a1a', minHeight: '100vh', p: 3 }}>
+        <Alert 
+          severity="error" 
+          sx={{ mb: 3, backgroundColor: 'rgba(244, 67, 54, 0.1)', color: '#f44336', border: '1px solid #f44336' }}
+          action={
+            <Button color="inherit" size="small" onClick={fetchMCPHealthData} disabled={isLoadingData('overview')}>
+              {isLoadingData('overview') ? <CircularProgress size={16} /> : 'Retry'}
+            </Button>
+          }
+        >
+          <Typography variant="h6">Failed to Load AI Monitoring Data</Typography>
+          <Typography variant="body2">{errors.overview}</Typography>
+        </Alert>
+      </Box>
+    );
+  }
 
   const tabPanels = [
     renderOverviewTab(),
-    renderModelDetailsTab(),
-    renderOptimizationTab()
+    renderModelsTab(),
+    renderInsightsTab(),
+    renderPerformanceTab()
   ];
 
   return (
     <Box sx={{ bgcolor: '#0a0a1a', minHeight: '100vh', p: 3 }}>
       <Box sx={{ mb: 4 }}>
         <Typography variant="h4" sx={{ color: '#00ffff', fontWeight: 700, mb: 1 }}>
-          AI/ML Monitoring Dashboard
+          AI Monitoring Dashboard
         </Typography>
         <Typography variant="h6" color="text.secondary">
-          Comprehensive monitoring and optimization of AI models and machine learning systems
+          Comprehensive monitoring of AI models, performance metrics, and intelligent insights
         </Typography>
       </Box>
 
@@ -1552,115 +1226,137 @@ const AIMonitoringPanel: React.FC = () => {
             label="Overview" 
           />
           <Tab 
-            icon={<Assessment />} 
+            icon={<SmartToy />} 
             iconPosition="start" 
-            label="Model Details" 
+            label="AI Models" 
           />
           <Tab 
-            icon={<Tune />} 
+            icon={<Insights />} 
             iconPosition="start" 
-            label="Optimization" 
+            label="Insights" 
+          />
+          <Tab 
+            icon={<Analytics />} 
+            iconPosition="start" 
+            label="Performance" 
           />
         </Tabs>
       </Box>
 
-      {/* Loading and error states */}
-      {isLoading && !mcpHealthData ? (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 8 }}>
-          <Box sx={{ textAlign: 'center' }}>
-            <CircularProgress sx={{ color: '#00ffff', mb: 2 }} size={60} />
-            <Typography variant="h6" sx={{ color: '#00ffff' }}>
-              Loading AI Monitoring Data...
-            </Typography>
-          </Box>
-        </Box>
-      ) : error && !mcpHealthData ? (
-        <Alert 
-          severity="error" 
-          sx={{ mb: 3, backgroundColor: 'rgba(244, 67, 54, 0.1)', color: '#f44336', border: '1px solid #f44336' }}
-          action={
-            <Button color="inherit" size="small" onClick={fetchMCPHealthData} disabled={isLoading}>
-              {isLoading ? <CircularProgress size={16} /> : 'Retry'}
-            </Button>
-          }
-        >
-          <Typography variant="h6">Failed to Load AI Monitoring Data</Typography>
-          <Typography variant="body2">{error}</Typography>
-        </Alert>
-      ) : (
-        <Box>
-          {tabPanels[activeTab]}
-        </Box>
-      )}
+      <Box>
+        {tabPanels[activeTab]}
+      </Box>
 
-      {/* Insights Dialog */}
+      {/* Insight Details Dialog */}
       <Dialog open={alertDialogOpen} onClose={() => setAlertDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ color: '#00ffff' }}>
-          AI Insights & Alerts
+          AI Insight Details
         </DialogTitle>
         <DialogContent>
-          <List>
-            {aiInsights.map((insight) => (
-              <Paper key={insight.id} sx={{ mb: 2, p: 2, bgcolor: 'rgba(255, 255, 255, 0.02)' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                  <Typography variant="subtitle1" fontWeight={600}>
-                    {insight.title}
+          {selectedInsight && (
+            <Box>
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={12}>
+                  <Typography variant="h6" gutterBottom>
+                    {selectedInsight.title}
                   </Typography>
-                  <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Typography variant="body1" color="text.secondary" paragraph>
+                    {selectedInsight.description}
+                  </Typography>
+                  
+                  <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
                     <Chip 
-                      label={insight.type}
-                      size="small"
-                      color={
-                        insight.type === 'alert' ? 'error' :
-                        insight.type === 'recommendation' ? 'info' :
-                        insight.type === 'optimization' ? 'success' : 'warning'
-                      }
-                    />
-                    <Chip 
-                      label={`${insight.impact} impact`}
-                      size="small"
-                      color={
-                        insight.impact === 'high' ? 'error' :
-                        insight.impact === 'medium' ? 'warning' : 'success'
-                      }
+                      label={selectedInsight.type}
                       variant="outlined"
                     />
+                    <Chip 
+                      label={selectedInsight.impact}
+                      color={
+                        selectedInsight.impact === 'high' ? 'error' :
+                        selectedInsight.impact === 'medium' ? 'warning' : 'success'
+                      }
+                    />
                   </Box>
-                </Box>
-                
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {insight.description}
-                </Typography>
-                
-                <Typography variant="caption" color="text.secondary">
-                  Related Model: {insight.relatedModel} | Confidence: {insight.confidence}%
-                </Typography>
-                
-                {insight.actionable && (
-                  <Box sx={{ mt: 2 }}>
-                    <Typography variant="caption" color="text.secondary" gutterBottom>
-                      Suggested Actions:
-                    </Typography>
-                    <List dense>
-                      {insight.suggestedActions.map((action, idx) => (
-                        <ListItem key={idx} sx={{ py: 0 }}>
-                          <ListItemIcon sx={{ minWidth: 20 }}>
-                            <CheckCircle sx={{ color: '#4caf50', fontSize: 14 }} />
-                          </ListItemIcon>
-                          <ListItemText primary={<Typography variant="caption">{action}</Typography>} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  </Box>
-                )}
-              </Paper>
-            ))}
-          </List>
+                </Grid>
+              </Grid>
+              
+              <Divider sx={{ my: 2 }} />
+              
+              <Typography variant="subtitle2" gutterBottom>
+                Related Information
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Model: {selectedInsight.relatedModel}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Confidence: {selectedInsight.confidence}%
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Time: {new Date(selectedInsight.timestamp).toLocaleString()}
+              </Typography>
+              
+              <Divider sx={{ my: 2 }} />
+              
+              <Typography variant="subtitle2" gutterBottom>
+                Suggested Actions
+              </Typography>
+              <List dense>
+                {selectedInsight.suggestedActions.map((action, index) => (
+                  <ListItem key={index}>
+                    <ListItemIcon>
+                      <CheckCircle sx={{ color: '#4caf50', fontSize: 16 }} />
+                    </ListItemIcon>
+                    <ListItemText primary={action} />
+                  </ListItem>
+                ))}
+              </List>
+            </Box>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAlertDialogOpen(false)}>Close</Button>
+          {selectedInsight?.actionable && (
+            <Button variant="contained">Take Action</Button>
+          )}
         </DialogActions>
       </Dialog>
+
+      {/* Floating Action Button */}
+      <SpeedDial
+        ariaLabel="AI Actions"
+        sx={{ 
+          position: 'fixed', 
+          bottom: 24, 
+          right: 24,
+          '& .MuiFab-primary': {
+            background: 'linear-gradient(135deg, #00ffff, #00c8ff)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #00e6ff, #00b3ff)',
+            },
+          }
+        }}
+        icon={<SpeedDialIcon />}
+      >
+        <SpeedDialAction
+          icon={<Download />}
+          tooltipTitle="Export AI Data"
+          onClick={() => {
+            console.log('📁 Export AI data functionality to be implemented');
+          }}
+        />
+        <SpeedDialAction
+          icon={<ModelTraining />}
+          tooltipTitle="Retrain Models"
+          onClick={() => {
+            console.log('🧠 Model retraining functionality to be implemented');
+          }}
+        />
+        <SpeedDialAction
+          icon={<Refresh />}
+          tooltipTitle="Refresh Data"
+          onClick={refreshAllData}
+        />
+      </SpeedDial>
     </Box>
   );
 };
