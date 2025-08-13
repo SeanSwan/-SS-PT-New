@@ -794,7 +794,7 @@ const UserAnalyticsPanel: React.FC = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
                   <XAxis dataKey="date" stroke="#e0e0e0" />
                   <YAxis yAxisId="left" stroke="#e0e0e0" />
-                  <YAxis yAxisid="right" orientation="right" stroke="#e0e0e0" />
+                  <YAxis yAxisId="right" orientation="right" stroke="#e0e0e0" />
                   <ReTooltip 
                     contentStyle={{ 
                       backgroundColor: '#1d1f2b', 
