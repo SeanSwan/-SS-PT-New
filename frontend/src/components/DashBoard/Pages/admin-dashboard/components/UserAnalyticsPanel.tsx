@@ -1406,7 +1406,15 @@ const UserAnalyticsPanel: React.FC = () => {
   const tabPanels = [
     renderOverviewTab(),
     renderRetentionTab(),
-    renderBehaviorTab()
+    // renderBehaviorTab() - TODO: Implement behavior insights tab
+    <Box sx={{ p: 3, textAlign: 'center' }}>
+      <Typography variant="h6" color="text.secondary">
+        Behavior Insights Coming Soon
+      </Typography>
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+        Advanced behavior analysis features will be available in the next update.
+      </Typography>
+    </Box>
   ];
 
   return (
