@@ -478,7 +478,7 @@ const UniversalMasterSchedule: React.FC = () => {
     createPulseAnimation,
     createShakeAnimation,
     createGlowAnimation,
-    getPerformanceMetrics
+    getPerformanceMetrics: getRealTimePerformanceMetrics
   } = useMicroInteractions({
     enableHaptics: true,
     enableSounds: false, // Disabled by default
@@ -548,7 +548,7 @@ const UniversalMasterSchedule: React.FC = () => {
     filterOptions: shouldUseMinimalMode ? {} : filterOptions
   });
   
-  // 4. Real-time Updates Management (ENHANCED) - Fixed duplicate getPerformanceMetrics
+  // 4. Real-time Updates Management (ENHANCED) - Fixed duplicate getPerformanceMetrics: getRealTimePerformanceMetrics
   const {
     connectionStatus,
     isConnected,
