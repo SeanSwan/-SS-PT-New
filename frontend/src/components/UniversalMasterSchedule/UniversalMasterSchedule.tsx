@@ -548,7 +548,7 @@ const UniversalMasterSchedule: React.FC = () => {
     filterOptions: shouldUseMinimalMode ? {} : filterOptions
   });
   
-  // 4. Real-time Updates Management (ENHANCED)
+  // 4. Real-time Updates Management (ENHANCED) - Fixed duplicate getPerformanceMetrics
   const {
     connectionStatus,
     isConnected,
