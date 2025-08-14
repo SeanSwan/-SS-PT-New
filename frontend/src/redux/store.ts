@@ -8,7 +8,7 @@
  */
 
 import { configureStore } from '@reduxjs/toolkit';
-import scheduleReducer, { setInitialState } from './slices/scheduleSlice';
+import scheduleReducer from './slices/scheduleSlice';
 import notificationReducer from '../store/slices/notificationSlice';
 import authReducer from '../store/slices/authSlice';
 import uiReducer from '../store/slices/uiSlice';
@@ -35,41 +35,3 @@ export const store = configureStore({
 // Define RootState and AppDispatch types
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
-
-// Initialize the Redux store with default values to prevent undefined errors
-// This ensures the schedule slice is always populated with Universal Calendar state
-const initialState = store.getState();
-if (!initialState.schedule || !initialState.schedule.sessions) {
-  console.warn('Schedule state not properly initialized, applying enhanced default state');
-  store.dispatch(setInitialState({
-      sessions: [],
-      trainers: [],
-      clients: [],
-      stats: {
-        total: 0,
-        available: 0,
-        booked: 0,
-        confirmed: 0,
-        completed: 0,
-        cancelled: 0,
-        blocked: 0,
-        upcoming: 0
-      },
-      status: 'idle',
-      error: null,
-      fetched: false,
-      // Universal Calendar View State (Enhanced)
-      view: 'month',
-      selectedDate: new Date().toISOString().split('T')[0],
-      // Role-based context
-      currentUserRole: null,
-      currentUserId: null
-  }));
-}
-
-// Initialize notifications state if needed
-if (!initialState.notifications) {
-  console.warn('Notifications state not properly initialized');
-  // The notificationReducer will handle initialization with its default state
-  // This is just a placeholder to show we checked for it
-}
