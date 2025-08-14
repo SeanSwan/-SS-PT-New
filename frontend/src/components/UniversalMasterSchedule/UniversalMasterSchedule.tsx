@@ -557,7 +557,7 @@ const UniversalMasterSchedule: React.FC = () => {
     messagesReceived,
     uptime,
     getConnectionHealth,
-    getPerformanceMetrics
+    getPerformanceMetrics: getRealTimePerformanceMetrics
   } = useRealTimeUpdates({
     onDataUpdate: refreshData,
     enabled: realTimeEnabled,
