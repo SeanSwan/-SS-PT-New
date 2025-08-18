@@ -12,20 +12,20 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useAppDispatch, useAppSelector } from "../../redux/hooks";
 import {
-  fetchSessions,
+  fetchEvents,           // was: fetchSessions
   bookSession,
-  createSession,
-  createBlockedTime,
-  deleteBlockedTime,
+  createAvailableSessions,  // was: createSession  
+  // createBlockedTime,     // doesn't exist - removed
+  // deleteBlockedTime,     // doesn't exist - removed
   confirmSession,
   cancelSession,
-  fetchTrainers, // Import trainer fetching function
+  fetchTrainers,
   selectAllSessions,
   selectScheduleStatus,
   selectScheduleError,
   selectScheduleStats,
-  selectTrainers, // Import selectors for trainers
-  setInitialState // Import for error recovery
+  selectTrainers
+  // setInitialState        // doesn't exist - removed
 } from "../../redux/slices/scheduleSlice";
 import { Calendar, momentLocalizer, SlotInfo, View } from "react-big-calendar";
 import moment from "moment";
@@ -1297,30 +1297,33 @@ const UnifiedCalendar: React.FC = () => {
       try {
         if (status === 'idle') {
           console.log('Fetching schedule data...');
-          await dispatch(fetchSessions()).unwrap();
+          await dispatch(fetchEvents()).unwrap();
           await dispatch(fetchTrainers()).unwrap();
           console.log('Schedule data loaded successfully');
         }
       } catch (error) {
         console.error('Error fetching schedule data:', error);
-        dispatch(setInitialState({
-          sessions: [],
-          trainers: [],
-          clients: [],
-          stats: {
-            total: 0,
-            available: 0,
-            booked: 0,
-            confirmed: 0,
-            completed: 0,
-            cancelled: 0,
-            blocked: 0,
-            upcoming: 0
-          },
-          status: 'failed',
-          error: 'Failed to load schedule data. Please try again.',
-          fetched: false
-        }));
+        dispatch({
+          type: 'schedule/resetState',
+          payload: {
+            sessions: [],
+            trainers: [],
+            clients: [],
+            stats: {
+              total: 0,
+              available: 0,
+              booked: 0,
+              confirmed: 0,
+              completed: 0,
+              cancelled: 0,
+              blocked: 0,
+              upcoming: 0
+            },
+            status: 'failed',
+            error: 'Failed to load schedule data. Please try again.',
+            fetched: false
+          }
+        });
       }
     };
     
@@ -1420,7 +1423,7 @@ const UnifiedCalendar: React.FC = () => {
   
   // Refresh calendar data
   const handleRefresh = () => {
-    dispatch(fetchSessions());
+    dispatch(fetchEvents());
   };
   
   // Create a new session
@@ -1438,7 +1441,7 @@ const UnifiedCalendar: React.FC = () => {
       status: 'available'
     };
     
-    dispatch(createSession(sessionData));
+    dispatch(createAvailableSessions([sessionData]));
     setShowModal(false);
     
     const dateStr = moment(selectedSlot.start).format('dddd, MMMM D');
@@ -1511,7 +1514,20 @@ const UnifiedCalendar: React.FC = () => {
       title: `${formData.reason || 'Blocked'} - ${isTrainer && !targetTrainerId ? user?.firstName || 'Trainer' : targetTrainerId ? trainers.find(t => t.id === targetTrainerId)?.firstName || 'Trainer' : 'All Trainers'}`
     };
     
-    dispatch(createBlockedTime(blockedTimeData));
+    // Note: createBlockedTime functionality needs to be implemented
+    // For now, we'll create a blocked session using createAvailableSessions
+    const blockedSessionData = {
+      start: startDateTime.toDate(),
+      end: endDateTime.toDate(),
+      title: `${formData.reason || 'Blocked'} - ${isTrainer && !targetTrainerId ? user?.firstName || 'Trainer' : targetTrainerId ? trainers.find(t => t.id === targetTrainerId)?.firstName || 'Trainer' : 'All Trainers'}`,
+      location: formData.location,
+      notes: `BLOCKED: ${formData.reason || 'Unavailable'}`,
+      trainerId: targetTrainerId,
+      status: 'blocked',
+      duration: Number(formData.duration)
+    };
+    
+    dispatch(createAvailableSessions([blockedSessionData]));
     setShowModal(false);
     
     // Reset form data
@@ -1599,9 +1615,11 @@ const UnifiedCalendar: React.FC = () => {
     }
   };
   
-  // Delete a blocked time
+  // Delete a blocked time - simplified implementation
   const handleDeleteBlockedTime = (eventId: string, removeAll: boolean = false) => {
-    dispatch(deleteBlockedTime({ sessionId: eventId, removeAll }));
+    // Note: deleteBlockedTime functionality needs to be implemented
+    // For now, we'll use cancelSession
+    dispatch(cancelSession(eventId));
     setShowModal(false);
     
     if (selectedEvent) {
