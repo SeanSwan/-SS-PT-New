@@ -22,7 +22,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAppDispatch, useAppSelector } from '../../../redux/hooks';
 import {
   fetchEvents,
-  fetchSessions,
   fetchTrainers,
   fetchClients,
   selectAllSessions,
@@ -297,7 +296,7 @@ export const useCalendarData = () => {
           if (userRole === 'admin' || userRole === 'trainer') {
             return await dispatch(fetchEvents({ role: userRole as any, userId }));
           } else {
-            return await dispatch(fetchSessions());
+            return await dispatch(fetchEvents());
           }
         },
         'loadSessions',
