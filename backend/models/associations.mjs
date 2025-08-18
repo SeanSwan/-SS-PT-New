@@ -3,7 +3,7 @@
  * =================
  * This file defines all associations between SEQUELIZE models only.
  * MongoDB models are handled separately and don't need associations here.
- * Updated to include Financial Intelligence models.
+ * Updated to include Financial Intelligence models and Content Moderation models.
  */
 
 // Import models using dynamic imports to avoid circular dependencies
@@ -39,7 +39,7 @@ const setupAssociations = async () => {
 
     // Social Models (Sequelize)
     const SocialModels = await import('./social/index.mjs');
-    const { SocialPost, SocialComment, SocialLike, Friendship, Challenge, ChallengeParticipant, ChallengeTeam } = SocialModels;
+    const { SocialPost, SocialComment, SocialLike, Friendship, Challenge, ChallengeParticipant, ChallengeTeam, PostReport, ModerationAction } = SocialModels;
 
     // Workout Models (Sequelize)
     const WorkoutPlanModule = await import('./WorkoutPlan.mjs');
@@ -135,34 +135,45 @@ const setupAssociations = async () => {
 
     console.log('Setting up Sequelize associations only...');
     
-    // 🎯 ENHANCED P0 FIX: Robust duplicate checking with detailed verification
+    // 🔒 ENHANCED DUPLICATE PREVENTION: Robust checking with specific alias verification
     const hasUserAssociations = User.associations && Object.keys(User.associations).length > 0;
     const hasCartAssociations = CartItem.associations && Object.keys(CartItem.associations).length > 0;
     const hasStorefrontAssociations = StorefrontItem.associations && Object.keys(StorefrontItem.associations).length > 0;
     
-    if (hasUserAssociations || hasCartAssociations || hasStorefrontAssociations) {
-      console.log('🔍 ENHANCED P0 CHECK: Associations already exist, performing verification...');
+    // 🔍 CRITICAL FIX: Check specifically for the problematic 'clientProgress' alias
+    const hasClientProgressAlias = !!(User.associations && User.associations.clientProgress);
+    
+    if (hasUserAssociations || hasCartAssociations || hasStorefrontAssociations || hasClientProgressAlias) {
+      console.log('🔒 DUPLICATE PREVENTION: Associations already exist, performing detailed verification...');
+      console.log('🔍 User associations found:', hasUserAssociations ? Object.keys(User.associations) : 'none');
+      console.log('🔍 ClientProgress alias exists:', hasClientProgressAlias);
       
       // Critical verification for P0 checkout fix
       const criticalAssociationStatus = {
+        userToClientProgress: hasClientProgressAlias,
         cartToStorefront: !!(CartItem.associations && CartItem.associations.storefrontItem),
         cartToShoppingCart: !!(CartItem.associations && CartItem.associations.cart),
         shoppingCartToItems: !!(ShoppingCart.associations && ShoppingCart.associations.cartItems),
         userToCart: !!(User.associations && User.associations.shoppingCarts)
       };
       
-      console.log('🎯 P0 CRITICAL ASSOCIATIONS STATUS:', criticalAssociationStatus);
+      console.log('🎯 CRITICAL ASSOCIATIONS STATUS:', criticalAssociationStatus);
       
       // Verify all critical associations exist
       const allCriticalExist = Object.values(criticalAssociationStatus).every(status => status === true);
       
       if (allCriticalExist) {
-        console.log('✅ ENHANCED P0 VERIFICATION: All critical associations confirmed - returning existing models');
+        console.log('✅ DUPLICATE PREVENTION VERIFIED: All critical associations confirmed - safely returning existing models');
       } else {
-        console.warn('⚠️ ENHANCED P0 WARNING: Some critical associations missing, but continuing with existing setup');
+        console.warn('⚠️ DUPLICATE PREVENTION WARNING: Some critical associations missing');
         console.log('Missing associations:', Object.entries(criticalAssociationStatus)
           .filter(([key, value]) => !value)
           .map(([key]) => key));
+        
+        // If clientProgress alias exists but other associations are missing, we might have a partial setup
+        if (hasClientProgressAlias) {
+          console.log('🔒 CRITICAL: clientProgress alias exists - preventing duplicate setup');
+        }
       }
       
       return {
@@ -171,6 +182,7 @@ const setupAssociations = async () => {
         PointTransaction, StorefrontItem, ShoppingCart, CartItem, Order, 
         OrderItem, FoodIngredient, FoodProduct, FoodScanHistory, 
         SocialPost, SocialComment, SocialLike, Friendship, Challenge, ChallengeParticipant, ChallengeTeam,
+        PostReport, ModerationAction,
         WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, WorkoutSession, WorkoutExercise, Exercise, Set,
         MuscleGroup, ExerciseMuscleGroup, Equipment, ExerciseEquipment,
         Orientation, Notification, NotificationSettings, AdminSettings, Contact,
@@ -307,6 +319,38 @@ const setupAssociations = async () => {
     Challenge.hasMany(ChallengeParticipant, { foreignKey: 'challengeId', as: 'participants' });
     ChallengeParticipant.belongsTo(Challenge, { foreignKey: 'challengeId', as: 'challenge' });
 
+    // CONTENT MODERATION ASSOCIATIONS
+    // ===============================
+    
+    // PostReport associations
+    User.hasMany(PostReport, { foreignKey: 'reporterId', as: 'reportsMade' });
+    User.hasMany(PostReport, { foreignKey: 'contentAuthorId', as: 'reportsReceived' });
+    User.hasMany(PostReport, { foreignKey: 'resolvedBy', as: 'reportsResolved' });
+    
+    PostReport.belongsTo(User, { foreignKey: 'reporterId', as: 'reporter' });
+    PostReport.belongsTo(User, { foreignKey: 'contentAuthorId', as: 'contentAuthor' });
+    PostReport.belongsTo(User, { foreignKey: 'resolvedBy', as: 'resolver' });
+    
+    // ModerationAction associations
+    User.hasMany(ModerationAction, { foreignKey: 'moderatorId', as: 'moderationActions' });
+    User.hasMany(ModerationAction, { foreignKey: 'contentAuthorId', as: 'moderationActionsReceived' });
+    
+    ModerationAction.belongsTo(User, { foreignKey: 'moderatorId', as: 'moderator' });
+    ModerationAction.belongsTo(User, { foreignKey: 'contentAuthorId', as: 'contentAuthor' });
+    ModerationAction.belongsTo(PostReport, { foreignKey: 'relatedReportId', as: 'relatedReport' });
+    PostReport.hasMany(ModerationAction, { foreignKey: 'relatedReportId', as: 'actions' });
+    
+    // Social content moderation associations
+    User.hasMany(SocialPost, { foreignKey: 'flaggedBy', as: 'flaggedPosts' });
+    User.hasMany(SocialPost, { foreignKey: 'lastModeratedBy', as: 'moderatedPosts' });
+    User.hasMany(SocialComment, { foreignKey: 'flaggedBy', as: 'flaggedComments' });
+    User.hasMany(SocialComment, { foreignKey: 'lastModeratedBy', as: 'moderatedComments' });
+    
+    SocialPost.belongsTo(User, { foreignKey: 'flaggedBy', as: 'flaggedByUser' });
+    SocialPost.belongsTo(User, { foreignKey: 'lastModeratedBy', as: 'lastModeratedByUser' });
+    SocialComment.belongsTo(User, { foreignKey: 'flaggedBy', as: 'flaggedByUser' });
+    SocialComment.belongsTo(User, { foreignKey: 'lastModeratedBy', as: 'lastModeratedByUser' });
+
     // NOTIFICATION ASSOCIATIONS
     // =========================
     User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
@@ -375,6 +419,7 @@ const setupAssociations = async () => {
     console.log('✅ Sequelize model associations established successfully');
     console.log('✅ Financial Intelligence models integrated');
     console.log('✅ NASM Workout Tracking models integrated');
+    console.log('✅ Content Moderation models integrated');
     
     // Return ONLY SEQUELIZE models for exporting
     return {
@@ -399,6 +444,10 @@ const setupAssociations = async () => {
       Challenge,
       ChallengeParticipant,
       ChallengeTeam,
+      
+      // Content Moderation Models
+      PostReport,
+      ModerationAction,
       
       // E-Commerce Models
       StorefrontItem,
@@ -451,21 +500,46 @@ const setupAssociations = async () => {
   }
 };
 
-// Singleton instance to prevent multiple association setups
+// 🔒 ENHANCED SINGLETON: Prevent multiple association setups
 let modelsInstance = null;
+let isInitializing = false;
 
 // We'll use dynamic imports to get around the circular dependency issue
 const importModelsAndAssociate = async () => {
   try {
+    // 🔒 CRITICAL FIX: Prevent concurrent initialization
     if (modelsInstance) {
-      console.log('⚠️ Returning existing models instance');
+      console.log('✅ ASSOCIATION SINGLETON: Returning existing models instance');
       return modelsInstance;
     }
     
+    if (isInitializing) {
+      console.log('⏳ ASSOCIATION SINGLETON: Waiting for initialization to complete...');
+      // Wait for initialization to complete by polling
+      let attempts = 0;
+      while (isInitializing && attempts < 50) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+      if (modelsInstance) {
+        console.log('✅ ASSOCIATION SINGLETON: Initialization completed, returning models');
+        return modelsInstance;
+      } else {
+        throw new Error('Association initialization timed out');
+      }
+    }
+    
+    isInitializing = true;
+    console.log('🚀 ASSOCIATION SINGLETON: Starting first-time initialization...');
+    
     modelsInstance = await setupAssociations();
+    isInitializing = false;
+    
+    console.log('✅ ASSOCIATION SINGLETON: Initialization completed successfully');
     return modelsInstance;
   } catch (error) {
-    console.error('Failed to import models and set up associations:', error);
+    isInitializing = false;
+    console.error('❌ ASSOCIATION SINGLETON: Failed to import models and set up associations:', error);
     throw error;
   }
 };

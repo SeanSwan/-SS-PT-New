@@ -1,12 +1,15 @@
 /**
- * Store Initialization Safeguard
+ * 🔧 DEPLOYMENT FIX: Redux Import Error Resolution
+ * ==================================================
  * 
+ * FIXES RENDER ERROR: "setInitialState" is not exported by scheduleSlice.ts
+ * 
+ * Store Initialization Safeguard
  * This utility provides a safe way to initialize the Redux store once
  * before React components mount, preventing infinite update loops.
  */
 
 import { store } from '../redux/store';
-import { setInitialState as setScheduleInitialState } from '../redux/slices/scheduleSlice';
 // Import the main store and the notificationSlice for initialization
 import mainStore from '../store';
 import { clearNotifications } from '../store/slices/notificationSlice';
@@ -28,25 +31,9 @@ export function safeInitializeStore() {
   console.log('[SafeInitializer] Performing safe one-time store initialization');
   
   try {
-    // Initialize schedule slice with default state in the redux/store
-    store.dispatch(setScheduleInitialState({
-      sessions: [],
-      trainers: [],
-      clients: [],
-      stats: {
-        total: 0,
-        available: 0,
-        booked: 0,
-        confirmed: 0,
-        completed: 0,
-        cancelled: 0,
-        blocked: 0,
-        upcoming: 0
-      },
-      status: 'idle',
-      error: null,
-      fetched: false
-    }));
+    // 🔧 DEPLOYMENT FIX: Removed problematic scheduleSlice import
+    // Note: Schedule slice initializes with its own initialState automatically
+    // No need to manually set initial state as Redux Toolkit handles this
     
     // Initialize notifications slice in the main store
     mainStore.dispatch(clearNotifications());

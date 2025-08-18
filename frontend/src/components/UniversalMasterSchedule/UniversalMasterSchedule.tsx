@@ -1,36 +1,25 @@
 /**
- * Universal Master Schedule - PHASE 3: UI/UX EXCELLENCE & "APPLE PHONE-LEVEL" EXPERIENCE
- * =======================================================================================
- * The ultimate scheduling management system with role-adaptive UI and premium micro-interactions
+ * Universal Master Schedule - PHASE 2B: MOBILE ADMIN INTEGRATION ENHANCEMENT
+ * ==============================================================================
+ * The ultimate scheduling management system with Phase 2A Mobile Admin Integration
  * 
- * 🌟 PHASE 3 TRANSFORMATION - UI/UX EXCELLENCE:
- * ✅ Modular Hook-Based Architecture - Clean separation of concerns
- * ✅ Enterprise-Grade Error Handling - Resilient and fault-tolerant
- * ✅ Performance-Optimized State Management - Minimal re-renders
- * ✅ Advanced Accessibility Support - WCAG AA compliant
- * ✅ Real-time Collaboration Ready - WebSocket integration points
- * ✅ Mobile-First Progressive Web App - Touch-optimized interactions
- * ✅ Comprehensive Business Intelligence - Executive-level insights
- * ✅ EMERGENCY: Component-level circuit breaker to prevent infinite loops
- * ✅ Role-Based Adaptive UI - "Apple Phone-Level" experience for all users
- * ✅ NEW: Advanced Micro-Interactions - Haptic feedback and visual polish
- * ✅ NEW: Celebration Effects - Achievement animations and rewards
- * ✅ NEW: Performance Optimization - Lightning-fast interactions
- * ✅ NEW: Premium Visual Feedback - Loading states and transitions
+ * 🌟 PHASE 2B ENHANCEMENT - MOBILE ADMIN INTEGRATION:
+ * ✅ Seamless Integration with Phase 2A Mobile Admin Navigation
+ * ✅ Enhanced Mobile Admin Layout Optimization
+ * ✅ Mobile-First Admin Dashboard Context Awareness
+ * ✅ Touch-Optimized Admin Calendar Controls
+ * ✅ Mobile Admin Responsive Design Patterns
+ * ✅ PWA Integration with Mobile Admin Interface
+ * ✅ Enhanced Mobile Admin Accessibility
+ * ✅ Mobile Admin Performance Optimizations
  * 
- * ROLE-ADAPTIVE DESIGN PRINCIPLES:
- * - Admin View: Full access to all features and analytics
- * - Trainer View: Session management, client tracking, performance analytics
- * - Client View: Simplified booking interface, personal session management
- * - User View: Public booking interface, available sessions only
- * 
- * PHASE 3 DESIGN PRINCIPLES:
- * - Micro-Interactions: Every action has contextual haptic and visual feedback
- * - Performance First: Optimized animations and state management
- * - Accessibility Excellence: Enhanced for all users and assistive technologies
- * - Celebration-Driven: Achievements and milestones are visually rewarded
- * - Error Recovery: Graceful failures with clear feedback and recovery paths
- * - Progressive Enhancement: Features degrade gracefully on older devices
+ * PHASE 2B MOBILE ADMIN FEATURES:
+ * - Admin sidebar mobile state integration
+ * - Mobile admin layout responsiveness
+ * - Touch-optimized admin calendar interactions
+ * - Mobile admin navigation patterns
+ * - Enhanced mobile admin UX flows
+ * - Mobile admin performance optimizations
  */
 
 import React, { useEffect, useRef, useState, useMemo } from 'react';
@@ -117,6 +106,7 @@ import CalendarFallback from './CalendarFallback';
 import AdminNotificationCenter from './AdminNotificationCenter';
 import CollaborativeSchedulingPanel from './CollaborativeSchedulingPanel';
 import RealTimeSystemMonitor from './RealTimeSystemMonitor';
+import RealTimeConnectionStatus from './RealTimeConnectionStatus';
 
 // Styled Components and Theme
 import { CommandCenterTheme } from './UniversalMasterScheduleTheme';
@@ -328,21 +318,65 @@ const getRoleKPIs = (role: string | null, executiveKPIs: any, comprehensiveBusin
 };
 
 /**
- * Universal Master Schedule Component - PHASE 3: UI/UX EXCELLENCE EDITION
+ * Universal Master Schedule Component Props - PHASE 2B: MOBILE ADMIN INTEGRATION
  * 
- * Clean, declarative orchestrator component that delegates all complex logic
- * to specialized hooks, resulting in a maintainable, testable, and scalable architecture.
- * 
- * NOW WITH: 
- * - Role-based adaptive UI that provides "Apple Phone-Level" experience
- * - Advanced micro-interactions with haptic feedback
- * - Celebration effects for achievements and milestones
- * - Performance-optimized animations and state management
- * - Enhanced accessibility and error recovery
- * 
- * EMERGENCY: Component-level circuit breaker to prevent infinite mount cycles.
+ * Enhanced to integrate seamlessly with Phase 2A Mobile Admin Navigation System
  */
-const UniversalMasterSchedule: React.FC = () => {
+interface UniversalMasterScheduleProps {
+  // Phase 2B: Mobile Admin Integration Props
+  adminMobileMenuOpen?: boolean;
+  onAdminMobileMenuToggle?: (isOpen: boolean) => void;
+  adminDeviceType?: 'mobile' | 'tablet' | 'desktop';
+  adminMobileOptimized?: boolean;
+  
+  // Mobile Admin Layout Props
+  mobileAdminMode?: boolean;
+  showMobileAdminControls?: boolean;
+  mobileAdminSidebarWidth?: string;
+  
+  // Mobile Admin Event Handlers
+  onMobileAdminAction?: (action: string, data?: any) => void;
+  onMobileAdminNavigation?: (direction: string) => void;
+  
+  // Mobile Admin Performance Props
+  mobileAdminReducedAnimations?: boolean;
+  mobileAdminOptimizedRendering?: boolean;
+  
+  // Admin Context Props
+  adminContext?: 'dashboard' | 'standalone';
+  adminRole?: 'admin' | 'trainer' | 'client' | 'user';
+}
+
+/**
+ * Universal Master Schedule Component - PHASE 2B: MOBILE ADMIN INTEGRATION EDITION
+ * 
+ * Enhanced orchestrator component with seamless Phase 2A Mobile Admin Navigation integration
+ * for creating a unified mobile admin experience.
+ */
+const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
+  // Phase 2B: Mobile Admin Integration Props
+  adminMobileMenuOpen = false,
+  onAdminMobileMenuToggle,
+  adminDeviceType = 'desktop',
+  adminMobileOptimized = false,
+  
+  // Mobile Admin Layout Props
+  mobileAdminMode = false,
+  showMobileAdminControls = true,
+  mobileAdminSidebarWidth = '280px',
+  
+  // Mobile Admin Event Handlers
+  onMobileAdminAction,
+  onMobileAdminNavigation,
+  
+  // Mobile Admin Performance Props
+  mobileAdminReducedAnimations = false,
+  mobileAdminOptimizedRendering = false,
+  
+  // Admin Context Props
+  adminContext = 'standalone',
+  adminRole = 'admin'
+}) => {
   const { toast } = useToast();
   
   // PHASE 3: Celebration Effects Reference
@@ -556,8 +590,11 @@ const UniversalMasterSchedule: React.FC = () => {
     reconnectAttempts,
     messagesReceived,
     uptime,
+    connectionQuality,
+    networkLatency,
     getConnectionHealth,
-    getPerformanceMetrics: getRealTimePerformanceMetrics
+    getPerformanceMetrics: getRealTimePerformanceMetrics,
+    reconnect: realTimeReconnect
   } = useRealTimeUpdates({
     onDataUpdate: refreshData,
     enabled: realTimeEnabled,
@@ -900,7 +937,77 @@ const UniversalMasterSchedule: React.FC = () => {
     }
   }, [currentUserRole]); // ❗ CRITICAL: Removed problematic dependencies that caused loops 
   
-  // Auto-refresh effect
+  // ==================== PHASE 2B: MOBILE ADMIN INTEGRATION EFFECTS ====================
+  
+  // Integrate with admin mobile menu state
+  useEffect(() => {
+    if (adminDeviceType === 'mobile' && adminMobileMenuOpen) {
+      // When admin mobile menu opens, reduce calendar interactions
+      collapseMobileHeader(true);
+      if (onMobileAdminAction) {
+        onMobileAdminAction('calendar_menu_opened', { 
+          currentView: view, 
+          selectedDate 
+        });
+      }
+    } else if (adminDeviceType === 'mobile' && !adminMobileMenuOpen) {
+      // When admin mobile menu closes, restore calendar interactions
+      collapseMobileHeader(false);
+      if (onMobileAdminAction) {
+        onMobileAdminAction('calendar_menu_closed', { 
+          currentView: view, 
+          selectedDate 
+        });
+      }
+    }
+  }, [adminMobileMenuOpen, adminDeviceType, onMobileAdminAction, view, selectedDate, collapseMobileHeader]);
+  
+  // Enhanced mobile navigation integration
+  const handleMobileAdminNavigation = useCallback((direction: 'forward' | 'back' | 'up' | 'down') => {
+    // Handle navigation within calendar context
+    switch (direction) {
+      case 'forward':
+        navigateNext();
+        break;
+      case 'back':
+        navigatePrevious();
+        break;
+      case 'up':
+        // Cycle to previous view
+        const currentIndex = supportedMobileViews.indexOf(view);
+        const prevIndex = currentIndex > 0 ? currentIndex - 1 : supportedMobileViews.length - 1;
+        setView(supportedMobileViews[prevIndex]);
+        break;
+      case 'down':
+        // Cycle to next view
+        cycleMobileViews();
+        break;
+    }
+    
+    // Trigger haptic feedback for mobile admin navigation
+    triggerHaptic('light');
+    
+    // Notify admin navigation handler
+    if (onMobileAdminNavigation) {
+      onMobileAdminNavigation(direction);
+    }
+  }, [navigateNext, navigatePrevious, supportedMobileViews, view, setView, cycleMobileViews, triggerHaptic, onMobileAdminNavigation]);
+  
+  // Mobile admin performance optimizations
+  useEffect(() => {
+    if (adminMobileOptimized) {
+      // Apply mobile admin performance settings
+      if (mobileAdminReducedAnimations && !reducedAnimations) {
+        enableMobileOptimizations();
+      }
+      
+      if (mobileAdminOptimizedRendering && !optimizedRendering) {
+        optimizeForMobile();
+      }
+    }
+  }, [adminMobileOptimized, mobileAdminReducedAnimations, mobileAdminOptimizedRendering, reducedAnimations, optimizedRendering, enableMobileOptimizations, optimizeForMobile]);
+  
+  // Auto-refresh effect (restored)
   useEffect(() => {
     if (autoRefresh) {
       const interval = setInterval(() => {
@@ -977,7 +1084,12 @@ const UniversalMasterSchedule: React.FC = () => {
   return (
     <ThemeProvider theme={CommandCenterTheme}>
       <ErrorBoundary>
-        <ScheduleContainer>
+        <ScheduleContainer
+          adminMobileMenuOpen={adminMobileMenuOpen}
+          adminDeviceType={adminDeviceType}
+          mobileAdminMode={mobileAdminMode}
+          mobileAdminSidebarWidth={mobileAdminSidebarWidth}
+        >
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1153,6 +1265,25 @@ const UniversalMasterSchedule: React.FC = () => {
                     </ViewToggleButton>
                   )}
                 </ViewToggleGroup>
+                
+                {/* Real-Time Connection Status Indicator */}
+                <RealTimeConnectionStatus
+                  connectionStatus={connectionStatus}
+                  isConnected={isConnected}
+                  connectionQuality={connectionQuality}
+                  lastMessageTime={lastMessageTime}
+                  reconnectAttempts={reconnectAttempts}
+                  messagesReceived={messagesReceived}
+                  uptime={uptime}
+                  networkLatency={networkLatency}
+                  onReconnect={() => {
+                    triggerHaptic('medium');
+                    animateElement('connection-status', 'pulse', 300);
+                    realTimeReconnect();
+                  }}
+                  onGetPerformanceMetrics={getRealTimePerformanceMetrics}
+                  isMobile={mobileOptimized}
+                />
                 
                 {/* Role-Based Action Buttons */}
                 {analyticsView === 'calendar' && (
@@ -1344,26 +1475,66 @@ const UniversalMasterSchedule: React.FC = () => {
                   )}
                 </AnimatePresence>
                 
-                {/* Mobile Navigation Controls */}
-                {mobileOptimized && (
+                {/* Enhanced Mobile Navigation Controls with Admin Integration */}
+                {(mobileOptimized || adminDeviceType === 'mobile') && (
                   <MobileNavigationBar>
-                    <MobileNavButton onClick={navigatePrevious}>
+                    <MobileNavButton 
+                      onClick={() => {
+                        navigatePrevious();
+                        if (onMobileAdminNavigation) onMobileAdminNavigation('back');
+                      }}
+                      disabled={adminMobileMenuOpen && adminDeviceType === 'mobile'}
+                    >
                       <ChevronLeft size={18} />
                       Previous
                     </MobileNavButton>
                     
-                    <MobileViewCycler onClick={cycleMobileViews}>
+                    <MobileViewCycler 
+                      onClick={() => {
+                        cycleMobileViews();
+                        if (onMobileAdminNavigation) onMobileAdminNavigation('down');
+                      }}
+                      disabled={adminMobileMenuOpen && adminDeviceType === 'mobile'}
+                    >
                       {view.charAt(0).toUpperCase() + view.slice(1)} View
                     </MobileViewCycler>
                     
-                    <MobileNavButton onClick={navigateToToday}>
+                    <MobileNavButton 
+                      onClick={() => {
+                        navigateToToday();
+                        if (onMobileAdminAction) onMobileAdminAction('navigate_today', { date: new Date() });
+                      }}
+                      disabled={adminMobileMenuOpen && adminDeviceType === 'mobile'}
+                    >
                       Today
                     </MobileNavButton>
                     
-                    <MobileNavButton onClick={navigateNext}>
+                    <MobileNavButton 
+                      onClick={() => {
+                        navigateNext();
+                        if (onMobileAdminNavigation) onMobileAdminNavigation('forward');
+                      }}
+                      disabled={adminMobileMenuOpen && adminDeviceType === 'mobile'}
+                    >
                       Next
                       <ChevronRight size={18} />
                     </MobileNavButton>
+                    
+                    {/* Mobile Admin Menu Toggle Integration */}
+                    {mobileAdminMode && adminDeviceType === 'mobile' && onAdminMobileMenuToggle && (
+                      <MobileNavButton 
+                        onClick={() => onAdminMobileMenuToggle(!adminMobileMenuOpen)}
+                        style={{
+                          background: adminMobileMenuOpen 
+                            ? 'linear-gradient(135deg, #ef4444, #dc2626)' 
+                            : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                          borderColor: adminMobileMenuOpen ? '#ef4444' : '#3b82f6',
+                          marginLeft: '0.5rem'
+                        }}
+                      >
+                        {adminMobileMenuOpen ? 'Close Menu' : 'Admin Menu'}
+                      </MobileNavButton>
+                    )}
                   </MobileNavigationBar>
                 )}
                 
@@ -1719,7 +1890,14 @@ export default UniversalMasterSchedule;
 
 // ==================== STYLED COMPONENTS (Enhanced for Role-Based UI) ====================
 
-const ScheduleContainer = styled.div`
+// ==================== PHASE 2B: ENHANCED MOBILE ADMIN INTEGRATION STYLED COMPONENTS ====================
+
+const ScheduleContainer = styled.div<{
+  adminMobileMenuOpen?: boolean;
+  adminDeviceType?: 'mobile' | 'tablet' | 'desktop';
+  mobileAdminMode?: boolean;
+  mobileAdminSidebarWidth?: string;
+}>`
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -1730,6 +1908,46 @@ const ScheduleContainer = styled.div`
   );
   position: relative;
   overflow: hidden;
+  
+  /* Phase 2B: Mobile Admin Layout Adjustments */
+  ${props => props.mobileAdminMode && `
+    /* Adjust layout when admin sidebar is open on mobile */
+    margin-left: ${props.adminMobileMenuOpen && props.adminDeviceType === 'mobile' ? '0' : '0'};
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Mobile admin overlay protection */
+    ${props.adminMobileMenuOpen && props.adminDeviceType === 'mobile' ? `
+      pointer-events: none;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.3);
+        z-index: 999;
+        pointer-events: auto;
+        backdrop-filter: blur(2px);
+      }
+    ` : ''}
+  `}
+  
+  /* Enhanced mobile admin breakpoint handling */
+  @media (max-width: 768px) {
+    margin-left: 0 !important;
+  }
+  
+  @media (min-width: 769px) and (max-width: 1024px) {
+    /* Tablet admin layout */
+    margin-left: ${props => props.adminMobileMenuOpen && props.adminDeviceType === 'tablet' ? '240px' : '0'};
+  }
+  
+  @media (min-width: 1025px) {
+    /* Desktop admin layout */
+    margin-left: ${props => props.mobileAdminMode ? '280px' : '0'};
+  }
 `;
 
 const HeaderSection = styled.div<{ mobileCollapsed?: boolean; isSmallMobile?: boolean }>`

@@ -37,6 +37,9 @@ import { Op } from 'sequelize';
 import sequelize from '../../database.mjs';
 import moment from 'moment';
 
+// Import Real-Time Schedule Service for WebSocket broadcasting
+import realTimeScheduleService from '../realTimeScheduleService.mjs';
+
 // Import consolidated model getters for consistency
 import { 
   getUser, 
@@ -67,6 +70,7 @@ class UnifiedSessionService {
   constructor() {
     this.serviceName = 'UnifiedSessionService';
     this.version = '1.0.0';
+    this.enableRealTimeEvents = true; // Feature flag for real-time broadcasting
     // ✅ PHASE 2C FIX: Lazy-load models to avoid initialization order issues
     this._Session = null;
     this._User = null;
@@ -165,6 +169,207 @@ class UnifiedSessionService {
       }
     }
     return this._FinancialTransaction;
+  }
+
+  // ==================== REAL-TIME EVENT BROADCASTING METHODS ====================
+
+  /**
+   * Broadcast session created event with real-time updates
+   * @param {Object} sessionData - Session that was created
+   * @param {Object} options - Broadcasting options
+   */
+  async broadcastSessionCreated(sessionData, options = {}) {
+    if (!this.enableRealTimeEvents) return;
+    
+    try {
+      await realTimeScheduleService.broadcastSessionCreated(sessionData, options);
+      logger.debug(`[UnifiedSessionService] Broadcasted session created: ${sessionData.id}`);
+    } catch (error) {
+      logger.warn(`[UnifiedSessionService] Failed to broadcast session created:`, error.message);
+    }
+  }
+
+  /**
+   * Broadcast session updated event with real-time updates
+   * @param {Object} sessionData - Updated session data
+   * @param {Object} changes - What changed
+   * @param {Object} options - Broadcasting options
+   */
+  async broadcastSessionUpdated(sessionData, changes, options = {}) {
+    if (!this.enableRealTimeEvents) return;
+    
+    try {
+      await realTimeScheduleService.broadcastSessionUpdated(sessionData, changes, options);
+      logger.debug(`[UnifiedSessionService] Broadcasted session updated: ${sessionData.id}`);
+    } catch (error) {
+      logger.warn(`[UnifiedSessionService] Failed to broadcast session updated:`, error.message);
+    }
+  }
+
+  /**
+   * Broadcast session booked event with real-time updates
+   * @param {Object} sessionData - Booked session data
+   * @param {Object} clientData - Client who booked
+   * @param {Object} options - Broadcasting options
+   */
+  async broadcastSessionBooked(sessionData, clientData, options = {}) {
+    if (!this.enableRealTimeEvents) return;
+    
+    try {
+      await realTimeScheduleService.broadcastSessionBooked(sessionData, clientData, options);
+      logger.debug(`[UnifiedSessionService] Broadcasted session booked: ${sessionData.id}`);
+    } catch (error) {
+      logger.warn(`[UnifiedSessionService] Failed to broadcast session booked:`, error.message);
+    }
+  }
+
+  /**
+   * Broadcast session cancelled event with real-time updates
+   * @param {Object} sessionData - Cancelled session data
+   * @param {string} reason - Cancellation reason
+   * @param {string} cancelledBy - Who cancelled (userId)
+   * @param {Object} options - Broadcasting options
+   */
+  async broadcastSessionCancelled(sessionData, reason, cancelledBy, options = {}) {
+    if (!this.enableRealTimeEvents) return;
+    
+    try {
+      await realTimeScheduleService.broadcastSessionCancelled(sessionData, reason, cancelledBy, options);
+      logger.debug(`[UnifiedSessionService] Broadcasted session cancelled: ${sessionData.id}`);
+    } catch (error) {
+      logger.warn(`[UnifiedSessionService] Failed to broadcast session cancelled:`, error.message);
+    }
+  }
+
+  /**
+   * Broadcast session completed event with real-time updates
+   * @param {Object} sessionData - Completed session data
+   * @param {Object} completionData - Completion details
+   * @param {Object} options - Broadcasting options
+   */
+  async broadcastSessionCompleted(sessionData, completionData, options = {}) {
+    if (!this.enableRealTimeEvents) return;
+    
+    try {
+      await realTimeScheduleService.broadcastSessionCompleted(sessionData, completionData, options);
+      logger.debug(`[UnifiedSessionService] Broadcasted session completed: ${sessionData.id}`);
+    } catch (error) {
+      logger.warn(`[UnifiedSessionService] Failed to broadcast session completed:`, error.message);
+    }
+  }
+
+  /**
+   * Broadcast scheduling conflict detected
+   * @param {Object} conflictData - Conflict information
+   * @param {Object} options - Broadcasting options
+   */
+  async broadcastScheduleConflict(conflictData, options = {}) {
+    if (!this.enableRealTimeEvents) return;
+    
+    try {
+      await realTimeScheduleService.broadcastScheduleConflict(conflictData, options);
+      logger.debug(`[UnifiedSessionService] Broadcasted schedule conflict`);
+    } catch (error) {
+      logger.warn(`[UnifiedSessionService] Failed to broadcast schedule conflict:`, error.message);
+    }
+  }
+
+  /**
+   * Detect and broadcast potential scheduling conflicts
+   * @param {Object} sessionData - Session to check for conflicts
+   * @param {string} operation - Type of operation (create, update, book)
+   */
+  async detectAndBroadcastConflicts(sessionData, operation = 'create') {
+    if (!this.enableRealTimeEvents) return;
+    
+    try {
+      // Check for trainer double-booking
+      if (sessionData.trainerId) {
+        const conflictingSessions = await this.Session.findAll({
+          where: {
+            id: { [Op.ne]: sessionData.id || 0 }, // Exclude current session if updating
+            trainerId: sessionData.trainerId,
+            status: ['booked', 'confirmed'],
+            [Op.and]: [
+              {
+                sessionDate: {
+                  [Op.lt]: sessionData.endDate || new Date(new Date(sessionData.sessionDate).getTime() + 60 * 60000)
+                }
+              },
+              {
+                endDate: {
+                  [Op.gt]: sessionData.sessionDate
+                }
+              }
+            ]
+          }
+        });
+
+        if (conflictingSessions.length > 0) {
+          await this.broadcastScheduleConflict({
+            type: 'trainer-double-booking',
+            sessionIds: [sessionData.id, ...conflictingSessions.map(s => s.id)],
+            trainerId: sessionData.trainerId,
+            timeSlot: {
+              start: sessionData.sessionDate,
+              end: sessionData.endDate || new Date(new Date(sessionData.sessionDate).getTime() + 60 * 60000)
+            },
+            severity: 'high',
+            message: `Trainer has conflicting sessions at this time`,
+            suggestions: [
+              'Reschedule one of the conflicting sessions',
+              'Assign a different trainer',
+              'Split the session into multiple shorter sessions'
+            ]
+          });
+        }
+      }
+
+      // Check for client double-booking (if session is being booked)
+      if (sessionData.userId && operation === 'book') {
+        const clientConflicts = await this.Session.findAll({
+          where: {
+            id: { [Op.ne]: sessionData.id || 0 },
+            userId: sessionData.userId,
+            status: ['booked', 'confirmed'],
+            [Op.and]: [
+              {
+                sessionDate: {
+                  [Op.lt]: sessionData.endDate || new Date(new Date(sessionData.sessionDate).getTime() + 60 * 60000)
+                }
+              },
+              {
+                endDate: {
+                  [Op.gt]: sessionData.sessionDate
+                }
+              }
+            ]
+          }
+        });
+
+        if (clientConflicts.length > 0) {
+          await this.broadcastScheduleConflict({
+            type: 'client-double-booking',
+            sessionIds: [sessionData.id, ...clientConflicts.map(s => s.id)],
+            trainerId: sessionData.trainerId,
+            clientId: sessionData.userId,
+            timeSlot: {
+              start: sessionData.sessionDate,
+              end: sessionData.endDate || new Date(new Date(sessionData.sessionDate).getTime() + 60 * 60000)
+            },
+            severity: 'medium',
+            message: `Client has conflicting sessions at this time`,
+            suggestions: [
+              'Reschedule one of the conflicting sessions',
+              'Confirm with client about their availability'
+            ]
+          });
+        }
+      }
+
+    } catch (error) {
+      logger.warn(`[UnifiedSessionService] Error detecting conflicts:`, error.message);
+    }
   }
 
   // ==================== CORE SESSION CRUD OPERATIONS ====================
@@ -430,10 +635,21 @@ class UnifiedSessionService {
         };
       });
 
+      // Broadcast real-time events for created sessions
+      for (const session of formattedSessions) {
+        await this.broadcastSessionCreated(session, {
+          priority: 'normal',
+          excludeUser: user.id
+        });
+        
+        // Check for conflicts with existing schedule
+        await this.detectAndBroadcastConflicts(session, 'create');
+      }
+
       // Notify trainers about assigned sessions (async)
       this.notifyTrainersAboutNewSessions(createdSessions);
 
-      logger.info(`[UnifiedSessionService] Created ${createdSessions.length} available sessions`);
+      logger.info(`[UnifiedSessionService] Created ${createdSessions.length} available sessions with real-time broadcasting`);
 
       return formattedSessions;
     } catch (error) {

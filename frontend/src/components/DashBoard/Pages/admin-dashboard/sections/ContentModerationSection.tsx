@@ -7,6 +7,7 @@
  * Styled with Stellar Command Center theme
  * 
  * Features:
+ * - Real database integration with backend APIs
  * - Social post moderation and review
  * - Automated content flagging system
  * - User comment management
@@ -33,7 +34,6 @@ import {
   ThumbsDown, Heart, Share2, Image, Video, X,
   Users, BarChart3, TrendingUp, Calendar
 } from 'lucide-react';
-import { useAuth } from '../../../../../context/AuthContext';
 
 // === STYLED COMPONENTS ===
 const ManagementContainer = styled.div`
@@ -491,6 +491,25 @@ const QuickActionButton = styled(motion.button)`
   }
 `;
 
+const ErrorMessage = styled.div`
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  color: #ef4444;
+  text-align: center;
+  margin: 2rem 0;
+`;
+
+const LoadingSpinner = styled(motion.div)`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.7);
+`;
+
 // === INTERFACES ===
 interface ContentItem {
   id: string;
@@ -533,7 +552,6 @@ interface ContentStats {
 
 // === MAIN COMPONENT ===
 const ContentModerationSection: React.FC = () => {
-  const { authAxios } = useAuth();
   const [content, setContent] = useState<ContentItem[]>([]);
   const [stats, setStats] = useState<ContentStats>({
     totalContent: 0,
@@ -543,206 +561,115 @@ const ContentModerationSection: React.FC = () => {
     totalReports: 0
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
   const [activeActionMenu, setActiveActionMenu] = useState<string | null>(null);
 
+  // Helper function to get auth headers
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+  };
+
+  // API call helper with error handling
+  const makeApiCall = async (url: string, options: RequestInit = {}) => {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...getAuthHeaders(),
+          ...options.headers
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error(`API call failed for ${url}:`, error);
+      throw error;
+    }
+  };
+
   // Fetch content from backend
   const fetchContent = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await authAxios.get('/api/admin/content/posts', {
-        params: {
-          includeComments: true,
-          includeReports: true,
-          includeMetrics: true
-        }
+      setError(null);
+
+      console.log('🔄 Fetching content for moderation...');
+
+      const response = await makeApiCall('/api/admin/content/posts', {
+        method: 'GET'
       });
-      
-      if (response.data.success) {
-        const contentData = response.data.content.map((item: any) => ({
-          id: item.id?.toString() || '',
-          type: item.type || 'post',
-          content: item.content || '',
-          author: {
-            id: item.author?.id?.toString() || '',
-            name: item.author ? `${item.author.firstName} ${item.author.lastName}` : 'Unknown User',
-            avatar: item.author?.photo || ''
-          },
-          status: item.moderationStatus || 'pending',
-          createdAt: item.createdAt || new Date().toISOString(),
-          metrics: {
-            likes: item.metrics?.likes || 0,
-            comments: item.metrics?.comments || 0,
-            shares: item.metrics?.shares || 0,
-            reports: item.reports?.length || 0
-          },
-          flags: item.flags || [],
-          media: item.media || [],
-          moderationHistory: item.moderationHistory || []
-        }));
+
+      if (response.success && response.data) {
+        const posts = response.data.posts || [];
         
-        setContent(contentData);
-        calculateStats(contentData);
+        // Format posts for frontend
+        const formattedContent = posts.map((post: any) => ({
+          id: post.id,
+          type: post.type || 'post',
+          content: post.content,
+          author: {
+            id: post.userId,
+            name: post.userName,
+            avatar: post.userAvatar
+          },
+          status: post.status,
+          createdAt: post.createdAt,
+          metrics: post.engagement || {
+            likes: 0,
+            comments: 0,
+            shares: 0,
+            reports: post.reportsCount || 0
+          },
+          flags: post.moderationFlags || [],
+          media: post.media || [],
+          moderationHistory: []
+        }));
+
+        setContent(formattedContent);
+
+        // Set stats from response
+        if (response.data.summary) {
+          setStats({
+            totalContent: response.data.summary.total || 0,
+            pendingReview: response.data.summary.pending || 0,
+            flaggedContent: response.data.summary.flagged || 0,
+            approvedToday: response.data.summary.approved || 0,
+            totalReports: formattedContent.reduce((sum: number, c: any) => sum + c.metrics.reports, 0)
+          });
+        }
+
+        console.log(`✅ Successfully loaded ${formattedContent.length} content items`);
       } else {
-        console.error('Failed to fetch content:', response.data.message);
-        setMockData();
+        throw new Error('Invalid response format from server');
       }
     } catch (error) {
-      console.error('Error fetching content:', error);
-      setMockData();
+      console.error('❌ Error fetching content:', error);
+      setError(`Failed to load content: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Set empty state on error
+      setContent([]);
+      setStats({
+        totalContent: 0,
+        pendingReview: 0,
+        flaggedContent: 0,
+        approvedToday: 0,
+        totalReports: 0
+      });
     } finally {
       setLoading(false);
     }
-  }, [authAxios]);
-
-  // Set mock data for development/testing
-  const setMockData = () => {
-    const mockContent: ContentItem[] = [
-      {
-        id: '1',
-        type: 'post',
-        content: 'Just finished my morning workout! Feeling amazing and ready to take on the day. The new training program is really pushing me to new limits! 💪 #FitnessJourney #MorningMotivation',
-        author: {
-          id: '1',
-          name: 'Alice Johnson',
-          avatar: ''
-        },
-        status: 'flagged',
-        createdAt: '2024-05-22T08:30:00Z',
-        metrics: {
-          likes: 45,
-          comments: 12,
-          shares: 8,
-          reports: 3
-        },
-        flags: ['inappropriate-language', 'spam-suspicion'],
-        media: [
-          {
-            type: 'image',
-            url: '/workout-photo.jpg',
-            thumbnail: '/workout-photo-thumb.jpg'
-          }
-        ],
-        moderationHistory: []
-      },
-      {
-        id: '2',
-        type: 'post',
-        content: 'Check out this amazing transformation! Before and after photos showing the incredible progress made with dedicated training and nutrition guidance.',
-        author: {
-          id: '2',
-          name: 'Bob Smith',
-          avatar: ''
-        },
-        status: 'pending',
-        createdAt: '2024-05-22T10:15:00Z',
-        metrics: {
-          likes: 128,
-          comments: 34,
-          shares: 22,
-          reports: 0
-        },
-        flags: [],
-        media: [
-          {
-            type: 'image',
-            url: '/before-after.jpg',
-            thumbnail: '/before-after-thumb.jpg'
-          }
-        ],
-        moderationHistory: []
-      },
-      {
-        id: '3',
-        type: 'comment',
-        content: 'This is totally fake! These transformation photos are clearly edited. Stop promoting unrealistic expectations!',
-        author: {
-          id: '3',
-          name: 'Carol Davis',
-          avatar: ''
-        },
-        status: 'flagged',
-        createdAt: '2024-05-22T11:45:00Z',
-        metrics: {
-          likes: 5,
-          comments: 8,
-          shares: 0,
-          reports: 7
-        },
-        flags: ['harassment', 'false-information'],
-        media: [],
-        moderationHistory: [
-          {
-            action: 'flagged',
-            moderator: 'auto-system',
-            timestamp: '2024-05-22T11:50:00Z',
-            reason: 'Multiple user reports'
-          }
-        ]
-      },
-      {
-        id: '4',
-        type: 'post',
-        content: 'New workout video is live! Join me for this 30-minute HIIT session that will get your heart pumping and muscles burning. Perfect for all fitness levels!',
-        author: {
-          id: '4',
-          name: 'David Wilson',
-          avatar: ''
-        },
-        status: 'approved',
-        createdAt: '2024-05-22T14:20:00Z',
-        metrics: {
-          likes: 89,
-          comments: 15,
-          shares: 32,
-          reports: 0
-        },
-        flags: [],
-        media: [
-          {
-            type: 'video',
-            url: '/workout-video.mp4',
-            thumbnail: '/workout-video-thumb.jpg'
-          }
-        ],
-        moderationHistory: [
-          {
-            action: 'approved',
-            moderator: 'admin',
-            timestamp: '2024-05-22T14:25:00Z',
-            reason: 'High-quality content'
-          }
-        ]
-      }
-    ];
-    
-    setContent(mockContent);
-    calculateStats(mockContent);
-  };
-
-  // Calculate content statistics
-  const calculateStats = (contentData: ContentItem[]) => {
-    const totalContent = contentData.length;
-    const pendingReview = contentData.filter(c => c.status === 'pending').length;
-    const flaggedContent = contentData.filter(c => c.status === 'flagged').length;
-    const approvedToday = contentData.filter(c => {
-      const createdDate = new Date(c.createdAt);
-      const today = new Date();
-      return c.status === 'approved' && 
-             createdDate.toDateString() === today.toDateString();
-    }).length;
-    const totalReports = contentData.reduce((sum, c) => sum + c.metrics.reports, 0);
-    
-    setStats({
-      totalContent,
-      pendingReview,
-      flaggedContent,
-      approvedToday,
-      totalReports
-    });
-  };
+  }, []);
 
   // Load content on component mount
   useEffect(() => {
@@ -760,79 +687,63 @@ const ContentModerationSection: React.FC = () => {
   });
 
   // Handle moderation actions
-  const handleApproveContent = async (contentId: string) => {
+  const handleModerateContent = async (contentId: string, action: string, reason?: string) => {
     try {
-      const response = await authAxios.post('/api/admin/content/moderate', {
-        contentId: contentId,
-        action: 'approve',
-        reason: 'Content approved by moderator'
+      console.log(`🔄 ${action}ing content ${contentId}...`);
+
+      const response = await makeApiCall('/api/admin/content/moderate', {
+        method: 'POST',
+        body: JSON.stringify({
+          contentType: 'post', // Default to post, could be enhanced to detect type
+          contentId: contentId,
+          action: action,
+          reason: reason || `Content ${action}ed by admin`,
+          notifyUser: true
+        })
       });
-      
-      if (response.data.success) {
-        await fetchContent();
+
+      if (response.success) {
+        console.log(`✅ Successfully ${action}ed content ${contentId}`);
+        await fetchContent(); // Refresh content list
         setActiveActionMenu(null);
       } else {
-        console.error('Failed to approve content');
+        throw new Error(response.message || `Failed to ${action} content`);
       }
     } catch (error) {
-      console.error('Error approving content:', error);
+      console.error(`❌ Error ${action}ing content:`, error);
+      setError(`Failed to ${action} content: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
-  const handleRejectContent = async (contentId: string) => {
-    try {
-      const response = await authAxios.post('/api/admin/content/moderate', {
-        contentId: contentId,
-        action: 'reject',
-        reason: 'Content rejected by moderator'
-      });
-      
-      if (response.data.success) {
-        await fetchContent();
-        setActiveActionMenu(null);
-      } else {
-        console.error('Failed to reject content');
-      }
-    } catch (error) {
-      console.error('Error rejecting content:', error);
-    }
-  };
-
-  const handleHideContent = async (contentId: string) => {
-    try {
-      const response = await authAxios.post('/api/admin/content/moderate', {
-        contentId: contentId,
-        action: 'hide',
-        reason: 'Content hidden by moderator'
-      });
-      
-      if (response.data.success) {
-        await fetchContent();
-        setActiveActionMenu(null);
-      } else {
-        console.error('Failed to hide content');
-      }
-    } catch (error) {
-      console.error('Error hiding content:', error);
-    }
-  };
-
+  const handleApproveContent = (contentId: string) => handleModerateContent(contentId, 'approve');
+  const handleRejectContent = (contentId: string) => handleModerateContent(contentId, 'reject');
+  const handleHideContent = (contentId: string) => handleModerateContent(contentId, 'hide');
   const handleDeleteContent = async (contentId: string) => {
     if (!window.confirm('Are you sure you want to delete this content? This action cannot be undone.')) {
       return;
     }
     
     try {
-      const response = await authAxios.delete(`/api/admin/content/posts/${contentId}`);
-      
-      if (response.data.success) {
+      console.log(`🗑️ Deleting content ${contentId}...`);
+
+      const response = await makeApiCall(`/api/admin/content/posts/${contentId}`, {
+        method: 'DELETE',
+        body: JSON.stringify({
+          reason: 'Content deleted by admin',
+          notifyUser: true
+        })
+      });
+
+      if (response.success) {
+        console.log(`✅ Successfully deleted content ${contentId}`);
         await fetchContent();
         setActiveActionMenu(null);
       } else {
-        console.error('Failed to delete content');
+        throw new Error(response.message || 'Failed to delete content');
       }
     } catch (error) {
-      console.error('Error deleting content:', error);
+      console.error('❌ Error deleting content:', error);
+      setError(`Failed to delete content: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -879,14 +790,33 @@ const ContentModerationSection: React.FC = () => {
   if (loading) {
     return (
       <ManagementContainer>
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+        <LoadingSpinner
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+        >
+          <RefreshCw size={32} color="#00ffff" style={{ marginRight: '1rem' }} />
+          Loading content for moderation...
+        </LoadingSpinner>
+      </ManagementContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <ManagementContainer>
+        <ErrorMessage>
+          <AlertTriangle size={24} style={{ marginBottom: '0.5rem' }} />
+          <div>{error}</div>
+          <CommandButton
+            style={{ marginTop: '1rem' }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={fetchContent}
           >
-            <RefreshCw size={32} color="#00ffff" />
-          </motion.div>
-        </div>
+            <RefreshCw size={16} />
+            Retry
+          </CommandButton>
+        </ErrorMessage>
       </ManagementContainer>
     );
   }
@@ -1172,7 +1102,7 @@ const ContentModerationSection: React.FC = () => {
         </AnimatePresence>
       </ContentGrid>
       
-      {filteredContent.length === 0 && (
+      {filteredContent.length === 0 && !loading && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -1184,7 +1114,7 @@ const ContentModerationSection: React.FC = () => {
         >
           <MessageSquare size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
           <h3>No content found</h3>
-          <p>Try adjusting your search or filters</p>
+          <p>Try adjusting your search or filters, or check back later for new content to moderate.</p>
         </motion.div>
       )}
     </ManagementContainer>

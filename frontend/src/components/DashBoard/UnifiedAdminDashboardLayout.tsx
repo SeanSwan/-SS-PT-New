@@ -77,6 +77,9 @@ import NASMCompliancePanel from './Pages/admin-dashboard/components/NASMComplian
 // Import Admin Exercise Command Center
 import AdminExerciseCommandCenter from './Pages/admin-exercises';
 
+// Import TheAestheticCodex - Living Style Guide
+import { TheAestheticCodex } from '../../core';
+
 // ============================================
 // ENTERPRISE BUSINESS INTELLIGENCE IMPORTS
 // ============================================
@@ -740,6 +743,20 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                       transition={{ duration: 0.6 }}
                     >
                       <AdminSettingsSection />
+                    </ExecutivePageContainer>
+                  } 
+                />
+                
+                {/* === THE AESTHETIC CODEX - LIVING STYLE GUIDE === */}
+                <Route 
+                  path="/style-guide" 
+                  element={
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <TheAestheticCodex />
                     </ExecutivePageContainer>
                   } 
                 />
