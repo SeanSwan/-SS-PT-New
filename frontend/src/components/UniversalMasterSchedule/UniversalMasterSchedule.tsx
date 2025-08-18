@@ -512,7 +512,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     createPulseAnimation,
     createShakeAnimation,
     createGlowAnimation,
-    getPerformanceMetrics: getRealTimePerformanceMetrics
+    getPerformanceMetrics: getMicroInteractionMetrics
   } = useMicroInteractions({
     enableHaptics: true,
     enableSounds: false, // Disabled by default
