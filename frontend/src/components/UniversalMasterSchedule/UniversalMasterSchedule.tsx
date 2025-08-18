@@ -590,7 +590,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     reconnectAttempts,
     messagesReceived,
     uptime,
-    connectionQuality,
+    connectionQuality: realTimeConnectionQuality,
     networkLatency,
     getConnectionHealth,
     getPerformanceMetrics: getRealTimePerformanceMetrics,
@@ -620,7 +620,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     activeUsers,
     totalOnlineUsers,
     isConnected: collaborationConnected,
-    connectionQuality,
+    connectionQuality: collaborationConnectionQuality,
     lockedEvents,
     lockEvent,
     unlockEvent,
@@ -1270,7 +1270,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                 <RealTimeConnectionStatus
                   connectionStatus={connectionStatus}
                   isConnected={isConnected}
-                  connectionQuality={connectionQuality}
+                  connectionQuality={realTimeConnectionQuality}
                   lastMessageTime={lastMessageTime}
                   reconnectAttempts={reconnectAttempts}
                   messagesReceived={messagesReceived}
