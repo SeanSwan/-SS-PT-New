@@ -5,6 +5,8 @@ import SocialLike from './SocialLike.mjs';
 import Challenge from './Challenge.mjs';
 import ChallengeParticipant from './ChallengeParticipant.mjs';
 import ChallengeTeam from './ChallengeTeam.mjs';
+import PostReport from './PostReport.mjs';
+import ModerationAction from './ModerationAction.mjs';
 
 // Export all models individually
 export {
@@ -14,7 +16,9 @@ export {
   SocialLike,
   Challenge,
   ChallengeParticipant,
-  ChallengeTeam
+  ChallengeTeam,
+  PostReport,
+  ModerationAction
 };
 
 // Export as default
@@ -25,5 +29,7 @@ export default {
   SocialLike,
   Challenge,
   ChallengeParticipant,
-  ChallengeTeam
+  ChallengeTeam,
+  PostReport,
+  ModerationAction
 };

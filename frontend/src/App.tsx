@@ -65,6 +65,8 @@ import './styles/mobile/mobile-workout.css';
 import ImprovedGlobalStyle from './styles/ImprovedGlobalStyle';
 import CosmicEleganceGlobalStyle, { detectDeviceCapability } from './styles/CosmicEleganceGlobalStyle';
 import theme from './styles/theme';
+// Import consolidated SwanStudios theme
+import { swanStudiosTheme } from './core';
 // Cosmic Performance Optimizer
 import { initializeCosmicPerformance } from './utils/cosmicPerformanceOptimizer';
 
@@ -208,7 +210,7 @@ const App = () => {
         <HelmetProvider>
           <StyleSheetManager shouldForwardProp={shouldForwardProp}>
             <UniversalThemeProvider defaultTheme="swan-galaxy">
-              <ThemeProvider theme={theme.dark}>
+              <ThemeProvider theme={{ ...theme.dark, swanStudios: swanStudiosTheme }}>
                 <ImprovedGlobalStyle />
                 <ConfigProvider>
                   <MenuStateProvider>

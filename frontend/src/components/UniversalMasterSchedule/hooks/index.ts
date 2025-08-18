@@ -53,7 +53,7 @@ export type {
 } from './useFilteredCalendarEvents';
 export type { 
   RealTimeUpdatesValues, 
-  RealTimeUpdatesActions 
+  RealTimeUpdatesActions
 } from './useRealTimeUpdates';
 export type {
   AdminNotificationValues,

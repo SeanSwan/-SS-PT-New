@@ -20,9 +20,19 @@ import {
 import sessionAllocationService from '../services/SessionAllocationService.mjs';
 import trainerAssignmentService from '../services/TrainerAssignmentService.mjs';
 
-// Session management test endpoint
+// Import Real-Time Schedule Service for WebSocket broadcasting
+import realTimeScheduleService from '../services/realTimeScheduleService.mjs';
+import logger from '../utils/logger.mjs';
+
+// Session management test endpoint with real-time service health
 router.get('/test', (req, res) => {
-  res.json({ message: 'Session API is working!' });
+  const realTimeHealth = realTimeScheduleService.getServiceHealth();
+  
+  res.json({ 
+    message: 'Session API is working!',
+    realTimeService: realTimeHealth,
+    timestamp: new Date().toISOString()
+  });
 });
 
 /**
@@ -42,6 +52,23 @@ router.post('/allocate-from-order', protect, adminOnly, async (req, res) => {
     }
     
     const result = await sessionAllocationService.allocateSessionsFromOrder(orderId, userId);
+    
+    // Broadcast real-time allocation update
+    try {
+      await realTimeScheduleService.broadcastAllocationUpdated({
+        userId: userId,
+        sessionsAdded: result.sessionsAllocated || 0,
+        sessionsRemaining: result.totalSessionsRemaining || 0,
+        packageType: result.packageType || 'Sessions',
+        reason: 'Admin allocation from order',
+        allocatedBy: req.user.id
+      });
+      
+      logger.info(`Real-time allocation update broadcasted for user ${userId}`);
+    } catch (broadcastError) {
+      logger.warn('Failed to broadcast allocation update:', broadcastError.message);
+      // Don't fail the request if broadcast fails
+    }
     
     res.status(200).json({
       success: true,
@@ -81,6 +108,23 @@ router.post('/add-to-user', protect, adminOnly, async (req, res) => {
       reason || 'Manually added by admin',
       adminUserId
     );
+    
+    // Broadcast real-time allocation update
+    try {
+      await realTimeScheduleService.broadcastAllocationUpdated({
+        userId: userId,
+        sessionsAdded: parseInt(sessionCount),
+        sessionsRemaining: result.totalSessionsRemaining || 0,
+        packageType: 'Manual Addition',
+        reason: reason || 'Manually added by admin',
+        allocatedBy: adminUserId
+      });
+      
+      logger.info(`Real-time manual allocation update broadcasted for user ${userId}`);
+    } catch (broadcastError) {
+      logger.warn('Failed to broadcast manual allocation update:', broadcastError.message);
+      // Don't fail the request if broadcast fails
+    }
     
     res.status(200).json({
       success: true,
