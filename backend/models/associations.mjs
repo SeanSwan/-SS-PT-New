@@ -31,6 +31,7 @@ const setupAssociations = async () => {
     const CartItemModule = await import('./CartItem.mjs');
     const OrderModule = await import('./Order.mjs');
     const OrderItemModule = await import('./OrderItem.mjs');
+    const SessionPackageModule = await import('./SessionPackage.mjs');
 
     // Food Scanner Models (Sequelize)
     const FoodIngredientModule = await import('./FoodIngredient.mjs');
@@ -95,6 +96,7 @@ const setupAssociations = async () => {
     const CartItem = CartItemModule.default;
     const Order = OrderModule.default;
     const OrderItem = OrderItemModule.default;
+    const SessionPackage = SessionPackageModule.default;
 
     // Food Scanner Models
     const FoodIngredient = FoodIngredientModule.default;
@@ -455,6 +457,7 @@ const setupAssociations = async () => {
       CartItem,
       Order,
       OrderItem,
+      SessionPackage,
       
       // Food Scanner Models
       FoodIngredient,

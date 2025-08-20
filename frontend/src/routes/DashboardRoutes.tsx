@@ -6,7 +6,7 @@ import UniversalDashboardLayout from '../components/DashBoard/UniversalDashboard
 import DashboardPage from '../components/DashboardView/DashboardPage';
 
 // Import Protected Route component
-import ProtectedRoute from '../components/ProtectedRoutes/ProtectedRoute';
+import ProtectedRoute from './protected-route';
 
 /**
  * DashboardRoutes Component - REVOLUTIONARY UNIFIED EDITION
