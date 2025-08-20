@@ -1,6 +1,6 @@
 // 🎯 P0 PRODUCTION FIX: Conditional Redis import to prevent crashes
 // import Redis from 'ioredis'; // REMOVED - causing production crashes
-import { MongoClient } from 'mongodb';
+// PostgreSQL-only architecture - MongoDB removed
 import { piiSafeLogger } from '../../utils/monitoring/piiSafeLogging.mjs';
 import sequelize from '../../database.mjs';
 
@@ -26,16 +26,9 @@ class GamificationPersistence {
       console.log('🎯 PRODUCTION SAFE: Redis disabled for gamification - using PostgreSQL fallback');
     }
 
-    // Fallback storage options
+    // Fallback storage options - PostgreSQL-only architecture
     this.usePostgreSQL = true;
-    this.useMongoDB = process.env.MONGODB_URL || false;
-    
-    // MongoDB client (if available)
-    if (this.useMongoDB) {
-      this.mongoClient = new MongoClient(process.env.MONGODB_URL);
-      this.mongodb = null;
-      this.connectMongoDB();
-    }
+    // MongoDB removed - PostgreSQL-only architecture
 
     // Achievement definitions
     this.achievements = {
@@ -143,23 +136,7 @@ class GamificationPersistence {
     }
   }
 
-  /**
-   * Connect to MongoDB with error handling
-   */
-  async connectMongoDB() {
-    if (!this.useMongoDB) return;
-    
-    try {
-      await this.mongoClient.connect();
-      this.mongodb = this.mongoClient.db('swanstudios_gamification');
-      piiSafeLogger.info('Gamification MongoDB connected successfully');
-    } catch (error) {
-      piiSafeLogger.error('MongoDB connection failed for gamification', {
-        error: error.message
-      });
-      this.useMongoDB = false;
-    }
-  }
+  // MongoDB connection removed - PostgreSQL-only architecture
 
   /**
    * Award points to user with atomic operations
@@ -258,14 +235,11 @@ class GamificationPersistence {
     };
 
     try {
-      // Try PostgreSQL first
+      // PostgreSQL-only persistence
       if (this.usePostgreSQL) {
         await sequelize.models.UserPointsLedger.create(pointRecord);
       }
-      // Fallback to MongoDB
-      else if (this.mongodb) {
-        await this.mongodb.collection('user_achievements').insertOne(pointRecord);
-      }
+      // MongoDB removed - PostgreSQL-only architecture
     } catch (error) {
       // Log error but don't fail the operation
       piiSafeLogger.error('Failed to persist point transaction', {
@@ -312,27 +286,8 @@ class GamificationPersistence {
         };
       }
 
-      // MongoDB fallback
-      if (this.mongodb) {
-        await this.mongodb.collection('user_points_fallback').insertOne({
-          userId,
-          points,
-          reason,
-          metadata,
-          timestamp: new Date(),
-          fallbackStorage: true
-        });
-
-        return {
-          success: true,
-          pointsAwarded: points,
-          fallbackUsed: 'mongodb',
-          reason,
-          timestamp: Date.now()
-        };
-      }
-
-      throw new Error('No fallback storage available');
+      // MongoDB removed - PostgreSQL-only architecture
+      throw new Error('PostgreSQL fallback storage failed');
     } catch (error) {
       piiSafeLogger.error('All storage methods failed', {
         error: error.message,
@@ -997,9 +952,7 @@ class GamificationPersistence {
       if (this.redis && this.redisEnabled) {
         await this.redis.disconnect();
       }
-      if (this.mongoClient) {
-        await this.mongoClient.close();
-      }
+      // MongoDB client removed - PostgreSQL-only architecture
       piiSafeLogger.info('Gamification persistence connections closed');
     } catch (error) {
       piiSafeLogger.error('Error closing gamification connections', {
