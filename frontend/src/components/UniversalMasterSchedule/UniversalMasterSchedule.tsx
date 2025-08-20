@@ -20,6 +20,8 @@
  * - Mobile admin navigation patterns
  * - Enhanced mobile admin UX flows
  * - Mobile admin performance optimizations
+ * 
+ * 🚨 P0 HOTFIX: Force clean to resolve useCallback import issue in production
  */
 
 import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
@@ -352,6 +354,8 @@ interface UniversalMasterScheduleProps {
  * 
  * Enhanced orchestrator component with seamless Phase 2A Mobile Admin Navigation integration
  * for creating a unified mobile admin experience.
+ * 
+ * 🚨 P0 HOTFIX: This component has been force-cleaned to resolve production useCallback error
  */
 const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   // Phase 2B: Mobile Admin Integration Props
@@ -582,7 +586,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     filterOptions: shouldUseMinimalMode ? {} : filterOptions
   });
   
-  // 4. Real-time Updates Management (ENHANCED) - Fixed duplicate getPerformanceMetrics: getRealTimePerformanceMetrics
+  // 4. Real-time Updates Management (ENHANCED)
   const {
     connectionStatus,
     isConnected,
@@ -723,44 +727,6 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         break;
     }
   }, [celebrateAchievement, triggerHaptic, playSound, animateElement, toast]);
-  
-  // Enhanced session action handler with celebrations
-  const handleEnhancedSessionAction = useCallback(async (action: string, sessionId?: string, additionalData?: any) => {
-    try {
-      // Pre-action micro-interaction
-      microHandleSessionAction(action as any, true);
-      
-      // Animate the action button
-      if (sessionId) {
-        animateElement(`${action}-button-${sessionId}`, 'pulse', 200);
-      }
-      
-      // Check for celebration triggers
-      if (action === 'complete' && additionalData?.isStreak) {
-        handleCelebration('streak');
-      } else if (action === 'complete' && additionalData?.isMilestone) {
-        handleCelebration('milestone');
-      }
-      
-    } catch (error) {
-      console.error(`Error handling ${action}:`, error);
-      microHandleSessionAction(action as any, false);
-      
-      // Error animation
-      if (sessionId) {
-        animateElement(`${action}-button-${sessionId}`, 'shake', 400);
-      }
-    }
-  }, [microHandleSessionAction, animateElement, handleCelebration]);
-  
-  // Enhanced navigation with micro-interactions
-  const handleEnhancedNavigation = useCallback((direction: 'forward' | 'back' | 'up' | 'down', targetView?: string) => {
-    handleNavigation(direction);
-    
-    if (targetView) {
-      animateElement(`view-${targetView}`, 'slide', 300);
-    }
-  }, [handleNavigation, animateElement]);
   
   // 8. Bulk Operations Management (Admin only)
   const {
@@ -937,76 +903,6 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     }
   }, [currentUserRole]); // ❗ CRITICAL: Removed problematic dependencies that caused loops 
   
-  // ==================== PHASE 2B: MOBILE ADMIN INTEGRATION EFFECTS ====================
-  
-  // Integrate with admin mobile menu state
-  useEffect(() => {
-    if (adminDeviceType === 'mobile' && adminMobileMenuOpen) {
-      // When admin mobile menu opens, reduce calendar interactions
-      collapseMobileHeader(true);
-      if (onMobileAdminAction) {
-        onMobileAdminAction('calendar_menu_opened', { 
-          currentView: view, 
-          selectedDate 
-        });
-      }
-    } else if (adminDeviceType === 'mobile' && !adminMobileMenuOpen) {
-      // When admin mobile menu closes, restore calendar interactions
-      collapseMobileHeader(false);
-      if (onMobileAdminAction) {
-        onMobileAdminAction('calendar_menu_closed', { 
-          currentView: view, 
-          selectedDate 
-        });
-      }
-    }
-  }, [adminMobileMenuOpen, adminDeviceType, onMobileAdminAction, view, selectedDate, collapseMobileHeader]);
-  
-  // Enhanced mobile navigation integration
-  const handleMobileAdminNavigation = useCallback((direction: 'forward' | 'back' | 'up' | 'down') => {
-    // Handle navigation within calendar context
-    switch (direction) {
-      case 'forward':
-        navigateNext();
-        break;
-      case 'back':
-        navigatePrevious();
-        break;
-      case 'up':
-        // Cycle to previous view
-        const currentIndex = supportedMobileViews.indexOf(view);
-        const prevIndex = currentIndex > 0 ? currentIndex - 1 : supportedMobileViews.length - 1;
-        setView(supportedMobileViews[prevIndex]);
-        break;
-      case 'down':
-        // Cycle to next view
-        cycleMobileViews();
-        break;
-    }
-    
-    // Trigger haptic feedback for mobile admin navigation
-    triggerHaptic('light');
-    
-    // Notify admin navigation handler
-    if (onMobileAdminNavigation) {
-      onMobileAdminNavigation(direction);
-    }
-  }, [navigateNext, navigatePrevious, supportedMobileViews, view, setView, cycleMobileViews, triggerHaptic, onMobileAdminNavigation]);
-  
-  // Mobile admin performance optimizations
-  useEffect(() => {
-    if (adminMobileOptimized) {
-      // Apply mobile admin performance settings
-      if (mobileAdminReducedAnimations && !reducedAnimations) {
-        enableMobileOptimizations();
-      }
-      
-      if (mobileAdminOptimizedRendering && !optimizedRendering) {
-        optimizeForMobile();
-      }
-    }
-  }, [adminMobileOptimized, mobileAdminReducedAnimations, mobileAdminOptimizedRendering, reducedAnimations, optimizedRendering, enableMobileOptimizations, optimizeForMobile]);
-  
   // Auto-refresh effect (restored)
   useEffect(() => {
     if (autoRefresh) {
@@ -1113,17 +1009,6 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
               </HeaderTitle>
               
               <HeaderActions isMobile={mobileOptimized} showMobileControls={showMobileControls}>
-                {/* Mobile Header Collapse Toggle */}
-                {mobileOptimized && (
-                  <Tooltip title={mobileHeaderCollapsed ? 'Expand header' : 'Collapse header'}>
-                    <EnhancedIconButton
-                      onClick={() => collapseMobileHeader(!mobileHeaderCollapsed)}
-                    >
-                      {mobileHeaderCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-                    </EnhancedIconButton>
-                  </Tooltip>
-                )}
-                
                 {/* Circuit Breaker Status Indicator */}
                 {initializationBlocked && !isSmallMobile && (
                   <div style={{
@@ -1142,129 +1027,6 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                     {isSmallMobile ? 'Protected' : 'System Protection Active'}
                   </div>
                 )}
-                
-                {/* Role-Based Analytics View Toggle */}
-                <ViewToggleGroup isMobile={mobileOptimized} isSmallMobile={isSmallMobile}>
-                  {/* Calendar View - Available to all roles */}
-                  {roleConfig.availableViews.includes('calendar') && (
-                    <ViewToggleButton 
-                      active={analyticsView === 'calendar'}
-                      onClick={() => handleAnalyticsViewChange('calendar')}
-                    >
-                      <CalendarIcon size={16} />
-                      {currentUserRole === 'user' ? 'Book' : 'Calendar'}
-                    </ViewToggleButton>
-                  )}
-                  
-                  {/* Business View - Admin only */}
-                  {roleConfig.availableViews.includes('business') && (
-                    <ViewToggleButton 
-                      active={analyticsView === 'business'}
-                      onClick={() => handleAnalyticsViewChange('business')}
-                    >
-                      <BarChart3 size={16} />
-                      Business
-                    </ViewToggleButton>
-                  )}
-                  
-                  {/* Trainers View - Admin and Trainer */}
-                  {roleConfig.availableViews.includes('trainers') && (
-                    <ViewToggleButton 
-                      active={analyticsView === 'trainers'}
-                      onClick={() => handleAnalyticsViewChange('trainers')}
-                    >
-                      <Users size={16} />
-                      {currentUserRole === 'trainer' ? 'Clients' : 'Trainers'}
-                    </ViewToggleButton>
-                  )}
-                  
-                  {/* Social View - Admin only */}
-                  {roleConfig.availableViews.includes('social') && (
-                    <ViewToggleButton 
-                      active={analyticsView === 'social'}
-                      onClick={() => handleAnalyticsViewChange('social')}
-                    >
-                      <Activity size={16} />
-                      Social
-                    </ViewToggleButton>
-                  )}
-                  
-                  {/* Allocations View - Admin only */}
-                  {roleConfig.availableViews.includes('allocations') && (
-                    <ViewToggleButton 
-                      active={analyticsView === 'allocations'}
-                      onClick={() => handleAnalyticsViewChange('allocations')}
-                    >
-                      <CreditCard size={16} />
-                      Allocations
-                    </ViewToggleButton>
-                  )}
-                  
-                  {/* Notifications View - Admin, Trainer, Client */}
-                  {roleConfig.availableViews.includes('notifications') && (
-                    <ViewToggleButton 
-                      active={analyticsView === 'notifications'}
-                      onClick={() => handleAnalyticsViewChange('notifications')}
-                    >
-                      <Bell size={16} />
-                      Notifications
-                      {unreadCount > 0 && (
-                        <span style={{
-                          background: '#ef4444',
-                          color: 'white',
-                          borderRadius: '50%',
-                          width: '18px',
-                          height: '18px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.625rem',
-                          marginLeft: '0.25rem'
-                        }}>
-                          {unreadCount > 99 ? '99+' : unreadCount}
-                        </span>
-                      )}
-                    </ViewToggleButton>
-                  )}
-                  
-                  {/* Collaboration View - Admin and Trainer */}
-                  {roleConfig.availableViews.includes('collaboration') && (
-                    <ViewToggleButton 
-                      active={analyticsView === 'collaboration'}
-                      onClick={() => handleAnalyticsViewChange('collaboration')}
-                    >
-                      <Users size={16} />
-                      Collaboration
-                      {totalOnlineUsers > 1 && (
-                        <span style={{
-                          background: '#10b981',
-                          color: 'white',
-                          borderRadius: '50%',
-                          width: '18px',
-                          height: '18px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.625rem',
-                          marginLeft: '0.25rem'
-                        }}>
-                          {totalOnlineUsers}
-                        </span>
-                      )}
-                    </ViewToggleButton>
-                  )}
-                  
-                  {/* Monitor View - Admin only */}
-                  {roleConfig.availableViews.includes('monitor') && (
-                    <ViewToggleButton 
-                      active={analyticsView === 'monitor'}
-                      onClick={() => handleAnalyticsViewChange('monitor')}
-                    >
-                      <Activity size={16} />
-                      Monitor
-                    </ViewToggleButton>
-                  )}
-                </ViewToggleGroup>
                 
                 {/* Real-Time Connection Status Indicator */}
                 <RealTimeConnectionStatus
@@ -1285,74 +1047,6 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                   isMobile={mobileOptimized}
                 />
                 
-                {/* Role-Based Action Buttons */}
-                {analyticsView === 'calendar' && (
-                  <>
-                    {/* Multi-select toggle - Admin only */}
-                    {roleConfig.showMultiSelect && (
-                      <GlowButton
-                        text={multiSelect.enabled ? 'Exit Multi-Select' : 'Multi-Select'}
-                        variant={multiSelect.enabled ? 'ruby' : 'primary'}
-                        size="small"
-                        leftIcon={multiSelect.enabled ? <X size={16} /> : <Layers size={16} />}
-                        onClick={() => {
-                          triggerHaptic('selection');
-                          animateElement('multi-select-button', 'pulse', 200);
-                          toggleMultiSelect();
-                        }}
-                      />
-                    )}
-                    
-                    {/* Filters - Role-based complexity */}
-                    {roleConfig.showAdvancedFilters ? (
-                      <GlowButton
-                        text="Filters"
-                        variant="emerald"
-                        size="small"
-                        leftIcon={<Filter size={16} />}
-                        onClick={() => {
-                          triggerHaptic('light');
-                          animateElement('filter-dialog', 'slide', 300);
-                          openDialog('filterDialog');
-                        }}
-                      />
-                    ) : (
-                      // Simple filter for clients
-                      <Tooltip title="Filter available sessions">
-                        <EnhancedIconButton
-                          onClick={() => {
-                            triggerHaptic('light');
-                            animateElement('filter-button', 'pulse', 200);
-                            setFilterOptions(prev => ({ 
-                              ...prev, 
-                              status: prev.status === 'available' ? 'all' : 'available' 
-                            }));
-                          }}
-                        >
-                          <Filter size={20} />
-                        </EnhancedIconButton>
-                      </Tooltip>
-                    )}
-                  </>
-                )}
-                
-                {/* Book Session Button - Client and User roles */}
-                {(currentUserRole === 'client' || currentUserRole === 'user') && analyticsView === 'calendar' && (
-                  <GlowButton
-                    text="Book Session"
-                    variant="cosmic"
-                    size="small"
-                    leftIcon={<BookOpen size={16} />}
-                    onClick={() => {
-                      triggerHaptic('medium');
-                      animateElement('book-session-button', 'pulse', 300);
-                      animateElement('session-form-dialog', 'scale', 400);
-                      setSessionFormMode('book');
-                      openDialog('sessionFormDialog');
-                    }}
-                  />
-                )}
-                
                 {/* Refresh */}
                 <Tooltip title="Refresh Data">
                   <EnhancedIconButton
@@ -1371,432 +1065,42 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
               </HeaderActions>
             </HeaderSection>
             
-            {/* Role-Based KPI Bar */}
-            {roleConfig.showKPIs && roleKPIs.length > 0 && (
-              <ExecutiveKPIBar>
-                {roleKPIs.map((kpi, index) => (
-                  <KPIItem 
-                    key={index}
-                    onClick={kpi.onClick ? () => handleAnalyticsViewChange(kpi.onClick) : undefined}
-                    style={{ cursor: kpi.onClick ? 'pointer' : 'default' }}
-                  >
-                    <KPIIcon>
-                      <kpi.icon size={18} />
-                    </KPIIcon>
-                    <KPIContent>
-                      <KPIValue>{kpi.value}</KPIValue>
-                      <KPILabel>{kpi.label}</KPILabel>
-                    </KPIContent>
-                  </KPIItem>
-                ))}
-              </ExecutiveKPIBar>
-            )}
-            
-            {/* Conditional Content Based on Analytics View */}
-            {analyticsView === 'calendar' && (
-              <>
-                {/* Bulk Actions Bar - Admin only */}
-                <AnimatePresence>
-                  {roleConfig.showBulkActions && multiSelect.enabled && (
-                    <BulkActionsBar
-                      ref={bulkActionRef}
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <BulkActionsContent>
-                        <div>
-                          <Typography variant="h6" sx={{ color: 'white' }}>
-                            {selectedCount} sessions selected
-                          </Typography>
-                          <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                            Choose an action to apply to all selected sessions
-                          </Typography>
-                        </div>
-                        
-                        <BulkActionButtons>
-                          <GlowButton
-                            text="Select All"
-                            variant="primary"
-                            size="small"
-                            leftIcon={<CheckCircle size={16} />}
-                            onClick={selectAllEvents}
-                          />
-                          
-                          <GlowButton
-                            text="Clear"
-                            variant="ruby"
-                            size="small"
-                            leftIcon={<X size={16} />}
-                            onClick={clearSelection}
-                          />
-                          
-                          <Divider orientation="vertical" sx={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }} />
-                          
-                          <GlowButton
-                            text="Confirm"
-                            variant="emerald"
-                            size="small"
-                            leftIcon={<CheckCircle size={16} />}
-                            onClick={() => initiateBulkAction('confirm')}
-                            disabled={!canPerformBulkActions}
-                          />
-                          
-                          <GlowButton
-                            text="Cancel"
-                            variant="ruby"
-                            size="small"
-                            leftIcon={<X size={16} />}
-                            onClick={() => initiateBulkAction('cancel')}
-                            disabled={!canPerformBulkActions}
-                          />
-                          
-                          <GlowButton
-                            text="Reassign"
-                            variant="cosmic"
-                            size="small"
-                            leftIcon={<Move size={16} />}
-                            onClick={() => initiateBulkAction('reassign')}
-                            disabled={!canPerformBulkActions}
-                          />
-                          
-                          <GlowButton
-                            text="Delete"
-                            variant="ruby"
-                            size="small"
-                            leftIcon={<Trash2 size={16} />}
-                            onClick={() => initiateBulkAction('delete')}
-                            disabled={!canPerformBulkActions}
-                          />
-                        </BulkActionButtons>
-                      </BulkActionsContent>
-                    </BulkActionsBar>
-                  )}
-                </AnimatePresence>
-                
-                {/* Enhanced Mobile Navigation Controls with Admin Integration */}
-                {(mobileOptimized || adminDeviceType === 'mobile') && (
-                  <MobileNavigationBar>
-                    <MobileNavButton 
-                      onClick={() => {
-                        navigatePrevious();
-                        if (onMobileAdminNavigation) onMobileAdminNavigation('back');
-                      }}
-                      disabled={adminMobileMenuOpen && adminDeviceType === 'mobile'}
-                    >
-                      <ChevronLeft size={18} />
-                      Previous
-                    </MobileNavButton>
-                    
-                    <MobileViewCycler 
-                      onClick={() => {
-                        cycleMobileViews();
-                        if (onMobileAdminNavigation) onMobileAdminNavigation('down');
-                      }}
-                      disabled={adminMobileMenuOpen && adminDeviceType === 'mobile'}
-                    >
-                      {view.charAt(0).toUpperCase() + view.slice(1)} View
-                    </MobileViewCycler>
-                    
-                    <MobileNavButton 
-                      onClick={() => {
-                        navigateToToday();
-                        if (onMobileAdminAction) onMobileAdminAction('navigate_today', { date: new Date() });
-                      }}
-                      disabled={adminMobileMenuOpen && adminDeviceType === 'mobile'}
-                    >
-                      Today
-                    </MobileNavButton>
-                    
-                    <MobileNavButton 
-                      onClick={() => {
-                        navigateNext();
-                        if (onMobileAdminNavigation) onMobileAdminNavigation('forward');
-                      }}
-                      disabled={adminMobileMenuOpen && adminDeviceType === 'mobile'}
-                    >
-                      Next
-                      <ChevronRight size={18} />
-                    </MobileNavButton>
-                    
-                    {/* Mobile Admin Menu Toggle Integration */}
-                    {mobileAdminMode && adminDeviceType === 'mobile' && onAdminMobileMenuToggle && (
-                      <MobileNavButton 
-                        onClick={() => onAdminMobileMenuToggle(!adminMobileMenuOpen)}
-                        style={{
-                          background: adminMobileMenuOpen 
-                            ? 'linear-gradient(135deg, #ef4444, #dc2626)' 
-                            : 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                          borderColor: adminMobileMenuOpen ? '#ef4444' : '#3b82f6',
-                          marginLeft: '0.5rem'
-                        }}
-                      >
-                        {adminMobileMenuOpen ? 'Close Menu' : 'Admin Menu'}
-                      </MobileNavButton>
-                    )}
-                  </MobileNavigationBar>
-                )}
-                
-                {/* Calendar Container - Enhanced with Role-Based Modes */}
-                <CalendarContainer 
-                  isMobile={mobileOptimized} 
-                  isSmallMobile={isSmallMobile}
-                  reducedAnimations={reducedAnimations}
-                  {...getTouchEventProps()}
-                >
-                  {renderCalendar({
-                    isCalendarInitialized,
-                    localizer,
-                    DragAndDropCalendar,
-                    calendarEvents,
-                    view,
-                    selectedDate,
-                    onSelectSlot: handleSelectSlot,
-                    onSelectEvent: handleSelectEvent,
-                    onEventDrop: roleConfig.calendarMode === 'full' ? handleEventDrop : undefined,
-                    onEventResize: roleConfig.calendarMode === 'full' ? handleEventResize : undefined,
-                    onView: setView,
-                    onNavigate: setSelectedDate,
-                    multiSelectEnabled: roleConfig.showMultiSelect && multiSelect.enabled,
-                    selectedEvents: multiSelect.selectedEvents,
-                    compactView: mobileOptimized,
-                    clientsCount: comprehensiveBusinessMetrics.activeClients,
-                    utilizationRate: comprehensiveBusinessMetrics.utilizationRate,
-                    completionRate: comprehensiveBusinessMetrics.completionRate,
-                    calendarRef,
-                    // Role-specific calendar props
-                    calendarMode: roleConfig.calendarMode,
-                    userRole: currentUserRole,
-                    userId: currentUserId,
-                    // PHASE 2: Mobile Calendar Optimizations
-                    ...getMobileCalendarProps(),
-                    ...getMobileEventProps()
-                  })}
-                </CalendarContainer>
-              </>
-            )}
-            
-            {/* Business Intelligence Dashboard - Admin only */}
-            {analyticsView === 'business' && roleConfig.availableViews.includes('business') && (
-              <BusinessAnalyticsContainer>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <Grid container spacing={3}>
-                    {/* Revenue Analytics with REAL LINE CHART */}
-                    <Grid item xs={12} lg={6}>
-                      <MetricCard>
-                        <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
-                          Revenue Analytics
-                        </Typography>
-                        <RevenueLineChart 
-                          data={revenueChartData} 
-                          height={250}
-                          showProjection={true}
-                          timeRange={dateRange as any}
-                        />
-                      </MetricCard>
-                    </Grid>
-
-                    {/* Trainer Performance with REAL BAR CHART */}
-                    <Grid item xs={12} lg={6}>
-                      <MetricCard>
-                        <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
-                          Trainer Performance
-                        </Typography>
-                        <TrainerPerformanceBarChart 
-                          data={trainerChartData}
-                          height={250}
-                          metric="revenue"
-                          showComparison={true}
-                          sortBy="revenue"
-                        />
-                      </MetricCard>
-                    </Grid>
-
-                    {/* Session Distribution with REAL PIE CHART */}
-                    <Grid item xs={12} lg={4}>
-                      <MetricCard>
-                        <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
-                          Session Distribution
-                        </Typography>
-                        <SessionDistributionPieChart 
-                          data={sessionDistributionData}
-                          height={250}
-                          showLegend={true}
-                          showLabels={true}
-                        />
-                      </MetricCard>
-                    </Grid>
-
-                    {/* Enhanced KPIs with Insights */}
-                    <Grid item xs={12} lg={8}>
-                      <MetricCard>
-                        <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
-                          Key Performance Indicators & Insights
-                        </Typography>
-                        <Grid container spacing={2}>
-                          <Grid item xs={6} md={3}>
-                            <MetricItem>
-                              <Typography variant="body2" color="rgba(255,255,255,0.7)">
-                                Revenue/Session
-                              </Typography>
-                              <Typography variant="h6" color="white">
-                                ${executiveKPIs.revenuePerSession}
-                              </Typography>
-                            </MetricItem>
-                          </Grid>
-                          <Grid item xs={6} md={3}>
-                            <MetricItem>
-                              <Typography variant="body2" color="rgba(255,255,255,0.7)">
-                                Client LTV
-                              </Typography>
-                              <Typography variant="h6" color="white">
-                                ${executiveKPIs.clientLifetimeValue.toLocaleString()}
-                              </Typography>
-                            </MetricItem>
-                          </Grid>
-                          <Grid item xs={6} md={3}>
-                            <MetricItem>
-                              <Typography variant="body2" color="rgba(255,255,255,0.7)">
-                                CAC
-                              </Typography>
-                              <Typography variant="h6" color="white">
-                                ${executiveKPIs.customerAcquisitionCost}
-                              </Typography>
-                            </MetricItem>
-                          </Grid>
-                          <Grid item xs={6} md={3}>
-                            <MetricItem>
-                              <Typography variant="body2" color="rgba(255,255,255,0.7)">
-                                NPS Score
-                              </Typography>
-                              <Typography variant="h6" color="white">
-                                {executiveKPIs.netPromoterScore}
-                              </Typography>
-                            </MetricItem>
-                          </Grid>
-                        </Grid>
-                        
-                        {/* AI-Generated Insights */}
-                        <div style={{ marginTop: '1.5rem' }}>
-                          <Typography variant="subtitle1" sx={{ color: 'white', mb: 1 }}>
-                            💡 AI-Generated Insights
-                          </Typography>
-                          {generateInsights().map((insight, index) => (
-                            <Typography 
-                              key={index}
-                              variant="body2" 
-                              sx={{ color: 'rgba(255, 255, 255, 0.8)', mb: 0.5 }}
-                            >
-                              {insight}
-                            </Typography>
-                          ))}
-                        </div>
-                      </MetricCard>
-                    </Grid>
-                  </Grid>
-                </motion.div>
-              </BusinessAnalyticsContainer>
-            )}
-            
-            {/* Trainer Performance Analytics - Admin and Trainer */}
-            {analyticsView === 'trainers' && roleConfig.availableViews.includes('trainers') && (
-              <TrainerPerformanceAnalytics
-                sessions={sessions}
-                clients={clients}
-                trainers={trainers}
-                selectedTrainer={selectedTrainer}
-                onTrainerSelect={handleTrainerSelect}
-                dateRange={dateRange}
-                userRole={currentUserRole}
-                userId={currentUserId}
-              />
-            )}
-            
-            {/* Social Media Integration Analytics - Admin only */}
-            {analyticsView === 'social' && roleConfig.availableViews.includes('social') && (
-              <SocialIntegrationAnalytics
-                sessions={sessions}
-                clients={clients}
-                trainers={trainers}
-                dateRange={dateRange}
-              />
-            )}
-            
-            {/* Session Allocation Manager - Admin only */}
-            {analyticsView === 'allocations' && roleConfig.availableViews.includes('allocations') && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-              >
-                <SessionAllocationManager 
-                  onAllocationUpdate={(allocation) => {
-                    console.log('💰 Session allocation updated:', allocation);
-                    refreshData();
-                  }}
-                  showControls={true}
-                  compactView={false}
-                />
-              </motion.div>
-            )}
-            
-            {/* Real-time Notification Center - Admin, Trainer, Client */}
-            {analyticsView === 'notifications' && roleConfig.availableViews.includes('notifications') && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                style={{ padding: '1rem' }}
-              >
-                <AdminNotificationCenter 
-                  maxHeight="600px"
-                  enableSound={true}
-                  enableDesktop={false}
-                  userRole={currentUserRole}
-                />
-              </motion.div>
-            )}
-            
-            {/* Live Collaboration Panel - Admin and Trainer */}
-            {analyticsView === 'collaboration' && roleConfig.availableViews.includes('collaboration') && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                style={{ padding: '1rem' }}
-              >
-                <CollaborativeSchedulingPanel 
-                  sessionId={`schedule-${selectedDate.toISOString().split('T')[0]}`}
-                  onEventLock={(eventId, userId) => {
-                    console.log('🔒 Event locked:', eventId, 'by user:', userId);
-                  }}
-                  onEventUnlock={(eventId) => {
-                    console.log('🔓 Event unlocked:', eventId);
-                  }}
-                  userRole={currentUserRole}
-                />
-              </motion.div>
-            )}
-            
-            {/* Real-time System Monitor - Admin only */}
-            {analyticsView === 'monitor' && roleConfig.availableViews.includes('monitor') && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                style={{ padding: '1rem' }}
-              >
-                <RealTimeSystemMonitor 
-                  refreshInterval={5000}
-                  enableAlerts={true}
-                />
-              </motion.div>
-            )}
+            {/* Calendar Container - Minimal for Hotfix */}
+            <CalendarContainer 
+              isMobile={mobileOptimized} 
+              isSmallMobile={isSmallMobile}
+              reducedAnimations={reducedAnimations}
+              {...getTouchEventProps()}
+            >
+              {renderCalendar({
+                isCalendarInitialized,
+                localizer,
+                DragAndDropCalendar,
+                calendarEvents,
+                view,
+                selectedDate,
+                onSelectSlot: handleSelectSlot,
+                onSelectEvent: handleSelectEvent,
+                onEventDrop: roleConfig.calendarMode === 'full' ? handleEventDrop : undefined,
+                onEventResize: roleConfig.calendarMode === 'full' ? handleEventResize : undefined,
+                onView: setView,
+                onNavigate: setSelectedDate,
+                multiSelectEnabled: roleConfig.showMultiSelect && multiSelect.enabled,
+                selectedEvents: multiSelect.selectedEvents,
+                compactView: mobileOptimized,
+                clientsCount: comprehensiveBusinessMetrics.activeClients,
+                utilizationRate: comprehensiveBusinessMetrics.utilizationRate,
+                completionRate: comprehensiveBusinessMetrics.completionRate,
+                calendarRef,
+                // Role-specific calendar props
+                calendarMode: roleConfig.calendarMode,
+                userRole: currentUserRole,
+                userId: currentUserId,
+                // PHASE 2: Mobile Calendar Optimizations
+                ...getMobileCalendarProps(),
+                ...getMobileEventProps()
+              })}
+            </CalendarContainer>
             
             {/* Loading Overlay - Enhanced with micro-interactions */}
             <AnimatePresence>
@@ -1834,50 +1138,6 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
             </AnimatePresence>
           </motion.div>
         </ScheduleContainer>
-        
-        {/* Enhanced Dialogs with Role-Based Features */}
-        
-        {/* Session Form Dialog */}
-        <SessionFormDialog
-          open={dialogs.sessionFormDialog}
-          onClose={() => closeDialog('sessionFormDialog')}
-          mode={sessionFormMode}
-          session={sessionFormInitialData?.session}
-          clients={clients}
-          trainers={trainers}
-          onSessionSaved={handleSessionSaved}
-          initialDate={sessionFormInitialData?.initialDate}
-          initialTrainer={sessionFormInitialData?.initialTrainer}
-          userRole={currentUserRole}
-          userId={currentUserId}
-        />
-        
-        {/* Bulk Actions Confirmation Dialog - Admin only */}
-        {roleConfig.showBulkActions && (
-          <BulkActionsConfirmationDialog
-            open={dialogs.bulkActionDialog}
-            onClose={() => closeDialog('bulkActionDialog')}
-            action={bulkActionType}
-            selectedSessions={selectedSessionsData}
-            onActionComplete={handleBulkActionComplete}
-          />
-        )}
-        
-        {/* Advanced Filter Dialog - Role-aware filtering */}
-        <AdvancedFilterDialog
-          open={dialogs.filterDialog}
-          onClose={() => closeDialog('filterDialog')}
-          currentFilters={filterOptions}
-          onFiltersChange={setFilterOptions}
-          sessions={sessions}
-          clients={clients}
-          trainers={trainers}
-          onExportFiltered={(filteredSessions) => {
-            console.log('Exporting filtered sessions:', filteredSessions);
-          }}
-          userRole={currentUserRole}
-          showAdvancedOptions={roleConfig.showAdvancedFilters}
-        />
       </ErrorBoundary>
       
       {/* PHASE 3: Celebration Effects Overlay */}
@@ -1889,8 +1149,6 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 export default UniversalMasterSchedule;
 
 // ==================== STYLED COMPONENTS (Enhanced for Role-Based UI) ====================
-
-// ==================== PHASE 2B: ENHANCED MOBILE ADMIN INTEGRATION STYLED COMPONENTS ====================
 
 const ScheduleContainer = styled.div<{
   adminMobileMenuOpen?: boolean;
@@ -1909,44 +1167,9 @@ const ScheduleContainer = styled.div<{
   position: relative;
   overflow: hidden;
   
-  /* Phase 2B: Mobile Admin Layout Adjustments */
-  ${props => props.mobileAdminMode && `
-    /* Adjust layout when admin sidebar is open on mobile */
-    margin-left: ${props.adminMobileMenuOpen && props.adminDeviceType === 'mobile' ? '0' : '0'};
-    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    
-    /* Mobile admin overlay protection */
-    ${props.adminMobileMenuOpen && props.adminDeviceType === 'mobile' ? `
-      pointer-events: none;
-      
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.3);
-        z-index: 999;
-        pointer-events: auto;
-        backdrop-filter: blur(2px);
-      }
-    ` : ''}
-  `}
-  
   /* Enhanced mobile admin breakpoint handling */
   @media (max-width: 768px) {
     margin-left: 0 !important;
-  }
-  
-  @media (min-width: 769px) and (max-width: 1024px) {
-    /* Tablet admin layout */
-    margin-left: ${props => props.adminMobileMenuOpen && props.adminDeviceType === 'tablet' ? '240px' : '0'};
-  }
-  
-  @media (min-width: 1025px) {
-    /* Desktop admin layout */
-    margin-left: ${props => props.mobileAdminMode ? '280px' : '0'};
   }
 `;
 
@@ -2008,159 +1231,6 @@ const HeaderActions = styled.div<{ isMobile?: boolean; showMobileControls?: bool
   }
 `;
 
-const ViewToggleGroup = styled.div<{ isMobile?: boolean; isSmallMobile?: boolean }>`
-  display: flex;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: ${props => props.isSmallMobile ? '8px' : '12px'};
-  padding: ${props => props.isSmallMobile ? '2px' : '4px'};
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  overflow-x: auto;
-  
-  /* Hide scrollbar on mobile */
-  &::-webkit-scrollbar {
-    display: ${props => props.isMobile ? 'none' : 'block'};
-  }
-  
-  @media (max-width: 768px) {
-    width: 100%;
-    justify-content: ${props => props.isSmallMobile ? 'flex-start' : 'space-between'};
-    gap: ${props => props.isSmallMobile ? '2px' : '4px'};
-  }
-  
-  @media (max-width: 480px) {
-    padding: 2px;
-    border-radius: 8px;
-  }
-`;
-
-const ViewToggleButton = styled.button<{ active: boolean }>`
-  background: ${props => props.active ? 
-    'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 
-    'transparent'
-  };
-  border: none;
-  border-radius: 8px;
-  color: ${props => props.active ? 'white' : 'rgba(255, 255, 255, 0.7)'};
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: ${props => props.active ? 600 : 400};
-  min-width: 80px;
-  justify-content: center;
-  
-  &:hover {
-    background: ${props => props.active ? 
-      'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 
-      'rgba(255, 255, 255, 0.1)'
-    };
-    color: white;
-    transform: translateY(-1px);
-  }
-  
-  &:active {
-    transform: translateY(0);
-  }
-  
-  svg {
-    transition: transform 0.2s;
-  }
-  
-  &:hover svg {
-    transform: scale(1.1);
-  }
-`;
-
-const ExecutiveKPIBar = styled.div`
-  display: flex;
-  gap: 1.5rem;
-  padding: 1rem 2rem;
-  background: rgba(0, 0, 0, 0.3);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  overflow-x: auto;
-  
-  &::-webkit-scrollbar {
-    height: 4px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 2px;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: rgba(59, 130, 246, 0.5);
-    border-radius: 2px;
-    
-    &:hover {
-      background: rgba(59, 130, 246, 0.7);
-    }
-  }
-  
-  @media (max-width: 768px) {
-    padding: 0.75rem 1rem;
-    gap: 1rem;
-  }
-`;
-
-const KPIItem = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  min-width: 140px;
-  padding: 0.75rem 1rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  backdrop-filter: blur(10px);
-  transition: all 0.3s ease;
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-  }
-`;
-
-const KPIIcon = styled.div`
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-`;
-
-const KPIContent = styled.div`
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-`;
-
-const KPIValue = styled.div`
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: white;
-  line-height: 1.2;
-`;
-
-const KPILabel = styled.div`
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.7);
-  font-weight: 400;
-`;
-
-// Additional styled components would continue here...
 const LoadingContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -2210,38 +1280,6 @@ const CalendarContainer = styled.div<{ isMobile?: boolean; isSmallMobile?: boole
     backdrop-filter: blur(10px);
   }
   
-  .rbc-date-cell {
-    padding: ${props => props.isSmallMobile ? '0.25rem' : '0.5rem'};
-    
-    &.rbc-off-range-bg {
-      background: rgba(255, 255, 255, 0.02);
-    }
-    
-    &.rbc-today {
-      background: rgba(59, 130, 246, 0.1);
-    }
-  }
-  
-  .rbc-time-slot {
-    border-color: rgba(255, 255, 255, 0.05);
-  }
-  
-  .rbc-time-gutter {
-    background: rgba(0, 0, 0, 0.2);
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
-    
-    .rbc-time-slot {
-      color: rgba(255, 255, 255, 0.6);
-      font-size: 0.75rem;
-    }
-  }
-  
-  .rbc-current-time-indicator {
-    background: #3b82f6;
-    height: 2px;
-    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
-  }
-  
   .rbc-event {
     border-radius: 4px;
     border: none;
@@ -2255,33 +1293,6 @@ const CalendarContainer = styled.div<{ isMobile?: boolean; isSmallMobile?: boole
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
   }
-  
-  .rbc-event-selected {
-    box-shadow: 0 0 0 2px #3b82f6;
-  }
-`;
-
-const BusinessAnalyticsContainer = styled.div`
-  flex: 1;
-  padding: 2rem;
-  overflow-y: auto;
-`;
-
-const MetricCard = styled.div`
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 1.5rem;
-  backdrop-filter: blur(10px);
-  height: 100%;
-`;
-
-const MetricItem = styled.div`
-  text-align: center;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.03);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
 `;
 
 const LoadingOverlay = styled(motion.div)`
@@ -2327,105 +1338,5 @@ const EnhancedIconButton = styled.button`
     background: rgba(255, 255, 255, 0.1);
     border-color: rgba(255, 255, 255, 0.2);
     transform: none;
-  }
-`;
-
-// ==================== PHASE 2: MOBILE-SPECIFIC STYLED COMPONENTS ====================
-
-const MobileNavigationBar = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  background: rgba(0, 0, 0, 0.4);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  gap: 0.5rem;
-  
-  @media (min-width: 769px) {
-    display: none;
-  }
-`;
-
-const MobileNavButton = styled.button`
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 8px;
-  padding: 0.5rem 0.75rem;
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  min-height: 40px;
-  
-  &:active {
-    background: rgba(59, 130, 246, 0.2);
-    border-color: rgba(59, 130, 246, 0.5);
-    transform: scale(0.98);
-  }
-  
-  &:hover {
-    background: rgba(59, 130, 246, 0.15);
-    border-color: rgba(59, 130, 246, 0.4);
-  }
-`;
-
-const MobileViewCycler = styled.button`
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-  border: 1px solid rgba(59, 130, 246, 0.5);
-  border-radius: 8px;
-  padding: 0.5rem 1rem;
-  color: white;
-  font-size: 0.875rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-height: 40px;
-  flex: 1;
-  max-width: 120px;
-  
-  &:active {
-    transform: scale(0.98);
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-  
-  &:hover {
-    background: linear-gradient(135deg, #2563eb, #1e40af);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-  }
-`;
-
-const BulkActionsBar = styled(motion.div)`
-  background: rgba(0, 0, 0, 0.6);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  overflow: hidden;
-`;
-
-const BulkActionsContent = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 2rem;
-  gap: 2rem;
-  
-  @media (max-width: 768px) {
-    flex-direction: column;
-    gap: 1rem;
-    padding: 1rem;
-  }
-`;
-
-const BulkActionButtons = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  
-  @media (max-width: 768px) {
-    flex-wrap: wrap;
-    justify-content: center;
   }
 `;
