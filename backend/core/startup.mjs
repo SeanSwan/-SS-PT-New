@@ -14,7 +14,7 @@ import http from 'http';
 import { initSocketIO, closeSocketIO } from '../socket/socketManager.mjs';
 import sequelize from '../database.mjs';
 import setupAssociations from '../setupAssociations.mjs';
-import { connectToMongoDB, getMongoDBStatus } from '../mongodb-connect.mjs';
+// MongoDB removed - PostgreSQL-only architecture
 import { runStartupMigrations } from '../utils/startupMigrations.mjs';
 import { syncDatabaseSafely } from '../utils/productionDatabaseSync.mjs';
 import seedStorefrontItems from '../seedStorefrontItems.mjs';
@@ -141,20 +141,8 @@ const initializeDatabases = async () => {
       }
     }
     
-    // Connect to MongoDB for workout tracking
-    if (!USE_SQLITE_FALLBACK) {
-      try {
-        const mongoResult = await connectToMongoDB();
-        if (mongoResult.db) {
-          logger.info('✅ MongoDB connection established successfully');
-        } else {
-          logger.warn('MongoDB connection failed but continuing with PostgreSQL');
-        }
-      } catch (mongoError) {
-        logger.error(`MongoDB connection error: ${mongoError.message}`);
-        logger.info('Continuing with PostgreSQL only');
-      }
-    }
+    // PostgreSQL-only architecture - MongoDB connections removed
+    logger.info('✅ Using PostgreSQL-only architecture (MongoDB removed)')
 
     // Development database sync (NEVER in production)
     if (!isProduction && process.env.AUTO_SYNC === 'true') {
