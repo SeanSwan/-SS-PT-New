@@ -1,0 +1,32 @@
+{
+  "name": "swanstudios-verification-suite",
+  "version": "1.0.0",
+  "description": "Comprehensive verification suite for SwanStudios platform",
+  "type": "module",
+  "scripts": {
+    "verify": "node master-verification-suite.mjs",
+    "verify:admin": "node verify-admin-dashboard-integration.mjs",
+    "verify:api": "node verify-frontend-api-integration.mjs", 
+    "verify:performance": "node verify-performance-accessibility.mjs",
+    "verify:quick": "npm run verify:api",
+    "install-deps": "npm install puppeteer axios lighthouse colors ws",
+    "setup": "npm run install-deps && echo 'Verification suite ready to run!'"
+  },
+  "dependencies": {
+    "puppeteer": "^21.0.0",
+    "axios": "^1.6.0",
+    "lighthouse": "^11.0.0",
+    "colors": "^1.4.0",
+    "ws": "^8.14.0"
+  },
+  "devDependencies": {},
+  "keywords": [
+    "swanstudios",
+    "verification",
+    "testing",
+    "accessibility",
+    "performance"
+  ],
+  "author": "SwanStudios Development Team",
+  "license": "MIT"
+}

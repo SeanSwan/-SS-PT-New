@@ -1,59 +1,129 @@
+# SwanStudios Render Deployment Configuration
+# ==========================================
+# Complete configuration for deploying SwanStudios to Render with PostgreSQL
+
+# Main web service (Node.js backend + frontend)
 services:
   - type: web
-    name: swan-studios-api
-    env: node
-    region: oregon
-    plan: starter
-    buildCommand: node build-for-render.js
-    startCommand: cd backend && node server.mjs
-    
-    # REMOVE PLATFORM HEADERS - FULL APPLICATION CONTROL
-    # Platform headers can interfere with root-level endpoints like /health
-    # Let ultra-aggressive CORS in app.mjs handle everything
-    # headers:
-    #   - path: /*
-    #     name: Access-Control-Allow-Origin
-    #     value: "*"
-    
-    # PRODUCTION ENVIRONMENT VARIABLES
-    envVars:
+    name: swanstudios-main
+    runtime: node
+    repo: https://github.com/YOUR-USERNAME/SS-PT # Update with your repo
+    branch: main
+    rootDir: ./
+    buildCommand: |
+      # Install backend dependencies
+      cd backend && npm install
+      # Install frontend dependencies and build
+      cd ../frontend && npm install && npm run build
+      # Install MCP server dependencies
+      cd ../backend/mcp_server && pip install -r requirements.txt
+    startCommand: |
+      # Start the main backend server
+      cd backend && npm start
+    plan: starter # or standard/pro based on needs
+    env:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
-      
-      # CORS CONFIGURATION
-      - key: FRONTEND_ORIGINS
-        value: "https://sswanstudios.com,https://www.sswanstudios.com,https://swanstudios.com,https://www.swanstudios.com"
-      
-      # FORCE APPLICATION-LEVEL CORS HANDLING
-      - key: FORCE_APP_CORS
-        value: "true"
-      
-      # JWT CONFIGURATION
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: swanstudios-main
+          property: host
+      - key: DATABASE_URL
+        fromDatabase:
+          name: swanstudios-db
+          property: connectionString
       - key: JWT_SECRET
-        value: "your-jwt-secret-key-here"
-      - key: JWT_REFRESH_SECRET
-        value: "your-jwt-refresh-secret-here"
-      - key: JWT_EXPIRES_IN
-        value: "3h"
-      - key: ACCESS_TOKEN_EXPIRY
-        value: "10800"
-      - key: REFRESH_TOKEN_EXPIRES_IN
-        value: "7d"
-      
-      # ADMIN ACCESS
-      - key: ADMIN_ACCESS_CODE
-        value: "admin-access-code-123"
-      
-      # PRODUCTION SETTINGS
-      - key: ENABLE_MCP_SERVICES
-        value: "false"
-      - key: USE_SQLITE_FALLBACK
-        value: "false"
-      - key: REDIS_ENABLED
-        value: "false"
-      - key: DISABLE_REDIS
-        value: "true"
-      - key: NO_REDIS
-        value: "true"
+        generateValue: true
+        length: 32
+      - key: STRIPE_SECRET_KEY
+        sync: false  # Set manually in Render dashboard
+      - key: STRIPE_PUBLISHABLE_KEY  
+        sync: false  # Set manually in Render dashboard
+
+  # Frontend static site (optional - if you want separate frontend deployment)
+  - type: static
+    name: swanstudios-frontend
+    runtime: node
+    repo: https://github.com/YOUR-USERNAME/SS-PT
+    branch: main
+    rootDir: ./frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    env:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: swanstudios-main
+          property: host
+
+  # MCP Servers (background workers)
+  - type: worker
+    name: swanstudios-mcp-yolo
+    runtime: python
+    repo: https://github.com/YOUR-USERNAME/SS-PT
+    branch: main
+    rootDir: ./backend/mcp_server
+    buildCommand: pip install -r yolo_mcp_server/requirements-minimal.txt
+    startCommand: cd yolo_mcp_server && python start_yolo_server.py
+    env:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: swanstudios-db
+          property: connectionString
+      - key: PORT
+        value: 8002
+
+  - type: worker
+    name: swanstudios-mcp-workout
+    runtime: python
+    repo: https://github.com/YOUR-USERNAME/SS-PT
+    branch: main
+    rootDir: ./backend/mcp_server
+    buildCommand: pip install -r workout_requirements.txt
+    startCommand: python workout_launcher.py
+    env:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: swanstudios-db
+          property: connectionString
+      - key: PORT
+        value: 8001
+
+  - type: worker
+    name: swanstudios-mcp-gamification
+    runtime: python
+    repo: https://github.com/YOUR-USERNAME/SS-PT
+    branch: main
+    rootDir: ./backend/mcp_server
+    buildCommand: pip install -r gamification_mcp_server/requirements.txt
+    startCommand: python start_gamification_server.py
+    env:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: swanstudios-db
+          property: connectionString
+      - key: PORT
+        value: 8003
+
+# PostgreSQL database
+databases:
+  - name: swanstudios-db
+    databaseName: swanstudios
+    user: swanstudios_user
+    plan: starter # or standard/pro based on needs
+
+# Environment variables to set manually in Render dashboard:
+# - STRIPE_SECRET_KEY: Your Stripe secret key
+# - STRIPE_PUBLISHABLE_KEY: Your Stripe publishable key
+# - EMAIL_SERVICE_API_KEY: If using email service
+# - Any other third-party API keys
+
+# Custom domains (optional)
+# domains:
+#   - name: app.swanstudios.com
+#     type: apex
+#   - name: api.swanstudios.com
+#     type: subdomain

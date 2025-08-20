@@ -802,6 +802,21 @@ const getAdminNavItems = (userRole: string): AdminNavItem[] => [
     route: '/dashboard/trainers', 
     icon: <UserCheck size={20} />, 
     section: 'management',
+    description: 'Manage trainer accounts and permissions'
+  },
+  { 
+    id: 'master-schedule', 
+    label: 'Master Schedule', 
+    route: '/dashboard/admin/master-schedule', 
+    icon: <CalendarIcon size={20} />, 
+    section: 'management',
+    description: 'Universal Master Schedule management',
+    isNew: true
+  }, 
+    label: 'Trainer Management', 
+    route: '/dashboard/trainers', 
+    icon: <UserCheck size={20} />, 
+    section: 'management',
     description: 'Oversee trainer accounts and certifications'
   },
   { 

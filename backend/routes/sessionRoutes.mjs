@@ -2031,4 +2031,600 @@ router.get("/utilization-stats", protect, adminOnly, async (req, res) => {
 });
 
 
+/**
+ * ========================================================================================
+ * UNIVERSAL MASTER SCHEDULE - ENHANCED ADMIN ROUTES
+ * ========================================================================================
+ * Merged from scheduleRoutes.mjs.obsolete to provide comprehensive admin functionality
+ * with real-time WebSocket integration and role-based access control
+ */
+
+/**
+ * @route   GET /api/sessions/admin
+ * @desc    Admin route: Get all sessions with detailed information for Universal Master Schedule
+ * @access  Private (Admin Only)
+ */
+router.get("/admin", protect, adminOnly, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    
+    // Enhanced query with filtering options for Universal Master Schedule
+    const { startDate, endDate, status, trainerId, clientId } = req.query;
+    
+    // Build filter object
+    const filter = {};
+    
+    // Date range filter
+    if (startDate && endDate) {
+      filter.sessionDate = {
+        [Op.between]: [new Date(startDate), new Date(endDate)]
+      };
+    } else if (startDate) {
+      filter.sessionDate = {
+        [Op.gte]: new Date(startDate)
+      };
+    } else if (endDate) {
+      filter.sessionDate = {
+        [Op.lte]: new Date(endDate)
+      };
+    }
+    
+    // Status filter
+    if (status) {
+      if (Array.isArray(status)) {
+        filter.status = { [Op.in]: status };
+      } else {
+        filter.status = status;
+      }
+    }
+    
+    // Trainer filter
+    if (trainerId) {
+      filter.trainerId = trainerId;
+    }
+    
+    // Client filter  
+    if (clientId) {
+      filter.userId = clientId;
+    }
+    
+    const sessions = await Session.findAll({
+      where: filter,
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions'],
+          required: false
+        },
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'specialties', 'bio'],
+          required: false
+        }
+      ],
+      order: [['sessionDate', 'ASC']]
+    });
+    
+    // Log admin data access for security monitoring
+    logger.info(`Admin ${req.user.id} accessed session data`, {
+      adminId: req.user.id,
+      sessionCount: sessions.length,
+      filters: { startDate, endDate, status, trainerId, clientId },
+      timestamp: new Date().toISOString()
+    });
+    
+    // Broadcast real-time admin data access event
+    realTimeScheduleService.broadcastAdminEvent({
+      type: 'admin:dataAccess',
+      adminId: req.user.id,
+      sessionCount: sessions.length,
+      timestamp: new Date().toISOString()
+    });
+    
+    res.status(200).json({
+      success: true,
+      sessions,
+      meta: {
+        total: sessions.length,
+        filters: filter,
+        timestamp: new Date().toISOString()
+      }
+    });
+    
+  } catch (error) {
+    logger.error("Error fetching admin schedule data:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error fetching admin schedule data",
+      error: error.message 
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/sessions/assign/:sessionId
+ * @desc    Admin route: Assign a trainer to a session with real-time updates
+ * @access  Private (Admin Only)
+ */
+router.put("/assign/:sessionId", protect, adminOnly, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const { sessionId } = req.params;
+    const { trainerId } = req.body;
+    
+    if (!trainerId) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Trainer ID is required" 
+      });
+    }
+    
+    // Verify trainer exists and has trainer role
+    const trainer = await User.findOne({
+      where: { id: trainerId, role: 'trainer' }
+    });
+    
+    if (!trainer) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Trainer not found or user does not have trainer role" 
+      });
+    }
+    
+    // Find the session
+    const session = await Session.findByPk(sessionId, {
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        }
+      ]
+    });
+    
+    if (!session) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Session not found" 
+      });
+    }
+    
+    // Store previous trainer for notifications
+    const previousTrainerId = session.trainerId;
+    
+    // Assign trainer
+    session.trainerId = trainerId;
+    
+    // If session was requested, update to scheduled
+    if (session.status === 'requested') {
+      session.status = 'scheduled';
+    }
+    
+    await session.save();
+    
+    // Send notifications to all relevant parties
+    try {
+      // Notify new trainer
+      if (trainer.email) {
+        await sendEmailNotification({
+          to: trainer.email,
+          subject: "Session Assignment - SwanStudios",
+          text: `You have been assigned a training session on ${new Date(session.sessionDate).toLocaleString()}`,
+          html: `
+            <h2>Session Assignment</h2>
+            <p>You have been assigned a training session:</p>
+            <ul>
+              <li><strong>Date & Time:</strong> ${new Date(session.sessionDate).toLocaleString()}</li>
+              <li><strong>Duration:</strong> ${session.duration} minutes</li>
+              <li><strong>Location:</strong> ${session.location || 'Main Studio'}</li>
+              ${session.client ? `<li><strong>Client:</strong> ${session.client.firstName} ${session.client.lastName}</li>` : ''}
+            </ul>
+            <p>Please check your schedule for additional details.</p>
+          `
+        });
+      }
+      
+      // Notify client if session has a client
+      if (session.client && session.client.email) {
+        await sendEmailNotification({
+          to: session.client.email,
+          subject: "Trainer Assigned - SwanStudios",
+          text: `${trainer.firstName} ${trainer.lastName} has been assigned to your session on ${new Date(session.sessionDate).toLocaleString()}`,
+          html: `
+            <h2>Trainer Assignment</h2>
+            <p><strong>${trainer.firstName} ${trainer.lastName}</strong> has been assigned to your session:</p>
+            <ul>
+              <li><strong>Date & Time:</strong> ${new Date(session.sessionDate).toLocaleString()}</li>
+              <li><strong>Duration:</strong> ${session.duration} minutes</li>
+              <li><strong>Location:</strong> ${session.location || 'Main Studio'}</li>
+            </ul>
+            <p>Your trainer will contact you with any additional information.</p>
+          `
+        });
+      }
+    } catch (notificationError) {
+      logger.error('Error sending assignment notifications:', notificationError);
+      // Continue execution - assignment succeeded even if notifications failed
+    }
+    
+    // Broadcast real-time assignment event
+    realTimeScheduleService.broadcastTrainerAssignment({
+      sessionId: session.id,
+      trainerId,
+      previousTrainerId,
+      adminId: req.user.id,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Fetch updated session with all associations
+    const updatedSession = await Session.findByPk(sessionId, {
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo'],
+          required: false
+        },
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'specialties', 'bio'],
+          required: false
+        }
+      ]
+    });
+    
+    res.status(200).json({ 
+      success: true,
+      message: "Trainer assigned successfully", 
+      session: updatedSession,
+      assignment: {
+        trainerId,
+        trainerName: `${trainer.firstName} ${trainer.lastName}`,
+        assignedBy: req.user.id,
+        assignedAt: new Date().toISOString()
+      }
+    });
+    
+  } catch (error) {
+    logger.error("Error assigning trainer:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error assigning trainer",
+      error: error.message 
+    });
+  }
+});
+
+/**
+ * @route   PUT /api/sessions/confirm/:sessionId
+ * @desc    Confirm a session (Admin/Trainer only) with enhanced notifications
+ * @access  Private (Admin/Trainer Only)
+ */
+router.put("/confirm/:sessionId", protect, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    
+    // Check permission - admin or trainer only
+    if (req.user.role !== "admin" && req.user.role !== "trainer") {
+      return res.status(403).json({ 
+        success: false,
+        message: "Admin or trainer access required" 
+      });
+    }
+    
+    const { sessionId } = req.params;
+    const { notes } = req.body; // Optional confirmation notes
+    
+    const session = await Session.findByPk(sessionId, {
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        },
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        }
+      ]
+    });
+    
+    if (!session) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Session not found" 
+      });
+    }
+    
+    // Additional check for trainers - they can only confirm sessions assigned to them
+    if (req.user.role === "trainer" && session.trainerId !== req.user.id) {
+      return res.status(403).json({ 
+        success: false,
+        message: "You can only confirm sessions assigned to you" 
+      });
+    }
+    
+    // Check if session can be confirmed
+    if (!['scheduled', 'requested'].includes(session.status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Only scheduled or requested sessions can be confirmed"
+      });
+    }
+    
+    // Update session
+    session.confirmed = true;
+    session.status = "confirmed";
+    session.confirmedBy = req.user.id;
+    session.confirmationDate = new Date();
+    
+    if (notes) {
+      session.confirmationNotes = notes;
+    }
+    
+    await session.save();
+    
+    // Send confirmation notification to client
+    if (session.client && session.client.email) {
+      try {
+        await sendEmailNotification({
+          to: session.client.email,
+          subject: "Session Confirmed - SwanStudios",
+          text: `Your training session on ${new Date(session.sessionDate).toLocaleString()} has been confirmed.`,
+          html: `
+            <h2>Session Confirmation</h2>
+            <p>Your training session has been confirmed:</p>
+            <ul>
+              <li><strong>Date & Time:</strong> ${new Date(session.sessionDate).toLocaleString()}</li>
+              <li><strong>Duration:</strong> ${session.duration} minutes</li>
+              <li><strong>Location:</strong> ${session.location || 'Main Studio'}</li>
+              ${session.trainer ? `<li><strong>Trainer:</strong> ${session.trainer.firstName} ${session.trainer.lastName}</li>` : ''}
+            </ul>
+            ${notes ? `<p><strong>Additional Notes:</strong> ${notes}</p>` : ''}
+            <p><strong>Please arrive 10 minutes early for your session.</strong></p>
+          `
+        });
+      } catch (notificationError) {
+        logger.error('Error sending confirmation notification:', notificationError);
+      }
+    }
+    
+    // Broadcast real-time confirmation event
+    realTimeScheduleService.broadcastSessionConfirmation({
+      sessionId: session.id,
+      confirmedBy: req.user.id,
+      confirmedByRole: req.user.role,
+      timestamp: new Date().toISOString(),
+      clientId: session.userId,
+      trainerId: session.trainerId
+    });
+    
+    res.status(200).json({ 
+      success: true,
+      message: "Session confirmed successfully", 
+      session: {
+        id: session.id,
+        status: session.status,
+        confirmed: session.confirmed,
+        confirmedBy: session.confirmedBy,
+        confirmationDate: session.confirmationDate,
+        confirmationNotes: session.confirmationNotes
+      }
+    });
+    
+  } catch (error) {
+    logger.error("Error confirming session:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error confirming session",
+      error: error.message 
+    });
+  }
+});
+
+/**
+ * @route   POST /api/sessions/book
+ * @desc    Book an available session with enhanced validation and notifications
+ * @access  Private (Client)
+ */
+router.post("/book", protect, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const { sessionId, notes } = req.body;
+    
+    if (!sessionId) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Session ID is required" 
+      });
+    }
+    
+    // Find available session
+    const session = await Session.findOne({ 
+      where: { 
+        id: sessionId, 
+        status: 'available' 
+      },
+      include: [
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        }
+      ]
+    });
+    
+    if (!session) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Session is not available for booking" 
+      });
+    }
+    
+    // Check if session is in the past
+    if (new Date(session.sessionDate) < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot book sessions in the past"
+      });
+    }
+    
+    // Get client information
+    const client = await User.findByPk(req.user.id);
+    if (!client) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Client not found" 
+      });
+    }
+    
+    // Book the session
+    session.userId = client.id;
+    session.status = "scheduled";
+    session.bookingDate = new Date();
+    
+    if (notes) {
+      session.notes = notes;
+    }
+    
+    await session.save();
+    
+    // Broadcast real-time booking event
+    realTimeScheduleService.broadcastSessionBooking({
+      sessionId: session.id,
+      clientId: client.id,
+      trainerId: session.trainerId,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Fetch updated session with all associations
+    const updatedSession = await Session.findByPk(session.id, {
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo'],
+          required: false
+        },
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo'],
+          required: false
+        }
+      ]
+    });
+    
+    res.status(200).json({ 
+      success: true,
+      message: "Session booked successfully", 
+      session: updatedSession
+    });
+    
+  } catch (error) {
+    logger.error("Error booking session:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error booking session",
+      error: error.message 
+    });
+  }
+});
+
+/**
+ * @route   POST /api/sessions/request
+ * @desc    Request a custom session time with admin approval workflow
+ * @access  Private (Client)
+ */
+router.post("/request", protect, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const { start, end, duration, notes, sessionType, location, preferredTrainerId } = req.body;
+    
+    if (!start) {
+      return res.status(400).json({
+        success: false,
+        message: "Session start time is required"
+      });
+    }
+    
+    const startDate = new Date(start);
+    const endDate = end ? new Date(end) : null;
+    
+    // Validate dates
+    if (isNaN(startDate.getTime()) || (endDate && isNaN(endDate.getTime()))) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid date format"
+      });
+    }
+    
+    if (startDate < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot request sessions in the past"
+      });
+    }
+    
+    // Get client information
+    const client = await User.findByPk(req.user.id);
+    if (!client) {
+      return res.status(404).json({
+        success: false,
+        message: "Client not found"
+      });
+    }
+    
+    // Create session request
+    const sessionRequest = await Session.create({
+      sessionDate: startDate,
+      endDate: endDate,
+      duration: duration || 60,
+      status: 'requested',
+      userId: client.id,
+      trainerId: preferredTrainerId || null,
+      notes: notes || null,
+      sessionType: sessionType || 'Standard Training',
+      location: location || 'Main Studio',
+      confirmed: false,
+      bookingDate: new Date()
+    });
+    
+    // Broadcast real-time session request event
+    realTimeScheduleService.broadcastSessionRequest({
+      sessionId: sessionRequest.id,
+      clientId: client.id,
+      requestedDate: startDate.toISOString(),
+      timestamp: new Date().toISOString()
+    });
+    
+    res.status(201).json({ 
+      success: true,
+      message: "Session request submitted successfully", 
+      session: sessionRequest
+    });
+    
+  } catch (error) {
+    logger.error("Error creating session request:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Server error creating session request",
+      error: error.message 
+    });
+  }
+});
+
 export default router;

@@ -10,7 +10,6 @@ import Layout from '../components/Layout/layout';
 import ErrorBoundary from './error-boundary';
 
 // Route Protection Components
-import AdminRoute from './admin-route-emergency';
 import ProtectedRoute from './protected-route';
 import { DashboardWrapper } from '../components/DashboardWrapper';
 
@@ -215,6 +214,10 @@ const WorkoutDashboard = lazyLoadWithErrorHandling(
 const AdminDashboardLayout = lazyLoadWithErrorHandling(
   () => import('../components/DashBoard/UnifiedAdminDashboardLayout'),
   'Admin Dashboard Layout'
+);
+const TheAestheticCodex = lazyLoadWithErrorHandling(
+  () => import('../core/TheAestheticCodex'),
+  'The Aesthetic Codex'
 );
 const TrainerDashboard = lazyLoadWithErrorHandling(
   () => import('../components/TrainerDashboard/TrainerDashboard'),
@@ -484,15 +487,27 @@ const MainRoutes: RouteObject = {
       )
     },
     
+    // Admin Style Guide Route
+    {
+      path: 'style-guide',
+      element: (
+        <ProtectedRoute requiredRole="admin">
+          <Suspense fallback={<PageLoader />}>
+            <TheAestheticCodex />
+          </Suspense>
+        </ProtectedRoute>
+      )
+    },
+    
     // Enhanced Admin Dashboard Routes
     {
       path: 'dashboard/*',
       element: (
-        <AdminRoute>
+        <ProtectedRoute requiredRole="admin">
           <Suspense fallback={<PageLoader />}>
             <AdminDashboardLayout />
           </Suspense>
-        </AdminRoute>
+        </ProtectedRoute>
       )
     },
     
