@@ -22,7 +22,7 @@
  * - Mobile admin performance optimizations
  */
 
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider } from 'styled-components';
 import { Calendar, Views, SlotInfo } from 'react-big-calendar';
