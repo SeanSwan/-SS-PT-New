@@ -1,7 +1,0 @@
-git add frontend/src/components/UniversalMasterSchedule/UniversalMasterSchedule.tsx
-git commit -m "🔧 CRITICAL FIX: Resolve duplicate getPerformanceMetrics declaration
-
-- Fixed duplicate variable in UniversalMasterSchedule.tsx line 559
-- Aliased getRealTimePerformanceMetrics to prevent naming conflict  
-- Resolves Render build failure - production deployment fix"
-git push origin main

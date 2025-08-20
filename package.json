@@ -4,13 +4,11 @@
   "description": "SwanStudios Gamified Fitness Social Ecosystem",
   "type": "module",
   "scripts": {
-    "start": "concurrently \"npm run start-mongodb\" \"npm run start-backend-robust\" \"npm run start-frontend-delayed\" \"npm run start-workout-mcp\" \"npm run start-gamification-mcp\" \"npm run start-yolo-mcp\" --names \"mongo,backend,frontend,workout-mcp,gamify-mcp,yolo-mcp\" --prefix-colors \"green,yellow,cyan,magenta,blue,red\" --kill-others-on-fail",
+    "start": "concurrently \"npm run start-backend-simple\" \"npm run start-frontend-simple\" \"npm run start-workout-mcp\" \"npm run start-gamification-mcp\" \"npm run start-yolo-mcp\" --names \"backend,frontend,workout-mcp,gamify-mcp,yolo-mcp\" --prefix-colors \"yellow,cyan,magenta,blue,red\" --kill-others-on-fail",
     "start-simple": "concurrently \"npm run start-backend-simple\" \"npm run start-frontend-simple\" --names \"BACKEND,FRONTEND\" --prefix-colors \"blue,green\" --kill-others-on-fail",
-    "start-backend-simple": "cd backend && npm start",
-    "start-frontend-simple": "cd frontend && npm run dev",
-    "start-mongodb": "node scripts/mongodb-setup.js",
-    "start-backend-robust": "node scripts/start-backend-robust.mjs",
-    "start-frontend-delayed": "node -e \"setTimeout(() => process.exit(0), 3000)\" && cd frontend && npm run dev",
+    "start-backend": "cd backend && npm start",
+    "start-frontend": "cd frontend && npm run dev",
+
     "start-workout-mcp": "cd backend/mcp_server && python workout_launcher.py",
     "start-gamification-mcp": "cd backend/mcp_server && python start_gamification_server.py",
     "start-yolo-mcp": "cd backend/mcp_server/yolo_mcp_server && python start_yolo_server.py",
