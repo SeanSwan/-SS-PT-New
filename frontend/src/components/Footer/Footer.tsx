@@ -4,19 +4,17 @@ import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { motion, useAnimation, useInView, animate } from 'framer-motion';
 import { 
-  FaFacebook, 
-  FaInstagram, 
-  FaLinkedin, 
-  FaYoutube,
-  FaEnvelope,
-  FaPhone,
-  FaMapMarkerAlt,
-  FaChevronUp,
-  FaCopyright,
-  FaHeart,
-  FaTiktok
-} from 'react-icons/fa';
-import { SiBluesky } from 'react-icons/si';
+  Facebook, 
+  Instagram, 
+  Linkedin, 
+  Youtube,
+  Mail,
+  Phone,
+  MapPin,
+  ChevronUp,
+  Copyright,
+  Heart
+} from 'lucide-react';
 import logoImage from '../../assets/Logo.png';
 import { defaultShouldForwardProp } from '../../utils/styled-component-helpers';
 
@@ -585,7 +583,7 @@ const EnhancedFooter = () => {
               animate="visible"
               whileHover={{ scale: 1.1 }}
             >
-              <FaFacebook />
+              <Facebook />
             </SocialIcon>
             <SocialIcon 
               href="https://bsky.app/profile/swanstudios.bsky.social" 
@@ -599,7 +597,8 @@ const EnhancedFooter = () => {
               animate="visible"
               whileHover={{ scale: 1.1 }}
             >
-              <SiBluesky />
+              {/* Bluesky icon - using a simple B since SiBluesky not available */}
+              <span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>B</span>
             </SocialIcon>
             <SocialIcon 
               href="https://www.instagram.com/seanswantech" 
@@ -613,7 +612,7 @@ const EnhancedFooter = () => {
               animate="visible"
               whileHover={{ scale: 1.1 }}
             >
-              <FaInstagram />
+              <Instagram />
             </SocialIcon>
             <SocialIcon 
               href="https://linkedin.com" 
@@ -627,7 +626,7 @@ const EnhancedFooter = () => {
               animate="visible"
               whileHover={{ scale: 1.1 }}
             >
-              <FaLinkedin />
+              <Linkedin />
             </SocialIcon>
             <SocialIcon 
               href="https://www.youtube.com/@swanstudios2018" 
@@ -641,7 +640,7 @@ const EnhancedFooter = () => {
               animate="visible"
               whileHover={{ scale: 1.1 }}
             >
-              <FaYoutube />
+              <Youtube />
             </SocialIcon>
             <SocialIcon 
               href="https://tiktok.com/@swanstudios2018" 
@@ -655,7 +654,8 @@ const EnhancedFooter = () => {
               animate="visible"
               whileHover={{ scale: 1.1 }}
             >
-              <FaTiktok />
+              {/* TikTok icon - using T since FaTiktok not available */}
+              <span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>T</span>
             </SocialIcon>
           </SocialIcons>
         </LogoSection>
@@ -717,15 +717,15 @@ const EnhancedFooter = () => {
         >
           <FooterHeading variants={itemVariants}>Contact Us</FooterHeading>
           <ContactItem variants={contactVariants}>
-            <FaMapMarkerAlt />
+            <MapPin />
             <span>Anaheim Hills </span>
           </ContactItem>
           <ContactItem variants={contactVariants}>
-            <FaPhone />
+            <Phone />
             <span>(714) 947-3221</span>
           </ContactItem>
           <ContactItem variants={contactVariants}>
-            <FaEnvelope />
+            <Mail />
             <span>loveswanstudios@protonmail.com</span>
           </ContactItem>
           
@@ -746,8 +746,8 @@ const EnhancedFooter = () => {
           initial="hidden"
           animate={controls}
         >
-          <FaCopyright /> {new Date().getFullYear()} Swan Studios. All Rights Reserved.
-          <span> Made with <FaHeart className="heart" /> in California</span>
+          <Copyright /> {new Date().getFullYear()} Swan Studios. All Rights Reserved.
+          <span> Made with <Heart className="heart" /> in California</span>
         </Copyright>
         
         <FooterLinks>
