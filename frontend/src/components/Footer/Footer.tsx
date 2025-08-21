@@ -3,7 +3,6 @@ import React, { useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { motion, useAnimation, useInView, animate } from 'framer-motion';
-import { gsap } from 'gsap';
 import { 
   FaFacebook, 
   FaInstagram, 
@@ -537,31 +536,6 @@ const EnhancedFooter = () => {
   }, [controls, isInView]);
   
   // Removed scrollToTop function - handled by global ScrollToTop component in Layout
-  
-  // GSAP animation for hover effects on social icons
-  useEffect(() => {
-    if (footerRef.current) {
-      const socialIcons = footerRef.current.querySelectorAll('.social-icon');
-      
-      socialIcons.forEach(icon => {
-        icon.addEventListener('mouseenter', () => {
-          gsap.to(icon, {
-            y: -5,
-            duration: 0.3,
-            ease: 'power2.out'
-          });
-        });
-        
-        icon.addEventListener('mouseleave', () => {
-          gsap.to(icon, {
-            y: 0,
-            duration: 0.3,
-            ease: 'power2.out'
-          });
-        });
-      });
-    }
-  }, []);
   
   return (
     <FooterContainer ref={footerRef}>
