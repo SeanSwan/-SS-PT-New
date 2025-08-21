@@ -7,9 +7,6 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 
-// Import Font Awesome setup
-import '../fontawesome.setup';
-
 // Import viewport fix utility
 import initViewportFixes from './utils/viewportFix';
 
