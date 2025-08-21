@@ -4,8 +4,8 @@
   "description": "SwanStudios Gamified Fitness Social Ecosystem",
   "type": "module",
   "scripts": {
-    "start": "concurrently \"npm run start-backend-simple\" \"npm run start-frontend-simple\" \"npm run start-workout-mcp\" \"npm run start-gamification-mcp\" \"npm run start-yolo-mcp\" --names \"backend,frontend,workout-mcp,gamify-mcp,yolo-mcp\" --prefix-colors \"yellow,cyan,magenta,blue,red\" --kill-others-on-fail",
-    "start-simple": "concurrently \"npm run start-backend-simple\" \"npm run start-frontend-simple\" --names \"BACKEND,FRONTEND\" --prefix-colors \"blue,green\" --kill-others-on-fail",
+    "start": "concurrently \"npm run start-backend\" \"npm run start-frontend\" \"npm run start-workout-mcp\" \"npm run start-gamification-mcp\" \"npm run start-yolo-mcp\" --names \"backend,frontend,workout-mcp,gamify-mcp,yolo-mcp\" --prefix-colors \"yellow,cyan,magenta,blue,red\" --kill-others-on-fail",
+    "start-simple": "concurrently \"npm run start-backend\" \"npm run start-frontend\" --names \"BACKEND,FRONTEND\" --prefix-colors \"blue,green\" --kill-others-on-fail",
     "start-backend": "cd backend && npm start",
     "start-frontend": "cd frontend && npm run dev",
 
