@@ -45,7 +45,7 @@ import './utils/initTokenCleanup'; // Initialize token cleanup handlers
 import './utils/clearCache'; // Emergency cache clearing utility
 
 // Styles
-import './App.scss';
+import './App.css';
 import './index.css';
 import './styles/responsive-fixes.css';
 import './styles/enhanced-responsive.css';
