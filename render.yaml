@@ -43,21 +43,24 @@ services:
       - key: STRIPE_PUBLISHABLE_KEY  
         sync: false  # Set manually in Render dashboard
 
-  # Frontend static site (optional - if you want separate frontend deployment)
+  # Frontend static site (PRODUCTION CONFIGURATION)
   - type: static
     name: swanstudios-frontend
     runtime: node
-    repo: https://github.com/YOUR-USERNAME/SS-PT
+    repo: https://github.com/SeanSwan/-SS-PT-New
     branch: main
     rootDir: ./frontend
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist
     env:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: swanstudios-main
-          property: host
+        value: https://ss-pt-new.onrender.com
+      - key: VITE_API_BASE_URL
+        value: https://ss-pt-new.onrender.com
+      - key: VITE_BACKEND_URL
+        value: https://ss-pt-new.onrender.com
+      - key: NODE_ENV
+        value: production
 
   # MCP Servers (background workers)
   - type: worker
