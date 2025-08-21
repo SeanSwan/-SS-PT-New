@@ -1,25 +1,16 @@
 {
   "name": "swanstudios-frontend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "SwanStudios Gamified Fitness Social Ecosystem - Frontend",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build --mode production",
     "preview": "vite preview",
-    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\" --names \"BACKEND,FRONTEND\" --prefix-colors \"blue,green\"",
+    "start": "vite --host 0.0.0.0 --port 5173",
     "start:frontend": "vite --host 0.0.0.0 --port 5173",
-    "start:backend": "cd ../backend && npm start",
     "start:frontend-only": "vite --host 0.0.0.0 --port 5173",
-    "verify": "node master-verification-suite.mjs",
-    "verify:admin": "node verify-admin-dashboard-integration.mjs",
-    "verify:api": "node verify-frontend-api-integration.mjs", 
-    "verify:performance": "node verify-performance-accessibility.mjs",
-    "verify:quick": "npm run verify:api",
-    "test:full": "npm run verify",
-    "health-check": "curl -f http://localhost:5173 && curl -f http://localhost:10000/api/health",
-    "setup-verification": "npm install puppeteer axios lighthouse colors ws",
-    "lint": "eslint src --ext .js,.jsx,.ts,.tsx",
+    "lint": "eslint src --ext .js,.jsx,.ts,.tsx --quiet",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
@@ -49,16 +40,11 @@
     "@typescript-eslint/eslint-plugin": "^6.13.1",
     "@typescript-eslint/parser": "^6.13.1",
     "@vitejs/plugin-react": "^4.2.0",
-    "concurrently": "^8.2.2",
     "eslint": "^8.54.0",
     "eslint-plugin-react": "^7.33.2",
     "eslint-plugin-react-hooks": "^4.6.0",
     "typescript": "^5.3.2",
-    "vite": "^5.0.5",
-    "puppeteer": "^21.0.0",
-    "lighthouse": "^11.0.0",
-    "colors": "^1.4.0",
-    "ws": "^8.14.0"
+    "vite": "^5.0.5"
   },
   "keywords": [
     "swanstudios",
@@ -66,8 +52,7 @@
     "gamification",
     "social",
     "react",
-    "vite",
-    "universal-master-schedule"
+    "vite"
   ],
   "author": "SwanStudios Development Team",
   "license": "MIT",
