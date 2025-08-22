@@ -1,7 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
+/**
+ * BarcodeScanner Component - PRODUCTION SIMPLIFIED
+ * ==============================================
+ * Simplified barcode scanner with manual entry capability
+ * Quagga library temporarily removed for production stability
+ */
+
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import Quagga from 'quagga';
 import { useToast } from '../../hooks/use-toast';
 
 const ScannerContainer = styled.div`
@@ -17,25 +23,35 @@ const VideoContainer = styled.div`
   width: 100%;
   height: 0;
   padding-bottom: 75%; /* 4:3 aspect ratio */
-  background-color: #000;
+  background: linear-gradient(135deg, #1e1e3f, #0a0a1a);
   border-radius: 10px;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 `;
 
-const CameraFeed = styled.div`
+const PlaceholderContent = styled.div`
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  
-  canvas {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-  }
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: white;
+  padding: 2rem;
+`;
+
+const PlaceholderIcon = styled.div`
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.6;
+`;
+
+const PlaceholderText = styled.p`
+  font-size: 1rem;
+  opacity: 0.8;
+  margin-bottom: 1rem;
+  line-height: 1.4;
 `;
 
 const ScanOverlay = styled.div`
@@ -104,9 +120,17 @@ const ScannerCorner = styled.div<{ position: string }>`
 
 const ControlsContainer = styled.div`
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   margin-top: 1rem;
   gap: 1rem;
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 `;
 
 const ScanButton = styled.button`
@@ -139,38 +163,56 @@ const ScanButton = styled.button`
   }
 `;
 
-const ErrorMessage = styled.div`
-  color: #ff4b6a;
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: rgba(255, 75, 106, 0.1);
-  border-radius: 8px;
-  text-align: center;
-`;
-
-const LoadingOverlay = styled(motion.div)`
-  position: absolute;
-  top: 0;
-  left: 0;
+const ManualInputContainer = styled.div`
   width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 10;
-  color: white;
+  max-width: 400px;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
   border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
-const Spinner = styled(motion.div)`
-  width: 50px;
-  height: 50px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  border-top-color: #00ffff;
-  margin-bottom: 1rem;
+const InputLabel = styled.label`
+  display: block;
+  color: white;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+`;
+
+const BarcodeInput = styled.input`
+  width: 100%;
+  padding: 0.8rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  
+  &:focus {
+    border-color: #00ffff;
+    box-shadow: 0 0 5px rgba(0, 255, 255, 0.3);
+  }
+  
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+`;
+
+const SubmitButton = styled(ScanButton)`
+  width: 100%;
+  margin-top: 0.5rem;
+  background: linear-gradient(135deg, #2ed573, #00ffff);
+`;
+
+const InfoText = styled.div`
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  text-align: center;
+  margin-top: 0.5rem;
+  line-height: 1.4;
 `;
 
 interface BarcodeScannerProps {
@@ -184,210 +226,131 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   isScanning, 
   onScanToggle 
 }) => {
-  const scannerRef = useRef<HTMLDivElement>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [scannerInitialized, setScannerInitialized] = useState(false);
-  const [recognizingCode, setRecognizingCode] = useState(false);
+  const [manualBarcode, setManualBarcode] = useState('');
+  const [showManualInput, setShowManualInput] = useState(false);
   const { toast } = useToast();
 
-  // Initialize the barcode scanner
-  useEffect(() => {
-    if (!isScanning) return;
-
-    const initScanner = async () => {
-      try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-          throw new Error('Camera access is not supported by your browser');
-        }
-
-        // Check if camera is available
-        await navigator.mediaDevices.getUserMedia({ video: true });
-
-        Quagga.init({
-          inputStream: {
-            name: 'Live',
-            type: 'LiveStream',
-            target: scannerRef.current,
-            constraints: {
-              width: 640,
-              height: 480,
-              facingMode: 'environment' // Use rear camera if available
-            },
-          },
-          locator: {
-            patchSize: 'medium',
-            halfSample: true
-          },
-          numOfWorkers: 2,
-          decoder: {
-            readers: [
-              'ean_reader',  // Standard EAN 13-digit barcode
-              'ean_8_reader', // EAN 8-digit barcode
-              'upc_reader',  // UPC-A 12-digit barcode
-              'upc_e_reader', // UPC-E 6-digit barcode
-              'code_39_reader', // For non-food items
-              'code_128_reader', // For non-food items
-            ]
-          },
-          locate: true
-        }, (err: any) => {
-          if (err) {
-            console.error('Quagga initialization error:', err);
-            setError('Failed to initialize the scanner. Please check your camera settings.');
-            onScanToggle(); // Stop scanning attempt
-            return;
-          }
-          
-          console.log('Quagga initialization successful');
-          setScannerInitialized(true);
-          Quagga.start();
+  const handleManualSubmit = () => {
+    if (manualBarcode.trim()) {
+      // Validate barcode format (basic validation)
+      const cleanBarcode = manualBarcode.trim();
+      if (cleanBarcode.length >= 8 && /^\d+$/.test(cleanBarcode)) {
+        onDetected(cleanBarcode);
+        setManualBarcode('');
+        setShowManualInput(false);
+        toast({
+          title: 'Barcode Added',
+          description: `Barcode ${cleanBarcode} has been processed.`,
+          variant: 'default'
         });
-        
-        // Handle successful barcode detection
-        Quagga.onDetected((result) => {
-          if (result && result.codeResult && result.codeResult.code) {
-            const code = result.codeResult.code;
-            console.log('Barcode detected:', code);
-            
-            // Only process if we're not already recognizing a code
-            if (!recognizingCode) {
-              setRecognizingCode(true);
-              
-              // Play a sound to indicate successful scan
-              const audio = new Audio('/assets/beep.mp3');
-              audio.play().catch(e => console.log('Audio play failed:', e));
-              
-              // Pause scanner and call the onDetected callback
-              Quagga.pause();
-              onDetected(code);
-              
-              // Reset the recognizing state after a delay
-              setTimeout(() => {
-                setRecognizingCode(false);
-              }, 1000);
-            }
-          }
+      } else {
+        toast({
+          title: 'Invalid Barcode',
+          description: 'Please enter a valid numeric barcode (8+ digits).',
+          variant: 'destructive'
         });
-        
-        // Handle processing errors
-        Quagga.onProcessed((result) => {
-          const drawingCtx = Quagga.canvas.ctx.overlay;
-          const drawingCanvas = Quagga.canvas.dom.overlay;
-
-          if (result) {
-            if (result.boxes) {
-              drawingCtx.clearRect(
-                0,
-                0,
-                parseInt(drawingCanvas.getAttribute('width') || '0'),
-                parseInt(drawingCanvas.getAttribute('height') || '0')
-              );
-              result.boxes
-                .filter(box => box !== result.box)
-                .forEach(box => {
-                  Quagga.ImageDebug.drawPath(box, { x: 0, y: 1 }, drawingCtx, {
-                    color: 'green',
-                    lineWidth: 2
-                  });
-                });
-            }
-
-            if (result.box) {
-              Quagga.ImageDebug.drawPath(result.box, { x: 0, y: 1 }, drawingCtx, {
-                color: '#00f',
-                lineWidth: 2
-              });
-            }
-
-            if (result.codeResult && result.codeResult.code) {
-              Quagga.ImageDebug.drawPath(result.line, { x: 'x', y: 'y' }, drawingCtx, {
-                color: 'red',
-                lineWidth: 3
-              });
-            }
-          }
-        });
-      } catch (error: any) {
-        console.error('Camera access error:', error);
-        setError(`Camera access error: ${error.message || 'Unknown error'}`);
-        onScanToggle(); // Stop scanning attempt
       }
-    };
-
-    initScanner();
-
-    // Cleanup function to stop the scanner when component unmounts or isScanning changes
-    return () => {
-      if (scannerInitialized) {
-        console.log('Stopping Quagga scanner');
-        Quagga.stop();
-        setScannerInitialized(false);
-      }
-    };
-  }, [isScanning, onScanToggle, onDetected, recognizingCode]);
-
-  // Handle errors that occur during scanning
-  useEffect(() => {
-    if (error) {
-      toast({
-        title: 'Scanner Error',
-        description: error,
-        variant: 'destructive'
-      });
-      setError(null); // Clear the error after showing toast
     }
-  }, [error, toast]);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleManualSubmit();
+    }
+  };
 
   return (
     <ScannerContainer>
       <VideoContainer>
-        <CameraFeed ref={scannerRef} />
-        
-        {isScanning && (
-          <ScanOverlay>
-            <ScannerBox>
-              <ScannerCorner position="top-left" />
-              <ScannerCorner position="top-right" />
-              <ScannerCorner position="bottom-left" />
-              <ScannerCorner position="bottom-right" />
-              
-              <ScannerLine 
-                animate={{
-                  y: [-50, 50, -50],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }}
-              />
-            </ScannerBox>
-          </ScanOverlay>
-        )}
-        
-        {recognizingCode && (
-          <LoadingOverlay
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <Spinner
-              animate={{ rotate: 360 }}
-              transition={{
-                duration: 1,
-                repeat: Infinity,
-                ease: "linear"
-              }}
-            />
-            <div>Processing barcode...</div>
-          </LoadingOverlay>
+        {!isScanning ? (
+          <PlaceholderContent>
+            <PlaceholderIcon>📷</PlaceholderIcon>
+            <PlaceholderText>
+              Camera barcode scanning will be available soon.<br/>
+              Use manual entry below for now.
+            </PlaceholderText>
+          </PlaceholderContent>
+        ) : (
+          <>
+            <PlaceholderContent>
+              <PlaceholderIcon>🔍</PlaceholderIcon>
+              <PlaceholderText>
+                Scanning simulation active...<br/>
+                Use manual entry for actual barcodes.
+              </PlaceholderText>
+            </PlaceholderContent>
+            
+            <ScanOverlay>
+              <ScannerBox>
+                <ScannerCorner position=\"top-left\" />
+                <ScannerCorner position=\"top-right\" />
+                <ScannerCorner position=\"bottom-left\" />
+                <ScannerCorner position=\"bottom-right\" />
+                
+                <ScannerLine 
+                  animate={{
+                    y: [-50, 50, -50],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: \"easeInOut\"
+                  }}
+                />
+              </ScannerBox>
+            </ScanOverlay>
+          </>
         )}
       </VideoContainer>
       
       <ControlsContainer>
-        <ScanButton onClick={onScanToggle} disabled={recognizingCode}>
-          {isScanning ? 'Stop Scanner' : 'Start Scanner'}
-        </ScanButton>
+        <ButtonRow>
+          <ScanButton onClick={onScanToggle}>
+            {isScanning ? 'Stop Scanner' : 'Start Scanner'}
+          </ScanButton>
+          
+          <ScanButton 
+            onClick={() => setShowManualInput(!showManualInput)}
+            style={{ background: showManualInput ? 'linear-gradient(135deg, #ff6b6b, #ee5a24)' : 'linear-gradient(135deg, #2ed573, #00ffff)' }}
+          >
+            {showManualInput ? 'Hide Manual Entry' : 'Manual Entry'}
+          </ScanButton>
+        </ButtonRow>
+        
+        {showManualInput && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <ManualInputContainer>
+              <InputLabel htmlFor=\"barcode-input\">
+                Enter Barcode Number
+              </InputLabel>
+              <BarcodeInput
+                id=\"barcode-input\"
+                type=\"text\"
+                value={manualBarcode}
+                onChange={(e) => setManualBarcode(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder=\"e.g., 123456789012\"
+                pattern=\"[0-9]*\"
+                inputMode=\"numeric\"
+              />
+              <SubmitButton 
+                onClick={handleManualSubmit}
+                disabled={!manualBarcode.trim()}
+              >
+                Add Barcode
+              </SubmitButton>
+              <InfoText>
+                Enter the barcode number found on food packaging.<br/>
+                Most barcodes are 8-13 digits long.
+              </InfoText>
+            </ManualInputContainer>
+          </motion.div>
+        )}
       </ControlsContainer>
     </ScannerContainer>
   );
