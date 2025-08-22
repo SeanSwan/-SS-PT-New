@@ -1,8 +1,7 @@
-// src/components/NewsletterSignup/NewsletterSignup.jsx
 import React, { useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaEnvelope, FaCheck, FaExclamationTriangle, FaLock, FaArrowRight, FaDumbbell, FaAppleAlt, FaBrain } from 'react-icons/fa';
+import { Mail, Check, AlertTriangle, Lock, ArrowRight, Dumbbell, Apple, Brain } from 'lucide-react';
 import SectionTitle from '../ui/SectionTitle';
 import GlowButton from '../ui/buttons/GlowButton'; // Import GlowButton component
 
@@ -367,17 +366,17 @@ const successVariants = {
 // Benefits data
 const benefits = [
   {
-    icon: <FaDumbbell />,
+    icon: <Dumbbell />,
     title: "Exclusive Workouts",
     text: "Get access to exclusive workouts and training tips from our elite coaching team."
   },
   {
-    icon: <FaAppleAlt />,
+    icon: <Apple />,
     title: "Nutrition Guides",
     text: "Receive monthly nutrition guides with meal plans and recipes to fuel your transformation."
   },
   {
-    icon: <FaBrain />,
+    icon: <Brain />,
     title: "Mindset Coaching",
     text: "Learn the mental strategies used by elite athletes to stay motivated and overcome obstacles."
   }
@@ -448,7 +447,7 @@ const NewsletterSignup = () => {
                 animate="visible"
                 exit="hidden"
               >
-                <h3><FaCheck /> Thank You for Subscribing!</h3>
+                <h3><Check /> Thank You for Subscribing!</h3>
                 <p>
                   Check your inbox for a confirmation email and your first exclusive workout guide.
                 </p>
@@ -470,7 +469,7 @@ const NewsletterSignup = () => {
               <Form key="form" onSubmit={handleSubmit}>
                 <InputGroup>
                   <InputIcon>
-                    <FaEnvelope />
+                    <Mail />
                   </InputIcon>
                   <Input
                     type="text"
@@ -481,7 +480,7 @@ const NewsletterSignup = () => {
                 </InputGroup>
                 <InputGroup>
                   <InputIcon>
-                    <FaEnvelope />
+                    <Mail />
                   </InputIcon>
                   <Input
                     type="email"
@@ -498,7 +497,7 @@ const NewsletterSignup = () => {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
                     >
-                      <FaExclamationTriangle /> {error}
+                      <AlertTriangle /> {error}
                     </ErrorMessage>
                   )}
                 </AnimatePresence>
@@ -508,7 +507,7 @@ const NewsletterSignup = () => {
                     text={isSubmitting ? "Subscribing..." : "Subscribe Now"}
                     theme="cosmic"
                     size="medium"
-                    rightIcon={<FaArrowRight />}
+                    rightIcon={<ArrowRight />}
                     disabled={isSubmitting}
                     onClick={handleSubmit}
                     animateOnRender={false}
@@ -520,7 +519,7 @@ const NewsletterSignup = () => {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 }}
                 >
-                  <FaLock /> We respect your privacy. Unsubscribe at any time.
+                  <Lock /> We respect your privacy. Unsubscribe at any time.
                 </PrivacyText>
               </Form>
             )}
