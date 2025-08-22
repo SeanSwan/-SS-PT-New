@@ -1,17 +1,13 @@
 /**
- * ClientProgress Component
- * =======================
- * Displays a client's progress and workout statistics with visualizations
+ * ClientProgress Component - PRODUCTION SIMPLIFIED
+ * ===============================================
+ * Displays a client's progress and workout statistics without external chart dependencies
+ * Recharts temporarily removed for production stability
  */
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import styled from 'styled-components';
-import { 
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, 
-  Tooltip, Legend, ResponsiveContainer, RadarChart, Radar, 
-  PolarGrid, PolarAngleAxis, PolarRadiusAxis
-} from 'recharts';
 import { useAuth } from '../../../context/AuthContext';
 
 // Types
@@ -169,45 +165,6 @@ const MetricLabel = styled.div`
   color: rgba(255, 255, 255, 0.7);
 `;
 
-const ChartSection = styled.div`
-  margin-bottom: 40px;
-`;
-
-const ChartTitle = styled.h3`
-  font-size: 1.2rem;
-  color: white;
-  margin-bottom: 20px;
-  font-weight: 400;
-`;
-
-const ChartContainer = styled.div`
-  height: 300px;
-  margin-bottom: 30px;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 8px;
-  padding: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-`;
-
-const TwoColumnGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-  }
-`;
-
-const NoDataMessage = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  color: rgba(255, 255, 255, 0.5);
-  font-style: italic;
-`;
-
 const SkillLevelCard = styled.div`
   background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
@@ -256,6 +213,62 @@ const SkillLabel = styled.div`
   span:last-child {
     color: rgba(255, 255, 255, 0.7);
   }
+`;
+
+const DataTable = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const TableTitle = styled.h3`
+  font-size: 1.2rem;
+  color: white;
+  margin-bottom: 15px;
+  font-weight: 400;
+`;
+
+const TableRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const TableLabel = styled.span`
+  color: rgba(255, 255, 255, 0.8);
+`;
+
+const TableValue = styled.span`
+  color: #00ffff;
+  font-weight: 500;
+`;
+
+const TwoColumnGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const ChartPlaceholder = styled.div`
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  padding: 40px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  margin-bottom: 20px;
 `;
 
 const ClientProgress: React.FC = () => {
@@ -349,76 +362,7 @@ const ClientProgress: React.FC = () => {
     fetchData();
   }, [userId, user?.id, authAxios, timeRange]);
   
-  // Function to get a summary of skill levels for the radar chart
-  const getSkillData = () => {
-    if (!progress) return [];
-    
-    return [
-      {
-        subject: 'Strength',
-        value: progress.strengthLevel,
-        fullMark: 10
-      },
-      {
-        subject: 'Cardio',
-        value: progress.cardioLevel,
-        fullMark: 10
-      },
-      {
-        subject: 'Flexibility',
-        value: progress.flexibilityLevel,
-        fullMark: 10
-      },
-      {
-        subject: 'Balance',
-        value: progress.balanceLevel,
-        fullMark: 10
-      },
-      {
-        subject: 'Core',
-        value: progress.coreLevel,
-        fullMark: 10
-      }
-    ];
-  };
-  
-  // Function to format weekday breakdown data
-  const getWeekdayData = () => {
-    if (!statistics?.weekdayBreakdown) return [];
-    
-    const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    
-    return statistics.weekdayBreakdown.map((count, index) => ({
-      day: weekdays[index],
-      count
-    }));
-  };
-  
-  // Function to get exercise type breakdown
-  const getExerciseTypeData = () => {
-    if (!statistics?.exerciseBreakdown) return [];
-    
-    // Group exercises by category
-    const categoryMap: Record<string, number> = {};
-    
-    statistics.exerciseBreakdown.forEach(exercise => {
-      const category = exercise.category || 'other';
-      categoryMap[category] = (categoryMap[category] || 0) + exercise.count;
-    });
-    
-    // Convert to array
-    return Object.entries(categoryMap).map(([name, value]) => ({
-      name,
-      value
-    }));
-  };
-  
-  // Function to format intensity trends
-  const getIntensityTrendData = () => {
-    return statistics?.intensityTrends || [];
-  };
-  
-  // Function to format top exercises
+  // Function to get top exercises
   const getTopExercises = () => {
     if (!statistics?.exerciseBreakdown) return [];
     
@@ -428,18 +372,9 @@ const ClientProgress: React.FC = () => {
       .slice(0, 5);
   };
   
-  // Function to get muscle group distribution
-  const getMuscleGroupData = () => {
-    if (!statistics?.muscleGroupBreakdown) return [];
-    
-    // Sort by count and take top 6
-    return [...statistics.muscleGroupBreakdown]
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 6)
-      .map(group => ({
-        name: group.shortName,
-        value: group.count
-      }));
+  // Function to get weekday names
+  const getWeekdayNames = () => {
+    return ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
   };
   
   // Render loading state
@@ -558,182 +493,50 @@ const ClientProgress: React.FC = () => {
         <SkillBar $percentage={progress.coreLevel * 10} $color="#7d5fff" />
       </SkillLevelCard>
       
-      {/* Skill Radar Chart */}
-      <ChartSection>
-        <ChartTitle>Skill Balance</ChartTitle>
-        <ChartContainer>
-          {getSkillData().length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <RadarChart data={getSkillData()}>
-                <PolarGrid stroke="rgba(255, 255, 255, 0.1)" />
-                <PolarAngleAxis dataKey="subject" tick={{ fill: 'white' }} />
-                <PolarRadiusAxis angle={30} domain={[0, 10]} tick={{ fill: 'white' }} />
-                <Radar
-                  name="Skills"
-                  dataKey="value"
-                  stroke="#00ffff"
-                  fill="#00ffff"
-                  fillOpacity={0.6}
-                />
-                <Tooltip
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)', 
-                    border: '1px solid rgba(0, 255, 255, 0.3)',
-                    color: 'white'
-                  }}
-                />
-              </RadarChart>
-            </ResponsiveContainer>
-          ) : (
-            <NoDataMessage>No skill data available</NoDataMessage>
-          )}
-        </ChartContainer>
-      </ChartSection>
-      
-      {/* Two Column Charts */}
-      <TwoColumnGrid>
-        {/* Workout Frequency by Day */}
-        <ChartSection>
-          <ChartTitle>Workout Frequency by Weekday</ChartTitle>
-          <ChartContainer>
-            {getWeekdayData().length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={getWeekdayData()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                  <XAxis dataKey="day" tick={{ fill: 'white' }} />
-                  <YAxis tick={{ fill: 'white' }} />
-                  <Tooltip
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(0, 0, 0, 0.8)', 
-                      border: '1px solid rgba(0, 255, 255, 0.3)',
-                      color: 'white'
-                    }}
-                  />
-                  <Bar dataKey="count" fill="#00ffff" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <NoDataMessage>No workout data available</NoDataMessage>
-            )}
-          </ChartContainer>
-        </ChartSection>
-        
-        {/* Exercise Types */}
-        <ChartSection>
-          <ChartTitle>Exercise Types</ChartTitle>
-          <ChartContainer>
-            {getExerciseTypeData().length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={getExerciseTypeData()} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                  <XAxis type="number" tick={{ fill: 'white' }} />
-                  <YAxis dataKey="name" type="category" tick={{ fill: 'white' }} />
-                  <Tooltip
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(0, 0, 0, 0.8)', 
-                      border: '1px solid rgba(0, 255, 255, 0.3)',
-                      color: 'white'
-                    }}
-                  />
-                  <Bar dataKey="value" fill="#1e90ff" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <NoDataMessage>No exercise type data available</NoDataMessage>
-            )}
-          </ChartContainer>
-        </ChartSection>
-      </TwoColumnGrid>
-      
-      {/* Intensity Trends */}
-      <ChartSection>
-        <ChartTitle>Workout Intensity Trends</ChartTitle>
-        <ChartContainer>
-          {getIntensityTrendData().length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={getIntensityTrendData()}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                <XAxis dataKey="week" tick={{ fill: 'white' }} />
-                <YAxis domain={[0, 10]} tick={{ fill: 'white' }} />
-                <Tooltip
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)', 
-                    border: '1px solid rgba(0, 255, 255, 0.3)',
-                    color: 'white'
-                  }}
-                />
-                <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="averageIntensity" 
-                  stroke="#00ffff" 
-                  strokeWidth={2}
-                  name="Intensity"
-                  dot={{ fill: '#00ffff', r: 4 }}
-                  activeDot={{ r: 6, fill: '#00ffff' }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <NoDataMessage>No intensity data available</NoDataMessage>
-          )}
-        </ChartContainer>
-      </ChartSection>
-      
-      {/* Two Column Charts */}
+      {/* Data Tables */}
       <TwoColumnGrid>
         {/* Top Exercises */}
-        <ChartSection>
-          <ChartTitle>Top Exercises</ChartTitle>
-          <ChartContainer>
-            {getTopExercises().length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={getTopExercises()} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                  <XAxis type="number" tick={{ fill: 'white' }} />
-                  <YAxis dataKey="name" type="category" width={120} tick={{ fill: 'white' }} />
-                  <Tooltip
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(0, 0, 0, 0.8)', 
-                      border: '1px solid rgba(0, 255, 255, 0.3)',
-                      color: 'white'
-                    }}
-                  />
-                  <Bar dataKey="count" fill="#2ed573" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <NoDataMessage>No exercise data available</NoDataMessage>
-            )}
-          </ChartContainer>
-        </ChartSection>
+        <DataTable>
+          <TableTitle>Top Exercises</TableTitle>
+          {getTopExercises().length > 0 ? (
+            getTopExercises().map((exercise, index) => (
+              <TableRow key={exercise.id}>
+                <TableLabel>{exercise.name}</TableLabel>
+                <TableValue>{exercise.count} times</TableValue>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableLabel>No exercise data available</TableLabel>
+              <TableValue>-</TableValue>
+            </TableRow>
+          )}
+        </DataTable>
         
-        {/* Muscle Group Distribution */}
-        <ChartSection>
-          <ChartTitle>Muscle Group Focus</ChartTitle>
-          <ChartContainer>
-            {getMuscleGroupData().length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={getMuscleGroupData()}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                  <XAxis dataKey="name" tick={{ fill: 'white' }} />
-                  <YAxis tick={{ fill: 'white' }} />
-                  <Tooltip
-                    contentStyle={{ 
-                      backgroundColor: 'rgba(0, 0, 0, 0.8)', 
-                      border: '1px solid rgba(0, 255, 255, 0.3)',
-                      color: 'white'
-                    }}
-                  />
-                  <Bar dataKey="value" fill="#7d5fff" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <NoDataMessage>No muscle group data available</NoDataMessage>
-            )}
-          </ChartContainer>
-        </ChartSection>
+        {/* Workout Frequency by Day */}
+        <DataTable>
+          <TableTitle>Workout Frequency by Day</TableTitle>
+          {statistics.weekdayBreakdown && statistics.weekdayBreakdown.length > 0 ? (
+            getWeekdayNames().map((day, index) => (
+              <TableRow key={day}>
+                <TableLabel>{day}</TableLabel>
+                <TableValue>{statistics.weekdayBreakdown[index] || 0} workouts</TableValue>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableLabel>No frequency data available</TableLabel>
+              <TableValue>-</TableValue>
+            </TableRow>
+          )}
+        </DataTable>
       </TwoColumnGrid>
+      
+      {/* Chart Placeholders */}
+      <ChartPlaceholder>
+        📊 Advanced charts will be available when charting library is added.<br/>
+        All your workout data is still being tracked and displayed above.
+      </ChartPlaceholder>
     </ProgressContainer>
   );
 };
