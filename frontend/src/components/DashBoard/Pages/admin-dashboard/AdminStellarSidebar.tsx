@@ -812,12 +812,6 @@ const getAdminNavItems = (userRole: string): AdminNavItem[] => [
     section: 'management',
     description: 'Universal Master Schedule management',
     isNew: true
-  }, 
-    label: 'Trainer Management', 
-    route: '/dashboard/trainers', 
-    icon: <UserCheck size={20} />, 
-    section: 'management',
-    description: 'Oversee trainer accounts and certifications'
   },
   { 
     id: 'clients', 
@@ -842,15 +836,6 @@ const getAdminNavItems = (userRole: string): AdminNavItem[] => [
     icon: <Package size={20} />, 
     section: 'management',
     description: 'Configure pricing and session packages'
-  },
-  { 
-    id: 'master-schedule', 
-    label: 'Master Schedule', 
-    route: '/dashboard/admin/master-schedule', 
-    icon: <CalendarIcon size={20} />, 
-    section: 'management',
-    isNew: true,
-    description: 'Universal scheduling management system'
   },
   
   // Business Intelligence
