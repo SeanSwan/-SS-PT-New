@@ -74,6 +74,9 @@ import SessionAllocationManager from '../Admin/SessionAllocationManager';
 import WorkoutLogger from '../WorkoutLogger/WorkoutLogger';
 import NASMProgressCharts from '../Client/NASMProgressCharts';
 
+// 🎨 THE AESTHETIC CODEX: Import the definitive style guide
+import TheAestheticCodex from '../../core/TheAestheticCodex';
+
 // Import Trainer Dashboard Components
 import MyClientsView from '../TrainerDashboard/ClientManagement';
 import EnhancedWorkoutLogger from '../TrainerDashboard/WorkoutLogging';
@@ -387,7 +390,10 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/pending-orders', component: PendingOrdersAdminPanel, title: 'Pending Orders', description: 'Order management system' },
       
       // 🎮 ENGAGEMENT & SYSTEMS
-      { path: '/gamification', component: AdminGamificationView, title: 'Gamification Engine', description: 'Achievement system control' }
+      { path: '/gamification', component: AdminGamificationView, title: 'Gamification Engine', description: 'Achievement system control' },
+      
+      // 🎨 DESIGN SYSTEM & DEVELOPMENT
+      { path: '/style-guide', component: TheAestheticCodex, title: 'The Aesthetic Codex', description: 'Living style guide and design system foundation' }
     ],
     defaultPath: '/overview'
   },
