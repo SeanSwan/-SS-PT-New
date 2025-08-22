@@ -27,7 +27,7 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import PersonIcon from '@mui/icons-material/Person';
-import { LayoutDashboard, Users } from 'lucide-react';
+import { LayoutDashboard, Users, Gamepad2 } from 'lucide-react';
 
 // Import custom components
 import EnhancedNotificationSectionWrapper from './EnhancedNotificationSectionWrapper';
@@ -516,6 +516,15 @@ const EnhancedHeader = () => {
             SwanStudios Store
           </StyledNavLink>
           
+          {/* 🎮 ADVANCED GAMIFICATION HUB - PHASE 4 ENHANCEMENT */}
+          <StyledNavLink 
+            to="/gamification" 
+            className={isActive('/gamification') ? "active" : ""}
+            variants={itemVariants}
+          >
+            Gamification
+          </StyledNavLink>
+          
           {/* Dashboard Selector - Always show for logged-in users */}
           <Box sx={{ ml: 1, mr: 1 }}>
             <DashboardSelector />
@@ -613,6 +622,16 @@ const EnhancedHeader = () => {
             variants={itemVariants}
           >
             <PersonIcon fontSize="small" /> User Dashboard
+          </MobileNavLink>
+          
+          {/* 🎮 ADVANCED GAMIFICATION HUB - PHASE 4 ENHANCEMENT */}
+          <MobileNavLink
+            to="/gamification"
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/gamification') ? "active" : ""}
+            variants={itemVariants}
+          >
+            <Gamepad2 fontSize="small" /> Gamification Hub
           </MobileNavLink>
           
           <MobileNavLink 
