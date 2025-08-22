@@ -282,10 +282,10 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             
             <ScanOverlay>
               <ScannerBox>
-                <ScannerCorner position=\"top-left\" />
-                <ScannerCorner position=\"top-right\" />
-                <ScannerCorner position=\"bottom-left\" />
-                <ScannerCorner position=\"bottom-right\" />
+                <ScannerCorner position="top-left" />
+                <ScannerCorner position="top-right" />
+                <ScannerCorner position="bottom-left" />
+                <ScannerCorner position="bottom-right" />
                 
                 <ScannerLine 
                   animate={{
@@ -294,7 +294,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                   transition={{
                     duration: 2,
                     repeat: Infinity,
-                    ease: \"easeInOut\"
+                    ease: "easeInOut"
                   }}
                 />
               </ScannerBox>
@@ -325,18 +325,18 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             transition={{ duration: 0.3 }}
           >
             <ManualInputContainer>
-              <InputLabel htmlFor=\"barcode-input\">
+              <InputLabel htmlFor="barcode-input">
                 Enter Barcode Number
               </InputLabel>
               <BarcodeInput
-                id=\"barcode-input\"
-                type=\"text\"
+                id="barcode-input"
+                type="text"
                 value={manualBarcode}
                 onChange={(e) => setManualBarcode(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder=\"e.g., 123456789012\"
-                pattern=\"[0-9]*\"
-                inputMode=\"numeric\"
+                placeholder="e.g., 123456789012"
+                pattern="[0-9]*"
+                inputMode="numeric"
               />
               <SubmitButton 
                 onClick={handleManualSubmit}
