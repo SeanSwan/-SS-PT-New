@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
-import { gsap } from "gsap";
-import chroma from "chroma-js";
+import { motion } from "framer-motion";
 
 // TypeScript interfaces for better type safety
 export interface GlowButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -301,7 +300,7 @@ const ButtonSpan = styled.span.withConfig({
     border-radius: 50%;
     background-color: var(--button-glow, transparent);
     opacity: var(--button-glow-opacity, 0);
-    transition: opacity var(--button-glow-duration, .5s);
+    transition: opacity var(--button-glow-duration, .5s), transform 0.6s ease, background-color 0.2s ease;
     filter: blur(20px);
   }
 `;
@@ -394,48 +393,26 @@ const GlowButton: React.FC<GlowButtonProps> = ({
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
-      gsap.to(button, {
-        "--pointer-x": `${x}px`,
-        "--pointer-y": `${y}px`,
-        duration: 0.6,
-      });
-
-      gsap.to(button, {
-        "--button-glow": chroma
-          .mix(
-            getComputedStyle(button)
-              .getPropertyValue("--button-glow-start")
-              .trim(),
-            getComputedStyle(button)
-              .getPropertyValue("--button-glow-end")
-              .trim(),
-            x / rect.width
-          )
-          .hex(),
-        duration: 0.2,
-      });
+      // Use CSS custom properties instead of GSAP
+      button.style.setProperty('--pointer-x', `${x}px`);
+      button.style.setProperty('--pointer-y', `${y}px`);
+      
+      // Simple color interpolation instead of chroma-js
+      const progress = x / rect.width;
+      const glowColor = progress > 0.5 
+        ? getComputedStyle(button).getPropertyValue('--button-glow-end').trim()
+        : getComputedStyle(button).getPropertyValue('--button-glow-start').trim();
+      
+      button.style.setProperty('--button-glow', glowColor);
     };
     
     button.addEventListener("pointermove", handlePointerMove);
-    
-    // Entrance animation
-    if (animateOnRender) {
-      gsap.from(button, {
-        y: 20,
-        opacity: 0,
-        duration: 0.6,
-        ease: "power2.out",
-        onComplete: () => {
-          setIsAnimating(true);
-        }
-      });
-    }
     
     // Cleanup event listener
     return () => {
       button.removeEventListener("pointermove", handlePointerMove);
     };
-  }, [animateOnRender, disabled]);
+  }, [disabled]);
 
   // Handle click ripple effect
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -465,39 +442,46 @@ const GlowButton: React.FC<GlowButtonProps> = ({
 
   return (
     <ButtonContainer fullWidth={fullWidth}>
-      <StyledGlowButton
-        ref={buttonRef}
-        onClick={handleClick}
-        disabled={disabled || isLoading}
-        $theme={buttonTheme}
-        $size={buttonSize}
-        $fullWidth={fullWidth}
-        $glowIntensity={glowIntensity}
-        {...props}
-        aria-busy={isLoading}
-        aria-label={props['aria-label'] || (typeof displayContent === 'string' ? displayContent : 'Button')}
+      <motion.div
+        initial={animateOnRender ? { y: 20, opacity: 0 } : false}
+        animate={animateOnRender ? { y: 0, opacity: 1 } : false}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        onAnimationComplete={() => animateOnRender && setIsAnimating(true)}
       >
-        <Gradient />
-        <ButtonSpan isAnimating={isAnimating}>
-          {isLoading && <Spinner />}
-          {!isLoading && resolvedLeftIcon && (
-            <IconContainer position="left">{resolvedLeftIcon}</IconContainer>
-          )}
-          {displayContent}
-          {!isLoading && resolvedRightIcon && (
-            <IconContainer position="right">{resolvedRightIcon}</IconContainer>
-          )}
-          
-          {/* Render ripples */}
-          {ripples.map(ripple => (
-            <Ripple 
-              key={ripple.id} 
-              $x={ripple.x}
-              $y={ripple.y}
-            />
-          ))}
-        </ButtonSpan>
-      </StyledGlowButton>
+        <StyledGlowButton
+          ref={buttonRef}
+          onClick={handleClick}
+          disabled={disabled || isLoading}
+          $theme={buttonTheme}
+          $size={buttonSize}
+          $fullWidth={fullWidth}
+          $glowIntensity={glowIntensity}
+          {...props}
+          aria-busy={isLoading}
+          aria-label={props['aria-label'] || (typeof displayContent === 'string' ? displayContent : 'Button')}
+        >
+          <Gradient />
+          <ButtonSpan isAnimating={isAnimating}>
+            {isLoading && <Spinner />}
+            {!isLoading && resolvedLeftIcon && (
+              <IconContainer position="left">{resolvedLeftIcon}</IconContainer>
+            )}
+            {displayContent}
+            {!isLoading && resolvedRightIcon && (
+              <IconContainer position="right">{resolvedRightIcon}</IconContainer>
+            )}
+            
+            {/* Render ripples */}
+            {ripples.map(ripple => (
+              <Ripple 
+                key={ripple.id} 
+                $x={ripple.x}
+                $y={ripple.y}
+              />
+            ))}
+          </ButtonSpan>
+        </StyledGlowButton>
+      </motion.div>
     </ButtonContainer>
   );
 };
