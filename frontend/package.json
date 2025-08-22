@@ -30,6 +30,7 @@
     "react-helmet-async": "^2.0.4",
     "react-redux": "^9.0.4",
     "react-router-dom": "^6.20.1",
+    "recharts": "^2.8.0",
     "styled-components": "^6.1.6",
     "socket.io-client": "^4.7.4"
   },
