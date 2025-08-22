@@ -227,6 +227,10 @@ const UserDashboard = lazyLoadWithErrorHandling(
   () => import('../components/UserDashboard'),
   'User Dashboard'
 );
+const AdvancedGamificationPage = lazyLoadWithErrorHandling(
+  () => import('../pages/AdvancedGamificationPage'),
+  'Advanced Gamification Hub'
+);
 
 /**
  * Main application routes configuration
@@ -464,6 +468,30 @@ const MainRoutes: RouteObject = {
           </Suspense>
         </ProtectedRoute>
       )
+    },
+    
+    // 🎮 Advanced Gamification Hub - PHASE 4 ENHANCEMENT
+    {
+      path: 'gamification',
+      element: (
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <AdvancedGamificationPage />
+          </Suspense>
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: 'achievements',
+      element: <Navigate to="/gamification" replace />
+    },
+    {
+      path: 'challenges',
+      element: <Navigate to="/gamification" replace />
+    },
+    {
+      path: 'leaderboard',
+      element: <Navigate to="/gamification" replace />
     },
     
     {

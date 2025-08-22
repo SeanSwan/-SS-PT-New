@@ -3,15 +3,15 @@ import React, { useState, useCallback, useEffect, useRef } from "react"; // Ensu
 import styled, { keyframes } from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  FaStar,
-  FaLinkedin,
-  FaInstagram,
-  FaArrowRight,
-  FaArrowLeft,
-  FaMedal,
-  FaFire,
-  FaRegCalendarCheck
-} from "react-icons/fa";
+  Star,
+  Linkedin,
+  Instagram,
+  ArrowRight,
+  ArrowLeft,
+  Medal,
+  Flame,
+  Calendar
+} from "lucide-react";
 // Assuming GlowButton path is correct relative to this file
 import GlowButton from "../../../components/ui/buttons/GlowButton";
 import SectionTitle from "../../../components/ui/SectionTitle"; // Assuming this path is correct
@@ -656,7 +656,7 @@ const TrainerProfilesSection: React.FC = () => {
     const stars = [];
     const fullStars = Math.floor(rating);
     for (let i = 0; i < 5; i++) {
-      stars.push(<FaStar key={`star-${i}`} color={i < fullStars ? "gold" : "#555"} />);
+      stars.push(<Star key={`star-${i}`} color={i < fullStars ? "gold" : "#555"} />);
     }
     return stars;
   };
@@ -664,10 +664,10 @@ const TrainerProfilesSection: React.FC = () => {
   // Get specialty icon
   const getSpecialtyIcon = (specialty: string) => {
     const lowerSpecialty = specialty.toLowerCase();
-    if (lowerSpecialty.includes("strength") || lowerSpecialty.includes("performance")) return <FaFire />;
-    if (lowerSpecialty.includes("nutrition") || lowerSpecialty.includes("body transformation")) return <FaMedal />;
-    if (lowerSpecialty.includes("mobility") || lowerSpecialty.includes("rehabilitation") || lowerSpecialty.includes("recovery")) return <FaRegCalendarCheck />;
-    return <FaFire />;
+    if (lowerSpecialty.includes("strength") || lowerSpecialty.includes("performance")) return <Flame />;
+    if (lowerSpecialty.includes("nutrition") || lowerSpecialty.includes("body transformation")) return <Medal />;
+    if (lowerSpecialty.includes("mobility") || lowerSpecialty.includes("rehabilitation") || lowerSpecialty.includes("recovery")) return <Calendar />;
+    return <Flame />;
   };
 
   return (
@@ -701,7 +701,7 @@ const TrainerProfilesSection: React.FC = () => {
               exit="exit"
             >
               <Certification>
-                 <FaMedal style={{ marginRight: '5px' }} />
+                 <Medal style={{ marginRight: '5px' }} />
                  {/* Use optional chaining for safety */}
                  {currentTrainer.certifications?.[0] ?? 'Certified'}
               </Certification>
@@ -730,11 +730,11 @@ const TrainerProfilesSection: React.FC = () => {
                         size="medium"
                         animateOnRender={false}
                         onClick={() => window.location.href = '/contact'}
-                        rightIcon={<FaArrowRight />}
+                        rightIcon={<ArrowRight />}
                     />
                   <SocialLinksContainer>
-                    <SocialLink href={currentTrainer.socialLinks.linkedin} target="_blank" rel="noopener noreferrer" aria-label={`${currentTrainer.name}'s LinkedIn profile`}> <FaLinkedin /> </SocialLink>
-                    <SocialLink href={currentTrainer.socialLinks.instagram} target="_blank" rel="noopener noreferrer" aria-label={`${currentTrainer.name}'s Instagram profile`}> <FaInstagram /> </SocialLink>
+                    <SocialLink href={currentTrainer.socialLinks.linkedin} target="_blank" rel="noopener noreferrer" aria-label={`${currentTrainer.name}'s LinkedIn profile`}> <Linkedin /> </SocialLink>
+                    <SocialLink href={currentTrainer.socialLinks.instagram} target="_blank" rel="noopener noreferrer" aria-label={`${currentTrainer.name}'s Instagram profile`}> <Instagram /> </SocialLink>
                   </SocialLinksContainer>
                 </CardFooter>
               </TrainerInfo>
