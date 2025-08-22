@@ -3,7 +3,7 @@
 import React, { useRef } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, useInView } from "framer-motion";
-import { FaMusic, FaPaintBrush, FaMicrophone, FaHeart } from "react-icons/fa";
+import { Music, Paintbrush, Mic, Heart } from "lucide-react";
 import SectionTitle from "../../../components/ui/SectionTitle";
 import { useUniversalTheme } from "../../../context/ThemeContext";
 
@@ -328,7 +328,7 @@ const CreativeExpressionSection: React.FC = () => {
   const expressionCategories = [
     {
       title: "Dance",
-      icon: <FaMusic />,
+      icon: <Music />,
       description: "Unleash your power through rhythm. Express your warrior spirit through movement that connects your body to your soul.",
       benefits: [
         "Build explosive core strength and flexibility",
@@ -339,7 +339,7 @@ const CreativeExpressionSection: React.FC = () => {
     },
     {
       title: "Art & Visual Expression",
-      icon: <FaPaintBrush />,
+      icon: <Paintbrush />,
       description: "Channel your intensity onto the canvas. Transform your inner fire into visual masterpieces that tell your transformation story.",
       benefits: [
         "Develop precision and control in every stroke",
@@ -350,7 +350,7 @@ const CreativeExpressionSection: React.FC = () => {
     },
     {
       title: "Vocal & Sound Work",
-      icon: <FaMicrophone />,
+      icon: <Mic />,
       description: "Find the strength in your own voice. Unleash the power within through vocal techniques that amplify your inner warrior.",
       benefits: [
         "Build breathing power and explosive lung capacity",
@@ -361,7 +361,7 @@ const CreativeExpressionSection: React.FC = () => {
     },
     {
       title: "Community & Heart",
-      icon: <FaHeart />,
+      icon: <Heart />,
       description: "Connect with a tribe that shares your fire. Plug into a global family that grinds together, grows together, and celebrates every single victory. No more training alone!",
       benefits: [
         "Feel the power of collective energy fueling your journey",
