@@ -12,7 +12,7 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaWrench, FaCalendarAlt, FaEnvelope, FaTimes, FaInfoCircle } from 'react-icons/fa';
+import { Wrench, Calendar, Mail, X, Info } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { galaxySwanTheme } from '../../styles/galaxy-swan-theme';
 
@@ -287,12 +287,12 @@ const ConstructionBannerContainer: React.FC<ConstructionBannerContainerProps> = 
           <BannerContent>
             <LeftSection>
               <IconContainer>
-                <FaWrench />
+                <Wrench />
               </IconContainer>
               
               <MessageContainer>
                 <MainMessage>
-                  <FaInfoCircle size={16} />
+                  <Info size={16} />
                   {customMessage || "SwanStudios Platform Enhanced - Nearly Complete"}
                 </MainMessage>
                 <SubMessage>
@@ -303,12 +303,12 @@ const ConstructionBannerContainer: React.FC<ConstructionBannerContainerProps> = 
             
             <ActionsContainer>
               <ActionButton to="/contact" className="primary">
-                <FaEnvelope size={14} />
+                <Mail size={14} />
                 Contact Us
               </ActionButton>
               
               <ActionButton to="/contact" className="secondary">
-                <FaCalendarAlt size={14} />
+                <Calendar size={14} />
                 Schedule Orientation
               </ActionButton>
             </ActionsContainer>
@@ -320,7 +320,7 @@ const ConstructionBannerContainer: React.FC<ConstructionBannerContainerProps> = 
                 whileTap={{ scale: 0.95 }}
                 aria-label="Close banner"
               >
-                <FaTimes />
+                <X />
               </CloseButton>
             )}
           </BannerContent>
