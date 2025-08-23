@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaQuoteLeft, FaQuoteRight, FaStar, FaArrowRight, FaArrowLeft } from "react-icons/fa";
+import { Quote, Star, ArrowRight, ArrowLeft } from "lucide-react";
 import SectionTitle from "../ui/SectionTitle";
 
 // --- Animation Keyframes ---
@@ -505,7 +505,7 @@ const TestimonialSlider: React.FC = () => {
   const renderRating = (rating: number) => {
     const stars = [];
     for (let i = 0; i < Math.floor(rating); i++) {
-      stars.push(<FaStar key={i} />);
+      stars.push(<Star key={i} />);
     }
     return stars;
   };
@@ -525,10 +525,10 @@ const TestimonialSlider: React.FC = () => {
     <TestimonialSection id="testimonials">
       <BackgroundGlow />
       <QuoteIcon className="left" variants={iconVariants} initial="hidden" animate="visible">
-        <FaQuoteLeft />
+        <Quote />
       </QuoteIcon>
       <QuoteIcon className="right" variants={iconVariants} initial="hidden" animate="visible">
-        <FaQuoteRight />
+        <Quote />
       </QuoteIcon>
       <SectionContainer>
         <SectionTitle>Success Stories</SectionTitle>
@@ -582,10 +582,10 @@ const TestimonialSlider: React.FC = () => {
             </TestimonialCard>
           </AnimatePresence>
           <NavigationButton className="prev" onClick={() => navigate(-1)}>
-            <FaArrowLeft />
+            <ArrowLeft />
           </NavigationButton>
           <NavigationButton className="next" onClick={() => navigate(1)}>
-            <FaArrowRight />
+            <ArrowRight />
           </NavigationButton>
         </TestimonialCarousel>
         <ProgressIndicator>
