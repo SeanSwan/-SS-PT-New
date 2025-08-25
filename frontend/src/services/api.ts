@@ -1,9 +1,20 @@
 /**
- * Session API Service
- * Simple API helper for session management
+ * Main API Service Export
+ * ======================
+ * Central entry point for API services throughout the application
+ * Exports the production-ready API service with authentication handling
  */
 
-// Simple session API placeholder - the component uses fetch directly
+// Import the production API service
+import productionApiService from './api.service';
+
+// Export as default for compatibility with existing imports
+export default productionApiService;
+
+// Named exports for flexibility
+export { productionApiService as apiService };
+
+// Legacy session API (kept for backward compatibility)
 export const sessionAPI = {
   // This is a placeholder - the Universal Master Schedule uses fetch directly
   // for maximum compatibility and minimal dependencies
@@ -28,3 +39,6 @@ export const sessionAPI = {
     return {};
   }
 };
+
+// Re-export types and utilities from api.service for convenience
+export type { ProductionApiService, ProductionTokenManager } from './api.service';
