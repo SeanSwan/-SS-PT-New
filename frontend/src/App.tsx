@@ -9,34 +9,38 @@ import { store } from './redux/store';
 // Add the theme provider that HomePage needs
 import { UniversalThemeProvider } from './context/ThemeContext';
 
+// Add essential context providers for header functionality
+import { AuthProvider } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
+
 // EMERGENCY ICON FIX - Import icon fixes to resolve FaArrowLeft error
 import './utils/iconFix';
 
 // Import your original HomePage - this is your FULL SwanStudios homepage
 import HomePage from './pages/HomePage/components/HomePage.component';
 
-// Emergency minimal layout
-const MinimalLayout = ({ children }) => (
-  <div style={{ minHeight: '100vh', width: '100%' }}>
-    {children}
-  </div>
-);
+// Import the PROPER Layout component that includes header
+import Layout from './components/Layout/layout';
 
-// Minimal App component that WILL load your homepage
+// Minimal App component that WILL load your homepage WITH HEADER
 const App = () => {
-  console.log('✅ Loading your ORIGINAL SwanStudios homepage with icon fix...');
+  console.log('✅ Loading your ORIGINAL SwanStudios homepage with HEADER and full functionality...');
   
   return (
     <Provider store={store}>
       <HelmetProvider>
         <UniversalThemeProvider defaultTheme="swan-galaxy">
-          <BrowserRouter>
-            <MinimalLayout>
-              <Routes>
-                <Route path="*" element={<HomePage />} />
-              </Routes>
-            </MinimalLayout>
-          </BrowserRouter>
+          <AuthProvider>
+            <CartProvider>
+              <BrowserRouter>
+                <Layout>
+                  <Routes>
+                    <Route path="*" element={<HomePage />} />
+                  </Routes>
+                </Layout>
+              </BrowserRouter>
+            </CartProvider>
+          </AuthProvider>
         </UniversalThemeProvider>
       </HelmetProvider>
     </Provider>
