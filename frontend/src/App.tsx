@@ -13,9 +13,9 @@ import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { CartProvider } from './context/CartContext';
 import { SessionProvider } from './context/SessionContext';
-import { ConfigProvider } from './context/ConfigProvider';
+import { ConfigProvider } from './context/ConfigContext';
 import { UniversalThemeProvider } from './context/ThemeContext';
-import MenuStateProvider from './hooks/useMenuState';
+import MenuStateProvider from './hooks/useMenuState.tsx';
 import { ConnectionStatusBanner, useBackendConnection } from './hooks/useBackendConnection.jsx';
 
 // Development Tools
