@@ -9,6 +9,9 @@ import { store } from './redux/store';
 // Add the theme provider that HomePage needs
 import { UniversalThemeProvider } from './context/ThemeContext';
 
+// EMERGENCY ICON FIX - Import icon fixes to resolve FaArrowLeft error
+import './utils/iconFix';
+
 // Import your original HomePage - this is your FULL SwanStudios homepage
 import HomePage from './pages/HomePage/components/HomePage.component';
 
@@ -21,7 +24,7 @@ const MinimalLayout = ({ children }) => (
 
 // Minimal App component that WILL load your homepage
 const App = () => {
-  console.log('✅ Loading your ORIGINAL SwanStudios homepage...');
+  console.log('✅ Loading your ORIGINAL SwanStudios homepage with icon fix...');
   
   return (
     <Provider store={store}>
