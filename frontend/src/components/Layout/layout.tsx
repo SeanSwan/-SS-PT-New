@@ -1,7 +1,7 @@
 // src/components/Layout/layout.tsx
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import Header from '../Header/header'; // Adjust the import path based on your project structure
+import Header from '../Header/header'; // FIXED: Import EnhancedHeader as Header
 import Footer from '../Footer/Footer';
 import { ConstructionBannerContainer } from '../common';
 import FloatingSessionWidget from '../SessionDashboard/FloatingSessionWidget';
