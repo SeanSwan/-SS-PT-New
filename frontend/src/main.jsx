@@ -1,56 +1,19 @@
-// /frontend/src/main.jsx - RUNTIME ERROR FIXED VERSION
-// Fixed utility imports while preserving essential functionality
-
+// EMERGENCY REACT RUNTIME FIX - Clean React initialization
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 
-// Import WORKING utilities only - removed problematic ones that caused loops
-import initViewportFixes from './utils/viewportFix';
-import { imageErrorHandler } from './utils/imageErrorHandler';
-import './utils/initTokenCleanup';
-import './utils/tokenDebugTool';
-import './utils/storeInitSafeguard';
-import { initializeAllSPAFixes } from './utils/spaRoutingFix';
-import { initializePWA } from './utils/serviceWorkerRegistration';
+console.log('🚀 EMERGENCY FIX: Loading your ORIGINAL SwanStudios homepage...');
 
-console.log('🚀 SwanStudios starting with full original features...');
-
-// Initialize viewport fixes for better mobile experience
-initViewportFixes();
-
-// Initialize global image error handler to fix placeholder issues
-imageErrorHandler.initialize();
-
-// Initialize SPA routing fixes to handle refresh and direct URL access issues
-initializeAllSPAFixes();
-
-// Initialize PWA features (service worker, offline support, etc.)
-initializePWA().then((pwaInfo) => {
-  console.log('✅ PWA initialized:', pwaInfo);
-  
-  // Add PWA info to window for debugging
-  if (import.meta.env.DEV) {
-    window.__PWA_INFO__ = pwaInfo;
-  }
-}).catch((error) => {
-  console.warn('⚠️ PWA initialization failed:', error);
-});
-
-// Get the root element
+// Clean React initialization - no complex utilities that cause loops
 const rootElement = document.getElementById('root');
 
-// Check if root element exists and render
 if (rootElement) {
-  console.log('✅ Root element found, rendering SwanStudios app...');
+  console.log('✅ Root element found - rendering YOUR ORIGINAL HOMEPAGE');
   const root = ReactDOM.createRoot(rootElement);
-  root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  );
-  console.log('✅ SwanStudios rendered successfully!');
+  root.render(<App />);
+  console.log('✅ YOUR SWANSTUDIOS HOMEPAGE IS LOADING!');
 } else {
-  console.error('❌ Root element not found - check index.html');
+  console.error('❌ Root element not found');
 }
