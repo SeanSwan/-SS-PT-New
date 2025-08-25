@@ -77,7 +77,7 @@ import {
   // Cosmic Fitness Metaphors
   Orbit,
   Rocket,
-  Telescope,
+  Search,
   Compass,
   TrendingUp,
   BarChart3,
