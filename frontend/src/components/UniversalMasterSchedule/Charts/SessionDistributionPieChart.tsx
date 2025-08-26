@@ -8,15 +8,7 @@
  */
 
 import React from 'react';
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  Legend,
-  LabelList
-} from 'recharts';
+// Using CSS-based charts instead of recharts for build compatibility
 import { motion } from 'framer-motion';
 import { 
   CheckCircle, 

@@ -16,19 +16,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { 
-  LineChart, 
-  Line, 
-  Area, 
-  ComposedChart,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  ReferenceLine,
-  ReferenceArea
-} from 'recharts';
+// Using CSS-based charts instead of recharts for build compatibility
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { FormQualityChartProps, FormQualityDataPoint } from '../types/ClientProgressTypes';

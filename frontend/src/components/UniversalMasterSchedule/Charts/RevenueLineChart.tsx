@@ -8,17 +8,7 @@
  */
 
 import React from 'react';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart
-} from 'recharts';
+// Using CSS-based charts instead of recharts for build compatibility
 import { motion } from 'framer-motion';
 import { TrendingUp, DollarSign } from 'lucide-react';
 
