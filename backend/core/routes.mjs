@@ -46,8 +46,12 @@ import workoutSessionRoutes from '../routes/workoutSessionRoutes.mjs';
 import sessionsRoutes from '../routes/sessions.mjs';
 
 // ===================== GAMIFICATION & SOCIAL =====================
-import gamificationRoutes from '../routes/gamificationRoutes.mjs';
-import gamificationApiRoutes from '../routes/gamificationApiRoutes.mjs';
+// LEGACY ROUTES - Replaced by V1 API (kept for backward compatibility)
+// app.use('/api/gamification', gamificationRoutes);
+// app.use('/api/gamification', gamificationApiRoutes);
+
+// ===================== GAMIFICATION V1 API SYSTEM =====================
+import gamificationV1Routes from '../routes/gamificationV1Routes.mjs';
 import socialRoutes from '../routes/social/index.mjs';
 
 // ===================== ADMIN & MANAGEMENT =====================
@@ -183,8 +187,10 @@ export const setupRoutes = async (app) => {
   app.use('/api/food-scanner', foodScannerRoutes);
 
   // ===================== GAMIFICATION & SOCIAL ROUTES =====================
-  app.use('/api/gamification', gamificationRoutes);
-  app.use('/api/gamification', gamificationApiRoutes);
+  // V1 COMPREHENSIVE GAMIFICATION API (Production-Ready)
+  app.use('/api/v1/gamification', gamificationV1Routes);
+  
+  // Social routes (separate system)
   app.use('/api/social', socialRoutes);
 
   // ===================== ADMIN & MANAGEMENT ROUTES =====================

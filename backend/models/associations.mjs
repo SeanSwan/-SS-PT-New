@@ -25,6 +25,13 @@ const setupAssociations = async () => {
     const MilestoneModule = await import('./Milestone.mjs');
     const PointTransactionModule = await import('./PointTransaction.mjs');
 
+    // Enhanced Gamification Models (Sequelize)
+    const ChallengeModule = await import('./Challenge.mjs');
+    const ChallengeParticipantModule = await import('./ChallengeParticipant.mjs');
+    const GoalModule = await import('./Goal.mjs');
+    const ProgressDataModule = await import('./ProgressData.mjs');
+    const UserFollowModule = await import('./UserFollow.mjs');
+
     // E-Commerce Models (Sequelize)
     const StorefrontItemModule = await import('./StorefrontItem.mjs');
     const ShoppingCartModule = await import('./ShoppingCart.mjs');
@@ -89,6 +96,13 @@ const setupAssociations = async () => {
     const Reward = RewardModule.default;
     const Milestone = MilestoneModule.default;
     const PointTransaction = PointTransactionModule.default;
+
+    // Enhanced Gamification Models
+    const Challenge = ChallengeModule.default;
+    const ChallengeParticipant = ChallengeParticipantModule.default;
+    const Goal = GoalModule.default;
+    const ProgressData = ProgressDataModule.default;
+    const UserFollow = UserFollowModule.default;
 
     // E-Commerce Models
     const StorefrontItem = StorefrontItemModule.default;
@@ -287,7 +301,7 @@ const setupAssociations = async () => {
     // =======================
     Orientation.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     
-    // SOCIAL MODEL ASSOCIATIONS
+    // Social Model Associations
     // =========================
     // User -> Social Posts
     User.hasMany(SocialPost, { foreignKey: 'userId', as: 'socialPosts' });
@@ -311,15 +325,59 @@ const setupAssociations = async () => {
     Friendship.belongsTo(User, { foreignKey: 'requesterId', as: 'requester' });
     Friendship.belongsTo(User, { foreignKey: 'recipientId', as: 'recipient' });
     
-    // Challenges
+    // OLD Challenge System (kept for compatibility)
     User.hasMany(Challenge, { foreignKey: 'createdBy', as: 'createdChallenges' });
     Challenge.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
     
-    // Challenge Participants
+    // Challenge Participants (old system)
     User.hasMany(ChallengeParticipant, { foreignKey: 'userId', as: 'challengeParticipations' });
     ChallengeParticipant.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     Challenge.hasMany(ChallengeParticipant, { foreignKey: 'challengeId', as: 'participants' });
     ChallengeParticipant.belongsTo(Challenge, { foreignKey: 'challengeId', as: 'challenge' });
+    
+    // NEW GAMIFICATION ASSOCIATIONS
+    // =============================
+    
+    // User -> Challenges (Enhanced)
+    User.hasMany(Challenge, { foreignKey: 'createdBy', as: 'challenges' });
+    Challenge.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+    
+    // Challenge -> Participants (Enhanced Many-to-Many)
+    Challenge.belongsToMany(User, {
+      through: ChallengeParticipant,
+      foreignKey: 'challengeId',
+      otherKey: 'userId',
+      as: 'participantUsers'
+    });
+    
+    User.belongsToMany(Challenge, {
+      through: ChallengeParticipant,
+      foreignKey: 'userId', 
+      otherKey: 'challengeId',
+      as: 'participatingChallenges'
+    });
+    
+    // Direct associations for detailed queries
+    Challenge.hasMany(ChallengeParticipant, { foreignKey: 'challengeId', as: 'participantDetails' });
+    ChallengeParticipant.belongsTo(Challenge, { foreignKey: 'challengeId', as: 'challengeDetails' });
+    
+    User.hasMany(ChallengeParticipant, { foreignKey: 'userId', as: 'participationDetails' });
+    ChallengeParticipant.belongsTo(User, { foreignKey: 'userId', as: 'userDetails' });
+    
+    // User -> Goals
+    User.hasMany(Goal, { foreignKey: 'userId', as: 'goals' });
+    Goal.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    
+    // User -> Progress Data
+    User.hasMany(ProgressData, { foreignKey: 'userId', as: 'progressData' });
+    ProgressData.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    
+    // User -> Social Following (Enhanced)
+    User.hasMany(UserFollow, { foreignKey: 'followerId', as: 'following' });
+    User.hasMany(UserFollow, { foreignKey: 'followingId', as: 'followers' });
+    
+    UserFollow.belongsTo(User, { foreignKey: 'followerId', as: 'follower' });
+    UserFollow.belongsTo(User, { foreignKey: 'followingId', as: 'following' });
 
     // CONTENT MODERATION ASSOCIATIONS
     // ===============================
@@ -393,6 +451,64 @@ const setupAssociations = async () => {
     // Admin Notifications -> Read By (admin user)
     AdminNotification.belongsTo(User, { foreignKey: 'readBy', as: 'readByUser' });
 
+    // ENHANCED GAMIFICATION ASSOCIATIONS
+    // =====================================
+
+    // CHALLENGE SYSTEM ASSOCIATIONS
+    // =============================
+    // User -> Challenges (created by)
+    User.hasMany(Challenge, { foreignKey: 'createdBy', as: 'createdChallenges' });
+    Challenge.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+
+    // Challenge -> ChallengeParticipants (many-to-many through participants)
+    User.belongsToMany(Challenge, { 
+      through: ChallengeParticipant,
+      foreignKey: 'userId',
+      otherKey: 'challengeId',
+      as: 'participatedChallenges'
+    });
+    
+    Challenge.belongsToMany(User, { 
+      through: ChallengeParticipant,
+      foreignKey: 'challengeId',
+      otherKey: 'userId',
+      as: 'participants'
+    });
+
+    // Direct associations for ChallengeParticipant
+    ChallengeParticipant.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    ChallengeParticipant.belongsTo(Challenge, { foreignKey: 'challengeId', as: 'challenge' });
+    User.hasMany(ChallengeParticipant, { foreignKey: 'userId', as: 'challengeParticipations' });
+    Challenge.hasMany(ChallengeParticipant, { foreignKey: 'challengeId', as: 'challengeParticipants' });
+
+    // GOAL SYSTEM ASSOCIATIONS
+    // ========================
+    User.hasMany(Goal, { foreignKey: 'userId', as: 'goals' });
+    Goal.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+    // PROGRESS DATA ASSOCIATIONS
+    // ==========================
+    User.hasMany(ProgressData, { foreignKey: 'userId', as: 'progressData' });
+    ProgressData.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+    // SOCIAL FOLLOWING ASSOCIATIONS
+    // =============================
+    // User following relationships
+    User.hasMany(UserFollow, { foreignKey: 'followerId', as: 'following' });
+    User.hasMany(UserFollow, { foreignKey: 'followingId', as: 'followers' });
+    UserFollow.belongsTo(User, { foreignKey: 'followerId', as: 'follower' });
+    UserFollow.belongsTo(User, { foreignKey: 'followingId', as: 'followedUser' });
+
+    // ENHANCED EXISTING ASSOCIATIONS
+    // ==============================
+    // Challenge -> Goals (challenges can have related goals)
+    Challenge.hasMany(Goal, { foreignKey: 'challengeId', as: 'relatedGoals', constraints: false });
+    Goal.belongsTo(Challenge, { foreignKey: 'challengeId', as: 'relatedChallenge', constraints: false });
+
+    // ProgressData -> Challenges (track challenge progress)
+    ProgressData.belongsTo(Challenge, { foreignKey: 'challengeId', as: 'challenge', constraints: false });
+    Challenge.hasMany(ProgressData, { foreignKey: 'challengeId', as: 'progressEntries', constraints: false });
+
     // NASM WORKOUT TRACKING ASSOCIATIONS
     // ==================================
     
@@ -438,13 +554,18 @@ const setupAssociations = async () => {
       Milestone,
       PointTransaction,
       
+      // Enhanced Gamification Models
+      Challenge,
+      ChallengeParticipant,
+      Goal,
+      ProgressData,
+      UserFollow,
+      
       // Social Models
       SocialPost,
       SocialComment,
       SocialLike,
       Friendship,
-      Challenge,
-      ChallengeParticipant,
       ChallengeTeam,
       
       // Content Moderation Models
