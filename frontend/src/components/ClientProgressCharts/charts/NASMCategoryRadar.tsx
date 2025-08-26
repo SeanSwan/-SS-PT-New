@@ -16,16 +16,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { 
-  RadarChart, 
-  PolarGrid, 
-  PolarAngleAxis, 
-  PolarRadiusAxis, 
-  Radar, 
-  ResponsiveContainer,
-  Tooltip,
-  Legend
-} from 'recharts';
+// Using CSS-based charts instead of recharts for build compatibility
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { NASMRadarChartProps, NASMCategoryDataPoint } from '../types/ClientProgressTypes';

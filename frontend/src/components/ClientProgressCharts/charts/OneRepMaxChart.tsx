@@ -15,16 +15,7 @@
  */
 
 import React, { useMemo } from 'react';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  Cell
-} from 'recharts';
+// Using CSS-based charts instead of recharts for build compatibility
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { OneRepMaxChartProps, OneRepMaxDataPoint } from '../types/ClientProgressTypes';
@@ -276,83 +267,137 @@ const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
       </SortControls>
 
       <ChartContainer>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={chartData}
-            layout="horizontal"
-            margin={{
-              top: 20,
-              right: 30,
-              left: 80,
-              bottom: 20,
-            }}
-          >
-            <CartesianGrid 
-              strokeDasharray="3 3" 
-              stroke="rgba(148, 163, 184, 0.2)"
-              horizontal={true}
-              vertical={false}
-            />
-            
-            <XAxis
-              type="number"
-              stroke="#94a3b8"
-              fontSize={12}
-              tickLine={false}
-              axisLine={{ stroke: 'rgba(148, 163, 184, 0.3)' }}
-              tickFormatter={(value) => `${value} lbs`}
-            />
-            
-            <YAxis
-              type="category"
-              dataKey="displayName"
-              stroke="#94a3b8"
-              fontSize={11}
-              tickLine={false}
-              axisLine={{ stroke: 'rgba(148, 163, 184, 0.3)' }}
-              width={70}
-            />
-            
-            {showTooltip && (
-              <Tooltip
-                content={<CustomTooltip />}
-                cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+        {/* CSS-based Horizontal Bar Chart */}
+        <div style={{ width: '100%', height: '100%', position: 'relative', padding: '20px' }}>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '12px',
+            height: '100%',
+            paddingLeft: '80px'
+          }}>
+            {chartData.map((exercise, index) => {
+              const percentage = (exercise.max / maxWeight) * 100;
+              const barColor = exercise.max >= maxWeight * 0.8 ? '#dc2626' :
+                             exercise.max >= maxWeight * 0.6 ? '#f59e0b' : '#3b82f6';
+              
+              return (
+                <div key={exercise.exercise} style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  position: 'relative',
+                  marginBottom: '8px'
+                }}>
+                  {/* Exercise name */}
+                  <div style={{
+                    position: 'absolute',
+                    left: '-75px',
+                    width: '70px',
+                    fontSize: '11px',
+                    color: '#94a3b8',
+                    textAlign: 'right',
+                    paddingRight: '8px'
+                  }}>
+                    {exercise.displayName}
+                  </div>
+                  
+                  {/* Bar container */}
+                  <div style={{
+                    flex: 1,
+                    height: '24px',
+                    background: 'rgba(148, 163, 184, 0.1)',
+                    borderRadius: '0 4px 4px 0',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}>
+                    {/* Bar fill */}
+                    <motion.div
+                      style={{
+                        width: `${percentage}%`,
+                        height: '100%',
+                        background: `linear-gradient(90deg, ${barColor}CC, ${barColor}99)`,
+                        borderRadius: '0 4px 4px 0',
+                        position: 'relative'
+                      }}
+                      initial={animate ? { width: 0 } : undefined}
+                      animate={animate ? { width: `${percentage}%` } : undefined}
+                      transition={{ duration: 1.2, delay: index * 0.1, ease: 'easeOut' }}
+                      title={`${exercise.exercise}: ${exercise.max} lbs${exercise.improvement ? ` (${exercise.improvement > 0 ? '+' : ''}${exercise.improvement}%)` : ''}`}
+                    />
+                    
+                    {/* Value label */}
+                    <div style={{
+                      position: 'absolute',
+                      right: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      fontSize: '12px',
+                      color: percentage > 50 ? 'white' : '#94a3b8',
+                      fontWeight: '600',
+                      textShadow: percentage > 50 ? '0 1px 2px rgba(0,0,0,0.5)' : 'none'
+                    }}>
+                      {exercise.max} lbs
+                    </div>
+                  </div>
+                  
+                  {/* Improvement indicator */}
+                  {exercise.improvement && (
+                    <div style={{
+                      marginLeft: '8px',
+                      fontSize: '10px',
+                      color: exercise.improvement > 0 ? '#10b981' : '#ef4444',
+                      fontWeight: '600'
+                    }}>
+                      {exercise.improvement > 0 ? '+' : ''}{exercise.improvement}%
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Chart title and stats */}
+          <div style={{
+            position: 'absolute',
+            top: '10px',
+            right: '20px',
+            background: 'rgba(15, 23, 42, 0.8)',
+            borderRadius: '8px',
+            padding: '8px 12px',
+            fontSize: '12px',
+            color: '#e2e8f0',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(148, 163, 184, 0.3)'
+          }}>
+            <div style={{ color: '#f59e0b', fontWeight: '600' }}>Max: {maxWeight} lbs</div>
+            <div style={{ color: '#94a3b8' }}>{chartData.length} exercises</div>
+          </div>
+          
+          {/* X-axis grid lines */}
+          <div style={{
+            position: 'absolute',
+            bottom: '0',
+            left: '80px',
+            right: '20px',
+            height: 'calc(100% - 40px)',
+            pointerEvents: 'none'
+          }}>
+            {[0.2, 0.4, 0.6, 0.8, 1].map((ratio, index) => (
+              <div
+                key={index}
+                style={{
+                  position: 'absolute',
+                  left: `${ratio * 100}%`,
+                  top: '0',
+                  bottom: '0',
+                  width: '1px',
+                  background: 'rgba(148, 163, 184, 0.2)',
+                  zIndex: 1
+                }}
               />
-            )}
-            
-            <Bar
-              dataKey="max"
-              radius={[0, 4, 4, 0]}
-              animationDuration={animate ? 1200 : 0}
-              animationEasing="ease-out"
-            >
-              {chartData.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`} 
-                  fill={getBarColor(entry.max, maxWeight)}
-                />
-              ))}
-            </Bar>
-            
-            {/* Define gradients */}
-            <defs>
-              <linearGradient id="strongGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#dc2626" stopOpacity={0.8} />
-                <stop offset="100%" stopColor="#f59e0b" stopOpacity={0.9} />
-              </linearGradient>
-              
-              <linearGradient id="moderateGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.8} />
-                <stop offset="100%" stopColor="#eab308" stopOpacity={0.7} />
-              </linearGradient>
-              
-              <linearGradient id="lightGradient" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.7} />
-                <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.6} />
-              </linearGradient>
-            </defs>
-          </BarChart>
-        </ResponsiveContainer>
+            ))}
+          </div>
+        </div>
       </ChartContainer>
     </motion.div>
   );
