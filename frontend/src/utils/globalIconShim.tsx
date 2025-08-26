@@ -1,6 +1,7 @@
 // GLOBAL ICON SHIM - Fix FaArrowLeft undefined error
 // This creates a global reference for any missing Font Awesome icons
 
+import React from 'react';
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 
 // Create global window object for icons if needed

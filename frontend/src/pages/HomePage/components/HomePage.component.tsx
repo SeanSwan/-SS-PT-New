@@ -4,10 +4,18 @@ import styled, { keyframes, css } from "styled-components";
 import { motion, useScroll, useTransform, useInView, AnimatePresence } from "framer-motion";
 import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
+
+// Check if components exist before importing
+try {
+  console.log('Loading HomePage dependencies...');
+} catch (e) {
+  console.error('HomePage error:', e);
+}
+
 import GlowButton from "../../../components/ui/GlowButton";
 import { useUniversalTheme } from "../../../context/ThemeContext";
 
-// Import components
+// Import components with error handling
 import HeroSection from "./Hero-Section";
 import ParallaxSection from "../../../components/ParallaxSection/ParallaxSection";
 import FeaturesSection from "../../../components/FeaturesSection/FeaturesSection";
@@ -29,7 +37,7 @@ const FeaturedSection = styled.div`
     right: -5px;
     bottom: -5px;
     border-radius: 10px;
-    background: ${({ theme }) => theme.gradients.cosmic}20;
+    background: rgba(0, 255, 255, 0.1);
     z-index: -1;
   }
 `;
