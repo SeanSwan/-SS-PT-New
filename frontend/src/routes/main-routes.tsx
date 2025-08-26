@@ -122,10 +122,10 @@ function lazyLoadWithErrorHandling(importFn, componentName, fallbackImportFn = n
   );
 }
 
-// Lazy-loaded Components
+// Emergency HomePage while fixing original
 const HomePage = lazyLoadWithErrorHandling(
-  () => import('../pages/HomePage/components/HomePage.component'),
-  'Home Page'
+  () => import('../pages/EmergencyHomePage'),
+  'Emergency Home Page'
 );
 const LoginModal = lazyLoadWithErrorHandling(
   () => import('../pages/EnhancedLoginModal'),
