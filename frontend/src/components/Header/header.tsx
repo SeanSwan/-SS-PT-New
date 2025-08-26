@@ -12,8 +12,8 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 
-// Import theme context
-import { useUniversalTheme } from '../../context/ThemeContext';
+// Import theme context - TEMPORARILY COMMENTED
+// import { useUniversalTheme } from '../../context/ThemeContext';
 
 // ===================== ULTRA-SIMPLE Styled Components =====================
 // NO motion.create - just regular styled components

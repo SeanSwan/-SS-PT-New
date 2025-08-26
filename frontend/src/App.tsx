@@ -37,8 +37,8 @@ import { initializeApiMonitoring } from './utils/apiConnectivityFixer';
 import clearMockTokens from './utils/clearMockTokens';
 import './utils/initTokenCleanup';
 
-// EMERGENCY ICON FIX
-import './utils/globalIconShim';
+// EMERGENCY ICON FIX - COMMENTED OUT TEMPORARILY
+// import './utils/globalIconShim';
 
 // Styles
 import './App.css';
