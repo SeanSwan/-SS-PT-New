@@ -33,11 +33,7 @@ import {
   Globe, Instagram, Facebook, Twitter, Youtube, Play, Pause
 } from 'lucide-react';
 
-// Chart.js for analytics visualization
-import {
-  LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar
-} from 'recharts';
+// Using CSS-based charts instead of recharts for build compatibility
 
 // Import Enterprise Admin API Service for REAL DATA
 import enterpriseAdminApiService, { SocialMediaPost } from '../../../../../../services/enterpriseAdminApiService';
@@ -754,32 +750,32 @@ const SocialMediaCommandCenter: React.FC = () => {
               <BarChart3 size={20} />
               Engagement by Platform
             </h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={platformData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name}: ${value}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {platformData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={['#3b82f6', '#10b981', '#f59e0b', '#ef4444'][index % 4]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    background: 'rgba(10, 10, 15, 0.9)', 
-                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                    borderRadius: '8px',
-                    color: 'white'
-                  }} 
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <div style={{ width: '100%', height: '250px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {platformData.map((entry, index) => {
+                const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+                return (
+                  <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ minWidth: '80px', fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.8)' }}>
+                      {entry.name}
+                    </div>
+                    <div style={{ flex: 1, height: '20px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '10px', overflow: 'hidden' }}>
+                      <div 
+                        style={{ 
+                          height: '100%', 
+                          width: `${entry.value}%`, 
+                          background: colors[index % 4],
+                          borderRadius: '10px',
+                          transition: 'width 0.3s ease'
+                        }}
+                      />
+                    </div>
+                    <div style={{ minWidth: '50px', fontSize: '0.875rem', fontWeight: '600', color: colors[index % 4] }}>
+                      {entry.value}%
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </ChartContainer>
 
           <ChartContainer>
@@ -787,32 +783,29 @@ const SocialMediaCommandCenter: React.FC = () => {
               <Activity size={20} />
               Sentiment Analysis
             </h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={sentimentData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name}: ${value}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {sentimentData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    background: 'rgba(10, 10, 15, 0.9)', 
-                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                    borderRadius: '8px',
-                    color: 'white'
-                  }} 
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <div style={{ width: '100%', height: '250px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {sentimentData.map((entry) => (
+                <div key={entry.name} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <div style={{ minWidth: '80px', fontSize: '0.875rem', color: 'rgba(255, 255, 255, 0.8)' }}>
+                    {entry.name}
+                  </div>
+                  <div style={{ flex: 1, height: '20px', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '10px', overflow: 'hidden' }}>
+                    <div 
+                      style={{ 
+                        height: '100%', 
+                        width: `${entry.value}%`, 
+                        background: entry.fill,
+                        borderRadius: '10px',
+                        transition: 'width 0.3s ease'
+                      }}
+                    />
+                  </div>
+                  <div style={{ minWidth: '50px', fontSize: '0.875rem', fontWeight: '600', color: entry.fill }}>
+                    {entry.value}%
+                  </div>
+                </div>
+              ))}
+            </div>
           </ChartContainer>
 
           <ChartContainer style={{ gridColumn: '1 / -1' }}>
@@ -820,24 +813,58 @@ const SocialMediaCommandCenter: React.FC = () => {
               <TrendingUp size={20} />
               Post Engagement Breakdown
             </h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={engagementData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                <XAxis dataKey="name" stroke="rgba(255, 255, 255, 0.6)" />
-                <YAxis stroke="rgba(255, 255, 255, 0.6)" />
-                <Tooltip 
-                  contentStyle={{ 
-                    background: 'rgba(10, 10, 15, 0.9)', 
-                    border: '1px solid rgba(59, 130, 246, 0.3)',
-                    borderRadius: '8px',
-                    color: 'white'
-                  }} 
-                />
-                <Bar dataKey="likes" stackId="a" fill="#ec4899" />
-                <Bar dataKey="comments" stackId="a" fill="#8b5cf6" />
-                <Bar dataKey="shares" stackId="a" fill="#3b82f6" />
-              </BarChart>
-            </ResponsiveContainer>
+            <div style={{ width: '100%', height: '300px', display: 'flex', alignItems: 'end', gap: '0.5rem', padding: '1rem' }}>
+              {engagementData.map((data, index) => {
+                const maxTotal = Math.max(...engagementData.map(d => d.total));
+                const likesHeight = (data.likes / maxTotal) * 200;
+                const commentsHeight = (data.comments / maxTotal) * 200;
+                const sharesHeight = (data.shares / maxTotal) * 200;
+                
+                return (
+                  <div key={data.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                    <div 
+                      style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column-reverse',
+                        height: '200px',
+                        width: '100%',
+                        gap: '1px'
+                      }}
+                    >
+                      <div 
+                        style={{ 
+                          height: `${likesHeight}px`, 
+                          background: '#ec4899',
+                          borderRadius: '2px 2px 0 0',
+                          transition: 'height 0.3s ease'
+                        }}
+                        title={`Likes: ${data.likes}`}
+                      />
+                      <div 
+                        style={{ 
+                          height: `${commentsHeight}px`, 
+                          background: '#8b5cf6',
+                          transition: 'height 0.3s ease'
+                        }}
+                        title={`Comments: ${data.comments}`}
+                      />
+                      <div 
+                        style={{ 
+                          height: `${sharesHeight}px`, 
+                          background: '#3b82f6',
+                          borderRadius: '2px 2px 0 0',
+                          transition: 'height 0.3s ease'
+                        }}
+                        title={`Shares: ${data.shares}`}
+                      />
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)', marginTop: '0.5rem' }}>
+                      {data.name}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </ChartContainer>
         </AnalyticsSection>
       </CommandCenterContainer>
