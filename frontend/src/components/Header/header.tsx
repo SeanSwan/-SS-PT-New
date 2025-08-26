@@ -1,1 +1,881 @@
-import React, { useState, useEffect, useRef } from \"react\";\nimport { Link, useLocation, useNavigate } from \"react-router-dom\";\nimport styled, { keyframes } from \"styled-components\";\nimport { motion, AnimatePresence } from \"framer-motion\";\nimport logoImage from \"../../assets/Logo.png\";\nimport { useAuth } from \"../../context/AuthContext\";\nimport { useCart } from \"../../context/CartContext\";\nimport ShoppingCart from \"../ShoppingCart/ShoppingCart\";\n\n// Import dashboard selector\nimport DashboardSelector from \"../DashboardSelector/DashboardSelector\";\n\n// Material UI imports\nimport { \n  useMediaQuery, \n  useTheme, \n  Tooltip,\n  IconButton,\n  Badge,\n  Box\n} from \"@mui/material\";\n\n// Import icons\nimport ShoppingBagIcon from '@mui/icons-material/ShoppingBag';\nimport NotificationsIcon from '@mui/icons-material/Notifications';\nimport ShoppingCartIcon from '@mui/icons-material/ShoppingCart';\nimport MenuIcon from '@mui/icons-material/Menu';\nimport CloseIcon from '@mui/icons-material/Close';\nimport PersonIcon from '@mui/icons-material/Person';\nimport { LayoutDashboard, Users, Gamepad2 } from 'lucide-react';\n\n// Import custom components\nimport EnhancedNotificationSectionWrapper from './EnhancedNotificationSectionWrapper';\nimport Debug from '../Debug/Debug';\nimport { UserSwitcher } from '../UserSwitcher';\nimport UniversalThemeToggle from '../../context/ThemeContext/UniversalThemeToggle';\nimport { useUniversalTheme } from '../../context/ThemeContext';\n\n// ===================== Animation Keyframes =====================\nconst float = keyframes`\n  0% { transform: translateY(0); }\n  50% { transform: translateY(-5px); }\n  100% { transform: translateY(0); }\n`;\n\n// Note: Keyframes will be replaced with dynamic glow in styled components\nconst glow = keyframes`\n  0% { filter: drop-shadow(0 0 5px currentColor); }\n  50% { filter: drop-shadow(0 0 15px currentColor); }\n  100% { filter: drop-shadow(0 0 5px currentColor); }\n`;\n\n// ===================== Styled Components =====================\nconst HeaderContainer = styled(motion.header)<{ $isScrolled: boolean; $isVisible: boolean }>`\n  position: fixed;\n  top: 0;\n  left: 0;\n  right: 0;\n  z-index: 1000;\n  padding: 0 20px;\n  height: 56px;\n  display: flex;\n  justify-content: space-between;\n  align-items: center;\n  background: ${({ theme, $isScrolled }) => \n    $isScrolled \n      ? `${theme.background.primary}dd` \n      : theme.background.primary};\n  border-bottom: 1px solid ${({ theme }) => theme.borders.subtle};\n  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);\n  backdrop-filter: ${({ $isScrolled }) => $isScrolled ? 'blur(15px)' : 'blur(8px)'};\n  transform: translateY(${({ $isVisible }) => $isVisible ? '0' : '-100%'});\n  box-shadow: ${({ $isScrolled }) => \n    $isScrolled \n      ? '0 4px 20px rgba(0, 0, 0, 0.15), 0 0 15px rgba(0, 255, 255, 0.1)' \n      : 'none'};\n  \n  @media (max-width: 480px) {\n    padding: 0 12px;\n    height: 56px;\n  }\n`;\n\nconst HeaderContent = styled.div`\n  display: flex; \n  justify-content: space-between; \n  align-items: center; \n  width: 100%; \n  max-width: 1920px; \n  margin: 0 auto;\n`;\n\nconst LogoContainer = styled(motion.div)`\n  display: flex;\n  align-items: center;\n  font-weight: 500;\n  color: ${({ theme }) => theme.colors.primary};\n  position: relative;\n  margin-right: 20px;\n  cursor: pointer;\n`;\n\nconst LogoGlow = styled.div`\n  position: absolute;\n  width: 100%;\n  height: 100%;\n  background: radial-gradient(circle, ${({ theme }) => theme.colors.primary}30 0%, transparent 70%);\n  filter: blur(8px);\n  z-index: -1;\n  transition: all 0.3s ease;\n`;\n\nconst Logo = styled.div`\n  display: flex;\n  align-items: center;\n  position: relative;\n  animation: ${float} 6s ease-in-out infinite, ${glow} 4s ease-in-out infinite;\n  color: ${({ theme }) => theme.colors.primary};\n  \n  .logo-text {\n    font-size: 1.15rem;\n    color: ${({ theme }) => theme.colors.primary};\n    position: relative;\n    letter-spacing: 0.5px;\n    transition: all 0.3s ease;\n    text-shadow: 0 0 10px ${({ theme }) => theme.colors.primary}50;\n  }\n  \n  img {\n    height: 32px;\n    width: 32px;\n    transition: all 0.3s ease;\n    margin-right: 8px;\n    filter: drop-shadow(0 0 8px ${({ theme }) => theme.colors.primary}40);\n  }\n  \n  &:hover {\n    .logo-text {\n      color: ${({ theme }) => theme.colors.primaryLight || theme.colors.accent};\n      text-shadow: 0 0 15px ${({ theme }) => theme.colors.primary}80;\n    }\n    \n    img {\n      filter: drop-shadow(0 0 12px ${({ theme }) => theme.colors.primary}60);\n      transform: scale(1.05);\n    }\n  }\n  \n  @media (max-width: 480px) {\n    .logo-text {\n      font-size: 1.1rem;\n    }\n    img {\n      height: 28px;\n      width: 28px;\n    }\n  }\n`;\n\nconst NavLinksContainer = styled.div`\n  display: flex;\n  align-items: center;\n  flex: 1;\n  justify-content: flex-start;\n  \n  @media (max-width: 768px) {\n    display: none;\n  }\n`;\n\nconst Nav = styled(motion.nav)`\n  display: flex;\n  align-items: center;\n  gap: 0;\n  flex-wrap: nowrap;\n  \n  @media (max-width: 768px) {\n    display: none;\n  }\n`;\n\nconst ActionsContainer = styled(motion.div)`\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  margin-left: auto;\n`;\n\n// Navigation links - FIXED VERSION WITHOUT motion.create\nconst StyledNavLink = styled(Link)`\n  color: ${({ theme }) => theme.text.primary};\n  text-decoration: none;\n  margin: 0;\n  padding: 0 12px;\n  font-weight: 500;\n  font-size: 0.95rem;\n  position: relative;\n  height: 56px;\n  display: flex;\n  align-items: center;\n  transition: all 0.2s ease;\n  letter-spacing: 0.2px;\n  border-bottom: 2px solid transparent;\n  \n  &:hover {\n    color: ${({ theme }) => theme.colors.primary};\n    border-bottom: 2px solid ${({ theme }) => theme.colors.primary};\n    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}40;\n  }\n  \n  &.active {\n    color: ${({ theme }) => theme.colors.primary};\n    border-bottom: 2px solid ${({ theme }) => theme.colors.primary};\n    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}60;\n  }\n`;\n\nconst LogoutButton = styled.button`\n  background: transparent;\n  border: none;\n  color: ${({ theme }) => theme.text.primary};\n  padding: 8px 12px;\n  font-size: 0.95rem;\n  font-weight: 500;\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  transition: all 0.2s ease;\n  border-radius: 6px;\n  \n  &:hover {\n    color: ${({ theme }) => theme.colors.primary};\n    background: ${({ theme }) => theme.colors.primary}10;\n    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}40;\n  }\n`;\n\nconst MobileMenuButton = styled(IconButton)`\n  display: none;\n  color: ${({ theme }) => theme.text.primary};\n  padding: 8px;\n  \n  @media (max-width: 768px) {\n    display: flex;\n  }\n  \n  &:hover {\n    color: ${({ theme }) => theme.colors.primary};\n    background: ${({ theme }) => theme.colors.primary}10;\n  }\n`;\n\nconst MobileMenu = styled(motion.div)`\n  position: fixed; \n  top: 0; \n  left: 0; \n  right: 0; \n  bottom: 0; \n  background: ${({ theme }) => theme.background.primary};\n  backdrop-filter: blur(15px); \n  padding: 80px 24px 24px; \n  display: flex; \n  flex-direction: column; \n  z-index: 1001; \n  overflow-y: auto;\n  border-right: 1px solid ${({ theme }) => theme.borders.subtle};\n`;\n\nconst MobileNavLink = styled(Link)`\n  margin: 8px 0;\n  color: ${({ theme }) => theme.text.primary};\n  text-decoration: none;\n  font-size: 1.1rem;\n  font-weight: 500;\n  padding: 12px 0;\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  border-bottom: 1px solid ${({ theme }) => theme.borders.subtle};\n  transition: all 0.2s ease;\n  border-radius: 8px;\n  \n  &:hover, &.active {\n    color: ${({ theme }) => theme.colors.primary};\n    background: ${({ theme }) => theme.colors.primary}08;\n    padding-left: 12px;\n    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}40;\n  }\n`;\n\nconst MobileLogoutButton = styled(motion.button)`\n  margin: 8px 0;\n  background: none;\n  border: none;\n  color: ${({ theme }) => theme.text.primary};\n  font-size: 1.1rem;\n  font-weight: 500;\n  padding: 12px 0;\n  text-align: left;\n  cursor: pointer;\n  display: flex;\n  align-items: center;\n  gap: 8px;\n  border-bottom: 1px solid ${({ theme }) => theme.borders.subtle};\n  transition: all 0.2s ease;\n  border-radius: 8px;\n  \n  &:hover {\n    color: ${({ theme }) => theme.colors.primary};\n    background: ${({ theme }) => theme.colors.primary}08;\n    padding-left: 12px;\n    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}40;\n  }\n`;\n\n// ===================== Animation Variants =====================\n// Simplified animations for better performance\nconst containerVariants = {\n  hidden: { opacity: 0 },\n  visible: {\n    opacity: 1,\n    transition: {\n      duration: 0.3,\n      when: \"beforeChildren\",\n      staggerChildren: 0.05\n    }\n  }\n};\n\nconst itemVariants = {\n  hidden: { opacity: 0 },\n  visible: {\n    opacity: 1,\n    transition: { duration: 0.2 }\n  }\n};\n\nconst mobileMenuVariants = {\n  closed: {\n    opacity: 0,\n    x: \"-100%\",\n    transition: {\n      duration: 0.3,\n      ease: \"easeInOut\"\n    }\n  },\n  open: {\n    opacity: 1,\n    x: \"0%\",\n    transition: {\n      duration: 0.3,\n      ease: \"easeInOut\"\n    }\n  }\n};\n\n// ===================== Header Component =====================\nconst EnhancedHeader = () => {\n  // State management\n  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);\n  const [cartOpen, setCartOpen] = useState(false);\n  const [isScrolled, setIsScrolled] = useState(false);\n  const [isVisible, setIsVisible] = useState(true);\n  const [lastScrollY, setLastScrollY] = useState(0);\n  \n  // Context hooks\n  const { cart } = useCart();\n  const { user, logout } = useAuth();\n  const { theme } = useUniversalTheme();\n  const location = useLocation();\n  const navigate = useNavigate();\n  \n  // Material UI hooks\n  const muiTheme = useTheme();\n  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));\n  \n  // Refs\n  const headerRef = useRef(null);\n  \n  // Enhanced scroll effect with hide/show behavior\n  useEffect(() => {\n    const handleScroll = () => {\n      const currentScrollY = window.scrollY;\n      const scrollDirection = currentScrollY > lastScrollY ? 'down' : 'up';\n      \n      // Set scrolled state for styling\n      setIsScrolled(currentScrollY > 10);\n      \n      // Header visibility logic\n      if (currentScrollY < 10) {\n        // Always show at top\n        setIsVisible(true);\n      } else if (scrollDirection === 'down' && currentScrollY > lastScrollY + 5) {\n        // Hide when scrolling down (with threshold)\n        setIsVisible(false);\n      } else if (scrollDirection === 'up' && currentScrollY < lastScrollY - 5) {\n        // Show when scrolling up (with threshold)\n        setIsVisible(true);\n      }\n      \n      setLastScrollY(currentScrollY);\n    };\n    \n    // Throttle scroll events for performance\n    let ticking = false;\n    const throttledHandleScroll = () => {\n      if (!ticking) {\n        requestAnimationFrame(() => {\n          handleScroll();\n          ticking = false;\n        });\n        ticking = true;\n      }\n    };\n    \n    window.addEventListener('scroll', throttledHandleScroll, { passive: true });\n    return () => window.removeEventListener('scroll', throttledHandleScroll);\n  }, [lastScrollY]);\n  \n  // Handle mobile menu overflow\n  useEffect(() => {\n    if (mobileMenuOpen) {\n      document.body.style.overflow = 'hidden';\n    } else {\n      document.body.style.overflow = '';\n    }\n    \n    return () => {\n      document.body.style.overflow = '';\n    };\n  }, [mobileMenuOpen]);\n\n  // Enhanced handleLogout function with comprehensive cleanup\n  const handleLogout = () => {\n    try {\n      // First close mobile menu if open\n      if (mobileMenuOpen) {\n        setMobileMenuOpen(false);\n      }\n      \n      // Call the auth context logout function\n      logout();\n      \n      console.log('Successfully logged out, resetting application state');\n      \n      // For completeness, manually clear all possible auth storage\n      try {\n        // Clear specific auth entries\n        localStorage.removeItem('token');\n        localStorage.removeItem('user');\n        localStorage.removeItem('login_timestamp');\n        \n        sessionStorage.removeItem('token');\n        sessionStorage.removeItem('user');\n      } catch (storageError) {\n        console.warn('Error clearing auth storage:', storageError);\n      }\n      \n      // Force page reload to ensure clean state\n      setTimeout(() => {\n        console.log('Forcing page reload to ensure clean state');\n        window.location.href = '/';\n        \n        // Backup reload in case the redirect fails\n        setTimeout(() => {\n          window.location.reload();\n        }, 300);\n      }, 100);\n    } catch (error) {\n      console.error('Error during logout:', error);\n      \n      // Emergency fallback - force reload\n      window.location.href = '/';\n    }\n  };\n\n  // Check if a route is active\n  const isActive = (path: string): boolean => {\n    if (path === '/' && location.pathname === '/') {\n      return true;\n    }\n    return location.pathname === path || location.pathname.startsWith(path);\n  };\n\n  // Function to determine if a dashboard option should be enabled based on user role\n  const isRoleEnabled = (dashboardType: string) => {\n    if (!user || !user.role) return false;\n    \n    switch (dashboardType) {\n      case 'admin':\n        return user.role === 'admin';\n      case 'trainer':\n        return user.role === 'admin' || user.role === 'trainer';\n      case 'client':\n        return user.role === 'admin' || user.role === 'client';\n      case 'user':\n        return true; // All authenticated users can access user dashboard\n      default:\n        return false;\n    }\n  };\n\n  /**\n   * Renders desktop navigation links - CONSOLIDATED STORE LINK\n   */\n  const renderDesktopLinks = () => {\n    if (user) {\n      return (\n        <>\n          {/* SINGLE CONSOLIDATED SWANSTUDIOS STORE LINK */}\n          <StyledNavLink \n            to=\"/store\" \n            className={isActive('/store') || isActive('/shop') ? \"active\" : \"\"}\n          >\n            SwanStudios Store\n          </StyledNavLink>\n          \n          {/* 🎮 ADVANCED GAMIFICATION HUB - PHASE 4 ENHANCEMENT */}\n          <StyledNavLink \n            to=\"/gamification\" \n            className={isActive('/gamification') ? \"active\" : \"\"}\n          >\n            Gamification\n          </StyledNavLink>\n          \n          {/* Dashboard Selector - Always show for logged-in users */}\n          <Box sx={{ ml: 1, mr: 1 }}>\n            <DashboardSelector />\n          </Box>\n        </>\n      );\n    } else {\n      return (\n        <>\n          <StyledNavLink \n            to=\"/store\" \n            className={isActive('/store') ? \"active\" : \"\"}\n          >\n            SwanStudios Store\n          </StyledNavLink>\n          \n          <StyledNavLink \n            to=\"/login\" \n            className={isActive('/login') ? \"active\" : \"\"}\n          >\n            Login\n          </StyledNavLink>\n          \n          <StyledNavLink \n            to=\"/signup\" \n            className={isActive('/signup') ? \"active\" : \"\"}\n          >\n            Sign Up\n          </StyledNavLink>\n        </>\n      );\n    }\n  };\n\n  /**\n   * Renders mobile navigation links - CONSOLIDATED STORE LINK\n   */\n  const renderMobileLinks = () => {\n    if (user) {\n      return (\n        <>\n          {/* SINGLE CONSOLIDATED SWANSTUDIOS STORE LINK */}\n          <motion.div>\n            <MobileNavLink \n              to=\"/store\" \n              onClick={() => setMobileMenuOpen(false)}\n              className={isActive('/store') || isActive('/shop') ? \"active\" : \"\"}\n            >\n              <ShoppingBagIcon fontSize=\"small\" /> SwanStudios Store\n            </MobileNavLink>\n          </motion.div>\n          \n          {/* Dashboard Links - Role-based visibility */}\n          {isRoleEnabled('admin') && (\n            <MobileNavLink\n              to=\"/dashboard/default\" \n              onClick={() => setMobileMenuOpen(false)}\n              className={isActive('/dashboard') ? \"active\" : \"\"}\n            >\n              <LayoutDashboard fontSize=\"small\" /> Admin Dashboard\n            </MobileNavLink>\n          )}\n          \n          {isRoleEnabled('trainer') && (\n            <MobileNavLink\n              to=\"/trainer-dashboard\"\n              onClick={() => setMobileMenuOpen(false)}\n              className={isActive('/trainer-dashboard') ? \"active\" : \"\"}\n            >\n              <Users fontSize=\"small\" /> Trainer Dashboard\n            </MobileNavLink>\n          )}\n          \n          {isRoleEnabled('client') && (\n            <MobileNavLink\n              to=\"/client-dashboard\"\n              onClick={() => setMobileMenuOpen(false)}\n              className={isActive('/client-dashboard') ? \"active\" : \"\"}\n            >\n              <PersonIcon fontSize=\"small\" /> Client Dashboard\n            </MobileNavLink>\n          )}\n          \n          {/* User Dashboard - Available to all authenticated users */}\n          <MobileNavLink\n            to=\"/user-dashboard\"\n            onClick={() => setMobileMenuOpen(false)}\n            className={isActive('/user-dashboard') ? \"active\" : \"\"}\n          >\n            <PersonIcon fontSize=\"small\" /> User Dashboard\n          </MobileNavLink>\n          \n          {/* 🎮 ADVANCED GAMIFICATION HUB - PHASE 4 ENHANCEMENT */}\n          <MobileNavLink\n            to=\"/gamification\"\n            onClick={() => setMobileMenuOpen(false)}\n            className={isActive('/gamification') ? \"active\" : \"\"}\n          >\n            <Gamepad2 fontSize=\"small\" /> Gamification Hub\n          </MobileNavLink>\n          \n          <MobileNavLink \n            to=\"/contact\" \n            onClick={() => setMobileMenuOpen(false)}\n            className={isActive('/contact') ? \"active\" : \"\"}\n          >\n            Contact\n          </MobileNavLink>\n          \n          <MobileNavLink \n            to=\"/about\" \n            onClick={() => setMobileMenuOpen(false)}\n            className={isActive('/about') ? \"active\" : \"\"}\n          >\n            About Us\n          </MobileNavLink>\n          \n          <MobileLogoutButton\n            onClick={() => {\n              handleLogout();\n            }}\n          >\n            Logout\n          </MobileLogoutButton>\n        </>\n      );\n    } else {\n      return (\n        <>\n          <MobileNavLink \n            to=\"/store\" \n            onClick={() => setMobileMenuOpen(false)}\n            className={isActive('/store') ? \"active\" : \"\"}\n          >\n            <ShoppingBagIcon fontSize=\"small\" /> SwanStudios Store\n          </MobileNavLink>\n          \n          <MobileNavLink \n            to=\"/contact\" \n            onClick={() => setMobileMenuOpen(false)}\n            className={isActive('/contact') ? \"active\" : \"\"}\n          >\n            Contact\n          </MobileNavLink>\n          \n          <MobileNavLink \n            to=\"/about\" \n            onClick={() => setMobileMenuOpen(false)}\n            className={isActive('/about') ? \"active\" : \"\"}\n          >\n            About Us\n          </MobileNavLink>\n          \n          <MobileNavLink\n            to=\"/login\"\n            onClick={() => setMobileMenuOpen(false)}\n            className={isActive('/login') ? \"active\" : \"\"}\n          >\n            Login\n          </MobileNavLink>\n          \n          <MobileNavLink\n            to=\"/signup\"\n            onClick={() => setMobileMenuOpen(false)}\n            className={isActive('/signup') ? \"active\" : \"\"}\n          >\n            Sign Up\n          </MobileNavLink>\n        </>\n      );\n    }\n  };\n\n  return (\n    <>\n      {/* Main Header */}\n      <HeaderContainer\n        ref={headerRef}\n        $isScrolled={isScrolled}\n        $isVisible={isVisible}\n        initial=\"hidden\"\n        animate=\"visible\"\n        variants={containerVariants}\n      >\n        <HeaderContent>\n          {/* Logo Area with Glow Effect */}\n          <LogoContainer\n            onClick={() => navigate('/')}\n          >\n            <LogoGlow />\n            <Logo>\n              <img src={logoImage} alt=\"SwanStudios Logo\" />\n              <span className=\"logo-text\">SwanStudios</span>\n            </Logo>\n          </LogoContainer>\n          \n          {/* Navigation Area */}\n          <NavLinksContainer>\n            <Nav variants={containerVariants}>\n              <StyledNavLink \n                to=\"/\" \n                className={isActive('/') ? \"active\" : \"\"}\n              >\n                Home\n              </StyledNavLink>\n              \n              {renderDesktopLinks()}\n              \n              {/* Contact and About - Always visible */}\n              <StyledNavLink \n                to=\"/contact\" \n                className={isActive('/contact') ? \"active\" : \"\"}\n              >\n                Contact\n              </StyledNavLink>\n              \n              <StyledNavLink \n                to=\"/about\" \n                className={isActive('/about') ? \"active\" : \"\"}\n              >\n                About Us\n              </StyledNavLink>\n            </Nav>\n          </NavLinksContainer>\n\n          {/* Actions Area */}\n          <ActionsContainer variants={containerVariants}>\n            {/* Notification Icon - Only for logged in users */}\n            {user && (\n              <EnhancedNotificationSectionWrapper />\n            )}\n\n            {/* Shopping Cart */}\n            <IconButton \n              onClick={() => setCartOpen(true)}\n              sx={{ \n                color: theme.text.primary,\n                '&:hover': {\n                  color: theme.colors.primary,\n                  backgroundColor: `${theme.colors.primary}10`\n                }\n              }}\n            >\n              <Badge \n                badgeContent={cart?.itemCount || 0} \n                color=\"error\"\n                sx={{ \n                  '& .MuiBadge-badge': {\n                    backgroundColor: theme.colors.accent || '#ec4899',\n                    fontSize: '0.65rem',\n                    minWidth: '18px',\n                    height: '18px',\n                    boxShadow: `0 0 8px ${theme.colors.accent || '#ec4899'}40`\n                  }\n                }}\n              >\n                <ShoppingCartIcon fontSize=\"small\" />\n              </Badge>\n            </IconButton>\n\n            {/* Universal Theme Toggle */}\n            <UniversalThemeToggle size=\"medium\" />\n\n            {/* User Profile - Only for logged in users */}\n            {user ? (\n              <>\n                <IconButton\n                  sx={{ \n                    bgcolor: theme.colors.primary,\n                    width: 36,\n                    height: 36,\n                    fontSize: '0.9rem',\n                    ml: 0.5,\n                    color: theme.colors.white || '#ffffff',\n                    boxShadow: `0 0 12px ${theme.colors.primary}40`,\n                    '&:hover': {\n                      bgcolor: theme.colors.primaryDeep || theme.colors.secondary,\n                      boxShadow: `0 0 16px ${theme.colors.primary}60`,\n                      transform: 'scale(1.05)'\n                    }\n                  }}\n                >\n                  {user?.firstName?.[0] || 'U'}\n                </IconButton>\n                \n                {!isMobile && (\n                  <LogoutButton onClick={handleLogout}>\n                    Logout\n                  </LogoutButton>\n                )}\n              </>\n            ) : (\n              <>\n                {isMobile && (\n                  <IconButton\n                    onClick={() => navigate('/login')}\n                    sx={{ \n                      color: theme.text.primary,\n                      '&:hover': {\n                        color: theme.colors.primary,\n                        backgroundColor: `${theme.colors.primary}10`\n                      }\n                    }}\n                  >\n                    <PersonIcon fontSize=\"small\" />\n                  </IconButton>\n                )}\n              </>\n            )}\n\n            {/* Mobile Menu Button */}\n            <MobileMenuButton\n              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}\n              size=\"medium\"\n            >\n              {mobileMenuOpen ? <CloseIcon /> : <MenuIcon />}\n            </MobileMenuButton>\n          </ActionsContainer>\n        </HeaderContent>\n      </HeaderContainer>\n\n      {/* Mobile Menu */}\n      <AnimatePresence>\n        {mobileMenuOpen && (\n          <MobileMenu\n            initial=\"closed\"\n            animate=\"open\"\n            exit=\"closed\"\n            variants={mobileMenuVariants}\n          >\n            <MobileNavLink \n              to=\"/\" \n              onClick={() => setMobileMenuOpen(false)}\n              className={isActive('/') ? \"active\" : \"\"}\n            >\n              Home\n            </MobileNavLink>\n            \n            {renderMobileLinks()}\n          </MobileMenu>\n        )}\n      </AnimatePresence>\n\n      {/* Shopping Cart Modal */}\n      {cartOpen && <ShoppingCart onClose={() => setCartOpen(false)} />}\n      \n      {/* Debug Component for Development */}\n      <Debug />\n      \n      {/* User Switcher for Development */}\n      <UserSwitcher />\n    </>\n  );\n};\n\nexport default EnhancedHeader;
+import React, { useState, useEffect, useRef } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import styled, { keyframes } from "styled-components";
+import { motion, AnimatePresence } from "framer-motion";
+import logoImage from "../../assets/Logo.png";
+import { useAuth } from "../../context/AuthContext";
+import { useCart } from "../../context/CartContext";
+import ShoppingCart from "../ShoppingCart/ShoppingCart";
+
+// Import dashboard selector
+import DashboardSelector from "../DashboardSelector/DashboardSelector";
+
+// Material UI imports
+import { 
+  useMediaQuery, 
+  useTheme, 
+  Tooltip,
+  IconButton,
+  Badge,
+  Box
+} from "@mui/material";
+
+// Import icons
+import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
+import NotificationsIcon from '@mui/icons-material/Notifications';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import MenuIcon from '@mui/icons-material/Menu';
+import CloseIcon from '@mui/icons-material/Close';
+import PersonIcon from '@mui/icons-material/Person';
+import { LayoutDashboard, Users, Gamepad2 } from 'lucide-react';
+
+// Import custom components
+import EnhancedNotificationSectionWrapper from './EnhancedNotificationSectionWrapper';
+import Debug from '../Debug/Debug';
+import { UserSwitcher } from '../UserSwitcher';
+import UniversalThemeToggle from '../../context/ThemeContext/UniversalThemeToggle';
+import { useUniversalTheme } from '../../context/ThemeContext';
+
+// ===================== Animation Keyframes =====================
+const float = keyframes`
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0); }
+`;
+
+// Note: Keyframes will be replaced with dynamic glow in styled components
+const glow = keyframes`
+  0% { filter: drop-shadow(0 0 5px currentColor); }
+  50% { filter: drop-shadow(0 0 15px currentColor); }
+  100% { filter: drop-shadow(0 0 5px currentColor); }
+`;
+
+// ===================== Styled Components =====================
+const HeaderContainer = styled(motion.header)<{ $isScrolled: boolean; $isVisible: boolean }>`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 0 20px;
+  height: 56px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: ${({ theme, $isScrolled }) => 
+    $isScrolled 
+      ? `${theme.background.primary}dd` 
+      : theme.background.primary};
+  border-bottom: 1px solid ${({ theme }) => theme.borders.subtle};
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: ${({ $isScrolled }) => $isScrolled ? 'blur(15px)' : 'blur(8px)'};
+  transform: translateY(${({ $isVisible }) => $isVisible ? '0' : '-100%'});
+  box-shadow: ${({ $isScrolled }) => 
+    $isScrolled 
+      ? '0 4px 20px rgba(0, 0, 0, 0.15), 0 0 15px rgba(0, 255, 255, 0.1)' 
+      : 'none'};
+  
+  @media (max-width: 480px) {
+    padding: 0 12px;
+    height: 56px;
+  }
+`;
+
+const HeaderContent = styled.div`
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  width: 100%; 
+  max-width: 1920px; 
+  margin: 0 auto;
+`;
+
+const LogoContainer = styled(motion.div)`
+  display: flex;
+  align-items: center;
+  font-weight: 500;
+  color: ${({ theme }) => theme.colors.primary};
+  position: relative;
+  margin-right: 20px;
+  cursor: pointer;
+`;
+
+const LogoGlow = styled.div`
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, ${({ theme }) => theme.colors.primary}30 0%, transparent 70%);
+  filter: blur(8px);
+  z-index: -1;
+  transition: all 0.3s ease;
+`;
+
+const Logo = styled.div`
+  display: flex;
+  align-items: center;
+  position: relative;
+  animation: ${float} 6s ease-in-out infinite, ${glow} 4s ease-in-out infinite;
+  color: ${({ theme }) => theme.colors.primary};
+  
+  .logo-text {
+    font-size: 1.15rem;
+    color: ${({ theme }) => theme.colors.primary};
+    position: relative;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    text-shadow: 0 0 10px ${({ theme }) => theme.colors.primary}50;
+  }
+  
+  img {
+    height: 32px;
+    width: 32px;
+    transition: all 0.3s ease;
+    margin-right: 8px;
+    filter: drop-shadow(0 0 8px ${({ theme }) => theme.colors.primary}40);
+  }
+  
+  &:hover {
+    .logo-text {
+      color: ${({ theme }) => theme.colors.primaryLight || theme.colors.accent};
+      text-shadow: 0 0 15px ${({ theme }) => theme.colors.primary}80;
+    }
+    
+    img {
+      filter: drop-shadow(0 0 12px ${({ theme }) => theme.colors.primary}60);
+      transform: scale(1.05);
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .logo-text {
+      font-size: 1.1rem;
+    }
+    img {
+      height: 28px;
+      width: 28px;
+    }
+  }
+`;
+
+const NavLinksContainer = styled.div`
+  display: flex;
+  align-items: center;
+  flex: 1;
+  justify-content: flex-start;
+  
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+const Nav = styled(motion.nav)`
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-wrap: nowrap;
+  
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+const ActionsContainer = styled(motion.div)`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+`;
+
+// Navigation links - FIXED VERSION WITHOUT motion.create
+const StyledNavLink = styled(Link)`
+  color: ${({ theme }) => theme.text.primary};
+  text-decoration: none;
+  margin: 0;
+  padding: 0 12px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  position: relative;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  letter-spacing: 0.2px;
+  border-bottom: 2px solid transparent;
+  
+  &:hover {
+    color: ${({ theme }) => theme.colors.primary};
+    border-bottom: 2px solid ${({ theme }) => theme.colors.primary};
+    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}40;
+  }
+  
+  &.active {
+    color: ${({ theme }) => theme.colors.primary};
+    border-bottom: 2px solid ${({ theme }) => theme.colors.primary};
+    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}60;
+  }
+`;
+
+const LogoutButton = styled.button`
+  background: transparent;
+  border: none;
+  color: ${({ theme }) => theme.text.primary};
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  border-radius: 6px;
+  
+  &:hover {
+    color: ${({ theme }) => theme.colors.primary};
+    background: ${({ theme }) => theme.colors.primary}10;
+    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}40;
+  }
+`;
+
+const MobileMenuButton = styled(IconButton)`
+  display: none;
+  color: ${({ theme }) => theme.text.primary};
+  padding: 8px;
+  
+  @media (max-width: 768px) {
+    display: flex;
+  }
+  
+  &:hover {
+    color: ${({ theme }) => theme.colors.primary};
+    background: ${({ theme }) => theme.colors.primary}10;
+  }
+`;
+
+const MobileMenu = styled(motion.div)`
+  position: fixed; 
+  top: 0; 
+  left: 0; 
+  right: 0; 
+  bottom: 0; 
+  background: ${({ theme }) => theme.background.primary};
+  backdrop-filter: blur(15px); 
+  padding: 80px 24px 24px; 
+  display: flex; 
+  flex-direction: column; 
+  z-index: 1001; 
+  overflow-y: auto;
+  border-right: 1px solid ${({ theme }) => theme.borders.subtle};
+`;
+
+const MobileNavLink = styled(Link)`
+  margin: 8px 0;
+  color: ${({ theme }) => theme.text.primary};
+  text-decoration: none;
+  font-size: 1.1rem;
+  font-weight: 500;
+  padding: 12px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid ${({ theme }) => theme.borders.subtle};
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  
+  &:hover, &.active {
+    color: ${({ theme }) => theme.colors.primary};
+    background: ${({ theme }) => theme.colors.primary}08;
+    padding-left: 12px;
+    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}40;
+  }
+`;
+
+const MobileLogoutButton = styled(motion.button)`
+  margin: 8px 0;
+  background: none;
+  border: none;
+  color: ${({ theme }) => theme.text.primary};
+  font-size: 1.1rem;
+  font-weight: 500;
+  padding: 12px 0;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid ${({ theme }) => theme.borders.subtle};
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  
+  &:hover {
+    color: ${({ theme }) => theme.colors.primary};
+    background: ${({ theme }) => theme.colors.primary}08;
+    padding-left: 12px;
+    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}40;
+  }
+`;
+
+// ===================== Animation Variants =====================
+// Simplified animations for better performance
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      duration: 0.3,
+      when: "beforeChildren",
+      staggerChildren: 0.05
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: { duration: 0.2 }
+  }
+};
+
+const mobileMenuVariants = {
+  closed: {
+    opacity: 0,
+    x: "-100%",
+    transition: {
+      duration: 0.3,
+      ease: "easeInOut"
+    }
+  },
+  open: {
+    opacity: 1,
+    x: "0%",
+    transition: {
+      duration: 0.3,
+      ease: "easeInOut"
+    }
+  }
+};
+
+// ===================== Header Component =====================
+const EnhancedHeader = () => {
+  // State management
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  
+  // Context hooks
+  const { cart } = useCart();
+  const { user, logout } = useAuth();
+  const { theme } = useUniversalTheme();
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  // Material UI hooks
+  const muiTheme = useTheme();
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
+  
+  // Refs
+  const headerRef = useRef(null);
+  
+  // Enhanced scroll effect with hide/show behavior
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const scrollDirection = currentScrollY > lastScrollY ? 'down' : 'up';
+      
+      // Set scrolled state for styling
+      setIsScrolled(currentScrollY > 10);
+      
+      // Header visibility logic
+      if (currentScrollY < 10) {
+        // Always show at top
+        setIsVisible(true);
+      } else if (scrollDirection === 'down' && currentScrollY > lastScrollY + 5) {
+        // Hide when scrolling down (with threshold)
+        setIsVisible(false);
+      } else if (scrollDirection === 'up' && currentScrollY < lastScrollY - 5) {
+        // Show when scrolling up (with threshold)
+        setIsVisible(true);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+    
+    // Throttle scroll events for performance
+    let ticking = false;
+    const throttledHandleScroll = () => {
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+    
+    window.addEventListener('scroll', throttledHandleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', throttledHandleScroll);
+  }, [lastScrollY]);
+  
+  // Handle mobile menu overflow
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
+
+  // Enhanced handleLogout function with comprehensive cleanup
+  const handleLogout = () => {
+    try {
+      // First close mobile menu if open
+      if (mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+      
+      // Call the auth context logout function
+      logout();
+      
+      console.log('Successfully logged out, resetting application state');
+      
+      // For completeness, manually clear all possible auth storage
+      try {
+        // Clear specific auth entries
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('login_timestamp');
+        
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+      } catch (storageError) {
+        console.warn('Error clearing auth storage:', storageError);
+      }
+      
+      // Force page reload to ensure clean state
+      setTimeout(() => {
+        console.log('Forcing page reload to ensure clean state');
+        window.location.href = '/';
+        
+        // Backup reload in case the redirect fails
+        setTimeout(() => {
+          window.location.reload();
+        }, 300);
+      }, 100);
+    } catch (error) {
+      console.error('Error during logout:', error);
+      
+      // Emergency fallback - force reload
+      window.location.href = '/';
+    }
+  };
+
+  // Check if a route is active
+  const isActive = (path: string): boolean => {
+    if (path === '/' && location.pathname === '/') {
+      return true;
+    }
+    return location.pathname === path || location.pathname.startsWith(path);
+  };
+
+  // Function to determine if a dashboard option should be enabled based on user role
+  const isRoleEnabled = (dashboardType: string) => {
+    if (!user || !user.role) return false;
+    
+    switch (dashboardType) {
+      case 'admin':
+        return user.role === 'admin';
+      case 'trainer':
+        return user.role === 'admin' || user.role === 'trainer';
+      case 'client':
+        return user.role === 'admin' || user.role === 'client';
+      case 'user':
+        return true; // All authenticated users can access user dashboard
+      default:
+        return false;
+    }
+  };
+
+  /**
+   * Renders desktop navigation links - CONSOLIDATED STORE LINK
+   */
+  const renderDesktopLinks = () => {
+    if (user) {
+      return (
+        <>
+          {/* SINGLE CONSOLIDATED SWANSTUDIOS STORE LINK */}
+          <StyledNavLink 
+            to="/store" 
+            className={isActive('/store') || isActive('/shop') ? "active" : ""}
+          >
+            SwanStudios Store
+          </StyledNavLink>
+          
+          {/* 🎮 ADVANCED GAMIFICATION HUB - PHASE 4 ENHANCEMENT */}
+          <StyledNavLink 
+            to="/gamification" 
+            className={isActive('/gamification') ? "active" : ""}
+          >
+            Gamification
+          </StyledNavLink>
+          
+          {/* Dashboard Selector - Always show for logged-in users */}
+          <Box sx={{ ml: 1, mr: 1 }}>
+            <DashboardSelector />
+          </Box>
+        </>
+      );
+    } else {
+      return (
+        <>
+          <StyledNavLink 
+            to="/store" 
+            className={isActive('/store') ? "active" : ""}
+          >
+            SwanStudios Store
+          </StyledNavLink>
+          
+          <StyledNavLink 
+            to="/login" 
+            className={isActive('/login') ? "active" : ""}
+          >
+            Login
+          </StyledNavLink>
+          
+          <StyledNavLink 
+            to="/signup" 
+            className={isActive('/signup') ? "active" : ""}
+          >
+            Sign Up
+          </StyledNavLink>
+        </>
+      );
+    }
+  };
+
+  /**
+   * Renders mobile navigation links - CONSOLIDATED STORE LINK
+   */
+  const renderMobileLinks = () => {
+    if (user) {
+      return (
+        <>
+          {/* SINGLE CONSOLIDATED SWANSTUDIOS STORE LINK */}
+          <motion.div>
+            <MobileNavLink 
+              to="/store" 
+              onClick={() => setMobileMenuOpen(false)}
+              className={isActive('/store') || isActive('/shop') ? "active" : ""}
+            >
+              <ShoppingBagIcon fontSize="small" /> SwanStudios Store
+            </MobileNavLink>
+          </motion.div>
+          
+          {/* Dashboard Links - Role-based visibility */}
+          {isRoleEnabled('admin') && (
+            <MobileNavLink
+              to="/dashboard/default" 
+              onClick={() => setMobileMenuOpen(false)}
+              className={isActive('/dashboard') ? "active" : ""}
+            >
+              <LayoutDashboard fontSize="small" /> Admin Dashboard
+            </MobileNavLink>
+          )}
+          
+          {isRoleEnabled('trainer') && (
+            <MobileNavLink
+              to="/trainer-dashboard"
+              onClick={() => setMobileMenuOpen(false)}
+              className={isActive('/trainer-dashboard') ? "active" : ""}
+            >
+              <Users fontSize="small" /> Trainer Dashboard
+            </MobileNavLink>
+          )}
+          
+          {isRoleEnabled('client') && (
+            <MobileNavLink
+              to="/client-dashboard"
+              onClick={() => setMobileMenuOpen(false)}
+              className={isActive('/client-dashboard') ? "active" : ""}
+            >
+              <PersonIcon fontSize="small" /> Client Dashboard
+            </MobileNavLink>
+          )}
+          
+          {/* User Dashboard - Available to all authenticated users */}
+          <MobileNavLink
+            to="/user-dashboard"
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/user-dashboard') ? "active" : ""}
+          >
+            <PersonIcon fontSize="small" /> User Dashboard
+          </MobileNavLink>
+          
+          {/* 🎮 ADVANCED GAMIFICATION HUB - PHASE 4 ENHANCEMENT */}
+          <MobileNavLink
+            to="/gamification"
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/gamification') ? "active" : ""}
+          >
+            <Gamepad2 fontSize="small" /> Gamification Hub
+          </MobileNavLink>
+          
+          <MobileNavLink 
+            to="/contact" 
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/contact') ? "active" : ""}
+          >
+            Contact
+          </MobileNavLink>
+          
+          <MobileNavLink 
+            to="/about" 
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/about') ? "active" : ""}
+          >
+            About Us
+          </MobileNavLink>
+          
+          <MobileLogoutButton
+            onClick={() => {
+              handleLogout();
+            }}
+          >
+            Logout
+          </MobileLogoutButton>
+        </>
+      );
+    } else {
+      return (
+        <>
+          <MobileNavLink 
+            to="/store" 
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/store') ? "active" : ""}
+          >
+            <ShoppingBagIcon fontSize="small" /> SwanStudios Store
+          </MobileNavLink>
+          
+          <MobileNavLink 
+            to="/contact" 
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/contact') ? "active" : ""}
+          >
+            Contact
+          </MobileNavLink>
+          
+          <MobileNavLink 
+            to="/about" 
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/about') ? "active" : ""}
+          >
+            About Us
+          </MobileNavLink>
+          
+          <MobileNavLink
+            to="/login"
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/login') ? "active" : ""}
+          >
+            Login
+          </MobileNavLink>
+          
+          <MobileNavLink
+            to="/signup"
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/signup') ? "active" : ""}
+          >
+            Sign Up
+          </MobileNavLink>
+        </>
+      );
+    }
+  };
+
+  return (
+    <>
+      {/* Main Header */}
+      <HeaderContainer
+        ref={headerRef}
+        $isScrolled={isScrolled}
+        $isVisible={isVisible}
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
+        <HeaderContent>
+          {/* Logo Area with Glow Effect */}
+          <LogoContainer
+            onClick={() => navigate('/')}
+          >
+            <LogoGlow />
+            <Logo>
+              <img src={logoImage} alt="SwanStudios Logo" />
+              <span className="logo-text">SwanStudios</span>
+            </Logo>
+          </LogoContainer>
+          
+          {/* Navigation Area */}
+          <NavLinksContainer>
+            <Nav variants={containerVariants}>
+              <StyledNavLink 
+                to="/" 
+                className={isActive('/') ? "active" : ""}
+              >
+                Home
+              </StyledNavLink>
+              
+              {renderDesktopLinks()}
+              
+              {/* Contact and About - Always visible */}
+              <StyledNavLink 
+                to="/contact" 
+                className={isActive('/contact') ? "active" : ""}
+              >
+                Contact
+              </StyledNavLink>
+              
+              <StyledNavLink 
+                to="/about" 
+                className={isActive('/about') ? "active" : ""}
+              >
+                About Us
+              </StyledNavLink>
+            </Nav>
+          </NavLinksContainer>
+
+          {/* Actions Area */}
+          <ActionsContainer variants={containerVariants}>
+            {/* Notification Icon - Only for logged in users */}
+            {user && (
+              <EnhancedNotificationSectionWrapper />
+            )}
+
+            {/* Shopping Cart */}
+            <IconButton 
+              onClick={() => setCartOpen(true)}
+              sx={{ 
+                color: theme.text.primary,
+                '&:hover': {
+                  color: theme.colors.primary,
+                  backgroundColor: `${theme.colors.primary}10`
+                }
+              }}
+            >
+              <Badge 
+                badgeContent={cart?.itemCount || 0} 
+                color="error"
+                sx={{ 
+                  '& .MuiBadge-badge': {
+                    backgroundColor: theme.colors.accent || '#ec4899',
+                    fontSize: '0.65rem',
+                    minWidth: '18px',
+                    height: '18px',
+                    boxShadow: `0 0 8px ${theme.colors.accent || '#ec4899'}40`
+                  }
+                }}
+              >
+                <ShoppingCartIcon fontSize="small" />
+              </Badge>
+            </IconButton>
+
+            {/* Universal Theme Toggle */}
+            <UniversalThemeToggle size="medium" />
+
+            {/* User Profile - Only for logged in users */}
+            {user ? (
+              <>
+                <IconButton
+                  sx={{ 
+                    bgcolor: theme.colors.primary,
+                    width: 36,
+                    height: 36,
+                    fontSize: '0.9rem',
+                    ml: 0.5,
+                    color: theme.colors.white || '#ffffff',
+                    boxShadow: `0 0 12px ${theme.colors.primary}40`,
+                    '&:hover': {
+                      bgcolor: theme.colors.primaryDeep || theme.colors.secondary,
+                      boxShadow: `0 0 16px ${theme.colors.primary}60`,
+                      transform: 'scale(1.05)'
+                    }
+                  }}
+                >
+                  {user?.firstName?.[0] || 'U'}
+                </IconButton>
+                
+                {!isMobile && (
+                  <LogoutButton onClick={handleLogout}>
+                    Logout
+                  </LogoutButton>
+                )}
+              </>
+            ) : (
+              <>
+                {isMobile && (
+                  <IconButton
+                    onClick={() => navigate('/login')}
+                    sx={{ 
+                      color: theme.text.primary,
+                      '&:hover': {
+                        color: theme.colors.primary,
+                        backgroundColor: `${theme.colors.primary}10`
+                      }
+                    }}
+                  >
+                    <PersonIcon fontSize="small" />
+                  </IconButton>
+                )}
+              </>
+            )}
+
+            {/* Mobile Menu Button */}
+            <MobileMenuButton
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              size="medium"
+            >
+              {mobileMenuOpen ? <CloseIcon /> : <MenuIcon />}
+            </MobileMenuButton>
+          </ActionsContainer>
+        </HeaderContent>
+      </HeaderContainer>
+
+      {/* Mobile Menu */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <MobileMenu
+            initial="closed"
+            animate="open"
+            exit="closed"
+            variants={mobileMenuVariants}
+          >
+            <MobileNavLink 
+              to="/" 
+              onClick={() => setMobileMenuOpen(false)}
+              className={isActive('/') ? "active" : ""}
+            >
+              Home
+            </MobileNavLink>
+            
+            {renderMobileLinks()}
+          </MobileMenu>
+        )}
+      </AnimatePresence>
+
+      {/* Shopping Cart Modal */}
+      {cartOpen && <ShoppingCart onClose={() => setCartOpen(false)} />}
+      
+      {/* Debug Component for Development */}
+      <Debug />
+      
+      {/* User Switcher for Development */}
+      <UserSwitcher />
+    </>
+  );
+};
+
+export default EnhancedHeader;
