@@ -72,29 +72,89 @@ const AdminSettingsSection = lazy(() => import('./sections/AdminSettingsSection'
 // Keep existing gamification import
 const AdminGamificationView = lazy(() => import('../admin-gamification/admin-gamification-view'));
 
-// Revolutionary Data Visualization Suite
-import {
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
-  BarChart as ReBarChart,
-  Bar,
-  PieChart as RePieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as ReTooltip,
-  ResponsiveContainer,
-  RadialBarChart,
-  RadialBar,
-  Legend,
-  Treemap,
-  Scatter,
-  ScatterChart
-} from 'recharts';
+// Revolutionary Data Visualization Suite - REMOVED RECHARTS FOR BUILD STABILITY
+// Charts temporarily replaced with placeholders - data collection still functional
+// import {
+//   LineChart,
+//   Line,
+//   AreaChart,
+//   Area,
+//   BarChart as ReBarChart,
+//   Bar,
+//   PieChart as RePieChart,
+//   Pie,
+//   Cell,
+//   XAxis,
+//   YAxis,
+//   CartesianGrid,
+//   Tooltip as ReTooltip,
+//   ResponsiveContainer,
+//   RadialBarChart,
+//   RadialBar,
+//   Legend,
+//   Treemap,
+//   Scatter,
+//   ScatterChart
+// } from 'recharts';
+
+// Placeholder components for charts
+const ChartPlaceholder = styled.div`
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  padding: 40px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  
+  &::before {
+    content: '📊';
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+  }
+`;
+
+// Chart component placeholders
+const LineChart = ({ children, ...props }) => (
+  <ChartPlaceholder>Advanced Line Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const AreaChart = ({ children, ...props }) => (
+  <ChartPlaceholder>Advanced Area Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const ReBarChart = ({ children, ...props }) => (
+  <ChartPlaceholder>Advanced Bar Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const RePieChart = ({ children, ...props }) => (
+  <ChartPlaceholder>Advanced Pie Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const ResponsiveContainer = ({ children, ...props }) => <div>{children}</div>;
+const Line = () => null;
+const Area = () => null;
+const Bar = () => null;
+const Pie = () => null;
+const Cell = () => null;
+const XAxis = () => null;
+const YAxis = () => null;
+const CartesianGrid = () => null;
+const ReTooltip = () => null;
+const RadialBarChart = ({ children, ...props }) => (
+  <ChartPlaceholder>Advanced Radial Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const RadialBar = () => null;
+const Legend = () => null;
+const Treemap = ({ children, ...props }) => (
+  <ChartPlaceholder>Advanced Treemap<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const ScatterChart = ({ children, ...props }) => (
+  <ChartPlaceholder>Advanced Scatter Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const Scatter = () => null;
 
 // === STELLAR COMMAND CENTER THEME ===
 const adminGalaxyTheme = {
