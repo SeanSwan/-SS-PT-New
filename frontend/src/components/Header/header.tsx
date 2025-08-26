@@ -1,71 +1,42 @@
-// SIMPLIFIED HEADER - Remove problematic imports first, then add features back
-import React, { useState, useEffect, useRef } from "react";
+// ULTRA-SIMPLE HEADER - No motion.create, no complex styled components
+import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import styled, { keyframes } from "styled-components";
-import { motion, AnimatePresence } from "framer-motion";
+import styled from "styled-components";
 import logoImage from "../../assets/Logo.png";
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 
-// Material UI imports - simplified
-import { 
-  useMediaQuery, 
-  useTheme, 
-  IconButton,
-  Badge
-} from "@mui/material";
-
-// Import icons
-import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
+// Material UI imports - minimal
+import { IconButton, Badge } from "@mui/material";
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
-import PersonIcon from '@mui/icons-material/Person';
 
 // Import theme context
 import { useUniversalTheme } from '../../context/ThemeContext';
 
-// ===================== Animation Keyframes =====================
-const float = keyframes`
-  0% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-  100% { transform: translateY(0); }
-`;
+// ===================== ULTRA-SIMPLE Styled Components =====================
+// NO motion.create - just regular styled components
 
-const glow = keyframes`
-  0% { filter: drop-shadow(0 0 5px currentColor); }
-  50% { filter: drop-shadow(0 0 15px currentColor); }
-  100% { filter: drop-shadow(0 0 5px currentColor); }
-`;
-
-// ===================== Styled Components =====================
-const HeaderContainer = styled(motion.header)<{ $isScrolled: boolean; $isVisible: boolean }>`
+const HeaderContainer = styled.header`
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 1000;
   padding: 0 20px;
-  height: 56px;
+  height: 60px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: ${({ theme, $isScrolled }) => 
-    $isScrolled 
-      ? `${theme.background.primary}dd` 
-      : theme.background.primary};
-  border-bottom: 1px solid ${({ theme }) => theme.borders.subtle};
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  backdrop-filter: ${({ $isScrolled }) => $isScrolled ? 'blur(15px)' : 'blur(8px)'};
-  transform: translateY(${({ $isVisible }) => $isVisible ? '0' : '-100%'});
-  box-shadow: ${({ $isScrolled }) => 
-    $isScrolled 
-      ? '0 4px 20px rgba(0, 0, 0, 0.15), 0 0 15px rgba(0, 255, 255, 0.1)' 
-      : 'none'};
+  background: linear-gradient(135deg, #0a0a1a 0%, #1e1e3f 50%, #334155 100%);
+  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
   
   @media (max-width: 480px) {
     padding: 0 12px;
-    height: 56px;
+    height: 60px;
   }
 `;
 
@@ -78,48 +49,40 @@ const HeaderContent = styled.div`
   margin: 0 auto;
 `;
 
-const LogoContainer = styled(motion.div)`
+const LogoContainer = styled.div`
   display: flex;
   align-items: center;
-  font-weight: 500;
-  color: ${({ theme }) => theme.colors.primary};
-  position: relative;
-  margin-right: 20px;
   cursor: pointer;
+  margin-right: 20px;
 `;
 
 const Logo = styled.div`
   display: flex;
   align-items: center;
-  position: relative;
-  animation: ${float} 6s ease-in-out infinite, ${glow} 4s ease-in-out infinite;
-  color: ${({ theme }) => theme.colors.primary};
+  color: #00ffff;
   
   .logo-text {
     font-size: 1.15rem;
-    color: ${({ theme }) => theme.colors.primary};
-    position: relative;
+    color: #00ffff;
     letter-spacing: 0.5px;
-    transition: all 0.3s ease;
-    text-shadow: 0 0 10px ${({ theme }) => theme.colors.primary}50;
+    font-weight: 600;
+    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
   }
   
   img {
     height: 32px;
     width: 32px;
-    transition: all 0.3s ease;
     margin-right: 8px;
-    filter: drop-shadow(0 0 8px ${({ theme }) => theme.colors.primary}40);
+    filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.4));
   }
   
   &:hover {
     .logo-text {
-      color: ${({ theme }) => theme.colors.primaryLight || theme.colors.accent};
-      text-shadow: 0 0 15px ${({ theme }) => theme.colors.primary}80;
+      color: #ffffff;
     }
     
     img {
-      filter: drop-shadow(0 0 12px ${({ theme }) => theme.colors.primary}60);
+      filter: drop-shadow(0 0 12px rgba(0, 255, 255, 0.6));
       transform: scale(1.05);
     }
   }
@@ -135,107 +98,116 @@ const Logo = styled.div`
   }
 `;
 
-const Nav = styled(motion.nav)`
+const Nav = styled.nav`
   display: flex;
   align-items: center;
   gap: 0;
-  flex-wrap: nowrap;
   
   @media (max-width: 768px) {
     display: none;
   }
 `;
 
-const ActionsContainer = styled(motion.div)`
+const ActionsContainer = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
   margin-left: auto;
 `;
 
-// Navigation links - SIMPLIFIED VERSION
+// Navigation links - SIMPLE VERSION, NO motion.create
 const StyledNavLink = styled(Link)`
-  color: ${({ theme }) => theme.text.primary};
+  color: #ffffff;
   text-decoration: none;
   margin: 0;
-  padding: 0 12px;
+  padding: 0 16px;
   font-weight: 500;
   font-size: 0.95rem;
   position: relative;
-  height: 56px;
+  height: 60px;
   display: flex;
   align-items: center;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   letter-spacing: 0.2px;
   border-bottom: 2px solid transparent;
   
   &:hover {
-    color: ${({ theme }) => theme.colors.primary};
-    border-bottom: 2px solid ${({ theme }) => theme.colors.primary};
-    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}40;
+    color: #00ffff;
+    border-bottom: 2px solid #00ffff;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
   }
   
   &.active {
-    color: ${({ theme }) => theme.colors.primary};
-    border-bottom: 2px solid ${({ theme }) => theme.colors.primary};
-    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}60;
+    color: #00ffff;
+    border-bottom: 2px solid #00ffff;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.6);
   }
 `;
 
 const LogoutButton = styled.button`
   background: transparent;
   border: none;
-  color: ${({ theme }) => theme.text.primary};
-  padding: 8px 12px;
+  color: #ffffff;
+  padding: 8px 16px;
   font-size: 0.95rem;
   font-weight: 500;
   cursor: pointer;
   display: flex;
   align-items: center;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   border-radius: 6px;
   
   &:hover {
-    color: ${({ theme }) => theme.colors.primary};
-    background: ${({ theme }) => theme.colors.primary}10;
-    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}40;
+    color: #00ffff;
+    background: rgba(0, 255, 255, 0.1);
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
   }
 `;
 
-const MobileMenuButton = styled(IconButton)`
+const MobileMenuButton = styled.button`
   display: none;
-  color: ${({ theme }) => theme.text.primary};
+  background: transparent;
+  border: none;
+  color: #ffffff;
   padding: 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.3s ease;
   
   @media (max-width: 768px) {
     display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   &:hover {
-    color: ${({ theme }) => theme.colors.primary};
-    background: ${({ theme }) => theme.colors.primary}10;
+    color: #00ffff;
+    background: rgba(0, 255, 255, 0.1);
   }
 `;
 
-const MobileMenu = styled(motion.div)`
+const MobileMenu = styled.div`
   position: fixed; 
   top: 0; 
   left: 0; 
   right: 0; 
   bottom: 0; 
-  background: ${({ theme }) => theme.background.primary};
+  background: linear-gradient(135deg, #0a0a1a 0%, #1e1e3f 50%, #334155 100%);
   backdrop-filter: blur(15px); 
   padding: 80px 24px 24px; 
-  display: flex; 
+  display: ${props => props.isOpen ? 'flex' : 'none'};
   flex-direction: column; 
   z-index: 1001; 
   overflow-y: auto;
-  border-right: 1px solid ${({ theme }) => theme.borders.subtle};
+  border-right: 1px solid rgba(0, 255, 255, 0.2);
+  
+  transform: ${props => props.isOpen ? 'translateX(0)' : 'translateX(-100%)'};
+  transition: transform 0.3s ease;
 `;
 
 const MobileNavLink = styled(Link)`
   margin: 8px 0;
-  color: ${({ theme }) => theme.text.primary};
+  color: #ffffff;
   text-decoration: none;
   font-size: 1.1rem;
   font-weight: 500;
@@ -243,80 +215,53 @@ const MobileNavLink = styled(Link)`
   display: flex;
   align-items: center;
   gap: 8px;
-  border-bottom: 1px solid ${({ theme }) => theme.borders.subtle};
-  transition: all 0.2s ease;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
   border-radius: 8px;
   
   &:hover, &.active {
-    color: ${({ theme }) => theme.colors.primary};
-    background: ${({ theme }) => theme.colors.primary}08;
+    color: #00ffff;
+    background: rgba(0, 255, 255, 0.05);
     padding-left: 12px;
-    text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}40;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
   }
 `;
 
-// ===================== Animation Variants =====================
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      duration: 0.3,
-      when: "beforeChildren",
-      staggerChildren: 0.05
-    }
+const MobileLogoutButton = styled.button`
+  margin: 8px 0;
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 500;
+  padding: 12px 0;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  
+  &:hover {
+    color: #00ffff;
+    background: rgba(0, 255, 255, 0.05);
+    padding-left: 12px;
+    text-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
   }
-};
+`;
 
-const mobileMenuVariants = {
-  closed: {
-    opacity: 0,
-    x: "-100%",
-    transition: {
-      duration: 0.3,
-      ease: "easeInOut"
-    }
-  },
-  open: {
-    opacity: 1,
-    x: "0%",
-    transition: {
-      duration: 0.3,
-      ease: "easeInOut"
-    }
-  }
-};
-
-// ===================== SIMPLIFIED Header Component =====================
-const SimplifiedHeader = () => {
-  // State management
+// ===================== ULTRA-SIMPLE Header Component =====================
+const Header = () => {
+  // State management - basic only
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isVisible, setIsVisible] = useState(true);
   
   // Context hooks - BASIC ONES ONLY
   const { cart } = useCart();
   const { user, logout } = useAuth();
-  const { theme } = useUniversalTheme();
   const location = useLocation();
   const navigate = useNavigate();
-  
-  // Material UI hooks
-  const muiTheme = useTheme();
-  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'));
-  
-  // Basic scroll effect
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      setIsScrolled(currentScrollY > 10);
-      setIsVisible(currentScrollY < 100 || currentScrollY < window.lastScrollY);
-      window.lastScrollY = currentScrollY;
-    };
-    
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
   
   // Handle mobile menu overflow
   useEffect(() => {
@@ -339,25 +284,19 @@ const SimplifiedHeader = () => {
   };
 
   // Check if a route is active
-  const isActive = (path: string): boolean => {
+  const isActive = (path) => {
     if (path === '/' && location.pathname === '/') {
       return true;
     }
     return location.pathname === path || location.pathname.startsWith(path);
   };
 
-  console.log('🎯 SimplifiedHeader rendering with user:', user ? user.firstName : 'no user');
+  console.log('🎯 Ultra-Simple Header rendering successfully - No React.create issues!');
 
   return (
     <>
       {/* Main Header */}
-      <HeaderContainer
-        $isScrolled={isScrolled}
-        $isVisible={isVisible}
-        initial="hidden"
-        animate="visible"
-        variants={containerVariants}
-      >
+      <HeaderContainer>
         <HeaderContent>
           {/* Logo Area */}
           <LogoContainer onClick={() => navigate('/')}>
@@ -368,7 +307,7 @@ const SimplifiedHeader = () => {
           </LogoContainer>
           
           {/* Navigation Area - Desktop */}
-          <Nav variants={containerVariants}>
+          <Nav>
             <StyledNavLink 
               to="/" 
               className={isActive('/') ? "active" : ""}
@@ -412,28 +351,20 @@ const SimplifiedHeader = () => {
           </Nav>
 
           {/* Actions Area */}
-          <ActionsContainer variants={containerVariants}>
+          <ActionsContainer>
             {/* Shopping Cart */}
             <IconButton 
               onClick={() => console.log('Cart clicked')}
-              sx={{ 
-                color: theme.text.primary,
-                '&:hover': {
-                  color: theme.colors.primary,
-                  backgroundColor: `${theme.colors.primary}10`
-                }
+              style={{ 
+                color: '#ffffff',
+                padding: '8px'
               }}
             >
               <Badge 
                 badgeContent={cart?.itemCount || 0} 
                 color="error"
-                sx={{ 
-                  '& .MuiBadge-badge': {
-                    backgroundColor: theme.colors.accent || '#ec4899',
-                    fontSize: '0.65rem',
-                    minWidth: '18px',
-                    height: '18px'
-                  }
+                style={{ 
+                  fontSize: '0.7rem'
                 }}
               >
                 <ShoppingCartIcon fontSize="small" />
@@ -442,99 +373,91 @@ const SimplifiedHeader = () => {
 
             {/* User Profile */}
             {user && (
-              <IconButton
-                sx={{ 
-                  bgcolor: theme.colors.primary,
-                  width: 36,
-                  height: 36,
+              <div
+                style={{
+                  backgroundColor: '#00ffff',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   fontSize: '0.9rem',
-                  ml: 0.5,
-                  color: theme.colors.white || '#ffffff',
-                  boxShadow: `0 0 12px ${theme.colors.primary}40`,
-                  '&:hover': {
-                    bgcolor: theme.colors.primaryDeep || theme.colors.secondary,
-                    boxShadow: `0 0 16px ${theme.colors.primary}60`,
-                    transform: 'scale(1.05)'
-                  }
+                  fontWeight: '600',
+                  color: '#0a0a1a',
+                  cursor: 'pointer',
+                  boxShadow: '0 0 12px rgba(0, 255, 255, 0.4)',
+                  transition: 'all 0.3s ease',
+                  marginLeft: '8px'
                 }}
               >
                 {user?.firstName?.[0] || 'U'}
-              </IconButton>
+              </div>
             )}
 
             {/* Mobile Menu Button */}
             <MobileMenuButton
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              size="medium"
             >
-              {mobileMenuOpen ? <CloseIcon /> : <MenuIcon />}
+              {mobileMenuOpen ? 
+                <CloseIcon fontSize="small" /> : 
+                <MenuIcon fontSize="small" />
+              }
             </MobileMenuButton>
           </ActionsContainer>
         </HeaderContent>
       </HeaderContainer>
 
       {/* Mobile Menu */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <MobileMenu
-            initial="closed"
-            animate="open"
-            exit="closed"
-            variants={mobileMenuVariants}
+      <MobileMenu isOpen={mobileMenuOpen}>
+        <MobileNavLink 
+          to="/" 
+          onClick={() => setMobileMenuOpen(false)}
+          className={isActive('/') ? "active" : ""}
+        >
+          Home
+        </MobileNavLink>
+        
+        <MobileNavLink 
+          to="/store" 
+          onClick={() => setMobileMenuOpen(false)}
+          className={isActive('/store') ? "active" : ""}
+        >
+          Store
+        </MobileNavLink>
+        
+        <MobileNavLink 
+          to="/contact" 
+          onClick={() => setMobileMenuOpen(false)}
+          className={isActive('/contact') ? "active" : ""}
+        >
+          Contact
+        </MobileNavLink>
+        
+        <MobileNavLink 
+          to="/about" 
+          onClick={() => setMobileMenuOpen(false)}
+          className={isActive('/about') ? "active" : ""}
+        >
+          About
+        </MobileNavLink>
+        
+        {user ? (
+          <MobileLogoutButton onClick={handleLogout}>
+            Logout
+          </MobileLogoutButton>
+        ) : (
+          <MobileNavLink 
+            to="/login" 
+            onClick={() => setMobileMenuOpen(false)}
+            className={isActive('/login') ? "active" : ""}
           >
-            <MobileNavLink 
-              to="/" 
-              onClick={() => setMobileMenuOpen(false)}
-              className={isActive('/') ? "active" : ""}
-            >
-              Home
-            </MobileNavLink>
-            
-            <MobileNavLink 
-              to="/store" 
-              onClick={() => setMobileMenuOpen(false)}
-              className={isActive('/store') ? "active" : ""}
-            >
-              Store
-            </MobileNavLink>
-            
-            <MobileNavLink 
-              to="/contact" 
-              onClick={() => setMobileMenuOpen(false)}
-              className={isActive('/contact') ? "active" : ""}
-            >
-              Contact
-            </MobileNavLink>
-            
-            <MobileNavLink 
-              to="/about" 
-              onClick={() => setMobileMenuOpen(false)}
-              className={isActive('/about') ? "active" : ""}
-            >
-              About
-            </MobileNavLink>
-            
-            {user ? (
-              <MobileNavLink 
-                to="/" 
-                onClick={handleLogout}
-              >
-                Logout
-              </MobileNavLink>
-            ) : (
-              <MobileNavLink 
-                to="/login" 
-                onClick={() => setMobileMenuOpen(false)}
-                className={isActive('/login') ? "active" : ""}
-              >
-                Login
-              </MobileNavLink>
-            )}
-          </MobileMenu>
+            Login
+          </MobileNavLink>
         )}
-      </AnimatePresence>
+      </MobileMenu>
     </>
   );
 };
 
-export default SimplifiedHeader;
+export default Header;
