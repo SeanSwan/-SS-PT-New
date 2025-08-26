@@ -36,13 +36,75 @@ import {
   ArrowUp, ArrowDown, Minus, Plus, Star, Shield, Clock
 } from 'lucide-react';
 
-// Advanced charting components
-import {
-  LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-  ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis,
-  PolarRadiusAxis, Radar, ComposedChart
-} from 'recharts';
+// Advanced charting components - REMOVED RECHARTS FOR BUILD STABILITY
+// Charts temporarily replaced with placeholders - data collection still functional
+// import {
+//   LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+//   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+//   ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis,
+//   PolarRadiusAxis, Radar, ComposedChart
+// } from 'recharts';
+
+// Chart component placeholders
+const ChartPlaceholder = styled.div`
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  padding: 40px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  
+  &::before {
+    content: '📊';
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+  }
+`;
+
+const LineChart = ({ children, ...props }) => (
+  <ChartPlaceholder>Enterprise Line Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const AreaChart = ({ children, ...props }) => (
+  <ChartPlaceholder>Enterprise Area Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const BarChart = ({ children, ...props }) => (
+  <ChartPlaceholder>Enterprise Bar Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const PieChart = ({ children, ...props }) => (
+  <ChartPlaceholder>Enterprise Pie Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const ScatterChart = ({ children, ...props }) => (
+  <ChartPlaceholder>Enterprise Scatter Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const RadarChart = ({ children, ...props }) => (
+  <ChartPlaceholder>Enterprise Radar Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const ComposedChart = ({ children, ...props }) => (
+  <ChartPlaceholder>Enterprise Composed Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const ResponsiveContainer = ({ children, ...props }) => <div>{children}</div>;
+const Line = () => null;
+const Area = () => null;
+const Bar = () => null;
+const Pie = () => null;
+const Cell = () => null;
+const XAxis = () => null;
+const YAxis = () => null;
+const CartesianGrid = () => null;
+const Tooltip = () => null;
+const Legend = () => null;
+const Scatter = () => null;
+const PolarGrid = () => null;
+const PolarAngleAxis = () => null;
+const PolarRadiusAxis = () => null;
+const Radar = () => null;
 
 // Import Enterprise Admin API Service for real data integration
 import enterpriseAdminApiService from '../../../../../../services/enterpriseAdminApiService';

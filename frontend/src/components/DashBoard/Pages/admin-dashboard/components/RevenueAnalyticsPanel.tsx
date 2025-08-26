@@ -30,24 +30,76 @@ import {
   CheckCircle, Clock, CreditCard, Zap, Star, Building,
   Globe, Briefcase, Activity, ArrowUp, ArrowDown
 } from 'lucide-react';
-import {
-  LineChart as ReLineChart,
-  Line,
-  AreaChart,
-  Area,
-  BarChart as ReBarChart,
-  Bar,
-  PieChart as RePieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-  ComposedChart
-} from 'recharts';
+// REMOVED RECHARTS IMPORTS FOR BUILD STABILITY
+// Charts temporarily replaced with placeholders - data collection still functional
+// import {
+//   LineChart as ReLineChart,
+//   Line,
+//   AreaChart,
+//   Area,
+//   BarChart as ReBarChart,
+//   Bar,
+//   PieChart as RePieChart,
+//   Pie,
+//   Cell,
+//   XAxis,
+//   YAxis,
+//   CartesianGrid,
+//   Tooltip,
+//   ResponsiveContainer,
+//   Legend,
+//   ComposedChart
+// } from 'recharts';
+
+// Chart component placeholders
+const ChartPlaceholder = styled.div`
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  padding: 40px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  text-align: center;
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  
+  &::before {
+    content: '📊';
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+  }
+`;
+
+const ReLineChart = ({ children, ...props }) => (
+  <ChartPlaceholder>Revenue Line Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const AreaChart = ({ children, ...props }) => (
+  <ChartPlaceholder>Revenue Area Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const ReBarChart = ({ children, ...props }) => (
+  <ChartPlaceholder>Revenue Bar Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const RePieChart = ({ children, ...props }) => (
+  <ChartPlaceholder>Revenue Pie Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const ComposedChart = ({ children, ...props }) => (
+  <ChartPlaceholder>Revenue Composed Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+);
+const ResponsiveContainer = ({ children, ...props }) => <div>{children}</div>;
+const Line = () => null;
+const Area = () => null;
+const Bar = () => null;
+const Pie = () => null;
+const Cell = () => null;
+const XAxis = () => null;
+const YAxis = () => null;
+const CartesianGrid = () => null;
+const Tooltip = () => null;
+const Legend = () => null;
 
 // =====================================================
 // STYLED COMPONENTS - EXECUTIVE GRADE DESIGN
