@@ -202,12 +202,19 @@ const YAxis = () => null;
 const CartesianGrid = () => null;
 const ReTooltip = () => null;
 const Legend = () => null;
-  RadialBarChart,
-  RadialBar,
-  Treemap,
-  FunnelChart,
-  Funnel
-} from 'recharts';
+
+// REMOVED REMAINING RECHARTS REMNANTS - FunnelChart, RadialBarChart, etc.
+// const RadialBarChart = ({ children, ...props }) => (
+//   <ChartPlaceholder>Security Radial Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+// );
+// const RadialBar = () => null;
+// const Treemap = ({ children, ...props }) => (
+//   <ChartPlaceholder>Security Treemap<br/>Chart data available when recharts is restored</ChartPlaceholder>
+// );
+// const FunnelChart = ({ children, ...props }) => (
+//   <ChartPlaceholder>Security Funnel Chart<br/>Chart data available when recharts is restored</ChartPlaceholder>
+// );
+// const Funnel = () => null;
 
 import { styled } from '@mui/material/styles';
 
