@@ -9,6 +9,7 @@
 
 import { configureStore } from '@reduxjs/toolkit';
 import scheduleReducer from './slices/scheduleSlice';
+import gamificationReducer from './slices/gamificationSlice';
 import notificationReducer from '../store/slices/notificationSlice';
 import authReducer from '../store/slices/authSlice';
 import uiReducer from '../store/slices/uiSlice';
@@ -18,6 +19,7 @@ import appReducer from '../store/slices/appSlice';
 export const store = configureStore({
   reducer: {
     schedule: scheduleReducer,
+    gamification: gamificationReducer,
     notifications: notificationReducer,
     auth: authReducer,
     ui: uiReducer,
