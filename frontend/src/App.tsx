@@ -38,7 +38,7 @@ import clearMockTokens from './utils/clearMockTokens';
 import './utils/initTokenCleanup';
 
 // EMERGENCY ICON FIX
-import './utils/globalIconShim';
+import './utils/globalIconShim.jsx';
 
 // Styles
 import './App.css';

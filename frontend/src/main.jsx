@@ -5,7 +5,7 @@ import App from './App';
 import './index.css';
 
 // GLOBAL ICON SHIM - Fix FaArrowLeft error before app loads
-import './utils/globalIconShim';
+import './utils/globalIconShim.jsx';
 
 console.log('🚀 EMERGENCY FIX: Loading your ORIGINAL SwanStudios homepage with icon fixes...');
 
