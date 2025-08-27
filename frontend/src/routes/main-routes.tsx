@@ -178,10 +178,10 @@ const UnauthorizedPage = lazyLoadWithErrorHandling(
   'Unauthorized Page'
 );
 
-// Schedule Related Components - Now Using Connected Version
-const ConnectedAdminScheduleIntegration = lazyLoadWithErrorHandling(
-  () => import('../components/UniversalMasterSchedule/ConnectedAdminScheduleIntegration'),
-  'Connected Admin Schedule Integration'
+// Schedule Related Components - Emergency Safe Version
+const EmergencyAdminScheduleIntegration = lazyLoadWithErrorHandling(
+  () => import('../components/UniversalMasterSchedule/EmergencyAdminScheduleIntegration'),
+  'Emergency Admin Schedule Integration'
 );
 
 // Checkout Pages - Genesis Checkout System
@@ -550,13 +550,13 @@ const MainRoutes: RouteObject = {
       element: <Navigate to="/store" replace />
     },
     
-    // Schedule Route - Using Connected Universal Master Schedule
+    // Schedule Route - Using Emergency Safe Version
     {
       path: 'schedule',
       element: (
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
-            <ConnectedAdminScheduleIntegration />
+            <EmergencyAdminScheduleIntegration />
           </Suspense>
         </ProtectedRoute>
       )
