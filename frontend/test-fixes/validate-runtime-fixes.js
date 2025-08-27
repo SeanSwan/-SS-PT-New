@@ -61,7 +61,30 @@ criticalFiles.forEach(file => {
   }
 });
 
-// Test 4: Check HomePage component is properly structured
+// Test 4: Check App.tsx has conditional rendering for non-essential components
+if (fs.existsSync(appPath)) {
+  const appContent = fs.readFileSync(appPath, 'utf8');
+  
+  if (appContent.includes('if (connection)')) {
+    fixes.push('✅ App.tsx has conditional connection components');
+  } else {
+    issues.push('❌ App.tsx missing conditional connection rendering');
+  }
+  
+  if (appContent.includes('process.env.NODE_ENV === \'development\'')) {
+    fixes.push('✅ App.tsx has conditional development components');
+  } else {
+    issues.push('❌ App.tsx missing conditional development rendering');
+  }
+  
+  if (appContent.includes('<ErrorBoundary>')) {
+    fixes.push('✅ App.tsx has ErrorBoundary wrapper');
+  } else {
+    issues.push('❌ App.tsx missing ErrorBoundary wrapper');
+  }
+}
+
+// Test 5: Check HomePage component is properly structured
 const homePagePath = path.join(srcPath, 'pages/HomePage/components/HomePage.component.tsx');
 if (fs.existsSync(homePagePath)) {
   const homePageContent = fs.readFileSync(homePagePath, 'utf8');
@@ -76,6 +99,23 @@ if (fs.existsSync(homePagePath)) {
     fixes.push('✅ HomePage contains SwanStudios branding');
   } else {
     issues.push('❌ HomePage missing branding');
+  }
+}
+
+// Test 6: Check initialization error handling
+if (fs.existsSync(appPath)) {
+  const appContent = fs.readFileSync(appPath, 'utf8');
+  
+  if (appContent.includes('initializeApiMonitoring') && appContent.includes('try') && appContent.includes('catch')) {
+    fixes.push('✅ App.tsx has protected API monitoring initialization');
+  } else {
+    issues.push('❌ App.tsx missing protected API monitoring initialization');
+  }
+  
+  if (appContent.includes('setupNotifications') && appContent.includes('try') && appContent.includes('catch')) {
+    fixes.push('✅ App.tsx has protected notification setup');
+  } else {
+    issues.push('❌ App.tsx missing protected notification setup');
   }
 }
 
