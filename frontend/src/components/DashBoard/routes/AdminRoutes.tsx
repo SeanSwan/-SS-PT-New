@@ -12,7 +12,7 @@ import { CircularProgress, Box } from '@mui/material';
 
 // Lazy load admin components for performance
 const ClientManagementDashboard = React.lazy(() => import('../Pages/admin-clients/ClientManagementDashboard'));
-const UniversalMasterSchedule = React.lazy(() => import('../../UniversalMasterSchedule/UniversalMasterSchedule'));
+const ConnectedAdminScheduleIntegration = React.lazy(() => import('../../UniversalMasterSchedule/ConnectedAdminScheduleIntegration'));
 const RevolutionaryAdminDashboard = React.lazy(() => import('../Pages/admin-dashboard/admin-dashboard-view'));
 const TrainersManagementSection = React.lazy(() => import('../Pages/admin-dashboard/TrainersManagementSection'));
 const RevenueAnalyticsPanel = React.lazy(() => import('../Pages/admin-dashboard/components/RevenueAnalyticsPanel'));
@@ -42,8 +42,8 @@ const AdminRoutes: React.FC = () => {
         <Route path="/clients/:clientId" element={<ClientManagementDashboard />} />
         
         {/* SCHEDULING - Universal Master Schedule */}
-        <Route path="/schedule" element={<UniversalMasterSchedule />} />
-        <Route path="/master-schedule" element={<UniversalMasterSchedule />} />
+        <Route path="/schedule" element={<ConnectedAdminScheduleIntegration />} />
+        <Route path="/master-schedule" element={<ConnectedAdminScheduleIntegration />} />
         
         {/* TRAINER MANAGEMENT */}
         <Route path="/trainers" element={<TrainersManagementSection />} />
