@@ -47,7 +47,7 @@ const setupAssociations = async () => {
 
     // Social Models (Sequelize)
     const SocialModels = await import('./social/index.mjs');
-    const { SocialPost, SocialComment, SocialLike, Friendship, Challenge, ChallengeParticipant, ChallengeTeam, PostReport, ModerationAction } = SocialModels;
+    const { SocialPost, SocialComment, SocialLike, Friendship, Challenge: SocialChallenge, ChallengeParticipant: SocialChallengeParticipant, ChallengeTeam, PostReport, ModerationAction } = SocialModels;
 
     // Workout Models (Sequelize)
     const WorkoutPlanModule = await import('./WorkoutPlan.mjs');
@@ -197,7 +197,7 @@ const setupAssociations = async () => {
         UserAchievement, UserReward, UserMilestone, Reward, Milestone, 
         PointTransaction, StorefrontItem, ShoppingCart, CartItem, Order, 
         OrderItem, FoodIngredient, FoodProduct, FoodScanHistory, 
-        SocialPost, SocialComment, SocialLike, Friendship, Challenge, ChallengeParticipant, ChallengeTeam,
+        SocialPost, SocialComment, SocialLike, Friendship, SocialChallenge, SocialChallengeParticipant, ChallengeTeam,
         PostReport, ModerationAction,
         WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, WorkoutSession, WorkoutExercise, Exercise, Set,
         MuscleGroup, ExerciseMuscleGroup, Equipment, ExerciseEquipment,
@@ -566,6 +566,8 @@ const setupAssociations = async () => {
       SocialComment,
       SocialLike,
       Friendship,
+      SocialChallenge,
+      SocialChallengeParticipant,
       ChallengeTeam,
       
       // Content Moderation Models
