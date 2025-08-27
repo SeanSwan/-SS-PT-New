@@ -13,8 +13,8 @@ import { CartProvider } from './context/CartContext';
 import { SessionProvider } from './context/SessionContext';
 import { ConfigProvider } from './context/ConfigContext';
 import { UniversalThemeProvider } from './context/ThemeContext';
-import MenuStateProvider from './hooks/useMenuState.tsx';
-import { ConnectionStatusBanner, useBackendConnection } from './hooks/useBackendConnection.jsx';
+import MenuStateProvider from './hooks/useMenuState';
+import { ConnectionStatusBanner, useBackendConnection } from './hooks/useBackendConnection';
 
 // Development Tools
 import { DevToolsProvider } from './components/DevTools';
@@ -25,6 +25,7 @@ import { TouchGestureProvider, PWAInstallPrompt, NetworkStatus } from './compone
 
 // Routes configuration - YOUR ORIGINAL ROUTES
 import MainRoutes from './routes/main-routes';
+import ErrorBoundary from './routes/error-boundary';
 
 // Store
 import { store, RootState } from './redux/store';
@@ -38,7 +39,7 @@ import clearMockTokens from './utils/clearMockTokens';
 import './utils/initTokenCleanup';
 
 // EMERGENCY ICON FIX
-import './utils/globalIconShim.jsx';
+import './utils/globalIconShim';
 
 // Styles
 import './App.css';
@@ -92,9 +93,22 @@ const AppContent = () => {
   const isDarkMode = useSelector((state: RootState) => state.ui?.isDarkMode || false);
   const isInitialized = useSelector((state: RootState) => state.app?.isInitialized || false);
   
-  const connection = useBackendConnection();
+  let connection = null;
+  try {
+    connection = useBackendConnection();
+  } catch (connectionError) {
+    console.warn('Backend connection hook failed:', connectionError);
+    connection = null;
+  }
   const dispatch = useDispatch();
-  const [deviceCapability] = React.useState(() => detectDeviceCapability());
+  const [deviceCapability] = React.useState(() => {
+    try {
+      return detectDeviceCapability();
+    } catch (deviceError) {
+      console.warn('Device capability detection failed:', deviceError);
+      return 'basic';
+    }
+  });
   
   // Set router context flag
   useEffect(() => {
@@ -104,7 +118,7 @@ const AppContent = () => {
     };
   }, []);
   
-  // Initialize app
+  // Initialize app with error handling
   const initializationRef = React.useRef(false);
   
   useEffect(() => {
@@ -115,18 +129,26 @@ const AppContent = () => {
     initializationRef.current = true;
     console.log('Running SwanStudios initialization...');
     
-    dispatch(setInitialized(true));
-    
-    const hadMockTokens = clearMockTokens();
-    if (hadMockTokens) {
-      console.log('🔄 Cleared mock tokens, please login again with real credentials');
+    try {
+      dispatch(setInitialized(true));
+      
+      const hadMockTokens = clearMockTokens();
+      if (hadMockTokens) {
+        console.log('🔄 Cleared mock tokens, please login again with real credentials');
+      }
+      
+      initializeMockData();
+      
+      setTimeout(() => {
+        try {
+          initializeApiMonitoring();
+        } catch (apiError) {
+          console.warn('API monitoring initialization failed:', apiError);
+        }
+      }, 500);
+    } catch (initError) {
+      console.error('App initialization failed:', initError);
     }
-    
-    initializeMockData();
-    
-    setTimeout(() => {
-      initializeApiMonitoring();
-    }, 500);
   }, [dispatch]);
   
   // Initialize notifications when user is authenticated
@@ -134,26 +156,48 @@ const AppContent = () => {
     let cleanupNotifications: (() => void) | null = null;
     
     if (isAuthenticated && user) {
-      cleanupNotifications = setupNotifications();
+      try {
+        cleanupNotifications = setupNotifications();
+      } catch (notifError) {
+        console.warn('Notification setup failed:', notifError);
+      }
     }
     
     return () => {
       if (cleanupNotifications) {
-        cleanupNotifications();
+        try {
+          cleanupNotifications();
+        } catch (cleanupError) {
+          console.warn('Notification cleanup failed:', cleanupError);
+        }
       }
     };
   }, [isAuthenticated, user]);
   
   return (
     <>
-      <CosmicEleganceGlobalStyle deviceCapability={deviceCapability} />
+      {/* Global Styles with error boundary */}
+      {React.createElement(() => {
+        try {
+          return <CosmicEleganceGlobalStyle deviceCapability={deviceCapability} />;
+        } catch (styleError) {
+          console.warn('Global style initialization failed:', styleError);
+          return null;
+        }
+      })}
       
       {/* Network & Connection Status */}
-      <NetworkStatus position="top" autoHide={true} />
-      <ConnectionStatusBanner connection={connection} />
+      {connection && (
+        <>
+          <NetworkStatus position="top" autoHide={true} />
+          <ConnectionStatusBanner connection={connection} />
+        </>
+      )}
       
       {/* Development Tools */}
-      <ThemeStatusIndicator enabled={process.env.NODE_ENV === 'development'} />
+      {process.env.NODE_ENV === 'development' && (
+        <ThemeStatusIndicator enabled={true} />
+      )}
       
       {/* YOUR ORIGINAL ROUTER WITH LAYOUT AND HEADER */}
       <RouterProvider router={router} />
@@ -165,7 +209,7 @@ const AppContent = () => {
 };
 
 const App = () => {
-  console.log('✅ RESTORED: Loading your ORIGINAL SwanStudios with proper header...');
+  console.log('✅ FIXED: Loading SwanStudios with error handling...');
   
   return (
     <QueryClientProvider client={queryClient}>
@@ -183,7 +227,9 @@ const App = () => {
                           <SessionProvider>
                             <TouchGestureProvider>
                               <DevToolsProvider>
-                                <AppContent />
+                                <ErrorBoundary>
+                                  <AppContent />
+                                </ErrorBoundary>
                               </DevToolsProvider>
                             </TouchGestureProvider>
                           </SessionProvider>

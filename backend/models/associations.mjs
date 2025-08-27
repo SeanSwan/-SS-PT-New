@@ -447,24 +447,6 @@ const setupAssociations = async () => {
     // Admin Notifications -> Read By (admin user)
     AdminNotification.belongsTo(User, { foreignKey: 'readBy', as: 'readByUser' });
 
-    // ENHANCED GAMIFICATION ASSOCIATIONS
-    // =====================================
-
-    // User -> Goals
-    User.hasMany(Goal, { foreignKey: 'userId', as: 'goals' });
-    Goal.belongsTo(User, { foreignKey: 'userId', as: 'user' });
-    
-    // User -> Progress Data
-    User.hasMany(ProgressData, { foreignKey: 'userId', as: 'progressData' });
-    ProgressData.belongsTo(User, { foreignKey: 'userId', as: 'user' });
-    
-    // User -> Social Following (Enhanced)
-    User.hasMany(UserFollow, { foreignKey: 'followerId', as: 'following' });
-    User.hasMany(UserFollow, { foreignKey: 'followingId', as: 'followers' });
-    
-    UserFollow.belongsTo(User, { foreignKey: 'followerId', as: 'follower' });
-    UserFollow.belongsTo(User, { foreignKey: 'followingId', as: 'following' });
-
     // ENHANCED EXISTING ASSOCIATIONS
     // ==============================
     // Challenge -> Goals (challenges can have related goals)
