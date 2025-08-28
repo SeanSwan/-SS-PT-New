@@ -1,21 +1,22 @@
-/**
- * HEADER TEST - Uses TestApp to bypass complex Header dependencies
- * This will help identify if the Header is causing the blank page
- */
+// EMERGENCY REACT RUNTIME FIX - Clean React initialization
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import TestApp from './TestApp';
+import App from './App';
 import './index.css';
 
-console.log('🧪 HEADER TEST: Testing if complex Header is causing blank page...');
+// GLOBAL ICON SHIM - Fix FaArrowLeft error before app loads
+import './utils/globalIconShim';
 
+console.log('🚀 EMERGENCY FIX: Loading your ORIGINAL SwanStudios homepage with icon fixes...');
+
+// Clean React initialization - no complex utilities that cause loops
 const rootElement = document.getElementById('root');
 
 if (rootElement) {
-  console.log('✅ Root element found - rendering TEST APP (Header bypassed)');
+  console.log('✅ Root element found - rendering YOUR ORIGINAL HOMEPAGE');
   const root = ReactDOM.createRoot(rootElement);
-  root.render(<TestApp />);
-  console.log('✅ TEST APP LOADED - Check if page displays!');
+  root.render(<App />);
+  console.log('✅ YOUR SWANSTUDIOS HOMEPAGE IS LOADING!');
 } else {
   console.error('❌ Root element not found');
 }
