@@ -1,4 +1,4 @@
-// PHASE 4: REDUX STORE - Adding Redux systematically
+// PHASE 5: CONTEXT PROVIDERS - Adding context providers systematically
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
@@ -7,13 +7,19 @@ import { Provider, useSelector, useDispatch } from 'react-redux';
 // Import your Redux store
 import { store } from './redux/store';
 
+// PHASE 5: Add Context Providers one by one
+import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
+// import { CartProvider } from './context/CartContext';  // ADD NEXT IF THIS WORKS
+// import { SessionProvider } from './context/SessionContext';  // ADD NEXT IF THIS WORKS
+
 // Minimal styles only
 import './index.css';
 
-console.log('🚀 PHASE 4: Adding Redux store to SwanStudios...');
+console.log('🚀 PHASE 5: Adding Context Providers to SwanStudios...');
 
-// Test Redux component
-const ReduxTest = () => {
+// Test Context Providers component
+const ContextTest = () => {
   const dispatch = useDispatch();
   
   // Try to access different parts of your Redux store safely
@@ -23,18 +29,29 @@ const ReduxTest = () => {
   
   return (
     <div style={{
-      background: 'rgba(16, 185, 129, 0.1)',
+      background: 'rgba(139, 92, 246, 0.1)',
       padding: '1.5rem',
       borderRadius: '12px',
-      border: '1px solid rgba(16, 185, 129, 0.3)',
+      border: '1px solid rgba(139, 92, 246, 0.3)',
       marginTop: '1rem'
     }}>
-      <h3 style={{ color: '#10b981', marginBottom: '1rem' }}>🔄 Redux Store Test</h3>
+      <h3 style={{ color: '#8b5cf6', marginBottom: '1rem' }}>🔄 Context Providers Test</h3>
       
       <div style={{ color: '#e2e8f0', fontSize: '0.875rem' }}>
-        <p><strong>Auth State:</strong> {authState ? '✅ Connected' : '❌ Missing'}</p>
-        <p><strong>UI State:</strong> {uiState ? '✅ Connected' : '❌ Missing'}</p>
-        <p><strong>App State:</strong> {appState ? '✅ Connected' : '❌ Missing'}</p>
+        <p><strong>Redux Auth State:</strong> {authState ? '✅ Connected' : '❌ Missing'}</p>
+        <p><strong>Redux UI State:</strong> {uiState ? '✅ Connected' : '❌ Missing'}</p>
+        <p><strong>Redux App State:</strong> {appState ? '✅ Connected' : '❌ Missing'}</p>
+        
+        <div style={{ marginTop: '1rem' }}>
+          <p><strong>Context Providers Active:</strong></p>
+          <ul style={{ margin: '0.5rem 0', paddingLeft: '1rem' }}>
+            <li>✅ AuthProvider</li>
+            <li>✅ ToastProvider</li>
+            <li>⏳ CartProvider (next)</li>
+            <li>⏳ SessionProvider (next)</li>
+            <li>⏳ Others (later)</li>
+          </ul>
+        </div>
         
         <div style={{ marginTop: '1rem', padding: '0.5rem', background: 'rgba(0,0,0,0.2)', borderRadius: '4px' }}>
           <p style={{ margin: 0, fontSize: '0.75rem' }}>
@@ -46,15 +63,15 @@ const ReduxTest = () => {
   );
 };
 
-// Simple components for testing routing + Redux
+// Simple components for testing routing + Redux + Context
 const HomePage = () => (
   <div style={{ padding: '2rem' }}>
     <h2 style={{ color: '#00ffff', marginBottom: '1rem' }}>🏠 Home Page</h2>
     <p style={{ color: '#e2e8f0', marginBottom: '1rem' }}>
-      Welcome to SwanStudios! Testing React Router + Redux integration.
+      Welcome to SwanStudios! Testing React Router + Redux + Context Providers.
     </p>
     
-    <ReduxTest />
+    <ContextTest />
     
     <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
       <Link 
@@ -92,7 +109,7 @@ const AboutPage = () => (
       Revolutionary gamified fitness social ecosystem with AI-powered personal training.
     </p>
     
-    <ReduxTest />
+    <ContextTest />
     
     <div style={{ marginTop: '1rem' }}>
       <Link 
@@ -118,7 +135,7 @@ const StorePage = () => (
       Training packages, supplements, and fitness gear coming soon!
     </p>
     
-    <ReduxTest />
+    <ContextTest />
     
     <div style={{ marginTop: '1rem' }}>
       <Link 
@@ -137,7 +154,7 @@ const StorePage = () => (
   </div>
 );
 
-const SwanStudiosWithRedux = () => {
+const SwanStudiosWithContext = () => {
   return (
     <div style={{
       background: 'linear-gradient(135deg, #0a0a1a, #1e1e3f)',
@@ -207,16 +224,26 @@ const SwanStudiosWithRedux = () => {
             Store
           </Link>
           
-          {/* Redux Status Indicator */}
-          <div style={{
-            marginLeft: 'auto',
-            padding: '0.25rem 0.75rem',
-            background: 'rgba(16, 185, 129, 0.2)',
-            borderRadius: '12px',
-            fontSize: '0.75rem',
-            color: '#10b981'
-          }}>
-            🔄 Redux Active
+          {/* Status Indicators */}
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem' }}>
+            <div style={{
+              padding: '0.25rem 0.75rem',
+              background: 'rgba(16, 185, 129, 0.2)',
+              borderRadius: '12px',
+              fontSize: '0.75rem',
+              color: '#10b981'
+            }}>
+              🔄 Redux
+            </div>
+            <div style={{
+              padding: '0.25rem 0.75rem',
+              background: 'rgba(139, 92, 246, 0.2)',
+              borderRadius: '12px',
+              fontSize: '0.75rem',
+              color: '#8b5cf6'
+            }}>
+              🎯 Context
+            </div>
           </div>
         </div>
       </nav>
@@ -245,10 +272,10 @@ const SwanStudiosWithRedux = () => {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <p style={{ color: '#64748b', margin: 0 }}>
-            SwanStudios Platform - Phase 4: Redux Integration ✅
+            SwanStudios Platform - Phase 5: Context Providers ✅
           </p>
           <div style={{ color: '#10b981', fontSize: '0.875rem' }}>
-            ✅ React Router + Redux Working
+            ✅ React Router + Redux + Context Working
           </div>
         </div>
       </footer>
@@ -256,12 +283,16 @@ const SwanStudiosWithRedux = () => {
   );
 };
 
-// Main App with Redux Provider
+// Main App with Redux Provider + Context Providers
 const App = () => (
   <Provider store={store}>
-    <BrowserRouter>
-      <SwanStudiosWithRedux />
-    </BrowserRouter>
+    <AuthProvider>
+      <ToastProvider>
+        <BrowserRouter>
+          <SwanStudiosWithContext />
+        </BrowserRouter>
+      </ToastProvider>
+    </AuthProvider>
   </Provider>
 );
 
@@ -269,7 +300,7 @@ const rootElement = document.getElementById('root');
 if (rootElement) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(<App />);
-  console.log('✅ PHASE 4: SwanStudios with Redux rendered successfully');
+  console.log('✅ PHASE 5: SwanStudios with Context Providers rendered successfully');
 } else {
   console.error('❌ Root element not found');
 }
