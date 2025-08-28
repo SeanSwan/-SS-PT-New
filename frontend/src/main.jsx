@@ -1,4 +1,4 @@
-// PHASE 5B: MORE CONTEXT PROVIDERS - Adding Cart + Session providers
+// PHASE 5C: THEME + CONFIG PROVIDERS - Testing the likely culprits
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
@@ -7,18 +7,18 @@ import { Provider, useSelector, useDispatch } from 'react-redux';
 // Import your Redux store
 import { store } from './redux/store';
 
-// PHASE 5B: Add more Context Providers
+// PHASE 5C: Add the likely culprit providers (Theme-related)
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
-import { CartProvider } from './context/CartContext';  // ADDING THIS
-import { SessionProvider } from './context/SessionContext';  // ADDING THIS
-// import { ConfigProvider } from './context/ConfigProvider';  // ADD NEXT IF THIS WORKS
-// import { UniversalThemeProvider } from './context/ThemeContext';  // ADD NEXT IF THIS WORKS
+import { CartProvider } from './context/CartContext';
+import { SessionProvider } from './context/SessionContext';
+import { ConfigProvider } from './context/ConfigProvider';  // TESTING THIS ONE
+// import { UniversalThemeProvider } from './context/ThemeContext';  // TEMPORARILY DISABLED
 
 // Minimal styles only
 import './index.css';
 
-console.log('🚀 PHASE 5B: Adding MORE Context Providers to SwanStudios...');
+console.log('🎯 PHASE 5C-A: Testing ConfigProvider ONLY (UniversalThemeProvider disabled)...');
 
 // Test Context Providers component
 const ContextTest = () => {
@@ -31,13 +31,13 @@ const ContextTest = () => {
   
   return (
     <div style={{
-      background: 'rgba(139, 92, 246, 0.1)',
+      background: 'rgba(239, 68, 68, 0.1)',
       padding: '1.5rem',
       borderRadius: '12px',
-      border: '1px solid rgba(139, 92, 246, 0.3)',
+      border: '1px solid rgba(239, 68, 68, 0.3)',
       marginTop: '1rem'
     }}>
-      <h3 style={{ color: '#8b5cf6', marginBottom: '1rem' }}>🔄 Context Providers Test</h3>
+      <h3 style={{ color: '#ef4444', marginBottom: '1rem' }}>🎯 CRITICAL TEST: Theme + Config Providers</h3>
       
       <div style={{ color: '#e2e8f0', fontSize: '0.875rem' }}>
         <p><strong>Redux Auth State:</strong> {authState ? '✅ Connected' : '❌ Missing'}</p>
@@ -51,10 +51,22 @@ const ContextTest = () => {
             <li>✅ ToastProvider</li>
             <li>✅ CartProvider</li>
             <li>✅ SessionProvider</li>
-            <li>⏳ ConfigProvider (next)</li>
-            <li>⏳ ThemeProvider (next)</li>
-            <li>⏳ Others (later)</li>
+            <li>🎯 ConfigProvider (TESTING ONLY)</li>
+            <li>❌ UniversalThemeProvider (DISABLED)</li>
+            <li>⏳ Others (if this works)</li>
           </ul>
+        </div>
+        
+        <div style={{ 
+          marginTop: '1rem', 
+          padding: '0.75rem', 
+          background: 'rgba(239, 68, 68, 0.1)', 
+          borderRadius: '6px',
+          border: '1px solid rgba(239, 68, 68, 0.3)'
+        }}>
+          <p style={{ margin: 0, fontSize: '0.875rem', color: '#fecaca' }}>
+            <strong>🎯 ConfigProvider ONLY TEST:</strong> UniversalThemeProvider disabled to isolate the culprit.
+          </p>
         </div>
         
         <div style={{ marginTop: '1rem', padding: '0.5rem', background: 'rgba(0,0,0,0.2)', borderRadius: '4px' }}>
@@ -72,7 +84,7 @@ const HomePage = () => (
   <div style={{ padding: '2rem' }}>
     <h2 style={{ color: '#00ffff', marginBottom: '1rem' }}>🏠 Home Page</h2>
     <p style={{ color: '#e2e8f0', marginBottom: '1rem' }}>
-      Welcome to SwanStudios! Testing Router + Redux + More Context Providers.
+      <strong>🎯 CRITICAL TEST:</strong> Testing Theme + Config Providers (likely culprits of re.create error).
     </p>
     
     <ContextTest />
@@ -158,7 +170,7 @@ const StorePage = () => (
   </div>
 );
 
-const SwanStudiosWithContext = () => {
+const SwanStudiosWithThemeContext = () => {
   return (
     <div style={{
       background: 'linear-gradient(135deg, #0a0a1a, #1e1e3f)',
@@ -257,6 +269,15 @@ const SwanStudiosWithContext = () => {
             }}>
               🛍️ Cart
             </div>
+            <div style={{
+              padding: '0.25rem 0.75rem',
+              background: 'rgba(239, 68, 68, 0.2)',
+              borderRadius: '12px',
+              fontSize: '0.75rem',
+              color: '#ef4444'
+            }}>
+              🎨 Theme
+            </div>
           </div>
         </div>
       </nav>
@@ -285,10 +306,10 @@ const SwanStudiosWithContext = () => {
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <p style={{ color: '#64748b', margin: 0 }}>
-            SwanStudios Platform - Phase 5B: More Context Providers ✅
+            SwanStudios Platform - Phase 5C: CRITICAL THEME TEST 🎯
           </p>
           <div style={{ color: '#10b981', fontSize: '0.875rem' }}>
-            ✅ Router + Redux + Auth + Toast + Cart + Session
+            ✅ Router + Redux + Auth + Toast + Cart + Session + Config + Theme
           </div>
         </div>
       </footer>
@@ -296,20 +317,22 @@ const SwanStudiosWithContext = () => {
   );
 };
 
-// Main App with Redux Provider + More Context Providers
+// Main App with Redux Provider + ALL Context Providers INCLUDING THEME
 const App = () => (
   <Provider store={store}>
-    <AuthProvider>
-      <ToastProvider>
-        <CartProvider>
-          <SessionProvider>
-            <BrowserRouter>
-              <SwanStudiosWithContext />
-            </BrowserRouter>
-          </SessionProvider>
-        </CartProvider>
-      </ToastProvider>
-    </AuthProvider>
+    <ConfigProvider>
+      <AuthProvider>
+        <ToastProvider>
+          <CartProvider>
+            <SessionProvider>
+              <BrowserRouter>
+                <SwanStudiosWithThemeContext />
+              </BrowserRouter>
+            </SessionProvider>
+          </CartProvider>
+        </ToastProvider>
+      </AuthProvider>
+    </ConfigProvider>
   </Provider>
 );
 
@@ -317,7 +340,7 @@ const rootElement = document.getElementById('root');
 if (rootElement) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(<App />);
-  console.log('✅ PHASE 5B: SwanStudios with More Context Providers rendered successfully');
+  console.log('✅ PHASE 5C-A: ConfigProvider ONLY test rendered successfully');
 } else {
   console.error('❌ Root element not found');
 }
