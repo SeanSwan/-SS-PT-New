@@ -1,6 +1,6 @@
 /**
- * main.jsx - ULTRA-MINIMAL TEST: No CSS, no JSX, no nothing
- * Just React.createElement to eliminate all possible dependencies
+ * main-ULTRA-MINIMAL.jsx - ABSOLUTELY ZERO DEPENDENCIES
+ * No CSS imports, no nothing - just React
  */
 import React from 'react';
 import ReactDOM from 'react-dom/client';
