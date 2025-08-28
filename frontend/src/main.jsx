@@ -1,346 +1,125 @@
-// PHASE 5C: THEME + CONFIG PROVIDERS - Testing the likely culprits
-import React from 'react';
+// SOLUTION: FULL SWANSTUDIOS APP - BYPASSING CONFIGPROVIDER
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { Provider, useSelector, useDispatch } from 'react-redux';
+import { HelmetProvider } from 'react-helmet-async';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider, StyleSheetManager } from 'styled-components';
 
-// Import your Redux store
-import { store } from './redux/store';
-
-// PHASE 5C: Add the likely culprit providers (Theme-related)
+// Context providers - WORKING ONES ONLY (bypassing ConfigProvider)
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { CartProvider } from './context/CartContext';
 import { SessionProvider } from './context/SessionContext';
-import { ConfigProvider } from './context/ConfigProvider';  // TESTING THIS ONE
-// import { UniversalThemeProvider } from './context/ThemeContext';  // TEMPORARILY DISABLED
+// import { ConfigProvider } from './context/ConfigProvider';  // CULPRIT - DISABLED
+import { UniversalThemeProvider } from './context/ThemeContext';
+import MenuStateProvider from './hooks/useMenuState';
 
-// Minimal styles only
+// Routes configuration - YOUR ORIGINAL ROUTES
+import MainRoutes from './routes/main-routes';
+import ErrorBoundary from './routes/error-boundary';
+
+// Store
+import { store, RootState } from './redux/store';
+import { setInitialized } from './store/slices/appSlice';
+
+// Minimal utilities only
+import clearMockTokens from './utils/clearMockTokens';
+
+// EMERGENCY ICON FIX
+import './utils/globalIconShim';
+
+// Styles
+import './App.css';
 import './index.css';
 
-console.log('🎯 PHASE 5C-A: Testing ConfigProvider ONLY (UniversalThemeProvider disabled)...');
+// Theme (using existing working theme, not core theme)
+import theme from './styles/theme';
 
-// Test Context Providers component
-const ContextTest = () => {
+// Custom shouldForwardProp function
+const shouldForwardProp = (prop) => {
+  const nonDOMProps = ['variants', 'sx', 'as', 'theme', 'variant'];
+  return !nonDOMProps.includes(prop);
+};
+
+// Create React Query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      staleTime: 60000,
+      retry: 1
+    },
+  },
+});
+
+// Create router from YOUR ORIGINAL routes configuration
+const router = createBrowserRouter([MainRoutes]);
+
+/**
+ * AppContent Component - Restored with working providers only
+ */
+const AppContent = () => {
   const dispatch = useDispatch();
+  const isInitialized = useSelector((state: RootState) => state.app?.isInitialized || false);
   
-  // Try to access different parts of your Redux store safely
-  const authState = useSelector((state) => state.auth || null);
-  const uiState = useSelector((state) => state.ui || null);
-  const appState = useSelector((state) => state.app || null);
-  
-  return (
-    <div style={{
-      background: 'rgba(239, 68, 68, 0.1)',
-      padding: '1.5rem',
-      borderRadius: '12px',
-      border: '1px solid rgba(239, 68, 68, 0.3)',
-      marginTop: '1rem'
-    }}>
-      <h3 style={{ color: '#ef4444', marginBottom: '1rem' }}>🎯 CRITICAL TEST: Theme + Config Providers</h3>
+  // Minimal initialization (avoiding complex utilities that might break)
+  useEffect(() => {
+    console.log('🚀 SOLUTION: Loading full SwanStudios (ConfigProvider bypassed)...');
+    
+    try {
+      dispatch(setInitialized(true));
       
-      <div style={{ color: '#e2e8f0', fontSize: '0.875rem' }}>
-        <p><strong>Redux Auth State:</strong> {authState ? '✅ Connected' : '❌ Missing'}</p>
-        <p><strong>Redux UI State:</strong> {uiState ? '✅ Connected' : '❌ Missing'}</p>
-        <p><strong>Redux App State:</strong> {appState ? '✅ Connected' : '❌ Missing'}</p>
-        
-        <div style={{ marginTop: '1rem' }}>
-          <p><strong>Context Providers Active:</strong></p>
-          <ul style={{ margin: '0.5rem 0', paddingLeft: '1rem' }}>
-            <li>✅ AuthProvider</li>
-            <li>✅ ToastProvider</li>
-            <li>✅ CartProvider</li>
-            <li>✅ SessionProvider</li>
-            <li>🎯 ConfigProvider (TESTING ONLY)</li>
-            <li>❌ UniversalThemeProvider (DISABLED)</li>
-            <li>⏳ Others (if this works)</li>
-          </ul>
-        </div>
-        
-        <div style={{ 
-          marginTop: '1rem', 
-          padding: '0.75rem', 
-          background: 'rgba(239, 68, 68, 0.1)', 
-          borderRadius: '6px',
-          border: '1px solid rgba(239, 68, 68, 0.3)'
-        }}>
-          <p style={{ margin: 0, fontSize: '0.875rem', color: '#fecaca' }}>
-            <strong>🎯 ConfigProvider ONLY TEST:</strong> UniversalThemeProvider disabled to isolate the culprit.
-          </p>
-        </div>
-        
-        <div style={{ marginTop: '1rem', padding: '0.5rem', background: 'rgba(0,0,0,0.2)', borderRadius: '4px' }}>
-          <p style={{ margin: 0, fontSize: '0.75rem' }}>
-            <strong>Store Keys:</strong> {Object.keys(store.getState()).join(', ')}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Simple components for testing routing + Redux + Context
-const HomePage = () => (
-  <div style={{ padding: '2rem' }}>
-    <h2 style={{ color: '#00ffff', marginBottom: '1rem' }}>🏠 Home Page</h2>
-    <p style={{ color: '#e2e8f0', marginBottom: '1rem' }}>
-      <strong>🎯 CRITICAL TEST:</strong> Testing Theme + Config Providers (likely culprits of re.create error).
-    </p>
-    
-    <ContextTest />
-    
-    <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-      <Link 
-        to="/about" 
-        style={{ 
-          color: '#3b82f6', 
-          textDecoration: 'none',
-          padding: '0.5rem 1rem',
-          border: '1px solid #3b82f6',
-          borderRadius: '6px'
-        }}
-      >
-        → About
-      </Link>
-      <Link 
-        to="/store" 
-        style={{ 
-          color: '#10b981', 
-          textDecoration: 'none',
-          padding: '0.5rem 1rem',
-          border: '1px solid #10b981',
-          borderRadius: '6px'
-        }}
-      >
-        → Store
-      </Link>
-    </div>
-  </div>
-);
-
-const AboutPage = () => (
-  <div style={{ padding: '2rem' }}>
-    <h2 style={{ color: '#8b5cf6', marginBottom: '1rem' }}>📖 About SwanStudios</h2>
-    <p style={{ color: '#e2e8f0', marginBottom: '1rem' }}>
-      Revolutionary gamified fitness social ecosystem with AI-powered personal training.
-    </p>
-    
-    <ContextTest />
-    
-    <div style={{ marginTop: '1rem' }}>
-      <Link 
-        to="/" 
-        style={{ 
-          color: '#3b82f6', 
-          textDecoration: 'none',
-          padding: '0.5rem 1rem',
-          border: '1px solid #3b82f6',
-          borderRadius: '6px'
-        }}
-      >
-        ← Back Home
-      </Link>
-    </div>
-  </div>
-);
-
-const StorePage = () => (
-  <div style={{ padding: '2rem' }}>
-    <h2 style={{ color: '#f59e0b', marginBottom: '1rem' }}>🛍️ SwanStudios Store</h2>
-    <p style={{ color: '#e2e8f0', marginBottom: '1rem' }}>
-      Training packages, supplements, and fitness gear coming soon!
-    </p>
-    
-    <ContextTest />
-    
-    <div style={{ marginTop: '1rem' }}>
-      <Link 
-        to="/" 
-        style={{ 
-          color: '#3b82f6', 
-          textDecoration: 'none',
-          padding: '0.5rem 1rem',
-          border: '1px solid #3b82f6',
-          borderRadius: '6px'
-        }}
-      >
-        ← Back Home
-      </Link>
-    </div>
-  </div>
-);
-
-const SwanStudiosWithThemeContext = () => {
+      const hadMockTokens = clearMockTokens();
+      if (hadMockTokens) {
+        console.log('🔄 Cleared mock tokens');
+      }
+      
+      console.log('✅ SOLUTION: SwanStudios initialization successful');
+    } catch (initError) {
+      console.error('❌ App initialization failed:', initError);
+    }
+  }, [dispatch]);
+  
   return (
-    <div style={{
-      background: 'linear-gradient(135deg, #0a0a1a, #1e1e3f)',
-      color: 'white',
-      minHeight: '100vh',
-      fontFamily: 'Arial, sans-serif'
-    }}>
-      {/* Header */}
-      <header style={{
-        borderBottom: '1px solid #333',
-        padding: '2rem',
-        marginBottom: '0'
-      }}>
-        <Link to="/" style={{ textDecoration: 'none' }}>
-          <h1 style={{
-            fontSize: '2.5rem',
-            background: 'linear-gradient(135deg, #00ffff, #00c8ff)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            margin: 0,
-            marginBottom: '0.5rem'
-          }}>
-            🦢 SwanStudios
-          </h1>
-        </Link>
-        <p style={{ color: '#94a3b8', fontSize: '1.1rem', margin: 0 }}>
-          Personal Training & Fitness Revolution
-        </p>
-      </header>
-
-      {/* Navigation */}
-      <nav style={{
-        background: 'rgba(255, 255, 255, 0.05)',
-        padding: '1rem 2rem',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
-      }}>
-        <div style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-          <Link 
-            to="/" 
-            style={{ 
-              color: '#00ffff', 
-              textDecoration: 'none',
-              fontWeight: 500
-            }}
-          >
-            Home
-          </Link>
-          <Link 
-            to="/about" 
-            style={{ 
-              color: '#8b5cf6', 
-              textDecoration: 'none',
-              fontWeight: 500
-            }}
-          >
-            About
-          </Link>
-          <Link 
-            to="/store" 
-            style={{ 
-              color: '#f59e0b', 
-              textDecoration: 'none',
-              fontWeight: 500
-            }}
-          >
-            Store
-          </Link>
-          
-          {/* Status Indicators */}
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: '0.5rem' }}>
-            <div style={{
-              padding: '0.25rem 0.75rem',
-              background: 'rgba(16, 185, 129, 0.2)',
-              borderRadius: '12px',
-              fontSize: '0.75rem',
-              color: '#10b981'
-            }}>
-              🔄 Redux
-            </div>
-            <div style={{
-              padding: '0.25rem 0.75rem',
-              background: 'rgba(139, 92, 246, 0.2)',
-              borderRadius: '12px',
-              fontSize: '0.75rem',
-              color: '#8b5cf6'
-            }}>
-              🎯 Context+
-            </div>
-            <div style={{
-              padding: '0.25rem 0.75rem',
-              background: 'rgba(245, 158, 11, 0.2)',
-              borderRadius: '12px',
-              fontSize: '0.75rem',
-              color: '#f59e0b'
-            }}>
-              🛍️ Cart
-            </div>
-            <div style={{
-              padding: '0.25rem 0.75rem',
-              background: 'rgba(239, 68, 68, 0.2)',
-              borderRadius: '12px',
-              fontSize: '0.75rem',
-              color: '#ef4444'
-            }}>
-              🎨 Theme
-            </div>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content with Routes */}
-      <main style={{ padding: '0 2rem' }}>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/store" element={<StorePage />} />
-          <Route path="*" element={
-            <div style={{ padding: '2rem', textAlign: 'center' }}>
-              <h2 style={{ color: '#ef4444' }}>404 - Page Not Found</h2>
-              <Link to="/" style={{ color: '#3b82f6' }}>← Back Home</Link>
-            </div>
-          } />
-        </Routes>
-      </main>
-
-      {/* Status Footer */}
-      <footer style={{
-        borderTop: '1px solid #333',
-        padding: '1rem 2rem',
-        marginTop: '3rem',
-        background: 'rgba(255, 255, 255, 0.02)'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <p style={{ color: '#64748b', margin: 0 }}>
-            SwanStudios Platform - Phase 5C: CRITICAL THEME TEST 🎯
-          </p>
-          <div style={{ color: '#10b981', fontSize: '0.875rem' }}>
-            ✅ Router + Redux + Auth + Toast + Cart + Session + Config + Theme
-          </div>
-        </div>
-      </footer>
-    </div>
+    <>      
+      {/* YOUR ORIGINAL ROUTER WITH LAYOUT AND HEADER */}
+      <RouterProvider router={router} />
+    </>
   );
 };
 
-// Main App with Redux Provider + ALL Context Providers INCLUDING THEME
-const App = () => (
-  <Provider store={store}>
-    <ConfigProvider>
-      <AuthProvider>
-        <ToastProvider>
-          <CartProvider>
-            <SessionProvider>
-              <BrowserRouter>
-                <SwanStudiosWithThemeContext />
-              </BrowserRouter>
-            </SessionProvider>
-          </CartProvider>
-        </ToastProvider>
-      </AuthProvider>
-    </ConfigProvider>
-  </Provider>
-);
+const App = () => {
+  console.log('✅ SOLUTION: Loading full SwanStudios (ConfigProvider bypassed)...');
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      <Provider store={store}>
+        <HelmetProvider>
+          <StyleSheetManager shouldForwardProp={shouldForwardProp}>
+            <UniversalThemeProvider defaultTheme="swan-galaxy">
+              <ThemeProvider theme={theme.dark}>
+                <MenuStateProvider>
+                  <AuthProvider>
+                    <ToastProvider>
+                      <CartProvider>
+                        <SessionProvider>
+                          <ErrorBoundary>
+                            <AppContent />
+                          </ErrorBoundary>
+                        </SessionProvider>
+                      </CartProvider>
+                    </ToastProvider>
+                  </AuthProvider>
+                </MenuStateProvider>
+              </ThemeProvider>
+            </UniversalThemeProvider>
+          </StyleSheetManager>
+        </HelmetProvider>
+      </Provider>
+    </QueryClientProvider>
+  );
+};
 
-const rootElement = document.getElementById('root');
-if (rootElement) {
-  const root = ReactDOM.createRoot(rootElement);
-  root.render(<App />);
-  console.log('✅ PHASE 5C-A: ConfigProvider ONLY test rendered successfully');
-} else {
-  console.error('❌ Root element not found');
-}
+export default App;
