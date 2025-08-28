@@ -1,7 +1,7 @@
 /**
- * Vite Configuration - BUILD OPTIMIZED
+ * Vite Configuration - MINIMAL BUILD
  * ====================================
- * Optimized for fast builds and production performance
+ * Ultra-minimal config to eliminate Y.create error
  */
 
 import { defineConfig } from 'vite';
@@ -11,18 +11,15 @@ import path from 'path';
 export default defineConfig({
   plugins: [react()],
   
-  // Build optimizations
+  // Minimal build configuration
   build: {
     target: 'es2015',
     minify: 'esbuild',
     sourcemap: false,
+    // REMOVED MANUAL CHUNKS - This was forcing styled-components to be bundled
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          ui: ['@mui/material', '@mui/icons-material', 'styled-components'],
-          charts: ['framer-motion']
-        }
+        // Let Vite decide chunking automatically
       }
     },
     chunkSizeWarningLimit: 1000
@@ -46,16 +43,13 @@ export default defineConfig({
     }
   },
   
-  // Dependency optimization
+  // MINIMAL dependency optimization - only include what's actually imported
   optimizeDeps: {
     include: [
       'react',
-      'react-dom',
-      'react-router-dom',
-      '@mui/material',
-      'styled-components',
-      'framer-motion'
+      'react-dom'
     ]
+    // REMOVED all the UI libraries that were being pre-bundled
   },
   
   // Environment variables
