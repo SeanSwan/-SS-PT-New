@@ -61,7 +61,7 @@ import './styles/mobile/mobile-workout.css';
 import ImprovedGlobalStyle from './styles/ImprovedGlobalStyle';
 import CosmicEleganceGlobalStyle, { detectDeviceCapability } from './styles/CosmicEleganceGlobalStyle';
 import theme from './styles/theme';
-import { swanStudiosTheme } from './core';
+// import { swanStudiosTheme } from './core'; // COMMENTED OUT - CAUSING CRASH
 
 // Custom shouldForwardProp function
 const shouldForwardProp = (prop) => {
@@ -217,7 +217,7 @@ const App = () => {
         <HelmetProvider>
           <StyleSheetManager shouldForwardProp={shouldForwardProp}>
             <UniversalThemeProvider defaultTheme="swan-galaxy">
-              <ThemeProvider theme={{ ...theme.dark, swanStudios: swanStudiosTheme }}>
+              <ThemeProvider theme={theme.dark}>
                 <ImprovedGlobalStyle />
                 <ConfigProvider>
                   <MenuStateProvider>
