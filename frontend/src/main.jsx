@@ -21,7 +21,7 @@ import MainRoutes from './routes/main-routes';
 import ErrorBoundary from './routes/error-boundary';
 
 // Store
-import { store, RootState } from './redux/store';
+import { store } from './redux/store';
 import { setInitialized } from './store/slices/appSlice';
 
 // Minimal utilities only
@@ -62,7 +62,7 @@ const router = createBrowserRouter([MainRoutes]);
  */
 const AppContent = () => {
   const dispatch = useDispatch();
-  const isInitialized = useSelector((state: RootState) => state.app?.isInitialized || false);
+  const isInitialized = useSelector((state) => state.app?.isInitialized || false);
   
   // Minimal initialization (avoiding complex utilities that might break)
   useEffect(() => {
