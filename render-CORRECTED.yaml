@@ -1,0 +1,28 @@
+# SwanStudios Corrected Render Configuration
+services:
+  - type: web
+    name: ss-pt-new
+    runtime: node
+    buildCommand: |
+      echo "Starting SwanStudios build process..."
+      # Build frontend first
+      cd frontend
+      npm install
+      npm run build
+      echo "Frontend build completed"
+      # Install backend dependencies
+      cd ../backend
+      npm install
+      echo "Backend dependencies installed"
+    startCommand: |
+      cd backend && npm start
+    env:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+
+databases:
+  - name: swanstudios-db
+    databaseName: swanstudios
+    user: swanstudios_user

@@ -1,30 +1,7 @@
 {
   "name": "swanstudios",
-  "version": "1.0.0",
-  "description": "SwanStudios Gamified Fitness Social Ecosystem",
-  "type": "module",
   "scripts": {
-    "start": "concurrently \"npm run start-backend\" \"npm run start-frontend\" \"npm run start-workout-mcp\" \"npm run start-gamification-mcp\" \"npm run start-yolo-mcp\" --names \"backend,frontend,workout-mcp,gamify-mcp,yolo-mcp\" --prefix-colors \"yellow,cyan,magenta,blue,red\" --kill-others-on-fail",
-    "start-simple": "concurrently \"npm run start-backend\" \"npm run start-frontend\" --names \"BACKEND,FRONTEND\" --prefix-colors \"blue,green\" --kill-others-on-fail",
-    "start-backend": "cd backend && npm start",
-    "start-frontend": "cd frontend && npm run dev",
-
-    "start-workout-mcp": "cd backend/mcp_server && python workout_launcher.py",
-    "start-gamification-mcp": "cd backend/mcp_server && python start_gamification_server.py",
-    "start-yolo-mcp": "cd backend/mcp_server/yolo_mcp_server && python start_yolo_server.py",
-    "verify": "cd frontend && npm run verify",
-    "verify:quick": "cd frontend && npm run verify:quick",
-    "health-check": "curl -f http://localhost:5173 && curl -f http://localhost:10000/api/health"
-  },
-  "devDependencies": {
-    "concurrently": "^8.2.2"
-  },
-  "keywords": [
-    "swanstudios",
-    "fitness",
-    "gamification",
-    "social"
-  ],
-  "author": "SwanStudios Development Team",
-  "license": "MIT"
+    "build": "cd frontend && npm install && npm run build",
+    "start": "cd backend && npm start"
+  }
 }
