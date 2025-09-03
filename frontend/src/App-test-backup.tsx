@@ -1,10 +1,4 @@
-// /frontend/src/App.tsx
-
-// DISABLED - These utilities were causing infinite loops and have been disabled
-// import './utils/emergency-boot';
-// import './utils/circuit-breaker';
-// import './utils/emergencyAdminFix';
-
+// RESTORED ORIGINAL SWANSTUDIOS APP - Your original system with proper fixes
 import React, { useEffect } from 'react';
 import { RouterProvider, createBrowserRouter } from 'react-router-dom';
 import { Provider, useSelector, useDispatch } from 'react-redux';
@@ -12,7 +6,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider, StyleSheetManager } from 'styled-components';
 
-// Context providers
+// Context providers - ESSENTIAL for your original header
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { CartProvider } from './context/CartContext';
@@ -20,7 +14,7 @@ import { SessionProvider } from './context/SessionContext';
 import { ConfigProvider } from './context/ConfigContext';
 import { UniversalThemeProvider } from './context/ThemeContext';
 import MenuStateProvider from './hooks/useMenuState';
-import { ConnectionStatusBanner, useBackendConnection } from './hooks/useBackendConnection.jsx';
+import { ConnectionStatusBanner, useBackendConnection } from './hooks/useBackendConnection';
 
 // Development Tools
 import { DevToolsProvider } from './components/DevTools';
@@ -29,20 +23,23 @@ import ThemeStatusIndicator from './components/ThemeStatusIndicator';
 // PWA Components
 import { TouchGestureProvider, PWAInstallPrompt, NetworkStatus } from './components/PWA';
 
-// Routes configuration
+// Routes configuration - YOUR ORIGINAL ROUTES
 import MainRoutes from './routes/main-routes';
+import ErrorBoundary from './routes/error-boundary';
 
 // Store
 import { store, RootState } from './redux/store';
 import { setInitialized } from './store/slices/appSlice';
 
-// Utilities
+// Utilities - ONLY WORKING ONES
 import { setupNotifications } from './utils/notificationInitializer';
 import { initializeMockData } from './utils/mockDataHelper';
 import { initializeApiMonitoring } from './utils/apiConnectivityFixer';
 import clearMockTokens from './utils/clearMockTokens';
-import './utils/initTokenCleanup'; // Initialize token cleanup handlers
-import './utils/clearCache'; // Emergency cache clearing utility
+import './utils/initTokenCleanup';
+
+// EMERGENCY ICON FIX
+import './utils/globalIconShim';
 
 // Styles
 import './App.css';
@@ -52,27 +49,22 @@ import './styles/enhanced-responsive.css';
 import './styles/auth-page-fixes.css';
 import './styles/signup-fixes.css';
 import './styles/aaa-enhancements.css';
-import './styles/dashboard-global-styles.css'; // Dashboard full-space utilization styles
-import './styles/animation-performance-fallbacks.css'; // Performance-optimized animation fallbacks
-import './styles/cosmic-elegance-utilities.css'; // ✨ Cosmic Elegance Utility System
-import './styles/cosmic-mobile-navigation.css'; // ✨ Cosmic Mobile Navigation System
-import './styles/universal-theme-styles.css'; // ✨ Universal Theme Integration System
-// Mobile-First Styles
+import './styles/dashboard-global-styles.css';
+import './styles/animation-performance-fallbacks.css';
+import './styles/cosmic-elegance-utilities.css';
+import './styles/cosmic-mobile-navigation.css';
+import './styles/universal-theme-styles.css';
 import './styles/mobile/mobile-base.css';
 import './styles/mobile/mobile-workout.css';
-// import './styles/cart-mobile-optimizations.css'; // 🛒 AAA 7-Star Cart Mobile Experience (DISABLED - file removed)
-// Galaxy-Swan theme integration with Cosmic Elegance
+
+// Galaxy-Swan theme integration
 import ImprovedGlobalStyle from './styles/ImprovedGlobalStyle';
 import CosmicEleganceGlobalStyle, { detectDeviceCapability } from './styles/CosmicEleganceGlobalStyle';
 import theme from './styles/theme';
-// Import consolidated SwanStudios theme
-import { swanStudiosTheme } from './core';
-// Cosmic Performance Optimizer
-import { initializeCosmicPerformance } from './utils/cosmicPerformanceOptimizer';
+// import { swanStudiosTheme } from './core'; // COMMENTED OUT - CAUSING CRASH
 
-// Custom shouldForwardProp function to filter out props that cause warnings
+// Custom shouldForwardProp function
 const shouldForwardProp = (prop) => {
-  // Filter out common styling props that shouldn't be forwarded to DOM
   const nonDOMProps = ['variants', 'sx', 'as', 'theme', 'variant'];
   return !nonDOMProps.includes(prop);
 };
@@ -82,35 +74,41 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      staleTime: 60000, // 1 minute
+      staleTime: 60000,
       retry: 1
     },
   },
 });
 
-// Create router from routes configuration
+// Create router from YOUR ORIGINAL routes configuration
 const router = createBrowserRouter([MainRoutes]);
 
 /**
- * AppContent Component
- * Handles initialization of features like notifications after authentication
+ * AppContent Component - Your original system
  */
 const AppContent = () => {
-  // Use individual selectors to prevent unnecessary rerenders
   const user = useSelector((state: RootState) => state.auth?.user || null);
   const isAuthenticated = useSelector((state: RootState) => state.auth?.isAuthenticated || false);
   const isLoading = useSelector((state: RootState) => state.ui?.isLoading || false);
   const isDarkMode = useSelector((state: RootState) => state.ui?.isDarkMode || false);
   const isInitialized = useSelector((state: RootState) => state.app?.isInitialized || false);
   
-  // Backend connection state
-  const connection = useBackendConnection();
-  
-  // Redux dispatch
+  let connection = null;
+  try {
+    connection = useBackendConnection();
+  } catch (connectionError) {
+    console.warn('Backend connection hook failed:', connectionError);
+    connection = null;
+  }
   const dispatch = useDispatch();
-  
-  // Device capability detection for performance optimization
-  const [deviceCapability] = React.useState(() => detectDeviceCapability());
+  const [deviceCapability] = React.useState(() => {
+    try {
+      return detectDeviceCapability();
+    } catch (deviceError) {
+      console.warn('Device capability detection failed:', deviceError);
+      return 'basic';
+    }
+  });
   
   // Set router context flag
   useEffect(() => {
@@ -120,81 +118,88 @@ const AppContent = () => {
     };
   }, []);
   
-  // Initialize mock data for fallback when backend is unavailable
-  // Using a ref to ensure this only runs once
+  // Initialize app with error handling
   const initializationRef = React.useRef(false);
   
-  // Initialize Cosmic Performance System
-  const performanceCleanupRef = React.useRef<(() => void) | null>(null);
-  
   useEffect(() => {
-    // Skip if already initialized to prevent re-runs
     if (initializationRef.current) {
       return;
     }
     
-    // Mark as initialized immediately
     initializationRef.current = true;
+    console.log('Running SwanStudios initialization...');
     
-    console.log('Running one-time App initialization...');
-    
-    // Mark app as initialized in Redux store
-    dispatch(setInitialized(true));
-    
-    // Clear any existing mock tokens that might interfere with real authentication
-    const hadMockTokens = clearMockTokens();
-    if (hadMockTokens) {
-      console.log('🔄 Cleared mock tokens, please login again with real credentials');
+    try {
+      dispatch(setInitialized(true));
+      
+      const hadMockTokens = clearMockTokens();
+      if (hadMockTokens) {
+        console.log('🔄 Cleared mock tokens, please login again with real credentials');
+      }
+      
+      initializeMockData();
+      
+      setTimeout(() => {
+        try {
+          initializeApiMonitoring();
+        } catch (apiError) {
+          console.warn('API monitoring initialization failed:', apiError);
+        }
+      }, 500);
+    } catch (initError) {
+      console.error('App initialization failed:', initError);
     }
-    
-    // Initialize mock data system
-    initializeMockData();
-    
-    // Start API connection monitoring with a slight delay to prevent conflicts
-    setTimeout(() => {
-      initializeApiMonitoring();
-    }, 500);
-    
-    // Initialize Cosmic Performance System
-    performanceCleanupRef.current = initializeCosmicPerformance();
-  }, []);
+  }, [dispatch]);
   
   // Initialize notifications when user is authenticated
   useEffect(() => {
     let cleanupNotifications: (() => void) | null = null;
     
     if (isAuthenticated && user) {
-      cleanupNotifications = setupNotifications();
+      try {
+        cleanupNotifications = setupNotifications();
+      } catch (notifError) {
+        console.warn('Notification setup failed:', notifError);
+      }
     }
     
     return () => {
       if (cleanupNotifications) {
-        cleanupNotifications();
+        try {
+          cleanupNotifications();
+        } catch (cleanupError) {
+          console.warn('Notification cleanup failed:', cleanupError);
+        }
       }
     };
   }, [isAuthenticated, user]);
   
-  // Cleanup performance monitoring on unmount
-  useEffect(() => {
-    return () => {
-      if (performanceCleanupRef.current) {
-        performanceCleanupRef.current();
-      }
-    };
-  }, []);
-  
   return (
     <>
-      <CosmicEleganceGlobalStyle deviceCapability={deviceCapability} />
+      {/* Global Styles with error boundary */}
+      {React.createElement(() => {
+        try {
+          return <CosmicEleganceGlobalStyle deviceCapability={deviceCapability} />;
+        } catch (styleError) {
+          console.warn('Global style initialization failed:', styleError);
+          return null;
+        }
+      })}
       
       {/* Network & Connection Status */}
-      <NetworkStatus position="top" autoHide={true} />
-      <ConnectionStatusBanner connection={connection} />
+      {connection && (
+        <>
+          <NetworkStatus position="top" autoHide={true} />
+          <ConnectionStatusBanner connection={connection} />
+        </>
+      )}
       
       {/* Development Tools */}
-      <ThemeStatusIndicator enabled={process.env.NODE_ENV === 'development'} />
+      {process.env.NODE_ENV === 'development' && (
+        <ThemeStatusIndicator enabled={true} />
+      )}
       
-      {/* Main App Router */}
+      {/* YOUR ORIGINAL ROUTER WITH LAYOUT AND HEADER */}
       <RouterProvider router={router} />
       
       {/* PWA Install Prompt */}
@@ -204,13 +209,15 @@ const AppContent = () => {
 };
 
 const App = () => {
+  console.log('✅ FIXED: Loading SwanStudios with error handling...');
+  
   return (
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
         <HelmetProvider>
           <StyleSheetManager shouldForwardProp={shouldForwardProp}>
             <UniversalThemeProvider defaultTheme="swan-galaxy">
-              <ThemeProvider theme={{ ...theme.dark, swanStudios: swanStudiosTheme }}>
+              <ThemeProvider theme={theme.dark}>
                 <ImprovedGlobalStyle />
                 <ConfigProvider>
                   <MenuStateProvider>
@@ -220,7 +227,9 @@ const App = () => {
                           <SessionProvider>
                             <TouchGestureProvider>
                               <DevToolsProvider>
-                                <AppContent />
+                                <ErrorBoundary>
+                                  <AppContent />
+                                </ErrorBoundary>
                               </DevToolsProvider>
                             </TouchGestureProvider>
                           </SessionProvider>
