@@ -10,7 +10,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
-import { FaCopyright } from 'react-icons/fa';
+import { Copyright as CopyrightIcon } from 'lucide-react';
 import device from '../../styles/breakpoints';
 
 // Styled components
@@ -72,7 +72,7 @@ const CompactFooter: React.FC = () => {
   return (
     <CompactFooterContainer className="compact-footer">
       <Copyright>
-        <FaCopyright /> {new Date().getFullYear()} Swan Studios. All Rights Reserved.
+        <CopyrightIcon /> {new Date().getFullYear()} Swan Studios. All Rights Reserved.
       </Copyright>
       
       <FooterLinks>
