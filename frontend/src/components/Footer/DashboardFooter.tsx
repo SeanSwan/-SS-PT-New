@@ -12,7 +12,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaChevronUp, FaCopyright } from 'react-icons/fa';
+import { ChevronUp, Copyright as CopyrightIcon } from 'lucide-react';
 import GlowButton from '../Button/glowButton';
 import logoImage from '../../assets/Logo.png';
 
@@ -310,7 +310,7 @@ const DashboardFooter: React.FC<DashboardFooterProps> = () => {
       </BrandSection>
 
       <Copyright variants={itemVariants}>
-        <FaCopyright />
+        <CopyrightIcon />
         <span>{new Date().getFullYear()} Swan Studios</span>
       </Copyright>
 
@@ -327,7 +327,7 @@ const DashboardFooter: React.FC<DashboardFooterProps> = () => {
               whileTap={{ scale: 0.95 }}
               aria-label="Scroll to top"
             >
-              <FaChevronUp />
+              <ChevronUp />
             </ScrollTopButton>
           )}
         </AnimatePresence>
