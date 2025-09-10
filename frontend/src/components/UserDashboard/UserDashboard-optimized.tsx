@@ -1,6 +1,21 @@
+/**
+ * SwanStudios User Dashboard - AAA 7-Star Professional Edition
+ * ============================================================
+ * 
+ * Pixel-perfect, professional user dashboard experience
+ * Built with modern React patterns and optimized performance
+ * 
+ * Key Features:
+ * - Lazy-loaded modular components for optimal performance
+ * - Professional UI/UX with consistent design system
+ * - Responsive design with mobile-first approach
+ * - Smooth animations and micro-interactions
+ * - Real-time data integration with comprehensive error handling
+ */
+
 import React, { useState, useRef, useCallback, Suspense, lazy } from 'react';
-import styled, { keyframes } from 'styled-components';
-import { motion } from 'framer-motion';
+import styled, { keyframes, css } from 'styled-components';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Camera, 
   Settings, 
@@ -14,7 +29,12 @@ import {
   Crown,
   Sparkles,
   Image as ImageIcon,
-  Music2
+  Music2,
+  Award,
+  TrendingUp,
+  Zap,
+  Target,
+  Plus
 } from 'lucide-react';
 
 import { useAuth } from '../../context/AuthContext';
@@ -28,23 +48,84 @@ const PhotoGallery = lazy(() => import('./components/PhotoGallery'));
 const AboutSection = lazy(() => import('./components/AboutSection'));
 const ActivitySection = lazy(() => import('./components/ActivitySection'));
 
-// Simple, optimized animations
+// Professional-grade animations with performance consideration
+const slideInUp = keyframes`
+  from { 
+    opacity: 0; 
+    transform: translateY(30px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+`;
+
+const slideInLeft = keyframes`
+  from { 
+    opacity: 0; 
+    transform: translateX(-30px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(0); 
+  }
+`;
+
+const slideInRight = keyframes`
+  from { 
+    opacity: 0; 
+    transform: translateX(30px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(0); 
+  }
+`;
+
+const subtleGlow = keyframes`
+  0%, 100% { 
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.1), 0 8px 32px rgba(0, 0, 0, 0.12);
+  }
+  50% { 
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.2), 0 12px 40px rgba(0, 0, 0, 0.15);
+  }
+`;
+
+const pulseScale = keyframes`
+  0%, 100% { 
+    transform: scale(1);
+  }
+  50% { 
+    transform: scale(1.02);
+  }
+`;
+
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 `;
 
-const gentleGlow = keyframes`
-  0%, 100% { box-shadow: 0 0 20px currentColor; }
-  50% { box-shadow: 0 0 30px currentColor; }
-`;
-
-// Styled Components - Optimized and clean
+// Professional Styled Components with enhanced design system
 const ProfileContainer = styled(motion.div)`
   min-height: 100vh;
   background: ${({ theme }) => theme.background?.primary || 'linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 100%)'};
   position: relative;
   overflow: hidden;
+  
+  /* Subtle background pattern for premium feel */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 40% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
 `;
 
 const ContentWrapper = styled.div`
@@ -52,41 +133,97 @@ const ContentWrapper = styled.div`
   z-index: 1;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 3rem 2rem;
+  
+  @media (max-width: 1024px) {
+    max-width: 100%;
+    padding: 2rem 1.5rem;
+  }
   
   @media (max-width: 768px) {
-    padding: 1rem 0.5rem;
+    padding: 1.5rem 1rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 1rem 0.75rem;
   }
 `;
 
 const ProfileHeader = styled(motion.div)`
   position: relative;
-  border-radius: 20px;
+  border-radius: 24px;
   overflow: hidden;
-  margin-bottom: 2rem;
-  background: ${({ theme }) => theme.gradients?.card || 'linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05))'};
-  backdrop-filter: blur(20px);
-  border: 1px solid ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.1)'};
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  margin-bottom: 3rem;
+  background: ${({ theme }) => theme.gradients?.card || 'linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))'};
+  backdrop-filter: blur(24px);
+  border: 1px solid ${({ theme }) => theme.borders?.elegant || 'rgba(255,255,255,0.12)'};
+  box-shadow: 
+    0 20px 40px rgba(0, 0, 0, 0.3),
+    0 8px 16px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 
+      0 24px 48px rgba(0, 0, 0, 0.35),
+      0 12px 24px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+  
+  @media (max-width: 768px) {
+    border-radius: 20px;
+    margin-bottom: 2rem;
+    
+    &:hover {
+      transform: none;
+    }
+  }
 `;
 
 const BackgroundSection = styled.div<{ $backgroundImage?: string }>`
-  height: 300px;
+  height: 320px;
   position: relative;
   background: ${({ $backgroundImage, theme }) => 
     $backgroundImage 
-      ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.1)), url(${$backgroundImage})`
-      : theme.gradients?.hero || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+      ? `linear-gradient(135deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0.2) 50%, rgba(0,0,0,0.1) 100%), url(${$backgroundImage})`
+      : theme.gradients?.hero || 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)'
   };
   background-size: cover;
   background-position: center;
+  background-attachment: fixed;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  
+  /* Premium gradient overlay */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(59, 130, 246, 0.1) 0%,
+      transparent 50%,
+      rgba(139, 69, 19, 0.05) 100%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  &:hover::before {
+    opacity: 1;
+  }
   
   @media (max-width: 768px) {
-    height: 200px;
+    height: 220px;
+    background-attachment: scroll;
   }
 
   &::after {
@@ -95,41 +232,120 @@ const BackgroundSection = styled.div<{ $backgroundImage?: string }>`
     bottom: 0;
     left: 0;
     right: 0;
-    height: 100px;
+    height: 120px;
     background: linear-gradient(transparent, ${({ theme }) => theme.background?.primary || '#0a0a1a'});
+    z-index: 1;
   }
   
-  &:hover::before {
-    content: 'Click to change cover photo';
+  /* Professional upload overlay */
+  .upload-overlay {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.8);
-    color: white;
-    padding: 1rem 2rem;
-    border-radius: 8px;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
     z-index: 2;
+    
+    .upload-text {
+      color: white;
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-top: 0.75rem;
+      text-align: center;
+      letter-spacing: 0.025em;
+    }
+    
+    .upload-icon {
+      color: rgba(255, 255, 255, 0.9);
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+    }
+  }
+  
+  &:hover .upload-overlay {
+    opacity: 1;
   }
 `;
 
 const ProfileImageSection = styled.div`
   position: absolute;
-  bottom: -60px;
+  bottom: -70px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 10;
+  
+  @media (max-width: 768px) {
+    bottom: -60px;
+  }
 `;
 
 const ProfileImageContainer = styled(motion.div)`
   position: relative;
-  width: 160px;
-  height: 160px;
+  width: 180px;
+  height: 180px;
   margin: 0 auto;
+  
+  /* Professional ring effect */
+  &::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 0deg,
+      ${({ theme }) => theme.colors?.primary || '#3B82F6'} 0deg,
+      ${({ theme }) => theme.colors?.secondary || '#8B5CF6'} 120deg,
+      ${({ theme }) => theme.colors?.accent || '#F59E0B'} 240deg,
+      ${({ theme }) => theme.colors?.primary || '#3B82F6'} 360deg
+    );
+    animation: ${pulseScale} 4s ease-in-out infinite;
+    opacity: 0.8;
+  }
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border-radius: 50%;
+    background: ${({ theme }) => theme.background?.primary || '#0a0a1a'};
+    z-index: 1;
+  }
 
   @media (max-width: 768px) {
-    width: 120px;
-    height: 120px;
+    width: 140px;
+    height: 140px;
+    
+    &::before {
+      top: -6px;
+      left: -6px;
+      right: -6px;
+      bottom: -6px;
+    }
+    
+    &::after {
+      top: -3px;
+      left: -3px;
+      right: -3px;
+      bottom: -3px;
+    }
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      animation: none;
+    }
   }
 `;
 
@@ -137,92 +353,246 @@ const ProfileImage = styled.div<{ $image?: string }>`
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  border: 4px solid ${({ theme }) => theme.colors?.primary || '#00ffff'};
+  border: 5px solid transparent;
   background: ${({ $image, theme }) => 
     $image 
-      ? `url(${$image})` 
-      : theme.gradients?.primary || 'linear-gradient(135deg, #00ffff, #7851a9)'
+      ? `linear-gradient(135deg, ${theme.colors?.primary || '#3B82F6'}, ${theme.colors?.secondary || '#8B5CF6'}) padding-box, url(${$image}) border-box` 
+      : `linear-gradient(135deg, ${theme.colors?.primary || '#3B82F6'}, ${theme.colors?.secondary || '#8B5CF6'}) padding-box, 
+         linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%) border-box`
   };
-  background-size: cover;
-  background-position: center;
+  background-size: cover, cover;
+  background-position: center, center;
+  background-origin: border-box, padding-box;
+  background-clip: padding-box, border-box;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-  animation: ${gentleGlow} 4s ease-in-out infinite;
+  box-shadow: 
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 4px 16px rgba(0, 0, 0, 0.2),
+    inset 0 2px 4px rgba(255, 255, 255, 0.1);
+  animation: ${subtleGlow} 6s ease-in-out infinite;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 3rem;
-  font-weight: bold;
+  font-size: 3.5rem;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  letter-spacing: 0.05em;
+  z-index: 2;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Professional hover effect */
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 
+      0 0 0 1px rgba(255, 255, 255, 0.2),
+      0 12px 40px rgba(0, 0, 0, 0.5),
+      0 6px 20px rgba(0, 0, 0, 0.3),
+      inset 0 2px 4px rgba(255, 255, 255, 0.2);
+  }
+  
+  /* Fallback for browsers that don't support complex backgrounds */
+  ${({ $image, theme }) => !$image && css`
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    border: 5px solid ${theme.colors?.primary || '#3B82F6'};
+  `}
   
   @media (prefers-reduced-motion: reduce) {
     animation: none;
+    
+    &:hover {
+      transform: none;
+    }
   }
 
   @media (max-width: 768px) {
-    font-size: 2rem;
+    font-size: 2.5rem;
+    border-width: 3px;
+    
+    &:hover {
+      transform: none;
+    }
   }
 `;
 
 const ImageUploadButton = styled(motion.button)`
   position: absolute;
-  bottom: 5px;
-  right: 5px;
-  width: 40px;
-  height: 40px;
+  bottom: 8px;
+  right: 8px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  background: ${({ theme }) => theme.gradients?.primary || 'linear-gradient(135deg, #00ffff, #7851a9)'};
-  border: 2px solid ${({ theme }) => theme.background?.primary || '#0a0a1a'};
+  background: linear-gradient(135deg, 
+    ${({ theme }) => theme.colors?.primary || '#3B82F6'} 0%, 
+    ${({ theme }) => theme.colors?.secondary || '#8B5CF6'} 100%
+  );
+  border: 3px solid ${({ theme }) => theme.background?.primary || '#0a0a1a'};
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s ease;
-
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    0 2px 6px rgba(0, 0, 0, 0.2),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
+  z-index: 3;
+  
+  /* Professional hover effects */
   &:hover {
-    transform: scale(1.1);
+    transform: scale(1.15) translateY(-2px);
+    box-shadow: 
+      0 8px 20px rgba(0, 0, 0, 0.4),
+      0 4px 12px rgba(0, 0, 0, 0.3),
+      inset 0 1px 2px rgba(255, 255, 255, 0.3);
+    background: linear-gradient(135deg, 
+      ${({ theme }) => theme.colors?.accent || '#F59E0B'} 0%, 
+      ${({ theme }) => theme.colors?.primary || '#3B82F6'} 100%
+    );
+  }
+  
+  &:active {
+    transform: scale(1.05);
+  }
+  
+  /* Icon styling */
+  svg {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
   }
 
   @media (max-width: 768px) {
-    width: 32px;
-    height: 32px;
-    bottom: 2px;
-    right: 2px;
+    width: 40px;
+    height: 40px;
+    bottom: 6px;
+    right: 6px;
+    border-width: 2px;
+    
+    &:hover {
+      transform: scale(1.1);
+    }
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    &:hover {
+      transform: none;
+    }
   }
 `;
 
 const ProfileInfo = styled(motion.div)`
   text-align: center;
-  padding: 80px 2rem 2rem;
+  padding: 90px 2rem 3rem;
+  position: relative;
+  
+  /* Subtle backdrop for better text readability */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 120%;
+    height: calc(100% - 60px);
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(0, 0, 0, 0.1) 20%,
+      rgba(0, 0, 0, 0.05) 80%,
+      transparent 100%
+    );
+    border-radius: 0 0 24px 24px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  > * {
+    position: relative;
+    z-index: 1;
+  }
   
   @media (max-width: 768px) {
-    padding: 70px 1rem 1.5rem;
+    padding: 80px 1rem 2rem;
+    
+    &::before {
+      top: 50px;
+      width: 110%;
+      height: calc(100% - 50px);
+    }
   }
 `;
 
 const DisplayName = styled.h1`
-  font-size: 2.5rem;
-  font-weight: 700;
-  background: ${({ theme }) => theme.gradients?.stellar || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'};
+  font-size: 3rem;
+  font-weight: 800;
+  background: linear-gradient(
+    135deg,
+    ${({ theme }) => theme.colors?.primary || '#3B82F6'} 0%,
+    ${({ theme }) => theme.colors?.secondary || '#8B5CF6'} 35%,
+    ${({ theme }) => theme.colors?.accent || '#F59E0B'} 70%,
+    ${({ theme }) => theme.colors?.primary || '#3B82F6'} 100%
+  );
+  background-size: 200% 200%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 0.5rem;
-  animation: ${fadeIn} 1s ease-out;
+  margin-bottom: 0.75rem;
+  animation: ${slideInUp} 0.8s ease-out;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  
+  /* Premium text effect */
+  position: relative;
+  
+  &::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(59, 130, 246, 0.1) 0%,
+      rgba(139, 92, 246, 0.1) 35%,
+      rgba(245, 158, 11, 0.1) 70%,
+      rgba(59, 130, 246, 0.1) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: blur(2px);
+    z-index: -1;
+    opacity: 0.6;
+  }
 
   @media (max-width: 768px) {
-    font-size: 2rem;
+    font-size: 2.25rem;
+    letter-spacing: -0.01em;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 1.875rem;
   }
 `;
 
 const Username = styled.p`
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
-  font-size: 1.1rem;
-  margin-bottom: 0.5rem;
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.75)'};
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+  letter-spacing: 0.02em;
+  animation: ${slideInUp} 0.8s ease-out 0.1s both;
+  
+  /* Subtle text enhancement */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   
   @media (max-width: 768px) {
+    font-size: 1.125rem;
+  }
+  
+  @media (max-width: 480px) {
     font-size: 1rem;
   }
 `;
@@ -230,24 +600,100 @@ const Username = styled.p`
 const UserRole = styled(motion.span)`
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: ${({ theme }) => theme.gradients?.primary || 'linear-gradient(135deg, #00ffff, #7851a9)'};
+  gap: 0.6rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(
+    135deg,
+    ${({ theme }) => theme.colors?.primary || '#3B82F6'} 0%,
+    ${({ theme }) => theme.colors?.secondary || '#8B5CF6'} 100%
+  );
   color: white;
-  border-radius: 25px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  border-radius: 30px;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.25),
+    0 4px 12px rgba(0, 0, 0, 0.15),
+    inset 0 1px 2px rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  animation: ${slideInUp} 0.8s ease-out 0.2s both;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Premium glow effect */
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+    transition: left 0.6s ease;
+  }
+  
+  &:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 
+      0 12px 32px rgba(0, 0, 0, 0.3),
+      0 6px 16px rgba(0, 0, 0, 0.2),
+      inset 0 1px 2px rgba(255, 255, 255, 0.3);
+    
+    &::before {
+      left: 100%;
+    }
+  }
+  
+  /* Icon styling */
+  svg {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.6rem 1.25rem;
+    font-size: 0.875rem;
+    
+    &:hover {
+      transform: translateY(-1px) scale(1.02);
+    }
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    
+    &:hover {
+      transform: none;
+    }
+    
+    &::before {
+      display: none;
+    }
+  }
 `;
 
 const StatsContainer = styled.div`
   display: flex;
   justify-content: center;
   gap: 3rem;
-  margin: 2rem 0;
-
+  margin: 2.5rem 0;
+  
   @media (max-width: 768px) {
     gap: 1.5rem;
+    margin: 2rem 0;
+  }
+  
+  @media (max-width: 480px) {
+    gap: 1rem;
     margin: 1.5rem 0;
   }
 `;
@@ -255,34 +701,125 @@ const StatsContainer = styled.div`
 const StatItem = styled(motion.div)`
   text-align: center;
   cursor: pointer;
-  transition: transform 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 1rem;
+  border-radius: 16px;
+  background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.03)'};
+  border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
+  
+  /* Premium hover effects */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.1),
+      transparent
+    );
+    transition: left 0.6s ease;
+  }
 
   &:hover {
-    transform: translateY(-5px);
+    transform: translateY(-8px) scale(1.05);
+    background: ${({ theme }) => theme.background?.elevated || 'rgba(255,255,255,0.08)'};
+    border-color: ${({ theme }) => theme.colors?.primary + '40' || 'rgba(59, 130, 246, 0.4)'};
+    box-shadow: 
+      0 12px 32px rgba(0, 0, 0, 0.2),
+      0 6px 16px rgba(0, 0, 0, 0.15),
+      inset 0 1px 2px rgba(255, 255, 255, 0.1);
+    
+    &::before {
+      left: 100%;
+    }
   }
   
   @media (prefers-reduced-motion: reduce) {
     transition: none;
+    
     &:hover {
       transform: none;
+    }
+    
+    &::before {
+      display: none;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    padding: 0.75rem;
+    
+    &:hover {
+      transform: translateY(-4px) scale(1.02);
     }
   }
 `;
 
 const StatValue = styled.div`
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: ${({ theme }) => theme.colors?.primary || '#00ffff'};
+  font-size: 2rem;
+  font-weight: 800;
+  background: linear-gradient(
+    135deg,
+    ${({ theme }) => theme.colors?.primary || '#3B82F6'} 0%,
+    ${({ theme }) => theme.colors?.secondary || '#8B5CF6'} 50%,
+    ${({ theme }) => theme.colors?.accent || '#F59E0B'} 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.5rem;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  animation: ${subtleGlow} 4s ease-in-out infinite;
+  position: relative;
+  
+  /* Fallback for browsers that don't support background-clip */
+  @supports not (-webkit-background-clip: text) {
+    color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+    background: none;
+  }
+  
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 
   @media (max-width: 768px) {
+    font-size: 1.75rem;
+  }
+  
+  @media (max-width: 480px) {
     font-size: 1.5rem;
   }
 `;
 
 const StatLabel = styled.div`
-  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.7)'};
-  font-size: 0.9rem;
+  color: ${({ theme }) => theme.text?.secondary || 'rgba(255,255,255,0.75)'};
+  font-size: 0.95rem;
+  font-weight: 600;
   margin-top: 0.25rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  opacity: 0.9;
+  transition: all 0.3s ease;
+  
+  ${StatItem}:hover & {
+    color: ${({ theme }) => theme.colors?.primary || '#3B82F6'};
+    opacity: 1;
+  }
+  
+  @media (max-width: 768px) {
+    font-size: 0.875rem;
+  }
+  
+  @media (max-width: 480px) {
+    font-size: 0.8rem;
+  }
 `;
 
 const Bio = styled.p`
@@ -647,7 +1184,14 @@ const UserDashboard: React.FC<UserDashboardProps> = () => {
             <BackgroundSection 
               $backgroundImage={backgroundImage}
               onClick={handleBackgroundClick}
-            />
+            >
+              <div className="upload-overlay">
+                <Camera size={48} className="upload-icon" />
+                <div className="upload-text">
+                  {backgroundImage ? 'Change Cover Photo' : 'Add Cover Photo'}
+                </div>
+              </div>
+            </BackgroundSection>
 
             <ProfileImageSection>
               <ProfileImageContainer
