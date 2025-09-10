@@ -12,7 +12,7 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDispatch } from 'react-redux';
-import { FaCalendarAlt, FaCrown, FaChartLine } from 'react-icons/fa';
+import { Calendar, Crown, TrendingUp } from 'lucide-react';
 
 // Import components
 import UnifiedCalendar from '../../../../Schedule/schedule';
@@ -391,7 +391,7 @@ const AdminScheduleTab: React.FC = () => {
                 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <FaCrown />
+                <Crown />
               </AdminIcon>
               <TitleText>
                 <MainTitle variants={itemVariants}>
@@ -408,14 +408,14 @@ const AdminScheduleTab: React.FC = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <FaCalendarAlt />
+                <Calendar />
                 All Sessions
               </StatItem>
               <StatItem
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.98 }}
               >
-                <FaChartLine />
+                <TrendingUp />
                 Analytics
               </StatItem>
             </StatsBar>
