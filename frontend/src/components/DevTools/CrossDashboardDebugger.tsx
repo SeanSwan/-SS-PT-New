@@ -1,36 +1,434 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Paper, 
-  Button, 
-  Tabs, 
-  Tab, 
-  Card, 
-  CardContent, 
-  CardHeader,
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Chip,
-  Alert,
-  CircularProgress,
-  Grid
-} from '@mui/material';
+import styled, { keyframes } from 'styled-components';
 import {
-  ExpandMore as ExpandMoreIcon,
-  BugReport as BugReportIcon,
-  Refresh as RefreshIcon,
-  Warning as WarningIcon,
-  CheckCircle as CheckCircleIcon,
-  Info as InfoIcon
-} from '@mui/icons-material';
+  ChevronDown,
+  Bug,
+  RefreshCw,
+  AlertTriangle,
+  CheckCircle,
+  Info,
+  Loader2
+} from 'lucide-react';
+
+// ===================== Styled Components =====================
+
+// Spinner Animation
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+const SpinnerContainer = styled.div`
+  animation: ${spin} 1s linear infinite;
+  display: inline-flex;
+  align-items: center;
+`;
+
+// Layout Components
+const Container = styled.div`
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+`;
+
+const Paper = styled.div`
+  padding: 24px;
+  margin-bottom: 24px;
+  background-color: #1a1a2e;
+  color: #f5f5f5;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+`;
+
+const FlexBox = styled.div`
+  display: flex;
+  
+  &.items-center {
+    align-items: center;
+  }
+  
+  &.justify-center {
+    justify-content: center;
+  }
+  
+  &.gap-2 {
+    gap: 16px;
+  }
+  
+  &.mb-3 {
+    margin-bottom: 24px;
+  }
+  
+  &.mb-4 {
+    margin-bottom: 32px;
+  }
+  
+  &.mt-3 {
+    margin-top: 24px;
+  }
+  
+  &.py-4 {
+    padding-top: 32px;
+    padding-bottom: 32px;
+  }
+`;
+
+const Grid = styled.div`
+  display: grid;
+  gap: 16px;
+  
+  &.cols-1 {
+    grid-template-columns: 1fr;
+  }
+  
+  &.cols-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  @media (max-width: 768px) {
+    &.cols-3 {
+      grid-template-columns: 1fr;
+    }
+  }
+`;
+
+// Typography
+const Title = styled.h1`
+  font-size: 2rem;
+  font-weight: 600;
+  color: #00ffff;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+`;
+
+const Subtitle = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 16px 0;
+`;
+
+const Text = styled.p`
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #f5f5f5;
+  margin: 0 0 16px 0;
+  
+  &.body2 {
+    font-size: 0.875rem;
+  }
+`;
+
+// Buttons
+const Button = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &.primary {
+    background-color: #3b82f6;
+    color: white;
+  }
+  
+  &.secondary {
+    background-color: #7851A9;
+    color: white;
+  }
+  
+  &:hover:not(:disabled) {
+    opacity: 0.9;
+    transform: translateY(-1px);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+// Alert Components
+const Alert = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  
+  &.success {
+    background-color: rgba(40, 167, 69, 0.1);
+    border: 1px solid rgba(40, 167, 69, 0.3);
+    color: #28a745;
+  }
+  
+  &.warning {
+    background-color: rgba(255, 193, 7, 0.1);
+    border: 1px solid rgba(255, 193, 7, 0.3);
+    color: #ffc107;
+  }
+  
+  &.error {
+    background-color: rgba(244, 67, 54, 0.1);
+    border: 1px solid rgba(244, 67, 54, 0.3);
+    color: #f44336;
+  }
+  
+  &.info {
+    background-color: rgba(23, 162, 184, 0.1);
+    border: 1px solid rgba(23, 162, 184, 0.3);
+    color: #17a2b8;
+  }
+`;
+
+const AlertIcon = styled.div`
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const AlertContent = styled.div`
+  flex: 1;
+  font-size: 0.875rem;
+  line-height: 1.4;
+`;
+
+// Chip Components
+const Chip = styled.span`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid;
+  
+  &.success {
+    background-color: rgba(40, 167, 69, 0.2);
+    border-color: #28a745;
+    color: #28a745;
+  }
+  
+  &.error {
+    background-color: rgba(244, 67, 54, 0.2);
+    border-color: #f44336;
+    color: #f44336;
+  }
+  
+  &.warning {
+    background-color: rgba(255, 193, 7, 0.2);
+    border-color: #ffc107;
+    color: #ffc107;
+  }
+  
+  &.info {
+    background-color: rgba(23, 162, 184, 0.2);
+    border-color: #17a2b8;
+    color: #17a2b8;
+  }
+  
+  &.default {
+    background-color: rgba(156, 163, 175, 0.2);
+    border-color: #9ca3af;
+    color: #9ca3af;
+  }
+  
+  &.small {
+    padding: 2px 6px;
+    font-size: 0.7rem;
+  }
+`;
+
+// Card Components
+const Card = styled.div`
+  background-color: #31304D;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  
+  &.error-bg {
+    background-color: #4F3A3A;
+  }
+`;
+
+const CardContent = styled.div`
+  padding: 16px;
+`;
+
+const CardTitle = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #ffffff;
+`;
+
+const CardValue = styled.div`
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 8px;
+`;
+
+const CardSubtitle = styled.p`
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin: 0;
+`;
+
+// Table Components
+const TableContainer = styled.div`
+  overflow-x: auto;
+  max-height: 500px;
+  border-radius: 8px;
+  background-color: #31304D;
+`;
+
+const Table = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const TableHead = styled.thead`
+  background-color: #1a1a2e;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+`;
+
+const TableBody = styled.tbody``;
+
+const TableRow = styled.tr`
+  &:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.02);
+  }
+  
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+`;
+
+const TableCell = styled.td`
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 0.875rem;
+  vertical-align: middle;
+  
+  &.header {
+    font-weight: 600;
+    color: #00ffff;
+    background-color: #1a1a2e;
+  }
+`;
+
+// Tabs Components
+const TabsContainer = styled.div`
+  margin-bottom: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const TabsList = styled.div`
+  display: flex;
+  width: 100%;
+`;
+
+const TabButton = styled.button`
+  flex: 1;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  color: #f5f5f5;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s ease;
+  
+  &.active {
+    color: #00ffff;
+    border-bottom-color: #00ffff;
+  }
+  
+  &:hover {
+    color: #00ffff;
+    background-color: rgba(0, 255, 255, 0.1);
+  }
+`;
+
+// Accordion Components
+const Accordion = styled.div`
+  margin-bottom: 16px;
+  background-color: #31304D;
+  border-radius: 8px;
+  overflow: hidden;
+`;
+
+const AccordionHeader = styled.button`
+  width: 100%;
+  padding: 16px;
+  background: none;
+  border: none;
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background-color 0.3s ease;
+  
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+`;
+
+const AccordionContent = styled.div<{ $isOpen: boolean }>`
+  max-height: ${({ $isOpen }) => $isOpen ? '1000px' : '0'};
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+`;
+
+const AccordionBody = styled.div`
+  padding: 0 16px 16px 16px;
+  color: #e0e0e0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  
+  ol {
+    margin: 8px 0;
+    padding-left: 20px;
+  }
+  
+  li {
+    margin-bottom: 4px;
+  }
+`;
+
+// Debug Log
+const DebugLog = styled.div`
+  padding: 16px;
+  max-height: 500px;
+  overflow: auto;
+  background-color: #000;
+  color: #00ff00;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  border-radius: 8px;
+  
+  .log-entry {
+    margin-bottom: 4px;
+  }
+`;
 
 // Import services
 import sessionService from '../../services/session-service';
@@ -333,288 +731,352 @@ const CrossDashboardDebugger: React.FC = () => {
   };
   
   // Handle tab change
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (newValue: number) => {
     setActiveTab(newValue);
   };
 
+  // Accordion state management
+  const [expandedAccordions, setExpandedAccordions] = useState<Record<number, boolean>>({});
+  
+  const toggleAccordion = (index: number) => {
+    setExpandedAccordions(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+
   return (
-    <Box sx={{ maxWidth: 1200, mx: 'auto', p: 3 }}>
-      <Paper sx={{ p: 3, mb: 3, bgcolor: '#1a1a2e', color: '#f5f5f5' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-          <BugReportIcon sx={{ fontSize: 36, mr: 2, color: '#00ffff' }} />
-          <Typography variant="h4" sx={{ color: '#00ffff' }}>
+    <Container>
+      <Paper>
+        <FlexBox className="items-center mb-3">
+          <Bug size={36} color="#00ffff" />
+          <Title>
             Cross-Dashboard Debugger
-          </Typography>
-        </Box>
+          </Title>
+        </FlexBox>
         
-        <Typography variant="body1" gutterBottom>
+        <Text>
           This tool diagnoses issues with data sharing between client, admin, and trainer dashboards.
           It focuses on sessions, notifications, workouts and gamification.
-        </Typography>
+        </Text>
 
-        <Box sx={{ display: 'flex', gap: 2, mt: 3, mb: 4 }}>
+        <FlexBox className="gap-2 mt-3 mb-4">
           <Button 
-            variant="contained" 
-            color="primary" 
+            className="primary"
             onClick={fetchAllData}
-            startIcon={<RefreshIcon />}
             disabled={loading}
           >
+            <RefreshCw size={16} />
             Refresh All Data
           </Button>
           
           <Button 
-            variant="contained"
-            color="secondary"  
+            className="secondary"
             onClick={attemptFixCommonIssues}
             disabled={loading || dataFlowIssues.length === 0}
           >
             Attempt Auto-Fix
           </Button>
-        </Box>
+        </FlexBox>
         
         {loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-            <CircularProgress size={60} />
-          </Box>
+          <FlexBox className="justify-center py-4">
+            <SpinnerContainer>
+              <Loader2 size={60} />
+            </SpinnerContainer>
+          </FlexBox>
         ) : (
           <>
-            <Box sx={{ mb: 4 }}>
-              <Alert 
-                severity={dataFlowIssues.length > 0 ? "warning" : "success"}
-                icon={dataFlowIssues.length > 0 ? <WarningIcon /> : <CheckCircleIcon />}
-                sx={{ mb: 2 }}
-              >
-                {dataFlowIssues.length > 0 
-                  ? `${dataFlowIssues.length} data flow issues detected` 
-                  : "All systems appear to be functioning correctly"}
+            <div style={{ marginBottom: '32px' }}>
+              <Alert className={dataFlowIssues.length > 0 ? "warning" : "success"}>
+                <AlertIcon>
+                  {dataFlowIssues.length > 0 ? <AlertTriangle size={16} /> : <CheckCircle size={16} />}
+                </AlertIcon>
+                <AlertContent>
+                  {dataFlowIssues.length > 0 
+                    ? `${dataFlowIssues.length} data flow issues detected` 
+                    : "All systems appear to be functioning correctly"}
+                </AlertContent>
               </Alert>
               
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                  <Card sx={{ backgroundColor: apiStatus['/api/sessions']?.ok ? '#31304D' : '#4F3A3A' }}>
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        Sessions
-                      </Typography>
-                      <Typography variant="h4">
-                        {sessions.length}
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        {apiStatus['/api/sessions']?.ok ? 'API Connected' : 'API Disconnected'}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
+              <Grid className="cols-3">
+                <Card className={apiStatus['/api/sessions']?.ok ? '' : 'error-bg'}>
+                  <CardContent>
+                    <CardTitle>
+                      Sessions
+                    </CardTitle>
+                    <CardValue>
+                      {sessions.length}
+                    </CardValue>
+                    <CardSubtitle>
+                      {apiStatus['/api/sessions']?.ok ? 'API Connected' : 'API Disconnected'}
+                    </CardSubtitle>
+                  </CardContent>
+                </Card>
                 
-                <Grid item xs={12} md={4}>
-                  <Card sx={{ backgroundColor: apiStatus['/api/notifications']?.ok ? '#31304D' : '#4F3A3A' }}>
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        Notifications
-                      </Typography>
-                      <Typography variant="h4">
-                        {notifications.length}
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary">
-                        {apiStatus['/api/notifications']?.ok ? 'API Connected' : 'API Disconnected'}
-                      </Typography>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                <Card className={apiStatus['/api/notifications']?.ok ? '' : 'error-bg'}>
+                  <CardContent>
+                    <CardTitle>
+                      Notifications
+                    </CardTitle>
+                    <CardValue>
+                      {notifications.length}
+                    </CardValue>
+                    <CardSubtitle>
+                      {apiStatus['/api/notifications']?.ok ? 'API Connected' : 'API Disconnected'}
+                    </CardSubtitle>
+                  </CardContent>
+                </Card>
                 
-                <Grid item xs={12} md={4}>
-                  <Card sx={{ backgroundColor: (mcpStatus.workout && mcpStatus.gamification) ? '#31304D' : '#4F3A3A' }}>
-                    <CardContent>
-                      <Typography variant="h6" gutterBottom>
-                        MCP Servers
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 1 }}>
-                        <Chip 
-                          label="Workout" 
-                          color={mcpStatus.workout ? "success" : "error"}
-                          size="small"
-                        />
-                        <Chip 
-                          label="Gamification" 
-                          color={mcpStatus.gamification ? "success" : "error"}
-                          size="small"
-                        />
-                      </Box>
-                    </CardContent>
-                  </Card>
-                </Grid>
+                <Card className={(mcpStatus.workout && mcpStatus.gamification) ? '' : 'error-bg'}>
+                  <CardContent>
+                    <CardTitle>
+                      MCP Servers
+                    </CardTitle>
+                    <FlexBox className="gap-2" style={{ marginBottom: '8px' }}>
+                      <Chip 
+                        className={mcpStatus.workout ? "success small" : "error small"}
+                      >
+                        Workout
+                      </Chip>
+                      <Chip 
+                        className={mcpStatus.gamification ? "success small" : "error small"}
+                      >
+                        Gamification
+                      </Chip>
+                    </FlexBox>
+                  </CardContent>
+                </Card>
               </Grid>
-            </Box>
+            </div>
             
-            <Tabs 
-              value={activeTab} 
-              onChange={handleTabChange}
-              variant="fullWidth"
-              sx={{ 
-                mb: 3,
-                borderBottom: 1, 
-                borderColor: 'divider',
-                '& .MuiTab-root': { color: '#f5f5f5' },
-                '& .Mui-selected': { color: '#00ffff' }
-              }}
-            >
-              <Tab label="Issues & Fixes" />
-              <Tab label="Sessions Data" />
-              <Tab label="API Status" />
-              <Tab label="Debug Log" />
-            </Tabs>
+            <TabsContainer>
+              <TabsList>
+                <TabButton 
+                  className={activeTab === 0 ? 'active' : ''}
+                  onClick={() => handleTabChange(0)}
+                >
+                  Issues & Fixes
+                </TabButton>
+                <TabButton 
+                  className={activeTab === 1 ? 'active' : ''}
+                  onClick={() => handleTabChange(1)}
+                >
+                  Sessions Data
+                </TabButton>
+                <TabButton 
+                  className={activeTab === 2 ? 'active' : ''}
+                  onClick={() => handleTabChange(2)}
+                >
+                  API Status
+                </TabButton>
+                <TabButton 
+                  className={activeTab === 3 ? 'active' : ''}
+                  onClick={() => handleTabChange(3)}
+                >
+                  Debug Log
+                </TabButton>
+              </TabsList>
+            </TabsContainer>
             
             {/* Issues & Fixes Tab */}
             {activeTab === 0 && (
-              <Box>
-                <Typography variant="h6" gutterBottom>
+              <div>
+                <Subtitle>
                   Detected Issues
-                </Typography>
+                </Subtitle>
                 
                 {dataFlowIssues.length > 0 ? (
-                  <Box sx={{ mb: 4 }}>
+                  <div style={{ marginBottom: '32px' }}>
                     {dataFlowIssues.map((issue, index) => (
                       <Alert 
-                        key={index} 
-                        severity="warning" 
-                        sx={{ mb: 1 }}
-                        icon={<WarningIcon />}
+                        key={index}
+                        className="warning"
                       >
-                        {issue}
+                        <AlertIcon>
+                          <AlertTriangle size={16} />
+                        </AlertIcon>
+                        <AlertContent>
+                          {issue}
+                        </AlertContent>
                       </Alert>
                     ))}
-                  </Box>
+                  </div>
                 ) : (
-                  <Alert severity="success" sx={{ mb: 4 }}>
-                    No data flow issues detected
+                  <Alert className="success" style={{ marginBottom: '32px' }}>
+                    <AlertIcon>
+                      <CheckCircle size={16} />
+                    </AlertIcon>
+                    <AlertContent>
+                      No data flow issues detected
+                    </AlertContent>
                   </Alert>
                 )}
                 
                 {Object.keys(fixAttempts).length > 0 && (
                   <>
-                    <Typography variant="h6" gutterBottom>
+                    <Subtitle>
                       Fix Attempts
-                    </Typography>
+                    </Subtitle>
                     
-                    <Box sx={{ mb: 4 }}>
+                    <div style={{ marginBottom: '32px' }}>
                       {Object.entries(fixAttempts).map(([key, result], index) => (
                         <Alert 
-                          key={index} 
-                          severity={result.includes('successful') ? "success" : "info"} 
-                          sx={{ mb: 1 }}
+                          key={index}
+                          className={result.includes('successful') ? "success" : "info"}
                         >
-                          {result}
+                          <AlertIcon>
+                            {result.includes('successful') ? <CheckCircle size={16} /> : <Info size={16} />}
+                          </AlertIcon>
+                          <AlertContent>
+                            {result}
+                          </AlertContent>
                         </Alert>
                       ))}
-                    </Box>
+                    </div>
                   </>
                 )}
                 
-                <Typography variant="h6" gutterBottom>
+                <Subtitle>
                   Common Solutions
-                </Typography>
+                </Subtitle>
                 
-                <Accordion sx={{ mb: 2, bgcolor: '#31304D' }}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography>Sessions Not Appearing</Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Typography paragraph>
-                      If sessions are not appearing in dashboards, try these solutions:
-                    </Typography>
-                    <ol>
-                      <li>Check that the session API endpoint is accessible</li>
-                      <li>Verify that sessions have the correct status and are associated with valid users</li>
-                      <li>Ensure sessions are associated with the correct client ID</li>
-                      <li>Check that role-based filtering is working correctly in the session controller</li>
-                    </ol>
-                    <Typography sx={{ mt: 2 }}>
-                      Direct fix: You can run a database repair script from the admin panel to ensure session data consistency.
-                    </Typography>
-                  </AccordionDetails>
+                <Accordion>
+                  <AccordionHeader onClick={() => toggleAccordion(0)}>
+                    <span>Sessions Not Appearing</span>
+                    <ChevronDown 
+                      size={20} 
+                      style={{ 
+                        transform: expandedAccordions[0] ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.3s ease'
+                      }} 
+                    />
+                  </AccordionHeader>
+                  <AccordionContent $isOpen={!!expandedAccordions[0]}>
+                    <AccordionBody>
+                      <Text>
+                        If sessions are not appearing in dashboards, try these solutions:
+                      </Text>
+                      <ol>
+                        <li>Check that the session API endpoint is accessible</li>
+                        <li>Verify that sessions have the correct status and are associated with valid users</li>
+                        <li>Ensure sessions are associated with the correct client ID</li>
+                        <li>Check that role-based filtering is working correctly in the session controller</li>
+                      </ol>
+                      <Text style={{ marginTop: '16px' }}>
+                        Direct fix: You can run a database repair script from the admin panel to ensure session data consistency.
+                      </Text>
+                    </AccordionBody>
+                  </AccordionContent>
                 </Accordion>
                 
-                <Accordion sx={{ mb: 2, bgcolor: '#31304D' }}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography>Notifications Not Appearing</Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Typography paragraph>
-                      If notifications are not appearing correctly, try these solutions:
-                    </Typography>
-                    <ol>
-                      <li>Check that the notification API endpoint is accessible</li>
-                      <li>Verify WebSocket connections are established for real-time updates</li>
-                      <li>Ensure notification events are being properly triggered by actions</li>
-                      <li>Check that notification types are being correctly filtered</li>
-                    </ol>
-                    <Typography sx={{ mt: 2 }}>
-                      Direct fix: You can manually trigger test notifications for all users to verify the notification system.
-                    </Typography>
-                  </AccordionDetails>
+                <Accordion>
+                  <AccordionHeader onClick={() => toggleAccordion(1)}>
+                    <span>Notifications Not Appearing</span>
+                    <ChevronDown 
+                      size={20} 
+                      style={{ 
+                        transform: expandedAccordions[1] ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.3s ease'
+                      }} 
+                    />
+                  </AccordionHeader>
+                  <AccordionContent $isOpen={!!expandedAccordions[1]}>
+                    <AccordionBody>
+                      <Text>
+                        If notifications are not appearing correctly, try these solutions:
+                      </Text>
+                      <ol>
+                        <li>Check that the notification API endpoint is accessible</li>
+                        <li>Verify WebSocket connections are established for real-time updates</li>
+                        <li>Ensure notification events are being properly triggered by actions</li>
+                        <li>Check that notification types are being correctly filtered</li>
+                      </ol>
+                      <Text style={{ marginTop: '16px' }}>
+                        Direct fix: You can manually trigger test notifications for all users to verify the notification system.
+                      </Text>
+                    </AccordionBody>
+                  </AccordionContent>
                 </Accordion>
                 
-                <Accordion sx={{ mb: 2, bgcolor: '#31304D' }}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography>Session Purchase Not Showing in Client Dashboard</Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Typography paragraph>
-                      If sessions purchased through the cart system are not showing up in client accounts, try these solutions:
-                    </Typography>
-                    <ol>
-                      <li>Check that order processing is correctly adding session credits to client accounts</li>
-                      <li>Verify the client's availableSessions field is being updated</li>
-                      <li>Ensure session packages are correctly defined with session counts</li>
-                      <li>Check that the cart checkout process is completing successfully</li>
-                    </ol>
-                    <Typography sx={{ mt: 2 }}>
-                      Direct fix: You can manually add session credits to client accounts from the admin dashboard.
-                    </Typography>
-                  </AccordionDetails>
+                <Accordion>
+                  <AccordionHeader onClick={() => toggleAccordion(2)}>
+                    <span>Session Purchase Not Showing in Client Dashboard</span>
+                    <ChevronDown 
+                      size={20} 
+                      style={{ 
+                        transform: expandedAccordions[2] ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.3s ease'
+                      }} 
+                    />
+                  </AccordionHeader>
+                  <AccordionContent $isOpen={!!expandedAccordions[2]}>
+                    <AccordionBody>
+                      <Text>
+                        If sessions purchased through the cart system are not showing up in client accounts, try these solutions:
+                      </Text>
+                      <ol>
+                        <li>Check that order processing is correctly adding session credits to client accounts</li>
+                        <li>Verify the client's availableSessions field is being updated</li>
+                        <li>Ensure session packages are correctly defined with session counts</li>
+                        <li>Check that the cart checkout process is completing successfully</li>
+                      </ol>
+                      <Text style={{ marginTop: '16px' }}>
+                        Direct fix: You can manually add session credits to client accounts from the admin dashboard.
+                      </Text>
+                    </AccordionBody>
+                  </AccordionContent>
                 </Accordion>
                 
-                <Accordion sx={{ mb: 2, bgcolor: '#31304D' }}>
-                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                    <Typography>MCP Server Connection Issues</Typography>
-                  </AccordionSummary>
-                  <AccordionDetails>
-                    <Typography paragraph>
-                      If MCP servers are not connecting properly, try these solutions:
-                    </Typography>
-                    <ol>
-                      <li>Check that MCP servers are running on the correct ports</li>
-                      <li>Verify API keys and authentication tokens are valid</li>
-                      <li>Ensure CORS is properly configured for cross-origin requests</li>
-                      <li>Check network connectivity between frontend and MCP servers</li>
-                    </ol>
-                    <Typography sx={{ mt: 2 }}>
-                      Direct fix: You can restart the MCP servers using the scripts in the /scripts directory.
-                    </Typography>
-                  </AccordionDetails>
+                <Accordion>
+                  <AccordionHeader onClick={() => toggleAccordion(3)}>
+                    <span>MCP Server Connection Issues</span>
+                    <ChevronDown 
+                      size={20} 
+                      style={{ 
+                        transform: expandedAccordions[3] ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.3s ease'
+                      }} 
+                    />
+                  </AccordionHeader>
+                  <AccordionContent $isOpen={!!expandedAccordions[3]}>
+                    <AccordionBody>
+                      <Text>
+                        If MCP servers are not connecting properly, try these solutions:
+                      </Text>
+                      <ol>
+                        <li>Check that MCP servers are running on the correct ports</li>
+                        <li>Verify API keys and authentication tokens are valid</li>
+                        <li>Ensure CORS is properly configured for cross-origin requests</li>
+                        <li>Check network connectivity between frontend and MCP servers</li>
+                      </ol>
+                      <Text style={{ marginTop: '16px' }}>
+                        Direct fix: You can restart the MCP servers using the scripts in the /scripts directory.
+                      </Text>
+                    </AccordionBody>
+                  </AccordionContent>
                 </Accordion>
-              </Box>
+              </div>
             )}
             
             {/* Sessions Data Tab */}
             {activeTab === 1 && (
-              <Box>
-                <Typography variant="h6" gutterBottom>
+              <div>
+                <Subtitle>
                   Session Data Analysis
-                </Typography>
+                </Subtitle>
                 
                 {sessions.length > 0 ? (
-                  <TableContainer sx={{ maxHeight: 500 }}>
-                    <Table stickyHeader size="small">
+                  <TableContainer>
+                    <Table>
                       <TableHead>
                         <TableRow>
-                          <TableCell>ID</TableCell>
-                          <TableCell>Date</TableCell>
-                          <TableCell>Client</TableCell>
-                          <TableCell>Trainer</TableCell>
-                          <TableCell>Status</TableCell>
-                          <TableCell>Visibility</TableCell>
+                          <TableCell className="header">ID</TableCell>
+                          <TableCell className="header">Date</TableCell>
+                          <TableCell className="header">Client</TableCell>
+                          <TableCell className="header">Trainer</TableCell>
+                          <TableCell className="header">Status</TableCell>
+                          <TableCell className="header">Visibility</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -636,7 +1098,7 @@ const CrossDashboardDebugger: React.FC = () => {
                                 {client 
                                   ? `${client.firstName} ${client.lastName}`
                                   : session.userId 
-                                    ? <Chip label="MISSING CLIENT" color="error" size="small" />
+                                    ? <Chip className="error small">MISSING CLIENT</Chip>
                                     : "Not booked"
                                 }
                               </TableCell>
@@ -644,43 +1106,43 @@ const CrossDashboardDebugger: React.FC = () => {
                                 {trainer 
                                   ? `${trainer.firstName} ${trainer.lastName}`
                                   : session.trainerId
-                                    ? <Chip label="MISSING TRAINER" color="error" size="small" />
-                                    : <Chip label="UNASSIGNED" color="warning" size="small" />
+                                    ? <Chip className="error small">MISSING TRAINER</Chip>
+                                    : <Chip className="warning small">UNASSIGNED</Chip>
                                 }
                               </TableCell>
                               <TableCell>
                                 <Chip 
-                                  label={session.status} 
-                                  color={
-                                    session.status === 'available' ? 'info' :
-                                    session.status === 'completed' ? 'success' :
-                                    session.status === 'cancelled' ? 'error' :
-                                    'default'
+                                  className={
+                                    session.status === 'available' ? 'info small' :
+                                    session.status === 'completed' ? 'success small' :
+                                    session.status === 'cancelled' ? 'error small' :
+                                    'default small'
                                   }
-                                  size="small"
-                                />
+                                >
+                                  {session.status}
+                                </Chip>
                               </TableCell>
                               <TableCell>
-                                <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                <FlexBox className="gap-2">
                                   <Chip 
-                                    label="A" 
-                                    color={adminVisible ? "success" : "error"}
-                                    size="small"
+                                    className={adminVisible ? "success small" : "error small"}
                                     title="Admin dashboard visibility"
-                                  />
+                                  >
+                                    A
+                                  </Chip>
                                   <Chip 
-                                    label="C" 
-                                    color={clientVisible ? "success" : "error"}
-                                    size="small"
+                                    className={clientVisible ? "success small" : "error small"}
                                     title="Client dashboard visibility"
-                                  />
+                                  >
+                                    C
+                                  </Chip>
                                   <Chip 
-                                    label="T" 
-                                    color={trainerVisible ? "success" : "error"}
-                                    size="small"
+                                    className={trainerVisible ? "success small" : "error small"}
                                     title="Trainer dashboard visibility"
-                                  />
-                                </Box>
+                                  >
+                                    T
+                                  </Chip>
+                                </FlexBox>
                               </TableCell>
                             </TableRow>
                           );
@@ -689,27 +1151,32 @@ const CrossDashboardDebugger: React.FC = () => {
                     </Table>
                   </TableContainer>
                 ) : (
-                  <Alert severity="warning">
-                    No session data available
+                  <Alert className="warning">
+                    <AlertIcon>
+                      <AlertTriangle size={16} />
+                    </AlertIcon>
+                    <AlertContent>
+                      No session data available
+                    </AlertContent>
                   </Alert>
                 )}
-              </Box>
+              </div>
             )}
             
             {/* API Status Tab */}
             {activeTab === 2 && (
-              <Box>
-                <Typography variant="h6" gutterBottom>
+              <div>
+                <Subtitle>
                   API Connection Status
-                </Typography>
+                </Subtitle>
                 
                 <TableContainer>
                   <Table>
                     <TableHead>
                       <TableRow>
-                        <TableCell>Endpoint</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Details</TableCell>
+                        <TableCell className="header">Endpoint</TableCell>
+                        <TableCell className="header">Status</TableCell>
+                        <TableCell className="header">Details</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -718,9 +1185,10 @@ const CrossDashboardDebugger: React.FC = () => {
                           <TableCell>{endpoint}</TableCell>
                           <TableCell>
                             <Chip 
-                              label={status.ok ? "Connected" : "Error"} 
-                              color={status.ok ? "success" : "error"}
-                            />
+                              className={status.ok ? "success" : "error"}
+                            >
+                              {status.ok ? "Connected" : "Error"}
+                            </Chip>
                           </TableCell>
                           <TableCell>
                             {status.ok 
@@ -734,17 +1202,17 @@ const CrossDashboardDebugger: React.FC = () => {
                   </Table>
                 </TableContainer>
                 
-                <Typography variant="h6" sx={{ mt: 4, mb: 2 }}>
+                <Subtitle style={{ marginTop: '32px', marginBottom: '16px' }}>
                   MCP Server Status
-                </Typography>
+                </Subtitle>
                 
                 <TableContainer>
                   <Table>
                     <TableHead>
                       <TableRow>
-                        <TableCell>Server</TableCell>
-                        <TableCell>Status</TableCell>
-                        <TableCell>Impact</TableCell>
+                        <TableCell className="header">Server</TableCell>
+                        <TableCell className="header">Status</TableCell>
+                        <TableCell className="header">Impact</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -752,9 +1220,10 @@ const CrossDashboardDebugger: React.FC = () => {
                         <TableCell>Workout MCP</TableCell>
                         <TableCell>
                           <Chip 
-                            label={mcpStatus.workout ? "Connected" : "Disconnected"} 
-                            color={mcpStatus.workout ? "success" : "error"}
-                          />
+                            className={mcpStatus.workout ? "success" : "error"}
+                          >
+                            {mcpStatus.workout ? "Connected" : "Disconnected"}
+                          </Chip>
                         </TableCell>
                         <TableCell>
                           {mcpStatus.workout 
@@ -767,9 +1236,10 @@ const CrossDashboardDebugger: React.FC = () => {
                         <TableCell>Gamification MCP</TableCell>
                         <TableCell>
                           <Chip 
-                            label={mcpStatus.gamification ? "Connected" : "Disconnected"} 
-                            color={mcpStatus.gamification ? "success" : "error"}
-                          />
+                            className={mcpStatus.gamification ? "success" : "error"}
+                          >
+                            {mcpStatus.gamification ? "Connected" : "Disconnected"}
+                          </Chip>
                         </TableCell>
                         <TableCell>
                           {mcpStatus.gamification 
@@ -781,29 +1251,29 @@ const CrossDashboardDebugger: React.FC = () => {
                     </TableBody>
                   </Table>
                 </TableContainer>
-              </Box>
+              </div>
             )}
             
             {/* Debug Log Tab */}
             {activeTab === 3 && (
-              <Box>
-                <Typography variant="h6" gutterBottom>
+              <div>
+                <Subtitle>
                   Debug Log
-                </Typography>
+                </Subtitle>
                 
-                <Paper sx={{ p: 2, maxHeight: 500, overflow: 'auto', bgcolor: '#000', color: '#00ff00', fontFamily: 'monospace' }}>
+                <DebugLog>
                   {debugLog.map((log, index) => (
-                    <Box key={index} sx={{ mb: 0.5 }}>
+                    <div key={index} className="log-entry">
                       {log}
-                    </Box>
+                    </div>
                   ))}
-                </Paper>
-              </Box>
+                </DebugLog>
+              </div>
             )}
           </>
         )}
       </Paper>
-    </Box>
+    </Container>
   );
 };
 
