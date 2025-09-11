@@ -1,27 +1,231 @@
 import React, { useState, useEffect } from 'react';
+import styled, { keyframes } from 'styled-components';
 import { 
-  Box, 
-  Button, 
-  Typography, 
-  Paper, 
-  Alert,
-  CircularProgress,
-  Chip,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Divider,
-  Collapse
-} from '@mui/material';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import ConstructionIcon from '@mui/icons-material/Construction';
-import AutorenewIcon from '@mui/icons-material/Autorenew';
-import WifiOffIcon from '@mui/icons-material/WifiOff';
+  CheckCircle,
+  AlertCircle,
+  Construction,
+  RotateCcw,
+  WifiOff,
+  ChevronDown,
+  ChevronUp
+} from 'lucide-react';
 
 import { enableMockDataMode, isMockDataModeEnabled } from '../../utils/apiConnectivityFixer';
 import api from '../../services/api';
+
+// Styled Components
+const Container = styled.div`
+  background: rgba(30, 30, 60, 0.4);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+`;
+
+const Header = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 8px;
+`;
+
+const Title = styled.h2`
+  font-size: 1.25rem;
+  color: #00ffff;
+  margin: 0;
+`;
+
+const AlertBox = styled.div<{ $severity: 'warning' | 'info' | 'success' | 'error' }>`
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  border: 1px solid ${({ $severity }) => {
+    switch ($severity) {
+      case 'warning': return 'rgba(255, 193, 7, 0.3)';
+      case 'success': return 'rgba(40, 167, 69, 0.3)';
+      case 'error': return 'rgba(220, 53, 69, 0.3)';
+      default: return 'rgba(23, 162, 184, 0.3)';
+    }
+  }};
+  background-color: ${({ $severity }) => {
+    switch ($severity) {
+      case 'warning': return 'rgba(255, 193, 7, 0.1)';
+      case 'success': return 'rgba(40, 167, 69, 0.1)';
+      case 'error': return 'rgba(220, 53, 69, 0.1)';
+      default: return 'rgba(23, 162, 184, 0.1)';
+    }
+  }};
+  color: ${({ $severity }) => {
+    switch ($severity) {
+      case 'warning': return '#ffc107';
+      case 'success': return '#28a745';
+      case 'error': return '#dc3545';
+      default: return '#17a2b8';
+    }
+  }};
+`;
+
+const AlertContent = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.875rem;
+`;
+
+const Button = styled.button<{ $variant?: 'contained' | 'outlined'; $color?: string; $size?: 'small' | 'medium' }>`
+  padding: ${({ $size }) => $size === 'small' ? '6px 12px' : '8px 16px'};
+  border-radius: 6px;
+  border: 1px solid;
+  cursor: pointer;
+  font-size: ${({ $size }) => $size === 'small' ? '0.75rem' : '0.875rem'};
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s ease;
+  
+  ${({ $variant, $color }) => {
+    if ($variant === 'contained') {
+      return `
+        background-color: ${$color === 'warning' ? '#ffc107' : '#00ffff'};
+        color: ${$color === 'warning' ? '#000' : '#000'};
+        border-color: ${$color === 'warning' ? '#ffc107' : '#00ffff'};
+        
+        &:hover {
+          background-color: ${$color === 'warning' ? '#e0a800' : '#00e6e6'};
+        }
+      `;
+    } else {
+      return `
+        background-color: transparent;
+        color: ${$color === 'warning' ? '#ffc107' : $color === 'secondary' ? '#7851A9' : '#00ffff'};
+        border-color: ${$color === 'warning' ? '#ffc107' : $color === 'secondary' ? '#7851A9' : '#00ffff'};
+        
+        &:hover {
+          background-color: ${$color === 'warning' ? 'rgba(255, 193, 7, 0.1)' : $color === 'secondary' ? 'rgba(120, 81, 169, 0.1)' : 'rgba(0, 255, 255, 0.1)'};
+        }
+      `;
+    }
+  }}
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+`;
+
+const StatsContainer = styled.div`
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: rgba(40, 40, 80, 0.3);
+  border-radius: 8px;
+`;
+
+const StatsTitle = styled.h3`
+  font-size: 0.875rem;
+  color: #ccc;
+  margin: 0 0 8px 0;
+`;
+
+const ChipContainer = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+const Chip = styled.div<{ $color: 'success' | 'error' | 'info' | 'default' }>`
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  border: 1px solid;
+  background-color: transparent;
+  
+  ${({ $color }) => {
+    switch ($color) {
+      case 'success':
+        return 'color: #28a745; border-color: #28a745;';
+      case 'error':
+        return 'color: #dc3545; border-color: #dc3545;';
+      case 'info':
+        return 'color: #17a2b8; border-color: #17a2b8;';
+      default:
+        return 'color: #ccc; border-color: #ccc;';
+    }
+  }}
+`;
+
+const spinning = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+const SpinningIcon = styled.div`
+  animation: ${spinning} 1s linear infinite;
+  display: flex;
+  align-items: center;
+`;
+
+const CollapseContainer = styled.div<{ $open: boolean }>`
+  max-height: ${({ $open }) => $open ? '1000px' : '0'};
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+`;
+
+const Divider = styled.hr`
+  border: none;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.1);
+  margin: 16px 0;
+`;
+
+const EndpointList = styled.div`
+  background-color: rgba(40, 40, 80, 0.3);
+  border-radius: 8px;
+`;
+
+const EndpointItem = styled.div<{ $hasBottomBorder: boolean }>`
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  ${({ $hasBottomBorder }) => $hasBottomBorder ? 'border-bottom: 1px solid rgba(255, 255, 255, 0.1);' : ''}
+`;
+
+const EndpointIcon = styled.div`
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const EndpointContent = styled.div`
+  flex: 1;
+`;
+
+const EndpointName = styled.div`
+  font-size: 0.875rem;
+  color: white;
+  margin-bottom: 2px;
+`;
+
+const EndpointUrl = styled.div`
+  font-size: 0.75rem;
+  color: #ccc;
+`;
+
+const SectionTitle = styled.h3`
+  font-size: 0.875rem;
+  color: #ccc;
+  margin: 0 0 8px 0;
+`;
 
 // Endpoints to check
 const ENDPOINTS = [
@@ -149,154 +353,153 @@ const ApiDebugger = () => {
   };
 
   // Get status icon
-  const getStatusIcon = (status) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'online':
-        return <CheckCircleOutlineIcon sx={{ color: 'success.main' }} />;
+        return <CheckCircle size={20} color="#28a745" />;
       case 'error':
-        return <ErrorOutlineIcon sx={{ color: 'error.main' }} />;
+        return <AlertCircle size={20} color="#dc3545" />;
       case 'checking':
-        return <AutorenewIcon sx={{ color: 'info.main' }} className="spinning" />;
+        return (
+          <SpinningIcon>
+            <RotateCcw size={20} color="#17a2b8" />
+          </SpinningIcon>
+        );
       default:
-        return <WifiOffIcon sx={{ color: 'text.secondary' }} />;
+        return <WifiOff size={20} color="#6c757d" />;
     }
   };
 
   return (
-    <Paper elevation={3} sx={{ p: 2, borderRadius: 2, mb: 2 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <ConstructionIcon sx={{ mr: 1, color: 'warning.main' }} />
-        <Typography variant="h6" component="h2">
-          API Connectivity Debugger
-        </Typography>
-      </Box>
+    <Container>
+      <Header>
+        <Construction size={20} color="#ffc107" />
+        <Title>API Connectivity Debugger</Title>
+      </Header>
 
       {/* Connection status */}
-      <Box sx={{ mb: 2 }}>
-        <Alert 
-          severity={mockEnabled ? "warning" : "info"} 
-          variant="outlined"
-          sx={{ mb: 1 }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography variant="body2">
+      <div>
+        <AlertBox $severity={mockEnabled ? "warning" : "info"}>
+          <AlertContent>
+            <div>
               {mockEnabled 
                 ? "Mock data mode is ENABLED. You are using simulated data." 
                 : "Mock data mode is disabled. You are using real backend data."}
-            </Typography>
+            </div>
             
             {!mockEnabled && (
               <Button 
-                size="small" 
-                variant="outlined" 
-                color="warning"
+                $size="small" 
+                $variant="outlined" 
+                $color="warning"
                 onClick={enableMockMode}
-                sx={{ ml: 2 }}
               >
                 Enable Mock Data
               </Button>
             )}
-          </Box>
-        </Alert>
+          </AlertContent>
+        </AlertBox>
         
         {connectionStats.checked && (
-          <Box sx={{ mb: 2, p: 1, bgcolor: 'background.paper', borderRadius: 1 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Connection Test Results:
-            </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Chip 
-                label={`${connectionStats.successful} Successful`} 
-                color="success" 
-                size="small" 
-                variant="outlined" 
-              />
-              <Chip 
-                label={`${connectionStats.failed} Failed`} 
-                color="error" 
-                size="small" 
-                variant="outlined" 
-              />
-            </Box>
-          </Box>
+          <StatsContainer>
+            <StatsTitle>Connection Test Results:</StatsTitle>
+            <ChipContainer>
+              <Chip $color="success">
+                {connectionStats.successful} Successful
+              </Chip>
+              <Chip $color="error">
+                {connectionStats.failed} Failed
+              </Chip>
+            </ChipContainer>
+          </StatsContainer>
         )}
-      </Box>
+      </div>
 
       {/* Action buttons */}
-      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+      <ButtonGroup>
         <Button
-          variant="contained"
-          size="small"
+          $variant="contained"
+          $size="small"
           disabled={checking}
           onClick={checkAllEndpoints}
-          startIcon={checking ? <CircularProgress size={16} /> : null}
         >
+          {checking ? (
+            <SpinningIcon>
+              <RotateCcw size={16} />
+            </SpinningIcon>
+          ) : null}
           {checking ? 'Checking...' : 'Check Endpoints'}
         </Button>
         
         <Button
-          variant="outlined"
-          size="small"
+          $variant="outlined"
+          $size="small"
           onClick={() => setShowDetails(!showDetails)}
         >
-          {showDetails ? 'Hide Details' : 'Show Details'}
+          {showDetails ? (
+            <>
+              <ChevronUp size={16} />
+              Hide Details
+            </>
+          ) : (
+            <>
+              <ChevronDown size={16} />
+              Show Details
+            </>
+          )}
         </Button>
         
         <Button
-          variant="outlined"
-          size="small"
-          color="secondary"
+          $variant="outlined"
+          $size="small"
+          $color="secondary"
           onClick={reloadApp}
         >
           Reload App
         </Button>
-      </Box>
+      </ButtonGroup>
 
       {/* Endpoint details */}
-      <Collapse in={showDetails}>
-        <Divider sx={{ mb: 2 }} />
+      <CollapseContainer $open={showDetails}>
+        <Divider />
         
-        <Typography variant="subtitle2" gutterBottom>
-          Endpoint Status:
-        </Typography>
+        <SectionTitle>Endpoint Status:</SectionTitle>
         
-        <List dense sx={{ bgcolor: 'background.paper', borderRadius: 1 }}>
+        <EndpointList>
           {endpointStatus.map((endpoint, index) => (
-            <ListItem key={endpoint.key} divider={index < endpointStatus.length - 1}>
-              <ListItemIcon sx={{ minWidth: 36 }}>
+            <EndpointItem 
+              key={endpoint.key} 
+              $hasBottomBorder={index < endpointStatus.length - 1}
+            >
+              <EndpointIcon>
                 {getStatusIcon(endpoint.status)}
-              </ListItemIcon>
-              <ListItemText
-                primary={endpoint.name}
-                secondary={
-                  endpoint.status === 'error' 
+              </EndpointIcon>
+              <EndpointContent>
+                <EndpointName>{endpoint.name}</EndpointName>
+                <EndpointUrl>
+                  {endpoint.status === 'error' 
                     ? `Error: ${endpoint.error}` 
-                    : `${endpoint.url}`
-                }
-                primaryTypographyProps={{ variant: 'body2' }}
-                secondaryTypographyProps={{ variant: 'caption' }}
-              />
+                    : `${endpoint.url}`}
+                </EndpointUrl>
+              </EndpointContent>
               <Chip
-                label={
-                  endpoint.status === 'online' ? 'Available' :
-                  endpoint.status === 'error' ? 'Failed' :
-                  endpoint.status === 'checking' ? 'Checking...' :
-                  'Unchecked'
-                }
-                size="small"
-                color={
+                $color={
                   endpoint.status === 'online' ? 'success' :
                   endpoint.status === 'error' ? 'error' :
                   endpoint.status === 'checking' ? 'info' :
                   'default'
                 }
-                variant="outlined"
-              />
-            </ListItem>
+              >
+                {endpoint.status === 'online' ? 'Available' :
+                 endpoint.status === 'error' ? 'Failed' :
+                 endpoint.status === 'checking' ? 'Checking...' :
+                 'Unchecked'}
+              </Chip>
+            </EndpointItem>
           ))}
-        </List>
-      </Collapse>
-    </Paper>
+        </EndpointList>
+      </CollapseContainer>
+    </Container>
   );
 };
 
