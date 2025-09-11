@@ -211,7 +211,6 @@ const App = () => {
           <StyleSheetManager shouldForwardProp={shouldForwardProp}>
             <UniversalThemeProvider defaultTheme="swan-galaxy">
               <ThemeProvider theme={swanStudiosTheme || theme?.dark || {}}>
-                <ImprovedGlobalStyle />
                 <ConfigProvider>
                   <MenuStateProvider>
                     <AuthProvider>
