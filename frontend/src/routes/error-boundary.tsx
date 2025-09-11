@@ -4,9 +4,46 @@
  */
 import React from 'react';
 import { isRouteErrorResponse, useRouteError } from 'react-router-dom';
+import styled from 'styled-components';
+import { AlertTriangle } from 'lucide-react';
 
-// material-ui
-import Alert from '@mui/material/Alert';
+// Styled Alert Component
+const AlertContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  margin: 20px;
+  background-color: rgba(220, 53, 69, 0.1);
+  border: 1px solid rgba(220, 53, 69, 0.3);
+  border-radius: 8px;
+  color: #dc3545;
+  font-size: 16px;
+  max-width: 600px;
+  margin: 20px auto;
+`;
+
+const AlertIcon = styled.div`
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const AlertMessage = styled.div`
+  flex: 1;
+  line-height: 1.4;
+`;
+
+// Custom Alert Component
+const Alert: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <AlertContainer>
+    <AlertIcon>
+      <AlertTriangle size={20} />
+    </AlertIcon>
+    <AlertMessage>{children}</AlertMessage>
+  </AlertContainer>
+);
 
 // Error boundary component for handling routing errors
 const ErrorBoundary: React.FC = () => {
