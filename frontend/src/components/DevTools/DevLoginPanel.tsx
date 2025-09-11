@@ -1,23 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useSelector, useStore } from 'react-redux'; 
+import { useSelector, useStore } from 'react-redux';
+import styled from 'styled-components';
 import { 
-  Box, 
-  Button, 
-  Typography, 
-  Paper, 
-  Chip,
-  Divider,
-  IconButton,
-  Tooltip,
-  Alert,
-  Collapse
-} from '@mui/material';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import PersonIcon from '@mui/icons-material/Person';
-import GroupIcon from '@mui/icons-material/Group';
-import CloseIcon from '@mui/icons-material/Close';
-import RefreshIcon from '@mui/icons-material/Refresh';
+  Settings,
+  Dumbbell,
+  User,
+  Users,
+  X,
+  RotateCcw
+} from 'lucide-react';
 
 import { devQuickLogin, devLogout, isDevMode } from '../../utils/dev-auth-helper';
 import { seedTestAccounts as seedTestAccountsApi } from '../../services/devAuthService';
@@ -35,49 +26,284 @@ interface SafeRootState {
   };
 }
 
-// Styled components for the dev panel
-const DevPanel = {
-  container: {
-    position: 'fixed' as 'fixed',
-    bottom: '20px',
-    right: '20px',
-    zIndex: 9999,
-    width: '320px',
-    transition: 'all 0.3s ease',
-    opacity: 0.95,
-    '&:hover': {
-      opacity: 1,
-    },
-  },
-  minimized: {
-    width: '50px',
-    height: '50px',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-  },
-  header: {
-    padding: '10px 16px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
-  },
-  content: {
-    padding: '16px',
-  },
-  roleButton: {
-    marginBottom: '10px',
-    width: '100%',
-    justifyContent: 'flex-start',
-    textTransform: 'none' as 'none',
-  },
-  chip: {
-    marginLeft: 'auto',
+// Styled Components
+const DevPanelContainer = styled.div<{ $minimized?: boolean }>`
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  width: ${({ $minimized }) => $minimized ? '50px' : '320px'};
+  height: ${({ $minimized }) => $minimized ? '50px' : 'auto'};
+  transition: all 0.3s ease;
+  opacity: 0.95;
+  
+  &:hover {
+    opacity: 1;
   }
-};
+`;
+
+const DevPaper = styled.div<{ $minimized?: boolean }>`
+  background: rgba(30, 30, 60, 0.95);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: ${({ $minimized }) => $minimized ? '50%' : '12px'};
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  color: white;
+  width: 100%;
+  height: 100%;
+  
+  ${({ $minimized }) => $minimized && `
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  `}
+`;
+
+const DevHeader = styled.div`
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const DevTitle = styled.h3`
+  font-size: 1rem;
+  font-weight: bold;
+  color: #00ffff;
+  margin: 0;
+`;
+
+const DevHeaderActions = styled.div`
+  display: flex;
+  gap: 4px;
+`;
+
+const DevIconButton = styled.button`
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+`;
+
+const DevContent = styled.div`
+  padding: 16px;
+`;
+
+const CollapseContainer = styled.div<{ $open: boolean }>`
+  max-height: ${({ $open }) => $open ? '100px' : '0'};
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  margin-bottom: ${({ $open }) => $open ? '16px' : '0'};
+`;
+
+const AlertBox = styled.div<{ $severity: 'success' | 'warning' | 'error' | 'info' }>`
+  padding: 12px 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  
+  ${({ $severity }) => {
+    switch ($severity) {
+      case 'success':
+        return `
+          background-color: rgba(40, 167, 69, 0.1);
+          border: 1px solid rgba(40, 167, 69, 0.3);
+          color: #28a745;
+        `;
+      case 'warning':
+        return `
+          background-color: rgba(255, 193, 7, 0.1);
+          border: 1px solid rgba(255, 193, 7, 0.3);
+          color: #ffc107;
+        `;
+      case 'error':
+        return `
+          background-color: rgba(220, 53, 69, 0.1);
+          border: 1px solid rgba(220, 53, 69, 0.3);
+          color: #dc3545;
+        `;
+      default:
+        return `
+          background-color: rgba(23, 162, 184, 0.1);
+          border: 1px solid rgba(23, 162, 184, 0.3);
+          color: #17a2b8;
+        `;
+    }
+  }}
+`;
+
+const UserStatusBox = styled.div`
+  margin-bottom: 16px;
+  padding: 12px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+`;
+
+const UserStatusLabel = styled.div`
+  font-size: 0.875rem;
+  color: #ccc;
+  margin-bottom: 8px;
+`;
+
+const UserName = styled.div`
+  font-size: 1rem;
+  font-weight: 500;
+  margin-bottom: 8px;
+`;
+
+const UserInfoRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const RoleChip = styled.div<{ $role: string }>`
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  
+  ${({ $role }) => {
+    switch ($role) {
+      case 'admin':
+        return `
+          background-color: rgba(220, 53, 69, 0.2);
+          color: #dc3545;
+          border: 1px solid rgba(220, 53, 69, 0.3);
+        `;
+      case 'trainer':
+        return `
+          background-color: rgba(0, 123, 255, 0.2);
+          color: #007bff;
+          border: 1px solid rgba(0, 123, 255, 0.3);
+        `;
+      case 'client':
+        return `
+          background-color: rgba(40, 167, 69, 0.2);
+          color: #28a745;
+          border: 1px solid rgba(40, 167, 69, 0.3);
+        `;
+      case 'user':
+        return `
+          background-color: rgba(23, 162, 184, 0.2);
+          color: #17a2b8;
+          border: 1px solid rgba(23, 162, 184, 0.3);
+        `;
+      default:
+        return `
+          background-color: rgba(108, 117, 125, 0.2);
+          color: #6c757d;
+          border: 1px solid rgba(108, 117, 125, 0.3);
+        `;
+    }
+  }}
+`;
+
+const Button = styled.button<{ 
+  $variant?: 'contained' | 'outlined';
+  $color?: 'primary' | 'error' | 'success' | 'info' | 'warning';
+  $size?: 'small' | 'medium';
+  $fullWidth?: boolean;
+}>`
+  padding: ${({ $size }) => $size === 'small' ? '6px 12px' : '8px 16px'};
+  border-radius: 6px;
+  border: 1px solid;
+  cursor: pointer;
+  font-size: ${({ $size }) => $size === 'small' ? '0.75rem' : '0.875rem'};
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: ${({ $fullWidth }) => $fullWidth ? 'flex-start' : 'center'};
+  width: ${({ $fullWidth }) => $fullWidth ? '100%' : 'auto'};
+  margin-bottom: ${({ $fullWidth }) => $fullWidth ? '10px' : '0'};
+  text-transform: none;
+  transition: all 0.3s ease;
+  
+  ${({ $variant, $color }) => {
+    const colors = {
+      primary: { main: '#007bff', hover: '#0056b3' },
+      error: { main: '#dc3545', hover: '#c82333' },
+      success: { main: '#28a745', hover: '#218838' },
+      info: { main: '#17a2b8', hover: '#138496' },
+      warning: { main: '#ffc107', hover: '#e0a800' }
+    };
+    
+    const colorSet = colors[$color || 'primary'];
+    
+    if ($variant === 'outlined') {
+      return `
+        background-color: transparent;
+        color: ${colorSet.main};
+        border-color: ${colorSet.main};
+        
+        &:hover {
+          background-color: ${colorSet.main}15;
+          border-color: ${colorSet.hover};
+        }
+      `;
+    } else {
+      return `
+        background-color: ${colorSet.main};
+        color: white;
+        border-color: ${colorSet.main};
+        
+        &:hover {
+          background-color: ${colorSet.hover};
+          border-color: ${colorSet.hover};
+        }
+      `;
+    }
+  }}
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const StatusChip = styled.div`
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 0.65rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ccc;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-left: auto;
+`;
+
+const Divider = styled.hr`
+  border: none;
+  height: 1px;
+  background-color: rgba(255, 255, 255, 0.1);
+  margin: 16px 0;
+`;
+
+const SectionLabel = styled.div`
+  font-size: 0.875rem;
+  color: #ccc;
+  margin-bottom: 8px;
+`;
+
+const NoUserText = styled.div`
+  font-size: 0.875rem;
+  color: #ccc;
+  font-style: italic;
+`;
 
 // Add global router context flag
 declare global {
@@ -397,181 +623,135 @@ const DevLoginPanel: React.FC = () => {
   // If the panel is minimized, show just the toggle button
   if (!isOpen) {
     return (
-      <Paper 
-        elevation={4} 
-        sx={DevPanel.minimized} 
-        onClick={togglePanel}
-        aria-label="Open developer tools panel"
-      >
-        <AdminPanelSettingsIcon color="primary" />
-      </Paper>
+      <DevPanelContainer $minimized>
+        <DevPaper $minimized onClick={togglePanel}>
+          <Settings size={20} color="#00ffff" />
+        </DevPaper>
+      </DevPanelContainer>
     );
   }
   
   return (
-    <Paper elevation={4} sx={DevPanel.container}>
-      {/* Panel Header */}
-      <Box sx={DevPanel.header}>
-        <Typography variant="subtitle1" fontWeight="bold" color="primary">
-          SwanStudios Dev Tools
-        </Typography>
-        <Box>
-          <Tooltip title="Refresh test accounts">
-            <IconButton 
-              size="small" 
+    <DevPanelContainer>
+      <DevPaper>
+        {/* Panel Header */}
+        <DevHeader>
+          <DevTitle>SwanStudios Dev Tools</DevTitle>
+          <DevHeaderActions>
+            <DevIconButton 
               onClick={handleSeedAccounts}
-              aria-label="Seed test accounts"
+              title="Refresh test accounts"
             >
-              <RefreshIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <IconButton 
-            size="small" 
-            onClick={togglePanel}
-            aria-label="Minimize developer tools panel"
-          >
-            <CloseIcon fontSize="small" />
-          </IconButton>
-        </Box>
-      </Box>
-      
-      {/* Panel Content */}
-      <Box sx={DevPanel.content}>
-        <Collapse in={showInfo}>
-          <Alert 
-            severity={routerAvailable ? "success" : "warning"} 
-            sx={{ mb: 2 }}
-            action={
-              <IconButton
-                aria-label="close"
-                color="inherit"
-                size="small"
+              <RotateCcw size={16} />
+            </DevIconButton>
+            <DevIconButton 
+              onClick={togglePanel}
+              title="Minimize developer tools panel"
+            >
+              <X size={16} />
+            </DevIconButton>
+          </DevHeaderActions>
+        </DevHeader>
+        
+        {/* Panel Content */}
+        <DevContent>
+          <CollapseContainer $open={showInfo}>
+            <AlertBox $severity={routerAvailable ? "success" : "warning"}>
+              <div>
+                {routerAvailable ? "Test accounts refreshed!" : "Login successful! Please navigate manually to the appropriate dashboard."}
+              </div>
+              <DevIconButton
                 onClick={() => setShowInfo(false)}
+                title="Close alert"
               >
-                <CloseIcon fontSize="inherit" />
-              </IconButton>
-            }
+                <X size={14} />
+              </DevIconButton>
+            </AlertBox>
+          </CollapseContainer>
+          
+          {/* Current User Status */}
+          <UserStatusBox>
+            <UserStatusLabel>Current User:</UserStatusLabel>
+            {currentUser ? (
+              <>
+                <UserName>{userDisplayName}</UserName>
+                <UserInfoRow>
+                  <RoleChip $role={currentUser.role || 'unknown'}>
+                    {currentUser.role || 'unknown'}
+                  </RoleChip>
+                  <Button 
+                    $size="small" 
+                    $variant="outlined"
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </Button>
+                </UserInfoRow>
+              </>
+            ) : (
+              <NoUserText>Not logged in</NoUserText>
+            )}
+          </UserStatusBox>
+          
+          <Divider />
+          
+          {/* Quick Login Buttons */}
+          <SectionLabel>Quick Login:</SectionLabel>
+          
+          <Button
+            $variant="contained"
+            $color="error"
+            $fullWidth
+            onClick={() => handleQuickLogin('admin')}
           >
-            {routerAvailable ? "Test accounts refreshed!" : "Login successful! Please navigate manually to the appropriate dashboard."}
-          </Alert>
-        </Collapse>
-        
-        {/* Current User Status */}
-        <Box mb={2} p={1} bgcolor="rgba(0,0,0,0.03)" borderRadius={1}>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            Current User:
-          </Typography>
-          {currentUser ? (
-            <>
-              <Typography variant="body1" fontWeight="medium">
-                {userDisplayName}
-              </Typography>
-              <Box display="flex" alignItems="center" mt={0.5}>
-                <Chip 
-                  label={currentUser.role || 'unknown'} 
-                  size="small" 
-                  color={
-                    currentUser.role === 'admin' ? 'error' : 
-                    currentUser.role === 'trainer' ? 'primary' : 
-                    currentUser.role === 'user' ? 'info' :
-                    'success'
-                  }
-                />
-                <Button 
-                  size="small" 
-                  onClick={handleLogout} 
-                  sx={{ ml: 'auto' }}
-                  variant="outlined"
-                >
-                  Logout
-                </Button>
-              </Box>
-            </>
-          ) : (
-            <Typography variant="body2" color="text.secondary" fontStyle="italic">
-              Not logged in
-            </Typography>
+            <Settings size={16} />
+            Login as Admin
+            <StatusChip>Full Access</StatusChip>
+          </Button>
+          
+          <Button
+            $variant="contained"
+            $color="primary"
+            $fullWidth
+            onClick={() => handleQuickLogin('trainer')}
+          >
+            <Dumbbell size={16} />
+            Login as Trainer
+            <StatusChip>Sessions</StatusChip>
+          </Button>
+          
+          <Button
+            $variant="contained"
+            $color="success"
+            $fullWidth
+            onClick={() => handleQuickLogin('client')}
+          >
+            <User size={16} />
+            Login as Client
+            <StatusChip>Premium</StatusChip>
+          </Button>
+          
+          <Button
+            $variant="contained"
+            $color="info"
+            $fullWidth
+            onClick={() => handleQuickLogin('user')}
+          >
+            <Users size={16} />
+            Login as User
+            <StatusChip>Social</StatusChip>
+          </Button>
+          
+          {!routerAvailable && (
+            <AlertBox $severity="warning" style={{ marginTop: '16px', fontSize: '0.8rem' }}>
+              <div>
+                No Router context found. Navigation will not work automatically. Please navigate manually after logging in.
+              </div>
+            </AlertBox>
           )}
-        </Box>
-        
-        <Divider sx={{ my: 2 }} />
-        
-        {/* Quick Login Buttons */}
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          Quick Login:
-        </Typography>
-        
-        <Button
-          variant="contained"
-          color="error"
-          startIcon={<AdminPanelSettingsIcon />}
-          onClick={() => handleQuickLogin('admin')}
-          sx={DevPanel.roleButton}
-        >
-          Login as Admin
-          <Chip 
-            label="Full Access" 
-            size="small" 
-            sx={DevPanel.chip} 
-            variant="outlined" 
-          />
-        </Button>
-        
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<FitnessCenterIcon />}
-          onClick={() => handleQuickLogin('trainer')}
-          sx={DevPanel.roleButton}
-        >
-          Login as Trainer
-          <Chip 
-            label="Sessions" 
-            size="small" 
-            sx={DevPanel.chip} 
-            variant="outlined" 
-          />
-        </Button>
-        
-        <Button
-          variant="contained"
-          color="success"
-          startIcon={<PersonIcon />}
-          onClick={() => handleQuickLogin('client')}
-          sx={DevPanel.roleButton}
-        >
-          Login as Client
-          <Chip 
-            label="Premium" 
-            size="small" 
-            sx={DevPanel.chip} 
-            variant="outlined" 
-          />
-        </Button>
-        
-        <Button
-          variant="contained"
-          color="info"
-          startIcon={<GroupIcon />}
-          onClick={() => handleQuickLogin('user')}
-          sx={DevPanel.roleButton}
-        >
-          Login as User
-          <Chip 
-            label="Social" 
-            size="small" 
-            sx={DevPanel.chip} 
-            variant="outlined" 
-          />
-        </Button>
-        
-        {!routerAvailable && (
-          <Alert severity="warning" sx={{ mt: 2, fontSize: '0.8rem' }}>
-            No Router context found. Navigation will not work automatically. Please navigate manually after logging in.
-          </Alert>
-        )}
-      </Box>
-    </Paper>
+        </DevContent>
+      </DevPaper>
+    </DevPanelContainer>
   );
 };
 
