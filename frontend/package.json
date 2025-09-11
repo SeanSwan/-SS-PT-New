@@ -21,8 +21,6 @@
     "styled-components": "^6.1.6",
     "axios": "^1.6.2",
     "lucide-react": "^0.300.0",
-    "@mui/material": "^5.15.2",
-    "@mui/icons-material": "^5.15.2",
 
     "framer-motion": "^10.16.5",
     "react-toastify": "^9.1.3",
