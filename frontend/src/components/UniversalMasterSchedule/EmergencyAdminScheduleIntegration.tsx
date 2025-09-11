@@ -40,104 +40,126 @@ const Container = styled.div`
   min-height: 400px;
 `;
 
-const FlexBox = styled.div<{ 
-  $direction?: 'row' | 'column';
-  $justify?: 'center' | 'space-between' | 'flex-start' | 'flex-end';
-  $align?: 'center' | 'flex-start' | 'flex-end';
-  $textAlign?: 'center' | 'left' | 'right';
-  $py?: number;
-  $mb?: number;
-  $mt?: number;
-  $p?: number;
-  $maxWidth?: number;
-  $mx?: string;
-}>>`
+// Simplified Flex Container
+const FlexBox = styled.div`
   display: flex;
-  flex-direction: ${({ $direction }) => $direction || 'row'};
-  justify-content: ${({ $justify }) => $justify || 'flex-start'};
-  align-items: ${({ $align }) => $align || 'stretch'};
-  text-align: ${({ $textAlign }) => $textAlign || 'inherit'};
   
-  ${({ $py }) => $py && `padding-top: ${$py * 0.5}rem; padding-bottom: ${$py * 0.5}rem;`}
-  ${({ $mb }) => $mb && `margin-bottom: ${$mb * 0.5}rem;`}
-  ${({ $mt }) => $mt && `margin-top: ${$mt * 0.5}rem;`}
-  ${({ $p }) => $p && `padding: ${$p * 0.5}rem;`}
-  ${({ $maxWidth }) => $maxWidth && `max-width: ${$maxWidth}px;`}
-  ${({ $mx }) => $mx === 'auto' && 'margin-left: auto; margin-right: auto;'}
+  &.column {
+    flex-direction: column;
+  }
+  
+  &.center {
+    align-items: center;
+  }
+  
+  &.space-between {
+    justify-content: space-between;
+  }
+  
+  &.text-center {
+    text-align: center;
+  }
+  
+  &.py-16 {
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+  }
 `;
 
-const ContentBox = styled.div<{
-  $background?: string;
-  $p?: number;
-  $borderRadius?: number;
-  $maxWidth?: number;
-  $mx?: string;
-  $mb?: number;
-  $mt?: number;
-}>>`
-  ${({ $background }) => $background && `background: ${$background};`}
-  ${({ $p }) => $p && `padding: ${$p * 0.5}rem;`}
-  ${({ $borderRadius }) => $borderRadius && `border-radius: ${$borderRadius * 4}px;`}
-  ${({ $maxWidth }) => $maxWidth && `max-width: ${$maxWidth}px;`}
-  ${({ $mx }) => $mx === 'auto' && 'margin-left: auto; margin-right: auto;'}
-  ${({ $mb }) => $mb && `margin-bottom: ${$mb * 0.5}rem;`}
-  ${({ $mt }) => $mt && `margin-top: ${$mt * 0.5}rem;`}
+// Simple Content Box
+const ContentBox = styled.div`
+  &.elevated {
+    background: #1e1e3f;
+    padding: 1.5rem;
+    border-radius: 8px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  &.mt-6 {
+    margin-top: 1.5rem;
+  }
 `;
 
 // Typography Components
-const Heading = styled.h1<{ $variant?: 'h4' | 'h5' | 'h6'; $color?: string; $mb?: number; }>>`
+const Heading = styled.h1`
   margin: 0;
-  ${({ $mb }) => $mb && `margin-bottom: ${$mb * 0.5}rem;`}
-  color: ${({ $color }) => $color || '#ffffff'};
+  color: #ffffff;
   display: flex;
   align-items: center;
+  font-size: 2rem;
+  font-weight: 600;
   
-  ${({ $variant }) => {
-    switch ($variant) {
-      case 'h4':
-        return 'font-size: 2rem; font-weight: 600;';
-      case 'h5':
-        return 'font-size: 1.5rem; font-weight: 600;';
-      case 'h6':
-        return 'font-size: 1.25rem; font-weight: 600;';
-      default:
-        return 'font-size: 1.5rem; font-weight: 600;';
-    }
-  }}
+  &.h4 {
+    font-size: 2rem;
+  }
+  
+  &.h5 {
+    font-size: 1.5rem;
+  }
+  
+  &.h6 {
+    font-size: 1.25rem;
+  }
+  
+  &.mb-1 {
+    margin-bottom: 0.5rem;
+  }
+  
+  &.mb-4 {
+    margin-bottom: 2rem;
+  }
+  
+  &.primary {
+    color: #3b82f6;
+  }
+  
+  &.secondary {
+    color: #94a3b8;
+  }
 `;
 
-const Text = styled.p<{ 
-  $variant?: 'body1' | 'body2'; 
-  $color?: string; 
-  $mb?: number;
-  $textAlign?: 'center' | 'left' | 'right';
-}>>`
+const Text = styled.p`
   margin: 0;
-  ${({ $mb }) => $mb && `margin-bottom: ${$mb * 0.5}rem;`}
-  color: ${({ $color }) => $color || '#ffffff'};
-  ${({ $textAlign }) => $textAlign && `text-align: ${$textAlign};`}
+  color: #ffffff;
+  font-size: 1rem;
+  line-height: 1.5;
   
-  ${({ $variant }) => {
-    switch ($variant) {
-      case 'body1':
-        return 'font-size: 1rem; line-height: 1.5;';
-      case 'body2':
-        return 'font-size: 0.875rem; line-height: 1.4;';
-      default:
-        return 'font-size: 1rem; line-height: 1.5;';
-    }
-  }}
+  &.body1 {
+    font-size: 1rem;
+  }
+  
+  &.body2 {
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+  
+  &.mb-8 {
+    margin-bottom: 2rem;
+  }
+  
+  &.text-center {
+    text-align: center;
+  }
+  
+  &.text-left {
+    text-align: left;
+  }
+  
+  &.secondary {
+    color: #94a3b8;
+  }
 `;
 
 // Button Component
-const StyledButton = styled.button<{ $disabled?: boolean }>>`
+const StyledButton = styled.button`
   background: #3b82f6;
   color: white;
   border: none;
   padding: 8px 16px;
   border-radius: 6px;
-  cursor: ${({ $disabled }) => $disabled ? 'not-allowed' : 'pointer'};
-  opacity: ${({ $disabled }) => $disabled ? 0.6 : 1};
+  cursor: pointer;
+  opacity: 1;
   display: flex;
   align-items: center;
   font-size: 0.875rem;
@@ -145,7 +167,16 @@ const StyledButton = styled.button<{ $disabled?: boolean }>>`
   transition: all 0.3s ease;
   
   &:hover {
-    opacity: ${({ $disabled }) => $disabled ? 0.6 : 0.8};
+    opacity: 0.8;
+  }
+  
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  
+  &:disabled:hover {
+    opacity: 0.6;
   }
 `;
 
@@ -197,18 +228,18 @@ const EmergencyAdminScheduleIntegration: React.FC = () => {
   return (
     <ScheduleContainer>
       <ScheduleHeader>
-        <FlexBox $direction="column">
-          <Heading $variant="h4" $color={theme.text.primary} $mb={1}>
+        <FlexBox className="column">
+          <Heading className="h4 mb-1">
             <Calendar size={28} style={{ marginRight: 12, verticalAlign: 'middle' }} />
             Universal Master Schedule
           </Heading>
-          <Text $variant="body2" $color={theme.text.secondary}>
+          <Text className="body2 secondary">
             Emergency Safe Mode - Integration in Progress
           </Text>
         </FlexBox>
         <StyledButton
           onClick={handleRefresh}
-          $disabled={loading}
+          disabled={loading}
         >
           {loading ? (
             <SpinnerContainer>
@@ -221,26 +252,20 @@ const EmergencyAdminScheduleIntegration: React.FC = () => {
         </StyledButton>
       </ScheduleHeader>
 
-      <FlexBox $direction="column" $align="center" $py={16}>
-        <Heading $variant="h5" $color={theme.text.primary} $mb={4}>
+      <FlexBox className="column center py-16">
+        <Heading className="h5 mb-4">
           🚧 Universal Master Schedule Under Construction
         </Heading>
-        <Text $variant="body1" $color={theme.text.secondary} $mb={8}>
+        <Text className="body1 secondary mb-8">
           The schedule integration is being finalized. This safe version ensures your site stays online
           while we complete the Redux and WebSocket connections.
         </Text>
         
-        <ContentBox 
-          $background={theme.background.elevated}
-          $p={6}
-          $borderRadius={2}
-          $maxWidth={600}
-          $mx="auto"
-        >
-          <Heading $variant="h6" $color={theme.primary.main} $mb={4}>
+        <ContentBox className="elevated">
+          <Heading className="h6 primary mb-4">
             ✅ What's Working:
           </Heading>
-          <Text $variant="body2" $color={theme.text.primary} $textAlign="left">
+          <Text className="body2 text-left">
             • Backend APIs are operational<br/>
             • Database models are complete<br/>
             • Redux store is configured<br/>
@@ -249,8 +274,8 @@ const EmergencyAdminScheduleIntegration: React.FC = () => {
           </Text>
         </ContentBox>
 
-        <ContentBox $mt={6}>
-          <Text $variant="body2" $color={theme.text.secondary}>
+        <ContentBox className="mt-6">
+          <Text className="body2 secondary">
             Full schedule management will be available shortly. Thank you for your patience!
           </Text>
         </ContentBox>
