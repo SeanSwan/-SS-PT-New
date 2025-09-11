@@ -1,7 +1,122 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Box, CircularProgress, Typography, Alert } from '@mui/material';
+import styled, { keyframes } from 'styled-components';
+import { Loader2, AlertTriangle } from 'lucide-react';
+
+// ===================== Styled Components =====================
+
+// Loading Screen Containers
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #0a0a1a;
+  color: #e0e0e0;
+`;
+
+// Loading Spinner Animation
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+const SpinnerContainer = styled.div`
+  animation: ${spin} 1s linear infinite;
+  margin-bottom: 24px;
+  color: #00ffff;
+`;
+
+// Typography Components
+const Title = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  text-align: center;
+  color: #e0e0e0;
+`;
+
+const Subtitle = styled.p`
+  font-size: 0.875rem;
+  margin: 8px 0 0 0;
+  text-align: center;
+  color: #9ca3af;
+  line-height: 1.4;
+`;
+
+// Alert Components
+const AlertContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #0a0a1a;
+  color: #e0e0e0;
+  padding: 24px;
+`;
+
+const AlertBox = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+  max-width: 400px;
+  background-color: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.3);
+  border-radius: 8px;
+  color: #f44336;
+`;
+
+const AlertIconContainer = styled.div`
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const AlertContent = styled.div`
+  flex: 1;
+`;
+
+const AlertTitle = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #f44336;
+`;
+
+const AlertMessage = styled.p`
+  font-size: 0.875rem;
+  margin: 0;
+  line-height: 1.4;
+  color: #f44336;
+`;
+
+// Retry Button
+const RetryButton = styled.button`
+  background: linear-gradient(135deg, #00ffff, #00c8ff);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  color: #0a0a1a;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 255, 255, 0.3);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+`;
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -15,32 +130,17 @@ interface ProtectedRouteProps {
  * Loading component for authentication checks
  */
 const AuthLoadingScreen: React.FC = () => (
-  <Box
-    sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      backgroundColor: '#0a0a1a',
-      color: '#e0e0e0'
-    }}
-  >
-    <CircularProgress 
-      size={60} 
-      thickness={4}
-      sx={{ 
-        color: '#00ffff',
-        mb: 3
-      }} 
-    />
-    <Typography variant="h6" align="center">
+  <LoadingContainer>
+    <SpinnerContainer>
+      <Loader2 size={60} />
+    </SpinnerContainer>
+    <Title>
       Verifying access...
-    </Typography>
-    <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 1 }}>
+    </Title>
+    <Subtitle>
       Please wait while we check your credentials
-    </Typography>
-  </Box>
+    </Subtitle>
+  </LoadingContainer>
 );
 
 /**
@@ -50,53 +150,27 @@ const AccessDeniedScreen: React.FC<{
   message: string; 
   onRetry?: () => void;
 }> = ({ message, onRetry }) => (
-  <Box
-    sx={{
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      backgroundColor: '#0a0a1a',
-      color: '#e0e0e0',
-      padding: 3
-    }}
-  >
-    <Alert 
-      severity="error" 
-      sx={{ 
-        mb: 3,
-        maxWidth: 400,
-        bgcolor: 'rgba(244, 67, 54, 0.1)',
-        border: '1px solid rgba(244, 67, 54, 0.3)'
-      }}
-    >
-      <Typography variant="h6" gutterBottom>
-        Access Denied
-      </Typography>
-      <Typography variant="body2">
-        {message}
-      </Typography>
-    </Alert>
+  <AlertContainer>
+    <AlertBox>
+      <AlertIconContainer>
+        <AlertTriangle size={20} />
+      </AlertIconContainer>
+      <AlertContent>
+        <AlertTitle>
+          Access Denied
+        </AlertTitle>
+        <AlertMessage>
+          {message}
+        </AlertMessage>
+      </AlertContent>
+    </AlertBox>
     
     {onRetry && (
-      <button
-        onClick={onRetry}
-        style={{
-          background: 'linear-gradient(135deg, #00ffff, #00c8ff)',
-          border: 'none',
-          padding: '12px 24px',
-          borderRadius: '8px',
-          color: '#0a0a1a',
-          fontWeight: 600,
-          cursor: 'pointer',
-          fontSize: '14px'
-        }}
-      >
+      <RetryButton onClick={onRetry}>
         Try Again
-      </button>
+      </RetryButton>
     )}
-  </Box>
+  </AlertContainer>
 );
 
 /**
