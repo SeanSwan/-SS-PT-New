@@ -1,47 +1,25 @@
 import React, { useState } from 'react';
+import styled, { ThemeProvider } from 'styled-components';
 import { 
-  Box, 
-  CssBaseline, 
-  Drawer, 
-  AppBar, 
-  Toolbar, 
-  List, 
-  Typography, 
-  Divider, 
-  IconButton, 
-  Container,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Avatar,
-  Menu,
-  MenuItem,
-  Tooltip
-} from '@mui/material';
-import { styled, ThemeProvider as MuiThemeProvider, createTheme, Theme, CSSObject } from '@mui/material/styles';
-import { ThemeProvider as StyledComponentsThemeProvider } from 'styled-components';
-import dashboardTheme from '../../../styles/dashboardTheme';
-import MenuIcon from '@mui/icons-material/Menu';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import DashboardIcon from '@mui/icons-material/Dashboard';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import BarChartIcon from '@mui/icons-material/BarChart';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import ChatIcon from '@mui/icons-material/Chat';
-import LogoutIcon from '@mui/icons-material/Logout';
-import SettingsIcon from '@mui/icons-material/Settings';
-import GroupIcon from '@mui/icons-material/Group';
-import ArtTrackIcon from '@mui/icons-material/ArtTrack';
-import MusicNoteIcon from '@mui/icons-material/MusicNote';
-import EventIcon from '@mui/icons-material/Event';
+  Menu as MenuIcon, 
+  ChevronLeft, 
+  LayoutDashboard, 
+  Dumbbell, 
+  Calendar, 
+  BarChart3, 
+  Trophy, 
+  UserCircle, 
+  MessageCircle, 
+  LogOut, 
+  Settings, 
+  Users, 
+  Image as ImageIcon,
+  Music,
+  CalendarDays
+} from 'lucide-react';
 
-// Import context and user-related hooks properly
+// Import context and user-related hooks
 import { useAuth } from '../../../context/AuthContext';
-
-// Import navigation properly  
 import { useNavigate } from 'react-router-dom';
 
 // Import sync notification for toast messages
@@ -52,118 +30,297 @@ import ClientDashboardContent from './ClientDashboardContent';
 
 // Constants
 const drawerWidth = 240;
+const drawerWidthClosed = 65;
 
-// Custom dark theme that aligns with storefront styling
-const darkTheme = createTheme({
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#00ffff',
-      light: '#7efbfb',
-      dark: '#00b8b8',
-    },
-    secondary: {
-      main: '#7851a9',
-      light: '#a67dd4',
-      dark: '#5e3d90',
-    },
-    error: {
-      main: '#ff416c',
-      light: '#ff7a9d',
-      dark: '#e5274e',
-    },
-    warning: {
-      main: '#ffb700',
-      light: '#ffd95c',
-      dark: '#cc9200',
-    },
-    success: {
-      main: '#00bf8f',
-      light: '#5ce0b9',
-      dark: '#00996f',
-    },
-    background: {
-      default: '#0a0a1a',
-      paper: 'rgba(30, 30, 60, 0.3)',
-    },
-    text: {
-      primary: '#ffffff',
-      secondary: 'rgba(255, 255, 255, 0.7)',
-    },
+// Theme object
+const dashboardTheme = {
+  colors: {
+    primary: '#00ffff',
+    primaryLight: '#7efbfb',
+    primaryDark: '#00b8b8',
+    secondary: '#7851a9',
+    secondaryLight: '#a67dd4',
+    secondaryDark: '#5e3d90',
+    error: '#ff416c',
+    warning: '#ffb700',
+    success: '#00bf8f',
+    background: '#0a0a1a',
+    backgroundPaper: 'rgba(30, 30, 60, 0.3)',
+    textPrimary: '#ffffff',
+    textSecondary: 'rgba(255, 255, 255, 0.7)',
   },
-  shape: {
-    borderRadius: 10,
+  borderRadius: '10px',
+  transitions: {
+    duration: '0.3s',
+    easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
   },
-  typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+};
+
+// Styled Components
+const DashboardContainer = styled.div`
+  display: flex;
+  min-height: 100vh;
+  background-color: ${props => props.theme.colors.background};
+  color: ${props => props.theme.colors.textPrimary};
+`;
+
+const AppBar = styled.header<{ $drawerOpen: boolean }>`
+  position: fixed;
+  top: 0;
+  left: ${props => props.$drawerOpen ? `${drawerWidth}px` : `${drawerWidthClosed}px`};
+  right: 0;
+  height: 64px;
+  background-color: ${props => props.theme.colors.backgroundPaper};
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  transition: left ${props => props.theme.transitions.duration} ${props => props.theme.transitions.easing};
+  
+  @media (max-width: 768px) {
+    left: 0;
   }
-});
+`;
 
-// Styled components for the dashboard layout
-const openedMixin = (theme: Theme): CSSObject => ({
-  width: drawerWidth,
-  transition: theme.transitions.create('width', {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.enteringScreen,
-  }),
-  overflowX: 'hidden',
-});
+const ToolbarContent = styled.div`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 1rem;
+`;
 
-const closedMixin = (theme: Theme): CSSObject => ({
-  transition: theme.transitions.create('width', {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-  overflowX: 'hidden',
-  width: `calc(${theme.spacing(7)} + 1px)`,
-  [theme.breakpoints.up('sm')]: {
-    width: `calc(${theme.spacing(8)} + 1px)`,
-  },
-});
+const MenuButton = styled.button`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: ${props => props.theme.colors.textPrimary};
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+`;
 
-const DrawerHeader = styled('div')(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'flex-end',
-  padding: theme.spacing(0, 1),
-  // necessary for content to be below app bar
-  ...theme.mixins.toolbar,
-}));
+const PageTitle = styled.h1`
+  flex: 1;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  color: ${props => props.theme.colors.textPrimary};
+`;
 
-const StyledAppBar = styled(AppBar, {
-  shouldForwardProp: (prop) => prop !== 'open',
-})<{ open?: boolean }>(({ theme, open }) => ({
-  zIndex: theme.zIndex.drawer + 1,
-  transition: theme.transitions.create(['width', 'margin'], {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
-  }),
-  ...(open && {
-    marginLeft: drawerWidth,
-    width: `calc(100% - ${drawerWidth}px)`,
-    transition: theme.transitions.create(['width', 'margin'], {
-      easing: theme.transitions.easing.sharp,
-      duration: theme.transitions.duration.enteringScreen,
-    }),
-  }),
-}));
+const UserMenuButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-left: auto;
+  position: relative;
+`;
 
-const StyledDrawer = styled(Drawer, { shouldForwardProp: (prop) => prop !== 'open' })(
-  ({ theme, open }) => ({
-    width: drawerWidth,
-    flexShrink: 0,
-    whiteSpace: 'nowrap',
-    boxSizing: 'border-box',
-    ...(open && {
-      ...openedMixin(theme),
-      '& .MuiDrawer-paper': openedMixin(theme),
-    }),
-    ...(!open && {
-      ...closedMixin(theme),
-      '& .MuiDrawer-paper': closedMixin(theme),
-    }),
-  }),
-);
+const UserAvatar = styled.div`
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, ${props => props.theme.colors.secondary}, ${props => props.theme.colors.primary});
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: 2px solid ${props => props.theme.colors.primary};
+  transition: transform 0.2s ease;
+  
+  &:hover {
+    transform: scale(1.05);
+  }
+`;
+
+const DropdownMenu = styled.div<{ $open: boolean }>`
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background-color: rgba(30, 30, 60, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  min-width: 200px;
+  opacity: ${props => props.$open ? 1 : 0};
+  visibility: ${props => props.$open ? 'visible' : 'hidden'};
+  transform: ${props => props.$open ? 'translateY(0)' : 'translateY(-10px)'};
+  transition: all 0.2s ease;
+  z-index: 1300;
+`;
+
+const DropdownMenuItem = styled.button`
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  color: ${props => props.theme.colors.textPrimary};
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.938rem;
+  transition: background-color 0.2s ease;
+  
+  &:first-child {
+    border-radius: 8px 8px 0 0;
+  }
+  
+  &:last-child {
+    border-radius: 0 0 8px 8px;
+  }
+  
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  svg {
+    width: 18px;
+    height: 18px;
+    color: ${props => props.theme.colors.textSecondary};
+  }
+`;
+
+const Drawer = styled.aside<{ $open: boolean }>`
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: ${props => props.$open ? `${drawerWidth}px` : `${drawerWidthClosed}px`};
+  background-color: ${props => props.theme.colors.backgroundPaper};
+  backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  overflow-x: hidden;
+  overflow-y: auto;
+  transition: width ${props => props.theme.transitions.duration} ${props => props.theme.transitions.easing};
+  z-index: 1250;
+  
+  /* Custom scrollbar */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 255, 0.3);
+    border-radius: 3px;
+    
+    &:hover {
+      background: rgba(0, 255, 255, 0.5);
+    }
+  }
+  
+  @media (max-width: 768px) {
+    transform: ${props => props.$open ? 'translateX(0)' : `translateX(-${drawerWidth}px)`};
+    width: ${drawerWidth}px;
+  }
+`;
+
+const DrawerHeader = styled.div`
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+const BrandName = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  color: ${props => props.theme.colors.primary};
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
+const NavList = styled.nav`
+  padding: 1rem 0;
+`;
+
+const NavItem = styled.button<{ $active: boolean }>`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: ${props => props.$active ? 'rgba(0, 255, 255, 0.1)' : 'transparent'};
+  border: none;
+  border-left: 3px solid ${props => props.$active ? props.theme.colors.primary : 'transparent'};
+  color: ${props => props.$active ? props.theme.colors.primary : props.theme.colors.textSecondary};
+  cursor: pointer;
+  font-size: 0.938rem;
+  font-weight: 500;
+  text-align: left;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  
+  &:hover {
+    background: rgba(0, 255, 255, 0.05);
+    color: ${props => props.theme.colors.primary};
+  }
+  
+  svg {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+  }
+  
+  span {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+`;
+
+const NavDivider = styled.div`
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 1rem 0;
+`;
+
+const MainContent = styled.main<{ $drawerOpen: boolean }>`
+  flex: 1;
+  margin-left: ${props => props.$drawerOpen ? `${drawerWidth}px` : `${drawerWidthClosed}px`};
+  margin-top: 64px;
+  padding: 2rem;
+  transition: margin-left ${props => props.theme.transitions.duration} ${props => props.theme.transitions.easing};
+  min-height: calc(100vh - 64px);
+  
+  @media (max-width: 768px) {
+    margin-left: 0;
+    padding: 1rem;
+  }
+`;
+
+const ContentContainer = styled.div`
+  max-width: 1400px;
+  margin: 0 auto;
+`;
 
 // Type for navigation items
 interface NavItem {
@@ -175,32 +332,32 @@ interface NavItem {
 
 /**
  * ClientDashboardLayout Component
- * Main layout for the client dashboard with navigation drawer 
- * that follows a similar pattern to the admin dashboard
+ * Main layout for the client dashboard with navigation drawer
  */
 const ClientDashboardLayout: React.FC = () => {
-  const [open, setOpen] = useState(true);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [drawerOpen, setDrawerOpen] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('overview');
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   
-  // Handle drawer open/close
+  // Handle drawer toggle
   const toggleDrawer = () => {
-    setOpen(!open);
+    setDrawerOpen(!drawerOpen);
   };
   
-  // Handle profile menu open/close
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
+  // Handle profile menu
+  const handleMenuToggle = () => {
+    setMenuOpen(!menuOpen);
   };
   
-  const handleMenuClose = () => {
-    setAnchorEl(null);
+  const closeMenu = () => {
+    setMenuOpen(false);
   };
   
-  // Handle logout action
+  // Handle logout
   const handleLogout = () => {
+    closeMenu();
     logout();
     navigate('/login');
   };
@@ -208,77 +365,77 @@ const ClientDashboardLayout: React.FC = () => {
   // Handle section change
   const handleSectionChange = (section: string) => {
     setActiveSection(section);
+    closeMenu();
   };
   
-  // Navigation items for client
+  // Navigation items
   const mainNavItems: NavItem[] = [
     {
       text: 'Dashboard',
-      icon: <DashboardIcon />,
+      icon: <LayoutDashboard />,
       section: 'overview',
       ariaLabel: 'Go to overview dashboard'
     },
     {
       text: 'Schedule',
-      icon: <EventIcon />,
+      icon: <CalendarDays />,
       section: 'schedule',
       ariaLabel: 'View and book training sessions'
     },
     {
       text: 'My Workouts',
-      icon: <FitnessCenterIcon />,
+      icon: <Dumbbell />,
       section: 'workouts',
       ariaLabel: 'View your workout plans'
     },
     {
       text: 'Progress',
-      icon: <BarChartIcon />,
+      icon: <BarChart3 />,
       section: 'progress',
       ariaLabel: 'View your progress'
     },
     {
       text: 'Achievements',
-      icon: <EmojiEventsIcon />,
+      icon: <Trophy />,
       section: 'gamification',
       ariaLabel: 'View your achievements and rewards'
     },
     {
       text: 'Creative Hub',
-      icon: <ArtTrackIcon />,
+      icon: <ImageIcon />,
       section: 'creative',
       ariaLabel: 'Access creative expression hub'
     },
     {
       text: 'Community',
-      icon: <GroupIcon />,
+      icon: <Users />,
       section: 'community',
       ariaLabel: 'Connect with community'
     },
     {
       text: 'Messaging',
-      icon: <ChatIcon />,
+      icon: <MessageCircle />,
       section: 'messages',
       ariaLabel: 'View and send messages'
     }
   ];
 
-  // Additional settings and profile section
   const secondaryNavItems: NavItem[] = [
     {
       text: 'Profile',
-      icon: <AccountCircleIcon />,
+      icon: <UserCircle />,
       section: 'profile',
       ariaLabel: 'Manage your profile'
     },
     {
       text: 'Settings',
-      icon: <SettingsIcon />,
+      icon: <Settings />,
       section: 'settings',
       ariaLabel: 'Adjust your settings'
     }
   ];
   
-  // Determine the current page title based on the active section
+  // Get current page title
   const getCurrentPageTitle = () => {
     switch(activeSection) {
       case 'overview': return 'Dashboard';
@@ -295,206 +452,95 @@ const ClientDashboardLayout: React.FC = () => {
     }
   };
 
-  // Determine the current page title based on the active section
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!user?.name) return 'U';
+    return user.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
   
   return (
-    <StyledComponentsThemeProvider theme={dashboardTheme}>
-      <MuiThemeProvider theme={darkTheme}>
-      <Box sx={{ display: 'flex' }}>
-        <CssBaseline />
-        
+    <ThemeProvider theme={dashboardTheme}>
+      <DashboardContainer>
         {/* Top App Bar */}
-        <StyledAppBar position="fixed" open={open}>
-          <Toolbar>
-            <IconButton
-              color="inherit"
-              aria-label={open ? 'Close drawer' : 'Open drawer'}
-              onClick={toggleDrawer}
-              edge="start"
-              sx={{ marginRight: 5 }}
-            >
-              {open ? <ChevronLeftIcon /> : <MenuIcon />}
-            </IconButton>
+        <AppBar $drawerOpen={drawerOpen}>
+          <ToolbarContent>
+            <MenuButton onClick={toggleDrawer} aria-label="Toggle navigation menu">
+              {drawerOpen ? <ChevronLeft /> : <MenuIcon />}
+            </MenuButton>
             
-            <Typography 
-              variant="h6" 
-              noWrap 
-              component="h1"
-              sx={{ flexGrow: 1 }}
-            >
-              {getCurrentPageTitle()}
-            </Typography>
+            <PageTitle>{getCurrentPageTitle()}</PageTitle>
             
-            {/* Profile Avatar & Menu */}
-            <Tooltip title="Account settings">
-              <IconButton 
-                onClick={handleMenuOpen}
-                size="small" 
-                sx={{ ml: 2 }}
-                aria-controls={Boolean(anchorEl) ? 'account-menu' : undefined}
-                aria-haspopup="true"
-                aria-expanded={Boolean(anchorEl) ? 'true' : undefined}
-              >
-                <Avatar 
-                  alt={user?.name || 'User'} 
-                  src={user?.profileImageUrl || undefined}
-                  sx={{ width: 32, height: 32 }}
-                />
-              </IconButton>
-            </Tooltip>
-            
-            <Menu
-              anchorEl={anchorEl}
-              id="account-menu"
-              open={Boolean(anchorEl)}
-              onClose={handleMenuClose}
-              PaperProps={{
-                elevation: 0,
-                sx: {
-                  overflow: 'visible',
-                  filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
-                  mt: 1.5,
-                  '& .MuiAvatar-root': {
-                    width: 32,
-                    height: 32,
-                    ml: -0.5,
-                    mr: 1,
-                  },
-                },
-              }}
-              transformOrigin={{ horizontal: 'right', vertical: 'top' }}
-              anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-            >
-              <MenuItem onClick={() => { 
-                handleMenuClose(); 
-                handleSectionChange('profile'); 
-              }}>
-                <ListItemIcon>
-                  <AccountCircleIcon fontSize="small" />
-                </ListItemIcon>
-                My Profile
-              </MenuItem>
+            {/* User Menu */}
+            <UserMenuButton onClick={handleMenuToggle} aria-label="User menu">
+              <UserAvatar>
+                {getUserInitials()}
+              </UserAvatar>
               
-              <MenuItem onClick={handleLogout}>
-                <ListItemIcon>
-                  <LogoutIcon fontSize="small" />
-                </ListItemIcon>
-                Logout
-              </MenuItem>
-            </Menu>
-          </Toolbar>
-        </StyledAppBar>
+              <DropdownMenu $open={menuOpen}>
+                <DropdownMenuItem onClick={() => handleSectionChange('profile')}>
+                  <UserCircle />
+                  My Profile
+                </DropdownMenuItem>
+                
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenu>
+            </UserMenuButton>
+          </ToolbarContent>
+        </AppBar>
         
         {/* Side Navigation Drawer */}
-        <StyledDrawer variant="permanent" open={open}>
+        <Drawer $open={drawerOpen}>
           <DrawerHeader>
-            <Typography 
-              variant="h6"
-              component="div"
-              sx={{ flexGrow: 1, textAlign: 'center', fontWeight: 'bold' }}
-            >
-              Swan Studios
-            </Typography>
+            <BrandName>Swan Studios</BrandName>
           </DrawerHeader>
           
-          <Divider />
-          
-          {/* Main Navigation Links */}
-          <List>
+          {/* Main Navigation */}
+          <NavList>
             {mainNavItems.map((item) => (
-              <ListItem 
-                key={item.text} 
-                disablePadding 
-                sx={{ display: 'block' }}
+              <NavItem 
+                key={item.section}
+                $active={activeSection === item.section}
+                onClick={() => handleSectionChange(item.section)}
+                aria-label={item.ariaLabel}
               >
-                <ListItemButton
-                  sx={{
-                    minHeight: 48,
-                    justifyContent: open ? 'initial' : 'center',
-                    px: 2.5,
-                    backgroundColor: activeSection === item.section ? 'rgba(0, 255, 255, 0.1)' : 'transparent',
-                  }}
-                  onClick={() => handleSectionChange(item.section)}
-                  aria-label={item.ariaLabel}
-                >
-                  <ListItemIcon
-                    sx={{
-                      minWidth: 0,
-                      mr: open ? 3 : 'auto',
-                      justifyContent: 'center',
-                      color: activeSection === item.section ? 'primary.main' : 'inherit',
-                    }}
-                  >
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={item.text} 
-                    sx={{ 
-                      opacity: open ? 1 : 0,
-                      color: activeSection === item.section ? 'primary.main' : 'inherit',
-                    }} 
-                  />
-                </ListItemButton>
-              </ListItem>
+                {item.icon}
+                <span>{item.text}</span>
+              </NavItem>
             ))}
-          </List>
+          </NavList>
           
-          <Divider sx={{ my: 2 }} />
+          <NavDivider />
           
-          {/* Secondary Navigation Links */}
-          <List>
+          {/* Secondary Navigation */}
+          <NavList>
             {secondaryNavItems.map((item) => (
-              <ListItem 
-                key={item.text} 
-                disablePadding 
-                sx={{ display: 'block' }}
+              <NavItem 
+                key={item.section}
+                $active={activeSection === item.section}
+                onClick={() => handleSectionChange(item.section)}
+                aria-label={item.ariaLabel}
               >
-                <ListItemButton
-                  sx={{
-                    minHeight: 48,
-                    justifyContent: open ? 'initial' : 'center',
-                    px: 2.5,
-                    backgroundColor: activeSection === item.section ? 'rgba(0, 255, 255, 0.1)' : 'transparent',
-                  }}
-                  onClick={() => handleSectionChange(item.section)}
-                  aria-label={item.ariaLabel}
-                >
-                  <ListItemIcon
-                    sx={{
-                      minWidth: 0,
-                      mr: open ? 3 : 'auto',
-                      justifyContent: 'center',
-                      color: activeSection === item.section ? 'primary.main' : 'inherit',
-                    }}
-                  >
-                    {item.icon}
-                  </ListItemIcon>
-                  <ListItemText 
-                    primary={item.text} 
-                    sx={{ 
-                      opacity: open ? 1 : 0,
-                      color: activeSection === item.section ? 'primary.main' : 'inherit',
-                    }} 
-                  />
-                </ListItemButton>
-              </ListItem>
+                {item.icon}
+                <span>{item.text}</span>
+              </NavItem>
             ))}
-          </List>
-        </StyledDrawer>
+          </NavList>
+        </Drawer>
         
         {/* Main Content Area */}
-        <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-          <DrawerHeader /> {/* Spacer to push content below app bar */}
-          <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <MainContent $drawerOpen={drawerOpen}>
+          <ContentContainer>
             <ClientDashboardContent activeSection={activeSection} />
-          </Container>
-        </Box>
+          </ContentContainer>
+        </MainContent>
         
-        {/* Global notification system for sync status */}
+        {/* Global notification system */}
         <SyncNotification />
-      </Box>
-      </MuiThemeProvider>
-    </StyledComponentsThemeProvider>
+      </DashboardContainer>
+    </ThemeProvider>
   );
 };
 

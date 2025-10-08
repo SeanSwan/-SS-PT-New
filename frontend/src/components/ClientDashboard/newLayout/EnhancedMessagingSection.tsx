@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Box, Typography, Avatar, TextField, Tab, Tabs, Paper } from '@mui/material';
 import { motion } from 'framer-motion';
-import AdminIcon from '@mui/icons-material/AdminPanelSettings';
-import TrainerIcon from '@mui/icons-material/FitnessCenter';
-import SendIcon from '@mui/icons-material/Send';
+import { Shield, Dumbbell, Send } from 'lucide-react';
 
 // Import GlowButton to replace regular button
 import GlowButton from '../../ui/GlowButton';
@@ -27,24 +24,75 @@ interface Message {
   read: boolean;
 }
 
-// Styling for the messaging interface
-const MessagingContainer = styled(Paper)`
+// Styled Components
+const MessagingContainer = styled.div`
   padding: 1.5rem;
   border-radius: 12px;
   background-color: rgba(20, 20, 40, 0.7);
   height: calc(100vh - 180px);
   display: flex;
   flex-direction: column;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
 `;
 
-const TabPanel = styled(Box)`
+const TabsContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.5rem;
+`;
+
+const TabButton = styled.button<{ $active: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: ${({ $active }) => 
+    $active ? 'rgba(0, 255, 255, 0.2)' : 'transparent'};
+  color: ${({ $active }) => 
+    $active ? '#00ffff' : 'rgba(255, 255, 255, 0.7)'};
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+  
+  &:hover {
+    background: rgba(0, 255, 255, 0.15);
+    color: #00ffff;
+  }
+  
+  ${({ $active }) => $active && `
+    &:after {
+      content: '';
+      position: absolute;
+      bottom: -0.6rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      height: 2px;
+      background: #00ffff;
+    }
+  `}
+  
+  svg {
+    width: 20px;
+    height: 20px;
+  }
+`;
+
+const TabPanel = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 `;
 
-const MessagesWrapper = styled(Box)`
+const MessagesWrapper = styled.div`
   flex: 1;
   overflow-y: auto;
   padding: 1rem 0.5rem;
@@ -52,6 +100,25 @@ const MessagesWrapper = styled(Box)`
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  
+  /* Custom scrollbar */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 255, 255, 0.3);
+    border-radius: 4px;
+    
+    &:hover {
+      background: rgba(0, 255, 255, 0.5);
+    }
+  }
 `;
 
 const MessageBubble = styled(motion.div)<{ $isOwnMessage: boolean }>`
@@ -89,6 +156,12 @@ const MessageHeader = styled.div`
   gap: 0.5rem;
 `;
 
+const SenderName = styled.span`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+`;
+
 const MessageTime = styled.span`
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.6);
@@ -109,14 +182,59 @@ const InputContainer = styled.form`
   margin-top: 1rem;
 `;
 
+const StyledInput = styled.input`
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: rgba(30, 30, 60, 0.3);
+  color: white;
+  font-size: 1rem;
+  outline: none;
+  transition: all 0.3s ease;
+  
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
+  
+  &:focus {
+    border-color: #00ffff;
+    background-color: rgba(30, 30, 60, 0.5);
+    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.1);
+  }
+`;
+
 const RecipientInfo = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   margin-bottom: 1rem;
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
   background-color: rgba(30, 30, 60, 0.5);
   border-radius: 8px;
+`;
+
+const Avatar = styled.div<{ $bgColor?: string }>`
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: ${({ $bgColor }) => $bgColor || 'linear-gradient(135deg, #7851a9, #00ffff)'};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+`;
+
+const RecipientName = styled.h3`
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
 `;
 
 /**
@@ -210,8 +328,8 @@ const EnhancedMessagingSection: React.FC = () => {
   }, []);
   
   // Handle tab change
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setCurrentTab(newValue);
+  const handleTabChange = (tabIndex: number) => {
+    setCurrentTab(tabIndex);
   };
   
   // Send message handler
@@ -275,34 +393,31 @@ const EnhancedMessagingSection: React.FC = () => {
   };
   
   return (
-    <MessagingContainer elevation={3}>
-      <Tabs 
-        value={currentTab} 
-        onChange={handleTabChange}
-        sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}
-        centered
-      >
-        <Tab 
-          label="Admin Support" 
-          icon={<AdminIcon />} 
-          iconPosition="start"
-          sx={{ color: 'white' }}
-        />
-        <Tab 
-          label="My Trainer" 
-          icon={<TrainerIcon />} 
-          iconPosition="start"
-          sx={{ color: 'white' }}
-        />
-      </Tabs>
+    <MessagingContainer>
+      <TabsContainer>
+        <TabButton 
+          $active={currentTab === 0}
+          onClick={() => handleTabChange(0)}
+        >
+          <Shield />
+          Admin Support
+        </TabButton>
+        <TabButton 
+          $active={currentTab === 1}
+          onClick={() => handleTabChange(1)}
+        >
+          <Dumbbell />
+          My Trainer
+        </TabButton>
+      </TabsContainer>
       
       {currentTab === 0 && (
         <TabPanel>
           <RecipientInfo>
-            <Avatar sx={{ bgcolor: 'secondary.main' }}>
-              <AdminIcon />
+            <Avatar>
+              <Shield />
             </Avatar>
-            <Typography variant="subtitle1">{admin.name}</Typography>
+            <RecipientName>{admin.name}</RecipientName>
           </RecipientInfo>
           
           <MessagesWrapper>
@@ -314,9 +429,7 @@ const EnhancedMessagingSection: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
               >
                 <MessageHeader>
-                  <Typography variant="subtitle2" component="span">
-                    {message.sender.name}
-                  </Typography>
+                  <SenderName>{message.sender.name}</SenderName>
                   <MessageTime>{formatTime(message.timestamp)}</MessageTime>
                 </MessageHeader>
                 <MessageText>{message.text}</MessageText>
@@ -325,19 +438,11 @@ const EnhancedMessagingSection: React.FC = () => {
           </MessagesWrapper>
           
           <InputContainer onSubmit={handleSendMessage}>
-            <TextField
-              fullWidth
-              variant="outlined"
+            <StyledInput
+              type="text"
               placeholder="Type your message to admin..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              InputProps={{
-                sx: { 
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(30, 30, 60, 0.3)',
-                  color: 'white'
-                }
-              }}
             />
             <GlowButton 
               type="submit"
@@ -345,7 +450,7 @@ const EnhancedMessagingSection: React.FC = () => {
               disabled={!newMessage.trim()}
               aria-label="Send message"
             >
-              <SendIcon />
+              <Send size={20} />
             </GlowButton>
           </InputContainer>
         </TabPanel>
@@ -354,10 +459,10 @@ const EnhancedMessagingSection: React.FC = () => {
       {currentTab === 1 && (
         <TabPanel>
           <RecipientInfo>
-            <Avatar sx={{ bgcolor: 'secondary.main' }}>
-              <TrainerIcon />
+            <Avatar>
+              <Dumbbell />
             </Avatar>
-            <Typography variant="subtitle1">{trainer.name}</Typography>
+            <RecipientName>{trainer.name}</RecipientName>
           </RecipientInfo>
           
           <MessagesWrapper>
@@ -369,9 +474,7 @@ const EnhancedMessagingSection: React.FC = () => {
                 animate={{ opacity: 1, y: 0 }}
               >
                 <MessageHeader>
-                  <Typography variant="subtitle2" component="span">
-                    {message.sender.name}
-                  </Typography>
+                  <SenderName>{message.sender.name}</SenderName>
                   <MessageTime>{formatTime(message.timestamp)}</MessageTime>
                 </MessageHeader>
                 <MessageText>{message.text}</MessageText>
@@ -380,19 +483,11 @@ const EnhancedMessagingSection: React.FC = () => {
           </MessagesWrapper>
           
           <InputContainer onSubmit={handleSendMessage}>
-            <TextField
-              fullWidth
-              variant="outlined"
+            <StyledInput
+              type="text"
               placeholder="Type your message to trainer..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              InputProps={{
-                sx: { 
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(30, 30, 60, 0.3)',
-                  color: 'white'
-                }
-              }}
             />
             <GlowButton 
               type="submit"
@@ -400,7 +495,7 @@ const EnhancedMessagingSection: React.FC = () => {
               disabled={!newMessage.trim()}
               aria-label="Send message"
             >
-              <SendIcon />
+              <Send size={20} />
             </GlowButton>
           </InputContainer>
         </TabPanel>

@@ -1,46 +1,36 @@
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Avatar, 
-  Paper, 
-  Grid, 
-  TextField,
-  Badge,
-  Tabs,
-  Tab,
-  Chip,
-  Divider,
-  IconButton
-} from '@mui/material';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
-// Icons
-import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
-import EditIcon from '@mui/icons-material/Edit';
-import SaveIcon from '@mui/icons-material/Save';
-import AddIcon from '@mui/icons-material/Add';
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import ChatIcon from '@mui/icons-material/Chat';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import VerifiedIcon from '@mui/icons-material/Verified';
-import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
-import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
-import MusicNoteIcon from '@mui/icons-material/MusicNote';
-import ArtTrackIcon from '@mui/icons-material/ArtTrack';
+// Import lucide-react icons
+import { 
+  Camera, 
+  Edit, 
+  Save, 
+  Plus, 
+  Heart, 
+  MessageCircle, 
+  UserPlus, 
+  CheckCircle, 
+  Trophy, 
+  Dumbbell, 
+  Music, 
+  Image as ImageIcon,
+  X
+} from 'lucide-react';
 
 // Import GlowButton to replace regular button
 import GlowButton from '../../ui/GlowButton';
 
 // Styled components
-const ProfileContainer = styled(Paper)`
+const ProfileContainer = styled.div`
   padding: 2rem;
   border-radius: 12px;
   background-color: rgba(20, 20, 40, 0.7);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
 `;
 
-const ProfileHeader = styled(Box)`
+const ProfileHeader = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -53,7 +43,70 @@ const ProfileHeader = styled(Box)`
   }
 `;
 
-const ProfileInfo = styled(Box)`
+const AvatarContainer = styled.div`
+  position: relative;
+`;
+
+const Avatar = styled.div`
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 3px solid #00ffff;
+  background: linear-gradient(135deg, #7851a9, #00ffff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  font-weight: bold;
+  color: white;
+`;
+
+const CameraButton = styled.button`
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #00ffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background-color: #00cccc;
+    transform: scale(1.1);
+  }
+  
+  svg {
+    width: 18px;
+    height: 18px;
+    color: #1a1a2e;
+  }
+`;
+
+const VerifiedBadge = styled.div`
+  position: absolute;
+  bottom: -5px;
+  left: -5px;
+  background-color: #17a2b8;
+  border-radius: 50%;
+  padding: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  svg {
+    width: 18px;
+    height: 18px;
+    color: white;
+  }
+`;
+
+const ProfileInfo = styled.div`
   margin-top: 1.5rem;
   width: 100%;
   
@@ -63,44 +116,322 @@ const ProfileInfo = styled(Box)`
   }
 `;
 
-const StatsContainer = styled(Box)`
+const ProfileName = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  
+  @media (min-width: 600px) {
+    justify-content: flex-start;
+  }
+`;
+
+const NameTitle = styled.h1`
+  font-size: 1.75rem;
+  font-weight: bold;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.95);
+`;
+
+const NameInput = styled.input`
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  outline: none;
+  max-width: 300px;
+  
+  &:focus {
+    border-bottom-color: #00ffff;
+  }
+`;
+
+const Handle = styled.div`
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 1rem;
+`;
+
+const HandleInput = styled.input`
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  outline: none;
+  width: 100%;
+  max-width: 300px;
+  
+  &:focus {
+    border-bottom-color: #00ffff;
+  }
+`;
+
+const Bio = styled.p`
+  font-size: 1rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 1rem;
+`;
+
+const BioTextArea = styled.textarea`
+  font-size: 1rem;
+  line-height: 1.6;
+  color: white;
+  background: rgba(30, 30, 60, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem;
+  width: 100%;
+  outline: none;
+  resize: vertical;
+  
+  &:focus {
+    border-color: #00ffff;
+    background: rgba(30, 30, 60, 0.5);
+  }
+`;
+
+const MetaInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  
+  @media (min-width: 600px) {
+    flex-direction: row;
+    gap: 1.5rem;
+  }
+`;
+
+const MetaItem = styled.div`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+`;
+
+const MetaInput = styled.input`
+  font-size: 0.875rem;
+  color: white;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  outline: none;
+  
+  &:focus {
+    border-bottom-color: #00ffff;
+  }
+`;
+
+const EditButtonContainer = styled.div`
+  margin-left: auto;
+  align-self: center;
+  margin-top: 1rem;
+  
+  @media (min-width: 600px) {
+    align-self: flex-start;
+    margin-top: 0;
+  }
+`;
+
+const StatsContainer = styled.div`
   display: flex;
   justify-content: space-around;
   background-color: rgba(30, 30, 60, 0.5);
-  padding: 1rem;
+  padding: 1.5rem;
   border-radius: 8px;
   margin: 1.5rem 0;
 `;
 
-const StatItem = styled(Box)`
+const StatItem = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 0.5rem;
 `;
 
-const InterestsContainer = styled(Box)`
+const StatValue = styled.div`
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #00ffff;
+`;
+
+const StatLabel = styled.div`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 1.25rem;
+  margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+`;
+
+const InterestsContainer = styled.div`
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
   margin: 1rem 0;
 `;
 
-const AchievementCard = styled(Paper)`
+const Chip = styled.div`
+  padding: 0.5rem 1rem;
+  border-radius: 16px;
+  background-color: transparent;
+  border: 1px solid #7851a9;
+  color: #7851a9;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background-color: rgba(120, 81, 169, 0.1);
+  }
+`;
+
+const ChipDeleteButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  color: inherit;
+  transition: transform 0.2s ease;
+  
+  &:hover {
+    transform: scale(1.2);
+  }
+  
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
+const AddInterestContainer = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.5rem;
+`;
+
+const AddInterestInput = styled.input`
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(30, 30, 60, 0.3);
+  color: white;
+  outline: none;
+  font-size: 0.875rem;
+  
+  &:focus {
+    border-color: #00ffff;
+    background: rgba(30, 30, 60, 0.5);
+  }
+`;
+
+const AddButton = styled.button`
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background-color: #00ffff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background-color: #00cccc;
+    transform: scale(1.1);
+  }
+  
+  svg {
+    width: 18px;
+    height: 18px;
+    color: #1a1a2e;
+  }
+`;
+
+const Divider = styled.hr`
+  border: none;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 2rem 0;
+`;
+
+const TabsContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.5rem;
+`;
+
+const TabButton = styled.button<{ $active: boolean }>`
+  padding: 0.75rem 1.5rem;
+  background: ${({ $active }) => 
+    $active ? 'rgba(0, 255, 255, 0.2)' : 'transparent'};
+  color: ${({ $active }) => 
+    $active ? '#00ffff' : 'rgba(255, 255, 255, 0.7)'};
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+  
+  &:hover {
+    background: rgba(0, 255, 255, 0.15);
+    color: #00ffff;
+  }
+  
+  ${({ $active }) => $active && `
+    &:after {
+      content: '';
+      position: absolute;
+      bottom: -0.6rem;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60%;
+      height: 2px;
+      background: #00ffff;
+    }
+  `}
+`;
+
+const GridContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+`;
+
+const AchievementCard = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 1.5rem;
   background-color: rgba(30, 30, 60, 0.5);
   border-radius: 8px;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   
   &:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
   }
 `;
 
-const AchievementIcon = styled(Box)`
+const AchievementIcon = styled.div`
   background: linear-gradient(135deg, #00ffff, #7851a9);
   border-radius: 50%;
   padding: 1rem;
@@ -108,31 +439,105 @@ const AchievementIcon = styled(Box)`
   display: flex;
   justify-content: center;
   align-items: center;
+  
+  svg {
+    width: 40px;
+    height: 40px;
+    color: white;
+  }
 `;
 
-const ActivityFeed = styled(Box)`
+const AchievementTitle = styled.h3`
+  font-size: 1.125rem;
+  text-align: center;
+  margin: 0 0 0.5rem 0;
+  color: rgba(255, 255, 255, 0.9);
+`;
+
+const AchievementDescription = styled.p`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+  margin: 0 0 0.75rem 0;
+`;
+
+const AchievementDate = styled.div`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+`;
+
+const ActivityFeed = styled.div`
   margin-top: 1.5rem;
 `;
 
-const ActivityItem = styled(Paper)`
+const ActivityItem = styled.div`
   display: flex;
   align-items: flex-start;
   padding: 1rem;
   margin-bottom: 1rem;
   background-color: rgba(30, 30, 60, 0.5);
   border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 `;
 
-const ActivityContent = styled(Box)`
+const ActivityAvatar = styled.div`
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7851a9, #00ffff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: white;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+`;
+
+const ActivityContent = styled.div`
   margin-left: 1rem;
   flex: 1;
 `;
 
-const ActivityMeta = styled(Typography)`
+const ActivityText = styled.div`
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 0.5rem;
+  
+  strong {
+    font-weight: 600;
+  }
+`;
+
+const ActivityMeta = styled.div`
   display: flex;
   align-items: center;
-  margin-top: 0.5rem;
   gap: 1rem;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+`;
+
+const ActivityMetaItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+`;
+
+const ActionButtons = styled.div`
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+  gap: 1rem;
+`;
+
+const LoadMoreContainer = styled.div`
+  text-align: center;
+  margin-top: 2rem;
 `;
 
 /**
@@ -156,8 +561,8 @@ const SocialProfileSection: React.FC = () => {
   });
   
   // Handle tab change
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
+  const handleTabChange = (tabIndex: number) => {
+    setActiveTab(tabIndex);
   };
   
   // Toggle edit mode
@@ -166,7 +571,7 @@ const SocialProfileSection: React.FC = () => {
   };
   
   // Handle profile data update
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setProfileData(prev => ({ ...prev, [name]: value }));
   };
@@ -205,21 +610,21 @@ const SocialProfileSection: React.FC = () => {
       id: 1,
       title: 'Consistency Champion',
       description: 'Completed workouts for 30 consecutive days',
-      icon: <FitnessCenterIcon sx={{ fontSize: 40, color: 'white' }} />,
+      icon: <Dumbbell />,
       date: 'July 15, 2023'
     },
     {
       id: 2,
       title: 'Creative Explorer',
       description: 'Shared 10 creative works in the community',
-      icon: <ArtTrackIcon sx={{ fontSize: 40, color: 'white' }} />,
+      icon: <ImageIcon />,
       date: 'August 22, 2023'
     },
     {
       id: 3,
       title: 'Dance Master',
       description: 'Completed all beginner dance routines',
-      icon: <MusicNoteIcon sx={{ fontSize: 40, color: 'white' }} />,
+      icon: <Music />,
       date: 'September 5, 2023'
     }
   ];
@@ -230,7 +635,8 @@ const SocialProfileSection: React.FC = () => {
       id: 1,
       user: {
         name: 'Sarah Johnson',
-        avatar: undefined
+        avatar: undefined,
+        initials: 'SJ'
       },
       type: 'workout',
       content: 'Completed a 45-minute HIIT session',
@@ -242,7 +648,8 @@ const SocialProfileSection: React.FC = () => {
       id: 2,
       user: {
         name: 'Sarah Johnson',
-        avatar: undefined
+        avatar: undefined,
+        initials: 'SJ'
       },
       type: 'creative',
       content: 'Shared a new painting in the Creative Hub',
@@ -254,7 +661,8 @@ const SocialProfileSection: React.FC = () => {
       id: 3,
       user: {
         name: 'Sarah Johnson',
-        avatar: undefined
+        avatar: undefined,
+        initials: 'SJ'
       },
       type: 'achievement',
       content: 'Earned the "Consistency Champion" badge',
@@ -271,289 +679,238 @@ const SocialProfileSection: React.FC = () => {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <ProfileContainer elevation={3}>
+      <ProfileContainer>
         <form onSubmit={handleSubmit}>
           <ProfileHeader>
-            <Box sx={{ position: 'relative' }}>
-              <Badge
-                overlap="circular"
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                badgeContent={
-                  editMode ? (
-                    <IconButton
-                      sx={{
-                        backgroundColor: 'primary.main',
-                        '&:hover': { backgroundColor: 'primary.dark' }
-                      }}
-                      size="small"
-                    >
-                      <PhotoCameraIcon fontSize="small" />
-                    </IconButton>
-                  ) : null
-                }
-              >
-                <Avatar
-                  sx={{ width: 120, height: 120, border: '3px solid #00ffff' }}
-                  alt={profileData.name}
-                />
-              </Badge>
-              {profileData.verified && !editMode && (
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    bottom: -5,
-                    left: -5,
-                    backgroundColor: 'info.main',
-                    borderRadius: '50%',
-                    padding: '3px'
-                  }}
-                >
-                  <VerifiedIcon sx={{ fontSize: 18 }} />
-                </Box>
+            <AvatarContainer>
+              <Avatar>
+                {profileData.name.split(' ').map(n => n[0]).join('')}
+              </Avatar>
+              {editMode && (
+                <CameraButton type="button">
+                  <Camera />
+                </CameraButton>
               )}
-            </Box>
+              {profileData.verified && !editMode && (
+                <VerifiedBadge>
+                  <CheckCircle />
+                </VerifiedBadge>
+              )}
+            </AvatarContainer>
             
             <ProfileInfo>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: { xs: 'center', sm: 'flex-start' } }}>
+              <ProfileName>
                 {editMode ? (
-                  <TextField
+                  <NameInput
                     name="name"
                     value={profileData.name}
                     onChange={handleInputChange}
-                    variant="standard"
-                    InputProps={{ sx: { fontSize: '1.5rem', fontWeight: 'bold', color: 'white' } }}
-                    sx={{ maxWidth: 300 }}
                   />
                 ) : (
-                  <Typography variant="h4" component="h1" fontWeight="bold">
-                    {profileData.name}
-                  </Typography>
+                  <>
+                    <NameTitle>{profileData.name}</NameTitle>
+                    {profileData.verified && <CheckCircle size={24} color="#17a2b8" />}
+                  </>
                 )}
-                
-                {profileData.verified && !editMode && (
-                  <VerifiedIcon sx={{ color: 'info.main', ml: 1 }} />
-                )}
-              </Box>
+              </ProfileName>
               
               {editMode ? (
-                <TextField
+                <HandleInput
                   name="handle"
                   value={profileData.handle}
                   onChange={handleInputChange}
-                  variant="standard"
-                  fullWidth
-                  InputProps={{ sx: { color: 'text.secondary' } }}
-                  sx={{ mb: 2, maxWidth: 300 }}
                 />
               ) : (
-                <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                  {profileData.handle}
-                </Typography>
+                <Handle>{profileData.handle}</Handle>
               )}
               
               {editMode ? (
-                <TextField
+                <BioTextArea
                   name="bio"
                   value={profileData.bio}
                   onChange={handleInputChange}
-                  variant="outlined"
-                  multiline
                   rows={3}
-                  fullWidth
-                  InputProps={{ sx: { color: 'white' } }}
-                  sx={{ mb: 2 }}
                 />
               ) : (
-                <Typography variant="body1" paragraph>
-                  {profileData.bio}
-                </Typography>
+                <Bio>{profileData.bio}</Bio>
               )}
               
-              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+              <MetaInfo>
                 {editMode ? (
-                  <TextField
+                  <MetaInput
                     name="location"
                     value={profileData.location}
                     onChange={handleInputChange}
-                    variant="standard"
-                    label="Location"
-                    InputProps={{ sx: { color: 'white' } }}
-                    InputLabelProps={{ sx: { color: 'text.secondary' } }}
+                    placeholder="Location"
                   />
                 ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    📍 {profileData.location}
-                  </Typography>
+                  <MetaItem>📍 {profileData.location}</MetaItem>
                 )}
                 
-                <Typography variant="body2" color="text.secondary">
-                  🗓️ Member since {profileData.memberSince}
-                </Typography>
-                
-                <Typography variant="body2" color="text.secondary">
-                  ⭐ Level {profileData.level}
-                </Typography>
-              </Box>
+                <MetaItem>🗓️ Member since {profileData.memberSince}</MetaItem>
+                <MetaItem>⭐ Level {profileData.level}</MetaItem>
+              </MetaInfo>
             </ProfileInfo>
             
-            <Box sx={{ ml: 'auto', alignSelf: { xs: 'center', sm: 'flex-start' }, mt: { xs: 2, sm: 0 } }}>
+            <EditButtonContainer>
               {editMode ? (
                 <GlowButton
                   variant="success"
                   type="submit"
-                  startIcon={<SaveIcon />}
                 >
+                  <Save size={18} />
                   Save Profile
                 </GlowButton>
               ) : (
                 <GlowButton
                   variant="primary"
                   onClick={toggleEditMode}
-                  startIcon={<EditIcon />}
+                  type="button"
                 >
+                  <Edit size={18} />
                   Edit Profile
                 </GlowButton>
               )}
-            </Box>
+            </EditButtonContainer>
           </ProfileHeader>
           
           <StatsContainer>
             <StatItem>
-              <Typography variant="h5" color="primary.main" fontWeight="bold">125</Typography>
-              <Typography variant="body2" color="text.secondary">Workouts</Typography>
+              <StatValue>125</StatValue>
+              <StatLabel>Workouts</StatLabel>
             </StatItem>
             <StatItem>
-              <Typography variant="h5" color="primary.main" fontWeight="bold">15</Typography>
-              <Typography variant="body2" color="text.secondary">Achievements</Typography>
+              <StatValue>15</StatValue>
+              <StatLabel>Achievements</StatLabel>
             </StatItem>
             <StatItem>
-              <Typography variant="h5" color="primary.main" fontWeight="bold">42</Typography>
-              <Typography variant="body2" color="text.secondary">Followers</Typography>
+              <StatValue>42</StatValue>
+              <StatLabel>Followers</StatLabel>
             </StatItem>
             <StatItem>
-              <Typography variant="h5" color="primary.main" fontWeight="bold">37</Typography>
-              <Typography variant="body2" color="text.secondary">Following</Typography>
+              <StatValue>37</StatValue>
+              <StatLabel>Following</StatLabel>
             </StatItem>
           </StatsContainer>
           
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Interests
-            </Typography>
+          <div>
+            <SectionTitle>Interests</SectionTitle>
             <InterestsContainer>
               {profileData.interests.map((interest, index) => (
-                <Chip
-                  key={index}
-                  label={interest}
-                  color="secondary"
-                  variant="outlined"
-                  onDelete={editMode ? () => handleRemoveInterest(interest) : undefined}
-                  sx={{ borderRadius: '16px' }}
-                />
+                <Chip key={index}>
+                  {interest}
+                  {editMode && (
+                    <ChipDeleteButton
+                      type="button"
+                      onClick={() => handleRemoveInterest(interest)}
+                    >
+                      <X />
+                    </ChipDeleteButton>
+                  )}
+                </Chip>
               ))}
               
               {editMode && (
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', marginTop: 1 }}>
-                  <TextField
-                    size="small"
+                <AddInterestContainer>
+                  <AddInterestInput
+                    type="text"
                     placeholder="Add interest"
                     value={newInterest}
                     onChange={e => setNewInterest(e.target.value)}
-                    variant="outlined"
-                    InputProps={{ sx: { color: 'white' } }}
                   />
-                  <IconButton onClick={handleAddInterest} color="primary">
-                    <AddIcon />
-                  </IconButton>
-                </Box>
+                  <AddButton type="button" onClick={handleAddInterest}>
+                    <Plus />
+                  </AddButton>
+                </AddInterestContainer>
               )}
             </InterestsContainer>
-          </Box>
+          </div>
         </form>
         
-        <Divider sx={{ mb: 3 }} />
+        <Divider />
         
-        <Box>
-          <Tabs
-            value={activeTab}
-            onChange={handleTabChange}
-            sx={{ mb: 3 }}
-            centered
-          >
-            <Tab label="Achievements" sx={{ color: 'white' }} />
-            <Tab label="Activity" sx={{ color: 'white' }} />
-          </Tabs>
+        <div>
+          <TabsContainer>
+            <TabButton
+              $active={activeTab === 0}
+              onClick={() => handleTabChange(0)}
+            >
+              Achievements
+            </TabButton>
+            <TabButton
+              $active={activeTab === 1}
+              onClick={() => handleTabChange(1)}
+            >
+              Activity
+            </TabButton>
+          </TabsContainer>
           
           {activeTab === 0 && (
-            <Grid container spacing={3}>
+            <GridContainer>
               {achievements.map(achievement => (
-                <Grid item xs={12} sm={6} md={4} key={achievement.id}>
-                  <AchievementCard>
-                    <AchievementIcon>
-                      {achievement.icon}
-                    </AchievementIcon>
-                    <Typography variant="h6" align="center" gutterBottom>
-                      {achievement.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" align="center" paragraph>
-                      {achievement.description}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Achieved on {achievement.date}
-                    </Typography>
-                  </AchievementCard>
-                </Grid>
+                <AchievementCard key={achievement.id}>
+                  <AchievementIcon>
+                    {achievement.icon}
+                  </AchievementIcon>
+                  <AchievementTitle>
+                    {achievement.title}
+                  </AchievementTitle>
+                  <AchievementDescription>
+                    {achievement.description}
+                  </AchievementDescription>
+                  <AchievementDate>
+                    Achieved on {achievement.date}
+                  </AchievementDate>
+                </AchievementCard>
               ))}
-            </Grid>
+            </GridContainer>
           )}
           
           {activeTab === 1 && (
             <ActivityFeed>
               {activityFeed.map(activity => (
                 <ActivityItem key={activity.id}>
-                  <Avatar alt={activity.user.name} src={activity.user.avatar} />
+                  <ActivityAvatar>
+                    {activity.user.initials}
+                  </ActivityAvatar>
                   <ActivityContent>
-                    <Typography variant="body1">
+                    <ActivityText>
                       <strong>{activity.user.name}</strong> {activity.content}
-                    </Typography>
-                    <ActivityMeta variant="caption" color="text.secondary">
+                    </ActivityText>
+                    <ActivityMeta>
                       <span>{activity.timestamp}</span>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <FavoriteIcon fontSize="small" sx={{ mr: 0.5 }} />
+                      <ActivityMetaItem>
+                        <Heart size={14} />
                         {activity.likes}
-                      </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <ChatIcon fontSize="small" sx={{ mr: 0.5 }} />
+                      </ActivityMetaItem>
+                      <ActivityMetaItem>
+                        <MessageCircle size={14} />
                         {activity.comments}
-                      </Box>
+                      </ActivityMetaItem>
                     </ActivityMeta>
                   </ActivityContent>
                 </ActivityItem>
               ))}
               
-              <Box sx={{ textAlign: 'center', mt: 3 }}>
+              <LoadMoreContainer>
                 <GlowButton variant="secondary">
                   Load More
                 </GlowButton>
-              </Box>
+              </LoadMoreContainer>
             </ActivityFeed>
           )}
-        </Box>
+        </div>
         
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4, gap: 2 }}>
-          <GlowButton 
-            variant="primary"
-            startIcon={<PersonAddIcon />}
-          >
+        <ActionButtons>
+          <GlowButton variant="primary">
+            <UserPlus size={18} />
             Connect
           </GlowButton>
-          <GlowButton 
-            variant="secondary"
-            startIcon={<ChatIcon />}
-          >
+          <GlowButton variant="secondary">
+            <MessageCircle size={18} />
             Message
           </GlowButton>
-        </Box>
+        </ActionButtons>
       </ProfileContainer>
     </motion.div>
   );
