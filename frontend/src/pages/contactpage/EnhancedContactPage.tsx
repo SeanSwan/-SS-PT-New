@@ -2,28 +2,33 @@ import React, { useRef, useEffect, useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, useAnimation, useInView } from "framer-motion";
 import GlowButton from "../../components/ui/GlowButton";
-import { TextField, Snackbar, Alert, Grid, IconButton, Tooltip } from "@mui/material";
-import LocationOnIcon from "@mui/icons-material/LocationOn";
-import PhoneIcon from "@mui/icons-material/Phone";
-import EmailIcon from "@mui/icons-material/Email";
-import InstagramIcon from "@mui/icons-material/Instagram";
-import FacebookIcon from "@mui/icons-material/Facebook";
-import TwitterIcon from "@mui/icons-material/Twitter";
-import YouTubeIcon from "@mui/icons-material/YouTube";
-import TimelapseIcon from "@mui/icons-material/Timelapse";
+import {
+  MapPin,
+  Phone,
+  Mail,
+  Instagram,
+  Facebook,
+  Twitter,
+  Youtube,
+  Clock,
+  X,
+  CheckCircle,
+  AlertCircle
+} from "lucide-react";
 import axios from "axios";
 
 // Import asset for background video - update path if needed
 const swanVideo = "/swan.mp4";
 
 /*
-  🌟 Premium Contact Page 2025 Edition
+  🌟 Premium Contact Page 2025 Edition - 100% MUI-FREE
   ---------------------
   - Features **immersive animations** and **next-level visual effects**
   - Implements **3D glass-morphism** for an ultra-premium feel
   - Includes **intelligent interaction elements** for visual richness
   - Enhanced with **award-winning layout** and visual hierarchy
   - Delivers a **cohesive premium aesthetic** matching other components
+  - 🎯 COMPLETELY CONVERTED: All MUI dependencies eliminated
 */
 
 // ======================= 🎨 Animation Keyframes =======================
@@ -75,6 +80,26 @@ const borderPulse = keyframes`
   }
   100% {
     border-color: rgba(0, 255, 255, 0.5);
+  }
+`;
+
+const slideUp = keyframes`
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+`;
+
+const fadeIn = keyframes`
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 `;
 
@@ -270,6 +295,7 @@ const ContactSectionsContainer = styled(motion.div)`
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
   animation: ${pulseGlow} 8s infinite ease-in-out;
+  position: relative;
   
   /* Gradient border effect */
   &:before {
@@ -361,41 +387,91 @@ const ContactForm = styled(motion.form)`
   gap: 1.5rem;
 `;
 
-// Custom Styled TextField
-const StyledTextField = styled(TextField)`
-  .MuiInputBase-root {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    color: #fff;
-    transition: all 0.3s ease;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    animation: ${borderPulse} 8s infinite ease-in-out;
-    
-    &:hover, &.Mui-focused {
-      border-color: rgba(0, 255, 255, 0.8);
-      box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+// Custom Input Field (Replacing MUI TextField)
+const InputField = styled.div`
+  position: relative;
+  display: flex;
+  flex-direction: column;
+`;
+
+const InputLabel = styled.label<{ $focused?: boolean; $hasValue?: boolean }>`
+  position: absolute;
+  left: 15px;
+  transition: all 0.3s ease;
+  pointer-events: none;
+  font-size: 0.9rem;
+  color: ${({ $focused }) => $focused ? 'rgba(0, 255, 255, 1)' : 'rgba(255, 255, 255, 0.7)'};
+  
+  ${({ $focused, $hasValue }) => {
+    if ($focused || $hasValue) {
+      return `
+        top: -10px;
+        font-size: 0.75rem;
+        background: rgba(30, 30, 60, 0.9);
+        padding: 0 8px;
+        border-radius: 4px;
+      `;
+    } else {
+      return `
+        top: 15px;
+      `;
     }
+  }}
+`;
+
+const StyledInput = styled.input<{ $multiline?: boolean }>`
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  color: #fff;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: ${borderPulse} 8s infinite ease-in-out;
+  padding: 15px;
+  font-size: 1rem;
+  font-family: inherit;
+  width: 100%;
+  
+  &:focus {
+    outline: none;
+    border-color: rgba(0, 255, 255, 0.8);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
   }
   
-  .MuiOutlinedInput-notchedOutline {
-    border: none;
+  &:hover {
+    border-color: rgba(0, 255, 255, 0.4);
   }
   
-  .MuiInputLabel-root {
-    color: rgba(255, 255, 255, 0.7);
-    
-    &.Mui-focused {
-      color: rgba(0, 255, 255, 1);
-    }
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+`;
+
+const StyledTextarea = styled.textarea`
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  color: #fff;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: ${borderPulse} 8s infinite ease-in-out;
+  padding: 15px;
+  font-size: 1rem;
+  font-family: inherit;
+  width: 100%;
+  min-height: 120px;
+  resize: vertical;
+  
+  &:focus {
+    outline: none;
+    border-color: rgba(0, 255, 255, 0.8);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
   }
   
-  .MuiInputBase-input {
-    padding: 15px;
-    color: #fff;
-    
-    &::placeholder {
-      color: rgba(255, 255, 255, 0.5);
-    }
+  &:hover {
+    border-color: rgba(0, 255, 255, 0.4);
+  }
+  
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
   }
 `;
 
@@ -452,16 +528,93 @@ const SocialIconsContainer = styled.div`
   margin-top: 1rem;
 `;
 
-const SocialIconButton = styled(IconButton)`
-  background: rgba(255, 255, 255, 0.05) !important;
-  color: #fff !important;
-  transition: all 0.3s ease !important;
+const SocialIconButton = styled.button`
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
   
   &:hover {
-    background: rgba(0, 255, 255, 0.2) !important;
-    color: #00ffff !important;
+    background: rgba(0, 255, 255, 0.2);
+    color: #00ffff;
     transform: translateY(-3px);
+    border-color: rgba(0, 255, 255, 0.4);
   }
+`;
+
+// Custom Tooltip Component
+const TooltipContainer = styled.div`
+  position: relative;
+  display: inline-block;
+`;
+
+const TooltipContent = styled.div<{ $visible?: boolean }>`
+  position: absolute;
+  bottom: 120%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  opacity: ${({ $visible }) => $visible ? 1 : 0};
+  visibility: ${({ $visible }) => $visible ? 'visible' : 'hidden'};
+  transition: all 0.3s ease;
+  z-index: 1000;
+  
+  &:after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+  }
+`;
+
+// Custom Tooltip Wrapper
+const Tooltip: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => {
+  const [visible, setVisible] = useState(false);
+  
+  return (
+    <TooltipContainer
+      onMouseEnter={() => setVisible(true)}
+      onMouseLeave={() => setVisible(false)}
+    >
+      {children}
+      <TooltipContent $visible={visible}>
+        {title}
+      </TooltipContent>
+    </TooltipContainer>
+  );
+};
+
+// Custom Grid System (Replacing MUI Grid)
+const GridContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+`;
+
+const GridItem = styled.div`
+  display: flex;
+  flex-direction: column;
 `;
 
 // FAQ Section
@@ -518,6 +671,89 @@ const FAQItem = styled(motion.div)`
   }
 `;
 
+// Custom Alert/Snackbar Components (Replacing MUI)
+const NotificationContainer = styled.div<{ $visible?: boolean; $type?: 'success' | 'error' }>`
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  opacity: ${({ $visible }) => $visible ? 1 : 0};
+  visibility: ${({ $visible }) => $visible ? 'visible' : 'hidden'};
+  transition: all 0.3s ease;
+  animation: ${({ $visible }) => $visible ? slideUp : 'none'} 0.3s ease;
+`;
+
+const AlertBox = styled.div<{ $type?: 'success' | 'error' }>`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-radius: 8px;
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  min-width: 300px;
+  max-width: 500px;
+  
+  ${({ $type }) => {
+    if ($type === 'success') {
+      return `
+        background: rgba(46, 125, 50, 0.9);
+        border: 1px solid rgba(76, 175, 80, 0.3);
+      `;
+    } else {
+      return `
+        background: rgba(211, 47, 47, 0.9);
+        border: 1px solid rgba(244, 67, 54, 0.3);
+      `;
+    }
+  }}
+`;
+
+const AlertMessage = styled.div`
+  flex: 1;
+  font-size: 0.95rem;
+  line-height: 1.4;
+`;
+
+const AlertCloseButton = styled.button`
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+`;
+
+// Custom Notification Component
+const Notification: React.FC<{
+  open: boolean;
+  type: 'success' | 'error';
+  message: string;
+  onClose: () => void;
+}> = ({ open, type, message, onClose }) => {
+  return (
+    <NotificationContainer $visible={open} $type={type}>
+      <AlertBox $type={type}>
+        {type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+        <AlertMessage>{message}</AlertMessage>
+        <AlertCloseButton onClick={onClose}>
+          <X size={16} />
+        </AlertCloseButton>
+      </AlertBox>
+    </NotificationContainer>
+  );
+};
+
 // ======================= 🚀 Enhanced Contact Page Component =======================
 
 const EnhancedContactPage = () => {
@@ -528,6 +764,9 @@ const EnhancedContactPage = () => {
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  
+  // Focus states for input labels
+  const [focusedField, setFocusedField] = useState<string>("");
   
   // Refs for animation triggers
   const contentRef = useRef(null);
@@ -732,6 +971,56 @@ const EnhancedContactPage = () => {
     setError("");
   };
 
+  // Close success message
+  const handleCloseSuccess = () => {
+    setSuccess(false);
+  };
+
+  // Input field helper function
+  const renderInputField = (
+    id: string,
+    label: string,
+    type: 'text' | 'email' | 'textarea',
+    value: string,
+    onChange: (value: string) => void,
+    required: boolean = false
+  ) => {
+    const isFocused = focusedField === id;
+    const hasValue = value.length > 0;
+    
+    return (
+      <InputField>
+        <InputLabel 
+          $focused={isFocused} 
+          $hasValue={hasValue}
+          htmlFor={id}
+        >
+          {label}{required && ' *'}
+        </InputLabel>
+        {type === 'textarea' ? (
+          <StyledTextarea
+            id={id}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onFocus={() => setFocusedField(id)}
+            onBlur={() => setFocusedField("")}
+            required={required}
+          />
+        ) : (
+          <StyledInput
+            id={id}
+            type={type}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onFocus={() => setFocusedField(id)}
+            onBlur={() => setFocusedField("")}
+            required={required}
+          />
+        )}
+      </InputField>
+    );
+  };
+
   return (
     <ContactPageWrapper>
       {/* Premium Video Background */}
@@ -782,43 +1071,10 @@ const EnhancedContactPage = () => {
             <FormTitle variants={titleVariants}>Send Us a Message</FormTitle>
             
             <ContactForm onSubmit={handleSubmit}>
-              <StyledTextField
-                label="Full Name"
-                variant="outlined"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                fullWidth
-                required
-              />
-              
-              <StyledTextField
-                label="Email"
-                variant="outlined"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                fullWidth
-                required
-              />
-              
-              <StyledTextField
-                label="Subject"
-                variant="outlined"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                fullWidth
-              />
-              
-              <StyledTextField
-                label="Message"
-                variant="outlined"
-                multiline
-                rows={6}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                fullWidth
-                required
-              />
+              {renderInputField("name", "Full Name", "text", name, setName, true)}
+              {renderInputField("email", "Email", "email", email, setEmail, true)}
+              {renderInputField("subject", "Subject", "text", subject, setSubject)}
+              {renderInputField("message", "Message", "textarea", message, setMessage, true)}
               
               <GlowButton
                 type="submit"
@@ -846,7 +1102,7 @@ const EnhancedContactPage = () => {
               variants={infoCardVariants}
             >
               <InfoItem>
-                <LocationOnIcon className="icon" />
+                <MapPin className="icon" size={24} />
                 <div className="text">
                   <strong>Location</strong><br />
                   123 Fitness Avenue, Suite 100<br />
@@ -860,7 +1116,7 @@ const EnhancedContactPage = () => {
               variants={infoCardVariants}
             >
               <InfoItem>
-                <EmailIcon className="icon" />
+                <Mail className="icon" size={24} />
                 <div className="text">
                   <strong>Email</strong><br />
                   <a href="mailto:loveswanstudios@protonmail.com">loveswanstudios@protonmail.com</a>
@@ -873,7 +1129,7 @@ const EnhancedContactPage = () => {
               variants={infoCardVariants}
             >
               <InfoItem>
-                <PhoneIcon className="icon" />
+                <Phone className="icon" size={24} />
                 <div className="text">
                   <strong>Phone</strong><br />
                   <a href="tel:+17149473221">(714) 947-3221</a>
@@ -886,7 +1142,7 @@ const EnhancedContactPage = () => {
               variants={infoCardVariants}
             >
               <InfoItem>
-                <TimelapseIcon className="icon" />
+                <Clock className="icon" size={24} />
                 <div className="text">
                   <strong>Hours</strong><br />
                   Monday-Sunday: By Appointment Only
@@ -899,22 +1155,22 @@ const EnhancedContactPage = () => {
               <SocialIconsContainer>
                 <Tooltip title="Facebook">
                   <SocialIconButton>
-                    <FacebookIcon />
+                    <Facebook size={20} />
                   </SocialIconButton>
                 </Tooltip>
                 <Tooltip title="Instagram">
                   <SocialIconButton>
-                    <InstagramIcon />
+                    <Instagram size={20} />
                   </SocialIconButton>
                 </Tooltip>
                 <Tooltip title="Twitter">
                   <SocialIconButton>
-                    <TwitterIcon />
+                    <Twitter size={20} />
                   </SocialIconButton>
                 </Tooltip>
                 <Tooltip title="YouTube">
                   <SocialIconButton>
-                    <YouTubeIcon />
+                    <Youtube size={20} />
                   </SocialIconButton>
                 </Tooltip>
               </SocialIconsContainer>
@@ -931,8 +1187,8 @@ const EnhancedContactPage = () => {
         >
           <FAQTitle variants={titleVariants}>Frequently Asked Questions</FAQTitle>
           
-          <Grid container spacing={3}>
-            <Grid item xs={12} md={6}>
+          <GridContainer>
+            <GridItem>
               <FAQItem
                 custom={0}
                 variants={faqItemVariants}
@@ -942,9 +1198,9 @@ const EnhancedContactPage = () => {
                   You can schedule a personal training session by contacting us through this form, calling our phone number, or emailing us directly. We'll match you with the perfect trainer for your goals.
                 </div>
               </FAQItem>
-            </Grid>
+            </GridItem>
             
-            <Grid item xs={12} md={6}>
+            <GridItem>
               <FAQItem
                 custom={1}
                 variants={faqItemVariants}
@@ -954,9 +1210,9 @@ const EnhancedContactPage = () => {
                   We offer a variety of training packages to fit different budgets and goals. Contact us for a personalized quote based on your specific needs and objectives.
                 </div>
               </FAQItem>
-            </Grid>
+            </GridItem>
             
-            <Grid item xs={12} md={6}>
+            <GridItem>
               <FAQItem
                 custom={2}
                 variants={faqItemVariants}
@@ -966,9 +1222,9 @@ const EnhancedContactPage = () => {
                   Yes! We provide virtual training options through our secure platform. These sessions are customized just like our in-person training to ensure you reach your fitness goals.
                 </div>
               </FAQItem>
-            </Grid>
+            </GridItem>
             
-            <Grid item xs={12} md={6}>
+            <GridItem>
               <FAQItem
                 custom={3}
                 variants={faqItemVariants}
@@ -978,53 +1234,25 @@ const EnhancedContactPage = () => {
                   We aim to respond to all inquiries within 24 hours during business days. For urgent matters, we recommend giving us a call directly.
                 </div>
               </FAQItem>
-            </Grid>
-          </Grid>
+            </GridItem>
+          </GridContainer>
         </FAQSection>
       </MainContent>
       
-      {/* Success/Error Messages */}
-      <Snackbar 
-        open={success} 
-        autoHideDuration={5000} 
-        onClose={() => setSuccess(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={() => setSuccess(false)} 
-          severity="success" 
-          sx={{ 
-            width: '100%',
-            background: 'rgba(46, 125, 50, 0.9)',
-            color: '#fff',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
-            borderRadius: '8px',
-          }}
-        >
-          Your message has been sent successfully! We'll get back to you soon.
-        </Alert>
-      </Snackbar>
+      {/* Success/Error Notifications */}
+      <Notification 
+        open={success}
+        type="success"
+        message="Your message has been sent successfully! We'll get back to you soon."
+        onClose={handleCloseSuccess}
+      />
       
-      <Snackbar 
-        open={!!error} 
-        autoHideDuration={5000} 
+      <Notification 
+        open={!!error}
+        type="error"
+        message={error}
         onClose={handleCloseError}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={handleCloseError} 
-          severity="error" 
-          sx={{ 
-            width: '100%',
-            background: 'rgba(211, 47, 47, 0.9)',
-            color: '#fff',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
-            borderRadius: '8px',
-          }}
-        >
-          {error}
-        </Alert>
-      </Snackbar>
+      />
     </ContactPageWrapper>
   );
 };
