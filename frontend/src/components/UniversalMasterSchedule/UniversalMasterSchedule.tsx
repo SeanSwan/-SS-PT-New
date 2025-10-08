@@ -1,37 +1,41 @@
 /**
- * 🚀 UNIVERSAL MASTER SCHEDULE - BUILD SAFE VERSION
+ * 🚀 UNIVERSAL MASTER SCHEDULE - MUI-FREE VERSION
  * ================================================
- * Simplified version that will definitely build successfully on Render
- * All problematic imports removed, using only confirmed dependencies
+ * Complete rewrite using custom styled-components
+ * All MUI dependencies removed, fully accessible
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
 
-// Safe Material-UI imports (confirmed in package.json)
+// Custom UI Components (MUI replacements)
 import {
-  Box,
-  Paper,
-  Typography,
-  Button,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Grid,
-  CircularProgress,
+  PageTitle,
+  BodyText,
+  SmallText,
+  Caption,
+  PrimaryButton,
+  OutlinedButton,
+  IconButton as StyledIconButton,
+  StyledInput,
+  FormField,
+  Label,
+  StyledTextarea,
+  CustomSelect,
+  SelectOption,
+  Modal,
+  Spinner,
+  LoadingContainer,
   Card,
-  CardContent,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
-} from '@mui/material';
+  CardBody,
+  GridContainer,
+  FlexBox,
+  Box,
+  PrimaryHeading
+} from './ui';
 
-// Safe Lucide React imports (confirmed in package.json)
+// Lucide React icons
 import {
   Calendar,
   Plus,
@@ -103,11 +107,14 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       try {
         setLoading(true);
         
-        // Simple auth check
+        // Check permissions
         const token = localStorage.getItem('token');
         if (token) {
           setIsAdmin(true);
         }
+        
+        // Simulate loading time
+        await new Promise(resolve => setTimeout(resolve, 1000));
         
         // Mock some initial data for demonstration
         setSessions([
@@ -257,17 +264,32 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     }
   };
 
+  // Location options for select dropdown
+  const locationOptions: SelectOption[] = [
+    { value: 'Main Studio', label: 'Main Studio' },
+    { value: 'Gym Floor', label: 'Gym Floor' },
+    { value: 'Private Room', label: 'Private Room' },
+    { value: 'Online', label: 'Online Session' }
+  ];
+
   // Access control
   if (!isAdmin) {
     return (
       <AccessDeniedContainer>
-        <AlertTriangle size={48} color="#ef4444" />
-        <Typography variant="h6" color="error" gutterBottom>
-          Access Denied
-        </Typography>
-        <Typography color="textSecondary">
-          Administrator access required to view the Universal Master Schedule
-        </Typography>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          style={{ textAlign: 'center' }}
+        >
+          <AlertTriangle size={48} color="#ef4444" />
+          <PrimaryHeading style={{ marginTop: '1rem', color: '#ef4444' }}>
+            Access Denied
+          </PrimaryHeading>
+          <BodyText secondary style={{ marginTop: '0.5rem' }}>
+            Administrator access required to view the Universal Master Schedule
+          </BodyText>
+        </motion.div>
       </AccessDeniedContainer>
     );
   }
@@ -275,12 +297,11 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   // Loading state
   if (loading) {
     return (
-      <LoadingContainer>
-        <CircularProgress size={60} />
-        <Typography variant="h6" sx={{ mt: 2 }}>
-          Loading Schedule...
-        </Typography>
-      </LoadingContainer>
+      <Spinner 
+        size={60} 
+        text="Loading Schedule..." 
+        fullscreen 
+      />
     );
   }
 
@@ -288,243 +309,219 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     <ScheduleContainer>
       {/* Header */}
       <ScheduleHeader>
-        <Box display="flex" alignItems="center" gap={2}>
+        <FlexBox align="center" gap="1rem">
           <Calendar size={32} color="#3b82f6" />
           <Box>
-            <Typography variant="h4" color="white">
-              Universal Master Schedule
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
+            <PageTitle>Universal Master Schedule</PageTitle>
+            <SmallText secondary style={{ marginTop: '0.25rem' }}>
               Professional session management system
-            </Typography>
+            </SmallText>
           </Box>
-        </Box>
+        </FlexBox>
         
-        <Box display="flex" alignItems="center" gap={1}>
-          <IconButton onClick={fetchSessions} sx={{ color: 'white' }}>
-            <RefreshCw size={20} />
-          </IconButton>
-          
-          <Button
-            variant="contained"
-            startIcon={<Plus size={18} />}
-            onClick={() => setShowCreateDialog(true)}
-            sx={{
-              background: 'linear-gradient(135deg, #3b82f6, #1e40af)',
-              '&:hover': {
-                background: 'linear-gradient(135deg, #1e40af, #1e3a8a)'
-              }
-            }}
+        <FlexBox align="center" gap="0.5rem">
+          <StyledIconButton 
+            onClick={fetchSessions}
+            aria-label="Refresh sessions"
+            size="medium"
           >
+            <RefreshCw size={20} />
+          </StyledIconButton>
+          
+          <PrimaryButton onClick={() => setShowCreateDialog(true)}>
+            <Plus size={18} />
             Create Session
-          </Button>
-        </Box>
+          </PrimaryButton>
+        </FlexBox>
       </ScheduleHeader>
 
       {/* Navigation */}
       <NavigationBar>
-        <Box display="flex" alignItems="center" gap={2}>
-          <IconButton onClick={() => navigateWeek('prev')} sx={{ color: 'white' }}>
+        <FlexBox align="center" gap="1rem">
+          <StyledIconButton 
+            onClick={() => navigateWeek('prev')}
+            aria-label="Previous week"
+          >
             <ChevronLeft />
-          </IconButton>
+          </StyledIconButton>
           
-          <Typography variant="h6" color="white" sx={{ minWidth: 200 }}>
+          <DateDisplay>
             {selectedDate.toLocaleDateString('en-US', { 
               month: 'long', 
               year: 'numeric',
               day: 'numeric'
             })}
-          </Typography>
+          </DateDisplay>
           
-          <IconButton onClick={() => navigateWeek('next')} sx={{ color: 'white' }}>
-            <ChevronRight />
-          </IconButton>
-          
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => setSelectedDate(new Date())}
-            sx={{ 
-              color: 'white', 
-              borderColor: 'rgba(255,255,255,0.3)',
-              '&:hover': {
-                borderColor: 'rgba(255,255,255,0.5)'
-              }
-            }}
+          <StyledIconButton 
+            onClick={() => navigateWeek('next')}
+            aria-label="Next week"
           >
+            <ChevronRight />
+          </StyledIconButton>
+          
+          <OutlinedButton onClick={() => setSelectedDate(new Date())}>
             Today
-          </Button>
-        </Box>
+          </OutlinedButton>
+        </FlexBox>
       </NavigationBar>
 
       {/* Statistics Panel */}
       <StatsPanel>
-        <Typography variant="h6" gutterBottom color="white">
+        <PrimaryHeading style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
           Schedule Overview
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={3}>
-            <StatCard>
-              <Typography variant="h4" color="primary">
-                {sessions.length}
-              </Typography>
-              <Typography variant="caption" color="textSecondary">
-                Total Sessions
-              </Typography>
-            </StatCard>
-          </Grid>
-          <Grid item xs={3}>
-            <StatCard>
-              <Typography variant="h4" sx={{ color: '#10b981' }}>
-                {sessions.filter(s => s.status === 'available').length}
-              </Typography>
-              <Typography variant="caption" color="textSecondary">
-                Available
-              </Typography>
-            </StatCard>
-          </Grid>
-          <Grid item xs={3}>
-            <StatCard>
-              <Typography variant="h4" sx={{ color: '#f59e0b' }}>
-                {sessions.filter(s => s.status === 'scheduled').length}
-              </Typography>
-              <Typography variant="caption" color="textSecondary">
-                Scheduled
-              </Typography>
-            </StatCard>
-          </Grid>
-          <Grid item xs={3}>
-            <StatCard>
-              <Typography variant="h4" sx={{ color: '#6b7280' }}>
-                {sessions.filter(s => s.status === 'completed').length}
-              </Typography>
-              <Typography variant="caption" color="textSecondary">
-                Completed
-              </Typography>
-            </StatCard>
-          </Grid>
-        </Grid>
+        </PrimaryHeading>
+        <GridContainer columns={4} gap="1rem">
+          <StatCard>
+            <div className="stat-value">{sessions.length}</div>
+            <Caption secondary>Total Sessions</Caption>
+          </StatCard>
+          <StatCard>
+            <div className="stat-value" style={{ color: '#10b981' }}>
+              {sessions.filter(s => s.status === 'available').length}
+            </div>
+            <Caption secondary>Available</Caption>
+          </StatCard>
+          <StatCard>
+            <div className="stat-value" style={{ color: '#f59e0b' }}>
+              {sessions.filter(s => s.status === 'scheduled').length}
+            </div>
+            <Caption secondary>Scheduled</Caption>
+          </StatCard>
+          <StatCard>
+            <div className="stat-value" style={{ color: '#6b7280' }}>
+              {sessions.filter(s => s.status === 'completed').length}
+            </div>
+            <Caption secondary>Completed</Caption>
+          </StatCard>
+        </GridContainer>
       </StatsPanel>
 
       {/* Simple Calendar View */}
       <CalendarContainer>
-        <Typography variant="h6" color="white" gutterBottom>
+        <PrimaryHeading style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
           Week View
-        </Typography>
+        </PrimaryHeading>
         
-        <Grid container spacing={1}>
+        <GridContainer columns={7} gap="0.5rem">
           {weekDays.map((day, index) => (
-            <Grid item xs key={index}>
-              <DayCard>
-                <Typography variant="caption" color="textSecondary">
-                  {day.toLocaleDateString('en-US', { weekday: 'short' })}
-                </Typography>
-                <Typography variant="h6" color="white">
-                  {day.getDate()}
-                </Typography>
-                
-                {/* Sessions for this day */}
-                {sessions
-                  .filter(session => {
-                    const sessionDate = new Date(session.sessionDate);
-                    return sessionDate.toDateString() === day.toDateString();
-                  })
-                  .map(session => (
-                    <SessionBlock
-                      key={session.id}
-                      status={session.status}
-                      onClick={() => {
-                        alert(`Session: ${session.clientName || 'Available'}\nTime: ${new Date(session.sessionDate).toLocaleTimeString()}\nDuration: ${session.duration} min`);
-                      }}
-                    >
-                      <Typography variant="caption" color="white">
-                        {new Date(session.sessionDate).toLocaleTimeString('en-US', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </Typography>
-                      <Typography variant="caption" color="white">
-                        {session.clientName || 'Available'}
-                      </Typography>
-                    </SessionBlock>
-                  ))
-                }
-              </DayCard>
-            </Grid>
+            <DayCard key={index}>
+              <Caption secondary>
+                {day.toLocaleDateString('en-US', { weekday: 'short' })}
+              </Caption>
+              <PrimaryHeading style={{ fontSize: '1.5rem', margin: '0.5rem 0' }}>
+                {day.getDate()}
+              </PrimaryHeading>
+              
+              {/* Sessions for this day */}
+              {sessions
+                .filter(session => {
+                  const sessionDate = new Date(session.sessionDate);
+                  return sessionDate.toDateString() === day.toDateString();
+                })
+                .map(session => (
+                  <SessionBlock
+                    key={session.id}
+                    status={session.status}
+                    onClick={() => {
+                      alert(`Session: ${session.clientName || 'Available'}\nTime: ${new Date(session.sessionDate).toLocaleTimeString()}\nDuration: ${session.duration} min`);
+                    }}
+                  >
+                    <Caption style={{ color: 'white', display: 'block' }}>
+                      {new Date(session.sessionDate).toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </Caption>
+                    <Caption style={{ color: 'white', display: 'block', marginTop: '0.25rem' }}>
+                      {session.clientName || 'Available'}
+                    </Caption>
+                  </SessionBlock>
+                ))
+              }
+            </DayCard>
           ))}
-        </Grid>
+        </GridContainer>
       </CalendarContainer>
 
-      {/* Create Session Dialog */}
-      <Dialog
-        open={showCreateDialog}
+      {/* Create Session Modal */}
+      <Modal
+        isOpen={showCreateDialog}
         onClose={() => setShowCreateDialog(false)}
-        maxWidth="sm"
-        fullWidth
+        title="Create New Session"
+        size="md"
+        footer={
+          <>
+            <OutlinedButton onClick={() => setShowCreateDialog(false)}>
+              Cancel
+            </OutlinedButton>
+            <PrimaryButton onClick={handleCreateSession}>
+              <Save size={18} />
+              Create Session
+            </PrimaryButton>
+          </>
+        }
       >
-        <DialogTitle>Create New Session</DialogTitle>
-        <DialogContent>
-          <Box display="flex" flexDirection="column" gap={2} mt={1}>
-            <TextField
-              label="Session Date & Time"
+        <FlexBox direction="column" gap="1.5rem">
+          <FormField>
+            <Label htmlFor="sessionDate" required>Session Date & Time</Label>
+            <StyledInput
+              id="sessionDate"
               type="datetime-local"
               value={formData.sessionDate}
               onChange={(e) => setFormData({ ...formData, sessionDate: e.target.value })}
-              fullWidth
-              InputLabelProps={{ shrink: true }}
             />
-            
-            <TextField
-              label="Duration (minutes)"
+          </FormField>
+          
+          <FormField>
+            <Label htmlFor="duration" required>Duration (minutes)</Label>
+            <StyledInput
+              id="duration"
               type="number"
               value={formData.duration}
               onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-              fullWidth
+              min={15}
+              step={15}
             />
-            
-            <TextField
-              label="Location"
+          </FormField>
+          
+          <FormField>
+            <Label htmlFor="location" required>Location</Label>
+            <CustomSelect
               value={formData.location}
-              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              fullWidth
+              onChange={(value) => setFormData({ ...formData, location: value as string })}
+              options={locationOptions}
+              aria-label="Session location"
             />
-            
-            <TextField
-              label="Notes"
+          </FormField>
+          
+          <FormField>
+            <Label htmlFor="notes">Notes</Label>
+            <StyledTextarea
+              id="notes"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              fullWidth
-              multiline
+              placeholder="Add any additional notes..."
               rows={3}
             />
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowCreateDialog(false)}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleCreateSession}
-            variant="contained"
-            startIcon={<Save size={18} />}
-          >
-            Create Session
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </FormField>
+        </FlexBox>
+      </Modal>
     </ScheduleContainer>
   );
 };
 
 export default UniversalMasterSchedule;
 
-// Styled Components
+// ==================== STYLED COMPONENTS ====================
+
 const ScheduleContainer = styled.div`
   height: 100vh;
   display: flex;
   flex-direction: column;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
   color: white;
+  overflow: hidden;
 `;
 
 const ScheduleHeader = styled.div`
@@ -535,6 +532,7 @@ const ScheduleHeader = styled.div`
   background: rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
   
   @media (max-width: 768px) {
     padding: 1rem;
@@ -551,40 +549,77 @@ const NavigationBar = styled.div`
   padding: 1rem 2rem;
   background: rgba(0, 0, 0, 0.2);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
 `;
 
-const StatsPanel = styled(Paper)`
+const DateDisplay = styled.div`
+  min-width: 200px;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: white;
+`;
+
+const StatsPanel = styled.div`
   margin: 1rem 2rem;
   padding: 1.5rem;
-  background: rgba(255, 255, 255, 0.05) !important;
+  background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  flex-shrink: 0;
 `;
 
-const StatCard = styled(Box)`
+const StatCard = styled(Card)`
   text-align: center;
-  padding: 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1.5rem;
+  
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #3b82f6;
+    margin-bottom: 0.5rem;
+    line-height: 1;
+  }
 `;
 
 const CalendarContainer = styled.div`
   flex: 1;
   overflow: auto;
   margin: 0 2rem 2rem;
-  padding: 1rem;
+  padding: 1.5rem;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  
+  /* Custom scrollbar */
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
 `;
 
 const DayCard = styled(Card)`
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
   padding: 1rem;
   text-align: center;
   min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 `;
 
 const SessionBlock = styled.div<{ status: string }>`
@@ -594,21 +629,16 @@ const SessionBlock = styled.div<{ status: string }>`
   margin: 0.5rem 0;
   cursor: pointer;
   transition: all 0.2s ease;
+  width: 100%;
   
   &:hover {
     transform: scale(1.02);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   }
-`;
-
-const LoadingContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-  color: white;
+  
+  &:active {
+    transform: scale(0.98);
+  }
 `;
 
 const AccessDeniedContainer = styled.div`
@@ -619,12 +649,11 @@ const AccessDeniedContainer = styled.div`
   height: 100vh;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   color: white;
-  text-align: center;
   padding: 2rem;
 `;
 
-// Helper function
-const getStatusColor = (status: string) => {
+// Helper function (keep at bottom)
+const getStatusColor = (status: string): string => {
   switch (status) {
     case 'available': return '#3b82f6';
     case 'scheduled': return '#10b981';
