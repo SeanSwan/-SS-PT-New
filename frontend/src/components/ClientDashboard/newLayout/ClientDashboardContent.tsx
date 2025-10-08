@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box } from '@mui/material';
+import styled from 'styled-components';
 import { AnimatePresence, motion } from 'framer-motion';
 
 // Direct imports for all sections
@@ -15,8 +15,6 @@ import CommunitySection from '../sections/CommunitySection';
 import ProfileSection from '../sections/ProfileSection';
 import SettingsSection from '../sections/SettingsSection';
 
-// DummyTester component removed - using simple fallback instead
-
 // Import specialized components from newLayout
 import EnhancedMessagingSection from './EnhancedMessagingSection';
 import SocialProfileSection from './SocialProfileSection';
@@ -25,9 +23,68 @@ import SocialProfileSection from './SocialProfileSection';
 import ScheduleContainer from '../../Schedule';
 import ClientScheduleTab from '../../DashBoard/Pages/client-dashboard/schedule';
 
+// Styled Components
+const StyledBox = styled.div`
+  width: 100%;
+  height: calc(100vh - 120px);
+`;
+
+const ErrorFallbackContainer = styled.div`
+  padding: 1.5rem;
+  border: 1px dashed #ff4569;
+  border-radius: 8px;
+  background-color: rgba(255, 69, 105, 0.05);
+  
+  h3 {
+    margin-top: 0;
+    color: #ff4569;
+  }
+  
+  p {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  
+  details {
+    margin-top: 1rem;
+    
+    summary {
+      cursor: pointer;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.875rem;
+    }
+    
+    pre {
+      margin-top: 0.5rem;
+      padding: 1rem;
+      background-color: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+      overflow-x: auto;
+      font-size: 0.75rem;
+      color: #ff4569;
+    }
+  }
+`;
+
+const DevelopmentFallbackContainer = styled.div`
+  margin-top: 2rem;
+  padding: 1.5rem;
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  
+  h3 {
+    color: rgba(255, 255, 255, 0.9);
+    margin-top: 0;
+  }
+  
+  p {
+    color: rgba(255, 255, 255, 0.7);
+  }
+`;
+
 // Add an error boundary component to catch render errors
 const ErrorFallback = ({ componentName, error }: { componentName: string, error?: Error }) => (
-  <Box sx={{ p: 3, border: '1px dashed #ff4569', borderRadius: 2, bgcolor: 'rgba(255,69,105,0.05)' }}>
+  <ErrorFallbackContainer>
     <h3>Error loading {componentName}</h3>
     <p>There was a problem loading this component. Please try refreshing the page.</p>
     {error && (
@@ -36,7 +93,7 @@ const ErrorFallback = ({ componentName, error }: { componentName: string, error?
         <pre>{error.message}</pre>
       </details>
     )}
-  </Box>
+  </ErrorFallbackContainer>
 );
 
 // Utility function to safely render a component with error handling
@@ -48,6 +105,7 @@ const SafeRender = ({ component, fallback }: { component: React.ReactNode, fallb
     return <ErrorFallback componentName={fallback} error={error as Error} />;
   }
 };
+
 const variants = {
   initial: {
     opacity: 0,
@@ -131,18 +189,17 @@ const ClientDashboardContent: React.FC<ClientDashboardContentProps> = ({ activeS
       return (
         <>
           <ErrorFallback componentName="Section Content" error={error as Error} />
-          <Box sx={{ mt: 4, p: 3, textAlign: 'center', bgcolor: 'rgba(0,0,0,0.1)', borderRadius: 2 }}>
+          <DevelopmentFallbackContainer>
             <h3>🚧 Dashboard Section Under Development</h3>
             <p>This section is currently being built. Please try another section or refresh the page.</p>
-          </Box>
+          </DevelopmentFallbackContainer>
         </>
       );
     }
   };
 
-
   return (
-    <Box sx={{ width: '100%', height: 'calc(100vh - 120px)' }}>
+    <StyledBox>
       <AnimatePresence mode="wait">
         <motion.div
           key={activeSection}
@@ -155,7 +212,7 @@ const ClientDashboardContent: React.FC<ClientDashboardContentProps> = ({ activeS
           {renderContent()}
         </motion.div>
       </AnimatePresence>
-    </Box>
+    </StyledBox>
   );
 };
 
