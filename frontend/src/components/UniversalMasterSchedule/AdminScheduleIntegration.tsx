@@ -1,30 +1,31 @@
 /**
- * Universal Master Schedule Integration - Build Safe Version
- * ========================================================= 
- * Simplified integration wrapper that will build successfully
- * All problematic imports removed, using only confirmed dependencies
+ * Universal Master Schedule Integration - MUI-FREE VERSION
+ * ========================================================
+ * Simplified integration wrapper using custom styled-components
+ * All MUI dependencies removed
  */
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
 
-// Safe Material-UI imports
+// Custom UI Components
 import {
-  Box,
-  Typography,
-  CircularProgress,
-  Button
-} from '@mui/material';
+  PageTitle,
+  BodyText,
+  SmallText,
+  PrimaryButton,
+  Spinner
+} from './ui';
 
-// Safe Lucide React imports
+// Lucide React icons
 import {
   Calendar as CalendarIcon,
   AlertTriangle,
   RefreshCw
 } from 'lucide-react';
 
-// Import our safe Universal Master Schedule
+// Import our MUI-free Universal Master Schedule
 import UniversalMasterSchedule from './UniversalMasterSchedule';
 
 interface AdminScheduleIntegrationProps {
@@ -91,19 +92,19 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
+          style={{ textAlign: 'center' }}
         >
           <AlertTriangle size={48} color="#ef4444" />
-          <Typography variant="h6" sx={{ mt: 2, color: 'white' }}>
+          <PageTitle style={{ marginTop: '1rem', color: '#ef4444' }}>
             {error}
-          </Typography>
-          <Button
-            variant="contained"
+          </PageTitle>
+          <PrimaryButton
             onClick={handleRetry}
-            sx={{ mt: 2 }}
-            startIcon={<RefreshCw size={18} />}
+            style={{ marginTop: '1.5rem' }}
           >
+            <RefreshCw size={18} />
             Retry
-          </Button>
+          </PrimaryButton>
         </motion.div>
       </ErrorContainer>
     );
@@ -112,18 +113,11 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
   // Render loading state
   if (isLoading) {
     return (
-      <LoadingContainer>
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3 }}
-        >
-          <CircularProgress size={48} />
-          <Typography variant="h6" sx={{ mt: 2, color: 'white' }}>
-            Loading Universal Master Schedule...
-          </Typography>
-        </motion.div>
-      </LoadingContainer>
+      <Spinner 
+        size={48}
+        text="Loading Universal Master Schedule..."
+        fullscreen
+      />
     );
   }
   
@@ -141,12 +135,14 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
             <HeaderContent role="banner">
               <HeaderTitle role="heading" aria-level={1}>
                 <CalendarIcon size={28} />
-                <Typography variant="h4" component="h1" color="white">
-                  Universal Master Schedule
-                </Typography>
-                <Typography variant="body2" color="rgba(255, 255, 255, 0.7)">
-                  Professional Session Management
-                </Typography>
+                <div>
+                  <PageTitle style={{ margin: 0 }}>
+                    Universal Master Schedule
+                  </PageTitle>
+                  <SmallText secondary style={{ marginTop: '0.25rem' }}>
+                    Professional Session Management
+                  </SmallText>
+                </div>
               </HeaderTitle>
             </HeaderContent>
           </motion.div>
@@ -175,7 +171,8 @@ const AdminScheduleIntegration: React.FC<AdminScheduleIntegrationProps> = ({
 
 export default AdminScheduleIntegration;
 
-// Styled Components
+// ==================== STYLED COMPONENTS ====================
+
 const ScheduleContainer = styled(motion.div)<{ isFullscreen: boolean }>`
   width: 100%;
   height: ${props => props.isFullscreen ? '100vh' : '100%'};
@@ -198,6 +195,7 @@ const ScheduleHeader = styled.div`
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   z-index: 10;
+  flex-shrink: 0;
   
   @media (max-width: 768px) {
     padding: 1rem;
@@ -221,18 +219,13 @@ const HeaderTitle = styled.div`
   align-items: center;
   gap: 1rem;
   
-  h4 {
-    color: white;
-    font-weight: 300;
-    margin: 0;
-  }
-  
   svg {
     color: #3b82f6;
+    flex-shrink: 0;
   }
   
   @media (max-width: 768px) {
-    h4 {
+    h1 {
       font-size: 1.5rem;
     }
   }
@@ -245,15 +238,6 @@ const ScheduleContent = styled.div`
   flex-direction: column;
 `;
 
-const LoadingContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  min-height: 400px;
-`;
-
 const ErrorContainer = styled.div`
   display: flex;
   flex-direction: column;
@@ -261,6 +245,6 @@ const ErrorContainer = styled.div`
   justify-content: center;
   height: 100%;
   min-height: 400px;
-  gap: 1rem;
-  text-align: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
 `;
