@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Tabs, 
-  Tab, 
-  CircularProgress, 
-  Paper
-} from '@mui/material';
+import styled from 'styled-components';
 import { 
   Trophy, 
   Gift, 
   Settings,
   Users
 } from 'lucide-react';
+
+// Import custom UI components (reusing from UniversalMasterSchedule)
+import {
+  PageTitle,
+  BodyText,
+  Spinner
+} from '../../../UniversalMasterSchedule/ui';
 
 // Import styled components
 import { PageContainer } from './styled-gamification-system';
@@ -117,19 +117,15 @@ function TabPanel(props: TabPanelProps) {
   const { children, value, index, ...other } = props;
 
   return (
-    <div
+    <TabPanelContainer
       role="tabpanel"
       hidden={value !== index}
       id={`admin-gamification-tabpanel-${index}`}
       aria-labelledby={`admin-gamification-tab-${index}`}
       {...other}
     >
-      {value === index && (
-        <Box sx={{ py: 3 }}>
-          {children}
-        </Box>
-      )}
-    </div>
+      {value === index && <TabContent>{children}</TabContent>}
+    </TabPanelContainer>
   );
 }
 
@@ -181,7 +177,7 @@ const AdminGamificationView: React.FC = () => {
   const [analyticsData, setAnalyticsData] = useState<any>(null); // For system analytics
   
   // Handle tab change with performance optimization
-  const handleTabChange = useCallback((event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = useCallback((newValue: number) => {
     setTabValue(newValue);
     
     // Only fetch analytics data when analytics tab is selected
@@ -969,76 +965,76 @@ const AdminGamificationView: React.FC = () => {
   
   if (loading) {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        height: '50vh' 
-      }}>
-        <CircularProgress />
-      </Box>
+      <LoadingContainer>
+        <Spinner size={48} />
+      </LoadingContainer>
     );
   }
   
   // Loading fallback component for lazy-loaded tabs
   const TabLoadingFallback = () => (
-    <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-      <CircularProgress />
-    </Box>
+    <TabLoadingContainer>
+      <Spinner size={32} />
+    </TabLoadingContainer>
   );
 
   return (
     <PageContainer role="main" aria-label="Gamification management dashboard">
-      <Typography variant="h4" component="h1" gutterBottom>
-        Gamification System Administration
-      </Typography>
+      <PageTitle>Gamification System Administration</PageTitle>
       
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="body1">
+      <HeaderDescription>
+        <BodyText>
           Manage achievements, rewards, and system settings for your gamification platform. Use this dashboard to create engaging experiences that motivate your clients.
-        </Typography>
-      </Box>
+        </BodyText>
+      </HeaderDescription>
       
-      {/* Enhanced tabs with analytics */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-        <Tabs 
-          value={tabValue} 
-          onChange={handleTabChange} 
-          aria-label="Gamification management tabs"
-          variant="scrollable"
-          scrollButtons="auto"
-          role="tablist"
+      {/* Custom Tabs */}
+      <TabsContainer role="tablist" aria-label="Gamification management tabs">
+        <TabButton
+          role="tab"
+          aria-selected={tabValue === 0}
+          {...a11yProps(0)}
+          onClick={() => handleTabChange(0)}
+          active={tabValue === 0}
+          aria-label="Manage achievements and badges"
         >
-          <Tab 
-            label="Achievements" 
-            icon={<Trophy size={16} />} 
-            iconPosition="start" 
-            {...a11yProps(0)} 
-            aria-label="Manage achievements and badges"
-          />
-          <Tab 
-            label="Rewards" 
-            icon={<Gift size={16} />} 
-            iconPosition="start" 
-            {...a11yProps(1)} 
-            aria-label="Manage rewards and redemptions"
-          />
-          <Tab 
-            label="System Settings" 
-            icon={<Settings size={16} />} 
-            iconPosition="start" 
-            {...a11yProps(2)} 
-            aria-label="Configure gamification settings"
-          />
-          <Tab 
-            label="Analytics" 
-            icon={<Users size={16} />} 
-            iconPosition="start" 
-            {...a11yProps(3)} 
-            aria-label="View gamification analytics and reports"
-          />
-        </Tabs>
-      </Box>
+          <Trophy size={16} />
+          Achievements
+        </TabButton>
+        <TabButton
+          role="tab"
+          aria-selected={tabValue === 1}
+          {...a11yProps(1)}
+          onClick={() => handleTabChange(1)}
+          active={tabValue === 1}
+          aria-label="Manage rewards and redemptions"
+        >
+          <Gift size={16} />
+          Rewards
+        </TabButton>
+        <TabButton
+          role="tab"
+          aria-selected={tabValue === 2}
+          {...a11yProps(2)}
+          onClick={() => handleTabChange(2)}
+          active={tabValue === 2}
+          aria-label="Configure gamification settings"
+        >
+          <Settings size={16} />
+          System Settings
+        </TabButton>
+        <TabButton
+          role="tab"
+          aria-selected={tabValue === 3}
+          {...a11yProps(3)}
+          onClick={() => handleTabChange(3)}
+          active={tabValue === 3}
+          aria-label="View gamification analytics and reports"
+        >
+          <Users size={16} />
+          Analytics
+        </TabButton>
+      </TabsContainer>
       
       {/* Achievement Management Tab */}
       <TabPanel value={tabValue} index={0}>
@@ -1096,3 +1092,61 @@ const AdminGamificationView: React.FC = () => {
 };
 
 export default React.memo(AdminGamificationView);
+
+// ==================== STYLED COMPONENTS ====================
+
+const HeaderDescription = styled.div`
+  margin-bottom: 2rem;
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+`;
+
+const TabLoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+`;
+
+const TabsContainer = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  &::-webkit-scrollbar { height: 4px; }
+  &::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); }
+  &::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 2px; }
+`;
+
+const TabButton = styled.button<{ active: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: ${props => props.active ? 'rgba(59, 130, 246, 0.1)' : 'transparent'};
+  border: none;
+  border-bottom: 2px solid ${props => props.active ? '#3b82f6' : 'transparent'};
+  color: ${props => props.active ? '#3b82f6' : '#94a3b8'};
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  margin-bottom: -2px;
+  &:hover { background: rgba(59, 130, 246, 0.05); color: ${props => props.active ? '#3b82f6' : '#e2e8f0'}; }
+  &:focus-visible { outline: 2px solid #3b82f6; outline-offset: -2px; }
+  svg { flex-shrink: 0; }
+`;
+
+const TabPanelContainer = styled.div`
+  &[hidden] { display: none; }
+`;
+
+const TabContent = styled.div`
+  padding: 1.5rem 0;
+`;
