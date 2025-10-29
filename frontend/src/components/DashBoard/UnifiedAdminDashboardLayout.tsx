@@ -33,7 +33,7 @@ import AdminStellarSidebar from './Pages/admin-dashboard/AdminStellarSidebar';
 import { RevolutionaryAdminDashboard } from './Pages/admin-dashboard/admin-dashboard-view';
 import EnhancedAdminSessionsView from './Pages/admin-sessions/enhanced-admin-sessions-view';
 import ModernUserManagementSystem from './Pages/user-management/modern-user-management';
-import AdminClientProgressView from './Pages/admin-client-progress/admin-client-progress-view.V2';
+import AdminClientProgressView from './Pages/admin-client-progress/admin-client-progress-view.V2.tsx';
 import AdminPackagesView from './Pages/admin-packages/admin-packages-view';
 import TrainersManagementSection from './Pages/admin-dashboard/TrainersManagementSection';
 import AdminGamificationView from './Pages/admin-gamification/admin-gamification-view';
