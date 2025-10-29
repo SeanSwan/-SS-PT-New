@@ -9,12 +9,28 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false,
     minify: 'esbuild',
-    // Force new file hashes to break cache
+    // Vite's [hash] automatically provides content-based cache-busting
     rollupOptions: {
       output: {
-        entryFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
-        chunkFileNames: `assets/[name]-[hash]-${Date.now()}.js`,
-        assetFileNames: `assets/[name]-[hash]-${Date.now()}.[ext]`
+        entryFileNames: 'assets/[name].[hash].js',
+        chunkFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash].[ext]'
+      },
+      // Exclude legacy/backup files from build
+      external: (id) => {
+        return (
+          id.includes('.backup.') ||
+          id.includes('-backup.') ||
+          id.includes('-BACKUP.') ||
+          id.includes('BACKUP') ||
+          id.includes('.legacy.') ||
+          id.includes('-legacy.') ||
+          id.includes('-EMERGENCY.') ||
+          id.includes('-ORIGINAL-') ||
+          id.includes('-SIMPLIFIED-') ||
+          id.includes('-fixed.') ||
+          id.includes('.V2.')
+        );
       }
     }
   }
