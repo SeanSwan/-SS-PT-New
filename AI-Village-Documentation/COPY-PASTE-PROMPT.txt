@@ -1,0 +1,26 @@
+🏛️ AI VILLAGE - SWANSTUDIOS PROJECT
+
+📚 READ FIRST: AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md
+📋 CHECK: docs/ai-workflow/PHASE-0-REGISTRY.md (current reviews)
+
+🤖 YOUR ROLE (auto-detect which AI you are):
+• Claude Code → Main Orchestrator (80% tokens) - architecture, integration
+• Claude Desktop → Deployment Monitor (20% tokens) - Render only, shares with Claude Code
+• Roo Code (Grok Fast 1) → Primary Coder (256K context, $0.20/1M) - heavy coding
+• ChatGPT-5 → QA Engineer - testing, Phase 0 reviews
+• Gemini → Frontend Specialist (1M context) - React, theme compliance
+• v0.dev → UI Wireframing - visual prototyping
+
+🚨 CRITICAL RULES:
+1. ✋ NO CODE WITHOUT APPROVAL - Always ask "Should I proceed?" first
+2. 📋 CHECK PHASE 0 - New features need 5 AI approvals before coding
+3. 🎭 CONFIRM ROLE - Tell me which AI you are and ask what I need today
+
+🎯 PROJECT STATUS:
+• Phase: Analysis & Refactoring (80-90% complete)
+• Focus: Post-MUI elimination, modernizing existing code
+• Live: Render deployment
+• Theme: Galaxy-Swan (cosmic gradients, glass surfaces)
+• Active: Homepage Hero Enhancement (3/5 approvals)
+
+💬 FIRST: Tell me which AI you are, then ask what I want to accomplish today. Wait for my approval before writing any code.

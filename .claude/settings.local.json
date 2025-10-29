@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir backend)",
+      "Bash(move WEEK-1-LAUNCH-CHECKLIST.md AI-Village-Documentation )",
+      "Bash(move FIGMA-AI-SETUP-GUIDE.md AI-Village-Documentation )",
+      "Bash(move AI-VILLAGE-ADAPTED-FOR-SWANSTUDIOS.md AI-Village-Documentation )",
+      "Bash(move YOUR-AI-VILLAGE-ROLE-ASSIGNMENTS.md AI-Village-Documentation )",
+      "Bash(move ROO-CODE-OPENROUTER-MODEL-STRATEGY.md AI-Village-Documentation )",
+      "Bash(move SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md AI-Village-Documentation )",
+      "Bash(move CODE-APPROVAL-PIPELINE.md AI-Village-Documentation )",
+      "Bash(move MASTER-AI-WORKFLOW-GUIDE.md AI-Village-Documentation )",
+      "Bash(move YOUR-DAILY-WORKFLOW-CHECKLIST.md AI-Village-Documentation )",
+      "Bash(move QUICK-REFERENCE-CARD.md AI-Village-Documentation)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\n📝 docs: Complete Week 0 component documentation templates + Slack integration\n\nAll 7 component documentation templates are now complete, providing comprehensive\ninfrastructure for zero-error implementation. Added optional Slack integration\nworkflow for on-the-go access.\n\nChanges:\n- Create component-template.flowchart.md (business logic, decision trees, error handling)\n- Create component-template.api-spec.md (API contracts, security, testing, performance)\n- Create component-template.test-spec.md (unit/integration/E2E tests, 90%+ coverage)\n- Create component-template.a11y.md (WCAG 2.1 AA compliance, screen reader support)\n- Create SLACK-INTEGRATION-WORKFLOW.md (optional mobile/tablet on-the-go access)\n- Update WEEK-0-COMPLETION-REPORT.md (mark 100% complete, update stats)\n\nTemplate Coverage:\n✅ README.md - AI assignment matrix, quick start guide\n✅ component-template.mermaid.md - Flowcharts, sequence diagrams, state diagrams\n✅ component-template.wireframe.md - Visual design with Galaxy-Swan theme\n✅ component-template.flowchart.md - Business logic, decision trees\n✅ component-template.api-spec.md - Complete API specifications\n✅ component-template.test-spec.md - Comprehensive test scenarios\n✅ component-template.a11y.md - WCAG 2.1 AA accessibility compliance\n\nSlack Integration (Optional):\n- Mobile/tablet access for status checks and approvals\n- AI Village communication hub\n- GitHub/Google Docs integrations\n- 15-20 minute setup, not mandatory\n\nWeek 0 Status: 100% COMPLETE\nTotal Documentation: ~21,000 lines across 17 files\nTime Investment: ~16-18 hours\nROI: Prevents 200+ hours of rework\n\nReady for AI Village distribution and M0 Foundation refactoring!\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
