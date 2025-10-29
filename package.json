@@ -2,6 +2,10 @@
   "name": "swanstudios",
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
-    "start": "cd backend && npm start"
+    "start": "cd backend && npm start",
+    "check-docs-links": "npx markdown-link-check docs/**/*.md docs/*.md README.md --config .github/markdown-link-check-config.json"
+  },
+  "devDependencies": {
+    "markdown-link-check": "^3.12.1"
   }
 }
