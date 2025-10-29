@@ -1,0 +1,58 @@
+name: Documentation Link Check
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '**.md'
+      - 'docs/**'
+  schedule:
+    # Run weekly on Mondays at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    # Allow manual trigger
+
+jobs:
+  link-check:
+    runs-on: ubuntu-latest
+    name: Check Documentation Links
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check links in all markdown files
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          # Check all markdown files in the repository
+          use-quiet-mode: 'no'
+          use-verbose-mode: 'yes'
+          config-file: '.github/markdown-link-check-config.json'
+
+      - name: Generate report on failure
+        if: failure()
+        run: |
+          echo "## ❌ Documentation Link Check Failed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Some documentation links are broken. Please review the logs above and fix the broken links." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Common Issues:" >> $GITHUB_STEP_SUMMARY
+          echo "- Incorrect relative paths" >> $GITHUB_STEP_SUMMARY
+          echo "- Files moved without updating links" >> $GITHUB_STEP_SUMMARY
+          echo "- External URLs that are down or changed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for link checking guidelines." >> $GITHUB_STEP_SUMMARY
+
+      - name: Success summary
+        if: success()
+        run: |
+          echo "## ✅ All Documentation Links Valid" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All markdown links in the repository are working correctly!" >> $GITHUB_STEP_SUMMARY
