@@ -18,7 +18,7 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
-import { useTable } from '../../../../hooks/useTable';
+import { useTable } from '../../../../hooks/useTable.ts';
 import { ClientProgressData, LeaderboardEntry } from '../../../../services/client-progress-service';
 
 // Import icons
