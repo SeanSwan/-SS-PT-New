@@ -34,8 +34,7 @@
     "**/*-EMERGENCY.*",
     "**/*-ORIGINAL-*",
     "**/*-SIMPLIFIED-*",
-    "**/*-fixed.*",
-    "**/*.V2.*"
+    "**/*-fixed.*"
   ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
