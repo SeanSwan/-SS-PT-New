@@ -116,8 +116,9 @@ const ActionIcons: React.FC<ActionIconsProps> = ({
 
   return (
     <ActionsContainer variants={containerVariants}>
-      {/* Notifications for authenticated users */}
-      {user && (
+      {/* Notifications for authenticated users - TEMPORARILY DISABLED */}
+      {/* TODO: Re-enable after fixing React error #306 in production */}
+      {false && user && (
         <motion.div variants={itemVariants}>
           <EnhancedNotificationSectionWrapper />
         </motion.div>
