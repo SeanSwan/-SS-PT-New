@@ -187,8 +187,8 @@ const ActionsContainer = styled(motion.div)`
 `;
 
 // Navigation links
-const StyledNavLink = styled(motion.create(Link))`
-  color: ${({ theme }) => theme.text.primary};
+const StyledNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
+  color: ${({ theme, $isActive }) => $isActive ? theme.colors.primary : theme.text.primary};
   text-decoration: none;
   margin: 0;
   padding: 0 12px;
@@ -201,13 +201,13 @@ const StyledNavLink = styled(motion.create(Link))`
   transition: all 0.2s ease;
   letter-spacing: 0.2px;
   border-bottom: 2px solid transparent;
-  
+
   &:hover {
     color: ${({ theme }) => theme.colors.primary};
     border-bottom: 2px solid ${({ theme }) => theme.colors.primary};
     text-shadow: 0 0 8px ${({ theme }) => theme.colors.primary}40;
   }
-  
+
   &.active {
     color: ${({ theme }) => theme.colors.primary};
     border-bottom: 2px solid ${({ theme }) => theme.colors.primary};
@@ -266,7 +266,7 @@ const MobileMenu = styled(motion.div)`
   border-right: 1px solid ${({ theme }) => theme.borders.subtle};
 `;
 
-const MobileNavLink = styled(motion.create(Link))`
+const MobileNavLink = styled(motion(Link))<{ $isActive?: boolean }>`
   margin: 8px 0;
   color: ${({ theme }) => theme.text.primary};
   text-decoration: none;
@@ -279,7 +279,7 @@ const MobileNavLink = styled(motion.create(Link))`
   border-bottom: 1px solid ${({ theme }) => theme.borders.subtle};
   transition: all 0.2s ease;
   border-radius: 8px;
-  
+
   &:hover, &.active {
     color: ${({ theme }) => theme.colors.primary};
     background: ${({ theme }) => theme.colors.primary}08;
