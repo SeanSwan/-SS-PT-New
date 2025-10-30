@@ -9,10 +9,11 @@
 
 | Feature | File | Status | Approvals | Started | Owner |
 |---------|------|--------|-----------|---------|-------|
+| **React Error #306 Fix** | [reviews/react-error-306-fix.md](reviews/react-error-306-fix.md) | 🟡 PENDING (1/5) | Roo Code ✅ | 2025-10-30 | Roo Code |
 | **Homepage Hero Enhancement** | [reviews/homepage-hero-enhancement.md](reviews/homepage-hero-enhancement.md) | 🟡 PENDING (3/5) | Claude Code ✅, Roo Code ✅, ChatGPT-5 ✅ | 2025-10-28 | Product Team |
 | **Test Feature Example** | [reviews/test-feature-example.md](reviews/test-feature-example.md) | 🟡 PENDING (0/5) | None yet | 2025-10-28 | Test User |
 
-**Total Active:** 2
+**Total Active:** 3
 
 ---
 
@@ -48,8 +49,8 @@
 
 ## 📊 Quick Stats
 
-- **Active Reviews:** 1
-- **Awaiting Consensus:** 1
+- **Active Reviews:** 3
+- **Awaiting Consensus:** 3
 - **Ready for Implementation:** 0
 - **Blocked:** 0
 - **Completed (All Time):** 0
