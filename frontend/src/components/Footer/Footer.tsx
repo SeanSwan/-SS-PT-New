@@ -3,16 +3,15 @@ import React, { useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { motion, useAnimation, useInView, animate } from 'framer-motion';
-import { 
-  Facebook, 
-  Instagram, 
-  Linkedin, 
+import {
+  Facebook,
+  Instagram,
+  Linkedin,
   Youtube,
   Mail,
   Phone,
   MapPin,
   ChevronUp,
-  Copyright,
   Heart
 } from 'lucide-react';
 import logoImage from '../../assets/Logo.png';
@@ -37,7 +36,7 @@ const BackgroundPattern = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
+  background:
     radial-gradient(circle at 10% 0%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 90% 90%, rgba(120, 81, 169, 0.1) 0%, transparent 50%);
   opacity: 0.7;
@@ -85,12 +84,12 @@ const GlowOrb = styled.div`
   opacity: 0.8;
   transition: all 0.5s ease;
   z-index: -1;
-  
+
   &.orb1 {
     top: -100px;
     left: 20%;
   }
-  
+
   &.orb2 {
     bottom: -50px;
     right: 15%;
@@ -105,16 +104,16 @@ const FooterContent = styled.div`
   grid-template-columns: 2fr 1fr 1fr 1fr;
   gap: 3rem;
   padding: 0 2rem;
-  
+
   @media (max-width: 1200px) {
     grid-template-columns: 2fr 1fr 1fr;
   }
-  
+
   @media (max-width: 768px) {
     grid-template-columns: 1fr 1fr;
     gap: 2rem;
   }
-  
+
   @media (max-width: 480px) {
     grid-template-columns: 1fr;
   }
@@ -251,10 +250,7 @@ const FooterNav = styled.nav`
 `;
 
 // Fixed: Create a proper motion component with create()
-const AnimatedLink = motion.create(Link, { 
-  forwardMotionProps: false,
-  shouldForwardProp: defaultShouldForwardProp
-});
+const AnimatedLink = motion(Link);
 
 const AnimatedFooterLink = styled(AnimatedLink)`
   color: #e0e0e0;
@@ -298,10 +294,7 @@ const SocialIcons = styled(motion.div).withConfig({
 `;
 
 // Fixed: Create a proper motion component with create()
-const AnimatedA = motion.create('a', {
-  forwardMotionProps: false,
-  shouldForwardProp: defaultShouldForwardProp
-});
+const AnimatedA = motion.a;
 
 const SocialIcon = styled(AnimatedA)`
   color: #fff;
@@ -438,10 +431,7 @@ const SmallFooterLink = styled(Link)`
 `;
 
 // Fixed: Use motion.create() properly
-const AnimatedButton = motion.create('button', {
-  forwardMotionProps: false,
-  shouldForwardProp: defaultShouldForwardProp
-});
+const AnimatedButton = motion.button;
 
 /* Removed ScrollTopButton to prevent conflicts with the global ScrollToTop component in Layout */
 
