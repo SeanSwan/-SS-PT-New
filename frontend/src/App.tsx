@@ -66,7 +66,7 @@ import ImprovedGlobalStyle from './styles/ImprovedGlobalStyle';
 import CosmicEleganceGlobalStyle, { detectDeviceCapability } from './styles/CosmicEleganceGlobalStyle';
 import theme from './styles/theme';
 // Import consolidated SwanStudios theme
-import { swanStudiosTheme } from './core';
+import swanStudiosTheme from './core/theme';
 // Cosmic Performance Optimizer
 import { initializeCosmicPerformance } from './utils/cosmicPerformanceOptimizer';
 
