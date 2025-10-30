@@ -10,31 +10,13 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import EnhancedNotificationSection from './EnhancedNotificationSection';
 
-// This wrapper component checks if notifications state exists
-// and provides defaults when needed
-const EnhancedNotificationSectionWrapper = () => {
-  // Try to get the notifications state from Redux
-  const notificationsState = useSelector((state: any) => state.notifications);
-  
-  // If the notifications state is undefined or not properly initialized
-  if (!notificationsState) {
-    console.warn('Notifications state not found in Redux store, using fallback empty state');
-    
-    // Return a version with default props to prevent errors
-    return React.createElement(FallbackNotificationSection);
-  }
-  
-  // If notifications state exists, render the normal component
-  return <EnhancedNotificationSection />;
-};
-
 // A simplified version of the notification section with default empty state
 // This prevents errors when the Redux store is not properly initialized
 const FallbackNotificationSection = () => {
   return (
     <div style={{ position: 'relative' }}>
-      <button 
-        style={{ 
+      <button
+        style={{
           background: 'none',
           border: 'none',
           color: 'white',
@@ -42,10 +24,10 @@ const FallbackNotificationSection = () => {
           padding: '8px'
         }}
       >
-        <svg 
-          xmlns="http://www.w3.org/2000/svg" 
-          width="24" 
-          height="24" 
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="24"
+          height="24"
           viewBox="0 0 24 24"
           fill="currentColor"
         >
@@ -54,6 +36,24 @@ const FallbackNotificationSection = () => {
       </button>
     </div>
   );
+};
+
+// This wrapper component checks if notifications state exists
+// and provides defaults when needed
+const EnhancedNotificationSectionWrapper = () => {
+  // Try to get the notifications state from Redux
+  const notificationsState = useSelector((state: any) => state.notifications);
+
+  // If the notifications state is undefined or not properly initialized
+  if (!notificationsState) {
+    console.warn('Notifications state not found in Redux store, using fallback empty state');
+
+    // Return a version with default props to prevent errors
+    return React.createElement(FallbackNotificationSection);
+  }
+
+  // If notifications state exists, render the normal component
+  return <EnhancedNotificationSection />;
 };
 
 export default EnhancedNotificationSectionWrapper;
