@@ -4,6 +4,7 @@
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { StyleSheetManager } from 'styled-components';
 import App from './App';
 import './index.css';
 
@@ -57,7 +58,9 @@ if (rootElement) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
     <React.StrictMode>
-      <App />
+      <StyleSheetManager>
+        <App />
+      </StyleSheetManager>
     </React.StrictMode>
   );
 } else {
