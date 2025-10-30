@@ -200,11 +200,11 @@ const RevolutionaryClientDashboard = lazyLoadWithErrorHandling(
   'Revolutionary Galaxy Client Dashboard'
 );
 const NewClientDashboard = lazyLoadWithErrorHandling(
-  () => import('../components/ClientDashboard/NewDashboard.jsx'),
+  () => import('../components/ClientDashboard/NewDashboard'),
   'Enhanced Client Dashboard'
 );
 const EmergencyDashboard = lazyLoadWithErrorHandling(
-  () => import('../components/ClientDashboard/EmergencyDashboard.jsx'),
+  () => import('../components/ClientDashboard/EmergencyDashboard'),
   'Emergency Dashboard'
 );
 const WorkoutDashboard = lazyLoadWithErrorHandling(
