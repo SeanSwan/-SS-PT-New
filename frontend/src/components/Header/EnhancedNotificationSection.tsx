@@ -176,7 +176,7 @@ const EnhancedNotificationSection: React.FC = () => {
     dispatch(removeNotification(id));
     
     // Call API to delete from server
-    api.notifications.delete(id).catch(err => {
+    api.delete(`/notifications/${id}`).catch(err => {
       console.error('Failed to delete notification:', err);
     });
   };
