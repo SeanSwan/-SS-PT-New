@@ -1,10 +1,16 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import path from 'path';
 
 export default defineConfig({
   plugins: [
     react()
   ],
+  resolve: {
+    extensions: ['.tsx', '.ts', '.jsx', '.js', '.json'],
+    // Ensure case-sensitive file resolution matches Linux/Render environment
+    preserveSymlinks: false,
+  },
   build: {
     outDir: 'dist',
     sourcemap: false,
