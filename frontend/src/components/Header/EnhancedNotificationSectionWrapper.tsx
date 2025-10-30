@@ -14,16 +14,14 @@ import EnhancedNotificationSection from './EnhancedNotificationSection';
 // and provides defaults when needed
 const EnhancedNotificationSectionWrapper = () => {
   // Try to get the notifications state from Redux
-  const notificationsState = useSelector((state) => state.notifications);
+  const notificationsState = useSelector((state: any) => state.notifications);
   
   // If the notifications state is undefined or not properly initialized
   if (!notificationsState) {
     console.warn('Notifications state not found in Redux store, using fallback empty state');
     
     // Return a version with default props to prevent errors
-    return (
-      <FallbackNotificationSection />
-    );
+    return React.createElement(FallbackNotificationSection);
   }
   
   // If notifications state exists, render the normal component
