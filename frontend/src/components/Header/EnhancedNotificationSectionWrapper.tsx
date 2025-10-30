@@ -44,9 +44,14 @@ const EnhancedNotificationSectionWrapper = () => {
   // Try to get the notifications state from Redux
   const notificationsState = useSelector((state: any) => state.notifications);
 
-  // If the notifications state is undefined or not properly initialized
-  if (!notificationsState) {
-    console.warn('Notifications state not found in Redux store, using fallback empty state');
+  // Guard against undefined component imports (React error #306)
+  const isValidComponent = typeof EnhancedNotificationSection === 'function';
+
+  // If the notifications state is undefined, component is invalid, or temporarily disabled
+  if (!notificationsState || !isValidComponent) {
+    const reason = !notificationsState ? 'Redux state not found' :
+                   !isValidComponent ? 'Component import failed' : 'Unknown';
+    console.warn(`Notifications disabled: ${reason}, using fallback`);
 
     // Return a version with default props to prevent errors
     return <FallbackNotificationSection />;
@@ -57,7 +62,7 @@ const EnhancedNotificationSectionWrapper = () => {
   console.warn('Notifications temporarily disabled to prevent React error #306');
   return <FallbackNotificationSection />;
 
-  // If notifications state exists, render the normal component
+  // If notifications state exists and component is valid, render the normal component
   // return <EnhancedNotificationSection />;
 };
 
