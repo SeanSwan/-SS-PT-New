@@ -18,7 +18,7 @@ export { default as UnifiedAdminDashboardLayout } from './UnifiedAdminDashboardL
 export { RevolutionaryAdminDashboard } from './Pages/admin-dashboard/admin-dashboard-view';
 export { default as EnhancedAdminSessionsView } from './Pages/admin-sessions/enhanced-admin-sessions-view';
 export { default as ModernUserManagementSystem } from './Pages/user-management/modern-user-management';
-export { default as AdminClientProgressView } from './Pages/admin-client-progress/admin-client-progress-view.V2';
+export { default as AdminClientProgressView } from './Pages/admin-client-progress/admin-client-progress-view.V2.tsx';
 export { default as AdminPackagesView } from './Pages/admin-packages/admin-packages-view';
 export { default as AdminGamificationView } from './Pages/admin-gamification/admin-gamification-view';
 

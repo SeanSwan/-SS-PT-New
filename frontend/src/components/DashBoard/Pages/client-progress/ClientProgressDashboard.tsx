@@ -10,7 +10,7 @@ import {
 } from '../../../ui-kit';
 
 // Import the admin-client-progress view
-import AdminClientProgressView from '../admin-client-progress/admin-client-progress-view.V2';
+import AdminClientProgressView from '../admin-client-progress/admin-client-progress-view.V2.tsx';
 
 // Import the TrainerClientProgressView to reuse components
 import ClientProgressView from '../../../TrainerDashboard/ClientProgress/ClientProgressView';
