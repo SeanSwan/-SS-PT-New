@@ -20,7 +20,7 @@ import { SessionProvider } from './context/SessionContext';
 import { ConfigProvider } from './context/ConfigContext';
 import { UniversalThemeProvider } from './context/ThemeContext';
 import MenuStateProvider from './hooks/useMenuState';
-import { ConnectionStatusBanner, useBackendConnection } from './hooks/useBackendConnection.jsx';
+import { ConnectionStatusBanner, useBackendConnection } from './hooks/useBackendConnection.tsx';
 
 // Development Tools
 import { DevToolsProvider } from './components/DevTools';
