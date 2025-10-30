@@ -772,8 +772,9 @@ const EnhancedHeader = () => {
 
           {/* Actions Area */}
           <ActionsContainer variants={containerVariants}>
-            {/* Notification Icon - Only for logged in users */}
-            {user && (
+            {/* Notification Icon - Only for logged in users - TEMPORARILY DISABLED */}
+            {/* TODO: Re-enable after fixing React error #306 in production */}
+            {false && user && (
               <EnhancedNotificationSectionWrapper />
             )}
 
