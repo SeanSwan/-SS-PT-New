@@ -18,8 +18,8 @@ import { StyledInput } from '../../../ui-kit/Input';
 import { LoadingState } from '../../../ui-kit/EmptyState';
 
 // Import custom hook (should be MUI-free already)
-import { useTrainerGamification } from './hooks/useTrainerGamification';
-import type { Client, Achievement, PointReason } from './hooks/useTrainerGamification';
+import { useTrainerGamification } from './hooks/useTrainerGamification.ts';
+import type { Client, Achievement, PointReason } from './hooks/useTrainerGamification.ts';
 
 // Import components (should be MUI-free already)
 import ClientTable from './components/ClientTable';

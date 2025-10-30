@@ -17,9 +17,9 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useAuth } from '../../../../context/AuthContext';
-import { useToast } from '../../../../hooks/use-toast';
-import { useTable } from '../../../../hooks/useTable';
-import { useForm } from '../../../../hooks/useForm';
+import { useToast } from '../../../../hooks/use-toast.tsx';
+import { useTable } from '../../../../hooks/useTable.ts';
+import { useForm } from '../../../../hooks/useForm.ts';
 import GlowButton from '../../../ui/buttons/GlowButton';
 
 // Import icons
