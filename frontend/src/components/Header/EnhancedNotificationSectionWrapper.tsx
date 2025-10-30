@@ -52,8 +52,13 @@ const EnhancedNotificationSectionWrapper = () => {
     return <FallbackNotificationSection />;
   }
 
+  // TEMPORARY: Disable notifications to isolate the production error
+  // TODO: Re-enable after fixing the undefined component issue in EnhancedNotificationSection
+  console.warn('Notifications temporarily disabled to prevent React error #306');
+  return <FallbackNotificationSection />;
+
   // If notifications state exists, render the normal component
-  return <EnhancedNotificationSection />;
+  // return <EnhancedNotificationSection />;
 };
 
 export default EnhancedNotificationSectionWrapper;
