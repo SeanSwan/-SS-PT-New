@@ -5,8 +5,16 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { StyleSheetManager } from 'styled-components';
+import { CacheProvider } from '@emotion/react';
+import createCache from '@emotion/cache';
 import App from './App';
 import './index.css';
+
+// Create Emotion cache for styled-components v6
+const emotionCache = createCache({
+  key: 'swanstudios',
+  prepend: true,
+});
 
 // Import viewport fix utility
 import initViewportFixes from './utils/viewportFix';
@@ -58,9 +66,11 @@ if (rootElement) {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
     <React.StrictMode>
-      <StyleSheetManager>
-        <App />
-      </StyleSheetManager>
+      <CacheProvider value={emotionCache}>
+        <StyleSheetManager>
+          <App />
+        </StyleSheetManager>
+      </CacheProvider>
     </React.StrictMode>
   );
 } else {
