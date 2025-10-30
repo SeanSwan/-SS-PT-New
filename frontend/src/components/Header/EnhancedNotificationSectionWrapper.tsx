@@ -49,7 +49,7 @@ const EnhancedNotificationSectionWrapper = () => {
     console.warn('Notifications state not found in Redux store, using fallback empty state');
 
     // Return a version with default props to prevent errors
-    return React.createElement(FallbackNotificationSection);
+    return <FallbackNotificationSection />;
   }
 
   // If notifications state exists, render the normal component
