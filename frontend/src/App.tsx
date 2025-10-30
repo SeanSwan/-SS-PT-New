@@ -20,7 +20,7 @@ import { SessionProvider } from './context/SessionContext';
 import { ConfigProvider } from './context/ConfigContext';
 import { UniversalThemeProvider } from './context/ThemeContext';
 import MenuStateProvider from './hooks/useMenuState';
-import { ConnectionStatusBanner, useBackendConnection } from './hooks/useBackendConnection.tsx';
+import { ConnectionStatusBanner, useBackendConnection } from './hooks/useBackendConnection';
 
 // Development Tools
 import { DevToolsProvider } from './components/DevTools';
@@ -66,7 +66,7 @@ import ImprovedGlobalStyle from './styles/ImprovedGlobalStyle';
 import CosmicEleganceGlobalStyle, { detectDeviceCapability } from './styles/CosmicEleganceGlobalStyle';
 import theme from './styles/theme';
 // Import consolidated SwanStudios theme
-import swanStudiosTheme from './core/theme';
+import { swanStudiosTheme } from './core';
 // Cosmic Performance Optimizer
 import { initializeCosmicPerformance } from './utils/cosmicPerformanceOptimizer';
 
