@@ -12,6 +12,7 @@ import {
   Flame,
   Calendar
 } from "lucide-react";
+import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 // Assuming GlowButton path is correct relative to this file
 import GlowButton from "../../../components/ui/buttons/GlowButton";
 import SectionTitle from "../../../components/ui/SectionTitle"; // Assuming this path is correct
