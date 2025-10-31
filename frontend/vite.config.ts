@@ -13,18 +13,22 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true, // Temporarily enable to debug React Error #306
-    minify: 'esbuild',
+    sourcemap: 'inline', // Use inline source maps for complete debugging
+    minify: false, // DISABLE minification to see exact errors
     // Vite's [hash] automatically provides content-based cache-busting
     rollupOptions: {
       output: {
         entryFileNames: 'assets/[name].[hash].js',
         chunkFileNames: 'assets/[name].[hash].js',
-        assetFileNames: 'assets/[name].[hash].[ext]'
+        assetFileNames: 'assets/[name].[hash].[ext]',
+        compact: false // Don't compress output
       }
       // REMOVED incorrect 'external' configuration that was breaking V2 imports
       // V2 files ARE part of our bundle and should NOT be marked as external
       // Legacy/backup files are already excluded via tsconfig.json
     }
+  },
+  define: {
+    'process.env.NODE_ENV': '"development"' // Force dev mode for unminified React errors
   }
 });
