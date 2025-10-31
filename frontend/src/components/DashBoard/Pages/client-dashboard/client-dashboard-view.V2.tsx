@@ -12,7 +12,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../../../../context/AuthContext';
 import { Exercise as ExerciseType, RecommendedExercisesResponse } from '../../../../services/exercise-service';
 import { ClientProgressData } from '../../../../services/client-progress-service';
-import { useToast } from '../../../../hooks/use-toast.tsx';
+import { useToast } from '../../../../hooks/use-toast';
 
 // Import icons
 import {

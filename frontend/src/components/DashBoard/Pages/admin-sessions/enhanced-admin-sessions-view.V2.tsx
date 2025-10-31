@@ -20,8 +20,8 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useAuth } from '../../../../context/AuthContext';
-import { useToast } from '../../../../hooks/use-toast.tsx';
-import { useTable } from '../../../../hooks/useTable.ts';
+import { useToast } from '../../../../hooks/use-toast';
+import { useTable } from '../../../../hooks/useTable';
 import GlowButton from '../../../ui/buttons/GlowButton';
 
 // Import icons
