@@ -1,1 +1,244 @@
-// src/pages/homepage/HomePage.component.tsx - SIMPLIFIED WORKING VERSION\nimport React, { useState } from \"react\";\nimport styled from \"styled-components\";\nimport { useNavigate } from \"react-router-dom\";\nimport { Helmet } from \"react-helmet-async\";\n\n// Simple styled components without complex theme access\nconst HomePageContainer = styled.div`\n  min-height: 100vh;\n  background: linear-gradient(135deg, #0a0a1a 0%, #1e1e3f 50%, #334155 100%);\n  color: white;\n  padding: 2rem;\n  display: flex;\n  flex-direction: column;\n  align-items: center;\n  justify-content: center;\n  text-align: center;\n`;\n\nconst Title = styled.h1`\n  font-size: 4rem;\n  font-weight: 700;\n  color: #00ffff;\n  margin-bottom: 1.5rem;\n  text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);\n  \n  @media (max-width: 768px) {\n    font-size: 2.5rem;\n  }\n`;\n\nconst Subtitle = styled.p`\n  font-size: 1.5rem;\n  margin-bottom: 3rem;\n  max-width: 800px;\n  line-height: 1.6;\n  color: rgba(255, 255, 255, 0.9);\n  \n  @media (max-width: 768px) {\n    font-size: 1.2rem;\n  }\n`;\n\nconst ButtonGroup = styled.div`\n  display: flex;\n  gap: 1.5rem;\n  flex-wrap: wrap;\n  justify-content: center;\n  margin-bottom: 4rem;\n`;\n\nconst ActionButton = styled.button`\n  background: linear-gradient(135deg, #00ffff, #0099cc);\n  border: none;\n  padding: 1rem 2rem;\n  border-radius: 8px;\n  font-size: 1.1rem;\n  font-weight: 600;\n  color: #0a0a1a;\n  cursor: pointer;\n  transition: all 0.3s ease;\n  \n  &:hover {\n    transform: translateY(-2px);\n    box-shadow: 0 8px 25px rgba(0, 255, 255, 0.3);\n  }\n`;\n\nconst FeaturesGrid = styled.div`\n  display: grid;\n  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));\n  gap: 2rem;\n  max-width: 1200px;\n  margin: 2rem 0;\n`;\n\nconst FeatureCard = styled.div`\n  background: rgba(255, 255, 255, 0.05);\n  border-radius: 12px;\n  padding: 2rem;\n  border: 1px solid rgba(0, 255, 255, 0.2);\n  backdrop-filter: blur(10px);\n  transition: all 0.3s ease;\n  \n  &:hover {\n    transform: translateY(-5px);\n    border-color: rgba(0, 255, 255, 0.5);\n    box-shadow: 0 10px 30px rgba(0, 255, 255, 0.1);\n  }\n  \n  h3 {\n    color: #00ffff;\n    margin-bottom: 1rem;\n    font-size: 1.3rem;\n  }\n  \n  p {\n    color: rgba(255, 255, 255, 0.8);\n    line-height: 1.6;\n  }\n`;\n\nconst VideoSection = styled.div`\n  position: relative;\n  width: 100%;\n  max-width: 800px;\n  height: 400px;\n  margin: 3rem 0;\n  border-radius: 16px;\n  overflow: hidden;\n  border: 2px solid rgba(0, 255, 255, 0.3);\n  \n  video {\n    width: 100%;\n    height: 100%;\n    object-fit: cover;\n  }\n  \n  @media (max-width: 768px) {\n    height: 250px;\n  }\n`;\n\nconst HomePage: React.FC = () => {\n  const navigate = useNavigate();\n  const [videoError, setVideoError] = useState(false);\n\n  return (\n    <>\n      <Helmet>\n        <title>SwanStudios - Transform Your Fitness Journey</title>\n        <meta \n          name=\"description\" \n          content=\"Transform your body and elevate your mind with SwanStudios' professional fitness training, premium equipment, and gamified platform.\"\n        />\n      </Helmet>\n      \n      <HomePageContainer>\n        <Title>SwanStudios</Title>\n        \n        <Subtitle>\n          Transform Your Body, Elevate Your Mind, Achieve Your Goals with Professional \n          NASM-Certified Training and Premium Fitness Solutions\n        </Subtitle>\n        \n        <ButtonGroup>\n          <ActionButton onClick={() => navigate('/store')}>Browse Store</ActionButton>\n          <ActionButton onClick={() => navigate('/contact')}>Start Training</ActionButton>\n          <ActionButton onClick={() => navigate('/about')}>Learn More</ActionButton>\n        </ButtonGroup>\n        \n        <VideoSection>\n          {!videoError ? (\n            <video \n              autoPlay \n              muted \n              loop \n              playsInline\n              onError={() => setVideoError(true)}\n              poster=\"/swan-tile.png\"\n            >\n              <source src=\"/swan.mp4\" type=\"video/mp4\" />\n              <source src=\"/Swans.mp4\" type=\"video/mp4\" />\n            </video>\n          ) : (\n            <div style={{ \n              display: 'flex', \n              alignItems: 'center', \n              justifyContent: 'center', \n              height: '100%',\n              background: 'linear-gradient(135deg, #00ffff20, #0099cc20)',\n              fontSize: '1.2rem',\n              color: '#00ffff'\n            }}>\n              SwanStudios Premium Fitness\n            </div>\n          )}\n        </VideoSection>\n        \n        <FeaturesGrid>\n          <FeatureCard>\n            <h3>Personal Training Excellence</h3>\n            <p>\n              Expert NASM-certified trainers provide personalized workout programs \n              tailored to your unique fitness goals and lifestyle.\n            </p>\n          </FeatureCard>\n          \n          <FeatureCard>\n            <h3>Premium Equipment & Supplements</h3>\n            <p>\n              High-quality fitness equipment, professional-grade supplements, and \n              comprehensive training packages available in our store.\n            </p>\n          </FeatureCard>\n          \n          <FeatureCard>\n            <h3>Digital Platform & Analytics</h3>\n            <p>\n              Advanced workout tracking, progress analytics, gamified challenges, \n              and real-time performance monitoring.\n            </p>\n          </FeatureCard>\n          \n          <FeatureCard>\n            <h3>Holistic Wellness Approach</h3>\n            <p>\n              Complete fitness ecosystem combining physical training, nutrition guidance, \n              mental wellness, and community support.\n            </p>\n          </FeatureCard>\n          \n          <FeatureCard>\n            <h3>Flexible Training Options</h3>\n            <p>\n              Choose from in-person sessions, virtual training, group classes, \n              or self-guided programs that fit your schedule.\n            </p>\n          </FeatureCard>\n          \n          <FeatureCard>\n            <h3>Results-Driven Programs</h3>\n            <p>\n              Scientifically-backed training methodologies with proven track record \n              of helping clients achieve lasting transformation.\n            </p>\n          </FeatureCard>\n        </FeaturesGrid>\n        \n        <div style={{ \n          marginTop: '3rem', \n          fontSize: '0.9rem', \n          color: 'rgba(255, 255, 255, 0.6)',\n          textAlign: 'center' \n        }}>\n          <p>Professional Fitness Solutions • NASM-Certified Training • Premium Experience</p>\n          <p>Transform Your Body • Elevate Your Mind • Achieve Your Goals</p>\n        </div>\n      </HomePageContainer>\n    </>\n  );\n};\n\nexport default HomePage;
+// src/pages/homepage/HomePage.component.tsx - SIMPLIFIED WORKING VERSION
+import React, { useState } from "react";
+import styled from "styled-components";
+import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
+
+// Simple styled components without complex theme access
+const HomePageContainer = styled.div`
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a0a1a 0%, #1e1e3f 50%, #334155 100%);
+  color: white;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+`;
+
+const Title = styled.h1`
+  font-size: 4rem;
+  font-weight: 700;
+  color: #00ffff;
+  margin-bottom: 1.5rem;
+  text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+
+  @media (max-width: 768px) {
+    font-size: 2.5rem;
+  }
+`;
+
+const Subtitle = styled.p`
+  font-size: 1.5rem;
+  margin-bottom: 3rem;
+  max-width: 800px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.9);
+
+  @media (max-width: 768px) {
+    font-size: 1.2rem;
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 4rem;
+`;
+
+const ActionButton = styled.button`
+  background: linear-gradient(135deg, #00ffff, #0099cc);
+  border: none;
+  padding: 1rem 2rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #0a0a1a;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 255, 255, 0.3);
+  }
+`;
+
+const FeaturesGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  max-width: 1200px;
+  margin: 2rem 0;
+`;
+
+const FeatureCard = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 2rem;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+    border-color: rgba(0, 255, 255, 0.5);
+    box-shadow: 0 10px 30px rgba(0, 255, 255, 0.1);
+  }
+
+  h3 {
+    color: #00ffff;
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+  }
+
+  p {
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
+  }
+`;
+
+const VideoSection = styled.div`
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  height: 400px;
+  margin: 3rem 0;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 2px solid rgba(0, 255, 255, 0.3);
+
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  @media (max-width: 768px) {
+    height: 250px;
+  }
+`;
+
+const HomePage: React.FC = () => {
+  const navigate = useNavigate();
+  const [videoError, setVideoError] = useState(false);
+
+  return (
+    <>
+      <Helmet>
+        <title>SwanStudios - Transform Your Fitness Journey</title>
+        <meta
+          name="description"
+          content="Transform your body and elevate your mind with SwanStudios' professional fitness training, premium equipment, and gamified platform."
+        />
+      </Helmet>
+
+      <HomePageContainer>
+        <Title>SwanStudios</Title>
+
+        <Subtitle>
+          Transform Your Body, Elevate Your Mind, Achieve Your Goals with Professional
+          NASM-Certified Training and Premium Fitness Solutions
+        </Subtitle>
+
+        <ButtonGroup>
+          <ActionButton onClick={() => navigate('/store')}>Browse Store</ActionButton>
+          <ActionButton onClick={() => navigate('/contact')}>Start Training</ActionButton>
+          <ActionButton onClick={() => navigate('/about')}>Learn More</ActionButton>
+        </ButtonGroup>
+
+        <VideoSection>
+          {!videoError ? (
+            <video
+              autoPlay
+              muted
+              loop
+              playsInline
+              onError={() => setVideoError(true)}
+              poster="/swan-tile.png"
+            >
+              <source src="/swan.mp4" type="video/mp4" />
+              <source src="/Swans.mp4" type="video/mp4" />
+            </video>
+          ) : (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              background: 'linear-gradient(135deg, #00ffff20, #0099cc20)',
+              fontSize: '1.2rem',
+              color: '#00ffff'
+            }}>
+              SwanStudios Premium Fitness
+            </div>
+          )}
+        </VideoSection>
+
+        <FeaturesGrid>
+          <FeatureCard>
+            <h3>Personal Training Excellence</h3>
+            <p>
+              Expert NASM-certified trainers provide personalized workout programs
+              tailored to your unique fitness goals and lifestyle.
+            </p>
+          </FeatureCard>
+
+          <FeatureCard>
+            <h3>Premium Equipment & Supplements</h3>
+            <p>
+              High-quality fitness equipment, professional-grade supplements, and
+              comprehensive training packages available in our store.
+            </p>
+          </FeatureCard>
+
+          <FeatureCard>
+            <h3>Digital Platform & Analytics</h3>
+            <p>
+              Advanced workout tracking, progress analytics, gamified challenges,
+              and real-time performance monitoring.
+            </p>
+          </FeatureCard>
+
+          <FeatureCard>
+            <h3>Holistic Wellness Approach</h3>
+            <p>
+              Complete fitness ecosystem combining physical training, nutrition guidance,
+              mental wellness, and community support.
+            </p>
+          </FeatureCard>
+
+          <FeatureCard>
+            <h3>Flexible Training Options</h3>
+            <p>
+              Choose from in-person sessions, virtual training, group classes,
+              or self-guided programs that fit your schedule.
+            </p>
+          </FeatureCard>
+
+          <FeatureCard>
+            <h3>Results-Driven Programs</h3>
+            <p>
+              Scientifically-backed training methodologies with proven track record
+              of helping clients achieve lasting transformation.
+            </p>
+          </FeatureCard>
+        </FeaturesGrid>
+
+        <div style={{
+          marginTop: '3rem',
+          fontSize: '0.9rem',
+          color: 'rgba(255, 255, 255, 0.6)',
+          textAlign: 'center'
+        }}>
+          <p>Professional Fitness Solutions • NASM-Certified Training • Premium Experience</p>
+          <p>Transform Your Body • Elevate Your Mind • Achieve Your Goals</p>
+        </div>
+      </HomePageContainer>
+    </>
+  );
+};
+
+export default HomePage;
