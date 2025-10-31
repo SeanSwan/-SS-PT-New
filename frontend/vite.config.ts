@@ -13,7 +13,7 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    sourcemap: false,
+    sourcemap: true, // Temporarily enable to debug React Error #306
     minify: 'esbuild',
     // Vite's [hash] automatically provides content-based cache-busting
     rollupOptions: {
