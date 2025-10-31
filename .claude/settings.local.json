@@ -23,7 +23,12 @@
       "Bash(npm run type-check:*)",
       "Bash(npm run build:*)",
       "Bash(npm install:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(curl:*)",
+      "Bash(for file in frontend/src/components/DashBoard/Pages/*/*.V2.tsx)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(tail:*)",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

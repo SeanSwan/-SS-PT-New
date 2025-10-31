@@ -59,9 +59,9 @@ export { default as AdminScheduleIntegration } from '../UniversalMasterSchedule/
 export { TheAestheticCodex } from '../../core';
 
 // === LAZY-LOADED ENTERPRISE COMPONENTS ===
-// These are loaded dynamically, so we export lazy loading functions
-export const SocialMediaCommandCenter = () => import('./Pages/admin-dashboard/components/SocialMediaCommand/SocialMediaCommandCenter');
-export const EnterpriseBusinessIntelligenceSuite = () => import('./Pages/admin-dashboard/components/BusinessIntelligence/EnterpriseBusinessIntelligenceSuite');
+// These are lazy-loaded directly in UnifiedAdminDashboardLayout.tsx
+// DO NOT export them here as they cause "Cannot convert object to primitive value" errors
+// when React Router tries to render them
 
 // === TYPE DEFINITIONS ===
 export interface AdminDashboardProps {
