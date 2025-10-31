@@ -57,8 +57,10 @@ const EnhancedNotificationSectionWrapper = () => {
     return <FallbackNotificationSection />;
   }
 
-  // If notifications state exists and component is valid, render the normal component
-  return <EnhancedNotificationSection />;
+  // TEMPORARILY DISABLED: Persistent React error #306 despite all fixes
+  // TODO: Re-enable after complete MUI elimination and production testing
+  console.warn('Notifications temporarily disabled due to persistent React error #306');
+  return <FallbackNotificationSection />;
 };
 
 export default EnhancedNotificationSectionWrapper;
