@@ -5,7 +5,7 @@ import { setUser as setReduxUser, logout as logoutRedux, setLoading as setReduxL
 import { createClientProgressService, ClientProgressServiceInterface } from '../services/client-progress-service';
 import { createExerciseService, ExerciseServiceInterface } from '../services/exercise-service';
 import { createAdminClientService, AdminClientServiceInterface } from '../services/adminClientService';
-import { useBackendConnection } from '../hooks/useBackendConnection.jsx';
+import { useBackendConnection } from '../hooks/useBackendConnection';
 import { AxiosInstance } from 'axios';
 import tokenCleanup from '../utils/tokenCleanup';
 
