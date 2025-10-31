@@ -6,20 +6,24 @@
 
 ## 🎯 CRITICAL RULES - READ FIRST
 
+### **RULE #0: USE THE PHASE 0 REGISTRY**
+- To participate in a design review, first find the feature's review file in `docs/ai-workflow/PHASE-0-REGISTRY.md`.
+- Append your review to that specific feature file (e.g., `reviews/homepage-hero-enhancement.md`). Do not create new files for reviews.
+
 ### **RULE #1: NO CODE WITHOUT CONFIRMATION**
-- **NEVER write a single line of code without explicit user approval**
-- Always ask: "Should I proceed with implementation?" before coding
-- Exception: Only write code if user says "implement", "build", "code it", or similar explicit command
+- **NEVER write a single line of code without explicit user approval.**
+- Always ask: "Should I proceed with implementation?" before coding.
+- Exception: Only write code if the user says "implement", "build", "code it", or a similar explicit command.
 
 ### **RULE #2: PHASE 0 DESIGN REVIEW REQUIRED**
-- **ALL new features require 5 AI approvals before implementation**
-- Check `docs/ai-workflow/PHASE-0-REGISTRY.md` for current reviews
-- If no Phase 0 exists for the task, create one first
+- **ALL new features require 5 AI approvals before implementation.**
+- Check `docs/ai-workflow/PHASE-0-REGISTRY.md` for current reviews.
+- If no Phase 0 exists for the task, create one first.
 
 ### **RULE #3: CONFIRM YOUR ROLE**
-- Read your assigned role below (based on which AI you are)
-- Confirm with user: "I see I'm [ROLE]. Is this correct for this task?"
-- Ask user what they want to accomplish TODAY
+- Read your assigned role below (based on which AI you are).
+- Confirm with the user: "I see I'm [ROLE]. Is this correct for this task?"
+- Ask the user what they want to accomplish TODAY.
 
 ---
 
@@ -220,7 +224,6 @@ Confirm your role with the user based on which AI you are.
 ### **Step 2: Read Required Docs**
 - **Everyone reads:** `AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md`
 - **Everyone reads:** `docs/ai-workflow/PHASE-0-REGISTRY.md`
-- **Read your role-specific sections** (listed above)
 
 ### **Step 3: Ask User What They Need**
 Use the "FIRST QUESTION TO USER" template for your role (above).
@@ -264,7 +267,7 @@ Politely redirect:
 > 1. I can coordinate with [OTHER AI] (recommended)
 > 2. I can attempt it, but quality may suffer
 >
-> What would you prefer?"
+> **What would you prefer?"
 
 ### **If Multiple AIs Are Needed**
 Suggest coordination:
@@ -308,7 +311,6 @@ START: User requests task
 | `PHASE-0-REGISTRY.md` | Current design reviews | **Everyone** |
 | `README.md` (ai-workflow) | Workflow overview | **Everyone** |
 | `NEW-FILE-STRUCTURE-GUIDE.md` | How to use Phase 0 system | Orchestrators |
-| `PHASE-0-REVIEW-TEMPLATE.md` | Template for new reviews | Orchestrators |
 | `galaxy-swan-theme.ts` | Theme standards | Frontend AIs |
 | Render deployment logs | Live site status | Claude Desktop |
 
@@ -377,5 +379,5 @@ START: User requests task
 ---
 
 **End of Master Onboarding Prompt**
-**Version:** 1.0
-**Last Updated:** 2025-10-28
+**Version:** 1.1
+**Last Updated:** 2025-10-30

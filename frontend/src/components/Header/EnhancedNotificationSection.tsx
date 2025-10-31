@@ -16,7 +16,7 @@ import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 import InfoIcon from '@mui/icons-material/Info';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CloseIcon from '@mui/icons-material/Close';
-import { alpha, useTheme } from '@mui/material/styles';
+import { alpha } from '@mui/material/styles';
 
 // Redux and API
 import { RootState } from '../../redux/store';
@@ -116,7 +116,6 @@ const formatNotificationDate = (dateString: string) => {
  * Shows notifications in a dropdown with animations and real-time updates
  */
 const EnhancedNotificationSection: React.FC = () => {
-  const theme = useTheme();
   const dispatch = useDispatch();
   const navigate = useNavigate();
   
@@ -338,9 +337,9 @@ const EnhancedNotificationSection: React.FC = () => {
                               <ListItemAvatar>
                                 <Avatar
                                   sx={{
-                                    bgcolor: notification.read ? 
-                                      'rgba(255, 255, 255, 0.1)' : 
-                                      alpha(theme.palette.primary.main, 0.15),
+                                    bgcolor: notification.read ?
+                                      'rgba(255, 255, 255, 0.1)' :
+                                      alpha('#00d9ff', 0.15),
                                   }}
                                 >
                                   {getNotificationIcon(notification.type)}
