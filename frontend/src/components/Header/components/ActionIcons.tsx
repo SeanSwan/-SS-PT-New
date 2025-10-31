@@ -116,18 +116,13 @@ const ActionIcons: React.FC<ActionIconsProps> = ({
 
   return (
     <ActionsContainer variants={containerVariants}>
-      {/* Notifications for authenticated users - TEMPORARILY DISABLED */}
-      {/* TODO: Re-enable after fixing React error #306 in production */}
-      {(() => {
-        // Runtime kill switch for notifications (can be controlled via localStorage)
-        const notificationsEnabled = typeof window === 'undefined' ? true :
-          localStorage.getItem('disable_notifications') !== 'true';
-        return notificationsEnabled && user && (
-          <motion.div variants={itemVariants}>
-            <EnhancedNotificationSectionWrapper />
-          </motion.div>
-        );
-      })()}
+      {/* Notifications for authenticated users - DISABLED DUE TO PERSISTENT REACT ERROR #306 */}
+      {/* TODO: Re-enable after comprehensive MUI elimination and production testing */}
+      {false && user && (
+        <motion.div variants={itemVariants}>
+          <EnhancedNotificationSectionWrapper />
+        </motion.div>
+      )}
 
       {/* Shopping Cart */}
       <motion.div variants={itemVariants}>
