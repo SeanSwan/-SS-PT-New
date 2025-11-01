@@ -110,7 +110,7 @@ const BackgroundContainer = styled.div`
   overflow: hidden;
 `;
 
-const LogoContainer = styled(motion.div)<{ $prefersReducedMotion: boolean }>`
+const LogoContainer = styled(motion.div)`
   margin: 0 auto;
   display: flex;
   justify-content: center;
@@ -118,15 +118,6 @@ const LogoContainer = styled(motion.div)<{ $prefersReducedMotion: boolean }>`
   margin-top: 2rem;
   z-index: 5;
   transform-origin: center center;
-
-  /* Conditional animations based on user preference */
-  ${({ $prefersReducedMotion }) =>
-    !$prefersReducedMotion &&
-    `
-    animation: ${float} 6s ease-in-out infinite,
-               ${glow} 4s ease-in-out infinite,
-               ${subtleRotate} 10s ease-in-out infinite;
-  `}
 
   img {
     height: 160px;
@@ -138,12 +129,6 @@ const LogoContainer = styled(motion.div)<{ $prefersReducedMotion: boolean }>`
 
   &:hover img {
     filter: drop-shadow(0 0 25px rgba(0, 255, 255, 0.8));
-
-    ${({ $prefersReducedMotion }) =>
-      !$prefersReducedMotion &&
-      `
-      animation: ${stellarGlow} 2s ease-in-out infinite;
-    `}
   }
 
   @media (max-width: 768px) {
@@ -197,7 +182,7 @@ const HeroInner = styled(motion.div)`
   }
 `;
 
-const Title = styled(motion.h1)<{ $prefersReducedMotion: boolean }>`
+const Title = styled(motion.h1)`
   font-size: 3.5rem;
   font-weight: 800;
   background: linear-gradient(135deg, #00FFFF, #7851A9);
@@ -210,24 +195,6 @@ const Title = styled(motion.h1)<{ $prefersReducedMotion: boolean }>`
   letter-spacing: 1px;
   text-align: center;
   transition: all 0.3s ease;
-
-  /* Conditional animation */
-  ${({ $prefersReducedMotion }) =>
-    !$prefersReducedMotion &&
-    `
-    animation: ${textShine} 8s linear infinite;
-  `}
-
-  &:hover {
-    transform: ${({ $prefersReducedMotion }) =>
-      $prefersReducedMotion ? "none" : "scale(1.02)"};
-
-    ${({ $prefersReducedMotion }) =>
-      !$prefersReducedMotion &&
-      `
-      animation: ${textShine} 4s linear infinite;
-    `}
-  }
 
   @media (max-width: 768px) {
     font-size: 2.5rem;
@@ -348,6 +315,10 @@ const HeroSectionV2: React.FC = () => {
   const { currentTheme } = useUniversalTheme();
   const prefersReducedMotion = useReducedMotion();
 
+  // Debug: Log theme and motion preference
+  console.log('HeroSectionV2 - currentTheme:', currentTheme);
+  console.log('HeroSectionV2 - prefersReducedMotion:', prefersReducedMotion);
+
   const [showOrientation, setShowOrientation] = useState(false);
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
 
@@ -419,7 +390,6 @@ const HeroSectionV2: React.FC = () => {
           {/* Logo */}
           <LogoContainer
             variants={itemVariants}
-            $prefersReducedMotion={prefersReducedMotion}
           >
             <img src={logoImg} alt="SwanStudios Logo" loading="eager" />
           </LogoContainer>
@@ -436,7 +406,6 @@ const HeroSectionV2: React.FC = () => {
                 {/* Title */}
                 <Title
                   variants={itemVariants}
-                  $prefersReducedMotion={prefersReducedMotion}
                 >
                   Welcome to SwanStudios
                 </Title>
