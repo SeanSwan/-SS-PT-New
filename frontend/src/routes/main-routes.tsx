@@ -123,9 +123,12 @@ function lazyLoadWithErrorHandling(importFn, componentName, fallbackImportFn = n
 }
 
 // Lazy-loaded Components
+// v2.0 HOMEPAGE: LivingConstellation + FrostedCard + Parallax (NO pricing on homepage)
 const HomePage = lazyLoadWithErrorHandling(
-  () => import('../pages/HomePage/components/HomePage.component'),
-  'Home Page'
+  () => import('../pages/HomePage/components/HomePage.V2.component'),
+  'Home Page v2.0',
+  // Fallback to v1.0 if v2.0 fails to load
+  () => import('../pages/HomePage/components/HomePage.component')
 );
 const LoginModal = lazyLoadWithErrorHandling(
   () => import('../pages/EnhancedLoginModal'),
