@@ -1,12 +1,10 @@
-# 🚀 SWANSTUDIOS AI VILLAGE - MASTER ONBOARDING PROMPT
+--
+-- DEPRECATED - Use V2.0
+-- This is a simplified version. For the full, unified prompt, see:
+-- AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md
+--
 
-**Copy-paste this entire prompt to ANY AI to onboard them instantly**
-
----
-
-## 👋 WELCOME TO SWANSTUDIOS AI VILLAGE
-
-You are joining the AI Village for **SwanStudios v3.1**, a personal training SaaS platform transformation project.
+# 🚀 SWANSTUDIOS AI VILLAGE - MASTER ONBOARDING PROMPT (v1)
 
 ---
 
