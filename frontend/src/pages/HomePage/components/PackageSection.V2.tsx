@@ -390,7 +390,7 @@ const PackageSectionV2: React.FC<PackageSectionV2Props> = ({
                 <CTAButtonWrapper>
                   <GlowButton
                     text={pkg.ctaText}
-                    theme={pkg.ctaTheme}
+                    variant={pkg.ctaTheme}
                     size="medium"
                     animateOnRender={false}
                     onClick={() => navigate("/shop")}
@@ -432,7 +432,7 @@ const PackageSectionV2: React.FC<PackageSectionV2Props> = ({
         <ExploreMoreButton>
           <GlowButton
             text="View All Packages & Pricing"
-            theme="cosmic"
+            variant="cosmic"
             size="large"
             animateOnRender={false}
             onClick={() => navigate("/shop")}
