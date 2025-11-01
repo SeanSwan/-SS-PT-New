@@ -132,12 +132,12 @@ const LogoContainer = styled(motion.div)<{ $prefersReducedMotion: boolean }>`
     height: 160px;
     max-width: 100%;
     object-fit: contain;
-    filter: drop-shadow(0 0 15px ${({ theme }) => theme.colors?.primary || "#00FFFF"}60);
+    filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.6));
     transition: filter 0.3s ease;
   }
 
   &:hover img {
-    filter: drop-shadow(0 0 25px ${({ theme }) => theme.colors?.primary || "#00FFFF"}80);
+    filter: drop-shadow(0 0 25px rgba(0, 255, 255, 0.8));
 
     ${({ $prefersReducedMotion }) =>
       !$prefersReducedMotion &&
@@ -200,13 +200,13 @@ const HeroInner = styled(motion.div)`
 const Title = styled(motion.h1)<{ $prefersReducedMotion: boolean }>`
   font-size: 3.5rem;
   font-weight: 800;
-  background: ${({ theme }) => theme.gradients?.stellar || "linear-gradient(135deg, #00FFFF, #7851A9)"};
+  background: linear-gradient(135deg, #00FFFF, #7851A9);
   background-size: 200% auto;
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
   margin-bottom: 1rem;
-  text-shadow: 0 0 30px ${({ theme }) => theme.colors?.secondary || "#7851A9"}80;
+  text-shadow: 0 0 30px rgba(120, 81, 169, 0.8);
   letter-spacing: 1px;
   text-align: center;
   transition: all 0.3s ease;
@@ -251,9 +251,9 @@ const Tagline = styled(motion.h2)`
   font-size: 2.2rem;
   font-weight: 300;
   line-height: 1.4;
-  color: ${({ theme }) => theme.text?.primary || "#E8F0FF"};
+  color: #E8F0FF;
   margin-bottom: 2rem;
-  text-shadow: 0 0 10px ${({ theme }) => theme.colors?.primary || "#00FFFF"}30;
+  text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
   letter-spacing: 1px;
 
   @media (max-width: 768px) {
@@ -268,7 +268,7 @@ const Tagline = styled(motion.h2)`
 const HeroDescription = styled(motion.p)`
   font-size: 1.15rem;
   line-height: 1.8;
-  color: ${({ theme }) => theme.text?.secondary || "#E8F0FF"};
+  color: #E8F0FF;
   margin-bottom: 2.5rem;
   max-width: 700px;
   margin-left: auto;
@@ -276,7 +276,7 @@ const HeroDescription = styled(motion.p)`
   text-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
 
   strong {
-    color: ${({ theme }) => theme.text?.accent || "#00FFFF"};
+    color: #00FFFF;
     font-weight: 600;
   }
 
@@ -319,7 +319,7 @@ const ScrollIndicator = styled(motion.div)`
   transform: translateX(-50%);
   cursor: pointer;
   font-size: 0.9rem;
-  color: ${({ theme }) => theme.text?.secondary || "#E8F0FF"};
+  color: #E8F0FF;
   opacity: 0.7;
   transition: opacity 0.3s ease;
   z-index: 10;

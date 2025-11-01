@@ -242,7 +242,7 @@ interface PackageData {
   iconColor: string;
   benefits: string[];
   ctaText: string;
-  ctaTheme: "primary" | "secondary" | "cosmic";
+  ctaTheme: "primary" | "cosmic";
 }
 
 const packagesData: PackageData[] = [
@@ -279,7 +279,7 @@ const packagesData: PackageData[] = [
       "Access to exclusive training materials and resources",
     ],
     ctaText: "Start Silver Package",
-    ctaTheme: "secondary",
+    ctaTheme: "primary",
   },
   {
     id: "gold-package",
