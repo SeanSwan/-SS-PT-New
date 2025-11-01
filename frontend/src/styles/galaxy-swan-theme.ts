@@ -199,7 +199,7 @@ export const galaxySwanTheme = {
       logoGlow: swanColors.swanCyan, // PRIMARY
       navHover: swanColors.swanCyan, // PRIMARY
     },
-    
+
     // Card theming (PRIMARY accents)
     card: {
       background: 'rgba(30, 30, 60, 0.4)',
@@ -207,13 +207,52 @@ export const galaxySwanTheme = {
       hoverBorder: `rgba(0, 255, 255, 0.6)`, // PRIMARY
       hoverBackground: 'rgba(30, 30, 60, 0.6)',
     },
-    
+
     // Button theming (PRIMARY first)
     button: {
       primary: `linear-gradient(135deg, ${swanColors.swanCyan}, ${swanColors.swanBlue})`, // PRIMARY
       secondary: `linear-gradient(135deg, ${galaxyColors.cosmic}, ${galaxyColors.nebulaPurple})`, // SECONDARY
       accent: swanColors.swanCyan, // PRIMARY
     },
+  },
+
+  // === V2.0 THEME TOKENS ===
+  // Added for Homepage Refactor v2.0 - Galaxy-Swan Theme Blueprint compliance
+
+  /**
+   * Glass Opacity Tokens (Glassmorphism)
+   * Used by FrostedCard component for consistent backdrop-filter effects
+   *
+   * Usage:
+   * - thin: Subtle hints (tooltips, overlays)
+   * - mid: Standard cards (features, packages)
+   * - thick: Prominent cards (hero CTAs, modals)
+   * - opaque: Fallback for prefers-reduced-transparency
+   *
+   * @see frontend/src/components/ui-kit/glass/FrostedCard.tsx
+   */
+  glass: {
+    thin: 0.06,   // Subtle glass effect (backdrop-blur: 5px)
+    mid: 0.10,    // Standard glass effect (backdrop-blur: 10px)
+    thick: 0.14,  // Prominent glass effect (backdrop-blur: 15px)
+    opaque: 0.95, // Accessibility fallback (no blur)
+  },
+
+  /**
+   * Parallax Timing Functions (Scroll-based depth effects)
+   * Used by ParallaxSectionWrapper for layered visual hierarchy
+   *
+   * Usage:
+   * - slow: Background elements (far depth, 200px offset)
+   * - medium: Mid-ground elements (standard depth, 150px offset)
+   * - fast: Foreground elements (near depth, 100px offset)
+   *
+   * @see frontend/src/components/ui-kit/parallax/ParallaxSectionWrapper.tsx
+   */
+  parallax: {
+    slow: 'cubic-bezier(0.22, 0.61, 0.36, 1)',   // Gentle easing for far elements
+    medium: 'cubic-bezier(0.33, 0.66, 0.44, 1)', // Standard easing for mid elements
+    fast: 'cubic-bezier(0.44, 0.72, 0.52, 1)',   // Snappy easing for near elements
   },
   
   // === GLOW BUTTON THEME MAPPING ===

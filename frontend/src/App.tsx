@@ -22,6 +22,10 @@ import { UniversalThemeProvider } from './context/ThemeContext';
 import MenuStateProvider from './hooks/useMenuState';
 import { ConnectionStatusBanner, useBackendConnection } from './hooks/useBackendConnection';
 
+// Homepage Refactor v2.0 - Performance tier system
+import { PerformanceTierProvider } from './core/perf/PerformanceTierProvider';
+import { initPerformanceMonitoring } from './core/perf/performanceMonitor';
+
 // Development Tools
 import { DevToolsProvider } from './components/DevTools';
 import ThemeStatusIndicator from './components/ThemeStatusIndicator';
@@ -157,6 +161,11 @@ const AppContent = () => {
     
     // Initialize Cosmic Performance System
     performanceCleanupRef.current = initializeCosmicPerformance();
+
+    // Initialize Homepage v2.0 Performance Monitoring
+    // Tracks LCP, CLS, FPS, long tasks for performance budget enforcement
+    initPerformanceMonitoring();
+    console.log('🎯 [Homepage v2.0] Performance monitoring initialized (LCP ≤2.5s, CLS ≤0.1, FPS ≥30)');
   }, []);
   
   // Initialize notifications when user is authenticated
@@ -209,27 +218,29 @@ const App = () => {
       <Provider store={store}>
         <HelmetProvider>
           <StyleSheetManager shouldForwardProp={shouldForwardProp}>
-            <UniversalThemeProvider defaultTheme="swan-galaxy">
-              <ThemeProvider theme={swanStudiosTheme}>
-                <ConfigProvider>
-                  <MenuStateProvider>
-                    <AuthProvider>
-                      <ToastProvider>
-                        <CartProvider>
-                          <SessionProvider>
-                            <TouchGestureProvider>
-                              <DevToolsProvider>
-                                <AppContent />
-                              </DevToolsProvider>
-                            </TouchGestureProvider>
-                          </SessionProvider>
-                        </CartProvider>
-                      </ToastProvider>
-                    </AuthProvider>
-                  </MenuStateProvider>
-                </ConfigProvider>
-              </ThemeProvider>
-            </UniversalThemeProvider>
+            <PerformanceTierProvider>
+              <UniversalThemeProvider defaultTheme="swan-galaxy">
+                <ThemeProvider theme={swanStudiosTheme}>
+                  <ConfigProvider>
+                    <MenuStateProvider>
+                      <AuthProvider>
+                        <ToastProvider>
+                          <CartProvider>
+                            <SessionProvider>
+                              <TouchGestureProvider>
+                                <DevToolsProvider>
+                                  <AppContent />
+                                </DevToolsProvider>
+                              </TouchGestureProvider>
+                            </SessionProvider>
+                          </CartProvider>
+                        </ToastProvider>
+                      </AuthProvider>
+                    </MenuStateProvider>
+                  </ConfigProvider>
+                </ThemeProvider>
+              </UniversalThemeProvider>
+            </PerformanceTierProvider>
           </StyleSheetManager>
         </HelmetProvider>
       </Provider>
