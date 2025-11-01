@@ -345,7 +345,7 @@ const ScrollIndicator = styled(motion.div)`
 
 const HeroSectionV2: React.FC = () => {
   const navigate = useNavigate();
-  const { getThemeButtonVariant } = useUniversalTheme();
+  const { currentTheme } = useUniversalTheme();
   const prefersReducedMotion = useReducedMotion();
 
   const [showOrientation, setShowOrientation] = useState(false);
@@ -466,7 +466,7 @@ const HeroSectionV2: React.FC = () => {
                 <ButtonsContainer variants={itemVariants}>
                   <GlowButton
                     text="START MY FITNESS JOURNEY"
-                    theme={getThemeButtonVariant("primary")}
+                    variant={currentTheme === 'swan-galaxy' ? 'primary' : currentTheme === 'admin-command' ? 'primary' : 'cosmic'}
                     size="large"
                     animateOnRender={false}
                     onClick={() => setShowOrientation(true)}
@@ -474,7 +474,7 @@ const HeroSectionV2: React.FC = () => {
                   />
                   <GlowButton
                     text="PREVIEW MY UNIVERSE"
-                    theme={getThemeButtonVariant("secondary")}
+                    variant={currentTheme === 'swan-galaxy' ? 'cosmic' : currentTheme === 'admin-command' ? 'primary' : 'purple'}
                     size="large"
                     animateOnRender={false}
                     onClick={() => navigate("/store")}
