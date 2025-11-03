@@ -33,7 +33,8 @@ import { AnimatePresence } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { useCart } from "../../context/CartContext";
 import api from "../../services/api.service";
-import { useToast } from "../../hooks/use-toast";
+// Temporarily disabled useToast due to provider timing issues
+// import { useToast } from "../../hooks/use-toast";
 
 // Component Imports
 import HeroSection from "./components/HeroSection";
@@ -267,7 +268,13 @@ const buttonMotionProps = {
 const OptimizedGalaxyStoreFront: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const { cart, addToCart, refreshCart } = useCart();
-  const { toast } = useToast();
+
+  // Temporarily disabled toast due to provider timing issues
+  // const { toast } = useToast();
+  const toast = (options: any) => {
+    console.log('Toast:', options.title, options.description);
+    // Fallback: could show alert or custom notification
+  };
 
   // State Management (Optimized)
   const [showOrientation, setShowOrientation] = useState(false);
@@ -317,7 +324,7 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
         }));
         
         // Sort packages
-        fetchedPackages.sort((a, b) => {
+        fetchedPackages.sort((a: StoreItem, b: StoreItem) => {
           if (a.displayOrder !== b.displayOrder) {
             return (a.displayOrder || 0) - (b.displayOrder || 0);
           }
