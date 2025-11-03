@@ -240,18 +240,18 @@ const createProductionApiClient = (): AxiosInstance => {
         originalRequest._retry = true;
 
         const errorData = error.response.data as any;
-        
+
         if (errorData?.errorCode === 'TOKEN_EXPIRED' || errorData?.message?.includes('expired')) {
           console.log('[API] Token expired, attempting refresh...');
-          
+
           const newToken = await ProductionTokenManager.refreshAccessToken();
-          
+
           if (newToken) {
             originalRequest.headers.Authorization = `Bearer ${newToken}`;
             return client(originalRequest);
           } else {
             ProductionTokenManager.clearAuthData();
-            
+
             if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
               window.location.href = '/login';
             }
@@ -264,11 +264,17 @@ const createProductionApiClient = (): AxiosInstance => {
         }
       }
 
-      console.error('[API] Response error:', {
-        status: error.response?.status,
-        message: error.message,
-        url: originalRequest?.url
-      });
+      // Silently handle 503 errors for notifications endpoint (has graceful fallback)
+      const isNotificationsEndpoint = originalRequest?.url?.includes('/notifications');
+      const is503Error = error.response?.status === 503;
+
+      if (!(isNotificationsEndpoint && is503Error)) {
+        console.error('[API] Response error:', {
+          status: error.response?.status,
+          message: error.message,
+          url: originalRequest?.url
+        });
+      }
 
       return Promise.reject(error);
     }

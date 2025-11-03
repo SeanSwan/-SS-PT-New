@@ -82,8 +82,14 @@ export const fetchNotifications = createAsyncThunk(
       const response = await api.get('/notifications');
       return response.data;
     } catch (error: any) {
-      console.warn('[Notifications] Failed to fetch notifications, using mock data:', error.message);
-      // Instead of rejecting, provide mock data
+      // Silently handle 503 errors (service unavailable) without console warnings
+      const is503Error = error.response?.status === 503 || error.message?.includes('503');
+
+      if (!is503Error) {
+        console.warn('[Notifications] Failed to fetch notifications, using mock data:', error.message);
+      }
+
+      // Instead of rejecting, provide mock data as graceful fallback
       return {
         notifications: mockNotifications,
         unreadCount: mockNotifications.filter(n => !n.read).length
