@@ -315,10 +315,6 @@ const HeroSectionV2: React.FC = () => {
   const { currentTheme } = useUniversalTheme();
   const prefersReducedMotion = useReducedMotion();
 
-  // Debug: Log theme and motion preference
-  console.log('HeroSectionV2 - currentTheme:', currentTheme);
-  console.log('HeroSectionV2 - prefersReducedMotion:', prefersReducedMotion);
-
   const [showOrientation, setShowOrientation] = useState(false);
   const [showScrollIndicator, setShowScrollIndicator] = useState(true);
 
