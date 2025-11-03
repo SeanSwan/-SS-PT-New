@@ -271,10 +271,11 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
 
   // Temporarily disabled toast due to provider timing issues
   // const { toast } = useToast();
-  const toast = (options: any) => {
+  // FIXED: Use useCallback to prevent infinite re-render loop
+  const toast = useCallback((options: any) => {
     console.log('Toast:', options.title, options.description);
     // Fallback: could show alert or custom notification
-  };
+  }, []);
 
   // State Management (Optimized)
   const [showOrientation, setShowOrientation] = useState(false);
