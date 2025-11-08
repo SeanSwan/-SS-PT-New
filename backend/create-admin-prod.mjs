@@ -11,7 +11,7 @@
 
 import bcrypt from 'bcrypt';
 import sequelize from './database.mjs';
-import { User } from './models/index.mjs';
+import { initializeModelsCache, getUser } from './models/index.mjs';
 
 console.log('🔧 SwanStudios Admin User Creator');
 console.log('=================================\n');
@@ -21,6 +21,11 @@ async function createAdminUser() {
     console.log('🔌 Testing database connection...');
     await sequelize.authenticate();
     console.log('✅ Database connection successful\n');
+
+    console.log('🔄 Initializing models...');
+    await initializeModelsCache();
+    const User = getUser();
+    console.log('✅ Models initialized\n');
 
     // Target admin credentials
     const adminCredentials = {
