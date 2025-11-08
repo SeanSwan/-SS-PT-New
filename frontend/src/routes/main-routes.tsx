@@ -123,6 +123,11 @@ function lazyLoadWithErrorHandling(importFn, componentName, fallbackImportFn = n
 }
 
 // Lazy-loaded Components
+const ClientOnboardingWizard = lazyLoadWithErrorHandling(
+  () => import('../pages/onboarding/ClientOnboardingWizard'),
+  'Client Onboarding Wizard'
+);
+
 // v2.0 HOMEPAGE: LivingConstellation + FrostedCard + Parallax (NO pricing on homepage)
 const HomePage = lazyLoadWithErrorHandling(
   () => import('../pages/HomePage/components/HomePage.V2.component'),
@@ -248,6 +253,14 @@ const MainRoutes: RouteObject = {
   errorElement: <ErrorBoundary />,
   children: [
     // Public Routes
+    {
+      path: 'onboarding',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <ClientOnboardingWizard />
+        </Suspense>
+      )
+    },
     {
       index: true,
       element: (
