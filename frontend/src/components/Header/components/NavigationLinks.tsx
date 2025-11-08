@@ -210,8 +210,8 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({
 
           {user.role === 'admin' && (
             <StyledNavLink
-              to="/onboarding/client"
-              $isActive={isActive('/onboarding/client')}
+              to="/dashboard/client-onboarding"
+              $isActive={isActive('/dashboard/client-onboarding')}
               variants={itemVariants}
             >
               Client Onboarding
