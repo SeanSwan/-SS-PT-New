@@ -192,22 +192,32 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({
     if (user) {
       return (
         <>
-          <StyledNavLink 
-            to="/store" 
+          <StyledNavLink
+            to="/store"
             $isActive={isActive('/store') || isActive('/shop')}
             variants={itemVariants}
           >
             SwanStudios Store
           </StyledNavLink>
-          
-          <StyledNavLink 
-            to="/gamification" 
+
+          <StyledNavLink
+            to="/gamification"
             $isActive={isActive('/gamification')}
             variants={itemVariants}
           >
             Gamification
           </StyledNavLink>
-          
+
+          {user.role === 'admin' && (
+            <StyledNavLink
+              to="/onboarding/client"
+              $isActive={isActive('/onboarding/client')}
+              variants={itemVariants}
+            >
+              Client Onboarding
+            </StyledNavLink>
+          )}
+
           <Box sx={{ ml: 1, mr: 1 }}>
             <DashboardSelector />
           </Box>
