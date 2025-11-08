@@ -77,6 +77,9 @@ import NASMCompliancePanel from './Pages/admin-dashboard/components/NASMComplian
 // Import Admin Exercise Command Center
 import AdminExerciseCommandCenter from './Pages/admin-exercises';
 
+// Import Client Onboarding Wizard
+import ClientOnboardingWizard from '../../pages/onboarding/ClientOnboardingWizard';
+
 // Import TheAestheticCodex - Living Style Guide
 import { TheAestheticCodex } from '../../core';
 
@@ -584,8 +587,8 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                   } 
                 />
                 <Route path="/client-management" element={<AdminClientProgressView />} />
-                <Route 
-                  path="/clients" 
+                <Route
+                  path="/clients"
                   element={
                     <ExecutivePageContainer
                       initial={{ opacity: 0, y: 20 }}
@@ -594,9 +597,21 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                     >
                       <ClientsManagementSection />
                     </ExecutivePageContainer>
-                  } 
+                  }
                 />
-                <Route 
+                <Route
+                  path="/client-onboarding"
+                  element={
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <ClientOnboardingWizard />
+                    </ExecutivePageContainer>
+                  }
+                />
+                <Route
                   path="/packages" 
                   element={
                     <ExecutivePageContainer
