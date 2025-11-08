@@ -333,10 +333,22 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
               <Gamepad2 size={20} /> Gamification Hub
             </MobileNavLink>
           </motion.div>
-          
+
+          {isRoleEnabled('admin') && (
+            <motion.div variants={itemVariants}>
+              <MobileNavLink
+                to="/onboarding/client"
+                onClick={closeMobileMenu}
+                $isActive={isActive('/onboarding/client')}
+              >
+                <PersonIcon fontSize="small" /> Client Onboarding
+              </MobileNavLink>
+            </motion.div>
+          )}
+
           <motion.div variants={itemVariants}>
-            <MobileNavLink 
-              to="/contact" 
+            <MobileNavLink
+              to="/contact"
               onClick={closeMobileMenu}
               $isActive={isActive('/contact')}
             >
