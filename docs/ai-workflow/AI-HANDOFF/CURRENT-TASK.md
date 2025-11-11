@@ -30,22 +30,31 @@
   2. [AI-VILLAGE-ADMIN-DASHBOARD-REBUILD-MASTER-PROMPT.md](../AI-VILLAGE-ADMIN-DASHBOARD-REBUILD-MASTER-PROMPT.md) - 600+ line master blueprint
   3. [AI-VILLAGE-REVIEW-REQUEST.md](AI-VILLAGE-REVIEW-REQUEST.md) - AI-specific review requests with voting instructions
 
-### **Current Votes (2/6 collected):**
-| Question | Claude Code | Kilo Code | Roo Code | MinMax V2 | Gemini | ChatGPT-5 | Consensus |
-|----------|-------------|-----------|----------|-----------|--------|-----------|-----------|
-| **Q1: Styling** | A (Hybrid) | A (Fix→Emotion fallback) | PENDING | PENDING | PENDING | PENDING | **2/6 for A** |
-| **Q2: Rebuild vs Incremental** | B (Incremental) | B (Incremental) | PENDING | PENDING | PENDING | PENDING | **2/6 for B** |
-| **Q3: Social Integration** | B (Admin+widgets) | B (Admin+widgets) | PENDING | PENDING | PENDING | PENDING | **2/6 for B** |
-| **Q4: Real-time** | A (WebSockets+fallback) | A (Socket.io+fallback) | PENDING | PENDING | PENDING | PENDING | **2/6 for A** |
-| **Q5: Testing Coverage** | B (70%+) | B (70%+) | PENDING | PENDING | PENDING | PENDING | **2/6 for B** |
+### **Current Votes (3/6 collected):**
+| Question | Claude Code | Kilo Code | Gemini | Roo Code | MinMax V2 | ChatGPT-5 | Consensus |
+|----------|-------------|-----------|--------|----------|-----------|-----------|-----------|
+| **Q1: Styling** | A (Hybrid) | A (Fix→Emotion fallback) | A (Hybrid) | PENDING | PENDING | PENDING | **3/6 for A** ✅ |
+| **Q2: Rebuild vs Incremental** | B (Incremental) | B (Incremental) | B (Incremental) | PENDING | PENDING | PENDING | **3/6 for B** ✅ |
+| **Q3: Social Integration** | B (Admin+widgets) | B (Admin+widgets) | B (Admin+widgets) | PENDING | PENDING | PENDING | **3/6 for B** ✅ |
+| **Q4: Real-time** | A (WebSockets+fallback) | A (Socket.io+fallback) | A (WebSockets+fallback) | PENDING | PENDING | PENDING | **3/6 for A** ✅ |
+| **Q5: Testing Coverage** | B (70%+) | B (70%+) | B (70%+) | PENDING | PENDING | PENDING | **3/6 for B** ✅ |
 
 ### **Critical Findings:**
 - styled-components v6 error persists despite dedupe config, cache clear, and /v3/ directory bypass
 - New file hashes generated (cache bypass successful) but error remains (fix unsuccessful)
-- Both AIs independently recommend **incremental refactor** over complete rebuild
-- Consensus emerging on hybrid approach: Fix styled-components first, migrate to Emotion if fails
+- All 3 AIs independently recommend **incremental refactor** over complete rebuild
+- **UNANIMOUS CONSENSUS** (3/3) on hybrid approach: Fix styled-components first, migrate to Emotion if fails
 - Theme migration to Galaxy-Swan required (Executive Command Intelligence theme conflicts)
 - Social media integration should be embedded (admin moderation + client widgets, NOT separate micro-frontend)
+
+### **🚨 CRITICAL CLARIFICATION (Nov 11):**
+- **4-TIER USER HIERARCHY** confirmed:
+  1. **User** (Free social/gamification) → Goal: Engage and convert to Client
+  2. **Client** (Paid training) → Goal: Deliver value, retain, upsell
+  3. **Trainer** (Employee) → Goal: Maximize client success
+  4. **Admin** (Owner) → Goal: Platform growth
+- **Business Strategy**: Make free tier valuable but limited to drive User → Client conversion
+- **Documentation Updated**: [USER-HIERARCHY-MASTER-BLUEPRINT.md](../USER-HIERARCHY-MASTER-BLUEPRINT.md)
 
 ---
 
