@@ -10,6 +10,9 @@ export default defineConfig({
     extensions: ['.tsx', '.ts', '.jsx', '.js', '.json'],
     // Ensure case-sensitive file resolution matches Linux/Render environment
     preserveSymlinks: false,
+    // Dedupe styled-components to prevent "we.div is not a function" error in production
+    // This ensures only one instance of styled-components exists in the bundle
+    dedupe: ['styled-components', 'react', 'react-dom'],
   },
   build: {
     outDir: 'dist',

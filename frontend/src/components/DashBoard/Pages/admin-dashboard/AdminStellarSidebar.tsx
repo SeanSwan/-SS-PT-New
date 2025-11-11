@@ -813,19 +813,28 @@ const getAdminNavItems = (userRole: string): AdminNavItem[] => [
     description: 'Universal Master Schedule management',
     isNew: true
   },
-  { 
-    id: 'clients', 
-    label: 'Client Management', 
-    route: '/dashboard/clients', 
-    icon: <GroupIcon size={20} />, 
+  {
+    id: 'clients',
+    label: 'Client Management',
+    route: '/dashboard/clients',
+    icon: <GroupIcon size={20} />,
     section: 'management',
     description: 'Monitor client accounts and engagement'
   },
-  { 
-    id: 'sessions', 
-    label: 'Session Scheduling', 
-    route: '/dashboard/admin-sessions', 
-    icon: <Calendar size={20} />, 
+  {
+    id: 'client-onboarding',
+    label: 'Client Onboarding',
+    route: '/dashboard/client-onboarding',
+    icon: <UserPlus size={20} />,
+    section: 'management',
+    description: 'Onboard new clients with comprehensive wizard',
+    isNew: true
+  },
+  {
+    id: 'sessions',
+    label: 'Session Scheduling',
+    route: '/dashboard/admin-sessions',
+    icon: <Calendar size={20} />,
     section: 'management',
     description: 'Manage training sessions and appointments'
   },
