@@ -18,12 +18,13 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: false, // Disabled for production (smaller bundle)
     minify: 'esbuild', // Re-enabled minification for production
-    // Vite's [hash] automatically provides content-based cache-busting
+    // Force new file paths to bypass Cloudflare CDN cache
+    // Changed from /assets/ to /v3/ to force cache miss
     rollupOptions: {
       output: {
-        entryFileNames: 'assets/[name].[hash].js',
-        chunkFileNames: 'assets/[name].[hash].js',
-        assetFileNames: 'assets/[name].[hash].[ext]'
+        entryFileNames: 'v3/[name].[hash].js',
+        chunkFileNames: 'v3/[name].[hash].js',
+        assetFileNames: 'v3/[name].[hash].[ext]'
       }
       // REMOVED incorrect 'external' configuration that was breaking V2 imports
       // V2 files ARE part of our bundle and should NOT be marked as external
