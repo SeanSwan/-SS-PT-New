@@ -1,41 +1,83 @@
 # 🏛️ AI Village Documentation
 
 **SwanStudios Multi-AI Development Workflow**
-**Complete System for Solo Developer with 5+ AI Assistants**
+**Complete System for Solo Developer with 6 AI Assistants**
+
+**Last Updated:** 2025-11-10 - Updated 6-AI roster (added Kilo Code/DeepSeek Prover clarification)
+
+---
+
+## 🎯 FOR SEAN: YOUR ONE FILE TO RULE THEM ALL
+
+### **📄 LAZY & FORGETFUL? USE THIS ONE PROMPT:**
+
+**File:** [AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md](AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md) ⭐⭐⭐
+
+**What it does:**
+1. Copy the ENTIRE file (Ctrl+A, Ctrl+C)
+2. Paste into ANY AI (Claude Code, Roo Code, MinMax v2, Kilo Code/DeepSeek Prover, Gemini, ChatGPT)
+3. The AI auto-detects its role and knows EVERYTHING:
+   - What it should do
+   - How to coordinate with other AIs
+   - Where to find all files
+   - Design workflow (no code without asking!)
+   - How to use shared files (CURRENT-TASK.md, status files)
+
+**Use this prompt EVERY TIME you start a session with an AI.**
+
+**Bookmark this file!** 🔖 It's your "one prompt for everything."
 
 ---
 
 ## 📖 Documentation Overview
 
-This folder contains the complete AI Village workflow system for SwanStudios development. All documentation created to implement a rigorous multi-AI code review and development process.
+This folder contains the complete AI Village workflow system for SwanStudios development.
+
+### **NEW (Nov 7, 2025): Onboarding-to-Database Pipeline**
+- ✅ Onboarding-to-Database Pipeline (Section 9.5.1 in Handbook)
+- ✅ Master Prompt JSON v3.0 schema (85 fields, 12 sections)
+- ✅ API endpoints (POST/GET /api/onboarding)
+- ✅ Spirit Name System (privacy-preserving aliases)
+- ✅ Manual fallback workflow (when API unavailable)
+
+### **Previous Update (Nov 5, 2025): Design-First Workflow**
+- ✅ Design Master Prompt v3.0 (consolidated all AI feedback)
+- ✅ "Ask Before Coding" enforcement (no more surprise code!)
+- ✅ Build Gate process (design → approval → code)
+- ✅ 28-point Engineering Handoff Checklist
+- ✅ Shared file coordination (AIs don't step on each other)
 
 ---
 
 ## 🚀 Quick Start (Read These First)
 
-### 1. **QUICK-REFERENCE-CARD.md** ⭐ START HERE
+### 1. **AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md** ⭐ START HERE (NEW)
+**Read Time:** One-time copy-paste
+**Use:** Copy entire file → Paste into any AI → Done!
+- Auto-detects which AI is reading
+- All Golden Rules (ask before coding, check files, lock files)
+- Quick file reference (where is everything?)
+- Design Master Prompt v3.0 workflow
+- Shared file coordination
+
+### 2. **SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md** ⭐ DEEP DIVE
+**Read Time:** 45 minutes (reference as needed)
+**Use:** Complete AI Village guide
+- Section 9.5: Coach Cortex v3.1 - Personal Training AI System
+- Section 9.5.1: Onboarding-to-Database Pipeline (NEW)
+- Section 6.5: MinMax v2 Responsibilities
+- Section 6.6: Design Workflow & Build Gate Process
+- AI role assignments
+- Cost analysis
+- Daily workflow examples
+
+### 3. **QUICK-REFERENCE-CARD.md** ⭐ DAILY CHEAT SHEET
 **Read Time:** 5 minutes
-**Use:** Keep open while working - single-page cheat sheet
+**Use:** Keep open while working
 - All 7 checkpoint prompts (copy-paste ready)
 - AI role assignments at a glance
 - Emergency protocols
 - Cost tracking formulas
-
-### 2. **YOUR-DAILY-WORKFLOW-CHECKLIST.md** ⭐ YOUR DAILY GUIDE
-**Read Time:** 15 minutes
-**Use:** Follow step-by-step every day
-- Morning setup checklist
-- Complete templates for each AI
-- Real implementation examples
-- End-of-day reflection template
-
-### 3. **CODE-APPROVAL-PIPELINE.md** ⭐ THE CORE SYSTEM
-**Read Time:** 20 minutes
-**Use:** Deep reference for the 7-checkpoint system
-- Detailed explanation of each checkpoint
-- Full prompt templates with pass/fail criteria
-- Worked example (POST /api/workouts endpoint)
-- Fast Track vs Full Pipeline decision tree
 
 ---
 
@@ -116,16 +158,24 @@ This folder contains the complete AI Village workflow system for SwanStudios dev
 
 ---
 
-## 🏗️ The AI Village Team
+## 🏗️ The AI Village Team (6 AIs)
 
-| AI Tool | Role | Primary Use | Cost |
-|---------|------|-------------|------|
-| **Claude Desktop** (4.5 Sonnet) | Orchestrator, Architect, AppSec | Planning, design, security review | $20/mo |
-| **Roo Code** → Grok Code Fast | Backend Coder, QA Gate #1 | Node.js APIs, code quality | ~$20/mo |
-| **Gemini Code Assist** | Frontend Coder, QA Gate #2 | React components, logic review | FREE |
-| **ChatGPT-5** | QA Engineer, Gate #4 | Test generation, coverage | $20/mo |
-| **Codex** (GPT-4 in VS Code) | Performance Engineer, Gate #5 | Performance review | FREE |
-| **Claude Code** (4.5 Sonnet) | SRE, Gate #6 | Integration, deployment | Included |
+| # | AI Tool | Platform | Primary Role | Key Expertise | Cost |
+|---|---------|----------|--------------|---------------|------|
+| 1 | **Claude Code** | Anthropic (Sonnet 4.5) | Main Orchestrator | Full-stack, architecture, integration | Included |
+| 2 | **Roo Code** | xAI (Grok models) | Backend Specialist | Node.js/Express, PostgreSQL, API design | ~$20/mo |
+| 3 | **MinMax V2** | Google (Gemini) | UX & Multi-AI Orchestrator | Strategic UX, gamification, consensus building | FREE |
+| 4 | **Kilo Code** | DeepSeek (Prover via Grok) | Boot Camp Specialist | Circuit design, group training, proof verification | ~$20/mo |
+| 5 | **Gemini** | Google (Gemini Code Assist) | Frontend Specialist | React, TypeScript, UI components | FREE |
+| 6 | **ChatGPT-5** | OpenAI (GPT-5) | QA Engineer | Testing, quality assurance, edge case detection | $20/mo |
+
+**Total Monthly Cost:** ~$60/month + Claude Pro ($20/mo) = **$80/month**
+
+**Quick Reference:**
+- **For coding**: Claude Code (main), Roo Code (backend), Gemini (frontend)
+- **For UX/strategy**: MinMax V2 (multi-AI consensus)
+- **For boot camps**: Kilo Code (DeepSeek Prover)
+- **For testing**: ChatGPT-5
 
 ---
 
@@ -235,10 +285,10 @@ Weekly tracking (use template from QUICK-REFERENCE-CARD.md):
 2. Bookmark **YOUR-DAILY-WORKFLOW-CHECKLIST.md**
 3. Start your first feature tomorrow morning
 
-**Remember:** You have 5 AIs working for you 24/7 for $60/month. Use them! 🚀
+**Remember:** You have 6 AIs working for you 24/7 for ~$80/month. Use them! 🚀
 
 ---
 
-**Last Updated:** 2025-10-20
+**Last Updated:** 2025-11-10
 **Maintained By:** SwanStudios Development
-**Questions?** Reference the docs first, then ask Claude Desktop (your Orchestrator)
+**Questions?** Reference the docs first, then ask Claude Code or MinMax V2 (your Orchestrators)
