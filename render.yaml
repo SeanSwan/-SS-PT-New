@@ -50,7 +50,7 @@ services:
     repo: https://github.com/SeanSwan/-SS-PT-New
     branch: main
     rootDir: ./frontend
-    buildCommand: npm install && npm run build
+    buildCommand: rm -rf node_modules/.vite && npm install && npm run build
     staticPublishPath: ./dist
     env:
       - key: VITE_API_URL
