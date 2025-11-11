@@ -1,65 +1,75 @@
 # 🎯 CURRENT TASK - SINGLE SOURCE OF TRUTH
 
-**Last Updated:** 2025-11-08 at 4:15 PM
+**Last Updated:** 2025-11-10 at 11:45 PM
 **Updated By:** Claude Code (Main Orchestrator)
 
 ---
 
 ## 🚨 ACTIVE TASK STATUS
 
-**Current Phase:** DASHBOARD ARCHITECTURE REVIEW - Phase 0 Documentation
-**Status:** 📋 DOCUMENTATION COMPLETE - AWAITING AI VILLAGE REVIEW (0/5 approvals)
-**Plan Document:** [DASHBOARD-MASTER-ARCHITECTURE.md](../DASHBOARD-MASTER-ARCHITECTURE.md)
+**Current Phase:** ADMIN DASHBOARD REBUILD BLUEPRINT - AI Village Consensus Vote
+**Status:** 🗳️ AWAITING CONSENSUS VOTE (2/6 votes collected: Claude Code ✅, Kilo Code ✅)
+**Plan Document:** [AI-VILLAGE-CONSOLIDATED-DASHBOARD-REVIEW.md](../AI-VILLAGE-CONSOLIDATED-DASHBOARD-REVIEW.md)
 
-**Next Phase:** Phase 1 - Critical Fixes (After 5/5 AI approvals)
+**Next Phase:** Phase 1 - Fix Production Blocker (After 4/6 consensus on 5 critical questions)
 
 ---
 
 ## 📋 WHAT JUST HAPPENED
 
-### **Critical Production Error Discovered**
-- **Error:** `TypeError: we.div is not a function` in production
-- **Impact:** Admin dashboard completely inaccessible
-- **Business Impact:** Cannot onboard clients, manage trainers, or view analytics
-- **Root Cause (85% confidence):** Multiple instances of `styled-components` in production bundle causing minified variable collision
+### **MAJOR PIVOT: Rebuild Blueprint Approach (2025-11-10)**
+- **User Decision:** Pause debugging styled-components error, create comprehensive blueprint for admin dashboard rebuild
+- **Strategic Shift:** From "quick fix" → "comprehensive planning with AI Village consensus"
+- **Reason:** Multiple fix attempts failed (vite dedupe, cache clear, /v3/ directory bypass)
+- **Goal:** Deep documentation with wireframes, flowcharts, Mermaid diagrams for admin dashboard + social media integration
 
-### **Dashboard Architecture Documentation (Completed 2025-11-08)**
-- **Analyzed:** Admin, Trainer, and Client dashboard architecture
+### **AI Village Consolidated Review (Completed 2025-11-10)**
+- **Created:** Consolidated review combining Claude Code + Kilo Code (DeepSeek Prover) analyses
 - **Documents Created:**
-  1. [DASHBOARD-MASTER-ARCHITECTURE.md](../DASHBOARD-MASTER-ARCHITECTURE.md) (745 lines) - Complete navigation flows, routes, design tokens
-  2. [ADMIN-DASHBOARD-ERROR-ANALYSIS.md](../ADMIN-DASHBOARD-ERROR-ANALYSIS.md) (364 lines) - Root cause analysis with fix proposals
-  3. [AI-REVIEW-REQUEST-DASHBOARD-ARCHITECTURE.md](../AI-REVIEW-REQUEST-DASHBOARD-ARCHITECTURE.md) (520 lines) - AI-specific review requests
-  4. [PHASE-0-DASHBOARD-REVIEW-SUMMARY.md](../PHASE-0-DASHBOARD-REVIEW-SUMMARY.md) - Executive summary for user
+  1. [AI-VILLAGE-CONSOLIDATED-DASHBOARD-REVIEW.md](../AI-VILLAGE-CONSOLIDATED-DASHBOARD-REVIEW.md) - Combined analysis, voting mechanism
+  2. [AI-VILLAGE-ADMIN-DASHBOARD-REBUILD-MASTER-PROMPT.md](../AI-VILLAGE-ADMIN-DASHBOARD-REBUILD-MASTER-PROMPT.md) - 600+ line master blueprint
+  3. [AI-VILLAGE-REVIEW-REQUEST.md](AI-VILLAGE-REVIEW-REQUEST.md) - AI-specific review requests with voting instructions
+
+### **Current Votes (2/6 collected):**
+| Question | Claude Code | Kilo Code | Roo Code | MinMax V2 | Gemini | ChatGPT-5 | Consensus |
+|----------|-------------|-----------|----------|-----------|--------|-----------|-----------|
+| **Q1: Styling** | A (Hybrid) | A (Fix→Emotion fallback) | PENDING | PENDING | PENDING | PENDING | **2/6 for A** |
+| **Q2: Rebuild vs Incremental** | B (Incremental) | B (Incremental) | PENDING | PENDING | PENDING | PENDING | **2/6 for B** |
+| **Q3: Social Integration** | B (Admin+widgets) | B (Admin+widgets) | PENDING | PENDING | PENDING | PENDING | **2/6 for B** |
+| **Q4: Real-time** | A (WebSockets+fallback) | A (Socket.io+fallback) | PENDING | PENDING | PENDING | PENDING | **2/6 for A** |
+| **Q5: Testing Coverage** | B (70%+) | B (70%+) | PENDING | PENDING | PENDING | PENDING | **2/6 for B** |
 
 ### **Critical Findings:**
-- Admin Dashboard uses "Executive Command Intelligence" theme (conflicts with Galaxy-Swan universal theme)
-- Client Onboarding was incorrectly placed in main header (should be inside admin dashboard)
-- Missing comprehensive documentation for Trainer and Client dashboards
-- 25+ admin routes identified and documented
-- Feature gaps identified across all dashboards
+- styled-components v6 error persists despite dedupe config, cache clear, and /v3/ directory bypass
+- New file hashes generated (cache bypass successful) but error remains (fix unsuccessful)
+- Both AIs independently recommend **incremental refactor** over complete rebuild
+- Consensus emerging on hybrid approach: Fix styled-components first, migrate to Emotion if fails
+- Theme migration to Galaxy-Swan required (Executive Command Intelligence theme conflicts)
+- Social media integration should be embedded (admin moderation + client widgets, NOT separate micro-frontend)
 
 ---
 
 ## 🎯 CURRENT ACTIVE WORK
 
-### **PHASE 0: AI VILLAGE REVIEW (IN PROGRESS)**
+### **PHASE 0: AI VILLAGE CONSENSUS VOTE (IN PROGRESS)**
 
-**Waiting for 5/5 AI Approvals:**
+**Waiting for 4/6 Consensus (66% threshold) on 5 Critical Questions:**
 
-| AI Reviewer | Review Focus | Status | Expected Output |
-|-------------|--------------|--------|-----------------|
-| **Claude Code (ME)** | Technical Implementation | ✅ APPROVED | Documentation complete, error analysis complete |
-| **MinMax v2** | Visual Design & UX | ⏳ PENDING | Galaxy-Swan theme compliance, navigation UX, design tokens |
-| **Gemini** | Performance & Data Flow | ⏳ PENDING | Lazy loading impact, bundle optimization, API efficiency |
-| **ChatGPT-5** | Feature Completeness | ⏳ PENDING | Feature gap analysis, user experience coherence |
-| **Kilo Code** | Testing & QA | ⏳ PENDING | Testing strategy, accessibility, error boundaries |
+| AI Reviewer | Review Focus | Vote Status | Expected Output |
+|-------------|--------------|-------------|-----------------|
+| **Claude Code (ME)** | Technical Implementation, Integration | ✅ VOTED (A, B, B, A, B) | Hybrid styling, incremental refactor, admin+widgets, WebSockets, 70% coverage |
+| **Kilo Code (DeepSeek Prover)** | Testing, QA, Mathematical Proof | ✅ VOTED (A, B, B, A, B) | Same votes as Claude Code - consensus emerging |
+| **Roo Code** | Backend, PostgreSQL, API Design | ⏳ PENDING | Database schema alignment, WebSocket vs SSE, backend testing strategy |
+| **MinMax v2** | UX, Multi-AI Orchestration | ⏳ PENDING | UX impact of incremental refactor, Galaxy-Swan migration, social integration UX |
+| **Gemini** | Frontend, React, TypeScript | ⏳ PENDING | Emotion vs styled-components, lazy loading, component architecture |
+| **ChatGPT-5** | QA, Testing, Edge Cases | ⏳ PENDING | Test coverage targets, regression risk, feature flags strategy |
 
 ### **Claude Code (ME) - Main Orchestrator**
-**Status:** 📋 WAITING - Phase 0 approval before implementation
-**Working On:** Documentation complete, awaiting AI Village review
+**Status:** 🗳️ WAITING - Consensus vote before implementation
+**Working On:** Consolidated review complete, awaiting remaining 4 AI votes
 **Files Locked:** None (review phase)
-**Permission:** ✅ GRANTED by user to follow protocol and create documentation
-**Next:** Implement Phase 1 critical fixes after 5/5 approvals
+**Permission:** ✅ GRANTED by user to create comprehensive blueprint and coordinate AI Village review
+**Next:** Implement Phase 1 (fix production blocker) after 4/6 consensus reached on 5 questions
 
 ---
 
@@ -96,32 +106,49 @@
 8. ✅ Created rollback strategy for proposed fixes
 9. ✅ Established success metrics and acceptance criteria
 10. ✅ Updated CURRENT-TASK.md with dashboard review status
+11. ✅ Added Kilo Code's architecture review ([ADMIN-DASHBOARD-ARCHITECTURE-REVIEW.md](../ADMIN-DASHBOARD-ARCHITECTURE-REVIEW.md))
 
 ---
 
 ## 📋 NEXT TASKS (QUEUED)
 
-### **Phase 0: AI Village Review (1-2 days)**
-1. ⏳ **User:** Share documentation with all 5 AIs
-2. ⏳ **MinMax v2:** Review visual design, Galaxy-Swan theme, navigation UX
-3. ⏳ **Gemini:** Review performance implications, lazy loading strategy, data flow
-4. ⏳ **ChatGPT-5:** Review feature completeness, user experience flows
-5. ⏳ **Kilo Code:** Review testing strategy, QA checklist, accessibility
-6. ⏳ **User:** Collect all AI feedback and return to Claude Code
-7. ⏳ **Claude Code:** Address feedback, update documentation
-8. ⏳ **All AIs:** Final approval (5/5)
+### **Phase 0: AI Village Consensus Vote (1-2 days) - IN PROGRESS**
+1. ✅ **Claude Code:** Created consolidated review + voting mechanism
+2. ✅ **Kilo Code:** Submitted votes (A, B, B, A, B)
+3. ✅ **Claude Code:** Created AI-VILLAGE-REVIEW-REQUEST.md with voting instructions
+4. ⏳ **User:** Distribute AI-VILLAGE-REVIEW-REQUEST.md to remaining 4 AIs (Roo Code, MinMax V2, Gemini, ChatGPT-5)
+5. ⏳ **Roo Code:** Submit votes via status file
+6. ⏳ **MinMax V2:** Submit votes via status file
+7. ⏳ **Gemini:** Submit votes via status file
+8. ⏳ **ChatGPT-5:** Submit votes via status file
+9. ⏳ **Claude Code:** Tally votes, verify 4/6 consensus reached on each question
+10. ⏳ **Claude Code:** Update consolidated review with final consensus decisions
 
-### **Phase 1: Critical Fixes (2 hours) - AFTER 5/5 APPROVALS**
-1. ⏸️ Add `resolve.dedupe: ['styled-components', 'react', 'react-dom']` to `vite.config.ts`
-2. ⏸️ Remove "Client Onboarding" link from `NavigationLinks.tsx`
-3. ⏸️ Remove "Client Onboarding" link from `MobileMenu.tsx`
-4. ⏸️ Add "Client Onboarding" navigation item to `AdminStellarSidebar.tsx`
-5. ⏸️ Test locally with `npm run build && npm run preview`
-6. ⏸️ Commit: `fix: Add styled-components dedupe to resolve production error`
-7. ⏸️ Commit: `fix: Move Client Onboarding to admin sidebar navigation`
-8. ⏸️ Push to GitHub, wait for Render deployment
-9. ⏸️ User runs `emergencyCacheClear()` in production console
-10. ⏸️ Verify admin dashboard loads without errors
+### **Phase 1: Fix Production Blocker (Week 1) - AFTER CONSENSUS**
+**Based on Q1 Vote (Expected: A - Hybrid Approach)**
+
+**Path A: Attempt styled-components v6 Stabilization (Week 1, Days 1-3)**
+1. ⏸️ Lock styled-components to exact version 6.1.19 in package.json
+2. ⏸️ Add ESLint rule forbidding styled-components/macro imports
+3. ⏸️ Add CI check: `npm ls styled-components` must show single version
+4. ⏸️ Add `rm -rf node_modules/.vite dist` to Render build command
+5. ⏸️ Test locally: `npm run build && npm run preview`
+6. ⏸️ Deploy to staging (feature flag: `ADMIN_DASHBOARD_V2=false`)
+7. ⏸️ If successful: Deploy to production with canary rollout (10% → 50% → 100%)
+
+**Path B: Migrate to Emotion (Week 1, Days 4-7, if Path A fails)**
+1. ⏸️ Install @emotion/react @emotion/styled
+2. ⏸️ Create emotion-styled-migration.md guide
+3. ⏸️ Migrate UnifiedAdminDashboardLayout.tsx to Emotion
+4. ⏸️ Test admin dashboard loads without errors
+5. ⏸️ Deploy behind feature flag
+6. ⏸️ Gradual migration: 1-2 admin components per day (Week 2-3)
+
+**Success Criteria:**
+- ✅ Admin dashboard loads at `/dashboard/default` without JavaScript errors
+- ✅ No `we.div is not a function` errors in console
+- ✅ Performance < 3s load time
+- ✅ No regressions in other dashboards
 
 ### **Phase 2: Theme Unification (3-5 hours) - AFTER PHASE 1**
 1. ⏸️ Audit Executive Command Intelligence theme usage in admin dashboard
@@ -156,7 +183,7 @@
 | **MinMax v2** | Visual Design & UX | ⏳ PENDING | DASHBOARD-MASTER-ARCHITECTURE.md, ADMIN-DASHBOARD-ERROR-ANALYSIS.md |
 | **Gemini** | Performance & Data Flow | ⏳ PENDING | DASHBOARD-MASTER-ARCHITECTURE.md, ADMIN-DASHBOARD-ERROR-ANALYSIS.md |
 | **ChatGPT-5** | Feature Completeness | ⏳ PENDING | DASHBOARD-MASTER-ARCHITECTURE.md, AI-REVIEW-REQUEST-DASHBOARD-ARCHITECTURE.md |
-| **Kilo Code** | Testing & QA | ⏳ PENDING | ADMIN-DASHBOARD-ERROR-ANALYSIS.md, AI-REVIEW-REQUEST-DASHBOARD-ARCHITECTURE.md |
+| **Kilo Code** | Testing & QA | ✅ APPROVED (with conditions) | ADMIN-DASHBOARD-ERROR-ANALYSIS.md, AI-REVIEW-REQUEST-DASHBOARD-ARCHITECTURE.md |
 
 ### **Phase 1-4: Implementation Phase (After 5/5 Approvals)**
 | AI | Role | Will Work On |
