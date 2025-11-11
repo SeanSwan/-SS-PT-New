@@ -334,18 +334,6 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             </MobileNavLink>
           </motion.div>
 
-          {isRoleEnabled('admin') && (
-            <motion.div variants={itemVariants}>
-              <MobileNavLink
-                to="/dashboard/client-onboarding"
-                onClick={closeMobileMenu}
-                $isActive={isActive('/dashboard/client-onboarding')}
-              >
-                <PersonIcon fontSize="small" /> Client Onboarding
-              </MobileNavLink>
-            </motion.div>
-          )}
-
           <motion.div variants={itemVariants}>
             <MobileNavLink
               to="/contact"
