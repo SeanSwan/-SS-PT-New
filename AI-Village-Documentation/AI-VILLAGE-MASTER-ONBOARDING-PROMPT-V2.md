@@ -1,8 +1,8 @@
-# 🚀 AI VILLAGE MASTER ONBOARDING PROMPT v2.3
-## UNIFIED: Phase 0 Reviews + AI Handoff Coordination + Design Workflow + Coach Cortex v3.1
+# 🚀 AI VILLAGE MASTER ONBOARDING PROMPT v2.4
+## UNIFIED: Phase 0 Reviews + AI Handoff Coordination + Design Workflow + Coach Cortex v3.1 + Admin Video Library
 
-**LATEST UPDATE:** 2025-11-10 - Clarified Kilo Code = DeepSeek Prover + Added complete 6-AI roster table
-**Previous Update:** 2025-11-06 - Added Kilo Code (Boot Camp Specialist) + Coach Cortex v3.1 integration
+**LATEST UPDATE:** 2025-11-13 - Added Admin Video Library System (28,000+ lines docs + 950+ lines UI code)
+**Previous Update:** 2025-11-10 - Clarified Kilo Code = DeepSeek Prover + Added complete 6-AI roster table
 
 ---
 
@@ -97,6 +97,18 @@ Copy this entire prompt to ANY AI in the AI Village — they will auto‑detect 
 ### **🎮 Gamification System:**
 - Master Prompt: `docs/ai-workflow/gamification/GAMIFICATION-MASTER-PROMPT-FINAL.md`
 - Implementation summary: `docs/ai-workflow/gamification/GAMIFICATION-PARALLEL-IMPLEMENTATION-SUMMARY.md`
+
+### **🎬 Admin Video Library System:** (NEW - 2025-11-13)
+- Wireframes: `docs/ai-workflow/ADMIN-VIDEO-LIBRARY-WIREFRAMES.md` (~15,000 lines)
+- Architecture: `docs/ai-workflow/ADMIN-VIDEO-LIBRARY-ARCHITECTURE.mermaid.md` (~7,000 lines)
+- Testing Guide: `docs/ai-workflow/ADMIN-VIDEO-LIBRARY-TESTING-GUIDE.md` (~6,000 lines)
+- Frontend Components:
+  - Main page: `frontend/src/pages/admin/AdminVideoLibrary.tsx`
+  - Video card: `frontend/src/components/admin/VideoCard.tsx`
+  - Exercise wizard: `frontend/src/components/admin/CreateExerciseWizard.tsx`
+  - Video player: `frontend/src/components/admin/VideoPlayerModal.tsx`
+  - Debounce hook: `frontend/src/hooks/useDebounce.ts`
+  - Test wrapper: `frontend/src/pages/admin/VideoLibraryTest.tsx`
 
 ### **🔄 Shared Files (How AIs Coordinate):**
 - Current task tracking: `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md` (lock files here!)
