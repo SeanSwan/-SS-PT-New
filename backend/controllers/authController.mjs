@@ -1,3 +1,222 @@
+/**
+ * Authentication Controller (JWT + RBAC + Rate Limiting)
+ * =======================================================
+ *
+ * Purpose: Handle all user authentication, registration, and session management
+ *
+ * Blueprint Reference: SwanStudios Personal Training Platform - Auth System
+ *
+ * Architecture Overview:
+ * ┌─────────────────┐      ┌──────────────────┐      ┌─────────────────┐
+ * │  Client Request │─────▶│  Auth Controller │─────▶│   PostgreSQL    │
+ * │  (Login/Reg)    │      │  (this file)     │      │   users table   │
+ * └─────────────────┘      └──────────────────┘      └─────────────────┘
+ *                                   │
+ *                                   │ (generates)
+ *                                   ▼
+ *                          ┌──────────────────┐
+ *                          │  JWT Tokens      │
+ *                          │  - Access Token  │
+ *                          │  - Refresh Token │
+ *                          └──────────────────┘
+ *
+ * Database Relationships:
+ *   ┌─────────────────────────┐
+ *   │ users (table)           │
+ *   ├─────────────────────────┤
+ *   │ id (UUID) PK            │
+ *   │ email (UNIQUE)          │
+ *   │ password (bcrypt hash)  │
+ *   │ role ENUM               │
+ *   │ firstName, lastName     │
+ *   │ photo, fitnessGoal      │
+ *   │ lastActive TIMESTAMP    │
+ *   └─────────────────────────┘
+ *
+ * API Endpoints (10 total):
+ *
+ * ┌────────────────────────────────────────────────────────────────┐
+ * │ ENDPOINT                    AUTH          PURPOSE              │
+ * ├────────────────────────────────────────────────────────────────┤
+ * │ POST   /api/auth/register   Public        Create new user      │
+ * │ POST   /api/auth/login      Public        Authenticate user    │
+ * │ POST   /api/auth/refresh    Public        Refresh access token │
+ * │ POST   /api/auth/logout     Required      Invalidate session   │
+ * │ GET    /api/auth/profile    Required      Get user profile     │
+ * │ PATCH  /api/auth/profile    Required      Update profile       │
+ * │ POST   /api/auth/validate   Public        Validate JWT token   │
+ * │ GET    /api/auth/user/:id   Required      Get user by ID       │
+ * │ POST   /api/auth/controller Public        Legacy endpoint      │
+ * │ GET    /api/auth/me         Required      Get current user     │
+ * └────────────────────────────────────────────────────────────────┘
+ *
+ * Authentication Flow (Mermaid):
+ * ```mermaid
+ * sequenceDiagram
+ *     participant C as Client
+ *     participant A as AuthController
+ *     participant R as Rate Limiter
+ *     participant DB as PostgreSQL
+ *     participant JWT as JWT Library
+ *
+ *     C->>A: POST /api/auth/login {email, password}
+ *     A->>R: Check rate limit (IP/email)
+ *
+ *     alt Rate limit exceeded
+ *         R-->>C: 429 Too Many Requests
+ *     else Within limit
+ *         A->>DB: SELECT * FROM users WHERE email = ?
+ *
+ *         alt User not found
+ *             DB-->>C: 401 Invalid credentials
+ *         else User found
+ *             A->>A: bcrypt.compare(password, hash)
+ *
+ *             alt Password invalid
+ *                 A->>R: Increment failed attempts
+ *                 A-->>C: 401 Invalid credentials
+ *             else Password valid
+ *                 A->>JWT: generateAccessToken(id, role)
+ *                 A->>JWT: generateRefreshToken(id)
+ *                 A->>DB: UPDATE users SET lastActive = NOW()
+ *                 A-->>C: 200 {user, accessToken, refreshToken}
+ *             end
+ *         end
+ *     end
+ * ```
+ *
+ * JWT Token Structure:
+ *
+ * Access Token (3 hour expiry):
+ * {
+ *   id: "uuid-string",
+ *   role: "admin|trainer|client",
+ *   tokenType: "access",
+ *   tokenId: "uuid-for-revocation",
+ *   iat: 1699564800,
+ *   exp: 1699575600
+ * }
+ *
+ * Refresh Token (7 day expiry):
+ * {
+ *   id: "uuid-string",
+ *   tokenType: "refresh",
+ *   tokenId: "uuid-for-revocation",
+ *   iat: 1699564800,
+ *   exp: 1700169600
+ * }
+ *
+ * Security Features:
+ *
+ * 1. Password Security:
+ *    - bcrypt hashing with 10 rounds
+ *    - Minimum 8 characters required
+ *    - Password never stored in plaintext
+ *    - Password never returned in API responses
+ *
+ * 2. Rate Limiting:
+ *    - 5 login attempts per 15 minutes (per IP/email)
+ *    - In-memory tracking (should migrate to Redis for production)
+ *    - Automatic cleanup of expired attempts
+ *    - Returns 429 when limit exceeded
+ *
+ * 3. JWT Security:
+ *    - Separate access and refresh tokens
+ *    - Unique tokenId for revocation support
+ *    - Signed with JWT_SECRET
+ *    - Token type validation
+ *
+ * 4. Input Validation:
+ *    - Email format validation
+ *    - Username uniqueness checks
+ *    - Password strength requirements
+ *    - SQL injection prevention via parameterized queries
+ *
+ * 5. Response Sanitization:
+ *    - Password field stripped from all responses
+ *    - PII fields only returned to authorized users
+ *    - Consistent error messages (prevent user enumeration)
+ *
+ * Business Logic:
+ *
+ * WHY Separate Access and Refresh Tokens?
+ * - Security: Short-lived access tokens limit damage if stolen
+ * - UX: Refresh tokens enable seamless re-authentication without login
+ * - Revocation: Can invalidate refresh tokens without affecting active sessions
+ * - Industry standard: OAuth 2.0 pattern
+ *
+ * WHY Rate Limiting?
+ * - Brute force protection: Prevents password guessing attacks
+ * - DDoS mitigation: Limits impact of automated attacks
+ * - Compliance: OWASP recommendation for authentication endpoints
+ * - Resource protection: Prevents database overload from failed logins
+ *
+ * WHY bcrypt Over Plain Hashing?
+ * - Intentionally slow: Makes brute force attacks impractical
+ * - Salted: Every password has unique hash (prevents rainbow tables)
+ * - Adaptive: Can increase rounds as hardware improves
+ * - Industry standard: Recommended by OWASP
+ *
+ * WHY Lazy Loading User Model?
+ * - Prevents initialization race condition during server startup
+ * - Models loaded via getUser() when needed
+ * - Ensures Sequelize associations are fully initialized
+ * - Critical for P0 stability fix
+ *
+ * Error Handling:
+ *
+ * 400 Bad Request:
+ * - Missing required fields
+ * - Invalid email format
+ * - Password too short
+ * - Validation errors
+ *
+ * 401 Unauthorized:
+ * - Invalid credentials
+ * - Token expired
+ * - Token invalid
+ * - User not found
+ *
+ * 409 Conflict:
+ * - Email already exists
+ * - Username already exists
+ *
+ * 429 Too Many Requests:
+ * - Rate limit exceeded
+ *
+ * 500 Internal Server Error:
+ * - Database connection error
+ * - JWT signing error
+ * - Unexpected errors
+ *
+ * Environment Variables:
+ * - JWT_SECRET: Secret key for access token signing (REQUIRED)
+ * - JWT_REFRESH_SECRET: Secret key for refresh token (defaults to JWT_SECRET)
+ * - JWT_EXPIRES_IN: Access token expiry (default: 3h)
+ * - REFRESH_TOKEN_EXPIRES_IN: Refresh token expiry (default: 7d)
+ *
+ * Dependencies:
+ * - jsonwebtoken: JWT token generation/verification
+ * - bcryptjs: Password hashing
+ * - Sequelize: ORM for database operations
+ * - uuid: Unique token IDs for revocation
+ *
+ * Performance Considerations:
+ * - bcrypt hashing: ~100ms per password (intentional delay)
+ * - Database queries: ~5-10ms (indexed email lookup)
+ * - JWT signing: ~1-2ms
+ * - Total login time: ~110-115ms
+ * - Rate limiter: In-memory Map (O(1) lookup, migrate to Redis for scale)
+ *
+ * Testing:
+ * - Unit tests: backend/tests/authController.test.mjs
+ * - Integration tests: API endpoint tests
+ * - Security tests: Rate limiting, password hashing, JWT validation
+ *
+ * Created: 2024 (Original)
+ * Enhanced: 2025-11-14 (Level 5/5 Documentation - Blueprint-First Standard)
+ */
+
 // backend/controllers/authController.mjs
 import logger from '../utils/logger.mjs';
 import jwt from 'jsonwebtoken';
