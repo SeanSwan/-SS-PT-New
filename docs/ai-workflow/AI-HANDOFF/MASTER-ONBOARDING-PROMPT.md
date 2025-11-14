@@ -149,6 +149,115 @@ Max file sizes:
   - If not locked: Lock it yourself before editing
 ```
 
+### **❌ DO NOT Write Code Without Blueprint (NO VIBE CODING)**
+```
+❌ BAD: "Let me try this approach and see if it works"
+
+✅ GOOD: Blueprint-First Development:
+  1. Create architecture doc FIRST
+  2. Include ERD diagrams, Mermaid sequence diagrams, WHY sections
+  3. Get user approval
+  4. THEN implement with Level 5/5 code documentation
+
+❌ VIBE CODING = Figuring out architecture as you code
+✅ BLUEPRINT-FIRST = Architecture approved before any code
+
+All code MUST have comprehensive headers with:
+- Blueprint reference link
+- Architecture diagrams (ASCII/Mermaid)
+- Database ERDs (for migrations)
+- API flow diagrams (for controllers)
+- Business logic WHY sections
+- Security model
+- Performance considerations
+
+See HANDOFF-PROTOCOL.md "Blueprint-First Enforcement" section for full details.
+```
+
+---
+
+## 📏 LEVEL 5/5 DOCUMENTATION STANDARD
+
+### **What is Level 5/5 Documentation?**
+
+**Level 1:** Basic comments
+**Level 2:** Function JSDoc
+**Level 3:** File headers with descriptions
+**Level 4:** Enhanced headers with sections
+**Level 5:** AI-Ready with embedded architecture diagrams (REQUIRED)
+
+### **Required Elements for Level 5/5:**
+
+**Every code file MUST include:**
+1. **Blueprint Reference:** Link to architecture doc
+2. **Architecture Diagrams:** ASCII diagrams showing system relationships
+3. **Data Flow:** How data moves through the system
+4. **Security Model:** Auth requirements, RBAC, validation
+5. **Error Handling:** What errors can occur and how they're handled
+6. **Business Logic WHY Sections:** Explain design decisions
+7. **Performance Considerations:** Scalability, optimization notes
+8. **Testing Strategy:** What needs to be tested
+
+**For Database Migrations:**
+- ERD showing table relationships
+- Complete schema documentation
+- Index descriptions
+- WHY sections (Why soft deletes? Why this structure?)
+- Migration safety notes
+
+**For Controllers:**
+- API endpoint list
+- Mermaid sequence diagrams
+- Request/response examples
+- Joi validation schemas
+- Transaction handling
+
+**For Routes:**
+- Middleware flow diagram
+- Authentication strategy
+- Error response formats
+- Usage examples
+
+### **Example: Level 5/5 Migration Header**
+```javascript
+/**
+ * Migration: Create exercise_videos table
+ * ========================================
+ *
+ * Purpose: Store video content for exercise demonstrations
+ *
+ * Blueprint Reference: docs/ai-workflow/AI-HANDOFF/VIDEO-LIBRARY-COMPLETE-STATUS.md
+ *
+ * Table Relationships (ER Diagram):
+ *   exercise_library (PARENT)
+ *         │
+ *         │ (has many)
+ *         ▼
+ *   ┌─────────────────────────────────────┐
+ *   │ exercise_videos (CHILD)             │
+ *   │ - id (UUID) PK                      │
+ *   │ - exercise_id (FK)                  │
+ *   │ - video_type ENUM                   │
+ *   │ - deletedAt (soft delete)           │
+ *   └─────────────────────────────────────┘
+ *
+ * Data Flow:
+ * 1. Admin creates video
+ * 2. Backend validates
+ * 3. Trigger updates parent table
+ *
+ * Business Logic:
+ * WHY Soft Deletes?
+ * - Preserve workout history
+ * - NASM compliance requirement
+ * - Enable data recovery
+ *
+ * [Complete documentation...]
+ */
+```
+
+---
+
 ### **❌ DO NOT Make Assumptions**
 ```
 ❌ BAD: Assume user wants approach X and implement it

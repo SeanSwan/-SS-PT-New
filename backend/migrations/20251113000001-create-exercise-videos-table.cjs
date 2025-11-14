@@ -1,26 +1,122 @@
 /**
  * Migration: Create exercise_videos table
+ * ========================================
  *
  * Purpose: Store video content for exercise demonstrations (YouTube + uploads)
- * Features:
- * - Soft deletes (deletedAt timestamp)
- * - Support for both YouTube and uploaded videos
- * - HLS streaming for uploaded videos
- * - Chapter navigation
- * - View tracking
- * - Public/private visibility
- * - Admin approval workflow
  *
- * Related Tables:
- * - exercise_library (parent - one exercise has many videos)
- * - users (uploader tracking)
+ * Blueprint Reference: docs/ai-workflow/AI-HANDOFF/VIDEO-LIBRARY-COMPLETE-STATUS.md
+ *
+ * Table Relationships (ER Diagram):
+ *
+ *   users (one)                    exercise_library (PARENT)
+ *     │                                    │
+ *     │                                    │
+ *     │ (uploads)                          │ (has many)
+ *     │                                    │
+ *     ▼                                    ▼
+ *   ┌─────────────────────────────────────────────────────┐
+ *   │ exercise_videos (CHILD - Many-to-One)               │
+ *   ├─────────────────────────────────────────────────────┤
+ *   │ id (UUID) PK - Unique video identifier              │
+ *   │ exercise_id (UUID) FK → exercise_library.id         │
+ *   │ uploader_id (INTEGER) FK → users.id (SET NULL)      │
+ *   │ video_type ENUM('youtube', 'upload')                │
+ *   │ video_id VARCHAR(200) - YouTube ID or S3 key        │
+ *   │ title VARCHAR(200) - Auto-fetched from YouTube      │
+ *   │ description TEXT - Full description                 │
+ *   │ duration_seconds INTEGER - Required for chapters    │
+ *   │ thumbnail_url VARCHAR(500) - Preview image          │
+ *   │ hls_manifest_url VARCHAR(500) - HLS .m3u8 URL       │
+ *   │ hls_variants JSONB - Quality levels (360p-1080p)    │
+ *   │ chapters JSONB - Timestamped navigation             │
+ *   │ approved BOOLEAN - Admin approval status            │
+ *   │ approved_by INTEGER FK → users.id                   │
+ *   │ approved_at TIMESTAMP - Approval timestamp          │
+ *   │ is_public BOOLEAN - Visibility control              │
+ *   │ views INTEGER - View count (incremented on play)    │
+ *   │ tags JSONB - Search/filter tags                     │
+ *   │ deletedAt TIMESTAMP - Soft delete (NULL = active)   │
+ *   │ created_at, updated_at TIMESTAMP                    │
+ *   └─────────────────────────────────────────────────────┘
+ *                     │
+ *                     │ (has many)
+ *                     ▼
+ *   ┌─────────────────────────────────────────────────────┐
+ *   │ video_analytics (One-to-Many)                       │
+ *   ├─────────────────────────────────────────────────────┤
+ *   │ video_id (UUID) FK → exercise_videos.id             │
+ *   │ user_id (INTEGER) FK → users.id                     │
+ *   │ watch_duration_seconds INTEGER                      │
+ *   │ completion_percentage DECIMAL(5,2)                  │
+ *   └─────────────────────────────────────────────────────┘
+ *
+ * Key Features:
+ * - ✅ Dual video source support (YouTube Data API v3 + direct uploads)
+ * - ✅ HLS adaptive bitrate streaming (upload videos only)
+ * - ✅ Chapter navigation (timestamped bookmarks)
+ * - ✅ Admin approval workflow (approved, approved_by, approved_at)
+ * - ✅ Public/private visibility control
+ * - ✅ View tracking (views count incremented on play)
+ * - ✅ Soft deletes (preserves workout history)
+ * - ✅ Tags for search/filtering (GIN indexed)
+ *
+ * Data Flow:
+ *
+ * YouTube Video Creation:
+ * 1. Admin submits YouTube URL
+ * 2. Backend fetches metadata from YouTube Data API v3
+ * 3. Auto-populates: title, description, thumbnail_url, duration_seconds
+ * 4. Creates exercise_videos record
+ * 5. Trigger updates exercise_library.video_count
+ *
+ * Upload Video Creation:
+ * 1. Admin uploads video file
+ * 2. FFmpeg converts to HLS format (multiple quality variants)
+ * 3. Uploads to S3/CloudFront
+ * 4. Creates exercise_videos record with HLS manifest URL
+ * 5. Trigger updates exercise_library.video_count
+ *
+ * Indexes (9 total):
+ * - idx_exercise_videos_exercise_id (WHERE deletedAt IS NULL)
+ * - idx_exercise_videos_uploader_id (WHERE deletedAt IS NULL)
+ * - idx_exercise_videos_video_type (WHERE deletedAt IS NULL)
+ * - idx_exercise_videos_approved (WHERE deletedAt IS NULL)
+ * - idx_exercise_videos_is_public (WHERE deletedAt IS NULL)
+ * - idx_exercise_videos_created_at DESC (WHERE deletedAt IS NULL)
+ * - idx_exercise_videos_views DESC (WHERE deletedAt IS NULL)
+ * - idx_exercise_videos_tags GIN (WHERE deletedAt IS NULL)
+ * - idx_exercise_videos_active_public COMPOSITE (exercise_id, approved, is_public)
+ *
+ * Business Logic:
+ *
+ * WHY Soft Deletes?
+ * - Workout history: Clients' past workouts reference these videos
+ * - Compliance: NASM requires exercise history for liability
+ * - Recovery: Admins can restore accidentally deleted content
+ *
+ * WHY Approval Workflow?
+ * - Quality control: Ensures videos meet NASM standards
+ * - Trainer submissions: Allows trainers to submit videos for admin review
+ * - Content moderation: Prevents inappropriate content
+ *
+ * WHY HLS Streaming?
+ * - Adaptive bitrate: Quality adjusts to user's internet speed
+ * - Mobile support: Works on all devices
+ * - Performance: Reduces buffering
  *
  * Security:
- * - Admin-only write access (enforced in API layer)
- * - Public read access for approved videos
+ * - Admin-only write access (enforced in API layer via requireAdmin middleware)
+ * - Public read access for approved + public videos
  * - Soft deletes preserve audit trail
+ * - SQL injection prevention via parameterized queries
+ * - YouTube quota tracking (10,000 units/day)
+ *
+ * Dependencies:
+ * - exercise_library table (parent - must exist first)
+ * - users table (for uploader tracking)
  *
  * Created: 2025-11-13
+ * Enhanced: 2025-11-14 (Level 5/5 Documentation - Blueprint-First Standard)
  */
 
 exports.up = async function(knex) {

@@ -26,6 +26,181 @@ Split large files. Max sizes:
 - Components: 300 lines
 - Services: 400 lines
 
+### **Rule #6: Blueprint-First Development (NO VIBE CODING)**
+NEVER write code without an approved architectural blueprint
+- All code MUST have Level 5/5 documentation (embedded diagrams)
+- All features MUST have approved architecture doc BEFORE coding
+- NO "vibe coding" or "figure it out as we go"
+
+---
+
+## 🏗️ BLUEPRINT-FIRST ENFORCEMENT
+
+### **What is "Vibe Coding"?**
+❌ **VIBE CODING** = Starting to code without a clear architectural plan
+- "Let's just try this and see if it works"
+- "I'll figure out the structure as I go"
+- "We can refactor later"
+- Writing code before understanding full system impact
+
+### **What is Blueprint-First Development?**
+✅ **BLUEPRINT-FIRST** = Architecture documentation BEFORE any code
+- Complete ERD diagrams for database changes
+- API flow diagrams (Mermaid sequence diagrams)
+- Component architecture diagrams
+- Business logic WHY sections explaining design decisions
+- Security model documentation
+- Performance considerations documented
+
+### **Level 5/5 Documentation Standard**
+
+Every code file MUST have comprehensive headers including:
+
+**For Controllers/Services:**
+- Blueprint reference link
+- Architecture Overview (ASCII diagram)
+- Database Relationships (ERD)
+- API Flow (Mermaid sequence diagram)
+- API Endpoints list
+- Security Model
+- Error Handling Strategy
+- Business Logic Decisions (WHY sections)
+- Dependencies
+- Environment Variables
+- Performance Considerations
+- Testing references
+
+**For Database Migrations:**
+- Blueprint reference link
+- Table Relationships (ER Diagram)
+- Complete schema documentation
+- Data Flow descriptions
+- Indexes list with descriptions
+- Business Logic WHY sections
+- Security considerations
+- Migration safety notes
+
+**For Routes:**
+- Blueprint reference link
+- Architecture Overview
+- Middleware Flow diagram
+- API Endpoints table
+- Request/Response Flow (Mermaid)
+- Authentication Strategy
+- Error Responses
+- Security Model
+
+**For Middleware:**
+- Blueprint reference link
+- Architecture Overview
+- Authentication Flow (Mermaid)
+- Security Model
+- Error Responses
+- Usage Examples
+- Performance Considerations
+
+### **Example: Level 5/5 Header**
+```javascript
+/**
+ * Video Library Controller (Admin Exercise Management)
+ * =====================================================
+ *
+ * Purpose: Manage NASM exercise library with YouTube + upload video demonstrations
+ *
+ * Blueprint Reference: docs/ai-workflow/AI-HANDOFF/VIDEO-LIBRARY-COMPLETE-STATUS.md
+ *
+ * Architecture Overview:
+ * ┌─────────────────┐      ┌──────────────────┐      ┌─────────────────┐
+ * │  Admin Client   │─────▶│  Video Library   │─────▶│   PostgreSQL    │
+ * │   (Frontend)    │      │   Controller     │      │   + YouTube API │
+ * └─────────────────┘      └──────────────────┘      └─────────────────┘
+ *
+ * [Full architecture diagram, ERDs, Mermaid diagrams, etc.]
+ *
+ * Business Logic:
+ * WHY Soft Deletes?
+ * - Workout history integrity
+ * - NASM compliance requirements
+ * - Data recovery capabilities
+ *
+ * [Complete documentation...]
+ */
+```
+
+### **Blueprint-First Workflow**
+
+**Step 1: User Requests Feature**
+```
+User: "Add video library to exercise management"
+```
+
+**Step 2: AI Creates Architecture Doc (NO CODE YET)**
+```
+AI:
+1. Creates: docs/ai-workflow/features/VIDEO-LIBRARY-ARCHITECTURE.md
+2. Documents:
+   - Database schema (ERD diagrams)
+   - API endpoints (Mermaid sequence diagrams)
+   - Security model
+   - Business logic decisions (WHY sections)
+   - Performance considerations
+   - Testing strategy
+3. Presents to user for approval
+4. WAITS for approval
+```
+
+**Step 3: User Approves Blueprint**
+```
+User: "Approved, proceed with implementation"
+```
+
+**Step 4: AI Implements with Level 5/5 Docs**
+```
+AI:
+1. Creates migration files with comprehensive headers (ER diagrams, WHY sections)
+2. Creates controller with comprehensive headers (Mermaid diagrams, security model)
+3. Creates routes with comprehensive headers (middleware flow, auth strategy)
+4. Every file references the blueprint document
+5. Every file has embedded architecture diagrams
+```
+
+**Step 5: AI Updates Blueprint Status**
+```
+AI:
+1. Updates blueprint doc with "✅ IMPLEMENTED" status
+2. Links to all implementation files
+3. Documents any deviations from original plan
+```
+
+### **Enforcement Rules**
+
+**❌ PROHIBITED:**
+- Writing code without approved blueprint
+- "Let me try this approach" without doc
+- Refactoring without architecture plan
+- "Quick fixes" that bypass blueprint process
+- Files with basic comments (Level 1-2 documentation)
+
+**✅ REQUIRED:**
+- Blueprint doc approved BEFORE coding
+- All files have Level 5/5 headers
+- Architecture diagrams embedded in code
+- Business logic WHY sections
+- Blueprint reference links in every file
+
+### **Quality Checklist**
+
+Before marking work complete, verify:
+- [ ] Blueprint document exists and is approved
+- [ ] All code files have comprehensive headers (Level 5/5)
+- [ ] ERD diagrams present for database changes
+- [ ] Mermaid sequence diagrams for API flows
+- [ ] Business logic WHY sections explain design decisions
+- [ ] Security considerations documented
+- [ ] Performance implications documented
+- [ ] Files reference blueprint document
+- [ ] No "vibe coding" - everything is intentional
+
 ---
 
 ## 📋 WORKFLOW FOR EVERY AI
@@ -164,7 +339,8 @@ docs/ai-workflow/AI-HANDOFF/
 ├── CLAUDE-CODE-STATUS.md    ← Claude Code's work log
 ├── GEMINI-STATUS.md         ← Gemini's work log
 ├── CHATGPT-STATUS.md        ← ChatGPT-5's work log
-└── ROO-CODE-STATUS.md       ← Roo Code's work log (uses Grok models)
+├── ROO-CODE-STATUS.md       ← Roo Code's work log (uses Grok models)
+└── MINMAX-V2-STATUS.md      ← MinMax v2's work log (Strategic UX & Multi-AI Orchestrator)
 ```
 
 ---
