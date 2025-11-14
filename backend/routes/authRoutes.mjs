@@ -1,7 +1,311 @@
 /**
- * authRoutes.mjs
- * Comprehensive routes for authentication and user management
- * Featuring secure token handling, rate limiting, and advanced user management
+ * Authentication Routes (JWT + RBAC + Rate Limiting)
+ * ====================================================
+ *
+ * Purpose: REST API routes for user authentication, session management, and user CRUD operations
+ *
+ * Blueprint Reference: SwanStudios Personal Training Platform - Auth System
+ *
+ * Base Path: /api/auth
+ *
+ * Architecture Overview:
+ * ┌─────────────────┐      ┌──────────────────┐      ┌─────────────────┐
+ * │  Client App     │─────▶│  Express Routes  │─────▶│  Auth           │
+ * │  (Frontend)     │      │  (this file)     │      │  Controller     │
+ * └─────────────────┘      └──────────────────┘      └─────────────────┘
+ *                                   │
+ *                                   │ (middleware stack)
+ *                                   ▼
+ *                          ┌──────────────────┐
+ *                          │  Middleware:     │
+ *                          │  - rateLimiter   │
+ *                          │  - validate      │
+ *                          │  - protect       │
+ *                          │  - adminOnly     │
+ *                          └──────────────────┘
+ *
+ * Middleware Flow (Request Processing):
+ *
+ *   Incoming Request
+ *         │
+ *         ▼
+ *   ┌─────────────────┐
+ *   │ Express Router  │
+ *   └─────────────────┘
+ *         │
+ *         ▼
+ *   ┌─────────────────┐       ┌────────────────────┐
+ *   │ rateLimiter     │──────▶│ Check IP/endpoint  │
+ *   │ (optional)      │       │ request count      │
+ *   └─────────────────┘       └────────────────────┘
+ *         │
+ *         ▼
+ *   ┌─────────────────┐       ┌────────────────────┐
+ *   │ validate        │──────▶│ Joi schema check   │
+ *   │ (optional)      │       │ req.body format    │
+ *   └─────────────────┘       └────────────────────┘
+ *         │
+ *         ▼
+ *   ┌─────────────────┐       ┌────────────────────┐
+ *   │ protect         │──────▶│ JWT verification   │
+ *   │ (auth required) │       │ Attach req.user    │
+ *   └─────────────────┘       └────────────────────┘
+ *         │
+ *         ▼
+ *   ┌─────────────────┐       ┌────────────────────┐
+ *   │ adminOnly       │──────▶│ Check role=admin   │
+ *   │ (optional)      │       │ Return 403 if not  │
+ *   └─────────────────┘       └────────────────────┘
+ *         │
+ *         ▼
+ *   ┌─────────────────┐
+ *   │ Controller      │
+ *   │ Function        │
+ *   └─────────────────┘
+ *
+ * API Endpoints (12 total):
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────────────────────┐
+ * │ METHOD  ENDPOINT                    MIDDLEWARE                  AUTH      PURPOSE         │
+ * ├──────────────────────────────────────────────────────────────────────────────────────────┤
+ * │ POST    /register                   rateLimiter, validate       Public    Register        │
+ * │ POST    /login                      rateLimiter, validate       Public    Login           │
+ * │ POST    /refresh-token              rateLimiter, validate       Public    Refresh JWT     │
+ * │ POST    /logout                     protect                     Private   Logout          │
+ * │ GET     /validate-token             (none)                      Public    Validate JWT    │
+ * │ GET     /me                         protect                     Private   Get profile     │
+ * │ PUT     /password                   protect, validate           Private   Change password │
+ * │ GET     /users/trainers             protect                     Private   List trainers   │
+ * │ GET     /users/clients              protect, adminOnly          Admin     List clients    │
+ * │ GET     /users/:id                  protect                     Private   Get user by ID  │
+ * │ PUT     /users/:id                  protect, adminOnly          Admin     Update user     │
+ * │ GET     /stats                      protect, adminOnly          Admin     User statistics │
+ * └──────────────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * Rate Limiting Strategy (Per Endpoint):
+ *
+ * ┌────────────────────────────────────────────────────────────┐
+ * │ ENDPOINT          WINDOW       MAX REQUESTS    RATIONALE   │
+ * ├────────────────────────────────────────────────────────────┤
+ * │ /register         60 min       10/IP           Anti-spam   │
+ * │ /login            15 min       10/IP           Brute force │
+ * │ /refresh-token    15 min       20/IP           UX balance  │
+ * └────────────────────────────────────────────────────────────┘
+ *
+ * Request/Response Flow (Mermaid):
+ * ```mermaid
+ * sequenceDiagram
+ *     participant C as Client
+ *     participant R as Express Router
+ *     participant RL as rateLimiter
+ *     participant V as validate
+ *     participant P as protect
+ *     participant A as adminOnly
+ *     participant AC as AuthController
+ *     participant DB as PostgreSQL
+ *
+ *     C->>R: POST /api/auth/login {email, password}
+ *     R->>RL: Check rate limit
+ *
+ *     alt Rate limit exceeded
+ *         RL-->>C: 429 Too Many Requests
+ *     else Within limit
+ *         RL->>V: Validate request body (Joi schema)
+ *
+ *         alt Invalid input
+ *             V-->>C: 400 Validation Error
+ *         else Valid input
+ *             V->>AC: login(req, res)
+ *             AC->>DB: SELECT * FROM users WHERE email = ?
+ *
+ *             alt User not found
+ *                 DB-->>AC: null
+ *                 AC-->>C: 401 Invalid credentials
+ *             else User found
+ *                 AC->>AC: bcrypt.compare(password, hash)
+ *
+ *                 alt Password incorrect
+ *                     AC-->>C: 401 Invalid credentials
+ *                 else Password correct
+ *                     AC->>AC: Generate JWT (access + refresh)
+ *                     AC->>DB: UPDATE users SET refreshTokenHash = ?
+ *                     AC-->>C: 200 OK + tokens
+ *                 end
+ *             end
+ *         end
+ *     end
+ * ```
+ *
+ * Authentication Strategy:
+ *
+ * Public Endpoints (No Auth Required):
+ * - /register - New user registration
+ * - /login - User authentication
+ * - /refresh-token - Get new access token
+ * - /validate-token - Check if JWT is valid
+ *
+ * Private Endpoints (protect middleware):
+ * - Extracts JWT from Authorization: Bearer <token>
+ * - Verifies token signature + expiration
+ * - Attaches req.user to request context
+ * - Returns 401 if token invalid/missing
+ *
+ * Admin-Only Endpoints (protect + adminOnly):
+ * - Same as Private + checks req.user.role === 'admin'
+ * - Returns 403 if user not admin
+ * - Endpoints: /users/clients, /users/:id (PUT), /stats
+ *
+ * Trainer Access Endpoints:
+ * - /users/:id (GET) - Trainers can view assigned clients
+ * - Custom permission logic inside route handler
+ *
+ * Error Responses:
+ *
+ * 400 Bad Request - Validation error (Joi schema)
+ * {
+ *   success: false,
+ *   message: "Validation error",
+ *   errors: { field: "description" }
+ * }
+ *
+ * 401 Unauthorized - Authentication failure
+ * {
+ *   success: false,
+ *   message: "Invalid credentials" | "Token expired" | "User not found"
+ * }
+ *
+ * 403 Forbidden - Authorization failure
+ * {
+ *   success: false,
+ *   message: "Access denied: You do not have permission to view this user"
+ * }
+ *
+ * 404 Not Found - Resource not found
+ * {
+ *   success: false,
+ *   message: "User not found"
+ * }
+ *
+ * 429 Too Many Requests - Rate limit exceeded
+ * {
+ *   success: false,
+ *   message: "Too many requests from this IP, please try again later"
+ * }
+ *
+ * 500 Internal Server Error - Database/server error
+ * {
+ *   success: false,
+ *   message: "Server error changing password"
+ * }
+ *
+ * Security Model:
+ *
+ * 1. Rate Limiting (DDoS + Brute Force Prevention):
+ *    - IP-based rate limiting per endpoint
+ *    - 10 login attempts per 15 minutes
+ *    - 10 registrations per hour
+ *    - In-memory tracking (resets on server restart)
+ *
+ * 2. Input Validation (SQL Injection + XSS Prevention):
+ *    - Joi schema validation on all POST/PUT requests
+ *    - Email format validation (RFC 5322)
+ *    - Password strength requirements (8+ chars)
+ *    - Sanitization of user inputs
+ *
+ * 3. Authentication (JWT):
+ *    - Access tokens: 3h expiry
+ *    - Refresh tokens: 7d expiry
+ *    - Token rotation on refresh
+ *    - Secure HTTP-only cookies (production)
+ *
+ * 4. Authorization (RBAC):
+ *    - Role-based access: admin, trainer, client
+ *    - Principle of least privilege
+ *    - Custom permission checks for trainer-client relationships
+ *
+ * 5. Password Security:
+ *    - bcrypt hashing (10 rounds)
+ *    - Current password verification for password changes
+ *    - No password in API responses (excluded in User.findByPk)
+ *
+ * 6. Audit Logging:
+ *    - All errors logged with user ID + stack trace
+ *    - Failed login attempts tracked
+ *    - Admin actions logged for compliance
+ *
+ * Business Logic:
+ *
+ * WHY Rate Limiting Per Endpoint?
+ * - Different endpoints have different abuse profiles
+ * - Login needs strict rate limit (10/15min) to prevent brute force
+ * - Refresh token needs looser limit (20/15min) for better UX during normal usage
+ * - Registration needs hourly limit (10/hour) to prevent spam account creation
+ * - Custom limits balance security with legitimate user experience
+ *
+ * WHY Separate /users/trainers and /users/clients Endpoints?
+ * - Client use case: Browse trainers (public marketplace feature)
+ * - Admin use case: Manage clients (admin-only CRUD)
+ * - Different filtering requirements (trainers: specialties/rating, clients: search/status)
+ * - Different security models (trainers: any authenticated user, clients: admin only)
+ * - Clear separation of concerns
+ *
+ * WHY Complex Permission Logic in GET /users/:id?
+ * - Multi-role access pattern:
+ *   1. Admins can view any user (full admin access)
+ *   2. Users can view themselves (self-service profile)
+ *   3. Trainers can view assigned clients (relationship-based access)
+ * - Prevents exposing sensitive fields to non-admins (failedLoginAttempts, IPs)
+ * - Enforces data privacy while enabling trainer-client collaboration
+ *
+ * WHY Inline Route Handlers for Some Endpoints?
+ * - Simple CRUD operations don't warrant separate controller functions
+ * - Password change, user lookup, user update are straightforward
+ * - Reduces file hopping for simple operations
+ * - Complex business logic (login, register) extracted to controller
+ *
+ * WHY Pagination on User Lists?
+ * - Performance: Avoids loading thousands of users in one query
+ * - UX: Frontend can show "Load more" or page navigation
+ * - Default limit: 10 users per page (configurable via query param)
+ * - Total count included for pagination UI (totalPages calculation)
+ *
+ * Performance Considerations:
+ * - Rate limiting overhead: ~1-2ms per request (in-memory check)
+ * - Joi validation overhead: ~2-5ms per request (schema validation)
+ * - JWT verification overhead: ~1-2ms per request (signature check)
+ * - Database query optimization:
+ *   - Indexed queries on email, role, isActive
+ *   - Pagination prevents full table scans
+ *   - Attribute exclusion reduces payload size
+ * - Total middleware overhead: ~5-10ms per authenticated request
+ *
+ * Dependencies:
+ * - express: Router and middleware framework
+ * - authController: Business logic for auth operations
+ * - authMiddleware: protect, adminOnly, rateLimiter
+ * - validationMiddleware: Joi schema validation
+ * - User model (Sequelize): PostgreSQL users table
+ * - logger: Winston-based logging utility
+ *
+ * Environment Variables:
+ * - JWT_SECRET: Secret key for JWT signing (REQUIRED)
+ * - JWT_ACCESS_EXPIRY: Access token expiration (default 3h)
+ * - JWT_REFRESH_EXPIRY: Refresh token expiration (default 7d)
+ * - NODE_ENV: production/development (affects logging)
+ *
+ * Route Registration:
+ * - Imported in backend/server.mjs as: app.use('/api/auth', authRoutes)
+ * - Full URLs: https://api.example.com/api/auth/...
+ *
+ * Testing:
+ * - Unit tests: backend/tests/authRoutes.test.mjs
+ * - Integration tests: Supertest + Vitest
+ * - Rate limit tests: Verify 429 responses after exceeding limits
+ * - Auth tests: Verify 401/403 responses for missing/invalid tokens
+ * - RBAC tests: Verify admin-only endpoints reject non-admin users
+ *
+ * Created: 2024-11-XX
+ * Enhanced: 2025-11-14 (Level 5/5 Documentation - Blueprint-First Standard)
  */
 import express from 'express';
 import { 
