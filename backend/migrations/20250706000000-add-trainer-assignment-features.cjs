@@ -52,9 +52,9 @@ module.exports = {
 
       // Update existing sessions with default values if needed
       await queryInterface.sequelize.query(`
-        UPDATE sessions 
-        SET assignedAt = "updatedAt", assignedBy = NULL 
-        WHERE "trainerId" IS NOT NULL AND assignedAt IS NULL
+        UPDATE sessions
+        SET "assignedAt" = "updatedAt", "assignedBy" = NULL
+        WHERE "trainerId" IS NOT NULL AND "assignedAt" IS NULL
       `, { transaction });
 
       console.log('[Migration] ✅ Updated existing trainer-assigned sessions with default assignedAt values');
