@@ -27,7 +27,7 @@ module.exports = {
           type: Sequelize.UUID,
           allowNull: true,
           references: {
-            model: 'WorkoutSessions',
+            model: 'workout_sessions',
             key: 'id'
           },
           onUpdate: 'CASCADE',
