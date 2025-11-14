@@ -64,6 +64,7 @@ import adminStoreRoutes from '../routes/admin/adminStoreRoutes.mjs';
 import adminMcpRoutes from '../routes/adminMcpRoutes.mjs';
 import adminEnterpriseRoutes from '../routes/adminEnterpriseRoutes.mjs';
 import adminContentModerationRoutes from '../routes/adminContentModerationRoutes.mjs';
+import videoLibraryRoutes from '../routes/videoLibraryRoutes.mjs';
 
 // ===================== ENTERPRISE ADMIN ANALYTICS & INTELLIGENCE =====================
 // 🚀 Real Stripe Business Analytics (replaces mock data)
@@ -78,6 +79,7 @@ import adminDataVerificationRoutes from '../routes/adminDataVerificationRoutes.m
 
 // ===================== SPECIALIZED FEATURES =====================
 import orientationRoutes from '../routes/orientationRoutes.mjs';
+import onboardingRoutes from '../routes/onboardingRoutes.mjs';
 import recommendationRoutes from '../routes/recommendationRoutes.mjs';
 import foodScannerRoutes from '../routes/foodScannerRoutes.mjs';
 import dashboardRoutes from '../routes/dashboardRoutes.mjs';
@@ -148,6 +150,11 @@ export const setupRoutes = async (app) => {
   app.use('/api/auth', userManagementRoutes);
   app.use('/api/sessions', sessionRoutes);
   app.use('/api/session-packages', sessionPackageRoutes);
+
+  // ===================== ONBOARDING ROUTES (AI-POWERED PERSONAL TRAINING) =====================
+  // Onboarding-to-Database Pipeline - transforms 85-question CLIENT-ONBOARDING-QUESTIONNAIRE.md
+  // into Master Prompt JSON (v3.0 schema) for AI-powered coaching
+  app.use('/api/onboarding', onboardingRoutes);
   // Temporarily disabled for deployment hotfix - will re-enable after verification
   // app.use('/api/training-sessions', trainingSessionRoutes);
   app.use('/api/roles', roleRoutes);
@@ -196,13 +203,14 @@ export const setupRoutes = async (app) => {
   // ===================== ADMIN & MANAGEMENT ROUTES =====================
   app.use('/api/admin', adminRoutes);
   app.use('/api/admin', adminDebugRoutes);
-  
+
   // ✅ PHASE 2C FIX: Align endpoints with frontend expectations
   app.use('/api/admin', adminClientRoutes);            // Provides: /api/admin/clients/*
   app.use('/api/admin', adminPackageRoutes);            // Provides: /api/admin/packages/* (aliased from storefront)
   app.use('/api/admin/storefront', adminPackageRoutes); // Legacy compatibility
   app.use('/api/admin', adminMcpRoutes);                // Provides: /api/admin/mcp/* endpoints
   app.use('/api/admin/content', adminContentModerationRoutes); // Provides: /api/admin/content/* endpoints
+  app.use('/api/admin/exercise-library', videoLibraryRoutes); // 📹 NASM Video Library (YouTube + uploads)
   
   app.use('/api/admin/finance', adminFinanceRoutes);
   app.use('/api/admin/store', adminStoreRoutes);
