@@ -98,10 +98,20 @@ Copy this entire prompt to ANY AI in the AI Village — they will auto‑detect 
 - Master Prompt: `docs/ai-workflow/gamification/GAMIFICATION-MASTER-PROMPT-FINAL.md`
 - Implementation summary: `docs/ai-workflow/gamification/GAMIFICATION-PARALLEL-IMPLEMENTATION-SUMMARY.md`
 
+### **🏋️ NASM Integration System:** (NEW - 2025-11-14)
+- Master Blueprint: `docs/ai-workflow/NASM-4-TIER-INTEGRATION-MASTER-BLUEPRINT.md` (114KB, complete implementation)
+- Implementation Roadmap: `docs/ai-workflow/NASM-IMPLEMENTATION-ROADMAP.md` (11-week phased rollout)
+- Database Schema: `backend/migrations/20251112000000-create-nasm-integration-tables.cjs` (9 tables, triggers, views)
+- Admin Dashboard: `frontend/src/components/Admin/NASM/NASMAdminDashboard.tsx` (compliance monitoring, template builder)
+- Trainer Dashboard: `frontend/src/components/Trainer/NASM/NASMTrainerDashboard.tsx` (assessment module, workout builder)
+- Client Dashboard: `frontend/src/components/Client/NASM/NASMClientDashboard.tsx` (phase widget, corrective homework)
+- Exercise Library: `backend/migrations/20251113000000-create-exercise-library-table.cjs` (150+ NASM exercises)
+
 ### **🎬 Admin Video Library System:** (NEW - 2025-11-13)
 - Wireframes: `docs/ai-workflow/ADMIN-VIDEO-LIBRARY-WIREFRAMES.md` (~15,000 lines)
 - Architecture: `docs/ai-workflow/ADMIN-VIDEO-LIBRARY-ARCHITECTURE.mermaid.md` (~7,000 lines)
 - Testing Guide: `docs/ai-workflow/ADMIN-VIDEO-LIBRARY-TESTING-GUIDE.md` (~6,000 lines)
+- Backend Controller: `backend/controllers/videoLibraryController.mjs` (YouTube API integration, soft deletes)
 - Frontend Components:
   - Main page: `frontend/src/pages/admin/AdminVideoLibrary.tsx`
   - Video card: `frontend/src/components/admin/VideoCard.tsx`
@@ -130,6 +140,72 @@ Copy this entire prompt to ANY AI in the AI Village — they will auto‑detect 
 - File audit report: `docs/ai-workflow/FILE-AUDIT-CLEANUP-REPORT.md`
 
 **Bookmark this section! ↑ These are the files you'll reference daily.**
+
+---
+
+## 👥 4-TIER ROLE SYSTEM (CRITICAL - DO NOT ASSUME 3-TIER!)
+
+**SwanStudios uses a 4-tier role hierarchy with a freemium business model:**
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ ROLE      PURPOSE                    ROLE PROGRESSION            │
+├──────────────────────────────────────────────────────────────────┤
+│ user      Social media ONLY          → Auto-upgrades to 'client' │
+│           (FREE TIER)                   upon purchasing sessions │
+│           - EnhancedSocialPosts                                   │
+│           - SocialConnections                                     │
+│           - Communities access                                    │
+│           - CANNOT book sessions                                  │
+├──────────────────────────────────────────────────────────────────┤
+│ client    All user permissions       - Purchased training        │
+│           + Training access             sessions                 │
+│           (PAID TIER)                - availableSessions > 0     │
+│           - Session booking          - Workout tracking          │
+│           - Trainer assignment       - Progress monitoring       │
+├──────────────────────────────────────────────────────────────────┤
+│ trainer   All client permissions     - Creates workout plans     │
+│           + Service provider         - Manages session schedules │
+│           - View assigned clients    - Awards points             │
+│           - Session management       - Client progress tracking  │
+├──────────────────────────────────────────────────────────────────┤
+│ admin     Full system access         - User management (CRUD)    │
+│           + Platform management      - Content moderation        │
+│           - Gamification settings    - Analytics dashboard       │
+│           - Custom permissions       - System configuration      │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### **🚨 CRITICAL DISTINCTIONS:**
+
+1. **'user' ≠ 'client'** - These are DISTINCT roles, not synonyms or legacy naming
+2. **Freemium Model:**
+   - `user` = Free tier (social media only)
+   - `client` = Paid tier (purchased sessions)
+3. **Automatic Role Progression:**
+   - When a `user` purchases sessions → automatically upgraded to `client`
+   - Implemented in: `roleService.mjs`, `sessionPackageRoutes.mjs`, `cartRoutes.mjs`
+4. **Access Gating:**
+   - Session booking requires `role='client'` (NOT `role='user'`)
+   - `user` role sees "Purchase Sessions to Book" until upgrade
+5. **Pre-Assignment:**
+   - Admin can assign trainer to `user` BEFORE they purchase sessions
+   - When `user` buys sessions → becomes `client`, assignment persists
+
+### **📚 Documentation References:**
+- Users table: `backend/migrations/20250212060728-create-user-table.cjs` (4-tier hierarchy documented)
+- Sessions table: `backend/migrations/20250305000000-create-sessions.cjs` (role='client' gating)
+- Assignments: `backend/migrations/20250806000000-create-client-trainer-assignments.cjs` (user + client support)
+
+### **❌ NEVER DO THIS:**
+```javascript
+// ❌ WRONG - Assumes 3-tier system
+if (user.role === 'client' || user.role === 'trainer')
+
+// ✅ CORRECT - Recognizes 4-tier system
+if (['user', 'client'].includes(user.role)) // Social access
+if (user.role === 'client') // Training access only
+```
 
 ---
 

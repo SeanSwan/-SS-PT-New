@@ -80,6 +80,11 @@
 
 ## 📚 TABLE OF CONTENTS
 
+### PART 0: CRITICAL FOUNDATIONS (READ THIS FIRST!)
+0.1. **4-Tier Role System** (DO NOT ASSUME 3-TIER!)
+0.2. **Blueprint-First Enforcement** (NO CODE WITHOUT DESIGN)
+0.3. **Level 5/5 Documentation Standard** (AI-READY CODE)
+
 ### PART I: YOUR CURRENT REALITY
 1. Your Actual AI Arsenal (What You Have)
 2. Your SwanStudios Project Status
@@ -107,6 +112,350 @@
 15. Cost Tracking
 16. Troubleshooting
 17. Next Steps After Launch
+
+---
+
+# PART 0: CRITICAL FOUNDATIONS
+
+## 🚨 READ THIS FIRST - ARCHITECTURAL TRUTHS
+
+---
+
+## 0.1. 4-TIER ROLE SYSTEM (DO NOT ASSUME 3-TIER!)
+
+### **🚨 CRITICAL: SwanStudios uses a 4-tier role hierarchy, NOT 3-tier!**
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ ROLE      PURPOSE                    ROLE PROGRESSION            │
+├──────────────────────────────────────────────────────────────────┤
+│ user      Social media ONLY          → Auto-upgrades to 'client' │
+│           (FREE TIER)                   upon purchasing sessions │
+│           - EnhancedSocialPosts                                   │
+│           - SocialConnections                                     │
+│           - Communities access                                    │
+│           - CANNOT book sessions                                  │
+├──────────────────────────────────────────────────────────────────┤
+│ client    All user permissions       - Purchased training        │
+│           + Training access             sessions                 │
+│           (PAID TIER)                - availableSessions > 0     │
+│           - Session booking          - Workout tracking          │
+│           - Trainer assignment       - Progress monitoring       │
+├──────────────────────────────────────────────────────────────────┤
+│ trainer   All client permissions     - Creates workout plans     │
+│           + Service provider         - Manages session schedules │
+│           - View assigned clients    - Awards points             │
+│           - Session management       - Client progress tracking  │
+├──────────────────────────────────────────────────────────────────┤
+│ admin     Full system access         - User management (CRUD)    │
+│           + Platform management      - Content moderation        │
+│           - Gamification settings    - Analytics dashboard       │
+│           - Custom permissions       - System configuration      │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### **Business Model: Freemium Conversion Funnel**
+
+1. **Free Tier (user role):**
+   - Social media access only (EnhancedSocialPosts, SocialConnections, Communities)
+   - No session booking capability
+   - No workout tracking
+   - Can browse storefront and trainers
+
+2. **Paid Tier (client role):**
+   - Automatic upgrade when user purchases sessions
+   - Inherits all social media access
+   - Gains session booking, workout tracking, trainer assignment
+   - `availableSessions` > 0 required for booking
+
+3. **Role Progression Implementation:**
+   - `roleService.mjs` - Handles automatic role upgrade
+   - `sessionPackageRoutes.mjs` - Upgrades role on session purchase
+   - `cartRoutes.mjs` - Checks cart items and triggers upgrade
+
+### **🚨 CRITICAL DISTINCTIONS:**
+
+**'user' ≠ 'client'** - These are DISTINCT roles, not synonyms or legacy naming!
+
+- ❌ **NEVER assume:** "user and client are the same thing"
+- ❌ **NEVER assume:** "user is legacy naming for client"
+- ✅ **ALWAYS recognize:** user = free tier, client = paid tier
+
+### **Access Control Rules:**
+
+```javascript
+// ✅ CORRECT - Session booking restricted to 'client' only
+if (user.role === 'client') {
+  // Allow session booking
+}
+
+// ✅ CORRECT - Social media access for both 'user' and 'client'
+if (['user', 'client'].includes(user.role)) {
+  // Allow social posts, connections, communities
+}
+
+// ✅ CORRECT - Trainer assignment accepts both (pre-assignment workflow)
+if (['user', 'client'].includes(client.role)) {
+  // Allow assignment creation (user can have trainer before purchasing)
+}
+
+// ❌ WRONG - Assumes 3-tier system
+if (user.role === 'client' || user.role === 'trainer') {
+  // Missing 'user' role entirely!
+}
+```
+
+### **Documentation References:**
+
+- **Users Table:** `backend/migrations/20250212060728-create-user-table.cjs` (290-line Level 5/5 header)
+- **Sessions Table:** `backend/migrations/20250305000000-create-sessions.cjs` (282-line Level 5/5 header)
+- **Assignments Table:** `backend/migrations/20250806000000-create-client-trainer-assignments.cjs` (234-line Level 5/5 header)
+- **Status Tracker:** `docs/ai-workflow/LEVEL-5-DOCUMENTATION-UPGRADE-STATUS.md` (Session 6 correction)
+
+---
+
+## 0.2. BLUEPRINT-FIRST ENFORCEMENT (NO CODE WITHOUT DESIGN)
+
+### **The SwanStudios Blueprint-First Mandate**
+
+**RULE:** No code may be written without an approved blueprint.
+
+**WHY:** Prevents "vibe coding" - writing code based on assumptions rather than documented architecture.
+
+### **Blueprint Requirements (Pre-Code Checklist):**
+
+Before writing ANY code for a new feature, you MUST have:
+
+- [ ] **Architecture Diagram** (Mermaid or ASCII)
+  - Shows all components and their relationships
+  - Includes data flow arrows
+  - Identifies external dependencies
+
+- [ ] **Database Schema** (ERD)
+  - All tables, columns, data types
+  - Foreign key relationships
+  - Indexes and constraints
+  - WHY sections explaining design decisions
+
+- [ ] **API Specifications**
+  - All endpoints (method + path)
+  - Request/response formats
+  - Authentication requirements
+  - Error states and handling
+
+- [ ] **Error Handling Strategy**
+  - All possible error states
+  - User-facing error messages
+  - Logging requirements
+  - Rollback procedures
+
+- [ ] **Success Metrics**
+  - How to verify feature works
+  - Performance benchmarks
+  - User acceptance criteria
+
+### **Blueprint Approval Workflow:**
+
+```mermaid
+graph TD
+  A[New Feature Request] --> B[Create Blueprint]
+  B --> C[Phase 0 Review]
+  C --> D{5 AI Approvals?}
+  D -->|Yes| E[Begin Implementation]
+  D -->|No| F[Revise Blueprint]
+  F --> C
+  E --> G[Code with Blueprint Reference]
+  G --> H[Code Review]
+  H --> I{Matches Blueprint?}
+  I -->|Yes| J[Deploy]
+  I -->|No| K[Fix Code or Update Blueprint]
+  K --> H
+```
+
+### **File Structure for Blueprints:**
+
+```
+docs/blueprints/
+├── feature-name/
+│   ├── ARCHITECTURE.md       (Component diagrams, data flow)
+│   ├── SCHEMA.md             (Database ERD, migrations)
+│   ├── API-SPECS.md          (Endpoints, auth, errors)
+│   ├── ERROR-HANDLING.md     (All error states)
+│   └── SUCCESS-METRICS.md    (Acceptance criteria)
+```
+
+### **Validation Checklist (Post-Code):**
+
+After implementation, verify:
+
+- [ ] All code files reference the blueprint in header comments
+- [ ] Architecture implemented matches blueprint diagrams
+- [ ] All edge cases from blueprint are handled in code
+- [ ] Error states from blueprint have test coverage
+- [ ] Database schema matches ERD exactly
+
+### **Blueprint Enforcement Tools:**
+
+1. **Pre-Commit Git Hook:**
+   - Checks for blueprint reference in new files
+   - Validates architecture alignment
+   - Requires Phase 0 approval ID in commit message
+
+2. **Documentation Linter:**
+   - Scans code files for Level 5/5 headers
+   - Validates blueprint references exist
+   - Checks for WHY sections in migrations
+
+3. **Architecture Validator:**
+   - Compares implemented code to blueprint diagrams
+   - Flags deviations for review
+   - Generates architecture drift reports
+
+---
+
+## 0.3. LEVEL 5/5 DOCUMENTATION STANDARD (AI-READY CODE)
+
+### **The Level 5/5 Standard Explained**
+
+**SwanStudios code is "AI-ready"** - any AI can understand the entire system by reading file headers alone.
+
+### **Documentation Hierarchy:**
+
+```
+Level 1: No comments (vibe coding ❌)
+Level 2: Basic comments (what the code does)
+Level 3: Function docs (JSDoc-style)
+Level 4: Architecture comments (how components interact)
+Level 5: Blueprint-embedded docs (WHY decisions were made) ✅
+```
+
+### **Level 5/5 File Header Template:**
+
+```javascript
+/**
+ * FILE: [filename.ext]
+ * SYSTEM: [Subsystem Name - e.g., "Session Booking System"]
+ *
+ * PURPOSE: [1-2 sentence description]
+ *
+ * ARCHITECTURE:
+ * ```mermaid
+ * graph TD
+ *   A[Client] --> B[Controller]
+ *   B --> C[Service Layer]
+ *   C --> D[Database]
+ *   D --> E[Audit Log]
+ * ```
+ *
+ * DATABASE ERD: (if applicable)
+ * ```
+ * ┌─────────────┐     ┌──────────────┐
+ * │   users     │────<│   sessions   │
+ * │   (UUID)    │ 1:N │   (INTEGER)  │
+ * └─────────────┘     └──────────────┘
+ * ```
+ *
+ * DATA FLOW:
+ * 1. Client sends POST /api/sessions/book
+ * 2. Controller validates JWT + role='client'
+ * 3. Service checks availableSessions > 0
+ * 4. Database creates session record
+ * 5. Audit log records transaction
+ * 6. Response sent to client
+ *
+ * ERROR STATES:
+ * - 400 BAD REQUEST: Invalid session date
+ * - 401 UNAUTHORIZED: Missing/invalid JWT
+ * - 403 FORBIDDEN: role='user' (not 'client')
+ * - 404 NOT FOUND: Trainer not found
+ * - 409 CONFLICT: Session already booked
+ * - 500 SERVER ERROR: Database failure
+ *
+ * WHY SECTIONS: (Business logic explanations)
+ *
+ * WHY Restrict Booking to role='client'?
+ * - Freemium model: 'user' = free tier (social only)
+ * - Access gating drives session purchases
+ * - Prevents booking without availableSessions
+ *
+ * WHY Use INTEGER Primary Key (Not UUID)?
+ * - Legacy compatibility (existing sessions table)
+ * - Frontend expects integer IDs
+ * - Performance: 4 bytes vs 16 bytes
+ *
+ * EXAMPLE USAGE:
+ * ```javascript
+ * const result = await bookSession({
+ *   sessionId: 123,
+ *   userId: 'uuid-here',
+ *   trainerId: 'uuid-here'
+ * });
+ * // Returns: { success: true, session: {...} }
+ * ```
+ *
+ * DEPENDENCIES:
+ * - sequelize (database ORM)
+ * - jsonwebtoken (auth)
+ * - authMiddleware.mjs (role validation)
+ *
+ * CREATED: 2025-11-14
+ * LAST MODIFIED: 2025-11-14
+ */
+```
+
+### **Level 5/5 Migration File Requirements:**
+
+All database migrations MUST include:
+
+1. **Table Purpose** - What this table stores and why it exists
+2. **Database ERD** - Visual relationships to other tables
+3. **Column Documentation** - Every column explained with data types
+4. **Index Strategy** - Which columns are indexed and why
+5. **Data Flow Diagram** - How data moves in/out of this table
+6. **Business Logic WHY Sections** (minimum 6-8 per migration):
+   - WHY this primary key type?
+   - WHY these foreign keys?
+   - WHY soft delete vs hard delete?
+   - WHY these validation rules?
+   - WHY nullable vs NOT NULL?
+   - WHY ENUM values chosen?
+   - WHY this index strategy?
+   - WHY these constraints?
+
+7. **Security Model** - Access control and audit requirements
+8. **Performance Considerations** - Index strategy, query optimization
+9. **Rollback Strategy** - How to safely reverse this migration
+10. **Foreign Key Dependencies** - What tables reference this table
+
+### **Current Progress:**
+
+- **Overall:** 35/51 files upgraded to Level 5/5 (67% complete)
+- **Migrations:** 11/21 files (52% complete)
+- **Controllers:** 9/10 files (90% complete)
+- **Routes:** 11/11 files (100% complete)
+- **Middleware:** 3/9 files (33% complete)
+
+**Tracker:** `docs/ai-workflow/LEVEL-5-DOCUMENTATION-UPGRADE-STATUS.md`
+
+### **Benefits of Level 5/5 Documentation:**
+
+1. **AI Agents Can:**
+   - Understand entire system by reading headers
+   - Make informed decisions without guessing
+   - Generate accurate code that fits architecture
+   - Explain design decisions to humans
+
+2. **Human Developers Can:**
+   - Onboard in hours instead of weeks
+   - Understand WHY decisions were made
+   - Avoid repeating past mistakes
+   - Maintain code confidently
+
+3. **Business Value:**
+   - Reduced onboarding costs
+   - Faster feature development
+   - Fewer architectural errors
+   - Better code reviews
 
 ---
 
