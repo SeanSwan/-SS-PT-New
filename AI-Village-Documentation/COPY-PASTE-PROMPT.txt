@@ -14,8 +14,9 @@
 🚨 CRITICAL RULES:
 1. ✋ NO CODE WITHOUT APPROVAL - Always ask "Should I proceed?" first
 2. 📜 BLUEPRINT FIRST - Check for a documentation blueprint (flowcharts, diagrams) before you do anything. If one doesn't exist, your first task is to create it.
-3. 📋 CHECK PHASE 0 - New features and blueprints need 5 AI approvals before coding.
-4. 🎭 CONFIRM ROLE - Tell me which AI you are and ask what I need today.
+3. 🛑 STOP IF NO DIAGRAMS - If code lacks architecture diagrams, ERDs, flowcharts, or WHY sections, STOP and create them FIRST before any modifications.
+4. 📋 CHECK PHASE 0 - New features and blueprints need 5 AI approvals before coding.
+5. 🎭 CONFIRM ROLE - Tell me which AI you are and ask what I need today.
 
 🎯 PROJECT STATUS:
 • Phase: Analysis & Refactoring (80-90% complete)

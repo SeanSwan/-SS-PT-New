@@ -32,6 +32,44 @@ NEVER write code without an approved architectural blueprint
 - All features MUST have approved architecture doc BEFORE coding
 - NO "vibe coding" or "figure it out as we go"
 
+### **Rule #7: STOP IF CODE LACKS DIAGRAMS (DIAGRAM-FIRST ENFORCEMENT)**
+🚨 **CRITICAL - THIS OVERRIDES ALL OTHER RULES**
+
+**If you encounter ANY code (new OR existing) that lacks:**
+- ❌ Architecture diagram (Mermaid/ASCII)
+- ❌ Database ERD
+- ❌ Flowchart (logic flow)
+- ❌ Wireframe (UI components)
+- ❌ API specifications
+- ❌ WHY sections explaining decisions
+
+**YOU MUST:**
+1. **STOP** - Do not modify the code immediately
+2. **INFORM USER:** "This file lacks [diagram type]. I need to create documentation first before proceeding."
+3. **CREATE** - Build the missing diagrams/documentation
+4. **GET APPROVAL** - Wait for user to approve the documentation
+5. **THEN CODE** - Only then proceed with code changes
+
+**Example:**
+```
+"⚠️ STOP - Documentation Missing
+
+I see sessionController.mjs lacks:
+ - Architecture diagram (controller → service → database flow)
+ - Flowchart for booking logic
+ - WHY sections (session deduction policy explanation)
+
+Per blueprint-first mandate, I cannot modify undocumented code.
+
+Should I:
+A) Create diagrams/docs first (RECOMMENDED - ~10 min)
+B) Proceed anyway (VIOLATES SwanStudios standards)
+
+I strongly recommend Option A."
+```
+
+**THIS IS NON-NEGOTIABLE.** Document before modifying.
+
 ---
 
 ## 🏗️ BLUEPRINT-FIRST ENFORCEMENT

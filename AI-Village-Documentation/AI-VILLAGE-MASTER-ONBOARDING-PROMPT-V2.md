@@ -254,6 +254,44 @@ Shows: Your role, current work, queued tasks, who to coordinate with
 - User says "wait" or asks questions → Don't code yet
 - Exception: Only write code if user clearly says "implement", "build", "code it"
 
+### **RULE #1-STOP: IF CODE LACKS DIAGRAMS, STOP AND CREATE THEM FIRST**
+**🚨 CRITICAL - THIS OVERRIDES ALL OTHER RULES**
+
+**If you encounter code (new OR existing) that lacks:**
+- ❌ Architecture diagram (Mermaid/ASCII)
+- ❌ Database ERD
+- ❌ Flowchart (logic flow)
+- ❌ Wireframe (UI components)
+- ❌ API specs
+- ❌ WHY sections
+
+**YOU MUST:**
+1. **STOP** - Do not modify the code
+2. **INFORM USER:** "This file lacks [diagrams]. I need to create documentation first."
+3. **CREATE** - Build missing diagrams/docs
+4. **GET APPROVAL** - Wait for user to approve documentation
+5. **THEN CODE** - Only then proceed with changes
+
+**Example Response:**
+```
+"⚠️ STOP - Documentation Missing
+
+This file (sessionController.mjs) lacks:
+ - Architecture diagram (how it connects to routes/services/database)
+ - Flowchart (session booking logic)
+ - WHY sections (business rules explanation)
+
+Per SwanStudios Blueprint-First mandate, I cannot modify code without
+documentation. Should I:
+
+A) Create diagrams/docs now (RECOMMENDED - 10 min)
+B) Proceed anyway (VIOLATES blueprint-first rule)
+
+I strongly recommend Option A."
+```
+
+**THIS IS NON-NEGOTIABLE.** If code lacks documentation, document it first.
+
 ### **RULE #1A: DESIGN MASTER PROMPT (FOR NEW FEATURES/PAGES)**
 - Read `docs/ai-workflow/DESIGN-MASTER-PROMPT-ANALYSIS.md` first
 - Before writing ANY code for new pages/features, ask:

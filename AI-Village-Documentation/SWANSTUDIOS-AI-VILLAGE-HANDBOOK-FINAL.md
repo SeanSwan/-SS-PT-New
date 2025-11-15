@@ -222,9 +222,52 @@ if (user.role === 'client' || user.role === 'trainer') {
 
 **WHY:** Prevents "vibe coding" - writing code based on assumptions rather than documented architecture.
 
+### **🚨 STOP AND DOCUMENT FIRST - CRITICAL ENFORCEMENT RULE**
+
+**If you encounter ANY code (new OR existing) that lacks:**
+- ❌ No architecture diagram (Mermaid/ASCII)
+- ❌ No database ERD
+- ❌ No flowchart showing logic flow
+- ❌ No wireframe (for UI components)
+- ❌ No API specifications
+- ❌ No WHY sections explaining decisions
+
+**YOU MUST:**
+1. **STOP working on the code immediately**
+2. **INFORM the user:** "This file lacks [diagram type]. I need to create it first before proceeding."
+3. **CREATE the missing documentation:**
+   - Architecture diagram (component relationships)
+   - Database ERD (if database-related)
+   - Flowchart (if logic-heavy)
+   - Wireframe (if UI component)
+   - WHY sections (business logic explanations)
+4. **GET approval** on the diagrams/documentation
+5. **THEN and ONLY THEN** proceed with code changes
+
+**Example Response:**
+```
+"I see this file (sessionController.mjs) lacks:
+ - Architecture diagram showing how it interacts with routes/services/database
+ - Flowchart for the session booking logic
+ - WHY sections explaining session deduction policy
+
+Before I modify this code, I need to create these diagrams first.
+Should I:
+A) Create the missing documentation now (recommended)
+B) Proceed anyway (NOT recommended - violates blueprint-first)
+
+I recommend Option A."
+```
+
+**THIS IS NON-NEGOTIABLE:** No exceptions. If code lacks documentation, document it first.
+
+---
+
 ### **Blueprint Requirements (Pre-Code Checklist):**
 
-Before writing ANY code for a new feature, you MUST have:
+**FOR NEW FEATURES:** Before writing ANY code, you MUST have:
+
+**FOR EXISTING CODE:** Before modifying ANY code, verify it has:
 
 - [ ] **Architecture Diagram** (Mermaid or ASCII)
   - Shows all components and their relationships
@@ -283,6 +326,22 @@ docs/blueprints/
 │   ├── ERROR-HANDLING.md     (All error states)
 │   └── SUCCESS-METRICS.md    (Acceptance criteria)
 ```
+
+### **Pre-Modification Checklist (Existing Code):**
+
+**Before modifying ANY existing code, verify:**
+
+- [ ] **File Header Exists** - Does file have Level 5/5 documentation header?
+- [ ] **Architecture Diagram Present** - Can you see how this fits in the system?
+- [ ] **Data Flow Documented** - Is the flow of data clear?
+- [ ] **WHY Sections Present** - Are design decisions explained?
+- [ ] **Error States Documented** - Are all error cases listed?
+
+**IF ANY ITEM IS MISSING:**
+- **STOP** - Do not proceed with modifications
+- **CREATE** - Add the missing documentation first
+- **APPROVE** - Get user approval on documentation
+- **THEN** - Proceed with code changes
 
 ### **Validation Checklist (Post-Code):**
 
