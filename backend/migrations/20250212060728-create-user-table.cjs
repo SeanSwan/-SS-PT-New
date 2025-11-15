@@ -4,8 +4,8 @@
  * Users Table Migration (Core Authentication & Multi-Role System)
  * ================================================================
  *
- * Purpose: Creates the foundational users table supporting 3-tier role hierarchy
- * (client, trainer, admin) with role-specific fields, authentication, and soft delete
+ * Purpose: Creates the foundational users table supporting 4-tier role hierarchy
+ * (user, client, trainer, admin) with role-specific fields, role progression, authentication, and soft delete
  *
  * Blueprint Reference: SwanStudios Personal Training Platform - Authentication System
  *
@@ -44,15 +44,24 @@
  * └──────────────────┘        └───────────────┘         └───────────────────┘
  * ```
  *
- * Role Hierarchy (3 tiers):
+ * Role Hierarchy (4 tiers):
  * ┌──────────────────────────────────────────────────────────────────────────────┐
  * │ ROLE      PERMISSIONS                           SPECIFIC FIELDS              │
  * ├──────────────────────────────────────────────────────────────────────────────┤
- * │ client    - Book sessions                       - fitnessGoal                │
- * │           - Track workouts                      - trainingExperience         │
- * │           - Earn points/achievements            - healthConcerns             │
- * │           - View own data only                  - availableSessions          │
- * │           - Cannot manage users                 - weight, height, DOB        │
+ * │ user      - Social media access ONLY            - (minimal fields)           │
+ * │           - Post workout updates                - photo, username            │
+ * │           - Follow other users                  - firstName, lastName        │
+ * │           - Earn achievements (social)          - NO training fields         │
+ * │           - Browse storefront                   - NO session credits         │
+ * │           - CANNOT book sessions                - Default role on signup     │
+ * │           → Upgrades to 'client' on purchase    Role Progression: user→client│
+ * ├──────────────────────────────────────────────────────────────────────────────┤
+ * │ client    - All user permissions                - fitnessGoal                │
+ * │           - Book training sessions              - trainingExperience         │
+ * │           - Track workouts                      - healthConcerns             │
+ * │           - Earn points/achievements            - availableSessions          │
+ * │           - View own data only                  - weight, height, DOB        │
+ * │           - Cannot manage users                 - emergencyContact           │
  * ├──────────────────────────────────────────────────────────────────────────────┤
  * │ trainer   - All client permissions              - specialties                │
  * │           - View assigned clients               - certifications             │
@@ -76,7 +85,7 @@
  * - email: STRING (unique, authentication identifier)
  * - username: STRING (unique, public identifier)
  * - password: STRING (bcrypt hashed, 10 rounds)
- * - role: ENUM('client', 'trainer', 'admin')
+ * - role: ENUM('user', 'client', 'trainer', 'admin')
  * - isActive: BOOLEAN (account suspension, soft ban)
  * - lastLogin: DATE (security audit, inactive account cleanup)
  * - deletedAt: DATE (soft delete, GDPR compliance)
@@ -88,7 +97,13 @@
  * - dateOfBirth: DATEONLY (age verification, client-specific)
  * - gender: STRING (optional, client-specific)
  *
- * CLIENT-SPECIFIC FIELDS (role='client'):
+ * USER-SPECIFIC FIELDS (role='user' - social media only):
+ * - photo: STRING (profile picture for social posts)
+ * - username: STRING (public social handle)
+ * - firstName, lastName: STRING (display name)
+ * - NOTE: No training-specific fields until role upgraded to 'client'
+ *
+ * CLIENT-SPECIFIC FIELDS (role='client' - purchased training):
  * - weight, height: FLOAT (fitness metrics)
  * - fitnessGoal: STRING (weight loss, muscle gain, endurance)
  * - trainingExperience: TEXT (beginner, intermediate, advanced)
@@ -127,7 +142,7 @@
  *    POST /auth/register → authController.register()
  *    ↓
  *    INSERT INTO users (firstName, lastName, email, username, password, role)
- *    VALUES ('John', 'Doe', 'john@example.com', 'johndoe', bcrypt('password'), 'client')
+ *    VALUES ('John', 'Doe', 'john@example.com', 'johndoe', bcrypt('password'), 'user') // Default role
  *
  * 2. LOGIN:
  *    POST /auth/login → authController.login()
@@ -140,17 +155,25 @@
  *    ↓
  *    JWT token issued (15min access + 7day refresh)
  *
- * 3. ROLE PROMOTION (Admin Action):
+ * 3. ROLE PROGRESSION (Automatic - User → Client):
+ *    POST /session-packages/purchase → sessionPackageRoutes (checkout)
+ *    ↓
+ *    IF user.role === 'user' AND purchasingTrainingSessions THEN
+ *      UPDATE users SET role='client' WHERE id=userId
+ *      // Grants access to session booking, workout tracking, trainer assignment
+ *    END IF
+ *
+ * 4. ROLE PROMOTION (Admin Action - Client/User → Trainer):
  *    POST /user-management/promote-to-trainer → userManagementController.promoteToTrainer()
  *    ↓
  *    UPDATE users SET role='trainer' WHERE id=userId
  *
- * 4. ACCOUNT SUSPENSION (Admin Action):
+ * 5. ACCOUNT SUSPENSION (Admin Action):
  *    PUT /user-management/:id/suspend → adminClientController.suspendClient()
  *    ↓
  *    UPDATE users SET isActive=false WHERE id=userId
  *
- * 5. SOFT DELETE (GDPR Compliance):
+ * 6. SOFT DELETE (GDPR Compliance):
  *    DELETE /user-management/:id → userManagementController.deleteUser()
  *    ↓
  *    UPDATE users SET deletedAt=NOW(), isActive=false WHERE id=userId
@@ -159,6 +182,25 @@
  * ```
  *
  * Business Logic:
+ *
+ * WHY 4-Tier Role System (Not 3-Tier)?
+ * - Freemium model: 'user' role provides social media access without payment
+ * - Conversion funnel: Social engagement leads to training session purchases
+ * - Role progression: user → client (automatic on first session purchase)
+ * - Clear separation: Social-only users vs paying training clients
+ * - Implementation:
+ *   - roleService.mjs: Handles automatic role upgrade on purchase
+ *   - sessionPackageRoutes.mjs: Upgrades role when checkout contains training packages
+ *   - cartRoutes.mjs: Checks cart items and upgrades role accordingly
+ * - Business value: Lower barrier to entry (free social access) → higher conversion
+ *
+ * WHY Automatic Role Progression (user → client)?
+ * - Seamless UX: User doesn't manually request role change
+ * - Purchase trigger: First training package purchase auto-upgrades role
+ * - Access gating: Session booking locked until 'client' role
+ * - No downgrade: Once 'client', role persists (even if sessions = 0)
+ * - Prevents confusion: User sees "upgrade to book sessions" until purchase
+ * - Implementation: sessionPackageRoutes.mjs checks `user.role === 'user'` on checkout
  *
  * WHY UUID Primary Key (Not Auto-Increment INTEGER)?
  * - Security: Prevents user enumeration attacks (can't guess /users/1, /users/2)

@@ -80,7 +80,8 @@
  * 1. ADMIN CREATES ASSIGNMENT:
  *    POST /client-trainer-assignment → clientTrainerAssignmentRoutes (inline handler)
  *    ↓
- *    Validate: clientId has role='client', trainerId has role='trainer'
+ *    Validate: clientId has role='client' OR role='user', trainerId has role='trainer'
+ *    // NOTE: 'user' role supported for pre-assignment before session purchase
  *    ↓
  *    Validate: Client does NOT have existing status='active' assignment (UNIQUE constraint)
  *    ↓
@@ -177,6 +178,15 @@
  * - UI simplification: Client dashboard shows exactly 1 "My Trainer"
  * - Prevents admin errors: Can't accidentally create duplicate assignment
  * - Partial index: WHERE status='active' allows historical duplicates
+ *
+ * WHY Support Both 'client' AND 'user' Roles for Assignment Eligibility?
+ * - 4-tier role system: 'user' (social media only) vs 'client' (purchased sessions)
+ * - Pre-assignment workflow: Admin assigns trainer to 'user' BEFORE they purchase sessions
+ * - Role progression: user → client (automatic on first session purchase)
+ * - Use case: Gym onboards new member, assigns trainer, THEN member purchases package
+ * - Validation logic: clientTrainerAssignmentRoutes checks `['client', 'user'].includes(role)`
+ * - Future consideration: May restrict assignment to 'client' only (force purchase first)
+ * - Implementation reference: backend/routes/clientTrainerAssignmentRoutes.mjs:234-235
  *
  * Security Model:
  * - Admin-only write access (prevent client/trainer self-assignment)
