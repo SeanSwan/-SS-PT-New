@@ -1,12 +1,200 @@
+/**
+ * Session Management Controller (Training Session Lifecycle Operations)
+ * ======================================================================
+ *
+ * Purpose: Controller for complete session booking workflow including creation, booking,
+ * confirmation, cancellation, and trainer assignment with real-time Socket.IO notifications
+ *
+ * Blueprint Reference: SwanStudios Personal Training Platform - Session Management System
+ *
+ * Architecture Overview:
+ * ┌─────────────────────┐      ┌──────────────────┐      ┌─────────────────┐      ┌──────────────────┐
+ * │  Client Dashboard   │─────▶│  Session Routes  │─────▶│  Session Ctrl   │─────▶│  Sessions Table  │
+ * │  (React)            │      │  (sessionRoutes) │      │  (11 methods)   │      │  (PostgreSQL)    │
+ * └─────────────────────┘      └──────────────────┘      └─────────────────┘      └──────────────────┘
+ *                                                                   │
+ *                                                                   ▼
+ *                                                          ┌──────────────────┐
+ *                                                          │  Socket.IO       │
+ *                                                          │  (Real-time)     │
+ *                                                          └──────────────────┘
+ *
+ * Database Schema (sessions table):
+ *
+ *   ┌─────────────────────────────────────────────────────────────┐
+ *   │ sessions                                                    │
+ *   │ ├─id (PK, UUID)                                             │
+ *   │ ├─sessionDate (TIMESTAMP) - Start time                      │
+ *   │ ├─endDate (TIMESTAMP, nullable)                             │
+ *   │ ├─duration (INTEGER, default: 60) - Minutes                 │
+ *   │ ├─status (ENUM: available, scheduled, confirmed, completed) │
+ *   │ ├─userId (FK → users.id, nullable) - Client                 │
+ *   │ ├─trainerId (FK → users.id, nullable) - Trainer             │
+ *   │ ├─location (STRING, default: "Main Studio")                 │
+ *   │ ├─sessionType (STRING, default: "Standard Training")        │
+ *   │ ├─notes (TEXT, nullable) - Client notes                     │
+ *   │ ├─privateNotes (TEXT, nullable) - Trainer/admin only        │
+ *   │ ├─confirmed (BOOLEAN, default: false)                       │
+ *   │ ├─confirmedBy (FK → users.id, nullable)                     │
+ *   │ ├─confirmationDate (TIMESTAMP, nullable)                    │
+ *   │ ├─bookingDate (TIMESTAMP, nullable)                         │
+ *   │ ├─cancelledBy (FK → users.id, nullable)                     │
+ *   │ ├─cancellationReason (TEXT, nullable)                       │
+ *   │ ├─cancellationDate (TIMESTAMP, nullable)                    │
+ *   │ ├─sessionDeducted (BOOLEAN, default: false)                 │
+ *   │ └─deductionDate (TIMESTAMP, nullable)                       │
+ *   └─────────────────────────────────────────────────────────────┘
+ *
+ * Entity Relationships:
+ *
+ *   sessions ─────▶ users (userId) [client]
+ *   sessions ─────▶ users (trainerId) [trainer]
+ *   sessions ─────▶ users (confirmedBy) [admin/trainer]
+ *   sessions ─────▶ users (cancelledBy) [client/admin/trainer]
+ *
+ * Controller Methods (11 total):
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │ METHOD                       ACCESS         PURPOSE                          │
+ * ├──────────────────────────────────────────────────────────────────────────────┤
+ * │ getAllSessions               Client/T/A     Get sessions with role filters   │
+ * │ getSessionById               Client/T/A     Get single session with perms    │
+ * │ createAvailableSessions      Admin          Bulk create available slots      │
+ * │ bookSession                  Client/T/A     Book available session           │
+ * │ requestSession               Client         Request custom time              │
+ * │ cancelSession                Client/T/A     Cancel session (refund if admin) │
+ * │ confirmSession               Trainer/Admin  Confirm session                  │
+ * │ completeSession              Trainer/Admin  Mark session completed           │
+ * │ assignTrainer                Admin          Assign trainer to session        │
+ * │ createRecurringSessions      Admin          Bulk create recurring slots      │
+ * │ addSessionNotes              Client/T/A     Add notes (private/public)       │
+ * └──────────────────────────────────────────────────────────────────────────────┘
+ *
+ * Session Lifecycle (Mermaid Sequence Diagram):
+ *
+ * sequenceDiagram
+ *     participant Admin
+ *     participant Client
+ *     participant Session
+ *     participant User
+ *     participant SocketIO
+ *     participant Notification
+ *
+ *     Admin->>Session: createAvailableSessions (bulk slots)
+ *     Session->>SocketIO: emit('sessions:updated', {type: 'created'})
+ *
+ *     Client->>Session: bookSession(sessionId)
+ *     Session->>User: Check availableSessions > 0
+ *     alt Insufficient Sessions
+ *         Session-->>Client: 400 Error (No sessions)
+ *     else Has Sessions
+ *         Session->>Session: Update status = 'scheduled'
+ *         Session->>User: Deduct availableSessions (if < 24hrs)
+ *         Session->>Notification: notifySessionBooked(client)
+ *         Session->>Notification: notifyAdminSessionBooked(admin)
+ *         Session->>SocketIO: emit('sessions:updated', {type: 'booked'})
+ *         Session-->>Client: 200 Success
+ *     end
+ *
+ *     Admin->>Session: confirmSession(sessionId)
+ *     Session->>Session: Update confirmed = true, status = 'confirmed'
+ *     Session->>SocketIO: emit('sessions:updated', {type: 'confirmed'})
+ *     Session-->>Admin: 200 Success
+ *
+ *     Admin->>Session: completeSession(sessionId)
+ *     Session->>Session: Update status = 'completed'
+ *     Session->>User: processSessionDeduction (if not deducted)
+ *     Session->>Notification: notifyLowSessionsRemaining (if low)
+ *     Session->>SocketIO: emit('sessions:updated', {type: 'completed'})
+ *     Session-->>Admin: 200 Success
+ *
+ * Status Transitions:
+ *
+ *   available → scheduled (client books)
+ *   scheduled → confirmed (trainer/admin confirms)
+ *   confirmed → completed (trainer/admin completes)
+ *   any → cancelled (client/trainer/admin cancels)
+ *   requested → scheduled (admin assigns trainer)
+ *
+ * Business Logic:
+ *
+ * WHY Automatic Session Deduction on Booking Within 24 Hours?
+ * - Late booking policy (prevents abuse of free rescheduling)
+ * - Immediate session deduction if booking within 24 hours of start time
+ * - Prevents clients from booking last-minute without commitment
+ * - Encourages advance planning and reduces no-shows
+ *
+ * WHY Separate Public Notes and Private Notes?
+ * - Public notes (client-visible): Client feedback, preferences, goals
+ * - Private notes (trainer/admin only): Medical info, session performance, coaching notes
+ * - Privacy compliance (sensitive info not exposed to client)
+ * - Professional coaching documentation
+ *
+ * WHY Allow Admin to Cancel Without Past Session Restriction?
+ * - Emergency cancellations (facility issues, trainer illness)
+ * - Administrative corrections (booking errors)
+ * - Session refunds (customer service)
+ * - Clients and trainers cannot cancel past sessions (prevents abuse)
+ *
+ * WHY Refund Session on Cancellation (Admin Only)?
+ * - Customer service escalations
+ * - Incorrect deductions (administrative errors)
+ * - Cancellations due to studio fault
+ * - Requires admin privileges to prevent self-service refunds
+ *
+ * WHY Socket.IO Real-Time Updates on Every Session Change?
+ * - Multi-user dashboard synchronization
+ * - Prevent double-booking conflicts
+ * - Real-time calendar updates
+ * - Improved UX (instant feedback without page refresh)
+ *
+ * Security Model:
+ * - Role-based access control (RBAC) enforced on all methods
+ * - Clients can only book/cancel their own sessions (unless admin)
+ * - Trainers can only confirm/complete sessions assigned to them
+ * - Admins have full access (create, assign, confirm, complete, cancel, refund)
+ * - Private notes restricted to admin/trainer roles
+ *
+ * Error Handling:
+ * - 400: Invalid request (missing params, past session, no available slots)
+ * - 403: Forbidden (client trying to access another client's session)
+ * - 404: Not found (session or user not found)
+ * - 500: Server error (database failures, Socket.IO errors)
+ *
+ * Dependencies:
+ * - Session model (Sequelize ORM)
+ * - User model (Sequelize ORM)
+ * - Socket.IO (io from server.mjs)
+ * - notification.mjs utilities (email/SMS notifications)
+ * - logger.mjs (Winston logger)
+ *
+ * Performance Considerations:
+ * - Bulk session creation uses Session.bulkCreate() (single transaction)
+ * - Session queries include User associations (avoids N+1 queries)
+ * - Socket.IO events are fire-and-forget (non-blocking)
+ * - Notifications are async (non-blocking)
+ *
+ * Testing Strategy:
+ * - Unit tests for each controller method
+ * - Integration tests for session lifecycle (book → confirm → complete)
+ * - Test role-based access control enforcement
+ * - Test session deduction logic (24-hour rule)
+ * - Test cancellation refund logic (admin-only)
+ * - Mock Socket.IO and notification utilities
+ *
+ * Created: 2024-XX-XX
+ * Enhanced: 2025-11-14 (Level 5/5 Documentation - Blueprint-First Standard)
+ */
+
 // backend/controllers/sessionController.mjs
 import logger from '../utils/logger.mjs';
 import Session from '../models/Session.mjs';
 import User from '../models/User.mjs';
 import { Op } from 'sequelize';
 import { io } from '../server.mjs';
-import { 
-  notifySessionBooked, 
-  notifyAdminSessionBooked, 
+import {
+  notifySessionBooked,
+  notifyAdminSessionBooked,
   notifySessionCancelled,
   processSessionDeduction,
   notifyLowSessionsRemaining

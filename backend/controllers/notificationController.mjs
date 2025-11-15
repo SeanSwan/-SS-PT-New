@@ -1,3 +1,125 @@
+/**
+ * Notification Controller (In-App Notification Management)
+ * ========================================================
+ *
+ * Purpose: Controller for in-app notification system with real-time updates,
+ * read status tracking, and admin broadcast notifications
+ *
+ * Blueprint Reference: SwanStudios Personal Training Platform - Notification System
+ *
+ * Architecture Overview:
+ * ┌─────────────────────┐      ┌──────────────────┐      ┌─────────────────┐
+ * │  Client Dashboard   │─────▶│  Notification    │─────▶│  Notifications  │
+ * │  (React Bell Icon)  │      │  Controller      │      │  Table          │
+ * └─────────────────────┘      └──────────────────┘      └─────────────────┘
+ *                                        │
+ *                                        ▼
+ *                              ┌──────────────────┐
+ *                              │  WebSocket       │
+ *                              │  (Real-time)     │
+ *                              └──────────────────┘
+ *
+ * Database Schema (notifications table):
+ *
+ *   ┌─────────────────────────────────────────────────────────────┐
+ *   │ notifications                                               │
+ *   │ ├─id (PK, UUID)                                             │
+ *   │ ├─userId (FK → users.id) - Recipient                        │
+ *   │ ├─senderId (FK → users.id, nullable) - Sender               │
+ *   │ ├─title (STRING) - Notification title                       │
+ *   │ ├─message (TEXT) - Notification body                        │
+ *   │ ├─type (ENUM: system, admin, session, achievement, reward)  │
+ *   │ ├─link (STRING, nullable) - Deep link URL                   │
+ *   │ ├─image (STRING, nullable) - Notification image URL         │
+ *   │ ├─read (BOOLEAN, default: false) - Read status              │
+ *   │ ├─createdAt (TIMESTAMP)                                     │
+ *   │ └─updatedAt (TIMESTAMP)                                     │
+ *   └─────────────────────────────────────────────────────────────┘
+ *
+ * Entity Relationships:
+ *
+ *   notifications ─────▶ users (userId) [recipient]
+ *   notifications ─────▶ users (senderId) [sender]
+ *
+ * Controller Methods (6 total):
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │ METHOD                       ACCESS         PURPOSE                          │
+ * ├──────────────────────────────────────────────────────────────────────────────┤
+ * │ getAllNotifications          Client/T/A     Get user notifications + count   │
+ * │ markAsRead                   Client/T/A     Mark single notification read    │
+ * │ markAllAsRead                Client/T/A     Mark all notifications read      │
+ * │ deleteNotification           Client/T/A     Delete single notification       │
+ * │ createNotification           Internal       Create notification (utility)    │
+ * │ createAdminNotification      Internal       Broadcast to all admins          │
+ * └──────────────────────────────────────────────────────────────────────────────┘
+ *
+ * Notification Types:
+ *
+ *   system: Platform updates, maintenance notices
+ *   admin: Admin-to-user messages, policy changes
+ *   session: Session booking, confirmation, cancellation
+ *   achievement: Achievement unlocked, milestone reached
+ *   reward: Reward available, reward redeemed
+ *
+ * Business Logic:
+ *
+ * WHY Separate Sender Association (senderId)?
+ * - Admin notifications show who sent the message
+ * - Trainer notifications show coach identity
+ * - System notifications use senderId = null
+ * - Personalization (profile picture, name in UI)
+ *
+ * WHY Broadcast Admin Notifications to All Admins?
+ * - Critical alerts (server errors, payment failures)
+ * - User escalations (support requests, refund requests)
+ * - Multi-admin coordination (new user signups, session requests)
+ * - Audit trail (all admins notified for accountability)
+ *
+ * WHY Internal createNotification and createAdminNotification Methods?
+ * - Reusable across controllers (session, gamification, order)
+ * - Consistent notification format
+ * - Centralized WebSocket emit logic (commented out for future)
+ * - Audit logging for all notification creation
+ *
+ * WHY Track Unread Count in getAllNotifications?
+ * - Bell icon badge count (red notification dot)
+ * - Client-side performance (single query for count + notifications)
+ * - Real-time update trigger (client polls or WebSocket)
+ *
+ * Security Model:
+ * - Users can only read/update/delete their own notifications
+ * - Notification creation restricted to internal methods (no direct API)
+ * - Admin notifications require admin role (enforced in calling controller)
+ * - Sender identity verified before creating notifications
+ *
+ * Error Handling:
+ * - 404: Notification not found (invalid ID or not owned by user)
+ * - 500: Server error (database failures, validation errors)
+ *
+ * Dependencies:
+ * - Notification model (Sequelize ORM)
+ * - User model (Sequelize ORM)
+ * - apiResponse utilities (successResponse, errorResponse)
+ * - logger.mjs (Winston logger)
+ *
+ * Performance Considerations:
+ * - Notifications include sender association (avoids N+1 queries)
+ * - Unread count calculated in-memory (no separate query)
+ * - Bulk update for markAllAsRead (single query)
+ * - WebSocket emit commented out (future optimization)
+ *
+ * Testing Strategy:
+ * - Unit tests for each controller method
+ * - Test notification ownership validation
+ * - Test admin broadcast logic (all admins receive notification)
+ * - Test unread count calculation
+ * - Mock WebSocket for future real-time tests
+ *
+ * Created: 2024-XX-XX
+ * Enhanced: 2025-11-14 (Level 5/5 Documentation - Blueprint-First Standard)
+ */
+
 // backend/controllers/notificationController.mjs
 import logger from '../utils/logger.mjs';
 import Notification from '../models/Notification.mjs';

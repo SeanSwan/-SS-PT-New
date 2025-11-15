@@ -1,3 +1,94 @@
+/**
+ * Gamification Routes (Complete Points, Achievements, Rewards API)
+ * ==================================================================
+ *
+ * Purpose: REST API routes for gamification system with role-based access control
+ *
+ * Blueprint Reference: SwanStudios Personal Training Platform - Gamification System
+ *
+ * Base Path: /api/gamification
+ *
+ * Architecture Overview:
+ * ┌─────────────────────┐      ┌──────────────────┐      ┌─────────────────┐
+ * │  Client Dashboard   │─────▶│  Gamification    │─────▶│  Gamification   │
+ * │  (React)            │      │  Routes          │      │  Controller     │
+ * └─────────────────────┘      └──────────────────┘      └─────────────────┘
+ *
+ * Middleware Strategy (Custom Role Middleware):
+ *
+ *   authenticate = protect (JWT verification)
+ *   authorizeAdmin = adminOnly (admin role check)
+ *   authorizeTrainer = trainerOrAdminOnly (trainer + admin)
+ *   authorizeClientOrTrainer = custom (client + trainer + admin)
+ *
+ * API Endpoints (25 total):
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────────────────────┐
+ * │ METHOD  ENDPOINT                                         AUTH             PURPOSE         │
+ * ├──────────────────────────────────────────────────────────────────────────────────────────┤
+ * │ GET     /settings                                        Public           Get config      │
+ * │ PUT     /settings                                        Admin            Update config   │
+ * │ GET     /leaderboard                                     Public           Top users       │
+ * │ PATCH   /notifications/:id/read                          Client/T/A       Mark read       │
+ * ├──────────────────────────────────────────────────────────────────────────────────────────┤
+ * │ GET     /users/:userId/profile                           Client/T/A       User stats      │
+ * │ POST    /users/:userId/points                            Trainer/Admin    Award points    │
+ * │ GET     /users/:userId/transactions                      Client/T/A       Point history   │
+ * │ POST    /users/:userId/check-milestones                  Trainer/Admin    Check milestones│
+ * ├──────────────────────────────────────────────────────────────────────────────────────────┤
+ * │ GET     /achievements                                    Public           List all        │
+ * │ GET     /achievements/:id                                Public           Single          │
+ * │ POST    /achievements                                    Admin            Create          │
+ * │ PUT     /achievements/:id                                Admin            Update          │
+ * │ DELETE  /achievements/:id                                Admin            Delete          │
+ * │ POST    /users/:userId/achievements/:achievementId       Trainer/Admin    Award           │
+ * │ PUT     /users/:userId/achievements/:id/progress         Trainer/Admin    Update progress │
+ * ├──────────────────────────────────────────────────────────────────────────────────────────┤
+ * │ GET     /rewards                                         Public           List all        │
+ * │ GET     /rewards/:id                                     Public           Single          │
+ * │ POST    /rewards                                         Admin            Create          │
+ * │ PUT     /rewards/:id                                     Admin            Update          │
+ * │ DELETE  /rewards/:id                                     Admin            Delete          │
+ * │ POST    /users/:userId/rewards/:rewardId/redeem          Client/T/A       Redeem          │
+ * ├──────────────────────────────────────────────────────────────────────────────────────────┤
+ * │ GET     /milestones                                      Public           List all        │
+ * │ GET     /milestones/:id                                  Public           Single          │
+ * │ POST    /milestones                                      Admin            Create          │
+ * │ PUT     /milestones/:id                                  Admin            Update          │
+ * │ DELETE  /milestones/:id                                  Admin            Delete          │
+ * ├──────────────────────────────────────────────────────────────────────────────────────────┤
+ * │ POST    /record-workout                                  Client/T/A       Auto-award pts  │
+ * └──────────────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * Middleware Aliases (Why Custom Names?):
+ * - authenticate = protect (clearer intent for routes file)
+ * - authorizeAdmin = adminOnly (consistency)
+ * - authorizeTrainer = trainerOrAdminOnly (trainer + admin access)
+ * - authorizeClientOrTrainer = custom inline middleware (all authenticated roles)
+ *
+ * Business Logic:
+ *
+ * WHY Public Access for Leaderboard/Achievements/Rewards?
+ * - Marketing (show achievements to attract new users)
+ * - Transparency (users see available rewards before signup)
+ * - Social proof (leaderboard drives competition)
+ * - No sensitive data exposed (points, names, badges only)
+ *
+ * WHY Trainer Can Award Points/Achievements?
+ * - Trainer-client relationship (trainer rewards client progress)
+ * - Engagement tool (trainers motivate clients)
+ * - Delegation (reduces admin workload)
+ * - Logged for audit (req.user.id tracked in controller)
+ *
+ * WHY Separate authorizeClientOrTrainer Middleware?
+ * - Flexible access (client can view own profile, trainer can view any)
+ * - Inline definition (not reused elsewhere, no separate file needed)
+ * - Clear intent (role check logic visible in routes file)
+ *
+ * Created: 2024-XX-XX
+ * Enhanced: 2025-11-14 (Level 5/5 Documentation - Blueprint-First Standard)
+ */
+
 import express from 'express';
 import gamificationController from '../controllers/gamificationController.mjs';
 import { protect, adminOnly, trainerOnly, trainerOrAdminOnly } from '../middleware/authMiddleware.mjs';
