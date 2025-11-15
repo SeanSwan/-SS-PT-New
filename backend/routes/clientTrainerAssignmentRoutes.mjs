@@ -1,19 +1,229 @@
 /**
- * Client-Trainer Assignment Routes
- * ===============================
- * 
- * Manages the formal relationships between clients and trainers.
- * Admin-controlled assignment system with comprehensive audit trail.
- * 
- * Core Features:
- * - Create, read, update, delete client-trainer assignments
- * - Admin-only assignment management with proper authorization
- * - Drag-and-drop assignment interface support
- * - Assignment status tracking and audit trail
- * - Bulk operations for efficient management
- * 
- * Part of the NASM Workout Tracking System - Phase 2.2: API Layer
- * Designed for SwanStudios Platform - Production Ready
+ * Client-Trainer Assignment Routes (Admin Client-Trainer Management API)
+ * =======================================================================
+ *
+ * Purpose: Admin-only REST API for managing client-trainer assignments with inline handlers,
+ * comprehensive audit trail, status tracking, and drag-and-drop UI support
+ *
+ * Blueprint Reference: SwanStudios Personal Training Platform - Client-Trainer Assignment System
+ *
+ * Base Path: /api/assignments
+ *
+ * Architecture Overview:
+ * ┌─────────────────────┐      ┌──────────────────┐      ┌─────────────────┐
+ * │  Admin Dashboard    │─────▶│  Assignment      │─────▶│  PostgreSQL     │
+ * │  (Drag-and-Drop UI) │      │  Routes (Inline) │      │  (2 tables)     │
+ * └─────────────────────┘      └──────────────────┘      └─────────────────┘
+ *                                       │
+ *                                       │ (business logic in routes)
+ *                                       ▼
+ *                              ┌──────────────────┐
+ *                              │  adminOnly       │
+ *                              │  trainerOrAdmin  │
+ *                              └──────────────────┘
+ *
+ * Database Schema (2 tables):
+ *
+ *   ┌─────────────────────────────────────────────────────────────┐
+ *   │ client_trainer_assignments                                  │
+ *   │ ├─id (PK, INTEGER)                                          │
+ *   │ ├─clientId (FK → users.id) - Client being assigned          │
+ *   │ ├─trainerId (FK → users.id) - Trainer assigned              │
+ *   │ ├─assignedBy (FK → users.id) - Admin who created assignment │
+ *   │ ├─assignedAt (TIMESTAMP, default: NOW())                    │
+ *   │ ├─status (ENUM: active, inactive, pending)                  │
+ *   │ ├─notes (TEXT, nullable) - Admin notes                      │
+ *   │ ├─createdAt, updatedAt                                      │
+ *   │ └─────────────────────────────────────────────────────────  │
+ *   └─────────────────────────────────────────────────────────────┘
+ *
+ *   ┌─────────────────────────────────────────────────────────────┐
+ *   │ users (linked via clientId, trainerId, assignedBy)          │
+ *   │ - Client: role = 'client' OR 'user'                         │
+ *   │ - Trainer: role = 'trainer'                                 │
+ *   │ - Admin: role = 'admin' (assignedBy)                        │
+ *   └─────────────────────────────────────────────────────────────┘
+ *
+ * Entity Relationships:
+ *
+ *   client_trainer_assignments ─────▶ users (clientId) [client]
+ *   client_trainer_assignments ─────▶ users (trainerId) [trainer]
+ *   client_trainer_assignments ─────▶ users (assignedBy) [admin]
+ *
+ * API Endpoints (9 total):
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │ METHOD  ENDPOINT                         MIDDLEWARE     PURPOSE              │
+ * ├──────────────────────────────────────────────────────────────────────────────┤
+ * │ GET     /test                            protect+admin  Test endpoint        │
+ * │ GET     /                                protect+admin  Get all assignments  │
+ * │ GET     /trainer/:trainerId              protect+T/A    Get trainer clients  │
+ * │ GET     /client/:clientId                protect+admin  Get client trainer   │
+ * │ POST    /                                protect+admin  Create assignment    │
+ * │ PUT     /:id                             protect+admin  Update assignment    │
+ * │ DELETE  /:id                             protect+admin  Deactivate assignment│
+ * │ GET     /unassigned/clients              protect+admin  Get unassigned       │
+ * │ GET     /stats                           protect+admin  Get statistics       │
+ * └──────────────────────────────────────────────────────────────────────────────┘
+ *
+ * Middleware Strategy:
+ *
+ *   Per-Route Middleware (NOT global router.use):
+ *   - protect: JWT authentication (all routes)
+ *   - adminOnly: Admin-only access (most routes)
+ *   - trainerOrAdminOnly: Trainer can view own assignments, admin can view all
+ *
+ *   Authorization Pattern:
+ *   - Assignment management: adminOnly (create, update, delete, stats)
+ *   - Trainer view: trainerOrAdminOnly (GET /trainer/:trainerId)
+ *   - Additional ownership check: Trainers can only view OWN assignments (trainerId === req.user.id)
+ *
+ * Assignment Lifecycle:
+ *
+ *   1. Admin creates assignment (POST /)
+ *      - Deactivates existing client assignments (only 1 active trainer per client)
+ *      - Creates new assignment with status = 'active'
+ *      - Records assignedBy (admin user ID) for audit trail
+ *
+ *   2. Admin updates assignment (PUT /:id)
+ *      - Change status (active → inactive, inactive → active)
+ *      - Update notes (admin annotations)
+ *      - Audit trail preserved (createdAt, updatedAt)
+ *
+ *   3. Admin deletes assignment (DELETE /:id)
+ *      - Soft delete (status → 'inactive') instead of hard delete
+ *      - Preserves audit trail (who assigned, when, duration)
+ *
+ * Mermaid Sequence Diagram (Assignment Creation):
+ *
+ * ```mermaid
+ * sequenceDiagram
+ *   participant Admin
+ *   participant Routes
+ *   participant Middleware
+ *   participant Database
+ *
+ *   Admin->>Routes: POST /api/assignments { clientId, trainerId }
+ *   Routes->>Middleware: protect + adminOnly
+ *   alt Not Admin
+ *     Middleware-->>Admin: 403 Forbidden
+ *   end
+ *   Routes->>Database: Verify client exists (role = 'client' OR 'user')
+ *   Routes->>Database: Verify trainer exists (role = 'trainer')
+ *   alt Invalid User
+ *     Routes-->>Admin: 404 Not Found
+ *   end
+ *   Routes->>Database: Check existing active assignment
+ *   alt Already Assigned
+ *     Routes-->>Admin: 409 Conflict
+ *   end
+ *   Routes->>Database: UPDATE status='inactive' WHERE clientId=X
+ *   Routes->>Database: INSERT new assignment (status='active')
+ *   Routes->>Database: SELECT with client/trainer/assignedBy associations
+ *   Database-->>Routes: Complete assignment object
+ *   Routes-->>Admin: 201 Created { assignment }
+ * ```
+ *
+ * Query Parameters (GET /):
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │ PARAMETER                    TYPE           PURPOSE                          │
+ * ├──────────────────────────────────────────────────────────────────────────────┤
+ * │ status                       ENUM           Filter by status (active/inactive)│
+ * │ trainerId                    INTEGER        Filter by trainer ID             │
+ * │ clientId                     INTEGER        Filter by client ID              │
+ * │ page                         INTEGER        Pagination (default: 1)          │
+ * │ limit                        INTEGER        Results per page (default: 50)   │
+ * │ includeInactive              BOOLEAN        Include inactive (default: false)│
+ * └──────────────────────────────────────────────────────────────────────────────┘
+ *
+ * Statistics Endpoint (GET /stats):
+ *
+ *   Returns:
+ *   - totalAssignments (all-time)
+ *   - activeAssignments (current)
+ *   - inactiveAssignments (historical)
+ *   - totalTrainers (total trainer users)
+ *   - totalClients (total client/user users)
+ *   - unassignedClients (clients without active trainer)
+ *   - assignmentRate (% of clients with active trainer)
+ *   - trainerWorkload (array: {trainerId, trainerName, activeClients})
+ *   - averageClientsPerTrainer (mean client count)
+ *
+ * Business Logic:
+ *
+ * WHY Inline Route Handlers (Not Controller Delegation)?
+ * - Simple CRUD operations (no complex business logic)
+ * - Direct database access (Sequelize ORM queries in routes)
+ * - Legacy pattern (predates controller architecture refactor)
+ * - Future refactor: Extract to clientTrainerAssignmentController.mjs
+ *
+ * WHY Only 1 Active Assignment Per Client?
+ * - Clear accountability (each client has 1 primary trainer)
+ * - Prevents conflicting workout plans (multiple trainers)
+ * - Simplifies billing (trainer commission structure)
+ * - Audit trail preserved (historical assignments via status='inactive')
+ *
+ * WHY Soft Delete (status='inactive') Instead of Hard Delete?
+ * - Audit trail (compliance, dispute resolution)
+ * - Historical reporting (trainer performance, client retention)
+ * - Undo capability (reactivate past assignments)
+ * - Referential integrity (preserve foreign key relationships)
+ *
+ * WHY Trainer Can View Own Assignments (trainerOrAdminOnly)?
+ * - Trainer needs client list (dashboard, session scheduling)
+ * - Privacy protection (trainers cannot view other trainers' clients)
+ * - Additional ownership check (trainerId === req.user.id)
+ * - Admin can view all (monitoring, rebalancing workload)
+ *
+ * WHY Prevent Self-Assignment (clientId === trainerId)?
+ * - Role conflict (user cannot be both client and trainer)
+ * - Database constraint (users have single role)
+ * - Logic error prevention (invalid assignment state)
+ *
+ * WHY Support Both 'client' AND 'user' Roles?
+ * - Legacy role naming (old users had role='user', new users have role='client')
+ * - Migration compatibility (gradual role renaming)
+ * - Future unification (standardize on role='client')
+ *
+ * Security Model:
+ * - All routes require JWT authentication (protect middleware)
+ * - Assignment management restricted to admin role (adminOnly)
+ * - Trainer view restricted to own assignments (trainerId === req.user.id OR role === 'admin')
+ * - Role validation enforced (client role check, trainer role check)
+ * - Prevent self-assignment (clientId !== trainerId)
+ *
+ * Error Handling:
+ * - 400: Bad Request (missing fields, invalid status, self-assignment)
+ * - 403: Forbidden (trainer viewing other trainer's assignments)
+ * - 404: Not Found (assignment not found, invalid user roles)
+ * - 409: Conflict (client already assigned to this trainer)
+ * - 500: Server error (database failures, Sequelize errors)
+ *
+ * Dependencies:
+ * - authMiddleware.mjs (protect, adminOnly, trainerOrAdminOnly)
+ * - models/index.mjs (getClientTrainerAssignment, getUser)
+ * - logger.mjs (Winston logger)
+ * - sequelize (Op for SQL queries)
+ * - express (router)
+ *
+ * Performance Considerations:
+ * - Pagination supported (default limit=50, configurable)
+ * - Parallel queries (Promise.all for user role validation, stats)
+ * - Exclude lastModifiedBy (field not in database yet, prevents Sequelize errors)
+ * - Eager loading (include client/trainer/assignedByUser associations)
+ *
+ * Testing Strategy:
+ * - Integration tests for each route
+ * - Test admin-only restrictions (403 for non-admin)
+ * - Test trainer ownership restrictions (403 for other trainer's assignments)
+ * - Test soft delete behavior (status='inactive')
+ * - Test 1-active-assignment-per-client constraint
+ * - Test role validation (client, trainer roles)
+ * - Test pagination (page, limit, totalPages)
+ *
+ * Created: 2024-XX-XX
+ * Enhanced: 2025-11-14 (Level 5/5 Documentation - Blueprint-First Standard)
  */
 
 import express from 'express';
