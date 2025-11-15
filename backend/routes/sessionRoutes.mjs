@@ -1,8 +1,167 @@
 /**
- * sessionRoutes.mjs
- * ================
- * Express routes for session management including creation, booking,
- * rescheduling, and cancellation.
+ * Session Management Routes (Universal Master Schedule + Session Booking API)
+ * ===========================================================================
+ *
+ * Purpose: Comprehensive REST API for session management with admin scheduling,
+ * client booking, trainer assignment, real-time WebSocket updates, and analytics
+ *
+ * Blueprint Reference: SwanStudios Personal Training Platform - Universal Master Schedule System
+ *
+ * Base Path: /api/sessions
+ *
+ * Architecture Overview:
+ * ┌─────────────────────┐      ┌──────────────────┐      ┌─────────────────┐
+ * │  Admin Dashboard    │─────▶│  Session Routes  │─────▶│  Session Ctrl   │
+ * │  (React)            │      │  (45+ endpoints) │      │  + Services     │
+ * └─────────────────────┘      └──────────────────┘      └─────────────────┘
+ *                                        │
+ *                                        ▼
+ *                              ┌──────────────────┐
+ *                              │  Real-Time       │
+ *                              │  Schedule Svc    │
+ *                              │  (WebSockets)    │
+ *                              └──────────────────┘
+ *
+ * API Endpoints (45+ total - organized by function):
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────────────┐
+ * │ SECTION                  METHOD  ENDPOINT                    ACCESS             │
+ * ├─────────────────────────────────────────────────────────────────────────────────┤
+ * │ SESSION ALLOCATION (5)                                                          │
+ * │                          POST    /allocate-from-order        Admin              │
+ * │                          POST    /add-to-user                Admin              │
+ * │                          GET     /user-summary/:userId       Admin              │
+ * │                          GET     /allocation-health          Admin              │
+ * │                          GET     /test                       Public             │
+ * ├─────────────────────────────────────────────────────────────────────────────────┤
+ * │ TRAINER ASSIGNMENT (6)                                                          │
+ * │                          POST    /assign-trainer             Admin              │
+ * │                          GET     /trainer-assignments/:id    Trainer/Admin      │
+ * │                          GET     /client-assignments/:id     Client/Admin       │
+ * │                          POST    /remove-trainer-assignment  Admin              │
+ * │                          GET     /assignment-statistics      Admin              │
+ * │                          GET     /trainer-assignment-health  Admin              │
+ * ├─────────────────────────────────────────────────────────────────────────────────┤
+ * │ ADMIN CRUD (8)                                                                  │
+ * │                          GET     /                           Admin              │
+ * │                          GET     /admin                      Admin              │
+ * │                          POST    /admin/create               Admin              │
+ * │                          POST    /                           Admin              │
+ * │                          PUT     /:id                        Admin              │
+ * │                          GET     /clients                    Admin              │
+ * │                          GET     /trainers                   Admin              │
+ * │                          PUT     /assign/:sessionId          Admin              │
+ * ├─────────────────────────────────────────────────────────────────────────────────┤
+ * │ CLIENT BOOKING (7)                                                              │
+ * │                          POST    /book/:userId               Client/Admin       │
+ * │                          POST    /book                       Client             │
+ * │                          POST    /request                    Client             │
+ * │                          PUT     /reschedule/:sessionId      Client/Admin       │
+ * │                          DELETE   /cancel/:sessionId         Client/T/A         │
+ * │                          GET     /available                  Public             │
+ * │                          GET     /:userId                    Client/Admin       │
+ * ├─────────────────────────────────────────────────────────────────────────────────┤
+ * │ SESSION OPERATIONS (8)                                                          │
+ * │                          PUT     /confirm/:sessionId         Trainer/Admin      │
+ * │                          PUT     /notes/:sessionId           Trainer/Admin      │
+ * │                          PUT     /complete/:sessionId        Trainer/Admin      │
+ * │                          POST    /available                  Admin              │
+ * │                          POST    /recurring                  Admin              │
+ * │                          POST    /bulk-update                Admin              │
+ * │                          POST    /bulk-assign-trainer        Admin              │
+ * │                          POST    /bulk-delete                Admin              │
+ * ├─────────────────────────────────────────────────────────────────────────────────┤
+ * │ ANALYTICS & CALENDAR (4)                                                        │
+ * │                          GET     /analytics                  Client             │
+ * │                          GET     /statistics                 Admin              │
+ * │                          GET     /calendar-events            Trainer/Admin      │
+ * │                          GET     /utilization-stats          Admin              │
+ * ├─────────────────────────────────────────────────────────────────────────────────┤
+ * │ DRAG-AND-DROP (1)                                                               │
+ * │                          PUT     /drag-drop/:id              Admin              │
+ * └─────────────────────────────────────────────────────────────────────────────────┘
+ *
+ * Services Integration:
+ *
+ *   sessionAllocationService:
+ *   - allocateSessionsFromOrder (admin manual allocation from completed order)
+ *   - addSessionsToUser (admin manual session addition)
+ *   - getUserSessionSummary (session count + package details)
+ *   - healthCheck (service health monitoring)
+ *
+ *   trainerAssignmentService:
+ *   - assignTrainerToClient (create client-trainer relationship)
+ *   - getTrainerAssignments (trainer's clients + sessions)
+ *   - getClientAssignments (client's trainers)
+ *   - removeTrainerAssignment (unassign trainer from sessions)
+ *   - getAssignmentStatistics (dashboard metrics)
+ *   - healthCheck (service health monitoring)
+ *
+ *   realTimeScheduleService:
+ *   - broadcastAllocationUpdated (WebSocket: session allocation event)
+ *   - broadcastAdminEvent (WebSocket: admin data access event)
+ *   - broadcastTrainerAssignment (WebSocket: trainer assignment event)
+ *   - broadcastSessionConfirmation (WebSocket: session confirmation event)
+ *   - broadcastSessionBooking (WebSocket: session booking event)
+ *   - broadcastSessionRequest (WebSocket: session request event)
+ *   - getServiceHealth (real-time service health check)
+ *
+ * Middleware Strategy:
+ *
+ *   protect = JWT authentication (all protected routes)
+ *   adminOnly = Admin role check (admin-only operations)
+ *   Role checks in handler:
+ *     - Client: Can book/view own sessions, redeem rewards
+ *     - Trainer: Can view assigned sessions, confirm/complete
+ *     - Admin: Full access to all operations
+ *
+ * Business Logic:
+ *
+ * WHY Separate Session Allocation Service?
+ * - Complex package → session conversion logic
+ * - Order fulfillment integration (completed order → allocate sessions)
+ * - Audit trail for session additions (admin manual adds)
+ * - Centralized session balance management
+ *
+ * WHY Trainer Assignment Service Separate from Session Booking?
+ * - Client-trainer relationships persist across sessions
+ * - Trainers need to see all assigned clients (not just current sessions)
+ * - Assignment statistics for admin dashboard
+ * - Bulk assignment operations (assign trainer to multiple sessions)
+ *
+ * WHY Real-Time WebSocket Broadcasting on Every Session Change?
+ * - Multi-user admin dashboard synchronization
+ * - Prevent double-booking conflicts (immediate visual feedback)
+ * - Calendar updates without page refresh
+ * - Client dashboard instant session availability updates
+ *
+ * WHY Drag-and-Drop Optimized Endpoint Separate from PUT /:id?
+ * - Performance optimization (minimal fields updated)
+ * - Reduced payload size (only sessionDate, duration, trainerId, userId)
+ * - Optimistic UI updates (fast response for smooth UX)
+ * - Calendar-specific logic (status auto-update on assignment)
+ *
+ * WHY Bulk Operations (Bulk Update, Bulk Assign, Bulk Delete)?
+ * - Admin efficiency (update 100+ sessions in one click)
+ * - Recurring session management (bulk delete all future slots)
+ * - Trainer re-assignment (bulk assign new trainer to client's sessions)
+ * - Transactional integrity (all or nothing)
+ *
+ * Security Model:
+ * - All routes protected with JWT authentication (except /available, /test)
+ * - Role-based access control (admin, trainer, client)
+ * - Session ownership validation (clients can only book/cancel own sessions)
+ * - Trainer assignment validation (trainers can only confirm assigned sessions)
+ * - Admin audit logging (realTimeScheduleService.broadcastAdminEvent)
+ *
+ * Error Handling:
+ * - 400: Invalid request (missing params, past session, no available slots)
+ * - 403: Forbidden (role violation, session ownership violation)
+ * - 404: Not found (session, user, or trainer not found)
+ * - 500: Server error (database failures, service errors)
+ *
+ * Created: 2024-XX-XX
+ * Enhanced: 2025-11-14 (Level 5/5 Documentation - Blueprint-First Standard)
  */
 
 import express from "express";

@@ -1,20 +1,67 @@
 /**
- * AdminContentModerationRoutes.mjs
- * ================================
- * 
- * Content Moderation API Routes for Admin Dashboard
- * Provides comprehensive content moderation capabilities
- * 
- * Endpoints:
- * - GET /api/admin/content/posts - Get posts for moderation
- * - GET /api/admin/content/comments - Get comments for moderation
- * - GET /api/admin/content/reports - Get reported content
- * - POST /api/admin/content/moderate - Moderate content (approve/reject)
- * - GET /api/admin/content/stats - Get moderation statistics
- * - PUT /api/admin/content/posts/:id - Update post status
- * - DELETE /api/admin/content/posts/:id - Delete post
- * - PUT /api/admin/content/comments/:id - Update comment status
- * - DELETE /api/admin/content/comments/:id - Delete comment
+ * Admin Content Moderation Routes (Social Content Moderation API)
+ * ================================================================
+ *
+ * Purpose: REST API for admin moderation of user-generated social content
+ * with rate limiting, bulk actions, and frontend compatibility aliases
+ *
+ * Blueprint Reference: SwanStudios Personal Training Platform - Content Moderation System
+ *
+ * Base Path: /api/admin/content
+ *
+ * Architecture Overview:
+ * ┌─────────────────────┐      ┌──────────────────┐      ┌─────────────────┐
+ * │  Admin Dashboard    │─────▶│  Content Mod     │─────▶│  Content Mod    │
+ * │  (React)            │      │  Routes          │      │  Controller     │
+ * └─────────────────────┘      └──────────────────┘      └─────────────────┘
+ *
+ * API Endpoints (11 total):
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │ METHOD  ENDPOINT                         ACCESS         PURPOSE              │
+ * ├──────────────────────────────────────────────────────────────────────────────┤
+ * │ GET     /posts                           Admin          Get posts for review │
+ * │ GET     /comments                        Admin          Get comments         │
+ * │ GET     /reports                         Admin          Get reported content │
+ * │ GET     /stats                           Admin          Get stats            │
+ * │ POST    /moderate                        Admin          Moderate content     │
+ * │ PUT     /posts/:id                       Admin          Update post status   │
+ * │ DELETE  /posts/:id                       Admin          Delete post          │
+ * │ PUT     /comments/:id                    Admin          Update comment status│
+ * │ DELETE  /comments/:id                    Admin          Delete comment       │
+ * │ GET     /queue                           Admin          Unified queue (alias)│
+ * │ POST    /bulk-action                     Admin          Bulk moderation      │
+ * └──────────────────────────────────────────────────────────────────────────────┘
+ *
+ * Middleware Strategy:
+ *
+ *   Global middleware (router.use):
+ *   - protect (JWT authentication)
+ *   - requireAdmin (admin role check)
+ *   - contentModerationRateLimit (200 requests / 15 minutes)
+ *
+ * Business Logic:
+ *
+ * WHY Aggressive Rate Limiting (200 requests / 15 minutes)?
+ * - Prevents admin account abuse (compromised admin credentials)
+ * - Prevents accidental bulk deletion (rapid DELETE requests)
+ * - Reasonable for admin workflow (5-10 moderations per minute max)
+ * - Higher than client rate limits (admin needs more capacity)
+ *
+ * WHY Frontend Compatibility Aliases (/queue, /bulk-action)?
+ * - Frontend expects unified moderation queue (posts + comments combined)
+ * - Bulk action endpoint simplifies frontend logic (single API call)
+ * - Backwards compatibility with legacy frontend code
+ * - Reduces frontend complexity (no manual data merging)
+ *
+ * WHY Global Middleware on All Routes?
+ * - All content moderation requires authentication
+ * - All content moderation requires admin role
+ * - Simplified route definitions (no per-route middleware repetition)
+ * - Centralized rate limiting configuration
+ *
+ * Created: 2024-XX-XX
+ * Enhanced: 2025-11-14 (Level 5/5 Documentation - Blueprint-First Standard)
  */
 
 import express from 'express';

@@ -1,29 +1,124 @@
 /**
- * AdminContentModerationController.mjs
- * ====================================
- * 
- * Content Moderation Controller for Admin Dashboard
- * Manages user-generated content, social posts, and community guidelines
- * 
- * Features:
- * - Real database integration with SocialPost, SocialComment, PostReport models
- * - Social post moderation and review
- * - Automated content flagging system  
- * - User comment management
- * - Community guidelines enforcement
- * - Bulk moderation actions
- * - Content analytics and reporting
- * - User warning and suspension system
- * 
- * Routes:
- * - GET /api/admin/content/posts - Get posts for moderation
- * - GET /api/admin/content/comments - Get comments for moderation  
- * - GET /api/admin/content/reports - Get reported content
- * - POST /api/admin/content/moderate - Moderate content (approve/reject)
- * - PUT /api/admin/content/posts/:id - Update post status
- * - DELETE /api/admin/content/posts/:id - Delete post
- * - PUT /api/admin/content/comments/:id - Update comment status
- * - DELETE /api/admin/content/comments/:id - Delete comment
+ * Admin Content Moderation Controller (Social Posts + Comments Moderation)
+ * =========================================================================
+ *
+ * Purpose: Admin controller for moderating user-generated content including social posts,
+ * comments, and automated content flagging with fallback to mock data
+ *
+ * Blueprint Reference: SwanStudios Personal Training Platform - Content Moderation System
+ *
+ * Architecture Overview:
+ * ┌─────────────────────┐      ┌──────────────────┐      ┌─────────────────┐
+ * │  Admin Dashboard    │─────▶│  Content Mod     │─────▶│  SocialPost     │
+ * │  (React)            │      │  Controller      │      │  SocialComment  │
+ * └─────────────────────┘      └──────────────────┘      └─────────────────┘
+ *                                        │
+ *                                        ▼
+ *                              ┌──────────────────┐
+ *                              │  Mock Data       │
+ *                              │  (Fallback)      │
+ *                              └──────────────────┘
+ *
+ * Database Schema (social_posts table):
+ *
+ *   ┌─────────────────────────────────────────────────────────────┐
+ *   │ social_posts                                                │
+ *   │ ├─id (PK, UUID)                                             │
+ *   │ ├─userId (FK → users.id) - Post author                      │
+ *   │ ├─content (TEXT) - Post text content                        │
+ *   │ ├─type (ENUM: text, image, video, poll)                     │
+ *   │ ├─mediaUrl (STRING, nullable) - Media file URL              │
+ *   │ ├─moderationStatus (ENUM: pending, approved, flagged, rejected, hidden) │
+ *   │ ├─flaggedReason (TEXT, nullable) - Auto-flag reason         │
+ *   │ ├─flaggedAt (TIMESTAMP, nullable)                           │
+ *   │ ├─flaggedBy (FK → users.id, nullable) - Manual flag user    │
+ *   │ ├─reportsCount (INTEGER, default: 0) - User reports         │
+ *   │ ├─autoModerated (BOOLEAN, default: false)                   │
+ *   │ ├─moderationFlags (JSONB) - Auto-detection flags            │
+ *   │ ├─moderationNotes (TEXT, nullable) - Admin notes            │
+ *   │ ├─lastModeratedAt (TIMESTAMP, nullable)                     │
+ *   │ ├─lastModeratedBy (FK → users.id, nullable)                 │
+ *   │ ├─likesCount (INTEGER, default: 0)                          │
+ *   │ ├─commentsCount (INTEGER, default: 0)                       │
+ *   │ ├─createdAt (TIMESTAMP)                                     │
+ *   │ └─updatedAt (TIMESTAMP)                                     │
+ *   └─────────────────────────────────────────────────────────────┘
+ *
+ * Controller Methods (9 total):
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │ METHOD                       ACCESS         PURPOSE                          │
+ * ├──────────────────────────────────────────────────────────────────────────────┤
+ * │ getPosts                     Admin          Get posts for moderation         │
+ * │ getComments                  Admin          Get comments for moderation      │
+ * │ getReports                   Admin          Get reported content             │
+ * │ getModerationStats           Admin          Get moderation statistics        │
+ * │ moderateContent              Admin          Moderate content (approve/reject)│
+ * │ updatePostStatus             Admin          Update post status               │
+ * │ deletePost                   Admin          Delete post                      │
+ * │ updateCommentStatus          Admin          Update comment status            │
+ * │ deleteComment                Admin          Delete comment                   │
+ * └──────────────────────────────────────────────────────────────────────────────┘
+ *
+ * Business Logic:
+ *
+ * WHY Fallback to Mock Data on Database Failure?
+ * - Development environment flexibility (social models may not exist)
+ * - Frontend testing without complete backend setup
+ * - Graceful degradation (admin dashboard remains functional)
+ * - Allows UI development independent of database schema
+ *
+ * WHY Auto-Moderation Flags?
+ * - Profanity detection (automated keyword scanning)
+ * - Spam detection (repeated content, excessive links)
+ * - Suspicious patterns (multiple reports, low engagement)
+ * - Reduces admin workload (pre-filter content for review)
+ *
+ * WHY Separate Flagged vs Rejected Status?
+ * - flagged: Needs admin review (auto-detected or user-reported)
+ * - rejected: Admin-reviewed and removed from public view
+ * - Audit trail (shows admin decision vs automated flag)
+ * - Allows content appeals (users can contest rejections)
+ *
+ * WHY Track Last Moderated By + Last Moderated At?
+ * - Admin accountability (who made moderation decision)
+ * - Audit trail for policy enforcement
+ * - Training data (review decisions for improving auto-moderation)
+ * - Performance metrics (moderation response time)
+ *
+ * Security Model:
+ * - All routes require admin role (enforced in routes middleware)
+ * - Moderation actions logged for audit trail
+ * - User notifications on content removal (notifyUser option)
+ * - Sensitive content hidden immediately (not deleted for appeals)
+ *
+ * Error Handling:
+ * - Database query failures trigger fallback to mock data
+ * - 400: Invalid request (missing params, invalid status)
+ * - 404: Content not found
+ * - 500: Server error (database failures, validation errors)
+ *
+ * Dependencies:
+ * - SocialPost, SocialComment, PostReport, ModerationAction models
+ * - User model (Sequelize ORM)
+ * - sequelize database instance
+ * - logger.mjs (Winston logger)
+ *
+ * Performance Considerations:
+ * - Pagination for large content sets (default 20 per page)
+ * - Include user associations (avoids N+1 queries)
+ * - Summary statistics cached (getModerationStats)
+ * - Search uses database indexes (content, user name, email)
+ *
+ * Testing Strategy:
+ * - Unit tests for each controller method
+ * - Test fallback to mock data on database failure
+ * - Test moderation status transitions
+ * - Test admin notifications on content removal
+ * - Test auto-moderation flag detection
+ *
+ * Created: 2024-XX-XX
+ * Enhanced: 2025-11-14 (Level 5/5 Documentation - Blueprint-First Standard)
  */
 
 import logger from '../utils/logger.mjs';

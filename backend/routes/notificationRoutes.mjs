@@ -1,10 +1,53 @@
+/**
+ * Notification Routes (In-App Notification API)
+ * ==============================================
+ *
+ * Purpose: REST API for in-app notification management with real-time bell icon updates
+ *
+ * Blueprint Reference: SwanStudios Personal Training Platform - Notification System
+ *
+ * Base Path: /api/notifications
+ *
+ * Architecture Overview:
+ * ┌─────────────────────┐      ┌──────────────────┐      ┌─────────────────┐
+ * │  Client Dashboard   │─────▶│  Notification    │─────▶│  Notification   │
+ * │  (Bell Icon)        │      │  Routes          │      │  Controller     │
+ * └─────────────────────┘      └──────────────────┘      └─────────────────┘
+ *
+ * API Endpoints (4 total):
+ *
+ * ┌──────────────────────────────────────────────────────────────────────────────┐
+ * │ METHOD  ENDPOINT                         ACCESS         PURPOSE              │
+ * ├──────────────────────────────────────────────────────────────────────────────┤
+ * │ GET     /                                Client/T/A     Get all notifications│
+ * │ PUT     /:id/read                        Client/T/A     Mark as read         │
+ * │ PUT     /read-all                        Client/T/A     Mark all as read     │
+ * │ DELETE  /:id                             Client/T/A     Delete notification  │
+ * └──────────────────────────────────────────────────────────────────────────────┘
+ *
+ * Middleware Strategy:
+ *   All routes protected with JWT authentication (protect middleware)
+ *   Ownership validation enforced in controller (user can only access own notifications)
+ *
+ * Business Logic:
+ *
+ * WHY No POST Endpoint for Creating Notifications?
+ * - Notifications created internally by controllers (session, gamification, order)
+ * - Prevents spam and abuse (users cannot create arbitrary notifications)
+ * - Centralized notification logic (consistent format, audit trail)
+ * - Direct API access only for reading/managing existing notifications
+ *
+ * Created: 2024-XX-XX
+ * Enhanced: 2025-11-14 (Level 5/5 Documentation - Blueprint-First Standard)
+ */
+
 // backend/routes/notificationRoutes.mjs
 import express from 'express';
-import { 
-  getAllNotifications, 
-  markAsRead, 
-  markAllAsRead, 
-  deleteNotification 
+import {
+  getAllNotifications,
+  markAsRead,
+  markAllAsRead,
+  deleteNotification
 } from '../controllers/notificationController.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
 
