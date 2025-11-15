@@ -220,18 +220,21 @@
 13. ✅ `backend/migrations/20250505001600-create-point-transactions.mjs` (135-line header) ⭐ SESSION 5
     - **Completed:** Session 5 (2025-11-14)
     - **Features:** Audit log, 5 transaction types, 12 source categories, balance snapshots, 4 indexes
-14. ✅ `backend/migrations/20250212060728-create-user-table.cjs` (278-line header) ⭐ SESSION 6 NEW
+14. ✅ `backend/migrations/20250212060728-create-user-table.cjs` (290-line header) ⭐ SESSION 6 + CORRECTED
     - **Completed:** Session 6 (2025-11-14)
-    - **Features:** 3-tier role hierarchy, 20+ role-specific fields, soft delete, 8 WHY sections, UUID vs INTEGER explanation
-15. ✅ `backend/migrations/20250305000000-create-sessions.cjs` (275-line header) ⭐ SESSION 6 NEW
+    - **CORRECTED:** Session 6 (Role hierarchy documentation fix)
+    - **Features:** **4-tier role hierarchy** (user, client, trainer, admin), role progression (user→client), 20+ role-specific fields, soft delete, 10 WHY sections, UUID vs INTEGER explanation
+15. ✅ `backend/migrations/20250305000000-create-sessions.cjs` (282-line header) ⭐ SESSION 6 + CORRECTED
     - **Completed:** Session 6 (2025-11-14)
-    - **Features:** 6-state lifecycle, 24h deduction policy, session feedback, rating system, 8 WHY sections
-16. ✅ `backend/migrations/20250601000003-create-enhanced-social-media-platform.cjs` (202-line header) ⭐ SESSION 6 NEW
+    - **CORRECTED:** Session 6 (Role gating documentation)
+    - **Features:** 6-state lifecycle, 24h deduction policy, role='client' session booking restriction, session feedback, rating system, 9 WHY sections
+16. ✅ `backend/migrations/20250601000003-create-enhanced-social-media-platform.cjs` (202-line header) ⭐ SESSION 6
     - **Completed:** Session 6 (2025-11-14)
     - **Features:** 3 core tables (EnhancedSocialPosts, SocialConnections, Communities), 12 content types, AI moderation, creator economy, 8 WHY sections
-17. ✅ `backend/migrations/20250806000000-create-client-trainer-assignments.cjs` (227-line header) ⭐ SESSION 6 NEW
+17. ✅ `backend/migrations/20250806000000-create-client-trainer-assignments.cjs` (234-line header) ⭐ SESSION 6 + CORRECTED
     - **Completed:** Session 6 (2025-11-14)
-    - **Features:** Formal relationship management, soft delete, audit trail, unique constraint, 8 WHY sections
+    - **CORRECTED:** Session 6 (User + client role eligibility documentation)
+    - **Features:** Formal relationship management, soft delete, audit trail, unique constraint, supports 'user' AND 'client' roles, 9 WHY sections
 - All other migrations (10+ remaining) need comprehensive headers with ERDs, WHY sections, and data flow diagrams
 
 **PHASE 3 Total:** 22+ files
@@ -318,7 +321,7 @@ Before marking any file complete, verify:
 - ✅ **Session 3 (2025-11-14):** PHASE 2 completion (10 files) = **24 files total (48% complete)**
 - ✅ **Session 4 (2025-11-14):** PHASE 3 started (3 files: workout + assignment) = **27 files total (53% complete)**
 - ✅ **Session 5 (2025-11-14):** PHASE 3 migrations (4 files: NASM tables, gamification settings, achievements, point transactions) = **31 files total (59% complete)**
-- ✅ **Session 6 (2025-11-14):** PHASE 3 critical migrations (4 files: users, sessions, social media, client-trainer assignments) = **35 files total (67% complete)** ⭐ NEW
+- ✅ **Session 6 (2025-11-14):** PHASE 3 critical migrations (4 files: users, sessions, social media, client-trainer assignments) + **CRITICAL ROLE HIERARCHY CORRECTION** = **35 files total (67% complete)** ⭐ NEW
 - **Session 7 (Target):** PHASE 3 completion (remaining files) = **51 files total (100% complete)**
 
 **Estimated Total Time:** 7 work sessions to achieve full Level 5/5 documentation across all critical backend files
@@ -333,10 +336,14 @@ Before marking any file complete, verify:
 
 **Session 6 Summary:**
 - Upgraded 4 critical foundational migrations with comprehensive Level 5/5 headers
-- Users table migration (278-line header): 3-tier role hierarchy, 20+ role-specific fields, 8 WHY sections
-- Sessions table migration (275-line header): 6-state lifecycle, 24h deduction policy, session feedback, 8 WHY sections
+- **CRITICAL CORRECTION APPLIED:** Fixed role hierarchy documentation from 3-tier to 4-tier system
+  - **4-tier system:** user (social media only) → client (purchased sessions) → trainer → admin
+  - **Role progression:** user → client (automatic on first session purchase)
+  - **Business model:** Freemium social access → paid training conversion funnel
+- Users table migration (290-line header): **4-tier role hierarchy**, role progression (user→client), 20+ role-specific fields, 10 WHY sections
+- Sessions table migration (282-line header): 6-state lifecycle, 24h deduction policy, role='client' booking restriction, 9 WHY sections
 - Social media platform migration (202-line header): 3 core tables (EnhancedSocialPosts, SocialConnections, Communities), 12 content types, AI moderation, 8 WHY sections
-- Client-trainer assignments migration (227-line header): Formal relationship management, soft delete, audit trail, unique constraint, 8 WHY sections
+- Client-trainer assignments migration (234-line header): Supports 'user' AND 'client' roles, soft delete, audit trail, unique constraint, 9 WHY sections
 - Migrations now at 52% complete (11/21 files)
 - Overall progress: 67% complete (35/51 files)
 - PHASE 3 now 50% complete (11/22 files)

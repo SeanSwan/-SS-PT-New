@@ -116,8 +116,11 @@
  *    INSERT INTO sessions (sessionDate, duration, trainerId, status)
  *    VALUES ('2025-11-20 10:00', 60, trainer.id, 'available')
  *
- * 2. CLIENT BOOKS SESSION:
+ * 2. CLIENT BOOKS SESSION (Requires role='client', NOT 'user'):
  *    POST /sessions/book → sessionController.bookSession()
+ *    ↓
+ *    Validate: user.role === 'client' AND user.availableSessions > 0
+ *    // NOTE: 'user' role cannot book sessions (must purchase package first → role='client')
  *    ↓
  *    UPDATE sessions SET userId=client.id, status='requested' WHERE id=sessionId
  *    ↓
@@ -225,6 +228,14 @@
  * - Idempotency: Prevents sending duplicate reminders
  * - Cron job efficiency: Fast query (WHERE reminderSent=false AND sessionDate < NOW() + 24h)
  * - Decoupled: Reminder status independent of notification delivery
+ *
+ * WHY Session Booking Restricted to role='client' (NOT 'user')?
+ * - 4-tier role system: 'user' (social media only) vs 'client' (purchased sessions)
+ * - Access gating: Session booking requires availableSessions > 0 (only 'client' has this)
+ * - Role progression trigger: Purchasing sessions auto-upgrades 'user' → 'client'
+ * - Prevents errors: 'user' role has availableSessions=NULL (no session credits)
+ * - Implementation: sessionController.bookSession() validates role + availableSessions
+ * - UX flow: 'user' sees "Purchase Sessions to Book" → upgrades to 'client' → can book
  *
  * Security Model:
  * - Client can only book own sessions (userId = req.user.id)
