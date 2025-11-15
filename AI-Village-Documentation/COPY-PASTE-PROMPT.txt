@@ -13,13 +13,19 @@
 
 🚨 CRITICAL RULES:
 1. ✋ NO CODE WITHOUT APPROVAL - Always ask "Should I proceed?" first
-2. 📋 CHECK PHASE 0 - New features need 5 AI approvals before coding
-3. 🎭 CONFIRM ROLE - Tell me which AI you are and ask what I need today
+2. 📜 BLUEPRINT FIRST - Check for a documentation blueprint (flowcharts, diagrams) before you do anything. If one doesn't exist, your first task is to create it.
+3. 📋 CHECK PHASE 0 - New features and blueprints need 5 AI approvals before coding.
+4. 🎭 CONFIRM ROLE - Tell me which AI you are and ask what I need today.
 
 🎯 PROJECT STATUS:
 • Phase: Analysis & Refactoring (80-90% complete)
 • Focus: Post-MUI elimination, modernizing existing code
 • Live: Render deployment
+• Roles: 4-tier system (user → client → trainer → admin)
+  - user: Social media only (free tier)
+  - client: Purchased sessions (paid tier) - auto-upgrade from 'user' on purchase
+  - trainer: Service provider
+  - admin: Full system access
 • Theme: Galaxy-Swan (cosmic gradients, glass surfaces)
 • Active: Homepage Hero Enhancement (3/5 approvals)
 
