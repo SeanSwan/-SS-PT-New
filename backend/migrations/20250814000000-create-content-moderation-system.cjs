@@ -1,13 +1,362 @@
 /**
- * Migration: Create Content Moderation System
- * ===========================================
- * 
- * Creates tables and fields needed for comprehensive content moderation:
- * - PostReport table for tracking user reports
- * - ModerationAction table for admin action audit logs
- * - Adds moderation fields to existing SocialPost and SocialComment tables
- * 
- * This migration enables the admin dashboard content moderation features.
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║          COMPREHENSIVE CONTENT MODERATION SYSTEM MIGRATION                ║
+ * ║   (User Reporting, Admin Review Queue, AI Moderation, Audit Logging)    ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
+ *
+ * Purpose: Create complete content moderation ecosystem for social features
+ *          (posts, comments) with user reporting, admin queue, and audit trail
+ *
+ * Blueprint Reference: docs/ai-workflow/LEVEL-5-DOCUMENTATION-UPGRADE-STATUS.md
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                      ARCHITECTURE OVERVIEW                               │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * Content Moderation Flow:
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ User Reports Content → Admin Reviews → Action Taken → Audit Log Created │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *
+ * Relationship Diagram:
+ * ┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
+ * │  PostReports    │         │  ModerationAct  │         │  SocialPosts    │
+ * │  (User Reports) │────────►│  (Audit Trail)  │────────►│  (Content)      │
+ * │                 │         │                 │         │                 │
+ * │ - reporterId    │         │ - moderatorId   │         │ - moderationStat│
+ * │ - contentId     │         │ - action        │         │ - reportsCount  │
+ * │ - reason        │         │ - newStatus     │         │ - flaggedAt     │
+ * │ - status        │         │ - relatedReport │         │ - autoModerated │
+ * │ - priority      │         └─────────────────┘         └─────────────────┘
+ * └─────────────────┘                  │
+ *         │                            │
+ *         ▼                            ▼
+ * ┌─────────────────┐         ┌─────────────────┐
+ * │     Users       │         │ SocialComments  │
+ * │  (Reporters &   │         │   (Content)     │
+ * │   Moderators)   │         │                 │
+ * └─────────────────┘         │ - moderationStat│
+ *                             │ - reportsCount  │
+ *                             │ - flaggedAt     │
+ *                             └─────────────────┘
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                  DATABASE ERD - MODERATION TABLES                        │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * PostReports Table (User Reporting System):
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ Table: PostReports                                                       │
+ * ├──────────────────────┬──────────────────────────────────────────────────┤
+ * │ id                   │ INTEGER (PK, Auto-increment)                      │
+ * │ reporterId           │ INTEGER (FK → Users.id) - Who reported           │
+ * │ contentType          │ ENUM('post', 'comment')                          │
+ * │ contentId            │ INTEGER (ID of reported post/comment)            │
+ * │ contentAuthorId      │ INTEGER (FK → Users.id) - Content author         │
+ * │ reason               │ ENUM(10 types) - Report reason                   │
+ * │ description          │ TEXT - Additional details from reporter          │
+ * │ status               │ ENUM('pending', 'under-review', 'resolved',      │
+ * │                      │      'dismissed')                                │
+ * │ priority             │ ENUM('low', 'medium', 'high', 'urgent')          │
+ * │ resolvedAt           │ DATE - When admin resolved report                │
+ * │ resolvedBy           │ INTEGER (FK → Users.id) - Admin who resolved     │
+ * │ actionTaken          │ ENUM(7 actions) - What admin did                 │
+ * │ adminNotes           │ TEXT - Internal admin notes                      │
+ * │ createdAt, updatedAt │ DATE (Auto-managed)                              │
+ * ├──────────────────────┼──────────────────────────────────────────────────┤
+ * │ INDEXES              │ reporterId, contentType+contentId, contentAuthor,│
+ * │                      │ status, priority, createdAt                      │
+ * └──────────────────────┴──────────────────────────────────────────────────┘
+ *
+ * ModerationActions Table (Audit Log):
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ Table: ModerationActions                                                 │
+ * ├──────────────────────┬──────────────────────────────────────────────────┤
+ * │ id                   │ INTEGER (PK, Auto-increment)                      │
+ * │ moderatorId          │ INTEGER (FK → Users.id) - Who acted              │
+ * │ contentType          │ ENUM('post', 'comment', 'user')                  │
+ * │ contentId            │ INTEGER (ID of moderated content)                │
+ * │ contentAuthorId      │ INTEGER (FK → Users.id) - Content author         │
+ * │ action               │ ENUM(9 actions) - Action taken                   │
+ * │ previousStatus       │ STRING - Status before action                    │
+ * │ newStatus            │ STRING - Status after action                     │
+ * │ reason               │ STRING - Reason for action                       │
+ * │ details              │ TEXT - Additional details                        │
+ * │ relatedReportId      │ INTEGER (FK → PostReports.id)                    │
+ * │ automaticAction      │ BOOLEAN - AI vs manual moderation                │
+ * │ reversible           │ BOOLEAN - Can action be undone?                  │
+ * │ ipAddress            │ STRING - Moderator IP (audit)                    │
+ * │ userAgent            │ TEXT - Moderator browser (audit)                 │
+ * │ metadata             │ JSON - Additional context                        │
+ * │ createdAt, updatedAt │ DATE (Auto-managed)                              │
+ * ├──────────────────────┼──────────────────────────────────────────────────┤
+ * │ INDEXES              │ moderatorId, contentType+contentId, contentAuthor│
+ * │                      │ action, automaticAction, createdAt, relatedReport│
+ * └──────────────────────┴──────────────────────────────────────────────────┘
+ *
+ * SocialPosts/SocialComments Moderation Fields (11 new columns each):
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ moderationStatus     │ ENUM('pending', 'approved', 'flagged',           │
+ * │                      │      'rejected', 'hidden')                       │
+ * │ flaggedReason        │ STRING - Why content was flagged                 │
+ * │ flaggedAt            │ DATE - When flagged                              │
+ * │ flaggedBy            │ INTEGER (FK → Users.id) - Admin who flagged      │
+ * │ reportsCount         │ INTEGER - Number of user reports                 │
+ * │ autoModerated        │ BOOLEAN - AI moderation flag                     │
+ * │ moderationScore      │ DECIMAL(3,2) - AI confidence (0.0-1.0)           │
+ * │ moderationFlags      │ JSON - Array of detected issues                  │
+ * │ moderationNotes      │ TEXT - Admin internal notes                      │
+ * │ lastModeratedAt      │ DATE - Last review timestamp                     │
+ * │ lastModeratedBy      │ INTEGER (FK → Users.id) - Last reviewer          │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                         DATA FLOW DIAGRAM                                │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * Complete Moderation Workflow:
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ 1. USER REPORTS CONTENT                                                   │
+ * │    POST /api/social/report { contentType: 'post', contentId: 123,        │
+ * │                              reason: 'hate-speech', description: '...' } │
+ * │    ↓                                                                      │
+ * │    BEGIN TRANSACTION;                                                    │
+ * │      a) INSERT INTO PostReports (                                        │
+ * │           reporterId, contentType, contentId, contentAuthorId,           │
+ * │           reason, description, status='pending', priority='medium'       │
+ * │         )                                                                │
+ * │      b) UPDATE SocialPosts SET reportsCount += 1 WHERE id = 123          │
+ * │      c) IF reportsCount >= 5:                                            │
+ * │           UPDATE PostReports SET priority = 'high' WHERE contentId = 123 │
+ * │      d) IF priority = 'high':                                            │
+ * │           Notify admin: "High-priority report requires review"           │
+ * │    COMMIT;                                                               │
+ * │                                                                           │
+ * │ 2. AI AUTO-MODERATION (Optional Background Job)                          │
+ * │    Scan new content with AI moderation API (e.g., OpenAI Moderation)     │
+ * │    ↓                                                                      │
+ * │    IF moderationScore > 0.8 (high confidence violation):                 │
+ * │      BEGIN TRANSACTION;                                                  │
+ * │        a) UPDATE SocialPosts SET                                         │
+ * │             moderationStatus = 'flagged',                                │
+ * │             autoModerated = true,                                        │
+ * │             moderationScore = 0.85,                                      │
+ * │             moderationFlags = ['hate-speech', 'harassment']              │
+ * │        b) INSERT INTO ModerationActions (                                │
+ * │             moderatorId = NULL,                                          │
+ * │             action = 'flag',                                             │
+ * │             automaticAction = true,                                      │
+ * │             details = 'AI detected: hate-speech (0.85 confidence)'       │
+ * │           )                                                              │
+ * │      COMMIT;                                                             │
+ * │    ↓                                                                      │
+ * │    Notify admin: "Auto-flagged content requires manual review"           │
+ * │                                                                           │
+ * │ 3. ADMIN MODERATION QUEUE                                                │
+ * │    GET /admin/moderation/queue?status=pending&priority=high              │
+ * │    ↓                                                                      │
+ * │    SELECT * FROM PostReports WHERE                                       │
+ * │      status = 'pending' AND priority IN ('high', 'urgent')               │
+ * │      ORDER BY priority DESC, createdAt ASC                               │
+ * │    ↓                                                                      │
+ * │    Display: List of pending reports sorted by priority + age             │
+ * │                                                                           │
+ * │ 4. ADMIN REVIEW & ACTION                                                 │
+ * │    POST /admin/moderation/resolve/:reportId {                            │
+ * │      action: 'content-removed',                                          │
+ * │      adminNotes: 'Violates community guidelines: hate speech'            │
+ * │    }                                                                     │
+ * │    ↓                                                                      │
+ * │    BEGIN TRANSACTION;                                                    │
+ * │      a) UPDATE PostReports SET                                           │
+ * │           status = 'resolved',                                           │
+ * │           resolvedBy = admin.id,                                         │
+ * │           resolvedAt = NOW,                                              │
+ * │           actionTaken = 'content-removed',                               │
+ * │           adminNotes = '...'                                             │
+ * │      b) UPDATE SocialPosts SET                                           │
+ * │           moderationStatus = 'rejected',                                 │
+ * │           flaggedReason = 'hate-speech',                                 │
+ * │           flaggedAt = NOW,                                               │
+ * │           flaggedBy = admin.id,                                          │
+ * │           lastModeratedAt = NOW,                                         │
+ * │           lastModeratedBy = admin.id                                     │
+ * │      c) INSERT INTO ModerationActions (                                  │
+ * │           moderatorId = admin.id,                                        │
+ * │           contentType = 'post',                                          │
+ * │           contentId = 123,                                               │
+ * │           action = 'delete',                                             │
+ * │           previousStatus = 'flagged',                                    │
+ * │           newStatus = 'rejected',                                        │
+ * │           relatedReportId = reportId,                                    │
+ * │           ipAddress = req.ip,                                            │
+ * │           userAgent = req.headers['user-agent']                          │
+ * │         )                                                                │
+ * │      d) Notify content author: "Your post was removed: hate-speech"      │
+ * │    COMMIT;                                                               │
+ * │                                                                           │
+ * │ 5. MODERATION ANALYTICS                                                  │
+ * │    GET /admin/moderation/analytics                                       │
+ * │    ↓                                                                      │
+ * │    Queries:                                                              │
+ * │      - Average resolution time: AVG(resolvedAt - createdAt)              │
+ * │      - Reports by reason: COUNT(*) GROUP BY reason                       │
+ * │      - Top moderators: COUNT(*) FROM ModerationActions GROUP BY moderator│
+ * │      - Auto-moderation accuracy: (correct auto-flags / total auto-flags) │
+ * │      - Pending queue size: COUNT(*) WHERE status = 'pending'             │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                     BUSINESS LOGIC (WHY SECTIONS)                        │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * WHY Separate PostReports Table (Not Just Flag Content)?
+ * - Multiple reports: Same content can be reported multiple times by different users
+ * - Report history: Track all reports even if dismissed (pattern detection)
+ * - User accountability: Prevent report spam (track reporterId)
+ * - Admin workflow: Dedicated moderation queue (status: pending → resolved)
+ * - Analytics: "Most reported reasons", "Average resolution time"
+ * - Audit trail: Complete history of who reported what, when, why
+ *
+ * WHY ModerationActions Audit Table?
+ * - Accountability: Track which admin took which action, when
+ * - Compliance: GDPR/legal requirements for action audit trails
+ * - Reversibility: Can undo actions (action='restore' references previous action)
+ * - Analytics: Admin performance (actions per day, accuracy metrics)
+ * - Debugging: "Why was this content removed?" → Check ModerationActions
+ * - IP/UserAgent logging: Detect compromised admin accounts
+ * - Automatic vs manual: Track AI moderation accuracy
+ *
+ * WHY priority ENUM (low, medium, high, urgent)?
+ * - Triage: Admins review high-priority reports first
+ * - Auto-escalation: 5+ reports → priority = 'high'
+ * - Urgent keywords: "violence", "self-harm" → priority = 'urgent'
+ * - SLA enforcement: Urgent reports must be reviewed within 1 hour
+ * - Queue sorting: ORDER BY priority DESC, createdAt ASC
+ * - Analytics: Track average resolution time by priority level
+ *
+ * WHY reportsCount on Content (Denormalized)?
+ * - Quick filtering: Show posts with reportsCount > 0 in admin dashboard
+ * - Auto-flagging: IF reportsCount >= 5, auto-flag for review
+ * - No JOIN overhead: Display report count without joining PostReports table
+ * - Public transparency: Show "This post has 3 reports" badge to users
+ * - Performance: Avoid COUNT(*) FROM PostReports WHERE contentId = X
+ *
+ * WHY autoModerated Boolean + moderationScore?
+ * - AI assistance: Pre-flag content likely violating guidelines
+ * - Confidence tracking: moderationScore = 0.85 (85% confidence)
+ * - Admin efficiency: Review AI-flagged content first
+ * - Accuracy metrics: Track false positives (AI flagged, admin approved)
+ * - Hybrid moderation: AI + human review for best results
+ * - Transparency: Show users if content was auto-flagged vs human-flagged
+ *
+ * WHY moderationFlags JSON Array?
+ * - Multiple issues: Content can violate multiple rules simultaneously
+ * - Example: moderationFlags = ['hate-speech', 'harassment', 'adult-content']
+ * - AI categorization: OpenAI Moderation API returns multiple categories
+ * - Flexible schema: Can add new flag types without migration
+ * - Display: Show all detected issues to admin for review
+ *
+ * WHY moderationStatus ENUM (5 States)?
+ * - 'pending': New content awaiting first review (rare, most auto-approved)
+ * - 'approved': Content passed moderation (default for most posts)
+ * - 'flagged': Requires admin review (AI or user report triggered)
+ * - 'rejected': Violates guidelines, removed from public view
+ * - 'hidden': Soft delete (admin can unhide, user sees "Content removed")
+ * - Clear states: Easy to query "Show all flagged content"
+ *
+ * WHY relatedReportId in ModerationActions?
+ * - Traceability: Link admin action back to user report that triggered it
+ * - Report resolution: "This action resolved report #123"
+ * - Analytics: "How many actions were report-driven vs proactive?"
+ * - User feedback: Notify reporter "Your report led to content removal"
+ * - Null allowed: Some actions are proactive (no related report)
+ *
+ * WHY reversible Boolean?
+ * - Undo capability: Some actions can be reversed (flag → approve)
+ * - Permanent actions: User bans are NOT reversible (require new account)
+ * - Admin workflow: "Restore content" only works if reversible = true
+ * - Audit safety: Prevent accidental restoration of dangerous content
+ * - UI control: Show/hide "Undo" button based on reversible flag
+ *
+ * WHY ipAddress + userAgent Logging?
+ * - Security: Detect compromised admin accounts (unusual IP/location)
+ * - Forensics: Investigate suspicious moderation actions
+ * - Compliance: Some regulations require action audit trails
+ * - Debugging: "Was this action taken from mobile or desktop?"
+ * - Rate limiting: Prevent abuse (e.g., rogue admin mass-banning)
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                          INDEXES & CONSTRAINTS                           │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * PostReports Indexes:
+ * 1. postreport_reporter_idx - INDEX (reporterId)
+ * 2. postreport_content_idx - INDEX (contentType, contentId) - COMPOSITE
+ * 3. postreport_author_idx - INDEX (contentAuthorId)
+ * 4. postreport_status_idx - INDEX (status)
+ * 5. postreport_priority_idx - INDEX (priority)
+ * 6. postreport_created_idx - INDEX (createdAt)
+ *
+ * ModerationActions Indexes:
+ * 1. modaction_moderator_idx - INDEX (moderatorId)
+ * 2. modaction_content_idx - INDEX (contentType, contentId) - COMPOSITE
+ * 3. modaction_author_idx - INDEX (contentAuthorId)
+ * 4. modaction_action_idx - INDEX (action)
+ * 5. modaction_automatic_idx - INDEX (automaticAction)
+ * 6. modaction_created_idx - INDEX (createdAt)
+ * 7. modaction_report_idx - INDEX (relatedReportId)
+ *
+ * SocialPosts/SocialComments Indexes (each):
+ * 1. socialpost_moderation_status_idx - INDEX (moderationStatus)
+ * 2. socialpost_reports_count_idx - INDEX (reportsCount)
+ * 3. socialpost_flagged_at_idx - INDEX (flaggedAt)
+ * 4. socialpost_auto_moderated_idx - INDEX (autoModerated)
+ * 5. socialpost_last_moderated_idx - INDEX (lastModeratedAt)
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                        SECURITY CONSIDERATIONS                           │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * - Admin-only actions: Only role='admin' can resolve reports or moderate
+ * - Report spam prevention: Limit reports per user per day
+ * - Content author privacy: Don't reveal reporter identity to content author
+ * - Audit logging: All moderation actions tracked (who, what, when, why)
+ * - IP logging: Detect compromised admin accounts
+ * - CASCADE delete: User deletion removes their reports (GDPR compliance)
+ * - SET NULL on admin deletion: Preserve audit trail even if admin account deleted
+ * - Soft delete: moderationStatus='hidden' vs hard DELETE (reversibility)
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                      MIGRATION SAFETY NOTES                              │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * - Idempotent design: tableExists() checks before adding columns
+ * - Safe for production: ADD COLUMN with defaults is non-blocking
+ * - No data loss: Existing posts/comments get moderationStatus='approved'
+ * - ENUM types: Created for moderationStatus (two separate ENUMs for posts/comments)
+ * - Transaction safety: Migration wrapped in transaction (all-or-nothing)
+ * - Rollback support: down() migration removes all moderation fields + tables
+ * - Foreign key dependencies: Requires Users, SocialPosts, SocialComments tables
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                    RELATED FILES & DEPENDENCIES                          │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * Depends On:
+ * - Users table migration
+ * - SocialPosts table migration (optional: migration checks if exists)
+ * - SocialComments table migration (optional: migration checks if exists)
+ *
+ * Related Code:
+ * - backend/models/PostReport.cjs (Sequelize model)
+ * - backend/models/ModerationAction.cjs (Sequelize model)
+ * - backend/controllers/moderationController.mjs (admin moderation queue)
+ * - backend/routes/moderationRoutes.mjs (API endpoints)
+ * - backend/services/aiModerationService.mjs (OpenAI Moderation API)
+ * - frontend/src/pages/Admin/ModerationQueue.tsx (admin dashboard)
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
  */
 
 module.exports = {
