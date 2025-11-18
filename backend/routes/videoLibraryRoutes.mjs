@@ -40,7 +40,7 @@ import {
   restoreVideo,
   trackVideoView
 } from '../controllers/videoLibraryController.mjs';
-import { requireAdmin } from '../middleware/auth.mjs';
+import { protect, adminOnly } from '../middleware/auth.mjs';
 
 const router = Router();
 
@@ -49,14 +49,16 @@ const router = Router();
 // List exercises (with pagination & filtering)
 router.get(
   '/',
-  requireAdmin,
+  protect,
+  adminOnly,
   listExercises
 );
 
 // Create exercise with video
 router.post(
   '/',
-  requireAdmin,
+  protect,
+  adminOnly,
   [
     body('title').trim().isLength({ min: 3 }).escape(),
     body('description').trim().optional().escape(),
@@ -69,7 +71,8 @@ router.post(
 // Get exercise details
 router.get(
   '/:id',
-  requireAdmin,
+  protect,
+  adminOnly,
   [
     param('id').isUUID()
   ],
@@ -79,7 +82,8 @@ router.get(
 // Update exercise
 router.put(
   '/:id',
-  requireAdmin,
+  protect,
+  adminOnly,
   [
     param('id').isUUID(),
     body('title').trim().isLength({ min: 3 }).escape(),
@@ -91,7 +95,8 @@ router.put(
 // Delete exercise (soft delete)
 router.delete(
   '/:id',
-  requireAdmin,
+  protect,
+  adminOnly,
   [
     param('id').isUUID()
   ],
@@ -101,7 +106,8 @@ router.delete(
 // Get all videos for specific exercise
 router.get(
   '/:id/videos',
-  requireAdmin,
+  protect,
+  adminOnly,
   [
     param('id').isUUID()
   ],
@@ -113,7 +119,8 @@ router.get(
 // Update video metadata
 router.patch(
   '/videos/:id',
-  requireAdmin,
+  protect,
+  adminOnly,
   [
     param('id').isUUID(),
     body('title').trim().optional().escape(),
@@ -129,7 +136,8 @@ router.patch(
 // Delete video (soft delete)
 router.delete(
   '/videos/:id',
-  requireAdmin,
+  protect,
+  adminOnly,
   [
     param('id').isUUID()
   ],
@@ -139,7 +147,8 @@ router.delete(
 // Restore soft-deleted video
 router.post(
   '/videos/:id/restore',
-  requireAdmin,
+  protect,
+  adminOnly,
   [
     param('id').isUUID()
   ],
@@ -149,7 +158,8 @@ router.post(
 // Track video view analytics
 router.post(
   '/videos/:id/track-view',
-  requireAdmin,
+  protect,
+  adminOnly,
   [
     param('id').isUUID(),
     body('watch_duration_seconds').optional().isInt(),
