@@ -45,7 +45,7 @@ module.exports = {
           primaryKey: true,
         },
         client_id: {
-          type: Sequelize.UUID,
+          type: Sequelize.INTEGER,
           allowNull: false,
           references: {
             model: 'users',
@@ -129,7 +129,7 @@ module.exports = {
           primaryKey: true,
         },
         client_id: {
-          type: Sequelize.UUID,
+          type: Sequelize.INTEGER,
           allowNull: false,
           references: {
             model: 'users',
@@ -139,7 +139,7 @@ module.exports = {
           onDelete: 'CASCADE',
         },
         assessor_trainer_id: {
-          type: Sequelize.UUID,
+          type: Sequelize.INTEGER,
           allowNull: false,
           references: {
             model: 'users',
@@ -220,7 +220,7 @@ module.exports = {
           primaryKey: true,
         },
         client_id: {
-          type: Sequelize.UUID,
+          type: Sequelize.INTEGER,
           allowNull: false,
           references: {
             model: 'users',
@@ -265,7 +265,7 @@ module.exports = {
           comment: 'Functional movements: [{"exercise": "Ball Squat", "reps": 15, "sets": 2, "tempo": "4/2/1"}]',
         },
         assigned_by_trainer_id: {
-          type: Sequelize.UUID,
+          type: Sequelize.INTEGER,
           allowNull: false,
           references: {
             model: 'users',
@@ -419,7 +419,7 @@ module.exports = {
           comment: 'Admin approval required before trainers can use',
         },
         created_by_admin_id: {
-          type: Sequelize.UUID,
+          type: Sequelize.INTEGER,
           allowNull: true,
           references: {
             model: 'users',
@@ -499,7 +499,7 @@ module.exports = {
           comment: 'Array of required equipment',
         },
         created_by_admin_id: {
-          type: Sequelize.UUID,
+          type: Sequelize.INTEGER,
           allowNull: true,
           references: {
             model: 'users',
@@ -556,7 +556,7 @@ module.exports = {
           primaryKey: true,
         },
         client_id: {
-          type: Sequelize.UUID,
+          type: Sequelize.INTEGER,
           allowNull: false,
           references: {
             model: 'users',
@@ -566,7 +566,7 @@ module.exports = {
           onDelete: 'CASCADE',
         },
         trainer_id: {
-          type: Sequelize.UUID,
+          type: Sequelize.INTEGER,
           allowNull: false,
           references: {
             model: 'users',
@@ -705,7 +705,7 @@ module.exports = {
           comment: 'CloudStorage URL to certificate PDF',
         },
         verified_by_admin_id: {
-          type: Sequelize.UUID,
+          type: Sequelize.INTEGER,
           allowNull: true,
           references: {
             model: 'users',
@@ -765,7 +765,7 @@ module.exports = {
           onDelete: 'CASCADE',
         },
         client_id: {
-          type: Sequelize.UUID,
+          type: Sequelize.INTEGER,
           allowNull: false,
           references: {
             model: 'users',
@@ -831,7 +831,7 @@ module.exports = {
           primaryKey: true,
         },
         client_id: {
-          type: Sequelize.UUID,
+          type: Sequelize.INTEGER,
           allowNull: false,
           references: {
             model: 'users',
@@ -863,7 +863,7 @@ module.exports = {
           allowNull: true,
         },
         trainer_id: {
-          type: Sequelize.UUID,
+          type: Sequelize.INTEGER,
           allowNull: false,
           references: {
             model: 'users',
