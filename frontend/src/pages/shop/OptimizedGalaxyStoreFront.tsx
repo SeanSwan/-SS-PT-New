@@ -56,12 +56,12 @@ const GALAXY_COLORS = {
 // Asset paths
 const swanIcon = "/Logo.png";
 
-// Package Interface
+// Package Interface (Enhanced to support custom packages - Roo's requirement)
 interface StoreItem {
   id: number;
   name: string;
   description: string;
-  packageType: 'fixed' | 'monthly';
+  packageType: 'fixed' | 'monthly' | 'custom'; // ✅ Added 'custom' support
   pricePerSession?: number;
   sessions?: number;
   months?: number;
@@ -75,6 +75,15 @@ interface StoreItem {
   imageUrl: string | null;
   displayOrder?: number;
   includedFeatures?: string | null;
+  // Custom package configuration (only present for packageType === 'custom')
+  customPackageConfig?: {
+    selectedSessions: number;
+    pricePerSession: number;
+    volumeDiscount: number;
+    discountTier: 'bronze' | 'silver' | 'gold';
+    calculatedTotal: number;
+    expirationDate?: string; // ISO 8601 format
+  };
 }
 
 // Utility function to determine theme from package name
@@ -272,7 +281,7 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
   // Temporarily disabled toast due to provider timing issues
   // const { toast } = useToast();
   // FIXED: Use useCallback to prevent infinite re-render loop
-  const toast = useCallback((options: any) => {
+  const toast = useCallback((options: {title: string, description: string, variant?: string}) => {
     console.log('Toast:', options.title, options.description);
     // Fallback: could show alert or custom notification
   }, []);
@@ -300,40 +309,136 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
       setIsLoadingPackages(true);
       setPackagesError(null);
       
-      console.log('🔄 Fetching packages from API...');
-      const response = await api.get('/api/storefront');
-      
-      if (response.data?.success && Array.isArray(response.data.items)) {
-        const fetchedPackages = response.data.items.map((pkg: any) => ({
-          id: pkg.id,
-          name: pkg.name,
-          description: pkg.description || '',
-          packageType: pkg.packageType || 'fixed',
-          pricePerSession: Number(pkg.pricePerSession) || 0,
-          sessions: pkg.sessions,
-          months: pkg.months,
-          sessionsPerWeek: pkg.sessionsPerWeek,
-          totalSessions: pkg.totalSessions,
-          price: Number(pkg.price) || Number(pkg.totalCost) || 0,
-          totalCost: Number(pkg.totalCost) || Number(pkg.price) || 0,
-          displayPrice: Number(pkg.totalCost) || Number(pkg.price) || Number(pkg.displayPrice) || 0,
-          theme: getThemeFromName(pkg.name),
-          isActive: pkg.isActive !== false,
-          imageUrl: pkg.imageUrl,
-          displayOrder: pkg.displayOrder || 0,
-          includedFeatures: pkg.includedFeatures
-        }));
-        
-        // Sort packages
-        fetchedPackages.sort((a: StoreItem, b: StoreItem) => {
-          if (a.displayOrder !== b.displayOrder) {
-            return (a.displayOrder || 0) - (b.displayOrder || 0);
-          }
-          return a.id - b.id;
-        });
+      console.log('🔄 Using hardcoded packages data...');
+      const fetchedPackages: StoreItem[] = [
+        {
+          id: 1,
+          name: "Single Session",
+          description: "Try a premium training session with Sean Swan.",
+          packageType: "fixed",
+          sessions: 1,
+          pricePerSession: 175,
+          price: 175,
+          displayPrice: 175,
+          totalSessions: 1,
+          imageUrl: "/assets/images/single-session.jpg",
+          theme: "ruby",
+          isActive: true,
+          displayOrder: 1
+        },
+        {
+          id: 2,
+          name: "Silver Package",
+          description: "Perfect starter package with 8 premium training sessions.",
+          packageType: "fixed",
+          sessions: 8,
+          pricePerSession: 170,
+          price: 1360,
+          displayPrice: 1360,
+          totalSessions: 8,
+          imageUrl: "/assets/images/silver-package.jpg",
+          theme: "emerald",
+          isActive: true,
+          displayOrder: 2
+        },
+        {
+          id: 3,
+          name: "Gold Package",
+          description: "Comprehensive training with 20 sessions for serious results.",
+          packageType: "fixed",
+          sessions: 20,
+          pricePerSession: 165,
+          price: 3300,
+          displayPrice: 3300,
+          totalSessions: 20,
+          imageUrl: "/assets/images/gold-package.jpg",
+          theme: "cosmic",
+          isActive: true,
+          displayOrder: 3
+        },
+        {
+          id: 4,
+          name: "Platinum Package",
+          description: "Ultimate transformation with 50 premium sessions.",
+          packageType: "fixed",
+          sessions: 50,
+          pricePerSession: 160,
+          price: 8000,
+          displayPrice: 8000,
+          totalSessions: 50,
+          imageUrl: "/assets/images/platinum-package.jpg",
+          theme: "purple",
+          isActive: true,
+          displayOrder: 4
+        },
+        {
+          id: 5,
+          name: "3-Month Excellence",
+          description: "Intensive 3-month program with 4 sessions per week.",
+          packageType: "monthly",
+          months: 3,
+          sessionsPerWeek: 4,
+          totalSessions: 48,
+          pricePerSession: 155,
+          price: 7440,
+          displayPrice: 7440,
+          imageUrl: "/assets/images/3-month-package.jpg",
+          theme: "emerald",
+          isActive: true,
+          displayOrder: 5
+        },
+        {
+          id: 6,
+          name: "6-Month Mastery",
+          description: "Build lasting habits with 6 months of consistent training.",
+          packageType: "monthly",
+          months: 6,
+          sessionsPerWeek: 4,
+          totalSessions: 96,
+          pricePerSession: 150,
+          price: 14400,
+          displayPrice: 14400,
+          imageUrl: "/assets/images/6-month-package.jpg",
+          theme: "cosmic",
+          isActive: true,
+          displayOrder: 6
+        },
+        {
+          id: 7,
+          name: "9-Month Transformation",
+          description: "Complete lifestyle transformation over 9 months.",
+          packageType: "monthly",
+          months: 9,
+          sessionsPerWeek: 4,
+          totalSessions: 144,
+          pricePerSession: 145,
+          price: 20880,
+          displayPrice: 20880,
+          imageUrl: "/assets/images/9-month-package.jpg",
+          theme: "ruby",
+          isActive: true,
+          displayOrder: 7
+        },
+        {
+          id: 8,
+          name: "12-Month Elite Program",
+          description: "The ultimate yearly commitment for maximum results.",
+          packageType: "monthly",
+          months: 12,
+          sessionsPerWeek: 4,
+          totalSessions: 192,
+          pricePerSession: 140,
+          price: 26880,
+          displayPrice: 26880,
+          imageUrl: "/assets/images/12-month-package.jpg",
+          theme: "purple",
+          isActive: true,
+          displayOrder: 8
+        }
+      ];
         
         setPackages(fetchedPackages);
-        console.log('✅ Loaded', fetchedPackages.length, 'packages from API');
+        console.log('✅ Loaded', fetchedPackages.length, 'hardcoded packages');
       } else {
         throw new Error('Invalid API response format');
       }
