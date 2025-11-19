@@ -131,6 +131,26 @@ const rotate = keyframes`
 
 // ===================== STYLED COMPONENTS =====================
 
+// CTAButton must be defined before CardContainer to avoid temporal dead zone error
+const CTAButton = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.2) 0%, rgba(147, 112, 219, 0.2) 100%);
+  border: 2px solid #00ffff;
+  border-radius: 12px;
+  margin-top: auto;
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  box-shadow: 0 4px 15px rgba(0, 255, 255, 0.2);
+  min-height: 56px; /* WCAG AAA touch target */
+
+  &:hover {
+    box-shadow: 0 6px 25px rgba(0, 255, 255, 0.4);
+  }
+`;
+
 const CardContainer = styled(motion.div)`
   position: relative;
   background: linear-gradient(135deg, #1e1e3f 0%, #0a0a0f 100%);
@@ -318,25 +338,6 @@ const FeatureText = styled.span`
   font-size: 0.95rem;
   color: rgba(255, 255, 255, 0.9);
   line-height: 1.4;
-`;
-
-const CTAButton = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  padding: 1rem 1.5rem;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.2) 0%, rgba(147, 112, 219, 0.2) 100%);
-  border: 2px solid #00ffff;
-  border-radius: 12px;
-  margin-top: auto;
-  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-  box-shadow: 0 4px 15px rgba(0, 255, 255, 0.2);
-  min-height: 56px; /* WCAG AAA touch target */
-
-  &:hover {
-    box-shadow: 0 6px 25px rgba(0, 255, 255, 0.4);
-  }
 `;
 
 const ButtonText = styled.span`
