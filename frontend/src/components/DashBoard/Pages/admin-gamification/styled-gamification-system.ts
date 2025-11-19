@@ -70,14 +70,14 @@ export const CardContent = styled.div`
 `;
 
 // Achievement components
-export const AchievementGrid = motion.create(styled.div`
+export const AchievementGrid = motion(styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 24px;
   margin-top: 24px;
 `);
 
-export const AchievementItem = motion.create(styled.div<{ tier: 'bronze' | 'silver' | 'gold' | 'platinum' }>`
+export const AchievementItem = motion(styled.div<{ tier: 'bronze' | 'silver' | 'gold' | 'platinum' }>`
   position: relative;
   background-color: ${({ theme }) => theme?.palette?.background?.paper || '#1e1e2f'};
   border-radius: 12px;
@@ -90,13 +90,13 @@ export const AchievementItem = motion.create(styled.div<{ tier: 'bronze' | 'silv
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s ease;
-  border-top: 4px solid ${({ tier, theme }) => 
-    tier === 'bronze' ? '#CD7F32' : 
-    tier === 'silver' ? '#C0C0C0' : 
-    tier === 'gold' ? '#FFD700' : 
+  border-top: 4px solid ${({ tier, theme }) =>
+    tier === 'bronze' ? '#CD7F32' :
+    tier === 'silver' ? '#C0C0C0' :
+    tier === 'gold' ? '#FFD700' :
     '#E5E4E2'
   };
-  
+
   &:hover {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   }
@@ -294,14 +294,14 @@ export const StyledProgress = styled.div<{ $percentage: number; $color?: string 
 `;
 
 // Reward components
-export const RewardGrid = motion.create(styled.div`
+export const RewardGrid = motion(styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 24px;
   margin-top: 24px;
 `);
 
-export const RewardItem = motion.create(styled.div<{ tier: 'bronze' | 'silver' | 'gold' | 'platinum' }>`
+export const RewardItem = motion(styled.div<{ tier: 'bronze' | 'silver' | 'gold' | 'platinum' }>`
   position: relative;
   background-color: ${({ theme }) => theme?.palette?.background?.paper || '#1e1e2f'};
   border-radius: 12px;
@@ -312,13 +312,13 @@ export const RewardItem = motion.create(styled.div<{ tier: 'bronze' | 'silver' |
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s ease;
-  border-left: 4px solid ${({ tier }) => 
-    tier === 'bronze' ? '#CD7F32' : 
-    tier === 'silver' ? '#C0C0C0' : 
-    tier === 'gold' ? '#FFD700' : 
+  border-left: 4px solid ${({ tier }) =>
+    tier === 'bronze' ? '#CD7F32' :
+    tier === 'silver' ? '#C0C0C0' :
+    tier === 'gold' ? '#FFD700' :
     '#E5E4E2'
   };
-  
+
   &:hover {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   }
