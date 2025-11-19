@@ -24,6 +24,7 @@ import { motion, useAnimation, useInView } from 'framer-motion';
 import PackageCard from './PackageCard';
 import CustomPackageCard from './CustomPackageCard';
 import CustomPackageBuilder, { CustomPackageData } from './CustomPackageBuilder';
+import { CustomPackageErrorBoundary } from './CustomPackageErrorBoundary';
 
 // Galaxy Theme Constants
 const GALAXY_COLORS = {
@@ -415,11 +416,13 @@ const PackagesGrid: React.FC<PackagesGridProps> = memo(({
       </PackageSection>
 
       {/* 🎯 ENHANCED: Custom Package Builder Wizard Modal (Gemini's Enhancement) */}
-      <CustomPackageBuilder
-        isOpen={isCustomWizardOpen}
-        onClose={handleCloseCustomWizard}
-        onComplete={handleCustomPackageComplete}
-      />
+      <CustomPackageErrorBoundary onReset={handleCloseCustomWizard}>
+        <CustomPackageBuilder
+          isOpen={isCustomWizardOpen}
+          onClose={handleCloseCustomWizard}
+          onComplete={handleCustomPackageComplete}
+        />
+      </CustomPackageErrorBoundary>
     </SectionContainer>
   );
 });
