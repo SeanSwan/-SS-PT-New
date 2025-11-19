@@ -437,11 +437,8 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
         }
       ];
         
-        setPackages(fetchedPackages);
-        console.log('✅ Loaded', fetchedPackages.length, 'hardcoded packages');
-      } else {
-        throw new Error('Invalid API response format');
-      }
+      setPackages(fetchedPackages);
+      console.log('✅ Loaded', fetchedPackages.length, 'hardcoded packages');
     } catch (error: any) {
       console.error('❌ Failed to fetch packages:', error);
       setPackagesError(error.message || 'Failed to load packages');
@@ -660,10 +657,9 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
             onSuccess={() => {
               console.log('✅ Checkout completed successfully');
               handleHideCart();
-              toast({ 
-                title: "Success!", 
-                description: "Your training package purchase is complete!",
-                duration: 5000
+              toast({
+                title: "Success!",
+                description: "Your training package purchase is complete!"
               });
             }}
           />
