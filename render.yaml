@@ -48,6 +48,11 @@ services:
     rootDir: ./frontend
     buildCommand: rm -rf node_modules/.vite && npm install && npm run build
     staticPublishPath: ./dist
+    routes:
+      # SPA routing - serve index.html for all non-file routes
+      - type: rewrite
+        source: /*
+        destination: /index.html
     env:
       - key: VITE_API_URL
         value: https://ss-pt-new.onrender.com
