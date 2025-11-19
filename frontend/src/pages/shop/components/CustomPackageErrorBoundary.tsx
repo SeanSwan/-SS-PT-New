@@ -15,6 +15,7 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import styled, { keyframes } from 'styled-components';
+import { motion } from 'framer-motion';
 
 // ===================== INTERFACES =====================
 
