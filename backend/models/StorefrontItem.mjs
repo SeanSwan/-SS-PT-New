@@ -32,8 +32,8 @@ StorefrontItem.init({
     defaultValue: 'fixed',
     validate: {
       isIn: {
-        args: [['fixed', 'monthly']], // Enforced by model
-        msg: "Package type must be 'fixed' or 'monthly'"
+        args: [['fixed', 'monthly', 'custom']], // Enforced by model - matches database CHECK constraint
+        msg: "Package type must be 'fixed', 'monthly', or 'custom'"
       }
     },
   },
@@ -173,6 +173,13 @@ StorefrontItem.init({
             item.totalCost = parseFloat((sessionsNum * pricePerSessionNum).toFixed(2));
          } else if (item.packageType === 'monthly' && !isNaN(totalSessionsNum) && totalSessionsNum > 0) {
             item.totalCost = parseFloat((totalSessionsNum * pricePerSessionNum).toFixed(2));
+         } else if (item.packageType === 'custom') {
+            // Custom packages: calculate based on sessions or totalSessions
+            if (!isNaN(sessionsNum) && sessionsNum > 0) {
+              item.totalCost = parseFloat((sessionsNum * pricePerSessionNum).toFixed(2));
+            } else if (!isNaN(totalSessionsNum) && totalSessionsNum > 0) {
+              item.totalCost = parseFloat((totalSessionsNum * pricePerSessionNum).toFixed(2));
+            }
          }
        }
 
