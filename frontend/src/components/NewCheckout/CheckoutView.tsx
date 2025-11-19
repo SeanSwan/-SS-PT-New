@@ -34,7 +34,7 @@ import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
-import { useToast } from '../../hooks/use-toast';
+import { useToast } from '../../context/ToastContext';
 import GlowButton from '../ui/buttons/GlowButton';
 import OrderReviewStep from './OrderReviewStep';
 import CheckoutButton from './CheckoutButton';
@@ -352,7 +352,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
 }) => {
   const { user, isAuthenticated } = useAuth();
   const { cart, refreshCart } = useCart();
-  const { toast } = useToast();
+  const { addToast } = useToast();
 
   // State management
   const [checkoutState, setCheckoutState] = useState<CheckoutState>({
@@ -501,11 +501,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
         }));
 
         // Show success toast
-        toast({
-          title: "Checkout Ready!",
-          description: "Redirecting to secure Stripe payment...",
-          duration: 2000,
-        });
+        addToast("Checkout Ready! Redirecting to secure Stripe payment...", "success");
 
         // Redirect to Stripe Checkout
         setTimeout(() => {
@@ -557,14 +553,9 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({
         isProcessing: false
       }));
 
-      toast({
-        title: "Checkout Error",
-        description: fullErrorMessage,
-        variant: "destructive",
-        duration: 5000,
-      });
+      addToast(`Checkout Error: ${fullErrorMessage}`, "error");
     }
-  }, [isAuthenticated, user, cart, checkoutState.customerInfo, total, sessionCount, toast]);
+  }, [isAuthenticated, user, cart, checkoutState.customerInfo, total, sessionCount, addToast]);
 
   /**
    * Validation function
