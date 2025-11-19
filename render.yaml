@@ -15,11 +15,7 @@ services:
       cd backend && npm install
       # Install frontend dependencies and build
       cd ../frontend && npm install && npm run build
-      # Install MCP server dependencies
-      cd ../backend/mcp_server && pip install -r requirements.txt
-    startCommand: |
-      # Start the main backend server
-      cd backend && npm start
+    startCommand: cd backend && npm start
     plan: starter # or standard/pro based on needs
     env:
       - key: NODE_ENV
