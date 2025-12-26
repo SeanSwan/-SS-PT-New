@@ -1,8 +1,7 @@
-# Netlify SPA redirect rules for SwanStudios
-# This file tells Netlify to serve index.html for all routes that don't match static files
+# SPA redirect rules for SwanStudios (Render Static Site)
+# This file tells Render to serve index.html for all routes that don't match static files
 
-# API routes should proxy to backend (CORS fix via proxy)
-/api/*  https://ss-pt-new.onrender.com/api/:splat  200
-
-# All other routes should serve the React app (SPA)
+# All routes should serve the React app (SPA fallback)
+# This enables client-side routing - when user refreshes on /store, /about, etc.
+# the server serves index.html and React Router handles the routing
 /*    /index.html   200
