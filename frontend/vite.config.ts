@@ -3,6 +3,8 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
+  // Ensure public folder files (including _redirects) are copied to dist
+  publicDir: 'public',
   plugins: [
     react()
   ],
