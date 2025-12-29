@@ -254,14 +254,6 @@ const MainRoutes: RouteObject = {
   children: [
     // Public Routes
     {
-      path: 'onboarding',
-      element: (
-        <Suspense fallback={<PageLoader />}>
-          <ClientOnboardingWizard />
-        </Suspense>
-      )
-    },
-    {
       index: true,
       element: (
         <Suspense fallback={<PageLoader />}>

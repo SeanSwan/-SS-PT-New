@@ -1,7 +1,260 @@
 /**
- * authMiddleware.mjs
- * Provides authentication and authorization middleware for API routes
- * Enhanced with coordinated model imports and best practices
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║           CORE AUTHENTICATION & AUTHORIZATION MIDDLEWARE                  ║
+ * ║      (JWT Token Validation + Role-Based Access Control + Rate Limiting)  ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
+ *
+ * Purpose: Core authentication infrastructure providing JWT validation, role-based
+ *          authorization, resource ownership checks, and rate limiting for all
+ *          SwanStudios API routes
+ *
+ * Blueprint Reference: docs/ai-workflow/LEVEL-5-DOCUMENTATION-UPGRADE-STATUS.md
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                      ARCHITECTURE OVERVIEW                               │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * Authentication & Authorization Stack:
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │                          CLIENT REQUEST                                   │
+ * │  POST /api/workouts { name: "Leg Day" }                                  │
+ * │  Headers: { Authorization: "Bearer <JWT_TOKEN>" }                        │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *                                  │
+ *                                  ▼
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ 1. protect() Middleware - JWT Validation                                │
+ * │  ┌────────────────────────────────────────────────────────────────────┐ │
+ * │  │ Extract Bearer token from Authorization header                      │ │
+ * │  │ ↓                                                                    │ │
+ * │  │ Verify JWT_SECRET is configured (production safety check)           │ │
+ * │  │ ↓                                                                    │ │
+ * │  │ jwt.verify(token, JWT_SECRET) → decoded payload                     │ │
+ * │  │ ↓                                                                    │ │
+ * │  │ Check tokenType === 'access' (not refresh token)                    │ │
+ * │  │ ↓                                                                    │ │
+ * │  │ User.findByPk(decoded.id) → Fetch user from database                │ │
+ * │  │ ↓                                                                    │ │
+ * │  │ Check user.isActive === true (account not disabled)                 │ │
+ * │  │ ↓                                                                    │ │
+ * │  │ req.user = { id, role, username, email } → Attach to request        │ │
+ * │  └────────────────────────────────────────────────────────────────────┘ │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *                                  │
+ *                                  ▼
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ 2. Authorization Middleware (One of Many Options)                        │
+ * │  ┌────────────────────────────────────────────────────────────────────┐ │
+ * │  │ adminOnly() → Check req.user.role === 'admin'                       │ │
+ * │  │ trainerOnly() → Check req.user.role === 'trainer'                   │ │
+ * │  │ clientOnly() → Check req.user.role === 'client'                     │ │
+ * │  │ authorize(['trainer', 'admin']) → Check role in array               │ │
+ * │  │ ownerOrAdminOnly(getOwnerId) → Check ownership or admin             │ │
+ * │  │ checkTrainerClientRelationship() → Verify trainer-client link       │ │
+ * │  └────────────────────────────────────────────────────────────────────┘ │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *                                  │
+ *                                  ▼
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ 3. Route Handler Executes (Protected & Authorized)                       │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                         JWT TOKEN STRUCTURE                              │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * JWT Payload (Access Token):
+ * {
+ *   "id": "user-uuid-here",              // User UUID from users.id
+ *   "tokenType": "access",               // Distinguish access vs refresh tokens
+ *   "iat": 1234567890,                   // Issued at (Unix timestamp)
+ *   "exp": 1234567900                    // Expires at (Unix timestamp)
+ * }
+ *
+ * Token Lifecycle:
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ 1. LOGIN → Generate access token (15min) + refresh token (7 days)        │
+ * │ 2. REQUEST → Client sends access token in Authorization header           │
+ * │ 3. VALIDATION → protect() verifies token signature + expiration          │
+ * │ 4. REFRESH → When access token expires, use refresh token to get new pair│
+ * │ 5. LOGOUT → Client discards tokens (server stateless, no revocation)     │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                     BUSINESS LOGIC (WHY SECTIONS)                        │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * WHY JWT (Not Session Cookies)?
+ * - Stateless: No session store needed (Redis/Memcached)
+ * - Scalability: Horizontally scale without sticky sessions
+ * - Mobile-friendly: Easy to send tokens from iOS/Android apps
+ * - API-first: RESTful APIs traditionally use token auth
+ * - CORS-friendly: No cookie CORS complexity
+ * - Microservices: Pass token between services for authentication
+ * - Trade-off: Cannot revoke tokens (mitigated with short expiration + refresh tokens)
+ *
+ * WHY Verify JWT_SECRET Exists (Not Assume Configured)?
+ * - Production safety: Prevent app startup with placeholder secret
+ * - Security: Missing secret = authentication bypass vulnerability
+ * - Clear error: "Server configuration error" vs cryptic JWT error
+ * - Environment validation: Catch .env misconfiguration early
+ * - OWASP recommendation: Fail securely on config errors
+ *
+ * WHY Check tokenType (Not Accept Any JWT)?
+ * - Token purpose separation: Access tokens for API, refresh for token renewal
+ * - Security: Prevent refresh token reuse for API access
+ * - Expiration enforcement: Access tokens short-lived (15min), refresh long-lived (7d)
+ * - Attack surface reduction: Stolen refresh token can't be used for API requests
+ * - Standard practice: OAuth 2.0 pattern
+ *
+ * WHY Database User Lookup (Not Trust JWT Payload)?
+ * - Real-time status: Check user.isActive (account disabled mid-session)
+ * - Data integrity: User data may have changed since token issued
+ * - Role updates: Admin revokes trainer role, immediately effective
+ * - Deleted users: Catch deleted users even with valid token
+ * - Security: JWT signature valid but user no longer exists
+ * - Trade-off: Database query overhead acceptable for security
+ *
+ * WHY isActive Check (Not Just Existence)?
+ * - Account suspension: Disabled users can't access system
+ * - GDPR compliance: Soft-deleted users marked inactive
+ * - Security: Admin disables compromised accounts
+ * - Billing: Inactive accounts (expired subscription) blocked
+ * - Immediate enforcement: isActive = false → access denied
+ *
+ * WHY toStringId Conversion (Not Use Raw ID)?
+ * - Consistency: UUIDs stored as strings vs integers
+ * - Comparison safety: req.user.id === params.userId works correctly
+ * - Type coercion issues: Prevent 123 == "123" edge cases
+ * - Standard practice: Normalize IDs to strings for API layer
+ *
+ * WHY Token Error Handling (Not Generic "Invalid Token")?
+ * - User experience: "Token expired" vs "Invalid token" guides action
+ * - Client handling: Frontend can auto-refresh on TOKEN_EXPIRED
+ * - Debugging: Clear error codes (TOKEN_INVALID, TOKEN_NOT_ACTIVE)
+ * - Logging: Track different JWT failure modes
+ * - Error codes: TOKEN_EXPIRED, TOKEN_INVALID, TOKEN_NOT_ACTIVE, TOKEN_VALIDATION_FAILED
+ *
+ * WHY Role-Based Middleware Variants (Not Single authorize())?
+ * - Code clarity: adminOnly() self-documenting vs authorize(['admin'])
+ * - Common patterns: Most routes need single-role check
+ * - Performance: No array iteration for single role check
+ * - Backwards compatibility: Existing routes use adminOnly(), trainerOnly()
+ * - Convenience: Pre-built middlewares reduce boilerplate
+ *
+ * WHY ownerOrAdminOnly Pattern (Not Just adminOnly)?
+ * - User privacy: Users can access their own data
+ * - Admin override: Admins can access any user's data (support, troubleshooting)
+ * - Common pattern: GET /users/:id (user can view self, admin can view all)
+ * - Flexible ownership: getOwnerId function extracts owner from request context
+ * - Example: User can update own profile, admin can update any profile
+ *
+ * WHY Trainer-Client Relationship Check (Not Just Role)?
+ * - Data isolation: Trainers only see assigned clients
+ * - Privacy: Client A's data hidden from Client B's trainer
+ * - Business logic: Trainer-client assignments managed by admins
+ * - TODO noted: Full implementation needs TrainerClient junction table
+ * - Current: Trainers can access all clients (permissive, needs refinement)
+ *
+ * WHY Simple Rate Limiter (Not External Library)?
+ * - Zero dependencies: No express-rate-limit or rate-limiter-flexible
+ * - In-memory: Fast, no Redis dependency
+ * - Customizable: windowMs, max, message configurable
+ * - Sliding window: Old timestamps filtered out automatically
+ * - Trade-off: Memory-based, doesn't persist across restarts
+ * - Use case: Basic DoS protection, not production-grade rate limiting
+ *
+ * WHY Lazy Model Loading (Not Import at Top)?
+ * - Circular dependency prevention: Models import middleware, middleware imports models
+ * - Initialization race condition: Sequelize models not ready at module load time
+ * - getUser() pattern: Deferred import ensures models initialized
+ * - Production fix: Prevents "User model not initialized" errors
+ * - P0 enhancement: Coordinated model imports via backend/models/index.mjs
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                       USAGE EXAMPLES                                     │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * Example 1: Basic Authentication (All Logged-In Users)
+ * ```javascript
+ * import { protect } from '../middleware/authMiddleware.mjs';
+ *
+ * router.get('/profile', protect, getProfile);
+ * // Any authenticated user (client, trainer, admin) can access
+ * ```
+ *
+ * Example 2: Admin-Only Route
+ * ```javascript
+ * import { protect, adminOnly } from '../middleware/authMiddleware.mjs';
+ *
+ * router.delete('/users/:id', protect, adminOnly, deleteUser);
+ * // Only admins can delete users
+ * ```
+ *
+ * Example 3: Multi-Role Authorization
+ * ```javascript
+ * import { protect, authorize } from '../middleware/authMiddleware.mjs';
+ *
+ * router.post('/workouts', protect, authorize(['trainer', 'admin']), createWorkout);
+ * // Trainers and admins can create workouts, clients cannot
+ * ```
+ *
+ * Example 4: Owner or Admin Pattern
+ * ```javascript
+ * import { protect, ownerOrAdminOnly } from '../middleware/authMiddleware.mjs';
+ *
+ * router.put('/users/:id',
+ *   protect,
+ *   ownerOrAdminOnly((req) => req.params.id),  // getOwnerId function
+ *   updateUser
+ * );
+ * // User can update own profile, admin can update any profile
+ * ```
+ *
+ * Example 5: Rate Limiting
+ * ```javascript
+ * import { rateLimiter } from '../middleware/authMiddleware.mjs';
+ *
+ * router.post('/login', rateLimiter({ windowMs: 60000, max: 5 }), login);
+ * // Max 5 login attempts per minute per IP
+ * ```
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                        SECURITY CONSIDERATIONS                           │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * - JWT secret validation: Prevents startup with insecure/default secrets
+ * - Token type enforcement: Access tokens only (no refresh token reuse)
+ * - User active check: Disabled accounts immediately blocked
+ * - Real-time user lookup: Latest user data, not stale JWT claims
+ * - Token expiration: Short-lived access tokens (15min)
+ * - Error message clarity: 401 (auth) vs 403 (permission) distinction
+ * - Logging: All auth failures logged with context
+ * - Rate limiting: Basic DoS protection on sensitive endpoints
+ * - ID normalization: toStringId prevents type coercion bugs
+ * - Stack trace logging: Full error context for debugging
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                      RELATED FILES & DEPENDENCIES                        │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * Depends On:
+ * - jsonwebtoken (JWT signing and verification)
+ * - backend/models/index.mjs (getUser model accessor)
+ * - backend/utils/logger.mjs (Logging infrastructure)
+ * - backend/utils/idUtils.mjs (toStringId UUID/INT normalization)
+ *
+ * Used By:
+ * - backend/routes/* (All protected API routes)
+ * - backend/middleware/nasmAuthMiddleware.mjs (NASM-specific auth layer)
+ * - backend/middleware/trainerPermissionMiddleware.mjs (Permission checks)
+ *
+ * Related Code:
+ * - backend/controllers/authController.mjs (Login, register, token refresh)
+ * - backend/middleware/errorMiddleware.mjs (Error handling)
+ * - backend/middleware/p0Monitoring.mjs (Security monitoring)
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
  */
 import jwt from 'jsonwebtoken';
 // 🚀 ENHANCED: Coordinated model imports for consistent associations

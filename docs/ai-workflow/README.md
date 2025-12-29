@@ -1,140 +1,234 @@
-# AI Workflow System
+# AI Workflow Documentation
 
-**SwanStudios AI Village Collaboration Framework**
-**Last Updated:** 2025-10-28
+**SwanStudios AI Village - Documentation Hub**
+**Last Updated:** 2025-11-05 - Added Design Master Prompt v3.0 + Workflow
 
 ---
 
 ## 🚀 Quick Start
 
-### For Phase 0 (Design Review):
-1. **Check active reviews:** [PHASE-0-REGISTRY.md](PHASE-0-REGISTRY.md)
-2. **Start new review:** Copy [templates/PHASE-0-REVIEW-TEMPLATE.md](templates/PHASE-0-REVIEW-TEMPLATE.md)
-3. **Learn the process:** [PHASE-0-DESIGN-APPROVAL.md](PHASE-0-DESIGN-APPROVAL.md)
+### **New to SwanStudios AI Village?**
+1. Read the [AI Village Handbook](../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md) - Complete guide to AI roles and workflows (NEW: Section 6.6 Design Workflow)
+2. Review the [Master Onboarding Prompt](../../AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md) - Onboarding guide for all AIs (v2.1 - "Ask Before Coding" enforcement)
+3. Check [PHASE-0-REGISTRY.md](PHASE-0-REGISTRY.md) - Active project status
 
-### For Implementation (Phase 1-7):
-1. **After consensus reached:** Copy [FEATURE-TEMPLATE.md](FEATURE-TEMPLATE.md)
-2. **Get AI prompts:** [AI-ROLE-PROMPTS.md](AI-ROLE-PROMPTS.md)
-3. **Run checkpoints:** Follow 7-checkpoint pipeline
+### **Designing New Features?**
+- **Design Master Prompt v3.0:** See [DESIGN-MASTER-PROMPT-ANALYSIS.md](DESIGN-MASTER-PROMPT-ANALYSIS.md) - Consolidated design system with Build Gate enforcement
+
+### **Ready to Implement?**
+- **Personal Training System:** See [IMPLEMENTATION-READY-SUMMARY.md](IMPLEMENTATION-READY-SUMMARY.md)
+- **Gamification System:** See [gamification/GAMIFICATION-PARALLEL-IMPLEMENTATION-SUMMARY.md](gamification/GAMIFICATION-PARALLEL-IMPLEMENTATION-SUMMARY.md)
+- **Current Task:** Check [AI-HANDOFF/CURRENT-TASK.md](AI-HANDOFF/CURRENT-TASK.md)
 
 ---
 
-## 📁 File Structure
+## 📁 Clean File Structure
 
 ```
 docs/ai-workflow/
-├── README.md                              ← You are here
-├── PHASE-0-REGISTRY.md                    ← START HERE (central index)
+├── README.md                              ← YOU ARE HERE
+├── PHASE-0-REGISTRY.md                    ← Project tracking & status
+├── IMPLEMENTATION-READY-SUMMARY.md        ← Ready-to-send prompts
+├── AI-REVIEW-CONSOLIDATED-FEEDBACK.md     ← AI feedback compilation
+├── DESIGN-MASTER-PROMPT-ANALYSIS.md       ← NEW v3.0 Design Master Prompt (PRIMARY)
+├── FILE-AUDIT-CLEANUP-REPORT.md           ← File audit & cleanup report
 │
-├── Phase 0 (Design Review)
-│   ├── PHASE-0-DESIGN-APPROVAL.md         ← Process guide
-│   ├── reviews/                           ← Active design reviews
-│   │   └── homepage-hero-enhancement.md   ← One file per feature
-│   ├── templates/
-│   │   └── PHASE-0-REVIEW-TEMPLATE.md     ← Copy this for new reviews
-│   └── archive/
-│       └── completed-2025-10.md           ← Completed reviews by month
+├── personal-training/                     ← Personal Training System v3.0
+│   ├── PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.0.md (21,500 lines - PRIMARY)
+│   ├── CLIENT-ONBOARDING-QUESTIONNAIRE.md (85 questions)
+│   ├── MASTER-BLUEPRINT-V3-ENHANCEMENT-CHECKLIST.md (Gap analysis)
+│   ├── PHASE-0A-IMPLEMENTATION-SPEC.md (Focused implementation guide)
+│   └── SEAN-AI-POWERED-TRAINING-MASTER-VISION.md
 │
-├── Phase 1-7 (Implementation)
-│   ├── FEATURE-TEMPLATE.md                ← Track implementation progress
-│   ├── AI-ROLE-PROMPTS.md                 ← Prompts for all AIs and checkpoints
-│   └── (checkpoint guides coming soon)
+├── gamification/                          ← SwanStudios Gamification
+│   ├── GAMIFICATION-MASTER-PROMPT-FINAL.md
+│   ├── GAMIFICATION-PARALLEL-IMPLEMENTATION-SUMMARY.md
+│   ├── ROO-CODE-GAMIFICATION-IMPLEMENTATION-BLUEPRINT.md
+│   ├── PROMPT-FOR-ROO-CODE-BACKEND.md
+│   └── PROMPT-FOR-MINMAX-STRATEGIC-UX.md
 │
-├── Reference
-│   ├── CURRENT-PAGES-ANALYSIS.md          ← Current state documentation
-│   ├── NEW-FILE-STRUCTURE-GUIDE.md        ← How new system works
-│   └── BRAINSTORM-CONSENSUS-OLD.md        ← DEPRECATED (historical only)
+├── workflows/                             ← Standard Workflows
+│   ├── GIT-AUTOMATION-WORKFLOW.md         (5000-line commit threshold)
+│   ├── GOOGLE-DOCS-WORKFLOW.md            (6-folder structure)
+│   └── SLACK-INTEGRATION-WORKFLOW.md      (Optional mobile access)
 │
-└── Guides
-    ├── NEXT-STEPS-HOMEPAGE-HERO.md        ← Feature-specific guides
-    ├── QUICK-REFERENCE-FINAL-REVIEWS.md
-    └── PHASE-0-SUMMARY-HOMEPAGE-HERO.md
+├── templates/                             ← Component Documentation Templates
+│   └── component-templates/               (7 required files per component)
+│       ├── README.md
+│       ├── component-template.mermaid.md
+│       ├── component-template.wireframe.md
+│       ├── component-template.flowchart.md
+│       ├── component-template.api-spec.md
+│       ├── component-template.test-spec.md
+│       └── component-template.a11y.md
+│
+├── AI-HANDOFF/                            ← Current Task Tracking
+│   ├── CURRENT-TASK.md                    (Active work)
+│   ├── TASK-ARCHIVE/                      (Completed tasks)
+│   └── ROO-CODE-STATUS.md                 (Roo Code progress)
+│
+├── component-docs/                        ← Component Documentation
+│   ├── pilot-mui-elimination/
+│   └── templates/
+│
+├── reviews/                               ← Design Reviews
+│
+└── archive/                               ← Historical Documentation
+    ├── design/                            (Design versions - NEW)
+    │   └── ENHANCED-DESIGN-MASTER-PROMPT-V2-GEMINI.md
+    ├── phase-0/                           (Phase 0 audits)
+    ├── week-reports/                      (Week 0-1 reports)
+    ├── homepage-refactor/                 (Homepage v2.0)
+    ├── old-versions/                      (Deprecated versions)
+    ├── master-plans/                      (Historical plans)
+    └── FILE-CLEANUP-PLAN-OLD.md           (Old cleanup plan)
+
+AI-Village-Documentation/                  ← AI Village Core Docs
+├── SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md
+└── AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md
 ```
 
 ---
 
-## 🎯 The Process
+## 🎯 Active Projects
 
-### Phase 0: Design Consensus (NO CODE)
+### **1. Personal Training System v3.0**
+**Status:** ✅ READY FOR IMPLEMENTATION
+**Blueprint:** [personal-training/PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.0.md](personal-training/PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.0.md)
 
-**Rule:** All 5 AIs must approve design BEFORE writing any code
+**Features:**
+- Master Prompt JSON schema v3.0 with formal versioning
+- Twilio SMS automation (morning + evening check-ins)
+- iPad PWA with voice commands (20+ commands)
+- Photo quality gates + AI analysis
+- Multi-AI consensus system (Claude, MinMax, Gemini, ChatGPT)
+- Wearable integration (Whoop, Oura, Garmin)
+- Safety protocols + red flag escalation
+- 12-week implementation roadmap
+- **ROI:** 7,400% annual return, <1 week payback
 
-1. **Create Design Review**
-   - Copy template from `templates/PHASE-0-REVIEW-TEMPLATE.md`
-   - Save to `reviews/[feature-name].md`
-   - Add to [PHASE-0-REGISTRY.md](PHASE-0-REGISTRY.md)
-
-2. **Document Design**
-   - Wireframes/mockups
-   - User stories with acceptance criteria
-   - API specifications
-   - Database schema
-   - Technical requirements (including Galaxy-Swan Theme Gate)
-
-3. **Get 5 AI Reviews**
-   - Claude Code (Integration & Architecture)
-   - Roo Code (Backend Implementation)
-   - ChatGPT-5 (QA & Testing)
-   - Claude Desktop (Orchestrator & Security)
-   - Gemini Code Assist (Frontend Logic)
-
-4. **Resolve Concerns**
-   - Document in Resolution Log
-   - Make necessary design changes
-   - Get re-approval from concerned AIs
-
-5. **Reach Consensus**
-   - All 5 AIs approve (✅)
-   - Update registry: Move to "Consensus Reached"
-   - **Only then** → Proceed to Phase 1
-
-### Phase 1-7: Implementation (CODE)
-
-Once design consensus is reached:
-
-1. **Create Feature Tracking File**
-   - Copy `FEATURE-TEMPLATE.md` to `features/[feature-name].md`
-   - Link to Phase 0 review
-
-2. **Run 7-Checkpoint Pipeline**
-   - Checkpoint #1: Code Quality Review
-   - Checkpoint #2: Logic Review
-   - Checkpoint #3: Security Review
-   - Checkpoint #4: Testing Review
-   - Checkpoint #5: Performance Review
-   - Checkpoint #6: Integration Review
-   - Checkpoint #7: Human Review
-
-3. **Deploy**
-   - Merge to main
-   - Deploy to production
-   - Archive Phase 0 review
+**Quick Start:**
+- Review: [IMPLEMENTATION-READY-SUMMARY.md](IMPLEMENTATION-READY-SUMMARY.md)
+- Choose AI: Roo Code (speed), Claude Code (comprehensive), MinMax v2 (UX)
+- Send ready-to-use prompt from summary doc
 
 ---
 
-## 📊 Current Status
+### **2. SwanStudios Gamification System**
+**Status:** ✅ DESIGNED, READY FOR PARALLEL IMPLEMENTATION
+**Summary:** [gamification/GAMIFICATION-PARALLEL-IMPLEMENTATION-SUMMARY.md](gamification/GAMIFICATION-PARALLEL-IMPLEMENTATION-SUMMARY.md)
 
-### Active Phase 0 Reviews:
-- **Homepage Hero Enhancement** (3/5 approvals)
-  - File: [reviews/homepage-hero-enhancement.md](reviews/homepage-hero-enhancement.md)
-  - Status: Awaiting Claude Desktop + Gemini reviews
-  - All critical issues resolved
+**Features:**
+- Embedded engagement moments (80% discovery rate)
+- Sustainable point economy (1 pt = $0.001)
+- Social proof features
+- Achievement system
+- Galaxy-Swan theme integration
 
-### Consensus Reached:
-- _(None yet - first feature in progress)_
+**Implementation Guides:**
+- Backend: [gamification/PROMPT-FOR-ROO-CODE-BACKEND.md](gamification/PROMPT-FOR-ROO-CODE-BACKEND.md)
+- Frontend UX: [gamification/PROMPT-FOR-MINMAX-STRATEGIC-UX.md](gamification/PROMPT-FOR-MINMAX-STRATEGIC-UX.md)
+- Complete Blueprint: [gamification/ROO-CODE-GAMIFICATION-IMPLEMENTATION-BLUEPRINT.md](gamification/ROO-CODE-GAMIFICATION-IMPLEMENTATION-BLUEPRINT.md)
 
-### In Implementation:
-- _(None yet - waiting for Phase 0 consensus)_
+---
 
-**See [PHASE-0-REGISTRY.md](PHASE-0-REGISTRY.md) for real-time status**
+### **3. SwanStudios v3.1 Refactor**
+**Status:** Phase 0 Complete (97 components audited)
+**Registry:** [PHASE-0-REGISTRY.md](PHASE-0-REGISTRY.md)
+
+**Audits Completed:**
+- Admin Dashboard (47 components) - [archive/phase-0/PHASE-0-ADMIN-DASHBOARD-AUDIT.md](archive/phase-0/PHASE-0-ADMIN-DASHBOARD-AUDIT.md)
+- Client Dashboard (37 components) - [archive/phase-0/PHASE-0-CLIENT-DASHBOARD-AUDIT.md](archive/phase-0/PHASE-0-CLIENT-DASHBOARD-AUDIT.md)
+- UI Kit + Gamification (13 components) - [archive/phase-0/PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md](archive/phase-0/PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md)
+
+**Next Phase:** M0 Foundation (Weeks 1-3) - pending 20/20 AI approvals
+
+---
+
+## 👥 AI Village Roles
+
+| AI | Primary Role | Specialization |
+|---|---|---|
+| **Claude Code** | Main Orchestrator | Integration, architecture, security (OWASP ASVS L2) |
+| **Roo Code (Grok)** | Backend Specialist | API design, database, performance, cost efficiency |
+| **MinMax v2** | Strategic UX & Multi-AI Orchestrator | UX analysis, gamification, multi-AI consensus, feature discovery |
+| **ChatGPT-5** | QA Engineer | Testing strategy, edge cases, product management |
+| **Gemini Code Assist** | Frontend Logic | React patterns, data analysis, accessibility |
+
+**Complete Documentation:** [AI Village Handbook](../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md)
+
+---
+
+## 📚 Key Documents
+
+### **Start Here:**
+- [PHASE-0-REGISTRY.md](PHASE-0-REGISTRY.md) - Project status & tracking
+- [IMPLEMENTATION-READY-SUMMARY.md](IMPLEMENTATION-READY-SUMMARY.md) - Ready-to-send prompts
+- [AI Village Handbook](../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md) - Complete AI roles guide (NEW: Section 6.6 Design Workflow)
+
+### **Design System (NEW - Nov 5, 2025):**
+- [DESIGN-MASTER-PROMPT-ANALYSIS.md](DESIGN-MASTER-PROMPT-ANALYSIS.md) - **v3.0 Design Master Prompt (PRIMARY)**
+  - Consolidates feedback from ChatGPT-5, Roo Code, MinMax v2, Gemini
+  - "Ask Before Coding" enforcement + Build Gate process
+  - 28-point Engineering Handoff Checklist
+  - SwanStudios Galaxy-Swan theme DNA
+  - Progressive enhancement (Luxe → Standard → Lite → Text)
+  - See AI Village Handbook Section 6.6 for full workflow
+
+### **Major Blueprints:**
+- [Personal Training Master Blueprint v3.0](personal-training/PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.0.md) (21,500 lines)
+- [Gamification Master Prompt](gamification/GAMIFICATION-MASTER-PROMPT-FINAL.md)
+- [Gamification Implementation Summary](gamification/GAMIFICATION-PARALLEL-IMPLEMENTATION-SUMMARY.md)
+
+### **Standard Workflows:**
+- [Git Automation](workflows/GIT-AUTOMATION-WORKFLOW.md) - Commit after 5000 lines
+- [Google Docs](workflows/GOOGLE-DOCS-WORKFLOW.md) - 6-folder structure
+- [Slack Integration](workflows/SLACK-INTEGRATION-WORKFLOW.md) - Optional mobile access
+
+### **Component Documentation Standards:**
+See [templates/component-templates/](templates/component-templates/) for 7 required template files:
+1. README.md - AI assignment matrix
+2. component-template.mermaid.md - Technical diagrams
+3. component-template.wireframe.md - Visual design
+4. component-template.flowchart.md - Business logic
+5. component-template.api-spec.md - API contracts
+6. component-template.test-spec.md - Test scenarios
+7. component-template.a11y.md - Accessibility compliance
+
+---
+
+## 🔄 Standard Workflows
+
+### **Git Workflow (Automated):**
+- Commit after logical component OR 5000 lines
+- NEVER skip hooks (--no-verify)
+- Include co-author: Claude <noreply@anthropic.com>
+- See: [workflows/GIT-AUTOMATION-WORKFLOW.md](workflows/GIT-AUTOMATION-WORKFLOW.md)
+
+### **Google Docs Workflow (Long-form documentation):**
+6-folder structure for documentation >6000 lines:
+1. Master Index
+2. Component Audits
+3. Implementation Blueprints
+4. Testing & QA
+5. Architecture & Design
+6. Historical Archive
+
+See: [workflows/GOOGLE-DOCS-WORKFLOW.md](workflows/GOOGLE-DOCS-WORKFLOW.md)
+
+### **Phase 0 Approval Gates (NO CODE without approval):**
+- All design work requires 5/5 AI approvals BEFORE coding
+- Component documentation standards enforced (7 files required)
+- Testing strategy defined upfront
+- Live site safety: feature flags, canary rollouts, quick rollback
 
 ---
 
 ## 🎨 Galaxy-Swan Theme Compliance
 
-All Phase 0 reviews must include the **Galaxy-Swan Theme Gate** checklist to prevent generic template designs.
+All SwanStudios features must follow the Galaxy-Swan Theme:
 
-**Requirements:**
+**Visual Requirements:**
 - Galaxy core gradient + starfield background
 - Glass surfaces with gradient borders
 - Cosmic micro-interactions (120-180ms scale pulse)
@@ -142,79 +236,93 @@ All Phase 0 reviews must include the **Galaxy-Swan Theme Gate** checklist to pre
 - Swan motifs (crest, wing dividers, constellation patterns)
 - No generic template visuals
 
+**Technical Requirements:**
+- styled-components with TypeScript
+- Framer Motion for animations
+- WCAG 2.1 AA accessibility compliance
+- Mobile-first responsive design
+
 **See:** `docs/current/GALAXY-SWAN-THEME-DOCS.md` for complete specifications
 
 ---
 
-## 👥 AI Roles
+## 📊 By The Numbers (Week 0 Complete)
 
-| AI | Primary Role | Secondary Role | Focus Areas |
-|----|--------------|----------------|-------------|
-| **Claude Code** | Integration Specialist | Architecture Review | System fit, breaking changes, dependencies |
-| **Roo Code (Grok)** | Backend Implementation | Database Design | API design, schema, performance, RLS |
-| **ChatGPT-5** | QA Engineer | Product Management | Testability, edge cases, user acceptance |
-| **Claude Desktop** | Orchestrator | Security Expert | System coherence, OWASP ASVS L2, multi-tenant |
-| **Gemini Code Assist** | Frontend Logic | React Specialist | Component patterns, accessibility, performance |
+**Documentation Created:**
+- Total Files: 17 new documentation files
+- Total Lines: ~21,000 lines of planning
+- Components Audited: 97 components
+- Critical Issues Found: 2 (Constellation persistence, Quest backend)
 
----
+**Time Investment:**
+- Week 0 Planning: ~16-18 hours
+- ROI: Prevents 200+ hours of rework
 
-## 📚 Key Documents
+**Testing Strategy:**
+- Baseline: 70% coverage
+- Target: 90% coverage (gradual increase)
+- Types: Unit, integration, E2E, visual, a11y, performance
 
-### Start Here:
-- **[PHASE-0-REGISTRY.md](PHASE-0-REGISTRY.md)** - Central index of all reviews
-
-### Process Guides:
-- **[PHASE-0-DESIGN-APPROVAL.md](PHASE-0-DESIGN-APPROVAL.md)** - How Phase 0 works
-- **[NEW-FILE-STRUCTURE-GUIDE.md](NEW-FILE-STRUCTURE-GUIDE.md)** - How new system works
-- **[AI-ROLE-PROMPTS.md](AI-ROLE-PROMPTS.md)** - Copy-paste prompts for all AIs
-
-### Templates:
-- **[templates/PHASE-0-REVIEW-TEMPLATE.md](templates/PHASE-0-REVIEW-TEMPLATE.md)** - For new design reviews
-- **[FEATURE-TEMPLATE.md](FEATURE-TEMPLATE.md)** - For implementation tracking
-
----
-
-## ⚡ Quick Commands
-
-**Create new Phase 0 review:**
-```bash
-cp docs/ai-workflow/templates/PHASE-0-REVIEW-TEMPLATE.md \
-   docs/ai-workflow/reviews/my-feature-name.md
-```
-
-**Check active reviews:**
-```bash
-cat docs/ai-workflow/PHASE-0-REGISTRY.md
-```
-
-**Archive completed review:**
-```bash
-cat docs/ai-workflow/reviews/my-feature.md >> \
-    docs/ai-workflow/archive/completed-$(date +%Y-%m).md
-rm docs/ai-workflow/reviews/my-feature.md
-```
+**Zero-Error Implementation Standards:**
+- Phase 0 approval gates enforced
+- Component documentation required (7 files)
+- Git automation (5000-line threshold)
+- Live site safety protocols
 
 ---
 
 ## 🔄 Recent Changes
 
-**2025-10-28:** Major System Update
-- ✅ Replaced monolithic BRAINSTORM-CONSENSUS.md with per-feature review system
-- ✅ Created PHASE-0-REGISTRY.md as central index
-- ✅ Migrated Homepage Hero Enhancement to new structure
-- ✅ Created templates for new reviews
-- ✅ Deprecated old BRAINSTORM-CONSENSUS.md file
+**2025-11-05: Design Master Prompt v3.0 + Workflow Integration**
+- ✅ Created DESIGN-MASTER-PROMPT-ANALYSIS.md (v3.0 consolidates all AI feedback)
+- ✅ Added AI Village Handbook Section 6.6: Design Workflow & Build Gate Process
+- ✅ Updated Master Onboarding Prompt v2.1 with "Ask Before Coding" enforcement
+- ✅ Archived 3 duplicate/outdated files to preserve history
+- ✅ Created FILE-AUDIT-CLEANUP-REPORT.md (comprehensive file audit)
+- ✅ Updated README.md to reflect v3.0 design workflow
+
+**2025-11-03: Major File Cleanup & Organization**
+- ✅ Organized 60+ files into clean folder structure
+- ✅ Archived 22 completed/old files to preserve history
+- ✅ Reduced root files from 40 → 6 for easy navigation
+- ✅ Created logical folders: personal-training, gamification, workflows, templates, archive
+- ✅ Updated all file references to new paths
+- ✅ Completed Personal Training Master Blueprint v3.0 (21,500 lines)
+- ✅ Added MinMax v2 to AI Village Handbook (Section 6.5)
+- ✅ Updated Master AI Prompt with MinMax v2 onboarding
+
+**Previous Updates:**
+- **2025-10-28:** Migrated to per-feature review system
+- **Week 0:** Complete Phase 0 audits (97 components)
+- **AI Village:** 5-AI coordination system established
 
 ---
 
 ## 📞 Need Help?
 
-- **File structure questions:** See [NEW-FILE-STRUCTURE-GUIDE.md](NEW-FILE-STRUCTURE-GUIDE.md)
-- **Phase 0 process:** See [PHASE-0-DESIGN-APPROVAL.md](PHASE-0-DESIGN-APPROVAL.md)
-- **Theme compliance:** See `docs/current/GALAXY-SWAN-THEME-DOCS.md`
-- **Current state reference:** See [CURRENT-PAGES-ANALYSIS.md](CURRENT-PAGES-ANALYSIS.md)
+**Design Questions:**
+- Design workflow: See [AI Village Handbook Section 6.6](../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md)
+- Design Master Prompt v3.0: See [DESIGN-MASTER-PROMPT-ANALYSIS.md](DESIGN-MASTER-PROMPT-ANALYSIS.md)
+- Build Gate process: See Handbook Section 6.6 or Design Analysis doc
+- Theme compliance: See Design Master Prompt v3.0 → "SwanStudios Design DNA"
+
+**AI Village Questions:**
+- Roles & responsibilities: See [AI Village Handbook](../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md)
+- AI onboarding: See [Master Onboarding Prompt v2.1](../../AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md)
+- MinMax v2 role: See Handbook Section 6.5
+
+**Project-Specific Questions:**
+- Personal Training: See [IMPLEMENTATION-READY-SUMMARY.md](IMPLEMENTATION-READY-SUMMARY.md)
+- Gamification: See [gamification/GAMIFICATION-PARALLEL-IMPLEMENTATION-SUMMARY.md](gamification/GAMIFICATION-PARALLEL-IMPLEMENTATION-SUMMARY.md)
+- Current task: See [AI-HANDOFF/CURRENT-TASK.md](AI-HANDOFF/CURRENT-TASK.md)
+
+**File Structure Questions:**
+- See [FILE-AUDIT-CLEANUP-REPORT.md](FILE-AUDIT-CLEANUP-REPORT.md) - Complete file audit
+- See this README's "Clean File Structure" section above
 
 ---
 
-**Last Updated:** 2025-10-28
-**System Version:** 2.0 (Per-feature review system)
+**Last Updated:** 2025-11-05
+**System Version:** 3.1 (Design Master Prompt v3.0 + Build Gate workflow)
+**Total Documentation:** ~50,000+ lines (including design system)
+**Latest Addition:** Design-first workflow with "Ask Before Coding" enforcement

@@ -229,7 +229,7 @@ module.exports = {
             console.log('Continuing without foreign key constraint - data integrity will be maintained at application level');
           }
         } else {
-          console.log('⚠️ Types still don\\'t match - skipping foreign key constraint');
+          console.log('⚠️ Types still don\'t match - skipping foreign key constraint');
         }
       }
       

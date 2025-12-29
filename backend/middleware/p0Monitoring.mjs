@@ -1,6 +1,293 @@
 /**
- * P0 Monitoring Middleware
- * Critical monitoring and permission middleware for Master Prompt v26
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║         P0 CRITICAL MONITORING MIDDLEWARE (MASTER PROMPT V26)             ║
+ * ║    (Security, Privacy, Accessibility, Performance, Error Handling)       ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
+ *
+ * Purpose: Comprehensive P0 (Priority Zero) monitoring infrastructure providing
+ *          security auditing, privacy compliance, accessibility tracking,
+ *          performance metrics, and error handling for SwanStudios platform
+ *
+ * Blueprint Reference: docs/ai-workflow/LEVEL-5-DOCUMENTATION-UPGRADE-STATUS.md
+ * Master Prompt Version: 26 (Ethical AI, Accessibility-First, Privacy-First)
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                      ARCHITECTURE OVERVIEW                               │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * P0 Monitoring Stack (9 Middleware Components):
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │                          CLIENT REQUEST                                   │
+ * │  POST /api/workouts { name: "Leg Day", exercises: [...] }               │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *                                  │
+ *                                  ▼
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ 1. p0RequestCorrelation()                                                │
+ * │    - Generate correlation ID for request tracking                        │
+ * │    - Add X-Correlation-ID header to response                             │
+ * │    - Create req.logContext for downstream logging                        │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *                                  │
+ *                                  ▼
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ 2. p0SecurityMonitoring()                                                │
+ * │    - Monitor for SQL injection, XSS, path traversal                      │
+ * │    - Track suspicious patterns in req.body, req.query, req.path          │
+ * │    - Rate limiting detection (100+ requests per session)                 │
+ * │    - Log slow responses (>5s), auth failures (401), permission denials   │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *                                  │
+ *                                  ▼
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ 3. p0PrivacyCompliance()                                                 │
+ * │    - Detect PII in request body (email, SSN, phone, credit card)         │
+ * │    - Log PII detection events with consent tracking                      │
+ * │    - Add privacy headers (X-Privacy-Policy, X-Data-Protection, X-PII)    │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *                                  │
+ *                                  ▼
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ 4. p0AccessibilityCompliance()                                           │
+ * │    - Extract accessibility headers (x-screen-reader, x-high-contrast)    │
+ * │    - Add req.accessibilityContext for downstream use                     │
+ * │    - Set WCAG 2.1 AA compliance headers                                  │
+ * │    - Track accessibility feature usage                                   │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *                                  │
+ *                                  ▼
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ 5. p0PerformanceMonitoring()                                             │
+ * │    - Track response time, memory usage, content length                   │
+ * │    - Alert on slow responses (>3s), high memory usage (>50MB)            │
+ * │    - Add req.performance with start time and memory                      │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *                                  │
+ *                                  ▼
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ 6. p0MasterPromptIntegration()                                           │
+ * │    - Add Master Prompt v26 context to req.masterPrompt                   │
+ * │    - Set X-Master-Prompt-Version, X-Ethical-AI, X-Privacy-First headers  │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *                                  │
+ *                                  ▼
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ 7. requirePermissionWithAccessibility(permission)                        │
+ * │    - Check user authentication (401 if not authenticated)                │
+ * │    - Validate user permission for requested action                       │
+ * │    - Generate accessibility-aware error messages                         │
+ * │    - Add req.permissionContext for downstream use                        │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *                                  │
+ *                                  ▼
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ 8. Route Handler Executes (Protected by P0 Monitoring)                   │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *                                  │
+ *                                  ▼ (if error occurs)
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ 9. p0ErrorHandling()                                                     │
+ * │    - Log error with accessibility context, stack trace, user context     │
+ * │    - Generate accessibility-aware error response                         │
+ * │    - Return structured error with timestamp                              │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                     SECURITY MONITORING DETAILS                          │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * Threat Detection Patterns:
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ 1. SQL INJECTION                                                          │
+ * │    Pattern: /(\bUNION\b|\bSELECT\b|\bINSERT\b|\bDELETE\b|\bDROP\b)/i    │
+ * │    Example: "admin' OR '1'='1", "UNION SELECT * FROM users"             │
+ * │    Action: Log as high severity, continue (ORM protects against SQLi)    │
+ * │                                                                           │
+ * │ 2. CROSS-SITE SCRIPTING (XSS)                                            │
+ * │    Pattern: /<script|javascript:|onload=|onerror=/i                      │
+ * │    Example: "<script>alert('XSS')</script>", "javascript:void(0)"        │
+ * │    Action: Log as high severity, sanitization applied by frontend        │
+ * │                                                                           │
+ * │ 3. PATH TRAVERSAL                                                        │
+ * │    Pattern: /\.\.[\/\\]/                                                 │
+ * │    Example: "../../etc/passwd", "..\\..\\..\\..\\..\\..\\.."           │
+ * │    Action: Log as high severity, path validation prevents exploitation   │
+ * │                                                                           │
+ * │ 4. COMMAND INJECTION                                                      │
+ * │    Pattern: /[;&|`$()]/                                                  │
+ * │    Example: "test; rm -rf /", "file`whoami`.txt"                         │
+ * │    Action: Log as high severity, no shell execution in codebase          │
+ * │                                                                           │
+ * │ 5. RATE LIMITING ABUSE                                                   │
+ * │    Threshold: 100+ requests per session                                  │
+ * │    Action: Log as medium severity, implement rate limiting if needed     │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                     PRIVACY COMPLIANCE DETAILS                           │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * PII Detection Patterns:
+ * ┌──────────────────────────────────────────────────────────────────────────┐
+ * │ email      : /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g          │
+ * │ ssn        : /\b\d{3}-?\d{2}-?\d{4}\b/g                                  │
+ * │ phone      : /\b\d{3}-?\d{3}-?\d{4}\b/g                                  │
+ * │ creditCard : /\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b/g                 │
+ * └──────────────────────────────────────────────────────────────────────────┘
+ *
+ * Privacy Compliance Headers:
+ * - X-Privacy-Policy: /privacy-policy (link to privacy policy)
+ * - X-Data-Protection: GDPR-CCPA-Compliant (compliance standards)
+ * - X-PII-Protection: Enabled (PII detection active)
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                     BUSINESS LOGIC (WHY SECTIONS)                        │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * WHY P0 (Priority Zero) Designation (Not P1 or P2)?
+ * - Mission-critical: Security, privacy, accessibility cannot fail
+ * - Master Prompt v26 foundation: Core ethical AI requirements
+ * - Legal compliance: GDPR, CCPA, WCAG 2.1 AA are legal requirements
+ * - User trust: Privacy breaches destroy platform credibility
+ * - Non-negotiable: P0 features ship before any other features
+ * - Always-on monitoring: Cannot be disabled or degraded
+ *
+ * WHY Correlation ID (Not Just req.id)?
+ * - Distributed tracing: Track requests across microservices
+ * - Log aggregation: Correlate logs from different services
+ * - Client debugging: Client can include correlation ID in bug reports
+ * - Replay attacks: Detect duplicate requests with same correlation ID
+ * - Support tooling: Customer support can trace user issues
+ * - Standard practice: X-Correlation-ID is industry standard header
+ *
+ * WHY Continue on Suspicious Patterns (Not Block Request)?
+ * - False positives: Legitimate requests can match attack patterns
+ * - Availability: Don't block legitimate users
+ * - Defense in depth: Monitoring is one layer, not sole defense
+ * - ORM protection: Sequelize prevents SQL injection even if pattern detected
+ * - Logging sufficient: Security team reviews logs for real threats
+ * - User experience: Blocking creates support burden
+ *
+ * WHY Track Accessibility Headers (Not Assume Default UI)?
+ * - WCAG 2.1 AA compliance: Legal requirement for accessibility
+ * - User preference tracking: Understand accessibility feature usage
+ * - API optimization: Serve screen-reader-friendly JSON for screen readers
+ * - Personalization: Remember accessibility preferences across sessions
+ * - Analytics: Track adoption of accessibility features
+ * - Master Prompt v26: Accessibility-first is core principle
+ *
+ * WHY Performance Monitoring (Not Just Error Monitoring)?
+ * - User experience: Slow responses frustrate users
+ * - Resource optimization: Identify memory leaks, slow queries
+ * - Capacity planning: Understand when to scale infrastructure
+ * - SLA enforcement: Track API response time against SLA (e.g., 95th percentile < 500ms)
+ * - Cost optimization: Identify inefficient routes consuming resources
+ * - Alerting: Proactive alerts before users complain
+ *
+ * WHY Accessibility-Aware Error Messages (Not Generic Errors)?
+ * - WCAG 2.1 AA compliance: Error messages must be accessible
+ * - Screen reader support: Structured errors for assistive tech
+ * - Multilingual support: Error messages in user's preferred language
+ * - Context-aware: Show different messages based on user capabilities
+ * - User empowerment: Clear error messages enable self-service
+ * - Master Prompt v26: Ethical AI requires inclusive error handling
+ *
+ * WHY Master Prompt Integration (Not Standalone Monitoring)?
+ * - Version tracking: Know which Master Prompt version is active
+ * - Feature flags: Enable/disable features based on Master Prompt config
+ * - Compliance verification: Ensure all v26 features are enabled
+ * - Audit trail: Prove compliance with Master Prompt requirements
+ * - Client communication: X-Master-Prompt-Version header informs clients
+ * - Debugging: "Works in v25, broken in v26" troubleshooting
+ *
+ * WHY Permission Check with Accessibility (Not Just Check Permission)?
+ * - Inclusive design: Permission errors accessible to all users
+ * - Clear communication: "You don't have X permission" in user's language
+ * - User guidance: Suggest how to request missing permissions
+ * - Audit logging: Track permission denials with accessibility context
+ * - Screen reader support: Error messages compatible with assistive tech
+ * - Master Prompt v26: Accessibility integrated into all user interactions
+ *
+ * WHY req.on('finish') Event (Not Middleware next() Callback)?
+ * - Response capture: Ensure response fully sent before logging
+ * - Accurate metrics: Response time includes full send time
+ * - Status code validation: res.statusCode available after response
+ * - Content length: res.get('content-length') available
+ * - No blocking: Event-driven, doesn't block response
+ * - Standard practice: Express middleware pattern for response logging
+ *
+ * WHY Track Memory Usage (Not Just CPU)?
+ * - Memory leaks: Detect gradual memory consumption increase
+ * - Garbage collection: Understand GC pressure from large objects
+ * - Request context: Large request payloads consume memory
+ * - Response size: Large JSON responses consume memory
+ * - Node.js specific: Memory issues common in Node.js apps
+ * - Alerting: Warn before out-of-memory crashes
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                       USAGE EXAMPLES                                     │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * Example 1: Global P0 Middleware Stack (server.mjs)
+ * ```javascript
+ * import { p0MiddlewareStack } from './middleware/p0Monitoring.mjs';
+ *
+ * // Apply all P0 monitoring middleware globally
+ * app.use(p0MiddlewareStack());
+ * // Returns: [p0RequestCorrelation, p0SecurityMonitoring, p0PrivacyCompliance,
+ * //           p0AccessibilityCompliance, p0PerformanceMonitoring, p0MasterPromptIntegration]
+ * ```
+ *
+ * Example 2: Permission-Protected Route
+ * ```javascript
+ * import { requirePermissionWithAccessibility } from './middleware/p0Monitoring.mjs';
+ *
+ * router.post('/admin/users/delete/:id',
+ *   protect,  // Authenticate user
+ *   requirePermissionWithAccessibility('admin.users.delete'),  // Check permission
+ *   deleteUser  // Route handler
+ * );
+ * ```
+ *
+ * Example 3: Error Handling
+ * ```javascript
+ * import { p0ErrorHandling } from './middleware/p0Monitoring.mjs';
+ *
+ * // Must be last middleware (after all routes)
+ * app.use(p0ErrorHandling());
+ * ```
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                        SECURITY CONSIDERATIONS                           │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * - IP logging: User IP addresses logged (anonymize in production for GDPR)
+ * - PII detection: Request body scanned for PII (logged with consent tracking)
+ * - Authorization redaction: JWT tokens never logged (only presence flag)
+ * - Stack trace exposure: Full stack traces only in non-production
+ * - Correlation ID generation: Uses Date.now() + Math.random() (not cryptographic)
+ * - Suspicious pattern logging: High severity alerts for security team
+ * - Rate limiting tracking: Detect abuse without blocking legitimate users
+ * - Accessibility data collection: User preferences logged for personalization
+ *
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │                      RELATED FILES & DEPENDENCIES                        │
+ * └─────────────────────────────────────────────────────────────────────────┘
+ *
+ * Depends On:
+ * - backend/utils/monitoring/piiSafeLogging.mjs (PII-safe logger)
+ * - backend/utils/monitoring/accessibilityAuth.mjs (Accessibility-aware auth)
+ *
+ * Used By:
+ * - backend/server.mjs (Global middleware application)
+ * - backend/routes/* (Permission-protected routes)
+ *
+ * Related Code:
+ * - backend/middleware/authMiddleware.mjs (Authentication)
+ * - backend/middleware/errorMiddleware.mjs (Error handling)
+ * - backend/utils/logger.mjs (Logging infrastructure)
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
  */
 
 import { piiSafeLogger } from '../utils/monitoring/piiSafeLogging.mjs';

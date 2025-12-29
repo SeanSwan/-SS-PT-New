@@ -126,23 +126,23 @@ ClientTrainerAssignment.init(
     timestamps: true, // Enables createdAt and updatedAt
     paranoid: false, // We use status instead of soft deletes for this model
     indexes: [
-      // Optimize for common queries
+      // Optimize for common queries - using DB column names (snake_case)
       {
         name: 'idx_client_trainer_assignments_client_id',
-        fields: ['clientId']
+        fields: ['client_id']
       },
       {
-        name: 'idx_client_trainer_assignments_trainer_id', 
-        fields: ['trainerId']
+        name: 'idx_client_trainer_assignments_trainer_id',
+        fields: ['trainer_id']
       },
       {
         name: 'idx_client_trainer_assignments_status',
         fields: ['status']
       },
-      // Ensure no duplicate active assignments
+      // Ensure no duplicate active assignments - using DB column names
       {
         name: 'idx_unique_active_client_trainer',
-        fields: ['clientId', 'trainerId', 'status'],
+        fields: ['client_id', 'trainer_id'],
         unique: true,
         where: {
           status: 'active'
@@ -153,8 +153,15 @@ ClientTrainerAssignment.init(
     validate: {
       // Ensure client and trainer are different users
       clientTrainerDifferent() {
-        if (this.clientId === this.trainerId) {
-          throw new Error('Client and trainer must be different users');
+        // Normalize to integers to avoid type coercion issues
+        const clientIdNum = Number(this.clientId);
+        const trainerIdNum = Number(this.trainerId);
+
+        // Only validate if both are valid numbers
+        if (Number.isFinite(clientIdNum) && Number.isFinite(trainerIdNum)) {
+          if (clientIdNum === trainerIdNum) {
+            throw new Error('Client and trainer must be different users');
+          }
         }
       }
     }

@@ -1,6 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { X } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import axios from 'axios';
+
+interface ExerciseData {
+  title: string;
+  description: string;
+  videoType?: 'youtube' | 'upload';
+  videoId?: string;
+  phases?: number[];
+}
 
 interface CreateExerciseWizardProps {
   onClose: () => void;
@@ -19,6 +29,30 @@ interface CreateExerciseWizardProps {
  * TODO: Implement full wizard functionality
  */
 const CreateExerciseWizard: React.FC<CreateExerciseWizardProps> = ({ onClose, onSuccess }) => {
+  const [step, setStep] = useState(1);
+  const queryClient = useQueryClient();
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
+    defaultValues: {
+      videoType: 'youtube',
+      phases: []
+    }
+  });
+
+  const createExerciseMutation = useMutation({
+    mutationFn: (data: ExerciseData) => axios.post('/api/admin/exercise-library', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['exercises']);
+      onSuccess();
+    }
+  });
+
+  const onSubmit = (data: FormData) => {
+    createExerciseMutation.mutate(data);
+  };
+
+  const nextStep = () => setStep(prev => Math.min(prev + 1, 4));
+  const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
+
   return (
     <Overlay onClick={onClose}>
       <Modal onClick={(e) => e.stopPropagation()}>
@@ -30,29 +64,153 @@ const CreateExerciseWizard: React.FC<CreateExerciseWizardProps> = ({ onClose, on
         </Header>
 
         <Content>
-          <PlaceholderText>
-            🚧 Create Exercise Wizard - Coming Soon!
-          </PlaceholderText>
-          <PlaceholderDescription>
-            This will be a 4-step wizard to create exercises with video integration.
-            <br /><br />
-            Features:
-            <ul>
-              <li>Basic information form</li>
-              <li>Video upload or YouTube linking</li>
-              <li>NASM phase tagging</li>
-              <li>Preview and submit</li>
-            </ul>
-          </PlaceholderDescription>
+          {step === 1 && (
+            <StepBasicInfo>
+              <h3>Basic Information</h3>
+              <Input
+                {...register('title', { required: true })}
+                placeholder="Exercise Title"
+                error={errors.title}
+              />
+              <TextArea
+                {...register('description')}
+                placeholder="Description (optional)"
+              />
+            </StepBasicInfo>
+          )}
+
+          {step === 2 && (
+            <StepVideo>
+              <h3>Video Source</h3>
+              <Select {...register('videoType')}>
+                <option value="youtube">YouTube</option>
+                <option value="upload">Upload</option>
+              </Select>
+
+              {watch('videoType') === 'youtube' && (
+                <Input
+                  {...register('videoId')}
+                  placeholder="YouTube URL"
+                />
+              )}
+            </StepVideo>
+          )}
+
+          {step === 3 && (
+            <StepPhases>
+              <h3>NASM Phases</h3>
+              {/* Phase selection UI */}
+            </StepPhases>
+          )}
+
+          {step === 4 && (
+            <StepReview>
+              <h3>Review</h3>
+              {/* Summary of all data */}
+            </StepReview>
+          )}
         </Content>
 
         <Footer>
-          <CancelButton onClick={onClose}>Close</CancelButton>
+          {step > 1 && (
+            <SecondaryButton onClick={prevStep}>
+              Back
+            </SecondaryButton>
+          )}
+          {step < 4 ? (
+            <PrimaryButton onClick={nextStep}>
+              Next
+            </PrimaryButton>
+          ) : (
+            <PrimaryButton onClick={handleSubmit(onSubmit)}>
+              Create Exercise
+            </PrimaryButton>
+          )}
         </Footer>
       </Modal>
     </Overlay>
   );
 };
+
+const StepBasicInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const StepVideo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const StepPhases = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const StepReview = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+const Input = styled.input<{ error?: boolean }>`
+  padding: 12px;
+  border: 1px solid ${props => props.error ? 'var(--error-red)' : 'var(--glass-border)'};
+  border-radius: 8px;
+  background: var(--dark-bg);
+  color: var(--text-primary);
+`;
+
+const TextArea = styled.textarea`
+  padding: 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  background: var(--dark-bg);
+  color: var(--text-primary);
+  min-height: 100px;
+`;
+
+const Select = styled.select`
+  padding: 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  background: var(--dark-bg);
+  color: var(--text-primary);
+`;
+
+const PrimaryButton = styled.button`
+  background: var(--primary-cyan);
+  color: var(--dark-bg);
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.9;
+  }
+`;
+
+const SecondaryButton = styled.button`
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: var(--primary-cyan);
+    background: var(--glass-bg);
+  }
+`;
 
 const Overlay = styled.div`
   position: fixed;

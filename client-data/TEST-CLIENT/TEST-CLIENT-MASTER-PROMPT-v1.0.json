@@ -1,0 +1,279 @@
+{
+  "version": "3.1",
+  "client": {
+    "clientId": "PT-10099",
+    "spiritName": "Test Hawk",
+    "name": "John Test",
+    "preferredName": "John",
+    "age": 35,
+    "gender": "Male",
+    "bloodType": "O+",
+    "contact": {
+      "phone": "555-0123",
+      "email": "john.test@email.com",
+      "preferredTime": "Evening"
+    }
+  },
+  "measurements": {
+    "height": {
+      "feet": 5,
+      "inches": 10
+    },
+    "currentWeight": 210,
+    "targetWeight": 180,
+    "bodyFatPercentage": 28,
+    "lastDexaScan": null
+  },
+  "goals": {
+    "primary": "Weight loss",
+    "why": "Want to feel healthier, have more energy, and fit into my old clothes",
+    "successLooksLike": "Lose 30 lbs, run a 5K without stopping, feel confident at the beach",
+    "timeline": "6 months",
+    "commitmentLevel": 8,
+    "pastObstacles": "Inconsistent gym attendance, weekend binge eating, no accountability",
+    "supportNeeded": "Regular check-ins, help with nutrition, workout plan I can stick to"
+  },
+  "health": {
+    "medicalConditions": [],
+    "underDoctorCare": false,
+    "doctorCleared": true,
+    "medications": [],
+    "supplements": [
+      {
+        "name": "Multivitamin",
+        "consistent": true
+      }
+    ],
+    "injuries": [
+      {
+        "year": 2020,
+        "bodyPart": "Right ankle",
+        "type": "Sprain",
+        "status": "Fully healed"
+      }
+    ],
+    "surgeries": [],
+    "currentPain": [
+      {
+        "bodyPart": "Lower back",
+        "intensity": 2,
+        "duration": "1 year (chronic, mild)",
+        "triggers": "Sitting at desk all day",
+        "relieves": "Stretching, walking",
+        "affectsDailyLife": false
+      }
+    ]
+  },
+  "nutrition": {
+    "currentDiet": "[Very healthy/Somewhat healthy/Average/Poor]",
+    "tracksFood": false,
+    "trackingApp": "[app name or null]",
+    "dailyProtein": 0,
+    "targetProtein": 0,
+    "waterIntake": 0,
+    "eatingSchedule": {
+      "breakfast": "[time]",
+      "lunch": "[time]",
+      "dinner": "[time]",
+      "snacks": 0
+    },
+    "bloodTypeDiet": false,
+    "dietaryPreferences": [
+      "[No sugar/Low sodium/Non-GMO/Organic/Gluten-free/Dairy-free/Vegetarian/Vegan/Paleo/Keto/Flexible]"
+    ],
+    "allergies": [
+      "[food allergies]"
+    ],
+    "lovesFood": [
+      "[foods they love - helps with meal planning]"
+    ],
+    "hatesFood": [
+      "[foods to avoid]"
+    ],
+    "cooksAtHome": "[Often/Sometimes/Rarely/Never]",
+    "mealPrepInterest": true
+  },
+  "lifestyle": {
+    "sleepHours": 0,
+    "sleepQuality": "[Excellent/Good/Fair/Poor]",
+    "stressLevel": 0,
+    "stressSources": "[main stress sources]",
+    "occupation": "[job title]",
+    "workActivityLevel": "[Sedentary/Moderate/Active]",
+    "smokes": false,
+    "alcoholConsumption": "[None/Occasionally/Moderate/Heavy]"
+  },
+  "training": {
+    "fitnessLevel": "Beginner",
+    "currentlyWorkingOut": false,
+    "workoutsPerWeek": 0,
+    "workoutTypes": "None currently",
+    "pastExperience": [
+      "High school sports (basketball)",
+      "Occasional gym visits (inconsistent)"
+    ],
+    "previousTrainer": false,
+    "previousTrainerExperience": null,
+    "gymLocation": "LA Fitness",
+    "favoriteExercises": [
+      "Treadmill walking",
+      "Bench press (when he used to go)"
+    ],
+    "dislikedExercises": [
+      "Running (knee pain)",
+      "Burpees (too intense)"
+    ],
+    "preferredStyle": [
+      "Moderate weights",
+      "Functional training"
+    ],
+    "sessionFrequency": 3,
+    "sessionDuration": "60 min"
+  },
+  "baseline": {
+    "cardiovascular": {
+      "restingHeartRate": 0,
+      "bloodPressure": {
+        "systolic": 0,
+        "diastolic": 0
+      }
+    },
+    "strength": {
+      "benchPress": {
+        "weight": 0,
+        "reps": 0
+      },
+      "squat": {
+        "weight": 0,
+        "reps": 0
+      },
+      "deadlift": {
+        "weight": 0,
+        "reps": 0
+      },
+      "overheadPress": {
+        "weight": 0,
+        "reps": 0
+      },
+      "pullUps": {
+        "reps": 0,
+        "assisted": false
+      }
+    },
+    "rangeOfMotion": {
+      "shoulderFlexion": {
+        "left": 0,
+        "right": 0,
+        "normal": 180
+      },
+      "shoulderAbduction": {
+        "left": 0,
+        "right": 0,
+        "normal": 180
+      },
+      "hipFlexion": {
+        "left": 0,
+        "right": 0,
+        "normal": 120
+      },
+      "hipExtension": {
+        "left": 0,
+        "right": 0,
+        "normal": 20
+      },
+      "ankleDorsiflexion": {
+        "left": 0,
+        "right": 0,
+        "normal": 20
+      }
+    },
+    "flexibility": {
+      "sitAndReach": 0,
+      "shoulderMobility": false,
+      "hipMobility": false
+    }
+  },
+  "aiCoaching": {
+    "dailyCheckIns": true,
+    "checkInTime": "[8:00 PM]",
+    "checkInMethod": "[Text/Voice/Both]",
+    "aiHelp": [
+      "[Daily accountability/Nutrition tracking/Workout reminders/Pain monitoring/etc.]"
+    ],
+    "communicationStyle": "[Direct/Warm/Educational/Balanced]",
+    "motivationStyle": "[Tough love/Compassion/Remind me why/Show data]",
+    "progressReportFrequency": "[Weekly/Bi-weekly/Monthly]"
+  },
+  "visualDiagnostics": {
+    "comfortableWithPhotos": true,
+    "painPhotos": true,
+    "wearable": "[Apple Watch/Fitbit/Garmin/Oura/Whoop/None]",
+    "wearableIntegration": false
+  },
+  "package": {
+    "tier": "Golden",
+    "price": 200,
+    "sessionsPerWeek": 3,
+    "commitment": "6-month",
+    "paymentMethod": "Monthly"
+  },
+  "notes": {
+    "anythingElse": "[anything else trainer should know]",
+    "mostExcitedAbout": "[what they're excited about]",
+    "nervousAbout": "[concerns or fears]",
+    "questionsForTrainer": "[any questions]"
+  },
+  "trainerAssessment": {
+    "healthRisk": "Low",
+    "doctorClearanceNeeded": false,
+    "priorityAreas": "Lower back stability, improve cardiovascular endurance",
+    "recommendedFrequency": 3,
+    "recommendedTier": "Golden"
+  },
+  "automatedSafetyMonitoring": {
+    "enabledTriggers": [
+      "pain_intensity_alert",
+      "sleep_recovery_alert",
+      "compliance_alert",
+      "form_breakdown_alert",
+      "overtraining_alert",
+      "pr_celebration"
+    ],
+    "painThreshold": 5,
+    "sleepThreshold": 5,
+    "complianceThreshold": 75,
+    "trainerAlertMethod": "SMS",
+    "trainerPhone": "+1-555-TRAINER",
+    "trainerEmail": "sean@swanstudios.com"
+  },
+  "equipmentConstraints": {
+    "gymLocation": "LA Fitness",
+    "availableEquipment": "Standard gym equipment - dumbbells, barbells, cable machines, cardio equipment",
+    "forbiddenEquipmentForClient": [],
+    "preferredEquipment": [
+      "Treadmill",
+      "Dumbbells",
+      "Bench"
+    ],
+    "autoSubstitution": true
+  },
+  "aiVillageAnalysis": {
+    "lastAnalysisDate": null,
+    "consensusRecommendations": [],
+    "aiResponses": {
+      "claudeCode": null,
+      "rooCode": null,
+      "chatgpt": null,
+      "gemini": null,
+      "minmax": null
+    },
+    "humanEscalationHistory": []
+  },
+  "metadata": {
+    "intakeDate": "2025-11-06",
+    "firstSessionDate": "2025-11-08",
+    "createdBy": "SwanStudios Personal Training System v3.1 - Coach Cortex Autonomous Loop",
+    "lastUpdated": "2025-11-06",
+    "schemaVersion": "3.1"
+  }
+}

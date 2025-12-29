@@ -2,7 +2,9 @@
   "name": "swanstudios",
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
-    "start": "cd backend && npm start",
+    "start": "concurrently \"npm:start:backend\" \"npm:start:mcp\"",
+    "start:backend": "cd backend && npm start",
+    "start:mcp": "start cmd.exe /K scripts/development/START-ALL-MCP-SERVERS.bat",
     "check-docs-links": "npx markdown-link-check docs/**/*.md docs/*.md README.md --config .github/markdown-link-check-config.json"
   },
   "devDependencies": {
