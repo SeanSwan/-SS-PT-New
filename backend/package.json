@@ -80,7 +80,8 @@
     "production-seed-safe": "node production-luxury-seeder.mjs",
     "verify-store-status": "curl -s ${RENDER_EXTERNAL_URL:-http://localhost:5000}/api/health/store || echo 'Service not available'",
     "setup-admin": "node scripts/ensure-simple-admin.mjs",
-    "setup-prod-admin": "node scripts/setup-prod-admin.mjs"
+    "setup-prod-admin": "node scripts/setup-prod-admin.mjs",
+    "setup-prod-admin-raw": "node scripts/setup-prod-admin-raw.mjs"
   },
   "keywords": [],
   "author": "",

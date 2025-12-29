@@ -43,9 +43,9 @@ async function setupProdAdmin() {
     await sequelize.authenticate();
     console.log('✅ Database connection established');
 
-    // Sync models (create tables if they don't exist)
-    await sequelize.sync({ alter: false });
-    console.log('✅ Database models synced');
+    // Note: We skip sequelize.sync() in production to avoid schema conflicts
+    // The database schema should be managed via migrations instead
+    console.log('⏭️  Skipping model sync (use migrations for schema management)');
 
     // Check if admin user exists
     let user = await User.findOne({
