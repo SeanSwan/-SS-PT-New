@@ -121,6 +121,33 @@ async function markCompletedMigrations() {
       console.log(`⏭️  ${workoutSessionsMigration} - already marked as executed`);
     }
 
+    // Mark old Knex video library migrations as completed (replaced by Sequelize versions)
+    const knexVideoMigrations = [
+      '20251113000001-create-exercise-videos-table.cjs',
+      '20251113000002-create-video-analytics-table.cjs',
+      '20251113000003-add-video-library-to-exercise-library.cjs'
+    ];
+
+    console.log('\n🔄 Checking Knex video library migrations (replaced by Sequelize versions)...\n');
+
+    for (const migration of knexVideoMigrations) {
+      if (!executedNames.includes(migration)) {
+        console.log(`✅ Marking ${migration} as completed (Knex - replaced by 20251118 versions)`);
+
+        await sequelize.query(`
+          INSERT INTO "SequelizeMeta" (name)
+          VALUES (:name)
+          ON CONFLICT (name) DO NOTHING;
+        `, {
+          replacements: { name: migration }
+        });
+
+        markedCount++;
+      } else {
+        console.log(`⏭️  ${migration} - already marked as executed`);
+      }
+    }
+
     console.log('\n' + '='.repeat(70));
     console.log('📊 SUMMARY');
     console.log('='.repeat(70));
