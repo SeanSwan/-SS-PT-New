@@ -83,7 +83,8 @@
     "setup-prod-admin": "node scripts/setup-prod-admin.mjs",
     "setup-prod-admin-raw": "node scripts/setup-prod-admin-raw.mjs",
     "check-users-schema": "node scripts/check-users-schema.mjs",
-    "audit-database": "node scripts/audit-database-data.mjs"
+    "audit-database": "node scripts/audit-database-data.mjs",
+    "verify-migrations": "node scripts/verify-migrations.mjs"
   },
   "keywords": [],
   "author": "",
