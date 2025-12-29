@@ -139,7 +139,9 @@ module.exports = {
         comment: 'Tracks completed workout sessions with performance data'
       });
 
-      // Create indexes - check if they exist first
+      await transaction.commit();
+
+      // Create indexes after transaction commit - check if they exist first
       const indexes = [
         { fields: ['userId'], name: 'workout_session_user_idx' },
         { fields: ['date'], name: 'workout_session_date_idx' },
@@ -152,14 +154,12 @@ module.exports = {
         try {
           // Check if index exists
           const [existingIndexes] = await queryInterface.sequelize.query(
-            `SELECT indexname FROM pg_indexes WHERE tablename = 'workout_sessions' AND indexname = '${index.name}';`,
-            { transaction }
+            `SELECT indexname FROM pg_indexes WHERE tablename = 'workout_sessions' AND indexname = '${index.name}';`
           );
 
           if (existingIndexes.length === 0) {
             await queryInterface.addIndex('workout_sessions', index.fields, {
-              name: index.name,
-              transaction
+              name: index.name
             });
             console.log(`✅ Created index: ${index.name}`);
           } else {
@@ -170,8 +170,7 @@ module.exports = {
         }
       }
 
-      await transaction.commit();
-      console.log('✅ Successfully created workout_sessions table');
+      console.log('✅ Successfully created workout_sessions table with indexes');
 
     } catch (error) {
       await transaction.rollback();
