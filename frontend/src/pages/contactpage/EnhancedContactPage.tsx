@@ -920,8 +920,8 @@ const EnhancedContactPage = () => {
     
     try {
       // FIXED: Real API call instead of simulation
-      const API_BASE_URL = window.location.origin.includes('sswanstudios.com') 
-        ? 'https://ss-pt-new.onrender.com' 
+      const API_BASE_URL = window.location.origin.includes('sswanstudios.com')
+        ? 'https://ss-pt.onrender.com'
         : 'http://localhost:5000';
       
       const submitUrl = `${API_BASE_URL}/api/contact`;

@@ -35,7 +35,7 @@ async function apiRequest(endpoint, options = {}) {
     return {
       status: 0,
       ok: false,
-      error: error.message
+      data: { error: error.message }
     };
   }
 }

@@ -1,0 +1,202 @@
+# SwanStudios Personal Training - Client Data .gitignore
+# Purpose: Protect sensitive client data from accidental commits
+# Last Updated: 2025-11-05
+
+# ============================================================================
+# PHOTOS & MEDIA (NEVER COMMIT - Contains sensitive client images)
+# ============================================================================
+# Why: Client progress photos and form videos contain identifiable information
+# Alternative: Store in encrypted disk image (see SECURITY-PRIVACY-IMPLEMENTATION.md)
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.heic
+*.heif
+*.mp4
+*.mov
+*.avi
+
+# Exception: Allow template/placeholder images (if needed)
+!templates/*.jpg
+!templates/*.png
+
+# ============================================================================
+# CLIENT PERSONAL INFORMATION (NEVER COMMIT)
+# ============================================================================
+# Why: Contains full names, addresses, phone numbers, medical records
+
+# Individual client consent forms with signatures
+*/notes/consent.md
+*/notes/consent.pdf
+*/notes/medical-clearance.pdf
+
+# Private notes with sensitive medical/personal details
+*/notes/private-notes.md
+*/notes/mental-health-notes.md
+
+# ============================================================================
+# EXPORTED/GENERATED FILES (DON'T COMMIT - Regenerate as needed)
+# ============================================================================
+# Why: Large files, easily regenerated, clutter repository
+
+# PDF exports
+*.pdf
+exports/*.pdf
+
+# CSV exports
+*.csv
+exports/*.csv
+
+# Database exports
+*.sql
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================================================
+# SYSTEM FILES (OS-SPECIFIC)
+# ============================================================================
+# Why: Not part of client data, OS-specific clutter
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Thumbnails
+Thumbs.db
+ehthumbs.db
+
+# Windows
+desktop.ini
+$RECYCLE.BIN/
+
+# ============================================================================
+# BACKUP FILES (DON'T COMMIT - Use proper backup strategy)
+# ============================================================================
+# Why: Backup files should be in separate backup system, not Git
+
+# Automated backups
+*.backup
+*.bak
+*~
+*.swp
+*.swo
+
+# Backup folders
+backup/
+backups/
+client-data-backup/
+
+# ============================================================================
+# ENCRYPTED FILES (DON'T COMMIT - Security risk)
+# ============================================================================
+# Why: Encrypted disk images and archives should not be in Git
+
+# Encrypted disk images
+*.dmg
+*.sparseimage
+*.sparsebundle
+
+# Encrypted archives
+*.zip
+*.7z
+*.rar
+*.tar.gz
+*.tar.bz2
+
+# GPG encrypted files
+*.gpg
+*.asc
+
+# ============================================================================
+# ENVIRONMENT & CONFIG (DON'T COMMIT - Contains secrets)
+# ============================================================================
+# Why: May contain API keys, passwords, tokens
+
+.env
+.env.local
+.env.production
+.env.development
+
+# Stripe keys
+stripe-keys.txt
+payment-config.json
+
+# Twilio credentials
+twilio-credentials.json
+
+# API keys
+api-keys.json
+secrets.json
+
+# ============================================================================
+# LOG FILES (DON'T COMMIT - Generated runtime data)
+# ============================================================================
+# Why: Log files are generated at runtime, large, not source-controlled
+
+*.log
+logs/
+*.log.*
+
+# Security audit logs (sensitive)
+SECURITY-AUDIT-LOG.md
+
+# Backup logs (contains file paths)
+BACKUP-LOG.md
+
+# ============================================================================
+# TEMPORARY FILES (DON'T COMMIT - Transient data)
+# ============================================================================
+# Why: Temporary working files, caches, etc.
+
+tmp/
+temp/
+*.tmp
+cache/
+
+# ============================================================================
+# IDE & EDITOR FILES (DON'T COMMIT - Personal preferences)
+# ============================================================================
+# Why: IDE-specific files, not relevant to other users
+
+# VS Code
+.vscode/settings.json
+.vscode/launch.json
+
+# JetBrains IDEs
+.idea/
+
+# Vim
+*.swp
+*.swo
+*~
+
+# ============================================================================
+# WHAT TO COMMIT (Explicitly INCLUDE these)
+# ============================================================================
+# ✅ Markdown files (README, questionnaires, templates, progress reports)
+# ✅ JSON files (Master Prompt templates, schemas)
+# ✅ Guide documents (.md files in guides/)
+# ✅ Template files (templates/ folder)
+# ✅ Registry and tracking files (CLIENT-REGISTRY.md)
+
+# ============================================================================
+# NOTES FOR USERS
+# ============================================================================
+# If you need to commit a file that's ignored:
+# 1. Verify it contains NO sensitive data
+# 2. Use: git add -f [filename] (force add)
+# 3. Better: Update this .gitignore to create exception
+
+# To check what's being ignored:
+# git status --ignored
+
+# To verify no sensitive data before commit:
+# git diff --cached
+
+# ============================================================================
+# END OF .gitignore
+# ============================================================================

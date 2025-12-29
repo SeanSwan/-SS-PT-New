@@ -108,7 +108,7 @@ interface McpServerResponse<T = any> {
 // === CONFIGURATION ===
 // Robust configuration that works in all environments
 const isProduction = import.meta.env.PROD || import.meta.env.MODE === 'production' || window.location.hostname !== 'localhost';
-const PRODUCTION_URL = 'https://ss-pt-new.onrender.com';
+const PRODUCTION_URL = 'https://ss-pt.onrender.com';
 const DEVELOPMENT_URL = 'http://localhost:10000';
 
 // Primary API configuration with multiple fallback methods

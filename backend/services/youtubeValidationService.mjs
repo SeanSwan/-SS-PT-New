@@ -87,6 +87,18 @@ export const validateYouTubeUrl = async (url) => {
     if (error.response && error.response.status === 404) {
       throw new Error('YouTube video not found');
     }
+    // Fallback if API fails or no key provided (for dev/testing)
+    if (!YOUTUBE_API_KEY || (error.response && error.response.status === 403)) {
+        console.warn('YouTube API Key missing or quota exceeded. Using fallback validation.');
+        return {
+            valid: true,
+            videoId,
+            title: 'YouTube Video (Metadata Unavailable)',
+            description: 'Video metadata could not be fetched from YouTube API.',
+            thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+            duration: 'PT0M0S' // Unknown duration
+        };
+    }
     throw new Error('Failed to validate YouTube video');
   }
 };

@@ -107,6 +107,17 @@ User.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    // AI-Powered Personal Training Master Prompt
+    masterPromptJson: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      comment: 'Complete client master prompt JSON (v3.0 schema) for AI-powered coaching'
+    },
+    spiritName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: 'Client spirit name for privacy (e.g., "Golden Hawk", "Silver Crane")'
+    },
     // Purchased sessions
     availableSessions: {
       type: DataTypes.INTEGER,

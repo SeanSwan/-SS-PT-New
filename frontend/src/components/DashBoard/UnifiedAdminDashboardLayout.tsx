@@ -78,7 +78,9 @@ import NASMCompliancePanel from './Pages/admin-dashboard/components/NASMComplian
 import AdminExerciseCommandCenter from './Pages/admin-exercises';
 
 // Import Client Onboarding Wizard
-import ClientOnboardingWizard from '../../pages/onboarding/ClientOnboardingWizard';
+const ClientOnboardingWizard = React.lazy(() => 
+  import('../../pages/onboarding/ClientOnboardingWizard')
+);
 
 // Import TheAestheticCodex - Living Style Guide
 import { TheAestheticCodex } from '../../core';
@@ -596,6 +598,18 @@ const UnifiedAdminDashboardLayout: React.FC<UnifiedAdminDashboardLayoutProps> = 
                       transition={{ duration: 0.6 }}
                     >
                       <ClientsManagementSection />
+                    </ExecutivePageContainer>
+                  }
+                />
+                <Route
+                  path="/client-onboarding"
+                  element={
+                    <ExecutivePageContainer
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6 }}
+                    >
+                      <ClientOnboardingWizard />
                     </ExecutivePageContainer>
                   }
                 />

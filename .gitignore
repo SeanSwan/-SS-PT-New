@@ -170,3 +170,8 @@ old/
 temp_fix/
 debug_solutions/
 test-build/
+
+# PII Security - NEVER commit client registry (migrated to encrypted database)
+CLIENT-REGISTRY.md
+**/CLIENT-REGISTRY.md
+client-data/CLIENT-REGISTRY.md

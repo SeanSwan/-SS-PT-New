@@ -208,16 +208,6 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({
             Gamification
           </StyledNavLink>
 
-          {user.role === 'admin' && (
-            <StyledNavLink
-              to="/dashboard/client-onboarding"
-              $isActive={isActive('/dashboard/client-onboarding')}
-              variants={itemVariants}
-            >
-              Client Onboarding
-            </StyledNavLink>
-          )}
-
           <Box sx={{ ml: 1, mr: 1 }}>
             <DashboardSelector />
           </Box>
