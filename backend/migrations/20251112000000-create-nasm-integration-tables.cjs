@@ -948,7 +948,7 @@ module.exports = {
       await queryInterface.sequelize.query(`
         CREATE MATERIALIZED VIEW admin_nasm_compliance_metrics AS
         SELECT
-          COUNT(DISTINCT u.id) FILTER (WHERE u.user_tier = 'client') AS total_clients,
+          COUNT(DISTINCT u.id) FILTER (WHERE u.role = 'client') AS total_clients,
           COUNT(DISTINCT cop.id) AS total_active_protocols,
           ROUND(AVG(cop.compliance_rate), 2) AS avg_compliance_rate,
           COUNT(DISTINCT tc.trainer_id) FILTER (WHERE tc.certification_type = 'NASM-CPT' AND tc.status = 'active') AS active_cpt_trainers,
