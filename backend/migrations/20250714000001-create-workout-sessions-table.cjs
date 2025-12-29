@@ -139,32 +139,36 @@ module.exports = {
         comment: 'Tracks completed workout sessions with performance data'
       });
 
-      // Create indexes
-      await queryInterface.addIndex('workout_sessions', ['userId'], {
-        name: 'workout_session_user_idx',
-        transaction
-      });
+      // Create indexes - check if they exist first
+      const indexes = [
+        { fields: ['userId'], name: 'workout_session_user_idx' },
+        { fields: ['date'], name: 'workout_session_date_idx' },
+        { fields: ['status'], name: 'workout_session_status_idx' },
+        { fields: ['workoutPlanId'], name: 'workout_session_plan_idx' },
+        { fields: ['userId', 'date'], name: 'workout_session_user_date_idx' }
+      ];
 
-      await queryInterface.addIndex('workout_sessions', ['date'], {
-        name: 'workout_session_date_idx',
-        transaction
-      });
+      for (const index of indexes) {
+        try {
+          // Check if index exists
+          const [existingIndexes] = await queryInterface.sequelize.query(
+            `SELECT indexname FROM pg_indexes WHERE tablename = 'workout_sessions' AND indexname = '${index.name}';`,
+            { transaction }
+          );
 
-      await queryInterface.addIndex('workout_sessions', ['status'], {
-        name: 'workout_session_status_idx',
-        transaction
-      });
-
-      await queryInterface.addIndex('workout_sessions', ['workoutPlanId'], {
-        name: 'workout_session_plan_idx',
-        transaction
-      });
-
-      // Composite index for common queries
-      await queryInterface.addIndex('workout_sessions', ['userId', 'date'], {
-        name: 'workout_session_user_date_idx',
-        transaction
-      });
+          if (existingIndexes.length === 0) {
+            await queryInterface.addIndex('workout_sessions', index.fields, {
+              name: index.name,
+              transaction
+            });
+            console.log(`✅ Created index: ${index.name}`);
+          } else {
+            console.log(`⏭️  Index ${index.name} already exists, skipping...`);
+          }
+        } catch (error) {
+          console.warn(`⚠️  Could not create index ${index.name}:`, error.message);
+        }
+      }
 
       await transaction.commit();
       console.log('✅ Successfully created workout_sessions table');
