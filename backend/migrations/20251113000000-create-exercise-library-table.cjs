@@ -1,3 +1,5 @@
+'use strict';
+
 /**
  * ╔══════════════════════════════════════════════════════════════════════════╗
  * ║           NASM EXERCISE LIBRARY FOUNDATION MIGRATION                      ║
@@ -321,192 +323,255 @@
  * ═══════════════════════════════════════════════════════════════════════════
  */
 
-exports.up = async function(knex) {
-  // Check if table already exists
-  const exists = await knex.schema.hasTable('exercise_library');
-  if (exists) {
-    console.log('⏭️  Table exercise_library already exists, skipping...');
-    return;
-  }
+module.exports = {
+  up: async (queryInterface, Sequelize) => {
+    const transaction = await queryInterface.sequelize.transaction();
 
-  console.log('💪 Creating exercise_library table (NASM Foundation)...');
+    try {
+      // Check if table already exists
+      const tables = await queryInterface.showAllTables();
+      if (tables.includes('exercise_library')) {
+        console.log('⏭️  Table exercise_library already exists, skipping...');
+        await transaction.commit();
+        return;
+      }
 
-  await knex.schema.createTable('exercise_library', table => {
-    // Primary key
-    table.uuid('id').primary().defaultTo(knex.raw('gen_random_uuid()'));
+      console.log('💪 Creating exercise_library table (NASM Foundation)...');
 
-    // Exercise identification
-    table.string('name', 200).notNullable().comment('Exercise name (e.g., "Barbell Back Squat")');
-    table.text('description').nullable().comment('Full exercise description with form cues');
+      // Create ENUMs first
+      await queryInterface.sequelize.query(`
+        CREATE TYPE muscle_group_enum AS ENUM (
+          'chest', 'back', 'shoulders', 'biceps', 'triceps', 'forearms',
+          'abs', 'obliques', 'quads', 'hamstrings', 'glutes', 'calves',
+          'hip_flexors', 'adductors', 'abductors'
+        );
+      `, { transaction });
 
-    // NASM taxonomy
-    table.enu('primary_muscle', [
-      'chest', 'back', 'shoulders', 'biceps', 'triceps', 'forearms',
-      'abs', 'obliques', 'quads', 'hamstrings', 'glutes', 'calves',
-      'hip_flexors', 'adductors', 'abductors'
-    ], { useNative: true, enumName: 'muscle_group_enum' })
-      .notNullable()
-      .comment('Primary muscle targeted (NASM muscle classification)');
+      await queryInterface.sequelize.query(`
+        CREATE TYPE equipment_enum AS ENUM (
+          'barbell', 'dumbbell', 'kettlebell', 'resistance_band', 'cable',
+          'bodyweight', 'medicine_ball', 'stability_ball', 'trx', 'bosu',
+          'foam_roller', 'bench', 'machine', 'other'
+        );
+      `, { transaction });
 
-    table.jsonb('secondary_muscles')
-      .nullable()
-      .defaultTo('[]')
-      .comment('Array of secondary muscles worked (e.g., ["abs", "glutes"])');
+      await queryInterface.sequelize.query(`
+        CREATE TYPE difficulty_enum AS ENUM ('beginner', 'intermediate', 'advanced');
+      `, { transaction });
 
-    table.enu('equipment', [
-      'barbell', 'dumbbell', 'kettlebell', 'resistance_band', 'cable',
-      'bodyweight', 'medicine_ball', 'stability_ball', 'trx', 'bosu',
-      'foam_roller', 'bench', 'machine', 'other'
-    ], { useNative: true, enumName: 'equipment_enum' })
-      .notNullable()
-      .comment('Required equipment');
+      // Create Table
+      await queryInterface.createTable('exercise_library', {
+        id: {
+          type: Sequelize.UUID,
+          defaultValue: Sequelize.literal('gen_random_uuid()'),
+          primaryKey: true,
+          allowNull: false
+        },
+        name: {
+          type: Sequelize.STRING(200),
+          allowNull: false,
+          comment: 'Exercise name (e.g., "Barbell Back Squat")'
+        },
+        description: {
+          type: Sequelize.TEXT,
+          allowNull: true,
+          comment: 'Full exercise description with form cues'
+        },
+        primary_muscle: {
+          type: "muscle_group_enum",
+          allowNull: false,
+          comment: 'Primary muscle targeted (NASM muscle classification)'
+        },
+        secondary_muscles: {
+          type: Sequelize.JSONB,
+          allowNull: true,
+          defaultValue: [],
+          comment: 'Array of secondary muscles worked (e.g., ["abs", "glutes"])'
+        },
+        equipment: {
+          type: "equipment_enum",
+          allowNull: false,
+          comment: 'Required equipment'
+        },
+        difficulty: {
+          type: "difficulty_enum",
+          allowNull: false,
+          comment: 'Exercise difficulty level'
+        },
+        movement_patterns: {
+          type: Sequelize.JSONB,
+          allowNull: false,
+          defaultValue: [],
+          comment: 'Array of movement patterns: ["pushing", "pulling", "squatting", "lunging", "hinging", "rotating", "anti-rotation", "gait"]'
+        },
+        nasm_phases: {
+          type: Sequelize.JSONB,
+          allowNull: false,
+          defaultValue: [1],
+          comment: 'Array of NASM phases this exercise is appropriate for: [1,2,3,4,5]'
+        },
+        contraindications: {
+          type: Sequelize.JSONB,
+          allowNull: true,
+          defaultValue: [],
+          comment: 'Array of conditions where exercise should be avoided (e.g., ["shoulder_impingement", "pregnancy", "lower_back_pain"])'
+        },
+        acute_variables: {
+          type: Sequelize.JSONB,
+          allowNull: true,
+          comment: 'Phase-specific programming: {"sets": "2-4", "reps": "12-20", "tempo": "4/2/1", "rest": "0-90s"}'
+        },
+        created_at: {
+          type: Sequelize.DATE,
+          allowNull: false,
+          defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
+        },
+        updated_at: {
+          type: Sequelize.DATE,
+          allowNull: false,
+          defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
+        },
+        deletedAt: {
+          type: Sequelize.DATE,
+          allowNull: true,
+          comment: 'Soft delete timestamp (NULL = active). Exercises never hard-deleted to preserve workout history.'
+        }
+      }, { transaction });
 
-    table.enu('difficulty', ['beginner', 'intermediate', 'advanced'],
-      { useNative: true, enumName: 'difficulty_enum' })
-      .notNullable()
-      .comment('Exercise difficulty level');
+      // Create B-tree indexes
+      const btreeIndexes = ['name', 'primary_muscle', 'equipment', 'difficulty', 'deletedAt'];
+      for (const field of btreeIndexes) {
+        await queryInterface.addIndex('exercise_library', [field], {
+          name: `idx_exercise_library_${field}`,
+          where: { deletedAt: null },
+          transaction
+        });
+      }
 
-    // Movement patterns (NASM OPT™ Model)
-    table.jsonb('movement_patterns')
-      .notNullable()
-      .defaultTo('[]')
-      .comment('Array of movement patterns: ["pushing", "pulling", "squatting", "lunging", "hinging", "rotating", "anti-rotation", "gait"]');
+      // Create GIN indexes (using raw query for GIN support)
+      await queryInterface.sequelize.query(`CREATE INDEX idx_exercise_library_nasm_phases ON exercise_library USING GIN (nasm_phases);`, { transaction });
+      await queryInterface.sequelize.query(`CREATE INDEX idx_exercise_library_movement_patterns ON exercise_library USING GIN (movement_patterns);`, { transaction });
+      await queryInterface.sequelize.query(`CREATE INDEX idx_exercise_library_contraindications ON exercise_library USING GIN (contraindications);`, { transaction });
 
-    // NASM OPT™ Phases (1-5)
-    table.jsonb('nasm_phases')
-      .notNullable()
-      .defaultTo('[1]')
-      .comment('Array of NASM phases this exercise is appropriate for: [1,2,3,4,5]');
+      // Seed initial exercises (basic NASM movements)
+      console.log('🌱 Seeding foundational NASM exercises...');
 
-    // Contraindications (safety)
-    table.jsonb('contraindications')
-      .nullable()
-      .defaultTo('[]')
-      .comment('Array of conditions where exercise should be avoided (e.g., ["shoulder_impingement", "pregnancy", "lower_back_pain"])');
+      const exercises = [
+        {
+          name: 'Barbell Back Squat',
+          description: 'Foundational lower body exercise targeting quads, glutes, hamstrings. Stand with barbell on upper back, feet shoulder-width apart. Lower hips back and down to parallel, keeping chest up. Drive through heels to return to start.',
+          primary_muscle: 'quads',
+          secondary_muscles: JSON.stringify(['glutes', 'hamstrings', 'abs']),
+          equipment: 'barbell',
+          difficulty: 'intermediate',
+          movement_patterns: JSON.stringify(['squatting']),
+          nasm_phases: JSON.stringify([3, 4, 5]),
+          contraindications: JSON.stringify(['knee_injury', 'lower_back_pain']),
+          acute_variables: JSON.stringify({
+            phase_3: { sets: '3-5', reps: '6-12', tempo: '2/0/2', rest: '0-60s' },
+            phase_4: { sets: '4-6', reps: '1-5', tempo: 'explosive', rest: '3-5min' },
+            phase_5: { sets: '3-6', reps: '1-12', tempo: 'varies', rest: '0-5min' }
+          })
+        },
+        {
+          name: 'Push-Up',
+          description: 'Bodyweight chest exercise. Start in plank position with hands shoulder-width apart. Lower body until chest nearly touches floor. Push back up to start.',
+          primary_muscle: 'chest',
+          secondary_muscles: JSON.stringify(['triceps', 'shoulders', 'abs']),
+          equipment: 'bodyweight',
+          difficulty: 'beginner',
+          movement_patterns: JSON.stringify(['pushing']),
+          nasm_phases: JSON.stringify([1, 2, 3, 4, 5]),
+          contraindications: JSON.stringify(['shoulder_impingement', 'wrist_pain']),
+          acute_variables: JSON.stringify({
+            phase_1: { sets: '1-3', reps: '12-20', tempo: '4/2/1', rest: '0-90s' },
+            phase_2: { sets: '2-4', reps: '8-12', tempo: '2/0/2', rest: '0-60s' }
+          })
+        },
+        {
+          name: 'Dumbbell Romanian Deadlift',
+          description: 'Hip hinge pattern targeting hamstrings and glutes. Hold dumbbells at thighs. Hinge at hips while keeping back straight, lowering dumbbells to mid-shin. Return to start by driving hips forward.',
+          primary_muscle: 'hamstrings',
+          secondary_muscles: JSON.stringify(['glutes', 'back']),
+          equipment: 'dumbbell',
+          difficulty: 'intermediate',
+          movement_patterns: JSON.stringify(['hinging']),
+          nasm_phases: JSON.stringify([2, 3, 4, 5]),
+          contraindications: JSON.stringify(['lower_back_pain', 'hamstring_strain']),
+          acute_variables: JSON.stringify({
+            phase_2: { sets: '2-4', reps: '8-12', tempo: '2/0/2', rest: '0-60s' },
+            phase_3: { sets: '3-5', reps: '6-12', tempo: '2/0/2', rest: '0-60s' }
+          })
+        },
+        {
+          name: 'Plank',
+          description: 'Core stabilization exercise. Hold push-up position with forearms on ground. Maintain straight line from head to heels, engaging abs.',
+          primary_muscle: 'abs',
+          secondary_muscles: JSON.stringify(['obliques', 'back', 'shoulders']),
+          equipment: 'bodyweight',
+          difficulty: 'beginner',
+          movement_patterns: JSON.stringify(['anti-rotation']),
+          nasm_phases: JSON.stringify([1, 2, 3, 4, 5]),
+          contraindications: JSON.stringify(['lower_back_pain', 'pregnancy']),
+          acute_variables: JSON.stringify({
+            phase_1: { sets: '1-3', duration: '15-60s', tempo: 'hold', rest: '0-90s' },
+            phase_2: { sets: '2-4', duration: '30-90s', tempo: 'hold', rest: '0-60s' }
+          })
+        },
+        {
+          name: 'Dumbbell Bench Press',
+          description: 'Upper body pressing movement for chest, shoulders, triceps. Lie on bench with dumbbells at chest height. Press dumbbells up until arms are extended. Lower with control.',
+          primary_muscle: 'chest',
+          secondary_muscles: JSON.stringify(['shoulders', 'triceps']),
+          equipment: 'dumbbell',
+          difficulty: 'intermediate',
+          movement_patterns: JSON.stringify(['pushing']),
+          nasm_phases: JSON.stringify([3, 4, 5]),
+          contraindications: JSON.stringify(['shoulder_impingement', 'shoulder_instability']),
+          acute_variables: JSON.stringify({
+            phase_3: { sets: '3-5', reps: '6-12', tempo: '2/0/2', rest: '0-60s' },
+            phase_4: { sets: '4-6', reps: '1-5', tempo: 'explosive', rest: '3-5min' }
+          })
+        }
+      ];
 
-    // Acute variables (NASM programming)
-    table.jsonb('acute_variables')
-      .nullable()
-      .comment('Phase-specific programming: {"sets": "2-4", "reps": "12-20", "tempo": "4/2/1", "rest": "0-90s"}');
+      // Add timestamps to seed data
+      const exercisesWithTimestamps = exercises.map(ex => ({
+        ...ex,
+        created_at: new Date(),
+        updated_at: new Date()
+      }));
 
-    // Metadata
-    table.timestamps(true, true); // created_at, updated_at
+      await queryInterface.bulkInsert('exercise_library', exercisesWithTimestamps, { transaction });
 
-    // Soft deletes (preserve workout history)
-    table.timestamp('deletedAt')
-      .nullable()
-      .comment('Soft delete timestamp (NULL = active). Exercises never hard-deleted to preserve workout history.');
-  });
+      console.log('✅ exercise_library table created with 5 foundational exercises');
+      console.log('   Ready for Video Library integration!');
 
-  // Create indexes
-  await knex.schema.raw(`
-    CREATE INDEX idx_exercise_library_name ON exercise_library(name) WHERE "deletedAt" IS NULL;
-    CREATE INDEX idx_exercise_library_primary_muscle ON exercise_library(primary_muscle) WHERE "deletedAt" IS NULL;
-    CREATE INDEX idx_exercise_library_equipment ON exercise_library(equipment) WHERE "deletedAt" IS NULL;
-    CREATE INDEX idx_exercise_library_difficulty ON exercise_library(difficulty) WHERE "deletedAt" IS NULL;
-    CREATE INDEX idx_exercise_library_deleted_at ON exercise_library("deletedAt") WHERE "deletedAt" IS NULL;
-
-    -- GIN index for JSONB searches (phases, patterns, contraindications)
-    CREATE INDEX idx_exercise_library_nasm_phases ON exercise_library USING GIN (nasm_phases);
-    CREATE INDEX idx_exercise_library_movement_patterns ON exercise_library USING GIN (movement_patterns);
-    CREATE INDEX idx_exercise_library_contraindications ON exercise_library USING GIN (contraindications);
-  `);
-
-  // Seed initial exercises (basic NASM movements)
-  console.log('🌱 Seeding foundational NASM exercises...');
-
-  await knex('exercise_library').insert([
-    {
-      name: 'Barbell Back Squat',
-      description: 'Foundational lower body exercise targeting quads, glutes, hamstrings. Stand with barbell on upper back, feet shoulder-width apart. Lower hips back and down to parallel, keeping chest up. Drive through heels to return to start.',
-      primary_muscle: 'quads',
-      secondary_muscles: JSON.stringify(['glutes', 'hamstrings', 'abs']),
-      equipment: 'barbell',
-      difficulty: 'intermediate',
-      movement_patterns: JSON.stringify(['squatting']),
-      nasm_phases: JSON.stringify([3, 4, 5]),
-      contraindications: JSON.stringify(['knee_injury', 'lower_back_pain']),
-      acute_variables: JSON.stringify({
-        phase_3: { sets: '3-5', reps: '6-12', tempo: '2/0/2', rest: '0-60s' },
-        phase_4: { sets: '4-6', reps: '1-5', tempo: 'explosive', rest: '3-5min' },
-        phase_5: { sets: '3-6', reps: '1-12', tempo: 'varies', rest: '0-5min' }
-      })
-    },
-    {
-      name: 'Push-Up',
-      description: 'Bodyweight chest exercise. Start in plank position with hands shoulder-width apart. Lower body until chest nearly touches floor. Push back up to start.',
-      primary_muscle: 'chest',
-      secondary_muscles: JSON.stringify(['triceps', 'shoulders', 'abs']),
-      equipment: 'bodyweight',
-      difficulty: 'beginner',
-      movement_patterns: JSON.stringify(['pushing']),
-      nasm_phases: JSON.stringify([1, 2, 3, 4, 5]),
-      contraindications: JSON.stringify(['shoulder_impingement', 'wrist_pain']),
-      acute_variables: JSON.stringify({
-        phase_1: { sets: '1-3', reps: '12-20', tempo: '4/2/1', rest: '0-90s' },
-        phase_2: { sets: '2-4', reps: '8-12', tempo: '2/0/2', rest: '0-60s' }
-      })
-    },
-    {
-      name: 'Dumbbell Romanian Deadlift',
-      description: 'Hip hinge pattern targeting hamstrings and glutes. Hold dumbbells at thighs. Hinge at hips while keeping back straight, lowering dumbbells to mid-shin. Return to start by driving hips forward.',
-      primary_muscle: 'hamstrings',
-      secondary_muscles: JSON.stringify(['glutes', 'back']),
-      equipment: 'dumbbell',
-      difficulty: 'intermediate',
-      movement_patterns: JSON.stringify(['hinging']),
-      nasm_phases: JSON.stringify([2, 3, 4, 5]),
-      contraindications: JSON.stringify(['lower_back_pain', 'hamstring_strain']),
-      acute_variables: JSON.stringify({
-        phase_2: { sets: '2-4', reps: '8-12', tempo: '2/0/2', rest: '0-60s' },
-        phase_3: { sets: '3-5', reps: '6-12', tempo: '2/0/2', rest: '0-60s' }
-      })
-    },
-    {
-      name: 'Plank',
-      description: 'Core stabilization exercise. Hold push-up position with forearms on ground. Maintain straight line from head to heels, engaging abs.',
-      primary_muscle: 'abs',
-      secondary_muscles: JSON.stringify(['obliques', 'back', 'shoulders']),
-      equipment: 'bodyweight',
-      difficulty: 'beginner',
-      movement_patterns: JSON.stringify(['anti-rotation']),
-      nasm_phases: JSON.stringify([1, 2, 3, 4, 5]),
-      contraindications: JSON.stringify(['lower_back_pain', 'pregnancy']),
-      acute_variables: JSON.stringify({
-        phase_1: { sets: '1-3', duration: '15-60s', tempo: 'hold', rest: '0-90s' },
-        phase_2: { sets: '2-4', duration: '30-90s', tempo: 'hold', rest: '0-60s' }
-      })
-    },
-    {
-      name: 'Dumbbell Bench Press',
-      description: 'Upper body pressing movement for chest, shoulders, triceps. Lie on bench with dumbbells at chest height. Press dumbbells up until arms are extended. Lower with control.',
-      primary_muscle: 'chest',
-      secondary_muscles: JSON.stringify(['shoulders', 'triceps']),
-      equipment: 'dumbbell',
-      difficulty: 'intermediate',
-      movement_patterns: JSON.stringify(['pushing']),
-      nasm_phases: JSON.stringify([3, 4, 5]),
-      contraindications: JSON.stringify(['shoulder_impingement', 'shoulder_instability']),
-      acute_variables: JSON.stringify({
-        phase_3: { sets: '3-5', reps: '6-12', tempo: '2/0/2', rest: '0-60s' },
-        phase_4: { sets: '4-6', reps: '1-5', tempo: 'explosive', rest: '3-5min' }
-      })
+      await transaction.commit();
+    } catch (error) {
+      await transaction.rollback();
+      console.error('❌ Migration failed:', error);
+      throw error;
     }
-  ]);
+  },
 
-  console.log('✅ exercise_library table created with 5 foundational exercises');
-  console.log('   Ready for Video Library integration!');
-};
+  down: async (queryInterface, Sequelize) => {
+    const transaction = await queryInterface.sequelize.transaction();
+    try {
+      console.log('🗑️  Dropping exercise_library table...');
 
-exports.down = async function(knex) {
-  console.log('🗑️  Dropping exercise_library table...');
+      await queryInterface.dropTable('exercise_library', { transaction });
 
-  await knex.schema.dropTableIfExists('exercise_library');
+      // Drop enums
+      await queryInterface.sequelize.query('DROP TYPE IF EXISTS muscle_group_enum CASCADE;', { transaction });
+      await queryInterface.sequelize.query('DROP TYPE IF EXISTS equipment_enum CASCADE;', { transaction });
+      await queryInterface.sequelize.query('DROP TYPE IF EXISTS difficulty_enum CASCADE;', { transaction });
 
-  // Drop enums
-  await knex.raw('DROP TYPE IF EXISTS muscle_group_enum;');
-  await knex.raw('DROP TYPE IF EXISTS equipment_enum;');
-  await knex.raw('DROP TYPE IF EXISTS difficulty_enum;');
-
-  console.log('✅ exercise_library table dropped');
+      console.log('✅ exercise_library table dropped');
+      await transaction.commit();
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  }
 };

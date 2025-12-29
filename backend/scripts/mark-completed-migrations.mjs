@@ -121,26 +121,6 @@ async function markCompletedMigrations() {
       console.log(`⏭️  ${workoutSessionsMigration} - already marked as executed`);
     }
 
-    // Migration: 20251113000000-create-exercise-library-table.cjs (Knex format - skip)
-    const exerciseLibraryMigration = '20251113000000-create-exercise-library-table.cjs';
-    if (!executedNames.includes(exerciseLibraryMigration)) {
-      console.log(`\n⚠️  Marking ${exerciseLibraryMigration} as completed (Knex migration - incompatible)`);
-      console.log('   - This migration uses Knex syntax instead of Sequelize');
-      console.log('   - Skipping to prevent errors');
-
-      await sequelize.query(`
-        INSERT INTO "SequelizeMeta" (name)
-        VALUES (:name)
-        ON CONFLICT (name) DO NOTHING;
-      `, {
-        replacements: { name: exerciseLibraryMigration }
-      });
-
-      markedCount++;
-    } else {
-      console.log(`⏭️  ${exerciseLibraryMigration} - already marked as executed`);
-    }
-
     console.log('\n' + '='.repeat(70));
     console.log('📊 SUMMARY');
     console.log('='.repeat(70));
