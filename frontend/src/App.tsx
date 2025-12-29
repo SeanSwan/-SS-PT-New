@@ -47,6 +47,7 @@ import { initializeApiMonitoring } from './utils/apiConnectivityFixer';
 import clearMockTokens from './utils/clearMockTokens';
 import './utils/initTokenCleanup'; // Initialize token cleanup handlers
 import './utils/clearCache'; // Emergency cache clearing utility
+import { monitorRouting } from './utils/routeDebugger'; // Route debugging
 
 // Styles
 import './App.css';
@@ -141,7 +142,10 @@ const AppContent = () => {
     initializationRef.current = true;
     
     console.log('Running one-time App initialization...');
-    
+
+    // Enable route debugging
+    monitorRouting();
+
     // Mark app as initialized in Redux store
     dispatch(setInitialized(true));
     

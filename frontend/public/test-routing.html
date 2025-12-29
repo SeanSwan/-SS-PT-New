@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Routing Test</title>
+    <style>
+        body {
+            font-family: system-ui;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0a0a1a;
+            color: white;
+        }
+        .test-box {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background: rgba(0,255,0,0.2); color: #0f0; }
+        .error { background: rgba(255,0,0,0.2); color: #f00; }
+        button {
+            background: #00ffff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            color: #0a0a1a;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 SPA Routing Diagnostic Test</h1>
+
+    <div class="test-box">
+        <h2>Current URL Information</h2>
+        <div id="url-info"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>Quick Navigation Tests</h2>
+        <button onclick="testRoute('/')">Test Home</button>
+        <button onclick="testRoute('/store')">Test Store</button>
+        <button onclick="testRoute('/admin')">Test Admin</button>
+        <button onclick="testRoute('/about')">Test About</button>
+        <div id="nav-results"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>History API Test</h2>
+        <div id="history-test"></div>
+    </div>
+
+    <script>
+        // Display current URL info
+        function updateURLInfo() {
+            const info = document.getElementById('url-info');
+            info.innerHTML = `
+                <div class="status success">
+                    <strong>Full URL:</strong> ${window.location.href}<br>
+                    <strong>Pathname:</strong> ${window.location.pathname}<br>
+                    <strong>Search:</strong> ${window.location.search}<br>
+                    <strong>Hash:</strong> ${window.location.hash}
+                </div>
+            `;
+        }
+
+        function testRoute(path) {
+            const results = document.getElementById('nav-results');
+            window.history.pushState({}, '', path);
+            results.innerHTML = `<div class="status success">✓ Navigated to ${path} (check if page reloads)</div>`;
+            updateURLInfo();
+            setTimeout(() => {
+                results.innerHTML += `<div class="status ${window.location.pathname === path ? 'success' : 'error'}">
+                    Current pathname: ${window.location.pathname}
+                </div>`;
+            }, 100);
+        }
+
+        // Test History API
+        function testHistoryAPI() {
+            const historyDiv = document.getElementById('history-test');
+            try {
+                window.history.pushState({test: true}, '', '/test-route');
+                const currentPath = window.location.pathname;
+                window.history.back();
+
+                historyDiv.innerHTML = `
+                    <div class="status success">
+                        ✓ History API is working<br>
+                        - pushState worked: ${currentPath === '/test-route' ? 'YES' : 'NO'}<br>
+                        - Current path: ${window.location.pathname}
+                    </div>
+                `;
+            } catch (e) {
+                historyDiv.innerHTML = `<div class="status error">✗ History API error: ${e.message}</div>`;
+            }
+        }
+
+        // Initialize
+        updateURLInfo();
+        testHistoryAPI();
+
+        // Monitor for URL changes
+        window.addEventListener('popstate', () => {
+            updateURLInfo();
+            console.log('popstate event fired');
+        });
+    </script>
+</body>
+</html>
