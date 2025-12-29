@@ -197,17 +197,24 @@ export const clearServiceWorkerCaches = async () => {
 /**
  * Initialize all SPA routing fixes
  * Call this function once when the app starts
+ *
+ * UPDATED 2025-12-28: Disabled legacy routing fixes since we now have proper
+ * server-side rewrites via Render. The old hash-based routing logic was
+ * conflicting with React Router and causing refreshes to show homepage.
  */
 export const initializeAllSPAFixes = () => {
   // Clear any existing service worker caches in development
   if (!import.meta.env.PROD) {
     clearServiceWorkerCaches();
   }
-  
-  initializeSPARouting();
-  enhanceBrowserNavigation();
-  enhanceInternalLinks();
-  
+
+  // DISABLED: Legacy routing fixes that conflict with modern React Router + server rewrites
+  // initializeSPARouting();
+  // enhanceBrowserNavigation();
+  // enhanceInternalLinks();
+
+  console.log('[SPA Fix] Legacy routing fixes disabled - using React Router with server-side rewrites');
+
   // Register service worker after a delay to avoid blocking initial load
   setTimeout(registerSPAServiceWorker, 2000);
 };
