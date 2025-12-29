@@ -660,7 +660,7 @@ module.exports = {
           primaryKey: true,
         },
         trainer_id: {
-          type: Sequelize.UUID,
+          type: Sequelize.INTEGER,
           allowNull: false,
           references: {
             model: 'users',
