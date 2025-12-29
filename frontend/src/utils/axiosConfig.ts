@@ -13,7 +13,7 @@ import { setupEnhancedMockApiInterceptor } from '../services/enhanced-mock-api-s
 // In production, use correct backend URL
 // In development, use localhost for direct connection
 const API_BASE_URL = import.meta.env.PROD
-  ? 'https://ss-pt.onrender.com'
+  ? 'https://ss-pt-new.onrender.com'
   : (import.meta.env.VITE_API_BASE_URL || 'http://localhost:10000');
 
 // Format the API URL: remove trailing slash if present

@@ -592,7 +592,7 @@ class EnterpriseAdminApiService {
       }
       
       const wsUrl = productionApiService.isAuthenticated()
-        ? `wss://ss-pt.onrender.com/ws/admin?token=${token}`
+        ? `wss://ss-pt-new.onrender.com/ws/admin?token=${token}`
         : `ws://localhost:10000/ws/admin?token=${token}`;
       
       const ws = new WebSocket(wsUrl);
