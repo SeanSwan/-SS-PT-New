@@ -300,7 +300,7 @@ module.exports = {
       if (finalUsersIdType[0]?.data_type === finalSessionsUserIdType[0]?.data_type) {
         console.log('✅ Type consistency achieved!');
       } else {
-        console.log('⚠️ Types still don\\'t match - manual intervention may be needed');
+        console.log('⚠️ Types still don\'t match - manual intervention may be needed');
       }
       
       await transaction.commit();
