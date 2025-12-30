@@ -325,6 +325,10 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
         ? response.data
         : response.data.packages || response.data.data || [];
 
+      if (packagesData.length === 0) {
+        throw new Error('No packages returned from API');
+      }
+
       // Map database packages to frontend format
       const fetchedPackages: StoreItem[] = packagesData.map((pkg: any) => ({
         id: pkg.id,
@@ -347,13 +351,140 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
       setPackages(fetchedPackages);
       console.log('✅ Loaded', fetchedPackages.length, 'packages from database');
     } catch (error: any) {
-      console.error('❌ Failed to fetch packages:', error);
+      console.error('❌ Failed to fetch packages from API, using fallback data:', error);
+
+      // FALLBACK: Use local data with correct database IDs (50-57)
+      const fallbackPackages: StoreItem[] = [
+        {
+          id: 50,
+          name: "Silver Swan Wing",
+          description: "Perfect for clients starting their luxury fitness journey",
+          packageType: "fixed",
+          sessions: 1,
+          pricePerSession: 175,
+          price: 175,
+          displayPrice: 175,
+          totalSessions: 1,
+          imageUrl: "/assets/images/single-session.jpg",
+          theme: "ruby",
+          isActive: true,
+          displayOrder: 1
+        },
+        {
+          id: 51,
+          name: "Golden Swan Flight",
+          description: "Perfect starter package with 8 premium training sessions.",
+          packageType: "fixed",
+          sessions: 8,
+          pricePerSession: 170,
+          price: 1360,
+          displayPrice: 1360,
+          totalSessions: 8,
+          imageUrl: "/assets/images/silver-package.jpg",
+          theme: "emerald",
+          isActive: true,
+          displayOrder: 2
+        },
+        {
+          id: 52,
+          name: "Sapphire Swan Soar",
+          description: "Comprehensive training with 20 sessions for serious results.",
+          packageType: "fixed",
+          sessions: 20,
+          pricePerSession: 165,
+          price: 3300,
+          displayPrice: 3300,
+          totalSessions: 20,
+          imageUrl: "/assets/images/gold-package.jpg",
+          theme: "cosmic",
+          isActive: true,
+          displayOrder: 3
+        },
+        {
+          id: 53,
+          name: "Platinum Swan Grace",
+          description: "Ultimate transformation with 50 premium sessions.",
+          packageType: "fixed",
+          sessions: 50,
+          pricePerSession: 160,
+          price: 8000,
+          displayPrice: 8000,
+          totalSessions: 50,
+          imageUrl: "/assets/images/platinum-package.jpg",
+          theme: "purple",
+          isActive: true,
+          displayOrder: 4
+        },
+        {
+          id: 54,
+          name: "Emerald Swan Evolution",
+          description: "Intensive 3-month program with 4 sessions per week.",
+          packageType: "monthly",
+          months: 3,
+          sessionsPerWeek: 4,
+          totalSessions: 48,
+          pricePerSession: 155,
+          price: 7440,
+          displayPrice: 7440,
+          imageUrl: "/assets/images/3-month-package.jpg",
+          theme: "emerald",
+          isActive: true,
+          displayOrder: 5
+        },
+        {
+          id: 55,
+          name: "Diamond Swan Dynasty",
+          description: "Build lasting habits with 6 months of consistent training.",
+          packageType: "monthly",
+          months: 6,
+          sessionsPerWeek: 4,
+          totalSessions: 96,
+          pricePerSession: 150,
+          price: 14400,
+          displayPrice: 14400,
+          imageUrl: "/assets/images/6-month-package.jpg",
+          theme: "cosmic",
+          isActive: true,
+          displayOrder: 6
+        },
+        {
+          id: 56,
+          name: "Ruby Swan Reign",
+          description: "Complete lifestyle transformation over 9 months.",
+          packageType: "monthly",
+          months: 9,
+          sessionsPerWeek: 4,
+          totalSessions: 144,
+          pricePerSession: 145,
+          price: 20880,
+          displayPrice: 20880,
+          imageUrl: "/assets/images/9-month-package.jpg",
+          theme: "ruby",
+          isActive: true,
+          displayOrder: 7
+        },
+        {
+          id: 57,
+          name: "Rhodium Swan Royalty",
+          description: "The ultimate yearly commitment for maximum results.",
+          packageType: "monthly",
+          months: 12,
+          sessionsPerWeek: 4,
+          totalSessions: 192,
+          pricePerSession: 140,
+          price: 26880,
+          displayPrice: 26880,
+          imageUrl: "/assets/images/12-month-package.jpg",
+          theme: "purple",
+          isActive: true,
+          displayOrder: 8
+        }
+      ];
+
+      setPackages(fallbackPackages);
+      console.log('✅ Loaded', fallbackPackages.length, 'fallback packages with correct IDs (50-57)');
+
       setPackagesError(error.message || 'Failed to load packages');
-      toast({ 
-        title: "Failed to load packages", 
-        description: "Using fallback data. Please refresh the page.", 
-        variant: "destructive" 
-      });
     } finally {
       setIsLoadingPackages(false);
     }
