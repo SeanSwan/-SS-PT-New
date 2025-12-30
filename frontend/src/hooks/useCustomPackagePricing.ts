@@ -85,7 +85,7 @@ export const useCustomPackagePricing = (
     setError(null);
 
     try {
-      const response = await api.get(`/storefront/calculate-price?sessions=${sessionCount}`);
+      const response = await api.get(`/api/storefront/calculate-price?sessions=${sessionCount}`);
 
       if (response.data.success) {
         setPricing(response.data.pricing);
