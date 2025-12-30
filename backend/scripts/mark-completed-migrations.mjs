@@ -148,6 +148,26 @@ async function markCompletedMigrations() {
       }
     }
 
+    // Mark DIRECT-FOREIGN-KEY-CONSTRAINT-FIX as completed (Sessions table doesn't exist)
+    const sessionsFkFix = 'DIRECT-FOREIGN-KEY-CONSTRAINT-FIX.cjs';
+    if (!executedNames.includes(sessionsFkFix)) {
+      console.log(`\n⚠️  Marking ${sessionsFkFix} as completed (Sessions table doesn't exist)`);
+      console.log('   - This migration tries to fix a foreign key on a non-existent table');
+      console.log('   - Skipping to prevent hangs');
+
+      await sequelize.query(`
+        INSERT INTO "SequelizeMeta" (name)
+        VALUES (:name)
+        ON CONFLICT (name) DO NOTHING;
+      `, {
+        replacements: { name: sessionsFkFix }
+      });
+
+      markedCount++;
+    } else {
+      console.log(`⏭️  ${sessionsFkFix} - already marked as executed`);
+    }
+
     console.log('\n' + '='.repeat(70));
     console.log('📊 SUMMARY');
     console.log('='.repeat(70));
