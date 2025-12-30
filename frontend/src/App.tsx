@@ -209,9 +209,9 @@ const AppContent = () => {
       
       {/* Main App Router */}
       <RouterProvider router={router} />
-      
-      {/* PWA Install Prompt */}
-      <PWAInstallPrompt />
+
+      {/* PWA Install Prompt - DISABLED until fixed */}
+      {/* <PWAInstallPrompt /> */}
     </>
   );
 };
