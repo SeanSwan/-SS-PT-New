@@ -273,6 +273,12 @@ const buttonMotionProps = {
   }
 };
 
+// Helper function to assign themes based on package order
+const getThemeForPackage = (order: number): string => {
+  const themes = ['ruby', 'emerald', 'cosmic', 'purple'];
+  return themes[(order - 1) % themes.length];
+};
+
 // Main Optimized StoreFront Component
 const OptimizedGalaxyStoreFront: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -308,137 +314,38 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
     try {
       setIsLoadingPackages(true);
       setPackagesError(null);
-      
-      console.log('🔄 Using hardcoded packages data...');
-      const fetchedPackages: StoreItem[] = [
-        {
-          id: 1,
-          name: "Single Session",
-          description: "Try a premium training session with Sean Swan.",
-          packageType: "fixed",
-          sessions: 1,
-          pricePerSession: 175,
-          price: 175,
-          displayPrice: 175,
-          totalSessions: 1,
-          imageUrl: "/assets/images/single-session.jpg",
-          theme: "ruby",
-          isActive: true,
-          displayOrder: 1
-        },
-        {
-          id: 2,
-          name: "Silver Package",
-          description: "Perfect starter package with 8 premium training sessions.",
-          packageType: "fixed",
-          sessions: 8,
-          pricePerSession: 170,
-          price: 1360,
-          displayPrice: 1360,
-          totalSessions: 8,
-          imageUrl: "/assets/images/silver-package.jpg",
-          theme: "emerald",
-          isActive: true,
-          displayOrder: 2
-        },
-        {
-          id: 3,
-          name: "Gold Package",
-          description: "Comprehensive training with 20 sessions for serious results.",
-          packageType: "fixed",
-          sessions: 20,
-          pricePerSession: 165,
-          price: 3300,
-          displayPrice: 3300,
-          totalSessions: 20,
-          imageUrl: "/assets/images/gold-package.jpg",
-          theme: "cosmic",
-          isActive: true,
-          displayOrder: 3
-        },
-        {
-          id: 4,
-          name: "Platinum Package",
-          description: "Ultimate transformation with 50 premium sessions.",
-          packageType: "fixed",
-          sessions: 50,
-          pricePerSession: 160,
-          price: 8000,
-          displayPrice: 8000,
-          totalSessions: 50,
-          imageUrl: "/assets/images/platinum-package.jpg",
-          theme: "purple",
-          isActive: true,
-          displayOrder: 4
-        },
-        {
-          id: 5,
-          name: "3-Month Excellence",
-          description: "Intensive 3-month program with 4 sessions per week.",
-          packageType: "monthly",
-          months: 3,
-          sessionsPerWeek: 4,
-          totalSessions: 48,
-          pricePerSession: 155,
-          price: 7440,
-          displayPrice: 7440,
-          imageUrl: "/assets/images/3-month-package.jpg",
-          theme: "emerald",
-          isActive: true,
-          displayOrder: 5
-        },
-        {
-          id: 6,
-          name: "6-Month Mastery",
-          description: "Build lasting habits with 6 months of consistent training.",
-          packageType: "monthly",
-          months: 6,
-          sessionsPerWeek: 4,
-          totalSessions: 96,
-          pricePerSession: 150,
-          price: 14400,
-          displayPrice: 14400,
-          imageUrl: "/assets/images/6-month-package.jpg",
-          theme: "cosmic",
-          isActive: true,
-          displayOrder: 6
-        },
-        {
-          id: 7,
-          name: "9-Month Transformation",
-          description: "Complete lifestyle transformation over 9 months.",
-          packageType: "monthly",
-          months: 9,
-          sessionsPerWeek: 4,
-          totalSessions: 144,
-          pricePerSession: 145,
-          price: 20880,
-          displayPrice: 20880,
-          imageUrl: "/assets/images/9-month-package.jpg",
-          theme: "ruby",
-          isActive: true,
-          displayOrder: 7
-        },
-        {
-          id: 8,
-          name: "12-Month Elite Program",
-          description: "The ultimate yearly commitment for maximum results.",
-          packageType: "monthly",
-          months: 12,
-          sessionsPerWeek: 4,
-          totalSessions: 192,
-          pricePerSession: 140,
-          price: 26880,
-          displayPrice: 26880,
-          imageUrl: "/assets/images/12-month-package.jpg",
-          theme: "purple",
-          isActive: true,
-          displayOrder: 8
-        }
-      ];
-        
+
+      console.log('🔄 Fetching packages from API...');
+      const response = await api.get('/api/storefront');
+
+      console.log('📦 API response:', response.data);
+
+      // Handle different response formats
+      const packagesData = Array.isArray(response.data)
+        ? response.data
+        : response.data.packages || response.data.data || [];
+
+      // Map database packages to frontend format
+      const fetchedPackages: StoreItem[] = packagesData.map((pkg: any) => ({
+        id: pkg.id,
+        name: pkg.name,
+        description: pkg.description || '',
+        packageType: pkg.packageType || 'fixed',
+        sessions: pkg.sessions,
+        months: pkg.months,
+        sessionsPerWeek: pkg.sessionsPerWeek,
+        totalSessions: pkg.totalSessions || pkg.sessions,
+        pricePerSession: parseFloat(pkg.pricePerSession || 0),
+        price: parseFloat(pkg.totalCost || pkg.price || 0),
+        displayPrice: parseFloat(pkg.totalCost || pkg.price || 0),
+        imageUrl: pkg.imageUrl || `/assets/images/package-${pkg.id}.jpg`,
+        theme: getThemeForPackage(pkg.displayOrder || pkg.id),
+        isActive: pkg.isActive !== false,
+        displayOrder: pkg.displayOrder || pkg.id
+      }));
+
       setPackages(fetchedPackages);
-      console.log('✅ Loaded', fetchedPackages.length, 'hardcoded packages');
+      console.log('✅ Loaded', fetchedPackages.length, 'packages from database');
     } catch (error: any) {
       console.error('❌ Failed to fetch packages:', error);
       setPackagesError(error.message || 'Failed to load packages');
