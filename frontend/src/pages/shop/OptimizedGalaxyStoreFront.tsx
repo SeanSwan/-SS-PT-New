@@ -323,7 +323,7 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
       // Handle different response formats
       const packagesData = Array.isArray(response.data)
         ? response.data
-        : response.data.packages || response.data.data || [];
+        : response.data.items || response.data.packages || response.data.data || [];
 
       if (packagesData.length === 0) {
         throw new Error('No packages returned from API');
