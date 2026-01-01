@@ -13,6 +13,7 @@ import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDispatch } from 'react-redux';
 import { Calendar, Crown, TrendingUp } from 'lucide-react';
+import { theme, prefersReducedMotion } from '../../../../../theme/tokens';
 
 // Import components
 import UnifiedCalendar from '../../../../Schedule/schedule';
@@ -65,11 +66,12 @@ const AdminScheduleContainer = styled(motion.div)`
 const AdminScheduleHeader = styled(motion.div)`
   position: relative;
   z-index: 2;
-  padding: 20px 24px;
+  padding: ${theme.spacing.md} ${theme.spacing.lg};
+  min-height: 60px;
   background: rgba(15, 12, 41, 0.8);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(0, 255, 255, 0.1);
-  
+
   /* Signature gradient underline */
   &::after {
     content: '';
@@ -79,27 +81,26 @@ const AdminScheduleHeader = styled(motion.div)`
     right: 0;
     height: 2px;
     background: linear-gradient(
-      90deg, 
-      transparent 0%, 
-      #00ffff 25%, 
-      #7851a9 75%, 
+      90deg,
+      transparent 0%,
+      #00ffff 25%,
+      #7851a9 75%,
       transparent 100%
     );
-    animation: shimmer 3s ease-in-out infinite;
   }
-  
-  @keyframes shimmer {
-    0%, 100% { opacity: 0.5; transform: translateX(-100%); }
-    50% { opacity: 1; transform: translateX(100%); }
-  }
-  
+
   /* Mobile-first responsive */
-  @media (max-width: 768px) {
-    padding: 16px 20px;
+  @media (max-width: ${theme.breakpoints.tablet}) {
+    padding: ${theme.spacing.md} 20px;
   }
-  
-  @media (max-width: 480px) {
-    padding: 12px 16px;
+
+  @media (max-width: ${theme.breakpoints.mobile}) {
+    padding: 12px ${theme.spacing.md};
+  }
+
+  ${prefersReducedMotion} {
+    animation: none !important;
+    transition: none !important;
   }
 `;
 
@@ -107,9 +108,9 @@ const HeaderContent = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  
-  @media (max-width: 768px) {
+  gap: ${theme.spacing.md};
+
+  @media (max-width: ${theme.breakpoints.tablet}) {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
@@ -134,36 +135,23 @@ const AdminIcon = styled(motion.div)`
   font-size: 1.2rem;
   box-shadow: 0 4px 16px rgba(0, 255, 255, 0.3);
   position: relative;
-  
-  /* Glow animation */
-  &::before {
-    content: '';
-    position: absolute;
-    inset: -2px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #00ffff, #7851a9);
-    filter: blur(4px);
-    opacity: 0.7;
-    z-index: -1;
-    animation: glow 2s ease-in-out infinite alternate;
-  }
-  
-  @keyframes glow {
-    from { opacity: 0.7; transform: scale(1); }
-    to { opacity: 1; transform: scale(1.05); }
-  }
-  
-  @media (max-width: 768px) {
+
+  @media (max-width: ${theme.breakpoints.tablet}) {
     width: 40px;
     height: 40px;
     font-size: 1rem;
+  }
+
+  ${prefersReducedMotion} {
+    animation: none !important;
+    transition: none !important;
   }
 `;
 
 const TitleText = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: ${theme.spacing.xs};
 `;
 
 const MainTitle = styled(motion.h1)`
@@ -175,12 +163,12 @@ const MainTitle = styled(motion.h1)`
   -webkit-text-fill-color: transparent;
   background-clip: text;
   line-height: 1.2;
-  
-  @media (max-width: 768px) {
+
+  @media (max-width: ${theme.breakpoints.tablet}) {
     font-size: 1.5rem;
   }
-  
-  @media (max-width: 480px) {
+
+  @media (max-width: ${theme.breakpoints.mobile}) {
     font-size: 1.25rem;
   }
 `;
@@ -190,58 +178,60 @@ const Subtitle = styled(motion.p)`
   color: rgba(255, 255, 255, 0.7);
   margin: 0;
   font-weight: 400;
-  
-  @media (max-width: 768px) {
+
+  @media (max-width: ${theme.breakpoints.tablet}) {
     font-size: 0.8rem;
   }
 `;
 
 const StatsBar = styled(motion.div)`
   display: flex;
-  gap: 16px;
+  gap: ${theme.spacing.md};
   align-items: center;
-  
-  @media (max-width: 768px) {
+
+  @media (max-width: ${theme.breakpoints.tablet}) {
     width: 100%;
     justify-content: space-between;
-    gap: 12px;
-  }
-  
-  @media (max-width: 480px) {
     flex-wrap: wrap;
-    gap: 8px;
+    gap: ${theme.spacing.sm};
   }
 `;
 
 const StatItem = styled(motion.div)`
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: ${theme.spacing.sm};
+  padding: ${theme.spacing.sm} 12px;
   background: rgba(0, 255, 255, 0.1);
   border: 1px solid rgba(0, 255, 255, 0.2);
-  border-radius: 8px;
+  border-radius: ${theme.spacing.sm};
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(10px);
-  
+
   svg {
     color: #00ffff;
     font-size: 0.9rem;
   }
-  
+
   &:hover {
     background: rgba(0, 255, 255, 0.15);
     border-color: rgba(0, 255, 255, 0.3);
     transform: translateY(-1px);
   }
-  
-  @media (max-width: 480px) {
+
+  @media (max-width: ${theme.breakpoints.mobile}) {
     padding: 6px 10px;
     font-size: 0.8rem;
-    
+
     svg {
       font-size: 0.8rem;
+    }
+  }
+
+  ${prefersReducedMotion} {
+    &:hover {
+      transform: none;
     }
   }
 `;
@@ -254,13 +244,13 @@ const ScheduleMainContent = styled(motion.div)`
   position: relative;
   z-index: 1;
   overflow: hidden;
-  
+
   /* Premium card container */
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 0;
   backdrop-filter: blur(10px);
-  
+
   /* Inner content padding and styling */
   .schedule-content {
     flex: 1;
@@ -269,7 +259,7 @@ const ScheduleMainContent = styled(motion.div)`
     position: relative;
     display: flex;
     flex-direction: column;
-    
+
     /* Full height calendar container - target all nested divs to ensure UnifiedCalendar fills space */
     > div {
       flex: 1;
@@ -277,17 +267,17 @@ const ScheduleMainContent = styled(motion.div)`
       flex-direction: column;
       height: 100% !important;
       min-height: calc(100vh - 160px) !important;
-      
+
       > div {
         flex: 1;
         height: 100% !important;
       }
-      
-      @media (max-width: 768px) {
+
+      @media (max-width: ${theme.breakpoints.tablet}) {
         min-height: calc(100vh - 140px) !important;
       }
-      
-      @media (max-width: 480px) {
+
+      @media (max-width: ${theme.breakpoints.mobile}) {
         min-height: calc(100vh - 120px) !important;
       }
     }
