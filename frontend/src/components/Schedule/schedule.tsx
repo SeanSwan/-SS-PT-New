@@ -60,6 +60,9 @@ import { useAuth } from "../../context/AuthContext";
 // Import services
 import scheduleService from "../../services/schedule-service";
 
+// Import design tokens
+import { theme, prefersReducedMotion } from "../../theme/tokens";
+
 // Import big calendar styles
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
@@ -105,53 +108,6 @@ interface UserOption {
 }
 
 /* ========== Animation Keyframes ========== */
-const shimmer = keyframes`
-  0% {
-    background-position: -100% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-`;
-
-const float = keyframes`
-  0% { transform: translateY(0px) rotate(0deg); }
-  50% { transform: translateY(-5px) rotate(1deg); }
-  100% { transform: translateY(0px) rotate(0deg); }
-`;
-
-const pulseGlow = keyframes`
-  0% {
-    box-shadow: 0 0 15px rgba(120, 81, 169, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 25px rgba(120, 81, 169, 0.7);
-  }
-  100% {
-    box-shadow: 0 0 15px rgba(120, 81, 169, 0.4);
-  }
-`;
-
-const gradientShift = keyframes`
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-`;
-
-const rotate = keyframes`
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-`;
 
 // Mode for blocking time slots
 const blockTimeButtonVariants = {
@@ -248,8 +204,7 @@ const CalendarTitle = styled.h2`
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  animation: ${shimmer} 4s linear infinite;
-  
+
   @media (max-width: 768px) {
     font-size: 1.5rem;
   }
@@ -304,13 +259,9 @@ const RefreshButton = styled(IconButton)`
     color: #00ffff;
     background: rgba(0, 255, 255, 0.1);
     border: 1px solid rgba(0, 255, 255, 0.3);
-    
+
     &:hover {
       background: rgba(0, 255, 255, 0.2);
-      
-      .refresh-icon {
-        animation: ${rotate} 1s ease;
-      }
     }
   }
 `;
@@ -342,15 +293,14 @@ const StatCard = styled(motion.div)`
   align-items: center;
   text-align: center;
   border: 1px solid rgba(255, 255, 255, 0.15); /* More visible border */
-  animation: ${pulseGlow} 4s infinite;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* Added shadow for depth */
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  
+
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
   }
-  
+
   &:before {
     content: "";
     position: absolute;
@@ -366,9 +316,26 @@ const StatCard = styled(motion.div)`
     );
     transition: all 0.3s ease;
   }
-  
+
   &:hover:before {
     left: 100%;
+  }
+
+  ${prefersReducedMotion} {
+    animation: none !important;
+    transition: none !important;
+
+    &:hover {
+      transform: none;
+    }
+
+    &:before {
+      transition: none;
+    }
+
+    &:hover:before {
+      left: -100%;
+    }
   }
 `;
 
@@ -388,10 +355,9 @@ const StatValue = styled.div`
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  animation: ${gradientShift} 3s ease infinite;
   text-shadow: 0 0 8px rgba(120, 81, 169, 0.5); /* Subtle glow for prominence */
   padding: 0.2rem 0; /* Add padding for better touch area */
-  
+
   /* Add a base color that will show if gradient isn't supported */
   @supports not (background-clip: text) {
     color: #00ffff;
@@ -907,12 +873,10 @@ const ModalContent = styled(motion.div)`
   
   /* Enhanced styling for role context banner */
   .role-context-banner {
-    animation: ${pulseGlow} 4s infinite;
   }
-  
+
   /* Enhanced styling for time slot preview */
   .time-slot-preview {
-    animation: ${float} 6s ease-in-out infinite;
   }
   
   /* Enhanced styling for recurring section */
@@ -1091,14 +1055,13 @@ const Loader = styled(motion.div)`
   align-items: center;
   z-index: 10;
   backdrop-filter: blur(3px);
-  
+
   .loader-inner {
     width: 50px;
     height: 50px;
     border: 3px solid rgba(0, 255, 255, 0.3);
     border-top: 3px solid rgba(0, 255, 255, 1);
     border-radius: 50%;
-    animation: ${rotate} 1s linear infinite;
   }
 `;
 
@@ -1646,13 +1609,34 @@ const UnifiedCalendar: React.FC = () => {
   
   // Customize event display
   const eventStyleGetter = (event: SessionEvent) => {
-    let style: any = {
-      className: event.status
+    const baseStyle = {
+      borderRadius: '8px',
+      padding: '6px 8px',
+      border: 'none',
+      borderLeft: '4px solid',
+      fontSize: '0.875rem',
+      fontWeight: 500,
     };
-    
+
+    const statusColors = {
+      available: { bg: 'rgba(34, 197, 94, 0.2)', border: '#22c55e', text: '#ffffff' },
+      booked: { bg: 'rgba(59, 130, 246, 0.2)', border: '#3b82f6', text: '#ffffff' },
+      confirmed: { bg: 'rgba(124, 58, 237, 0.2)', border: '#7c3aed', text: '#ffffff' },
+      completed: { bg: 'rgba(107, 114, 128, 0.2)', border: '#6b7280', text: '#ffffff' },
+      cancelled: { bg: 'rgba(239, 68, 68, 0.2)', border: '#ef4444', text: '#ffffff' },
+      blocked: { bg: 'rgba(245, 158, 11, 0.2)', border: '#f59e0b', text: '#ffffff' },
+      scheduled: { bg: 'rgba(59, 130, 246, 0.2)', border: '#3b82f6', text: '#ffffff' },
+    };
+
+    const colors = statusColors[event.status as keyof typeof statusColors] || statusColors.booked;
+
     return {
-      style,
-      className: event.status
+      style: {
+        ...baseStyle,
+        backgroundColor: colors.bg,
+        borderLeftColor: colors.border,
+        color: colors.text,
+      }
     };
   };
   

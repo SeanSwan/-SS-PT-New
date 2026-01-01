@@ -12,11 +12,12 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useDispatch } from 'react-redux';
-import { FaCalendarCheck, FaUserGraduate, FaDumbbell, FaClock } from 'react-icons/fa';
+import { FaCalendarCheck, FaUserGraduate, FaDumbbell, FaClock, FaCalendar } from 'react-icons/fa';
 
 // Import components
 import ScheduleContainer from '../../../../Schedule/ScheduleContainer';
 import DashboardFooter from '../../../../Footer/DashboardFooter';
+import { theme, prefersReducedMotion } from '../../../../../theme/tokens';
 
 // Revolutionary container with trainer-specific aesthetics
 const TrainerScheduleContainer = styled(motion.div)`
@@ -63,12 +64,13 @@ const TrainerScheduleContainer = styled(motion.div)`
 const TrainerScheduleHeader = styled(motion.div)`
   position: relative;
   z-index: 2;
-  padding: 20px 24px;
+  padding: ${theme.spacing.md} ${theme.spacing.lg};
+  min-height: 60px;
   background: rgba(30, 15, 41, 0.85);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(120, 81, 169, 0.2);
-  
-  /* Trainer signature gradient underline */
+
+  /* Trainer signature gradient underline - static */
   &::after {
     content: '';
     position: absolute;
@@ -77,27 +79,22 @@ const TrainerScheduleHeader = styled(motion.div)`
     right: 0;
     height: 2px;
     background: linear-gradient(
-      90deg, 
-      transparent 0%, 
-      #7851a9 25%, 
-      #00ffff 75%, 
+      90deg,
+      transparent 0%,
+      #7851a9 25%,
+      #00ffff 75%,
       transparent 100%
     );
-    animation: trainerShimmer 3s ease-in-out infinite;
+    opacity: 0.8;
   }
-  
-  @keyframes trainerShimmer {
-    0%, 100% { opacity: 0.6; transform: translateX(-100%); }
-    50% { opacity: 1; transform: translateX(100%); }
-  }
-  
+
   /* Mobile-first responsive */
-  @media (max-width: 768px) {
-    padding: 16px 20px;
+  @media (max-width: ${theme.breakpoints.tablet}) {
+    padding: ${theme.spacing.md} ${theme.spacing.md};
   }
-  
-  @media (max-width: 480px) {
-    padding: 12px 16px;
+
+  @media (max-width: ${theme.breakpoints.mobile}) {
+    padding: ${theme.spacing.sm} ${theme.spacing.md};
   }
 `;
 
@@ -105,19 +102,19 @@ const HeaderContent = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  
-  @media (max-width: 768px) {
+  gap: ${theme.spacing.md};
+
+  @media (max-width: ${theme.breakpoints.tablet}) {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: ${theme.spacing.sm};
   }
 `;
 
 const TitleSection = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: ${theme.spacing.sm};
 `;
 
 const TrainerIcon = styled(motion.div)`
@@ -132,8 +129,8 @@ const TrainerIcon = styled(motion.div)`
   font-size: 1.2rem;
   box-shadow: 0 4px 16px rgba(120, 81, 169, 0.4);
   position: relative;
-  
-  /* Trainer-specific glow animation */
+
+  /* Static glow effect */
   &::before {
     content: '';
     position: absolute;
@@ -143,15 +140,9 @@ const TrainerIcon = styled(motion.div)`
     filter: blur(4px);
     opacity: 0.7;
     z-index: -1;
-    animation: trainerGlow 2.5s ease-in-out infinite alternate;
   }
-  
-  @keyframes trainerGlow {
-    from { opacity: 0.7; transform: scale(1); }
-    to { opacity: 1; transform: scale(1.05); }
-  }
-  
-  @media (max-width: 768px) {
+
+  @media (max-width: ${theme.breakpoints.tablet}) {
     width: 40px;
     height: 40px;
     font-size: 1rem;
@@ -161,85 +152,140 @@ const TrainerIcon = styled(motion.div)`
 const TitleText = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: ${theme.spacing.xs};
 `;
 
 const MainTitle = styled(motion.h1)`
   font-size: 1.75rem;
-  font-weight: 700;
+  font-weight: ${theme.typography.weight.bold};
   margin: 0;
   background: linear-gradient(135deg, #ffffff, #7851a9);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   line-height: 1.2;
-  
-  @media (max-width: 768px) {
+
+  @media (max-width: ${theme.breakpoints.tablet}) {
     font-size: 1.5rem;
   }
-  
-  @media (max-width: 480px) {
+
+  @media (max-width: ${theme.breakpoints.mobile}) {
     font-size: 1.25rem;
   }
 `;
 
 const Subtitle = styled(motion.p)`
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: ${theme.colors.text.secondary};
   margin: 0;
-  font-weight: 400;
-  
-  @media (max-width: 768px) {
+  font-weight: ${theme.typography.weight.normal};
+
+  @media (max-width: ${theme.breakpoints.tablet}) {
     font-size: 0.8rem;
   }
 `;
 
 const TrainerStatsBar = styled(motion.div)`
   display: flex;
-  gap: 16px;
+  gap: ${theme.spacing.md};
   align-items: center;
-  
-  @media (max-width: 768px) {
+
+  @media (max-width: ${theme.breakpoints.tablet}) {
     width: 100%;
     justify-content: space-between;
-    gap: 12px;
-  }
-  
-  @media (max-width: 480px) {
     flex-wrap: wrap;
-    gap: 8px;
+    gap: ${theme.spacing.sm};
   }
 `;
 
 const TrainerStatItem = styled(motion.div)`
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: ${theme.spacing.sm};
+  padding: ${theme.spacing.sm} ${theme.spacing.sm};
   background: rgba(120, 81, 169, 0.1);
   border: 1px solid rgba(120, 81, 169, 0.2);
   border-radius: 8px;
-  font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.9);
+  font-size: ${theme.typography.scale.sm};
+  color: ${theme.colors.text.primary};
   backdrop-filter: blur(10px);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  
+  transition: all 0.2s ease;
+
   svg {
     color: #7851a9;
     font-size: 0.9rem;
   }
-  
+
   &:hover {
     background: rgba(120, 81, 169, 0.15);
     border-color: rgba(120, 81, 169, 0.3);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(120, 81, 169, 0.2);
   }
-  
-  @media (max-width: 480px) {
+
+  ${prefersReducedMotion} {
+    transition: none !important;
+
+    &:hover {
+      transform: none !important;
+    }
+  }
+
+  @media (max-width: ${theme.breakpoints.mobile}) {
     padding: 6px 10px;
     font-size: 0.8rem;
-    
+
+    svg {
+      font-size: 0.8rem;
+    }
+  }
+`;
+
+const TodayFilterButton = styled(motion.button)`
+  padding: ${theme.spacing.sm} ${theme.spacing.md};
+  min-height: 44px;
+  background: rgba(0, 255, 255, 0.1);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 8px;
+  color: ${theme.colors.text.primary};
+  font-size: ${theme.typography.scale.sm};
+  font-weight: ${theme.typography.weight.semibold};
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: ${theme.spacing.sm};
+
+  svg {
+    color: #00ffff;
+    font-size: 0.9rem;
+  }
+
+  &:hover:not(:disabled) {
+    background: rgba(0, 255, 255, 0.2);
+    border-color: rgba(0, 255, 255, 0.4);
+    transform: translateY(-1px);
+  }
+
+  &:focus {
+    outline: 3px solid rgba(0, 255, 255, 0.5);
+    outline-offset: 2px;
+  }
+
+  ${prefersReducedMotion} {
+    transition: none !important;
+
+    &:hover:not(:disabled) {
+      transform: none !important;
+    }
+  }
+
+  @media (max-width: ${theme.breakpoints.mobile}) {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    min-height: 36px;
+
     svg {
       font-size: 0.8rem;
     }
@@ -254,30 +300,30 @@ const TrainerScheduleMainContent = styled(motion.div)`
   position: relative;
   z-index: 1;
   overflow: hidden;
-  
+
   /* Premium card container with trainer styling */
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid rgba(120, 81, 169, 0.1);
   border-radius: 0;
   backdrop-filter: blur(10px);
-  
+
   /* Inner content padding and styling */
   .schedule-content {
     flex: 1;
     padding: 0;
     overflow: hidden;
     position: relative;
-    
+
     /* Full height calendar container */
     > div {
       height: 100% !important;
       min-height: calc(100vh - 160px) !important;
-      
-      @media (max-width: 768px) {
+
+      @media (max-width: ${theme.breakpoints.tablet}) {
         min-height: calc(100vh - 140px) !important;
       }
-      
-      @media (max-width: 480px) {
+
+      @media (max-width: ${theme.breakpoints.mobile}) {
         min-height: calc(100vh - 120px) !important;
       }
     }
@@ -415,6 +461,18 @@ const TrainerScheduleTab: React.FC = () => {
                 <FaClock />
                 Today's Schedule
               </TrainerStatItem>
+              <TodayFilterButton
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  // Filter to today's sessions
+                  const today = new Date().toDateString();
+                  console.log('Filtering to today:', today);
+                }}
+              >
+                <FaCalendar />
+                Today's Sessions
+              </TodayFilterButton>
             </TrainerStatsBar>
           </HeaderContent>
         </TrainerScheduleHeader>
