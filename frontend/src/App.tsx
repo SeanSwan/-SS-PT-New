@@ -14,7 +14,7 @@ import { ThemeProvider, StyleSheetManager } from 'styled-components';
 
 // Context providers
 import { AuthProvider } from './context/AuthContext';
-import { ToastProvider } from './context/ToastContext';
+import { ToastProvider } from './hooks/use-toast'; // FIXED: Use correct ToastProvider with toast() function
 import { CartProvider } from './context/CartContext';
 import { SessionProvider } from './context/SessionContext';
 import { ConfigProvider } from './context/ConfigContext';
