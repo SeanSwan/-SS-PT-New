@@ -6,6 +6,10 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from "../../../../hooks/use-toast";
 import GlowButton from '../../../Button/glowButton'; // Ensure path is correct
+import PurchaseCreditsModal from './PurchaseCreditsModal';
+import CreateSessionModal from './CreateSessionModal';
+import ViewSessionModal from './ViewSessionModal';
+import EditSessionModal from './EditSessionModal';
 
 // Import Icons
 import {
@@ -25,6 +29,7 @@ import {
   RefreshCw,
   Zap,
   CheckSquare,
+  Trash2,
   // UserPlus // Not used?
 } from 'lucide-react';
 
@@ -147,12 +152,17 @@ const EnhancedAdminSessionsView: React.FC = () => {
   const [trainers, setTrainers] = useState<Trainer[]>([]);
   const [loadingClients, setLoadingClients] = useState(false);
   const [loadingTrainers, setLoadingTrainers] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // State for UI controls
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
 
   // State for dialogs
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
@@ -163,16 +173,6 @@ const EnhancedAdminSessionsView: React.FC = () => {
   const [selectedClient, setSelectedClient] = useState<string>('');
   const [sessionsToAdd, setSessionsToAdd] = useState<number>(1);
   const [addSessionsNote, setAddSessionsNote] = useState<string>('');
-
-  // Form state for edit session
-  const [editSessionDate, setEditSessionDate] = useState<string>('');
-  const [editSessionTime, setEditSessionTime] = useState<string>('');
-  const [editSessionDuration, setEditSessionDuration] = useState<number>(60);
-  const [editSessionLocation, setEditSessionLocation] = useState<string>('');
-  const [editSessionNotes, setEditSessionNotes] = useState<string>('');
-  const [editSessionStatus, setEditSessionStatus] = useState<Session['status']>('scheduled');
-  const [editSessionClient, setEditSessionClient] = useState<string>('');
-  const [editSessionTrainer, setEditSessionTrainer] = useState<string>('');
 
   // Form state for new session
   const [newSessionDate, setNewSessionDate] = useState<string>('');
@@ -370,7 +370,21 @@ const EnhancedAdminSessionsView: React.FC = () => {
 
     const matchesStatus = statusFilter === 'all' || session.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
+    let matchesDate = true;
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      const sessionDate = new Date(session.sessionDate);
+      matchesDate = matchesDate && sessionDate >= start;
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      const sessionDate = new Date(session.sessionDate);
+      matchesDate = matchesDate && sessionDate <= end;
+    }
+
+    return matchesSearch && matchesStatus && matchesDate;
   });
 
   // Format date for display
@@ -413,55 +427,14 @@ const EnhancedAdminSessionsView: React.FC = () => {
   // Open edit session dialog and pre-fill form
   const handleEditSession = (session: Session) => {
     setSelectedSession(session);
-
-    try {
-        const sessionDate = new Date(session.sessionDate);
-        setEditSessionDate(sessionDate.toISOString().split('T')[0]);
-        setEditSessionTime(sessionDate.toTimeString().slice(0, 5));
-    } catch (e) {
-        console.error("Error parsing session date for editing:", session.sessionDate, e);
-        setEditSessionDate('');
-        setEditSessionTime('');
-        toast({ title: "Error", description: "Invalid session date found.", variant: "destructive" });
-    }
-
-    setEditSessionDuration(session.duration || 60);
-    setEditSessionLocation(session.location || '');
-    setEditSessionNotes(session.notes || '');
-    setEditSessionStatus(session.status || 'scheduled'); // Default to scheduled if status missing
-    setEditSessionClient(session.userId || '');
-    setEditSessionTrainer(session.trainerId || '');
-
     setOpenEditDialog(true);
   };
 
-  // Handle save edited session
-  const handleSaveEditedSession = async () => {
+  // Handle save edited session (now accepts data object)
+  const handleSaveEditedSession = async (updatedSessionData: any) => {
     if (!selectedSession) return;
 
     try {
-        // Combine date and time safely
-        if (!editSessionDate || !editSessionTime) {
-             toast({ title: "Error", description: "Please provide a valid date and time.", variant: "destructive" });
-             return;
-        }
-        const updatedSessionDateTime = new Date(`${editSessionDate}T${editSessionTime}`);
-        if (isNaN(updatedSessionDateTime.getTime())) {
-            toast({ title: "Error", description: "Invalid date/time format.", variant: "destructive" });
-            return;
-        }
-
-      const updatedSessionData = {
-        sessionDate: updatedSessionDateTime.toISOString(),
-        duration: editSessionDuration,
-        location: editSessionLocation,
-        notes: editSessionNotes,
-        status: editSessionStatus,
-        // Send null if no client/trainer selected, otherwise send the ID
-        userId: editSessionClient || null,
-        trainerId: editSessionTrainer || null
-      };
-
       // Make the API call
       const response = await authAxios.put(`/api/sessions/${selectedSession.id}`, updatedSessionData);
 
@@ -574,6 +547,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
       return;
     }
 
+    setIsProcessing(true);
 
     try {
       const response = await authAxios.post(`/api/session-packages/add-sessions/${selectedClient}`, {
@@ -610,6 +584,8 @@ const EnhancedAdminSessionsView: React.FC = () => {
         description: errorMsg,
         variant: "destructive",
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -619,6 +595,33 @@ const EnhancedAdminSessionsView: React.FC = () => {
     fetchSessions();
     fetchClients(); // Also refresh clients in case their session counts changed
     fetchTrainers();
+  };
+
+  // Handle delete session click
+  const handleDeleteClick = (session: Session) => {
+    setSessionToDelete(session);
+    setOpenDeleteDialog(true);
+  };
+
+  // Confirm delete session
+  const handleConfirmDelete = async () => {
+    if (!sessionToDelete) return;
+    setIsProcessing(true);
+    try {
+      await authAxios.delete(`/api/sessions/${sessionToDelete.id}`);
+      toast({
+        title: "Success",
+        description: "Session deleted successfully",
+      });
+      fetchSessions();
+    } catch (err: any) {
+      console.error('Error deleting session:', err);
+      toast({ title: "Error", description: "Failed to delete session", variant: "destructive" });
+    } finally {
+      setIsProcessing(false);
+      setOpenDeleteDialog(false);
+      setSessionToDelete(null);
+    }
   };
 
   return (
@@ -720,6 +723,26 @@ const EnhancedAdminSessionsView: React.FC = () => {
                          )
                      }}
                  />
+                 <Stack direction="row" spacing={1} alignItems="center">
+                    <TextField
+                      label="From"
+                      type="date"
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      sx={{ width: 140 }}
+                    />
+                    <TextField
+                      label="To"
+                      type="date"
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      sx={{ width: 140 }}
+                    />
+                 </Stack>
                  <FilterButtonsContainer>
                      {/* Filter Buttons */}
                      {(['all', 'available', 'scheduled', 'confirmed', 'completed', 'cancelled'] as const).map((status) => (
@@ -881,17 +904,15 @@ const EnhancedAdminSessionsView: React.FC = () => {
                                   >
                                     <Edit size={16} />
                                   </StyledIconButton>
-                                  {/* Add Cancel Button? */}
-                                   {/* {['scheduled', 'confirmed'].includes(session.status) && (
-                                        <StyledIconButton
-                                            btncolor="error"
-                                            onClick={() => handleCancelSession(session)} // Implement handleCancelSession
-                                            title="Cancel Session"
-                                            whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}
-                                        >
-                                            <X size={16} />
-                                        </StyledIconButton>
-                                   )} */}
+                                  <StyledIconButton
+                                    btncolor="error"
+                                    onClick={() => handleDeleteClick(session)}
+                                    title="Delete Session"
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.95 }}
+                                  >
+                                    <Trash2 size={16} />
+                                  </StyledIconButton>
                                 </IconButtonContainer>
                               </StyledTableCell>
                             </StyledTableRow>
@@ -967,513 +988,109 @@ const EnhancedAdminSessionsView: React.FC = () => {
       {/* --- DIALOGS --- */}
 
       {/* View Session Dialog */}
-      <StyledDialog
+      <ViewSessionModal
         open={openViewDialog}
         onClose={() => setOpenViewDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Calendar />
-            <Typography variant="h6">Session Details</Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers> {/* Add dividers */}
-          {selectedSession ? (
-            <Grid container spacing={2.5} sx={{ mt: 0.5 }}>
-               <Grid item xs={12}>
-                 <Typography variant="overline" color="rgba(255, 255, 255, 0.7)">Session ID</Typography>
-                 <Typography variant="body1" fontWeight="500">
-                    {selectedSession.id || 'N/A'}
-                 </Typography>
-               </Grid>
-               <Grid item xs={12} sm={6}>
-                 <Typography variant="overline" color="rgba(255, 255, 255, 0.7)">Status</Typography>
-                 <ChipContainer chipstatus={selectedSession.status}>
-                     {selectedSession.status ? selectedSession.status.charAt(0).toUpperCase() + selectedSession.status.slice(1) : 'Unknown'}
-                 </ChipContainer>
-               </Grid>
-               <Grid item xs={12} sm={6}>
-                 <Typography variant="overline" color="rgba(255, 255, 255, 0.7)">Date & Time</Typography>
-                 <Typography variant="body1" fontWeight="500">
-                     {formatDate(selectedSession.sessionDate)} at {formatTime(selectedSession.sessionDate)}
-                 </Typography>
-               </Grid>
-               <Grid item xs={12} sm={6}>
-                 <Typography variant="overline" color="rgba(255, 255, 255, 0.7)">Duration</Typography>
-                 <Typography variant="body1" fontWeight="500">
-                     {selectedSession.duration || 'N/A'} minutes
-                 </Typography>
-               </Grid>
-               <Grid item xs={12} sm={6}>
-                 <Typography variant="overline" color="rgba(255, 255, 255, 0.7)">Location</Typography>
-                 <Typography variant="body1" fontWeight="500">
-                     {selectedSession.location || 'N/A'}
-                 </Typography>
-               </Grid>
-
-               {/* Client Details */}
-               <Grid item xs={12}> <Typography variant="overline" color="rgba(255, 255, 255, 0.7)">Client</Typography> </Grid>
-               <Grid item xs={12}>
-                 {selectedSession.client ? (
-                   <Stack direction="row" spacing={1.5} alignItems="center">
-                     <Avatar
-                       src={selectedSession.client.photo || undefined}
-                       alt={`${selectedSession.client.firstName} ${selectedSession.client.lastName}`}
-                     >
-                       {selectedSession.client.firstName?.[0]}{selectedSession.client.lastName?.[0]}
-                     </Avatar>
-                     <MuiBox>
-                       <Typography variant="body1" fontWeight="500">
-                         {selectedSession.client.firstName} {selectedSession.client.lastName}
-                       </Typography>
-                       <Typography variant="body2" color="rgba(255, 255, 255, 0.7)">
-                         {selectedSession.client.email}
-                       </Typography>
-                       {/* Link to client profile? */}
-                     </MuiBox>
-                     <Chip
-                         label={`${selectedSession.client.availableSessions ?? 0} sessions`}
-                         size="small" variant="outlined"
-                         sx={{ ml: 'auto', /* styles from table */ }} />
-                   </Stack>
-                 ) : (
-                   <Typography variant="body1" color="rgba(255, 255, 255, 0.5)" fontStyle="italic">
-                     No Client Assigned
-                   </Typography>
-                 )}
-               </Grid>
-
-               {/* Trainer Details */}
-                <Grid item xs={12}> <Typography variant="overline" color="rgba(255, 255, 255, 0.7)">Trainer</Typography> </Grid>
-                <Grid item xs={12}>
-                 {selectedSession.trainer ? (
-                   <Stack direction="row" spacing={1.5} alignItems="center">
-                     <Avatar
-                       src={selectedSession.trainer.photo || undefined}
-                       alt={`${selectedSession.trainer.firstName} ${selectedSession.trainer.lastName}`}
-                     >
-                        {selectedSession.trainer.firstName?.[0]}{selectedSession.trainer.lastName?.[0]}
-                     </Avatar>
-                     <MuiBox>
-                       <Typography variant="body1" fontWeight="500">
-                         {selectedSession.trainer.firstName} {selectedSession.trainer.lastName}
-                       </Typography>
-                       <Typography variant="body2" color="rgba(255, 255, 255, 0.7)">
-                         {selectedSession.trainer.email}
-                       </Typography>
-                       {/* Link to trainer profile? */}
-                     </MuiBox>
-                   </Stack>
-                 ) : (
-                   <Typography variant="body1" color="rgba(255, 255, 255, 0.5)" fontStyle="italic">
-                     No Trainer Assigned
-                   </Typography>
-                 )}
-               </Grid>
-
-               {/* Notes */}
-               <Grid item xs={12}>
-                 <Typography variant="overline" color="rgba(255, 255, 255, 0.7)">Notes</Typography>
-                 <Typography
-                   variant="body2" // Use body2 for notes maybe?
-                   sx={{
-                     p: 1.5, mt: 0.5, borderRadius: '8px', minHeight: '60px',
-                     background: 'rgba(255, 255, 255, 0.05)',
-                     border: '1px solid rgba(255, 255, 255, 0.1)',
-                     whiteSpace: 'pre-wrap' // Preserve line breaks
-                   }}
-                 >
-                   {selectedSession.notes || <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontStyle: 'italic' }}>No notes for this session.</span>}
-                 </Typography>
-               </Grid>
-            </Grid>
-          ) : (
-             <Typography>Loading session details...</Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <GlowButton
-            text="Close"
-            theme="cosmic"
-            size="small"
-            onClick={() => setOpenViewDialog(false)}
-          />
-          <GlowButton
-            text="Edit Session"
-            theme="purple"
-            size="small"
-            leftIcon={<Edit size={16} />}
-            onClick={() => {
-              if (selectedSession) {
-                 setOpenViewDialog(false);
-                 handleEditSession(selectedSession); // Reuse edit handler
-              }
-            }}
-             disabled={!selectedSession}
-          />
-        </DialogActions>
-      </StyledDialog>
+        session={selectedSession}
+        onEdit={(session) => {
+          setOpenViewDialog(false);
+          handleEditSession(session);
+        }}
+      />
 
       {/* Edit Session Dialog */}
-      <StyledDialog
+      <EditSessionModal
         open={openEditDialog}
         onClose={() => setOpenEditDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Edit />
-            <Typography variant="h6">Edit Session</Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
-          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
-            Update the details for this session.
-          </DialogContentText>
-          <Grid container spacing={2} sx={{ mt: 0.5 }}>
-             {/* Client Select */}
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth variant="outlined" size="small">
-                    <InputLabel id="edit-client-select-label">Client</InputLabel>
-                    <Select
-                        labelId="edit-client-select-label"
-                        value={editSessionClient}
-                        onChange={(e) => setEditSessionClient(e.target.value)}
-                        label="Client"
-                        disabled={loadingClients}
-                    >
-                        <MenuItem value=""><em>Not Assigned</em></MenuItem>
-                        {clients.map(client => (
-                            <MenuItem key={client.id} value={client.id}>
-                                <Stack direction="row" spacing={1} alignItems="center">
-                                    <Avatar src={client.photo || undefined} sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>{client.firstName?.[0]}{client.lastName?.[0]}</Avatar>
-                                    <span>{client.firstName} {client.lastName}</span>
-                                </Stack>
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
-              </Grid>
-              {/* Trainer Select */}
-               <Grid item xs={12} sm={6}>
-                   <FormControl fullWidth variant="outlined" size="small">
-                       <InputLabel id="edit-trainer-select-label">Trainer</InputLabel>
-                       <Select
-                           labelId="edit-trainer-select-label"
-                           value={editSessionTrainer}
-                           onChange={(e) => setEditSessionTrainer(e.target.value)}
-                           label="Trainer"
-                           disabled={loadingTrainers}
-                       >
-                           <MenuItem value=""><em>Not Assigned</em></MenuItem>
-                           {trainers.map(trainer => (
-                               <MenuItem key={trainer.id} value={trainer.id}>
-                                   <Stack direction="row" spacing={1} alignItems="center">
-                                       <Avatar src={trainer.photo || undefined} sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>{trainer.firstName?.[0]}{trainer.lastName?.[0]}</Avatar>
-                                       <span>{trainer.firstName} {trainer.lastName}</span>
-                                   </Stack>
-                               </MenuItem>
-                           ))}
-                       </Select>
-                   </FormControl>
-               </Grid>
-            {/* Date Input */}
-            <Grid item xs={12} sm={6}>
-                <TextField
-                    label="Date" type="date" size="small" fullWidth variant="outlined"
-                    value={editSessionDate}
-                    onChange={(e) => setEditSessionDate(e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    inputProps={{ min: new Date().toISOString().slice(0, 10) }} // Prevent past dates
-                />
-            </Grid>
-            {/* Time Input */}
-             <Grid item xs={12} sm={6}>
-                 <TextField
-                     label="Time" type="time" size="small" fullWidth variant="outlined"
-                     value={editSessionTime}
-                     onChange={(e) => setEditSessionTime(e.target.value)}
-                     InputLabelProps={{ shrink: true }}
-                 />
-             </Grid>
-            {/* Duration Input */}
-             <Grid item xs={12} sm={6}>
-                 <TextField
-                     label="Duration (min)" type="number" size="small" fullWidth variant="outlined"
-                     value={editSessionDuration}
-                     onChange={(e) => setEditSessionDuration(parseInt(e.target.value, 10) || 0)}
-                     InputProps={{ inputProps: { min: 15, max: 240, step: 15 } }}
-                 />
-             </Grid>
-              {/* Status Select */}
-               <Grid item xs={12} sm={6}>
-                   <FormControl fullWidth variant="outlined" size="small">
-                       <InputLabel id="edit-status-select-label">Status</InputLabel>
-                       <Select
-                           labelId="edit-status-select-label"
-                           value={editSessionStatus}
-                           onChange={(e) => setEditSessionStatus(e.target.value as Session['status'])}
-                           label="Status"
-                       >
-                           {(['available', 'scheduled', 'confirmed', 'completed', 'cancelled'] as const).map(status => (
-                              <MenuItem key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</MenuItem>
-                           ))}
-                       </Select>
-                   </FormControl>
-               </Grid>
-            {/* Location Input */}
-            <Grid item xs={12}>
-                <TextField
-                    label="Location" size="small" fullWidth variant="outlined"
-                    value={editSessionLocation}
-                    onChange={(e) => setEditSessionLocation(e.target.value)}
-                    placeholder="e.g., Main Studio, Park, Online"
-                />
-            </Grid>
-            {/* Notes Input */}
-            <Grid item xs={12}>
-              <TextField
-                label="Session Notes" size="small" fullWidth multiline rows={3} variant="outlined"
-                value={editSessionNotes}
-                onChange={(e) => setEditSessionNotes(e.target.value)}
-                placeholder="Add any relevant notes for this session..."
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <GlowButton
-            text="Cancel"
-            theme="cosmic"
-            size="small"
-            onClick={() => setOpenEditDialog(false)}
-          />
-          <GlowButton
-            text="Save Changes"
-            theme="emerald"
-            size="small"
-            leftIcon={<CheckSquare size={16} />}
-            onClick={handleSaveEditedSession}
-            // Optionally disable if saving
-          />
-        </DialogActions>
-      </StyledDialog>
+        session={selectedSession}
+        clients={clients}
+        trainers={trainers}
+        loadingClients={loadingClients}
+        loadingTrainers={loadingTrainers}
+        onSave={handleSaveEditedSession}
+      />
 
        {/* New Session Dialog */}
-       <StyledDialog
-           open={openNewDialog}
-           onClose={() => setOpenNewDialog(false)}
-           maxWidth="sm"
-           fullWidth
-       >
-           <DialogTitle>
-               <Stack direction="row" spacing={1.5} alignItems="center">
-                   <Plus />
-                   <Typography variant="h6">Schedule New Session Slot</Typography>
-               </Stack>
-           </DialogTitle>
-           <DialogContent dividers>
-               <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
-                   Create a new available time slot. You can assign a client or trainer now, or leave it as generally available.
-               </DialogContentText>
-               <Grid container spacing={2} sx={{ mt: 0.5 }}>
-                   {/* Client Select */}
-                   <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth variant="outlined" size="small">
-                          <InputLabel id="new-client-select-label">Assign Client (Optional)</InputLabel>
-                          <Select
-                              labelId="new-client-select-label"
-                              value={newSessionClient}
-                              onChange={(e) => setNewSessionClient(e.target.value)}
-                              label="Assign Client (Optional)"
-                              disabled={loadingClients}
-                          >
-                              <MenuItem value=""><em>Not Assigned</em></MenuItem>
-                              {clients.map(client => (
-                                  <MenuItem key={client.id} value={client.id}>
-                                      <Stack direction="row" spacing={1} alignItems="center">
-                                          <Avatar src={client.photo || undefined} sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>{client.firstName?.[0]}{client.lastName?.[0]}</Avatar>
-                                          <span>{client.firstName} {client.lastName}</span>
-                                      </Stack>
-                                  </MenuItem>
-                              ))}
-                          </Select>
-                      </FormControl>
-                   </Grid>
-                   {/* Trainer Select */}
-                   <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth variant="outlined" size="small">
-                          <InputLabel id="new-trainer-select-label">Assign Trainer (Optional)</InputLabel>
-                          <Select
-                              labelId="new-trainer-select-label"
-                              value={newSessionTrainer}
-                              onChange={(e) => setNewSessionTrainer(e.target.value)}
-                              label="Assign Trainer (Optional)"
-                              disabled={loadingTrainers}
-                          >
-                              <MenuItem value=""><em>Not Assigned</em></MenuItem>
-                              {trainers.map(trainer => (
-                                  <MenuItem key={trainer.id} value={trainer.id}>
-                                      <Stack direction="row" spacing={1} alignItems="center">
-                                          <Avatar src={trainer.photo || undefined} sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>{trainer.firstName?.[0]}{trainer.lastName?.[0]}</Avatar>
-                                          <span>{trainer.firstName} {trainer.lastName}</span>
-                                      </Stack>
-                                  </MenuItem>
-                              ))}
-                          </Select>
-                      </FormControl>
-                   </Grid>
-                   {/* Date Input */}
-                   <Grid item xs={12} sm={6}>
-                       <TextField
-                           label="Date" type="date" size="small" fullWidth variant="outlined"
-                           value={newSessionDate}
-                           onChange={(e) => setNewSessionDate(e.target.value)}
-                           InputLabelProps={{ shrink: true }}
-                           inputProps={{ min: new Date().toISOString().slice(0, 10) }}
-                       />
-                   </Grid>
-                   {/* Time Input */}
-                   <Grid item xs={12} sm={6}>
-                       <TextField
-                           label="Time" type="time" size="small" fullWidth variant="outlined"
-                           value={newSessionTime}
-                           onChange={(e) => setNewSessionTime(e.target.value)}
-                           InputLabelProps={{ shrink: true }}
-                       />
-                   </Grid>
-                   {/* Duration Input */}
-                   <Grid item xs={12} sm={6}>
-                       <TextField
-                           label="Duration (min)" type="number" size="small" fullWidth variant="outlined"
-                           value={newSessionDuration}
-                           onChange={(e) => setNewSessionDuration(parseInt(e.target.value, 10) || 0)}
-                            InputProps={{ inputProps: { min: 15, max: 240, step: 15 } }}
-                       />
-                   </Grid>
-                   {/* Location Input */}
-                   <Grid item xs={12} sm={6}>
-                       <TextField
-                           label="Location" size="small" fullWidth variant="outlined"
-                           value={newSessionLocation}
-                           onChange={(e) => setNewSessionLocation(e.target.value)}
-                            placeholder="e.g., Main Studio"
-                       />
-                   </Grid>
-                   {/* Notes Input */}
-                   <Grid item xs={12}>
-                       <TextField
-                           label="Notes (Optional)" size="small" fullWidth multiline rows={3} variant="outlined"
-                           value={newSessionNotes}
-                           onChange={(e) => setNewSessionNotes(e.target.value)}
-                           placeholder="e.g., Open slot for new clients, Focus on beginners"
-                       />
-                   </Grid>
-               </Grid>
-           </DialogContent>
-           <DialogActions>
-               <GlowButton
-                   text="Cancel"
-                   theme="cosmic"
-                   size="small"
-                   onClick={() => setOpenNewDialog(false)}
-               />
-               <GlowButton
-                   text="Create Session Slot"
-                   theme="emerald"
-                   size="small"
-                   leftIcon={<Plus size={16} />}
-                   onClick={handleCreateNewSession}
-                   // Optionally disable while creating
-               />
-           </DialogActions>
-       </StyledDialog>
+       <CreateSessionModal
+         open={openNewDialog}
+         onClose={() => setOpenNewDialog(false)}
+         clients={clients}
+         trainers={trainers}
+         loadingClients={loadingClients}
+         loadingTrainers={loadingTrainers}
+         client={newSessionClient}
+         onClientChange={setNewSessionClient}
+         trainer={newSessionTrainer}
+         onTrainerChange={setNewSessionTrainer}
+         date={newSessionDate}
+         onDateChange={setNewSessionDate}
+         time={newSessionTime}
+         onTimeChange={setNewSessionTime}
+         duration={newSessionDuration}
+         onDurationChange={setNewSessionDuration}
+         location={newSessionLocation}
+         onLocationChange={setNewSessionLocation}
+         notes={newSessionNotes}
+         onNotesChange={setNewSessionNotes}
+         onSubmit={handleCreateNewSession}
+         // isProcessing={isProcessing} // You can add this if you want to show loading state on the button
+       />
 
       {/* Add Sessions Dialog */}
-      <StyledDialog
+      <PurchaseCreditsModal
         open={openAddSessionsDialog}
         onClose={() => setOpenAddSessionsDialog(false)}
-        maxWidth="xs" // Make this dialog smaller
+        clients={clients}
+        selectedClient={selectedClient}
+        onClientChange={setSelectedClient}
+        sessionsToAdd={sessionsToAdd}
+        onSessionsChange={setSessionsToAdd}
+        notes={addSessionsNote}
+        onNotesChange={setAddSessionsNote}
+        onSubmit={handleAddSessions}
+        loadingClients={loadingClients}
+        isProcessing={isProcessing}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <StyledDialog
+        open={openDeleteDialog}
+        onClose={() => setOpenDeleteDialog(false)}
+        maxWidth="xs"
         fullWidth
       >
         <DialogTitle>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Zap />
-            <Typography variant="h6">Add Sessions to Client</Typography>
+          <Stack direction="row" spacing={1.5} alignItems="center" color="error.main">
+            <AlertCircle />
+            <Typography variant="h6">Confirm Deletion</Typography>
           </Stack>
         </DialogTitle>
-        <DialogContent dividers>
-          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2.5 }}>
-            Manually add purchased or complimentary sessions to a client's account.
+        <DialogContent>
+          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+            Are you sure you want to delete this session? This action cannot be undone.
+            {sessionToDelete && (
+              <MuiBox sx={{ mt: 2, p: 2, bgcolor: 'rgba(255,0,0,0.1)', borderRadius: 1, border: '1px solid rgba(255,0,0,0.2)' }}>
+                <Typography variant="subtitle2" color="white">
+                  {formatDate(sessionToDelete.sessionDate)} at {formatTime(sessionToDelete.sessionDate)}
+                </Typography>
+                {sessionToDelete.client && (
+                  <Typography variant="body2" color="rgba(255,255,255,0.7)">
+                    Client: {sessionToDelete.client.firstName} {sessionToDelete.client.lastName}
+                  </Typography>
+                )}
+              </MuiBox>
+            )}
           </DialogContentText>
-          <Grid container spacing={2}>
-             {/* Client Select */}
-              <Grid item xs={12}>
-                  <FormControl fullWidth variant="outlined" size="small">
-                      <InputLabel id="add-client-select-label">Select Client</InputLabel>
-                      <Select
-                          labelId="add-client-select-label"
-                          value={selectedClient}
-                          onChange={(e) => setSelectedClient(e.target.value)}
-                          label="Select Client"
-                          disabled={loadingClients}
-                      >
-                          <MenuItem value=""><em>-- Select a Client --</em></MenuItem>
-                          {clients.map(client => (
-                              <MenuItem key={client.id} value={client.id}>
-                                  <Stack direction="row" spacing={1} alignItems="center">
-                                      <Avatar src={client.photo || undefined} sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>{client.firstName?.[0]}{client.lastName?.[0]}</Avatar>
-                                      <MuiBox>
-                                        <Typography variant="body2">{client.firstName} {client.lastName}</Typography>
-                                        <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                                            ({client.availableSessions || 0} current sessions)
-                                        </Typography>
-                                      </MuiBox>
-                                  </Stack>
-                              </MenuItem>
-                          ))}
-                      </Select>
-                  </FormControl>
-              </Grid>
-             {/* Number of Sessions */}
-              <Grid item xs={12}>
-                  <TextField
-                      label="Number of Sessions to Add" type="number" size="small" fullWidth variant="outlined"
-                      value={sessionsToAdd}
-                      onChange={(e) => setSessionsToAdd(Math.max(1, parseInt(e.target.value, 10) || 1))} // Ensure positive number
-                      InputProps={{ inputProps: { min: 1, max: 100 } }}
-                  />
-              </Grid>
-             {/* Admin Notes */}
-              <Grid item xs={12}>
-                  <TextField
-                      label="Admin Notes (Optional)" size="small" fullWidth multiline rows={3} variant="outlined"
-                      value={addSessionsNote}
-                      onChange={(e) => setAddSessionsNote(e.target.value)}
-                      placeholder="Reason for adding sessions (e.g., purchased package, referral bonus)"
-                  />
-              </Grid>
-          </Grid>
         </DialogContent>
         <DialogActions>
-           <GlowButton
-             text="Cancel"
-             theme="cosmic"
-             size="small"
-             onClick={() => setOpenAddSessionsDialog(false)}
-           />
-           <GlowButton
-             text="Add Sessions"
-             theme="emerald"
-             size="small"
-             leftIcon={<Zap size={16} />}
-             onClick={handleAddSessions}
-             disabled={!selectedClient || sessionsToAdd <= 0} // Basic validation
-             // Optionally disable while processing
-           />
+          <GlowButton text="Cancel" theme="cosmic" size="small" onClick={() => setOpenDeleteDialog(false)} />
+          <GlowButton
+            text="Delete"
+            theme="ruby"
+            size="small"
+            onClick={handleConfirmDelete}
+            isLoading={isProcessing}
+          />
         </DialogActions>
       </StyledDialog>
 
