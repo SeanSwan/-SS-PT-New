@@ -476,17 +476,17 @@ export default realTimeScheduleService;
 
 // Named exports for specific functionality
 export { realTimeScheduleService };
-export const {
-  broadcastSessionCreated,
-  broadcastSessionUpdated,
-  broadcastSessionBooked,
-  broadcastSessionCancelled,
-  broadcastSessionCompleted,
-  broadcastScheduleConflict,
-  broadcastAllocationUpdated,
-  broadcastGamificationEvent,
-  sendDirectMessage,
-  broadcastToAdmins,
-  broadcastToTrainers,
-  getServiceHealth
-} = realTimeScheduleService;
+
+// Export bound methods to preserve 'this' context
+export const broadcastSessionCreated = realTimeScheduleService.broadcastSessionCreated.bind(realTimeScheduleService);
+export const broadcastSessionUpdated = realTimeScheduleService.broadcastSessionUpdated.bind(realTimeScheduleService);
+export const broadcastSessionBooked = realTimeScheduleService.broadcastSessionBooked.bind(realTimeScheduleService);
+export const broadcastSessionCancelled = realTimeScheduleService.broadcastSessionCancelled.bind(realTimeScheduleService);
+export const broadcastSessionCompleted = realTimeScheduleService.broadcastSessionCompleted.bind(realTimeScheduleService);
+export const broadcastScheduleConflict = realTimeScheduleService.broadcastScheduleConflict.bind(realTimeScheduleService);
+export const broadcastAllocationUpdated = realTimeScheduleService.broadcastAllocationUpdated.bind(realTimeScheduleService);
+export const broadcastGamificationEvent = realTimeScheduleService.broadcastGamificationEvent.bind(realTimeScheduleService);
+export const sendDirectMessage = realTimeScheduleService.sendDirectMessage.bind(realTimeScheduleService);
+export const broadcastToAdmins = realTimeScheduleService.broadcastToAdmins.bind(realTimeScheduleService);
+export const broadcastToTrainers = realTimeScheduleService.broadcastToTrainers.bind(realTimeScheduleService);
+export const getServiceHealth = realTimeScheduleService.getServiceHealth.bind(realTimeScheduleService);

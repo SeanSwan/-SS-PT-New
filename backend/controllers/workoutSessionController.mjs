@@ -83,8 +83,18 @@ const workoutSessionController = {
         limit: parseInt(limit, 10),
         offset: parseInt(offset, 10),
         order: [['sessionDate', 'DESC']],
-        // You can include associated models here if needed
-        // include: [{ model: WorkoutExercise, include: [Set] }]
+        include: [
+          {
+            model: WorkoutExercise,
+            as: 'exercises',
+            include: [
+              {
+                model: Set,
+                as: 'sets'
+              }
+            ]
+          }
+        ]
       });
 
       res.status(200).json({
