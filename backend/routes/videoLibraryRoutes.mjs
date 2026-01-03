@@ -99,7 +99,7 @@ router.get(
   '/',
   protect,
   adminOnly,
-  listExercises
+  listExerciseVideos
 );
 
 // Create exercise with video
@@ -128,7 +128,14 @@ router.post(
     body('video.thumbnail_url').optional().isURL(),
     body('video.chapters').optional().isArray(),
     body('video.tags').optional().isArray(),
-    body('video.is_public').optional().isBoolean()
+    body('video.is_public').optional().isBoolean(),
+    // Custom validator to ensure file is present for uploads
+    body('video').custom((value, { req }) => {
+      if (value.type === 'upload' && !req.file) {
+        throw new Error('Video file is required when type is "upload"');
+      }
+      return true;
+    })
   ],
   createExerciseVideo
 );
@@ -139,7 +146,7 @@ router.get(
   protect,
   adminOnly,
   [
-    param('id').isInt({ min: 1 })
+    param('id').isUUID()
   ],
   getExercise
 );
@@ -150,7 +157,7 @@ router.put(
   protect,
   adminOnly,
   [
-    param('id').isInt({ min: 1 }),
+    param('id').isUUID(),
     body('title').trim().isLength({ min: 3 }).escape(),
     body('description').trim().optional().escape()
   ],
@@ -163,7 +170,7 @@ router.delete(
   protect,
   adminOnly,
   [
-    param('id').isInt({ min: 1 })
+    param('id').isUUID()
   ],
   deleteExercise
 );
@@ -174,7 +181,7 @@ router.get(
   protect,
   adminOnly,
   [
-    param('id').isInt({ min: 1 })
+    param('id').isUUID()
   ],
   getExerciseVideos
 );
@@ -187,7 +194,7 @@ router.patch(
   protect,
   adminOnly,
   [
-    param('id').isInt({ min: 1 }),
+    param('id').isUUID(),
     body('title').trim().optional().escape(),
     body('description').trim().optional().escape(),
     body('tags').optional().isArray(),
@@ -204,7 +211,7 @@ router.delete(
   protect,
   adminOnly,
   [
-    param('id').isInt({ min: 1 })
+    param('id').isUUID()
   ],
   deleteVideo
 );
@@ -215,7 +222,7 @@ router.post(
   protect,
   adminOnly,
   [
-    param('id').isInt({ min: 1 })
+    param('id').isUUID()
   ],
   restoreVideo
 );
@@ -225,7 +232,7 @@ router.post(
   '/videos/:id/track-view',
   protect, // Allow any authenticated user (clients/trainers)
   [
-    param('id').isInt({ min: 1 }),
+    param('id').isUUID(),
     body('watch_duration_seconds').optional().isInt(),
     body('completion_percentage').optional().isFloat({ min: 0, max: 100 }),
     body('completed').optional().isBoolean(),
