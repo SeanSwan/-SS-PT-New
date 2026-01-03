@@ -20,7 +20,7 @@ WorkoutPlanDay.init({
     type: DataTypes.UUID,
     allowNull: false,
     references: {
-      model: 'WorkoutPlans',
+      model: 'workout_plans',
       key: 'id'
     },
     onDelete: 'CASCADE'

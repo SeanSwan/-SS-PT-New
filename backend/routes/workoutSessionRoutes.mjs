@@ -14,6 +14,7 @@ const router = express.Router();
 // Import models
 import WorkoutSession from '../models/WorkoutSession.mjs';
 import User from '../models/User.mjs';
+import { Op } from 'sequelize';
 
 /**
  * @route   GET /api/workout/sessions
@@ -26,15 +27,15 @@ router.get('/', protect, async (req, res) => {
       userId, 
       page = 1, 
       limit = 10,
-      sortBy = 'date',
+      sortBy = 'workoutDate',
       sortDirection = 'desc',
       startDate,
       endDate,
       searchTerm = ''
     } = req.query;
     
-    // Build query
-    const query = {};
+    // Build where clause
+    const where = {};
     
     // Add userId filter if provided, otherwise use current user
     if (userId) {
@@ -44,57 +45,64 @@ router.get('/', protect, async (req, res) => {
           message: 'You are not authorized to view this user\'s workout sessions' 
         });
       }
-      query.userId = userId;
+      where.userId = userId;
     } else {
-      query.userId = req.user.id;
+      where.userId = req.user.id;
     }
     
     // Add date range filters if provided
     if (startDate || endDate) {
-      query.date = {};
+      where.workoutDate = {};
       if (startDate) {
-        query.date.$gte = new Date(startDate);
+        where.workoutDate[Op.gte] = new Date(startDate);
       }
       if (endDate) {
-        query.date.$lte = new Date(endDate);
+        where.workoutDate[Op.lte] = new Date(endDate);
       }
     }
     
     // Add search term filter if provided
     if (searchTerm) {
-      query.$or = [
-        { title: { $regex: searchTerm, $options: 'i' } },
-        { notes: { $regex: searchTerm, $options: 'i' } },
-        { 'exercises.name': { $regex: searchTerm, $options: 'i' } },
-        { 'exercises.muscleGroups': { $regex: searchTerm, $options: 'i' } }
+      where[Op.or] = [
+        { title: { [Op.iLike]: `%${searchTerm}%` } },
+        { notes: { [Op.iLike]: `%${searchTerm}%` } }
       ];
     }
     
     // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const offset = (parseInt(page) - 1) * parseInt(limit);
     
-    // Determine sort direction
-    const sort = {};
-    sort[sortBy] = sortDirection === 'asc' ? 1 : -1;
+    // Determine sort order
+    const order = [[sortBy, sortDirection.toUpperCase()]];
     
     // Execute query with pagination
-    const sessions = await WorkoutSession.find(query)
-      .sort(sort)
-      .skip(skip)
-      .limit(parseInt(limit));
-    
-    // Get total count for pagination
-    const totalCount = await WorkoutSession.countDocuments(query);
+    const { rows: workouts, count: totalCount } = await WorkoutSession.findAndCountAll({
+      where,
+      order,
+      offset,
+      limit: parseInt(limit),
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        }
+      ]
+    });
     
     res.json({ 
-      sessions,
-      totalCount,
-      currentPage: parseInt(page),
-      totalPages: Math.ceil(totalCount / parseInt(limit))
+      success: true,
+      data: {
+        workouts,
+        total: totalCount,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        hasMore: offset + workouts.length < totalCount
+      }
     });
   } catch (error) {
     console.error('Error fetching workout sessions:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Failed to get workout sessions', error: error.message });
   }
 });
 

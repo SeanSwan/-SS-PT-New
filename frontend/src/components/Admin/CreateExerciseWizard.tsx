@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import { X } from 'lucide-react';
+import { useForm } from 'react-hook-form';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 
-interface ExerciseData {
+interface ExerciseFormData {
   title: string;
   description: string;
   videoType?: 'youtube' | 'upload';
@@ -31,7 +32,7 @@ interface CreateExerciseWizardProps {
 const CreateExerciseWizard: React.FC<CreateExerciseWizardProps> = ({ onClose, onSuccess }) => {
   const [step, setStep] = useState(1);
   const queryClient = useQueryClient();
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<ExerciseFormData>({
     defaultValues: {
       videoType: 'youtube',
       phases: []
@@ -39,14 +40,13 @@ const CreateExerciseWizard: React.FC<CreateExerciseWizardProps> = ({ onClose, on
   });
 
   const createExerciseMutation = useMutation({
-    mutationFn: (data: ExerciseData) => axios.post('/api/admin/exercise-library', data),
+    mutationFn: (data: ExerciseFormData) => axios.post('/api/admin/exercise-library', data),
     onSuccess: () => {
-      queryClient.invalidateQueries(['exercises']);
+      queryClient.invalidateQueries({ queryKey: ['admin-videos'] });
       onSuccess();
     }
   });
-
-  const onSubmit = (data: FormData) => {
+  const onSubmit = (data: ExerciseFormData) => {
     createExerciseMutation.mutate(data);
   };
 
@@ -70,7 +70,7 @@ const CreateExerciseWizard: React.FC<CreateExerciseWizardProps> = ({ onClose, on
               <Input
                 {...register('title', { required: true })}
                 placeholder="Exercise Title"
-                error={errors.title}
+                $error={!!errors.title}
               />
               <TextArea
                 {...register('description')}
@@ -156,12 +156,20 @@ const StepReview = styled.div`
   gap: 16px;
 `;
 
-const Input = styled.input<{ error?: boolean }>`
+const Input = styled.input<{ $error?: boolean }>`
   padding: 12px;
-  border: 1px solid ${props => props.error ? 'var(--error-red)' : 'var(--glass-border)'};
+  border: 1px solid ${props => props.$error ? 'var(--error, #FF4444)' : 'var(--glass-border, rgba(0, 206, 209, 0.2))'};
   border-radius: 8px;
-  background: var(--dark-bg);
-  color: var(--text-primary);
+  background: var(--glass-bg, rgba(10, 14, 26, 0.7));
+  color: var(--text-primary, #FFFFFF);
+  font-size: 16px;
+  backdrop-filter: blur(10px);
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary-cyan, #00CED1);
+  }
 `;
 
 const TextArea = styled.textarea`
@@ -171,6 +179,14 @@ const TextArea = styled.textarea`
   background: var(--dark-bg);
   color: var(--text-primary);
   min-height: 100px;
+  font-size: 16px;
+  font-family: inherit;
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary-cyan, #00CED1);
+  }
 `;
 
 const Select = styled.select`
@@ -179,10 +195,16 @@ const Select = styled.select`
   border-radius: 8px;
   background: var(--dark-bg);
   color: var(--text-primary);
+  font-size: 16px;
+
+  option {
+    background: var(--dark-bg, #0a0e1a);
+    color: var(--text-primary, #FFFFFF);
+  }
 `;
 
 const PrimaryButton = styled.button`
-  background: var(--primary-cyan);
+  background: linear-gradient(135deg, var(--primary-cyan, #00CED1), var(--accent-purple, #9D4EDD));
   color: var(--dark-bg);
   border: none;
   border-radius: 8px;
@@ -198,8 +220,8 @@ const PrimaryButton = styled.button`
 
 const SecondaryButton = styled.button`
   background: transparent;
-  color: var(--text-primary);
-  border: 1px solid var(--glass-border);
+  color: var(--text-primary, #FFFFFF);
+  border: 1px solid var(--glass-border, rgba(0, 206, 209, 0.2));
   border-radius: 8px;
   padding: 12px 24px;
   font-weight: 600;
@@ -207,8 +229,8 @@ const SecondaryButton = styled.button`
   transition: all 0.2s;
 
   &:hover {
-    border-color: var(--primary-cyan);
-    background: var(--glass-bg);
+    border-color: var(--primary-cyan, #00CED1);
+    background: var(--glass-bg, rgba(0, 206, 209, 0.1));
   }
 `;
 
@@ -234,6 +256,8 @@ const Modal = styled.div`
   max-width: 800px;
   max-height: 90vh;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   backdrop-filter: blur(10px);
 `;
 
@@ -270,29 +294,7 @@ const CloseButton = styled.button`
 
 const Content = styled.div`
   padding: 24px;
-  text-align: center;
-`;
-
-const PlaceholderText = styled.div`
-  font-size: 32px;
-  color: var(--primary-cyan, #00CED1);
-  margin-bottom: 16px;
-`;
-
-const PlaceholderDescription = styled.div`
-  font-size: 16px;
-  color: var(--text-secondary, #B8B8B8);
-  line-height: 1.6;
-
-  ul {
-    text-align: left;
-    max-width: 400px;
-    margin: 16px auto 0;
-  }
-
-  li {
-    margin-bottom: 8px;
-  }
+  flex-grow: 1;
 `;
 
 const Footer = styled.div`
@@ -301,23 +303,6 @@ const Footer = styled.div`
   gap: 12px;
   padding: 24px;
   border-top: 1px solid var(--glass-border, rgba(0, 206, 209, 0.2));
-`;
-
-const CancelButton = styled.button`
-  background: transparent;
-  border: 1px solid var(--glass-border, rgba(0, 206, 209, 0.2));
-  border-radius: 8px;
-  padding: 12px 24px;
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-primary, #FFFFFF);
-  cursor: pointer;
-  transition: all 0.2s;
-
-  &:hover {
-    border-color: var(--primary-cyan, #00CED1);
-    background: var(--glass-bg, rgba(0, 206, 209, 0.1));
-  }
 `;
 
 export default CreateExerciseWizard;

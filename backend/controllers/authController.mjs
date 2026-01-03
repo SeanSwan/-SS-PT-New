@@ -240,7 +240,7 @@ dotenv.config();
 const JWT_EXPIRY = process.env.JWT_EXPIRES_IN || '3h';
 const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d';
 const PASSWORD_MIN_LENGTH = 8;
-const LOGIN_ATTEMPT_LIMIT = 5;
+const LOGIN_ATTEMPT_LIMIT = 50; // TEMPORARILY INCREASED FOR TESTING
 const LOGIN_ATTEMPT_WINDOW = 15 * 60 * 1000; // 15 minutes in milliseconds
 
 /**

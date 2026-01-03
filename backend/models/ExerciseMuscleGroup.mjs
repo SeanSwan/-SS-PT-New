@@ -24,7 +24,7 @@ ExerciseMuscleGroup.init({
     type: DataTypes.UUID,
     primaryKey: true,
     references: {
-      model: 'MuscleGroups',
+      model: 'muscle_groups',
       key: 'id'
     },
     onDelete: 'CASCADE'

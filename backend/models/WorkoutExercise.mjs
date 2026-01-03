@@ -23,7 +23,7 @@ WorkoutExercise.init({
     type: DataTypes.UUID,
     allowNull: false,
     references: {
-      model: 'WorkoutSessions',
+      model: 'workout_sessions',
       key: 'id'
     },
     onDelete: 'CASCADE'

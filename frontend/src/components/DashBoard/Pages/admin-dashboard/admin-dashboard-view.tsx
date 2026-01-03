@@ -52,6 +52,12 @@ import PendingOrdersAdminPanel from './components/PendingOrdersAdminPanel';
 import UserAnalyticsPanel from './components/UserAnalyticsPanel';
 import AIMonitoringPanel from './components/AIMonitoringPanel';
 import SecurityMonitoringPanel from './components/SecurityMonitoringPanel';
+
+// New Widget Imports
+import ClientActivityWidget from './components/ClientActivityWidget';
+import HighRiskClientsWidget from './components/HighRiskClientsWidget';
+import TopTrainersWidget from './components/TopTrainersWidget';
+
 import SystemHealthPanel from './components/SystemHealthPanel';
 import ContactNotifications from './components/ContactNotifications';
 import RealTimeSignupMonitoring from './components/RealTimeSignupMonitoring';
@@ -189,7 +195,7 @@ const adminGalaxyTheme = {
 
 // MainCommandContent styling now handled by UnifiedAdminDashboardLayout
 
-const CommandCard = styled(motion.div)`
+export const CommandCard = styled(motion.div)`
   background: rgba(30, 58, 138, 0.2);
   backdrop-filter: blur(20px);
   border-radius: 16px;
@@ -1022,6 +1028,24 @@ const CommandCenterOverview: React.FC = () => {
       <CommandGrid>
         {renderSystemHealthPanel()}
         {renderQuickActionsPanel()}
+        {/* New Widgets from Blueprint */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <ClientActivityWidget />
+        </motion.div>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <HighRiskClientsWidget />
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.5 }}>
+          <TopTrainersWidget />
+        </motion.div>
       </CommandGrid>
     </div>
   );

@@ -15,9 +15,18 @@
  */
 
 import React, { useMemo } from 'react';
-// Using CSS-based charts instead of recharts for build compatibility
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell
+} from 'recharts';
 import { OneRepMaxChartProps, OneRepMaxDataPoint } from '../types/ClientProgressTypes';
 
 // ==================== STYLED COMPONENTS ====================
@@ -130,17 +139,17 @@ const truncateExerciseName = (name: string, maxLength: number = 20): string => {
 
 // ==================== COMPONENTS ====================
 
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
+const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload }) => {
   if (!active || !payload || !payload.length) {
     return null;
   }
 
   const data = payload[0]?.payload as OneRepMaxDataPoint;
-  
+
   return (
     <TooltipContainer>
       <TooltipLabel>{data.exercise}</TooltipLabel>
-      <TooltipValue>{data.label}</TooltipValue>
+      <TooltipValue>{data.max} lbs</TooltipValue>
       {data.improvement && (
         <TooltipDetail>
           {data.improvement > 0 ? '+' : ''}{data.improvement}% from last month
@@ -266,138 +275,73 @@ const OneRepMaxChart: React.FC<OneRepMaxChartProps> = ({
         </SortButton>
       </SortControls>
 
-      <ChartContainer>
-        {/* CSS-based Horizontal Bar Chart */}
-        <div style={{ width: '100%', height: '100%', position: 'relative', padding: '20px' }}>
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: '12px',
-            height: '100%',
-            paddingLeft: '80px'
-          }}>
-            {chartData.map((exercise, index) => {
-              const percentage = (exercise.max / maxWeight) * 100;
-              const barColor = exercise.max >= maxWeight * 0.8 ? '#dc2626' :
-                             exercise.max >= maxWeight * 0.6 ? '#f59e0b' : '#3b82f6';
-              
-              return (
-                <div key={exercise.exercise} style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  position: 'relative',
-                  marginBottom: '8px'
-                }}>
-                  {/* Exercise name */}
-                  <div style={{
-                    position: 'absolute',
-                    left: '-75px',
-                    width: '70px',
-                    fontSize: '11px',
-                    color: '#94a3b8',
-                    textAlign: 'right',
-                    paddingRight: '8px'
-                  }}>
-                    {exercise.displayName}
-                  </div>
-                  
-                  {/* Bar container */}
-                  <div style={{
-                    flex: 1,
-                    height: '24px',
-                    background: 'rgba(148, 163, 184, 0.1)',
-                    borderRadius: '0 4px 4px 0',
-                    position: 'relative',
-                    overflow: 'hidden'
-                  }}>
-                    {/* Bar fill */}
-                    <motion.div
-                      style={{
-                        width: `${percentage}%`,
-                        height: '100%',
-                        background: `linear-gradient(90deg, ${barColor}CC, ${barColor}99)`,
-                        borderRadius: '0 4px 4px 0',
-                        position: 'relative'
-                      }}
-                      initial={animate ? { width: 0 } : undefined}
-                      animate={animate ? { width: `${percentage}%` } : undefined}
-                      transition={{ duration: 1.2, delay: index * 0.1, ease: 'easeOut' }}
-                      title={`${exercise.exercise}: ${exercise.max} lbs${exercise.improvement ? ` (${exercise.improvement > 0 ? '+' : ''}${exercise.improvement}%)` : ''}`}
-                    />
-                    
-                    {/* Value label */}
-                    <div style={{
-                      position: 'absolute',
-                      right: '8px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      fontSize: '12px',
-                      color: percentage > 50 ? 'white' : '#94a3b8',
-                      fontWeight: '600',
-                      textShadow: percentage > 50 ? '0 1px 2px rgba(0,0,0,0.5)' : 'none'
-                    }}>
-                      {exercise.max} lbs
-                    </div>
-                  </div>
-                  
-                  {/* Improvement indicator */}
-                  {exercise.improvement && (
-                    <div style={{
-                      marginLeft: '8px',
-                      fontSize: '10px',
-                      color: exercise.improvement > 0 ? '#10b981' : '#ef4444',
-                      fontWeight: '600'
-                    }}>
-                      {exercise.improvement > 0 ? '+' : ''}{exercise.improvement}%
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          
-          {/* Chart title and stats */}
-          <div style={{
-            position: 'absolute',
-            top: '10px',
-            right: '20px',
-            background: 'rgba(15, 23, 42, 0.8)',
-            borderRadius: '8px',
-            padding: '8px 12px',
-            fontSize: '12px',
-            color: '#e2e8f0',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(148, 163, 184, 0.3)'
-          }}>
-            <div style={{ color: '#f59e0b', fontWeight: '600' }}>Max: {maxWeight} lbs</div>
-            <div style={{ color: '#94a3b8' }}>{chartData.length} exercises</div>
-          </div>
-          
-          {/* X-axis grid lines */}
-          <div style={{
-            position: 'absolute',
-            bottom: '0',
-            left: '80px',
-            right: '20px',
-            height: 'calc(100% - 40px)',
-            pointerEvents: 'none'
-          }}>
-            {[0.2, 0.4, 0.6, 0.8, 1].map((ratio, index) => (
-              <div
-                key={index}
-                style={{
-                  position: 'absolute',
-                  left: `${ratio * 100}%`,
-                  top: '0',
-                  bottom: '0',
-                  width: '1px',
-                  background: 'rgba(148, 163, 184, 0.2)',
-                  zIndex: 1
-                }}
+      <ChartContainer
+        initial={animate ? { opacity: 0, y: 20 } : undefined}
+        animate={animate ? { opacity: 1, y: 0 } : undefined}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+      >
+        <ResponsiveContainer width="100%" height={height}>
+          <BarChart
+            data={chartData}
+            layout="vertical"
+            margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+          >
+            <defs>
+              <linearGradient id="strongGradient" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="5%" stopColor="#dc2626" stopOpacity={0.9}/>
+                <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.7}/>
+              </linearGradient>
+              <linearGradient id="moderateGradient" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.9}/>
+                <stop offset="95%" stopColor="#eab308" stopOpacity={0.7}/>
+              </linearGradient>
+              <linearGradient id="lightGradient" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9}/>
+                <stop offset="95%" stopColor="#10b981" stopOpacity={0.7}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="rgba(148, 163, 184, 0.2)"
+              horizontal={false}
+            />
+            <XAxis
+              type="number"
+              stroke="rgba(148, 163, 184, 0.5)"
+              tick={{ fill: '#94a3b8', fontSize: 12 }}
+              domain={[0, 'dataMax']}
+            />
+            <YAxis
+              type="category"
+              dataKey="displayName"
+              stroke="rgba(148, 163, 184, 0.5)"
+              tick={{ fill: '#94a3b8', fontSize: 11 }}
+              width={90}
+            />
+            {showTooltip && (
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{ fill: 'rgba(148, 163, 184, 0.1)' }}
               />
-            ))}
-          </div>
-        </div>
+            )}
+            <Bar
+              dataKey="max"
+              radius={[0, 4, 4, 0]}
+              isAnimationActive={animate}
+              animationDuration={1200}
+            >
+              {chartData.map((entry, index) => {
+                const ratio = entry.max / maxWeight;
+                let fill = '#3b82f6';
+                if (ratio >= 0.8) fill = 'url(#strongGradient)';
+                else if (ratio >= 0.6) fill = 'url(#moderateGradient)';
+                else fill = 'url(#lightGradient)';
+
+                return <Cell key={`cell-${index}`} fill={fill} />;
+              })}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </ChartContainer>
     </motion.div>
   );

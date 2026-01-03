@@ -48,7 +48,6 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import { io } from "socket.io-client";
 
 // Import custom accessible components
-import CustomToolbar from './CustomToolbar';
 import AccessibleEvent from './AccessibleEvent';
 import HighContrastToggle from './HighContrastToggle';
 import ScreenReaderAnnouncements, { useScreenReaderAnnouncement } from './ScreenReaderAnnouncements';
@@ -98,6 +97,12 @@ interface SessionEvent {
   notes?: string;
   duration?: number;
   resource?: any;
+}
+interface UnifiedCalendarProps {
+  initialModalState?: {
+    open: boolean;
+    clientId: string;
+  };
 }
 
 interface UserOption {
@@ -1068,7 +1073,7 @@ const Loader = styled(motion.div)`
 /**
  * Main UnifiedCalendar Component
  */
-const UnifiedCalendar: React.FC = () => {
+const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({ initialModalState }) => {
   // Add global styles for screen reader classes
   React.useEffect(() => {
     const style = document.createElement('style');
@@ -1145,15 +1150,16 @@ const UnifiedCalendar: React.FC = () => {
   
   // Component state with proper role-based initialization
   const [selectedEvent, setSelectedEvent] = useState<SessionEvent | null>(null);
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(initialModalState?.open || false);
   const [modalType, setModalType] = useState('create'); // 'create', 'view', 'book', 'block'
   const [createModalMode, setCreateModalMode] = useState<'session' | 'block'>('session'); // Sub-mode for create modal
+  const [isRecurringDelete, setIsRecurringDelete] = useState(false); // Track if deleting recurring block
   const [selectedSlot, setSelectedSlot] = useState<SlotInfo | null>(null);
   const [formData, setFormData] = useState({
     title: 'Available Session',
     location: '',
     notes: '',
-    trainerId: isTrainer ? user?.id || '' : '',
+    trainerId: isTrainer ? user?.id || '' : (initialModalState?.clientId ? '' : ''),
     duration: 60,
     reason: '',
     
@@ -1180,6 +1186,13 @@ const UnifiedCalendar: React.FC = () => {
     recurringDays: [1, 2, 3, 4, 5], // Default to weekdays only (Mon-Fri)
     untilDate: moment().add(1, 'year').format('YYYY-MM-DD') // Default recurring until 1 year from now
   });
+
+  useEffect(() => {
+    if (initialModalState?.open && initialModalState.clientId) {
+      setModalType('create');
+      setCreateModalMode('session');
+    }
+  }, [initialModalState]);
   
   // Enhanced role detection for better debugging
   React.useEffect(() => {
@@ -1202,6 +1215,7 @@ const UnifiedCalendar: React.FC = () => {
   // Calendar view state
   const [view, setView] = useState<View>('week');
   const [date, setDate] = useState(new Date());
+  const [availableViews, setAvailableViews] = useState(getAvailableViews());
   
   // Socket for real-time updates
   const socketRef = useRef<any>(null);
@@ -1250,6 +1264,21 @@ const UnifiedCalendar: React.FC = () => {
   };
   
   // Initialize socket connection for real-time updates
+  useEffect(() => {
+    const handleResize = () => {
+      const newViews = getAvailableViews();
+      setAvailableViews(newViews);
+      // If current view is not in new available views, switch to a default one
+      if (!newViews.includes(view)) {
+        setView(newViews.includes('week') ? 'week' : 'day');
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Initial check
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, [view]);
   useEffect(() => {
     // Code for socket initialization would go here
   }, []);
@@ -1393,9 +1422,12 @@ const UnifiedCalendar: React.FC = () => {
   const handleCreateSession = () => {
     if (!selectedSlot) return;
     
+    // Calculate the correct end time based on the selected duration
+    const endTime = moment(selectedSlot.start).add(formData.duration, 'minutes').toDate();
+    
     const sessionData = {
       start: selectedSlot.start,
-      end: selectedSlot.end,
+      end: endTime,
       title: formData.title,
       location: formData.location,
       trainerId: formData.trainerId || undefined,
@@ -1555,19 +1587,30 @@ const UnifiedCalendar: React.FC = () => {
   };
   
   // Book a session
-  const handleBookSession = (eventId: string) => {
-    dispatch(bookSession(eventId));
-    setShowModal(false);
-    
-    if (selectedEvent) {
-      const dateStr = moment(selectedEvent.start).format('dddd, MMMM D');
-      const timeStr = moment(selectedEvent.start).format('h:mm A');
-      announceToScreenReader(`Session successfully booked for ${dateStr} at ${timeStr}.`);
+  const handleBookSession = async (eventId: string) => {
+    try {
+      await dispatch(bookSession(eventId)).unwrap();
+      setShowModal(false);
+      
+      if (selectedEvent) {
+        const dateStr = moment(selectedEvent.start).format('dddd, MMMM D');
+        const timeStr = moment(selectedEvent.start).format('h:mm A');
+        announceToScreenReader(`Session successfully booked for ${dateStr} at ${timeStr}.`);
+      }
+      // Refresh events to ensure UI is in sync
+      dispatch(fetchEvents());
+    } catch (error) {
+      console.error("Failed to book session:", error);
     }
   };
   
-  // Cancel a session
+  // Initiate cancel session - opens confirmation
   const handleCancelSession = (eventId: string) => {
+    setModalType('cancel-confirmation');
+  };
+
+  // Execute cancel session - performs actual cancellation
+  const executeCancelSession = (eventId: string) => {
     dispatch(cancelSession(eventId));
     setShowModal(false);
     
@@ -1578,8 +1621,14 @@ const UnifiedCalendar: React.FC = () => {
     }
   };
   
-  // Delete a blocked time - simplified implementation
+  // Initiate delete blocked time - opens confirmation
   const handleDeleteBlockedTime = (eventId: string, removeAll: boolean = false) => {
+    setIsRecurringDelete(removeAll);
+    setModalType('delete-block-confirmation');
+  };
+
+  // Execute delete blocked time
+  const executeDeleteBlockedTime = (eventId: string, removeAll: boolean = false) => {
     // Note: deleteBlockedTime functionality needs to be implemented
     // For now, we'll use cancelSession
     dispatch(cancelSession(eventId));
@@ -1844,11 +1893,11 @@ const UnifiedCalendar: React.FC = () => {
             eventPropGetter={eventStyleGetter}
             tooltipAccessor={null}
             components={{
-              toolbar: CustomToolbar,
+              toolbar: ViewSwitcherToolbar,
               event: AccessibleEvent,
             }}
             popup
-            views={['month', 'week', 'day', 'agenda']}
+            views={availableViews}
             messages={{
               today: 'Today',
               previous: 'Back',
@@ -2312,6 +2361,61 @@ const UnifiedCalendar: React.FC = () => {
                 </>
               )}
               
+              {/* Confirmation Modal (Cancel Session or Delete Block) */}
+              {(modalType === 'cancel-confirmation' || modalType === 'delete-block-confirmation') && selectedEvent && (
+                <>
+                  <div className="modal-header">
+                    <h2 id="modal-title" style={{ color: '#ff6b6b' }}>
+                      {modalType === 'delete-block-confirmation' ? 'Delete Blocked Time?' : 'Cancel Session?'}
+                    </h2>
+                  </div>
+                  
+                  <div className="modal-body">
+                    <div className="form-section" style={{ borderBottom: 'none' }}>
+                      <p style={{ fontSize: '1.1rem', lineHeight: '1.6', marginBottom: '1.5rem', color: 'rgba(255, 255, 255, 0.9)' }}>
+                        {modalType === 'delete-block-confirmation' 
+                          ? (isRecurringDelete 
+                              ? "Are you sure you want to delete this recurring blocked time series? This will remove all future instances."
+                              : "Are you sure you want to delete this blocked time slot?")
+                          : "Are you sure you want to cancel this session? This action cannot be undone."
+                        }
+                      </p>
+                      
+                      <div className="detail-item" style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '1rem', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                        <span className="detail-label" style={{ color: 'white' }}>{selectedEvent.title}</span>
+                        <span className="detail-value" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                          {moment(selectedEvent.start).format('MMM D, h:mm A')}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="modal-footer">
+                    <div className="button-group">
+                      <button 
+                        className="button secondary" 
+                        onClick={() => setModalType('view')}
+                      >
+                        Keep it
+                      </button>
+                      <button 
+                        className="button primary" 
+                        style={{ background: 'linear-gradient(135deg, #ff6b6b, #ee5a24)' }}
+                        onClick={() => {
+                          if (modalType === 'delete-block-confirmation') {
+                            executeDeleteBlockedTime(selectedEvent.id, isRecurringDelete);
+                          } else {
+                            executeCancelSession(selectedEvent.id);
+                          }
+                        }}
+                      >
+                        {modalType === 'delete-block-confirmation' ? 'Delete' : 'Yes, Cancel Session'}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
               {/* View session details */}
               {modalType === 'view' && selectedEvent && (
                 <>

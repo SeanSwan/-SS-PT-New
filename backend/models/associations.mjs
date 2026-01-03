@@ -481,6 +481,16 @@ const setupAssociations = async () => {
     DailyWorkoutForm.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
     DailyWorkoutForm.belongsTo(WorkoutSession, { foreignKey: 'sessionId', as: 'session' });
     WorkoutSession.hasMany(DailyWorkoutForm, { foreignKey: 'sessionId', as: 'dailyForms' });
+    
+    // Workout Exercise Associations
+    WorkoutSession.hasMany(WorkoutExercise, { foreignKey: 'workoutSessionId', as: 'exercises' });
+    WorkoutExercise.belongsTo(WorkoutSession, { foreignKey: 'workoutSessionId', as: 'workoutSession' });
+    WorkoutExercise.belongsTo(Exercise, { foreignKey: 'exerciseId', as: 'exercise' });
+    Exercise.hasMany(WorkoutExercise, { foreignKey: 'exerciseId', as: 'workoutExercises' });
+    
+    // Set Associations (for WorkoutExercise performance tracking)
+    WorkoutExercise.hasMany(Set, { foreignKey: 'workoutExerciseId', as: 'sets' });
+    Set.belongsTo(WorkoutExercise, { foreignKey: 'workoutExerciseId', as: 'workoutExercise' });
 
     console.log('✅ Sequelize model associations established successfully');
     console.log('✅ Financial Intelligence models integrated');

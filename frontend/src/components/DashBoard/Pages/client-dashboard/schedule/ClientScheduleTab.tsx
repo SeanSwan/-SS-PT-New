@@ -11,7 +11,8 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { Calendar, Clock, CreditCard, User } from 'lucide-react';
+import { Calendar, Clock, CreditCard, User, TrendingUp, History } from 'lucide-react';
+import moment from 'moment';
 
 // Import design tokens
 import { theme, prefersReducedMotion } from '../../../../../theme/tokens';
@@ -20,6 +21,10 @@ import { theme, prefersReducedMotion } from '../../../../../theme/tokens';
 import UnifiedCalendar from '../../../../Schedule/schedule';
 import ScheduleInitializer from '../../../../Schedule/ScheduleInitializer';
 import ScheduleErrorBoundary from '../../../../Schedule/ScheduleErrorBoundary';
+import { useAuth } from '../../../../../context/AuthContext';
+import { useAppSelector } from '../../../../../redux/hooks';
+import { selectAllSessions } from '../../../../../redux/slices/scheduleSlice';
+import ClientSessionHistory from './ClientSessionHistory';
 
 // Client Schedule Container with brand gradient background
 const ClientScheduleContainer = styled(motion.div)`
@@ -337,6 +342,38 @@ const QuickBookButton = styled(motion.button)`
   }
 `;
 
+const HistoryButton = styled(motion.button)`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: ${theme.spacing.xs};
+  padding: ${theme.spacing.sm} ${theme.spacing.md};
+  min-height: 44px;
+  background: rgba(120, 81, 169, 0.15);
+  color: ${theme.colors.text.primary};
+  font-size: ${theme.typography.scale.sm};
+  font-weight: ${theme.typography.weight.semibold};
+  border: 1px solid rgba(120, 81, 169, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: rgba(120, 81, 169, 0.25);
+    border-color: rgba(120, 81, 169, 0.5);
+    transform: translateY(-2px);
+  }
+
+  &:focus-visible {
+    outline: 3px solid ${theme.colors.brand.purple};
+    outline-offset: 2px;
+  }
+
+  @media (max-width: ${theme.breakpoints.tablet}) {
+    width: 100%;
+  }
+`;
+
 // Main content area
 const ScheduleMainContent = styled(motion.div)`
   flex: 1;
@@ -450,12 +487,26 @@ const itemVariants = {
 
 const ClientScheduleTab: React.FC = () => {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const { user } = useAuth();
+  const allSessions = useAppSelector(selectAllSessions);
 
-  // Client-specific stats
+  // Calculate upcoming sessions this week for the current user
+  const upcomingThisWeek = allSessions.filter(session => {
+    const isUserSession = session.userId === user?.id;
+    const isConfirmed = session.status === 'confirmed' || session.status === 'scheduled';
+    const isThisWeek = moment(session.start).isBetween(moment().startOf('week'), moment().endOf('week'));
+    return isUserSession && isConfirmed && isThisWeek;
+  }).length;
+
+  // Client-specific stats from the authenticated user context and calculated values
   const stats = {
-    mySessionsCount: 0,
-    creditsRemaining: 10,
-    upcomingThisWeek: 0
+    // `sessionsScheduled` on the user object is the single source of truth for scheduled sessions
+    mySessionsCount: user?.sessionsScheduled ?? 0,
+    // `sessionsRemaining` on the user object is the single source of truth for credits
+    creditsRemaining: user?.sessionsRemaining ?? 0,
+    upcomingThisWeek: upcomingThisWeek,
+    sessionsCompleted: user?.sessionsCompleted ?? 0,
   };
 
   useEffect(() => {
@@ -510,14 +561,14 @@ const ClientScheduleTab: React.FC = () => {
                 whileTap={{ scale: 0.98 }}
               >
                 <Calendar />
-                <span>My Sessions: {stats.mySessionsCount}</span>
+                <span>Scheduled: {stats.mySessionsCount}</span>
               </StatItem>
               <StatItem
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.98 }}
               >
                 <CreditCard />
-                <span>Credits: {stats.creditsRemaining}</span>
+                <span>Credits Left: {stats.creditsRemaining}</span>
               </StatItem>
               <StatItem
                 whileHover={{ scale: 1.05 }}
@@ -525,6 +576,13 @@ const ClientScheduleTab: React.FC = () => {
               >
                 <Clock />
                 <span>This Week: {stats.upcomingThisWeek}</span>
+              </StatItem>
+              <StatItem
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <TrendingUp />
+                <span>Completed: {stats.sessionsCompleted}</span>
               </StatItem>
             </StatsBar>
 
@@ -537,6 +595,15 @@ const ClientScheduleTab: React.FC = () => {
               Quick Book
             </QuickBookButton>
           </HeaderActions>
+
+          <HistoryButton
+            onClick={() => setIsHistoryOpen(true)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <History size={16} />
+            View History
+          </HistoryButton>
         </HeaderContent>
       </ClientScheduleHeader>
 
@@ -550,6 +617,12 @@ const ClientScheduleTab: React.FC = () => {
           </ScheduleInitializer>
         </div>
       </ScheduleMainContent>
+
+      <ClientSessionHistory 
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        sessions={allSessions.filter(s => s.userId === user?.id)}
+      />
     </ClientScheduleContainer>
   );
 };

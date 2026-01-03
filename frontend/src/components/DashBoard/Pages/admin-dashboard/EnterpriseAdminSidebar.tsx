@@ -40,7 +40,7 @@ import {
   Activity, DollarSign, MessageSquare, FileText, Star, CreditCard,
   Award, Heart, RefreshCw, Power, PowerOff,
   
-  // MCP Server Management
+  // MCP Server Management & Workout
   Server, Cpu, HardDrive, Wifi, WifiOff, Zap, Globe,
   Tool, Wrench, Gauge, BarChart, PieChart, LineChart,
   CheckCircle, XCircle, AlertCircle, Info,
@@ -48,7 +48,7 @@ import {
   // Social Media & Gamification
   ThumbsUp, MessageCircle, Share2, Hash, Trending,
   Trophy, Target, Gamepad2, Flame, Users2, Crown,
-  Image, Video, Camera, Mic, Upload,
+  Image, Video, Camera, Mic, Upload, Dumbbell,
   
   // Business Intelligence
   TrendingDown, TrendingUp as TrendUp, Calculator,
@@ -363,6 +363,22 @@ const enterpriseNavigationItems: NavigationItem[] = [
       }
     ],
     description: 'Professional trainer management and analytics'
+  },
+  {
+    id: 'workout-entry',
+    label: 'Workout Entry',
+    icon: Dumbbell,
+    route: '/dashboard/admin/workout-entry',
+    section: 'management',
+    description: 'Enter and track client workout data'
+  },
+  {
+    id: 'measurement-entry',
+    label: 'Measurement Entry',
+    icon: FileText,
+    route: '/dashboard/admin/measurement-entry',
+    section: 'management',
+    description: 'Log and analyze client body measurements'
   },
   {
     id: 'session-allocation',

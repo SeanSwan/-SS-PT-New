@@ -45,80 +45,242 @@ import sequelize from '../database.mjs';
 import { QueryTypes } from 'sequelize';
 import { validationResult } from 'express-validator';
 import { validateYouTubeUrl, extractYouTubeId } from '../services/youtubeValidationService.mjs';
+import path from 'path';
+import fs from 'fs';
 
 /**
- * Create exercise with optional video
+ * Create exercise with video (YouTube or upload)
  * POST /api/admin/exercise-library
  */
-export const createExercise = async (req, res) => {
+export const createExerciseVideo = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
+  const trx = await sequelize.transaction();
+
   try {
-    const { title, description, video_url, video_type } = req.body;
+    const {
+      name,
+      description,
+      primary_muscle,
+      secondary_muscles,
+      equipment,
+      difficulty,
+      movement_patterns,
+      nasm_phases,
+      contraindications,
+      acute_variables,
+      video
+    } = req.body;
 
-    // Create exercise first
-    const [exercise] = await sequelize.query(
-      `INSERT INTO exercise_library (name, description, created_at, updated_at)
-       VALUES (:title, :description, NOW(), NOW())
-       RETURNING *`,
-      {
-        replacements: { title, description },
-        type: QueryTypes.INSERT
-      }
-    );
+    // Handle uploaded file if present
+    let uploadedFileInfo = null;
+    if (req.file) {
+      uploadedFileInfo = {
+        filename: req.file.filename,
+        originalFilename: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        path: req.file.path
+      };
+    }
 
-    // If video URL provided, fetch YouTube metadata and create video
-    if (video_url && video_type === 'youtube') {
+    // Guard: reject uploads without file
+    if (video.type === 'upload' && !req.file) {
+      return res.status(400).json({
+        error: 'File upload required',
+        message: 'Video file is required when video type is "upload"'
+      });
+    }
+
+    // Prepare video metadata
+    let videoMetadata = {
+      title: video.title || name,
+      description: video.description || '',
+      duration_seconds: video.duration_seconds,
+      thumbnail_url: video.thumbnail_url,
+    };
+
+    // Handle YouTube video
+    if (video.type === 'youtube') {
       try {
-        // Validate and fetch YouTube metadata
-        const youtubeData = await validateYouTubeUrl(video_url);
-        const videoId = extractYouTubeId(video_url);
-
-        if (!videoId) {
-          throw new Error('Invalid YouTube URL');
-        }
-
-        // Parse ISO 8601 duration (PT1M30S -> 90 seconds)
-        const durationMatch = youtubeData.duration?.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-        const hours = parseInt(durationMatch?.[1] || 0);
-        const minutes = parseInt(durationMatch?.[2] || 0);
-        const seconds = parseInt(durationMatch?.[3] || 0);
-        const durationSeconds = hours * 3600 + minutes * 60 + seconds;
-
-        // Create video with auto-fetched metadata
-        await sequelize.query(
-          `INSERT INTO exercise_videos
-           (exercise_id, video_type, video_id, title, description, thumbnail_url, duration_seconds, uploader_id, approved, is_public, created_at, updated_at)
-           VALUES (:exercise_id, :video_type, :video_id, :title, :description, :thumbnail_url, :duration_seconds, :uploader_id, true, true, NOW(), NOW())`,
-          {
-            replacements: {
-              exercise_id: exercise.id,
-              video_type: 'youtube',
-              video_id: videoId,
-              title: youtubeData.title,
-              description: youtubeData.description,
-              thumbnail_url: youtubeData.thumbnail,
-              duration_seconds: durationSeconds,
-              uploader_id: req.user.id
-            },
-            type: QueryTypes.INSERT
-          }
-        );
-
-        console.log(`✅ Created exercise "${title}" with YouTube video "${youtubeData.title}"`);
-      } catch (youtubeError) {
-        console.warn(`⚠️ Failed to fetch YouTube metadata: ${youtubeError.message}`);
-        // Continue without video if YouTube fetch fails
+        const youtubeData = await validateYouTubeUrl(`https://www.youtube.com/watch?v=${video.video_id}`);
+        videoMetadata = {
+          title: video.title || youtubeData.title,
+          description: video.description || youtubeData.description,
+          duration_seconds: youtubeData.duration ? parseDuration(youtubeData.duration) : video.duration_seconds,
+          thumbnail_url: video.thumbnail_url || youtubeData.thumbnail,
+        };
+      } catch (ytError) {
+        console.warn(`⚠️ Failed to fetch YouTube metadata: ${ytError.message}`);
+        // Continue with provided metadata
       }
     }
 
-    return res.status(201).json(exercise);
+    // Handle uploaded video
+    if (video.type === 'upload' && uploadedFileInfo) {
+      // For uploads, video_id is the filename
+      video.video_id = uploadedFileInfo.filename;
+      videoMetadata.title = video.title || uploadedFileInfo.originalFilename;
+      videoMetadata.thumbnail_url = null; // Will be generated later
+    }
+
+    // Check if exercise already exists
+    const existingExercise = await trx.query(
+      `SELECT * FROM exercise_library
+       WHERE name = :name AND "deletedAt" IS NULL`,
+      {
+        replacements: { name },
+        type: QueryTypes.SELECT,
+        transaction: trx
+      }
+    );
+
+    let exerciseId;
+
+    if (existingExercise && existingExercise.length > 0) {
+      // Exercise exists - just add video to it
+      exerciseId = existingExercise[0].id;
+    } else {
+      // Create new exercise
+      const [newExercise] = await trx.query(
+        `INSERT INTO exercise_library
+         (name, description, primary_muscle, secondary_muscles, equipment, difficulty,
+          movement_patterns, nasm_phases, contraindications, acute_variables, created_at, updated_at)
+         VALUES (:name, :description, :primary_muscle, :secondary_muscles::jsonb, :equipment, :difficulty,
+                 :movement_patterns::jsonb, :nasm_phases::jsonb, :contraindications::jsonb, :acute_variables::jsonb, NOW(), NOW())
+         RETURNING *`,
+        {
+          replacements: {
+            name,
+            description: description || '',
+            primary_muscle,
+            secondary_muscles: JSON.stringify(secondary_muscles || []),
+            equipment,
+            difficulty,
+            movement_patterns: JSON.stringify(movement_patterns),
+            nasm_phases: JSON.stringify(nasm_phases),
+            contraindications: JSON.stringify(contraindications || []),
+            acute_variables: JSON.stringify(acute_variables || {}),
+          },
+          type: QueryTypes.INSERT,
+          transaction: trx
+        }
+      );
+      exerciseId = newExercise.id;
+    }
+
+    // Create video record
+    const [newVideo] = await trx.query(
+      `INSERT INTO exercise_videos
+       (exercise_id, video_type, video_id, title, description, thumbnail_url, duration_seconds,
+        uploader_id, approved, is_public, tags, chapters, original_filename, file_size_bytes,
+        created_at, updated_at)
+       VALUES (:exercise_id, :video_type, :video_id, :title, :description, :thumbnail_url, :duration_seconds,
+               :uploader_id, true, :is_public, :tags::jsonb, :chapters::jsonb, :original_filename, :file_size_bytes,
+               NOW(), NOW())
+       RETURNING *`,
+      {
+        replacements: {
+          exercise_id: exerciseId,
+          video_type: video.type,
+          video_id: video.video_id,
+          title: videoMetadata.title,
+          description: videoMetadata.description,
+          thumbnail_url: videoMetadata.thumbnail_url,
+          duration_seconds: videoMetadata.duration_seconds,
+          uploader_id: req.user.id,
+          is_public: video.is_public !== undefined ? video.is_public : true,
+          tags: JSON.stringify(video.tags || []),
+          chapters: JSON.stringify(video.chapters || []),
+          original_filename: uploadedFileInfo?.originalFilename || null,
+          file_size_bytes: uploadedFileInfo?.size || null,
+        },
+        type: QueryTypes.INSERT,
+        transaction: trx
+      }
+    );
+
+    // Set as primary video if this is the first video for this exercise
+    const videoCount = await trx.query(
+      `SELECT COUNT(*) as count FROM exercise_videos
+       WHERE exercise_id = :exercise_id AND "deletedAt" IS NULL`,
+      {
+        replacements: { exercise_id: exerciseId },
+        type: QueryTypes.SELECT,
+        transaction: trx
+      }
+    );
+
+    if (Number(videoCount[0].count) === 1) {
+      await trx.query(
+        `UPDATE exercise_library
+         SET primary_video_id = :video_id
+         WHERE id = :exercise_id`,
+        {
+          replacements: { video_id: newVideo.id, exercise_id: exerciseId },
+          type: QueryTypes.UPDATE,
+          transaction: trx
+        }
+      );
+    }
+
+    await trx.commit();
+
+    // Fetch complete exercise with video for response
+    const completeExercise = await sequelize.query(
+      `SELECT * FROM exercise_library WHERE id = :id`,
+      {
+        replacements: { id: exerciseId },
+        type: QueryTypes.SELECT
+      }
+    );
+
+    const videos = await sequelize.query(
+      `SELECT * FROM exercise_videos
+       WHERE exercise_id = :exercise_id AND "deletedAt" IS NULL
+       ORDER BY created_at DESC`,
+      {
+        replacements: { exercise_id: exerciseId },
+        type: QueryTypes.SELECT
+      }
+    );
+
+    return res.status(201).json({
+      message: existingExercise && existingExercise.length > 0 ? 'Video added to existing exercise' : 'Exercise and video created successfully',
+      exercise: {
+        ...completeExercise[0],
+        secondary_muscles: JSON.parse(completeExercise[0].secondary_muscles || '[]'),
+        movement_patterns: JSON.parse(completeExercise[0].movement_patterns || '[]'),
+        nasm_phases: JSON.parse(completeExercise[0].nasm_phases || '[]'),
+        contraindications: JSON.parse(completeExercise[0].contraindications || '[]'),
+        acute_variables: JSON.parse(completeExercise[0].acute_variables || '{}'),
+        videos: videos.map(v => ({
+          ...v,
+          chapters: JSON.parse(v.chapters || '[]'),
+          tags: JSON.parse(v.tags || '[]'),
+          // Add playback URL for uploaded videos
+          playbackUrl: v.video_type === 'upload' ? `/uploads/videos/${v.video_id}` : null,
+        })),
+      },
+    });
+
   } catch (error) {
-    console.error('Error creating exercise:', error);
-    return res.status(500).json({ error: 'Failed to create exercise' });
+    await trx.rollback();
+
+    // Clean up uploaded file if transaction failed
+    if (req.file && req.file.path) {
+      try {
+        await fs.promises.unlink(req.file.path);
+      } catch (cleanupError) {
+        console.warn('Failed to cleanup uploaded file:', cleanupError);
+      }
+    }
+
+    console.error('Error creating exercise video:', error);
+    return res.status(500).json({ error: 'Failed to create exercise video' });
   }
 };
 
@@ -151,7 +313,24 @@ export const getExercise = async (req, res) => {
       }
     );
 
-    return res.json({ ...exercise, videos });
+    // Parse JSON fields for consistent API response
+    const parsedExercise = {
+      ...exercise,
+      secondary_muscles: JSON.parse(exercise.secondary_muscles || '[]'),
+      movement_patterns: JSON.parse(exercise.movement_patterns || '[]'),
+      nasm_phases: JSON.parse(exercise.nasm_phases || '[]'),
+      contraindications: JSON.parse(exercise.contraindications || '[]'),
+      acute_variables: JSON.parse(exercise.acute_variables || '{}'),
+      videos: videos.map(v => ({
+        ...v,
+        chapters: JSON.parse(v.chapters || '[]'),
+        tags: JSON.parse(v.tags || '[]'),
+        // Add playback URL for uploaded videos
+        playbackUrl: v.video_type === 'upload' ? `/uploads/videos/${v.video_id}` : null,
+      }))
+    };
+
+    return res.json(parsedExercise);
   } catch (error) {
     console.error('Error fetching exercise:', error);
     return res.status(500).json({ error: 'Failed to fetch exercise' });
@@ -222,10 +401,27 @@ export const deleteExercise = async (req, res) => {
 };
 
 /**
- * List exercises with pagination and filtering
+ * Parse ISO 8601 duration to seconds
+ */
+function parseDuration(isoDuration) {
+  const regex = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/;
+  const matches = isoDuration.match(regex);
+
+  if (!matches) return 0;
+
+  const hours = parseInt(matches[1] || 0, 10);
+  const minutes = parseInt(matches[2] || 0, 10);
+  const seconds = parseInt(matches[3] || 0, 10);
+
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+
+/**
+ * List exercises with video library filtering
  * GET /api/admin/exercise-library?page=1&limit=20&video_type=youtube&approved=true
  */
-export const listExercises = async (req, res) => {
+export const listExerciseVideos = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
