@@ -77,7 +77,7 @@ WorkoutPlan.init({
 }, {
   sequelize,
   modelName: 'WorkoutPlan',
-  tableName: 'WorkoutPlans',
+  tableName: 'workout_plans',
   timestamps: true
 });
 

@@ -28,6 +28,10 @@ import {
   CheckCircle,
   // XCircle, // Not used?
   // AlarmClock, // Not used?
+  AlertCircle,
+  ArrowDown,
+  ArrowUp,
+  Trash2,
   RefreshCw,
   Zap,
   CheckSquare,
@@ -60,6 +64,7 @@ import {
   Select,
   Avatar,
   Chip,
+  Checkbox,
   // Badge, // Not used?
   // Tooltip // Not used?
   Box as MuiBox // Use MUI Box directly if needed
@@ -101,6 +106,20 @@ import {
   itemVariants,
   staggeredItemVariants
 } from './styled-admin-sessions'; // Ensure path is correct
+
+const BulkActionsBar = styled(motion.div)`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  margin-bottom: 1.5rem;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 12px;
+  color: white;
+  backdrop-filter: blur(5px);
+`;
+
 
 // Interface for client data
 interface Client {
@@ -164,6 +183,14 @@ const EnhancedAdminSessionsView: React.FC = () => {
   const [rowsPerPage, setRowsPerPage] = useState(5);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' }>({ key: 'sessionDate', direction: 'descending' });
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [openBulkDeleteDialog, setOpenBulkDeleteDialog] = useState(false);
+  const [bulkDeleteReason, setBulkDeleteReason] = useState('');
 
   // State for dialogs
   const [selectedSession, setSelectedSession] = useState<Session | null>(null);
@@ -174,6 +201,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
   const [selectedClient, setSelectedClient] = useState<string>('');
   const [sessionsToAdd, setSessionsToAdd] = useState<number>(1);
   const [addSessionsNote, setAddSessionsNote] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(false);
   
   // State for view toggle (table vs calendar)
   const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table');
@@ -403,8 +431,56 @@ const EnhancedAdminSessionsView: React.FC = () => {
 
     const matchesStatus = statusFilter === 'all' || session.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
+    let matchesDate = true;
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      const sessionDate = new Date(session.sessionDate);
+      matchesDate = matchesDate && sessionDate >= start;
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      const sessionDate = new Date(session.sessionDate);
+      matchesDate = matchesDate && sessionDate <= end;
+    }
+
+    return matchesSearch && matchesStatus && matchesDate;
   });
+
+  const sortedSessions = React.useMemo(() => {
+    let sortableItems = [...filteredSessions];
+    if (sortConfig) {
+      sortableItems.sort((a, b) => {
+        let aValue: any = null;
+        let bValue: any = null;
+
+        switch (sortConfig.key) {
+          case 'client':
+            aValue = a.client ? `${a.client.firstName} ${a.client.lastName}`.toLowerCase() : 'zzzz';
+            bValue = b.client ? `${b.client.firstName} ${b.client.lastName}`.toLowerCase() : 'zzzz';
+            break;
+          case 'trainer':
+            aValue = a.trainer ? `${a.trainer.firstName} ${a.trainer.lastName}`.toLowerCase() : 'zzzz';
+            bValue = b.trainer ? `${b.trainer.firstName} ${b.trainer.lastName}`.toLowerCase() : 'zzzz';
+            break;
+          case 'sessionDate':
+            aValue = new Date(a.sessionDate).getTime();
+            bValue = new Date(b.sessionDate).getTime();
+            break;
+          default:
+            aValue = a[sortConfig.key as keyof Session];
+            bValue = b[sortConfig.key as keyof Session];
+            break;
+        }
+
+        if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [filteredSessions, sortConfig]);
 
   // Format date for display
   const formatDate = (dateString: string | null | undefined) => {
@@ -658,6 +734,108 @@ const EnhancedAdminSessionsView: React.FC = () => {
     }
   };
 
+  // Handle delete session click
+  const handleDeleteClick = (session: Session) => {
+    setSessionToDelete(session);
+    setOpenDeleteDialog(true);
+  };
+
+  // Confirm delete session
+  const handleConfirmDelete = async () => {
+    if (!sessionToDelete) return;
+    setIsProcessing(true);
+    try {
+      await authAxios.delete(`/api/sessions/${sessionToDelete.id}`);
+      toast({
+        title: "Success",
+        description: "Session deleted successfully",
+      });
+      fetchSessions();
+    } catch (err: any) {
+      console.error('Error deleting session:', err);
+      toast({ title: "Error", description: "Failed to delete session", variant: "destructive" });
+    } finally {
+      setIsProcessing(false);
+      setOpenDeleteDialog(false);
+      setSessionToDelete(null);
+    }
+  };
+
+  const handleSort = (key: string) => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const handleSelectAll = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.checked) {
+      const newSelectedIds = filteredSessions.map((session) => session.id);
+      setSelectedIds(newSelectedIds);
+      return;
+    }
+    setSelectedIds([]);
+  };
+
+  const handleSelectOne = (id: string) => {
+    const selectedIndex = selectedIds.indexOf(id);
+    let newSelectedIds: string[] = [];
+
+    if (selectedIndex === -1) {
+      newSelectedIds = newSelectedIds.concat(selectedIds, id);
+    } else if (selectedIndex === 0) {
+      newSelectedIds = newSelectedIds.concat(selectedIds.slice(1));
+    } else if (selectedIndex === selectedIds.length - 1) {
+      newSelectedIds = newSelectedIds.concat(selectedIds.slice(0, -1));
+    } else if (selectedIndex > 0) {
+      newSelectedIds = newSelectedIds.concat(
+        selectedIds.slice(0, selectedIndex),
+        selectedIds.slice(selectedIndex + 1),
+      );
+    }
+
+    setSelectedIds(newSelectedIds);
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setIsProcessing(true);
+    try {
+      // Use the new admin endpoint for bulk deletion
+      await apiService.delete('/api/admin/sessions/bulk', { data: { ids: selectedIds, reason: bulkDeleteReason } });
+      toast({
+        title: "Success",
+        description: `${selectedIds.length} sessions deleted successfully.`,
+      });
+      fetchSessions();
+      setSelectedIds([]); // Clear selection
+      setBulkDeleteReason('');
+    } catch (err: any) {
+      console.error('Error bulk deleting sessions:', err);
+      toast({ title: "Error", description: "Failed to delete selected sessions.", variant: "destructive" });
+    } finally {
+      setIsProcessing(false);
+      setOpenBulkDeleteDialog(false);
+    }
+  };
+
+  const handleExportCSV = () => {
+    const headers = ['Session ID', 'Date', 'Time', 'Client Name', 'Trainer Name', 'Status', 'Duration (min)', 'Location'];
+    const csvRows = [headers.join(',')];
+    const dataToExport = filteredSessions.map(session => [session.id, formatDate(session.sessionDate), formatTime(session.sessionDate), session.client ? `${session.client.firstName} ${session.client.lastName}` : 'N/A', session.trainer ? `${session.trainer.firstName} ${session.trainer.lastName}` : 'N/A', session.status, session.duration, session.location || 'N/A'].join(','));
+    const csvString = [csvRows, ...dataToExport].join('\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'sessions-export.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast({ title: "Success", description: "CSV export started." });
+  };
+
   // Refresh sessions data with enhanced logging
   const handleRefreshSessions = async () => {
     toast({ title: "Refreshing...", description: "Fetching latest session data." });
@@ -821,6 +999,26 @@ const EnhancedAdminSessionsView: React.FC = () => {
                          )
                      }}
                  />
+                 <Stack direction="row" spacing={1} alignItems="center">
+                    <TextField
+                      label="From"
+                      type="date"
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      sx={{ width: 140 }}
+                    />
+                    <TextField
+                      label="To"
+                      type="date"
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      sx={{ width: 140 }}
+                    />
+                 </Stack>
                  <FilterButtonsContainer>
                      {/* Filter Buttons */}
                      {(['all', 'available', 'scheduled', 'confirmed', 'completed', 'cancelled'] as const).map((status) => (
@@ -843,6 +1041,24 @@ const EnhancedAdminSessionsView: React.FC = () => {
               {/* Conditional Rendering based on View Mode */}
               {viewMode === 'table' ? (
                 <>
+                  <AnimatePresence>
+                    {selectedIds.length > 0 && (
+                      <BulkActionsBar
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                      >
+                        <Typography variant="subtitle1">{selectedIds.length} selected</Typography>
+                        <GlowButton
+                          text="Delete Selected"
+                          theme="ruby"
+                          size="small"
+                          leftIcon={<Trash2 size={16} />}
+                          onClick={() => setOpenBulkDeleteDialog(true)}
+                        />
+                      </BulkActionsBar>
+                    )}
+                  </AnimatePresence>
                   {/* Sessions Table View */}
                   {loading ? (
                 <LoadingContainer><LoadingSpinner /></LoadingContainer>
@@ -857,20 +1073,59 @@ const EnhancedAdminSessionsView: React.FC = () => {
                   <Table aria-label="sessions table" size="small">
                     <TableHead>
                       <StyledTableHead>
+                        <StyledTableHeadCell padding="checkbox">
+                          <Checkbox
+                            indeterminate={selectedIds.length > 0 && selectedIds.length < sortedSessions.length}
+                            checked={sortedSessions.length > 0 && selectedIds.length === sortedSessions.length}
+                            onChange={handleSelectAll}
+                            inputProps={{ 'aria-label': 'select all sessions' }}
+                            sx={{ color: 'rgba(255,255,255,0.7)', '&.Mui-checked': { color: '#00ffff' }, '&.MuiCheckbox-indeterminate': { color: '#00ffff' } }}
+                          />
+                        </StyledTableHeadCell>
                         {/* <StyledTableHeadCell>ID</StyledTableHeadCell> */}
-                        <StyledTableHeadCell>Client</StyledTableHeadCell>
-                        <StyledTableHeadCell>Trainer</StyledTableHeadCell>
-                        <StyledTableHeadCell>Date & Time</StyledTableHeadCell>
+                        <StyledTableHeadCell onClick={() => handleSort('client')} sx={{ cursor: 'pointer', userSelect: 'none' }}>
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            <span>Client</span>
+                            {sortConfig.key === 'client' && (sortConfig.direction === 'ascending' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+                          </Stack>
+                        </StyledTableHeadCell>
+                        <StyledTableHeadCell onClick={() => handleSort('trainer')} sx={{ cursor: 'pointer', userSelect: 'none' }}>
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            <span>Trainer</span>
+                            {sortConfig.key === 'trainer' && (sortConfig.direction === 'ascending' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+                          </Stack>
+                        </StyledTableHeadCell>
+                        <StyledTableHeadCell onClick={() => handleSort('sessionDate')} sx={{ cursor: 'pointer', userSelect: 'none' }}>
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            <span>Date & Time</span>
+                            {sortConfig.key === 'sessionDate' && (sortConfig.direction === 'ascending' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+                          </Stack>
+                        </StyledTableHeadCell>
                         {/* <StyledTableHeadCell>Time</StyledTableHeadCell> */}
-                        <StyledTableHeadCell>Location</StyledTableHeadCell>
-                        <StyledTableHeadCell>Duration</StyledTableHeadCell>
-                        <StyledTableHeadCell>Status</StyledTableHeadCell>
+                        <StyledTableHeadCell onClick={() => handleSort('location')} sx={{ cursor: 'pointer', userSelect: 'none' }}>
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            <span>Location</span>
+                            {sortConfig.key === 'location' && (sortConfig.direction === 'ascending' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+                          </Stack>
+                        </StyledTableHeadCell>
+                        <StyledTableHeadCell onClick={() => handleSort('duration')} sx={{ cursor: 'pointer', userSelect: 'none' }}>
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            <span>Duration</span>
+                            {sortConfig.key === 'duration' && (sortConfig.direction === 'ascending' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+                          </Stack>
+                        </StyledTableHeadCell>
+                        <StyledTableHeadCell onClick={() => handleSort('status')} sx={{ cursor: 'pointer', userSelect: 'none' }}>
+                          <Stack direction="row" spacing={0.5} alignItems="center">
+                            <span>Status</span>
+                            {sortConfig.key === 'status' && (sortConfig.direction === 'ascending' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+                          </Stack>
+                        </StyledTableHeadCell>
                         <StyledTableHeadCell align="right">Actions</StyledTableHeadCell>
                       </StyledTableHead>
                     </TableHead>
                     <TableBody>
-                      {filteredSessions.length > 0 ? (
-                        filteredSessions
+                      {sortedSessions.length > 0 ? (
+                        sortedSessions
                           .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                           .map((session, index) => (
                             <StyledTableRow
@@ -882,6 +1137,14 @@ const EnhancedAdminSessionsView: React.FC = () => {
                               animate="visible"
                               layout // Animate layout changes
                             >
+                              <StyledTableCell padding="checkbox">
+                                <Checkbox
+                                  checked={selectedIds.indexOf(session.id) !== -1}
+                                  onChange={() => handleSelectOne(session.id)}
+                                  inputProps={{ 'aria-label': `select session ${session.id}` }}
+                                  sx={{ color: 'rgba(255,255,255,0.7)', '&.Mui-checked': { color: '#00ffff' } }}
+                                />
+                              </StyledTableCell>
                               {/* <StyledTableCell>{session.id || 'N/A'}</StyledTableCell> */}
                               {/* Client Cell */}
                                <StyledTableCell>
@@ -985,17 +1248,15 @@ const EnhancedAdminSessionsView: React.FC = () => {
                                   >
                                     <Edit size={16} />
                                   </StyledIconButton>
-                                  {/* Add Cancel Button? */}
-                                   {/* {['scheduled', 'confirmed'].includes(session.status) && (
-                                        <StyledIconButton
-                                            btncolor="error"
-                                            onClick={() => handleCancelSession(session)} // Implement handleCancelSession
-                                            title="Cancel Session"
-                                            whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}
-                                        >
-                                            <X size={16} />
-                                        </StyledIconButton>
-                                   )} */}
+                                  <StyledIconButton
+                                    btncolor="error"
+                                    onClick={() => handleDeleteClick(session)}
+                                    title="Delete Session"
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.95 }}
+                                  >
+                                    <Trash2 size={16} />
+                                  </StyledIconButton>
                                 </IconButtonContainer>
                               </StyledTableCell>
                             </StyledTableRow>
@@ -1018,11 +1279,11 @@ const EnhancedAdminSessionsView: React.FC = () => {
               )}
 
               {/* Pagination for Table View */}
-              {filteredSessions.length > 0 && viewMode === 'table' && (
+              {sortedSessions.length > 0 && viewMode === 'table' && (
                 <TablePagination
                   rowsPerPageOptions={[5, 10, 25, 50]}
                   component="div"
-                  count={filteredSessions.length}
+                  count={sortedSessions.length}
                   rowsPerPage={rowsPerPage}
                   page={page}
                   onPageChange={handleChangePage}
@@ -1054,14 +1315,8 @@ const EnhancedAdminSessionsView: React.FC = () => {
                   text="Export Sessions"
                   theme="ruby"
                   leftIcon={<Download size={18} />}
-                  onClick={() => {
-                    toast({
-                      title: "Feature Pending",
-                      description: "Session data export is not yet implemented.",
-                    });
-                    // Add export logic here when ready (e.g., generate CSV)
-                  }}
-                  disabled={loading || filteredSessions.length === 0}
+                  onClick={handleExportCSV}
+                  disabled={loading || sortedSessions.length === 0}
                 />
                 </FooterActionsContainer>
               )}
@@ -2202,4 +2457,4 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
   );
 };
 
-export default EnhancedAdminSessionsView;
+export default EnhancedAdminSessionsView;u

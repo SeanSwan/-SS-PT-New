@@ -15,10 +15,18 @@
  */
 
 import React, { useMemo } from 'react';
-// Using CSS-based charts instead of recharts for build compatibility
-// Charts temporarily replaced with visual alternatives while maintaining functionality
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Line as RechartsLine
+} from 'recharts';
 import { VolumeChartProps, VolumeDataPoint } from '../types/ClientProgressTypes';
 
 // ==================== STYLED COMPONENTS ====================
@@ -170,156 +178,73 @@ const VolumeOverTimeChart: React.FC<VolumeChartProps> = ({
   }
 
   return (
-    <ChartContainer
+    <motion.div
       className={className}
       initial={animate ? { opacity: 0, y: 20 } : undefined}
       animate={animate ? { opacity: 1, y: 0 } : undefined}
       transition={{ duration: 0.6, ease: 'easeOut' }}
     >
-      {/* CSS-based Line Chart */}
-      <div style={{ width: '100%', height: '100%', position: 'relative', padding: '20px' }}>
-        {/* Chart Area */}
-        <svg width="100%" height="240" style={{ overflow: 'visible' }}>
-          {/* Grid Lines */}
-          <defs>
-            <pattern id="grid" width="40" height="30" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 30" fill="none" stroke="rgba(148, 163, 184, 0.2)" strokeWidth="1"/>
-            </pattern>
-            <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.8} />
-              <stop offset="50%" stopColor="#06b6d4" stopOpacity={0.6} />
-              <stop offset="100%" stopColor="#10b981" stopOpacity={0.4} />
-            </linearGradient>
-          </defs>
-          
-          {/* Grid Background */}
-          <rect width="100%" height="200" fill="url(#grid)" />
-          
-          {/* Line Path */}
-          {chartData.length > 1 && (
-            <>
-              {/* Area under curve */}
-              <path
-                d={`M ${20} 180 ${
-                  chartData
-                    .map((point, index) => {
-                      const x = 20 + (index * (100 / Math.max(chartData.length - 1, 1))) * 2.5;
-                      const y = 180 - (point.value / maxValue) * 160;
-                      return `L ${x} ${y}`;
-                    })
-                    .join(' ')
-                } L ${20 + (chartData.length - 1) * (100 / Math.max(chartData.length - 1, 1)) * 2.5} 180 Z`}
-                fill="url(#lineGradient)"
-                fillOpacity={0.3}
+      <ChartContainer>
+        <ResponsiveContainer width="100%" height={height}>
+          <AreaChart
+            data={chartData}
+            margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+          >
+            <defs>
+              <linearGradient id="volumeAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                <stop offset="50%" stopColor="#06b6d4" stopOpacity={0.4}/>
+                <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
+              </linearGradient>
+              <linearGradient id="trendLineGradient" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.3}/>
+                <stop offset="100%" stopColor="#ef4444" stopOpacity={0.6}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="rgba(148, 163, 184, 0.2)"
+            />
+            <XAxis
+              dataKey="displayDate"
+              stroke="rgba(148, 163, 184, 0.5)"
+              tick={{ fill: '#94a3b8', fontSize: 11 }}
+            />
+            <YAxis
+              stroke="rgba(148, 163, 184, 0.5)"
+              tick={{ fill: '#94a3b8', fontSize: 12 }}
+              label={{ value: 'Volume (lbs)', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+            />
+            {showTooltip && (
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{ stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '5 5' }}
               />
-              
-              {/* Main line */}
-              <path
-                d={`M ${
-                  chartData
-                    .map((point, index) => {
-                      const x = 20 + (index * (100 / Math.max(chartData.length - 1, 1))) * 2.5;
-                      const y = 180 - (point.value / maxValue) * 160;
-                      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-                    })
-                    .join(' ')
-                }`}
-                stroke="url(#lineGradient)"
-                strokeWidth="3"
-                fill="none"
-                style={{ filter: 'drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3))' }}
+            )}
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke="#3b82f6"
+              strokeWidth={2}
+              fill="url(#volumeAreaGradient)"
+              isAnimationActive={animate}
+              animationDuration={1500}
+            />
+            {showTrendLine && (
+              <RechartsLine
+                type="monotone"
+                dataKey={() => averageValue}
+                stroke="url(#trendLineGradient)"
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                dot={false}
+                isAnimationActive={false}
               />
-              
-              {/* Data points */}
-              {chartData.map((point, index) => {
-                const x = 20 + (index * (100 / Math.max(chartData.length - 1, 1))) * 2.5;
-                const y = 180 - (point.value / maxValue) * 160;
-                return (
-                  <circle
-                    key={index}
-                    cx={x}
-                    cy={y}
-                    r="4"
-                    fill="#3b82f6"
-                    stroke="#1e40af"
-                    strokeWidth="2"
-                    style={{ cursor: 'pointer' }}
-                    title={`${point.displayDate}: ${point.formattedValue} lbs`}
-                  />
-                );
-              })}
-              
-              {/* Trend line (if enabled) */}
-              {showTrendLine && (
-                <line
-                  x1="20"
-                  y1={180 - (averageValue / maxValue) * 160}
-                  x2={20 + (chartData.length - 1) * (100 / Math.max(chartData.length - 1, 1)) * 2.5}
-                  y2={180 - (averageValue / maxValue) * 160}
-                  stroke="rgba(16, 185, 129, 0.6)"
-                  strokeWidth="2"
-                  strokeDasharray="5 5"
-                />
-              )}
-            </>
-          )}
-          
-          {/* Y-axis labels */}
-          <g>
-            {[0, 0.25, 0.5, 0.75, 1].map((ratio, index) => {
-              const y = 180 - ratio * 160;
-              const value = maxValue * ratio;
-              return (
-                <text
-                  key={index}
-                  x="10"
-                  y={y + 4}
-                  fill="#94a3b8"
-                  fontSize="12"
-                  textAnchor="end"
-                >
-                  {`${(value / 1000).toFixed(0)}k`}
-                </text>
-              );
-            })}
-          </g>
-        </svg>
-        
-        {/* X-axis labels */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          marginTop: '10px',
-          paddingLeft: '20px',
-          paddingRight: '20px',
-          fontSize: '12px',
-          color: '#94a3b8'
-        }}>
-          {chartData.map((point, index) => (
-            <span key={index} style={{ textAlign: 'center', minWidth: '40px' }}>
-              {point.displayDate}
-            </span>
-          ))}
-        </div>
-        
-        {/* Stats overlay */}
-        <div style={{
-          position: 'absolute',
-          top: '10px',
-          right: '20px',
-          background: 'rgba(15, 23, 42, 0.8)',
-          borderRadius: '8px',
-          padding: '8px 12px',
-          fontSize: '12px',
-          color: '#e2e8f0',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(148, 163, 184, 0.3)'
-        }}>
-          <div style={{ color: '#10b981', fontWeight: '600' }}>Max: {maxValue.toLocaleString()} lbs</div>
-          <div style={{ color: '#3b82f6', fontWeight: '600' }}>Avg: {averageValue.toLocaleString()} lbs</div>
-        </div>
-      </div>
-    </ChartContainer>
+            )}
+          </AreaChart>
+        </ResponsiveContainer>
+      </ChartContainer>
+    </motion.div>
   );
 };
 

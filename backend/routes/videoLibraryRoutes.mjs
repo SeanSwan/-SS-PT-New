@@ -28,12 +28,14 @@
 
 import { Router } from 'express';
 import { body, param } from 'express-validator';
+import multer from 'multer';
+import path from 'path';
 import {
-  createExercise,
+  createExerciseVideo,
+  listExerciseVideos,
   getExercise,
   updateExercise,
   deleteExercise,
-  listExercises,
   getExerciseVideos,
   updateVideo,
   deleteVideo,
@@ -43,6 +45,52 @@ import {
 import { protect, adminOnly } from '../middleware/auth.mjs';
 
 const router = Router();
+
+// ==================== MULTER CONFIGURATION ====================
+
+// Configure multer for video uploads
+const videoStorage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    const dir = path.join(process.cwd(), 'uploads', 'videos');
+    // Ensure directory exists
+    require('fs').mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: function(req, file, cb) {
+    // Generate unique filename with timestamp
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const extension = path.extname(file.originalname);
+    cb(null, `video-${uniqueSuffix}${extension}`);
+  }
+});
+
+// File filter for video files
+const videoFileFilter = (req, file, cb) => {
+  const allowedTypes = [
+    'video/mp4',
+    'video/avi',
+    'video/mov',
+    'video/wmv',
+    'video/flv',
+    'video/webm',
+    'video/mkv'
+  ];
+
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only video files are allowed.'), false);
+  }
+};
+
+// Configure multer upload middleware
+const uploadVideo = multer({
+  storage: videoStorage,
+  fileFilter: videoFileFilter,
+  limits: {
+    fileSize: 500 * 1024 * 1024, // 500MB limit
+  }
+});
 
 // ==================== EXERCISE ENDPOINTS ====================
 
@@ -59,13 +107,30 @@ router.post(
   '/',
   protect,
   adminOnly,
+  uploadVideo.single('video_file'), // Handle video file upload
   [
-    body('title').trim().isLength({ min: 3 }).escape(),
+    body('name').trim().isLength({ min: 3 }).escape(),
     body('description').trim().optional().escape(),
-    body('video_url').trim().optional(),
-    body('video_type').isIn(['youtube', 'upload']).optional()
+    body('primary_muscle').isIn(['chest', 'back', 'shoulders', 'biceps', 'triceps', 'forearms',
+      'abs', 'obliques', 'quads', 'hamstrings', 'glutes', 'calves', 'hip_flexors', 'adductors', 'abductors']),
+    body('equipment').isIn(['barbell', 'dumbbell', 'kettlebell', 'resistance_band', 'cable', 'bodyweight',
+      'medicine_ball', 'stability_ball', 'trx', 'bosu', 'foam_roller', 'bench', 'machine', 'other']),
+    body('difficulty').isIn(['beginner', 'intermediate', 'advanced']),
+    body('movement_patterns').isArray({ min: 1 }),
+    body('nasm_phases').isArray({ min: 1 }),
+    body('video.type').isIn(['youtube', 'upload']),
+    // Conditional validation: video_id required for YouTube, optional for upload
+    body('video.video_id').if(body('video.type').equals('youtube')).trim().notEmpty()
+      .withMessage('Video ID is required for YouTube videos'),
+    body('video.title').trim().optional().escape(),
+    body('video.description').trim().optional().escape(),
+    body('video.duration_seconds').optional().isInt({ min: 1 }),
+    body('video.thumbnail_url').optional().isURL(),
+    body('video.chapters').optional().isArray(),
+    body('video.tags').optional().isArray(),
+    body('video.is_public').optional().isBoolean()
   ],
-  createExercise
+  createExerciseVideo
 );
 
 // Get exercise details
@@ -74,7 +139,7 @@ router.get(
   protect,
   adminOnly,
   [
-    param('id').isUUID()
+    param('id').isInt({ min: 1 })
   ],
   getExercise
 );
@@ -85,7 +150,7 @@ router.put(
   protect,
   adminOnly,
   [
-    param('id').isUUID(),
+    param('id').isInt({ min: 1 }),
     body('title').trim().isLength({ min: 3 }).escape(),
     body('description').trim().optional().escape()
   ],
@@ -98,7 +163,7 @@ router.delete(
   protect,
   adminOnly,
   [
-    param('id').isUUID()
+    param('id').isInt({ min: 1 })
   ],
   deleteExercise
 );
@@ -109,7 +174,7 @@ router.get(
   protect,
   adminOnly,
   [
-    param('id').isUUID()
+    param('id').isInt({ min: 1 })
   ],
   getExerciseVideos
 );
@@ -122,7 +187,7 @@ router.patch(
   protect,
   adminOnly,
   [
-    param('id').isUUID(),
+    param('id').isInt({ min: 1 }),
     body('title').trim().optional().escape(),
     body('description').trim().optional().escape(),
     body('tags').optional().isArray(),
@@ -139,7 +204,7 @@ router.delete(
   protect,
   adminOnly,
   [
-    param('id').isUUID()
+    param('id').isInt({ min: 1 })
   ],
   deleteVideo
 );
@@ -150,18 +215,17 @@ router.post(
   protect,
   adminOnly,
   [
-    param('id').isUUID()
+    param('id').isInt({ min: 1 })
   ],
   restoreVideo
 );
 
-// Track video view analytics
+// Track video view analytics (allow authenticated users, not just admins)
 router.post(
   '/videos/:id/track-view',
-  protect,
-  adminOnly,
+  protect, // Allow any authenticated user (clients/trainers)
   [
-    param('id').isUUID(),
+    param('id').isInt({ min: 1 }),
     body('watch_duration_seconds').optional().isInt(),
     body('completion_percentage').optional().isFloat({ min: 0, max: 100 }),
     body('completed').optional().isBoolean(),

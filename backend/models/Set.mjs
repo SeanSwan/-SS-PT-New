@@ -23,7 +23,7 @@ Set.init({
     type: DataTypes.UUID,
     allowNull: false,
     references: {
-      model: 'WorkoutExercises',
+      model: 'workout_exercises',
       key: 'id'
     },
     onDelete: 'CASCADE'

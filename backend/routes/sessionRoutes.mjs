@@ -2661,12 +2661,7 @@ router.post("/book", protect, async (req, res) => {
     await session.save();
     
     // Broadcast real-time booking event
-    realTimeScheduleService.broadcastSessionBooking({
-      sessionId: session.id,
-      clientId: client.id,
-      trainerId: session.trainerId,
-      timestamp: new Date().toISOString()
-    });
+    realTimeScheduleService.broadcastSessionBooked(session, client);
     
     // Fetch updated session with all associations
     const updatedSession = await Session.findByPk(session.id, {

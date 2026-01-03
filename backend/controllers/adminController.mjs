@@ -90,6 +90,43 @@ const adminController = {
       console.error('Error updating client credits:', error);
       res.status(500).json({ success: false, message: 'Server error while updating credits.' });
     }
+  },
+
+  /**
+   * @description Bulk delete sessions by their IDs
+   * @route DELETE /api/admin/sessions/bulk
+   * @access Private (Admin only)
+   * @body { "sessionIds": number[] }
+   */
+  async bulkDeleteSessions(req, res) {
+    const { sessionIds } = req.body;
+
+    if (!sessionIds || !Array.isArray(sessionIds) || sessionIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'Session IDs array is required.' });
+    }
+
+    const transaction = await sequelize.transaction();
+
+    try {
+      const { Session } = await import('../models/index.mjs');
+
+      const deletedCount = await Session.destroy({
+        where: { id: sessionIds },
+        transaction
+      });
+
+      await transaction.commit();
+
+      res.status(200).json({
+        success: true,
+        message: `Successfully deleted ${deletedCount} session(s).`,
+        deletedCount
+      });
+    } catch (error) {
+      await transaction.rollback();
+      console.error('Error bulk deleting sessions:', error);
+      res.status(500).json({ success: false, message: 'Server error while deleting sessions.' });
+    }
   }
 };
 
