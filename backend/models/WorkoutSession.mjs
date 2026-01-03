@@ -156,6 +156,34 @@ WorkoutSession.init({
     allowNull: true,
     comment: 'When the workout was completed'
   },
+  // Session tracking: solo vs trainer-led
+  sessionType: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'solo',
+    validate: {
+      isIn: [['solo', 'trainer-led']]
+    },
+    comment: 'Type of workout: solo (self-logged) or trainer-led (with trainer)'
+  },
+  sessionId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'sessions',
+      key: 'id'
+    },
+    comment: 'Reference to booked Session for trainer-led workouts only'
+  },
+  trainerId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'Users',
+      key: 'id'
+    },
+    comment: 'Trainer who led this session (null for solo workouts)'
+  },
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
@@ -185,6 +213,18 @@ WorkoutSession.init({
     {
       fields: ['status'],
       name: 'workout_session_status_idx'
+    },
+    {
+      fields: ['sessionType'],
+      name: 'workout_sessions_session_type_idx'
+    },
+    {
+      fields: ['userId', 'sessionType'],
+      name: 'workout_sessions_user_session_type_idx'
+    },
+    {
+      fields: ['sessionId'],
+      name: 'workout_sessions_session_id_idx'
     }
   ]
 });
