@@ -24,6 +24,7 @@ import ScheduleContainer from '../../Schedule';
 import ClientScheduleTab from '../../DashBoard/Pages/client-dashboard/schedule';
 import UnifiedSchedule from '../../Unified/UnifiedSchedule';
 import MessagingPage from '../../../pages/MessagingPage';
+import OptimizedGalaxyStoreFront from '../../../pages/shop/OptimizedGalaxyStoreFront';
 
 // Styled Components
 const StyledBox = styled.div`
@@ -178,6 +179,8 @@ const ClientDashboardContent: React.FC<ClientDashboardContentProps> = ({ activeS
           return <SafeRender component={<CommunitySection />} fallback="Community Section" />;
         case 'messages':
           return <SafeRender component={<MessagingPage />} fallback="Messages Section" />;
+        case 'packages':
+          return <SafeRender component={<OptimizedGalaxyStoreFront />} fallback="Packages Section" />;
         case 'profile':
           return <SafeRender component={<SocialProfileSection />} fallback="Profile Section" />;
         case 'settings':
