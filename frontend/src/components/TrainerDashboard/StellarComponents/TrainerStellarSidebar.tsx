@@ -510,6 +510,7 @@ const trainerNavigationItems: TrainerNavItemData[] = [
   
   // 👥 CLIENT MANAGEMENT
   { id: 'clients', label: 'My Clients', icon: Users, section: 'training' },
+  { id: 'log-workout', label: 'Log Workout', icon: Dumbbell, section: 'training' },
   { id: 'progress', label: 'Client Progress', icon: TrendingUp, section: 'training' },
   { id: 'assessments', label: 'Form Assessments', icon: UserCheck, section: 'training' },
   { id: 'goals', label: 'Goal Tracking', icon: Target, section: 'training' },
