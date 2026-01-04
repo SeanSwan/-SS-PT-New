@@ -7,7 +7,7 @@
  */
 
 import session from 'express-session';
-import RedisStore from 'connect-redis';
+import { RedisStore } from 'connect-redis';
 import Redis from 'ioredis';
 import logger from '../utils/logger.mjs';
 
