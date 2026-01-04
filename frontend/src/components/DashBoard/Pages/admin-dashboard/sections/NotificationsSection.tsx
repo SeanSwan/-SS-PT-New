@@ -27,7 +27,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
 import {
-  Bell, BellRing, Mail, MessageSquare, Send, Users,
+  Bell, BellRing, Mail, MessageSquare, Send, Users, User,
   Search, Filter, Download, RefreshCw, MoreVertical,
   AlertTriangle, CheckCircle, Clock, Eye, Edit3,
   Trash2, Plus, Settings, BarChart3, Target,

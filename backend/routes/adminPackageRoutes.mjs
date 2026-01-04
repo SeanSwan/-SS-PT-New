@@ -1,10 +1,11 @@
 // backend/routes/adminPackageRoutes.mjs
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
-import StorefrontItem from '../models/StorefrontItem.mjs';
+import { getModels } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+const { StorefrontItem } = getModels();
 
 // Middleware to ensure admin access
 const requireAdmin = (req, res, next) => {
