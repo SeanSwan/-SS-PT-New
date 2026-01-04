@@ -264,15 +264,14 @@
  */
 
 // backend/controllers/adminClientController.mjs
-import User from '../models/User.mjs';
-import ClientProgress from '../models/ClientProgress.mjs';
-import Session from '../models/Session.mjs';
-import WorkoutSession from '../models/WorkoutSession.mjs';
-import Order from '../models/Order.mjs';
+import { getModels } from '../models/index.mjs';
 import { Op } from 'sequelize';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import bcrypt from 'bcryptjs';
+
+// Get models from cache
+const { User, ClientProgress, Session, WorkoutSession, Order } = getModels();
 
 /**
  * AdminClientController class
