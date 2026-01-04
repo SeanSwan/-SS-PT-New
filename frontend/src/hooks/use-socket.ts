@@ -293,10 +293,11 @@ export function useSocket(endpoint = '', options = {}) {
 
     // Otherwise, try real connection
     try {
-      // Define socket URL based on environment - USE VITE_API_BASE_URL for consistency
-      const SOCKET_URL = process.env.NODE_ENV === 'development' 
+      // Define socket URL based on environment - USE BACKEND URL for WebSocket
+      const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL;
+      const SOCKET_URL = process.env.NODE_ENV === 'development'
         ? 'ws://localhost:10000' // Local development backend port
-        : (window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.host; // Same host as frontend in production
+        : backendUrl?.replace(/^http/, 'ws') || ((window.location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + window.location.host);
       
       // Construct full WebSocket URL with authentication token
       const fullUrl = `${SOCKET_URL}${endpoint}${token ? `?token=${token}` : ''}`;
