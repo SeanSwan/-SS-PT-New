@@ -23,10 +23,9 @@ services:
       - key: PORT
         value: 10000
       - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: swanstudios-main
-          property: host
+        value: https://swanstudios-frontend.onrender.com
+      - key: FRONTEND_ORIGINS
+        value: https://swanstudios-frontend.onrender.com,https://sswanstudios.com,https://www.sswanstudios.com
       - key: DATABASE_URL
         fromDatabase:
           name: swanstudios-db
@@ -36,7 +35,7 @@ services:
         length: 32
       - key: STRIPE_SECRET_KEY
         sync: false  # Set manually in Render dashboard
-      - key: STRIPE_PUBLISHABLE_KEY  
+      - key: STRIPE_PUBLISHABLE_KEY
         sync: false  # Set manually in Render dashboard
 
   # Frontend static site (PRODUCTION CONFIGURATION)
