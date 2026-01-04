@@ -22,6 +22,7 @@ import SocialProfileSection from './SocialProfileSection';
 // Import schedule components
 import ScheduleContainer from '../../Schedule';
 import ClientScheduleTab from '../../DashBoard/Pages/client-dashboard/schedule';
+import UnifiedSchedule from '../../Unified/UnifiedSchedule';
 
 // Styled Components
 const StyledBox = styled.div`
@@ -159,9 +160,9 @@ const ClientDashboardContent: React.FC<ClientDashboardContentProps> = ({ activeS
           );
         case 'schedule':
           return (
-            <SafeRender 
-              component={<ScheduleContainer />} 
-              fallback="Schedule Section" 
+            <SafeRender
+              component={<UnifiedSchedule />}
+              fallback="Schedule Section"
             />
           );
         case 'workouts':
