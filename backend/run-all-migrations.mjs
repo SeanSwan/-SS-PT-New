@@ -215,10 +215,10 @@ async function runAllMigrations() {
     // ==================== PHASE 4: Exercise & Workout System ====================
     console.log('💪 PHASE 4: Exercise & Workout System\n');
 
-    // Create enums first
-    await sequelize.query(`CREATE TYPE IF NOT EXISTS muscle_group_enum AS ENUM ('chest', 'back', 'shoulders', 'biceps', 'triceps', 'forearms', 'abs', 'obliques', 'quads', 'hamstrings', 'glutes', 'calves', 'hip_flexors', 'adductors', 'abductors');`);
-    await sequelize.query(`CREATE TYPE IF NOT EXISTS equipment_enum AS ENUM ('barbell', 'dumbbell', 'kettlebell', 'resistance_band', 'cable', 'bodyweight', 'medicine_ball', 'stability_ball', 'trx', 'bosu', 'foam_roller', 'bench', 'machine', 'other');`);
-    await sequelize.query(`CREATE TYPE IF NOT EXISTS difficulty_enum AS ENUM ('beginner', 'intermediate', 'advanced');`);
+    // Create enums first (safe creation)
+    await sequelize.query(`DO $$ BEGIN CREATE TYPE muscle_group_enum AS ENUM ('chest', 'back', 'shoulders', 'biceps', 'triceps', 'forearms', 'abs', 'obliques', 'quads', 'hamstrings', 'glutes', 'calves', 'hip_flexors', 'adductors', 'abductors'); EXCEPTION WHEN duplicate_object THEN null; END $$;`);
+    await sequelize.query(`DO $$ BEGIN CREATE TYPE equipment_enum AS ENUM ('barbell', 'dumbbell', 'kettlebell', 'resistance_band', 'cable', 'bodyweight', 'medicine_ball', 'stability_ball', 'trx', 'bosu', 'foam_roller', 'bench', 'machine', 'other'); EXCEPTION WHEN duplicate_object THEN null; END $$;`);
+    await sequelize.query(`DO $$ BEGIN CREATE TYPE difficulty_enum AS ENUM ('beginner', 'intermediate', 'advanced'); EXCEPTION WHEN duplicate_object THEN null; END $$;`);
 
     const [exercisesExists] = await sequelize.query(
       `SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'exercises')`,
