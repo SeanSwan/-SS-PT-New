@@ -16,6 +16,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -60,6 +61,7 @@ import {
   TrendingUp as TrendingUpIcon,
   PlayCircle as PlayCircleIcon,
   Add as AddIcon,
+  Message as MessageIcon,
   Delete as DeleteIcon,
   Save as SaveIcon,
   CheckCircle as CheckCircleIcon,
@@ -134,6 +136,7 @@ const NASMTrainerDashboard: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState(0);
   const [selectedClient, setSelectedClient] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   // Client Management
   const [clients, setClients] = useState<ClientSummary[]>([]);
@@ -146,6 +149,7 @@ const NASMTrainerDashboard: React.FC = () => {
 
   // Assessment Module State
   const [assessmentDialogOpen, setAssessmentDialogOpen] = useState(false);
+  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
   const [currentAssessment, setCurrentAssessment] = useState<MovementAssessment>({
     client_id: '',
     assessment_type: 'overhead_squat',
@@ -196,6 +200,29 @@ const NASMTrainerDashboard: React.FC = () => {
   const loadClients = async () => {
     const response = await api.get('/api/trainer/my-clients');
     setClients(response.data);
+  };
+
+  const handleMessageClient = async (clientId: string) => {
+    if (!clientId || isCreatingConversation) return;
+
+    setIsCreatingConversation(true);
+    try {
+      const response = await api.post('/api/messaging/conversations', {
+        type: 'direct',
+        participantIds: [parseInt(clientId)],
+      });
+      const conversationId = response.data.id;
+      if (conversationId) {
+        navigate(`/messaging?conversation=${conversationId}`);
+      } else {
+        throw new Error("Conversation ID not returned from API.");
+      }
+    } catch (error) {
+      console.error("Failed to start conversation with client", error);
+      alert("Could not start a new conversation. Please try again later.");
+    } finally {
+      setIsCreatingConversation(false);
+    }
   };
 
   // ========================================
@@ -506,6 +533,14 @@ const NASMTrainerDashboard: React.FC = () => {
                 onClick={() => openWorkoutDialog(client.id, client.current_phase)}
               >
                 Workout
+              </Button>
+              <Button
+                size="small"
+                startIcon={<MessageIcon />}
+                onClick={() => handleMessageClient(client.id)}
+                disabled={isCreatingConversation}
+              >
+                Message
               </Button>
               {client.ready_for_next_phase && (
                 <Button

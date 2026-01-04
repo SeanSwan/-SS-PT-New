@@ -66,6 +66,7 @@ import RealTimeSignupMonitoring from './components/RealTimeSignupMonitoring';
 import UsersManagementSection from './UsersManagementSection';
 import TrainersManagementSection from './TrainersManagementSection';
 import AdminScheduleTab from './schedule/AdminScheduleTab';
+import UnifiedSchedule from '../../../Unified/UnifiedSchedule';
 
 // Import the new comprehensive admin sections
 const ClientsManagementSection = lazy(() => import('./sections/ClientsManagementSection'));
@@ -413,7 +414,7 @@ const sectionComponents = {
   users: () => <Suspense fallback={<div>Loading...</div>}><UsersManagementSection /></Suspense>,
   trainers: () => <TrainersManagementSection />,
   clients: () => <Suspense fallback={<div>Loading...</div>}><ClientsManagementSection /></Suspense>,
-  sessions: () => <AdminScheduleTab />,
+  sessions: () => <UnifiedSchedule />,
   packages: () => <Suspense fallback={<div>Loading...</div>}><PackagesManagementSection /></Suspense>,
   content: () => <Suspense fallback={<div>Loading...</div>}><ContentModerationSection /></Suspense>,
   

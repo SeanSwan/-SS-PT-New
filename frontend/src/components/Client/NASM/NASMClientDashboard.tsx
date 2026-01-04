@@ -18,6 +18,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -61,9 +62,11 @@ import {
   Warning as WarningIcon,
   Info as InfoIcon,
   Star as StarIcon,
+  Message as MessageIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../../hooks/useAuth';
 import api from '../../../utils/api';
+import WorkoutLogger from '../../Workout/WorkoutLogger';
 
 interface ClientPhaseData {
   current_phase: string;
@@ -125,6 +128,8 @@ interface SetLog {
 
 const NASMClientDashboard: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const [isCreatingConversation, setIsCreatingConversation] = useState(false);
 
   // Phase Data
   const [phaseData, setPhaseData] = useState<ClientPhaseData | null>(null);
@@ -165,6 +170,34 @@ const NASMClientDashboard: React.FC = () => {
       setPhaseHistory(historyRes.data);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
+    }
+  };
+
+  const handleMessageTrainer = async () => {
+    // @ts-ignore - Assuming assignedTrainerId exists on the user object from auth context
+    const trainerId = user?.assignedTrainerId;
+    if (!trainerId || isCreatingConversation) {
+      alert('No trainer assigned or an action is already in progress.');
+      return;
+    }
+
+    setIsCreatingConversation(true);
+    try {
+      const response = await api.post('/api/messaging/conversations', {
+        type: 'direct',
+        participantIds: [trainerId],
+      });
+      const conversationId = response.data.id;
+      if (conversationId) {
+        navigate(`/messaging?conversation=${conversationId}`);
+      } else {
+        throw new Error("Conversation ID not returned from API.");
+      }
+    } catch (error) {
+      console.error("Failed to start conversation with trainer", error);
+      alert("Could not start a new conversation. Please try again later.");
+    } finally {
+      setIsCreatingConversation(false);
     }
   };
 
@@ -656,12 +689,27 @@ const NASMClientDashboard: React.FC = () => {
   // ========================================
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>
-        My NASM Training
-      </Typography>
-      <Typography variant="body1" color="text.secondary" mb={4}>
-        Your personalized training journey powered by NASM OPT™ methodology
-      </Typography>
+      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
+        <Box>
+          <Typography variant="h4" fontWeight="bold" gutterBottom>
+            My NASM Training
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Your personalized training journey powered by NASM OPT™ methodology
+          </Typography>
+        </Box>
+        {/* @ts-ignore */}
+        {user?.assignedTrainerId && (
+          <Button
+            variant="contained"
+            startIcon={<MessageIcon />}
+            onClick={handleMessageTrainer}
+            disabled={isCreatingConversation}
+          >
+            Message My Trainer
+          </Button>
+        )}
+      </Stack>
 
       <Grid container spacing={3}>
         {/* Phase Widget */}
@@ -683,6 +731,12 @@ const NASMClientDashboard: React.FC = () => {
         <Grid item xs={12}>
           {renderProgressTimeline()}
         </Grid>
+
+        {/* Workout Logger */}
+        <Grid item xs={12}>
+          <WorkoutLogger />
+        </Grid>
+
       </Grid>
 
       {renderHomeworkDialog()}
