@@ -413,7 +413,7 @@ async function runAllMigrations() {
     `, { type: QueryTypes.SELECT });
 
     console.log('📋 Core tables created:');
-    allTables.forEach(t => console.log(`   ✅ ${t.table_name}`));
+    allTables.rows.forEach(t => console.log(`   ✅ ${t.table_name}`));
 
     console.log('\n🎉 ALL MIGRATIONS COMPLETED SUCCESSFULLY!');
     console.log('\n📚 Database is now ready for SwanStudios production deployment!');
