@@ -67,6 +67,7 @@ import UsersManagementSection from './UsersManagementSection';
 import TrainersManagementSection from './TrainersManagementSection';
 import AdminScheduleTab from './schedule/AdminScheduleTab';
 import UnifiedSchedule from '../../../Unified/UnifiedSchedule';
+import MessagingPage from '../../../../pages/MessagingPage';
 
 // Import the new comprehensive admin sections
 const ClientsManagementSection = lazy(() => import('./sections/ClientsManagementSection'));
@@ -409,7 +410,7 @@ const sectionComponents = {
   // Overview sections
   overview: () => <CommandCenterOverview />,
   analytics: () => <Suspense fallback={<div>Loading...</div>}><UserAnalyticsPanel /></Suspense>,
-  
+
   // Management sections
   users: () => <Suspense fallback={<div>Loading...</div>}><UsersManagementSection /></Suspense>,
   trainers: () => <TrainersManagementSection />,
@@ -417,15 +418,16 @@ const sectionComponents = {
   sessions: () => <UnifiedSchedule />,
   packages: () => <Suspense fallback={<div>Loading...</div>}><PackagesManagementSection /></Suspense>,
   content: () => <Suspense fallback={<div>Loading...</div>}><ContentModerationSection /></Suspense>,
-  
+
   // Financial Management sections
   revenue: () => <Suspense fallback={<div>Loading...</div>}><RevenueAnalyticsPanel /></Suspense>,
   'pending-orders': () => <Suspense fallback={<div>Loading...</div>}><PendingOrdersAdminPanel /></Suspense>,
-  
+
   // Analytics sections
   gamification: () => <Suspense fallback={<div>Loading...</div>}><AdminGamificationView /></Suspense>,
   notifications: () => <Suspense fallback={<div>Loading...</div>}><NotificationsSection /></Suspense>,
-  
+  messages: () => <Suspense fallback={<div>Loading...</div>}><MessagingPage /></Suspense>,
+
   // System sections
   'system-health': () => <Suspense fallback={<div>Loading...</div>}><SystemHealthPanel /></Suspense>,
   security: () => <Suspense fallback={<div>Loading...</div>}><SecurityMonitoringPanel /></Suspense>,
@@ -437,7 +439,7 @@ const sectionTitles = {
   overview: 'Command Center Overview',
   analytics: 'Analytics Hub',
   users: 'User Management',
-  trainers: 'Trainer Management', 
+  trainers: 'Trainer Management',
   clients: 'Client Management',
   sessions: 'Session Scheduling',
   packages: 'Package Management',
@@ -446,6 +448,7 @@ const sectionTitles = {
   'pending-orders': 'Pending Orders',
   gamification: 'Gamification Engine',
   notifications: 'Notifications',
+  messages: 'Messages',
   'system-health': 'System Health',
   security: 'Security Dashboard',
   'mcp-servers': 'MCP Server Status',
@@ -465,6 +468,7 @@ const sectionDescriptions = {
   'pending-orders': 'Manage manual payments and pending orders',
   gamification: 'Configure achievements and engagement systems',
   notifications: 'Manage platform notifications and alerts',
+  messages: 'View and manage platform messages',
   'system-health': 'Monitor system performance and uptime',
   security: 'Security monitoring and threat analysis',
   'mcp-servers': 'MCP server status and configuration',
