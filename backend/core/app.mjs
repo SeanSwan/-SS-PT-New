@@ -225,14 +225,27 @@ export const createApp = async () => {
   // The "catchall" handler: for any request that doesn't match an API route,
   // send back the main index.html file. This enables React Router to work.
   // 🎯 P0 FIX: Explicit MIME type to prevent text/plain serving
+  // 🎯 CRITICAL FIX: Exclude API routes from SPA catch-all to prevent API interception
   app.get('*', (req, res) => {
+    const requestPath = req.path;
+
+    // Exclude API and webhook routes from SPA catch-all
+    if (requestPath.startsWith('/api') || requestPath.startsWith('/webhooks')) {
+      return res.status(404).json({
+        success: false,
+        error: 'API endpoint not found',
+        path: requestPath,
+        timestamp: new Date().toISOString()
+      });
+    }
+
     const indexPath = path.join(frontendBuildPath, 'index.html');
     logger.info(`🔄 SPA Catch-all: ${req.url} -> serving index.html from ${indexPath}`);
-    
+
     // 🎯 P0 CRITICAL: Set explicit Content-Type before serving to prevent MIME issues
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.setHeader('Cache-Control', isProduction ? 'public, max-age=300' : 'no-cache');
-    
+
     res.sendFile(indexPath, (err) => {
       if (err) {
         logger.error(`❌ Failed to serve index.html: ${err.message}`);

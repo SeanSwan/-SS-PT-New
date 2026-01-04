@@ -177,7 +177,7 @@ export const initializeSocket = (httpServer) => {
           }
         );
 
-        const unreadMessageIds = unreadMessages.map((m: any) => m.id);
+        const unreadMessageIds = unreadMessages.map((m) => m.id);
 
         if (unreadMessageIds.length > 0) {
           // 2. Insert receipts for these specific IDs
