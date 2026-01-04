@@ -23,6 +23,7 @@ import SocialProfileSection from './SocialProfileSection';
 import ScheduleContainer from '../../Schedule';
 import ClientScheduleTab from '../../DashBoard/Pages/client-dashboard/schedule';
 import UnifiedSchedule from '../../Unified/UnifiedSchedule';
+import MessagingPage from '../../../pages/MessagingPage';
 
 // Styled Components
 const StyledBox = styled.div`
@@ -176,7 +177,7 @@ const ClientDashboardContent: React.FC<ClientDashboardContentProps> = ({ activeS
         case 'community':
           return <SafeRender component={<CommunitySection />} fallback="Community Section" />;
         case 'messages':
-          return <SafeRender component={<EnhancedMessagingSection />} fallback="Messages Section" />;
+          return <SafeRender component={<MessagingPage />} fallback="Messages Section" />;
         case 'profile':
           return <SafeRender component={<SocialProfileSection />} fallback="Profile Section" />;
         case 'settings':

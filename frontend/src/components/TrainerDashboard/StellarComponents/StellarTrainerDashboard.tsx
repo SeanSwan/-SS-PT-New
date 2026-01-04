@@ -31,6 +31,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useUniversalTheme } from '../../../context/ThemeContext';
 import UnifiedSchedule from '../../Unified/UnifiedSchedule';
+import MessagingPage from '../../../pages/MessagingPage';
 
 // === KEYFRAME ANIMATIONS ===
 const nebulaSpin = keyframes`
@@ -252,7 +253,7 @@ const trainerSectionComponents = {
   analytics: TrainingOverview,
   achievements: ContentStudio,
   engagement: TrainingOverview,
-  messages: ClientManagement,
+  messages: MessagingPage,
   notifications: TrainingOverview,
   reports: ContentStudio,
   settings: TrainingOverview,

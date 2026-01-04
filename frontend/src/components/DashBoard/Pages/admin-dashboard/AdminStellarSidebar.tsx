@@ -136,8 +136,8 @@ const useHapticFeedback = () => {
 
 // Icons
 import {
-  Shield, Users, UserCheck, Calendar, Package, BarChart3, 
-  Database, Settings, Monitor, TrendingUp, ShieldCheck, 
+  Shield, Users, UserCheck, Calendar, Package, BarChart3,
+  Database, Settings, Monitor, TrendingUp, ShieldCheck,
   Activity, DollarSign, MessageSquare, FileText, Star,
   AlertTriangle, CheckCircle, RefreshCw, Download, Share,
   Zap, Command, Eye, EyeOff, Maximize, Minimize,
@@ -145,7 +145,7 @@ import {
   CreditCard, ShoppingBag, Dumbbell, UtensilsCrossed,
   Users as GroupIcon, Clock, Camera, Video, Mic,
   GraduationCap, Briefcase, Heart, Gamepad2,
-  Wrench, Gauge, Wifi, WifiOff, Bell,
+  Wrench, Gauge, Wifi, WifiOff, Bell, Mail,
   HardDrive, BarChart, PieChart, LineChart as LineChartIcon,
   TrendingDown, Plus, Minus, UserPlus, UserMinus,
   UserCog, Cpu, Server, Globe, Menu, X,
@@ -892,16 +892,24 @@ const getAdminNavItems = (userRole: string): AdminNavItem[] => [
     section: 'content',
     description: 'Configure achievements and engagement systems'
   },
-  { 
-    id: 'notifications', 
-    label: 'Notifications', 
-    route: '/dashboard/notifications', 
-    icon: <Bell size={20} />, 
+  {
+    id: 'notifications',
+    label: 'Notifications',
+    route: '/dashboard/notifications',
+    icon: <Bell size={20} />,
     section: 'content',
     notification: 12,
     description: 'Manage platform notifications and alerts'
   },
-  
+  {
+    id: 'messages',
+    label: 'Messages',
+    route: '/dashboard/messages',
+    icon: <Mail size={20} />,
+    section: 'content',
+    description: 'View and manage platform messages'
+  },
+
   // System Operations
   { 
     id: 'system-health', 
