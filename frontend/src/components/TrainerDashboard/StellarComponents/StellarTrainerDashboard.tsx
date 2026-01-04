@@ -32,6 +32,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUniversalTheme } from '../../../context/ThemeContext';
 import UnifiedSchedule from '../../Unified/UnifiedSchedule';
 import MessagingPage from '../../../pages/MessagingPage';
+import EnhancedWorkoutLogger from '../WorkoutLogging/EnhancedWorkoutLogger';
 
 // === KEYFRAME ANIMATIONS ===
 const nebulaSpin = keyframes`
@@ -242,6 +243,7 @@ const trainerSectionComponents = {
   overview: TrainingOverview,
   'assigned-sessions': AssignedSessions,
   clients: ClientManagement,
+  'log-workout': EnhancedWorkoutLogger,
   'form-checks': ContentStudio,
   'content-library': ContentStudio,
   videos: ContentStudio,
@@ -263,6 +265,7 @@ const trainerSectionTitles = {
   overview: 'Training Command Center',
   'assigned-sessions': 'Assigned Client Sessions',
   clients: 'Client Universe',
+  'log-workout': 'Workout Logger',
   'form-checks': 'Form Analysis Galaxy',
   'content-library': 'Content Nebula',
   videos: 'Training Video Cosmos',
@@ -284,6 +287,7 @@ const trainerSectionDescriptions = {
   overview: 'Your complete training command center and performance overview',
   'assigned-sessions': 'View and manage your assigned client sessions and training relationships',
   clients: 'Manage and monitor your client galaxy',
+  'log-workout': 'Log client workouts with NASM-compliant tracking',
   'form-checks': 'AI-powered form analysis and feedback center',
   'content-library': 'Your stellar training content repository',
   videos: 'Training video library and demonstration hub',
