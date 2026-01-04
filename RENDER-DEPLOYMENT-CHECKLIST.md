@@ -88,13 +88,19 @@
    - Plan: Starter (or higher)
    - Auto-linked to backend service via `DATABASE_URL`
 
-2. **Run Migrations**
+2. **Redis Database** (for session storage)
+   - Name: `swanstudios-redis`
+   - Plan: Starter (or higher)
+   - Auto-linked to backend service via `REDIS_URL`
+   - Purpose: Multi-instance session persistence
+
+3. **Run Migrations**
    ```bash
    # Via Render Shell
    npm run migrate:production
    ```
 
-3. **Create Admin User** (if needed)
+4. **Create Admin User** (if needed)
    ```bash
    # Via Render Shell
    npm run create-admin
@@ -213,6 +219,15 @@ curl https://ss-pt-new.onrender.com/api/storefront
 3. Run migrations: `npm run migrate:production`
 4. Check database credentials in Render dashboard
 
+### Issue 7: Redis Connection Failed
+**Symptom:** "Failed to connect to Redis, falling back to in-memory sessions" in logs
+
+**Fix:**
+1. Verify `REDIS_URL` environment variable is set in Render dashboard
+2. Check Redis instance is running and healthy
+3. Verify Redis instance is on same Render account (auto-linked)
+4. Note: In-memory fallback works but sessions won't persist across instances
+
 ### Issue 6: Stripe Integration Fails
 **Symptom:** Package purchase shows error
 
@@ -282,6 +297,9 @@ curl https://ss-pt-new.onrender.com/api/storefront
 | PORT | 10000 | Server port |
 | DATABASE_URL | postgres://... | PostgreSQL connection string |
 | JWT_SECRET | abc123... | JWT signing secret (32+ chars) |
+| SESSION_SECRET | xyz789... | Session signing secret (32+ chars) |
+| REDIS_URL | redis://... | Redis connection string (auto-linked) |
+| USE_REDIS_SESSIONS | true | Enable Redis session storage |
 | FRONTEND_URL | https://swanstudios-frontend.onrender.com | Frontend base URL |
 | FRONTEND_ORIGINS | https://swanstudios-frontend.onrender.com,... | Comma-separated allowed origins |
 | STRIPE_SECRET_KEY | sk_live_... | Stripe secret key |
