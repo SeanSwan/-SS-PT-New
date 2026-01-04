@@ -23,13 +23,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider, keyframes } from 'styled-components';
-import { 
-  TrainingOverview, ClientManagement, ContentStudio, AssignedSessions 
+import {
+  TrainingOverview, ClientManagement, ContentStudio, AssignedSessions
 } from './TrainerStellarSections';
 import TrainerStellarSidebar from './TrainerStellarSidebar';
 import { useAuth } from '../../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useUniversalTheme } from '../../../context/ThemeContext';
+import UnifiedSchedule from '../../Unified/UnifiedSchedule';
 
 // === KEYFRAME ANIMATIONS ===
 const nebulaSpin = keyframes`
@@ -244,7 +245,7 @@ const trainerSectionComponents = {
   'content-library': ContentStudio,
   videos: ContentStudio,
   uploads: ContentStudio,
-  schedule: TrainingOverview,
+  schedule: UnifiedSchedule,
   progress: ClientManagement,
   assessments: ClientManagement,
   goals: ClientManagement,
