@@ -37,6 +37,16 @@ services:
         sync: false  # Set manually in Render dashboard
       - key: STRIPE_PUBLISHABLE_KEY
         sync: false  # Set manually in Render dashboard
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: swanstudios-redis
+          property: connectionString
+      - key: USE_REDIS_SESSIONS
+        value: true
+      - key: SESSION_SECRET
+        generateValue: true
+        length: 32
 
   # Frontend static site (PRODUCTION CONFIGURATION)
   - type: static
@@ -117,6 +127,12 @@ databases:
     databaseName: swanstudios
     user: swanstudios_user
     plan: starter # or standard/pro based on needs
+
+  # Redis for session storage (multi-instance scaling)
+  - name: swanstudios-redis
+    plan: starter # or standard/pro based on needs
+    maxmemoryPolicy: allkeys-lru # Automatically evict old keys when memory limit reached
+    ipAllowList: [] # Empty means allow from all Render services
 
 # Environment variables to set manually in Render dashboard:
 # - STRIPE_SECRET_KEY: Your Stripe secret key

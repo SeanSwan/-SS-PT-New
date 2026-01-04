@@ -14,6 +14,7 @@ import { fileURLToPath } from 'url';
 import { setupMiddleware } from './middleware/index.mjs';
 import { setupRoutes } from './routes.mjs';
 import { setupErrorHandling } from './middleware/errorHandler.mjs';
+import { initializeSession } from '../config/session.mjs';
 import logger from '../utils/logger.mjs';
 
 /**
@@ -175,6 +176,20 @@ export const createApp = async () => {
   logger.info(`   🏁 LAYER 4: Traditional CORS middleware (non-OPTIONS)`);
   logger.info(`   📝 Allowed Origins: ${allowedOrigins.join(', ')}`);
   logger.info(`   🎯 This WILL bypass Render platform interference!`);
+
+  // ===================== SESSION CONFIGURATION =====================
+  // Initialize Redis-backed session storage for multi-instance scaling
+  const { middleware: sessionMiddleware, redisClient, store } = await initializeSession();
+  app.use(sessionMiddleware);
+
+  // Store redisClient for graceful shutdown
+  app.locals.redisClient = redisClient;
+
+  if (store) {
+    logger.info(`✅ Session storage: Redis-backed (multi-instance ready)`);
+  } else {
+    logger.warn(`⚠️ Session storage: In-memory (fallback mode - NOT suitable for production with multiple instances)`);
+  }
 
   // ===================== SECURITY & OPTIMIZATION =====================
   if (isProduction) {

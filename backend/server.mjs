@@ -50,6 +50,7 @@ import { createApp } from './core/app.mjs';
 import { initializeServer } from './core/startup.mjs';
 import { initializeModelsCache } from './models/index.mjs';
 import { initializeSocket } from './socket/socket.mjs';
+import { closeRedisConnection } from './config/session.mjs';
 import logger from './utils/logger.mjs';
 
 // ===================== GLOBAL ERROR HANDLERS =====================
@@ -72,20 +73,22 @@ process.on('uncaughtException', (error) => {
 });
 
 // ===================== MAIN SERVER EXECUTION =====================
+let appInstance = null;
+
 (async () => {
   try {
     // Environment info
     const isProduction = process.env.NODE_ENV === 'production';
     const USE_SQLITE_FALLBACK = process.env.USE_SQLITE_FALLBACK === 'true';
-    
+
     console.log(`[Server] Environment: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'}`);
     console.log(`[Server] Database: ${USE_SQLITE_FALLBACK ? 'SQLITE (Fallback)' : (isProduction ? 'RENDER POSTGRES' : 'POSTGRESQL + MONGODB')}`);
-    
+
     // Redis status will be handled by redisWrapper.mjs
-    
+
     // Check API keys early
     checkApiKeys();
-    
+
     // 🎯 CRITICAL: Initialize models cache BEFORE app creation to prevent import timing issues
     logger.info('🚀 Initializing models cache for production readiness...');
     try {
@@ -95,24 +98,42 @@ process.on('uncaughtException', (error) => {
       logger.error('💥 CRITICAL: Models cache initialization failed:', modelsError);
       throw new Error(`Models initialization failed: ${modelsError.message}`);
     }
-    
+
     // Create Express application
     logger.info('Creating Express application...');
     const app = await createApp();
-    
+    appInstance = app; // Store reference for graceful shutdown
+
     // Initialize and start server
     logger.info('Initializing server components...');
     const httpServer = await initializeServer(app);
     initializeSocket(httpServer);
-    
+
     logger.info('🎉 SwanStudios Server is now ready to serve cosmic wellness!');
-    
+
   } catch (error) {
     console.error('💥 Critical server startup failure:', error);
     logger.error(`Critical server startup failure: ${error.message}`, { stack: error.stack });
     process.exit(1);
   }
 })();
+
+// ===================== GRACEFUL SHUTDOWN =====================
+// Handle graceful shutdown for Redis connection cleanup
+const gracefulShutdown = async (signal) => {
+  logger.info(`${signal} signal received: closing HTTP server and cleaning up resources`);
+
+  if (appInstance && appInstance.locals.redisClient) {
+    await closeRedisConnection(appInstance.locals.redisClient);
+  }
+
+  logger.info('Server shutdown complete');
+  process.exit(0);
+};
+
+// Listen for termination signals
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Export app for testing purposes
 export default async () => {
