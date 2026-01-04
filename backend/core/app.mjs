@@ -30,16 +30,23 @@ export const createApp = async () => {
 
   // ===================== ULTRA-AGGRESSIVE OPTIONS HANDLING (LAYER 1) =====================
   // This runs BEFORE any other middleware to catch ALL OPTIONS requests
-  
+
+  // Get allowed origins from environment or use defaults
+  const envOrigins = process.env.FRONTEND_ORIGINS
+    ? process.env.FRONTEND_ORIGINS.split(',').map(o => o.trim())
+    : [];
+
   const allowedOrigins = [
-    'http://localhost:5173', 
-    'http://localhost:5174', 
+    ...envOrigins,
+    'http://localhost:5173',
+    'http://localhost:5174',
     'http://localhost:5175',
     'http://localhost:3000',
     'https://sswanstudios.com',
     'https://www.sswanstudios.com',
     'https://swanstudios.com',
-    'https://www.swanstudios.com'
+    'https://www.swanstudios.com',
+    'https://swanstudios-frontend.onrender.com'
   ];
 
   // LAYER 1: IMMEDIATE OPTIONS INTERCEPTION

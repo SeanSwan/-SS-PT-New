@@ -46,15 +46,22 @@ const socketAuthMiddleware = async (socket, next) => {
 };
 
 export const initializeSocket = (httpServer) => {
-  const io = new Server(httpServer, {
-    cors: {
-      origin: [
+  // Get allowed origins from environment or use defaults
+  const allowedOrigins = process.env.FRONTEND_ORIGINS
+    ? process.env.FRONTEND_ORIGINS.split(',')
+    : [
         'http://localhost:5173',
         'http://localhost:5174',
         'https://sswanstudios.com',
-        'https://www.sswanstudios.com'
-      ],
+        'https://www.sswanstudios.com',
+        'https://swanstudios-frontend.onrender.com'
+      ];
+
+  const io = new Server(httpServer, {
+    cors: {
+      origin: allowedOrigins,
       methods: ['GET', 'POST'],
+      credentials: true
     },
   });
 
