@@ -35,7 +35,7 @@ import financialRoutes from '../routes/financialRoutes.mjs';
 
 // ===================== COMMUNICATION =====================
 import contactRoutes from '../routes/contactRoutes.mjs';
-import messagesRoutes from '../routes/messages.mjs';
+import messagingRoutes from '../routes/messagingRoutes.mjs';
 import notificationsApiRoutes from '../routes/notificationsRoutes.mjs';
 
 // ===================== FITNESS & WELLNESS =====================
@@ -44,6 +44,7 @@ import workoutPlanRoutes from '../routes/workoutPlanRoutes.mjs';
 import workoutSessionRoutes from '../routes/workoutSessionRoutes.mjs';
 // CONSOLIDATED SESSION ROUTES (Phase 1: Backend Harmonization)
 import sessionsRoutes from '../routes/sessions.mjs';
+import scheduleRoutes from '../routes/scheduleRoutes.mjs';
 
 // ===================== GAMIFICATION & SOCIAL =====================
 // LEGACY ROUTES - Replaced by V1 API (kept for backward compatibility)
@@ -177,7 +178,7 @@ export const setupRoutes = async (app) => {
 
   // ===================== COMMUNICATION ROUTES =====================
   app.use('/api/contact', contactRoutes);
-  app.use('/api/messages', messagesRoutes);
+  app.use('/api/messaging', messagingRoutes);
   app.use('/api/notifications', notificationsApiRoutes);
 
   // ===================== FITNESS & WELLNESS ROUTES =====================
@@ -188,7 +189,7 @@ export const setupRoutes = async (app) => {
   // ===================== UNIFIED SESSIONS ROUTES (Phase 1: Backend Harmonization) =====================
   // Consolidated from enhancedScheduleRoutes + scheduleRoutes using unified session service
   app.use('/api/sessions', sessionsRoutes);
-  app.use('/api/schedule', sessionsRoutes); // Legacy alias for backward compatibility
+  app.use('/api/schedule', scheduleRoutes); // Calendar view schedule endpoint
   app.use('/api/orientation', orientationRoutes);
   app.use('/api/recommendations', recommendationRoutes);
   app.use('/api/food-scanner', foodScannerRoutes);

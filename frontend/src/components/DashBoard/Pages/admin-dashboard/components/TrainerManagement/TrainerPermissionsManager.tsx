@@ -254,7 +254,7 @@ function a11yProps(index: number) {
  * - Real-time synchronization
  */
 const TrainerPermissionsManager: React.FC = () => {
-  const { user, authAxios } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   
   // ==================== STATE MANAGEMENT ====================

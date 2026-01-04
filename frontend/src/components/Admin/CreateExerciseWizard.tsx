@@ -1,57 +1,159 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { X } from 'lucide-react';
-import { useForm } from 'react-hook-form';
+import { motion } from 'framer-motion';
+import { useForm, Controller, get } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import { toast } from 'react-toastify';
+import { X, UploadCloud, Youtube, Film, Check } from 'lucide-react';
+import api from '../../utils/api';
 
-interface ExerciseFormData {
-  title: string;
-  description: string;
-  videoType?: 'youtube' | 'upload';
-  videoId?: string;
-  phases?: number[];
-}
+// Zod schema for validation, based on the blueprint
+const exerciseSchema = z.object({
+  name: z.string().min(3, 'Exercise name must be at least 3 characters'),
+  description: z.string().optional(),
+  primary_muscle: z.string().min(1, 'Primary muscle is required'),
+  equipment: z.string().min(1, 'Equipment type is required'),
+  difficulty: z.enum(['beginner', 'intermediate', 'advanced']),
+  video: z.object({
+    type: z.enum(['youtube', 'upload']),
+    video_id: z.string().optional(),
+    title: z.string().optional(),
+  }),
+  videoFile: z.any().optional(),
+  nasm_phases: z.array(z.string()).min(1, 'At least one NASM phase is required'),
+});
+
+type ExerciseFormData = z.infer<typeof exerciseSchema>;
 
 interface CreateExerciseWizardProps {
   onClose: () => void;
   onSuccess: () => void;
 }
 
-/**
- * Multi-step wizard for creating exercises with video integration
- *
- * Steps:
- * 1. Basic Info (name, description, muscles, equipment)
- * 2. Video Upload (file upload, YouTube link, or select existing)
- * 3. NASM Tags (phases, movement patterns, acute variables)
- * 4. Preview & Submit
- *
- * TODO: Implement full wizard functionality
- */
 const CreateExerciseWizard: React.FC<CreateExerciseWizardProps> = ({ onClose, onSuccess }) => {
   const [step, setStep] = useState(1);
+  const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<ExerciseFormData>({
+
+  const { control, register, handleSubmit, watch, setValue, getValues, formState: { errors } } = useForm<ExerciseFormData>({
+    resolver: zodResolver(exerciseSchema),
     defaultValues: {
-      videoType: 'youtube',
-      phases: []
-    }
+      difficulty: 'intermediate',
+      video: { type: 'youtube' },
+      nasm_phases: [],
+    },
   });
 
+  const videoType = watch('video.type');
+
   const createExerciseMutation = useMutation({
-    mutationFn: (data: ExerciseFormData) => axios.post('/api/admin/exercise-library', data),
+    mutationFn: (formData: FormData) => {
+      return api.post('/api/admin/exercise-library', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    },
     onSuccess: () => {
+      toast.success('Exercise created successfully!');
       queryClient.invalidateQueries({ queryKey: ['admin-videos'] });
       onSuccess();
-    }
+    },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.message || 'Failed to create exercise.');
+    },
   });
+
   const onSubmit = (data: ExerciseFormData) => {
-    createExerciseMutation.mutate(data);
+    const formData = new FormData();
+
+    // Append all fields as strings, backend will parse
+    Object.entries(data).forEach(([key, value]) => {
+      if (key === 'videoFile' && value && value.length > 0) {
+        formData.append('video_file', value[0]);
+      } else if (key === 'video' && typeof value === 'object' && value !== null) {
+        // Handle nested video object
+        Object.entries(value).forEach(([subKey, subValue]) => {
+          if (subValue !== undefined) {
+            formData.append(`video[${subKey}]`, String(subValue));
+          }
+        });
+      } else if (key === 'nasm_phases' && Array.isArray(value)) {
+         value.forEach(item => formData.append(`nasm_phases[]`, item));
+      } else if (value !== undefined && key !== 'videoFile') {
+        formData.append(key, String(value));
+      }
+    });
+
+    createExerciseMutation.mutate(formData);
   };
 
   const nextStep = () => setStep(prev => Math.min(prev + 1, 4));
   const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setVideoPreview(URL.createObjectURL(e.target.files[0]));
+    }
+  };
+
+  const renderStepContent = () => {
+    switch (step) {
+      case 1:
+        return (
+          <StepContent>
+            <Input {...register('name')} placeholder="Exercise Name (e.g., Dumbbell Bench Press)" $error={!!errors.name} />
+            {errors.name && <ErrorMessage>{errors.name.message}</ErrorMessage>}
+            <TextArea {...register('description')} placeholder="Description and form cues..." />
+            <FormGrid>
+              <Select {...register('primary_muscle')} $error={!!errors.primary_muscle}>
+                <option value="">Primary Muscle*</option>
+                <option value="chest">Chest</option>
+                <option value="back">Back</option>
+                <option value="shoulders">Shoulders</option>
+                <option value="legs">Legs</option>
+                <option value="arms">Arms</option>
+                <option value="core">Core</option>
+              </Select>
+              <Select {...register('equipment')} $error={!!errors.equipment}>
+                <option value="">Equipment*</option>
+                <option value="dumbbell">Dumbbell</option>
+                <option value="barbell">Barbell</option>
+                <option value="bodyweight">Bodyweight</option>
+                <option value="cable">Cable</option>
+                <option value="machine">Machine</option>
+              </Select>
+              <Select {...register('difficulty')}>
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+              </Select>
+            </FormGrid>
+          </StepContent>
+        );
+      case 2:
+        return (
+          <StepContent>
+            <SegmentedControl>
+              <SegmentButton $active={videoType === 'youtube'} onClick={() => setValue('video.type', 'youtube')}><Youtube size={16}/> YouTube</SegmentButton>
+              <SegmentButton $active={videoType === 'upload'} onClick={() => setValue('video.type', 'upload')}><Film size={16}/> Upload</SegmentButton>
+            </SegmentedControl>
+            {videoType === 'youtube' ? (
+              <Input {...register('video.video_id')} placeholder="YouTube Video ID or URL" />
+            ) : (
+              <Dropzone htmlFor="video-upload">
+                <input
+                  id="video-upload"
+                  type="file"
+                  accept="video/mp4,video/mov,video/webm"
+                  style={{ display: 'none' }}
+                  {...register('videoFile')}
+                  onChange={handleFileChange}
+                />
+                {videoPreview ? (
+                  <video src={videoPreview} controls style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                ) : (
+                  <>
 
   return (
     <Overlay onClick={onClose}>
@@ -119,11 +221,11 @@ const CreateExerciseWizard: React.FC<CreateExerciseWizardProps> = ({ onClose, on
           )}
           {step < 4 ? (
             <PrimaryButton onClick={nextStep}>
-              Next
+              Next Step
             </PrimaryButton>
           ) : (
-            <PrimaryButton onClick={handleSubmit(onSubmit)}>
-              Create Exercise
+            <PrimaryButton onClick={handleSubmit(onSubmit)} disabled={createExerciseMutation.isPending}>
+              {createExerciseMutation.isPending ? 'Creating...' : '✓ Create Exercise'}
             </PrimaryButton>
           )}
         </Footer>
@@ -131,30 +233,6 @@ const CreateExerciseWizard: React.FC<CreateExerciseWizardProps> = ({ onClose, on
     </Overlay>
   );
 };
-
-const StepBasicInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-const StepVideo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-const StepPhases = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
-
-const StepReview = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-`;
 
 const Input = styled.input<{ $error?: boolean }>`
   padding: 12px;
@@ -177,7 +255,7 @@ const TextArea = styled.textarea`
   border: 1px solid var(--glass-border);
   border-radius: 8px;
   background: var(--dark-bg);
-  color: var(--text-primary);
+  color: var(--text-primary, #FFFFFF);
   min-height: 100px;
   font-size: 16px;
   font-family: inherit;
@@ -194,7 +272,7 @@ const Select = styled.select`
   border: 1px solid var(--glass-border);
   border-radius: 8px;
   background: var(--dark-bg);
-  color: var(--text-primary);
+  color: var(--text-primary, #FFFFFF);
   font-size: 16px;
 
   option {
@@ -212,9 +290,17 @@ const PrimaryButton = styled.button`
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 
   &:hover {
     opacity: 0.9;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 `;
 
@@ -303,6 +389,138 @@ const Footer = styled.div`
   gap: 12px;
   padding: 24px;
   border-top: 1px solid var(--glass-border, rgba(0, 206, 209, 0.2));
+`;
+
+// New styled components for the completed wizard
+const StepContent = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+`;
+
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+`;
+
+const ErrorMessage = styled.p`
+  color: var(--error, #FF4444);
+  font-size: 0.875rem;
+  margin: -0.75rem 0 0 0;
+`;
+
+const SegmentedControl = styled.div`
+  display: flex;
+  border: 1px solid var(--glass-border);
+  border-radius: 8px;
+  overflow: hidden;
+`;
+
+const SegmentButton = styled.button<{ $active: boolean }>`
+  flex: 1;
+  padding: 12px;
+  background: ${props => props.$active ? 'var(--primary-cyan)' : 'transparent'};
+  color: ${props => props.$active ? 'var(--dark-bg)' : 'var(--text-primary)'};
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  &:not(:last-child) {
+    border-right: 1px solid var(--glass-border);
+  }
+`;
+
+const Dropzone = styled.label`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  border: 2px dashed var(--glass-border);
+  border-radius: 12px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  text-align: center;
+  transition: border-color 0.2s;
+
+  &:hover {
+    border-color: var(--primary-cyan);
+  }
+
+  svg {
+    color: var(--primary-cyan);
+    margin-bottom: 12px;
+  }
+`;
+
+const CheckboxGroup = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+`;
+
+const CheckboxLabel = styled.label`
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 16px;
+`;
+
+const CheckboxInput = styled.input`
+  display: none;
+`;
+
+const Checkmark = styled.div`
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--glass-border);
+  border-radius: 4px;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+
+  ${CheckboxInput}:checked + & {
+    background-color: var(--primary-cyan);
+    border-color: var(--primary-cyan);
+  }
+`;
+
+const SummaryCard = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+`;
+
+const SummaryItem = styled.p`
+  margin: 0 0 0.5rem 0;
+  strong {
+    color: var(--primary-cyan);
+  }
+`;
+
+const ProgressBar = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+`;
+
+const ProgressStep = styled.div<{ $active: boolean }>`
+  flex: 1;
+  text-align: center;
+  padding-bottom: 8px;
+  border-bottom: 2px solid ${props => props.$active ? 'var(--primary-cyan)' : 'var(--glass-border)'};
+  color: ${props => props.$active ? 'var(--primary-cyan)' : 'var(--text-secondary)'};
+  font-weight: 600;
+  transition: all 0.3s;
 `;
 
 export default CreateExerciseWizard;

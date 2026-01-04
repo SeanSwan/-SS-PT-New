@@ -86,22 +86,22 @@ interface AssignmentStats {
 
 const assignmentTheme = {
   colors: {
-    primary: '#3b82f6',
-    primaryHover: '#2563eb',
-    secondary: '#64748b',
-    success: '#10b981',
-    warning: '#f59e0b',
-    danger: '#ef4444',
-    background: '#f8fafc',
-    surface: '#ffffff',
-    text: '#1e293b',
-    textSecondary: '#64748b',
-    border: '#e2e8f0',
-    shadow: 'rgba(0, 0, 0, 0.1)',
-    gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    stellarBlue: '#0ea5e9',
-    cosmicPurple: '#8b5cf6',
-    energyGreen: '#10b981'
+    primary: 'var(--primary-cyan, #00CED1)',
+    primaryHover: 'var(--primary-cyan-hover, #00B8B8)',
+    secondary: 'var(--secondary-purple, #9D4EDD)',
+    success: 'var(--success-green, #10b981)',
+    warning: 'var(--warning-yellow, #f59e0b)',
+    danger: 'var(--danger-red, #ef4444)',
+    background: 'var(--dark-bg, #0a0e1a)',
+    surface: 'var(--glass-bg, rgba(10, 14, 26, 0.7))',
+    text: 'var(--text-primary, #FFFFFF)',
+    textSecondary: 'var(--text-secondary, rgba(255, 255, 255, 0.7))',
+    border: 'var(--glass-border, rgba(0, 206, 209, 0.2))',
+    shadow: 'rgba(0, 206, 209, 0.1)',
+    gradient: 'linear-gradient(135deg, var(--primary-cyan, #00CED1) 0%, var(--accent-purple, #9D4EDD) 100%)',
+    stellarBlue: 'var(--primary-cyan, #00CED1)',
+    cosmicPurple: 'var(--accent-purple, #9D4EDD)',
+    energyGreen: 'var(--success-green, #10b981)'
   },
   shadows: {
     sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',

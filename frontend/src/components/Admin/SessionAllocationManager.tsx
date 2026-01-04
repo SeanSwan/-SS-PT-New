@@ -59,10 +59,11 @@ interface SessionAllocationManagerProps {
 // ==================== STYLED COMPONENTS ====================
 
 const Container = styled(motion.div)`
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: var(--glass-bg, rgba(10, 14, 26, 0.7));
+  backdrop-filter: blur(10px);
   border-radius: 12px;
   padding: 2rem;
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  border: 1px solid var(--glass-border, rgba(0, 206, 209, 0.2));
   min-height: 600px;
 `;
 
@@ -346,7 +347,9 @@ const Modal = styled(motion.div)`
 `;
 
 const ModalContent = styled(motion.div)`
-  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  background: var(--glass-bg, rgba(10, 14, 26, 0.9));
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border, rgba(0, 206, 209, 0.2));
   border-radius: 12px;
   padding: 2rem;
   max-width: 500px;
