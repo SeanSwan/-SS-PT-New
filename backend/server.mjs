@@ -49,7 +49,7 @@ import { checkApiKeys } from './utils/apiKeyChecker.mjs';
 import { createApp } from './core/app.mjs';
 import { initializeServer } from './core/startup.mjs';
 import { initializeModelsCache } from './models/index.mjs';
-import { initializeSocket } from './core/socket.mjs';
+import { initializeSocket } from './socket/socket.mjs';
 import logger from './utils/logger.mjs';
 
 // ===================== GLOBAL ERROR HANDLERS =====================
