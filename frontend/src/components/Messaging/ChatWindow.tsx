@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import styled from 'styled-components';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import api from '../../utils/api';
+import api from '../../services/api';
 import Message from './Message';
 import MessageSkeleton from './MessageSkeleton';
 import ChatHeader from './ChatHeader';
