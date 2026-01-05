@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import api from '../../utils/api';
+import api from '../../services/api';
 import { User, Plus } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import NewConversationModal from './NewConversationModal';
