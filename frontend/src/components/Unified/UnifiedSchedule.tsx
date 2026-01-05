@@ -6,7 +6,7 @@ import enUS from 'date-fns/locale/en-US';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../hooks/useAuth';
-import api from '../../utils/api';
+import api from '../../services/api';
 import { toast } from 'react-toastify';
 
 // Setup the localizer for react-big-calendar
