@@ -462,6 +462,7 @@ const productionApiService = new ProductionApiService();
 // Export for compatibility
 export default productionApiService;
 export { ProductionApiService, ProductionTokenManager };
+export { ProductionApiService as ApiService }; // Backward compatibility alias
 
 // Global debug functions for production troubleshooting
 if (typeof window !== 'undefined') {

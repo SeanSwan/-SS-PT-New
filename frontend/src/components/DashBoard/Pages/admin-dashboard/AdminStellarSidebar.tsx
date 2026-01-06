@@ -31,6 +31,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider } from 'styled-components';
 import { useAuth } from '../../../../context/AuthContext';
+import { ADMIN_DASHBOARD_TABS } from '../../../../config/dashboard-tabs';
 
 // PWA and Mobile Optimization Hooks (with fallbacks)
 // TODO: Implement these hooks in the PWA components when available
@@ -141,9 +142,9 @@ import {
   Activity, DollarSign, MessageSquare, FileText, Star,
   AlertTriangle, CheckCircle, RefreshCw, Download, Share,
   Zap, Command, Eye, EyeOff, Maximize, Minimize,
-  Filter, Calendar as CalendarIcon, Flame, ThumbsUp,
+  Filter, Flame, ThumbsUp,
   CreditCard, ShoppingBag, Dumbbell, UtensilsCrossed,
-  Users as GroupIcon, Clock, Camera, Video, Mic,
+  Clock, Camera, Video, Mic,
   GraduationCap, Briefcase, Heart, Gamepad2,
   Wrench, Gauge, Wifi, WifiOff, Bell, Mail,
   HardDrive, BarChart, PieChart, LineChart as LineChartIcon,
@@ -578,12 +579,55 @@ const NotificationBadge = styled(motion.span)<{ isCollapsed: boolean }>`
   justify-content: center;
   font-size: 0.625rem;
   font-weight: 600;
-  margin-left: auto;
   opacity: ${props => props.isCollapsed ? 0 : 1};
   transform: ${props => props.isCollapsed ? 'scale(0)' : 'scale(1)'};
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
   animation: notificationPulse 2s infinite;
+`;
+
+const NavigationMeta = styled.div<{ isCollapsed: boolean }>`
+  margin-left: auto;
+  display: ${props => props.isCollapsed ? 'none' : 'flex'};
+  align-items: center;
+  gap: ${props => props.theme.spacing.sm};
+`;
+
+type NavStatus = 'real' | 'mock' | 'partial' | 'fix' | 'progress' | 'new' | 'error';
+
+const navStatusStyles: Record<NavStatus, { color: string; background: string; border: string }> = {
+  real: { color: '#10b981', background: 'rgba(16, 185, 129, 0.2)', border: 'rgba(16, 185, 129, 0.6)' },
+  mock: { color: '#f59e0b', background: 'rgba(245, 158, 11, 0.2)', border: 'rgba(245, 158, 11, 0.6)' },
+  partial: { color: '#3b82f6', background: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 0.6)' },
+  progress: { color: '#3b82f6', background: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 0.6)' },
+  fix: { color: '#ef4444', background: 'rgba(239, 68, 68, 0.2)', border: 'rgba(239, 68, 68, 0.6)' },
+  new: { color: '#00ffff', background: 'rgba(0, 255, 255, 0.2)', border: 'rgba(0, 255, 255, 0.6)' },
+  error: { color: '#ef4444', background: 'rgba(239, 68, 68, 0.3)', border: 'rgba(239, 68, 68, 0.7)' }
+};
+
+const navStatusMeta: Record<NavStatus, { label: string; Icon: React.ComponentType<{ size?: number }> }> = {
+  real: { label: 'Real', Icon: CheckCircle },
+  mock: { label: 'Mock', Icon: AlertTriangle },
+  partial: { label: 'Partial', Icon: RefreshCw },
+  progress: { label: 'WIP', Icon: RefreshCw },
+  fix: { label: 'Fix', Icon: Wrench },
+  new: { label: 'New', Icon: Star },
+  error: { label: 'Error', Icon: XSquare }
+};
+
+const NavStatusBadge = styled.span<{ status: NavStatus }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 6px;
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: ${props => navStatusStyles[props.status].color};
+  background: ${props => navStatusStyles[props.status].background};
+  border: 1px solid ${props => navStatusStyles[props.status].border};
 `;
 
 const StatusIndicator = styled.div<{ status: 'healthy' | 'warning' | 'error' }>`
@@ -766,193 +810,52 @@ interface AdminNavItem {
   isDisabled?: boolean;
   requiredRole?: string[];
   description?: string;
+  status?: NavStatus;
 }
 
-const getAdminNavItems = (userRole: string): AdminNavItem[] => [
-  // Command Center
-  { 
-    id: 'overview', 
-    label: 'Dashboard Overview', 
-    route: '/dashboard/default', 
-    icon: <Shield size={20} />, 
-    section: 'command',
-    description: 'Executive command center overview'
-  },
-  { 
-    id: 'analytics', 
-    label: 'Analytics Hub', 
-    route: '/dashboard/analytics', 
-    icon: <BarChart3 size={20} />, 
-    section: 'command',
-    description: 'Comprehensive analytics and insights'
-  },
-  
-  // Platform Management
-  { 
-    id: 'users', 
-    label: 'User Management', 
-    route: '/dashboard/user-management', 
-    icon: <Users size={20} />, 
-    section: 'management',
-    description: 'Manage all platform users'
-  },
-  { 
-    id: 'trainers', 
-    label: 'Trainer Management', 
-    route: '/dashboard/trainers', 
-    icon: <UserCheck size={20} />, 
-    section: 'management',
-    description: 'Manage trainer accounts and permissions'
-  },
-  { 
-    id: 'master-schedule', 
-    label: 'Master Schedule', 
-    route: '/dashboard/admin/master-schedule', 
-    icon: <CalendarIcon size={20} />, 
-    section: 'management',
-    description: 'Universal Master Schedule management',
-    isNew: true
-  },
-  {
-    id: 'clients',
-    label: 'Client Management',
-    route: '/dashboard/clients',
-    icon: <GroupIcon size={20} />,
-    section: 'management',
-    description: 'Monitor client accounts and engagement'
-  },
-  {
-    id: 'client-onboarding',
-    label: 'Client Onboarding',
-    route: '/dashboard/client-onboarding',
-    icon: <UserPlus size={20} />,
-    section: 'management',
-    description: 'Onboard new clients with comprehensive wizard',
-    isNew: true
-  },
-  {
-    id: 'sessions',
-    label: 'Session Scheduling',
-    route: '/dashboard/admin-sessions',
-    icon: <Calendar size={20} />,
-    section: 'management',
-    description: 'Manage training sessions and appointments'
-  },
-  { 
-    id: 'packages', 
-    label: 'Package Management', 
-    route: '/dashboard/admin-packages', 
-    icon: <Package size={20} />, 
-    section: 'management',
-    description: 'Configure pricing and session packages'
-  },
-  
-  // Business Intelligence
-  { 
-    id: 'revenue', 
-    label: 'Revenue Analytics', 
-    route: '/dashboard/revenue', 
-    icon: <DollarSign size={20} />, 
-    section: 'business',
-    description: 'Track revenue streams and financial metrics'
-  },
-  { 
-    id: 'pending-orders', 
-    label: 'Pending Orders', 
-    route: '/dashboard/pending-orders', 
-    icon: <CreditCard size={20} />, 
-    section: 'business',
-    notification: 3,
-    description: 'Manage manual payments and pending orders'
-  },
-  { 
-    id: 'reports', 
-    label: 'Performance Reports', 
-    route: '/dashboard/reports', 
-    icon: <FileText size={20} />, 
-    section: 'business',
-    description: 'Generate comprehensive performance reports'
-  },
-  
-  // Content & Community
-  { 
-    id: 'content', 
-    label: 'Content Moderation', 
-    route: '/dashboard/content', 
-    icon: <MessageSquare size={20} />, 
-    section: 'content',
-    notification: 5,
-    description: 'Review and moderate user-generated content'
-  },
-  { 
-    id: 'gamification', 
-    label: 'Gamification Engine', 
-    route: '/dashboard/gamification', 
-    icon: <Gamepad2 size={20} />, 
-    section: 'content',
-    description: 'Configure achievements and engagement systems'
-  },
-  {
-    id: 'notifications',
-    label: 'Notifications',
-    route: '/dashboard/notifications',
-    icon: <Bell size={20} />,
-    section: 'content',
-    notification: 12,
-    description: 'Manage platform notifications and alerts'
-  },
-  {
-    id: 'messages',
-    label: 'Messages',
-    route: '/dashboard/messages',
-    icon: <Mail size={20} />,
-    section: 'content',
-    description: 'View and manage platform messages'
-  },
+const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
+  Shield,
+  Calendar,
+  BarChart3,
+  Users,
+  UserCheck,
+  UserPlus,
+  Package,
+  DollarSign,
+  CreditCard,
+  FileText,
+  Mail,
+  MessageSquare,
+  Gamepad2,
+  Bell,
+  Monitor,
+  ShieldCheck,
+  Server,
+  Settings,
+  Grid,
+};
 
-  // System Operations
-  { 
-    id: 'system-health', 
-    label: 'System Health', 
-    route: '/dashboard/system-health', 
-    icon: <Monitor size={20} />, 
-    section: 'system',
-    description: 'Monitor system performance and uptime'
-  },
-  { 
-    id: 'security', 
-    label: 'Security Dashboard', 
-    route: '/dashboard/security', 
-    icon: <ShieldCheck size={20} />, 
-    section: 'system',
-    description: 'Security monitoring and threat analysis'
-  },
-  { 
-    id: 'mcp-servers', 
-    label: 'MCP Servers', 
-    route: '/dashboard/mcp-servers', 
-    icon: <Server size={20} />, 
-    section: 'system',
-    description: 'MCP server status and configuration'
-  },
-  { 
-    id: 'settings', 
-    label: 'Admin Settings', 
-    route: '/dashboard/settings', 
-    icon: <Settings size={20} />, 
-    section: 'system',
-    description: 'Administrative settings and configurations'
-  },
-  { 
-    id: 'style-guide', 
-    label: 'Aesthetic Codex', 
-    route: '/dashboard/style-guide', 
-    icon: <Grid size={20} />, 
-    section: 'system',
-    isNew: true,
-    description: 'Living style guide and design system'
-  }
-];
+const getIconNode = (iconName: string) => {
+  const Icon = iconMap[iconName] || Shield;
+  return <Icon size={20} />;
+};
+
+const getAdminNavItems = (_userRole: string): AdminNavItem[] =>
+  ADMIN_DASHBOARD_TABS
+    .slice()
+    .sort((a, b) => a.order - b.order)
+    .map((tab) => ({
+      id: tab.key,
+      label: tab.label,
+      route: tab.route || `/dashboard/${tab.key}`,
+      icon: getIconNode(tab.icon),
+      section: tab.section || 'management',
+      notification: tab.notification,
+      isNew: tab.isNew,
+      isDisabled: tab.isDisabled,
+      description: tab.description,
+      status: tab.status,
+    }));
 
 const navigationSections = {
   command: 'Command Center',
@@ -1224,66 +1127,86 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
                 {navigationSections[sectionKey as keyof typeof navigationSections]}
               </SectionTitle>
               
-              {items.map((item) => (
-                <TooltipWrapper key={item.id}>
-                  <NavigationItem
-                    isActive={isActiveRoute(item.route)}
-                    isCollapsed={isCollapsed}
-                    hasNotification={!!item.notification}
-                    isDisabled={item.isDisabled}
-                    deviceType={deviceType}
-                    onClick={() => !item.isDisabled && handleNavigation(item.route)}
-                    variants={itemVariants}
-                    whileHover={!item.isDisabled ? 'hover' : undefined}
-                    whileTap={!item.isDisabled ? 'tap' : undefined}
-                    role="menuitem"
-                    aria-label={item.label}
-                    title={isCollapsed ? item.label : undefined}
-                  >
-                    <NavigationIcon isCollapsed={isCollapsed}>
-                      {item.icon}
-                      {item.isNew && (
-                        <motion.div
-                          style={{
-                            position: 'absolute',
-                            top: -4,
-                            right: -4,
-                            width: 8,
-                            height: 8,
-                            borderRadius: '50%',
-                            background: '#00ffff',
-                            boxShadow: '0 0 8px rgba(0, 255, 255, 0.6)'
-                          }}
-                          animate={{ scale: [1, 1.2, 1] }}
-                          transition={{ duration: 2, repeat: Infinity }}
-                        />
+              {items.map((item) => {
+                const statusConfig = item.status ? navStatusMeta[item.status] : null;
+                const StatusIcon = statusConfig?.Icon;
+
+                return (
+                  <TooltipWrapper key={item.id}>
+                    <NavigationItem
+                      isActive={isActiveRoute(item.route)}
+                      isCollapsed={isCollapsed}
+                      hasNotification={!!item.notification}
+                      isDisabled={item.isDisabled}
+                      deviceType={deviceType}
+                      onClick={() => !item.isDisabled && handleNavigation(item.route)}
+                      variants={itemVariants}
+                      whileHover={!item.isDisabled ? 'hover' : undefined}
+                      whileTap={!item.isDisabled ? 'tap' : undefined}
+                      role="menuitem"
+                      aria-label={item.label}
+                      title={isCollapsed ? item.label : undefined}
+                    >
+                      <NavigationIcon isCollapsed={isCollapsed}>
+                        {item.icon}
+                        {item.isNew && (
+                          <motion.div
+                            style={{
+                              position: 'absolute',
+                              top: -4,
+                              right: -4,
+                              width: 8,
+                              height: 8,
+                              borderRadius: '50%',
+                              background: '#00ffff',
+                              boxShadow: '0 0 8px rgba(0, 255, 255, 0.6)'
+                            }}
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ duration: 2, repeat: Infinity }}
+                          />
+                        )}
+                      </NavigationIcon>
+                      
+                      <NavigationText isCollapsed={isCollapsed}>
+                        {item.label}
+                      </NavigationText>
+                      
+                      {(item.status || item.notification) && (
+                        <NavigationMeta isCollapsed={isCollapsed}>
+                          {item.status && statusConfig && StatusIcon && (
+                            <NavStatusBadge status={item.status}>
+                              <StatusIcon size={10} />
+                              <span>{statusConfig.label}</span>
+                            </NavStatusBadge>
+                          )}
+                          {item.notification && (
+                            <NotificationBadge isCollapsed={isCollapsed}>
+                              {item.notification > 99 ? '99+' : item.notification}
+                            </NotificationBadge>
+                          )}
+                        </NavigationMeta>
                       )}
-                    </NavigationIcon>
+                    </NavigationItem>
                     
-                    <NavigationText isCollapsed={isCollapsed}>
-                      {item.label}
-                    </NavigationText>
-                    
-                    {item.notification && (
-                      <NotificationBadge isCollapsed={isCollapsed}>
-                        {item.notification > 99 ? '99+' : item.notification}
-                      </NotificationBadge>
+                    {/* Tooltip for collapsed state */}
+                    {isCollapsed && (
+                      <Tooltip className="tooltip">
+                        {item.label}
+                        {item.description && (
+                          <div style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '0.25rem' }}>
+                            {item.description}
+                          </div>
+                        )}
+                        {statusConfig && (
+                          <div style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '0.25rem' }}>
+                            Status: {statusConfig.label}
+                          </div>
+                        )}
+                      </Tooltip>
                     )}
-                  </NavigationItem>
-                  
-                  {/* Tooltip for collapsed state */}
-                  {isCollapsed && (
-                    <Tooltip className="tooltip">
-                      {item.label}
-                      {item.description && (
-                        <div style={{ fontSize: '0.75rem', opacity: 0.8, marginTop: '0.25rem' }}>
-                          {item.description}
-                        </div>
-                      )}
-                    </Tooltip>
-                  )}
-                </TooltipWrapper>
-              ))}
+                  </TooltipWrapper>
+                );
+              })}
             </NavigationSection>
           ))}
         </Navigation>

@@ -45,7 +45,8 @@
       "Bash(timeout 10 node:*)",
       "Bash([ -f \"DASHBOARD-CONSOLIDATION-ACTION-PLAN.md\" ])",
       "Bash(find:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(test:*)"
     ],
     "deny": [],
     "ask": []

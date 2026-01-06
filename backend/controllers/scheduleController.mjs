@@ -22,15 +22,20 @@ export const getScheduleEvents = async (req, res) => {
   const { start, end } = req.query;
   const { id: userId, role } = req.user;
 
-  if (!start || !end) {
-    return res.status(400).json({ error: 'Start and end date range are required.' });
+  const startDate = start ? new Date(start) : new Date();
+  const endDate = end
+    ? new Date(end)
+    : new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+    return res.status(400).json({ error: 'Invalid start or end date format.' });
   }
 
   try {
     let whereClause = 's."sessionDate" BETWEEN :start AND :end AND s.status IN (:statuses)';
     const replacements = {
-      start,
-      end,
+      start: startDate,
+      end: endDate,
       statuses: ['scheduled', 'confirmed', 'completed'],
     };
 
