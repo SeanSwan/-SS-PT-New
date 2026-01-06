@@ -1,17 +1,19 @@
 /**
  * TrainerStellarSections.tsx
  * ==========================
- * 
+ *
  * Stellar Training Center Sections for Trainer Dashboard
  * Designed by Seraphina, The Digital Alchemist
- * 
+ *
  * Features:
  * - Cosmic training command center sections
  * - Enhanced stellar aesthetics with trainer-specific content
  * - Performance-optimized components with smooth animations
  * - Mobile-first responsive design
  * - WCAG AA accessibility compliance
- * 
+ *
+ * ✅ REAL DATA - Integrated with backend APIs
+ *
  * Master Prompt v28 Alignment:
  * - Award-winning aesthetics with cosmic training grandeur
  * - Mobile-first ultra-responsive components
@@ -21,13 +23,15 @@
 import React, { useState, useEffect } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
-import { 
+import {
   Users, Calendar, TrendingUp, Target, Video, MessageSquare,
   Plus, MoreVertical, User, Clock, Upload, Camera, Star,
   Award, Zap, Bell, Settings, BarChart3, FileText, Search
 } from 'lucide-react';
 import { useUniversalTheme } from '../../../context/ThemeContext';
 import GlowButton from '../../ui/buttons/GlowButton';
+import { useAuth } from '../../../context/AuthContext';
+import axios from 'axios';
 
 // === KEYFRAME ANIMATIONS ===
 const stellarFloat = keyframes`
@@ -343,20 +347,69 @@ const ClientStatus = styled.div<{ status: string }>`
   }
 `;
 
-// === MOCK DATA ===
-const mockClients = [
-  { id: 1, name: 'Sarah Johnson', email: 'sarah.j@email.com', status: 'active', lastSession: '2 days ago', totalSessions: 24 },
-  { id: 2, name: 'Mike Chen', email: 'mike.chen@email.com', status: 'active', lastSession: '1 day ago', totalSessions: 18 },
-  { id: 3, name: 'Emma Williams', email: 'emma.w@email.com', status: 'inactive', lastSession: '1 week ago', totalSessions: 35 },
-  { id: 4, name: 'John Davis', email: 'john.d@email.com', status: 'pending', lastSession: 'Never', totalSessions: 0 },
-];
+// === HELPER FUNCTIONS ===
+const getAuthToken = (): string | null => {
+  return localStorage.getItem('token') || localStorage.getItem('userToken') || null;
+};
 
 // === SECTION COMPONENTS ===
 
 // Training Overview Section
 const TrainingOverview: React.FC = () => {
   const { theme } = useUniversalTheme();
-  
+  const { user } = useAuth();
+  const [stats, setStats] = useState({
+    activeClients: 0,
+    todaySessions: 0,
+    clientRetention: 0,
+    goalsAchieved: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTrainerStats = async () => {
+      try {
+        const token = getAuthToken();
+        if (!token || !user?.id) {
+          setLoading(false);
+          return;
+        }
+
+        const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
+
+        // Fetch trainer's assigned clients
+        const assignmentsRes = await axios.get(`/api/assignments/trainer/${user.id}`, authHeaders);
+        const assignments = assignmentsRes.data?.assignments || [];
+
+        // Calculate stats from real data
+        const activeClients = assignments.filter((a: any) => a.status === 'active').length;
+
+        // TODO: Implement today's sessions count when session API is available
+        const todaySessions = 0;
+
+        // Calculate retention (active clients / total clients)
+        const totalClients = assignments.length;
+        const retention = totalClients > 0 ? Math.round((activeClients / totalClients) * 100) : 0;
+
+        // TODO: Implement goals achieved count when goals API is available
+        const goalsAchieved = 0;
+
+        setStats({
+          activeClients,
+          todaySessions,
+          clientRetention: retention,
+          goalsAchieved
+        });
+      } catch (err) {
+        console.error('Failed to fetch trainer stats:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTrainerStats();
+  }, [user]);
+
   return (
     <StellarSection
       initial={{ opacity: 0, y: 20 }}
@@ -369,44 +422,44 @@ const TrainingOverview: React.FC = () => {
           Training Command Center
         </StellarSectionTitle>
       </StellarSectionHeader>
-      
+
       <StatsGrid>
         <StatCard glowColor="#00FFFF" whileHover={{ scale: 1.02 }}>
           <StatIcon color="#00FFFF">
             <Users size={24} />
           </StatIcon>
           <StatContent>
-            <StatValue>24</StatValue>
+            <StatValue>{loading ? '...' : stats.activeClients}</StatValue>
             <StatLabel>Active Clients</StatLabel>
           </StatContent>
         </StatCard>
-        
+
         <StatCard glowColor="#FFD700" whileHover={{ scale: 1.02 }}>
           <StatIcon color="#FFD700">
             <Calendar size={24} />
           </StatIcon>
           <StatContent>
-            <StatValue>8</StatValue>
+            <StatValue>{loading ? '...' : stats.todaySessions}</StatValue>
             <StatLabel>Today's Sessions</StatLabel>
           </StatContent>
         </StatCard>
-        
+
         <StatCard glowColor="#7851A9" whileHover={{ scale: 1.02 }}>
           <StatIcon color="#7851A9">
             <TrendingUp size={24} />
           </StatIcon>
           <StatContent>
-            <StatValue>92%</StatValue>
+            <StatValue>{loading ? '...' : `${stats.clientRetention}%`}</StatValue>
             <StatLabel>Client Retention</StatLabel>
           </StatContent>
         </StatCard>
-        
+
         <StatCard glowColor="#10b981" whileHover={{ scale: 1.02 }}>
           <StatIcon color="#10b981">
             <Target size={24} />
           </StatIcon>
           <StatContent>
-            <StatValue>156</StatValue>
+            <StatValue>{loading ? '...' : stats.goalsAchieved}</StatValue>
             <StatLabel>Goals Achieved</StatLabel>
           </StatContent>
         </StatCard>
@@ -418,14 +471,55 @@ const TrainingOverview: React.FC = () => {
 // Client Management Section
 const ClientManagement: React.FC = () => {
   const { theme } = useUniversalTheme();
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  
+  const [clients, setClients] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAssignedClients = async () => {
+      try {
+        const token = getAuthToken();
+        if (!token || !user?.id) {
+          setLoading(false);
+          return;
+        }
+
+        const authHeaders = { headers: { Authorization: `Bearer ${token}` } };
+
+        // Fetch trainer's assigned clients
+        const assignmentsRes = await axios.get(`/api/assignments/trainer/${user.id}`, authHeaders);
+        const assignments = assignmentsRes.data?.assignments || [];
+
+        // Map assignments to client data
+        const clientData = assignments.map((assignment: any) => ({
+          id: assignment.client.id,
+          name: `${assignment.client.firstName} ${assignment.client.lastName}`,
+          email: assignment.client.email,
+          status: assignment.status || 'active',
+          availableSessions: assignment.client.availableSessions || 0,
+          phone: assignment.client.phone || '',
+          assignedAt: assignment.assignedAt
+        }));
+
+        setClients(clientData);
+      } catch (err) {
+        console.error('Failed to fetch assigned clients:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAssignedClients();
+  }, [user]);
+
   const getInitials = (name: string): string => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
-  
-  const filteredClients = mockClients.filter(client => 
-    client.name.toLowerCase().includes(searchTerm.toLowerCase())
+
+  const filteredClients = clients.filter(client =>
+    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
   return (
@@ -485,38 +579,51 @@ const ClientManagement: React.FC = () => {
       
       <ContentGrid style={{ gridTemplateColumns: '1fr' }}>
         <div>
-          {filteredClients.map(client => (
-            <ClientCard
-              key={client.id}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-            >
-              <ClientAvatar>
-                {getInitials(client.name)}
-              </ClientAvatar>
-              <ClientInfo>
-                <ClientName>{client.name}</ClientName>
-                <ClientDetails>{client.email}</ClientDetails>
-                <ClientDetails>Last session: {client.lastSession} • {client.totalSessions} total sessions</ClientDetails>
-              </ClientInfo>
-              <ClientStatus status={client.status}>
-                {client.status.charAt(0).toUpperCase() + client.status.slice(1)}
-              </ClientStatus>
-              <button
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: theme.text?.secondary || '#E8F0FF',
-                  cursor: 'pointer',
-                  padding: '0.5rem',
-                  borderRadius: '8px',
-                  transition: 'all 0.3s ease'
-                }}
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '2rem', color: theme.text?.secondary || '#E8F0FF' }}>
+              Loading clients...
+            </div>
+          ) : filteredClients.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem', color: theme.text?.secondary || '#E8F0FF' }}>
+              {searchTerm ? 'No clients found matching your search' : 'No assigned clients yet'}
+            </div>
+          ) : (
+            filteredClients.map(client => (
+              <ClientCard
+                key={client.id}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
               >
-                <MoreVertical size={16} />
-              </button>
-            </ClientCard>
-          ))}
+                <ClientAvatar>
+                  {getInitials(client.name)}
+                </ClientAvatar>
+                <ClientInfo>
+                  <ClientName>{client.name}</ClientName>
+                  <ClientDetails>{client.email}</ClientDetails>
+                  <ClientDetails>
+                    Available Sessions: {client.availableSessions} •
+                    Assigned: {new Date(client.assignedAt).toLocaleDateString()}
+                  </ClientDetails>
+                </ClientInfo>
+                <ClientStatus status={client.status}>
+                  {client.status.charAt(0).toUpperCase() + client.status.slice(1)}
+                </ClientStatus>
+                <button
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: theme.text?.secondary || '#E8F0FF',
+                    cursor: 'pointer',
+                    padding: '0.5rem',
+                    borderRadius: '8px',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <MoreVertical size={16} />
+                </button>
+              </ClientCard>
+            ))
+          )}
         </div>
       </ContentGrid>
     </StellarSection>
