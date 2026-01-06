@@ -1,12 +1,14 @@
 /**
  * useEnhancedClientDashboard.ts
  * =============================
- * 
+ *
  * Custom hook for managing enhanced client dashboard data
  * Provides gamification data, stats, and real-time updates
- * 
+ *
+ * ✅ REAL DATA - Integrated with backend APIs
+ *
  * Features:
- * - Real-time data fetching with fallback
+ * - Real-time data fetching from backend
  * - Error handling and loading states
  * - WebSocket connection management
  * - Performance optimized with caching
@@ -14,6 +16,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../../../context/AuthContext';
+import axios from 'axios';
 
 // === TYPE DEFINITIONS ===
 export interface GamificationData {
@@ -115,22 +118,61 @@ export const useEnhancedClientDashboard = () => {
     lastUpdate: new Date()
   });
 
-  // Simulate data fetching with realistic loading time
+  // Fetch real dashboard data from backend APIs
   const fetchDashboardData = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // In a real implementation, this would be:
-      // const response = await fetch('/api/client/dashboard-data');
-      // const data = await response.json();
-      
-      setGamificationData(MOCK_GAMIFICATION_DATA);
-      setStats(MOCK_STATS);
-      
+
+      const token = localStorage.getItem('token') || localStorage.getItem('userToken');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const authHeaders = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+
+      // Fetch real data from backend
+      const [progressRes, achievementsRes, statsRes] = await Promise.all([
+        axios.get('/api/client/progress', authHeaders),
+        axios.get('/api/client/achievements', authHeaders),
+        axios.get('/api/client/workout-stats', authHeaders)
+      ]);
+
+      const progressData = progressRes.data?.progress || {};
+      const achievementsData = achievementsRes.data?.achievements || [];
+      const workoutStats = statsRes.data?.stats || {};
+
+      // Map backend data to gamification data
+      const gamification: GamificationData = {
+        level: progressData.level || 1,
+        xp: progressData.experiencePoints || 0,
+        totalXp: progressData.totalExperiencePoints || progressData.experiencePoints || 0,
+        xpToNextLevel: progressData.xpToNextLevel || 1000,
+        streak: progressData.streakDays || 0,
+        badges: achievementsData.map((ach: any) => ({
+          id: ach.id || String(Math.random()),
+          name: ach.title || ach.name || 'Achievement',
+          description: ach.description || '',
+          isUnlocked: true,
+          unlockedAt: ach.earnedAt ? new Date(ach.earnedAt) : new Date()
+        }))
+      };
+
+      // Map backend data to dashboard stats
+      const dashboardStats: DashboardStats = {
+        monthlyWorkouts: workoutStats.totalWorkouts || 0,
+        totalSessions: workoutStats.totalWorkouts || 0,
+        avgSessionDuration: workoutStats.averageDuration || 0,
+        caloriesBurned: progressData.caloriesBurned || 0,
+        strengthGains: progressData.strengthGain || 0,
+        consistencyScore: progressData.consistencyScore || 0
+      };
+
+      setGamificationData(gamification);
+      setStats(dashboardStats);
+
       setConnectionStatus({
         isConnected: true,
         status: 'connected',
