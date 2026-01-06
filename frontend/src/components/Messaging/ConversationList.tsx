@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import { User, Plus } from 'lucide-react';
-import { useSocket } from '../context/SocketContext';
+import { useSocket } from '../../context/SocketContext';
 import NewConversationModal from './NewConversationModal';
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 

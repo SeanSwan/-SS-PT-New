@@ -6,7 +6,7 @@ import Message from './Message';
 import MessageSkeleton from './MessageSkeleton';
 import ChatHeader from './ChatHeader';
 import MessageInput from './MessageInput';
-import { useSocket } from '../context/SocketContext';
+import { useSocket } from '../../context/SocketContext';
 import { useAuth } from '../../hooks/useAuth';
 
 interface ChatWindowProps {

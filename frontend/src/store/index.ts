@@ -48,6 +48,14 @@ export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 
 /**
+ * TYPED HOOKS
+ * Pre-typed versions of useDispatch and useSelector for TypeScript
+ */
+import { TypedUseSelectorHook, useDispatch, useSelector } from 'react-redux';
+export const useAppDispatch = () => useDispatch<AppDispatch>();
+export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
+
+/**
  * EXPORTS
  * - Named export for the store to use with useSelector/useDispatch
  * - Dummy persister for compatibility with existing components

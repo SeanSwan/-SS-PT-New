@@ -16,6 +16,7 @@
  * Available Sessions → Trainer Assignment → Client Relationship → Scheduled Sessions → Session Delivery
  */
 
+import { Op } from 'sequelize';
 import logger from '../utils/logger.mjs';
 import { 
   getUser, 
@@ -601,7 +602,7 @@ class TrainerAssignmentService {
           [Session.sequelize.fn('COUNT', Session.sequelize.col('trainerId')), 'sessionCount']
         ],
         where: {
-          trainerId: { [Session.sequelize.Op.not]: null }
+          trainerId: { [Op.not]: null }
         },
         group: ['trainerId'],
         include: [{

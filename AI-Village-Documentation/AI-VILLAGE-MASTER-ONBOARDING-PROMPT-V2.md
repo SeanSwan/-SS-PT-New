@@ -1,8 +1,8 @@
-# 🚀 AI VILLAGE MASTER ONBOARDING PROMPT v2.4
+# 🚀 AI VILLAGE MASTER ONBOARDING PROMPT v2.5
 ## UNIFIED: Phase 0 Reviews + AI Handoff Coordination + Design Workflow + Coach Cortex v3.1 + Admin Video Library
 
-**LATEST UPDATE:** 2025-11-13 - Added Admin Video Library System (28,000+ lines docs + 950+ lines UI code)
-**Previous Update:** 2025-11-10 - Clarified Kilo Code = DeepSeek Prover + Added complete 6-AI roster table
+**LATEST UPDATE:** 2025-11-18 - Added Storefront System docs and schema fixes
+**Previous Update:** 2025-11-13 - Added Admin Video Library System (28,000+ lines docs + 950+ lines UI code)
 
 ---
 
@@ -155,7 +155,7 @@ Copy this entire prompt to ANY AI in the AI Village — they will auto‑detect 
 │           (FREE TIER)                   upon purchasing sessions │
 │           - EnhancedSocialPosts                                   │
 │           - SocialConnections                                     │
-│           - Communities access                                    │
+│           - Communities access                                    │ 
 │           - CANNOT book sessions                                  │
 ├──────────────────────────────────────────────────────────────────┤
 │ client    All user permissions       - Purchased training        │

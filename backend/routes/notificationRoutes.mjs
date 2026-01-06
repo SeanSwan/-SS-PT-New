@@ -50,6 +50,7 @@ import {
   deleteNotification
 } from '../controllers/notificationController.mjs';
 import { protect } from '../middleware/authMiddleware.mjs';
+import { getNotification } from '../models/index.mjs';
 
 const router = express.Router();
 
@@ -68,11 +69,54 @@ router.get('/', protect, getAllNotifications);
 router.put('/:id/read', protect, markAsRead);
 
 /**
+ * @route   PATCH /api/notifications/:id/read
+ * @desc    Mark a notification as read (PATCH alias)
+ * @access  Private
+ */
+router.patch('/:id/read', protect, markAsRead);
+
+/**
  * @route   PUT /api/notifications/read-all
  * @desc    Mark all notifications as read
  * @access  Private
  */
 router.put('/read-all', protect, markAllAsRead);
+
+/**
+ * @route   PATCH /api/notifications/read-all
+ * @desc    Mark all notifications as read (PATCH alias)
+ * @access  Private
+ */
+router.patch('/read-all', protect, markAllAsRead);
+
+/**
+ * @route   GET /api/notifications/count
+ * @desc    Get unread notification count
+ * @access  Private
+ */
+router.get('/count', protect, async (req, res) => {
+  try {
+    const Notification = getNotification();
+    const userId = Number(req.user?.id);
+    if (!Number.isFinite(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+
+    const unreadCount = await Notification.count({
+      where: { userId, read: false }
+    });
+
+    return res.status(200).json({
+      success: true,
+      unreadCount
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Error fetching notification count'
+    });
+  }
+});
 
 /**
  * @route   DELETE /api/notifications/:id

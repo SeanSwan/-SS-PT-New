@@ -36,7 +36,7 @@ import financialRoutes from '../routes/financialRoutes.mjs';
 // ===================== COMMUNICATION =====================
 import contactRoutes from '../routes/contactRoutes.mjs';
 import messagingRoutes from '../routes/messagingRoutes.mjs';
-import notificationsApiRoutes from '../routes/notificationsRoutes.mjs';
+import notificationsApiRoutes from '../routes/notificationRoutes.mjs';
 
 // ===================== FITNESS & WELLNESS =====================
 import workoutRoutes from '../routes/workoutRoutes.mjs';
@@ -53,6 +53,7 @@ import scheduleRoutes from '../routes/scheduleRoutes.mjs';
 
 // ===================== GAMIFICATION V1 API SYSTEM =====================
 import gamificationV1Routes from '../routes/gamificationV1Routes.mjs';
+import badgeRoutes from '../routes/badgeRoutes.mjs';
 import socialRoutes from '../routes/social/index.mjs';
 
 // ===================== ADMIN & MANAGEMENT =====================
@@ -66,10 +67,13 @@ import adminMcpRoutes from '../routes/adminMcpRoutes.mjs';
 import adminEnterpriseRoutes from '../routes/adminEnterpriseRoutes.mjs';
 import adminContentModerationRoutes from '../routes/adminContentModerationRoutes.mjs';
 import videoLibraryRoutes from '../routes/videoLibraryRoutes.mjs';
+import adminNotificationsRoutes from '../routes/adminNotificationsRoutes.mjs';
 
 // ===================== ENTERPRISE ADMIN ANALYTICS & INTELLIGENCE =====================
 // 🚀 Real Stripe Business Analytics (replaces mock data)
-import adminAnalyticsRoutes from '../routes/adminAnalyticsRoutes.mjs';
+import analyticsRevenueRoutes from '../routes/admin/analyticsRevenueRoutes.mjs';
+import analyticsUserRoutes from '../routes/admin/analyticsUserRoutes.mjs';
+import analyticsSystemRoutes from '../routes/admin/analyticsSystemRoutes.mjs';
 // ⚙️ Admin Settings Management (system, notifications, API keys, security)
 import adminSettingsRoutes from '../routes/adminSettingsRoutes.mjs';
 // 🤖 MCP Server Management and Monitoring (already imported above)
@@ -83,8 +87,9 @@ import orientationRoutes from '../routes/orientationRoutes.mjs';
 import onboardingRoutes from '../routes/onboardingRoutes.mjs';
 import recommendationRoutes from '../routes/recommendationRoutes.mjs';
 import foodScannerRoutes from '../routes/foodScannerRoutes.mjs';
-import dashboardRoutes from '../routes/dashboardRoutes.mjs';
-import dashboardStatsRoutes from '../routes/dashboardStatsRoutes.mjs';
+import adminDashboardRoutes from '../routes/dashboard/adminDashboardRoutes.mjs';
+import sharedDashboardRoutes from '../routes/dashboard/sharedDashboardRoutes.mjs';
+import clientDashboardRoutes from '../routes/clientDashboardRoutes.mjs';
 
 // ===================== ADVANCED INTEGRATIONS =====================
 import mcpRoutes from '../routes/mcpRoutes.mjs';
@@ -197,7 +202,10 @@ export const setupRoutes = async (app) => {
   // ===================== GAMIFICATION & SOCIAL ROUTES =====================
   // V1 COMPREHENSIVE GAMIFICATION API (Production-Ready)
   app.use('/api/v1/gamification', gamificationV1Routes);
-  
+
+  // Enhanced Badge Management System (Phase 1)
+  app.use('/api/badges', badgeRoutes);
+
   // Social routes (separate system)
   app.use('/api/social', socialRoutes);
 
@@ -212,14 +220,20 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin', adminMcpRoutes);                // Provides: /api/admin/mcp/* endpoints
   app.use('/api/admin/content', adminContentModerationRoutes); // Provides: /api/admin/content/* endpoints
   app.use('/api/admin/exercise-library', videoLibraryRoutes); // 📹 NASM Video Library (YouTube + uploads)
+  app.use('/api/admin', adminNotificationsRoutes); // Admin notifications API
   
   app.use('/api/admin/finance', adminFinanceRoutes);
   app.use('/api/admin/store', adminStoreRoutes);
+  app.use('/api/admin/analytics', analyticsRevenueRoutes);
+  app.use('/api/admin/analytics', analyticsUserRoutes);
+  app.use('/api/admin/analytics', analyticsSystemRoutes);
   app.use('/api/admin', adminEnterpriseRoutes);
 
   // ===================== ENTERPRISE ADMIN ANALYTICS & INTELLIGENCE =====================
   // 🚀 Real Stripe Business Analytics API (replaces mock data endpoints)
-  app.use('/api/admin', adminAnalyticsRoutes);
+  app.use('/api/admin', analyticsRevenueRoutes);
+  app.use('/api/admin', analyticsUserRoutes);
+  app.use('/api/admin', analyticsSystemRoutes);
   // ⚙️ Admin Settings Management (system, notifications, API keys, security)
   app.use('/api/admin/settings', adminSettingsRoutes);
   // 🤖 Advanced MCP Server Management and Real-time Monitoring
@@ -230,8 +244,9 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin', adminDataVerificationRoutes);
 
   // ===================== DASHBOARD ROUTES =====================
-  app.use('/api/dashboard', dashboardRoutes);
-  app.use('/api/dashboard', dashboardStatsRoutes);
+  app.use('/api/dashboard', sharedDashboardRoutes);
+  app.use('/api/dashboard', adminDashboardRoutes);
+  app.use('/api/client', clientDashboardRoutes);
 
   // ===================== ADVANCED INTEGRATION ROUTES =====================
   app.use('/api/mcp', mcpRoutes);
