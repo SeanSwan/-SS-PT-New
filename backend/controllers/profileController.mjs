@@ -236,10 +236,10 @@ export const updateUserProfile = async (req, res) => {
       user: updatedUser
     });
   } catch (error) {
-    logger.error('Error updating user profile', { 
-      error: error.message, 
+    logger.error('Error updating user profile', {
+      error: error.message,
       stack: error.stack,
-      userId: req.user?.id 
+      userId: req.user?.id
     });
     return res.status(500).json({
       success: false,
