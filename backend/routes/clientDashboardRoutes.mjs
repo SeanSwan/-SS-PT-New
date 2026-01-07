@@ -4,13 +4,42 @@
  *
  * Real data endpoints for client dashboard integrations.
  *
- * Blueprint Reference: docs/ai-workflow/reviews/dashboard-architecture-review.md
+ * Blueprint References:
+ * - docs/ai-workflow/reviews/dashboard-architecture-review.md
+ * - docs/ai-workflow/PHASE-8-DASHBOARD-API-GAPS-BLUEPRINT.md
+ *
+ * Architecture Overview:
+ * [Client UI] -> [clientDashboardRoutes] -> [Controllers/Models] -> [PostgreSQL]
+ *
+ * Middleware Flow (Profile Patch):
+ * Client -> protect -> clientOnly -> updateClientProfile
+ *
+ * Endpoints:
+ * - GET /api/client/progress
+ * - GET /api/client/achievements
+ * - GET /api/client/challenges
+ * - GET /api/client/workout-stats
+ * - PATCH /api/client/profile
+ *
+ * Mermaid Sequence (Profile Patch):
+ * sequenceDiagram
+ *   participant Client
+ *   participant Routes
+ *   participant Controller
+ *   participant DB
+ *   Client->>Routes: PATCH /api/client/profile
+ *   Routes->>Controller: updateClientProfile
+ *   Controller->>DB: UPDATE users (whitelist)
+ *   DB-->>Controller: user
+ *   Controller-->>Routes: { success, user }
+ *   Routes-->>Client: 200 OK
  */
 
 import express from 'express';
 import sequelize from '../database.mjs';
-import { protect } from '../middleware/authMiddleware.mjs';
+import { protect, clientOnly, rateLimiter } from '../middleware/authMiddleware.mjs';
 import { getAllModels, Op } from '../models/index.mjs';
+import { updateClientProfile } from '../controllers/clientProfileController.mjs';
 
 const router = express.Router();
 
@@ -166,5 +195,18 @@ router.get('/workout-stats', protect, async (req, res) => {
     });
   }
 });
+
+/**
+ * @route   PATCH /api/client/profile
+ * @desc    Update client profile (partial update)
+ * @access  Private (client only)
+ */
+router.patch(
+  '/profile',
+  protect,
+  clientOnly,
+  rateLimiter({ windowMs: 15 * 60 * 1000, max: 10 }),
+  updateClientProfile
+);
 
 export default router;
