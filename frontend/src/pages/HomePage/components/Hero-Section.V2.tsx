@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, Star } from "lucide-react";
 import GlowButton from "../../../components/ui/buttons/GlowButton";
+import logoImg from "../../../assets/Logo.png";
 
 // --- Animations ---
 const nebulaPulse = keyframes`
@@ -70,6 +71,18 @@ const ContentWrapper = styled.div`
   flex-direction: column;
   align-items: center;
   gap: 2rem;
+`;
+
+const Logo = styled(motion.img)`
+  height: 130px;
+  width: auto;
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 0 25px rgba(0, 255, 255, 0.25));
+  animation: ${float} 6s ease-in-out infinite;
+
+  @media (max-width: 768px) {
+    height: 90px;
+  }
 `;
 
 const Badge = styled(motion.div)`
@@ -145,6 +158,14 @@ const HeroSectionV2: React.FC = () => {
       <Nebula />
       
       <ContentWrapper>
+        <Logo 
+          src={logoImg} 
+          alt="SwanStudios" 
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8 }}
+        />
+
         <Badge initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <Star size={14} fill="currentColor" />
           Elite Personal Training
