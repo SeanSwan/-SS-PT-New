@@ -204,7 +204,7 @@ const HomePageV2: React.FC = () => {
             v2.0 REFACTORED SECTIONS
             ======================================== */}
 
-        {/* Hero Section v2.0 - LivingConstellation + FrostedCard + Parallax */}
+        {/* Hero Section v2.0 - Cosmic Nebula + Glassmorphism */}
         <HeroSectionV2 />
 
         <SectionDivider />
