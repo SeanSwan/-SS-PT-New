@@ -1,8 +1,8 @@
-# 🚀 AI VILLAGE MASTER ONBOARDING PROMPT v2.5
-## UNIFIED: Phase 0 Reviews + AI Handoff Coordination + Design Workflow + Coach Cortex v3.1 + Admin Video Library
+# 🚀 AI VILLAGE MASTER ONBOARDING PROMPT v2.6
+## UNIFIED: Phase 0 Reviews + AI Handoff Coordination + Design Workflow + Coach Cor tex v3.1 + Admin Video Library + Dashboard Real Data Integration
 
-**LATEST UPDATE:** 2025-11-18 - Added Storefront System docs and schema fixes
-**Previous Update:** 2025-11-13 - Added Admin Video Library System (28,000+ lines docs + 950+ lines UI code)
+**LATEST UPDATE:** 2026-01-05 - Phase 6-7 Dashboard Real Data Integration Complete (Client + Trainer + Admin access)
+**Previous Update:** 2025-11-18 - Added Storefront System docs and schema fixes
 
 ---
 
@@ -119,6 +119,20 @@ Copy this entire prompt to ANY AI in the AI Village — they will auto‑detect 
   - Video player: `frontend/src/components/admin/VideoPlayerModal.tsx`
   - Debounce hook: `frontend/src/hooks/useDebounce.ts`
   - Test wrapper: `frontend/src/pages/admin/VideoLibraryTest.tsx`
+
+### **📊 Dashboard Real Data Integration:** (NEW - 2026-01-05)
+- Master Blueprint: `docs/ai-workflow/PHASE-6-7-DASHBOARD-REAL-DATA-INTEGRATION.md` (3,100+ lines)
+- **Phase 6: Client Dashboard** - Replaced mock data with real API integration
+  - Hook: `frontend/src/components/ClientDashboard/hooks/useClientData.ts` (parallel API calls, 66% faster)
+  - Enhanced Hook: `frontend/src/components/ClientDashboard/hooks/useEnhancedClientDashboard.ts`
+  - APIs: `/api/client/progress`, `/api/client/achievements`, `/api/client/workout-stats`
+- **Phase 7: Trainer Dashboard** - Replaced mock data with real API integration
+  - Component: `frontend/src/components/TrainerDashboard/StellarComponents/TrainerStellarSections.tsx`
+  - APIs: `/api/assignments/trainer/:trainerId` (admin + trainer access)
+- **Admin Access:** Full trainer capabilities via `trainerOrAdminOnly` middleware
+  - Admin can train clients directly from admin dashboard
+  - Same features as trainers (client management, session tracking, stats)
+- Messaging Components: 5 files created (ChatHeader, Message, MessageInput, MessageSkeleton, NewConversationModal)
 
 ### **🔄 Shared Files (How AIs Coordinate):**
 - Current task tracking: `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md` (lock files here!)
