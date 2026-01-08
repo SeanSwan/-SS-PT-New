@@ -319,8 +319,9 @@ backend/migrations/20251118000004-convert-packagetype-enum-to-string.cjs ✅
 - `vite.config.ts` (WILL BE MODIFIED - styled-components dedupe)
 - `frontend/src/components/DashBoard/UnifiedAdminDashboardLayout.tsx` (WILL BE MODIFIED)
 
-**Files Locked by ChatGPT-5 (Phase 8 Rate Limit + Caching):**
-- None (completed 2026-01-06)
+**Files Locked by Codex (GPT-5) (Admin Sessions Blueprint + Refactor):**
+- `docs/ai-workflow/ADMIN-SESSIONS-ENHANCED-VIEW-BLUEPRINT.md` (Blueprint creation - in progress)
+- `frontend/src/components/DashBoard/Pages/admin-sessions/enhanced-admin-sessions-view.tsx` (Split + fix stray "u" - pending)
 
 ---
 
