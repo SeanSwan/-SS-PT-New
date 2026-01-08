@@ -106,35 +106,36 @@ const SectionDescription = styled(motion.p)`
 // Updated CardGrid for T-shape layout
 const CardGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: auto auto;
+  grid-template-columns: repeat(3, 1fr);
   gap: 2rem;
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
   
-  // The Community & Heart card will span the full width
+  // The Community & Heart card will span the full width on large screens (3-col layout)
   & > div:nth-child(4) {
     grid-column: 1 / -1;
   }
   
-  @media (max-width: 992px) {
-    grid-template-columns: 1fr;
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
     
+    // Reset span for 2-column layout to create a perfect 2x2 grid
     & > div:nth-child(4) {
       grid-column: auto;
     }
   }
   
-  @media (max-width: 768px) {
+  @media (max-width: 700px) {
+    grid-template-columns: 1fr;
     gap: 1.5rem;
   }
 `;
 
 const ExpressionCard = styled(motion.div)`
-  background: ${({ theme }) => theme.background.surface};
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
+  background: ${({ theme }) => theme.background.surface}CC;
+  backdrop-filter: blur(12px);
+  border-radius: 24px;
   padding: 2.5rem 2rem;
   display: flex;
   flex-direction: column;
@@ -143,8 +144,9 @@ const ExpressionCard = styled(motion.div)`
   position: relative;
   overflow: hidden;
   border: 1px solid ${({ theme }) => theme.borders.subtle};
-  box-shadow: ${({ theme }) => theme.shadows.elevation};
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  height: 100%;
   
   &::before {
     content: '';
@@ -167,7 +169,6 @@ const ExpressionCard = styled(motion.div)`
     transform: translateY(-10px);
     box-shadow: ${({ theme }) => theme.shadows.cosmic};
     border-color: ${({ theme }) => theme.borders.elegant};
-    animation: ${float} 3s ease-in-out infinite;
     
     &::before {
       left: 100%;
@@ -175,13 +176,17 @@ const ExpressionCard = styled(motion.div)`
   }
   
   &.heart-card {
-    background: ${({ theme }) => theme.gradients.swanCosmic}20;
+    background: linear-gradient(135deg, ${({ theme }) => theme.background.surface}E6, ${({ theme }) => theme.colors.primary}10);
     border: 1px solid ${({ theme }) => theme.colors.accent}40;
     
     &:hover {
       border-color: ${({ theme }) => theme.colors.accent};
       box-shadow: ${({ theme }) => theme.shadows.accent};
     }
+  }
+
+  @media (max-width: 768px) {
+    padding: 2rem 1.5rem;
   }
 `;
 
@@ -196,6 +201,8 @@ const IconContainer = styled.div`
   svg {
     filter: drop-shadow(0 0 8px ${({ theme }) => theme.colors.primary}80);
     transition: all 0.3s ease;
+    width: 48px;
+    height: 48px;
   }
   
   &.heart-icon {
@@ -238,6 +245,10 @@ const CardTitle = styled.h3`
     background-size: 200% 200%;
     animation: ${shimmer} 2s linear infinite;
   }
+
+  @media (max-width: 768px) {
+    font-size: 1.5rem;
+  }
 `;
 
 const CardDescription = styled.p`
@@ -247,12 +258,17 @@ const CardDescription = styled.p`
   margin-bottom: 1.5rem;
   position: relative;
   z-index: 2;
+  flex-grow: 1;
+
+  @media (max-width: 768px) {
+    font-size: 1rem;
+  }
 `;
 
 const BenefitsList = styled.ul`
   list-style: none;
   padding: 0;
-  margin: 0 0 1.5rem;
+  margin: 0;
   text-align: left;
   width: 100%;
   position: relative;
@@ -262,9 +278,10 @@ const BenefitsList = styled.ul`
 const BenefitItem = styled.li`
   margin-bottom: 0.75rem;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   color: ${({ theme }) => theme.text.muted};
   font-size: 1rem;
+  line-height: 1.4;
   transition: color 0.3s ease;
   
   &::before {
@@ -272,6 +289,7 @@ const BenefitItem = styled.li`
     margin-right: 10px;
     color: ${({ theme }) => theme.colors.primary};
     transition: all 0.3s ease;
+    line-height: 1.4;
   }
   
   ${ExpressionCard}:hover & {
@@ -280,6 +298,10 @@ const BenefitItem = styled.li`
     &::before {
       animation: ${stellarGlow} 2s ease-in-out infinite;
     }
+  }
+
+  @media (max-width: 768px) {
+    font-size: 0.95rem;
   }
 `;
 

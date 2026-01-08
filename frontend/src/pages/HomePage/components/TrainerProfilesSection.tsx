@@ -145,10 +145,12 @@ const TrainerCarousel = styled.div`
   position: relative;
   width: 100%;
   margin: 0 auto;
-  min-height: 722px; // Increased height to match new card height
+  display: flex;
+  justify-content: center;
+  align-items: center;
 
   @media (max-width: 768px) {
-    min-height: 772px; // Adjust for mobile layout (+36px from new height)
+    padding: 0 1rem;
   }
 `;
 
@@ -159,10 +161,11 @@ const TrainerCard = styled(motion.div)`
   overflow: hidden;
   box-shadow: ${({ theme }) => theme.shadows.elevation};
   display: flex;
-  flex-direction: column;
+  flex-direction: row; // Desktop default: Side-by-side
   position: relative; // Changed from absolute to relative for carousel logic
-  height: 722px; // Increased by additional 36px (quarter inch) to prevent bottom cutoff
-  max-width: 800px;
+  min-height: 450px; // Reduced height for horizontal layout
+  max-width: 1000px; // Wider for desktop
+  width: 100%; // Ensure full width up to max-width
   margin: 0 auto; // Center the card
   border: 1px solid ${({ theme }) => theme.borders.subtle};
   transition: all 0.3s ease;
@@ -198,25 +201,32 @@ const TrainerCard = styled(motion.div)`
     opacity: 1;
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: 900px) {
+    flex-direction: column; // Switch to stack on tablet/mobile
+    max-width: 550px;
     height: auto; // Allow height to adjust on mobile
-    min-height: 722px; // Ensure minimum height on mobile (increased by additional 36px)
+    min-height: auto;
   }
 `;
 
 const TrainerImageContainer = styled.div`
   position: relative;
-  height: 350px; // Increased height to ensure faces aren't cropped
+  width: 40%; // Desktop: 40% width
+  min-width: 350px;
+  height: auto; // Desktop: Full height
+  min-height: 100%;
   overflow: hidden;
   flex-shrink: 0; // Prevent shrinking
 
-  /* Use different heights for different screen sizes to prevent face cropping */
-  @media (min-width: 1200px) {
-    height: 380px; // Taller for very large screens
+  @media (max-width: 900px) {
+    width: 100%;
+    height: 300px; // Mobile: Adjusted height
+    min-height: 300px;
   }
 
-  @media (max-width: 768px) {
-    height: 300px; // Original height for mobile
+  @media (max-width: 480px) {
+    height: 250px; // Smaller height for phones
+    min-height: 250px;
   }
 
   &::after {
@@ -225,8 +235,16 @@ const TrainerImageContainer = styled.div`
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 40%;
+    height: 100%;
     background: linear-gradient(to top, rgba(20, 20, 30, 1), transparent);
+    opacity: 0.6;
+    
+    @media (min-width: 901px) {
+      background: linear-gradient(to right, rgba(20, 20, 30, 0.8), transparent);
+      width: 50%;
+      left: auto;
+      right: 0;
+    }
   }
 `;
 
@@ -234,7 +252,7 @@ const TrainerImage = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 20%; // Position to show faces better - center horizontally and slightly above center vertically
+  object-position: center top;
   transition: transform 0.5s ease;
   filter: brightness(0.9);
 
@@ -242,23 +260,24 @@ const TrainerImage = styled.img`
     transform: scale(1.05);
     filter: brightness(1);
   }
-
-  /* Use different object-position for different screen sizes */
-  @media (min-width: 1200px) {
-    object-position: center 20%; // Adjusted for large screens
-  }
-
-  @media (max-width: 768px) {
-    object-position: center top; // Original position for mobile
-  }
 `;
 
 const TrainerInfo = styled.div`
-  padding: 1.5rem;
+  padding: 2.5rem;
   display: flex;
   flex-direction: column;
   flex-grow: 1; // Allow this section to grow and fill space
   color: white; // Ensure default text color is visible
+  width: 60%; // Desktop: 60% width
+
+  @media (max-width: 900px) {
+    width: 100%;
+    padding: 1.5rem;
+  }
+
+  @media (max-width: 480px) {
+    padding: 1.25rem;
+  }
 `;
 
 const TrainerName = styled.h3`
@@ -267,6 +286,10 @@ const TrainerName = styled.h3`
   color: ${({ theme }) => theme.text.primary};
   font-weight: 600;
   transition: color 0.3s ease;
+
+  @media (max-width: 480px) {
+    font-size: 1.5rem;
+  }
 `;
 
 const TrainerTitle = styled.h4`
@@ -275,6 +298,10 @@ const TrainerTitle = styled.h4`
   color: ${({ theme }) => theme.colors.primary};
   font-weight: 400;
   transition: color 0.3s ease;
+
+  @media (max-width: 480px) {
+    font-size: 1rem;
+  }
 `;
 
 const TrainerBio = styled.p`
@@ -284,6 +311,8 @@ const TrainerBio = styled.p`
   line-height: 1.6;
   flex-grow: 1; // Allow bio to take up available space
   transition: color 0.3s ease;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 `;
 
 const SpecialtiesContainer = styled.div`
@@ -376,11 +405,13 @@ const Certification = styled.div`
   border: 1px solid ${({ theme }) => theme.borders.elegant};
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
+  cursor: default;
   
   &:hover {
-    background: ${({ theme }) => theme.colors.accent}20;
+    background: ${({ theme }) => theme.colors.accent}30;
     border-color: ${({ theme }) => theme.colors.accent};
-    animation: ${stellarGlow} 2s ease-in-out infinite;
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 5px 15px ${({ theme }) => theme.colors.accent}40;
   }
 `;
 
@@ -415,11 +446,11 @@ const NavigationButton = styled(motion.button)`
   }
 
   &.prev {
-    left: -25px;
+    left: -60px; // Move further out on desktop
   }
 
   &.next {
-    right: -25px;
+    right: -60px; // Move further out on desktop
   }
 
   @media (max-width: 900px) { // Adjust breakpoint for button visibility
@@ -542,10 +573,6 @@ import logoImage from "../../../assets/Logo.png";
 const trainers: Trainer[] = [
     { id: 1, name: "Sean Swan", title: "Head Coach & Founder", image: logoImage, bio: "With over 25 years of experience, Sean has trained professional athletes and celebrities. His holistic approach focuses on sustainable performance improvements and injury prevention.", specialties: ["Strength & Conditioning", "Athletic Performance", "Injury Rehabilitation"], rating: 5, reviews: 152, certifications: ["NASM-CPT", "CSCS", "PES"], socialLinks: { linkedin: "https://linkedin.com/in/seanswan", instagram: "https://www.instagram.com/seanswantech" } },
     { id: 2, name: "Jasmine Hearon (Swan)", title: "Co-Founder & Elite Performance Coach", image: logoImage, bio: "Since 2012, Jasmine has been the cornerstone of SwanStudios' success. Her extensive background as a former Gold's Gym manager brings unparalleled leadership and training expertise to our elite coaching team.", specialties: ["Leadership Training", "Performance Coaching", "Program Development"], rating: 5, reviews: 147, certifications: ["NASM-CPT", "Management Certified", "Elite Coach"], socialLinks: { linkedin: "https://linkedin.com/in/jasmineswan", instagram: "https://instagram.com/jasmine_swan_fitness" } },
-    { id: 3, name: "Jennifer Adams", title: "Senior Performance Coach", image: logoImage, bio: "Jennifer specializes in helping clients transform their bodies through science-based training protocols. Her background in exercise physiology allows her to create optimized programs for any goal.", specialties: ["Body Transformation", "Nutrition Planning", "HIIT Training"], rating: 4.9, reviews: 98, certifications: ["NASM-CPT", "PN-1"], socialLinks: { linkedin: "https://linkedin.com/in/jenniferadamsfit", instagram: "https://instagram.com/jenadams_fit" } },
-    { id: 4, name: "Michael Torres", title: "Strength Specialist", image: logoImage, bio: "Former competitive powerlifter, Michael helps clients build functional strength that translates to improved performance in both daily life and athletic pursuits.", specialties: ["Powerlifting", "Olympic Lifting", "Functional Strength"], rating: 4.8, reviews: 87, certifications: ["NSCA-CSCS"], socialLinks: { linkedin: "https://linkedin.com/in/michaeltorresstrength", instagram: "https://instagram.com/miketorreslifts" } },
-    { id: 5, name: "Lisa Chen", title: "Mobility & Recovery Specialist", image: logoImage, bio: "Lisa combines traditional training approaches with cutting-edge recovery techniques to help clients move better, reduce pain, and improve longevity.", specialties: ["Mobility Training", "Pain Management", "Recovery Protocols"], rating: 4.9, reviews: 74, certifications: ["FRC", "FMS"], socialLinks: { linkedin: "https://linkedin.com/in/lisachenmobility", instagram: "https://instagram.com/lisamoveswell" } },
-    { id: 6, name: "David Johnson", title: "Performance Nutrition Coach", image: logoImage, bio: "David's expertise in performance nutrition helps clients optimize their body composition, energy levels, and recovery through personalized nutrition strategies.", specialties: ["Sports Nutrition", "Macro Planning", "Supplement Guidance"], rating: 4.7, reviews: 63, certifications: ["PN-2", "CISSN"], socialLinks: { linkedin: "https://linkedin.com/in/davidjohnsonnutrition", instagram: "https://instagram.com/davidj_nutrition" } }
 ];
 
 // --- Component Implementation ---
@@ -701,12 +728,12 @@ const TrainerProfilesSection: React.FC = () => {
               animate="center"
               exit="exit"
             >
-              <Certification>
-                 <Medal style={{ marginRight: '5px' }} />
-                 {/* Use optional chaining for safety */}
-                 {currentTrainer.certifications?.[0] ?? 'Certified'}
-              </Certification>
               <TrainerImageContainer>
+                <Certification>
+                   <Medal style={{ marginRight: '5px' }} />
+                   {/* Use optional chaining for safety */}
+                   {currentTrainer.certifications?.[0] ?? 'Certified'}
+                </Certification>
                 <TrainerImage src={currentTrainer.image} alt={currentTrainer.name} />
               </TrainerImageContainer>
               <TrainerInfo>

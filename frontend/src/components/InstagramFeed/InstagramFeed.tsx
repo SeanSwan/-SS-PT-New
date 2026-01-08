@@ -153,27 +153,34 @@ const InstagramHandle = styled(motion.a)`
 // Grid layout for the Instagram posts
 const PostsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+  width: 100%;
   
-  @media (max-width: 768px) {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
   }
-  @media (max-width: 480px) {
+  @media (max-width: 640px) {
     grid-template-columns: 1fr;
+    max-width: 400px;
+    margin: 0 auto;
   }
 `;
 
 // A container for each post card with improved diagonal glimmer effect
 const PostCardContainer = styled.div`
-  background: rgba(25, 25, 35, 0.8);
-  border-radius: 12px;
+  background: rgba(20, 20, 30, 0.6);
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   
   /* Single subtle diagonal glimmer effect (top-right to bottom-left) */
   &:after {
@@ -194,14 +201,15 @@ const PostCardContainer = styled.div`
     background-size: 200% 200%;
     animation: ${diagonalGlimmer} 5s linear infinite;
     pointer-events: none;
-    border-radius: 12px;
+    border-radius: 16px;
     opacity: 0;
     z-index: 1;
   }
   
   &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 255, 255, 0.1);
+    border-color: rgba(0, 255, 255, 0.3);
     
     &:after {
       opacity: 1;
@@ -212,25 +220,30 @@ const PostCardContainer = styled.div`
 // Container for the post image and video overlay
 const PostImageContainer = styled.div`
   position: relative;
-  height: 280px;
+  width: 100%;
+  padding-top: 100%; /* 1:1 Aspect Ratio for pixel perfect squares */
   overflow: hidden;
   cursor: pointer;
   z-index: 2;
   
   &:hover .instagram-link-overlay {
     opacity: 1;
+    transform: translateY(0);
   }
 `;
 
 // The post image with a scale effect on hover
 const PostImage = styled.img`
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease;
+  transition: transform 0.6s ease;
   
   ${PostImageContainer}:hover & {
-    transform: scale(1.05);
+    transform: scale(1.08);
   }
 `;
 
@@ -263,7 +276,8 @@ const InstagramLinkOverlay = styled.div`
   border-radius: 20px;
   padding: 8px;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transform: translateY(-5px);
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -281,6 +295,9 @@ const PostContent = styled.div`
   padding: 1.5rem;
   position: relative;
   z-index: 2;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 `;
 
 // Header section of the post, including avatar and author info
@@ -374,7 +391,23 @@ const StatItem = styled.div`
 const ButtonContainer = styled.div`
   display: flex;
   justify-content: center;
-  margin-top: 3rem;
+  margin-top: 4rem;
+  position: relative;
+  z-index: 5;
+
+  /* Add a glow behind the button to make it pop */
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 180px;
+    height: 60px;
+    background: radial-gradient(ellipse at center, rgba(120, 81, 169, 0.5) 0%, transparent 70%);
+    filter: blur(25px);
+    z-index: -1;
+  }
 `;
 
 // --- Animation Variants ---
@@ -598,8 +631,8 @@ const InstagramFeed: React.FC = () => {
         <ButtonContainer>
           <GlowButton
             text="Follow Us On Instagram"
-            theme="purple"
-            size="medium"
+            theme="cosmic"
+            size="large"
             leftIcon={<FaInstagram />}
             onClick={() => window.open('https://www.instagram.com/sswanstudios', '_blank')}
             animateOnRender={false}
