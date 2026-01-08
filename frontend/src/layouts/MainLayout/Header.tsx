@@ -10,11 +10,18 @@ import {
   Users, 
   Shield, 
   User, 
-  Dumbbell
+  Dumbbell,
+  ShoppingCart,
+  LogOut,
+  LogIn
 } from 'lucide-react';
 
 // Assets
 import logo from '../../assets/Logo.png'; 
+
+// Hooks (Assumed paths based on project structure)
+import { useAuth } from '../../hooks/useAuth';
+import { useCart } from '../../context/CartContext';
 
 // --- Styled Components ---
 
@@ -113,6 +120,68 @@ const NavLink = styled(Link)<{ $active?: boolean }>`
       box-shadow: 0 0 10px #00ffff;
     }
   `}
+`;
+
+const RightSection = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+
+  @media (max-width: 968px) {
+    margin-right: 3rem; /* Make space for mobile menu button */
+  }
+`;
+
+const IconButton = styled(Link)`
+  position: relative;
+  color: rgba(255, 255, 255, 0.8);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: #00ffff;
+    transform: scale(1.1);
+  }
+`;
+
+const CartBadge = styled.span`
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #ff2e63;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid rgba(10, 10, 20, 0.95);
+`;
+
+const AuthButton = styled.button`
+  background: rgba(0, 255, 255, 0.1);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  color: #00ffff;
+  padding: 0.5rem 1.2rem;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  &:hover {
+    background: #00ffff;
+    color: #000;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+  }
 `;
 
 // --- Dropdown Components ---
@@ -217,7 +286,7 @@ const MobileMenuBtn = styled.button`
   color: white;
   cursor: pointer;
   z-index: 1002;
-  padding: 0.5rem;
+  padding: 0;
 
   @media (max-width: 968px) {
     display: block;
@@ -337,6 +406,10 @@ const Header: React.FC<HeaderProps> = ({ drawerOpen }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  
+  // Hooks for functionality
+  const { user, logout, isAuthenticated } = useAuth();
+  const { cartItems } = useCart();
   
   const location = useLocation();
 
@@ -462,6 +535,15 @@ const Header: React.FC<HeaderProps> = ({ drawerOpen }) => {
             <MobileNavLink to="/about" onClick={() => setMobileMenuOpen(false)}>About Us</MobileNavLink>
             <MobileNavLink to="/contact" onClick={() => setMobileMenuOpen(false)}>Contact</MobileNavLink>
             
+            {/* Mobile Auth Links */}
+            {!isAuthenticated ? (
+               <MobileNavLink to="/login" onClick={() => setMobileMenuOpen(false)} style={{ color: '#00ffff' }}>
+                 Login / Sign Up
+               </MobileNavLink>
+            ) : (
+               <MobileNavLink to="/profile" onClick={() => setMobileMenuOpen(false)}>My Profile</MobileNavLink>
+            )}
+            
             <MobileSectionTitle>Dashboards & Portals</MobileSectionTitle>
             
             {/* Mobile Cards for Portals - No "Scroll Wheel" feel */}
@@ -477,6 +559,14 @@ const Header: React.FC<HeaderProps> = ({ drawerOpen }) => {
                 </MobilePortalCard>
               ))}
             </div>
+            
+            {isAuthenticated && (
+              <div style={{ marginTop: '2rem' }}>
+                <AuthButton onClick={() => { logout(); setMobileMenuOpen(false); }} style={{ width: '100%', justifyContent: 'center' }}>
+                  <LogOut size={18} /> Logout
+                </AuthButton>
+              </div>
+            )}
             
             <div style={{ marginTop: 'auto', paddingTop: '2rem' }}>
                <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem', textAlign: 'center' }}>
