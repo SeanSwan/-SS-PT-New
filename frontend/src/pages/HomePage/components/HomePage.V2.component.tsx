@@ -212,8 +212,6 @@ const HomePageV2: React.FC = () => {
         {/* Package Section v2.0 - Pricing removed + FrostedCard */}
         <PackageSectionV2 id="packages" />
 
-        <SectionDivider />
-
         {/* Features Section v2.0 - FrostedCard + Parallax */}
         <FeaturesSectionV2 />
 
