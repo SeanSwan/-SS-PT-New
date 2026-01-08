@@ -2458,4 +2458,4 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
   );
 };
 
-export default EnhancedAdminSessionsView;u
+export default EnhancedAdminSessionsView;
