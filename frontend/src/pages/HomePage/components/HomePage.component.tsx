@@ -145,161 +145,6 @@ const HomePageContainer = styled.div`
   }
 `;
 
-// NEW: Revenue-focused package preview section
-const PackagePreviewSection = styled.section`
-  padding: 5rem 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-  text-align: center;
-  position: relative;
-  z-index: 10;
-  
-  @media (max-width: 768px) {
-    padding: 3rem 1rem;
-  }
-`;
-
-const PackagePreviewTitle = styled(motion.h2)`
-  font-size: 2.5rem;
-  font-weight: 300;
-  margin-bottom: 1rem;
-  color: white;
-  text-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-  
-  @media (max-width: 768px) {
-    font-size: 2rem;
-  }
-`;
-
-const PackagePreviewSubtitle = styled(motion.p)`
-  font-size: 1.2rem;
-  color: rgba(255, 255, 255, 0.8);
-  margin-bottom: 3rem;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
-`;
-
-const PackageGrid = styled(motion.div)`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 2rem;
-  margin-bottom: 3rem;
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-`;
-
-const PackageCard = styled(motion.div)`
-  background: rgba(30, 30, 60, 0.4);
-  border: 1px solid rgba(0, 255, 255, 0.2);
-  border-radius: 15px;
-  padding: 2rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-  
-  &:hover {
-    transform: translateY(-10px);
-    border-color: rgba(0, 255, 255, 0.6);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 255, 255, 0.2);
-  }
-  
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.1),
-      transparent
-    );
-    transition: left 0.5s;
-  }
-  
-  &:hover::before {
-    left: 100%;
-  }
-  
-  h3 {
-    font-size: 1.5rem;
-    color: #00ffff;
-    margin-bottom: 1rem;
-  }
-  
-  p {
-    color: rgba(255, 255, 255, 0.8);
-    margin-bottom: 1.5rem;
-    font-size: 1rem;
-    line-height: 1.6;
-  }
-  
-  .price {
-    font-size: 1.8rem;
-    font-weight: bold;
-    color: white;
-    text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-  }
-  
-  .sessions {
-    font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.6);
-    margin-top: 0.5rem;
-  }
-`;
-
-// NEW: Urgency and social proof section
-const UrgencySection = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(255, 46, 99, 0.1), rgba(0, 255, 255, 0.1));
-  padding: 3rem 2rem;
-  margin: 4rem 0;
-  text-align: center;
-  border-radius: 20px;
-  position: relative;
-  overflow: hidden;
-  
-  &::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      45deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.05) 50%,
-      transparent 100%
-    );
-    background-size: 200% 200%;
-    animation: ${diagonalShimmer} 3s linear infinite;
-  }
-`;
-
-const UrgencyText = styled.h3`
-  font-size: 1.8rem;
-  color: #ff2e63;
-  margin-bottom: 1rem;
-  font-weight: 600;
-  position: relative;
-  z-index: 2;
-`;
-
-const SocialProofText = styled.p`
-  font-size: 1.1rem;
-  color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 2rem;
-  position: relative;
-  z-index: 2;
-`;
-
 const SectionDivider = styled(motion.div)`
   position: relative;
   height: 150px;
@@ -486,7 +331,6 @@ const HomePage: React.FC = () => {
   
   // Section refs for improved animations
   const [featuresRef, isFeaturesInView] = useCustomInView();
-  const [packageRef, isPackageInView] = useCustomInView();
   const [trainersRef, isTrainersInView] = useCustomInView();
   const [testimonialRef, isTestimonialInView] = useCustomInView();
   const [statsRef, isStatsInView] = useCustomInView();
@@ -495,7 +339,6 @@ const HomePage: React.FC = () => {
   
   // Divider texts for each section
   const dividerTexts = [
-    "Elevate Your Training",
     "Choose Your Journey",
     "Express & Connect",
     "Expert Coaching",
@@ -640,88 +483,6 @@ const HomePage: React.FC = () => {
       </AnimatePresence>
       
       {renderSectionDivider(0)}
-      
-      {/* NEW: Package Preview Section - PRIMARY REVENUE DRIVER */}
-      <PackagePreviewSection id={sectionIds.packages} ref={packageRef}>
-        <PackagePreviewTitle
-          variants={packageVariants}
-          initial="hidden"
-          animate={isPackageInView ? "visible" : "hidden"}
-        >
-          Start Your Transformation Today
-        </PackagePreviewTitle>
-        <PackagePreviewSubtitle
-          variants={packageVariants}
-          initial="hidden"
-          animate={isPackageInView ? "visible" : "hidden"}
-        >
-          Choose from our premium training packages designed by Sean Swan with over 25 years of experience
-        </PackagePreviewSubtitle>
-        
-        <PackageGrid
-          variants={packageVariants}
-          initial="hidden"
-          animate={isPackageInView ? "visible" : "hidden"}
-        >
-          <PackageCard
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/shop')}
-          >
-            <h3>Single Session</h3>
-            <p>Perfect for trying our premium training experience with Sean Swan.</p>
-            <div className="price">$175</div>
-            <div className="sessions">1 Premium Session</div>
-          </PackageCard>
-          
-          <PackageCard
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/shop')}
-          >
-            <h3>Silver Package</h3>
-            <p>8 sessions for committed results and lasting transformation.</p>
-            <div className="price">$1,360</div>
-            <div className="sessions">8 Sessions • $170 per session</div>
-          </PackageCard>
-          
-          <PackageCard
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/shop')}
-          >
-            <h3>Gold Package</h3>
-            <p>20 sessions for complete body and mind transformation.</p>
-            <div className="price">$3,300</div>
-            <div className="sessions">20 Sessions • $165 per session</div>
-          </PackageCard>
-        </PackageGrid>
-        
-        {/* Urgency and Social Proof */}
-        <UrgencySection
-          variants={packageVariants}
-          initial="hidden"
-          animate={isPackageInView ? "visible" : "hidden"}
-        >
-          <UrgencyText>🔥 Limited Availability - Only 3 New Clients Per Month</UrgencyText>
-          <SocialProofText>
-            Over 500+ transformations completed • Featured in LA Fitness Magazine • Trusted by celebrities and athletes
-          </SocialProofText>
-          
-          <ExploreMoreButton>
-            <GlowButton 
-              text="View All Packages & Pricing" 
-              theme="cosmic" 
-              size="large" 
-              animateOnRender 
-              onClick={() => navigate('/shop')}
-              aria-label="View all training packages and pricing"
-            />
-          </ExploreMoreButton>
-        </UrgencySection>
-      </PackagePreviewSection>
-      
-      {renderSectionDivider(1)}
       
       {/* Features Section - Shows services */}
       <FeaturedSection ref={featuresRef} className="primary-focus-label">

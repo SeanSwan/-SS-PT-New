@@ -143,7 +143,7 @@ const TestimonialCard = styled(motion.div)`
   top: 0; left: 0; right: 0;
   margin: 0 auto;
   width: 100%;
-  max-width: 850px;
+  max-width: 1100px;
   background: rgba(15, 15, 30, 0.9);
   border-radius: 25px;
   overflow: hidden;
@@ -184,21 +184,58 @@ const TestimonialCard = styled(motion.div)`
 `;
 
 const TestimonialContent = styled.div`
-  padding: 2.5rem 3.5rem;
   display: flex;
-  flex-direction: column;
-  @media (max-width: 768px) {
-    padding: 1.5rem 2rem;
+  flex-direction: row;
+  min-height: 450px;
+
+  @media (max-width: 900px) {
+    flex-direction: column;
   }
 `;
 
-const TestimonialHeader = styled.div`
+const ProfileColumn = styled.div`
+  width: 35%;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 3rem 2rem;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  margin-bottom: 2rem;
-  @media (max-width: 768px) {
+  justify-content: center;
+  text-align: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+
+  @media (max-width: 900px) {
+    width: 100%;
+    flex-direction: row;
+    text-align: left;
+    padding: 2rem;
+    justify-content: flex-start;
+    gap: 2rem;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  @media (max-width: 600px) {
     flex-direction: column;
     text-align: center;
+    gap: 1rem;
+  }
+`;
+
+const ReviewColumn = styled.div`
+  width: 65%;
+  padding: 3rem 3.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  @media (max-width: 900px) {
+    width: 100%;
+    padding: 2rem;
+  }
+
+  @media (max-width: 600px) {
+    padding: 1.5rem;
   }
 `;
 
@@ -210,14 +247,17 @@ const ClientImage = styled.div<{ image: string }>`
   background-size: cover;
   background-position: center;
   border: 4px solid var(--neon-blue, #00ffff);
-  margin-right: 2rem;
+  margin-right: 0;
+  margin-bottom: 1.5rem;
   box-shadow: 0 8px 20px rgba(0, 255, 255, 0.35);
   animation: ${pulseGlow} 5s ease-in-out infinite;
   flex-shrink: 0;
-  @media (max-width: 768px) {
-    width: 90px;
-    height: 90px;
-    margin-right: 0;
+
+  @media (max-width: 900px) {
+    margin-bottom: 0;
+  }
+
+  @media (max-width: 600px) {
     margin-bottom: 1rem;
   }
 `;
@@ -231,6 +271,9 @@ const ClientName = styled.h3`
   color: white;
   margin-bottom: 0.4rem;
   font-weight: 700;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
 `;
 
 const ClientDetails = styled.p`
@@ -238,6 +281,8 @@ const ClientDetails = styled.p`
   color: var(--neon-blue, #00ffff);
   margin-bottom: 0.6rem;
   opacity: 0.9;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 `;
 
 const RatingContainer = styled.div`
@@ -245,6 +290,14 @@ const RatingContainer = styled.div`
   color: gold;
   margin-bottom: 0.7rem;
   gap: 2px;
+  justify-content: center;
+
+  @media (max-width: 900px) {
+    justify-content: flex-start;
+  }
+  @media (max-width: 600px) {
+    justify-content: center;
+  }
 `;
 
 const ResultsLabel = styled.div`
@@ -263,11 +316,18 @@ const TestimonialText = styled.div`
   position: relative;
   padding: 0 1rem;
   margin-bottom: 2.5rem;
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   line-height: 1.8;
   color: #e8e8f8;
   font-style: italic;
-  text-align: center;
+  text-align: left;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+
+  @media (max-width: 900px) {
+    text-align: center;
+    font-size: 1.15rem;
+  }
 `;
 
 const BeforeAfterStats = styled.div`
@@ -351,8 +411,13 @@ const NavigationButton = styled(motion.button)`
   font-size: 2rem;
   color: #00ffff;
   &:hover { color: white; }
-  &.prev { left: 1rem; }
-  &.next { right: 1rem; }
+  &.prev { left: -60px; }
+  &.next { right: -60px; }
+
+  @media (max-width: 1300px) {
+    &.prev { left: 10px; background: rgba(0,0,0,0.3); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    &.next { right: 10px; background: rgba(0,0,0,0.3); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+  }
 `;
 
 const ProgressIndicator = styled.div`
@@ -550,7 +615,7 @@ const TestimonialSlider: React.FC = () => {
               exit="exit"
             >
               <TestimonialContent>
-                <TestimonialHeader>
+                <ProfileColumn>
                   <ClientImage image={currentTestimonial.image} />
                   <ClientInfo>
                     <ClientName>{currentTestimonial.name}</ClientName>
@@ -558,26 +623,28 @@ const TestimonialSlider: React.FC = () => {
                     <RatingContainer>{renderRating(currentTestimonial.rating)}</RatingContainer>
                     <ResultsLabel>{currentTestimonial.resultLabel}</ResultsLabel>
                   </ClientInfo>
-                </TestimonialHeader>
-                <TestimonialText>{currentTestimonial.text}</TestimonialText>
-                <BeforeAfterStats>
-                  {Object.entries(currentTestimonial.beforeAfterStats).map(([key, value]) => (
-                    <StatItem key={key}>
-                      <StatLabel>{key}</StatLabel>
-                      <StatValueContainer>
-                        <StatValue $variant="before">{value.before}</StatValue>
-                        <span>→</span>
-                        <StatValue $variant="after">{value.after}</StatValue>
-                        <StatChange>({value.change})</StatChange>
-                      </StatValueContainer>
-                    </StatItem>
-                  ))}
-                </BeforeAfterStats>
-                {currentTestimonial.relatedProgramId && (
-                  <RelatedProgramLink href={`/store#program-${currentTestimonial.relatedProgramId}`}>
-                    Learn about the program {currentTestimonial.name} used →
-                  </RelatedProgramLink>
-                )}
+                </ProfileColumn>
+                <ReviewColumn>
+                  <TestimonialText>"{currentTestimonial.text}"</TestimonialText>
+                  <BeforeAfterStats>
+                    {Object.entries(currentTestimonial.beforeAfterStats).map(([key, value]) => (
+                      <StatItem key={key}>
+                        <StatLabel>{key}</StatLabel>
+                        <StatValueContainer>
+                          <StatValue $variant="before">{value.before}</StatValue>
+                          <span>→</span>
+                          <StatValue $variant="after">{value.after}</StatValue>
+                          <StatChange>({value.change})</StatChange>
+                        </StatValueContainer>
+                      </StatItem>
+                    ))}
+                  </BeforeAfterStats>
+                  {currentTestimonial.relatedProgramId && (
+                    <RelatedProgramLink href={`/store#program-${currentTestimonial.relatedProgramId}`}>
+                      Learn about the program {currentTestimonial.name} used →
+                    </RelatedProgramLink>
+                  )}
+                </ReviewColumn>
               </TestimonialContent>
             </TestimonialCard>
           </AnimatePresence>
