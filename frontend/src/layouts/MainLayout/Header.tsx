@@ -24,7 +24,7 @@ const HeaderContainer = styled.header<{ $scrolled: boolean }>`
   left: 0;
   right: 0;
   height: 80px;
-  z-index: 1000;
+  z-index: 1200; /* Increased z-index to ensure it sits above everything */
   transition: all 0.3s ease;
   background: ${({ $scrolled }) => 
     $scrolled ? 'rgba(10, 10, 20, 0.95)' : 'transparent'};
@@ -232,7 +232,7 @@ const MobileMenuOverlay = styled(motion.div)`
   height: 100dvh; /* Dynamic viewport height for mobile browsers */
   background: rgba(5, 5, 10, 0.98);
   backdrop-filter: blur(20px);
-  z-index: 1000;
+  z-index: 1300; /* Higher than header */
   padding: 6rem 1.5rem 2rem;
   display: flex;
   flex-direction: column;
@@ -328,7 +328,12 @@ const MobilePortalCard = styled(Link)`
 
 // --- Component ---
 
-const Header: React.FC = () => {
+// Define props to match what MainLayout passes
+interface HeaderProps {
+  drawerOpen?: boolean;
+}
+
+const Header: React.FC<HeaderProps> = ({ drawerOpen }) => {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -383,6 +388,7 @@ const Header: React.FC = () => {
       path: '/profile', 
       icon: <Users size={24} /> 
     },
+    // Gamification removed as requested
   ];
 
   return (
