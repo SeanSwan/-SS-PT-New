@@ -337,7 +337,19 @@ router.post('/remove-trainer-assignment', protect, adminOnly, async (req, res) =
  */
 router.get('/assignment-statistics', protect, adminOnly, async (req, res) => {
   try {
-    const statistics = await trainerAssignmentService.getAssignmentStatistics();
+    let statistics;
+    try {
+      statistics = await trainerAssignmentService.getAssignmentStatistics();
+    } catch (serviceError) {
+      console.error('TrainerAssignmentService error:', serviceError);
+      // Return empty stats structure to prevent frontend crash
+      statistics = {
+        totalAssignments: 0,
+        activeAssignments: 0,
+        trainerLoad: [],
+        unassignedClients: 0
+      };
+    }
     
     res.status(200).json({
       success: true,
@@ -1007,7 +1019,14 @@ router.delete("/cancel/:sessionId", protect, async (req, res) => {
 router.get("/analytics", protect, async (req, res) => {
   try {
     const Session = getSession();
-    const userId = req.user.id;
+    if (!Session) {
+      throw new Error("Session model not initialized");
+    }
+    
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(400).json({ message: "User ID not found in request" });
+    }
     
     // Get all completed sessions for the user
     const userSessions = await Session.findAll({
@@ -1017,6 +1036,19 @@ router.get("/analytics", protect, async (req, res) => {
       },
       order: [['sessionDate', 'DESC']]
     });
+    
+    if (!userSessions) {
+      return res.json({
+        totalSessions: 0,
+        totalDuration: 0,
+        averageDuration: 0,
+        caloriesBurned: 0,
+        favoriteExercises: [],
+        weeklyProgress: [],
+        currentStreak: 0,
+        longestStreak: 0
+      });
+    }
 
     // Calculate basic analytics
     const totalSessions = userSessions.length;
