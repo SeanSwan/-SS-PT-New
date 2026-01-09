@@ -46,7 +46,14 @@
       "Bash([ -f \"DASHBOARD-CONSOLIDATION-ACTION-PLAN.md\" ])",
       "Bash(find:*)",
       "Bash(ls:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(npm run db:migrate:status:*)",
+      "Bash(psql:*)",
+      "Bash(timeout 30 bash:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJ0ZXN0YWRtaW4iLCJyb2xlIjoiYWRtaW4iLCJ0b2tlblR5cGUiOiJhY2Nlc3MiLCJpYXQiOjE3Njc5MDk5NzksImV4cCI6MTc2Nzk5NjM3OX0.P2tVNoq14DdLq77VeZc7O-W7aZGG07YBIhiH53v8BDY\")",
+      "Bash(netstat:*)",
+      "Bash(taskkill /F /PID 52348)",
+      "Bash(taskkill:*)"
     ],
     "deny": [],
     "ask": []

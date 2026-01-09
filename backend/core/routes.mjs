@@ -223,11 +223,18 @@ export const setupRoutes = async (app) => {
 
   // ✅ PHASE 2C FIX: Align endpoints with frontend expectations
   app.use('/api/admin', adminClientRoutes);            // Provides: /api/admin/clients/*
+
+  // 🚨 CRITICAL: Video library routes MUST come BEFORE adminPackageRoutes
+  // to prevent route conflict (adminPackageRoutes would intercept /api/admin/videos)
+  // 📹 NASM Video Library (YouTube + uploads)
+  app.use('/api/admin/videos', videoLibraryRoutes); // Frontend-compatible alias
+  app.use('/api/admin/exercise-library', videoLibraryRoutes); // Original endpoint
+
   app.use('/api/admin', adminPackageRoutes);            // Provides: /api/admin/packages/* (aliased from storefront)
   app.use('/api/admin/storefront', adminPackageRoutes); // Legacy compatibility
   app.use('/api/admin', adminMcpRoutes);                // Provides: /api/admin/mcp/* endpoints
   app.use('/api/admin/content', adminContentModerationRoutes); // Provides: /api/admin/content/* endpoints
-  app.use('/api/admin/exercise-library', videoLibraryRoutes); // 📹 NASM Video Library (YouTube + uploads)
+
   app.use('/api/admin', adminNotificationsRoutes); // Admin notifications API
   
   app.use('/api/admin/finance', adminFinanceRoutes);
@@ -252,8 +259,13 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin', adminDataVerificationRoutes);
 
   // ===================== DASHBOARD ROUTES =====================
+  // Shared dashboard routes for all users (client, trainer, admin)
   app.use('/api/dashboard', sharedDashboardRoutes);
-  app.use('/api/dashboard', adminDashboardRoutes);
+
+  // Admin-specific dashboard routes (metrics, health, video library stats)
+  app.use('/api/admin/dashboard', adminDashboardRoutes);
+
+  // Client-specific dashboard routes
   app.use('/api/client', clientDashboardRoutes);
 
   // ===================== ADVANCED INTEGRATION ROUTES =====================
