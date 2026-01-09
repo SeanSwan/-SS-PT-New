@@ -18,11 +18,12 @@
  * API Endpoints:
  * - GET /api/dashboard/metrics
  * - GET /api/dashboard/health
+ * - GET /api/dashboard/stats (Video Library stats)
  *
  * Security:
  * - JWT auth required
  * - Trainer or admin role enforced for metrics
- * - Admin role enforced for health
+ * - Admin role enforced for health and stats
  *
  * Testing:
  * - See ADMIN-DASHBOARD-BACKEND-ARCHITECTURE.mermaid.md (testing checklist)
@@ -32,6 +33,7 @@ import express from 'express';
 import sequelize from '../../database.mjs';
 import { protect, adminOnly, trainerOrAdminOnly } from '../../middleware/authMiddleware.mjs';
 import { getAllModels, Op } from '../../models/index.mjs';
+import logger from '../../utils/logger.mjs';
 
 const router = express.Router();
 
@@ -209,6 +211,58 @@ router.get('/metrics', protect, trainerOrAdminOnly, async (req, res) => {
       success: false,
       message: 'Failed to fetch dashboard metrics',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+});
+
+/**
+ * @route   GET /api/dashboard/stats
+ * @desc    Get video library statistics for admin dashboard banner
+ * @access  Private (Admin only)
+ */
+router.get('/stats', protect, adminOnly, async (req, res) => {
+  try {
+    // Get video count (non-deleted)
+    const [videoResult] = await sequelize.query(
+      'SELECT COUNT(*) as count FROM exercise_videos WHERE "deletedAt" IS NULL'
+    );
+
+    // Get exercise count (non-deleted)
+    const [exerciseResult] = await sequelize.query(
+      'SELECT COUNT(*) as count FROM exercise_library WHERE "deletedAt" IS NULL'
+    );
+
+    // Get workout template count (if table exists)
+    let templateCount = 0;
+    try {
+      const [templateResult] = await sequelize.query(
+        'SELECT COUNT(*) as count FROM workout_templates'
+      );
+      templateCount = parseInt(templateResult[0]?.count || 0);
+    } catch (err) {
+      // Table might not exist yet, use 0
+      logger.warn('[Admin Dashboard Stats] workout_templates table not found, using count=0');
+    }
+
+    return res.status(200).json({
+      success: true,
+      stats: {
+        total_videos: parseInt(videoResult[0]?.count || 0),
+        total_exercises: parseInt(exerciseResult[0]?.count || 0),
+        total_templates: templateCount
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    logger.error('[Admin Dashboard Stats] Error fetching stats', {
+      error: error.message,
+      stack: error.stack
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch dashboard statistics',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
