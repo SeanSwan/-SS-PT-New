@@ -1,7 +1,15 @@
-import { DataTypes } from 'sequelize';
+/**
+ * Package Model
+ * =============
+ * Represents training packages that can be purchased by clients
+ * Used by the Package Builder admin feature
+ */
 
-export default (sequelize) => {
-  const Package = sequelize.define('Package', {
+import { DataTypes } from 'sequelize';
+import sequelize from '../database.mjs';
+
+export default (sequelizeInstance = sequelize) => {
+  const Package = sequelizeInstance.define('Package', {
     id: {
       type: DataTypes.INTEGER,
       primaryKey: true,
@@ -51,6 +59,7 @@ export default (sequelize) => {
     tableName: 'packages'
   });
 
+  // Define associations method (called by associations.mjs)
   Package.associate = (models) => {
     Package.belongsTo(models.User, {
       foreignKey: 'createdBy',
