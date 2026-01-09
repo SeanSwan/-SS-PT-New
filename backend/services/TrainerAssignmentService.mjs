@@ -585,6 +585,10 @@ class TrainerAssignmentService {
       const Session = getSession();
       const User = getUser();
 
+      if (!Session || !User) {
+        throw new Error('Session or User model not initialized');
+      }
+
       // Get session statistics
       const sessionStats = await Session.findAll({
         attributes: [
@@ -595,8 +599,8 @@ class TrainerAssignmentService {
         raw: true
       });
 
-      // Get trainer statistics
-      const trainerStats = await Session.findAll({
+      // Get trainer statistics - Split query to avoid raw + include + group issue
+      const trainerSessionCounts = await Session.findAll({
         attributes: [
           'trainerId',
           [Session.sequelize.fn('COUNT', Session.sequelize.col('trainerId')), 'sessionCount']
@@ -605,12 +609,22 @@ class TrainerAssignmentService {
           trainerId: { [Op.not]: null }
         },
         group: ['trainerId'],
-        include: [{
-          model: User,
-          as: 'trainer',
-          attributes: ['firstName', 'lastName']
-        }],
         raw: true
+      });
+
+      // Get trainer details separately to avoid raw + include conflict
+      const trainerIds = trainerSessionCounts.map(stat => stat.trainerId);
+      const trainers = trainerIds.length > 0 ? await User.findAll({
+        where: {
+          id: { [Op.in]: trainerIds }
+        },
+        attributes: ['id', 'firstName', 'lastName']
+      }) : [];
+
+      // Create trainer lookup map
+      const trainerMap = {};
+      trainers.forEach(trainer => {
+        trainerMap[trainer.id] = `${trainer.firstName} ${trainer.lastName}`;
       });
 
       // Format results
@@ -632,18 +646,19 @@ class TrainerAssignmentService {
 
       return {
         sessionSummary,
-        trainerWorkload: trainerStats.map(stat => ({
+        trainerWorkload: trainerSessionCounts.map(stat => ({
           trainerId: stat.trainerId,
-          trainerName: `${stat['trainer.firstName']} ${stat['trainer.lastName']}`,
+          trainerName: trainerMap[stat.trainerId] || 'Unknown Trainer',
           assignedSessions: parseInt(stat.sessionCount)
         })),
-        assignmentRate: sessionSummary.total > 0 ? 
+        assignmentRate: sessionSummary.total > 0 ?
           ((sessionSummary.assigned + sessionSummary.scheduled + sessionSummary.completed) / sessionSummary.total * 100).toFixed(1) : 0
       };
 
     } catch (error) {
       logger.error(`[TrainerAssignment] Error getting assignment statistics`, {
-        error: error.message
+        error: error.message,
+        stack: error.stack
       });
 
       throw new Error(`Failed to get assignment statistics: ${error.message}`);
