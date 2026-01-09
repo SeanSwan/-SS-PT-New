@@ -1,176 +1,13 @@
 /**
  * Session Management Routes (Universal Master Schedule + Session Booking API)
  * ===========================================================================
- *
- * Purpose: Comprehensive REST API for session management with admin scheduling,
- * client booking, trainer assignment, real-time WebSocket updates, and analytics
- *
- * Blueprint Reference: SwanStudios Personal Training Platform - Universal Master Schedule System
- *
- * Base Path: /api/sessions
- *
- * Architecture Overview:
- * ┌─────────────────────┐      ┌──────────────────┐      ┌─────────────────┐
- * │  Admin Dashboard    │─────▶│  Session Routes  │─────▶│  Session Ctrl   │
- * │  (React)            │      │  (45+ endpoints) │      │  + Services     │
- * └─────────────────────┘      └──────────────────┘      └─────────────────┘
- *                                        │
- *                                        ▼
- *                              ┌──────────────────┐
- *                              │  Real-Time       │
- *                              │  Schedule Svc    │
- *                              │  (WebSockets)    │
- *                              └──────────────────┘
- *
- * API Endpoints (45+ total - organized by function):
- *
- * ┌─────────────────────────────────────────────────────────────────────────────────┐
- * │ SECTION                  METHOD  ENDPOINT                    ACCESS             │
- * ├─────────────────────────────────────────────────────────────────────────────────┤
- * │ SESSION ALLOCATION (5)                                                          │
- * │                          POST    /allocate-from-order        Admin              │
- * │                          POST    /add-to-user                Admin              │
- * │                          GET     /user-summary/:userId       Admin              │
- * │                          GET     /allocation-health          Admin              │
- * │                          GET     /test                       Public             │
- * ├─────────────────────────────────────────────────────────────────────────────────┤
- * │ TRAINER ASSIGNMENT (6)                                                          │
- * │                          POST    /assign-trainer             Admin              │
- * │                          GET     /trainer-assignments/:id    Trainer/Admin      │
- * │                          GET     /client-assignments/:id     Client/Admin       │
- * │                          POST    /remove-trainer-assignment  Admin              │
- * │                          GET     /assignment-statistics      Admin              │
- * │                          GET     /trainer-assignment-health  Admin              │
- * ├─────────────────────────────────────────────────────────────────────────────────┤
- * │ ADMIN CRUD (8)                                                                  │
- * │                          GET     /                           Admin              │
- * │                          GET     /admin                      Admin              │
- * │                          POST    /admin/create               Admin              │
- * │                          POST    /                           Admin              │
- * │                          PUT     /:id                        Admin              │
- * │                          GET     /clients                    Admin              │
- * │                          GET     /trainers                   Admin              │
- * │                          PUT     /assign/:sessionId          Admin              │
- * ├─────────────────────────────────────────────────────────────────────────────────┤
- * │ CLIENT BOOKING (7)                                                              │
- * │                          POST    /book/:userId               Client/Admin       │
- * │                          POST    /book                       Client             │
- * │                          POST    /request                    Client             │
- * │                          PUT     /reschedule/:sessionId      Client/Admin       │
- * │                          DELETE   /cancel/:sessionId         Client/T/A         │
- * │                          GET     /available                  Public             │
- * │                          GET     /:userId                    Client/Admin       │
- * ├─────────────────────────────────────────────────────────────────────────────────┤
- * │ SESSION OPERATIONS (8)                                                          │
- * │                          PUT     /confirm/:sessionId         Trainer/Admin      │
- * │                          PUT     /notes/:sessionId           Trainer/Admin      │
- * │                          PUT     /complete/:sessionId        Trainer/Admin      │
- * │                          POST    /available                  Admin              │
- * │                          POST    /recurring                  Admin              │
- * │                          POST    /bulk-update                Admin              │
- * │                          POST    /bulk-assign-trainer        Admin              │
- * │                          POST    /bulk-delete                Admin              │
- * ├─────────────────────────────────────────────────────────────────────────────────┤
- * │ ANALYTICS & CALENDAR (4)                                                        │
- * │                          GET     /analytics                  Client             │
- * │                          GET     /statistics                 Admin              │
- * │                          GET     /calendar-events            Trainer/Admin      │
- * │                          GET     /utilization-stats          Admin              │
- * ├─────────────────────────────────────────────────────────────────────────────────┤
- * │ DRAG-AND-DROP (1)                                                               │
- * │                          PUT     /drag-drop/:id              Admin              │
- * └─────────────────────────────────────────────────────────────────────────────────┘
- *
- * Services Integration:
- *
- *   sessionAllocationService:
- *   - allocateSessionsFromOrder (admin manual allocation from completed order)
- *   - addSessionsToUser (admin manual session addition)
- *   - getUserSessionSummary (session count + package details)
- *   - healthCheck (service health monitoring)
- *
- *   trainerAssignmentService:
- *   - assignTrainerToClient (create client-trainer relationship)
- *   - getTrainerAssignments (trainer's clients + sessions)
- *   - getClientAssignments (client's trainers)
- *   - removeTrainerAssignment (unassign trainer from sessions)
- *   - getAssignmentStatistics (dashboard metrics)
- *   - healthCheck (service health monitoring)
- *
- *   realTimeScheduleService:
- *   - broadcastAllocationUpdated (WebSocket: session allocation event)
- *   - broadcastAdminEvent (WebSocket: admin data access event)
- *   - broadcastTrainerAssignment (WebSocket: trainer assignment event)
- *   - broadcastSessionConfirmation (WebSocket: session confirmation event)
- *   - broadcastSessionBooking (WebSocket: session booking event)
- *   - broadcastSessionRequest (WebSocket: session request event)
- *   - getServiceHealth (real-time service health check)
- *
- * Middleware Strategy:
- *
- *   protect = JWT authentication (all protected routes)
- *   adminOnly = Admin role check (admin-only operations)
- *   Role checks in handler:
- *     - Client: Can book/view own sessions, redeem rewards
- *     - Trainer: Can view assigned sessions, confirm/complete
- *     - Admin: Full access to all operations
- *
- * Business Logic:
- *
- * WHY Separate Session Allocation Service?
- * - Complex package → session conversion logic
- * - Order fulfillment integration (completed order → allocate sessions)
- * - Audit trail for session additions (admin manual adds)
- * - Centralized session balance management
- *
- * WHY Trainer Assignment Service Separate from Session Booking?
- * - Client-trainer relationships persist across sessions
- * - Trainers need to see all assigned clients (not just current sessions)
- * - Assignment statistics for admin dashboard
- * - Bulk assignment operations (assign trainer to multiple sessions)
- *
- * WHY Real-Time WebSocket Broadcasting on Every Session Change?
- * - Multi-user admin dashboard synchronization
- * - Prevent double-booking conflicts (immediate visual feedback)
- * - Calendar updates without page refresh
- * - Client dashboard instant session availability updates
- *
- * WHY Drag-and-Drop Optimized Endpoint Separate from PUT /:id?
- * - Performance optimization (minimal fields updated)
- * - Reduced payload size (only sessionDate, duration, trainerId, userId)
- * - Optimistic UI updates (fast response for smooth UX)
- * - Calendar-specific logic (status auto-update on assignment)
- *
- * WHY Bulk Operations (Bulk Update, Bulk Assign, Bulk Delete)?
- * - Admin efficiency (update 100+ sessions in one click)
- * - Recurring session management (bulk delete all future slots)
- * - Trainer re-assignment (bulk assign new trainer to client's sessions)
- * - Transactional integrity (all or nothing)
- *
- * Security Model:
- * - All routes protected with JWT authentication (except /available, /test)
- * - Role-based access control (admin, trainer, client)
- * - Session ownership validation (clients can only book/cancel own sessions)
- * - Trainer assignment validation (trainers can only confirm assigned sessions)
- * - Admin audit logging (realTimeScheduleService.broadcastAdminEvent)
- *
- * Error Handling:
- * - 400: Invalid request (missing params, past session, no available slots)
- * - 403: Forbidden (role violation, session ownership violation)
- * - 404: Not found (session, user, or trainer not found)
- * - 500: Server error (database failures, service errors)
- *
- * Created: 2024-XX-XX
- * Enhanced: 2025-11-14 (Level 5/5 Documentation - Blueprint-First Standard)
+ * CONSOLIDATED VERSION - SINGLE SOURCE OF TRUTH
  */
 
 import express from "express";
-const router = express.Router(); // Define router first
-
 import { protect, adminOnly } from "../middleware/authMiddleware.mjs";
 import { getSession, getUser } from "../models/index.mjs";
 import { Op } from "sequelize";
-import stripe from "stripe";
 import moment from "moment";
 import {
   sendEmailNotification,
@@ -178,10 +15,10 @@ import {
 } from "../utils/notification.mjs";
 import sessionAllocationService from '../services/SessionAllocationService.mjs';
 import trainerAssignmentService from '../services/TrainerAssignmentService.mjs';
-
-// Import Real-Time Schedule Service for WebSocket broadcasting
 import realTimeScheduleService from '../services/realTimeScheduleService.mjs';
 import logger from '../utils/logger.mjs';
+
+const router = express.Router();
 
 // Session management test endpoint with real-time service health
 router.get('/test', (req, res) => {
@@ -539,126 +376,153 @@ router.get('/trainer-assignment-health', protect, adminOnly, async (req, res) =>
   }
 });
 
-// Initialize router and Stripe instance using secret key from environment variables
-
-const stripeInstance = process.env.STRIPE_SECRET_KEY ? 
-  stripe(process.env.STRIPE_SECRET_KEY) : null;
-
 /**
- * @route   GET /api/sessions
- * @desc    Get all sessions with client and trainer info (admin view)
+ * @route   GET /api/sessions/
+ * @desc    Get all sessions (Universal Master Schedule main endpoint)
  * @access  Private (Admin Only)
  */
 router.get("/", protect, adminOnly, async (req, res) => {
   try {
     const Session = getSession();
     const User = getUser();
+    const { startDate, endDate, status, trainerId, clientId } = req.query;
+    
+    const filter = {};
+    
+    // Apply filters
+    if (startDate && endDate) {
+      filter.sessionDate = {
+        [Op.between]: [new Date(startDate), new Date(endDate)]
+      };
+    }
+    
+    if (status) {
+      filter.status = status;
+    }
+    
+    if (trainerId) {
+      filter.trainerId = trainerId;
+    }
+    
+    if (clientId) {
+      filter.userId = clientId;
+    }
     
     const sessions = await Session.findAll({
+      where: filter,
       include: [
         {
           model: User,
           as: 'client',
-          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions']
+          attributes: ['id', 'firstName', 'lastName', 'email', 'photo', 'availableSessions'],
+          required: false
         },
         {
           model: User,
           as: 'trainer',
-          attributes: ['id', 'firstName', 'lastName', 'email', 'photo', 'specialties']
+          attributes: ['id', 'firstName', 'lastName', 'email', 'photo', 'specialties'],
+          required: false
         }
       ],
       order: [['sessionDate', 'ASC']]
     });
     
-    res.json(sessions);
+    res.status(200).json({
+      success: true,
+      data: sessions,
+      meta: {
+        total: sessions.length,
+        filters: filter,
+        timestamp: new Date().toISOString()
+      }
+    });
+    
   } catch (error) {
     console.error("Error fetching sessions:", error.message);
-    res.status(500).json({ message: "Server error fetching sessions." });
+    res.status(500).json({ 
+      success: false,
+      message: "Server error fetching sessions" 
+    });
   }
 });
 
 /**
- * @route   POST /api/sessions/admin/create
- * @desc    ADMIN: Create an available session slot.
- * @access  Private (Admin Only)
- */
-router.post("/admin/create", protect, adminOnly, async (req, res) => {
-  try {
-    const Session = getSession();
-    
-    const { sessionDate, notes, duration, location, trainerId } = req.body;
-
-    // Prevent creating sessions in the past
-    if (new Date(sessionDate) < new Date()) {
-      return res
-        .status(400)
-        .json({ message: "Cannot create past session slots." });
-    }
-
-    const newSession = await Session.create({
-      sessionDate,
-      notes,
-      duration: duration || 60,
-      location,
-      trainerId,
-      status: "available",
-      userId: null,
-    });
-
-    res.status(201).json({ 
-      message: "Session slot created.", 
-      session: newSession 
-    });
-  } catch (error) {
-    console.error("Error creating session:", error.message);
-    res.status(500).json({ message: "Server error creating session." });
-  }
-});
-
-/**
- * @route   POST /api/sessions
- * @desc    Create a new session (admin version)
+ * @route   POST /api/sessions/
+ * @desc    Create a new session (Universal Master Schedule)
  * @access  Private (Admin Only)
  */
 router.post("/", protect, adminOnly, async (req, res) => {
   try {
     const Session = getSession();
     const User = getUser();
-    const { sessionDate, notes, duration, location, trainerId, userId, status } = req.body;
-
+    const { 
+      sessionDate, 
+      duration, 
+      location, 
+      trainerId, 
+      userId, 
+      status, 
+      notes, 
+      sessionType 
+    } = req.body;
+    
+    if (!sessionDate) {
+      return res.status(400).json({
+        success: false,
+        message: "Session date is required"
+      });
+    }
+    
+    // Create the session
     const newSession = await Session.create({
-      sessionDate,
-      notes: notes || '',
+      sessionDate: new Date(sessionDate),
       duration: duration || 60,
       location: location || 'Main Studio',
       trainerId: trainerId || null,
       userId: userId || null,
-      status: status || 'available'
+      status: status || 'available',
+      notes: notes || null,
+      sessionType: sessionType || 'Standard Training'
     });
-
-    // Fetch the complete session with associated client and trainer
+    
+    // Fetch with associations
     const createdSession = await Session.findByPk(newSession.id, {
       include: [
         {
           model: User,
           as: 'client',
-          attributes: ['id', 'firstName', 'lastName', 'email', 'photo', 'availableSessions']
+          attributes: ['id', 'firstName', 'lastName', 'email', 'photo'],
+          required: false
         },
         {
           model: User,
           as: 'trainer',
-          attributes: ['id', 'firstName', 'lastName', 'email', 'photo']
+          attributes: ['id', 'firstName', 'lastName', 'email', 'photo'],
+          required: false
         }
       ]
     });
-
+    
+    // Broadcast real-time session creation
+    try {
+      await realTimeScheduleService.broadcastSessionCreated(createdSession);
+      logger.info(`Real-time session creation broadcasted for session ${newSession.id}`);
+    } catch (broadcastError) {
+      logger.warn('Failed to broadcast session creation:', broadcastError.message);
+    }
+    
     res.status(201).json({
+      success: true,
       message: "Session created successfully",
-      session: createdSession
+      data: createdSession
     });
+    
   } catch (error) {
     console.error("Error creating session:", error.message);
-    res.status(500).json({ message: "Server error creating session." });
+    res.status(500).json({ 
+      success: false,
+      message: "Server error creating session" 
+    });
   }
 });
 
@@ -708,7 +572,8 @@ router.put("/:id", protect, adminOnly, async (req, res) => {
 
     res.status(200).json({
       message: "Session updated successfully",
-      session: updatedSession
+      session: updatedSession,
+      data: updatedSession // Standardize response
     });
   } catch (error) {
     console.error("Error updating session:", error.message);
@@ -1345,46 +1210,6 @@ router.get("/:userId", protect, async (req, res) => {
 /**
  * Additional routes to add to your scheduleRoutes.mjs file
  */
-
-/**
- * POST /api/schedule/available
- * Admin route: Create one or more available slots
- */
-router.post("/available", protect, adminOnly, async (req, res) => {
-  try {
-    const Session = getSession();
-    const { slots } = req.body;
-    
-    if (!slots || !Array.isArray(slots) || slots.length === 0) {
-      return res.status(400).json({ message: "No valid slots provided" });
-    }
-    
-    const createdSlots = [];
-    
-    for (const slot of slots) {
-      const { date, duration, trainerId, location } = slot;
-      
-      // Create a new session
-      const newSession = await Session.create({
-        sessionDate: new Date(date),
-        duration: duration || 60,
-        trainerId: trainerId || null,
-        location: location || 'Main Studio',
-        status: 'available'
-      });
-      
-      createdSlots.push(newSession);
-    }
-    
-    res.status(201).json({ 
-      message: `${createdSlots.length} slot(s) created`,
-      slots: createdSlots
-    });
-  } catch (error) {
-    console.error("Error creating available slots:", error);
-    res.status(500).json({ message: "Server error creating slots" });
-  }
-});
 
 /**
  * POST /api/schedule/recurring
@@ -2189,119 +2014,6 @@ router.get("/utilization-stats", protect, adminOnly, async (req, res) => {
   }
 });
 
-
-/**
- * ========================================================================================
- * UNIVERSAL MASTER SCHEDULE - ENHANCED ADMIN ROUTES
- * ========================================================================================
- * Merged from scheduleRoutes.mjs.obsolete to provide comprehensive admin functionality
- * with real-time WebSocket integration and role-based access control
- */
-
-/**
- * @route   GET /api/sessions/admin
- * @desc    Admin route: Get all sessions with detailed information for Universal Master Schedule
- * @access  Private (Admin Only)
- */
-router.get("/admin", protect, adminOnly, async (req, res) => {
-  try {
-    const Session = getSession();
-    const User = getUser();
-    
-    // Enhanced query with filtering options for Universal Master Schedule
-    const { startDate, endDate, status, trainerId, clientId } = req.query;
-    
-    // Build filter object
-    const filter = {};
-    
-    // Date range filter
-    if (startDate && endDate) {
-      filter.sessionDate = {
-        [Op.between]: [new Date(startDate), new Date(endDate)]
-      };
-    } else if (startDate) {
-      filter.sessionDate = {
-        [Op.gte]: new Date(startDate)
-      };
-    } else if (endDate) {
-      filter.sessionDate = {
-        [Op.lte]: new Date(endDate)
-      };
-    }
-    
-    // Status filter
-    if (status) {
-      if (Array.isArray(status)) {
-        filter.status = { [Op.in]: status };
-      } else {
-        filter.status = status;
-      }
-    }
-    
-    // Trainer filter
-    if (trainerId) {
-      filter.trainerId = trainerId;
-    }
-    
-    // Client filter  
-    if (clientId) {
-      filter.userId = clientId;
-    }
-    
-    const sessions = await Session.findAll({
-      where: filter,
-      include: [
-        {
-          model: User,
-          as: 'client',
-          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'availableSessions'],
-          required: false
-        },
-        {
-          model: User,
-          as: 'trainer',
-          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo', 'specialties', 'bio'],
-          required: false
-        }
-      ],
-      order: [['sessionDate', 'ASC']]
-    });
-    
-    // Log admin data access for security monitoring
-    logger.info(`Admin ${req.user.id} accessed session data`, {
-      adminId: req.user.id,
-      sessionCount: sessions.length,
-      filters: { startDate, endDate, status, trainerId, clientId },
-      timestamp: new Date().toISOString()
-    });
-    
-    // Broadcast real-time admin data access event
-    realTimeScheduleService.broadcastAdminEvent({
-      type: 'admin:dataAccess',
-      adminId: req.user.id,
-      sessionCount: sessions.length,
-      timestamp: new Date().toISOString()
-    });
-    
-    res.status(200).json({
-      success: true,
-      sessions,
-      meta: {
-        total: sessions.length,
-        filters: filter,
-        timestamp: new Date().toISOString()
-      }
-    });
-    
-  } catch (error) {
-    logger.error("Error fetching admin schedule data:", error);
-    res.status(500).json({ 
-      success: false,
-      message: "Server error fetching admin schedule data",
-      error: error.message 
-    });
-  }
-});
 
 /**
  * @route   PUT /api/sessions/assign/:sessionId

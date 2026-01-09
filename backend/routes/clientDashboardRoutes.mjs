@@ -39,7 +39,7 @@ import express from 'express';
 import sequelize from '../database.mjs';
 import { protect, clientOnly, rateLimiter } from '../middleware/authMiddleware.mjs';
 import { getAllModels, Op } from '../models/index.mjs';
-import { updateClientProfile } from '../controllers/clientProfileController.mjs';
+import { updateClientProfile } from '../controllers/profileController.mjs';
 
 const router = express.Router();
 

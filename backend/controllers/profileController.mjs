@@ -249,6 +249,90 @@ export const updateUserProfile = async (req, res) => {
 };
 
 /**
+ * Update client profile (PATCH method for partial updates)
+ *
+ * @route   PATCH /api/client/profile
+ * @desc    Update current client profile with partial data
+ * @access  Private (clients only)
+ */
+export const updateClientProfile = async (req, res) => {
+  try {
+    // Verify user is a client
+    if (req.user.role !== 'client') {
+      logger.warn('Non-client attempted client profile update', { userId: req.user.id, role: req.user.role });
+      return res.status(403).json({
+        success: false,
+        message: 'This endpoint is only available to clients'
+      });
+    }
+
+    const updateData = req.body;
+
+    // Fields that clients are allowed to update (subset of full profile)
+    const allowedFields = [
+      'firstName', 'lastName', 'phone', 'photo',
+      'dateOfBirth', 'gender', 'weight', 'height',
+      'fitnessGoal', 'trainingExperience', 'healthConcerns', 'emergencyContact',
+      'emailNotifications', 'smsNotifications', 'preferences'
+    ];
+
+    // Filter out fields that are not allowed to be updated
+    const filteredUpdateData = Object.keys(updateData)
+      .filter(key => allowedFields.includes(key))
+      .reduce((obj, key) => {
+        obj[key] = updateData[key];
+        return obj;
+      }, {});
+
+    // If there's nothing to update
+    if (Object.keys(filteredUpdateData).length === 0) {
+      logger.warn('Client profile update: No valid fields to update', { userId: req.user.id });
+      return res.status(400).json({
+        success: false,
+        message: 'No valid fields to update'
+      });
+    }
+
+    // Find user and update
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      logger.error('User not found during client profile update', { userId: req.user.id });
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    await user.update(filteredUpdateData);
+    logger.info('Client profile updated successfully', {
+      userId: user.id,
+      updatedFields: Object.keys(filteredUpdateData)
+    });
+
+    // Get updated user data without sensitive fields
+    const updatedUser = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password', 'refreshTokenHash'] }
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Client profile updated successfully',
+      user: updatedUser
+    });
+  } catch (error) {
+    logger.error('Error updating client profile', {
+      error: error.message,
+      stack: error.stack,
+      userId: req.user?.id
+    });
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to update client profile: ' + error.message
+    });
+  }
+};
+
+/**
  * Get user statistics
  * 
  * @route   GET /api/profile/stats
