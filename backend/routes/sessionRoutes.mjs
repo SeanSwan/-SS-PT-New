@@ -1151,10 +1151,11 @@ router.get("/analytics", protect, async (req, res) => {
     
     res.json(analytics);
   } catch (error) {
-    console.error("Error fetching session analytics:", error.message);
-    res.status(500).json({ 
+    console.error("Error fetching session analytics:", error.message, error.stack);
+    res.status(500).json({
       message: "Server error fetching analytics.",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });
