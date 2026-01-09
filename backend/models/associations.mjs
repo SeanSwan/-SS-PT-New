@@ -39,6 +39,7 @@ const setupAssociations = async () => {
     const OrderModule = await import('./Order.mjs');
     const OrderItemModule = await import('./OrderItem.mjs');
     const SessionPackageModule = await import('./SessionPackage.mjs');
+    const PackageModule = await import('./Package.mjs');
 
     // Food Scanner Models (Sequelize)
     const FoodIngredientModule = await import('./FoodIngredient.mjs');
@@ -111,6 +112,7 @@ const setupAssociations = async () => {
     const Order = OrderModule.default;
     const OrderItem = OrderItemModule.default;
     const SessionPackage = SessionPackageModule.default;
+    const Package = PackageModule.default;
 
     // Food Scanner Models
     const FoodIngredient = FoodIngredientModule.default;
@@ -194,9 +196,9 @@ const setupAssociations = async () => {
       
       return {
         User, ClientProgress, Gamification, Achievement, GamificationSettings,
-        UserAchievement, UserReward, UserMilestone, Reward, Milestone, 
-        PointTransaction, StorefrontItem, ShoppingCart, CartItem, Order, 
-        OrderItem, FoodIngredient, FoodProduct, FoodScanHistory, 
+        UserAchievement, UserReward, UserMilestone, Reward, Milestone,
+        PointTransaction, StorefrontItem, ShoppingCart, CartItem, Order,
+        OrderItem, Package, FoodIngredient, FoodProduct, FoodScanHistory,
         SocialPost, SocialComment, SocialLike, Friendship, SocialChallenge, SocialChallengeParticipant, ChallengeTeam,
         PostReport, ModerationAction,
         WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, WorkoutSession, WorkoutExercise, Exercise, Set,
@@ -287,6 +289,11 @@ const setupAssociations = async () => {
     Order.hasMany(OrderItem, { foreignKey: 'orderId', as: 'orderItems' });
     OrderItem.belongsTo(Order, { foreignKey: 'orderId', as: 'order' });
     OrderItem.belongsTo(StorefrontItem, { foreignKey: 'storefrontItemId', as: 'storefrontItem' });
+
+    // PACKAGE ASSOCIATIONS
+    // ====================
+    User.hasMany(Package, { foreignKey: 'createdBy', as: 'createdPackages' });
+    Package.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 
     // FOOD SCANNER ASSOCIATIONS
     // =========================
@@ -539,6 +546,7 @@ const setupAssociations = async () => {
       Order,
       OrderItem,
       SessionPackage,
+      Package,
       
       // Food Scanner Models
       FoodIngredient,

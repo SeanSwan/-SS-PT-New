@@ -101,56 +101,11 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   // Simple auth check (build-safe)
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Initialize component
-  useEffect(() => {
-    const initializeSchedule = async () => {
-      try {
-        setLoading(true);
-        
-        // Check permissions
-        const token = localStorage.getItem('token');
-        if (token) {
-          setIsAdmin(true);
-        }
-        
-        // Simulate loading time
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Mock some initial data for demonstration
-        setSessions([
-          {
-            id: 1,
-            sessionDate: new Date().toISOString(),
-            duration: 60,
-            status: 'available',
-            location: 'Main Studio',
-            notes: 'Available session'
-          },
-          {
-            id: 2,
-            sessionDate: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
-            duration: 60,
-            status: 'scheduled',
-            location: 'Main Studio',
-            clientName: 'John Doe'
-          }
-        ]);
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('Error initializing schedule:', error);
-        setLoading(false);
-      }
-    };
-
-    initializeSchedule();
-  }, []);
-
   // Fetch sessions from API (safe implementation)
   const fetchSessions = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       const token = localStorage.getItem('token');
       if (!token) {
         console.log('No token found');
@@ -160,27 +115,65 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
       // Try to fetch from API, fallback gracefully
       try {
-        const response = await fetch('/api/sessions/admin', {
+        const response = await fetch('/api/sessions', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
         });
 
         if (response.ok) {
-          const data = await response.json();
-          setSessions(data.sessions || []);
+          const result = await response.json();
+
+          // Handle standardized response format: { success, data, meta }
+          if (result.success && result.data) {
+            // Backend returns sessions directly in data array
+            setSessions(Array.isArray(result.data) ? result.data : []);
+          } else {
+            // Fallback for legacy format
+            setSessions(result.sessions || []);
+          }
+        } else {
+          console.log('API call failed, status:', response.status);
+          // Keep empty sessions on error
+          setSessions([]);
         }
       } catch (apiError) {
-        console.log('API not available, using mock data');
-        // Fallback to mock data if API isn't available
+        console.log('API not available:', apiError);
+        // Keep empty sessions if API isn't available
+        setSessions([]);
       }
-      
+
     } catch (error) {
       console.error('Error fetching sessions:', error);
+      setSessions([]);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  // Initialize component
+  useEffect(() => {
+    const initializeSchedule = async () => {
+      try {
+        setLoading(true);
+
+        // Check permissions
+        const token = localStorage.getItem('token');
+        if (token) {
+          setIsAdmin(true);
+        }
+
+        // Load sessions from API
+        await fetchSessions();
+
+      } catch (error) {
+        console.error('Error initializing schedule:', error);
+        setLoading(false);
+      }
+    };
+
+    initializeSchedule();
+  }, [fetchSessions]);
 
   // Handle session creation (safe implementation)
   const handleCreateSession = async () => {
@@ -203,26 +196,22 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         });
 
         if (response.ok) {
-          alert('Session created successfully!');
-          setShowCreateDialog(false);
-          fetchSessions();
+          const result = await response.json();
+
+          if (result.success) {
+            alert('Session created successfully!');
+            setShowCreateDialog(false);
+            fetchSessions();
+          } else {
+            alert(result.message || 'Failed to create session');
+          }
         } else {
-          throw new Error('API call failed');
+          const errorData = await response.json();
+          alert(errorData.message || 'Failed to create session');
         }
       } catch (apiError) {
-        // Fallback: Add to local state
-        const newSession: Session = {
-          id: Date.now(),
-          sessionDate: formData.sessionDate,
-          duration: formData.duration,
-          status: 'available',
-          location: formData.location,
-          notes: formData.notes
-        };
-        
-        setSessions(prev => [...prev, newSession]);
-        setShowCreateDialog(false);
-        alert('Session created successfully!');
+        console.error('API error creating session:', apiError);
+        alert('Could not connect to server. Please check your connection and try again.');
       }
       
     } catch (error) {
