@@ -25,6 +25,7 @@ import healthRoutes from '../routes/healthRoutes.mjs';
 import userManagementRoutes from '../routes/userManagementRoutes.mjs';
 import sessionRoutes from '../routes/sessionRoutes.mjs';
 import sessionPackageRoutes from '../routes/sessionPackageRoutes.mjs';
+import packageRoutes from '../routes/packageRoutes.mjs';
 // Temporarily disabled for deployment hotfix - will re-enable after verification
 // import trainingSessionRoutes from '../routes/trainingSessionRoutes.mjs';
 
@@ -161,8 +162,9 @@ export const setupRoutes = async (app) => {
 
   // ===================== USER MANAGEMENT ROUTES =====================
   app.use('/api/auth', userManagementRoutes);
-  app.use('/api/sessions', sessionRoutes);
+  // REMOVED: app.use('/api/sessions', sessionRoutes); - replaced by unified sessionsRoutes below
   app.use('/api/session-packages', sessionPackageRoutes);
+  app.use('/api/packages', packageRoutes);
 
   // ===================== ONBOARDING ROUTES (AI-POWERED PERSONAL TRAINING) =====================
   // Onboarding-to-Database Pipeline - transforms 85-question CLIENT-ONBOARDING-QUESTIONNAIRE.md
