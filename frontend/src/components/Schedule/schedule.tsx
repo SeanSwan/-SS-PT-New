@@ -1071,6 +1071,26 @@ const Loader = styled(motion.div)`
 `;
 
 /**
+ * Helper function to determine available calendar views based on screen size
+ */
+const getAvailableViews = (): View[] => {
+  const width = window.innerWidth;
+
+  // Mobile: Only day and agenda views
+  if (width < 640) {
+    return ['day', 'agenda'];
+  }
+
+  // Tablet: Day, week, and agenda
+  if (width < 1024) {
+    return ['day', 'week', 'agenda'];
+  }
+
+  // Desktop: All views
+  return ['month', 'week', 'day', 'agenda'];
+};
+
+/**
  * Main UnifiedCalendar Component
  */
 const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({ initialModalState }) => {
