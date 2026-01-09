@@ -122,8 +122,7 @@
 
 // backend/controllers/notificationController.mjs
 import logger from '../utils/logger.mjs';
-import Notification from '../models/Notification.mjs';
-import User from '../models/User.mjs';
+import { getNotification, getUser } from '../models/index.mjs';
 import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
 
 /**
@@ -131,9 +130,17 @@ import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
  */
 export const getAllNotifications = async (req, res) => {
   try {
+    const Notification = getNotification();
+    const User = getUser();
+
+    if (!Notification || !User) {
+      logger.error('Notification or User model not initialized');
+      return errorResponse(res, 'Server error: Models not initialized', 500);
+    }
+
     // Get the user ID from the authenticated user
     const userId = req.user.id;
-    
+
     // Get all notifications for this user
     const notifications = await Notification.findAll({
       where: { userId },
@@ -165,22 +172,27 @@ export const getAllNotifications = async (req, res) => {
  */
 export const markAsRead = async (req, res) => {
   try {
+    const Notification = getNotification();
+    if (!Notification) {
+      return errorResponse(res, 'Server error: Model not initialized', 500);
+    }
+
     const { id } = req.params;
     const userId = req.user.id;
-    
+
     // Find the notification
     const notification = await Notification.findOne({
       where: { id, userId }
     });
-    
+
     if (!notification) {
       return errorResponse(res, 'Notification not found', 404);
     }
-    
+
     // Update the notification
     notification.read = true;
     await notification.save();
-    
+
     return successResponse(res, notification, 'Notification marked as read');
   } catch (error) {
     logger.error('Error in markAsRead:', error.message, { stack: error.stack });
@@ -193,14 +205,19 @@ export const markAsRead = async (req, res) => {
  */
 export const markAllAsRead = async (req, res) => {
   try {
+    const Notification = getNotification();
+    if (!Notification) {
+      return errorResponse(res, 'Server error: Model not initialized', 500);
+    }
+
     const userId = req.user.id;
-    
+
     // Update all notifications for this user
     await Notification.update(
       { read: true },
       { where: { userId, read: false } }
     );
-    
+
     return successResponse(res, { success: true }, 'All notifications marked as read');
   } catch (error) {
     logger.error('Error in markAllAsRead:', error.message, { stack: error.stack });
@@ -214,6 +231,12 @@ export const markAllAsRead = async (req, res) => {
  */
 export const createNotification = async (options) => {
   try {
+    const Notification = getNotification();
+    if (!Notification) {
+      logger.error('Notification model not initialized');
+      return { success: false, error: 'Model not initialized' };
+    }
+
     const {
       userId,
       title,
@@ -223,7 +246,7 @@ export const createNotification = async (options) => {
       image = null,
       senderId = null
     } = options;
-    
+
     // Create the notification
     const notification = await Notification.create({
       userId,
@@ -235,12 +258,12 @@ export const createNotification = async (options) => {
       senderId,
       read: false
     });
-    
+
     logger.info(`Created ${type} notification for user ${userId}`);
-    
+
     // If you have WebSockets set up, emit a notification event
     // io.to(userId).emit('notification', notification);
-    
+
     return { success: true, notification };
   } catch (error) {
     logger.error('Error in createNotification:', error.message, { stack: error.stack });
@@ -254,6 +277,14 @@ export const createNotification = async (options) => {
  */
 export const createAdminNotification = async (options) => {
   try {
+    const Notification = getNotification();
+    const User = getUser();
+
+    if (!Notification || !User) {
+      logger.error('Notification or User model not initialized');
+      return { success: false, error: 'Models not initialized' };
+    }
+
     const {
       title,
       message,
@@ -262,7 +293,7 @@ export const createAdminNotification = async (options) => {
       image = null,
       senderId = null
     } = options;
-    
+
     // Get all admin users
     const adminUsers = await User.findAll({
       where: { role: 'admin' }
@@ -305,14 +336,19 @@ export const createAdminNotification = async (options) => {
  */
 export const deleteNotification = async (req, res) => {
   try {
+    const Notification = getNotification();
+    if (!Notification) {
+      return errorResponse(res, 'Server error: Model not initialized', 500);
+    }
+
     const { id } = req.params;
     const userId = req.user.id;
-    
+
     // Find the notification
     const notification = await Notification.findOne({
       where: { id, userId }
     });
-    
+
     if (!notification) {
       return errorResponse(res, 'Notification not found', 404);
     }

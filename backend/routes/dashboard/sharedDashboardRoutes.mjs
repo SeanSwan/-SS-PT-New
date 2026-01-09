@@ -218,11 +218,12 @@ router.get('/stats', protect, async (req, res) => {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Error fetching dashboard stats:', error);
+    console.error('Error fetching dashboard stats:', error.message, error.stack);
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch dashboard statistics',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

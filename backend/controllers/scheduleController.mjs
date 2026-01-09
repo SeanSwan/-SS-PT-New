@@ -19,19 +19,24 @@ import { QueryTypes } from 'sequelize';
  * - end: ISO 8601 string for the end of the date range
  */
 export const getScheduleEvents = async (req, res) => {
-  const { start, end } = req.query;
-  const { id: userId, role } = req.user;
-
-  const startDate = start ? new Date(start) : new Date();
-  const endDate = end
-    ? new Date(end)
-    : new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-    return res.status(400).json({ error: 'Invalid start or end date format.' });
-  }
-
   try {
+    const { start, end } = req.query;
+
+    // Check if user is authenticated
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'User not authenticated.' });
+    }
+
+    const { id: userId, role } = req.user;
+
+    const startDate = start ? new Date(start) : new Date();
+    const endDate = end
+      ? new Date(end)
+      : new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      return res.status(400).json({ error: 'Invalid start or end date format.' });
+    }
     let whereClause = 's."sessionDate" BETWEEN :start AND :end AND s.status IN (:statuses)';
     const replacements = {
       start: startDate,
@@ -87,7 +92,11 @@ export const getScheduleEvents = async (req, res) => {
 
     res.json(formattedEvents);
   } catch (error) {
-    console.error('Error fetching schedule events:', error);
-    res.status(500).json({ error: 'Failed to fetch schedule events.' });
+    console.error('Error fetching schedule events:', error.message, error.stack);
+    res.status(500).json({
+      error: 'Failed to fetch schedule events.',
+      message: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
