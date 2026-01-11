@@ -1,14 +1,29 @@
 # SWANSTUDIOS AI VILLAGE HANDBOOK - FINAL EDITION
 ## Your Complete Guide to Building SwanStudios with AI Agents
 
-**Last Updated:** 2025-11-13 - Added Admin Video Library System (Section 9.6)
-**Previous Update:** 2025-11-07 - Added Onboarding-to-Database Pipeline (Section 9.5.1)
+**Last Updated:** 2026-01-11 - Added Client Data Database Integration System (Section 9.7)
+**Previous Update:** 2025-11-13 - Added Admin Video Library System (Section 9.6)
 **Your Situation:** Time-stressed, need revenue, have powerful AI tools already
 **Goal:** Launch in 1-2 weeks, not 3 months + Personal Training System automation
 
 ---
 
 ## 📋 CHANGELOG
+
+### 2026-01-11 - Section 9.7: Client Data Database Integration System
+- ✅ Complete Client Data Integration Prompt (CLIENT-DATA-INTEGRATION-REFACTORED-PROMPT.md)
+- ✅ Deep Codebase Analysis Framework (analyzes 44+ controllers, 556+ components)
+- ✅ Duplicate Detection & Consolidation (identifies broken tabs, non-functional buttons)
+- ✅ 85-Question Onboarding Questionnaire mapping to database schema
+- ✅ Master Prompt JSON Schema v3.0 (complete client data structure for AI)
+- ✅ Backend AI Service Integration (NOT MCP servers - built into backend)
+- ✅ Database Schema Design (6 new models: Questionnaire, Baseline, Progress, Nutrition, Photos, Notes)
+- ✅ Dashboard Consolidation (fixes multiple duplicate Client Dashboard layouts)
+- ✅ Data Persistence Focus (ensures ALL data saves to PostgreSQL, NO mock data)
+- ✅ Role-Based Access Control (Admin/Trainer/Client permissions)
+- Impact: Transforms file-based client-data system into production database-backed web app
+- Impact: Enables real-time client data entry and persistence across all dashboards
+- Impact: Fixes broken tabs and buttons that don't save data
 
 ### 2025-11-13 - Section 9.6: Admin Video Library System
 - ✅ Complete Admin Video Library UI/UX Implementation (28,000+ lines of documentation)
@@ -2734,6 +2749,406 @@ For complete manual process, see: `docs/ai-workflow/personal-training/MANUAL-ONB
 **Status**: ✅ Backend Complete - ⏳ Frontend Pending - ✅ Ready for AI Village Use
 
 **Integration Note**: The unified training interface will be built as a page within the SwanStudios admin dashboard. It's the same app, just a new feature module.
+
+---
+
+## 9.7. CLIENT DATA DATABASE INTEGRATION - COMPREHENSIVE ONBOARDING & DATA PERSISTENCE
+
+**Added:** 2026-01-11
+**Status:** Prompt Ready for ChatGPT Implementation
+**Location:** `docs/ai-workflow/CLIENT-DATA-INTEGRATION-REFACTORED-PROMPT.md`
+
+---
+
+### **The Problem**
+
+The client-data management system currently exists as a file-based system (questionnaires, progress tracking, meal plans stored in markdown files). This doesn't integrate with the web application:
+
+- ❌ No way to enter client data through Admin Dashboard
+- ❌ Can't save questionnaire responses to database
+- ❌ Multiple duplicate Client Dashboard layouts (RevolutionaryClientDashboard, ClientDashboardLayout, newLayout, SafeMainContent)
+- ❌ Broken tabs that don't work when clicked
+- ❌ Buttons that don't save data to database (mock data only)
+- ❌ No persistence after page refresh
+- ❌ Trainers can't view assigned clients
+- ❌ Clients can't view their own data
+- ❌ 85-question questionnaire not connected to database
+- ❌ AI services built into backend but not connected to client data
+
+**Impact:** Can't onboard real clients, can't log training data, can't use AI-generated workouts with real client information.
+
+---
+
+### **The Solution: Deep Analysis + Smart Integration**
+
+**File:** `docs/ai-workflow/CLIENT-DATA-INTEGRATION-REFACTORED-PROMPT.md`
+
+This comprehensive prompt instructs ChatGPT (or any AI) to:
+
+#### **Phase 1: Deep Codebase Analysis (DO THIS FIRST)**
+
+1. **Analyze Existing Backend (44+ controllers)**
+   - Review: `adminClientController.mjs`, `clientProfileController.mjs`, `progressController.mjs`, etc.
+   - Identify: What endpoints exist, which save to DB, which are broken
+   - Report: Gaps and duplicates
+
+2. **Analyze Existing Models**
+   - Review: `User.mjs` (already has `masterPromptJson`, `spiritName`), `ClientProgress.mjs`, `BodyMeasurement.mjs`, etc.
+   - Identify: Overlaps with 85-question questionnaire
+   - Report: What's missing, what's duplicate
+
+3. **Analyze Existing Frontend (556+ components)**
+   - **Admin Dashboard:** What client management components exist?
+   - **Client Dashboard:** Identify ALL duplicate layouts and broken tabs
+   - **Trainer Dashboard:** What trainer-specific components exist?
+   - Report: Which to keep, which to delete, which to refactor
+
+4. **Analyze AI Integration**
+   - Find: Backend AI endpoints (workout generation, nutrition planning)
+   - Document: Request/response format
+   - Plan: How to connect to client data
+
+5. **Analyze Broken Features**
+   - List: All broken tabs
+   - List: All non-functional buttons
+   - List: All components using mock data
+   - Provide: Specific fixes for each
+
+#### **Phase 2: Gap Analysis & Recommendations**
+
+ChatGPT creates a report:
+
+```markdown
+## Existing vs Needed
+
+### Database Models:
+- KEEP: User (already has masterPromptJson, spiritName)
+- REFACTOR: ClientProgress (add fields X, Y, Z)
+- CREATE NEW: ClientOnboardingQuestionnaire (doesn't exist)
+
+### Frontend Components:
+- DELETE: RevolutionaryClientDashboard (obsolete duplicate)
+- KEEP: ClientDashboardLayout (make this the main one)
+- REFACTOR: OverviewSection (fix tab, connect to API)
+- CREATE NEW: ClientOnboarding wizard (doesn't exist)
+
+### Broken Functionality:
+- Tab "My Progress": Fix - connect to GET /api/progress/:userId
+- Button "Save Profile": Fix - add POST to /api/profile/update
+- Component using mock data: ProgressChart - connect to real API
+```
+
+#### **Phase 3: Implementation**
+
+**ONLY AFTER** analysis and approval, ChatGPT generates:
+
+1. **6 New Database Models** (only if missing):
+   - `ClientOnboardingQuestionnaire` - 85-question intake form
+   - `ClientBaselineMeasurements` - Fitness tests (ROM, strength, flexibility)
+   - `ClientProgressReport` - Weekly/monthly progress tracking
+   - `ClientNutritionPlan` - Meal plans with macros
+   - `ClientPhoto` - Progress photo metadata (encrypted)
+   - `ClientNote` - Notes and red flags
+
+2. **API Endpoints** (only what's missing):
+   - POST /api/client-data/onboarding - Save questionnaire
+   - GET /api/client-data/summary/:userId - Get all client data
+   - POST /api/client-data/progress - Create progress report
+   - POST /api/client-data/generate-master-prompt/:userId - Generate Master Prompt JSON
+
+3. **Admin Dashboard Components** (only what's missing):
+   - Client List (refactor existing or create new)
+   - Client Onboarding Wizard (85-question multi-step form)
+   - Client Profile (tabs: Overview, Questionnaire, Progress, Nutrition, Workouts, Photos, Notes)
+   - AI Workout Generator modal (integrates with backend AI services)
+
+4. **Client Dashboard Consolidation**:
+   - Identify active layout
+   - Delete obsolete duplicates
+   - Fix broken tabs
+   - Connect all tabs to real database endpoints
+   - Ensure data persists
+
+5. **Trainer Dashboard Components**:
+   - My Clients List (assigned clients only)
+   - Quick Progress Entry
+   - Quick Notes
+   - AI Workout Generator
+
+---
+
+### **85-Question Onboarding Questionnaire**
+
+The prompt includes complete mapping of all 85 questions across 13 sections:
+
+1. **Client Profile** (10 questions) - Name, age, contact, blood type
+2. **Measurements** (5 questions) - Height, weight, body fat %, DEXA scans
+3. **Fitness Goals** (7 questions) - Primary goal, motivation, timeline, commitment
+4. **Health History** (9 questions) - Medical conditions, medications, injuries, surgeries
+5. **Nutrition & Lifestyle** (17 questions) - Diet, sleep, stress, alcohol, smoking
+6. **Training History** (15 questions) - Experience, preferences, favorite exercises
+7. **Baseline Measurements** (4 sections) - Cardiovascular, strength, ROM, flexibility
+8. **AI Coaching Setup** (7 questions) - Daily check-ins, communication style, motivation
+9. **Visual Diagnostics** (4 questions) - Photo consent, wearable devices
+10. **Investment & Commitment** (5 questions) - Package tier, payment method
+11. **Informed Consent** (2 questions) - Liability waiver, AI data consent
+12. **Final Thoughts** (4 questions) - Anything else, excited about, nervous about
+13. **Trainer Assessment** (5 assessments) - Health risk, priority areas, recommendations
+
+---
+
+### **Master Prompt JSON Schema v3.0**
+
+Complete structure showing how questionnaire data maps to JSON stored in `User.masterPromptJson`:
+
+```json
+{
+  "version": "3.0",
+  "client": {
+    "name": "John Doe",
+    "alias": "Orion Ascending",  // Spirit Name for privacy
+    "age": 35,
+    "bloodType": "O",
+    "contact": {...}
+  },
+  "measurements": {
+    "height": {"feet": 6, "inches": 1},
+    "currentWeight": 210,
+    "targetWeight": 190
+  },
+  "goals": {
+    "primary": "Weight loss",
+    "why": "Want energy to play with kids",
+    "commitmentLevel": 9
+  },
+  "health": {
+    "medicalConditions": ["Diabetes"],
+    "medications": [{...}],
+    "injuries": [{...}],
+    "currentPain": [{...}]
+  },
+  "nutrition": {
+    "foodsLove": ["Chicken", "Rice", "Broccoli"],
+    "foodsHate": ["Brussels sprouts"],
+    "allergies": ["Peanuts"]
+  },
+  "training": {
+    "fitnessLevel": "Beginner-Intermediate",
+    "favoriteExercises": ["Bench press", "Squats"],
+    "dislikedExercises": ["Burpees"]
+  },
+  "baseline": {
+    "strength": {
+      "benchPress": {"weight": 135, "reps": 5},
+      "squat": {"weight": 155, "reps": 8}
+    },
+    "rangeOfMotion": {...},
+    "flexibility": {...}
+  },
+  "package": {
+    "tier": "Golden",
+    "price": 125.00,
+    "sessionsPerWeek": 4
+  }
+}
+```
+
+---
+
+### **Backend AI Service Integration**
+
+**IMPORTANT:** AI services are built into the backend (NOT external MCP servers):
+
+**Workout Generation:**
+- Backend endpoint: `/api/ai/workout-generation` (or similar)
+- Input: Client data from `User.masterPromptJson` + latest progress
+- Output: Save to `WorkoutPlan` table or `Session` table
+- UI Integration: Button in Client Profile → AI Workout Generator modal
+
+**Nutrition Planning:**
+- Backend endpoint: `/api/ai/nutrition-planning` (or similar)
+- Input: Client data from questionnaire + goals + dietary restrictions
+- Output: Save to `ClientNutritionPlan` table
+- UI Integration: Button in Client Profile → AI Meal Plan Generator modal
+
+**Progress Analysis:**
+- Backend endpoint: `/api/ai/progress-analysis` (or similar)
+- Input: Last 4 weeks of progress reports
+- Output: AI-generated recommendations
+- UI Integration: Button in Progress Tracking → "Analyze with AI"
+
+---
+
+### **Data Persistence & Mock Data Elimination**
+
+**Every component must:**
+- Load data from: `GET /api/...` (specific endpoint)
+- Save data to: `POST /api/...` (specific endpoint)
+- Verify: Data persists after page refresh
+- Display: Real database fields (no hardcoded mock data)
+
+**Example Fix:**
+
+**Before (Broken):**
+```typescript
+// Component uses mock data
+const [progress, setProgress] = useState({ weight: 180, workouts: 12 });
+// Button doesn't save
+<Button onClick={() => console.log('Save')}>Save</Button>
+```
+
+**After (Fixed):**
+```typescript
+// Component loads from API
+const [progress, setProgress] = useState(null);
+useEffect(() => {
+  fetch(`/api/client-data/progress/${userId}`)
+    .then(r => r.json())
+    .then(data => setProgress(data));
+}, [userId]);
+
+// Button saves to API
+<Button onClick={async () => {
+  await fetch(`/api/client-data/progress`, {
+    method: 'POST',
+    body: JSON.stringify(progress)
+  });
+  toast.success('Progress saved!');
+}}>Save</Button>
+```
+
+---
+
+### **Dashboard Consolidation Example**
+
+**Current Problem:**
+- `ClientDashboard/ClientLayout.tsx`
+- `ClientDashboard/ClientDashboardLayout.tsx`
+- `ClientDashboard/newLayout/ClientDashboardLayout.tsx`
+- `ClientDashboard/RevolutionaryClientDashboard.tsx`
+- `ClientDashboard/SafeMainContent.tsx`
+
+**All partially implemented, none fully working.**
+
+**Solution:**
+1. ChatGPT identifies which layout is currently active
+2. Recommends deleting obsolete duplicates
+3. Consolidates into ONE working layout
+4. Defines clear tab structure:
+   - Overview (goals, stats, upcoming sessions)
+   - My Profile (questionnaire data, measurements)
+   - My Progress (weight chart, strength chart, compliance)
+   - My Workouts (current week workout, past workouts)
+   - My Nutrition (meal plan, macro targets)
+   - Messages (trainer communication)
+   - Settings (preferences, notifications)
+
+Each tab:
+- Loads real data from API
+- Has working save buttons
+- Persists data to database
+- Shows loading/error states
+
+---
+
+### **Role-Based Access Control**
+
+**Admin:**
+- Full CRUD access to all clients
+- Can create/edit questionnaires
+- Can generate Master Prompt JSON
+- Can generate AI workouts/meal plans
+- Can view all progress reports
+
+**Trainer:**
+- Read/write access to assigned clients only
+- Can add progress reports
+- Can add notes
+- Can generate workouts for assigned clients
+- Cannot delete clients
+
+**Client:**
+- Read-only access to own data
+- Can view profile, progress, workouts, nutrition
+- Cannot edit questionnaire (read-only)
+- Cannot edit measurements (read-only)
+
+---
+
+### **How to Use This Prompt**
+
+1. **Copy:** `docs/ai-workflow/CLIENT-DATA-INTEGRATION-REFACTORED-PROMPT.md`
+2. **Paste into ChatGPT** (GPT-4 recommended)
+3. **Answer clarifying questions:**
+   - Which Client Dashboard layout is active?
+   - Where are the AI service endpoints?
+   - Photo storage method?
+4. **Review analysis report**
+5. **Approve recommendations**
+6. **Receive generated code:**
+   - New models (only missing ones)
+   - Fixed controllers (refactored existing)
+   - Consolidated components (merged duplicates)
+   - New components (only truly missing)
+
+---
+
+### **Expected Outcomes**
+
+After implementation:
+
+1. ✅ **Admin can onboard new clients** through web interface (85-question wizard)
+2. ✅ **Data saves to PostgreSQL** (no more file-based system)
+3. ✅ **Master Prompt JSON auto-generated** from questionnaire
+4. ✅ **Client Dashboard consolidated** into one working layout
+5. ✅ **All tabs functional** (no more broken buttons)
+6. ✅ **Data persists** after page refresh
+7. ✅ **Trainer can view assigned clients** and add progress
+8. ✅ **Client can view their own data** (read-only)
+9. ✅ **AI services connected** to client data (generate workouts/meal plans)
+10. ✅ **Zero duplicate code** (analysis prevents conflicts)
+
+---
+
+### **Files Created**
+
+1. **Main Prompt:**
+   - `docs/ai-workflow/CLIENT-DATA-INTEGRATION-REFACTORED-PROMPT.md` (880 lines)
+
+2. **Reference Files:**
+   - `client-data/README.md` - Original file-based system documentation
+   - `client-data/QUICK-START.md` - 5-minute setup guide
+   - `client-data/templates/CLIENT-ONBOARDING-QUESTIONNAIRE.md` - 85 questions
+   - `client-data/templates/MASTER-PROMPT-SCHEMA-v3.0.json` - JSON schema (770 lines)
+
+---
+
+### **Integration with Existing Systems**
+
+**Connects with:**
+- User model (`masterPromptJson`, `spiritName` fields)
+- Session model (training sessions)
+- Backend AI services (workout/nutrition generation)
+- Admin Dashboard (new client management section)
+- Trainer Dashboard (assigned clients view)
+- Client Dashboard (consolidated layout)
+
+**Does NOT conflict with:**
+- Existing gamification system
+- Existing social features
+- Existing payment/storefront
+- Existing scheduling system
+
+---
+
+### **Next Steps**
+
+1. Copy prompt to ChatGPT
+2. Complete deep analysis phase
+3. Review recommendations
+4. Generate code
+5. Test functionality
+6. **Start logging real client data!**
 
 ---
 

@@ -1,8 +1,8 @@
-# 🚀 AI VILLAGE MASTER ONBOARDING PROMPT v2.6
-## UNIFIED: Phase 0 Reviews + AI Handoff Coordination + Design Workflow + Coach Cor tex v3.1 + Admin Video Library + Dashboard Real Data Integration
+# 🚀 AI VILLAGE MASTER ONBOARDING PROMPT v2.7
+## UNIFIED: Phase 0 Reviews + AI Handoff Coordination + Design Workflow + Coach Cortex v3.1 + Admin Video Library + Dashboard Real Data Integration + Client Data Database Integration
 
-**LATEST UPDATE:** 2026-01-05 - Phase 6-7 Dashboard Real Data Integration Complete (Client + Trainer + Admin access)
-**Previous Update:** 2025-11-18 - Added Storefront System docs and schema fixes
+**LATEST UPDATE:** 2026-01-11 - Client Data Database Integration System (transforms file-based client-data → production web app)
+**Previous Update:** 2026-01-05 - Phase 6-7 Dashboard Real Data Integration Complete (Client + Trainer + Admin access)
 
 ---
 
@@ -133,6 +133,35 @@ Copy this entire prompt to ANY AI in the AI Village — they will auto‑detect 
   - Admin can train clients directly from admin dashboard
   - Same features as trainers (client management, session tracking, stats)
 - Messaging Components: 5 files created (ChatHeader, Message, MessageInput, MessageSkeleton, NewConversationModal)
+
+### **📁 Client Data Database Integration:** (NEW - 2026-01-11)
+- **Master Prompt:** `docs/ai-workflow/CLIENT-DATA-INTEGRATION-REFACTORED-PROMPT.md` (880+ lines - complete ChatGPT integration guide)
+- **Problem:** File-based client-data system (markdown files) needs transformation into production web app with database persistence
+- **Solution:** 3-phase deep analysis → gap detection → implementation (ZERO duplicate code)
+- **Critical Requirements:**
+  - ✅ Deep codebase analysis FIRST (44+ controllers, 556+ components) - NO code generation until analysis complete
+  - ✅ Duplicate detection: Identify multiple Client Dashboard layouts (RevolutionaryClientDashboard, ClientDashboardLayout, etc.)
+  - ✅ Broken tab/button fixes: Ensure ALL components persist data to PostgreSQL (eliminate mock data)
+  - ✅ Backend AI services: Built INTO backend (NOT external MCP servers) - `/api/ai/workout-generation`, `/api/ai/nutrition-planning`, `/api/ai/progress-analysis`
+  - ✅ 85-Question Onboarding Questionnaire: Maps to database schema (13 sections)
+  - ✅ Master Prompt JSON Schema v3.0: Stored in `User.masterPromptJson` field (770 lines)
+  - ✅ Spirit Names: Privacy-preserving client aliases (e.g., "Orion Ascending")
+  - ✅ Role-Based Access: Admin (full), Trainer (assigned clients), Client (read-only own data)
+- **Database Models (if missing):**
+  - ClientOnboardingQuestionnaire (85 questions → database persistence)
+  - ClientBaselineMeasurements (initial fitness assessment)
+  - ClientProgressReport (weekly check-ins)
+  - ClientNutritionPlan (meal plans with macro targets)
+  - ClientPhoto (progress photos with timestamps)
+  - ClientNote (training observations, red flags)
+- **User Model Fields (already exist):**
+  - `masterPromptJson` (JSON) - Complete client master prompt v3.0 schema
+  - `spiritName` (STRING) - Privacy alias for AI interactions
+- **Template Files:**
+  - Questionnaire: `client-data/templates/CLIENT-ONBOARDING-QUESTIONNAIRE.md` (85 questions)
+  - Schema: `client-data/templates/MASTER-PROMPT-SCHEMA-v3.0.json` (770 lines)
+  - README Template: `client-data/TEMPLATE-CLIENT/README.md`
+- **Documentation:** See `AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md` Section 9.7
 
 ### **🔄 Shared Files (How AIs Coordinate):**
 - Current task tracking: `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md` (lock files here!)
