@@ -292,36 +292,35 @@ const PackageSectionV2: React.FC = () => {
       <Container>
         <Header>
           <h2>Choose Your Path</h2>
-          <p>Select the training package that fits your goals. No hidden fees, just results.</p>
+          <p>Start with our Express 30 sessions to ignite your journey, or commit to a full transformation with our premium 1-hour performance packages.</p>
         </Header>
 
         <Grid>
           <PackageCard
-            title="Foundation"
-            price="$199"
-            period="/ month"
-            features={["2 Sessions per week", "Custom Workout Plan", "Nutrition Guidance", "Monthly Progress Check"]}
+            title="Express 30"
+            price="$95"
+            period="/ session"
+            features={["30-Min High Intensity", "Metabolic Conditioning", "Busy Schedule Optimized", "Entry-Level Strategy"]}
             imageSrc="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?q=80&w=1470&auto=format&fit=crop"
             delay={0}
             theme="primary"
           />
           <PackageCard
-            title="Transformation"
-            price="$349"
-            period="/ month"
-            features={["3 Sessions per week", "Advanced Nutrition Plan", "24/7 Trainer Access", "Weekly Check-ins", "Supplement Guide"]}
+            title="Signature 60"
+            price="$170"
+            period="/ session"
+            features={["60-Min Expert Coaching", "Full Biomechanical Analysis", "Strength & Hypertrophy", "Nutrition Guidance"]}
             imageSrc="https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?q=80&w=1470&auto=format&fit=crop"
-            badge="Most Popular"
             delay={0.2}
             theme="cosmic"
           />
           <PackageCard
-            title="Elite Athlete"
-            price="$599"
-            period="/ month"
-            features={["Unlimited Sessions", "Pro-Level Programming", "Daily Form Analysis", "Meal Prep Service", "Physio Consultation"]}
+            title="Transformation Pack"
+            price="$1,600"
+            period="/ 10 sessions"
+            features={["10 x 60-Min Sessions", "Save $100 Instantly", "Priority Scheduling", "Comprehensive Assessment", "Commit to Results"]}
             imageSrc="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1470&auto=format&fit=crop"
-            badge="Limited Spots"
+            badge="Best Value"
             delay={0.4}
             theme="emerald"
           />
