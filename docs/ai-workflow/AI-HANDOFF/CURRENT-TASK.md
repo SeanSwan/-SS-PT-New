@@ -1,46 +1,57 @@
-# 🎯 CURRENT TASK - SINGLE SOURCE OF TRUTH
+# CURRENT TASK - SINGLE SOURCE OF TRUTH
 
-**Last Updated:** 2026-01-17 at 12:10 PM
-**Updated By:** Claude Code (Opus 4.5)
-
----
-
-## 🚨 CRITICAL PRIORITY: BUSINESS READINESS & STREAMLINING MASTER PLAN
-
-**Current Phase:** PHASE 1 - CLIENT ONBOARDING BLUEPRINT (IN PROGRESS)
-**Status:** 🟢 ACTIVE - Phase 0 complete, NASM refactor complete, ready for Phase 1.1 implementation
-**Owner:** ChatGPT-5 (Codex) - Ready to begin implementation
-**Timeline:** 3-5 days (Phase 1.1: 7-11 hours)
+**Last Updated:** 2026-01-17
+**Updated By:** AI Village
 
 ---
 
-## 📋 PHASE 0: DATABASE FOUNDATION ✅ COMPLETE
+## CRITICAL PRIORITY: UNIVERSAL MASTER SCHEDULE SYSTEM
 
-**Priority:** 🔴 BLOCKING - Must complete before ANY other work can proceed
-**Status:** ✅ COMPLETE (2026-01-15)
+**Current Phase:** PLANNING & ARCHITECTURE
+**Status:** ACTIVE
+**Goal:** Replace disparate calendars with a single, MindBody-equivalent Universal Schedule.
+
+### Objectives:
+1.  **Unify:** Create `UniversalSchedule.tsx` to serve Admin, Trainer, and Client.
+2.  **Parity:** Implement Recurring Sessions, Time Blocking, and Notification Toggles.
+3.  **Mobile:** Ensure 100% functionality on mobile devices.
+4.  **Backend:** Update Session model and API for batch operations.
+
+### Next Steps:
+1.  Review and approve `docs/systems/UNIVERSAL-MASTER-SCHEDULE-HANDBOOK.md`.
+2.  Finalize `docs/ai-workflow/reviews/universal-schedule-architecture.md` and collect 5 AI reviews.
+3.  Confirm backend session model changes (recurrenceRule, notifyClient, isBlocked).
+4.  Confirm frontend component structure for `UniversalSchedule.tsx`.
+
+---
+
+## PHASE 0: DATABASE FOUNDATION (ARCHIVED)
+
+**Priority:** BLOCKING - Must complete before ANY other work can proceed
+**Status:** COMPLETE (2026-01-15)
 **Duration:** ~6 hours (including blocker resolution)
 
 ### Completed Tasks
-1. ✅ Stage 1 migrations executed (5 client_* tables created in database)
-2. ✅ OpenAI SDK installed (`npm install openai` completed)
-3. ✅ Model associations tested (74 User associations working)
-4. ✅ Seed data created (User ID 7 with questionnaire, measurements, nutrition plan)
-5. ✅ AI Workout Controller validated (all 6 tests passed)
+1.  Stage 1 migrations executed (5 client_* tables created in database)
+2.  OpenAI SDK installed (`npm install openai` completed)
+3.  Model associations tested (74 User associations working)
+4.  Seed data created (User ID 7 with questionnaire, measurements, nutrition plan)
+5.  AI Workout Controller validated (all 6 tests passed)
 
 ### Blockers Resolved
-1. ✅ Fixed UUID→INTEGER migration mismatches (renewal_alerts, body_measurements)
-2. ✅ Skipped 3 legacy fix migrations (no longer needed)
-3. ✅ Cleared database locks (terminated 8 stuck processes)
-4. ✅ Verified migrations 3-6 already using correct INTEGER types
+1.  Fixed UUID/INTEGER migration mismatches (renewal_alerts, body_measurements)
+2.  Skipped 3 legacy fix migrations (no longer needed)
+3.  Cleared database locks (terminated 8 stuck processes)
+4.  Verified migrations 3-6 already using correct INTEGER types
 
 ### Validation Results
 **Test Script:** `backend/test-ai-workout-controller.mjs`
-- ✅ Test 1: OpenAI SDK installed and importable
-- ✅ Test 2: AI Workout Controller file exists with generateWorkoutPlan export
-- ✅ Test 3: AI Routes file exists and registered
-- ✅ Test 4: All 7 required models loaded with associations
-- ✅ Test 5: Test user (ID 7) validated with onboarding data
-- ✅ Test 6: OpenAI API configuration checked
+-  Test 1: OpenAI SDK installed and importable
+-  Test 2: AI Workout Controller file exists with generateWorkoutPlan export
+-  Test 3: AI Routes file exists and registered
+-  Test 4: All 7 required models loaded with associations
+-  Test 5: Test user (ID 7) validated with onboarding data
+-  Test 6: OpenAI API configuration checked
 
 **Database Tables Created:**
 - `client_onboarding_questionnaires` (1 row)
@@ -57,10 +68,10 @@
 
 ---
 
-## 📋 PHASE 0.5: NASM PROTOCOL REFACTOR ✅ COMPLETE
+## PHASE 0.5: NASM PROTOCOL REFACTOR COMPLETE
 
-**Priority:** 🔴 CRITICAL - Industry standard compliance required before Phase 1 implementation
-**Status:** ✅ COMPLETE (2026-01-15 at 1:30 AM)
+**Priority:** CRITICAL - Industry standard compliance required before Phase 1 implementation
+**Status:** COMPLETE (2026-01-15 at 1:30 AM)
 **Owner:** Claude Code (Sonnet 4.5)
 **Duration:** ~2 hours
 **Trigger:** User realized fitness app should follow NASM (National Academy of Sports Medicine) industry-standard protocols instead of generic movement screening
@@ -73,7 +84,7 @@
 
 ### NASM Refactor Tasks Completed
 
-#### 1. ✅ Created NASM-PROTOCOL-REQUIREMENTS.md
+#### 1.  Created NASM-PROTOCOL-REQUIREMENTS.md
 **File:** `docs/ai-workflow/blueprints/NASM-PROTOCOL-REQUIREMENTS.md` (600+ lines)
 
 **Content:**
@@ -89,12 +100,12 @@
 - AI workout generation integration requirements
 - Legal/professional standards compliance
 
-#### 2. ✅ Refactored Database ERD (NASM Fields)
+#### 2.  Refactored Database ERD (NASM Fields)
 **File:** `docs/ai-workflow/blueprints/ONBOARDING-FLOW-PART-2.mermaid.md`
 
 **Changes:**
-- Replaced `rangeOfMotion` JSONB → `overheadSquatAssessment` JSONB
-- Replaced `movementScreenScore` (1-10) → `nasmAssessmentScore` (0-100)
+- Replaced `rangeOfMotion` JSONB  `overheadSquatAssessment` JSONB
+- Replaced `movementScreenScore` (1-10)  `nasmAssessmentScore` (0-100)
 - Added `parqScreening` JSONB (PAR-Q+ 7 questions)
 - Added `posturalAssessment` JSONB (anterior/lateral/posterior views)
 - Added `performanceAssessments` JSONB (cardio/strength/flexibility)
@@ -103,7 +114,7 @@
 - Added `medicalClearanceDate` DATE
 - Added `medicalClearanceProvider` STRING
 
-#### 3. ✅ Refactored Movement Screen Wireframes
+#### 3.  Refactored Movement Screen Wireframes
 **File:** `docs/ai-workflow/blueprints/ONBOARDING-WIREFRAMES-PART-2.md`
 
 **Changes:**
@@ -116,10 +127,10 @@
   - Additional: Asymmetric weight shift
   - Each checkpoint: none/minor/significant dropdown + muscle imbalance tooltips
 - Added auto-generated corrective exercise strategy display (4 phases)
-- Updated scoring from "7.5/10" → "NASM Score: 73/100"
+- Updated scoring from "7.5/10"  "NASM Score: 73/100"
 - Added OPT Phase display ("Phase 2: Strength Endurance")
 
-#### 4. ✅ Created NASM Database Migration
+#### 4.  Created NASM Database Migration
 **File:** `backend/migrations/20260115000000-add-nasm-fields-to-baseline-measurements.cjs`
 
 **Migration Adds 9 Columns:**
@@ -135,7 +146,7 @@
 
 **Note:** Generic `rangeOfMotion` and `movementScreenScore` fields kept for backward compatibility but deprecated for new assessments.
 
-#### 5. ✅ Updated ClientBaselineMeasurements Model
+#### 5.  Updated ClientBaselineMeasurements Model
 **File:** `backend/models/ClientBaselineMeasurements.mjs`
 
 **Model Updates:**
@@ -147,7 +158,7 @@
 1. `calculateNASMScore(ohsa)` - Calculate 0-100 composite score from OHSA
    - Scoring: none=100, minor=70, significant=40
    - Returns average of all 9 checkpoints
-   - Example: (5×100 + 3×70 + 1×40) / 9 = 73/100
+   - Example: (5100 + 370 + 140) / 9 = 73/100
 
 2. `selectOPTPhase(nasmScore, primaryGoal)` - Determine NASM OPT Model phase
    - <60: Phase 1 (Stabilization Endurance, 4-6 weeks, 12-20 reps)
@@ -167,11 +178,11 @@
    - Removes duplicate exercises via Map deduplication
 
 ### Files Modified/Created
-1. ✅ `docs/ai-workflow/blueprints/NASM-PROTOCOL-REQUIREMENTS.md` (NEW - 600+ lines)
-2. ✅ `docs/ai-workflow/blueprints/ONBOARDING-FLOW-PART-2.mermaid.md` (UPDATED - NASM ERD)
-3. ✅ `docs/ai-workflow/blueprints/ONBOARDING-WIREFRAMES-PART-2.md` (UPDATED - NASM UI)
-4. ✅ `backend/migrations/20260115000000-add-nasm-fields-to-baseline-measurements.cjs` (NEW)
-5. ✅ `backend/models/ClientBaselineMeasurements.mjs` (UPDATED - 9 fields + 3 methods)
+1.  `docs/ai-workflow/blueprints/NASM-PROTOCOL-REQUIREMENTS.md` (NEW - 600+ lines)
+2.  `docs/ai-workflow/blueprints/ONBOARDING-FLOW-PART-2.mermaid.md` (UPDATED - NASM ERD)
+3.  `docs/ai-workflow/blueprints/ONBOARDING-WIREFRAMES-PART-2.md` (UPDATED - NASM UI)
+4.  `backend/migrations/20260115000000-add-nasm-fields-to-baseline-measurements.cjs` (NEW)
+5.  `backend/models/ClientBaselineMeasurements.mjs` (UPDATED - 9 fields + 3 methods)
 
 ### Next Steps for ChatGPT-5
 - [ ] Run migration: `npm run migrate` to add NASM fields to database
@@ -182,10 +193,10 @@
 
 ---
 
-## 📋 PHASE 1: CLIENT ONBOARDING BLUEPRINT (3-5 DAYS)
+## PHASE 1: CLIENT ONBOARDING BLUEPRINT (3-5 DAYS)
 
-**Priority:** 🔴 HIGH - Fairmont parent onboarding readiness
-**Status:** 🟢 IN PROGRESS - Phase 1.1 implementation started
+**Priority:** HIGH - Fairmont parent onboarding readiness
+**Status:** PAUSED - Shifted to Universal Schedule System
 **Owner:** ChatGPT-5 (Codex)
 **Started:** 2026-01-15
 **Current Sub-Phase:** 1.1 - Onboarding Controller Endpoints
@@ -193,7 +204,7 @@
 ### Business Context
 - **Target Market:** Fairmont parents (time-stressed, high-income, results-focused)
 - **Key Differentiator:** 10-minute movement screen + AI-powered training plan
-- **Revenue Goal:** Convert Express 30 trials → Signature 60 → Transformation Pack
+- **Revenue Goal:** Convert Express 30 trials  Signature 60  Transformation Pack
 
 ### Corrected Pricing Structure
 | Package | Duration | Price | Session Rate |
@@ -205,7 +216,7 @@
 
 ### Phase 1 Tasks
 
-#### 1.1: Onboarding Controller Implementation 🟢 IN PROGRESS
+#### 1.1: Onboarding Controller Implementation PAUSED
 
 **Reference Directive:** See `docs/ai-workflow/AI-HANDOFF/PHASE-1-START-DIRECTIVE.md` for detailed implementation instructions.
 
@@ -266,7 +277,7 @@
   - Injury notes and pain level tracking
 
 #### 1.3: UX/UI Protocol Implementation (P0 CRITICAL - Gemini Audit Recommendations)
-**STATUS:** 🟢 READY TO IMPLEMENT
+**STATUS:**  READY TO IMPLEMENT
 **REFERENCE:** `docs/ai-workflow/blueprints/UX-UI-DESIGN-PROTOCOL.md` (2026-01-16)
 
 **P0 (Critical) - Must Fix Before Launch:**
@@ -284,7 +295,7 @@
 
 - [ ] **OnboardingStatusCard.tsx - Actionable Pending Items**
   - Current: "Pending" status is non-clickable
-  - Required: Add "Complete Now →" link to pending items
+  - Required: Add "Complete Now " link to pending items
   - Impact: Direct client navigation to incomplete tasks
 
 **P1 (High Priority) - Workflow Optimization:**
@@ -308,22 +319,22 @@
 
 - [ ] **BaselineMeasurementsEntry.tsx - Sparkline Charts**
   - Replace text history with mini trend charts
-  - Example: `Body Weight: [185 lbs] ▁▂▃▅▆▇ (↑ 2 lbs this week)`
+  - Example: `Body Weight: [185 lbs]  ( 2 lbs this week)`
   - Impact: Faster visual trend analysis
 
 - [ ] **Replace Progress Text with Visual Bars**
   - Current: "75% Complete"
-  - Required: `██████████████░░░░░ 75%`
+  - Required: ` 75%`
   - Impact: Faster visual scanning
 
 - [ ] **OnboardingStatusCard.tsx - Collapsible When Complete**
-  - Once 100% complete, collapse to single line: `✓ Onboarding Complete (Jan 15) [View ▼]`
+  - Once 100% complete, collapse to single line: ` Onboarding Complete (Jan 15) [View ]`
   - Impact: Frees dashboard real estate for active tasks
 
 **Blueprint Updates (REQUIRED BEFORE CODING):**
 
 - [ ] **Create ONBOARDING-FLOW.mermaid.md**
-  - User journey: Landing page → Questionnaire → Movement screen → Dashboard
+  - User journey: Landing page  Questionnaire  Movement screen  Dashboard
   - API sequence diagrams for each endpoint
   - Database ERD showing relationships
   - RBAC matrix (who can create/read/update/delete questionnaires)
@@ -352,20 +363,20 @@
   - "Complete Your Profile" CTA if not 100%
 
 ### Acceptance Criteria
-✅ All onboarding endpoints implemented and tested
-✅ Admin can create/edit questionnaires via dashboard (zero hardcoding)
-✅ RevolutionaryClientDashboard shows real questionnaire data
-✅ Movement screen integrated with scoring algorithm
-✅ All blueprints/wireframes updated BEFORE implementation
-✅ RBAC enforced (admin/trainer/client permissions)
-✅ UI flow validated (click-through test passes)
+ All onboarding endpoints implemented and tested
+ Admin can create/edit questionnaires via dashboard (zero hardcoding)
+ RevolutionaryClientDashboard shows real questionnaire data
+ Movement screen integrated with scoring algorithm
+ All blueprints/wireframes updated BEFORE implementation
+ RBAC enforced (admin/trainer/client permissions)
+ UI flow validated (click-through test passes)
 
 ---
 
-## 📋 PHASE 2: DASHBOARD STREAMLINING (5-7 DAYS)
+## PHASE 2: DASHBOARD STREAMLINING (5-7 DAYS)
 
-**Priority:** 🟡 HIGH - Fix duplicate dashboards and broken tabs
-**Status:** ⏸️ PAUSED - Waiting for Phase 0-1 completion
+**Priority:**  HIGH - Fix duplicate dashboards and broken tabs
+**Status:**  PAUSED - Waiting for Phase 0-1 completion
 **Owner:** ChatGPT-5 (Codex)
 
 ### Problem Statement
@@ -435,20 +446,20 @@ Each tab must be wired to a real API endpoint with proper error handling.
   - Add tab-to-API mapping table
 
 ### Acceptance Criteria
-✅ Only 1 client dashboard component in use (RevolutionaryClientDashboard)
-✅ All 7 duplicate dashboards archived (moved to /archived/)
-✅ All tabs functional (Workouts, Nutrition, Progress, Photos, Notes)
-✅ Each tab wired to real API endpoint (no mock data)
-✅ Admin can populate data for each tab via dashboard
-✅ Click-through test passes for all tabs
-✅ Blueprints updated with tab flow diagrams
+ Only 1 client dashboard component in use (RevolutionaryClientDashboard)
+ All 7 duplicate dashboards archived (moved to /archived/)
+ All tabs functional (Workouts, Nutrition, Progress, Photos, Notes)
+ Each tab wired to real API endpoint (no mock data)
+ Admin can populate data for each tab via dashboard
+ Click-through test passes for all tabs
+ Blueprints updated with tab flow diagrams
 
 ---
 
-## 📋 PHASE 3: MOCK DATA ELIMINATION (3-4 DAYS)
+## PHASE 3: MOCK DATA ELIMINATION (3-4 DAYS)
 
-**Priority:** 🟡 MEDIUM - Replace all hardcoded data with database persistence
-**Status:** ⏸️ PAUSED - Waiting for Phase 0-2 completion
+**Priority:**  MEDIUM - Replace all hardcoded data with database persistence
+**Status:**  PAUSED - Waiting for Phase 0-2 completion
 **Owner:** ChatGPT-5 (Codex)
 
 ### Problem Statement
@@ -457,13 +468,13 @@ Each tab must be wired to a real API endpoint with proper error handling.
 ### Phase 3 Tasks
 
 #### 3.1: Create React Query Hooks
-- [ ] **useClientData(userId)** → GET /api/client-data/overview/:userId
-- [ ] **useOnboardingQuestionnaire(userId)** → GET /api/onboarding/:userId/questionnaire
-- [ ] **useBaselineMeasurements(userId)** → GET /api/measurements/:userId/baseline
-- [ ] **useNutritionPlan(userId)** → GET /api/nutrition/:userId/current
-- [ ] **useClientPhotos(userId)** → GET /api/photos/:userId
-- [ ] **useClientNotes(userId)** → GET /api/notes/:userId
-- [ ] **useWorkoutPlan(userId)** → GET /api/workouts/:userId/current
+- [ ] **useClientData(userId)**  GET /api/client-data/overview/:userId
+- [ ] **useOnboardingQuestionnaire(userId)**  GET /api/onboarding/:userId/questionnaire
+- [ ] **useBaselineMeasurements(userId)**  GET /api/measurements/:userId/baseline
+- [ ] **useNutritionPlan(userId)**  GET /api/nutrition/:userId/current
+- [ ] **useClientPhotos(userId)**  GET /api/photos/:userId
+- [ ] **useClientNotes(userId)**  GET /api/notes/:userId
+- [ ] **useWorkoutPlan(userId)**  GET /api/workouts/:userId/current
 
 #### 3.2: Replace Mock Data in Components (30+ files)
 **Identified components using mock data:**
@@ -536,19 +547,19 @@ Each tab must be wired to a real API endpoint with proper error handling.
   - Audit logging requirements
 
 ### Acceptance Criteria
-✅ Zero components using mock/hardcoded data
-✅ All data fetched from database via React Query hooks
-✅ Admin can populate 100% of application data via dashboard
-✅ Loading, error, and empty states implemented for all data fetches
-✅ Blueprints document admin data entry flow for each feature
-✅ Grep search for "mock" returns zero results in component files
+ Zero components using mock/hardcoded data
+ All data fetched from database via React Query hooks
+ Admin can populate 100% of application data via dashboard
+ Loading, error, and empty states implemented for all data fetches
+ Blueprints document admin data entry flow for each feature
+ Grep search for "mock" returns zero results in component files
 
 ---
 
-## 📋 PHASE 4: AUTOMATION & FOLLOW-UP SYSTEM (2-3 DAYS)
+## PHASE 4: AUTOMATION & FOLLOW-UP SYSTEM (2-3 DAYS)
 
-**Priority:** 🟢 MEDIUM - Automated client engagement sequences
-**Status:** ⏸️ PAUSED - Waiting for Phase 0-3 completion
+**Priority:**  MEDIUM - Automated client engagement sequences
+**Status:**  PAUSED - Waiting for Phase 0-3 completion
 **Owner:** ChatGPT-5 (Codex)
 
 ### Phase 4 Tasks
@@ -592,25 +603,25 @@ Each tab must be wired to a real API endpoint with proper error handling.
 
 #### 4.4: Blueprint/Wireframe Updates
 - [ ] **Create AUTOMATION-FLOW.mermaid.md**
-  - Trigger → Action → Notification flow diagrams
+  - Trigger  Action  Notification flow diagrams
   - SMS sequence timeline visualization
   - Database schema for automation rules
   - Twilio API integration architecture
 
 ### Acceptance Criteria
-✅ Twilio integrated and sending test SMS successfully
-✅ Day 0-7 sequences automated (trigger on events)
-✅ Admin can create/edit SMS sequences via dashboard
-✅ SMS delivery logs tracked in database
-✅ Opt-out mechanism implemented (TCPA compliance)
-✅ Blueprints document automation architecture
+ Twilio integrated and sending test SMS successfully
+ Day 0-7 sequences automated (trigger on events)
+ Admin can create/edit SMS sequences via dashboard
+ SMS delivery logs tracked in database
+ Opt-out mechanism implemented (TCPA compliance)
+ Blueprints document automation architecture
 
 ---
 
-## 📋 PHASE 5: CLIENT MATERIALS & LAUNCH READINESS (1 DAY)
+## PHASE 5: CLIENT MATERIALS & LAUNCH READINESS (1 DAY)
 
-**Priority:** 🟢 LOW - Final polish for client-facing materials
-**Status:** ⏸️ PAUSED - Waiting for Phase 0-4 completion
+**Priority:**  LOW - Final polish for client-facing materials
+**Status:**  PAUSED - Waiting for Phase 0-4 completion
 **Owner:** ChatGPT-5 (Codex)
 
 ### Phase 5 Tasks
@@ -640,16 +651,16 @@ Each tab must be wired to a real API endpoint with proper error handling.
   - Fitness goals (dropdown + open text)
 
 - [ ] **Objection handling decision tree**
-  - "Too expensive" → Transformation Pack discount ($160/session vs $175-200)
-  - "No time" → Express 30 option (30 minutes)
-  - "Not sure it will work" → Free movement screen + money-back guarantee
+  - "Too expensive"  Transformation Pack discount ($160/session vs $175-200)
+  - "No time"  Express 30 option (30 minutes)
+  - "Not sure it will work"  Free movement screen + money-back guarantee
 
 #### 5.3: Storefront CSS Update
 - [ ] **Update PackageSection.V2.tsx with corrected pricing**
-  - Line 290: Express 30 → $110/session
+  - Line 290: Express 30  $110/session
   - Add "30-Min High Intensity" descriptor
-  - Line 298: Signature 60 → $175/session (Standard) or $200/session (AI Data Package)
-  - Line 306: Transformation Pack → $1,600/10 sessions
+  - Line 298: Signature 60  $175/session (Standard) or $200/session (AI Data Package)
+  - Line 306: Transformation Pack  $1,600/10 sessions
 
 - [ ] **CSS polish for pricing cards**
   - Ensure responsive design (mobile/tablet/desktop)
@@ -659,145 +670,117 @@ Each tab must be wired to a real API endpoint with proper error handling.
 #### 5.4: UI/UX Flow Validation
 **CRITICAL: Click-through testing for ALL features**
 
-- [ ] **Test user journey: Landing → Signup → Onboarding → Dashboard**
-  - Click "View Options" on pricing card → navigates to /shop ✅
-  - Purchase package → creates order → redirects to onboarding ✅
-  - Complete questionnaire → saves to database → shows completion % ✅
-  - View dashboard → all tabs functional → data loads correctly ✅
+- [ ] **Test user journey: Landing  Signup  Onboarding  Dashboard**
+  - Click "View Options" on pricing card  navigates to /shop 
+  - Purchase package  creates order  redirects to onboarding 
+  - Complete questionnaire  saves to database  shows completion % 
+  - View dashboard  all tabs functional  data loads correctly 
 
-- [ ] **Test admin journey: Login → Data Entry → Client Dashboard**
-  - Admin login → navigates to admin dashboard ✅
-  - Create client questionnaire → saves to database ✅
-  - Enter movement screen → displays score ✅
-  - View client dashboard → shows populated data ✅
+- [ ] **Test admin journey: Login  Data Entry  Client Dashboard**
+  - Admin login  navigates to admin dashboard 
+  - Create client questionnaire  saves to database 
+  - Enter movement screen  displays score 
+  - View client dashboard  shows populated data 
 
 ### Acceptance Criteria
-✅ Pricing sheet created (PDF + web page)
-✅ Fairmont parent script documented
-✅ PackageSection.V2.tsx updated with correct pricing
-✅ UI flow click-through test passes end-to-end
-✅ Zero broken links or non-functional buttons
-✅ Mobile responsive design verified
+ Pricing sheet created (PDF + web page)
+ Fairmont parent script documented
+ PackageSection.V2.tsx updated with correct pricing
+ UI flow click-through test passes end-to-end
+ Zero broken links or non-functional buttons
+ Mobile responsive design verified
 
 ---
 
-## 📊 OVERALL PROGRESS TRACKING
+## OVERALL PROGRESS TRACKING
 
 | Phase | Status | Owner | Timeline | Completion Date | Dependencies |
 |-------|--------|-------|----------|-----------------|--------------|
-| **Phase 0: Database Foundation** | ✅ COMPLETE | ChatGPT-5 + Claude Code | 2 hours | 2026-01-15 | None |
-| **Phase 1: Client Onboarding** | 🟡 READY TO START | ChatGPT-5 | 3-5 days | ___________ | Phase 0 ✅ |
-| **Phase 2: Dashboard Streamlining** | ⏸️ PAUSED | ChatGPT-5 | 5-7 days | ___________ | Phase 0-1 |
-| **Phase 3: Mock Data Elimination** | ⏸️ PAUSED | ChatGPT-5 | 3-4 days | ___________ | Phase 0-2 |
-| **Phase 4: Automation System** | ⏸️ PAUSED | ChatGPT-5 | 2-3 days | ___________ | Phase 0-3 |
-| **Phase 5: Client Materials** | ⏸️ PAUSED | ChatGPT-5 | 1 day | ___________ | Phase 0-4 |
+| **Phase 0: Database Foundation** |  COMPLETE | ChatGPT-5 + Claude Code | 2 hours | 2026-01-15 | None |
+| **Phase 1: Client Onboarding** | PAUSED | ChatGPT-5 | 3-5 days | ___________ | Phase 0 |
+| **Phase 2: Dashboard Streamlining** |  PAUSED | ChatGPT-5 | 5-7 days | ___________ | Phase 0-1 |
+| **Phase 3: Mock Data Elimination** |  PAUSED | ChatGPT-5 | 3-4 days | ___________ | Phase 0-2 |
+| **Phase 4: Automation System** |  PAUSED | ChatGPT-5 | 2-3 days | ___________ | Phase 0-3 |
+| **Phase 5: Client Materials** |  PAUSED | ChatGPT-5 | 1 day | ___________ | Phase 0-4 |
 
 **Total Timeline:** 14-22 business days (assumes sequential completion)
 
 ---
 
-## 🔒 FILES LOCKED BY CHATGPT-5
+## FILES LOCKED BY CHATGPT-5
 
 **Client Data Integration - Stage 1 (Database Models):**
-- `backend/models/ClientOnboardingQuestionnaire.mjs` ✅ COMPLETE
-- `backend/models/ClientBaselineMeasurements.mjs` ✅ COMPLETE
-- `backend/models/ClientNutritionPlan.mjs` ✅ COMPLETE
-- `backend/models/ClientPhoto.mjs` ✅ COMPLETE
-- `backend/models/ClientNote.mjs` ✅ COMPLETE
-- `backend/models/associations.mjs` ✅ COMPLETE (5 new associations added)
-- `backend/migrations/20260112000000-create-client-onboarding-questionnaires.cjs` ✅ COMPLETE
-- `backend/migrations/20260112000001-create-client-baseline-measurements.cjs` ✅ COMPLETE
-- `backend/migrations/20260112000002-create-client-nutrition-plans.cjs` ✅ COMPLETE
-- `backend/migrations/20260112000003-create-client-photos.cjs` ✅ COMPLETE
-- `backend/migrations/20260112000004-create-client-notes.cjs` ✅ COMPLETE
+- `backend/models/ClientOnboardingQuestionnaire.mjs`  COMPLETE
+- `backend/models/ClientBaselineMeasurements.mjs`  COMPLETE
+- `backend/models/ClientNutritionPlan.mjs`  COMPLETE
+- `backend/models/ClientPhoto.mjs`  COMPLETE
+- `backend/models/ClientNote.mjs`  COMPLETE
+- `backend/models/associations.mjs`  COMPLETE (5 new associations added)
+- `backend/migrations/20260112000000-create-client-onboarding-questionnaires.cjs`  COMPLETE
+- `backend/migrations/20260112000001-create-client-baseline-measurements.cjs`  COMPLETE
+- `backend/migrations/20260112000002-create-client-nutrition-plans.cjs`  COMPLETE
+- `backend/migrations/20260112000003-create-client-photos.cjs`  COMPLETE
+- `backend/migrations/20260112000004-create-client-notes.cjs`  COMPLETE
 
 **Client Data Integration - Stage 2 File 6 (AI Workout Generation):**
-- `backend/controllers/aiWorkoutController.mjs` ✅ COMPLETE
-- `backend/routes/aiRoutes.mjs` ✅ COMPLETE
-- `backend/core/routes.mjs` ✅ COMPLETE (AI routes mounted)
+- `backend/controllers/aiWorkoutController.mjs`  COMPLETE
+- `backend/routes/aiRoutes.mjs`  COMPLETE
+- `backend/core/routes.mjs`  COMPLETE (AI routes mounted)
 
-**Phase 1.1 Onboarding Endpoints (In Progress):**
+**Phase 1.1 Onboarding Endpoints (Paused):**
 - `backend/controllers/clientOnboardingController.mjs` - Locked by ChatGPT-5 - Phase 1.1 onboarding endpoints
 - `backend/routes/clientOnboardingRoutes.mjs` - Locked by ChatGPT-5 - Phase 1.1 onboarding routes
 - `backend/routes/clientDataRoutes.mjs` - Locked by ChatGPT-5 - Phase 1.1 client data overview route
 - `backend/core/routes.mjs` - Locked by ChatGPT-5 - register Phase 1.1 routes
 
-**Pending Migration Execution:** ❌ NOT RUN (Phase 0 required)
+**Pending Migration Execution:** NOT RUN (verify before resuming Phase 1)
 
 ---
 
-## 🎯 NEXT IMMEDIATE ACTIONS (ChatGPT-5)
-
-1. **PHASE 0.1:** Install OpenAI SDK (`npm install openai`)
-2. **PHASE 0.2:** Run migrations (`npm run migrate`)
-3. **PHASE 0.3:** Verify all 5 tables exist in database
-4. **PHASE 0.4:** Test model associations (User → ClientOnboardingQuestionnaire, etc.)
-5. **PHASE 0.5:** Create seed data for testing
-6. **Mark Phase 0 COMPLETE** in CURRENT-TASK.md
-7. **Begin Phase 1.1:** Create POST /api/onboarding/:userId/questionnaire
-
----
-
-## 📝 CRITICAL PROTOCOL REQUIREMENTS
+## CRITICAL PROTOCOL REQUIREMENTS
 
 ### Documentation-First Enforcement
 **BEFORE implementing ANY feature:**
-1. ✅ Update or create Blueprint/Wireframe/Mermaid diagram
-2. ✅ Document API endpoints (request/response schemas)
-3. ✅ Document database schema changes
-4. ✅ Document RBAC permissions
-5. ✅ Get user approval on design
-6. ✅ THEN write code
+1.  Update or create Blueprint/Wireframe/Mermaid diagram
+2.  Document API endpoints (request/response schemas)
+3.  Document database schema changes
+4.  Document RBAC permissions
+5.  Get user approval on design
+6.  THEN write code
 
 ### Admin Data Entry Protocol
 **FOR every feature that uses data:**
-1. ✅ Create backend API endpoint
-2. ✅ Create React Query hook for frontend
-3. ✅ **Create admin UI to populate that data** (CRITICAL)
-4. ✅ Document admin flow in blueprints
-5. ✅ Test admin can create/edit data via dashboard
-6. ✅ Verify zero hardcoded/mock data remains
+1.  Create backend API endpoint
+2.  Create React Query hook for frontend
+3.  **Create admin UI to populate that data** (CRITICAL)
+4.  Document admin flow in blueprints
+5.  Test admin can create/edit data via dashboard
+6.  Verify zero hardcoded/mock data remains
 
 ### UI/UX Flow Validation Protocol
 **AFTER implementing each feature:**
-1. ✅ Click-through test (does button/link work?)
-2. ✅ Data persistence test (does data save to database?)
-3. ✅ Loading state test (spinner shows while fetching?)
-4. ✅ Error state test (error message displays on failure?)
-5. ✅ Empty state test (helpful message when no data?)
-6. ✅ Mobile responsive test (works on phone/tablet?)
+1.  Click-through test (does button/link work?)
+2.  Data persistence test (does data save to database?)
+3.  Loading state test (spinner shows while fetching?)
+4.  Error state test (error message displays on failure?)
+5.  Empty state test (helpful message when no data?)
+6.  Mobile responsive test (works on phone/tablet?)
 
 ---
 
-## 🚨 BLOCKERS & RISKS
+## BLOCKERS & RISKS
 
 | Blocker | Impact | Mitigation |
 |---------|--------|------------|
-| Phase 0 migrations not run | ❌ ALL endpoints will error | Run migrations immediately (2-hour task) |
-| OpenAI SDK not installed | ❌ AI Workout Controller will error | `npm install openai` (5-minute task) |
-| 30+ components using mock data | ⚠️ App looks functional but data doesn't persist | Phase 3 addresses this (create admin UIs) |
-| 7 duplicate dashboards | ⚠️ Routing confusion, maintenance burden | Phase 2 archives duplicates (1-day task) |
-| No admin data entry UIs | ❌ Can't populate production data | CRITICAL - built into every phase |
+| Phase 0 migrations not run |  ALL endpoints will error | Run migrations immediately (2-hour task) |
+| OpenAI SDK not installed |  AI Workout Controller will error | `npm install openai` (5-minute task) |
+| 30+ components using mock data |  App looks functional but data doesn't persist | Phase 3 addresses this (create admin UIs) |
+| 7 duplicate dashboards |  Routing confusion, maintenance burden | Phase 2 archives duplicates (1-day task) |
+| No admin data entry UIs |  Can't populate production data | CRITICAL - built into every phase |
 
 ---
 
-
-
----
-
-## PHASE 1.5: HOMEPAGE/SHOP ARCHITECTURE (2026-01-17)
-
-**Status:** Approved
-**Implementation:**
-- Homepage refactor COMPLETE
-- Shop two-tier UI PENDING
-- /book-screen page PENDING
-
-See: NASM-GROWTH-PLAN-INTEGRATION-ANALYSIS-V2.md
-
----
-
-## 📚 REFERENCE DOCUMENTS
+## REFERENCE DOCUMENTS
 
 **Business Strategy:**
 - `docs/ai-workflow/AI-HANDOFF/SWANSTUDIOS-BUSINESS-READINESS-MASTER-PLAN.md`
@@ -815,3 +798,5 @@ See: NASM-GROWTH-PLAN-INTEGRATION-ANALYSIS-V2.md
 ---
 
 **END OF CURRENT-TASK.md**
+
+
