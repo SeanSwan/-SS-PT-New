@@ -22,11 +22,12 @@
 import React, { useEffect, useState } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Star, Trophy, Shield, Target, Rocket, Zap, 
-  TrendingUp, Activity, Award, Sparkles 
+import {
+  Star, Trophy, Shield, Target, Rocket, Zap,
+  TrendingUp, Activity, Award, Sparkles
 } from 'lucide-react';
 import { useEnhancedClientDashboard } from '../../hooks/useEnhancedClientDashboard';
+import OnboardingStatusCard from './OnboardingStatusCard';
 
 // === KEYFRAMES ===
 const stellarPulse = keyframes`
@@ -610,7 +611,10 @@ const EnhancedOverviewGalaxy: React.FC = () => {
           </StatCard>
         </StatGrid>
       </SectionCard>
-      
+
+      {/* Phase 1.1 Onboarding Status Integration */}
+      <OnboardingStatusCard />
+
       <AchievementsSection
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

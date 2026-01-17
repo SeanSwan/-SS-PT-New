@@ -76,6 +76,7 @@ import adminEnterpriseRoutes from '../routes/adminEnterpriseRoutes.mjs';
 import adminContentModerationRoutes from '../routes/adminContentModerationRoutes.mjs';
 import videoLibraryRoutes from '../routes/videoLibraryRoutes.mjs';
 import adminNotificationsRoutes from '../routes/adminNotificationsRoutes.mjs';
+import adminOnboardingRoutes from '../routes/adminOnboardingRoutes.mjs';
 
 // ===================== ENTERPRISE ADMIN ANALYTICS & INTELLIGENCE =====================
 // 🚀 Real Stripe Business Analytics (replaces mock data)
@@ -93,6 +94,8 @@ import adminDataVerificationRoutes from '../routes/adminDataVerificationRoutes.m
 // ===================== SPECIALIZED FEATURES =====================
 import orientationRoutes from '../routes/orientationRoutes.mjs';
 import onboardingRoutes from '../routes/onboardingRoutes.mjs';
+import clientOnboardingRoutes from '../routes/clientOnboardingRoutes.mjs';
+import clientDataRoutes from '../routes/clientDataRoutes.mjs';
 import recommendationRoutes from '../routes/recommendationRoutes.mjs';
 import foodScannerRoutes from '../routes/foodScannerRoutes.mjs';
 import adminDashboardRoutes from '../routes/dashboard/adminDashboardRoutes.mjs';
@@ -102,6 +105,7 @@ import clientDashboardRoutes from '../routes/clientDashboardRoutes.mjs';
 // ===================== ADVANCED INTEGRATIONS =====================
 import mcpRoutes from '../routes/mcpRoutes.mjs';
 import aiMonitoringRoutes from '../routes/aiMonitoringRoutes.mjs';
+import aiRoutes from '../routes/aiRoutes.mjs';
 import masterPromptRoutes from '../routes/masterPrompt/index.mjs';
 
 // ===================== DEVELOPMENT & DEBUG =====================
@@ -170,6 +174,9 @@ export const setupRoutes = async (app) => {
   // Onboarding-to-Database Pipeline - transforms 85-question CLIENT-ONBOARDING-QUESTIONNAIRE.md
   // into Master Prompt JSON (v3.0 schema) for AI-powered coaching
   app.use('/api/onboarding', onboardingRoutes);
+  // Phase 1 onboarding endpoints (questionnaire + NASM movement screen)
+  app.use('/api/onboarding', clientOnboardingRoutes);
+  app.use('/api/client-data', clientDataRoutes);
   // Temporarily disabled for deployment hotfix - will re-enable after verification
   // app.use('/api/training-sessions', trainingSessionRoutes);
   app.use('/api/roles', roleRoutes);
@@ -238,7 +245,8 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin/content', adminContentModerationRoutes); // Provides: /api/admin/content/* endpoints
 
   app.use('/api/admin', adminNotificationsRoutes); // Admin notifications API
-  
+  app.use('/api/admin', adminOnboardingRoutes); // Admin onboarding management API (Phase 1.2)
+
   app.use('/api/admin/finance', adminFinanceRoutes);
   app.use('/api/admin/store', adminStoreRoutes);
   app.use('/api/admin/analytics', analyticsRevenueRoutes);
@@ -271,6 +279,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/client', clientDashboardRoutes);
 
   // ===================== ADVANCED INTEGRATION ROUTES =====================
+  app.use('/api/ai', aiRoutes);
   app.use('/api/mcp', mcpRoutes);
   app.use('/api/ai-monitoring', aiMonitoringRoutes);
   app.use('/api/master-prompt', masterPromptRoutes);

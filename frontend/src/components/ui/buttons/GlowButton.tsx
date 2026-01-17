@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 export interface GlowButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   text?: string;
   variant?: GlowButtonColorScheme;
+  theme?: GlowButtonColorScheme; // Alias for variant
   size?: GlowButtonSize;
   isLoading?: boolean;
   disabled?: boolean;
@@ -194,7 +195,7 @@ const StyledGlowButton = styled.button.withConfig({
       '$theme', '$size', '$fullWidth', '$glowIntensity', 'isAnimating', 'variant', 
       'startIcon', 'endIcon', 'leftIcon', 'rightIcon', // Icon props
       'animateOnRender', 'isLoading', // State props
-      'text', 'glowIntensity' // Content prop
+      'text', 'glowIntensity', 'theme' // Content prop + alias
     ];
     return !nonDOMProps.includes(prop);
   }
@@ -356,6 +357,7 @@ const GlowButton: React.FC<GlowButtonProps> = ({
   text,
   children,
   variant = "primary",
+  theme,
   size = "medium",
   isLoading = false,
   disabled = false,
@@ -378,7 +380,9 @@ const GlowButton: React.FC<GlowButtonProps> = ({
   const resolvedRightIcon = rightIcon || endIcon;
   
   // Get theme and size configurations
-  const buttonTheme = BUTTON_THEMES[variant] || BUTTON_THEMES.primary;
+  // Resolve variant (support theme alias) and size configurations
+  const resolvedVariant = typeof theme === "string" ? theme : variant;
+  const buttonTheme = BUTTON_THEMES[resolvedVariant] || BUTTON_THEMES.primary;
   const buttonSize = BUTTON_SIZES[size] || BUTTON_SIZES.medium;
   
   // Handle cursor tracking for glow effect

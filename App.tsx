@@ -9,6 +9,7 @@ const WorkoutEntryPage = lazy(() => import('./pages/admin/WorkoutEntryPage'));
 const MeasurementEntryPage = lazy(() => import('./pages/admin/MeasurementEntryPage'));
 const ClientDashboardPage = lazy(() => import('./pages/client/ClientDashboardPage'));
 const PackageBuilderPage = lazy(() => import('./pages/admin/PackageBuilderPage'));
+const ClientProfile = lazy(() => import('./pages/admin/ClientProfile'));
 
 // Lazy load existing admin dashboard view and other top-level pages
 const RevolutionaryAdminDashboard = lazy(() => import('./components/DashBoard/Pages/admin-dashboard/admin-dashboard-view'));
@@ -36,6 +37,9 @@ const App: React.FC = () => {
             
             {/* Package Builder Route */}
             <Route path="package-builder" element={<PackageBuilderPage />} />
+
+            {/* Client Profile Route */}
+            <Route path="clients/:userId" element={<ClientProfile />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" />} />

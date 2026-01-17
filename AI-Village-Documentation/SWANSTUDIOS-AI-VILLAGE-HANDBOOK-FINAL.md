@@ -1,14 +1,34 @@
 # SWANSTUDIOS AI VILLAGE HANDBOOK - FINAL EDITION
 ## Your Complete Guide to Building SwanStudios with AI Agents
 
-**Last Updated:** 2026-01-11 - Added Client Data Database Integration System (Section 9.7)
-**Previous Update:** 2025-11-13 - Added Admin Video Library System (Section 9.6)
+**Last Updated:** 2026-01-17 - Added Business Readiness & Streamlining Master Plan (Section 9.8)
+**Previous Update:** 2026-01-11 - Added Client Data Database Integration System (Section 9.7)
 **Your Situation:** Time-stressed, need revenue, have powerful AI tools already
 **Goal:** Launch in 1-2 weeks, not 3 months + Personal Training System automation
 
 ---
 
 ## 📋 CHANGELOG
+
+### 2026-01-17 - Sections 9.9 and 9.10: NASM Growth Plan and UX Protocol
+- Store is Source of Truth for pricing (no prices on homepage)
+- Homepage ProgramsOverview.V3.tsx complete
+- Two-tier shop architecture approved
+- UX/UI Design Protocol added
+
+### 2026-01-15 - Section 9.8: Business Readiness & Streamlining Master Plan
+- ✅ Corrected Pricing Structure ($175 Standard, $200 AI Data Package, $110 Express 30-min)
+- ✅ Admin Dashboard Data Entry Protocol (ALL mock data must have admin UI for data entry)
+- ✅ Phase 0-5 Implementation Roadmap (Database Foundation → Launch Readiness)
+- ✅ Blueprint/Wireframe/Mermaid Update Requirements (UI flow validation per feature)
+- ✅ Fairmont Parent Onboarding Strategy (10-minute movement screen integration)
+- ✅ Dashboard Consolidation (archive duplicates, keep RevolutionaryClientDashboard)
+- ✅ Mock Data Elimination Framework (30+ components identified)
+- ✅ Admin Data Entry Interfaces (required for every feature with mock data)
+- ✅ UI/UX Flow Validation (click-through testing for all features)
+- Impact: Ensures every feature works end-to-end with proper data persistence
+- Impact: Admin can populate ALL application data via dashboard (zero hardcoding)
+- Impact: Complete UI flow documentation before implementation
 
 ### 2026-01-11 - Section 9.7: Client Data Database Integration System
 - ✅ Complete Client Data Integration Prompt (CLIENT-DATA-INTEGRATION-REFACTORED-PROMPT.md)
@@ -115,7 +135,34 @@
 9.5. **NEW: Coach Cortex v3.1 - Personal Training AI System**
   9.5.1. Onboarding-to-Database Pipeline (Client Intake Automation)
 
-### PART III: EXECUTION PLAYBOOK
+##
+---
+
+## 9.9. NASM GROWTH PLAN - HOMEPAGE AND SHOP ARCHITECTURE
+
+Core Principle: STORE IS SOURCE OF TRUTH FOR ALL PRICING
+
+Approved Decisions:
+1. Jumpstart Pack naming
+2. Express 30 on /shop front page
+3. Content Marketing Phase 6
+4. Build /book-screen landing page
+
+Homepage: ProgramsOverview.V3.tsx (COMPLETE)
+Shop: Two-tier layout (ChatGPT task)
+
+---
+
+## 9.10. UX/UI DESIGN PROTOCOL
+
+File: docs/ai-workflow/blueprints/UX-UI-DESIGN-PROTOCOL.md
+
+Core: Mobile-first, 44px touch targets, Galaxy-Swan theme
+NASM: Use segmented controls (not dropdowns)
+
+---
+
+# PART III: EXECUTION PLAYBOOK
 10. Week 1 Launch Plan (Bug Fixes + Deploy)
 11. Figma + v0.dev UI Workflow
 12. AI Village Phased Adoption
