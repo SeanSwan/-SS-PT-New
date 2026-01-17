@@ -81,6 +81,11 @@ const setupAssociations = async () => {
     const ClientTrainerAssignmentModule = await import('./ClientTrainerAssignment.mjs');
     const TrainerPermissionsModule = await import('./TrainerPermissions.mjs');
     const DailyWorkoutFormModule = await import('./DailyWorkoutForm.mjs');
+    const ClientBaselineMeasurementsModule = await import('./ClientBaselineMeasurements.mjs');
+    const ClientOnboardingQuestionnaireModule = await import('./ClientOnboardingQuestionnaire.mjs');
+    const ClientNutritionPlanModule = await import('./ClientNutritionPlan.mjs');
+    const ClientPhotoModule = await import('./ClientPhoto.mjs');
+    const ClientNoteModule = await import('./ClientNote.mjs');
 
     console.log('Extracting Sequelize models...');
     
@@ -150,6 +155,11 @@ const setupAssociations = async () => {
     const ClientTrainerAssignment = ClientTrainerAssignmentModule.default;
     const TrainerPermissions = TrainerPermissionsModule.default;
     const DailyWorkoutForm = DailyWorkoutFormModule.default;
+    const ClientBaselineMeasurements = ClientBaselineMeasurementsModule.default;
+    const ClientOnboardingQuestionnaire = ClientOnboardingQuestionnaireModule.default;
+    const ClientNutritionPlan = ClientNutritionPlanModule.default;
+    const ClientPhoto = ClientPhotoModule.default;
+    const ClientNote = ClientNoteModule.default;
 
     console.log('Setting up Sequelize associations only...');
     
@@ -204,8 +214,9 @@ const setupAssociations = async () => {
         WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, WorkoutSession, WorkoutExercise, Exercise, Set,
         MuscleGroup, ExerciseMuscleGroup, Equipment, ExerciseEquipment,
         Orientation, Notification, NotificationSettings, AdminSettings, Contact,
-        FinancialTransaction, BusinessMetrics, AdminNotification,
-        ClientTrainerAssignment, TrainerPermissions, DailyWorkoutForm
+      FinancialTransaction, BusinessMetrics, AdminNotification,
+        ClientTrainerAssignment, TrainerPermissions, DailyWorkoutForm, ClientOnboardingQuestionnaire,
+        ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote
       };
     }
     
@@ -488,6 +499,40 @@ const setupAssociations = async () => {
     DailyWorkoutForm.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
     DailyWorkoutForm.belongsTo(WorkoutSession, { foreignKey: 'sessionId', as: 'session' });
     WorkoutSession.hasMany(DailyWorkoutForm, { foreignKey: 'sessionId', as: 'dailyForms' });
+
+    // Client Onboarding Questionnaire Associations
+    User.hasMany(ClientOnboardingQuestionnaire, { foreignKey: 'userId', as: 'onboardingQuestionnaires' });
+    User.hasMany(ClientOnboardingQuestionnaire, { foreignKey: 'createdBy', as: 'createdQuestionnaires' });
+    ClientOnboardingQuestionnaire.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    ClientOnboardingQuestionnaire.belongsTo(User, { foreignKey: 'createdBy', as: 'createdByUser' });
+
+    // Client Baseline Measurements Associations
+    User.hasMany(ClientBaselineMeasurements, { foreignKey: 'userId', as: 'baselineMeasurements' });
+    User.hasMany(ClientBaselineMeasurements, { foreignKey: 'recordedBy', as: 'baselineMeasurementsRecorded' });
+    ClientBaselineMeasurements.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    ClientBaselineMeasurements.belongsTo(User, { foreignKey: 'recordedBy', as: 'recordedByUser' });
+    ClientBaselineMeasurements.belongsTo(WorkoutSession, { foreignKey: 'sessionId', as: 'session' });
+    WorkoutSession.hasMany(ClientBaselineMeasurements, { foreignKey: 'sessionId', as: 'baselineMeasurements' });
+
+    // Client Nutrition Plan Associations
+    User.hasMany(ClientNutritionPlan, { foreignKey: 'userId', as: 'nutritionPlans' });
+    User.hasMany(ClientNutritionPlan, { foreignKey: 'createdBy', as: 'nutritionPlansCreated' });
+    ClientNutritionPlan.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    ClientNutritionPlan.belongsTo(User, { foreignKey: 'createdBy', as: 'createdByUser' });
+
+    // Client Photo Associations
+    User.hasMany(ClientPhoto, { foreignKey: 'userId', as: 'clientPhotos' });
+    User.hasMany(ClientPhoto, { foreignKey: 'uploadedBy', as: 'uploadedClientPhotos' });
+    ClientPhoto.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    ClientPhoto.belongsTo(User, { foreignKey: 'uploadedBy', as: 'uploadedByUser' });
+
+    // Client Note Associations
+    User.hasMany(ClientNote, { foreignKey: 'userId', as: 'clientNotes' });
+    User.hasMany(ClientNote, { foreignKey: 'trainerId', as: 'trainerNotes' });
+    ClientNote.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+    ClientNote.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+    ClientNote.belongsTo(Session, { foreignKey: 'relatedSessionId', as: 'session' });
+    Session.hasMany(ClientNote, { foreignKey: 'relatedSessionId', as: 'sessionNotes' });
     
     // Workout Exercise Associations
     WorkoutSession.hasMany(WorkoutExercise, { foreignKey: 'workoutSessionId', as: 'exercises' });
@@ -583,7 +628,12 @@ const setupAssociations = async () => {
       // NASM Workout Tracking Models
       ClientTrainerAssignment,
       TrainerPermissions,
-      DailyWorkoutForm
+      DailyWorkoutForm,
+      ClientOnboardingQuestionnaire,
+      ClientBaselineMeasurements,
+      ClientNutritionPlan,
+      ClientPhoto,
+      ClientNote
     };
   } catch (error) {
     console.error('❌ Error setting up Sequelize model associations:', error);

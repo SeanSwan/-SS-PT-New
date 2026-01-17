@@ -2,48 +2,63 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
+    const table = await queryInterface.describeTable('workout_sessions');
+
     // Add sessionType column to workout_sessions table
-    await queryInterface.addColumn('workout_sessions', 'sessionType', {
-      type: Sequelize.ENUM('solo', 'trainer-led'),
-      defaultValue: 'trainer-led',
-      after: 'status',
-    });
+    if (!table.sessionType) {
+      await queryInterface.addColumn('workout_sessions', 'sessionType', {
+        type: Sequelize.ENUM('solo', 'trainer-led'),
+        defaultValue: 'trainer-led',
+        after: 'status',
+      });
+    } else {
+      console.log('sessionType column already exists, skipping...');
+    }
 
     // Add trainerId column (may already exist, handle gracefully)
-    try {
+    if (!table.trainerId) {
       await queryInterface.addColumn('workout_sessions', 'trainerId', {
-        type: Sequelize.UUID,
+        type: Sequelize.INTEGER,
         references: {
-          model: 'Users',
+          model: 'users',
           key: 'id',
         },
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL',
         after: 'recordedBy',
       });
-    } catch (error) {
-      console.log('trainerId column may already exist, skipping...');
+    } else {
+      console.log('trainerId column already exists, skipping...');
     }
 
     // Add sessionId column (link to booked sessions)
-    try {
+    if (!table.sessionId) {
       await queryInterface.addColumn('workout_sessions', 'sessionId', {
-        type: Sequelize.UUID,
+        type: Sequelize.INTEGER,
         references: {
-          model: 'Sessions',
+          model: 'sessions',
           key: 'id',
         },
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL',
         after: 'trainerId',
       });
-    } catch (error) {
-      console.log('sessionId column may already exist, skipping...');
+    } else {
+      console.log('sessionId column already exists, skipping...');
     }
 
     // Add index for sessionType
-    await queryInterface.addIndex('workout_sessions', ['sessionType']);
-    await queryInterface.addIndex('workout_sessions', ['userId', 'sessionType']);
+    try {
+      await queryInterface.addIndex('workout_sessions', ['sessionType']);
+    } catch (error) {
+      console.log('sessionType index may already exist, skipping...');
+    }
+
+    try {
+      await queryInterface.addIndex('workout_sessions', ['userId', 'sessionType']);
+    } catch (error) {
+      console.log('userId + sessionType index may already exist, skipping...');
+    }
   },
 
   down: async (queryInterface, Sequelize) => {

@@ -5,7 +5,7 @@
  *
  * **This file demonstrates how to integrate all v2.0 components:**
  * 1. Hero Section v2.0 (LivingConstellation + FrostedCard + Parallax)
- * 2. Package Section v2.0 (pricing removed + icons + benefits + FrostedCard)
+ * 2. Programs Overview v3.0 (outcomes-focused, no pricing)
  * 3. Features Section v2.0 (FrostedCard + parallax)
  * 4. V1ThemeBridge wrapping for deferred sections
  *
@@ -35,7 +35,7 @@ import { Helmet } from "react-helmet-async";
 
 // v2.0 Refactored Sections
 import HeroSectionV2 from "./Hero-Section.V2";
-import PackageSectionV2 from "./PackageSection.V2";
+import ProgramsOverviewV3 from "./ProgramsOverview.V3";
 import FeaturesSectionV2 from "../../../components/FeaturesSection/FeaturesSection.V2";
 
 // V1ThemeBridge for deferred sections
@@ -209,8 +209,8 @@ const HomePageV2: React.FC = () => {
 
         <SectionDivider />
 
-        {/* Package Section v2.0 - Pricing removed + FrostedCard */}
-        <PackageSectionV2 id="packages" />
+        {/* Programs Overview v3.0 - Outcomes-focused, no pricing */}
+        <ProgramsOverviewV3 />
 
         {/* Features Section v2.0 - FrostedCard + Parallax */}
         <FeaturesSectionV2 />

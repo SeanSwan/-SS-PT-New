@@ -5,15 +5,15 @@ export default (sequelize) => {
 
   RenewalAlert.init({
     id: {
-      type: DataTypes.UUID,
-      defaultValue: DataTypes.UUIDV4,
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
       primaryKey: true,
     },
     userId: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'Users',
+        model: 'users',
         key: 'id',
       },
     },
@@ -42,9 +42,9 @@ export default (sequelize) => {
       type: DataTypes.DATE,
     },
     contactedBy: {
-      type: DataTypes.UUID,
+      type: DataTypes.INTEGER,
       references: {
-        model: 'Users',
+        model: 'users',
         key: 'id',
       },
     },

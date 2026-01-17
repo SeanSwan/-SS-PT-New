@@ -4,15 +4,15 @@ module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.createTable('renewal_alerts', {
       id: {
-        type: Sequelize.UUID,
-        defaultValue: Sequelize.UUIDV4,
+        type: Sequelize.INTEGER,
+        autoIncrement: true,
         primaryKey: true,
       },
       userId: {
-        type: Sequelize.UUID,
+        type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: 'Users',
+          model: 'users',
           key: 'id',
         },
         onUpdate: 'CASCADE',
@@ -43,9 +43,9 @@ module.exports = {
         type: Sequelize.DATE,
       },
       contactedBy: {
-        type: Sequelize.UUID,
+        type: Sequelize.INTEGER,
         references: {
-          model: 'Users',
+          model: 'users',
           key: 'id',
         },
         onUpdate: 'CASCADE',
