@@ -1,3 +1,57 @@
+/**
+ * FILE: clientOnboardingController.mjs
+ * SYSTEM: Client Onboarding + NASM Movement Screen
+ *
+ * PURPOSE:
+ * - Manage onboarding questionnaire records and movement screen assessments.
+ * - Persist NASM OHSA data and baseline measurements for downstream AI planning.
+ *
+ * ARCHITECTURE:
+ * ```mermaid
+ * graph TD
+ *   A[Frontend Forms] --> B[clientOnboardingRoutes]
+ *   B --> C[clientOnboardingController]
+ *   C --> D[ClientOnboardingQuestionnaire]
+ *   C --> E[ClientBaselineMeasurements]
+ *   C --> F[User]
+ * ```
+ *
+ * DATABASE ERD:
+ * ```
+ * users (id) 1--N client_onboarding_questionnaires
+ * users (id) 1--N client_baseline_measurements
+ * ```
+ *
+ * DATA FLOW (Movement Screen):
+ * 1. Trainer submits POST /api/client-onboarding/:userId/movement-screen
+ * 2. Controller validates role + user ownership/assignment
+ * 3. Parses PAR-Q+ and OHSA payloads
+ * 4. Computes NASM score and corrective strategy
+ * 5. Creates baseline measurement row
+ * 6. Responds with NASM summary + OPT phase
+ *
+ * ERROR STATES:
+ * - 400: Missing userId or required NASM payloads
+ * - 401: Unauthenticated
+ * - 403: Trainer not assigned to client
+ * - 404: User not found
+ * - 500: Database or validation failure
+ *
+ * WHY Store Movement Screen in Baseline Measurements?
+ * - Keeps all assessment inputs and outputs in one time-series record.
+ * - Enables historical comparisons and AI safety checks.
+ *
+ * WHY Compute NASM Score Server-Side?
+ * - Guarantees consistent scoring rules across clients.
+ * - Prevents client-side tampering with assessments.
+ *
+ * DEPENDENCIES:
+ * - sequelize models (User, ClientOnboardingQuestionnaire, ClientBaselineMeasurements)
+ * - auth middleware (role + assignment checks)
+ *
+ * CREATED: 2026-01-10
+ * LAST MODIFIED: 2026-01-18
+ */
 import logger from '../utils/logger.mjs';
 import { getAllModels } from '../models/index.mjs';
 import { Op } from 'sequelize';
@@ -424,6 +478,8 @@ export const createMovementScreen = async (req, res) => {
       posturalAssessment,
       performanceAssessments,
       correctiveExerciseStrategy,
+      bodyFatPercentage: toNumber(req.body?.bodyFatPercentage),
+      plankDuration: toNumber(req.body?.plankDuration),
       flexibilityNotes: req.body?.flexibilityNotes ?? null,
       injuryNotes: req.body?.injuryNotes ?? null,
       painLevel: toNumber(req.body?.painLevel),
@@ -440,6 +496,8 @@ export const createMovementScreen = async (req, res) => {
         nasmAssessmentScore: baseline.nasmAssessmentScore,
         correctiveExerciseStrategy: baseline.correctiveExerciseStrategy,
         optPhase,
+        bodyFatPercentage: baseline.bodyFatPercentage ?? null,
+        plankDuration: baseline.plankDuration ?? null,
         flexibilityNotes: baseline.flexibilityNotes,
         injuryNotes: baseline.injuryNotes,
         painLevel: baseline.painLevel,
@@ -521,14 +579,15 @@ export const getClientDataOverview = async (req, res) => {
     const movementCompleted = !!baselineMeasurement;
     const movementDate = baselineMeasurement?.takenAt ?? baselineMeasurement?.createdAt ?? null;
 
-    const baselineSummary = baselineMeasurement
-      ? {
-          bodyWeight: baselineMeasurement?.bodyWeight ?? null,
-          bodyFatPercentage: baselineMeasurement?.bodyFatPercentage ?? null,
-          restingHeartRate: baselineMeasurement?.restingHeartRate ?? null,
-          bloodPressure: baselineMeasurement?.bloodPressureSystolic && baselineMeasurement?.bloodPressureDiastolic
-            ? `${baselineMeasurement.bloodPressureSystolic}/${baselineMeasurement.bloodPressureDiastolic}`
-            : null,
+        const baselineSummary = baselineMeasurement
+          ? {
+              bodyWeight: baselineMeasurement?.bodyWeight ?? null,
+              bodyFatPercentage: baselineMeasurement?.bodyFatPercentage ?? null,
+              plankDuration: baselineMeasurement?.plankDuration ?? null,
+              restingHeartRate: baselineMeasurement?.restingHeartRate ?? null,
+              bloodPressure: baselineMeasurement?.bloodPressureSystolic && baselineMeasurement?.bloodPressureDiastolic
+                ? `${baselineMeasurement.bloodPressureSystolic}/${baselineMeasurement.bloodPressureDiastolic}`
+                : null,
           benchPress: baselineMeasurement?.benchPressWeight && baselineMeasurement?.benchPressReps
             ? `${baselineMeasurement.benchPressWeight} lbs x ${baselineMeasurement.benchPressReps}`
             : null,

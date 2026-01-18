@@ -1,3 +1,56 @@
+/**
+ * FILE: aiWorkoutController.mjs
+ * SYSTEM: AI Workout Generation (NASM-Aware)
+ *
+ * PURPOSE:
+ * - Generate structured workout plans using Master Prompt JSON.
+ * - Enforce NASM OPT phase guidance and safety constraints from movement screen data.
+ *
+ * ARCHITECTURE:
+ * ```mermaid
+ * graph TD
+ *   A[Client/Trainer Request] --> B[aiWorkoutController]
+ *   B --> C[OpenAI API]
+ *   B --> D[ClientBaselineMeasurements]
+ *   B --> E[WorkoutPlan Tables]
+ *   B --> F[Exercise Library]
+ * ```
+ *
+ * DATABASE ERD:
+ * ```
+ * users (id) 1--N workout_plans
+ * users (id) 1--N client_baseline_measurements
+ * workout_plans (id) 1--N workout_plan_days
+ * workout_plan_days (id) 1--N workout_plan_day_exercises
+ * ```
+ *
+ * DATA FLOW:
+ * 1. Validate requester role and access
+ * 2. Load Master Prompt JSON + latest baseline measurements
+ * 3. Build NASM constraints (opt phase, corrective strategy)
+ * 4. Call OpenAI with constraints
+ * 5. Validate response and persist plan
+ *
+ * ERROR STATES:
+ * - 400: Missing userId or invalid masterPromptJson
+ * - 401: Not authenticated
+ * - 403: Access denied
+ * - 404: User or masterPromptJson missing
+ * - 502: Empty/invalid AI response
+ * - 500: Unexpected server error
+ *
+ * WHY Include NASM Data in AI Prompt?
+ * - Aligns programming with OPT phase requirements.
+ * - Reduces injury risk by avoiding movement compensations.
+ *
+ * DEPENDENCIES:
+ * - OpenAI SDK
+ * - ClientBaselineMeasurements (NASM data)
+ * - WorkoutPlan + Exercise models
+ *
+ * CREATED: 2026-01-10
+ * LAST MODIFIED: 2026-01-18
+ */
 import { Op } from 'sequelize';
 import sequelize from '../database.mjs';
 import { getAllModels } from '../models/index.mjs';
@@ -19,6 +72,13 @@ const ALLOWED_OPT_PHASES = new Set([
   'maximal_strength',
   'power',
 ]);
+const OPT_PHASE_KEY_BY_NUMBER = {
+  1: 'stabilization_endurance',
+  2: 'strength_endurance',
+  3: 'hypertrophy',
+  4: 'maximal_strength',
+  5: 'power',
+};
 
 const isPlainObject = (value) => {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -102,6 +162,100 @@ const normalizeOptPhase = (optPhase) => {
   return ALLOWED_OPT_PHASES.has(optPhase) ? optPhase : null;
 };
 
+const toOptPhaseKey = (optPhase) => {
+  if (!optPhase) {
+    return null;
+  }
+  if (typeof optPhase === 'string') {
+    return normalizeOptPhase(optPhase);
+  }
+  if (typeof optPhase === 'number') {
+    return OPT_PHASE_KEY_BY_NUMBER[optPhase] || null;
+  }
+  if (typeof optPhase === 'object' && typeof optPhase.phase === 'number') {
+    return OPT_PHASE_KEY_BY_NUMBER[optPhase.phase] || null;
+  }
+  return null;
+};
+
+const OHSA_LABELS = {
+  feetTurnout: 'feet turnout',
+  feetFlattening: 'feet flattening',
+  kneeValgus: 'knee valgus',
+  kneeVarus: 'knee varus',
+  excessiveForwardLean: 'excessive forward lean',
+  lowBackArch: 'low back arch',
+  armsFallForward: 'arms fall forward',
+  forwardHead: 'forward head',
+  asymmetricWeightShift: 'asymmetric weight shift',
+};
+
+const extractOhsaCompensations = (ohsa) => {
+  if (!ohsa || typeof ohsa !== 'object') {
+    return [];
+  }
+
+  const results = [];
+  const addComp = (key, value) => {
+    if (!value || value === 'none') {
+      return;
+    }
+    const label = OHSA_LABELS[key] || key;
+    results.push(`${value} ${label}`.trim());
+  };
+
+  const anterior = ohsa.anteriorView || {};
+  const lateral = ohsa.lateralView || {};
+
+  addComp('feetTurnout', anterior.feetTurnout);
+  addComp('feetFlattening', anterior.feetFlattening);
+  addComp('kneeValgus', anterior.kneeValgus);
+  addComp('kneeVarus', anterior.kneeVarus);
+  addComp('excessiveForwardLean', lateral.excessiveForwardLean);
+  addComp('lowBackArch', lateral.lowBackArch);
+  addComp('armsFallForward', lateral.armsFallForward);
+  addComp('forwardHead', lateral.forwardHead);
+  addComp('asymmetricWeightShift', ohsa.asymmetricWeightShift);
+
+  return results;
+};
+
+const extractPosturalDeviations = (posturalAssessment) => {
+  if (!posturalAssessment || typeof posturalAssessment !== 'object') {
+    return [];
+  }
+
+  return Object.values(posturalAssessment)
+    .filter((value) => typeof value === 'string' && value.trim().length > 0)
+    .map((value) => value.trim());
+};
+
+const buildNasmConstraints = (baseline, masterPrompt) => {
+  if (!baseline) {
+    return null;
+  }
+
+  const primaryGoal = masterPrompt?.goals?.primary || 'general_fitness';
+  const optPhaseDetails = baseline.nasmAssessmentScore !== null
+    ? baseline.constructor.selectOPTPhase(baseline.nasmAssessmentScore ?? 0, primaryGoal)
+    : null;
+  const optPhaseKey = toOptPhaseKey(optPhaseDetails);
+
+  return {
+    parqClearance: !baseline.medicalClearanceRequired,
+    medicalClearanceRequired: baseline.medicalClearanceRequired ?? false,
+    nasmAssessmentScore: baseline.nasmAssessmentScore ?? null,
+    ohsaCompensations: extractOhsaCompensations(baseline.overheadSquatAssessment),
+    posturalDeviations: extractPosturalDeviations(baseline.posturalAssessment),
+    correctiveExercises: baseline.correctiveExerciseStrategy ?? null,
+    optPhase: optPhaseKey,
+    optPhaseConfig: optPhaseDetails ?? null,
+    primaryGoal,
+    trainingTier: masterPrompt?.package?.tier ?? null,
+    performanceData: baseline.performanceAssessments ?? null,
+  };
+};
+
 const findExerciseByName = async (Exercise, name, transaction) => {
   if (!name) {
     return null;
@@ -172,6 +326,7 @@ export const generateWorkoutPlan = async (req, res) => {
       WorkoutPlanDay,
       WorkoutPlanDayExercise,
       ClientTrainerAssignment,
+      ClientBaselineMeasurements,
     } = models;
 
     if (requesterRole === 'trainer') {
@@ -224,8 +379,21 @@ export const generateWorkoutPlan = async (req, res) => {
     }
 
     const normalizedConstraints = isPlainObject(constraints) ? constraints : {};
+    const latestBaseline = await ClientBaselineMeasurements.findOne({
+      where: { userId: targetUserId },
+      order: [['takenAt', 'DESC']],
+    });
+    const nasmConstraints = buildNasmConstraints(latestBaseline, resolvedMasterPrompt);
+    const constraintsWithNasm = { ...normalizedConstraints };
+    if (nasmConstraints) {
+      constraintsWithNasm.nasm = nasmConstraints;
+      if (nasmConstraints.optPhase) {
+        constraintsWithNasm.optPhase = nasmConstraints.optPhase;
+        constraintsWithNasm.optPhaseConfig = nasmConstraints.optPhaseConfig ?? null;
+      }
+    }
     const openai = await getOpenAIClient();
-    const prompt = buildPrompt(resolvedMasterPrompt, normalizedConstraints);
+    const prompt = buildPrompt(resolvedMasterPrompt, constraintsWithNasm);
 
     const completion = await openai.chat.completions.create({
       model: WORKOUT_MODEL,
