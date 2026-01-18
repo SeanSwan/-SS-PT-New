@@ -26,6 +26,17 @@ module.exports = {
     const transaction = await queryInterface.sequelize.transaction();
 
     try {
+      const tableCheck = await queryInterface.sequelize.query(
+        "SELECT to_regclass('public.workout_sessions') AS table_name",
+        { type: Sequelize.QueryTypes.SELECT, transaction }
+      );
+
+      if (!tableCheck[0]?.table_name) {
+        await transaction.commit();
+        console.log('Skipping migration: workout_sessions table does not exist');
+        return;
+      }
+
       // Add sessionType field
       await queryInterface.addColumn(
         'workout_sessions',
