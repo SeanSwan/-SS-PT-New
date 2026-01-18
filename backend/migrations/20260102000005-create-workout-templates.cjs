@@ -110,15 +110,13 @@ module.exports = {
           await queryInterface.addColumn('workout_templates', 'exercises', {
             type: Sequelize.JSONB,
             allowNull: false,
-            defaultValue: [],
-            comment: 'Array of exercise objects with sets, reps, weight'
+            defaultValue: []
           }, { transaction });
         }
 
         if (!columns.estimatedDuration) {
           await queryInterface.addColumn('workout_templates', 'estimatedDuration', {
-            type: Sequelize.INTEGER,
-            comment: 'Duration in minutes'
+            type: Sequelize.INTEGER
           }, { transaction });
         }
 
@@ -134,24 +132,21 @@ module.exports = {
 
         if (!columns.category) {
           await queryInterface.addColumn('workout_templates', 'category', {
-            type: Sequelize.STRING,
-            comment: 'e.g., Upper Body, Lower Body, Full Body, Cardio'
+            type: Sequelize.STRING
           }, { transaction });
         }
 
         if (!columns.isPublic) {
           await queryInterface.addColumn('workout_templates', 'isPublic', {
             type: Sequelize.BOOLEAN,
-            defaultValue: false,
-            comment: 'If true, other users can see and use this template'
+            defaultValue: false
           }, { transaction });
         }
 
         if (!columns.useCount) {
           await queryInterface.addColumn('workout_templates', 'useCount', {
             type: Sequelize.INTEGER,
-            defaultValue: 0,
-            comment: 'Number of times this template has been used'
+            defaultValue: 0
           }, { transaction });
         }
 
