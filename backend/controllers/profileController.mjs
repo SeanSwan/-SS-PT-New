@@ -189,9 +189,21 @@ export const updateUserProfile = async (req, res) => {
       'firstName', 'lastName', 'phone', 'email', 'photo',
       'dateOfBirth', 'gender', 'weight', 'height',
       'fitnessGoal', 'trainingExperience', 'healthConcerns', 'emergencyContact',
-      'emailNotifications', 'smsNotifications', 'preferences'
+      'emailNotifications', 'smsNotifications', 'preferences',
+      'notificationPreferences'
     ];
-    
+
+    if (updateData.notificationPreferences !== undefined) {
+      const prefs = updateData.notificationPreferences;
+      const isObject = typeof prefs === 'object' && prefs !== null && !Array.isArray(prefs);
+      if (!isObject) {
+        return res.status(400).json({
+          success: false,
+          message: 'notificationPreferences must be an object'
+        });
+      }
+    }
+
     // Filter out fields that are not allowed to be updated
     const filteredUpdateData = Object.keys(updateData)
       .filter(key => allowedFields.includes(key))
