@@ -8,6 +8,9 @@ The Universal Master Schedule System unifies scheduling across Admin, Trainer, a
 - **Trainer View:** Personal schedule, client management, availability blocks.
 - **Client View:** Booking, cancellation, history, credit tracking.
 
+**Replacement Plan:**
+- UniversalSchedule replaces AdminScheduleTab, TrainerScheduleTab, and ClientScheduleTab.
+
 ## User Roles & Permissions
 
 ### Admin
@@ -51,6 +54,11 @@ The Universal Master Schedule System unifies scheduling across Admin, Trainer, a
    - Status: `blocked`
    - Action: Slot is unavailable for booking.
 
+## Recurring Session Limits
+
+- **Max series size:** 52 occurrences or 12 months, whichever comes first.
+- **Reason:** Protects performance, avoids unbounded series growth, and aligns with common annual scheduling cycles.
+
 ## Session Credit System
 
 - **Allocation:** Credits added via package purchase (Storefront).
@@ -60,10 +68,22 @@ The Universal Master Schedule System unifies scheduling across Admin, Trainer, a
 
 ## Notification & Opt-Out Flow
 
-- **Silent Mode:** Admin/Trainer can uncheck notifyClient during booking/cancellation to suppress emails/SMS.
-- **Client Preferences:** Clients can opt out of specific notification types (email or SMS) in their profile settings.
+- **Channels:** Email, SMS, Push.
+- **Silent Mode:** Admin/Trainer can uncheck notifyClient during booking/cancellation to suppress notifications.
+- **Client Preferences:** Clients can opt out of specific notification types in profile settings.
 - **Urgent Alerts:** Cancellations <24h always trigger notifications unless explicitly overridden by Admin.
 - **Storage:** notifyClient is stored per session to preserve the decision at time of action.
+
+## Notification Preferences (User Model)
+
+```json
+{
+  "email": true,
+  "sms": true,
+  "push": true,
+  "quietHours": { "start": "22:00", "end": "07:00" }
+}
+```
 
 ## Timezone Policy
 
@@ -80,25 +100,36 @@ The Universal Master Schedule System unifies scheduling across Admin, Trainer, a
 - `status`: Enum (available, scheduled, confirmed, completed, cancelled, blocked)
 - `userId`: Integer (FK User - Client)
 - `trainerId`: Integer (FK User - Trainer)
-- `isRecurring`: Boolean
+- `isRecurring`: Boolean (default false)
 - `recurringGroupId`: UUID (links recurring sessions)
 - `recurrenceRule`: String (RFC 5545)
-- `notifyClient`: Boolean (snapshot of preference at creation)
-- `isBlocked`: Boolean (blocked time indicator)
+- `notifyClient`: Boolean (default true)
+- `isBlocked`: Boolean (default false)
+
+**User Model:**
+- `notificationPreferences`: JSONB (email, sms, push, quietHours)
 
 ## API Endpoints
 
-### Core
-- `GET /api/sessions`: Fetch sessions (filtered by role/date).
-- `POST /api/sessions`: Create single session.
-- `PUT /api/sessions/:id`: Update session details.
-- `DELETE /api/sessions/:id`: Cancel/Delete session.
+### Sessions
+- `GET /api/sessions` (filtered by role/date)
+- `GET /api/sessions/:id`
+- `POST /api/sessions` (single session)
+- `PUT /api/sessions/:id`
+- `DELETE /api/sessions/:id`
+
+### Recurring
+- `POST /api/sessions/recurring`
+- `PUT /api/sessions/recurring/:groupId`
+- `DELETE /api/sessions/recurring/:groupId`
+
+### Blocking
+- `POST /api/sessions/block`
+- `DELETE /api/sessions/block/:id`
 
 ### Actions
-- `POST /api/sessions/recurring`: Create a recurring series using recurrenceRule.
-- `POST /api/sessions/:id/book`: Client books a slot.
-- `POST /api/sessions/:id/complete`: Trainer marks complete.
-- `POST /api/sessions/:id/block`: Trainer/Admin blocks time.
+- `POST /api/sessions/:id/book`
+- `POST /api/sessions/:id/complete`
 
 ## Frontend Components
 
@@ -109,7 +140,7 @@ The Universal Master Schedule System unifies scheduling across Admin, Trainer, a
   - Drag-and-drop rescheduling (Admin/Trainer).
   - Click-to-book (Client).
   - Recurring session modal.
-  - Notification toggle (SMS/Email).
+  - Notification toggle (Email/SMS/Push).
 
 ### Dashboard Integration
 - **Admin:** Imports `UniversalSchedule` with `mode="admin"`.
@@ -120,7 +151,7 @@ The Universal Master Schedule System unifies scheduling across Admin, Trainer, a
 
 - [ ] **Recurring Sessions:** Book "Every Monday at 10am for 10 weeks".
 - [ ] **Block Out Time:** "Trainer unavailable" slots.
-- [ ] **Notification Toggle:** "Send SMS?" checkbox on booking/cancel.
+- [ ] **Notification Toggle:** "Send notification" checkbox on booking/cancel.
 - [ ] **Mobile Optimization:** Full functionality on phone (no desktop required).
 - [ ] **Waitlist:** (Phase 2)
 - [ ] **Late Cancel Fees:** (Phase 2)

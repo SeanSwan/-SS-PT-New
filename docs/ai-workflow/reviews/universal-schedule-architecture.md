@@ -27,6 +27,13 @@
 - One calendar with role-based views and permissions.
 - Mobile-first usability on phone and tablet.
 - Store is the source of truth for credits and session limits.
+- Replace all existing schedule components once UniversalSchedule is ready.
+
+**Decisions (User Confirmed):**
+- Replace ALL existing schedule components with UniversalSchedule.
+- Notification channels: Email, SMS, Push.
+- Implementation order: Backend and frontend in parallel.
+- Recurring limit: Max 52 occurrences or 12 months, whichever comes first.
 
 **Reference Docs:**
 - docs/systems/UNIVERSAL-MASTER-SCHEDULE-HANDBOOK.md (business logic source of truth)
@@ -70,30 +77,47 @@ graph TD
   G --> K
 ```
 
-### B. ERD (ASCII)
+### B. ERD (Mermaid)
 
-```
-Users (id, role, ...)
-   1 --- n
-Sessions (id, sessionDate, duration, status, userId, trainerId,
-         isRecurring, recurringGroupId, recurrenceRule, notifyClient, isBlocked)
+```mermaid
+erDiagram
+  USERS ||--o{ SESSIONS : books
+  USERS ||--o{ SESSIONS : trains
+  USERS {
+    int id
+    string role
+    jsonb notificationPreferences
+  }
+  SESSIONS {
+    int id
+    datetime sessionDate
+    int duration
+    string status
+    int userId
+    int trainerId
+    boolean isRecurring
+    uuid recurringGroupId
+    string recurrenceRule
+    boolean notifyClient
+    boolean isBlocked
+  }
 ```
 
-### C. Flowchart (Mermaid)
+### C. User Flow (Mermaid)
 
 ```mermaid
 flowchart TD
-  A[Open Schedule] --> B{Role?}
-  B -->|Admin| C[Show All Sessions]
-  B -->|Trainer| D[Show Assigned + Availability]
-  B -->|Client| E[Show Bookable Slots]
-  E --> F{Has Credits?}
+  A[Open Schedule] --> B{Role}
+  B -->|Admin| C[View All Sessions]
+  B -->|Trainer| D[View Assigned + Availability]
+  B -->|Client| E[View Bookable Slots]
+  E --> F{Has Credits}
   F -->|Yes| G[Book Session]
-  F -->|No| H[Show Purchase CTA]
+  F -->|No| H[Show Store CTA]
   G --> I[Create Session Record]
-  I --> J{Notify Client?}
-  J -->|Yes| K[Send Notification]
-  J -->|No| L[Silent Booking]
+  I --> J{notifyClient}
+  J -->|true| K[Send Email/SMS/Push]
+  J -->|false| L[Silent Booking]
   K --> M[Update UI]
   L --> M
 ```
@@ -144,27 +168,28 @@ So that I can schedule quickly without calling.
 ### G. API Specification (Draft)
 
 ```yaml
-GET /api/sessions?from=2026-01-01&to=2026-01-31
-
-POST /api/sessions
-Body: { sessionDate, duration, trainerId, userId, status, notifyClient }
-
-POST /api/sessions/recurring
-Body:
-  startDate: "2026-01-20T10:00:00Z"
-  duration: 60
-  trainerId: 5
-  userId: 12
-  recurrenceRule: "FREQ=WEEKLY;INTERVAL=1;COUNT=10"
-  notifyClient: true
-
-POST /api/sessions/:id/book
-POST /api/sessions/:id/complete
-POST /api/sessions/:id/block
+# Session Endpoints (Universal Schedule)
+GET    /api/sessions
+GET    /api/sessions/:id
+POST   /api/sessions
+PUT    /api/sessions/:id
 DELETE /api/sessions/:id
+
+# Recurring
+POST   /api/sessions/recurring
+PUT    /api/sessions/recurring/:groupId
+DELETE /api/sessions/recurring/:groupId
+
+# Blocking
+POST   /api/sessions/block
+DELETE /api/sessions/block/:id
+
+# Actions
+POST   /api/sessions/:id/book
+POST   /api/sessions/:id/complete
 ```
 
-### H. Database Schema (Session Additions)
+### H. Database Schema (Session + User Additions)
 
 ```sql
 ALTER TABLE "Sessions" ADD COLUMN "isRecurring" BOOLEAN DEFAULT false;
@@ -172,6 +197,8 @@ ALTER TABLE "Sessions" ADD COLUMN "recurringGroupId" UUID NULL;
 ALTER TABLE "Sessions" ADD COLUMN "recurrenceRule" TEXT NULL; -- RFC 5545
 ALTER TABLE "Sessions" ADD COLUMN "notifyClient" BOOLEAN DEFAULT true;
 ALTER TABLE "Sessions" ADD COLUMN "isBlocked" BOOLEAN DEFAULT false;
+
+ALTER TABLE "Users" ADD COLUMN "notificationPreferences" JSONB;
 ```
 
 ### I. Component Structure (Frontend)
@@ -213,16 +240,16 @@ frontend/src/components/Schedule/
 
 ---
 
-## 4. Business Logic (WHY)
+## 4. Error Handling Matrix
 
-- WHY use recurrenceRule?
-  - Standard RFC 5545 format supports complex patterns and future calendar sync.
-- WHY store notifyClient on session?
-  - Allows per-action opt-out without changing global preferences.
-- WHY use isBlocked?
-  - Prevents overloading availability by separating blocked time from sessions.
-- WHY a single UniversalSchedule?
-  - Ensures parity across roles and reduces maintenance.
+| Scenario | Status | Response | UI Behavior |
+|---------|--------|----------|-------------|
+| Double-book conflict | 409 | Conflict | Show conflict message + retry |
+| No credits | 402 | Payment Required | Show store CTA |
+| Unauthorized | 401 | Unauthorized | Redirect to login |
+| Forbidden role | 403 | Forbidden | Access denied message |
+| Invalid recurrenceRule | 400 | Bad Request | Validation error in modal |
+| Server error | 500 | Server Error | Show retry and log |
 
 ---
 
@@ -230,9 +257,10 @@ frontend/src/components/Schedule/
 
 1. Double booking (same trainer, same time): reject with 409.
 2. Client has zero credits: block booking and prompt store CTA.
-3. Cancel within 24 hours: do not refund unless admin override.
+3. Cancel within 24 hours: no refund unless admin override.
 4. Edit recurring series: choose "this event" or "all events".
 5. Timezone mismatch: store UTC, display local time.
+6. Recurring limit reached: prevent further generation beyond cap.
 
 ---
 
@@ -252,7 +280,34 @@ frontend/src/components/Schedule/
 
 ---
 
-## 8. AI Reviews (APPEND ONLY)
+## 8. Notification System
+
+**Storage:**
+- Per-session: notifyClient boolean on Session model.
+- Per-user: notificationPreferences JSONB on User model.
+
+Example notificationPreferences:
+```json
+{
+  "email": true,
+  "sms": true,
+  "push": true,
+  "quietHours": { "start": "22:00", "end": "07:00" }
+}
+```
+
+**Triggers:**
+| Event | Notify Client | Notify Trainer |
+|-------|---------------|----------------|
+| Session booked | If notifyClient=true | Always |
+| Session canceled (>24h) | If notifyClient=true | Always |
+| Session canceled (<24h) | Always | Always |
+| Session rescheduled | If notifyClient=true | Always |
+| Reminder (24h prior) | Per user prefs | Per user prefs |
+
+---
+
+## 9. AI Reviews (APPEND ONLY)
 
 ### Claude Code (Integration)
 **Date:** 2026-01-17 00:00
@@ -294,7 +349,7 @@ frontend/src/components/Schedule/
 
 ---
 
-## 9. Resolution Log
+## 10. Resolution Log
 
 **Issue #1:** [Description]
 - **Raised by:** [AI name]
@@ -304,7 +359,7 @@ frontend/src/components/Schedule/
 
 ---
 
-## 10. Consensus Summary
+## 11. Consensus Summary
 
 **Status:** PENDING / CONSENSUS REACHED / BLOCKED
 

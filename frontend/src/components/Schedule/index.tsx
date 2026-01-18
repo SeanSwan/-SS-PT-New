@@ -17,6 +17,7 @@
 
 import ScheduleContainer from './ScheduleContainer';
 import UnifiedCalendar from './schedule';
+import UniversalSchedule from './UniversalSchedule';
 
 import EnhancedScheduleWrapper from './EnhancedScheduleWrapper';
 
@@ -24,7 +25,7 @@ import EnhancedScheduleWrapper from './EnhancedScheduleWrapper';
 export default ScheduleContainer;
 
 // Also export individual components for flexibility
-export { ScheduleContainer, UnifiedCalendar, EnhancedScheduleWrapper };
+export { ScheduleContainer, UnifiedCalendar, EnhancedScheduleWrapper, UniversalSchedule };
 
 /**
  * Usage Examples:

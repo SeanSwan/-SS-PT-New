@@ -193,6 +193,40 @@ router.post("/recurring", protect, adminOnly, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/sessions/block
+ * Block time slots (admin or trainer)
+ */
+router.post("/block", protect, trainerOrAdminOnly, async (req, res) => {
+  try {
+    const result = await unifiedSessionService.createBlockedSessions(req.body, req.user);
+    return res.status(201).json(result);
+  } catch (error) {
+    logger.error('Error in POST /api/sessions/block:', error);
+
+    if (error.message.includes('Admin or trainer')) {
+      return res.status(403).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    if (error.message.includes('Missing required') || error.message.includes('Invalid') ||
+        error.message.includes('No valid') || error.message.includes('exceeds')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: 'Server error blocking time',
+      error: error.message
+    });
+  }
+});
+
 // ==================== SESSION LIFECYCLE MANAGEMENT ====================
 
 /**
