@@ -1,8 +1,5 @@
-import React from 'react';
-import UniversalSchedule from '../../../Schedule/UniversalSchedule';
-
-const AdminScheduleTab: React.FC = () => {
-  return <UniversalSchedule mode="admin" />;
-};
+// DEPRECATED: Consolidated into admin-dashboard/schedule/AdminScheduleTab.tsx
+// Keep this file as a compatibility re-export to avoid breaking imports.
+import AdminScheduleTab from '../admin-dashboard/schedule/AdminScheduleTab';
 
 export default AdminScheduleTab;

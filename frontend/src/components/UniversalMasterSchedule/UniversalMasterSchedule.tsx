@@ -8,6 +8,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
+import RecurringSessionModal from './RecurringSessionModal';
+import BlockedTimeModal from './BlockedTimeModal';
 
 // Custom UI Components (MUI replacements)
 import {
@@ -73,6 +75,9 @@ interface Session {
   notes?: string;
   clientName?: string;
   trainerName?: string;
+  isRecurring?: boolean;
+  isBlocked?: boolean;
+  recurringGroupId?: string | null;
 }
 
 type ScheduleMode = 'admin' | 'trainer' | 'client';
@@ -97,17 +102,22 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showRecurringDialog, setShowRecurringDialog] = useState(false);
+  const [showBlockedDialog, setShowBlockedDialog] = useState(false);
   const [formData, setFormData] = useState({
     sessionDate: '',
     duration: 60,
     location: 'Main Studio',
-    notes: ''
+    notes: '',
+    notifyClient: true
   });
 
   // Simple auth check (build-safe)
   const [hasAccess, setHasAccess] = useState(false);
   const resolvedUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
   const canCreateSessions = mode === 'admin';
+  const canCreateRecurring = mode === 'admin';
+  const canBlockTime = mode === 'admin' || mode === 'trainer';
 
   // Fetch sessions from API (safe implementation)
   const fetchSessions = useCallback(async () => {
@@ -158,6 +168,8 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
           setSessions(normalized.map((session: any) => ({
             ...session,
+            isBlocked: Boolean(session.isBlocked) || session.status === 'blocked',
+            isRecurring: Boolean(session.isRecurring) || Boolean(session.recurringGroupId),
             clientName: session.clientName
               || (session.client ? `${session.client.firstName} ${session.client.lastName}` : undefined),
             trainerName: session.trainerName
@@ -349,11 +361,27 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
             <RefreshCw size={20} />
           </StyledIconButton>
           
-          {canCreateSessions && (
-            <PrimaryButton onClick={() => setShowCreateDialog(true)}>
-              <Plus size={18} />
-              Create Session
-            </PrimaryButton>
+          {(canCreateSessions || canCreateRecurring || canBlockTime) && (
+            <>
+              {canBlockTime && (
+                <OutlinedButton onClick={() => setShowBlockedDialog(true)}>
+                  <Clock size={18} />
+                  Block Time
+                </OutlinedButton>
+              )}
+              {canCreateRecurring && (
+                <OutlinedButton onClick={() => setShowRecurringDialog(true)}>
+                  <Calendar size={18} />
+                  Create Recurring
+                </OutlinedButton>
+              )}
+              {canCreateSessions && (
+                <PrimaryButton onClick={() => setShowCreateDialog(true)}>
+                  <Plus size={18} />
+                  Create Session
+                </PrimaryButton>
+              )}
+            </>
           )}
         </FlexBox>
       </ScheduleHeader>
@@ -422,9 +450,28 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
       {/* Simple Calendar View */}
       <CalendarContainer>
-        <PrimaryHeading style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
-          Week View
-        </PrimaryHeading>
+        <CalendarHeaderRow>
+          <PrimaryHeading style={{ fontSize: '1.5rem' }}>
+            Week View
+          </PrimaryHeading>
+          <Legend>
+            <LegendItem>
+              <LegendSwatch $color={getStatusColor('available')} />
+              <Caption secondary>Available</Caption>
+            </LegendItem>
+            <LegendItem>
+              <LegendSwatch $color={getStatusColor('scheduled')} />
+              <Caption secondary>Booked/Scheduled</Caption>
+            </LegendItem>
+            <LegendItem>
+              <LegendSwatch $color={getStatusColor('blocked')} $striped />
+              <Caption secondary>Blocked</Caption>
+            </LegendItem>
+            <LegendItem>
+              <SessionBadge tone="recurring">Recurring</SessionBadge>
+            </LegendItem>
+          </Legend>
+        </CalendarHeaderRow>
         
         <GridContainer columns={7} gap="0.5rem">
           {weekDays.map((day, index) => (
@@ -446,11 +493,25 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                   <SessionBlock
                     key={session.id}
                     status={session.status}
+                    isBlocked={Boolean(session.isBlocked)}
                     onClick={() => {
+                      const statusLabel = session.isBlocked
+                        ? 'Blocked'
+                        : session.status;
                       const displayName = session.clientName || session.trainerName || 'Available';
-                      alert(`Session: ${displayName}\nTime: ${new Date(session.sessionDate).toLocaleTimeString()}\nDuration: ${session.duration} min`);
+                      alert(`Session: ${displayName}\nStatus: ${statusLabel}\nTime: ${new Date(session.sessionDate).toLocaleTimeString()}\nDuration: ${session.duration} min`);
                     }}
                   >
+                    {(session.isBlocked || session.isRecurring) && (
+                      <SessionMetaRow>
+                        {session.isBlocked && (
+                          <SessionBadge tone="blocked">Blocked</SessionBadge>
+                        )}
+                        {session.isRecurring && (
+                          <SessionBadge tone="recurring">Recurring</SessionBadge>
+                        )}
+                      </SessionMetaRow>
+                    )}
                     <Caption style={{ color: 'white', display: 'block' }}>
                       {new Date(session.sessionDate).toLocaleTimeString('en-US', { 
                         hour: '2-digit', 
@@ -530,8 +591,33 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                 rows={3}
               />
             </FormField>
+
+            <FormField>
+              <CheckboxWrapper>
+                <input
+                  type="checkbox"
+                  checked={formData.notifyClient}
+                  onChange={(e) => setFormData({ ...formData, notifyClient: e.target.checked })}
+                />
+                <span>Notify client about this session</span>
+              </CheckboxWrapper>
+            </FormField>
           </FlexBox>
         </Modal>
+      )}
+      {canCreateRecurring && (
+        <RecurringSessionModal
+          open={showRecurringDialog}
+          onClose={() => setShowRecurringDialog(false)}
+          onSuccess={fetchSessions}
+        />
+      )}
+      {canBlockTime && (
+        <BlockedTimeModal
+          open={showBlockedDialog}
+          onClose={() => setShowBlockedDialog(false)}
+          onSuccess={fetchSessions}
+        />
       )}
     </ScheduleContainer>
   );
@@ -639,6 +725,50 @@ const CalendarContainer = styled.div`
   }
 `;
 
+const CalendarHeaderRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+`;
+
+const Legend = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  justify-content: flex-end;
+`;
+
+const LegendItem = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
+const LegendSwatch = styled.span<{ $color: string; $striped?: boolean }>`
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background-color: ${props => props.$color};
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  ${props => props.$striped && `
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.15),
+      rgba(255, 255, 255, 0.15) 4px,
+      rgba(0, 0, 0, 0.2) 4px,
+      rgba(0, 0, 0, 0.2) 8px
+    );
+  `}
+`;
+
 const DayCard = styled(Card)`
   padding: 1rem;
   text-align: center;
@@ -648,8 +778,17 @@ const DayCard = styled(Card)`
   align-items: center;
 `;
 
-const SessionBlock = styled.div<{ status: string }>`
-  background: ${props => getStatusColor(props.status)};
+const SessionBlock = styled.div<{ status: string; isBlocked?: boolean }>`
+  background-color: ${props => getStatusColor(props.status)};
+  ${props => props.isBlocked && `
+    background-image: repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.12),
+      rgba(255, 255, 255, 0.12) 6px,
+      rgba(0, 0, 0, 0.2) 6px,
+      rgba(0, 0, 0, 0.2) 12px
+    );
+  `}
   border-radius: 6px;
   padding: 0.5rem;
   margin: 0.5rem 0;
@@ -665,6 +804,32 @@ const SessionBlock = styled.div<{ status: string }>`
   &:active {
     transform: scale(0.98);
   }
+`;
+
+const SessionMetaRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  margin-bottom: 0.25rem;
+  flex-wrap: wrap;
+`;
+
+const SessionBadge = styled.span<{ tone: 'blocked' | 'recurring' }>`
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: ${props => props.tone === 'blocked'
+    ? 'rgba(15, 23, 42, 0.55)'
+    : 'rgba(59, 130, 246, 0.2)'};
+  color: ${props => props.tone === 'blocked'
+    ? '#e2e8f0'
+    : '#bfdbfe'};
+  border: 1px solid ${props => props.tone === 'blocked'
+    ? 'rgba(148, 163, 184, 0.6)'
+    : 'rgba(59, 130, 246, 0.5)'};
 `;
 
 const AccessDeniedContainer = styled.div`
