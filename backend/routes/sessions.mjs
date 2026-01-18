@@ -168,27 +168,31 @@ router.post("/recurring", protect, adminOnly, async (req, res) => {
     return res.status(201).json(result);
   } catch (error) {
     logger.error('Error in POST /api/sessions/recurring:', error);
+    const rawMessage = typeof error === 'string' ? error : (error?.message || '');
+    const normalizedMessage = rawMessage.toLowerCase();
+    const responseMessage = rawMessage || 'Request validation failed';
     
     // Handle validation errors
-    if (error.message.includes('Admin privileges required')) {
+    if (normalizedMessage.includes('admin privileges required')) {
       return res.status(403).json({
         success: false,
-        message: error.message
+        message: responseMessage
       });
     }
     
-    if (error.message.includes('Missing required') || error.message.includes('must be') || 
-        error.message.includes('Invalid') || error.message.includes('No valid')) {
+    if (normalizedMessage.includes('missing required') || normalizedMessage.includes('must be') || 
+        normalizedMessage.includes('invalid') || normalizedMessage.includes('no valid') ||
+        normalizedMessage.includes('exceeds')) {
       return res.status(400).json({
         success: false,
-        message: error.message
+        message: responseMessage
       });
     }
     
     return res.status(500).json({
       success: false,
       message: 'Server error creating recurring sessions',
-      error: error.message
+      error: responseMessage || 'Unknown error'
     });
   }
 });
@@ -203,26 +207,29 @@ router.post("/block", protect, trainerOrAdminOnly, async (req, res) => {
     return res.status(201).json(result);
   } catch (error) {
     logger.error('Error in POST /api/sessions/block:', error);
+    const rawMessage = typeof error === 'string' ? error : (error?.message || '');
+    const normalizedMessage = rawMessage.toLowerCase();
+    const responseMessage = rawMessage || 'Request validation failed';
 
-    if (error.message.includes('Admin or trainer')) {
+    if (normalizedMessage.includes('admin or trainer')) {
       return res.status(403).json({
         success: false,
-        message: error.message
+        message: responseMessage
       });
     }
 
-    if (error.message.includes('Missing required') || error.message.includes('Invalid') ||
-        error.message.includes('No valid') || error.message.includes('exceeds')) {
+    if (normalizedMessage.includes('missing required') || normalizedMessage.includes('invalid') ||
+        normalizedMessage.includes('no valid') || normalizedMessage.includes('exceeds')) {
       return res.status(400).json({
         success: false,
-        message: error.message
+        message: responseMessage
       });
     }
 
     return res.status(500).json({
       success: false,
       message: 'Server error blocking time',
-      error: error.message
+      error: responseMessage || 'Unknown error'
     });
   }
 });
