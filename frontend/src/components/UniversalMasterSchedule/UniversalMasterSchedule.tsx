@@ -11,6 +11,7 @@ import styled from 'styled-components';
 import RecurringSessionModal from './RecurringSessionModal';
 import BlockedTimeModal from './BlockedTimeModal';
 import NotificationPreferencesModal from './NotificationPreferencesModal';
+import { useSessionCredits } from './hooks/useSessionCredits';
 
 // Custom UI Components (MUI replacements)
 import {
@@ -18,6 +19,8 @@ import {
   BodyText,
   SmallText,
   Caption,
+  ErrorText,
+  HelperText,
   PrimaryButton,
   OutlinedButton,
   IconButton as StyledIconButton,
@@ -107,6 +110,10 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const [showRecurringDialog, setShowRecurringDialog] = useState(false);
   const [showBlockedDialog, setShowBlockedDialog] = useState(false);
   const [showNotificationDialog, setShowNotificationDialog] = useState(false);
+  const [showBookingDialog, setShowBookingDialog] = useState(false);
+  const [bookingTarget, setBookingTarget] = useState<Session | null>(null);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [bookingLoading, setBookingLoading] = useState(false);
   const [formData, setFormData] = useState({
     sessionDate: '',
     duration: 60,
@@ -115,12 +122,21 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     notifyClient: true
   });
 
+  const {
+    data: credits,
+    isLoading: creditsLoading,
+    refetch: refetchCredits
+  } = useSessionCredits(mode === 'client');
+
   // Simple auth check (build-safe)
   const [hasAccess, setHasAccess] = useState(false);
   const resolvedUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
   const canCreateSessions = mode === 'admin';
   const canCreateRecurring = mode === 'admin';
   const canBlockTime = mode === 'admin' || mode === 'trainer';
+  const canQuickBook = mode === 'client';
+  const sessionsRemaining = credits?.sessionsRemaining;
+  const lowCredits = typeof sessionsRemaining === 'number' && sessionsRemaining < 3;
 
   // Fetch sessions from API (safe implementation)
   const fetchSessions = useCallback(async () => {
@@ -144,10 +160,8 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       // Try to fetch from API, fallback gracefully
       try {
         let endpoint = '/api/sessions';
-        if (mode === 'trainer' && resolvedUserId) {
-          endpoint = `/api/sessions?trainerId=${resolvedUserId}`;
-        } else if (mode === 'client' && resolvedUserId) {
-          endpoint = `/api/sessions/${resolvedUserId}`;
+        if (mode === 'admin' && resolvedUserId) {
+          endpoint = `/api/sessions?userId=${resolvedUserId}`;
         }
 
         const response = await fetch(endpoint, {
@@ -266,6 +280,72 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     }
   };
 
+  const openBookingDialog = (session: Session) => {
+    setBookingTarget(session);
+    setBookingError(null);
+    setShowBookingDialog(true);
+  };
+
+  const handleBookSession = async () => {
+    if (!bookingTarget) {
+      return;
+    }
+
+    setBookingError(null);
+    setBookingLoading(true);
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setBookingError('Please log in to book sessions.');
+      setBookingLoading(false);
+      return;
+    }
+
+    const sessionDate = new Date(bookingTarget.sessionDate);
+    if (sessionDate.getTime() < Date.now()) {
+      setBookingError('Cannot book sessions in the past.');
+      setBookingLoading(false);
+      return;
+    }
+
+    if (typeof sessionsRemaining === 'number' && sessionsRemaining <= 0) {
+      setBookingError('You have no remaining session credits.');
+      setBookingLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/sessions/${bookingTarget.id}/book`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({})
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || result?.success === false) {
+        setBookingError(result?.message || 'Failed to book session.');
+        setBookingLoading(false);
+        return;
+      }
+
+      setShowBookingDialog(false);
+      setBookingTarget(null);
+      await fetchSessions();
+      if (mode === 'client') {
+        await refetchCredits();
+      }
+    } catch (error) {
+      console.error('Error booking session:', error);
+      setBookingError('Failed to book session. Please try again.');
+    } finally {
+      setBookingLoading(false);
+    }
+  };
+
   // Navigation helpers
   const navigateWeek = (direction: 'prev' | 'next') => {
     const newDate = new Date(selectedDate);
@@ -307,6 +387,10 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     { value: 'Private Room', label: 'Private Room' },
     { value: 'Online', label: 'Online Session' }
   ];
+
+  const creditsDisplay = creditsLoading
+    ? '...'
+    : (typeof sessionsRemaining === 'number' ? sessionsRemaining : '--');
 
   // Access control
   if (!hasAccess) {
@@ -428,7 +512,17 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         <PrimaryHeading style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
           Schedule Overview
         </PrimaryHeading>
-        <GridContainer columns={4} gap="1rem">
+        {mode === 'client' && lowCredits && (
+          <CreditWarning>
+            <AlertTriangle size={18} />
+            <div>
+              <SmallText>
+                Low credits: {creditsDisplay} sessions remaining. Visit the store to purchase more.
+              </SmallText>
+            </div>
+          </CreditWarning>
+        )}
+        <GridContainer columns={mode === 'client' ? 5 : 4} gap="1rem">
           <StatCard>
             <div className="stat-value">{sessions.length}</div>
             <Caption secondary>Total Sessions</Caption>
@@ -451,6 +545,14 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
             </div>
             <Caption secondary>Completed</Caption>
           </StatCard>
+          {mode === 'client' && (
+            <StatCard>
+              <div className="stat-value" style={{ color: '#38bdf8' }}>
+                {creditsDisplay}
+              </div>
+              <Caption secondary>Credits Remaining</Caption>
+            </StatCard>
+          )}
         </GridContainer>
       </StatsPanel>
 
@@ -495,40 +597,58 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                   const sessionDate = new Date(session.sessionDate);
                   return sessionDate.toDateString() === day.toDateString();
                 })
-                .map(session => (
-                  <SessionBlock
-                    key={session.id}
-                    status={session.status}
-                    isBlocked={Boolean(session.isBlocked)}
-                    onClick={() => {
-                      const statusLabel = session.isBlocked
-                        ? 'Blocked'
-                        : session.status;
-                      const displayName = session.clientName || session.trainerName || 'Available';
-                      alert(`Session: ${displayName}\nStatus: ${statusLabel}\nTime: ${new Date(session.sessionDate).toLocaleTimeString()}\nDuration: ${session.duration} min`);
-                    }}
-                  >
-                    {(session.isBlocked || session.isRecurring) && (
-                      <SessionMetaRow>
-                        {session.isBlocked && (
-                          <SessionBadge tone="blocked">Blocked</SessionBadge>
-                        )}
-                        {session.isRecurring && (
-                          <SessionBadge tone="recurring">Recurring</SessionBadge>
-                        )}
-                      </SessionMetaRow>
-                    )}
-                    <Caption style={{ color: 'white', display: 'block' }}>
-                      {new Date(session.sessionDate).toLocaleTimeString('en-US', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </Caption>
-                    <Caption style={{ color: 'white', display: 'block', marginTop: '0.25rem' }}>
-                      {session.clientName || session.trainerName || 'Available'}
-                    </Caption>
-                  </SessionBlock>
-                ))
+                .map(session => {
+                  const isBookable = canQuickBook && session.status === 'available' && !session.isBlocked;
+
+                  return (
+                    <SessionBlock
+                      key={session.id}
+                      status={session.status}
+                      isBlocked={Boolean(session.isBlocked)}
+                      onClick={() => {
+                        if (isBookable) {
+                          openBookingDialog(session);
+                          return;
+                        }
+                        const statusLabel = session.isBlocked
+                          ? 'Blocked'
+                          : session.status;
+                        const displayName = session.clientName || session.trainerName || 'Available';
+                        alert(`Session: ${displayName}\nStatus: ${statusLabel}\nTime: ${new Date(session.sessionDate).toLocaleTimeString()}\nDuration: ${session.duration} min`);
+                      }}
+                    >
+                      {(session.isBlocked || session.isRecurring) && (
+                        <SessionMetaRow>
+                          {session.isBlocked && (
+                            <SessionBadge tone="blocked">Blocked</SessionBadge>
+                          )}
+                          {session.isRecurring && (
+                            <SessionBadge tone="recurring">Recurring</SessionBadge>
+                          )}
+                        </SessionMetaRow>
+                      )}
+                      <Caption style={{ color: 'white', display: 'block' }}>
+                        {new Date(session.sessionDate).toLocaleTimeString('en-US', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </Caption>
+                      <Caption style={{ color: 'white', display: 'block', marginTop: '0.25rem' }}>
+                        {session.clientName || session.trainerName || 'Available'}
+                      </Caption>
+                      {isBookable && (
+                        <QuickBookButton
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openBookingDialog(session);
+                          }}
+                        >
+                          Quick Book
+                        </QuickBookButton>
+                      )}
+                    </SessionBlock>
+                  );
+                })
               }
             </DayCard>
           ))}
@@ -608,6 +728,60 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                 <span>Notify client about this session</span>
               </CheckboxWrapper>
             </FormField>
+          </FlexBox>
+        </Modal>
+      )}
+      {showBookingDialog && bookingTarget && (
+        <Modal
+          isOpen={showBookingDialog}
+          onClose={() => setShowBookingDialog(false)}
+          title="Confirm Booking"
+          size="sm"
+          footer={
+            <>
+              <OutlinedButton onClick={() => setShowBookingDialog(false)} disabled={bookingLoading}>
+                Cancel
+              </OutlinedButton>
+              <PrimaryButton onClick={handleBookSession} disabled={bookingLoading}>
+                {bookingLoading ? 'Booking...' : 'Confirm Booking'}
+              </PrimaryButton>
+            </>
+          }
+        >
+          <FlexBox direction="column" gap="1rem">
+            <BodyText>
+              You are booking the session below. One credit will be deducted on confirmation.
+            </BodyText>
+            <BookingCard>
+              <BookingRow>
+                <SmallText secondary>Date</SmallText>
+                <BodyText>{new Date(bookingTarget.sessionDate).toLocaleDateString()}</BodyText>
+              </BookingRow>
+              <BookingRow>
+                <SmallText secondary>Time</SmallText>
+                <BodyText>{new Date(bookingTarget.sessionDate).toLocaleTimeString()}</BodyText>
+              </BookingRow>
+              <BookingRow>
+                <SmallText secondary>Duration</SmallText>
+                <BodyText>{bookingTarget.duration} min</BodyText>
+              </BookingRow>
+              <BookingRow>
+                <SmallText secondary>Location</SmallText>
+                <BodyText>{bookingTarget.location || 'Main Studio'}</BodyText>
+              </BookingRow>
+            </BookingCard>
+            <CreditCard>
+              <SmallText secondary>Credits Remaining</SmallText>
+              <PrimaryHeading style={{ fontSize: '1.75rem' }}>
+                {creditsDisplay}
+              </PrimaryHeading>
+              {typeof sessionsRemaining === 'number' && (
+                <HelperText>
+                  After booking: {Math.max(0, sessionsRemaining - 1)}
+                </HelperText>
+              )}
+            </CreditCard>
+            {bookingError && <ErrorText>{bookingError}</ErrorText>}
           </FlexBox>
         </Modal>
       )}
@@ -691,6 +865,18 @@ const StatsPanel = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   flex-shrink: 0;
+`;
+
+const CreditWarning = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fef3c7;
 `;
 
 const StatCard = styled(Card)`
@@ -817,6 +1003,30 @@ const SessionBlock = styled.div<{ status: string; isBlocked?: boolean }>`
   }
 `;
 
+const QuickBookButton = styled.button`
+  margin-top: 0.5rem;
+  width: 100%;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  background: rgba(59, 130, 246, 0.7);
+  border: 1px solid rgba(59, 130, 246, 0.9);
+  border-radius: 6px;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(37, 99, 235, 0.85);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+  }
+`;
+
 const SessionMetaRow = styled.div`
   display: flex;
   justify-content: flex-end;
@@ -841,6 +1051,31 @@ const SessionBadge = styled.span<{ tone: 'blocked' | 'recurring' }>`
   border: 1px solid ${props => props.tone === 'blocked'
     ? 'rgba(148, 163, 184, 0.6)'
     : 'rgba(59, 130, 246, 0.5)'};
+`;
+
+const BookingCard = styled.div`
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const BookingRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+`;
+
+const CreditCard = styled.div`
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
 `;
 
 const AccessDeniedContainer = styled.div`

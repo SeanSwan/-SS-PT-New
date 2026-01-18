@@ -1039,25 +1039,79 @@ class UnifiedSessionService {
         throw new Error('Cannot book sessions in the past');
       }
       
-      // Get the client (current user) with session balance
-      const client = await this.User.findByPk(user.id, { transaction });
+        // Get the client (current user) with session balance
+        const client = await this.User.findByPk(user.id, { transaction });
       
       if (!client) {
         throw new Error('Client not found');
       }
 
-      // **TRANSACTIONAL INTEGRITY: Update session and process deduction atomically**
+        const sessionStart = new Date(session.sessionDate);
+        const sessionEnd = session.endDate
+          ? new Date(session.endDate)
+          : new Date(sessionStart.getTime() + (session.duration || 60) * 60000);
+        const shouldDeduct = bookingData.deductSession !== false;
+
+        if (shouldDeduct && (!client.availableSessions || client.availableSessions <= 0)) {
+          throw new Error('Insufficient session credits');
+        }
+
+        // Prevent double-booking for trainer or client
+        const conflictStatuses = ['scheduled', 'confirmed', 'booked'];
+        if (session.trainerId) {
+          const trainerConflicts = await this.Session.count({
+            where: {
+              id: { [Op.ne]: session.id },
+              trainerId: session.trainerId,
+              status: { [Op.in]: conflictStatuses },
+              [Op.and]: [
+                { sessionDate: { [Op.lt]: sessionEnd } },
+                { endDate: { [Op.gt]: sessionStart } }
+              ]
+            },
+            transaction
+          });
+
+          if (trainerConflicts > 0) {
+            throw new Error('Trainer double-booking conflict detected');
+          }
+        }
+
+        const clientConflicts = await this.Session.count({
+          where: {
+            id: { [Op.ne]: session.id },
+            userId: client.id,
+            status: { [Op.in]: conflictStatuses },
+            [Op.and]: [
+              { sessionDate: { [Op.lt]: sessionEnd } },
+              { endDate: { [Op.gt]: sessionStart } }
+            ]
+          },
+          transaction
+        });
+
+        if (clientConflicts > 0) {
+          throw new Error('Client double-booking conflict detected');
+        }
+
+        // **TRANSACTIONAL INTEGRITY: Update session and process deduction atomically**
       
-      // Update the session
-      session.userId = client.id;
-      session.status = 'scheduled';
-      session.bookingDate = new Date();
-      await session.save({ transaction });
+        // Update the session
+        session.userId = client.id;
+        session.status = 'scheduled';
+        session.bookingDate = new Date();
+        if (!session.endDate) {
+          session.endDate = sessionEnd;
+        }
+        await session.save({ transaction });
 
       // Process session deduction if needed (this handles balance updates)
-      if (bookingData.deductSession !== false) {
-        await processSessionDeduction(client, session, transaction);
-      }
+        if (shouldDeduct) {
+          const deductionResult = await processSessionDeduction(session, client, transaction);
+          if (!deductionResult?.success) {
+            throw new Error(deductionResult?.message || 'Failed to deduct session credits');
+          }
+        }
 
       await transaction.commit();
 
@@ -1160,16 +1214,20 @@ class UnifiedSessionService {
       session.cancellationDate = new Date();
       await session.save({ transaction });
 
-      // If session was deducted, restore the session count
-      if (session.sessionDeducted && session.client) {
-        const client = await this.User.findByPk(session.userId, { transaction });
-        if (client) {
-          client.availableSessions = (client.availableSessions || 0) + 1;
-          await client.save({ transaction });
-          
-          logger.info(`[UnifiedSessionService] Restored 1 session to user ${client.id} balance after cancellation`);
+        // Refund policy: only refund if cancellation is more than 24 hours before session
+        const sessionTime = session.sessionDate ? new Date(session.sessionDate).getTime() : null;
+        const hoursUntilSession = sessionTime ? (sessionTime - Date.now()) / (1000 * 60 * 60) : null;
+        const refundEligible = hoursUntilSession !== null && hoursUntilSession > 24;
+
+        if (refundEligible && session.sessionDeducted && session.client) {
+          const client = await this.User.findByPk(session.userId, { transaction });
+          if (client) {
+            client.availableSessions = (client.availableSessions || 0) + 1;
+            await client.save({ transaction });
+
+            logger.info(`[UnifiedSessionService] Restored 1 session to user ${client.id} balance after cancellation`);
+          }
         }
-      }
 
       await transaction.commit();
 
@@ -1181,14 +1239,15 @@ class UnifiedSessionService {
       return {
         success: true,
         message: 'Session cancelled successfully',
-        session: {
-          id: session.id,
-          status: session.status,
-          cancelledBy: session.cancelledBy,
-          cancellationReason: session.cancellationReason,
-          cancellationDate: session.cancellationDate
-        }
-      };
+          session: {
+            id: session.id,
+            status: session.status,
+            cancelledBy: session.cancelledBy,
+            cancellationReason: session.cancellationReason,
+            cancellationDate: session.cancellationDate,
+            refundIssued: refundEligible && session.sessionDeducted
+          }
+        };
     } catch (error) {
       await transaction.rollback();
       logger.error(`[UnifiedSessionService] Error cancelling session ${sessionId}:`, error);

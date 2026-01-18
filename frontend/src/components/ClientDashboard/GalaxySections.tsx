@@ -16,12 +16,13 @@ const pulse = keyframes`
   50% { opacity: 1; }
 `;
 import { 
-  Star, Activity, TrendingUp, Trophy, Calendar, 
+  Star, Activity, Trophy, Calendar, 
   MessageCircle, User, Settings, Target, Zap,
   Award, Shield, Rocket, Users, Play, Monitor,
   BarChart3, FileText, CreditCard, Package,
   Video, BookOpen, Camera, Headphones
 } from 'lucide-react';
+import ClientProgressPanel from '../DashBoard/Pages/client-dashboard/progress/ClientProgressPanel';
 
 // === SHARED STYLED COMPONENTS ===
 const SectionCard = styled(motion.div)`
@@ -207,61 +208,7 @@ export const ProgressConstellation: React.FC = () => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5 }}
   >
-    <SectionCard>
-      <SectionTitle>
-        <TrendingUp /> Progress Tracking
-      </SectionTitle>
-      
-      <StatGrid>
-        <StatCard whileHover={{ scale: 1.05 }}>
-          <span className="stat-value">-5.2</span>
-          <div className="stat-label">lbs This Month</div>
-        </StatCard>
-        <StatCard whileHover={{ scale: 1.05 }}>
-          <span className="stat-value">+3.8</span>
-          <div className="stat-label">lbs Muscle Gained</div>
-        </StatCard>
-        <StatCard whileHover={{ scale: 1.05 }}>
-          <span className="stat-value">16.2</span>
-          <div className="stat-label">Body Fat %</div>
-        </StatCard>
-        <StatCard whileHover={{ scale: 1.05 }}>
-          <span className="stat-value">92%</span>
-          <div className="stat-label">Goal Progress</div>
-        </StatCard>
-      </StatGrid>
-    </SectionCard>
-    
-    <SectionCard>
-      <SectionTitle>
-        <Target /> Strength Progression
-      </SectionTitle>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {[
-          { exercise: 'Squat', current: '185 lbs', increase: '+15 lbs' },
-          { exercise: 'Bench Press', current: '155 lbs', increase: '+10 lbs' },
-          { exercise: 'Deadlift', current: '225 lbs', increase: '+20 lbs' }
-        ].map((lift, index) => (
-          <div
-            key={index}
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '1rem',
-              background: 'rgba(120, 81, 169, 0.1)',
-              borderRadius: '10px'
-            }}
-          >
-            <span style={{ color: '#00ffff', fontWeight: 'bold' }}>{lift.exercise}</span>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ color: '#fff', fontWeight: 'bold' }}>{lift.current}</div>
-              <div style={{ color: '#00ff88', fontSize: '0.8rem' }}>{lift.increase}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </SectionCard>
+    <ClientProgressPanel />
   </motion.div>
 );
 
