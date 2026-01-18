@@ -194,7 +194,7 @@
 - [ ] Run migration: `npm run migrate` to add NASM fields to database
 - [ ] Update `onboardingController.mjs` to use NASM fields in POST /movement-screen endpoint
 - [ ] Use helper methods: `calculateNASMScore()`, `generateCorrectiveStrategy()`, `selectOPTPhase()`
-- [ ] Update frontend `MovementScreenForm.tsx` with NASM OHSA UI (8 checkpoints + PAR-Q+)
+- [ ] BACKLOG (Phase 1 UI): Update frontend `MovementScreenForm.tsx` with NASM OHSA UI (8 checkpoints + PAR-Q+) after wireframe review
 - [ ] Integrate NASM data into AI Workout Controller for OPT phase selection
 
 ---
