@@ -2,6 +2,16 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
+    const tableCheck = await queryInterface.sequelize.query(
+      "SELECT to_regclass('public.workout_sessions') AS table_name",
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+
+    if (!tableCheck[0]?.table_name) {
+      console.log('Skipping migration: workout_sessions table does not exist');
+      return;
+    }
+
     const table = await queryInterface.describeTable('workout_sessions');
 
     // Add sessionType column to workout_sessions table
@@ -62,7 +72,20 @@ module.exports = {
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.removeColumn('workout_sessions', 'sessionType');
+    const tableCheck = await queryInterface.sequelize.query(
+      "SELECT to_regclass('public.workout_sessions') AS table_name",
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+
+    if (!tableCheck[0]?.table_name) {
+      return;
+    }
+
+    const table = await queryInterface.describeTable('workout_sessions');
+
+    if (table.sessionType) {
+      await queryInterface.removeColumn('workout_sessions', 'sessionType');
+    }
     // Only remove if they were added by this migration
     // await queryInterface.removeColumn('workout_sessions', 'trainerId');
     // await queryInterface.removeColumn('workout_sessions', 'sessionId');
