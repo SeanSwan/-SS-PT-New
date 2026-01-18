@@ -11,7 +11,7 @@ import TrainersManagementSection from './Pages/admin-dashboard/TrainersManagemen
 import AdminGamificationView from './Pages/admin-gamification/admin-gamification-view';
 import MessagingPage from '../../pages/MessagingPage';
 
-import AdminScheduleIntegration from '../UniversalMasterSchedule/AdminScheduleIntegration';
+import UniversalSchedule from '../Schedule/UniversalSchedule';
 import RevenueAnalyticsPanel from './Pages/admin-dashboard/components/RevenueAnalyticsPanel';
 import PendingOrdersAdminPanel from './Pages/admin-dashboard/components/PendingOrdersAdminPanel';
 import UserAnalyticsPanel from './Pages/admin-dashboard/components/UserAnalyticsPanel';
@@ -70,7 +70,7 @@ const UnifiedAdminRoutes: React.FC = () => (
     <Route path="/client-onboarding" element={wrap(<ClientOnboardingWizard />)} />
     <Route path="/packages" element={wrap(<PackagesManagementSection />)} />
     <Route path="/admin-sessions" element={<EnhancedAdminSessionsView />} />
-    <Route path="/admin/master-schedule" element={wrap(<AdminScheduleIntegration />)} />
+    <Route path="/admin/master-schedule" element={wrap(<UniversalSchedule mode="admin" />)} />
     <Route path="/admin-packages" element={<AdminPackagesView />} />
     <Route path="/content" element={wrap(<ContentModerationSection />)} />
 

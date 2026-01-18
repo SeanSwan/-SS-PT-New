@@ -63,12 +63,34 @@ Session.init({
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false,
-    comment: 'Whether this is a recurring blocked time'
+    comment: 'Whether this session is part of a recurring series'
   },
   recurringPattern: {
     type: DataTypes.JSON,
     allowNull: true,
     comment: 'Pattern for recurring blocked time (days, until date)'
+  },
+  recurringGroupId: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    comment: 'Links sessions that belong to the same recurring series'
+  },
+  recurrenceRule: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    comment: 'RFC 5545 RRule string for recurrence patterns'
+  },
+  notifyClient: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
+    comment: 'Whether to notify the client about changes for this session'
+  },
+  isBlocked: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    comment: 'Whether this session represents blocked time'
   },
   // Use STRING instead of ENUM to avoid SQL generation issues
   status: {

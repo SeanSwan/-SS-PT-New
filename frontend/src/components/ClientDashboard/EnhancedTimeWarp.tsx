@@ -25,7 +25,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Clock, Star, Sparkles, Users, MapPin, CheckCircle } from 'lucide-react';
 
 // Import the full schedule component
-import UnifiedCalendar from '../Schedule/schedule';
+import UniversalSchedule from '../Schedule/UniversalSchedule';
 
 // === STELLAR THEME KEYFRAMES ===
 const stellarPulse = keyframes`
@@ -623,7 +623,7 @@ const EnhancedTimeWarp: React.FC<EnhancedTimeWarpProps> = ({ className }) => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 1.2 }}
       >
-        {!isLoading && <UnifiedCalendar />}
+        {!isLoading && <UniversalSchedule mode="client" />}
       </ScheduleWrapper>
     </StellarTimeWarpContainer>
   );

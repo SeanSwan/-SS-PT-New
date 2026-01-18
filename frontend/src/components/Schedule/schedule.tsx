@@ -55,6 +55,7 @@ import ScreenReaderAnnouncements, { useScreenReaderAnnouncement } from './Screen
 // Custom components
 import GlowButton from "../ui/buttons/GlowButton";
 import { useAuth } from "../../context/AuthContext";
+import UniversalSchedule from "./UniversalSchedule";
 
 // Import services
 import scheduleService from "../../services/schedule-service";
@@ -1094,6 +1095,7 @@ const getAvailableViews = (): View[] => {
  * Main UnifiedCalendar Component
  */
 const UnifiedCalendar: React.FC<UnifiedCalendarProps> = ({ initialModalState }) => {
+  return <UniversalSchedule />;
   // Add global styles for screen reader classes
   React.useEffect(() => {
     const style = document.createElement('style');

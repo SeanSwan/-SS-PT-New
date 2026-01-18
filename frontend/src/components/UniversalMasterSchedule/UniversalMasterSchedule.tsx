@@ -75,16 +75,22 @@ interface Session {
   trainerName?: string;
 }
 
+type ScheduleMode = 'admin' | 'trainer' | 'client';
+
 interface UniversalMasterScheduleProps {
   adminMobileMenuOpen?: boolean;
   adminDeviceType?: 'mobile' | 'tablet' | 'desktop';
   mobileAdminMode?: boolean;
+  mode?: ScheduleMode;
+  userId?: string | number;
 }
 
 const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   adminMobileMenuOpen = false,
   adminDeviceType = 'desktop',
-  mobileAdminMode = false
+  mobileAdminMode = false,
+  mode = 'admin',
+  userId
 }) => {
   // State management
   const [loading, setLoading] = useState(true);
@@ -99,7 +105,9 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   });
 
   // Simple auth check (build-safe)
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [hasAccess, setHasAccess] = useState(false);
+  const resolvedUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+  const canCreateSessions = mode === 'admin';
 
   // Fetch sessions from API (safe implementation)
   const fetchSessions = useCallback(async () => {
@@ -113,9 +121,23 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         return;
       }
 
+      if ((mode === 'trainer' || mode === 'client') && !resolvedUserId) {
+        console.log('Missing userId for schedule mode:', mode);
+        setSessions([]);
+        setLoading(false);
+        return;
+      }
+
       // Try to fetch from API, fallback gracefully
       try {
-        const response = await fetch('/api/sessions', {
+        let endpoint = '/api/sessions';
+        if (mode === 'trainer' && resolvedUserId) {
+          endpoint = `/api/sessions?trainerId=${resolvedUserId}`;
+        } else if (mode === 'client' && resolvedUserId) {
+          endpoint = `/api/sessions/${resolvedUserId}`;
+        }
+
+        const response = await fetch(endpoint, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -125,13 +147,22 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
           const result = await response.json();
 
           // Handle standardized response format: { success, data, meta }
-          if (result.success && result.data) {
-            // Backend returns sessions directly in data array
-            setSessions(Array.isArray(result.data) ? result.data : []);
+          let normalized = [];
+          if (Array.isArray(result)) {
+            normalized = result;
+          } else if (result.success && result.data) {
+            normalized = Array.isArray(result.data) ? result.data : [];
           } else {
-            // Fallback for legacy format
-            setSessions(result.sessions || []);
+            normalized = result.sessions || [];
           }
+
+          setSessions(normalized.map((session: any) => ({
+            ...session,
+            clientName: session.clientName
+              || (session.client ? `${session.client.firstName} ${session.client.lastName}` : undefined),
+            trainerName: session.trainerName
+              || (session.trainer ? `${session.trainer.firstName} ${session.trainer.lastName}` : undefined)
+          })));
         } else {
           console.log('API call failed, status:', response.status);
           // Keep empty sessions on error
@@ -149,7 +180,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [mode, resolvedUserId]);
 
   // Initialize component
   useEffect(() => {
@@ -160,7 +191,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         // Check permissions
         const token = localStorage.getItem('token');
         if (token) {
-          setIsAdmin(true);
+          setHasAccess(true);
         }
 
         // Load sessions from API
@@ -249,6 +280,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       case 'confirmed': return '#059669';
       case 'completed': return '#6b7280';
       case 'cancelled': return '#ef4444';
+      case 'blocked': return '#f59e0b';
       default: return '#6b7280';
     }
   };
@@ -262,7 +294,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   ];
 
   // Access control
-  if (!isAdmin) {
+  if (!hasAccess) {
     return (
       <AccessDeniedContainer>
         <motion.div
@@ -276,7 +308,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
             Access Denied
           </PrimaryHeading>
           <BodyText secondary style={{ marginTop: '0.5rem' }}>
-            Administrator access required to view the Universal Master Schedule
+            Schedule access requires login
           </BodyText>
         </motion.div>
       </AccessDeniedContainer>
@@ -317,10 +349,12 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
             <RefreshCw size={20} />
           </StyledIconButton>
           
-          <PrimaryButton onClick={() => setShowCreateDialog(true)}>
-            <Plus size={18} />
-            Create Session
-          </PrimaryButton>
+          {canCreateSessions && (
+            <PrimaryButton onClick={() => setShowCreateDialog(true)}>
+              <Plus size={18} />
+              Create Session
+            </PrimaryButton>
+          )}
         </FlexBox>
       </ScheduleHeader>
 
@@ -413,7 +447,8 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                     key={session.id}
                     status={session.status}
                     onClick={() => {
-                      alert(`Session: ${session.clientName || 'Available'}\nTime: ${new Date(session.sessionDate).toLocaleTimeString()}\nDuration: ${session.duration} min`);
+                      const displayName = session.clientName || session.trainerName || 'Available';
+                      alert(`Session: ${displayName}\nTime: ${new Date(session.sessionDate).toLocaleTimeString()}\nDuration: ${session.duration} min`);
                     }}
                   >
                     <Caption style={{ color: 'white', display: 'block' }}>
@@ -423,7 +458,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                       })}
                     </Caption>
                     <Caption style={{ color: 'white', display: 'block', marginTop: '0.25rem' }}>
-                      {session.clientName || 'Available'}
+                      {session.clientName || session.trainerName || 'Available'}
                     </Caption>
                   </SessionBlock>
                 ))
@@ -434,68 +469,70 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       </CalendarContainer>
 
       {/* Create Session Modal */}
-      <Modal
-        isOpen={showCreateDialog}
-        onClose={() => setShowCreateDialog(false)}
-        title="Create New Session"
-        size="md"
-        footer={
-          <>
-            <OutlinedButton onClick={() => setShowCreateDialog(false)}>
-              Cancel
-            </OutlinedButton>
-            <PrimaryButton onClick={handleCreateSession}>
-              <Save size={18} />
-              Create Session
-            </PrimaryButton>
-          </>
-        }
-      >
-        <FlexBox direction="column" gap="1.5rem">
-          <FormField>
-            <Label htmlFor="sessionDate" required>Session Date & Time</Label>
-            <StyledInput
-              id="sessionDate"
-              type="datetime-local"
-              value={formData.sessionDate}
-              onChange={(e) => setFormData({ ...formData, sessionDate: e.target.value })}
-            />
-          </FormField>
-          
-          <FormField>
-            <Label htmlFor="duration" required>Duration (minutes)</Label>
-            <StyledInput
-              id="duration"
-              type="number"
-              value={formData.duration}
-              onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-              min={15}
-              step={15}
-            />
-          </FormField>
-          
-          <FormField>
-            <Label htmlFor="location" required>Location</Label>
-            <CustomSelect
-              value={formData.location}
-              onChange={(value) => setFormData({ ...formData, location: value as string })}
-              options={locationOptions}
-              aria-label="Session location"
-            />
-          </FormField>
-          
-          <FormField>
-            <Label htmlFor="notes">Notes</Label>
-            <StyledTextarea
-              id="notes"
-              value={formData.notes}
-              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              placeholder="Add any additional notes..."
-              rows={3}
-            />
-          </FormField>
-        </FlexBox>
-      </Modal>
+      {canCreateSessions && (
+        <Modal
+          isOpen={showCreateDialog}
+          onClose={() => setShowCreateDialog(false)}
+          title="Create New Session"
+          size="md"
+          footer={
+            <>
+              <OutlinedButton onClick={() => setShowCreateDialog(false)}>
+                Cancel
+              </OutlinedButton>
+              <PrimaryButton onClick={handleCreateSession}>
+                <Save size={18} />
+                Create Session
+              </PrimaryButton>
+            </>
+          }
+        >
+          <FlexBox direction="column" gap="1.5rem">
+            <FormField>
+              <Label htmlFor="sessionDate" required>Session Date & Time</Label>
+              <StyledInput
+                id="sessionDate"
+                type="datetime-local"
+                value={formData.sessionDate}
+                onChange={(e) => setFormData({ ...formData, sessionDate: e.target.value })}
+              />
+            </FormField>
+            
+            <FormField>
+              <Label htmlFor="duration" required>Duration (minutes)</Label>
+              <StyledInput
+                id="duration"
+                type="number"
+                value={formData.duration}
+                onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
+                min={15}
+                step={15}
+              />
+            </FormField>
+            
+            <FormField>
+              <Label htmlFor="location" required>Location</Label>
+              <CustomSelect
+                value={formData.location}
+                onChange={(value) => setFormData({ ...formData, location: value as string })}
+                options={locationOptions}
+                aria-label="Session location"
+              />
+            </FormField>
+            
+            <FormField>
+              <Label htmlFor="notes">Notes</Label>
+              <StyledTextarea
+                id="notes"
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Add any additional notes..."
+                rows={3}
+              />
+            </FormField>
+          </FlexBox>
+        </Modal>
+      )}
     </ScheduleContainer>
   );
 };
@@ -649,6 +686,7 @@ const getStatusColor = (status: string): string => {
     case 'confirmed': return '#059669';
     case 'completed': return '#6b7280';
     case 'cancelled': return '#ef4444';
+    case 'blocked': return '#f59e0b';
     default: return '#6b7280';
   }
 };

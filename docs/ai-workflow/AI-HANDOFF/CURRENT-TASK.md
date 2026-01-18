@@ -11,6 +11,12 @@
 **Status:** ACTIVE
 **Goal:** Replace disparate calendars with a single, MindBody-equivalent Universal Schedule.
 
+### Decisions
+1. Replace ALL existing schedule components once UniversalSchedule is ready.
+2. Notification channels: Email, SMS, Push.
+3. Implementation order: Backend and frontend in parallel.
+4. Recurring limit: Max 52 occurrences or 12 months, whichever comes first.
+
 ### Objectives:
 1.  **Unify:** Create `UniversalSchedule.tsx` to serve Admin, Trainer, and Client.
 2.  **Parity:** Implement Recurring Sessions, Time Blocking, and Notification Toggles.

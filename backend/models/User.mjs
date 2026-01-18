@@ -195,6 +195,11 @@ User.init(
       defaultValue: true,
       comment: 'Whether to send SMS notifications'
     },
+    notificationPreferences: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      comment: 'Per-user notification preferences (email/sms/push/quietHours)'
+    },
     // Misc user settings
     preferences: {
       type: DataTypes.TEXT,

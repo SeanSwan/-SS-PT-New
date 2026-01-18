@@ -9,6 +9,10 @@ import { protect, adminOnly } from "../middleware/authMiddleware.mjs";
 import { getSession, getUser } from "../models/index.mjs";
 import { Op } from "sequelize";
 import moment from "moment";
+import rrulePkg from "rrule";
+import { v4 as uuidv4 } from "uuid";
+
+const { RRule } = rrulePkg;
 import {
   sendEmailNotification,
   sendSmsNotification, // Correct case matches the export in notification.mjs
@@ -19,6 +23,97 @@ import realTimeScheduleService from '../services/realTimeScheduleService.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
+
+const MAX_RECURRING_OCCURRENCES = 52;
+const MAX_RECURRING_MONTHS = 12;
+
+const parseNotificationPreferences = (user) => {
+  if (!user) return {};
+  let prefs = user.notificationPreferences;
+  if (typeof prefs === 'string') {
+    try {
+      prefs = JSON.parse(prefs);
+    } catch (error) {
+      prefs = null;
+    }
+  }
+  return prefs || {};
+};
+
+const isWithinQuietHours = (quietHours, now = new Date()) => {
+  if (!quietHours || !quietHours.start || !quietHours.end) return false;
+  const parseTime = (value) => {
+    const [hours, minutes] = value.split(':').map(Number);
+    return (hours * 60) + (minutes || 0);
+  };
+  const start = parseTime(quietHours.start);
+  const end = parseTime(quietHours.end);
+  const nowMinutes = (now.getHours() * 60) + now.getMinutes();
+  if (start <= end) {
+    return nowMinutes >= start && nowMinutes < end;
+  }
+  return nowMinutes >= start || nowMinutes < end;
+};
+
+const shouldNotifyClient = ({ user, channel, notifyClient = true, force = false }) => {
+  if (!user) return false;
+  if (!notifyClient && !force) return false;
+
+  const prefs = parseNotificationPreferences(user);
+  const quietHours = prefs.quietHours;
+
+  if (!force && isWithinQuietHours(quietHours)) {
+    return false;
+  }
+
+  if (channel === 'email') {
+    if (prefs.email === false) return false;
+    return user.emailNotifications !== false;
+  }
+
+  if (channel === 'sms') {
+    if (prefs.sms === false) return false;
+    return user.smsNotifications !== false;
+  }
+
+  if (channel === 'push') {
+    return prefs.push === true;
+  }
+
+  return true;
+};
+
+const buildRecurrenceDates = ({ startDate, recurrenceRule }) => {
+  const start = new Date(startDate);
+  if (Number.isNaN(start.getTime())) {
+    throw new Error('Invalid startDate for recurrence');
+  }
+
+  const options = RRule.parseString(recurrenceRule);
+  options.dtstart = start;
+
+  const maxUntil = moment(start).add(MAX_RECURRING_MONTHS, 'months').toDate();
+  if (options.until && options.until > maxUntil) {
+    throw new Error('Recurring series exceeds max range');
+  }
+
+  if (options.count && options.count > MAX_RECURRING_OCCURRENCES) {
+    throw new Error('Recurring series exceeds max occurrences');
+  }
+
+  if (!options.until && !options.count) {
+    options.until = maxUntil;
+  }
+
+  const rule = new RRule(options);
+  const dates = rule.all();
+
+  if (dates.length > MAX_RECURRING_OCCURRENCES) {
+    throw new Error('Recurring series exceeds max occurrences');
+  }
+
+  return dates;
+};
 
 // Session management test endpoint with real-time service health
 router.get('/test', (req, res) => {
@@ -391,15 +486,22 @@ router.get('/trainer-assignment-health', protect, adminOnly, async (req, res) =>
 /**
  * @route   GET /api/sessions/
  * @desc    Get all sessions (Universal Master Schedule main endpoint)
- * @access  Private (Admin Only)
+ * @access  Private (Admin/Trainer/Client)
  */
-router.get("/", protect, adminOnly, async (req, res) => {
+router.get("/", protect, async (req, res) => {
   try {
     const Session = getSession();
     const User = getUser();
-    const { startDate, endDate, status, trainerId, clientId } = req.query;
+    const { startDate, endDate, status, trainerId, clientId, userId } = req.query;
     
     const filter = {};
+
+    if (!['admin', 'trainer', 'client'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied for schedule data"
+      });
+    }
     
     // Apply filters
     if (startDate && endDate) {
@@ -412,12 +514,19 @@ router.get("/", protect, adminOnly, async (req, res) => {
       filter.status = status;
     }
     
-    if (trainerId) {
-      filter.trainerId = trainerId;
-    }
-    
-    if (clientId) {
-      filter.userId = clientId;
+    if (req.user.role === 'admin') {
+      if (trainerId) {
+        filter.trainerId = trainerId;
+      }
+      
+      const resolvedClientId = clientId || userId;
+      if (resolvedClientId) {
+        filter.userId = resolvedClientId;
+      }
+    } else if (req.user.role === 'trainer') {
+      filter.trainerId = req.user.id;
+    } else if (req.user.role === 'client') {
+      filter.userId = req.user.id;
     }
     
     const sessions = await Session.findAll({
@@ -439,15 +548,7 @@ router.get("/", protect, adminOnly, async (req, res) => {
       order: [['sessionDate', 'ASC']]
     });
     
-    res.status(200).json({
-      success: true,
-      data: sessions,
-      meta: {
-        total: sessions.length,
-        filters: filter,
-        timestamp: new Date().toISOString()
-      }
-    });
+    res.status(200).json(sessions);
     
   } catch (error) {
     console.error("Error fetching sessions:", error.message);
@@ -475,7 +576,11 @@ router.post("/", protect, adminOnly, async (req, res) => {
       userId, 
       status, 
       notes, 
-      sessionType 
+      sessionType,
+      notifyClient,
+      recurrenceRule,
+      recurringGroupId,
+      isBlocked
     } = req.body;
     
     if (!sessionDate) {
@@ -485,6 +590,9 @@ router.post("/", protect, adminOnly, async (req, res) => {
       });
     }
     
+    const resolvedIsBlocked = isBlocked !== undefined ? isBlocked : status === 'blocked';
+    const resolvedNotifyClient = notifyClient !== undefined ? notifyClient : !resolvedIsBlocked;
+
     // Create the session
     const newSession = await Session.create({
       sessionDate: new Date(sessionDate),
@@ -494,7 +602,12 @@ router.post("/", protect, adminOnly, async (req, res) => {
       userId: userId || null,
       status: status || 'available',
       notes: notes || null,
-      sessionType: sessionType || 'Standard Training'
+      sessionType: sessionType || 'Standard Training',
+      notifyClient: resolvedNotifyClient,
+      recurrenceRule: recurrenceRule || null,
+      recurringGroupId: recurringGroupId || null,
+      isRecurring: Boolean(recurrenceRule || recurringGroupId),
+      isBlocked: resolvedIsBlocked
     });
     
     // Fetch with associations
@@ -667,7 +780,7 @@ router.post("/book/:userId", protect, async (req, res) => {
         .json({ message: "Session is not available for booking." });
     }
 
-    // 🚨 CRITICAL FIX: Check and deduct available sessions BEFORE booking
+    // CRITICAL FIX: Check and deduct available sessions BEFORE booking
     const user = await User.findByPk(userId);
     if (!user) {
       return res.status(404).json({ 
@@ -694,11 +807,12 @@ router.post("/book/:userId", protect, async (req, res) => {
       user.availableSessions -= 1;
       await user.save();
       
-      console.log(`✅ Session deducted for user ${userId}. Remaining sessions: ${user.availableSessions}`);
+      console.log(`Session deducted for user ${userId}. Remaining sessions: ${user.availableSessions}`);
     }
 
-    // Notify the user via email and SMS
+    // Notify the user via email/SMS/push (respect notifyClient + preferences)
     if (user) {
+      const notifyClient = session.notifyClient !== false;
       // Format the session date for notifications
       const sessionDateFormatted = new Date(session.sessionDate).toLocaleString(
         'en-US', 
@@ -713,21 +827,27 @@ router.post("/book/:userId", protect, async (req, res) => {
       );
 
       // Send email notification
-      await sendEmailNotification({
-        to: user.email,
-        subject: "Session Booked Successfully",
-        text: `Your session has been booked for ${sessionDateFormatted}`,
-        html: `<p>Your session has been booked for <strong>${sessionDateFormatted}</strong>.</p>
-               <p>Location: ${session.location || 'Main Studio'}</p>
-               <p>Please arrive 10 minutes before your session.</p>`
-      });
+      if (user.email && shouldNotifyClient({ user, channel: 'email', notifyClient })) {
+        await sendEmailNotification({
+          to: user.email,
+          subject: "Session Booked Successfully",
+          text: `Your session has been booked for ${sessionDateFormatted}`,
+          html: `<p>Your session has been booked for <strong>${sessionDateFormatted}</strong>.</p>
+                 <p>Location: ${session.location || 'Main Studio'}</p>
+                 <p>Please arrive 10 minutes before your session.</p>`
+        });
+      }
       
       // Send SMS notification if the user has a phone number and SMS notifications enabled
-      if (user.phone && user.smsNotifications !== false) {
+      if (user.phone && shouldNotifyClient({ user, channel: 'sms', notifyClient })) {
         await sendSmsNotification({
           to: user.phone,
           body: `Swan Studios: Your session has been booked for ${sessionDateFormatted}. Please arrive 10 minutes early.`
         });
+      }
+
+      if (shouldNotifyClient({ user, channel: 'push', notifyClient })) {
+        logger.info(`Push notification queued for user ${user.id}: session booked`);
       }
     }
 
@@ -831,6 +951,7 @@ router.put("/reschedule/:sessionId", protect, async (req, res) => {
     const user = await User.findByPk(session.userId);
     
     if (user) {
+      const notifyClient = req.body.notifyClient !== undefined ? req.body.notifyClient : session.notifyClient !== false;
       const sessionDateFormatted = new Date(newSessionDate).toLocaleString(
         'en-US', 
         { 
@@ -844,25 +965,31 @@ router.put("/reschedule/:sessionId", protect, async (req, res) => {
       );
 
       // Send email notification
-      await sendEmailNotification({
-        to: user.email,
-        subject: "Session Rescheduled", 
-        text: `Your session has been rescheduled to ${sessionDateFormatted}. ${
-          sessionDeducted ? "A session was deducted due to late rescheduling." : ""
-        }`,
-        html: `<p>Your session has been rescheduled to <strong>${sessionDateFormatted}</strong>.</p>
-               ${sessionDeducted ? "<p>A session was deducted due to late rescheduling.</p>" : ""}
-               <p>Location: ${session.location || 'Main Studio'}</p>`
-      });
+      if (user.email && shouldNotifyClient({ user, channel: 'email', notifyClient })) {
+        await sendEmailNotification({
+          to: user.email,
+          subject: "Session Rescheduled", 
+          text: `Your session has been rescheduled to ${sessionDateFormatted}. ${
+            sessionDeducted ? "A session was deducted due to late rescheduling." : ""
+          }`,
+          html: `<p>Your session has been rescheduled to <strong>${sessionDateFormatted}</strong>.</p>
+                 ${sessionDeducted ? "<p>A session was deducted due to late rescheduling.</p>" : ""}
+                 <p>Location: ${session.location || 'Main Studio'}</p>`
+        });
+      }
       
       // Send SMS if enabled
-      if (user.phone && user.smsNotifications !== false) {
+      if (user.phone && shouldNotifyClient({ user, channel: 'sms', notifyClient })) {
         await sendSmsNotification({
           to: user.phone,
           body: `Swan Studios: Your session has been rescheduled to ${sessionDateFormatted}. ${
             sessionDeducted ? "A session was deducted." : ""
           }`
         });
+      }
+
+      if (shouldNotifyClient({ user, channel: 'push', notifyClient })) {
+        logger.info(`Push notification queued for user ${user.id}: session rescheduled`);
       }
     }
 
@@ -918,7 +1045,7 @@ router.delete("/cancel/:sessionId", protect, async (req, res) => {
     const Session = getSession();
     const User = getUser();
     const { sessionId } = req.params;
-    const { reason } = req.body;
+    const { reason, notifyClient, suppressNotifications } = req.body || {};
     
     const session = await Session.findByPk(sessionId);
 
@@ -947,6 +1074,10 @@ router.delete("/cancel/:sessionId", protect, async (req, res) => {
 
     // Notify relevant parties
     const user = await User.findByPk(session.userId);
+    const resolvedNotifyClient = notifyClient !== undefined ? notifyClient : session.notifyClient !== false;
+    const isUrgentCancellation = moment(session.sessionDate).diff(moment(), 'hours') < 24;
+    const shouldSuppressNotifications = req.user.role === 'admin' && suppressNotifications === true;
+    const forceNotifyClient = isUrgentCancellation && !shouldSuppressNotifications;
     
     if (user && user.email && user.id !== req.user.id) {
       const sessionDateFormatted = new Date(session.sessionDate).toLocaleString(
@@ -961,19 +1092,25 @@ router.delete("/cancel/:sessionId", protect, async (req, res) => {
         }
       );
 
-      await sendEmailNotification({
-        to: user.email,
-        subject: "Session Cancelled",
-        text: `Your session scheduled for ${sessionDateFormatted} has been cancelled.`,
-        html: `<p>Your session scheduled for <strong>${sessionDateFormatted}</strong> has been cancelled.</p>
-               <p>Reason: ${session.cancellationReason}</p>`
-      });
+      if (shouldNotifyClient({ user, channel: 'email', notifyClient: resolvedNotifyClient, force: forceNotifyClient })) {
+        await sendEmailNotification({
+          to: user.email,
+          subject: "Session Cancelled",
+          text: `Your session scheduled for ${sessionDateFormatted} has been cancelled.`,
+          html: `<p>Your session scheduled for <strong>${sessionDateFormatted}</strong> has been cancelled.</p>
+                 <p>Reason: ${session.cancellationReason}</p>`
+        });
+      }
       
-      if (user.phone && user.smsNotifications !== false) {
+      if (user.phone && shouldNotifyClient({ user, channel: 'sms', notifyClient: resolvedNotifyClient, force: forceNotifyClient })) {
         await sendSmsNotification({
           to: user.phone,
           body: `Swan Studios: Your session on ${sessionDateFormatted} has been cancelled.`
         });
+      }
+
+      if (shouldNotifyClient({ user, channel: 'push', notifyClient: resolvedNotifyClient, force: forceNotifyClient })) {
+        logger.info(`Push notification queued for user ${user.id}: session cancelled`);
       }
     }
 
@@ -1195,57 +1332,7 @@ router.get("/available", async (req, res) => {
 });
 
 /**
- * @route   GET /api/sessions/:userId
- * @desc    CLIENT: Get all sessions scheduled by a user.
- * @access  Private
- */
-router.get("/:userId", protect, async (req, res) => {
-  try {
-    const Session = getSession();
-    const User = getUser();
-    const { userId } = req.params;
-    
-    // Ensure users can only view their own sessions (unless admin)
-    if (req.user.id.toString() !== userId && req.user.role !== 'admin') {
-      return res.status(403).json({ 
-        message: "You can only view your own sessions." 
-      });
-    }
-
-    const sessions = await Session.findAll({
-      where: { 
-        userId,
-        // Optionally filter by date range if query params provided
-        ...(req.query.startDate && req.query.endDate ? {
-          sessionDate: {
-            [Op.between]: [new Date(req.query.startDate), new Date(req.query.endDate)]
-          }
-        } : {})
-      },
-      include: [
-        {
-          model: User,
-          as: 'trainer',
-          attributes: ['id', 'firstName', 'lastName', 'specialties', 'photo'],
-          required: false
-        }
-      ],
-      order: [['sessionDate', 'ASC']]
-    });
-    
-    res.json(sessions);
-  } catch (error) {
-    console.error("Error fetching user sessions:", error.message);
-    res.status(500).json({ message: "Server error fetching sessions." });
-  }
-});
-
-/**
- * Additional routes to add to your scheduleRoutes.mjs file
- */
-
-/**
- * POST /api/schedule/recurring
+ * POST /api/sessions/recurring
  * Admin route: Create recurring available slots
  */
 router.post("/recurring", protect, adminOnly, async (req, res) => {
@@ -1258,66 +1345,341 @@ router.post("/recurring", protect, adminOnly, async (req, res) => {
       times, 
       trainerId, 
       location,
-      duration 
+      duration,
+      sessionType,
+      notifyClient,
+      recurrenceRule,
+      status,
+      isBlocked,
+      reason
     } = req.body;
     
-    if (!startDate || !endDate || !daysOfWeek || !times || times.length === 0) {
+    if (!startDate) {
       return res.status(400).json({ 
-        message: "Missing required fields (startDate, endDate, daysOfWeek, times)" 
+        message: "startDate is required" 
       });
     }
-    
-    // Parse dates
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    
-    if (start > end) {
-      return res.status(400).json({ message: "Start date must be before end date" });
-    }
-    
-    // Create slots for each day and time
-    const createdSlots = [];
-    const currentDate = new Date(start);
-    
-    // Loop through days until we reach end date
-    while (currentDate <= end) {
-      const dayOfWeek = currentDate.getDay(); // 0-6 (Sunday-Saturday)
-      
-      // Check if current day is in our requested days
-      if (daysOfWeek.includes(dayOfWeek)) {
-        // Create slots for each time on this day
-        for (const time of times) {
-          // Parse time (format: "HH:MM")
-          const [hours, minutes] = time.split(":").map(Number);
-          
-          // Create slot date with correct time
-          const slotDate = new Date(currentDate);
-          slotDate.setHours(hours, minutes, 0, 0);
-          
-          // Create the session
-          const newSession = await Session.create({
-            sessionDate: slotDate,
-            duration: duration || 60,
-            trainerId: trainerId || null,
-            location: location || 'Main Studio',
-            status: 'available'
-          });
-          
-          createdSlots.push(newSession);
-        }
+
+    const recurringGroupId = uuidv4();
+    const baseStatus = isBlocked ? 'blocked' : (status || 'available');
+    const resolvedNotifyClient = notifyClient !== undefined ? notifyClient : !isBlocked;
+
+    let dates = [];
+
+    if (recurrenceRule) {
+      dates = buildRecurrenceDates({ startDate, recurrenceRule });
+    } else {
+      if (!endDate || !daysOfWeek || !times || times.length === 0) {
+        return res.status(400).json({ 
+          message: "Missing required fields (endDate, daysOfWeek, times) when recurrenceRule is not provided" 
+        });
       }
-      
-      // Move to next day
-      currentDate.setDate(currentDate.getDate() + 1);
+
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const maxEnd = moment(start).add(MAX_RECURRING_MONTHS, 'months').toDate();
+
+      if (start > end) {
+        return res.status(400).json({ message: "Start date must be before end date" });
+      }
+
+      if (end > maxEnd) {
+        return res.status(400).json({ message: "Recurring series exceeds max range" });
+      }
+
+      const currentDate = new Date(start);
+      let exceededLimit = false;
+      while (currentDate <= end) {
+        const dayOfWeek = currentDate.getDay();
+        if (daysOfWeek.includes(dayOfWeek)) {
+          for (const time of times) {
+            const [hours, minutes] = time.split(":").map(Number);
+            const slotDate = new Date(currentDate);
+            slotDate.setHours(hours, minutes, 0, 0);
+            dates.push(new Date(slotDate));
+          }
+        }
+        if (dates.length >= MAX_RECURRING_OCCURRENCES) {
+          exceededLimit = currentDate < end;
+          break;
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      if (dates.length > MAX_RECURRING_OCCURRENCES || exceededLimit) {
+        return res.status(400).json({ message: "Recurring series exceeds max occurrences" });
+      }
     }
+
+    if (dates.length === 0) {
+      return res.status(400).json({ message: "No recurrence dates generated" });
+    }
+
+    const createdSlots = await Session.bulkCreate(
+      dates.map((date) => ({
+        sessionDate: date,
+        duration: duration || 60,
+        trainerId: trainerId || null,
+        location: location || 'Main Studio',
+        status: baseStatus,
+        sessionType: sessionType || 'Standard Training',
+        notifyClient: resolvedNotifyClient,
+        isRecurring: true,
+        recurringGroupId,
+        recurrenceRule: recurrenceRule || null,
+        isBlocked: isBlocked === true,
+        reason: reason || null
+      })),
+      { returning: true }
+    );
     
     res.status(201).json({ 
       message: `${createdSlots.length} recurring slots created`,
-      count: createdSlots.length
+      count: createdSlots.length,
+      recurringGroupId
     });
   } catch (error) {
     console.error("Error creating recurring slots:", error);
-    res.status(500).json({ message: "Server error creating recurring slots" });
+    res.status(500).json({ message: error.message || "Server error creating recurring slots" });
+  }
+});
+
+/**
+ * @route   PUT /api/sessions/recurring/:groupId
+ * @desc    Update fields across a recurring series (Admin)
+ * @access  Private (Admin Only)
+ */
+router.put("/recurring/:groupId", protect, adminOnly, async (req, res) => {
+  try {
+    const Session = getSession();
+    const { groupId } = req.params;
+    const {
+      trainerId,
+      location,
+      duration,
+      sessionType,
+      notifyClient,
+      status,
+      isBlocked,
+      reason,
+      recurrenceRule
+    } = req.body;
+
+    const updateFields = {};
+    if (trainerId !== undefined) updateFields.trainerId = trainerId || null;
+    if (location !== undefined) updateFields.location = location;
+    if (duration !== undefined) updateFields.duration = duration;
+    if (sessionType !== undefined) updateFields.sessionType = sessionType;
+    if (notifyClient !== undefined) updateFields.notifyClient = notifyClient;
+    if (status !== undefined) updateFields.status = status;
+    if (isBlocked !== undefined) updateFields.isBlocked = isBlocked;
+    if (reason !== undefined) updateFields.reason = reason;
+    if (recurrenceRule !== undefined) updateFields.recurrenceRule = recurrenceRule;
+
+    const [updatedCount] = await Session.update(updateFields, {
+      where: { recurringGroupId: groupId }
+    });
+
+    if (updatedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No sessions found for recurring group"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Updated ${updatedCount} sessions in recurring series`,
+      count: updatedCount
+    });
+  } catch (error) {
+    console.error("Error updating recurring series:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Server error updating recurring series"
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/sessions/recurring/:groupId
+ * @desc    Cancel an entire recurring series (Admin)
+ * @access  Private (Admin Only)
+ */
+router.delete("/recurring/:groupId", protect, adminOnly, async (req, res) => {
+  try {
+    const Session = getSession();
+    const { groupId } = req.params;
+    const { reason } = req.body;
+
+    const [updatedCount] = await Session.update({
+      status: 'cancelled',
+      cancellationReason: reason || 'Recurring series cancelled',
+      cancelledBy: req.user.id
+    }, {
+      where: { recurringGroupId: groupId }
+    });
+
+    if (updatedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No sessions found for recurring group"
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Cancelled ${updatedCount} sessions in recurring series`,
+      count: updatedCount
+    });
+  } catch (error) {
+    console.error("Error cancelling recurring series:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Server error cancelling recurring series"
+    });
+  }
+});
+
+/**
+ * @route   POST /api/sessions/block
+ * @desc    Block a time slot (Admin/Trainer)
+ * @access  Private (Admin/Trainer)
+ */
+router.post("/block", protect, async (req, res) => {
+  try {
+    if (!['admin', 'trainer'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Admin or trainer access required"
+      });
+    }
+
+    const Session = getSession();
+    const {
+      sessionDate,
+      duration,
+      trainerId,
+      location,
+      reason,
+      recurrenceRule
+    } = req.body;
+
+    if (!sessionDate) {
+      return res.status(400).json({
+        success: false,
+        message: "sessionDate is required"
+      });
+    }
+
+    const assignedTrainerId = req.user.role === 'trainer' ? req.user.id : (trainerId || null);
+
+    if (recurrenceRule) {
+      const recurringGroupId = uuidv4();
+      const dates = buildRecurrenceDates({ startDate: sessionDate, recurrenceRule });
+      const createdBlocks = await Session.bulkCreate(
+        dates.map((date) => ({
+          sessionDate: date,
+          duration: duration || 60,
+          trainerId: assignedTrainerId,
+          location: location || 'Main Studio',
+          status: 'blocked',
+          isBlocked: true,
+          reason: reason || 'Blocked time',
+          notifyClient: false,
+          isRecurring: true,
+          recurringGroupId,
+          recurrenceRule
+        })),
+        { returning: true }
+      );
+
+      return res.status(201).json({
+        success: true,
+        message: `${createdBlocks.length} blocked slots created`,
+        count: createdBlocks.length,
+        recurringGroupId
+      });
+    }
+
+    const blockedSession = await Session.create({
+      sessionDate: new Date(sessionDate),
+      duration: duration || 60,
+      trainerId: assignedTrainerId,
+      location: location || 'Main Studio',
+      status: 'blocked',
+      isBlocked: true,
+      reason: reason || 'Blocked time',
+      notifyClient: false
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Blocked time created",
+      data: blockedSession
+    });
+  } catch (error) {
+    console.error("Error creating blocked time:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Server error creating blocked time"
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/sessions/block/:id
+ * @desc    Unblock a time slot (Admin/Trainer)
+ * @access  Private (Admin/Trainer)
+ */
+router.delete("/block/:id", protect, async (req, res) => {
+  try {
+    if (!['admin', 'trainer'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Admin or trainer access required"
+      });
+    }
+
+    const Session = getSession();
+    const { id } = req.params;
+    const { makeAvailable } = req.body;
+
+    const session = await Session.findByPk(id);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Blocked session not found"
+      });
+    }
+
+    if (session.status !== 'blocked' && !session.isBlocked) {
+      return res.status(400).json({
+        success: false,
+        message: "Session is not blocked"
+      });
+    }
+
+    if (makeAvailable === true) {
+      session.status = 'available';
+      session.isBlocked = false;
+      session.reason = null;
+      await session.save();
+    } else {
+      await session.destroy();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Blocked time removed",
+      data: session
+    });
+  } catch (error) {
+    console.error("Error removing blocked time:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Server error removing blocked time"
+    });
   }
 });
 
@@ -2279,25 +2641,32 @@ router.put("/confirm/:sessionId", protect, async (req, res) => {
     await session.save();
     
     // Send confirmation notification to client
-    if (session.client && session.client.email) {
+    if (session.client) {
+      const notifyClient = session.notifyClient !== false;
       try {
-        await sendEmailNotification({
-          to: session.client.email,
-          subject: "Session Confirmed - SwanStudios",
-          text: `Your training session on ${new Date(session.sessionDate).toLocaleString()} has been confirmed.`,
-          html: `
-            <h2>Session Confirmation</h2>
-            <p>Your training session has been confirmed:</p>
-            <ul>
-              <li><strong>Date & Time:</strong> ${new Date(session.sessionDate).toLocaleString()}</li>
-              <li><strong>Duration:</strong> ${session.duration} minutes</li>
-              <li><strong>Location:</strong> ${session.location || 'Main Studio'}</li>
-              ${session.trainer ? `<li><strong>Trainer:</strong> ${session.trainer.firstName} ${session.trainer.lastName}</li>` : ''}
-            </ul>
-            ${notes ? `<p><strong>Additional Notes:</strong> ${notes}</p>` : ''}
-            <p><strong>Please arrive 10 minutes early for your session.</strong></p>
-          `
-        });
+        if (session.client.email && shouldNotifyClient({ user: session.client, channel: 'email', notifyClient })) {
+          await sendEmailNotification({
+            to: session.client.email,
+            subject: "Session Confirmed - SwanStudios",
+            text: `Your training session on ${new Date(session.sessionDate).toLocaleString()} has been confirmed.`,
+            html: `
+              <h2>Session Confirmation</h2>
+              <p>Your training session has been confirmed:</p>
+              <ul>
+                <li><strong>Date & Time:</strong> ${new Date(session.sessionDate).toLocaleString()}</li>
+                <li><strong>Duration:</strong> ${session.duration} minutes</li>
+                <li><strong>Location:</strong> ${session.location || 'Main Studio'}</li>
+                ${session.trainer ? `<li><strong>Trainer:</strong> ${session.trainer.firstName} ${session.trainer.lastName}</li>` : ''}
+              </ul>
+              ${notes ? `<p><strong>Additional Notes:</strong> ${notes}</p>` : ''}
+              <p><strong>Please arrive 10 minutes early for your session.</strong></p>
+            `
+          });
+        }
+
+        if (shouldNotifyClient({ user: session.client, channel: 'push', notifyClient })) {
+          logger.info(`Push notification queued for user ${session.client.id}: session confirmed`);
+        }
       } catch (notificationError) {
         logger.error('Error sending confirmation notification:', notificationError);
       }
@@ -2523,6 +2892,52 @@ router.post("/request", protect, async (req, res) => {
       message: "Server error creating session request",
       error: error.message 
     });
+  }
+});
+
+/**
+ * @route   GET /api/sessions/:userId
+ * @desc    CLIENT: Get all sessions scheduled by a user.
+ * @access  Private
+ */
+router.get("/:userId", protect, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const { userId } = req.params;
+    
+    // Ensure users can only view their own sessions (unless admin)
+    if (req.user.id.toString() !== userId && req.user.role !== 'admin') {
+      return res.status(403).json({ 
+        message: "You can only view your own sessions." 
+      });
+    }
+
+    const sessions = await Session.findAll({
+      where: { 
+        userId,
+        // Optionally filter by date range if query params provided
+        ...(req.query.startDate && req.query.endDate ? {
+          sessionDate: {
+            [Op.between]: [new Date(req.query.startDate), new Date(req.query.endDate)]
+          }
+        } : {})
+      },
+      include: [
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'specialties', 'photo'],
+          required: false
+        }
+      ],
+      order: [['sessionDate', 'ASC']]
+    });
+    
+    res.json(sessions);
+  } catch (error) {
+    console.error("Error fetching user sessions:", error.message);
+    res.status(500).json({ message: "Server error fetching sessions." });
   }
 });
 

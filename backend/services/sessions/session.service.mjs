@@ -36,6 +36,8 @@ import User from '../../models/User.mjs';
 import { Op } from 'sequelize';
 import sequelize from '../../database.mjs';
 import moment from 'moment';
+import rrulePkg from 'rrule';
+import { v4 as uuidv4 } from 'uuid';
 
 // Import Real-Time Schedule Service for WebSocket broadcasting
 import realTimeScheduleService from '../realTimeScheduleService.mjs';
@@ -61,6 +63,105 @@ import {
   notifyLowSessionsRemaining,
   sendSessionReminder
 } from '../../utils/notification.mjs';
+
+const { RRule } = rrulePkg;
+
+const MAX_RECURRING_OCCURRENCES = 52;
+const MAX_RECURRING_MONTHS = 12;
+
+const parseNotificationPreferences = (prefs) => {
+  if (!prefs || typeof prefs !== 'object') {
+    return { email: true, sms: true, push: true, quietHours: null };
+  }
+
+  return {
+    email: prefs.email !== false,
+    sms: prefs.sms !== false,
+    push: prefs.push !== false,
+    quietHours: prefs.quietHours || null
+  };
+};
+
+const isWithinQuietHours = (prefs, now = new Date()) => {
+  if (!prefs || !prefs.quietHours || !prefs.quietHours.start || !prefs.quietHours.end) {
+    return false;
+  }
+
+  const [startHour, startMinute] = prefs.quietHours.start.split(':').map(Number);
+  const [endHour, endMinute] = prefs.quietHours.end.split(':').map(Number);
+
+  if (Number.isNaN(startHour) || Number.isNaN(endHour)) {
+    return false;
+  }
+
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const startMinutes = startHour * 60 + (startMinute || 0);
+  const endMinutes = endHour * 60 + (endMinute || 0);
+
+  if (startMinutes === endMinutes) {
+    return false;
+  }
+
+  if (startMinutes < endMinutes) {
+    return currentMinutes >= startMinutes && currentMinutes < endMinutes;
+  }
+
+  return currentMinutes >= startMinutes || currentMinutes < endMinutes;
+};
+
+const shouldNotifyClient = (session, user, options = {}) => {
+  if (!session || session.notifyClient === false) {
+    return false;
+  }
+
+  if (!user) {
+    return false;
+  }
+
+  const prefs = parseNotificationPreferences(user.notificationPreferences);
+
+  if (!prefs.email && !prefs.sms && !prefs.push) {
+    return false;
+  }
+
+  if (options.respectQuietHours !== false && isWithinQuietHours(prefs)) {
+    return false;
+  }
+
+  return true;
+};
+
+const buildRecurrenceDates = (startDate, recurrenceRule) => {
+  const baseStart = new Date(startDate);
+  if (Number.isNaN(baseStart.getTime())) {
+    throw new Error('Invalid startDate for recurrence');
+  }
+
+  if (!recurrenceRule) {
+    return [baseStart];
+  }
+
+  const parsed = RRule.parseString(recurrenceRule);
+  const rule = new RRule({
+    ...parsed,
+    dtstart: baseStart
+  });
+
+  const untilCap = new Date(baseStart);
+  untilCap.setMonth(untilCap.getMonth() + MAX_RECURRING_MONTHS);
+
+  const dates = rule.between(baseStart, untilCap, true);
+
+  if (!dates.length) {
+    throw new Error('No valid recurrence dates could be generated');
+  }
+
+  if (dates.length > MAX_RECURRING_OCCURRENCES) {
+    throw new Error(`Recurring series exceeds max ${MAX_RECURRING_OCCURRENCES} occurrences`);
+  }
+
+  return dates;
+};
 
 /**
  * Unified Session Service Class
@@ -676,77 +777,135 @@ class UnifiedSessionService {
       endDate, 
       daysOfWeek,  // Array of days: [0,1,2,3,4,5,6] (0 = Sunday)
       times,       // Array of times: ["09:00", "14:00"]
+      recurrenceRule,
       trainerId,
       location,
       duration,
-      sessionType
+      sessionType,
+      notifyClient,
+      isBlocked
     } = recurringData;
     
-    if (!startDate || !endDate || !daysOfWeek || !times) {
+    if (!startDate) {
       throw new Error('Missing required parameters for recurring sessions');
     }
-    
-    if (!Array.isArray(daysOfWeek) || daysOfWeek.length === 0) {
-      throw new Error('daysOfWeek must be a non-empty array');
-    }
-    
-    if (!Array.isArray(times) || times.length === 0) {
-      throw new Error('times must be a non-empty array');
+
+    const useRecurrenceRule = Boolean(recurrenceRule);
+
+    if (!useRecurrenceRule) {
+      if (!endDate || !daysOfWeek || !times) {
+        throw new Error('Missing required parameters for recurring sessions');
+      }
+      
+      if (!Array.isArray(daysOfWeek) || daysOfWeek.length === 0) {
+        throw new Error('daysOfWeek must be a non-empty array');
+      }
+      
+      if (!Array.isArray(times) || times.length === 0) {
+        throw new Error('times must be a non-empty array');
+      }
     }
 
     const transaction = await sequelize.transaction();
 
     try {
       const start = new Date(startDate);
-      const end = new Date(endDate);
       
-      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      if (isNaN(start.getTime())) {
         throw new Error('Invalid date format');
       }
-      
-      if (start >= end) {
-        throw new Error('End date must be after start date');
+
+      if (!useRecurrenceRule) {
+        const end = new Date(endDate);
+        if (isNaN(end.getTime())) {
+          throw new Error('Invalid date format');
+        }
+        
+        if (start >= end) {
+          throw new Error('End date must be after start date');
+        }
       }
+      
+      const recurringGroupId = uuidv4();
+      const resolvedIsBlocked = isBlocked === true;
+      const resolvedNotifyClient = notifyClient !== undefined ? notifyClient : !resolvedIsBlocked;
+      const resolvedStatus = resolvedIsBlocked ? 'blocked' : 'available';
+      const resolvedSessionType = sessionType || (resolvedIsBlocked ? 'Blocked Time' : 'Standard Training');
 
       // Generate session slots
       const sessions = [];
-      const currentDate = new Date(start);
-      
-      // Loop through each day until end date
-      while (currentDate <= end) {
-        const dayOfWeek = currentDate.getDay();
-        
-        // Check if current day is one of the selected days
-        if (daysOfWeek.includes(dayOfWeek)) {
-          // For each selected time on this day
-          for (const time of times) {
-            const [hours, minutes] = time.split(':').map(Number);
-            
-            // Create date for this specific time slot
-            const sessionDate = new Date(currentDate);
-            sessionDate.setHours(hours, minutes, 0, 0);
-            
-            // Only add future sessions
-            if (sessionDate >= new Date()) {
-              // Calculate end time
-              const endDate = new Date(sessionDate);
-              endDate.setMinutes(endDate.getMinutes() + (duration || 60));
+
+      if (useRecurrenceRule) {
+        const dates = buildRecurrenceDates(startDate, recurrenceRule);
+        const now = new Date();
+
+        for (const occurrence of dates) {
+          if (occurrence < now) {
+            continue;
+          }
+
+          const endDateForOccurrence = new Date(occurrence);
+          endDateForOccurrence.setMinutes(endDateForOccurrence.getMinutes() + (duration || 60));
+
+          sessions.push({
+            sessionDate: occurrence,
+            endDate: endDateForOccurrence,
+            duration: duration || 60,
+            status: resolvedStatus,
+            trainerId: trainerId || null,
+            location: location || 'Main Studio',
+            sessionType: resolvedSessionType,
+            notifyClient: resolvedNotifyClient,
+            recurrenceRule,
+            recurringGroupId,
+            isRecurring: true,
+            isBlocked: resolvedIsBlocked
+          });
+        }
+      } else {
+        const end = new Date(endDate);
+        const currentDate = new Date(start);
+
+        // Loop through each day until end date
+        while (currentDate <= end) {
+          const dayOfWeek = currentDate.getDay();
+          
+          // Check if current day is one of the selected days
+          if (daysOfWeek.includes(dayOfWeek)) {
+            // For each selected time on this day
+            for (const time of times) {
+              const [hours, minutes] = time.split(':').map(Number);
               
-              sessions.push({
-                sessionDate,
-                endDate,
-                duration: duration || 60,
-                status: 'available',
-                trainerId: trainerId || null,
-                location: location || 'Main Studio',
-                sessionType: sessionType || 'Standard Training'
-              });
+              // Create date for this specific time slot
+              const sessionDate = new Date(currentDate);
+              sessionDate.setHours(hours, minutes, 0, 0);
+              
+              // Only add future sessions
+              if (sessionDate >= new Date()) {
+                // Calculate end time
+                const endDateForOccurrence = new Date(sessionDate);
+                endDateForOccurrence.setMinutes(endDateForOccurrence.getMinutes() + (duration || 60));
+                
+                sessions.push({
+                  sessionDate,
+                  endDate: endDateForOccurrence,
+                  duration: duration || 60,
+                  status: resolvedStatus,
+                  trainerId: trainerId || null,
+                  location: location || 'Main Studio',
+                  sessionType: resolvedSessionType,
+                  notifyClient: resolvedNotifyClient,
+                  recurringGroupId,
+                  isRecurring: true,
+                  isBlocked: resolvedIsBlocked
+                });
+              }
             }
           }
+          
+          // Move to next day
+          currentDate.setDate(currentDate.getDate() + 1);
         }
-        
-        // Move to next day
-        currentDate.setDate(currentDate.getDate() + 1);
       }
       
       if (sessions.length === 0) {
@@ -775,6 +934,77 @@ class UnifiedSessionService {
       await transaction.rollback();
       logger.error(`[UnifiedSessionService] Error creating recurring sessions:`, error);
       throw new Error(`Failed to create recurring sessions: ${error.message}`);
+    }
+  }
+
+  /**
+   * Create blocked time slots (admin or trainer)
+   * @param {Object} blockData - Block configuration
+   * @param {Object} user - Requesting user (must be admin or trainer)
+   * @returns {Object} Creation result with count
+   */
+  async createBlockedSessions(blockData, user) {
+    if (!['admin', 'trainer'].includes(user.role)) {
+      throw new Error('Admin or trainer privileges required to block time');
+    }
+
+    const {
+      sessionDate,
+      duration,
+      trainerId,
+      location,
+      reason,
+      recurrenceRule,
+      notifyClient
+    } = blockData;
+
+    if (!sessionDate) {
+      throw new Error('Missing required parameters for blocked time');
+    }
+
+    const dates = buildRecurrenceDates(sessionDate, recurrenceRule);
+    const recurringGroupId = dates.length > 1 ? uuidv4() : null;
+    const resolvedNotifyClient = notifyClient !== undefined ? notifyClient : false;
+
+    const transaction = await sequelize.transaction();
+
+    try {
+      const sessions = dates.map((occurrence) => {
+        const endDate = new Date(occurrence);
+        endDate.setMinutes(endDate.getMinutes() + (duration || 60));
+
+        return {
+          sessionDate: occurrence,
+          endDate,
+          duration: duration || 60,
+          status: 'blocked',
+          trainerId: trainerId || (user.role === 'trainer' ? user.id : null),
+          location: location || 'Main Studio',
+          sessionType: 'Blocked Time',
+          reason: reason || 'Blocked time',
+          notifyClient: resolvedNotifyClient,
+          recurringGroupId,
+          recurrenceRule: recurrenceRule || null,
+          isRecurring: dates.length > 1,
+          isBlocked: true
+        };
+      });
+
+      const createdSessions = await this.Session.bulkCreate(sessions, { transaction, returning: true });
+      await transaction.commit();
+
+      logger.info(`[UnifiedSessionService] Created ${createdSessions.length} blocked sessions`);
+
+      return {
+        success: true,
+        message: `Successfully created ${createdSessions.length} blocked sessions`,
+        count: createdSessions.length,
+        sessions: createdSessions.slice(0, 5)
+      };
+    } catch (error) {
+      await transaction.rollback();
+      logger.error(`[UnifiedSessionService] Error creating blocked sessions:`, error);
+      throw new Error(`Failed to create blocked sessions: ${error.message}`);
     }
   }
 
@@ -1711,7 +1941,9 @@ class UnifiedSessionService {
    */
   async sendBookingNotifications(session, client) {
     try {
-      await notifySessionBooked(session, client);
+      if (shouldNotifyClient(session, client, { respectQuietHours: true })) {
+        await notifySessionBooked(session, client);
+      }
       await notifyAdminSessionBooked(session, client);
     } catch (error) {
       logger.error('Error sending booking notifications:', error);
@@ -1727,7 +1959,13 @@ class UnifiedSessionService {
    */
   async sendCancellationNotifications(session, canceller, reason) {
     try {
-      await notifySessionCancelled(session, canceller, reason);
+      const client = session?.client || (session?.userId ? await this.User.findByPk(session.userId) : null);
+      const sessionTime = session?.sessionDate ? new Date(session.sessionDate).getTime() : null;
+      const isUrgent = sessionTime ? (sessionTime - Date.now()) < (24 * 60 * 60 * 1000) : false;
+
+      if (client && shouldNotifyClient(session, client, { respectQuietHours: !isUrgent })) {
+        await notifySessionCancelled(session, client, canceller, reason);
+      }
     } catch (error) {
       logger.error('Error sending cancellation notifications:', error);
       // Don't throw - notifications are non-critical
@@ -1741,6 +1979,10 @@ class UnifiedSessionService {
   async sendConfirmationNotifications(session) {
     try {
       if (session.client) {
+        if (!shouldNotifyClient(session, session.client, { respectQuietHours: true })) {
+          return;
+        }
+
         await sendEmailNotification({
           to: session.client.email,
           subject: 'Session Confirmed - Swan Studios',
@@ -1781,6 +2023,10 @@ class UnifiedSessionService {
   async sendCompletionNotifications(session) {
     try {
       if (session.client) {
+        if (!shouldNotifyClient(session, session.client, { respectQuietHours: true })) {
+          return;
+        }
+
         await sendEmailNotification({
           to: session.client.email,
           subject: 'Session Completed - Swan Studios',

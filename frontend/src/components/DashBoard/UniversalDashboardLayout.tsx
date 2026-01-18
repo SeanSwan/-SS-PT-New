@@ -65,7 +65,7 @@ import EnhancedTrainerDataManagement from './Pages/admin-trainers/EnhancedTraine
 import UnifiedOnboardingWizard from './Pages/admin-onboarding/UnifiedOnboardingWizard';
 
 // Import Universal Master Schedule Integration
-import AdminScheduleIntegration from '../UniversalMasterSchedule/AdminScheduleIntegration';
+import UniversalSchedule from '../Schedule/UniversalSchedule';
 
 // Import NASM Workout Tracking System Components
 import ClientTrainerAssignments from '../Admin/ClientTrainerAssignments';
@@ -82,10 +82,8 @@ import MyClientsView from '../TrainerDashboard/ClientManagement';
 import EnhancedWorkoutLogger from '../TrainerDashboard/WorkoutLogging';
 import { EnhancedClientProgressView } from '../TrainerDashboard/ClientProgress';
 
-// Lazy load the UniversalCalendar (to be created next)
-const UniversalCalendar = React.lazy(() => Promise.resolve({ 
-  default: () => <div>Universal Calendar Component (Coming Next)</div> 
-}));
+// Lazy load the UniversalSchedule (unified for all roles)
+const UniversalScheduleLazy = React.lazy(() => import('../Schedule/UniversalSchedule'));
 
 // === UNIVERSAL THEME SYSTEM ===
 const universalTheme = {
@@ -379,7 +377,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       
       // 📅 SCHEDULING & OPERATIONS
       { path: '/admin-sessions', component: EnhancedAdminSessionsView, title: 'Session Management', description: 'Universal session control' },
-      { path: '/master-schedule', component: AdminScheduleIntegration, title: 'Universal Master Schedule', description: 'Advanced drag-and-drop scheduling command center' },
+      { path: '/master-schedule', component: UniversalSchedule, title: 'Universal Master Schedule', description: 'Advanced drag-and-drop scheduling command center' },
       { path: '/session-allocation', component: SessionAllocationManager, title: 'Session Allocation Manager', description: 'Manage client session counts and allocation' },
       { path: '/client-trainer-assignments', component: ClientTrainerAssignments, title: 'Client-Trainer Assignments', description: 'Drag-and-drop client assignment management' },
       { path: '/trainer-permissions', component: TrainerPermissionsManager, title: 'Trainer Permissions', description: 'Granular trainer permission control' },
@@ -406,7 +404,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/assessments', component: () => <div>Form Assessments (Coming Soon)</div>, title: 'Form Assessments', description: 'YOLO AI form checking' },
       { path: '/videos', component: () => <div>Training Videos (Coming Soon)</div>, title: 'Training Videos', description: 'Video content library' },
       { path: '/workout-forge', component: () => <div>AI Workout Forge (Coming Soon)</div>, title: 'AI Workout Forge', description: 'Olympian\'s Forge interface' },
-      { path: '/schedule', component: UniversalCalendar, title: 'My Schedule', description: 'Personal appointment calendar' },
+      { path: '/schedule', component: UniversalScheduleLazy, title: 'My Schedule', description: 'Personal appointment calendar' },
       { path: '/messages', component: () => <div>Client Messages (Coming Soon)</div>, title: 'Client Messages', description: 'Communication hub' }
     ],
     defaultPath: '/overview'
@@ -418,7 +416,7 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/progress', component: () => <NASMProgressCharts clientId={user?.id || 0} />, title: 'My Progress', description: 'NASM progress visualization dashboard' },
       { path: '/workout-forge', component: () => <div>AI Workout Forge (Coming Soon)</div>, title: 'AI Workout Forge', description: 'Self-serve workout generation' },
       { path: '/meal-planner', component: () => <div>AI Meal Planner (Coming Soon)</div>, title: 'AI Meal Planner', description: 'Culinary Codex interface' },
-      { path: '/schedule', component: UniversalCalendar, title: 'Book My Session', description: 'Session booking interface' },
+      { path: '/schedule', component: UniversalScheduleLazy, title: 'Book My Session', description: 'Session booking interface' },
       { path: '/community', component: () => <div>Community & Challenges (Coming Soon)</div>, title: 'Community', description: 'Social feed and challenges' },
       { path: '/messages', component: () => <div>Messages (Coming Soon)</div>, title: 'Messages', description: 'Trainer communications' },
       { path: '/profile', component: () => <div>Profile & Settings (Coming Soon)</div>, title: 'Profile', description: 'Personal settings' },
