@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import styled from 'styled-components';
 import RecurringSessionModal from './RecurringSessionModal';
 import BlockedTimeModal from './BlockedTimeModal';
+import NotificationPreferencesModal from './NotificationPreferencesModal';
 
 // Custom UI Components (MUI replacements)
 import {
@@ -48,7 +49,8 @@ import {
   Clock,
   MapPin,
   User,
-  AlertTriangle
+  AlertTriangle,
+  Bell
 } from 'lucide-react';
 
 // Simple theme for styling
@@ -104,6 +106,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showRecurringDialog, setShowRecurringDialog] = useState(false);
   const [showBlockedDialog, setShowBlockedDialog] = useState(false);
+  const [showNotificationDialog, setShowNotificationDialog] = useState(false);
   const [formData, setFormData] = useState({
     sessionDate: '',
     duration: 60,
@@ -360,7 +363,10 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
           >
             <RefreshCw size={20} />
           </StyledIconButton>
-          
+          <OutlinedButton onClick={() => setShowNotificationDialog(true)}>
+            <Bell size={18} />
+            Notification Settings
+          </OutlinedButton>
           {(canCreateSessions || canCreateRecurring || canBlockTime) && (
             <>
               {canBlockTime && (
@@ -619,6 +625,11 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
           onSuccess={fetchSessions}
         />
       )}
+      <NotificationPreferencesModal
+        open={showNotificationDialog}
+        onClose={() => setShowNotificationDialog(false)}
+        onSuccess={() => undefined}
+      />
     </ScheduleContainer>
   );
 };
