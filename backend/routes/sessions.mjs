@@ -240,30 +240,45 @@ router.post("/block", protect, trainerOrAdminOnly, async (req, res) => {
  * POST /api/sessions/:id/book
  * Book an available session
  */
-router.post("/:id/book", protect, async (req, res) => {
-  try {
-    const result = await unifiedSessionService.bookSession(req.params.id, req.user, req.body);
-    
-    return res.status(200).json(result);
-  } catch (error) {
-    logger.error(`Error in POST /api/sessions/${req.params.id}/book:`, error);
-    
-    // Handle booking-specific errors
-    if (error.message.includes('not available') || error.message.includes('in the past') || 
-        error.message.includes('not found')) {
-      return res.status(400).json({
+  router.post("/:id/book", protect, async (req, res) => {
+    try {
+      const result = await unifiedSessionService.bookSession(req.params.id, req.user, req.body);
+      
+      return res.status(200).json(result);
+    } catch (error) {
+      logger.error(`Error in POST /api/sessions/${req.params.id}/book:`, error);
+      const rawMessage = typeof error === 'string' ? error : (error?.message || '');
+      const normalizedMessage = rawMessage.toLowerCase();
+      const responseMessage = rawMessage || 'Request validation failed';
+
+      // Handle booking-specific errors
+      if (normalizedMessage.includes('permission') || normalizedMessage.includes('privileges')) {
+        return res.status(403).json({
+          success: false,
+          message: responseMessage
+        });
+      }
+
+      if (normalizedMessage.includes('not available') ||
+          normalizedMessage.includes('in the past') ||
+          normalizedMessage.includes('not found') ||
+          normalizedMessage.includes('insufficient') ||
+          normalizedMessage.includes('credit') ||
+          normalizedMessage.includes('double-booking') ||
+          normalizedMessage.includes('conflict')) {
+        return res.status(400).json({
+          success: false,
+          message: responseMessage
+        });
+      }
+
+      return res.status(500).json({
         success: false,
-        message: error.message
+        message: 'Server error booking session',
+        error: responseMessage
       });
     }
-    
-    return res.status(500).json({
-      success: false,
-      message: 'Server error booking session',
-      error: error.message
-    });
-  }
-});
+  });
 
 /**
  * PATCH /api/sessions/:id/cancel

@@ -20,6 +20,7 @@ import { existsSync } from 'fs';
 import authRoutes from '../routes/authRoutes.mjs';
 import profileRoutes from '../routes/profileRoutes.mjs';
 import healthRoutes from '../routes/healthRoutes.mjs';
+import userRoutes from '../routes/userRoutes.mjs';
 
 // ===================== USER MANAGEMENT =====================
 import userManagementRoutes from '../routes/userManagementRoutes.mjs';
@@ -101,6 +102,7 @@ import foodScannerRoutes from '../routes/foodScannerRoutes.mjs';
 import adminDashboardRoutes from '../routes/dashboard/adminDashboardRoutes.mjs';
 import sharedDashboardRoutes from '../routes/dashboard/sharedDashboardRoutes.mjs';
 import clientDashboardRoutes from '../routes/clientDashboardRoutes.mjs';
+import clientProgressApiRoutes from '../routes/clientProgressApiRoutes.mjs';
 
 // ===================== ADVANCED INTEGRATIONS =====================
 import mcpRoutes from '../routes/mcpRoutes.mjs';
@@ -163,6 +165,7 @@ export const setupRoutes = async (app) => {
   // ===================== CORE API ROUTES =====================
   app.use('/api/auth', authRoutes);
   app.use('/api/profile', profileRoutes);
+  app.use('/api/user', userRoutes);
 
   // ===================== USER MANAGEMENT ROUTES =====================
   app.use('/api/auth', userManagementRoutes);
@@ -277,6 +280,7 @@ export const setupRoutes = async (app) => {
 
   // Client-specific dashboard routes
   app.use('/api/client', clientDashboardRoutes);
+  app.use('/api/client', clientProgressApiRoutes);
 
   // ===================== ADVANCED INTEGRATION ROUTES =====================
   app.use('/api/ai', aiRoutes);

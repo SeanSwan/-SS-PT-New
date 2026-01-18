@@ -467,11 +467,11 @@ export const notifySessionCancelled = async (session, client, cancelledBy, reaso
  * @param {Object} client - The client
  * @returns {Promise<Object>} - Result of the session deduction
  */
-export const processSessionDeduction = async (session, client) => {
-  try {
-    if (!session || !client) {
-      throw new Error('Session and client information required');
-    }
+export const processSessionDeduction = async (session, client, transaction = null) => {
+    try {
+      if (!session || !client) {
+        throw new Error('Session and client information required');
+      }
     
     // Check if client has available sessions
     if (!client.availableSessions || client.availableSessions <= 0) {
@@ -492,13 +492,15 @@ export const processSessionDeduction = async (session, client) => {
     }
     
     // Deduct session from client's available sessions
-    client.availableSessions -= 1;
-    await client.save();
+      const saveOptions = transaction ? { transaction } : {};
+
+      client.availableSessions -= 1;
+      await client.save(saveOptions);
     
     // Mark session as deducted
     session.sessionDeducted = true;
     session.deductionDate = new Date();
-    await session.save();
+      await session.save(saveOptions);
     
     // Notify client about session deduction
     const sessionTime = getFormattedSessionTime(session.sessionDate, session.duration);
