@@ -46,6 +46,8 @@ interface SessionDetailModalProps {
   mode: 'admin' | 'trainer' | 'client';
   onClose: () => void;
   onUpdated: () => void;
+  onManageSeries?: (groupId: string) => void;
+  seriesCount?: number;
 }
 
 const statusColors: Record<string, string> = {
@@ -62,7 +64,9 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   open,
   mode,
   onClose,
-  onUpdated
+  onUpdated,
+  onManageSeries,
+  seriesCount
 }) => {
   const [notes, setNotes] = useState('');
   const [trainerRating, setTrainerRating] = useState<string>('');
@@ -74,6 +78,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
 
   const isBlocked = Boolean(session?.isBlocked) || session?.status === 'blocked';
   const canManage = mode === 'admin' || mode === 'trainer';
+  const canManageSeries = mode === 'admin' && Boolean(session?.recurringGroupId);
 
   const isTrainerAssigned = useMemo(() => {
     if (mode !== 'trainer') {
@@ -186,6 +191,48 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     }
   };
 
+  const handleDeleteSeries = async () => {
+    if (!session?.recurringGroupId) {
+      return;
+    }
+
+    if (!window.confirm('Delete all future sessions in this recurring series?')) {
+      return;
+    }
+
+    setFormError(null);
+    setLoading(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setFormError('Please log in to delete recurring series.');
+        return;
+      }
+
+      const response = await fetch(`/api/sessions/recurring/${session.recurringGroupId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result?.success === false) {
+        setFormError(result?.message || 'Failed to delete recurring series.');
+        return;
+      }
+
+      onUpdated();
+      onClose();
+    } catch (error) {
+      console.error('Error deleting recurring series:', error);
+      setFormError('Failed to delete recurring series. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleCancel = async () => {
     if (!session) {
       return;
@@ -273,6 +320,29 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
         <ErrorText style={{ marginBottom: '1rem' }}>
           {formError}
         </ErrorText>
+      )}
+
+      {canManageSeries && (
+        <SeriesCallout>
+          <SmallText>
+            Part of recurring series{seriesCount ? ` (${seriesCount} sessions)` : ''}.
+          </SmallText>
+          <FlexBox gap="0.5rem">
+            <OutlinedButton
+              onClick={() => onManageSeries?.(session.recurringGroupId as string)}
+              disabled={loading}
+            >
+              Edit Series
+            </OutlinedButton>
+            <OutlinedButton
+              onClick={handleDeleteSeries}
+              disabled={loading}
+              style={{ borderColor: '#ef4444', color: '#ef4444' }}
+            >
+              Delete Series
+            </OutlinedButton>
+          </FlexBox>
+        </SeriesCallout>
       )}
 
       <DetailGrid>
@@ -406,4 +476,21 @@ const StatusBadge = styled.span<{ $tone: string }>`
   letter-spacing: 0.05em;
   background: ${props => props.$tone};
   color: #0f172a;
+`;
+
+const SeriesCallout = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 10px;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 `;

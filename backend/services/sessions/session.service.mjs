@@ -1008,6 +1008,166 @@ class UnifiedSessionService {
     }
   }
 
+  /**
+   * Update all future sessions in a recurring series (admin only)
+   * @param {string} groupId - Recurring group UUID
+   * @param {Object} user - Requesting user (admin)
+   * @param {Object} updateData - Fields to update
+   * @returns {Object} Update result
+   */
+  async updateRecurringSeries(groupId, user, updateData = {}) {
+    if (user.role !== 'admin') {
+      throw new Error('Admin privileges required to update recurring series');
+    }
+
+    if (!groupId) {
+      throw new Error('Missing recurring series groupId');
+    }
+
+    const {
+      time,
+      duration,
+      trainerId,
+      location,
+      notes,
+      notifyClient
+    } = updateData || {};
+
+    if (!time && duration === undefined && trainerId === undefined && location === undefined && notes === undefined && notifyClient === undefined) {
+      throw new Error('Missing update fields for recurring series');
+    }
+
+    let timeParts = null;
+    if (time) {
+      const [hours, minutes] = String(time).split(':').map(Number);
+      if (!Number.isFinite(hours) || !Number.isFinite(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        throw new Error('Invalid time format (expected HH:mm)');
+      }
+      timeParts = { hours, minutes };
+    }
+
+    if (duration !== undefined) {
+      const durationValue = Number(duration);
+      if (!Number.isFinite(durationValue) || durationValue <= 0) {
+        throw new Error('Invalid duration');
+      }
+    }
+
+    const now = new Date();
+    const sessions = await this.Session.findAll({
+      where: {
+        recurringGroupId: groupId,
+        sessionDate: { [Op.gt]: now },
+        status: { [Op.notIn]: ['cancelled', 'completed'] }
+      },
+      order: [['sessionDate', 'ASC']]
+    });
+
+    if (!sessions.length) {
+      throw new Error('No future sessions found for recurring series');
+    }
+
+    const updatedSessions = [];
+    for (const session of sessions) {
+      if (timeParts) {
+        const updatedDate = new Date(session.sessionDate);
+        updatedDate.setHours(timeParts.hours, timeParts.minutes, 0, 0);
+        session.sessionDate = updatedDate;
+      }
+
+      if (duration !== undefined) {
+        session.duration = Math.round(Number(duration));
+      }
+
+      if (trainerId !== undefined) {
+        session.trainerId = trainerId ? Number(trainerId) : null;
+      }
+
+      if (location !== undefined) {
+        session.location = location;
+      }
+
+      if (notes !== undefined) {
+        session.notes = notes;
+      }
+
+      if (notifyClient !== undefined) {
+        session.notifyClient = Boolean(notifyClient);
+      }
+
+      await session.save();
+      updatedSessions.push(session);
+    }
+
+    logger.info(`[UnifiedSessionService] Updated ${updatedSessions.length} sessions for recurring series ${groupId}`);
+
+    return {
+      success: true,
+      message: `Updated ${updatedSessions.length} future sessions`,
+      updatedCount: updatedSessions.length,
+      sessions: updatedSessions.map(session => session.get({ plain: true }))
+    };
+  }
+
+  /**
+   * Cancel sessions in a recurring series (admin only)
+   * @param {string} groupId - Recurring group UUID
+   * @param {Object} user - Requesting user (admin)
+   * @param {Object} options - Delete options
+   * @returns {Object} Delete result
+   */
+  async deleteRecurringSeries(groupId, user, options = {}) {
+    if (user.role !== 'admin') {
+      throw new Error('Admin privileges required to cancel recurring series');
+    }
+
+    if (!groupId) {
+      throw new Error('Missing recurring series groupId');
+    }
+
+    const deleteAll = options.deleteAll === true;
+    const now = new Date();
+    const whereClause = {
+      recurringGroupId: groupId,
+      status: { [Op.notIn]: ['cancelled', 'completed'] }
+    };
+
+    if (!deleteAll) {
+      whereClause.sessionDate = { [Op.gt]: now };
+    }
+
+    const sessions = await this.Session.findAll({
+      where: whereClause,
+      order: [['sessionDate', 'ASC']]
+    });
+
+    if (!sessions.length) {
+      throw new Error('No future sessions found for recurring series');
+    }
+
+    let cancelledCount = 0;
+    let skippedCount = 0;
+
+    for (const session of sessions) {
+      try {
+        await this.cancelSession(session.id, user, 'Recurring series cancelled');
+        cancelledCount += 1;
+      } catch (error) {
+        skippedCount += 1;
+        logger.warn(`[UnifiedSessionService] Skipped cancelling session ${session.id}: ${error.message}`);
+      }
+    }
+
+    logger.info(`[UnifiedSessionService] Cancelled ${cancelledCount} sessions for recurring series ${groupId}`);
+
+    return {
+      success: true,
+      message: `Cancelled ${cancelledCount} sessions`,
+      cancelledCount,
+      skippedCount
+    };
+  }
+
   // ==================== SESSION BOOKING & LIFECYCLE MANAGEMENT ====================
 
   /**
