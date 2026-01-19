@@ -9,18 +9,21 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../hooks/useAuth';
+import { useCurrentWorkout } from '../../hooks/useCurrentWorkout';
+import { useNutritionPlan } from '../../hooks/useNutritionPlan';
 
 // Add missing pulse animation
 const pulse = keyframes`
   0%, 100% { opacity: 0.7; }
   50% { opacity: 1; }
 `;
-import { 
-  Star, Activity, Trophy, Calendar, 
+import {
+  Star, Activity, Trophy, Calendar,
   MessageCircle, User, Settings, Target, Zap,
   Award, Shield, Rocket, Users, Play, Monitor,
   BarChart3, FileText, CreditCard, Package,
-  Video, BookOpen, Camera, Headphones
+  Video, BookOpen, Camera, Headphones, Loader
 } from 'lucide-react';
 import ClientProgressPanel from '../DashBoard/Pages/client-dashboard/progress/ClientProgressPanel';
 
@@ -127,80 +130,117 @@ export const OverviewGalaxy: React.FC = () => (
   <EnhancedOverviewGalaxy />
 );
 
-export const WorkoutUniverse: React.FC = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5 }}
-  >
-    <SectionCard>
-      <SectionTitle>
-        <Activity /> Today's Mission
-      </SectionTitle>
-      <div style={{
-        background: 'linear-gradient(135deg, #00ffff, #7851a9)',
-        borderRadius: '15px',
-        padding: '1.5rem',
-        marginBottom: '1rem',
-        color: '#fff'
-      }}>
-        <h3 style={{ margin: '0 0 1rem 0' }}>Upper Body Strength</h3>
-        <p style={{ margin: '0 0 1rem 0', opacity: 0.9 }}>
-          45 minutes • 6 exercises • Intermediate
-        </p>
-        <motion.button
-          style={{
-            background: 'rgba(255, 255, 255, 0.2)',
-            border: '2px solid rgba(255, 255, 255, 0.3)',
-            borderRadius: '25px',
-            padding: '0.75rem 2rem',
-            color: 'white',
-            fontWeight: 'bold',
-            cursor: 'pointer'
-          }}
-          whileHover={{ scale: 1.05, backgroundColor: 'rgba(255, 255, 255, 0.3)' }}
-          whileTap={{ scale: 0.95 }}
-        >
-          Start Workout
-        </motion.button>
-      </div>
-    </SectionCard>
-    
-    <SectionCard>
-      <SectionTitle>
-        <Rocket /> Workout History
-      </SectionTitle>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        {[
-          { name: 'Leg Day', date: 'Yesterday', duration: '52 min' },
-          { name: 'Core Blast', date: '2 days ago', duration: '30 min' },
-          { name: 'Cardio HIIT', date: '3 days ago', duration: '25 min' }
-        ].map((workout, index) => (
-          <div
-            key={index}
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '1rem',
-              background: 'rgba(0, 255, 255, 0.05)',
-              borderRadius: '8px',
-              border: '1px solid rgba(0, 255, 255, 0.1)'
-            }}
-          >
-            <div>
-              <h4 style={{ margin: 0, color: '#00ffff' }}>{workout.name}</h4>
-              <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.8rem' }}>
-                {workout.date}
-              </p>
-            </div>
-            <span style={{ color: '#ffd700' }}>{workout.duration}</span>
+export const WorkoutUniverse: React.FC = () => {
+  const { user } = useAuth();
+  const { data: workout, isLoading, error } = useCurrentWorkout(user?.id);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <SectionCard>
+        <SectionTitle>
+          <Activity /> Today's Mission
+        </SectionTitle>
+        {isLoading ? (
+          <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,0.6)' }}>
+            <Loader size={24} style={{ animation: 'spin 1s linear infinite' }} />
+            <p>Loading workout plan...</p>
           </div>
-        ))}
-      </div>
-    </SectionCard>
-  </motion.div>
-);
+        ) : error ? (
+          <div style={{ textAlign: 'center', padding: '2rem', color: '#ff6b6b' }}>
+            <p>{error}</p>
+          </div>
+        ) : workout ? (
+          <div style={{
+            background: 'linear-gradient(135deg, #00ffff, #7851a9)',
+            borderRadius: '15px',
+            padding: '1.5rem',
+            marginBottom: '1rem',
+            color: '#fff'
+          }}>
+            <h3 style={{ margin: '0 0 1rem 0' }}>{workout.name}</h3>
+            <p style={{ margin: '0 0 1rem 0', opacity: 0.9 }}>
+              {workout.duration} • {workout.days?.[0]?.exercises?.length || 0} exercises • {workout.difficulty ? `Level ${workout.difficulty}` : 'Custom'}
+            </p>
+            {workout.description && (
+              <p style={{ margin: '0 0 1rem 0', opacity: 0.8, fontSize: '0.9rem' }}>
+                {workout.description}
+              </p>
+            )}
+            <motion.button
+              style={{
+                background: 'rgba(255, 255, 255, 0.2)',
+                border: '2px solid rgba(255, 255, 255, 0.3)',
+                borderRadius: '25px',
+                padding: '0.75rem 2rem',
+                color: 'white',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}
+              whileHover={{ scale: 1.05, backgroundColor: 'rgba(255, 255, 255, 0.3)' }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Start Workout
+            </motion.button>
+          </div>
+        ) : (
+          <div style={{
+            background: 'rgba(0, 255, 255, 0.05)',
+            borderRadius: '15px',
+            padding: '2rem',
+            textAlign: 'center',
+            border: '1px dashed rgba(0, 255, 255, 0.3)'
+          }}>
+            <Rocket size={48} color="rgba(0, 255, 255, 0.5)" style={{ marginBottom: '1rem' }} />
+            <h4 style={{ color: '#00ffff', margin: '0 0 0.5rem 0' }}>No Workout Plan Yet</h4>
+            <p style={{ color: 'rgba(255, 255, 255, 0.6)', margin: 0, fontSize: '0.9rem' }}>
+              Your trainer will create one after your assessment.
+            </p>
+          </div>
+        )}
+      </SectionCard>
+
+      <SectionCard>
+        <SectionTitle>
+          <Rocket /> Workout History
+        </SectionTitle>
+        {workout?.days && workout.days.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {workout.days.slice(0, 3).map((day, index) => (
+              <div
+                key={day.id || index}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '1rem',
+                  background: 'rgba(0, 255, 255, 0.05)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(0, 255, 255, 0.1)'
+                }}
+              >
+                <div>
+                  <h4 style={{ margin: 0, color: '#00ffff' }}>{day.name || `Day ${day.dayNumber}`}</h4>
+                  <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.8rem' }}>
+                    {day.exercises?.length || 0} exercises
+                  </p>
+                </div>
+                <span style={{ color: '#ffd700' }}>Day {day.dayNumber}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '1.5rem', color: 'rgba(255, 255, 255, 0.5)' }}>
+            <p>Complete sessions to build your workout history!</p>
+          </div>
+        )}
+      </SectionCard>
+    </motion.div>
+  );
+};
 
 export const ProgressConstellation: React.FC = () => (
   <motion.div
@@ -657,105 +697,166 @@ export const PersonalizedVideoHub: React.FC = () => (
   </motion.div>
 );
 
-export const LogsAndTrackers: React.FC = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5 }}
-  >
-    <SectionCard>
-      <SectionTitle>
-        <BarChart3 /> Cosmic Journal
-      </SectionTitle>
-      
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
-        <div>
-          <h4 style={{ color: '#00ffff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Activity size={20} /> Workout Logs
-          </h4>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {[
-              { exercise: 'Chest Press', sets: '4x12', weight: '135 lbs', date: 'Today' },
-              { exercise: 'Squats', sets: '3x15', weight: '185 lbs', date: 'Yesterday' },
-              { exercise: 'Deadlifts', sets: '5x5', weight: '225 lbs', date: '2 days ago' }
-            ].map((log, index) => (
-              <div
-                key={index}
-                style={{
-                  background: 'rgba(0, 255, 255, 0.05)',
-                  borderRadius: '8px',
-                  padding: '1rem',
-                  border: '1px solid rgba(0, 255, 255, 0.1)'
-                }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <h5 style={{ margin: 0, color: '#fff' }}>{log.exercise}</h5>
-                    <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>
-                      {log.sets} @ {log.weight}
-                    </p>
+export const LogsAndTrackers: React.FC = () => {
+  const { user } = useAuth();
+  const userId = user?.id;
+  const { data: nutritionPlan, isLoading: nutritionLoading } = useNutritionPlan(userId);
+
+  // Calculate nutrition progress
+  const dailyCalories = nutritionPlan?.dailyCalories || 2500;
+  // For now, we'll show the target as the "consumed" since we don't have tracking yet
+  // In a full implementation, this would come from a food log
+  const consumed = nutritionPlan ? Math.round(dailyCalories * 0.68) : 0; // Placeholder until food logging
+  const remaining = dailyCalories - consumed;
+  const progressPercent = nutritionPlan ? Math.round((consumed / dailyCalories) * 100) : 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <SectionCard>
+        <SectionTitle>
+          <BarChart3 /> Cosmic Journal
+        </SectionTitle>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
+          <div>
+            <h4 style={{ color: '#00ffff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Activity size={20} /> Workout Logs
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {[
+                { exercise: 'Chest Press', sets: '4x12', weight: '135 lbs', date: 'Today' },
+                { exercise: 'Squats', sets: '3x15', weight: '185 lbs', date: 'Yesterday' },
+                { exercise: 'Deadlifts', sets: '5x5', weight: '225 lbs', date: '2 days ago' }
+              ].map((log, index) => (
+                <div
+                  key={index}
+                  style={{
+                    background: 'rgba(0, 255, 255, 0.05)',
+                    borderRadius: '8px',
+                    padding: '1rem',
+                    border: '1px solid rgba(0, 255, 255, 0.1)'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h5 style={{ margin: 0, color: '#fff' }}>{log.exercise}</h5>
+                      <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>
+                        {log.sets} @ {log.weight}
+                      </p>
+                    </div>
+                    <span style={{ color: '#ffd700', fontSize: '0.8rem' }}>{log.date}</span>
                   </div>
-                  <span style={{ color: '#ffd700', fontSize: '0.8rem' }}>{log.date}</span>
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        <div>
-          <h4 style={{ color: '#00ffff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Target size={20} /> Nutrition Tracking
-          </h4>
-          <div style={{
-            background: 'rgba(120, 81, 169, 0.1)',
-            borderRadius: '15px',
-            padding: '1.5rem',
-            marginBottom: '1rem'
-          }}>
-            <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-              <ProgressOrb progress={68}>
-                <div className="progress-text">68%</div>
-              </ProgressOrb>
-              <p style={{ color: 'rgba(255, 255, 255, 0.8)', margin: 0 }}>
-                Daily Calorie Goal
-              </p>
-            </div>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ color: '#00ffff', fontSize: '1.2rem', fontWeight: 'bold' }}>1,680</div>
-                <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>Consumed</div>
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ color: '#ffd700', fontSize: '1.2rem', fontWeight: 'bold' }}>820</div>
-                <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>Remaining</div>
-              </div>
+              ))}
             </div>
           </div>
+
+          <div>
+            <h4 style={{ color: '#00ffff', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Target size={20} /> Nutrition Tracking
+            </h4>
+            {nutritionLoading ? (
+              <div style={{
+                background: 'rgba(120, 81, 169, 0.1)',
+                borderRadius: '15px',
+                padding: '2rem',
+                textAlign: 'center'
+              }}>
+                <Loader className="spin" size={32} style={{ color: '#00ffff' }} />
+                <p style={{ color: 'rgba(255, 255, 255, 0.7)', marginTop: '0.5rem' }}>Loading nutrition data...</p>
+              </div>
+            ) : nutritionPlan ? (
+              <div style={{
+                background: 'rgba(120, 81, 169, 0.1)',
+                borderRadius: '15px',
+                padding: '1.5rem',
+                marginBottom: '1rem'
+              }}>
+                <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                  <ProgressOrb progress={progressPercent}>
+                    <div className="progress-text">{progressPercent}%</div>
+                  </ProgressOrb>
+                  <p style={{ color: 'rgba(255, 255, 255, 0.8)', margin: 0 }}>
+                    Daily Calorie Goal
+                  </p>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ color: '#00ffff', fontSize: '1.2rem', fontWeight: 'bold' }}>{consumed.toLocaleString()}</div>
+                    <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>Consumed</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ color: '#ffd700', fontSize: '1.2rem', fontWeight: 'bold' }}>{remaining.toLocaleString()}</div>
+                    <div style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>Remaining</div>
+                  </div>
+                </div>
+
+                {/* Macro breakdown */}
+                {nutritionPlan.macros && (
+                  <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem', textAlign: 'center' }}>
+                      <div>
+                        <div style={{ color: '#ff6b6b', fontSize: '1rem', fontWeight: 'bold' }}>{nutritionPlan.macros.protein}g</div>
+                        <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.7rem' }}>Protein</div>
+                      </div>
+                      <div>
+                        <div style={{ color: '#4ecdc4', fontSize: '1rem', fontWeight: 'bold' }}>{nutritionPlan.macros.carbs}g</div>
+                        <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.7rem' }}>Carbs</div>
+                      </div>
+                      <div>
+                        <div style={{ color: '#ffe66d', fontSize: '1rem', fontWeight: 'bold' }}>{nutritionPlan.macros.fat}g</div>
+                        <div style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.7rem' }}>Fat</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{
+                background: 'rgba(120, 81, 169, 0.1)',
+                borderRadius: '15px',
+                padding: '2rem',
+                textAlign: 'center'
+              }}>
+                <Target size={40} style={{ color: 'rgba(255, 255, 255, 0.3)', marginBottom: '0.5rem' }} />
+                <p style={{ color: 'rgba(255, 255, 255, 0.7)', margin: 0 }}>
+                  No nutrition plan assigned yet
+                </p>
+                <p style={{ color: 'rgba(255, 255, 255, 0.5)', margin: '0.5rem 0 0 0', fontSize: '0.85rem' }}>
+                  Your trainer will create one for you
+                </p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-      
-      <StatGrid>
-        <StatCard whileHover={{ scale: 1.05 }}>
-          <span className="stat-value">156</span>
-          <div className="stat-label">Total Workouts</div>
-        </StatCard>
-        <StatCard whileHover={{ scale: 1.05 }}>
-          <span className="stat-value">2,340</span>
-          <div className="stat-label">Avg Daily Calories</div>
-        </StatCard>
-        <StatCard whileHover={{ scale: 1.05 }}>
-          <span className="stat-value">7.2</span>
-          <div className="stat-label">Hours Sleep Avg</div>
-        </StatCard>
-        <StatCard whileHover={{ scale: 1.05 }}>
-          <span className="stat-value">92%</span>
-          <div className="stat-label">Goal Consistency</div>
-        </StatCard>
-      </StatGrid>
-    </SectionCard>
-  </motion.div>
-);
+
+        <StatGrid>
+          <StatCard whileHover={{ scale: 1.05 }}>
+            <span className="stat-value">156</span>
+            <div className="stat-label">Total Workouts</div>
+          </StatCard>
+          <StatCard whileHover={{ scale: 1.05 }}>
+            <span className="stat-value">{nutritionPlan?.dailyCalories?.toLocaleString() || '—'}</span>
+            <div className="stat-label">Daily Calorie Target</div>
+          </StatCard>
+          <StatCard whileHover={{ scale: 1.05 }}>
+            <span className="stat-value">7.2</span>
+            <div className="stat-label">Hours Sleep Avg</div>
+          </StatCard>
+          <StatCard whileHover={{ scale: 1.05 }}>
+            <span className="stat-value">92%</span>
+            <div className="stat-label">Goal Consistency</div>
+          </StatCard>
+        </StatGrid>
+      </SectionCard>
+    </motion.div>
+  );
+};
 
 // Enhanced Galactic Package Components
 const CosmicPackageCard = styled(motion.div)<{ $isPopular?: boolean; $theme?: string }>`
