@@ -12,6 +12,7 @@ import RecurringSessionModal from './RecurringSessionModal';
 import BlockedTimeModal from './BlockedTimeModal';
 import NotificationPreferencesModal from './NotificationPreferencesModal';
 import SessionDetailModal from './SessionDetailModal';
+import RecurringSeriesModal from './RecurringSeriesModal';
 import { useSessionCredits } from './hooks/useSessionCredits';
 
 // Custom UI Components (MUI replacements)
@@ -119,6 +120,8 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const [showBookingDialog, setShowBookingDialog] = useState(false);
   const [showDetailDialog, setShowDetailDialog] = useState(false);
   const [detailSession, setDetailSession] = useState<Session | null>(null);
+  const [showSeriesDialog, setShowSeriesDialog] = useState(false);
+  const [activeSeriesGroupId, setActiveSeriesGroupId] = useState<string | null>(null);
   const [bookingTarget, setBookingTarget] = useState<Session | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
@@ -299,6 +302,11 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     setShowDetailDialog(true);
   };
 
+  const openSeriesDialog = (groupId: string) => {
+    setActiveSeriesGroupId(groupId);
+    setShowSeriesDialog(true);
+  };
+
   const handleBookSession = async () => {
     if (!bookingTarget) {
       return;
@@ -404,6 +412,10 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const creditsDisplay = creditsLoading
     ? '...'
     : (typeof sessionsRemaining === 'number' ? sessionsRemaining : '--');
+
+  const seriesSessions = activeSeriesGroupId
+    ? sessions.filter((session) => session.recurringGroupId === activeSeriesGroupId)
+    : [];
 
   // Access control
   if (!hasAccess) {
@@ -819,6 +831,17 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         mode={mode}
         onClose={() => setShowDetailDialog(false)}
         onUpdated={fetchSessions}
+        onManageSeries={openSeriesDialog}
+        seriesCount={detailSession?.recurringGroupId
+          ? sessions.filter(session => session.recurringGroupId === detailSession.recurringGroupId).length
+          : undefined}
+      />
+      <RecurringSeriesModal
+        groupId={activeSeriesGroupId}
+        open={showSeriesDialog}
+        onClose={() => setShowSeriesDialog(false)}
+        onSuccess={fetchSessions}
+        seriesSessions={seriesSessions}
       />
     </ScheduleContainer>
   );

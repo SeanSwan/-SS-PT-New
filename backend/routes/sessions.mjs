@@ -198,6 +198,69 @@ router.post("/recurring", protect, adminOnly, async (req, res) => {
 });
 
 /**
+ * PUT /api/sessions/recurring/:groupId
+ * Update all future sessions in a recurring series (admin only)
+ */
+router.put("/recurring/:groupId", protect, adminOnly, async (req, res) => {
+  try {
+    const result = await unifiedSessionService.updateRecurringSeries(req.params.groupId, req.user, req.body);
+    return res.status(200).json(result);
+  } catch (error) {
+    logger.error('Error in PUT /api/sessions/recurring/:groupId:', error);
+    const rawMessage = typeof error === 'string' ? error : (error?.message || '');
+    const normalizedMessage = rawMessage.toLowerCase();
+
+    if (normalizedMessage.includes('admin privileges')) {
+      return res.status(403).json({ success: false, message: rawMessage || 'Admin privileges required' });
+    }
+
+    if (normalizedMessage.includes('not found') || normalizedMessage.includes('no future sessions')) {
+      return res.status(404).json({ success: false, message: rawMessage || 'Recurring series not found' });
+    }
+
+    if (normalizedMessage.includes('invalid') || normalizedMessage.includes('missing') || normalizedMessage.includes('must')) {
+      return res.status(400).json({ success: false, message: rawMessage || 'Invalid request' });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: 'Server error updating recurring series',
+      error: rawMessage || 'Unknown error'
+    });
+  }
+});
+
+/**
+ * DELETE /api/sessions/recurring/:groupId
+ * Cancel all future sessions in a recurring series (admin only)
+ */
+router.delete("/recurring/:groupId", protect, adminOnly, async (req, res) => {
+  try {
+    const deleteAll = req.query.deleteAll === 'true' || req.query.deleteAll === true;
+    const result = await unifiedSessionService.deleteRecurringSeries(req.params.groupId, req.user, { deleteAll });
+    return res.status(200).json(result);
+  } catch (error) {
+    logger.error('Error in DELETE /api/sessions/recurring/:groupId:', error);
+    const rawMessage = typeof error === 'string' ? error : (error?.message || '');
+    const normalizedMessage = rawMessage.toLowerCase();
+
+    if (normalizedMessage.includes('admin privileges')) {
+      return res.status(403).json({ success: false, message: rawMessage || 'Admin privileges required' });
+    }
+
+    if (normalizedMessage.includes('not found') || normalizedMessage.includes('no future sessions')) {
+      return res.status(404).json({ success: false, message: rawMessage || 'Recurring series not found' });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: 'Server error cancelling recurring series',
+      error: rawMessage || 'Unknown error'
+    });
+  }
+});
+
+/**
  * POST /api/sessions/block
  * Block time slots (admin or trainer)
  */
