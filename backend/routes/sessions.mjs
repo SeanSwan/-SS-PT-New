@@ -371,8 +371,13 @@ router.patch("/:id/confirm", protect, trainerOrAdminOnly, async (req, res) => {
  */
 router.patch("/:id/complete", protect, trainerOrAdminOnly, async (req, res) => {
   try {
-    const { notes } = req.body;
-    const result = await unifiedSessionService.completeSession(req.params.id, req.user, notes);
+    const { notes, trainerRating, clientFeedback, actualDuration } = req.body;
+    const result = await unifiedSessionService.completeSession(req.params.id, req.user, {
+      notes,
+      trainerRating,
+      clientFeedback,
+      actualDuration
+    });
     
     return res.status(200).json(result);
   } catch (error) {
@@ -393,10 +398,19 @@ router.patch("/:id/complete", protect, trainerOrAdminOnly, async (req, res) => {
       });
     }
     
-    if (error.message.includes('Only confirmed')) {
+    const rawMessage = typeof error === 'string' ? error : (error?.message || '');
+    const normalizedMessage = rawMessage.toLowerCase();
+    if (normalizedMessage.includes('only confirmed') || normalizedMessage.includes('only scheduled')) {
       return res.status(400).json({
         success: false,
-        message: error.message
+        message: rawMessage || error.message
+      });
+    }
+
+    if (normalizedMessage.includes('invalid')) {
+      return res.status(400).json({
+        success: false,
+        message: rawMessage || error.message
       });
     }
     

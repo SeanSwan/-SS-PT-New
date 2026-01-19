@@ -1335,16 +1335,27 @@ class UnifiedSessionService {
    * Mark a session as completed (admin/trainer only)
    * @param {string|number} sessionId - Session ID to complete
    * @param {Object} user - User completing the session
-   * @param {string} notes - Completion notes
+   * @param {Object} completionData - Completion details
    * @returns {Object} Completion result
    */
-  async completeSession(sessionId, user, notes = '') {
+  async completeSession(sessionId, user, completionData = {}) {
     // **CRITICAL: Role-based access control**
     if (user.role !== 'admin' && user.role !== 'trainer') {
       throw new Error('Admin or trainer privileges required to complete sessions');
     }
 
     try {
+      const normalizedData = typeof completionData === 'string'
+        ? { notes: completionData }
+        : (completionData || {});
+
+      const {
+        notes,
+        trainerRating,
+        clientFeedback,
+        actualDuration
+      } = normalizedData;
+
       // Find the session with related data
       const session = await this.Session.findByPk(sessionId, {
         include: [
@@ -1374,15 +1385,42 @@ class UnifiedSessionService {
       if (session.status !== 'confirmed' && session.status !== 'scheduled') {
         throw new Error('Only confirmed or scheduled sessions can be completed');
       }
+
+      if (trainerRating !== undefined) {
+        const ratingValue = Number(trainerRating);
+        if (!Number.isFinite(ratingValue) || ratingValue < 1 || ratingValue > 5) {
+          throw new Error('Invalid trainer rating (must be 1-5)');
+        }
+      }
+
+      if (actualDuration !== undefined) {
+        const durationValue = Number(actualDuration);
+        if (!Number.isFinite(durationValue) || durationValue <= 0) {
+          throw new Error('Invalid actual duration');
+        }
+      }
       
       // Update the session
       session.status = 'completed';
-      session.completedBy = user.id;
-      session.completionDate = new Date();
-      
-      // Add private notes if provided
-      if (notes) {
-        session.privateNotes = notes;
+
+      if (typeof notes === 'string' && notes.trim()) {
+        session.notes = notes.trim();
+      }
+
+      if (trainerRating !== undefined) {
+        session.rating = Math.round(Number(trainerRating));
+      }
+
+      if (typeof clientFeedback === 'string') {
+        const trimmedFeedback = clientFeedback.trim();
+        if (trimmedFeedback) {
+          session.feedback = trimmedFeedback;
+          session.feedbackProvided = true;
+        }
+      }
+
+      if (actualDuration !== undefined) {
+        session.duration = Math.round(Number(actualDuration));
       }
       
       await session.save();

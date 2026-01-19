@@ -11,6 +11,7 @@ import styled from 'styled-components';
 import RecurringSessionModal from './RecurringSessionModal';
 import BlockedTimeModal from './BlockedTimeModal';
 import NotificationPreferencesModal from './NotificationPreferencesModal';
+import SessionDetailModal from './SessionDetailModal';
 import { useSessionCredits } from './hooks/useSessionCredits';
 
 // Custom UI Components (MUI replacements)
@@ -78,6 +79,11 @@ interface Session {
   status: string;
   location?: string;
   notes?: string;
+  reason?: string;
+  userId?: number;
+  trainerId?: number;
+  rating?: number | null;
+  feedback?: string | null;
   clientName?: string;
   trainerName?: string;
   isRecurring?: boolean;
@@ -111,6 +117,8 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const [showBlockedDialog, setShowBlockedDialog] = useState(false);
   const [showNotificationDialog, setShowNotificationDialog] = useState(false);
   const [showBookingDialog, setShowBookingDialog] = useState(false);
+  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [detailSession, setDetailSession] = useState<Session | null>(null);
   const [bookingTarget, setBookingTarget] = useState<Session | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
@@ -284,6 +292,11 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     setBookingTarget(session);
     setBookingError(null);
     setShowBookingDialog(true);
+  };
+
+  const openDetailDialog = (session: Session) => {
+    setDetailSession(session);
+    setShowDetailDialog(true);
   };
 
   const handleBookSession = async () => {
@@ -610,11 +623,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                           openBookingDialog(session);
                           return;
                         }
-                        const statusLabel = session.isBlocked
-                          ? 'Blocked'
-                          : session.status;
-                        const displayName = session.clientName || session.trainerName || 'Available';
-                        alert(`Session: ${displayName}\nStatus: ${statusLabel}\nTime: ${new Date(session.sessionDate).toLocaleTimeString()}\nDuration: ${session.duration} min`);
+                        openDetailDialog(session);
                       }}
                     >
                       {(session.isBlocked || session.isRecurring) && (
@@ -803,6 +812,13 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         open={showNotificationDialog}
         onClose={() => setShowNotificationDialog(false)}
         onSuccess={() => undefined}
+      />
+      <SessionDetailModal
+        session={detailSession}
+        open={showDetailDialog}
+        mode={mode}
+        onClose={() => setShowDetailDialog(false)}
+        onUpdated={fetchSessions}
       />
     </ScheduleContainer>
   );
