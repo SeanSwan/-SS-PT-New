@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GalaxySections.tsx
  * ==================
  * 
@@ -12,6 +12,8 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../../hooks/useAuth';
 import { useCurrentWorkout } from '../../hooks/useCurrentWorkout';
 import { useNutritionPlan } from '../../hooks/useNutritionPlan';
+import { useWorkoutHistory } from '../../hooks/useWorkoutHistory';
+import { useClientStats } from '../../hooks/useClientStats';
 
 // Add missing pulse animation
 const pulse = keyframes`
@@ -52,7 +54,7 @@ const SectionTitle = styled.h2`
   gap: 0.5rem;
   
   &::before {
-    content: '✦';
+    content: 'âœ¦';
     color: #ffd700;
     animation: pulse 2s infinite;
   }
@@ -163,7 +165,7 @@ export const WorkoutUniverse: React.FC = () => {
           }}>
             <h3 style={{ margin: '0 0 1rem 0' }}>{workout.name}</h3>
             <p style={{ margin: '0 0 1rem 0', opacity: 0.9 }}>
-              {workout.duration} • {workout.days?.[0]?.exercises?.length || 0} exercises • {workout.difficulty ? `Level ${workout.difficulty}` : 'Custom'}
+              {workout.duration} â€¢ {workout.days?.[0]?.exercises?.length || 0} exercises â€¢ {workout.difficulty ? `Level ${workout.difficulty}` : 'Custom'}
             </p>
             {workout.description && (
               <p style={{ margin: '0 0 1rem 0', opacity: 0.8, fontSize: '0.9rem' }}>
@@ -534,7 +536,7 @@ export const PersonalStarmap: React.FC = () => (
           JD
         </div>
         <h3 style={{ margin: '0 0 0.5rem 0', color: '#00ffff' }}>John Doe</h3>
-        <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.7)' }}>Fitness Enthusiast • Level 8</p>
+        <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.7)' }}>Fitness Enthusiast â€¢ Level 8</p>
       </div>
       
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
@@ -595,21 +597,21 @@ export const PersonalizedVideoHub: React.FC = () => (
             title: 'Personal Training Sessions',
             trainer: 'Coach Sarah',
             duration: '45 min',
-            thumbnail: '🎯',
+            thumbnail: 'ðŸŽ¯',
             type: 'Assigned'
           },
           {
             title: 'Advanced Squat Technique',
             trainer: 'Coach Mike',
             duration: '12 min',
-            thumbnail: '🏋️',
+            thumbnail: 'ðŸ‹ï¸',
             type: 'Recommended'
           },
           {
             title: 'Nutrition Masterclass',
             trainer: 'Dr. Emma',
             duration: '28 min',
-            thumbnail: '🥗',
+            thumbnail: 'ðŸ¥—',
             type: 'AI Suggested'
           }
         ].map((video, index) => (
@@ -701,6 +703,40 @@ export const LogsAndTrackers: React.FC = () => {
   const { user } = useAuth();
   const userId = user?.id;
   const { data: nutritionPlan, isLoading: nutritionLoading } = useNutritionPlan(userId);
+  const {
+    data: workoutHistory,
+    isLoading: historyLoading,
+    error: historyError
+  } = useWorkoutHistory(userId, 3);
+  const { data: clientStats } = useClientStats(userId);
+
+  const formatLogDate = (value?: string) => {
+    if (!value) {
+      return 'Unknown';
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const targetStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diffDays = Math.round((todayStart.getTime() - targetStart.getTime()) / 86400000);
+    if (diffDays === 0) {
+      return 'Today';
+    }
+    if (diffDays === 1) {
+      return 'Yesterday';
+    }
+    return date.toLocaleDateString();
+  };
+
+  const totalWorkoutsValue =
+    typeof clientStats?.totalWorkouts === 'number' ? String(clientStats.totalWorkouts) : 'â€”';
+  const sleepAvgValue =
+    typeof clientStats?.sleepAvg === 'number' ? clientStats.sleepAvg.toFixed(1) : 'â€”';
+  const goalConsistencyValue =
+    typeof clientStats?.goalConsistency === 'number' ? `${clientStats.goalConsistency}%` : 'â€”';
 
   // Calculate nutrition progress
   const dailyCalories = nutritionPlan?.dailyCalories || 2500;
@@ -727,31 +763,67 @@ export const LogsAndTrackers: React.FC = () => {
               <Activity size={20} /> Workout Logs
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {[
-                { exercise: 'Chest Press', sets: '4x12', weight: '135 lbs', date: 'Today' },
-                { exercise: 'Squats', sets: '3x15', weight: '185 lbs', date: 'Yesterday' },
-                { exercise: 'Deadlifts', sets: '5x5', weight: '225 lbs', date: '2 days ago' }
-              ].map((log, index) => (
+              {historyLoading ? (
                 <div
-                  key={index}
                   style={{
                     background: 'rgba(0, 255, 255, 0.05)',
                     borderRadius: '8px',
                     padding: '1rem',
-                    border: '1px solid rgba(0, 255, 255, 0.1)'
+                    textAlign: 'center',
+                    border: '1px solid rgba(0, 255, 255, 0.1)',
+                    color: 'rgba(255, 255, 255, 0.7)'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <h5 style={{ margin: 0, color: '#fff' }}>{log.exercise}</h5>
-                      <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>
-                        {log.sets} @ {log.weight}
-                      </p>
-                    </div>
-                    <span style={{ color: '#ffd700', fontSize: '0.8rem' }}>{log.date}</span>
-                  </div>
+                  <Loader size={20} style={{ animation: 'spin 1s linear infinite' }} />
+                  <p style={{ margin: '0.5rem 0 0 0' }}>Loading workout history...</p>
                 </div>
-              ))}
+              ) : historyError ? (
+                <div
+                  style={{
+                    background: 'rgba(255, 107, 107, 0.1)',
+                    borderRadius: '8px',
+                    padding: '1rem',
+                    border: '1px solid rgba(255, 107, 107, 0.2)',
+                    color: '#ff6b6b'
+                  }}
+                >
+                  {historyError}
+                </div>
+              ) : workoutHistory && workoutHistory.length > 0 ? (
+                workoutHistory.map((log) => (
+                  <div
+                    key={log.id}
+                    style={{
+                      background: 'rgba(0, 255, 255, 0.05)',
+                      borderRadius: '8px',
+                      padding: '1rem',
+                      border: '1px solid rgba(0, 255, 255, 0.1)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <h5 style={{ margin: 0, color: '#fff' }}>{log.name || 'Workout'}</h5>
+                        <p style={{ margin: 0, color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem' }}>
+                          {log.duration || `${log.exercises || 0} exercises`}
+                        </p>
+                      </div>
+                      <span style={{ color: '#ffd700', fontSize: '0.8rem' }}>{formatLogDate(log.date)}</span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div
+                  style={{
+                    background: 'rgba(0, 255, 255, 0.05)',
+                    borderRadius: '8px',
+                    padding: '1rem',
+                    border: '1px solid rgba(0, 255, 255, 0.1)',
+                    color: 'rgba(255, 255, 255, 0.7)'
+                  }}
+                >
+                  No workout history yet.
+                </div>
+              )}
             </div>
           </div>
 
@@ -836,22 +908,22 @@ export const LogsAndTrackers: React.FC = () => {
         </div>
 
         <StatGrid>
-          <StatCard whileHover={{ scale: 1.05 }}>
-            <span className="stat-value">156</span>
-            <div className="stat-label">Total Workouts</div>
-          </StatCard>
+            <StatCard whileHover={{ scale: 1.05 }}>
+              <span className="stat-value">{totalWorkoutsValue}</span>
+              <div className="stat-label">Total Workouts</div>
+            </StatCard>
           <StatCard whileHover={{ scale: 1.05 }}>
             <span className="stat-value">{nutritionPlan?.dailyCalories?.toLocaleString() || '—'}</span>
             <div className="stat-label">Daily Calorie Target</div>
           </StatCard>
-          <StatCard whileHover={{ scale: 1.05 }}>
-            <span className="stat-value">7.2</span>
-            <div className="stat-label">Hours Sleep Avg</div>
-          </StatCard>
-          <StatCard whileHover={{ scale: 1.05 }}>
-            <span className="stat-value">92%</span>
-            <div className="stat-label">Goal Consistency</div>
-          </StatCard>
+            <StatCard whileHover={{ scale: 1.05 }}>
+              <span className="stat-value">{sleepAvgValue}</span>
+              <div className="stat-label">Hours Sleep Avg</div>
+            </StatCard>
+            <StatCard whileHover={{ scale: 1.05 }}>
+              <span className="stat-value">{goalConsistencyValue}</span>
+              <div className="stat-label">Goal Consistency</div>
+            </StatCard>
         </StatGrid>
       </SectionCard>
     </motion.div>
@@ -932,7 +1004,7 @@ const PopularBadge = styled(motion.div)`
   box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
   
   &::before {
-    content: '⭐';
+    content: 'â­';
     margin-right: 0.5rem;
   }
 `;
@@ -980,7 +1052,7 @@ const FeatureList = styled.ul`
     gap: 0.75rem;
     
     &::before {
-      content: '✦';
+      content: 'âœ¦';
       color: #00ffff;
       font-size: 0.8rem;
       text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
@@ -1024,7 +1096,7 @@ const StatusIndicator = styled.div`
   gap: 0.5rem;
   
   &::before {
-    content: '●';
+    content: 'â—';
     color: #00ff88;
     font-size: 0.8rem;
     animation: ${pulse} 2s infinite;
@@ -1094,7 +1166,7 @@ export const PackageSubscription: React.FC = () => (
               fontSize: '2rem', 
               fontWeight: 'bold',
               textShadow: '0 0 15px rgba(0, 255, 255, 0.8)'
-            }}>∞</div>
+            }}>âˆž</div>
             <div style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.9rem' }}>Sessions Left</div>
           </div>
           <div style={{ textAlign: 'center' }}>
@@ -1240,3 +1312,4 @@ export const PackageSubscription: React.FC = () => (
     </SectionCard>
   </motion.div>
 );
+
