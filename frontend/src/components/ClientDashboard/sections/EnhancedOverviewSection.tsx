@@ -1,2 +1,166 @@
 /**
- * Enhanced Overview Section - GEMINI'S ARCHITECTURAL REFACTOR\n * =========================================================\n * Demonstrates the new component architecture with:\n * - OverviewPanel for metrics display\n * - ProgressChart for data visualization\n * - useClientData hook for data management\n * - Clean separation of concerns\n */\n\nimport React from 'react';\nimport styled from 'styled-components';\nimport { OverviewPanel, ProgressChart, useClientData } from '../';\n\nconst SectionContainer = styled.div`\n  display: flex;\n  flex-direction: column;\n  gap: 2rem;\n  padding: 1rem;\n`;\n\nconst GridContainer = styled.div`\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 2rem;\n  \n  @media (max-width: 768px) {\n    grid-template-columns: 1fr;\n  }\n`;\n\nconst LoadingSpinner = styled.div`\n  display: flex;\n  justify-content: center;\n  align-items: center;\n  height: 200px;\n  color: #00ffff;\n  font-size: 1.2rem;\n`;\n\nconst ErrorMessage = styled.div`\n  background: rgba(255, 65, 108, 0.1);\n  border: 1px solid rgba(255, 65, 108, 0.3);\n  border-radius: 10px;\n  padding: 1rem;\n  color: #ff416c;\n  text-align: center;\n`;\n\nconst EnhancedOverviewSection: React.FC = () => {\n  const { data, loading, error, refetch } = useClientData();\n\n  if (loading) {\n    return (\n      <SectionContainer>\n        <LoadingSpinner>\n          Loading your dashboard data...\n        </LoadingSpinner>\n      </SectionContainer>\n    );\n  }\n\n  if (error) {\n    return (\n      <SectionContainer>\n        <ErrorMessage>\n          {error}\n          <button \n            onClick={refetch}\n            style={{\n              marginLeft: '1rem',\n              background: 'transparent',\n              border: '1px solid #ff416c',\n              color: '#ff416c',\n              padding: '0.5rem 1rem',\n              borderRadius: '5px',\n              cursor: 'pointer'\n            }}\n          >\n            Retry\n          </button>\n        </ErrorMessage>\n      </SectionContainer>\n    );\n  }\n\n  if (!data) {\n    return (\n      <SectionContainer>\n        <ErrorMessage>\n          No data available\n        </ErrorMessage>\n      </SectionContainer>\n    );\n  }\n\n  // Transform data for components\n  const overviewMetrics = [\n    {\n      label: 'Total Workouts',\n      value: data.stats.totalWorkouts,\n      icon: '🏋️',\n      color: '#00ffff',\n      change: { value: 12, type: 'increase' as const }\n    },\n    {\n      label: 'Total Weight Lifted',\n      value: `${(data.stats.totalWeight / 1000).toFixed(1)}k lbs`,\n      icon: '💪',\n      color: '#ff416c',\n      change: { value: 8, type: 'increase' as const }\n    },\n    {\n      label: 'Average Intensity',\n      value: data.stats.averageIntensity.toFixed(1),\n      icon: '🔥',\n      color: '#4776e6',\n      change: { value: 3, type: 'increase' as const }\n    },\n    {\n      label: 'Current Streak',\n      value: `${data.stats.streakDays} days`,\n      icon: '⚡',\n      color: '#2ebf91',\n      change: { value: 5, type: 'increase' as const }\n    }\n  ];\n\n  const progressData = [\n    {\n      label: 'Weight Loss',\n      value: data.progress.weightLoss,\n      color: '#ff416c'\n    },\n    {\n      label: 'Strength Gain',\n      value: data.progress.strengthGain,\n      color: '#00ffff'\n    },\n    {\n      label: 'Endurance',\n      value: data.progress.enduranceImprovement,\n      color: '#2ebf91'\n    }\n  ];\n\n  const levelProgressData = [\n    {\n      label: 'Current Level',\n      value: data.profile.experiencePoints,\n      color: '#4776e6'\n    }\n  ];\n\n  return (\n    <SectionContainer>\n      {/* Main metrics overview */}\n      <OverviewPanel \n        title={`Welcome back, ${data.profile.name}! 🦢`}\n        metrics={overviewMetrics}\n      />\n      \n      {/* Progress charts */}\n      <GridContainer>\n        <ProgressChart\n          title=\"Fitness Progress (%)\"\n          data={progressData}\n          type=\"bar\"\n          maxValue={100}\n        />\n        <ProgressChart\n          title={`Level ${data.profile.level} Progress`}\n          data={levelProgressData}\n          type=\"circle\"\n          maxValue={3000}\n        />\n      </GridContainer>\n    </SectionContainer>\n  );\n};\n\nexport default EnhancedOverviewSection;"
+ * Enhanced Overview Section - GEMINI'S ARCHITECTURAL REFACTOR
+ * =========================================================
+ * Demonstrates the new component architecture with:
+ * - OverviewPanel for metrics display
+ * - ProgressChart for data visualization
+ * - useClientData hook for data management
+ * - Clean separation of concerns
+ */
+
+import React from 'react';
+import styled from 'styled-components';
+import { OverviewPanel, ProgressChart, useClientData } from '../';
+
+const SectionContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 1rem;
+`;
+
+const GridContainer = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const LoadingSpinner = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+  color: #00ffff;
+  font-size: 1.2rem;
+`;
+
+const ErrorMessage = styled.div`
+  background: rgba(255, 65, 108, 0.1);
+  border: 1px solid rgba(255, 65, 108, 0.3);
+  border-radius: 10px;
+  padding: 1rem;
+  color: #ff416c;
+  text-align: center;
+`;
+
+const RetryButton = styled.button`
+  margin-left: 1rem;
+  background: transparent;
+  border: 1px solid #ff416c;
+  color: #ff416c;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  cursor: pointer;
+`;
+
+const EnhancedOverviewSection: React.FC = () => {
+  const { data, loading, error, refetch } = useClientData();
+
+  if (loading) {
+    return (
+      <SectionContainer>
+        <LoadingSpinner>Loading your dashboard data...</LoadingSpinner>
+      </SectionContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <SectionContainer>
+        <ErrorMessage>
+          {error}
+          <RetryButton type="button" onClick={refetch}>
+            Retry
+          </RetryButton>
+        </ErrorMessage>
+      </SectionContainer>
+    );
+  }
+
+  if (!data) {
+    return (
+      <SectionContainer>
+        <ErrorMessage>No data available</ErrorMessage>
+      </SectionContainer>
+    );
+  }
+
+  const overviewMetrics = [
+    {
+      label: 'Total Workouts',
+      value: data.stats.totalWorkouts,
+      icon: 'W',
+      color: '#00ffff',
+      change: { value: 12, type: 'increase' as const },
+    },
+    {
+      label: 'Total Weight Lifted',
+      value: `${(data.stats.totalWeight / 1000).toFixed(1)}k lbs`,
+      icon: 'L',
+      color: '#ff416c',
+      change: { value: 8, type: 'increase' as const },
+    },
+    {
+      label: 'Average Intensity',
+      value: data.stats.averageIntensity.toFixed(1),
+      icon: 'I',
+      color: '#4776e6',
+      change: { value: 3, type: 'increase' as const },
+    },
+    {
+      label: 'Current Streak',
+      value: `${data.stats.streakDays} days`,
+      icon: 'S',
+      color: '#2ebf91',
+      change: { value: 5, type: 'increase' as const },
+    },
+  ];
+
+  const progressData = [
+    {
+      label: 'Weight Loss',
+      value: data.progress.weightLoss,
+      color: '#ff416c',
+    },
+    {
+      label: 'Strength Gain',
+      value: data.progress.strengthGain,
+      color: '#00ffff',
+    },
+    {
+      label: 'Endurance',
+      value: data.progress.enduranceImprovement,
+      color: '#2ebf91',
+    },
+  ];
+
+  const levelProgressData = [
+    {
+      label: 'Current Level',
+      value: data.profile.experiencePoints,
+      color: '#4776e6',
+    },
+  ];
+
+  return (
+    <SectionContainer>
+      <OverviewPanel title={`Welcome back, ${data.profile.name}!`} metrics={overviewMetrics} />
+
+      <GridContainer>
+        <ProgressChart title="Fitness Progress (%)" data={progressData} type="bar" maxValue={100} />
+        <ProgressChart
+          title={`Level ${data.profile.level} Progress`}
+          data={levelProgressData}
+          type="circle"
+          maxValue={3000}
+        />
+      </GridContainer>
+    </SectionContainer>
+  );
+};
+
+export default EnhancedOverviewSection;
