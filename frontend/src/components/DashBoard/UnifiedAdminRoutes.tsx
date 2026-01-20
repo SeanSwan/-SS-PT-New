@@ -30,6 +30,10 @@ import {
 
 import TrainerPermissionsManager from '../Admin/TrainerPermissionsManager';
 import ClientTrainerAssignments from '../Admin/ClientTrainerAssignments';
+import NutritionPlanBuilder from '../Admin/NutritionPlanBuilder';
+import WorkoutPlanBuilder from '../Admin/WorkoutPlanBuilder';
+import NotesManager from '../Admin/NotesManager';
+import PhotoManager from '../Admin/PhotoManager';
 import AdminSocialManagementView from './Pages/admin-dashboard/components/AdminSocialManagementView';
 import NASMCompliancePanel from './Pages/admin-dashboard/components/NASMCompliancePanel';
 import AdminExerciseCommandCenter from './Pages/admin-exercises';
@@ -68,6 +72,10 @@ const UnifiedAdminRoutes: React.FC = () => (
     <Route path="/client-management" element={<AdminClientProgressView />} />
     <Route path="/clients" element={wrap(<ClientsManagementSection />)} />
     <Route path="/client-onboarding" element={wrap(<ClientOnboardingWizard />)} />
+    <Route path="/admin/nutrition/:clientId?" element={wrap(<NutritionPlanBuilder />)} />
+    <Route path="/admin/workouts/:clientId?" element={wrap(<WorkoutPlanBuilder />)} />
+    <Route path="/admin/notes/:clientId?" element={wrap(<NotesManager />)} />
+    <Route path="/admin/photos/:clientId?" element={wrap(<PhotoManager />)} />
     <Route path="/packages" element={wrap(<PackagesManagementSection />)} />
     <Route path="/admin-sessions" element={<EnhancedAdminSessionsView />} />
     <Route path="/admin/master-schedule" element={wrap(<UniversalSchedule mode="admin" />)} />
