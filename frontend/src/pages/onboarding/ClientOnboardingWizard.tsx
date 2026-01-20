@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import styled, { keyframes } from "styled-components";
+import styled from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUniversalTheme } from "../../context/ThemeContext/UniversalThemeContext";
 import { useNavigate } from "react-router-dom";
 
-// Section imports
 import BasicInfo from "./components/BasicInfoSection";
 import HealthSection from "./components/HealthSection";
 import GoalsSection from "./components/GoalsSection";
@@ -15,35 +14,23 @@ import AICoachingSection from "./components/AICoachingSection";
 import PackageSection from "./components/PackageSection";
 import SummarySection from "./components/SummarySection";
 
-// Keyframes
-const shimmer = keyframes`
-  0% { background-position: -1000px 0; }
-  100% { background-position: 1000px 0; }
-`;
-
-const pulse = keyframes`
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-`;
-
-// Styled Components
-const WizardContainer = styled.div<{ $isDarkMode: boolean }>`
-  min-height: 100vh;
+const WizardContainer = styled.div<{ $isDarkMode: boolean; $embedded?: boolean }>`
+  min-height: ${(props) => (props.$embedded ? "auto" : "100vh")};
   background: ${(props) =>
-    props.$isDarkMode
+    props.$embedded
+      ? "transparent"
+      : props.$isDarkMode
       ? "linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f23 100%)"
       : "linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 50%, #bcccdc 100%)"};
-  padding: 2rem;
+  padding: ${(props) => (props.$embedded ? "0" : "2rem")};
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: ${(props) => (props.$embedded ? "stretch" : "center")};
 `;
 
 const WizardCard = styled(motion.div)<{ $isDarkMode: boolean }>`
   background: ${(props) =>
-    props.$isDarkMode
-      ? "rgba(20, 20, 40, 0.95)"
-      : "rgba(255, 255, 255, 0.95)"};
+    props.$isDarkMode ? "rgba(20, 20, 40, 0.95)" : "rgba(255, 255, 255, 0.95)"};
   border-radius: 24px;
   box-shadow: ${(props) =>
     props.$isDarkMode
@@ -77,7 +64,7 @@ const ProgressBar = styled(motion.div)<{ $isDarkMode: boolean }>`
   background: ${(props) =>
     props.$isDarkMode
       ? "linear-gradient(90deg, #00ffff, #00ccff, #0099ff)"
-      : "linear-gradient(90deg, #4CAF50, #45a049, #3d8b40)"};
+      : "linear-gradient(90deg, #4caf50, #45a049, #3d8b40)"};
   border-radius: 10px;
   box-shadow: 0 0 20px
     ${(props) => (props.$isDarkMode ? "rgba(0, 255, 255, 0.6)" : "rgba(76, 175, 80, 0.6)")};
@@ -104,25 +91,20 @@ const Step = styled.div<{ $active: boolean; $completed: boolean; $isDarkMode: bo
   font-size: 0.9rem;
   border: 2px solid
     ${(props) => {
-      if (props.$completed)
-        return props.$isDarkMode ? "#00ffff" : "#4CAF50";
-      if (props.$active) return props.$isDarkMode ? "#00ccff" : "#2196F3";
+      if (props.$completed) return props.$isDarkMode ? "#00ffff" : "#4caf50";
+      if (props.$active) return props.$isDarkMode ? "#00ccff" : "#2196f3";
       return props.$isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)";
     }};
   background: ${(props) => {
     if (props.$completed)
-      return props.$isDarkMode
-        ? "rgba(0, 255, 255, 0.2)"
-        : "rgba(76, 175, 80, 0.2)";
+      return props.$isDarkMode ? "rgba(0, 255, 255, 0.2)" : "rgba(76, 175, 80, 0.2)";
     if (props.$active)
-      return props.$isDarkMode
-        ? "rgba(0, 204, 255, 0.2)"
-        : "rgba(33, 150, 243, 0.2)";
+      return props.$isDarkMode ? "rgba(0, 204, 255, 0.2)" : "rgba(33, 150, 243, 0.2)";
     return "transparent";
   }};
   color: ${(props) => {
     if (props.$completed || props.$active)
-      return props.$isDarkMode ? "#00ffff" : "#2196F3";
+      return props.$isDarkMode ? "#00ffff" : "#2196f3";
     return props.$isDarkMode ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.4)";
   }};
   cursor: ${(props) => (props.$completed ? "pointer" : "default")};
@@ -243,7 +225,7 @@ const ErrorMessage = styled.div<{ $isDarkMode: boolean }>`
   gap: 0.75rem;
 
   &::before {
-    content: "⚠️";
+    content: "!";
     font-size: 1.2rem;
   }
 `;
@@ -341,8 +323,17 @@ const Value = styled.span<{ $isDarkMode: boolean }>`
   color: ${(props) => (props.$isDarkMode ? "#00ffff" : "#2196F3")};
 `;
 
-// Main Component
-const ClientOnboardingWizard: React.FC = () => {
+interface ClientOnboardingWizardProps {
+  embedded?: boolean;
+  onComplete?: (result: any) => void;
+  onCancel?: () => void;
+}
+
+const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
+  embedded = false,
+  onComplete,
+  onCancel,
+}) => {
   const { isDarkMode } = useUniversalTheme();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
@@ -389,6 +380,14 @@ const ClientOnboardingWizard: React.FC = () => {
     setFormData({ ...formData, ...sectionData });
   };
 
+  const handleExit = () => {
+    if (onCancel) {
+      onCancel();
+      return;
+    }
+    navigate("/");
+  };
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setError(null);
@@ -418,6 +417,9 @@ const ClientOnboardingWizard: React.FC = () => {
       } else {
         setSubmissionResult(data.data);
         setShowSuccessModal(true);
+        if (onComplete) {
+          onComplete(data.data);
+        }
       }
     } catch (err: any) {
       setError(err.message || "Network error. Please check your connection and try again.");
@@ -427,7 +429,7 @@ const ClientOnboardingWizard: React.FC = () => {
   };
 
   return (
-    <WizardContainer $isDarkMode={isDarkMode}>
+    <WizardContainer $isDarkMode={isDarkMode} $embedded={embedded}>
       <WizardCard
         $isDarkMode={isDarkMode}
         initial={{ opacity: 0, scale: 0.9 }}
@@ -458,7 +460,7 @@ const ClientOnboardingWizard: React.FC = () => {
               onClick={() => handleJumpToStep(index)}
               title={step.label}
             >
-              {index < currentStep ? "✓" : index + 1}
+              {index < currentStep ? "OK" : index + 1}
             </Step>
           ))}
         </StepIndicator>
@@ -481,10 +483,10 @@ const ClientOnboardingWizard: React.FC = () => {
           <Button
             $variant="secondary"
             $isDarkMode={isDarkMode}
-            onClick={handlePrev}
-            disabled={currentStep === 0 || isSubmitting}
+            onClick={currentStep === 0 ? handleExit : handlePrev}
+            disabled={isSubmitting}
           >
-            ← Previous
+            {currentStep === 0 ? "Cancel" : "Previous"}
           </Button>
           <Button
             $variant="primary"
@@ -496,7 +498,7 @@ const ClientOnboardingWizard: React.FC = () => {
               ? "Submitting..."
               : currentStep === steps.length - 1
               ? "Submit Onboarding"
-              : "Next →"}
+              : "Next"}
           </Button>
         </ButtonGroup>
       </WizardCard>
@@ -509,7 +511,9 @@ const ClientOnboardingWizard: React.FC = () => {
             exit={{ opacity: 0 }}
             onClick={() => {
               setShowSuccessModal(false);
-              navigate("/client-dashboard");
+              if (!onComplete) {
+                navigate("/client-dashboard");
+              }
             }}
           >
             <ModalContent
@@ -520,12 +524,10 @@ const ClientOnboardingWizard: React.FC = () => {
               transition={{ duration: 0.3 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <ModalTitle $isDarkMode={isDarkMode}>
-                Welcome to SwanStudios! 🎉
-              </ModalTitle>
+              <ModalTitle $isDarkMode={isDarkMode}>Welcome to SwanStudios!</ModalTitle>
 
               <ModalText $isDarkMode={isDarkMode}>
-                Your onboarding is complete! You've been assigned a Spirit Name:
+                Your onboarding is complete. You have been assigned a Spirit Name:
               </ModalText>
 
               <HighlightText $isDarkMode={isDarkMode}>
@@ -551,7 +553,7 @@ const ClientOnboardingWizard: React.FC = () => {
 
               <ModalText $isDarkMode={isDarkMode}>
                 {submissionResult.tempPassword
-                  ? "Please save your temporary password. You'll be asked to change it on first login."
+                  ? "Please save your temporary password. You will be asked to change it on first login."
                   : "Your login credentials have been sent to your email."}
               </ModalText>
 
@@ -560,11 +562,13 @@ const ClientOnboardingWizard: React.FC = () => {
                 $isDarkMode={isDarkMode}
                 onClick={() => {
                   setShowSuccessModal(false);
-                  navigate("/client-dashboard");
+                  if (!onComplete) {
+                    navigate("/client-dashboard");
+                  }
                 }}
                 style={{ marginTop: "1.5rem" }}
               >
-                Go to Dashboard →
+                Go to Dashboard
               </Button>
             </ModalContent>
           </ModalOverlay>

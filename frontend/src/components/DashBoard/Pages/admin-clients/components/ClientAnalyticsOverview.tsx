@@ -1,1 +1,89 @@
-/**\n * Client Analytics Overview - Quick Insights Panel\n * ==============================================\n * \n * Displays key client analytics and insights for admin dashboard\n * Provides quick overview of client metrics and trends\n */\n\nimport React from 'react';\nimport {\n  Card,\n  CardContent,\n  Typography,\n  Box,\n  LinearProgress,\n  Chip\n} from '@mui/material';\nimport {\n  TrendingUp,\n  TrendingDown,\n  People,\n  FitnessCenter,\n  AttachMoney\n} from '@mui/icons-material';\n\ninterface ClientAnalyticsOverviewProps {\n  stats: {\n    totalClients: number;\n    activeClients: number;\n    newThisMonth: number;\n    totalRevenue: number;\n    sessionsBooked: number;\n    averageSessionsPerClient: number;\n  };\n}\n\nconst ClientAnalyticsOverview: React.FC<ClientAnalyticsOverviewProps> = ({ stats }) => {\n  const retentionRate = stats.totalClients > 0 ? (stats.activeClients / stats.totalClients) * 100 : 0;\n  const revenuePerClient = stats.activeClients > 0 ? stats.totalRevenue / stats.activeClients : 0;\n  \n  return (\n    <Card sx={{ background: 'rgba(0,0,0,0.3)', color: 'white', height: 'fit-content' }}>\n      <CardContent>\n        <Typography variant=\"h6\" gutterBottom sx={{ color: 'white' }}>\n          Client Analytics Overview\n        </Typography>\n        \n        <Box sx={{ mb: 3 }}>\n          <Box display=\"flex\" justifyContent=\"space-between\" alignItems=\"center\" mb={1}>\n            <Typography variant=\"body2\" sx={{ color: 'rgba(255,255,255,0.7)' }}>\n              Client Retention Rate\n            </Typography>\n            <Typography variant=\"body2\" sx={{ color: '#10b981', fontWeight: 600 }}>\n              {retentionRate.toFixed(1)}%\n            </Typography>\n          </Box>\n          <LinearProgress \n            variant=\"determinate\" \n            value={retentionRate} \n            sx={{\n              backgroundColor: 'rgba(255,255,255,0.1)',\n              '& .MuiLinearProgress-bar': {\n                backgroundColor: '#10b981'\n              }\n            }}\n          />\n        </Box>\n        \n        <Box sx={{ mb: 3 }}>\n          <Typography variant=\"body2\" sx={{ color: 'rgba(255,255,255,0.7)', mb: 1 }}>\n            Revenue per Active Client\n          </Typography>\n          <Typography variant=\"h4\" sx={{ color: '#3b82f6' }}>\n            ${revenuePerClient.toFixed(0)}\n          </Typography>\n        </Box>\n        \n        <Box sx={{ mb: 3 }}>\n          <Typography variant=\"body2\" sx={{ color: 'rgba(255,255,255,0.7)', mb: 1 }}>\n            Average Sessions per Client\n          </Typography>\n          <Typography variant=\"h4\" sx={{ color: '#f59e0b' }}>\n            {stats.averageSessionsPerClient.toFixed(1)}\n          </Typography>\n        </Box>\n        \n        <Box display=\"flex\" gap={1} flexWrap=\"wrap\">\n          <Chip \n            icon={<People sx={{ fontSize: 16 }} />} \n            label={`${stats.newThisMonth} New`}\n            size=\"small\"\n            sx={{ background: 'rgba(59, 130, 246, 0.2)', color: 'white' }}\n          />\n          <Chip \n            icon={<FitnessCenter sx={{ fontSize: 16 }} />} \n            label={`${stats.sessionsBooked} Booked`}\n            size=\"small\"\n            sx={{ background: 'rgba(16, 185, 129, 0.2)', color: 'white' }}\n          />\n          <Chip \n            icon={<AttachMoney sx={{ fontSize: 16 }} />} \n            label={`$${stats.totalRevenue.toLocaleString()}`}\n            size=\"small\"\n            sx={{ background: 'rgba(139, 92, 246, 0.2)', color: 'white' }}\n          />\n        </Box>\n      </CardContent>\n    </Card>\n  );\n};\n\nexport default ClientAnalyticsOverview;
+import React from 'react';
+import styled from 'styled-components';
+import theme from '../../../../../theme/tokens';
+
+interface ClientAnalyticsOverviewProps {
+  stats: {
+    totalClients: number;
+    activeClients: number;
+    newThisMonth: number;
+    totalRevenue: number;
+    sessionsBooked: number;
+    averageSessionsPerClient: number;
+  };
+}
+
+const Card = styled.div`
+  background: rgba(12, 14, 24, 0.75);
+  border: 1px solid rgba(0, 255, 255, 0.18);
+  border-radius: 16px;
+  padding: ${theme.spacing.lg};
+  display: flex;
+  flex-direction: column;
+  gap: ${theme.spacing.md};
+`;
+
+const Title = styled.h3`
+  margin: 0;
+  color: ${theme.colors.brand.cyan};
+  font-size: ${theme.typography.scale.lg};
+`;
+
+const StatGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: ${theme.spacing.md};
+`;
+
+const Stat = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+`;
+
+const StatValue = styled.div`
+  font-size: ${theme.typography.scale.xl};
+  font-weight: ${theme.typography.weight.bold};
+  color: ${theme.colors.text.primary};
+`;
+
+const StatLabel = styled.div`
+  font-size: ${theme.typography.scale.sm};
+  color: ${theme.colors.text.secondary};
+`;
+
+const ClientAnalyticsOverview: React.FC<ClientAnalyticsOverviewProps> = ({ stats }) => {
+  return (
+    <Card>
+      <Title>Client Analytics Overview</Title>
+      <StatGrid>
+        <Stat>
+          <StatValue>{stats.totalClients}</StatValue>
+          <StatLabel>Total Clients</StatLabel>
+        </Stat>
+        <Stat>
+          <StatValue>{stats.activeClients}</StatValue>
+          <StatLabel>Active Clients</StatLabel>
+        </Stat>
+        <Stat>
+          <StatValue>{stats.newThisMonth}</StatValue>
+          <StatLabel>New This Month</StatLabel>
+        </Stat>
+        <Stat>
+          <StatValue>${stats.totalRevenue.toLocaleString()}</StatValue>
+          <StatLabel>Revenue</StatLabel>
+        </Stat>
+        <Stat>
+          <StatValue>{stats.sessionsBooked}</StatValue>
+          <StatLabel>Sessions Booked</StatLabel>
+        </Stat>
+        <Stat>
+          <StatValue>{stats.averageSessionsPerClient.toFixed(1)}</StatValue>
+          <StatLabel>Avg Sessions</StatLabel>
+        </Stat>
+      </StatGrid>
+    </Card>
+  );
+};
+
+export default ClientAnalyticsOverview;

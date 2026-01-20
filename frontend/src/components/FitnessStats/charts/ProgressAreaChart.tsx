@@ -1,1 +1,69 @@
-import React from 'react';\nimport styled from 'styled-components';\n\n// REMOVED RECHARTS IMPORTS FOR BUILD STABILITY\n// Charts temporarily replaced with placeholders - data collection still functional\n// import {\n//   Area,\n//   AreaChart,\n//   CartesianGrid,\n//   ResponsiveContainer,\n//   Tooltip,\n//   TooltipProps,\n//   XAxis,\n//   YAxis\n// } from 'recharts';\n// import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';\n\ninterface ProgressAreaChartProps {\n  data: any[];\n  height?: number;\n  xKey: string;\n  yKeys: {\n    key: string;\n    name: string;\n    color: string;\n    fillOpacity?: number;\n  }[];\n  title?: string;\n}\n\n// Chart placeholder component\nconst ChartPlaceholder = styled.div`\n  background: rgba(255, 255, 255, 0.02);\n  border-radius: 8px;\n  padding: 40px 20px;\n  border: 1px solid rgba(255, 255, 255, 0.05);\n  text-align: center;\n  color: rgba(255, 255, 255, 0.5);\n  font-style: italic;\n  min-height: 200px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  flex-direction: column;\n  \n  &::before {\n    content: '📊';\n    font-size: 3rem;\n    display: block;\n    margin-bottom: 1rem;\n  }\n`;\n\n/**\n * Progress Area Chart - PLACEHOLDER VERSION\n * Data collection still functional, visual chart temporarily unavailable\n */\nconst ProgressAreaChart: React.FC<ProgressAreaChartProps> = ({ \n  data, \n  height = 300, \n  xKey, \n  yKeys, \n  title \n}) => {\n  return (\n    <div style={{ width: '100%', height: `${height}px` }}>\n      <ChartPlaceholder>\n        {title || 'Progress Area Chart'}<br/>\n        Chart data available when recharts is restored<br/>\n        <small>({data?.length || 0} data points ready)</small>\n      </ChartPlaceholder>\n    </div>\n  );\n};\n\nexport default ProgressAreaChart;", "oldText": "import React from 'react';\nimport styled from 'styled-components';\n\n// REMOVED RECHARTS IMPORTS FOR BUILD STABILITY\n// Charts temporarily replaced with placeholders - data collection still functional\n// import {\n//   Area,\n//   AreaChart,\n//   CartesianGrid,\n//   ResponsiveContainer,\n//   Tooltip,\n//   TooltipProps,\n//   XAxis,\n//   YAxis\n// } from 'recharts';\n// import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';\n\ninterface ProgressAreaChartProps {\n  data: any[];\n  height?: number;\n  xKey: string;\n  yKeys: {\n    key: string;\n    name: string;\n    color: string;\n    fillOpacity?: number;\n  }[];\n  title?: string;\n}\n\n// Chart placeholder component\nconst ChartPlaceholder = styled.div`\n  background: rgba(255, 255, 255, 0.02);\n  border-radius: 8px;\n  padding: 40px 20px;\n  border: 1px solid rgba(255, 255, 255, 0.05);\n  text-align: center;\n  color: rgba(255, 255, 255, 0.5);\n  font-style: italic;\n  min-height: 200px;\n  display: flex;\n  align-items: center;\n  justify-content: center;\n  flex-direction: column;\n  \n  &::before {\n    content: '📊';\n    font-size: 3rem;\n    display: block;\n    margin-bottom: 1rem;\n  }\n`;\n\n/**\n * Custom tooltip for the progress area chart - PLACEHOLDER\n */\nconst CustomTooltip = ({ active, payload, label, yKeys }: any) => {\n  if (active && payload && payload.length) {\n    const data = payload[0].payload;\n    return (\n      <div className=\"bg-slate-800 p-3 border border-slate-600 rounded-lg shadow-lg\">\n        <p className=\"text-sm font-medium text-slate-200 mb-2\">{label}</p>\n        {yKeys.map((yKey: any, index: number) => {\n          const value = data[yKey.key];\n          if (value !== undefined) {\n            return (\n              <div key={yKey.key} className=\"flex items-center space-x-2\">\n                <div \n                  className=\"w-3 h-3 rounded-full\" \n                  style={{ backgroundColor: yKey.color }}\n                ></div>\n                <span className=\"text-xs text-slate-300\">\n                  {yKey.name}: <span className=\"text-slate-100 font-medium\">{value}</span>\n                </span>\n              </div>\n            );\n          }\n          return null;\n        })}\n      </div>\n    );\n  }\n  return null;\n};\n\n/**\n * Progress Area Chart component for displaying fitness progress over time\n */\nconst ProgressAreaChart: React.FC<ProgressAreaChartProps> = ({ \n  data, \n  height = 300, \n  xKey, \n  yKeys, \n  title \n}) => {\n  if (!data || data.length === 0) {\n    return (\n      <div className=\"flex items-center justify-center h-64 bg-slate-100 dark:bg-slate-800 rounded-lg\">\n        <p className=\"text-slate-500 dark:text-slate-400\">No data available</p>\n      </div>\n    );\n  }\n\n  return (\n    <div className=\"w-full\">\n      {title && (\n        <h3 className=\"text-lg font-semibold mb-4 text-slate-900 dark:text-slate-100\">\n          {title}\n        </h3>\n      )}\n      <ResponsiveContainer width=\"100%\" height={height}>\n        <AreaChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>\n          <defs>\n            {yKeys.map((yKey) => (\n              <linearGradient key={yKey.key} id={`gradient-${yKey.key}`} x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n                <stop offset=\"5%\" stopColor={yKey.color} stopOpacity={yKey.fillOpacity || 0.8} />\n                <stop offset=\"95%\" stopColor={yKey.color} stopOpacity={0} />\n              </linearGradient>\n            ))}\n          </defs>\n          <CartesianGrid strokeDasharray=\"3 3\" stroke=\"rgba(255,255,255,0.1)\" />\n          <XAxis \n            dataKey={xKey} \n            stroke=\"#888888\"\n            tick={{ fill: '#b0b0b0', fontSize: 12 }}\n          />\n          <YAxis \n            stroke=\"#888888\"\n            tick={{ fill: '#b0b0b0', fontSize: 12 }}\n          />\n          <Tooltip content={<CustomTooltip />} />\n          {yKeys.map((yKey) => (\n            <Area\n              key={yKey.key}\n              type=\"monotone\"\n              dataKey={yKey.key}\n              name={yKey.name}\n              stroke={yKey.color}\n              fillOpacity={yKey.fillOpacity || 0.3}\n              fill={`url(#gradient-${yKey.key})`}\n            />\n          ))}\n        </AreaChart>\n      </ResponsiveContainer>\n    </div>\n  );\n};\n\nexport default ProgressAreaChart;"}]
+import React from 'react';
+import styled from 'styled-components';
+
+interface ProgressAreaChartProps {
+  data: any[];
+  height?: number;
+  xKey: string;
+  yKeys: {
+    key: string;
+    name: string;
+    color: string;
+    fillOpacity?: number;
+  }[];
+  title?: string;
+}
+
+const ChartShell = styled.div`
+  background: rgba(12, 14, 24, 0.75);
+  border: 1px solid rgba(0, 255, 255, 0.18);
+  border-radius: 16px;
+  padding: 1.25rem;
+  color: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+`;
+
+const ChartTitle = styled.h3`
+  margin: 0 0 0.75rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #00ffff;
+`;
+
+const ChartPlaceholder = styled.div`
+  min-height: 180px;
+  border-radius: 12px;
+  border: 1px dashed rgba(0, 255, 255, 0.2);
+  background: rgba(0, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95rem;
+`;
+
+const MetaLine = styled.div`
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.55);
+`;
+
+const ProgressAreaChart: React.FC<ProgressAreaChartProps> = ({
+  data,
+  height = 300,
+  title
+}) => {
+  return (
+    <ChartShell style={{ minHeight: height }}>
+      {title && <ChartTitle>{title}</ChartTitle>}
+      <ChartPlaceholder>
+        <div>Chart visualization is temporarily unavailable.</div>
+        <MetaLine>{(data?.length ?? 0)} data points ready</MetaLine>
+      </ChartPlaceholder>
+    </ChartShell>
+  );
+};
+
+export default ProgressAreaChart;
