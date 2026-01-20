@@ -109,6 +109,7 @@ import clientWorkoutRoutes from '../routes/clientWorkoutRoutes.mjs';
 import clientNutritionRoutes from '../routes/clientNutritionRoutes.mjs';
 import clientPhotoRoutes from '../routes/clientPhotoRoutes.mjs';
 import clientNoteRoutes from '../routes/clientNoteRoutes.mjs';
+import statsRoutes from '../routes/statsRoutes.mjs';
 
 // ===================== ADVANCED INTEGRATIONS =====================
 import mcpRoutes from '../routes/mcpRoutes.mjs';
@@ -293,6 +294,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/nutrition', clientNutritionRoutes);   // GET /api/nutrition/:userId/current
   app.use('/api/photos', clientPhotoRoutes);          // GET /api/photos/:userId
   app.use('/api/notes', clientNoteRoutes);            // GET/POST /api/notes/:userId
+  app.use('/api/stats', statsRoutes);                 // GET /api/stats/:userId/summary
 
   // ===================== ADVANCED INTEGRATION ROUTES =====================
   app.use('/api/ai', aiRoutes);
