@@ -56,6 +56,10 @@ import PendingOrdersAdminPanel from './Pages/admin-dashboard/components/PendingO
 import ClientManagementDashboard from './Pages/admin-clients/ClientManagementDashboard';
 import EnhancedAdminClientManagementView from './Pages/admin-clients/EnhancedAdminClientManagementView';
 import ClientOnboardingWizard from './Pages/admin-clients/components/ClientOnboardingWizard';
+import NutritionPlanBuilder from '../Admin/NutritionPlanBuilder';
+import WorkoutPlanBuilder from '../Admin/WorkoutPlanBuilder';
+import NotesManager from '../Admin/NotesManager';
+import PhotoManager from '../Admin/PhotoManager';
 
 // 🏢 COMPREHENSIVE DATA MANAGEMENT: Import Enhanced User & Trainer Management
 import EnhancedUserDataManagement from './Pages/admin-users/EnhancedUserDataManagement';
@@ -369,6 +373,10 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/client-details', component: EnhancedAdminClientManagementView, title: 'Advanced Client Management', description: 'Detailed client management interface' },
       { path: '/client-onboarding', component: ClientOnboardingWizard, title: 'Client Onboarding', description: 'New client data collection workflow' },
       { path: '/client-progress-tracking', component: AdminClientProgressView, title: 'Client Progress Analytics', description: 'Client progress monitoring & analytics' },
+      { path: '/nutrition/:clientId?', component: NutritionPlanBuilder, title: 'Nutrition Plan Builder', description: 'Create and update client nutrition plans' },
+      { path: '/workouts/:clientId?', component: WorkoutPlanBuilder, title: 'Workout Plan Builder', description: 'Build client-specific workout plans' },
+      { path: '/notes/:clientId?', component: NotesManager, title: 'Client Notes Manager', description: 'Manage trainer notes and observations' },
+      { path: '/photos/:clientId?', component: PhotoManager, title: 'Client Photo Manager', description: 'Upload and organize progress photos' },
       
       // 🚀 UNIFIED DATA COLLECTION SYSTEM
       { path: '/unified-onboarding', component: UnifiedOnboardingWizard, title: 'Unified Onboarding', description: 'Complete data collection for all user types' },
