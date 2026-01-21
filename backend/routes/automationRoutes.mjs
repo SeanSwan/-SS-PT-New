@@ -12,7 +12,8 @@ import { getAllModels } from '../models/index.mjs';
 import {
   ensureDefaultSequences,
   triggerSequence,
-  cancelSequence
+  cancelSequence,
+  processScheduledMessages
 } from '../services/automationService.mjs';
 
 const router = express.Router();
@@ -261,6 +262,27 @@ router.post('/cancel', protect, adminOnly, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Failed to cancel automation sequence',
+      error: normalizeError(error)
+    });
+  }
+});
+
+/**
+ * POST /api/automation/process
+ * Manually process pending automation messages (admin only).
+ */
+router.post('/process', protect, adminOnly, async (_req, res) => {
+  try {
+    const result = await processScheduledMessages();
+    return res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    logger.error('Error processing automation messages:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to process automation messages',
       error: normalizeError(error)
     });
   }
