@@ -34,6 +34,8 @@ import NutritionPlanBuilder from '../Admin/NutritionPlanBuilder';
 import WorkoutPlanBuilder from '../Admin/WorkoutPlanBuilder';
 import NotesManager from '../Admin/NotesManager';
 import PhotoManager from '../Admin/PhotoManager';
+import AutomationManager from '../Admin/AutomationManager';
+import SMSLogsPanel from '../Admin/SMSLogsPanel';
 import AdminSocialManagementView from './Pages/admin-dashboard/components/AdminSocialManagementView';
 import NASMCompliancePanel from './Pages/admin-dashboard/components/NASMCompliancePanel';
 import AdminExerciseCommandCenter from './Pages/admin-exercises';
@@ -76,6 +78,8 @@ const UnifiedAdminRoutes: React.FC = () => (
     <Route path="/admin/workouts/:clientId?" element={wrap(<WorkoutPlanBuilder />)} />
     <Route path="/admin/notes/:clientId?" element={wrap(<NotesManager />)} />
     <Route path="/admin/photos/:clientId?" element={wrap(<PhotoManager />)} />
+    <Route path="/admin/automation" element={wrap(<AutomationManager />)} />
+    <Route path="/admin/sms-logs" element={wrap(<SMSLogsPanel />)} />
     <Route path="/packages" element={wrap(<PackagesManagementSection />)} />
     <Route path="/admin-sessions" element={<EnhancedAdminSessionsView />} />
     <Route path="/admin/master-schedule" element={wrap(<UniversalSchedule mode="admin" />)} />

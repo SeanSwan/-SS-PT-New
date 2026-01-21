@@ -60,6 +60,8 @@ import NutritionPlanBuilder from '../Admin/NutritionPlanBuilder';
 import WorkoutPlanBuilder from '../Admin/WorkoutPlanBuilder';
 import NotesManager from '../Admin/NotesManager';
 import PhotoManager from '../Admin/PhotoManager';
+import AutomationManager from '../Admin/AutomationManager';
+import SMSLogsPanel from '../Admin/SMSLogsPanel';
 
 // 🏢 COMPREHENSIVE DATA MANAGEMENT: Import Enhanced User & Trainer Management
 import EnhancedUserDataManagement from './Pages/admin-users/EnhancedUserDataManagement';
@@ -377,6 +379,8 @@ const roleConfigurations: Record<string, RoleConfig> = {
       { path: '/workouts/:clientId?', component: WorkoutPlanBuilder, title: 'Workout Plan Builder', description: 'Build client-specific workout plans' },
       { path: '/notes/:clientId?', component: NotesManager, title: 'Client Notes Manager', description: 'Manage trainer notes and observations' },
       { path: '/photos/:clientId?', component: PhotoManager, title: 'Client Photo Manager', description: 'Upload and organize progress photos' },
+      { path: '/automation', component: AutomationManager, title: 'Automation Manager', description: 'Manage automated client outreach sequences' },
+      { path: '/sms-logs', component: SMSLogsPanel, title: 'SMS Logs', description: 'Monitor outbound SMS delivery' },
       
       // 🚀 UNIFIED DATA COLLECTION SYSTEM
       { path: '/unified-onboarding', component: UnifiedOnboardingWizard, title: 'Unified Onboarding', description: 'Complete data collection for all user types' },

@@ -38,6 +38,7 @@ import sequelize from '../../database.mjs';
 import moment from 'moment';
 import rrulePkg from 'rrule';
 import { v4 as uuidv4 } from 'uuid';
+import { triggerSequence } from '../automationService.mjs';
 
 // Import Real-Time Schedule Service for WebSocket broadcasting
 import realTimeScheduleService from '../realTimeScheduleService.mjs';
@@ -1587,6 +1588,26 @@ class UnifiedSessionService {
 
       // Send completion notifications (async)
       this.sendCompletionNotifications(session);
+
+      if (session.userId) {
+        const clientName = session.client
+          ? `${session.client.firstName || ''} ${session.client.lastName || ''}`.trim()
+          : 'Client';
+        const trainerName = session.trainer
+          ? `${session.trainer.firstName || ''} ${session.trainer.lastName || ''}`.trim()
+          : '';
+        const timeLabel = session.sessionDate ? new Date(session.sessionDate).toLocaleString() : '';
+
+        try {
+          await triggerSequence('session_completed', session.userId, {
+            clientName,
+            trainerName,
+            time: timeLabel
+          });
+        } catch (sequenceError) {
+          logger.warn('[UnifiedSessionService] Automation trigger failed:', sequenceError);
+        }
+      }
 
       // Format response
       const sessionData = session.get({ plain: true });
