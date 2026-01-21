@@ -76,10 +76,11 @@ import { swanStudiosTheme } from './core';
 import { initializeCosmicPerformance } from './utils/cosmicPerformanceOptimizer';
 
 // Custom shouldForwardProp function to filter out props that cause warnings
-const shouldForwardProp = (prop) => {
+const shouldForwardProp = (prop: string, defaultValidatorFn?: (prop: string) => boolean) => {
   // Filter out common styling props that shouldn't be forwarded to DOM
   const nonDOMProps = ['variants', 'sx', 'as', 'theme', 'variant'];
-  return !nonDOMProps.includes(prop);
+  const isValidProp = defaultValidatorFn ? defaultValidatorFn(prop) : true;
+  return isValidProp && !nonDOMProps.includes(prop);
 };
 
 // Create React Query client

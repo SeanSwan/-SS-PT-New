@@ -86,6 +86,8 @@ const setupAssociations = async () => {
     const ClientNutritionPlanModule = await import('./ClientNutritionPlan.mjs');
     const ClientPhotoModule = await import('./ClientPhoto.mjs');
     const ClientNoteModule = await import('./ClientNote.mjs');
+    const AutomationSequenceModule = await import('./AutomationSequence.mjs');
+    const AutomationLogModule = await import('./AutomationLog.mjs');
 
     console.log('Extracting Sequelize models...');
     
@@ -160,6 +162,8 @@ const setupAssociations = async () => {
     const ClientNutritionPlan = ClientNutritionPlanModule.default;
     const ClientPhoto = ClientPhotoModule.default;
     const ClientNote = ClientNoteModule.default;
+    const AutomationSequence = AutomationSequenceModule.default;
+    const AutomationLog = AutomationLogModule.default;
 
     console.log('Setting up Sequelize associations only...');
     
@@ -216,7 +220,8 @@ const setupAssociations = async () => {
         Orientation, Notification, NotificationSettings, AdminSettings, Contact,
       FinancialTransaction, BusinessMetrics, AdminNotification,
         ClientTrainerAssignment, TrainerPermissions, DailyWorkoutForm, ClientOnboardingQuestionnaire,
-        ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote
+        ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote,
+        AutomationSequence, AutomationLog
       };
     }
     
@@ -431,6 +436,13 @@ const setupAssociations = async () => {
     Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     User.hasMany(Notification, { foreignKey: 'senderId', as: 'sentNotifications' });
     Notification.belongsTo(User, { foreignKey: 'senderId', as: 'sender' });
+
+    // AUTOMATION ASSOCIATIONS
+    // =======================
+    AutomationSequence.hasMany(AutomationLog, { foreignKey: 'sequenceId', as: 'logs' });
+    AutomationLog.belongsTo(AutomationSequence, { foreignKey: 'sequenceId', as: 'sequence' });
+    User.hasMany(AutomationLog, { foreignKey: 'userId', as: 'automationLogs' });
+    AutomationLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     
     // CONTACT ASSOCIATIONS
     // ===================
@@ -633,7 +645,9 @@ const setupAssociations = async () => {
       ClientBaselineMeasurements,
       ClientNutritionPlan,
       ClientPhoto,
-      ClientNote
+      ClientNote,
+      AutomationSequence,
+      AutomationLog
     };
   } catch (error) {
     console.error('❌ Error setting up Sequelize model associations:', error);

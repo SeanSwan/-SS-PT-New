@@ -45,6 +45,8 @@ import financialRoutes from '../routes/financialRoutes.mjs';
 import contactRoutes from '../routes/contactRoutes.mjs';
 import messagingRoutes from '../routes/messagingRoutes.mjs';
 import notificationsApiRoutes from '../routes/notificationRoutes.mjs';
+import smsRoutes from '../routes/smsRoutes.mjs';
+import automationRoutes from '../routes/automationRoutes.mjs';
 
 // ===================== FITNESS & WELLNESS =====================
 import workoutRoutes from '../routes/workoutRoutes.mjs';
@@ -211,6 +213,8 @@ export const setupRoutes = async (app) => {
   app.use('/api/contact', contactRoutes);
   app.use('/api/messaging', messagingRoutes);
   app.use('/api/notifications', notificationsApiRoutes);
+  app.use('/api/sms', smsRoutes);
+  app.use('/api/automation', automationRoutes);
 
   // ===================== FITNESS & WELLNESS ROUTES =====================
   app.use('/api/workout', workoutRoutes);

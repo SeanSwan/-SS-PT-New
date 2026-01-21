@@ -25,6 +25,11 @@
   "exclude": [
     "node_modules",
     "dist",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.stories.tsx",
+    "**/*.spec.ts",
+    "src/tests/**",
     "**/*.backup.*",
     "**/*-backup.*",
     "**/*-BACKUP.*",

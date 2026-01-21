@@ -1,6 +1,7 @@
 // backend/controllers/onboardingController.mjs
 import User from '../models/User.mjs';
 import sequelize from '../database.mjs';
+import { triggerSequence } from '../services/automationService.mjs';
 
 /**
  * Onboarding Controller
@@ -346,6 +347,14 @@ export const createClientOnboarding = async (req, res) => {
           createdBy: req.user?.id || null
         }
       });
+
+      try {
+        await triggerSequence('client_created', user.id, {
+          clientName: formData.fullName
+        });
+      } catch (sequenceError) {
+        console.error('[Onboarding Controller] Automation trigger failed:', sequenceError);
+      }
 
       return res.status(201).json({
         success: true,

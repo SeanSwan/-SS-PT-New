@@ -142,6 +142,8 @@ export const getClientTrainerAssignment = () => getModel('ClientTrainerAssignmen
 export const getTrainerPermissions = () => getModel('TrainerPermissions');
 export const getDailyWorkoutForm = () => getModel('DailyWorkoutForm');
 export const getAdminSettings = () => getModel('AdminSettings');
+export const getAutomationSequence = () => getModel('AutomationSequence');
+export const getAutomationLog = () => getModel('AutomationLog');
 
 // Export Sequelize operators for routes
 export { Op };
