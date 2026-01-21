@@ -36,6 +36,9 @@ import NotesManager from '../Admin/NotesManager';
 import PhotoManager from '../Admin/PhotoManager';
 import AutomationManager from '../Admin/AutomationManager';
 import SMSLogsPanel from '../Admin/SMSLogsPanel';
+import PricingSheetViewer from '../Admin/PricingSheetViewer';
+import SalesScriptViewer from '../Admin/SalesScriptViewer';
+import LaunchChecklist from '../Admin/LaunchChecklist';
 import AdminSocialManagementView from './Pages/admin-dashboard/components/AdminSocialManagementView';
 import NASMCompliancePanel from './Pages/admin-dashboard/components/NASMCompliancePanel';
 import AdminExerciseCommandCenter from './Pages/admin-exercises';
@@ -80,6 +83,9 @@ const UnifiedAdminRoutes: React.FC = () => (
     <Route path="/admin/photos/:clientId?" element={wrap(<PhotoManager />)} />
     <Route path="/admin/automation" element={wrap(<AutomationManager />)} />
     <Route path="/admin/sms-logs" element={wrap(<SMSLogsPanel />)} />
+    <Route path="/admin/pricing-sheet" element={wrap(<PricingSheetViewer />)} />
+    <Route path="/admin/sales-scripts" element={wrap(<SalesScriptViewer />)} />
+    <Route path="/admin/launch-checklist" element={wrap(<LaunchChecklist />)} />
     <Route path="/packages" element={wrap(<PackagesManagementSection />)} />
     <Route path="/admin-sessions" element={<EnhancedAdminSessionsView />} />
     <Route path="/admin/master-schedule" element={wrap(<UniversalSchedule mode="admin" />)} />

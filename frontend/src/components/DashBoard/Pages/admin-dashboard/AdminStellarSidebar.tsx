@@ -837,6 +837,7 @@ const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
   Settings,
   Grid,
   Zap,
+  CheckSquare,
 };
 
 const getIconNode = (iconName: string) => {
