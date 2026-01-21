@@ -1,8 +1,8 @@
-# 🚀 Render Production Deployment Checklist
+﻿# ðŸš€ Render Production Deployment Checklist
 
-## ⚠️ **CRITICAL: Environment Variables Required in Render Dashboard**
+## âš ï¸ **CRITICAL: Environment Variables Required in Render Dashboard**
 
-### **🔐 Required Environment Variables**
+### **ðŸ” Required Environment Variables**
 These MUST be set in your Render service's Environment tab:
 
 ```bash
@@ -29,15 +29,15 @@ ENABLE_MCP_HEALTH_ALERTS=false
 ENABLE_MCP_SERVICES=false
 ```
 
-### **🔑 How to Generate a Strong JWT_SECRET**
+### **ðŸ”‘ How to Generate a Strong JWT_SECRET**
 Run this in your terminal to generate a secure key:
 ```bash
 node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 ```
 
-### **📋 Deployment Steps**
+### **ðŸ“‹ Deployment Steps**
 
-1. **Fix CORS Issues** ✅
+1. **Fix CORS Issues** âœ…
    - Removed conflicting static CORS headers from render.yaml
    - Express now handles CORS dynamically
 
@@ -52,14 +52,14 @@ node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
    - DATABASE_URL should be automatically set by Render
 
 4. **Test Health Endpoint**
-   - After deployment, test: `https://ss-pt.onrender.com/health`
+   - After deployment, test: `https://ss-pt-new.onrender.com/health`
    - Should return `{ "success": true, "status": "healthy" }`
 
 5. **Test CORS**
    - Frontend should now be able to connect to backend
    - No more "blocked by CORS policy" errors
 
-### **🔍 Troubleshooting**
+### **ðŸ” Troubleshooting**
 
 #### If health check still fails:
 1. Check Render service logs for startup errors
@@ -69,29 +69,29 @@ node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
 #### If CORS still blocks:
 1. Verify FRONTEND_ORIGINS includes your exact domain
 2. Check that no static CORS headers are conflicting
-3. Ensure frontend is using https://ss-pt.onrender.com correctly
+3. Ensure frontend is using https://ss-pt-new.onrender.com correctly
 
 #### If database connection fails:
 1. Check that DATABASE_URL is set by Render
 2. Verify PostgreSQL service is running
 3. Check database service logs in Render
 
-### **📊 Testing Commands**
+### **ðŸ“Š Testing Commands**
 
 After deployment, test these endpoints:
 
 ```bash
 # Basic health check
-curl https://ss-pt.onrender.com/health
+curl https://ss-pt-new.onrender.com/health
 
 # Detailed health check
-curl https://ss-pt.onrender.com/api/health/simple
+curl https://ss-pt-new.onrender.com/api/health/simple
 
 # CORS test from your domain
-curl -H "Origin: https://sswanstudios.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: X-Requested-With" -X OPTIONS https://ss-pt.onrender.com/health
+curl -H "Origin: https://sswanstudios.com" -H "Access-Control-Request-Method: GET" -H "Access-Control-Request-Headers: X-Requested-With" -X OPTIONS https://ss-pt-new.onrender.com/health
 ```
 
-### **⚡ Quick Deploy**
+### **âš¡ Quick Deploy**
 
 1. Commit and push these fixes
 2. Set environment variables in Render
@@ -101,4 +101,5 @@ curl -H "Origin: https://sswanstudios.com" -H "Access-Control-Request-Method: GE
 
 ---
 
-**🎯 Expected Result**: Frontend should connect successfully to backend without CORS errors.
+**ðŸŽ¯ Expected Result**: Frontend should connect successfully to backend without CORS errors.
+

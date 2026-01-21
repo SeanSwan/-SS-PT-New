@@ -1,11 +1,11 @@
-/**
+﻿/**
  * AdminStellarSidebar-Enhanced.tsx
  * ================================
  * 
  * Revolutionary Admin Stellar Sidebar - PHASE 2A MOBILE-FIRST OPTIMIZATION
  * Executive Command Intelligence with Advanced Mobile Navigation
  * 
- * ✨ PHASE 2A: MOBILE-FIRST PWA OPTIMIZATION - Enhanced Mobile Admin Navigation
+ * * PHASE 2A: MOBILE-FIRST PWA OPTIMIZATION - Enhanced Mobile Admin Navigation
  * - Advanced mobile touch navigation with haptic feedback
  * - PWA integration with existing touch gesture system
  * - Mobile-first responsive design with enhanced breakpoints
@@ -1074,7 +1074,7 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
               whileHover={{ rotate: 15 }}
               transition={{ duration: 0.2 }}
             >
-              ⚡
+              !
             </LogoIcon>
             <LogoText isCollapsed={isCollapsed}>
               {isMobile ? 'Admin Menu' : 'Admin Command'}
@@ -1255,3 +1255,5 @@ const AdminStellarSidebar: React.FC<AdminStellarSidebarProps> = ({
 };
 
 export default AdminStellarSidebar;
+
+
