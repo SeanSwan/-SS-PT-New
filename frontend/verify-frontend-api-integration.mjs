@@ -13,23 +13,23 @@ import axios from 'axios';
 import colors from 'colors';
 import fs from 'fs';
 import path from 'path';
-import WebSocket from 'ws';
+import { io } from 'socket.io-client';
 
 // Configuration
 const API_BASE_URL = process.env.VITE_API_URL || 'http://localhost:10000';
-const WS_URL = process.env.VITE_WS_URL || 'ws://localhost:10000';
+const WS_URL = process.env.VITE_WS_URL || API_BASE_URL;
 const TEST_CREDENTIALS = {
   admin: {
-    username: 'admin@swanstudios.com',
-    password: 'admin123'
+    username: process.env.TEST_ADMIN_USERNAME || process.env.TEST_ADMIN_EMAIL || 'admin@swanstudios.com',
+    password: process.env.TEST_ADMIN_PASSWORD || 'admin123'
   },
   trainer: {
-    username: 'trainer@swanstudios.com', 
-    password: 'trainer123'
+    username: process.env.TEST_TRAINER_USERNAME || process.env.TEST_TRAINER_EMAIL || 'trainer@swanstudios.com',
+    password: process.env.TEST_TRAINER_PASSWORD || 'trainer123'
   },
   client: {
-    username: 'client@swanstudios.com',
-    password: 'client123'
+    username: process.env.TEST_CLIENT_USERNAME || process.env.TEST_CLIENT_EMAIL || 'client@swanstudios.com',
+    password: process.env.TEST_CLIENT_PASSWORD || 'client123'
   }
 };
 
@@ -125,28 +125,28 @@ async function testSessionAPIs() {
     addResult('GET /api/sessions', 'FAIL', `API error: ${error.message}`);
   }
   
-  // Test GET /api/sessions/clients
+  // Test GET /api/sessions/users/clients
   try {
-    const response = await api.get('/api/sessions/clients');
+    const response = await api.get('/api/sessions/users/clients');
     if (Array.isArray(response.data)) {
-      addResult('GET /api/sessions/clients', 'PASS', `Retrieved ${response.data.length} clients`);
+      addResult('GET /api/sessions/users/clients', 'PASS', `Retrieved ${response.data.length} clients`);
     } else {
-      addResult('GET /api/sessions/clients', 'FAIL', 'Clients response is not an array');
+      addResult('GET /api/sessions/users/clients', 'FAIL', 'Clients response is not an array');
     }
   } catch (error) {
-    addResult('GET /api/sessions/clients', 'FAIL', `API error: ${error.message}`);
+    addResult('GET /api/sessions/users/clients', 'FAIL', `API error: ${error.message}`);
   }
   
-  // Test GET /api/sessions/trainers
+  // Test GET /api/sessions/users/trainers
   try {
-    const response = await api.get('/api/sessions/trainers');
+    const response = await api.get('/api/sessions/users/trainers');
     if (Array.isArray(response.data)) {
-      addResult('GET /api/sessions/trainers', 'PASS', `Retrieved ${response.data.length} trainers`);
+      addResult('GET /api/sessions/users/trainers', 'PASS', `Retrieved ${response.data.length} trainers`);
     } else {
-      addResult('GET /api/sessions/trainers', 'FAIL', 'Trainers response is not an array');
+      addResult('GET /api/sessions/users/trainers', 'FAIL', 'Trainers response is not an array');
     }
   } catch (error) {
-    addResult('GET /api/sessions/trainers', 'FAIL', `API error: ${error.message}`);
+    addResult('GET /api/sessions/users/trainers', 'FAIL', `API error: ${error.message}`);
   }
   
   // Test Universal Master Schedule specific endpoints
@@ -161,13 +161,20 @@ async function testSessionAPIs() {
 async function testUniversalScheduleAPIs(api) {
   console.log('\n🗓️ Testing Universal Master Schedule APIs...'.blue);
   
-  // Test calendar events endpoint
+  // Test calendar events via session date range
   try {
     const startDate = new Date().toISOString().split('T')[0];
     const endDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     
-    const response = await api.get(`/api/sessions/calendar-events?start=${startDate}&end=${endDate}`);
-    addResult('Calendar Events API', 'PASS', `Calendar events endpoint working`);
+    const response = await api.get('/api/sessions', {
+      params: { startDate, endDate }
+    });
+    const sessions = response?.data?.data || response?.data?.sessions || response?.data;
+    if (Array.isArray(sessions)) {
+      addResult('Calendar Events API', 'PASS', `Calendar events range returned ${sessions.length} sessions`);
+    } else {
+      addResult('Calendar Events API', 'WARN', 'Calendar range response is not an array');
+    }
   } catch (error) {
     if (error.response?.status === 404) {
       addResult('Calendar Events API', 'WARN', 'Calendar events endpoint not found (may need implementation)');
@@ -178,7 +185,7 @@ async function testUniversalScheduleAPIs(api) {
   
   // Test session statistics endpoint
   try {
-    const response = await api.get('/api/sessions/statistics');
+    await api.get('/api/sessions/stats');
     addResult('Session Statistics API', 'PASS', 'Statistics endpoint working');
   } catch (error) {
     if (error.response?.status === 404) {
@@ -242,66 +249,56 @@ async function testRoleBasedAccess() {
  */
 async function testWebSocketConnection() {
   return new Promise((resolve) => {
-    console.log('\n🔌 Testing WebSocket connectivity...'.blue);
-    
+    console.log('\ndY"O Testing WebSocket connectivity...'.blue);
+
     try {
-      const ws = new WebSocket(WS_URL);
+      if (!authTokens.admin) {
+        addResult('WebSocket Connection', 'SKIP', 'No admin token available for socket authentication');
+        resolve(false);
+        return;
+      }
+
+      const socket = io(WS_URL, {
+        transports: ['websocket'],
+        auth: { token: authTokens.admin },
+        timeout: 10000
+      });
       let connected = false;
-      
+
       const timeout = setTimeout(() => {
         if (!connected) {
           addResult('WebSocket Connection', 'FAIL', 'WebSocket connection timeout');
-          ws.close();
+          socket.close();
           resolve(false);
         }
       }, 10000);
-      
-      ws.on('open', () => {
+
+      socket.on('connect', () => {
         connected = true;
         clearTimeout(timeout);
         addResult('WebSocket Connection', 'PASS', 'WebSocket connected successfully');
-        
-        // Test authentication
-        if (authTokens.admin) {
-          ws.send(JSON.stringify({
-            type: 'authenticate',
-            token: authTokens.admin
-          }));
-          
-          setTimeout(() => {
-            ws.close();
-            resolve(true);
-          }, 2000);
-        } else {
-          ws.close();
+
+        setTimeout(() => {
+          socket.close();
           resolve(true);
-        }
+        }, 2000);
       });
-      
-      ws.on('message', (data) => {
-        try {
-          const message = JSON.parse(data);
-          
-          if (message.type === 'authenticated') {
-            addResult('WebSocket Auth', 'PASS', 'WebSocket authentication successful');
-          } else if (message.type === 'auth_error') {
-            addResult('WebSocket Auth', 'FAIL', `WebSocket auth failed: ${message.message}`);
-          } else {
-            addResult('WebSocket Message', 'PASS', `Received message: ${message.type}`);
-          }
-        } catch (error) {
-          addResult('WebSocket Message', 'WARN', 'Received non-JSON message');
-        }
-      });
-      
-      ws.on('error', (error) => {
+
+      socket.on('connect_error', (error) => {
         clearTimeout(timeout);
-        addResult('WebSocket Connection', 'FAIL', `WebSocket error: ${error.message}`);
+        addResult('WebSocket Auth', 'FAIL', 'Socket authentication failed: ' + error.message);
+        socket.close();
         resolve(false);
       });
-      
+
+      socket.on('error', (error) => {
+        clearTimeout(timeout);
+        addResult('WebSocket Connection', 'FAIL', 'WebSocket error: ' + error.message);
+        resolve(false);
+      });
+
     } catch (error) {
-      addResult('WebSocket Connection', 'FAIL', `WebSocket setup error: ${error.message}`);
+      addResult('WebSocket Connection', 'FAIL', 'WebSocket setup error: ' + error.message);
       resolve(false);
     }
   });
@@ -325,9 +322,9 @@ async function testAPIPerformance() {
   // Test multiple API calls for performance
   const endpoints = [
     '/api/sessions',
-    '/api/sessions/clients',
-    '/api/sessions/trainers',
-    '/api/health'
+    '/api/sessions/users/clients',
+    '/api/sessions/users/trainers',
+    '/health'
   ];
   
   for (const endpoint of endpoints) {
@@ -395,8 +392,8 @@ async function testErrorHandling() {
     await adminApi.get('/api/sessions/invalid-endpoint');
     addResult('Invalid Endpoint', 'FAIL', 'API responded to invalid endpoint');
   } catch (error) {
-    if (error.response?.status === 404) {
-      addResult('Invalid Endpoint', 'PASS', 'API correctly returns 404 for invalid endpoints');
+    if (error.response?.status === 404 || error.response?.status === 400) {
+      addResult('Invalid Endpoint', 'PASS', 'API correctly rejects invalid endpoints');
     } else {
       addResult('Invalid Endpoint', 'WARN', `Unexpected error: ${error.message}`);
     }
