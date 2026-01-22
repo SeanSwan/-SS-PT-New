@@ -79,7 +79,7 @@ import { initializeCosmicPerformance } from './utils/cosmicPerformanceOptimizer'
 const shouldForwardProp = (prop: string, defaultValidatorFn?: (prop: string) => boolean) => {
   // Filter out common styling props that shouldn't be forwarded to DOM
   const nonDOMProps = ['variants', 'sx', 'as', 'theme', 'variant'];
-  const isValidProp = defaultValidatorFn ? defaultValidatorFn(prop) : true;
+  const isValidProp = typeof defaultValidatorFn === 'function' ? defaultValidatorFn(prop) : true;
   return isValidProp && !nonDOMProps.includes(prop);
 };
 
