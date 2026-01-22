@@ -27,6 +27,7 @@ import {
   OutlinedButton,
   IconButton as StyledIconButton,
   StyledInput,
+  CheckboxWrapper,
   FormField,
   Label,
   StyledTextarea,

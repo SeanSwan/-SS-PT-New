@@ -916,7 +916,9 @@ const LayoutSystemSection: React.FC = () => (
       <LayoutExample>
         <LayoutTitle>Spacing System</LayoutTitle>
         <div style={{ display: 'grid', gap: swanStudiosTheme.spacing.md }}>
-          {Object.entries(swanStudiosTheme.spacing).map(([key, value]) => (
+          {Object.entries(swanStudiosTheme.spacing)
+            .filter(([, value]) => typeof value === 'string')
+            .map(([key, value]) => (
             <div key={key} style={{ display: 'flex', alignItems: 'center', gap: swanStudiosTheme.spacing.md }}>
               <span style={{ 
                 ...swanStudiosTheme.typography.ui.label,
