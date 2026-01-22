@@ -263,7 +263,7 @@ async function testAccessibility() {
     let imagesWithAlt = 0;
     
     for (const img of images) {
-      const alt = await img.getAttribute('alt');
+      const alt = await img.evaluate((el) => el.getAttribute('alt'));
       if (alt !== null) imagesWithAlt++;
     }
     
@@ -280,9 +280,9 @@ async function testAccessibility() {
     let inputsWithLabels = 0;
     
     for (const input of inputs) {
-      const id = await input.getAttribute('id');
-      const ariaLabel = await input.getAttribute('aria-label');
-      const ariaLabelledBy = await input.getAttribute('aria-labelledby');
+      const id = await input.evaluate((el) => el.getAttribute('id'));
+      const ariaLabel = await input.evaluate((el) => el.getAttribute('aria-label'));
+      const ariaLabelledBy = await input.evaluate((el) => el.getAttribute('aria-labelledby'));
       
       if (id) {
         const label = await page.$(`label[for="${id}"]`);
@@ -417,7 +417,14 @@ async function runLighthouseAudit() {
       onlyCategories: ['performance', 'accessibility', 'best-practices']
     });
     
-    const scores = lighthouseResults.report.categories;
+    const report = typeof lighthouseResults.report === 'string'
+      ? JSON.parse(lighthouseResults.report)
+      : lighthouseResults.report;
+    const scores = report?.categories;
+    if (!scores) {
+      addResult('Lighthouse Audit', 'WARN', 'Lighthouse report missing categories');
+      return;
+    }
     
     // Performance score
     const performanceScore = Math.round(scores.performance.score * 100);
