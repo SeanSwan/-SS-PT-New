@@ -851,7 +851,10 @@ export default UniversalMasterSchedule;
 
 // ==================== STYLED COMPONENTS ====================
 
-const ScheduleContainer = styled.div`
+const ScheduleContainer = styled.div.attrs({
+  'data-testid': 'schedule',
+  className: 'schedule-container'
+})`
   height: 100vh;
   display: flex;
   flex-direction: column;

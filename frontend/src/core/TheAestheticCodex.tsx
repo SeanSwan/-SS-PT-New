@@ -40,7 +40,10 @@ const applyInputStyles = () => {
 
 // ===== STYLED COMPONENT FOUNDATIONS =====
 
-const CodexContainer = styled.div`
+const CodexContainer = styled.div.attrs({
+  'data-testid': 'style-guide',
+  className: 'codex-container'
+})`
   min-height: 100vh;
   background: ${props => props.theme.background?.primary || swanStudiosTheme.galaxy.void};
   color: ${props => props.theme.text?.primary || swanStudiosTheme.text.primary};
