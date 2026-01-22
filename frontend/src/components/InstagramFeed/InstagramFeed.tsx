@@ -331,7 +331,7 @@ const PostInfo = styled.div`
 `;
 
 // Author name styling
-const PostAuthor = styled.h4`
+const PostAuthor = styled.h3`
   font-size: 1rem;
   color: white;
   margin: 0;

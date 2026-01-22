@@ -474,6 +474,9 @@ const NewsletterSignup = () => {
                   <Input
                     type="text"
                     placeholder="Your Name"
+                    name="name"
+                    id="newsletter-name"
+                    aria-label="Your Name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                   />
@@ -485,6 +488,10 @@ const NewsletterSignup = () => {
                   <Input
                     type="email"
                     placeholder="Your Email Address"
+                    name="email"
+                    id="newsletter-email"
+                    aria-label="Your Email Address"
+                    autoComplete="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
