@@ -75,7 +75,15 @@ router.get("/stats", protect, async (req, res) => {
  */
 router.get("/:id", protect, async (req, res) => {
   try {
-    const session = await unifiedSessionService.getSessionById(req.params.id, req.user);
+    const sessionId = Number(req.params.id);
+    if (Number.isNaN(sessionId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid session id'
+      });
+    }
+
+    const session = await unifiedSessionService.getSessionById(sessionId, req.user);
     
     if (!session) {
       return res.status(404).json({
