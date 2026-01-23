@@ -5,7 +5,7 @@
  * All MUI dependencies removed, fully accessible
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import styled from 'styled-components';
 import RecurringSessionModal from './RecurringSessionModal';
@@ -14,6 +14,12 @@ import NotificationPreferencesModal from './NotificationPreferencesModal';
 import SessionDetailModal from './SessionDetailModal';
 import RecurringSeriesModal from './RecurringSeriesModal';
 import { useSessionCredits } from './hooks/useSessionCredits';
+import ViewSelector from './Views/ViewSelector';
+import MonthView from './Views/MonthView';
+import DayView from './Views/DayView';
+import AgendaView from './Views/AgendaView';
+import SessionCard from './Cards/SessionCard';
+import { useSchedule } from '../../hooks/useSchedule';
 
 // Custom UI Components (MUI replacements)
 import {
@@ -49,12 +55,8 @@ import {
   Calendar,
   Plus,
   RefreshCw,
-  ChevronLeft,
-  ChevronRight,
   Save,
   Clock,
-  MapPin,
-  User,
   AlertTriangle,
   Bell
 } from 'lucide-react';
@@ -113,7 +115,6 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   // State management
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState<Session[]>([]);
-  const [selectedDate, setSelectedDate] = useState(new Date());
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showRecurringDialog, setShowRecurringDialog] = useState(false);
   const [showBlockedDialog, setShowBlockedDialog] = useState(false);
@@ -126,12 +127,20 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const [bookingTarget, setBookingTarget] = useState<Session | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    sessionDate: string;
+    duration: number;
+    location: string;
+    notes: string;
+    notifyClient: boolean;
+    trainerId?: string | number;
+  }>({
     sessionDate: '',
     duration: 60,
     location: 'Main Studio',
     notes: '',
-    notifyClient: true
+    notifyClient: true,
+    trainerId: undefined
   });
 
   const {
@@ -139,6 +148,14 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     isLoading: creditsLoading,
     refetch: refetchCredits
   } = useSessionCredits(mode === 'client');
+
+  const {
+    activeView,
+    currentDate,
+    setView,
+    setDate,
+    drillDownToDay
+  } = useSchedule();
 
   // Simple auth check (build-safe)
   const [hasAccess, setHasAccess] = useState(false);
@@ -370,9 +387,9 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
   // Navigation helpers
   const navigateWeek = (direction: 'prev' | 'next') => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(selectedDate.getDate() + (direction === 'next' ? 7 : -7));
-    setSelectedDate(newDate);
+    const newDate = new Date(currentDate);
+    newDate.setDate(currentDate.getDate() + (direction === 'next' ? 7 : -7));
+    setDate(newDate);
   };
 
   // Get week start date
@@ -384,10 +401,28 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
   // Generate week days
   const weekDays = Array.from({ length: 7 }, (_, i) => {
-    const day = new Date(getWeekStart(selectedDate));
+    const day = new Date(getWeekStart(currentDate));
     day.setDate(day.getDate() + i);
     return day;
   });
+
+  const trainers = useMemo(() => {
+    const trainerMap = new Map<string, { id: string | number; name: string }>();
+    sessions.forEach((session) => {
+      if (!session.trainerId && !session.trainerName) {
+        return;
+      }
+      const id = session.trainerId ?? session.trainerName ?? 'trainer';
+      const key = String(id);
+      if (!trainerMap.has(key)) {
+        trainerMap.set(key, {
+          id,
+          name: session.trainerName || `Trainer ${key}`
+        });
+      }
+    });
+    return Array.from(trainerMap.values());
+  }, [sessions]);
 
   // Status color helper
   const getStatusColor = (status: string) => {
@@ -502,36 +537,12 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         </FlexBox>
       </ScheduleHeader>
 
-      {/* Navigation */}
-      <NavigationBar>
-        <FlexBox align="center" gap="1rem">
-          <StyledIconButton 
-            onClick={() => navigateWeek('prev')}
-            aria-label="Previous week"
-          >
-            <ChevronLeft />
-          </StyledIconButton>
-          
-          <DateDisplay>
-            {selectedDate.toLocaleDateString('en-US', { 
-              month: 'long', 
-              year: 'numeric',
-              day: 'numeric'
-            })}
-          </DateDisplay>
-          
-          <StyledIconButton 
-            onClick={() => navigateWeek('next')}
-            aria-label="Next week"
-          >
-            <ChevronRight />
-          </StyledIconButton>
-          
-          <OutlinedButton onClick={() => setSelectedDate(new Date())}>
-            Today
-          </OutlinedButton>
-        </FlexBox>
-      </NavigationBar>
+      <ViewSelector
+        activeView={activeView}
+        onViewChange={setView}
+        currentDate={currentDate}
+        onDateChange={setDate}
+      />
 
       {/* Statistics Panel */}
       <StatsPanel>
@@ -582,99 +593,133 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         </GridContainer>
       </StatsPanel>
 
-      {/* Simple Calendar View */}
+      {/* Schedule Views */}
       <CalendarContainer>
-        <CalendarHeaderRow>
-          <PrimaryHeading style={{ fontSize: '1.5rem' }}>
-            Week View
-          </PrimaryHeading>
-          <Legend>
-            <LegendItem>
-              <LegendSwatch $color={getStatusColor('available')} />
-              <Caption secondary>Available</Caption>
-            </LegendItem>
-            <LegendItem>
-              <LegendSwatch $color={getStatusColor('scheduled')} />
-              <Caption secondary>Booked/Scheduled</Caption>
-            </LegendItem>
-            <LegendItem>
-              <LegendSwatch $color={getStatusColor('blocked')} $striped />
-              <Caption secondary>Blocked</Caption>
-            </LegendItem>
-            <LegendItem>
-              <SessionBadge tone="recurring">Recurring</SessionBadge>
-            </LegendItem>
-          </Legend>
-        </CalendarHeaderRow>
-        
-        <GridContainer columns={7} gap="0.5rem">
-          {weekDays.map((day, index) => (
-            <DayCard key={index}>
-              <Caption secondary>
-                {day.toLocaleDateString('en-US', { weekday: 'short' })}
-              </Caption>
-              <PrimaryHeading style={{ fontSize: '1.5rem', margin: '0.5rem 0' }}>
-                {day.getDate()}
-              </PrimaryHeading>
-              
-              {/* Sessions for this day */}
-              {sessions
-                .filter(session => {
-                  const sessionDate = new Date(session.sessionDate);
-                  return sessionDate.toDateString() === day.toDateString();
-                })
-                .map(session => {
-                  const isBookable = canQuickBook && session.status === 'available' && !session.isBlocked;
+        {activeView === 'month' && (
+          <MonthView
+            date={currentDate}
+            sessions={sessions}
+            onSelectDate={(day) => {
+              drillDownToDay(day);
+            }}
+          />
+        )}
 
-                  return (
-                    <SessionBlock
-                      key={session.id}
-                      status={session.status}
-                      isBlocked={Boolean(session.isBlocked)}
-                      onClick={() => {
-                        if (isBookable) {
-                          openBookingDialog(session);
-                          return;
-                        }
-                        openDetailDialog(session);
-                      }}
-                    >
-                      {(session.isBlocked || session.isRecurring) && (
-                        <SessionMetaRow>
-                          {session.isBlocked && (
-                            <SessionBadge tone="blocked">Blocked</SessionBadge>
+        {activeView === 'week' && (
+          <>
+            <CalendarHeaderRow>
+              <PrimaryHeading style={{ fontSize: '1.5rem' }}>
+                Week View
+              </PrimaryHeading>
+              <Legend>
+                <LegendItem>
+                  <LegendSwatch $color={getStatusColor('available')} />
+                  <Caption secondary>Available</Caption>
+                </LegendItem>
+                <LegendItem>
+                  <LegendSwatch $color={getStatusColor('scheduled')} />
+                  <Caption secondary>Booked/Scheduled</Caption>
+                </LegendItem>
+                <LegendItem>
+                  <LegendSwatch $color={getStatusColor('blocked')} $striped />
+                  <Caption secondary>Blocked</Caption>
+                </LegendItem>
+                <LegendItem>
+                  <SessionBadge tone="recurring">Recurring</SessionBadge>
+                </LegendItem>
+              </Legend>
+            </CalendarHeaderRow>
+
+            <GridContainer columns={7} gap="0.5rem">
+              {weekDays.map((day, index) => (
+                <DayCard key={index}>
+                  <Caption secondary>
+                    {day.toLocaleDateString('en-US', { weekday: 'short' })}
+                  </Caption>
+                  <PrimaryHeading style={{ fontSize: '1.5rem', margin: '0.5rem 0' }}>
+                    {day.getDate()}
+                  </PrimaryHeading>
+
+                  {sessions
+                    .filter(session => {
+                      const sessionDate = new Date(session.sessionDate);
+                      return sessionDate.toDateString() === day.toDateString();
+                    })
+                    .map(session => {
+                      const isBookable = canQuickBook && session.status === 'available' && !session.isBlocked;
+
+                      return (
+                        <WeekSessionItem key={session.id}>
+                          {(session.isBlocked || session.isRecurring) && (
+                            <SessionMetaRow>
+                              {session.isBlocked && (
+                                <SessionBadge tone="blocked">Blocked</SessionBadge>
+                              )}
+                              {session.isRecurring && (
+                                <SessionBadge tone="recurring">Recurring</SessionBadge>
+                              )}
+                            </SessionMetaRow>
                           )}
-                          {session.isRecurring && (
-                            <SessionBadge tone="recurring">Recurring</SessionBadge>
+                          <SessionCard
+                            session={session}
+                            onClick={() => {
+                              if (isBookable) {
+                                openBookingDialog(session);
+                                return;
+                              }
+                              openDetailDialog(session);
+                            }}
+                          />
+                          {isBookable && (
+                            <QuickBookButton
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openBookingDialog(session);
+                              }}
+                            >
+                              Quick Book
+                            </QuickBookButton>
                           )}
-                        </SessionMetaRow>
-                      )}
-                      <Caption style={{ color: 'white', display: 'block' }}>
-                        {new Date(session.sessionDate).toLocaleTimeString('en-US', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </Caption>
-                      <Caption style={{ color: 'white', display: 'block', marginTop: '0.25rem' }}>
-                        {session.clientName || session.trainerName || 'Available'}
-                      </Caption>
-                      {isBookable && (
-                        <QuickBookButton
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            openBookingDialog(session);
-                          }}
-                        >
-                          Quick Book
-                        </QuickBookButton>
-                      )}
-                    </SessionBlock>
-                  );
-                })
+                        </WeekSessionItem>
+                      );
+                    })
+                  }
+                </DayCard>
+              ))}
+            </GridContainer>
+          </>
+        )}
+
+        {activeView === 'day' && (
+          <DayView
+            date={currentDate}
+            sessions={sessions}
+            trainers={trainers}
+            onSelectSession={(session) => openDetailDialog(session)}
+            onSelectSlot={({ hour, trainerId }) => {
+              const slotDate = new Date(currentDate);
+              slotDate.setHours(hour, 0, 0, 0);
+              setFormData({
+                ...formData,
+                sessionDate: slotDate.toISOString().slice(0, 16),
+                trainerId
+              });
+              if (canCreateSessions) {
+                setShowCreateDialog(true);
               }
-            </DayCard>
-          ))}
-        </GridContainer>
+            }}
+          />
+        )}
+
+        {activeView === 'agenda' && (
+          <AgendaView
+            date={currentDate}
+            sessions={sessions}
+            onSelectSession={(session) => openDetailDialog(session)}
+            onEdit={(session) => openDetailDialog(session)}
+            onCancel={(session) => openDetailDialog(session)}
+          />
+        )}
       </CalendarContainer>
 
       {/* Create Session Modal */}
@@ -882,24 +927,6 @@ const ScheduleHeader = styled.div`
   }
 `;
 
-const NavigationBar = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 2rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  flex-shrink: 0;
-`;
-
-const DateDisplay = styled.div`
-  min-width: 200px;
-  text-align: center;
-  font-size: 1.25rem;
-  font-weight: 500;
-  color: white;
-`;
-
 const StatsPanel = styled.div`
   margin: 1rem 2rem;
   padding: 1.5rem;
@@ -1018,32 +1045,12 @@ const DayCard = styled(Card)`
   align-items: center;
 `;
 
-const SessionBlock = styled.div<{ status: string; isBlocked?: boolean }>`
-  background-color: ${props => getStatusColor(props.status)};
-  ${props => props.isBlocked && `
-    background-image: repeating-linear-gradient(
-      45deg,
-      rgba(255, 255, 255, 0.12),
-      rgba(255, 255, 255, 0.12) 6px,
-      rgba(0, 0, 0, 0.2) 6px,
-      rgba(0, 0, 0, 0.2) 12px
-    );
-  `}
-  border-radius: 6px;
-  padding: 0.5rem;
-  margin: 0.5rem 0;
-  cursor: pointer;
-  transition: all 0.2s ease;
+const WeekSessionItem = styled.div`
+  margin-top: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
   width: 100%;
-  
-  &:hover {
-    transform: scale(1.02);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-  
-  &:active {
-    transform: scale(0.98);
-  }
 `;
 
 const QuickBookButton = styled.button`

@@ -38,6 +38,8 @@ import type {
 } from '../../components/UniversalMasterSchedule/types';
 
 // Redux-specific type extensions
+export type ScheduleView = 'month' | 'week' | 'day' | 'agenda';
+
 export interface TrainerOption extends Trainer {
   role: string;
 }
@@ -55,8 +57,14 @@ interface ScheduleState {
   error: string | null;
   fetched: boolean;
   // Universal Calendar View State (per Alchemist's Opus)
-  view: 'month' | 'week' | 'day';
+  view: ScheduleView;
   selectedDate: string; // ISO date string
+  selectedSessionId: string | number | null;
+  filters: {
+    trainerId: string | number | null;
+    status: string | null;
+    showBlocked: boolean;
+  };
   // Role-based context for adaptive UI
   currentUserRole: 'admin' | 'trainer' | 'client' | 'user' | null;
   currentUserId: string | null;
@@ -83,8 +91,14 @@ const initialState: ScheduleState = {
   error: null,
   fetched: false,
   // Universal Calendar View State
-  view: 'month',
-  selectedDate: new Date().toISOString().split('T')[0], // Today's date
+  view: 'week',
+  selectedDate: new Date().toISOString(),
+  selectedSessionId: null,
+  filters: {
+    trainerId: null,
+    status: null,
+    showBlocked: true
+  },
   // Role-based context
   currentUserRole: null,
   currentUserId: null,
@@ -482,12 +496,24 @@ const scheduleSlice = createSlice({
     },
     
     // Universal Calendar View Management (per Alchemist's Opus)
-    setCalendarView: (state, action: PayloadAction<'month' | 'week' | 'day'>) => {
+    setCalendarView: (state, action: PayloadAction<ScheduleView>) => {
       state.view = action.payload;
     },
-    
+
     setSelectedDate: (state, action: PayloadAction<string>) => {
       state.selectedDate = action.payload;
+    },
+
+    selectSession: (state, action: PayloadAction<string | number | null>) => {
+      state.selectedSessionId = action.payload;
+    },
+
+    setFilters: (state, action: PayloadAction<Partial<ScheduleState['filters']>>) => {
+      state.filters = { ...state.filters, ...action.payload };
+    },
+
+    resetFilters: (state) => {
+      state.filters = initialState.filters;
     },
     
     setUserContext: (state, action: PayloadAction<{ role: 'admin' | 'trainer' | 'client' | 'user' | null; userId: string | null }>) => {
@@ -650,6 +676,9 @@ export const {
   removeSession,
   setCalendarView,
   setSelectedDate,
+  selectSession,
+  setFilters,
+  resetFilters,
   setUserContext,
   updateSyncTimestamp
 } = scheduleSlice.actions;
@@ -679,8 +708,10 @@ export const selectTrainerSessions = (state: RootState, trainerId: string) =>
   state?.schedule?.sessions?.filter(session => session?.trainerId === trainerId) || [];
 
 // Universal Calendar Selectors (per Alchemist's Opus)
-export const selectCalendarView = (state: RootState) => state?.schedule?.view || 'month';
-export const selectSelectedDate = (state: RootState) => state?.schedule?.selectedDate || new Date().toISOString().split('T')[0];
+export const selectCalendarView = (state: RootState) => state?.schedule?.view || 'week';
+export const selectSelectedDate = (state: RootState) => state?.schedule?.selectedDate || new Date().toISOString();
+export const selectSelectedSessionId = (state: RootState) => state?.schedule?.selectedSessionId ?? null;
+export const selectScheduleFilters = (state: RootState) => state?.schedule?.filters || initialState.filters;
 export const selectCurrentUserRole = (state: RootState) => state?.schedule?.currentUserRole || null;
 export const selectCurrentUserId = (state: RootState) => state?.schedule?.currentUserId || null;
 export const selectUserContext = (state: RootState) => ({
