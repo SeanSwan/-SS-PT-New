@@ -19,6 +19,8 @@ import MonthView from './Views/MonthView';
 import DayView from './Views/DayView';
 import AgendaView from './Views/AgendaView';
 import SessionCard from './Cards/SessionCard';
+import DragDropManager, { DragDropResult } from './DragDrop/DragDropManager';
+import ConflictPanel, { Alternative, Conflict } from './Conflicts/ConflictPanel';
 import { useSchedule } from '../../hooks/useSchedule';
 
 // Custom UI Components (MUI replacements)
@@ -93,6 +95,7 @@ interface Session {
   isRecurring?: boolean;
   isBlocked?: boolean;
   recurringGroupId?: string | null;
+  notifyClient?: boolean;
 }
 
 type ScheduleMode = 'admin' | 'trainer' | 'client';
@@ -124,6 +127,10 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const [detailSession, setDetailSession] = useState<Session | null>(null);
   const [showSeriesDialog, setShowSeriesDialog] = useState(false);
   const [activeSeriesGroupId, setActiveSeriesGroupId] = useState<string | null>(null);
+  const [conflictModalOpen, setConflictModalOpen] = useState(false);
+  const [conflicts, setConflicts] = useState<Conflict[]>([]);
+  const [alternatives, setAlternatives] = useState<Alternative[]>([]);
+  const [pendingReschedule, setPendingReschedule] = useState<DragDropResult | null>(null);
   const [bookingTarget, setBookingTarget] = useState<Session | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
@@ -164,6 +171,8 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const canCreateRecurring = mode === 'admin';
   const canBlockTime = mode === 'admin' || mode === 'trainer';
   const canQuickBook = mode === 'client';
+  const canReschedule = mode === 'admin' || mode === 'trainer';
+  const canOverrideConflicts = mode === 'admin';
   const sessionsRemaining = credits?.sessionsRemaining;
   const lowCredits = typeof sessionsRemaining === 'number' && sessionsRemaining < 3;
 
@@ -384,6 +393,176 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       setBookingLoading(false);
     }
   };
+
+  const openConflictPanel = (nextConflicts: Conflict[], nextAlternatives: Alternative[], drop: DragDropResult) => {
+    setConflicts(nextConflicts);
+    setAlternatives(nextAlternatives);
+    setPendingReschedule(drop);
+    setConflictModalOpen(true);
+  };
+
+  const checkConflicts = useCallback(async (
+    sessionId: string | number,
+    newDate: Date,
+    newHour: number,
+    trainerId?: string | number
+  ) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return {
+        conflicts: [{ type: 'hard', reason: 'Authentication required to check conflicts' }],
+        alternatives: []
+      };
+    }
+
+    const session = sessions.find((item) => String(item.id) === String(sessionId));
+    const duration = session?.duration ?? 60;
+    const startTime = new Date(newDate);
+    startTime.setHours(newHour, 0, 0, 0);
+    const endTime = new Date(startTime.getTime() + duration * 60000);
+
+    try {
+      const response = await fetch('/api/sessions/check-conflicts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          startTime: startTime.toISOString(),
+          endTime: endTime.toISOString(),
+          trainerId: trainerId ?? session?.trainerId ?? null,
+          clientId: session?.userId ?? null,
+          excludeSessionId: sessionId
+        })
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        return {
+          conflicts: [{ type: 'hard', reason: result?.message || 'Unable to verify conflicts' }],
+          alternatives: []
+        };
+      }
+
+      const normalizedAlternatives = Array.isArray(result?.alternatives)
+        ? result.alternatives.map((alt: Alternative) => ({
+            ...alt,
+            date: new Date(alt.date)
+          }))
+        : [];
+
+      return {
+        conflicts: result?.conflicts || [],
+        alternatives: normalizedAlternatives
+      };
+    } catch (error) {
+      console.error('Conflict check failed:', error);
+      return {
+        conflicts: [{ type: 'hard', reason: 'Unable to verify conflicts' }],
+        alternatives: []
+      };
+    }
+  }, [sessions]);
+
+  const handleReschedule = useCallback(async (
+    drop: DragDropResult,
+    options: { conflictOverride?: boolean } = {}
+  ) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return;
+    }
+
+    const session = sessions.find((item) => String(item.id) === String(drop.sessionId));
+    const duration = session?.duration ?? 60;
+
+    const startTime = new Date(drop.newDate);
+    startTime.setHours(drop.newHour, 0, 0, 0);
+    const endTime = new Date(startTime.getTime() + duration * 60000);
+
+    try {
+      const response = await fetch(`/api/sessions/${drop.sessionId}/reschedule`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          newStartTime: startTime.toISOString(),
+          newEndTime: endTime.toISOString(),
+          trainerId: drop.trainerId ?? session?.trainerId ?? null,
+          notifyClient: session?.notifyClient ?? true,
+          conflictOverride: options.conflictOverride === true
+        })
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (response.status === 409) {
+        const normalizedAlternatives = Array.isArray(result?.alternatives)
+          ? result.alternatives.map((alt: Alternative) => ({
+              ...alt,
+              date: new Date(alt.date)
+            }))
+          : [];
+        openConflictPanel(result?.conflicts || [], normalizedAlternatives, drop);
+        return;
+      }
+
+      if (!response.ok || result?.success === false) {
+        console.error('Reschedule failed:', result?.message || response.statusText);
+        return;
+      }
+
+      await fetchSessions();
+    } catch (error) {
+      console.error('Reschedule request failed:', error);
+    }
+  }, [sessions, fetchSessions]);
+
+  const handleConflictAlternative = (alternative: Alternative) => {
+    if (!pendingReschedule) {
+      return;
+    }
+
+    setConflictModalOpen(false);
+    setPendingReschedule(null);
+    handleReschedule({
+      ...pendingReschedule,
+      newDate: alternative.date,
+      newHour: alternative.hour
+    });
+  };
+
+  const handleConflictOverride = () => {
+    if (!pendingReschedule) {
+      return;
+    }
+
+    setConflictModalOpen(false);
+    setPendingReschedule(null);
+    handleReschedule(pendingReschedule, { conflictOverride: true });
+  };
+
+  const handleSelectSlot = useCallback(
+    ({ hour, trainerId }: { hour: number; trainerId?: string | number }) => {
+      if (!canCreateSessions) {
+        return;
+      }
+
+      const slotDate = new Date(currentDate);
+      slotDate.setHours(hour, 0, 0, 0);
+      setFormData((prev) => ({
+        ...prev,
+        sessionDate: slotDate.toISOString().slice(0, 16),
+        trainerId
+      }));
+      setShowCreateDialog(true);
+    },
+    [canCreateSessions, currentDate]
+  );
 
   // Navigation helpers
   const navigateWeek = (direction: 'prev' | 'next') => {
@@ -691,24 +870,32 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         )}
 
         {activeView === 'day' && (
-          <DayView
-            date={currentDate}
-            sessions={sessions}
-            trainers={trainers}
-            onSelectSession={(session) => openDetailDialog(session)}
-            onSelectSlot={({ hour, trainerId }) => {
-              const slotDate = new Date(currentDate);
-              slotDate.setHours(hour, 0, 0, 0);
-              setFormData({
-                ...formData,
-                sessionDate: slotDate.toISOString().slice(0, 16),
-                trainerId
-              });
-              if (canCreateSessions) {
-                setShowCreateDialog(true);
-              }
-            }}
-          />
+          (canReschedule ? (
+            <DragDropManager
+              checkConflicts={checkConflicts}
+              onDragEnd={(drop) => handleReschedule(drop)}
+              onConflict={({ conflicts: nextConflicts, alternatives: nextAlternatives, drop }) => {
+                openConflictPanel(nextConflicts, nextAlternatives, drop);
+              }}
+            >
+              <DayView
+                date={currentDate}
+                sessions={sessions}
+                trainers={trainers}
+                enableDrag
+                onSelectSession={(session) => openDetailDialog(session)}
+                onSelectSlot={handleSelectSlot}
+              />
+            </DragDropManager>
+          ) : (
+            <DayView
+              date={currentDate}
+              sessions={sessions}
+              trainers={trainers}
+              onSelectSession={(session) => openDetailDialog(session)}
+              onSelectSlot={handleSelectSlot}
+            />
+          ))
         )}
 
         {activeView === 'agenda' && (
@@ -888,6 +1075,20 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         onClose={() => setShowSeriesDialog(false)}
         onSuccess={fetchSessions}
         seriesSessions={seriesSessions}
+      />
+      <ConflictPanel
+        isOpen={conflictModalOpen}
+        conflicts={conflicts}
+        alternatives={alternatives}
+        onSelectAlternative={handleConflictAlternative}
+        onOverride={canOverrideConflicts ? handleConflictOverride : undefined}
+        onClose={() => {
+          setConflictModalOpen(false);
+          setPendingReschedule(null);
+          setConflicts([]);
+          setAlternatives([]);
+        }}
+        canOverride={canOverrideConflicts}
       />
     </ScheduleContainer>
   );
@@ -1138,16 +1339,3 @@ const AccessDeniedContainer = styled.div`
   color: white;
   padding: 2rem;
 `;
-
-// Helper function (keep at bottom)
-const getStatusColor = (status: string): string => {
-  switch (status) {
-    case 'available': return '#3b82f6';
-    case 'scheduled': return '#10b981';
-    case 'confirmed': return '#059669';
-    case 'completed': return '#6b7280';
-    case 'cancelled': return '#ef4444';
-    case 'blocked': return '#f59e0b';
-    default: return '#6b7280';
-  }
-};

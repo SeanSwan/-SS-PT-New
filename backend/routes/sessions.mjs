@@ -25,6 +25,8 @@
 import express from "express";
 import { protect, adminOnly, trainerOrAdminOnly } from "../middleware/authMiddleware.mjs";
 import unifiedSessionService from "../services/sessions/session.service.mjs";
+import ConflictService from "../services/conflictService.mjs";
+import Session from "../models/Session.mjs";
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
@@ -64,6 +66,56 @@ router.get("/stats", protect, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Server error fetching statistics',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * POST /api/sessions/check-conflicts
+ * Check conflicts for a proposed session time (trainer/admin only)
+ */
+router.post("/check-conflicts", protect, trainerOrAdminOnly, async (req, res) => {
+  try {
+    const { startTime, endTime, trainerId, clientId, excludeSessionId } = req.body;
+
+    if (!startTime || !endTime) {
+      return res.status(400).json({
+        success: false,
+        message: 'startTime and endTime are required'
+      });
+    }
+
+    const conflicts = await ConflictService.checkConflicts({
+      startTime,
+      endTime,
+      trainerId,
+      clientId,
+      excludeSessionId
+    });
+
+    const hasHardConflicts = conflicts.some((conflict) => conflict.type === 'hard');
+    const duration = Math.max(0, (new Date(endTime).getTime() - new Date(startTime).getTime()) / 60000);
+    const alternatives = hasHardConflicts
+      ? await ConflictService.findAlternatives({
+          date: startTime,
+          trainerId,
+          duration: duration || 60
+        })
+      : [];
+
+    return res.status(200).json({
+      success: true,
+      hasConflicts: conflicts.length > 0,
+      hasHardConflicts,
+      conflicts,
+      alternatives
+    });
+  } catch (error) {
+    logger.error('Error in POST /api/sessions/check-conflicts:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error checking conflicts',
       error: error.message
     });
   }
@@ -301,6 +353,105 @@ router.post("/block", protect, trainerOrAdminOnly, async (req, res) => {
       success: false,
       message: 'Server error blocking time',
       error: responseMessage || 'Unknown error'
+    });
+  }
+});
+
+/**
+ * PUT /api/sessions/:id/reschedule
+ * Reschedule a session (trainer/admin only)
+ */
+router.put("/:id/reschedule", protect, trainerOrAdminOnly, async (req, res) => {
+  try {
+    const sessionId = Number(req.params.id);
+    if (Number.isNaN(sessionId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid session id'
+      });
+    }
+
+    const session = await Session.findByPk(sessionId);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: 'Session not found'
+      });
+    }
+
+    const { newStartTime, newEndTime, trainerId, notifyClient, conflictOverride } = req.body;
+    if (!newStartTime) {
+      return res.status(400).json({
+        success: false,
+        message: 'newStartTime is required'
+      });
+    }
+
+    const startTime = new Date(newStartTime);
+    if (Number.isNaN(startTime.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid newStartTime'
+      });
+    }
+
+    const duration = session.duration || 60;
+    const endTime = newEndTime
+      ? new Date(newEndTime)
+      : new Date(startTime.getTime() + duration * 60000);
+
+    if (Number.isNaN(endTime.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid newEndTime'
+      });
+    }
+
+    const resolvedTrainerId = trainerId ?? session.trainerId ?? null;
+
+    const conflicts = await ConflictService.checkConflicts({
+      startTime,
+      endTime,
+      trainerId: resolvedTrainerId,
+      clientId: session.userId ?? null,
+      excludeSessionId: sessionId
+    });
+
+    const hasHardConflicts = conflicts.some((conflict) => conflict.type === 'hard');
+    const allowOverride = conflictOverride === true && req.user.role === 'admin';
+
+    if (hasHardConflicts && !allowOverride) {
+      const alternatives = await ConflictService.findAlternatives({
+        date: startTime,
+        trainerId: resolvedTrainerId,
+        duration
+      });
+      return res.status(409).json({
+        success: false,
+        message: 'Scheduling conflict detected',
+        conflicts,
+        alternatives
+      });
+    }
+
+    await session.update({
+      sessionDate: startTime,
+      trainerId: resolvedTrainerId,
+      notifyClient: typeof notifyClient === 'boolean' ? notifyClient : session.notifyClient
+    });
+
+    const updatedSession = await unifiedSessionService.getSessionById(sessionId, req.user);
+
+    return res.status(200).json({
+      success: true,
+      session: updatedSession
+    });
+  } catch (error) {
+    logger.error(`Error in PUT /api/sessions/${req.params.id}/reschedule:`, error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error rescheduling session',
+      error: error.message
     });
   }
 });

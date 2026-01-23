@@ -1,7 +1,9 @@
 import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { galaxySwanTheme } from '../../../styles/galaxy-swan-theme';
-import SessionCard, { SessionCardData } from '../Cards/SessionCard';
+import { SessionCardData } from '../Cards/SessionCard';
+import DraggableSession from '../DragDrop/DraggableSession';
+import DroppableSlot from '../DragDrop/DroppableSlot';
 
 export interface DayViewTrainer {
   id: number | string;
@@ -16,6 +18,7 @@ export interface DayViewProps {
   date: Date;
   sessions: DayViewSession[];
   trainers: DayViewTrainer[];
+  enableDrag?: boolean;
   onSelectSession?: (session: DayViewSession) => void;
   onSelectSlot?: (payload: { date: Date; hour: number; trainerId?: number | string }) => void;
 }
@@ -55,6 +58,7 @@ const DayView: React.FC<DayViewProps> = ({
   date,
   sessions,
   trainers,
+  enableDrag = false,
   onSelectSession,
   onSelectSlot
 }) => {
@@ -84,32 +88,45 @@ const DayView: React.FC<DayViewProps> = ({
       {HOURS.map((hour) => (
         <HourRow key={hour}>
           <TimeCell>{formatHour(hour)}</TimeCell>
-          {columns.map((trainer) => {
-            const trainerSessions = sessionsForDay.filter((session) => {
-              const sessionHour = new Date(session.sessionDate).getHours();
-              const trainerMatch = trainer.id === 'unassigned'
-                ? true
-                : String(session.trainerId ?? '') === String(trainer.id);
-              return sessionHour === hour && trainerMatch;
-            });
+        {columns.map((trainer) => {
+          const trainerSessions = sessionsForDay.filter((session) => {
+            const sessionHour = new Date(session.sessionDate).getHours();
+            const trainerMatch = trainer.id === 'unassigned'
+              ? true
+              : String(session.trainerId ?? '') === String(trainer.id);
+            return sessionHour === hour && trainerMatch;
+          });
 
-            if (trainerSessions.length > 0) {
-              return (
-                <SlotCell key={`${trainer.id}-${hour}`} $hasSession>
-                  {trainerSessions.map((session) => (
-                    <SessionCard
-                      key={String(session.id)}
-                      session={session}
-                      onClick={() => onSelectSession?.(session)}
-                    />
-                  ))}
-                </SlotCell>
-              );
-            }
-
+          if (trainerSessions.length > 0) {
             return (
-              <SlotCell
+              <SlotCell key={`${trainer.id}-${hour}`} $hasSession>
+                {trainerSessions.map((session) => (
+                  <DraggableSession
+                    key={String(session.id)}
+                    session={session}
+                    onClick={() => onSelectSession?.(session)}
+                    disabled={
+                      !enableDrag
+                      || Boolean(session.isBlocked)
+                      || session.status === 'blocked'
+                      || session.status === 'available'
+                      || session.status === 'completed'
+                      || session.status === 'cancelled'
+                    }
+                  />
+                ))}
+              </SlotCell>
+            );
+          }
+
+          if (enableDrag) {
+            return (
+              <DroppableSlot
                 key={`${trainer.id}-${hour}`}
+                id={`slot-${trainer.id}-${hour}`}
+                date={date}
+                hour={hour}
+                trainerId={trainer.id === 'unassigned' ? undefined : trainer.id}
                 onClick={() =>
                   onSelectSlot?.({
                     date,
@@ -121,13 +138,31 @@ const DayView: React.FC<DayViewProps> = ({
                 <AvailableSlot>
                   <span>Available</span>
                 </AvailableSlot>
-              </SlotCell>
+              </DroppableSlot>
             );
-          })}
-        </HourRow>
-      ))}
-    </DayViewContainer>
-  );
+          }
+
+          return (
+            <SlotCell
+              key={`${trainer.id}-${hour}`}
+              onClick={() =>
+                onSelectSlot?.({
+                  date,
+                  hour,
+                  trainerId: trainer.id === 'unassigned' ? undefined : trainer.id
+                })
+              }
+            >
+              <AvailableSlot>
+                <span>Available</span>
+              </AvailableSlot>
+            </SlotCell>
+          );
+        })}
+      </HourRow>
+    ))}
+  </DayViewContainer>
+);
 };
 
 export default DayView;
