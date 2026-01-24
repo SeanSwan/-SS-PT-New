@@ -1,0 +1,135 @@
+{
+  "testSuite": "SwanStudios Admin Dashboard Integration",
+  "timestamp": "2026-01-22T22:22:48.668Z",
+  "environment": {
+    "frontendUrl": "https://sswanstudios.com",
+    "nodeEnv": "development"
+  },
+  "summary": {
+    "totalTests": 16,
+    "passed": 14,
+    "failed": 0,
+    "warnings": 2
+  },
+  "apiCalls": [
+    {
+      "url": "https://sswanstudios.com/api/health",
+      "method": "GET",
+      "timestamp": "2026-01-22T22:22:38.506Z"
+    }
+  ],
+  "results": [
+    {
+      "testName": "Browser Setup",
+      "status": "PASS",
+      "message": "Browser initialized successfully",
+      "details": null,
+      "timestamp": "2026-01-22T22:22:35.117Z"
+    },
+    {
+      "testName": "Homepage Access",
+      "status": "PASS",
+      "message": "Homepage loaded successfully: SwanStudios - Elite Personal Training & Fitness Coaching",
+      "details": null,
+      "timestamp": "2026-01-22T22:22:40.275Z"
+    },
+    {
+      "testName": "Login Element",
+      "status": "PASS",
+      "message": "Login link found on homepage",
+      "details": null,
+      "timestamp": "2026-01-22T22:22:40.283Z"
+    },
+    {
+      "testName": "Login Form Submit",
+      "status": "PASS",
+      "message": "Login form submitted successfully",
+      "details": null,
+      "timestamp": "2026-01-22T22:22:41.611Z"
+    },
+    {
+      "testName": "Admin Authentication",
+      "status": "PASS",
+      "message": "Admin login successful - redirected to dashboard",
+      "details": null,
+      "timestamp": "2026-01-22T22:22:42.211Z"
+    },
+    {
+      "testName": "Admin Dashboard Access",
+      "status": "PASS",
+      "message": "Successfully accessed admin dashboard",
+      "details": null,
+      "timestamp": "2026-01-22T22:22:44.845Z"
+    },
+    {
+      "testName": "Admin Sidebar",
+      "status": "PASS",
+      "message": "Admin sidebar component found",
+      "details": null,
+      "timestamp": "2026-01-22T22:22:44.851Z"
+    },
+    {
+      "testName": "Dashboard Content",
+      "status": "PASS",
+      "message": "Dashboard content area found",
+      "details": null,
+      "timestamp": "2026-01-22T22:22:44.853Z"
+    },
+    {
+      "testName": "Master Schedule Route",
+      "status": "PASS",
+      "message": "Master schedule route accessible",
+      "details": null,
+      "timestamp": "2026-01-22T22:22:45.952Z"
+    },
+    {
+      "testName": "Schedule Component",
+      "status": "PASS",
+      "message": "Schedule component found: [data-testid=\"schedule\"]",
+      "details": null,
+      "timestamp": "2026-01-22T22:22:45.958Z"
+    },
+    {
+      "testName": "Schedule Controls",
+      "status": "PASS",
+      "message": "Schedule controls found",
+      "details": null,
+      "timestamp": "2026-01-22T22:22:45.960Z"
+    },
+    {
+      "testName": "Schedule API Calls",
+      "status": "WARN",
+      "message": "No schedule API calls detected",
+      "details": null,
+      "timestamp": "2026-01-22T22:22:45.960Z"
+    },
+    {
+      "testName": "Style Guide Route",
+      "status": "PASS",
+      "message": "Style guide route accessible",
+      "details": null,
+      "timestamp": "2026-01-22T22:22:46.915Z"
+    },
+    {
+      "testName": "Aesthetic Codex Component",
+      "status": "PASS",
+      "message": "TheAestheticCodex found: [data-testid=\"style-guide\"]",
+      "details": null,
+      "timestamp": "2026-01-22T22:22:46.921Z"
+    },
+    {
+      "testName": "Mobile Navigation",
+      "status": "WARN",
+      "message": "Mobile navigation not detected",
+      "details": null,
+      "timestamp": "2026-01-22T22:22:47.816Z"
+    },
+    {
+      "testName": "Tablet Responsiveness",
+      "status": "PASS",
+      "message": "Tablet viewport tested successfully",
+      "details": null,
+      "timestamp": "2026-01-22T22:22:48.664Z"
+    }
+  ]
+}

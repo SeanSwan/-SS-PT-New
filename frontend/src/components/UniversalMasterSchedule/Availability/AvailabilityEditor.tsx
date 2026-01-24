@@ -18,7 +18,7 @@ interface AvailabilityEditorProps {
 }
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const HOURS = Array.from({ length: 17 }, (_, i) => i + 6); // 6am to 10pm (22)
+const HOURS = Array.from({ length: 18 }, (_, i) => i + 5); // 5am to 10pm
 
 const AvailabilityEditor: React.FC<AvailabilityEditorProps> = ({ trainerId, onClose, onSaved }) => {
   const { recurring, isLoading, updateSchedule, isUpdating } = useTrainerAvailability(trainerId);
