@@ -140,6 +140,7 @@ export const getWorkoutSession = () => getModel('Session'); // Alias for Session
 // NASM Workout Tracking Models
 export const getClientTrainerAssignment = () => getModel('ClientTrainerAssignment');
 export const getTrainerPermissions = () => getModel('TrainerPermissions');
+export const getTrainerAvailability = () => getModel('TrainerAvailability');
 export const getDailyWorkoutForm = () => getModel('DailyWorkoutForm');
 export const getAdminSettings = () => getModel('AdminSettings');
 export const getAutomationSequence = () => getModel('AutomationSequence');
