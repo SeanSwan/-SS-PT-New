@@ -7,6 +7,7 @@
 import { Op } from 'sequelize';
 import Session from '../models/Session.mjs';
 import User from '../models/User.mjs';
+import availabilityService from './availabilityService.mjs';
 import logger from '../utils/logger.mjs';
 
 const ACTIVE_STATUSES = ['available', 'assigned', 'requested', 'scheduled', 'confirmed', 'booked', 'blocked'];
@@ -81,6 +82,23 @@ const ConflictService = {
       const conflicts = [];
 
       if (trainerId) {
+        const normalizedTrainerId = Number(trainerId);
+        if (Number.isFinite(normalizedTrainerId)) {
+          const isAvailable = await availabilityService.isTrainerAvailable(
+            normalizedTrainerId,
+            start,
+            end
+          );
+
+          if (!isAvailable) {
+            conflicts.push({
+              type: 'hard',
+              reason: 'Trainer is unavailable during this time',
+              suggestion: 'Choose a different time or trainer'
+            });
+          }
+        }
+
         const trainerSessions = await fetchCandidateSessions({
           trainerId,
           start,

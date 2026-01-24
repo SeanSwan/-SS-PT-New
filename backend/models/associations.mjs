@@ -80,6 +80,7 @@ const setupAssociations = async () => {
     // NASM Workout Tracking Models (Sequelize)
     const ClientTrainerAssignmentModule = await import('./ClientTrainerAssignment.mjs');
     const TrainerPermissionsModule = await import('./TrainerPermissions.mjs');
+    const TrainerAvailabilityModule = await import('./TrainerAvailability.mjs');
     const DailyWorkoutFormModule = await import('./DailyWorkoutForm.mjs');
     const ClientBaselineMeasurementsModule = await import('./ClientBaselineMeasurements.mjs');
     const ClientOnboardingQuestionnaireModule = await import('./ClientOnboardingQuestionnaire.mjs');
@@ -156,6 +157,7 @@ const setupAssociations = async () => {
     // NASM Workout Tracking Models
     const ClientTrainerAssignment = ClientTrainerAssignmentModule.default;
     const TrainerPermissions = TrainerPermissionsModule.default;
+    const TrainerAvailability = TrainerAvailabilityModule.default;
     const DailyWorkoutForm = DailyWorkoutFormModule.default;
     const ClientBaselineMeasurements = ClientBaselineMeasurementsModule.default;
     const ClientOnboardingQuestionnaire = ClientOnboardingQuestionnaireModule.default;
@@ -219,7 +221,7 @@ const setupAssociations = async () => {
         MuscleGroup, ExerciseMuscleGroup, Equipment, ExerciseEquipment,
         Orientation, Notification, NotificationSettings, AdminSettings, Contact,
       FinancialTransaction, BusinessMetrics, AdminNotification,
-        ClientTrainerAssignment, TrainerPermissions, DailyWorkoutForm, ClientOnboardingQuestionnaire,
+        ClientTrainerAssignment, TrainerPermissions, TrainerAvailability, DailyWorkoutForm, ClientOnboardingQuestionnaire,
         ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote,
         AutomationSequence, AutomationLog
       };
@@ -239,6 +241,10 @@ const setupAssociations = async () => {
     // User as trainer in sessions
     User.hasMany(Session, { foreignKey: 'trainerId', as: 'trainerSessions' });
     Session.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+
+    // Trainer availability (weekly + overrides)
+    User.hasMany(TrainerAvailability, { foreignKey: 'trainerId', as: 'availability' });
+    TrainerAvailability.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
     
     // User to achievements (many-to-many through UserAchievements)
     User.belongsToMany(Achievement, { 
@@ -640,6 +646,7 @@ const setupAssociations = async () => {
       // NASM Workout Tracking Models
       ClientTrainerAssignment,
       TrainerPermissions,
+      TrainerAvailability,
       DailyWorkoutForm,
       ClientOnboardingQuestionnaire,
       ClientBaselineMeasurements,

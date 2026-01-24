@@ -13,6 +13,8 @@ import BlockedTimeModal from './BlockedTimeModal';
 import NotificationPreferencesModal from './NotificationPreferencesModal';
 import SessionDetailModal from './SessionDetailModal';
 import RecurringSeriesModal from './RecurringSeriesModal';
+import AvailabilityEditor from './Availability/AvailabilityEditor';
+import AvailabilityOverrideModal from './Availability/AvailabilityOverrideModal';
 import { useSessionCredits } from './hooks/useSessionCredits';
 import ViewSelector from './Views/ViewSelector';
 import MonthView from './Views/MonthView';
@@ -134,6 +136,9 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const [bookingTarget, setBookingTarget] = useState<Session | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [showAvailabilityEditor, setShowAvailabilityEditor] = useState(false);
+  const [showOverrideModal, setShowOverrideModal] = useState(false);
+  const [availabilityTrainerId, setAvailabilityTrainerId] = useState<number | string | null>(null);
   const [formData, setFormData] = useState<{
     sessionDate: string;
     duration: number;
@@ -173,6 +178,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const canQuickBook = mode === 'client';
   const canReschedule = mode === 'admin' || mode === 'trainer';
   const canOverrideConflicts = mode === 'admin';
+  const canManageAvailability = mode === 'admin' || mode === 'trainer';
   const sessionsRemaining = credits?.sessionsRemaining;
   const lowCredits = typeof sessionsRemaining === 'number' && sessionsRemaining < 3;
 
@@ -691,6 +697,17 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
             <Bell size={18} />
             Notification Settings
           </OutlinedButton>
+          {canManageAvailability && (
+            <OutlinedButton onClick={() => {
+              // For trainers, use their own ID. For admins, this might need a selector in future, 
+              // but for now defaulting to current user if they are a trainer, or null (which editor handles)
+              setAvailabilityTrainerId(mode === 'trainer' ? resolvedUserId : (userId || null));
+              setShowAvailabilityEditor(true);
+            }}>
+              <Calendar size={18} />
+              Manage Availability
+            </OutlinedButton>
+          )}
           {(canCreateSessions || canCreateRecurring || canBlockTime) && (
             <>
               {canBlockTime && (
@@ -883,7 +900,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                 sessions={sessions}
                 trainers={trainers}
                 enableDrag
-                onSelectSession={(session) => openDetailDialog(session)}
+                onSelectSession={(session) => openDetailDialog(session as unknown as Session)}
                 onSelectSlot={handleSelectSlot}
               />
             </DragDropManager>
@@ -892,7 +909,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
               date={currentDate}
               sessions={sessions}
               trainers={trainers}
-              onSelectSession={(session) => openDetailDialog(session)}
+              onSelectSession={(session) => openDetailDialog(session as unknown as Session)}
               onSelectSlot={handleSelectSlot}
             />
           ))
@@ -1076,6 +1093,26 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         onSuccess={fetchSessions}
         seriesSessions={seriesSessions}
       />
+      {showAvailabilityEditor && availabilityTrainerId && (
+        <Modal isOpen={showAvailabilityEditor} onClose={() => setShowAvailabilityEditor(false)} title="Manage Availability" size="lg">
+          <AvailabilityEditor
+            trainerId={availabilityTrainerId}
+            onClose={() => setShowAvailabilityEditor(false)}
+            onSaved={() => {
+              setShowAvailabilityEditor(false);
+              fetchSessions();
+            }}
+          />
+        </Modal>
+      )}
+      {showOverrideModal && availabilityTrainerId && (
+        <AvailabilityOverrideModal
+          trainerId={availabilityTrainerId}
+          isOpen={showOverrideModal}
+          onClose={() => setShowOverrideModal(false)}
+          onCreated={fetchSessions}
+        />
+      )}
       <ConflictPanel
         isOpen={conflictModalOpen}
         conflicts={conflicts}

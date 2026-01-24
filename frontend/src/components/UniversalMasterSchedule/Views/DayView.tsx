@@ -4,6 +4,7 @@ import { galaxySwanTheme } from '../../../styles/galaxy-swan-theme';
 import { SessionCardData } from '../Cards/SessionCard';
 import DraggableSession from '../DragDrop/DraggableSession';
 import DroppableSlot from '../DragDrop/DroppableSlot';
+import { useAvailableSlots } from '../../../hooks/useTrainerAvailability';
 
 export interface DayViewTrainer {
   id: number | string;
@@ -52,6 +53,33 @@ const deriveTrainerList = (sessions: DayViewSession[]) => {
   });
 
   return Array.from(trainerMap.values());
+};
+
+// TODO: Optimize - fetch availability once per trainer at DayView level instead of per-cell
+const TrainerColumnSlots: React.FC<{
+  trainerId: number | string;
+  date: Date;
+  hour: number;
+  children: React.ReactNode;
+}> = ({ trainerId, date, hour, children }) => {
+  const shouldFetch = trainerId !== 'unassigned';
+  const { slots, isLoading } = useAvailableSlots(
+    shouldFetch ? trainerId : null,
+    date,
+    60
+  );
+
+  const isAvailable = !shouldFetch || slots.some(slot => {
+    const slotDate = new Date(slot.startTime);
+    return slotDate.getHours() === hour;
+  });
+
+  return (
+    <>
+      {!isAvailable && !isLoading && <UnavailableOverlay />}
+      {children}
+    </>
+  );
 };
 
 const DayView: React.FC<DayViewProps> = ({
@@ -135,9 +163,11 @@ const DayView: React.FC<DayViewProps> = ({
                   })
                 }
               >
-                <AvailableSlot>
-                  <span>Available</span>
-                </AvailableSlot>
+                <TrainerColumnSlots trainerId={trainer.id} date={date} hour={hour}>
+                  <AvailableSlot>
+                    <span>Available</span>
+                  </AvailableSlot>
+                </TrainerColumnSlots>
               </DroppableSlot>
             );
           }
@@ -153,9 +183,11 @@ const DayView: React.FC<DayViewProps> = ({
                 })
               }
             >
-              <AvailableSlot>
-                <span>Available</span>
-              </AvailableSlot>
+              <TrainerColumnSlots trainerId={trainer.id} date={date} hour={hour}>
+                <AvailableSlot>
+                  <span>Available</span>
+                </AvailableSlot>
+              </TrainerColumnSlots>
             </SlotCell>
           );
         })}
@@ -221,6 +253,7 @@ const TimeCell = styled.div`
 `;
 
 const SlotCell = styled.div<{ $hasSession?: boolean }>`
+  position: relative;
   min-height: 80px;
   padding: 0.5rem;
   border-radius: 12px;
@@ -244,6 +277,21 @@ const SlotCell = styled.div<{ $hasSession?: boolean }>`
     border-color: ${galaxySwanTheme.primary.main};
     box-shadow: ${galaxySwanTheme.shadows.primaryGlow};
   }
+`;
+
+const UnavailableOverlay = styled.div`
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.3),
+    rgba(0, 0, 0, 0.3) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+  pointer-events: none;
+  border-radius: 10px;
+  z-index: 1;
 `;
 
 const AvailableSlot = styled.div`
