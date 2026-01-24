@@ -15,6 +15,7 @@ import SessionDetailModal from './SessionDetailModal';
 import RecurringSeriesModal from './RecurringSeriesModal';
 import AvailabilityEditor from './Availability/AvailabilityEditor';
 import AvailabilityOverrideModal from './Availability/AvailabilityOverrideModal';
+import ApplyPaymentModal from './ApplyPaymentModal';
 import { useSessionCredits } from './hooks/useSessionCredits';
 import ViewSelector from './Views/ViewSelector';
 import MonthView from './Views/MonthView';
@@ -139,6 +140,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const [showAvailabilityEditor, setShowAvailabilityEditor] = useState(false);
   const [showOverrideModal, setShowOverrideModal] = useState(false);
   const [availabilityTrainerId, setAvailabilityTrainerId] = useState<number | string | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [formData, setFormData] = useState<{
     sessionDate: string;
     duration: number;
@@ -146,14 +148,21 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     notes: string;
     notifyClient: boolean;
     trainerId?: string | number;
+    clientId?: string | number;
+    manualClientName?: string;
   }>({
     sessionDate: '',
     duration: 60,
     location: 'Main Studio',
     notes: '',
     notifyClient: true,
-    trainerId: undefined
+    trainerId: undefined,
+    clientId: undefined,
+    manualClientName: ''
   });
+  const [dbClients, setDbClients] = useState<Array<{ id: number | string; firstName: string; lastName: string; email?: string }>>([]);
+  const [dbTrainers, setDbTrainers] = useState<Array<{ id: number | string; firstName: string; lastName: string }>>([]);
+  const [useManualClient, setUseManualClient] = useState(false);
 
   const {
     data: credits,
@@ -255,6 +264,34 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     }
   }, [mode, resolvedUserId]);
 
+  // Fetch clients and trainers from database
+  const fetchUsersForDropdowns = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token || mode !== 'admin') return;
+
+    try {
+      // Fetch trainers
+      const trainersRes = await fetch('/api/auth/users/trainers', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (trainersRes.ok) {
+        const trainersData = await trainersRes.json();
+        setDbTrainers(trainersData.data || trainersData.trainers || []);
+      }
+
+      // Fetch clients
+      const clientsRes = await fetch('/api/auth/users/clients', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (clientsRes.ok) {
+        const clientsData = await clientsRes.json();
+        setDbClients(clientsData.data || clientsData.clients || []);
+      }
+    } catch (error) {
+      console.error('Error fetching users for dropdowns:', error);
+    }
+  }, [mode]);
+
   // Initialize component
   useEffect(() => {
     const initializeSchedule = async () => {
@@ -270,6 +307,9 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         // Load sessions from API
         await fetchSessions();
 
+        // Load clients and trainers for admin dropdowns
+        await fetchUsersForDropdowns();
+
       } catch (error) {
         console.error('Error initializing schedule:', error);
         setLoading(false);
@@ -277,7 +317,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     };
 
     initializeSchedule();
-  }, [fetchSessions]);
+  }, [fetchSessions, fetchUsersForDropdowns]);
 
   // Handle session creation (safe implementation)
   const handleCreateSession = async () => {
@@ -288,7 +328,25 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         return;
       }
 
-      // Try API call, fallback gracefully
+      // Validate required fields
+      if (!formData.sessionDate) {
+        alert('Please select a date and time');
+        return;
+      }
+
+      // Build session object
+      const sessionData = {
+        start: formData.sessionDate,
+        duration: formData.duration,
+        location: formData.location,
+        notes: formData.notes,
+        trainerId: formData.trainerId || undefined,
+        clientId: formData.clientId || undefined,
+        clientName: useManualClient ? formData.manualClientName : undefined,
+        notifyClient: formData.notifyClient
+      };
+
+      // Try API call - wrap in sessions array as backend expects
       try {
         const response = await fetch('/api/sessions', {
           method: 'POST',
@@ -296,7 +354,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify(formData)
+          body: JSON.stringify({ sessions: [sessionData] })
         });
 
         if (response.ok) {
@@ -305,6 +363,18 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
           if (result.success) {
             alert('Session created successfully!');
             setShowCreateDialog(false);
+            // Reset form
+            setFormData({
+              sessionDate: '',
+              duration: 60,
+              location: 'Main Studio',
+              notes: '',
+              notifyClient: true,
+              trainerId: undefined,
+              clientId: undefined,
+              manualClientName: ''
+            });
+            setUseManualClient(false);
             fetchSessions();
           } else {
             alert(result.message || 'Failed to create session');
@@ -317,7 +387,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         console.error('API error creating session:', apiError);
         alert('Could not connect to server. Please check your connection and try again.');
       }
-      
+
     } catch (error) {
       console.error('Error creating session:', error);
       alert('Error creating session. Please try again.');
@@ -699,9 +769,10 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
           </OutlinedButton>
           {canManageAvailability && (
             <OutlinedButton onClick={() => {
-              // For trainers, use their own ID. For admins, this might need a selector in future, 
+              // For trainers, use their own ID. For admins, this might need a selector in future,
               // but for now defaulting to current user if they are a trainer, or null (which editor handles)
-              setAvailabilityTrainerId(mode === 'trainer' ? resolvedUserId : (userId || null));
+              const trainerId = mode === 'trainer' ? resolvedUserId : userId;
+              setAvailabilityTrainerId(trainerId !== undefined ? trainerId : null);
               setShowAvailabilityEditor(true);
             }}>
               <Calendar size={18} />
@@ -723,10 +794,15 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                 </OutlinedButton>
               )}
               {canCreateSessions && (
-                <PrimaryButton onClick={() => setShowCreateDialog(true)}>
-                  <Plus size={18} />
-                  Create Session
-                </PrimaryButton>
+                <>
+                  <OutlinedButton onClick={() => setShowPaymentModal(true)}>
+                    Apply Payment
+                  </OutlinedButton>
+                  <PrimaryButton onClick={() => setShowCreateDialog(true)}>
+                    <Plus size={18} />
+                    Create Session
+                  </PrimaryButton>
+                </>
               )}
             </>
           )}
@@ -919,9 +995,9 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
           <AgendaView
             date={currentDate}
             sessions={sessions}
-            onSelectSession={(session) => openDetailDialog(session)}
-            onEdit={(session) => openDetailDialog(session)}
-            onCancel={(session) => openDetailDialog(session)}
+            onSelectSession={(session) => openDetailDialog(session as unknown as Session)}
+            onEdit={(session) => openDetailDialog(session as unknown as Session)}
+            onCancel={(session) => openDetailDialog(session as unknown as Session)}
           />
         )}
       </CalendarContainer>
@@ -955,7 +1031,60 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                 onChange={(e) => setFormData({ ...formData, sessionDate: e.target.value })}
               />
             </FormField>
-            
+
+            <FormField>
+              <Label htmlFor="trainerId">Assign Trainer</Label>
+              <CustomSelect
+                value={formData.trainerId?.toString() || ''}
+                onChange={(value) => setFormData({ ...formData, trainerId: value ? Number(value) : undefined })}
+                options={[
+                  { value: '', label: '-- Select Trainer --' },
+                  ...dbTrainers.map(t => ({
+                    value: t.id.toString(),
+                    label: `${t.firstName} ${t.lastName}`
+                  }))
+                ]}
+                aria-label="Select trainer"
+              />
+            </FormField>
+
+            <FormField>
+              <Label>Client</Label>
+              <CheckboxWrapper style={{ marginBottom: '0.5rem' }}>
+                <input
+                  type="checkbox"
+                  checked={useManualClient}
+                  onChange={(e) => setUseManualClient(e.target.checked)}
+                />
+                <span>Enter client name manually</span>
+              </CheckboxWrapper>
+              {useManualClient ? (
+                <StyledInput
+                  id="manualClientName"
+                  type="text"
+                  value={formData.manualClientName || ''}
+                  onChange={(e) => setFormData({ ...formData, manualClientName: e.target.value })}
+                  placeholder="Enter client name..."
+                />
+              ) : (
+                <CustomSelect
+                  value={formData.clientId?.toString() || ''}
+                  onChange={(value) => setFormData({ ...formData, clientId: value ? Number(value) : undefined })}
+                  options={[
+                    { value: '', label: '-- Select Client --' },
+                    ...dbClients.map(c => ({
+                      value: c.id.toString(),
+                      label: `${c.firstName} ${c.lastName}${c.email ? ` (${c.email})` : ''}`
+                    }))
+                  ]}
+                  aria-label="Select client"
+                />
+              )}
+              {dbClients.length === 0 && !useManualClient && (
+                <HelperText>No clients found. Check the toggle to enter manually.</HelperText>
+              )}
+            </FormField>
+
             <FormField>
               <Label htmlFor="duration" required>Duration (minutes)</Label>
               <StyledInput
@@ -967,7 +1096,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                 step={15}
               />
             </FormField>
-            
+
             <FormField>
               <Label htmlFor="location" required>Location</Label>
               <CustomSelect
@@ -977,7 +1106,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                 aria-label="Session location"
               />
             </FormField>
-            
+
             <FormField>
               <Label htmlFor="notes">Notes</Label>
               <StyledTextarea
@@ -1111,6 +1240,13 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
           isOpen={showOverrideModal}
           onClose={() => setShowOverrideModal(false)}
           onCreated={fetchSessions}
+        />
+      )}
+      {mode === 'admin' && (
+        <ApplyPaymentModal
+          open={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          onApplied={fetchSessions}
         />
       )}
       <ConflictPanel
