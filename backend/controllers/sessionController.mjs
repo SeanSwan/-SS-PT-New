@@ -666,8 +666,8 @@ export const requestSession = async (req, res) => {
 export const cancelSession = async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const { reason } = req.body;
-    
+    const { reason, earlyCancel } = req.body;
+
     // Find the session
     const session = await Session.findByPk(sessionId, {
       include: [
@@ -678,26 +678,26 @@ export const cancelSession = async (req, res) => {
         }
       ]
     });
-    
+
     if (!session) {
       return res.status(404).json({
         success: false,
         message: 'Session not found'
       });
     }
-    
+
     // Check permissions
     const isAdmin = req.user.role === 'admin';
     const isTrainer = req.user.role === 'trainer' && session.trainerId === req.user.id;
     const isOwner = session.userId === req.user.id;
-    
+
     if (!isAdmin && !isOwner && !isTrainer) {
       return res.status(403).json({
         success: false,
         message: 'You do not have permission to cancel this session'
       });
     }
-    
+
     // Check if session date is in the past
     if (new Date(session.sessionDate) < new Date() && !isAdmin) {
       return res.status(400).json({
@@ -705,13 +705,20 @@ export const cancelSession = async (req, res) => {
         message: 'Cannot cancel past sessions'
       });
     }
-    
-    // If session was deducted, refund the session (admin only)
-    if (session.sessionDeducted && isAdmin && session.client) {
+
+    // Determine if this is an early cancel (more than 24 hours before session)
+    const sessionTime = new Date(session.sessionDate).getTime();
+    const now = Date.now();
+    const hoursUntilSession = (sessionTime - now) / (1000 * 60 * 60);
+    const isEarlyCancelEligible = hoursUntilSession > 24;
+    const applyEarlyCancel = earlyCancel && isEarlyCancelEligible;
+
+    // If session was deducted, refund the session (admin or early cancel)
+    if (session.sessionDeducted && (isAdmin || applyEarlyCancel) && session.client) {
       const client = session.client;
       client.availableSessions += 1;
       await client.save();
-      
+
       // Update session
       session.sessionDeducted = false;
       session.deductionDate = null;
@@ -720,31 +727,39 @@ export const cancelSession = async (req, res) => {
     // Update the session
     session.status = 'cancelled';
     session.cancelledBy = req.user.id;
-    session.cancellationReason = reason || 'Cancelled by user';
+    session.cancellationReason = applyEarlyCancel
+      ? `[Early Cancel - No Charge] ${reason || 'Cancelled by user'}`
+      : (reason || 'Cancelled by user');
     session.cancellationDate = new Date();
     await session.save();
-    
+
     // Send cancellation notifications
     if (session.client) {
       await notifySessionCancelled(session, session.client, req.user, reason);
     }
-    
+
     // Notify via Socket.IO
-    io.emit('sessions:updated', { 
-      type: 'cancelled', 
+    io.emit('sessions:updated', {
+      type: 'cancelled',
       sessionId: session.id,
-      cancelledBy: req.user.id
+      cancelledBy: req.user.id,
+      earlyCancel: applyEarlyCancel
     });
-    
+
+    const message = applyEarlyCancel
+      ? 'Session cancelled successfully (early cancel - no session credit deducted)'
+      : 'Session cancelled successfully';
+
     return res.status(200).json({
       success: true,
-      message: 'Session cancelled successfully',
+      message,
       session: {
         id: session.id,
         status: session.status,
         cancelledBy: session.cancelledBy,
         cancellationReason: session.cancellationReason,
-        cancellationDate: session.cancellationDate
+        cancellationDate: session.cancellationDate,
+        earlyCancel: applyEarlyCancel
       }
     });
   } catch (error) {

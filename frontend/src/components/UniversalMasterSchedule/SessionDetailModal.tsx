@@ -72,6 +72,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   const [trainerRating, setTrainerRating] = useState<string>('');
   const [clientFeedback, setClientFeedback] = useState('');
   const [cancelReason, setCancelReason] = useState('');
+  const [earlyCancel, setEarlyCancel] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
@@ -79,6 +80,16 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   const isBlocked = Boolean(session?.isBlocked) || session?.status === 'blocked';
   const canManage = mode === 'admin' || mode === 'trainer';
   const canManageSeries = mode === 'admin' && Boolean(session?.recurringGroupId);
+
+  // Check if session is in the future (for early cancel eligibility)
+  const isEarlyCancelEligible = useMemo(() => {
+    if (!session) return false;
+    const sessionTime = new Date(session.sessionDate).getTime();
+    const now = Date.now();
+    const hoursUntilSession = (sessionTime - now) / (1000 * 60 * 60);
+    // Early cancel available if more than 24 hours before session
+    return hoursUntilSession > 24;
+  }, [session]);
 
   const isTrainerAssigned = useMemo(() => {
     if (mode !== 'trainer') {
@@ -147,7 +158,7 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     setLoading(true);
 
     const ratingValue = trainerRating ? Number(trainerRating) : undefined;
-    if (trainerRating && (!Number.isFinite(ratingValue) || ratingValue < 1 || ratingValue > 5)) {
+    if (trainerRating && ratingValue !== undefined && (!Number.isFinite(ratingValue) || ratingValue < 1 || ratingValue > 5)) {
       setFormError('Trainer rating must be a number between 1 and 5.');
       setLoading(false);
       return;
@@ -238,7 +249,11 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
       return;
     }
 
-    if (!window.confirm('Cancel this session?')) {
+    const confirmMsg = earlyCancel
+      ? 'Early cancel - no session credit will be deducted. Proceed?'
+      : 'Cancel this session? A session credit may be deducted.';
+
+    if (!window.confirm(confirmMsg)) {
       return;
     }
 
@@ -253,7 +268,8 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
       }
 
       const payload = {
-        reason: cancelReason.trim() || undefined
+        reason: cancelReason.trim() || undefined,
+        earlyCancel: earlyCancel && isEarlyCancelEligible
       };
 
       const response = await fetch(`/api/sessions/${session.id}/cancel`, {
@@ -439,6 +455,20 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
             onChange={(e) => setCancelReason(e.target.value)}
             placeholder="Reason for cancelling this session"
           />
+          {isEarlyCancelEligible && (
+            <EarlyCancelOption>
+              <input
+                type="checkbox"
+                id="early-cancel"
+                checked={earlyCancel}
+                onChange={(e) => setEarlyCancel(e.target.checked)}
+              />
+              <label htmlFor="early-cancel">
+                <SmallText>Early Cancel (no session credit deducted)</SmallText>
+                <Caption secondary>Available for cancellations more than 24 hours before session</Caption>
+              </label>
+            </EarlyCancelOption>
+          )}
         </FormField>
       )}
     </Modal>
@@ -492,5 +522,31 @@ const SeriesCallout = styled.div`
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: flex-start;
+  }
+`;
+
+const EarlyCancelOption = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+
+  input[type="checkbox"] {
+    margin-top: 2px;
+    width: 18px;
+    height: 18px;
+    accent-color: #10b981;
+    cursor: pointer;
+  }
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    cursor: pointer;
   }
 `;

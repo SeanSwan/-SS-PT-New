@@ -56,6 +56,7 @@ import workoutSessionRoutes from '../routes/workoutSessionRoutes.mjs';
 import sessionsRoutes from '../routes/sessions.mjs';
 import scheduleRoutes from '../routes/scheduleRoutes.mjs';
 import availabilityRoutes from '../routes/availability.mjs';
+import sessionDeductionRoutes from '../routes/sessionDeductionRoutes.mjs';
 
 // ===================== GAMIFICATION & SOCIAL =====================
 // LEGACY ROUTES - Replaced by V1 API (kept for backward compatibility)
@@ -225,6 +226,7 @@ export const setupRoutes = async (app) => {
   // ===================== UNIFIED SESSIONS ROUTES (Phase 1: Backend Harmonization) =====================
   // Consolidated from enhancedScheduleRoutes + scheduleRoutes using unified session service
   app.use('/api/sessions', sessionsRoutes);
+  app.use('/api/sessions/deductions', sessionDeductionRoutes); // Auto-deduction and payment application
   app.use('/api/schedule', scheduleRoutes); // Calendar view schedule endpoint
   app.use('/api/availability', availabilityRoutes);
   app.use('/api/orientation', orientationRoutes);
