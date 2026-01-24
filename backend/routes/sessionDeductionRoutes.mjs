@@ -5,7 +5,7 @@
  */
 
 import express from 'express';
-import { authenticateToken, isAdmin, isAdminOrTrainer } from '../middleware/auth.mjs';
+import { authenticateToken, adminOnly, trainerOrAdminOnly } from '../middleware/auth.mjs';
 import {
   processSessionDeductions,
   getClientsNeedingPayment,
@@ -19,7 +19,7 @@ const router = express.Router();
  * Process automatic session deductions for past sessions
  * Admin only
  */
-router.post('/process', authenticateToken, isAdmin, async (req, res) => {
+router.post('/process', authenticateToken, adminOnly, async (req, res) => {
   try {
     const results = await processSessionDeductions();
 
@@ -43,7 +43,7 @@ router.post('/process', authenticateToken, isAdmin, async (req, res) => {
  * Get list of clients with exhausted credits who have upcoming sessions
  * Admin or Trainer
  */
-router.get('/clients-needing-payment', authenticateToken, isAdminOrTrainer, async (req, res) => {
+router.get('/clients-needing-payment', authenticateToken, trainerOrAdminOnly, async (req, res) => {
   try {
     const clients = await getClientsNeedingPayment();
 
@@ -67,7 +67,7 @@ router.get('/clients-needing-payment', authenticateToken, isAdminOrTrainer, asyn
  * Apply payment credits to a client's account
  * Admin only
  */
-router.post('/apply-payment', authenticateToken, isAdmin, async (req, res) => {
+router.post('/apply-payment', authenticateToken, adminOnly, async (req, res) => {
   try {
     const { clientId, sessionsToAdd, paymentNote } = req.body;
 
