@@ -24,7 +24,7 @@ export interface DayViewProps {
   onSelectSlot?: (payload: { date: Date; hour: number; trainerId?: number | string }) => void;
 }
 
-const HOURS = Array.from({ length: 17 }, (_, index) => 6 + index);
+const HOURS = Array.from({ length: 18 }, (_, index) => 5 + index); // 5am to 10pm
 
 const isSameDay = (left: Date, right: Date) =>
   left.getFullYear() === right.getFullYear()

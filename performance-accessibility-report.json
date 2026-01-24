@@ -1,0 +1,569 @@
+{
+  "testSuite": "SwanStudios Performance & Accessibility",
+  "timestamp": "2026-01-22T21:46:37.245Z",
+  "environment": {
+    "frontendUrl": "https://sswanstudios.com",
+    "nodeEnv": "development",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/144.0.0.0 Safari/537.36"
+  },
+  "testConfiguration": {
+    "devices": [
+      "Desktop (1920x1080)",
+      "Laptop (1366x768)",
+      "Tablet (768x1024)",
+      "Mobile Large (414x896)",
+      "Mobile Medium (375x667)",
+      "Mobile Small (320x568)"
+    ],
+    "testPages": [
+      "Homepage (/)",
+      "Login Page (/login)",
+      "Store Page (/store)",
+      "Admin Dashboard (/dashboard)",
+      "Universal Master Schedule (/dashboard/admin/master-schedule)",
+      "Style Guide (/style-guide)"
+    ]
+  },
+  "summary": {
+    "totalTests": 40,
+    "passed": 25,
+    "failed": 0,
+    "warnings": 7,
+    "skipped": 3,
+    "info": 5
+  },
+  "categories": {
+    "performance": [
+      {
+        "testName": "Load Time - Homepage",
+        "status": "PASS",
+        "message": "Excellent load time: 1252ms",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:00.455Z"
+      },
+      {
+        "testName": "Load Time - Login Page",
+        "status": "PASS",
+        "message": "Excellent load time: 1013ms",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:01.469Z"
+      },
+      {
+        "testName": "Load Time - Store Page",
+        "status": "PASS",
+        "message": "Good load time: 2243ms",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:03.712Z"
+      },
+      {
+        "testName": "Load Time - Admin Dashboard",
+        "status": "SKIP",
+        "message": "Requires authentication (skipped for performance test)",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:03.713Z"
+      },
+      {
+        "testName": "Load Time - Universal Master Schedule",
+        "status": "SKIP",
+        "message": "Requires authentication (skipped for performance test)",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:03.713Z"
+      },
+      {
+        "testName": "Load Time - Style Guide",
+        "status": "SKIP",
+        "message": "Requires authentication (skipped for performance test)",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:03.713Z"
+      },
+      {
+        "testName": "Lighthouse Performance",
+        "status": "WARN",
+        "message": "Needs improvement: 60/100",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:37.244Z"
+      }
+    ],
+    "responsive": [
+      {
+        "testName": "Responsive - Desktop",
+        "status": "PASS",
+        "message": "1920x1080 renders correctly",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:05.349Z"
+      },
+      {
+        "testName": "Responsive - Laptop",
+        "status": "PASS",
+        "message": "1366x768 renders correctly",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:06.830Z"
+      },
+      {
+        "testName": "Responsive - Tablet",
+        "status": "PASS",
+        "message": "768x1024 renders correctly",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:08.427Z"
+      },
+      {
+        "testName": "Mobile Menu - Tablet",
+        "status": "WARN",
+        "message": "Mobile navigation not detected",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:08.427Z"
+      },
+      {
+        "testName": "Responsive - Mobile Large",
+        "status": "PASS",
+        "message": "414x896 renders correctly",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:09.828Z"
+      },
+      {
+        "testName": "Mobile Menu - Mobile Large",
+        "status": "WARN",
+        "message": "Mobile navigation not detected",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:09.828Z"
+      },
+      {
+        "testName": "Responsive - Mobile Medium",
+        "status": "PASS",
+        "message": "375x667 renders correctly",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:11.360Z"
+      },
+      {
+        "testName": "Mobile Menu - Mobile Medium",
+        "status": "WARN",
+        "message": "Mobile navigation not detected",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:11.360Z"
+      },
+      {
+        "testName": "Responsive - Mobile Small",
+        "status": "PASS",
+        "message": "320x568 renders correctly",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:12.892Z"
+      },
+      {
+        "testName": "Mobile Menu - Mobile Small",
+        "status": "WARN",
+        "message": "Mobile navigation not detected",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:12.892Z"
+      }
+    ],
+    "accessibility": [
+      {
+        "testName": "Semantic HTML - Main",
+        "status": "PASS",
+        "message": "Main element found",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:14.408Z"
+      },
+      {
+        "testName": "Semantic HTML - Nav",
+        "status": "PASS",
+        "message": "Nav element found",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:14.408Z"
+      },
+      {
+        "testName": "Semantic HTML - Header",
+        "status": "PASS",
+        "message": "Header element found",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:14.408Z"
+      },
+      {
+        "testName": "Image Alt Text",
+        "status": "PASS",
+        "message": "All 19 images have alt text",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:14.421Z"
+      },
+      {
+        "testName": "Form Labels",
+        "status": "PASS",
+        "message": "All 2 inputs have labels",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:14.430Z"
+      },
+      {
+        "testName": "Lighthouse Accessibility",
+        "status": "PASS",
+        "message": "Excellent accessibility: 95/100",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:37.244Z"
+      }
+    ],
+    "lighthouse": [
+      {
+        "testName": "Lighthouse Performance",
+        "status": "WARN",
+        "message": "Needs improvement: 60/100",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:37.244Z"
+      },
+      {
+        "testName": "Lighthouse Accessibility",
+        "status": "PASS",
+        "message": "Excellent accessibility: 95/100",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:37.244Z"
+      },
+      {
+        "testName": "Lighthouse Best Practices",
+        "status": "PASS",
+        "message": "Excellent practices: 100/100",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:37.244Z"
+      }
+    ],
+    "swanStudios": [
+      {
+        "testName": "Load Time - Store Page",
+        "status": "PASS",
+        "message": "Good load time: 2243ms",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:03.712Z"
+      },
+      {
+        "testName": "Requests - Store Page",
+        "status": "INFO",
+        "message": "1 requests, 0 failed",
+        "details": {
+          "totalRequests": 1,
+          "failedRequests": 0,
+          "loadTime": 2243
+        },
+        "timestamp": "2026-01-22T21:46:03.713Z"
+      },
+      {
+        "testName": "SwanStudios Branding",
+        "status": "PASS",
+        "message": "Correct branding in title: SwanStudios - Elite Personal Training & Fitness Coaching",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:15.947Z"
+      },
+      {
+        "testName": "Theme Integration",
+        "status": "INFO",
+        "message": "Theme variables not detected (may use different approach)",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:15.948Z"
+      },
+      {
+        "testName": "Galaxy Theme Elements",
+        "status": "INFO",
+        "message": "Galaxy theme elements not detected",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:15.952Z"
+      },
+      {
+        "testName": "Store Functionality",
+        "status": "WARN",
+        "message": "Store page loads but no products detected",
+        "details": null,
+        "timestamp": "2026-01-22T21:46:17.438Z"
+      }
+    ]
+  },
+  "results": [
+    {
+      "testName": "Browser Setup",
+      "status": "PASS",
+      "message": "Browser initialized with performance monitoring",
+      "details": null,
+      "timestamp": "2026-01-22T21:45:59.203Z"
+    },
+    {
+      "testName": "Load Time - Homepage",
+      "status": "PASS",
+      "message": "Excellent load time: 1252ms",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:00.455Z"
+    },
+    {
+      "testName": "Requests - Homepage",
+      "status": "INFO",
+      "message": "35 requests, 0 failed",
+      "details": {
+        "totalRequests": 35,
+        "failedRequests": 0,
+        "loadTime": 1252
+      },
+      "timestamp": "2026-01-22T21:46:00.456Z"
+    },
+    {
+      "testName": "Load Time - Login Page",
+      "status": "PASS",
+      "message": "Excellent load time: 1013ms",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:01.469Z"
+    },
+    {
+      "testName": "Requests - Login Page",
+      "status": "INFO",
+      "message": "1 requests, 0 failed",
+      "details": {
+        "totalRequests": 1,
+        "failedRequests": 0,
+        "loadTime": 1013
+      },
+      "timestamp": "2026-01-22T21:46:01.469Z"
+    },
+    {
+      "testName": "Load Time - Store Page",
+      "status": "PASS",
+      "message": "Good load time: 2243ms",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:03.712Z"
+    },
+    {
+      "testName": "Requests - Store Page",
+      "status": "INFO",
+      "message": "1 requests, 0 failed",
+      "details": {
+        "totalRequests": 1,
+        "failedRequests": 0,
+        "loadTime": 2243
+      },
+      "timestamp": "2026-01-22T21:46:03.713Z"
+    },
+    {
+      "testName": "Load Time - Admin Dashboard",
+      "status": "SKIP",
+      "message": "Requires authentication (skipped for performance test)",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:03.713Z"
+    },
+    {
+      "testName": "Load Time - Universal Master Schedule",
+      "status": "SKIP",
+      "message": "Requires authentication (skipped for performance test)",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:03.713Z"
+    },
+    {
+      "testName": "Load Time - Style Guide",
+      "status": "SKIP",
+      "message": "Requires authentication (skipped for performance test)",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:03.713Z"
+    },
+    {
+      "testName": "Responsive - Desktop",
+      "status": "PASS",
+      "message": "1920x1080 renders correctly",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:05.349Z"
+    },
+    {
+      "testName": "Responsive - Laptop",
+      "status": "PASS",
+      "message": "1366x768 renders correctly",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:06.830Z"
+    },
+    {
+      "testName": "Responsive - Tablet",
+      "status": "PASS",
+      "message": "768x1024 renders correctly",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:08.427Z"
+    },
+    {
+      "testName": "Mobile Menu - Tablet",
+      "status": "WARN",
+      "message": "Mobile navigation not detected",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:08.427Z"
+    },
+    {
+      "testName": "Responsive - Mobile Large",
+      "status": "PASS",
+      "message": "414x896 renders correctly",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:09.828Z"
+    },
+    {
+      "testName": "Mobile Menu - Mobile Large",
+      "status": "WARN",
+      "message": "Mobile navigation not detected",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:09.828Z"
+    },
+    {
+      "testName": "Responsive - Mobile Medium",
+      "status": "PASS",
+      "message": "375x667 renders correctly",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:11.360Z"
+    },
+    {
+      "testName": "Mobile Menu - Mobile Medium",
+      "status": "WARN",
+      "message": "Mobile navigation not detected",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:11.360Z"
+    },
+    {
+      "testName": "Responsive - Mobile Small",
+      "status": "PASS",
+      "message": "320x568 renders correctly",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:12.892Z"
+    },
+    {
+      "testName": "Mobile Menu - Mobile Small",
+      "status": "WARN",
+      "message": "Mobile navigation not detected",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:12.892Z"
+    },
+    {
+      "testName": "Semantic HTML - Main",
+      "status": "PASS",
+      "message": "Main element found",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:14.408Z"
+    },
+    {
+      "testName": "Semantic HTML - Nav",
+      "status": "PASS",
+      "message": "Nav element found",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:14.408Z"
+    },
+    {
+      "testName": "Semantic HTML - Header",
+      "status": "PASS",
+      "message": "Header element found",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:14.408Z"
+    },
+    {
+      "testName": "Image Alt Text",
+      "status": "PASS",
+      "message": "All 19 images have alt text",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:14.421Z"
+    },
+    {
+      "testName": "Form Labels",
+      "status": "PASS",
+      "message": "All 2 inputs have labels",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:14.430Z"
+    },
+    {
+      "testName": "Heading Hierarchy",
+      "status": "PASS",
+      "message": "Proper heading hierarchy (44 headings)",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:14.456Z"
+    },
+    {
+      "testName": "Skip Links",
+      "status": "WARN",
+      "message": "Skip link not found",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:14.457Z"
+    },
+    {
+      "testName": "SwanStudios Branding",
+      "status": "PASS",
+      "message": "Correct branding in title: SwanStudios - Elite Personal Training & Fitness Coaching",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:15.947Z"
+    },
+    {
+      "testName": "Theme Integration",
+      "status": "INFO",
+      "message": "Theme variables not detected (may use different approach)",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:15.948Z"
+    },
+    {
+      "testName": "Galaxy Theme Elements",
+      "status": "INFO",
+      "message": "Galaxy theme elements not detected",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:15.952Z"
+    },
+    {
+      "testName": "Store Functionality",
+      "status": "WARN",
+      "message": "Store page loads but no products detected",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:17.438Z"
+    },
+    {
+      "testName": "Console Errors - /",
+      "status": "PASS",
+      "message": "No console errors",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:20.482Z"
+    },
+    {
+      "testName": "Console Warnings - /",
+      "status": "PASS",
+      "message": "No console warnings",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:20.482Z"
+    },
+    {
+      "testName": "Console Errors - /store",
+      "status": "PASS",
+      "message": "No console errors",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:24.507Z"
+    },
+    {
+      "testName": "Console Warnings - /store",
+      "status": "PASS",
+      "message": "No console warnings",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:24.507Z"
+    },
+    {
+      "testName": "Console Errors - /login",
+      "status": "PASS",
+      "message": "No console errors",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:27.361Z"
+    },
+    {
+      "testName": "Console Warnings - /login",
+      "status": "PASS",
+      "message": "No console warnings",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:27.361Z"
+    },
+    {
+      "testName": "Lighthouse Performance",
+      "status": "WARN",
+      "message": "Needs improvement: 60/100",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:37.244Z"
+    },
+    {
+      "testName": "Lighthouse Accessibility",
+      "status": "PASS",
+      "message": "Excellent accessibility: 95/100",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:37.244Z"
+    },
+    {
+      "testName": "Lighthouse Best Practices",
+      "status": "PASS",
+      "message": "Excellent practices: 100/100",
+      "details": null,
+      "timestamp": "2026-01-22T21:46:37.244Z"
+    }
+  ]
+}
