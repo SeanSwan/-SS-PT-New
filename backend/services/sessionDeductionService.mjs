@@ -5,8 +5,8 @@
  * after sessions are completed or the scheduled time has passed.
  */
 
-import { Session, User, sequelize } from '../models/index.mjs';
-import { Op } from 'sequelize';
+import { getSession, getUser, Op } from '../models/index.mjs';
+import sequelize from '../database.mjs';
 
 /**
  * Process session deductions for past sessions that haven't been deducted yet
@@ -15,6 +15,9 @@ import { Op } from 'sequelize';
  * @returns {Object} Result with count of processed sessions
  */
 export async function processSessionDeductions() {
+  const Session = getSession();
+  const User = getUser();
+
   const results = {
     processed: 0,
     deducted: 0,
@@ -131,6 +134,9 @@ export async function processSessionDeductions() {
  * @returns {Array} List of clients needing payment
  */
 export async function getClientsNeedingPayment() {
+  const Session = getSession();
+  const User = getUser();
+
   try {
     // Find clients with 0 or less available sessions
     const clients = await User.findAll({
@@ -184,6 +190,8 @@ export async function getClientsNeedingPayment() {
  * @returns {Object} Updated client info
  */
 export async function applyPaymentCredits(clientId, sessionsToAdd, paymentNote = '') {
+  const User = getUser();
+
   try {
     const client = await User.findByPk(clientId);
 
