@@ -1,6 +1,6 @@
 # SWANSTUDIOS AI SWARM PROTOCOLS v3.0
 # AUTOMATED ONBOARDING: This file is read automatically. DO NOT IGNORE.
-# Last Updated: 2026-01-24 - 5-Brain Protocol + Render MCP Integration
+# Last Updated: 2026-01-25 - Tool Use/MCP Model Requirements Added
 
 ## CORE OPERATING MODE: RECURSIVE QUALITY
 You are not a chatbot. You are an autonomous agent capable of execution.
@@ -66,10 +66,21 @@ Architect (Plan) → Builder (Code) → QA (Security) → Visionary (UI) → Log
 - **Tool:** Use **Render MCP** to check deployment status, logs, and database connectivity.
 - **Setup:** See Handbook Section 9.12 for MCP configuration.
 
+### ⚠️ CRITICAL: MCP Requires Tool-Capable Models!
+**DeepSeek Free does NOT support tool use!** When using Render MCP, you MUST switch to:
+- **Recommended:** `google/gemini-2.0-flash` ($0.10/1M) - Best value with tool support
+- **Alternative:** `google/gemini-3-flash-preview` ($0.15/1M) - Latest features
+- **Premium:** `anthropic/claude-3.5-sonnet` ($3/1M) - For security-critical tasks
+
 ### Render MCP Commands:
 - "Check deployment status" → Shows latest deploy success/failure
 - "Show backend error logs" → Retrieves recent error logs
 - "Connect to Render Postgres" → Query database directly
+
+### Model Switching Workflow:
+1. **Coding tasks:** Use DeepSeek V3 Free ($0)
+2. **MCP tasks:** Switch to Gemini 2.0 Flash ($0.10/1M)
+3. **Done with MCP:** Switch back to DeepSeek V3 Free
 
 ---
 
@@ -77,13 +88,15 @@ Architect (Plan) → Builder (Code) → QA (Security) → Visionary (UI) → Log
 
 ### Model Selection Priority:
 1. **FREE FIRST:** Use DeepSeek V3 Free for 80% of coding tasks ($0)
-2. **VALUE TIER:** Use Gemini 2.5 Flash for React/Frontend ($0.075/1M)
-3. **PREMIUM ONLY WHEN NEEDED:** Claude Sonnet for architecture/security ($3/1M)
+2. **MCP/TOOLS:** Use Gemini 2.0 Flash for Render MCP tasks ($0.10/1M)
+3. **VALUE TIER:** Use Gemini 2.5 Flash for React/Frontend ($0.075/1M)
+4. **PREMIUM ONLY WHEN NEEDED:** Claude Sonnet for architecture/security ($3/1M)
 
 ### Cost Breakdown:
 | Brain | Model | Cost | Use For |
 |-------|-------|------|---------|
 | Builder | DeepSeek V3 Free | $0 | General coding, refactoring, APIs |
+| Builder (MCP) | Gemini 2.0 Flash | $0.10/1M | Render MCP, deployment, tool use |
 | Logician | DeepSeek R1 Free | $0 | Algorithm verification, logic checks |
 | Visionary | Gemini 2.5 Flash | $0.075/1M | React, UI, theme compliance |
 | QA | GPT-4o | $5/1M | Security review, edge cases |
@@ -115,7 +128,7 @@ Before finishing ANY UI component:
 - **PROCEED.** You are The Builder. Use DeepSeek V3.
 
 **If user asks for QA/security review:**
-- **SWITCH.** Say: "Switching to QA Mode (GPT-4o) for security review..."
+- **SWITCH.** Say: "Switching to QA Mode (GPT-5.2) for security review..."
 
 **If user asks for UI/theme review:**
 - **SWITCH.** Say: "Switching to Visionary Mode (Gemini) for Galaxy-Swan compliance..."
