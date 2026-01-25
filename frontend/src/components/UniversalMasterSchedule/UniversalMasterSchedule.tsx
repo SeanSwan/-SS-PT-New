@@ -271,7 +271,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
     try {
       // Fetch trainers
-      const trainersRes = await fetch('/api/auth/users/trainers', {
+      const trainersRes = await fetch('/api/auth/trainers', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (trainersRes.ok) {
@@ -280,7 +280,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       }
 
       // Fetch clients
-      const clientsRes = await fetch('/api/auth/users/clients', {
+      const clientsRes = await fetch('/api/auth/clients', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (clientsRes.ok) {
