@@ -1,7 +1,7 @@
 # SWANSTUDIOS AI VILLAGE HANDBOOK - FINAL EDITION
 ## Your Complete Guide to Building SwanStudios with AI Agents
 
-**Last Updated:** 2026-01-24 - BUDGET-OPTIMIZED SWARM STRATEGY
+**Last Updated:** 2026-01-24 - RENDER MCP & PRO SUBSCRIPTION UPGRADE
 **Previous Update:** 2026-01-11 - Added Client Data Database Integration System (Section 9.7)
 **Your Situation:** Time-stressed, need revenue, have powerful AI tools already
 **Goal:** Launch in 1-2 weeks, not 3 months + Personal Training System automation
@@ -9,6 +9,13 @@
 ---
 
 ## 📋 CHANGELOG
+
+### 2026-01-24 - Render MCP & Pro Subscription (Section 9.12)
+- ✅ **Tool Stack Update:** Claude Code (VS Code) is Main Orchestrator.
+- ✅ **Subscription:** Documented upgrade path ($20 → $100 Pro) for higher limits.
+- ✅ **Hosting:** Render Platform integration formalized.
+- ✅ **New Capability:** Roo Code + Render MCP for direct deployment control.
+- **Status:** ACTIVE - Infrastructure hardening.
 
 ### 2026-01-24 - The 5-Brain Swarm Protocol (Section 9.11)
 - ✅ **5-Brain Protocol:** 5 distinct AI intelligences review all code (skipping 6 - unlucky)
@@ -159,6 +166,8 @@
 9.8. Business Readiness & Streamlining Master Plan
 9.9. [NASM Growth Plan - Homepage and Shop Architecture](#99-nasm-growth-plan---homepage-and-shop-architecture)
 9.10. [UX/UI Design Protocol](#910-uxui-design-protocol)
+9.11. [The 5-Brain Swarm Protocol](#911-the-5-brain-swarm-protocol-quality-assurance)
+9.12. [Render MCP Integration](#912-render-mcp-integration-deployment-control)
 
 ---
 
@@ -183,6 +192,113 @@ File: docs/ai-workflow/blueprints/UX-UI-DESIGN-PROTOCOL.md
 
 Core: Mobile-first, 44px touch targets, Galaxy-Swan theme
 NASM: Use segmented controls (not dropdowns)
+
+---
+
+## 9.11. THE 5-BRAIN SWARM PROTOCOL (Quality Assurance)
+
+**Added:** 2026-01-24
+**Purpose:** Ensure 100% error-free code through multi-AI review.
+
+### The 5 Brains
+
+| # | Brain | Model | Platform | Responsibility |
+|---|-------|-------|----------|----------------|
+| 1 | **🧠 Architect** | Claude Sonnet | Claude Code (VS Code) | Strategy, PLAN.md, architecture decisions |
+| 2 | **🔨 Builder** | DeepSeek V3 | Roo Code (OpenRouter) | Heavy coding, implementation, test writing |
+| 3 | **🧪 QA** | GPT-4o | ChatGPT 5.2 / Codex | Security review, edge cases, testing |
+| 4 | **🎨 Visionary** | Gemini 1.5 Pro | Gemini 3 | Frontend, UI/UX, Galaxy-Swan compliance |
+| 5 | **⚡ Logician** | DeepSeek R1 | Roo Code (OpenRouter) | Complex reasoning, algorithm verification |
+
+### Review Flow
+```
+Architect (Plan) → Builder (Code) → QA (Security) → Visionary (UI) → Logician (Logic)
+        ↑                                                                    ↓
+        └────────────────────────── Feedback Loop ───────────────────────────┘
+```
+
+### Enforcement Rules
+- **Standard code:** 3+ brain approvals required
+- **Critical code (auth, payments, RLS):** ALL 5 brain approvals required
+- **Mode switching:** "Switch to [Mode] and review this for [focus]"
+
+### Cost Optimization
+| Brain | Model | Cost | Usage |
+|-------|-------|------|-------|
+| Builder | DeepSeek V3 Free | $0 | 80% of work |
+| Logician | DeepSeek R1 Free | $0 | Algorithm checks |
+| Visionary | Gemini 2.5 Flash | $0.075/1M | UI review |
+| QA | GPT-4o | $5/1M | Security review |
+| Architect | Claude Sonnet | $3/1M | Planning (5%) |
+
+**Monthly Target:** $5-15 for OpenRouter (mostly free models)
+
+---
+
+## 9.12. RENDER MCP INTEGRATION (Deployment Control)
+
+**Added:** 2026-01-24
+**Purpose:** Give Roo Code direct control over SwanStudios hosting on Render.
+
+### Your Tool Stack Clarification
+
+| Tool | Platform | Role | Billing |
+|------|----------|------|---------|
+| **Claude Code** | VS Code Extension | Main Orchestrator (Architect) | $20/mo → $100/mo Pro Subscription |
+| **Roo Code** | VS Code Sidebar | Builder + Deployment | OpenRouter API ($5-15/mo) |
+| **Render** | Web Hosting | Production Deployment | Separate Render billing |
+
+### Setup Instructions for Render MCP
+
+**Step 1: Get Render API Key**
+1. Go to [Render Dashboard](https://dashboard.render.com)
+2. Navigate to **Account Settings → API Keys**
+3. Click **Create API Key** and copy it securely
+
+**Step 2: Configure Roo Code MCP**
+1. Open Roo Code Settings in VS Code
+2. Navigate to **MCP Servers → Edit JSON**
+3. Add the following configuration:
+
+```json
+{
+  "render": {
+    "command": "npx",
+    "args": ["-y", "@modelcontextprotocol/server-render"],
+    "env": {
+      "RENDER_API_KEY": "YOUR_RENDER_API_KEY_HERE"
+    }
+  }
+}
+```
+
+**Step 3: Verify Connection**
+- Restart Roo Code
+- Ask: "Roo, check the status of the latest deployment"
+- Should return deployment status from Render
+
+### Capabilities Enabled
+
+| Command Example | What It Does |
+|-----------------|--------------|
+| "Check deployment status" | Shows latest deploy status, success/failure |
+| "Show backend error logs" | Retrieves recent error logs from Render |
+| "Connect to Render Postgres" | Query database directly via MCP |
+| "List all services" | Shows all Render services for sswanstudios |
+| "Trigger redeploy" | Manually triggers a new deployment |
+
+### Billing Clarification
+
+**IMPORTANT:** Your subscriptions are SEPARATE:
+
+| Service | What It Covers | Cost |
+|---------|----------------|------|
+| **Claude Pro ($20 → $100)** | Claude Code (VS Code Extension) + Claude.ai | Subscription |
+| **Roo Code** | Extension is free, but uses OpenRouter API | $5-15/mo API |
+| **OpenRouter** | DeepSeek, Gemini, GPT-4o access for Roo | Pay-per-token |
+| **Render** | Hosting, database, deployments | Separate Render plan |
+
+**Your Claude Pro subscription does NOT cover Roo Code API costs!**
 
 ---
 
@@ -616,11 +732,11 @@ Instead of switching between browser tabs, you now use **Roo Code** as the centr
 
 #### **1. The Interface: Roo Code (Extension)**
 - **Role:** The Swarm Commander
-- **Capabilities:** Edits files, runs terminal commands, executes tests, connects to DB via MCP.
+- **Capabilities:** Edits files, runs terminal commands, executes tests, connects to DB & Render via MCP.
 - **Cost:** Free (Extension) + API Usage.
 
-#### 2. The Architect: Claude Code (CLI/Extension)
-- **Access:** Via Anthropic API
+#### 2. The Architect: Claude Code (VS Code Extension)
+- **Access:** Via VS Code Extension (Paid Subscription)
 - **Role:** **Head Orchestrator**. High-level planning, creating `PLAN.md`, reviewing architecture.
 - **Capabilities:** CAN write files and run tests (Verified).
 - **Warning:** Expensive ($15/1M tokens). Use for *planning* and *critical fixes*, not bulk coding.
@@ -636,7 +752,7 @@ Instead of switching between browser tabs, you now use **Roo Code** as the centr
 
 #### 5. The Visionary: Gemini 3 (Gemini 1.5 Pro)
 - **Access:** Via Roo Code or VS Code Extension
-- **Role:** Frontend Specialist, UI/UX, and Massive Context analysis (1M+ tokens).
+- **Role:** Frontend Specialist, UI/UX, **Galaxy-Swan Theme Compliance**, and Massive Context analysis (1M+ tokens).
 
 #### 6. The Logician: DeepSeek R1
 - **Access:** Via Roo Code (OpenRouter)
@@ -647,6 +763,7 @@ Instead of switching between browser tabs, you now use **Roo Code** as the centr
 #### **5. The Nervous System: MCP (Model Context Protocol)**
 - **Postgres MCP:** Allows Roo to query your DB schema directly.
 - **Browser MCP:** Allows Roo to see your localhost UI.
+- **Render MCP:** Allows Roo to check deployment logs, status, and database on Render.
 
 ### **Your Total Current Spend:**
 - **Budget Goal:** Keep under $100/month.

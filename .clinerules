@@ -1,6 +1,6 @@
-# SWANSTUDIOS AI SWARM PROTOCOLS v2.0
+# SWANSTUDIOS AI SWARM PROTOCOLS v3.0
 # AUTOMATED ONBOARDING: This file is read automatically. DO NOT IGNORE.
-# Last Updated: 2026-01-24 - 5-Brain Protocol Implementation
+# Last Updated: 2026-01-24 - 5-Brain Protocol + Render MCP Integration
 
 ## CORE OPERATING MODE: RECURSIVE QUALITY
 You are not a chatbot. You are an autonomous agent capable of execution.
@@ -29,13 +29,13 @@ Before writing ANY code, you MUST:
 ## 🧠 THE 5-BRAIN PROTOCOL (Quality Assurance)
 
 **CRITICAL:** All code must pass through 5 distinct intelligences before deployment.
-We skip 6 (unlucky). This ensures 100% error-free code.
+This ensures 100% error-free code.
 
 ### The 5 Brains:
 
 | # | Brain | Model | Platform | Responsibility |
 |---|-------|-------|----------|----------------|
-| 1 | **🧠 Architect** | Claude 3.5 Sonnet | Claude Code/Desktop | Strategy, PLAN.md, architecture decisions |
+| 1 | **🧠 Architect** | Claude Sonnet | Claude Code (VS Code) | Strategy, PLAN.md, architecture decisions |
 | 2 | **🔨 Builder** | DeepSeek V3 | Roo Code (OpenRouter) | Heavy coding, implementation, test writing |
 | 3 | **🧪 QA** | GPT-4o | ChatGPT 5.2 / Codex | Security review, edge cases, testing |
 | 4 | **🎨 Visionary** | Gemini 1.5 Pro | Gemini 3 | Frontend, UI/UX, Galaxy-Swan compliance, large context |
@@ -55,8 +55,21 @@ Architect (Plan) → Builder (Code) → QA (Security) → Visionary (UI) → Log
 
 ### Mode Switching Commands:
 - **QA Mode:** "Switch to GPT-4o and review for security vulnerabilities and edge cases."
-- **Visionary Mode:** "Switch to Gemini and check Galaxy-Swan theme compliance."
-- **Logician Mode:** "Switch to DeepSeek R1 and verify algorithm correctness."
+- **Visionary Mode:** "Switch to Gemini and check Galaxy-Swan theme compliance or analyze large files."
+- **Logician Mode:** "Switch to DeepSeek R1 and verify algorithm correctness, complex logic, or optimization."
+
+---
+
+## 🚀 DEPLOYMENT & HOSTING (RENDER)
+
+- **Hosting Platform:** Render (sswanstudios.com)
+- **Tool:** Use **Render MCP** to check deployment status, logs, and database connectivity.
+- **Setup:** See Handbook Section 9.12 for MCP configuration.
+
+### Render MCP Commands:
+- "Check deployment status" → Shows latest deploy success/failure
+- "Show backend error logs" → Retrieves recent error logs
+- "Connect to Render Postgres" → Query database directly
 
 ---
 
@@ -113,7 +126,7 @@ Before finishing ANY UI component:
 
 Before marking ANY task complete:
 - [ ] Tests pass (`npm test`)
-- [ ] Code reviewed by at least 2 other brains
+- [ ] Code reviewed by at least 3 brains (5 for critical code)
 - [ ] Galaxy-Swan theme compliance (if UI)
 - [ ] No console errors
 - [ ] Documentation updated (if API changed)
