@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.exclude": {
+			"**/node_modules": true,
+			"**/.git": true,
+			"**/venv": true,
+			"**/__pycache__": true
+		}
+	},
+	"extensions": {
+		"recommendations": [
+			"rooveterinaryinc.roo-cline",
+			"ms-python.python",
+			"dbaeumer.vscode-eslint",
+			"esbenp.prettier-vscode"
+		]
+	}
+}
