@@ -336,7 +336,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
       // Build session object
       const sessionData = {
-        sessionDate: formData.sessionDate,
+        sessionDate: new Date(formData.sessionDate).toISOString(), // Ensure ISO format
         duration: formData.duration,
         location: formData.location,
         notes: formData.notes,
