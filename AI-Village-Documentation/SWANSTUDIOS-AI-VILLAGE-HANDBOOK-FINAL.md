@@ -1,7 +1,7 @@
 # SWANSTUDIOS AI VILLAGE HANDBOOK - FINAL EDITION
 ## Your Complete Guide to Building SwanStudios with AI Agents
 
-**Last Updated:** 2026-01-17 - Added Business Readiness & Streamlining Master Plan (Section 9.8)
+**Last Updated:** 2026-01-24 - BUDGET-OPTIMIZED SWARM STRATEGY
 **Previous Update:** 2026-01-11 - Added Client Data Database Integration System (Section 9.7)
 **Your Situation:** Time-stressed, need revenue, have powerful AI tools already
 **Goal:** Launch in 1-2 weeks, not 3 months + Personal Training System automation
@@ -9,6 +9,14 @@
 ---
 
 ## 📋 CHANGELOG
+
+### 2026-01-24 - The Autonomous Swarm Upgrade (Section 9.11)
+- ✅ **Workflow Shift:** From "Human Router" to "Recursive Quality Loops"
+- ✅ **Tool Stack:** Consolidated into Roo Code (VS Code) + MCP
+- ✅ **New Roles:** Architect (Claude), Builder (DeepSeek), QA (GPT-4o)
+- ✅ **Protocol:** Added `.clinerules` for autonomous behavior
+- ✅ **Impact:** AI now runs tests, fixes its own errors, and verifies DB schema directly
+- **Status:** ACTIVE - Replaces manual copy-pasting
 
 ### 2026-01-17 - Sections 9.9 and 9.10: NASM Growth Plan and UX Protocol
 - Store is Source of Truth for pricing (no prices on homepage)
@@ -109,6 +117,10 @@
 - Project context and current status
 - First message templates for each AI
 
+**Critical Design References:**
+- **[UX/UI Design Protocol](#910-uxui-design-protocol)** - Mobile-first (44px touch targets), Galaxy-Swan theme, segmented controls (not dropdowns)
+- **[Design Workflow & Build Gate](#66-design-workflow--build-gate-process)** - Design Master Prompt v3.0, 28-point handoff checklist
+
 **Location:** `AI-Village-Documentation/` directory
 
 ---
@@ -129,13 +141,19 @@
 ### PART II: AI ROLE ASSIGNMENTS (THE CORE)
 5. AI Village Role Mapping (Your Optimized Setup)
 6. ChatGPT-5 Responsibilities
+6.5. MinMax v2 Responsibilities
+6.6. [Design Workflow & Build Gate Process](#66-design-workflow--build-gate-process)
 7. Claude 4.5 Sonnet Responsibilities
 8. Roo Code + OpenRouter Strategy
 9. Supporting Cast (Gemini, Codex, v0.dev)
-9.5. **NEW: Coach Cortex v3.1 - Personal Training AI System**
-  9.5.1. Onboarding-to-Database Pipeline (Client Intake Automation)
+9.5. [Coach Cortex v3.1 - Personal Training AI System](#95-coach-cortex-v31---unified-training-ai-system-personal-training--boot-camps)
+  - 9.5.1. [Onboarding-to-Database Pipeline](#951-onboarding-to-database-pipeline---client-intake-automation)
+9.6. Admin Video Library System
+9.7. [Client Data Database Integration](#97-client-data-database-integration---comprehensive-onboarding--data-persistence)
+9.8. Business Readiness & Streamlining Master Plan
+9.9. [NASM Growth Plan - Homepage and Shop Architecture](#99-nasm-growth-plan---homepage-and-shop-architecture)
+9.10. [UX/UI Design Protocol](#910-uxui-design-protocol)
 
-##
 ---
 
 ## 9.9. NASM GROWTH PLAN - HOMEPAGE AND SHOP ARCHITECTURE
@@ -586,74 +604,48 @@ All database migrations MUST include:
 
 ## 1. YOUR ACTUAL AI ARSENAL
 
-### **What You're Already Paying For (USE THESE!):**
+### **The 2026 Swarm Stack (Consolidated in VS Code)**
 
-#### **ChatGPT-5** 💰 ~$20/month (ChatGPT Plus/Pro)
-- **Access:** Web interface, ChatGPT app, API
-- **Strengths:** Multi-modal (text + images), excellent at testing, documentation, user stories
-- **Best for:** QA, Product Management, Technical Writing, UX wireframes with images
-- **Context:** 128K tokens
-- **Special ability:** Can analyze screenshots, diagrams, Figma exports
+Instead of switching between browser tabs, you now use **Roo Code** as the central interface ("The Body") that swaps out "Brains" (Models) based on the task.
 
-#### **Codex (GPT-4)** 💰 Included in ChatGPT subscription
-- **Access:** VS Code panel (you have this open)
-- **Strengths:** Solid coding, good at general tasks
-- **Best for:** Backup coder, code review, quick questions
-- **Context:** 128K tokens
+#### **1. The Interface: Roo Code (Extension)**
+- **Role:** The Swarm Commander
+- **Capabilities:** Edits files, runs terminal commands, executes tests, connects to DB via MCP.
+- **Cost:** Free (Extension) + API Usage.
 
-#### **Claude 4.5 Sonnet** 💰 $20/month (Claude Pro)
-- **Access:**
-  - **Claude Code (PRIMARY)** - Main Orchestrator in VS Code extension
-  - **Claude Desktop (SPECIALIZED)** - Deployment monitor only (shares tokens with Claude Code)
-- **Strengths:** Best at architecture, security, system design, long context
-- **Best for:**
-  - **Claude Code:** Main Orchestrator, Integration, Architecture, Security reviews
-  - **Claude Desktop:** Render deployment issues ONLY (has MCP access to live deployment)
-- **Context:** 200K tokens (shared between Claude Code + Desktop)
-- **Token Budget:**
-  - Claude Code: 80% (160K tokens) - use for daily work
-  - Claude Desktop: 20% (40K tokens) - use ONLY for deployment emergencies
-- **Rule:** If Claude Code can solve it in VS Code, don't use Claude Desktop
+#### 2. The Architect: Claude Code (CLI/Extension)
+- **Access:** Via Anthropic API
+- **Role:** **Head Orchestrator**. High-level planning, creating `PLAN.md`, reviewing architecture.
+- **Capabilities:** CAN write files and run tests (Verified).
+- **Warning:** Expensive ($15/1M tokens). Use for *planning* and *critical fixes*, not bulk coding.
 
-#### **Roo Code (Grok Code Fast 1)** 💰 ~$10-15/month
-- **Access:** VS Code extension (routes to OpenRouter)
-- **Model:** **Grok Code Fast 1** by xAI
-- **Strengths:**
-  - Speedy & economical reasoning model
-  - Excels at agentic coding workflows
-  - Visible reasoning traces (helps steer for quality)
-  - Context: 256K tokens
-  - Max output: 10K tokens
-  - Supports prompt caching
-- **Best for:** Heavy coding, backend implementation, refactoring
-- **Pricing:**
-  - Input: $0.20 / 1M tokens (very cheap!)
-  - Output: $1.50 / 1M tokens
-  - Cache reads: $0.02 / 1M tokens
-- **Strategy:** Use Grok Code Fast 1 for most coding tasks (super cheap + fast)
+#### **3. The Builder: DeepSeek V3**
+- **Access:** Via Roo Code (API Provider: OpenRouter)
+- **Role:** Heavy coding, refactoring, writing boilerplate.
+- **Cost:** ~$0.28/million tokens (**~50x cheaper than Claude**). Use for the "Write -> Test -> Fix" loop.
 
-#### **Gemini Code Assist** 💰 Free tier
-- **Access:** VS Code panel (you have this open)
-- **Strengths:** Excellent at React, frontend, Google Cloud
-- **Best for:** Frontend coding, database optimization
-- **Context:** 1M tokens (huge!)
+#### **4. The QA: ChatGPT-4o / Claude 3.5 Haiku**
+- **Access:** Via Roo Code
+- **Role:** Final review, security checks, "Devil's Advocate".
 
-#### **Kilo Code** 💰 Included (OpenRouter via Roo Code subscription)
-- **Access:** VS Code extension (routes to OpenRouter, same as Roo Code)
-- **Model:** Grok Code Fast 1 (same infrastructure as Roo Code)
-- **Strengths:** Boot camp class planning, group training optimization, circuit design
-- **Best for:** Coach Cortex v3.1 boot camp system (50-min classes, 8-board system, preferred workout library)
-- **Context:** 256K tokens
-- **Pricing:** Same as Roo Code ($0.20 input / $1.50 output per 1M tokens)
-- **Strategy:** Use for boot camp class generation and equipment flow optimization only
+#### 5. The Visionary: Gemini 3 (Gemini 1.5 Pro)
+- **Access:** Via Roo Code or VS Code Extension
+- **Role:** Frontend Specialist, UI/UX, and Massive Context analysis (1M+ tokens).
+
+#### 6. The Logician: DeepSeek R1
+- **Access:** Via Roo Code (OpenRouter)
+- **Role:** **Complex Reasoning & Optimization.**
+- **Why:** Top-tier reasoning model that "thinks" before answering. Excellent for catching subtle logic bugs.
+- **Cost:** Very low on OpenRouter.
+
+#### **5. The Nervous System: MCP (Model Context Protocol)**
+- **Postgres MCP:** Allows Roo to query your DB schema directly.
+- **Browser MCP:** Allows Roo to see your localhost UI.
 
 ### **Your Total Current Spend:**
-- ChatGPT Pro: $20/month
-- Claude Pro: $20/month (shared: Claude Code + Claude Desktop)
-- Roo Code + Kilo Code (Grok Code Fast 1): ~$10-15/month (shared infrastructure)
-- Gemini Code Assist: $0 (free tier)
-- v0.dev: $0 (free tier, or $20/mo for Pro)
-- **Total: ~$50-55/month (+ optional $20 for v0.dev Pro)**
+- **Budget Goal:** Keep under $100/month.
+- **Strategy:** Use DeepSeek V3 for 90% of code generation. Use Claude Code only for Orchestration/Architecture.
+
 
 ---
 
@@ -745,42 +737,29 @@ All database migrations MUST include:
 ## 5. AI VILLAGE ROLE MAPPING (YOUR OPTIMIZED SETUP)
 
 ### **THE STRATEGY:**
-**Claude Code is Main Orchestrator. Roo Code (Grok Code Fast 1) handles heavy coding. Use specialized AIs for their strengths.**
+**Switch Roo Code "Modes" instead of switching browser tabs. The AI executes the work recursively.**
 
-### **PRIMARY AI ASSIGNMENTS:**
+### **SWARM MODE ASSIGNMENTS (Inside Roo Code):**
 
-| AI Village Role | PRIMARY Tool | Why This Tool | Cost |
-|-----------------|--------------|---------------|------|
-| **🎯 Main Orchestrator** | **Claude Code (4.5 Sonnet)** | 200K context, best at architecture + integration + orchestration | $0 (included in Pro) |
-| **🧠 Strategic UX & Multi-AI Orchestrator** | **MinMax v2** | Strategic analysis, UX optimization, multi-AI consensus building, gamification expert | Varies by platform |
-| **💻 Primary Coder** | **Roo Code (Grok Code Fast 1)** | Super cheap ($0.20/1M), fast reasoning, agentic coding | ~$10-15/month |
-| **⚛️ Frontend Specialist** | **Gemini Code Assist** | 1M context (huge!), excellent at React, free tier | $0 (free) |
-| **🧪 QA Engineer** | **ChatGPT-5** | Multi-modal, excellent at testing + edge cases | $0 (included in Plus) |
-| **🎨 UI Wireframing** | **v0.dev** | Generates pixel-perfect React components visually | $0-20/month |
-| **🚀 Deployment Monitor** | **Claude Desktop** | MCP access to Render (use sparingly - shares Claude Code tokens) | $0 (included in Pro) |
+| Mode | Model | Responsibility |
+|------|-------|----------------|
+| **ARCHITECT** | **Claude Code** | Reads `docs/`, creates `PLAN.md`, defines specs. Smartest brain. |
+| **BUILDER** | **DeepSeek V3** | Reads `PLAN.md`, writes code, runs `npm test`, fixes errors recursively. |
+| **QA** | **GPT-4o / Claude** | Reviews code against `PLAN.md` and `UX-PROTOCOL.md`. |
+| **VISIONARY** | **Gemini 3** | Reviews frontend components, theme compliance, and large file context. |
+| **LOGICIAN** | **DeepSeek R1** | Verifies complex algorithms and optimization logic. |
 
-### **BACKUP/SPECIALIZED TOOLS:**
+### **The Recursive Loop Protocol:**
+1. **Architect** creates the plan.
+2. **Builder** writes the code.
+3. **Builder** runs the test.
+   - *If Fail:* Builder reads error -> Fixes code -> Reruns test (Loop).
+   - *If Pass:* Builder marks task complete.
+4. **QA** reviews the final output.
 
-| Role | Backup Tool | When to Use |
-|------|-------------|-------------|
-| Architecture | ChatGPT-5 | If Claude Code unavailable |
-| Coding | Codex (GPT-4), Gemini | Quick questions, frontend work |
-| Product Management | ChatGPT-5 | User stories, requirements |
-| Tech Writing | ChatGPT-5, Claude Code | Documentation |
-| Security Reviews | Claude Code (primary), Claude Desktop (if deployment-related) | OWASP ASVS L2 compliance |
-| Performance | Gemini Code Assist (1M context), Roo Code | Database optimization, profiling |
-
-### **TOKEN BUDGET MANAGEMENT:**
-
-**Claude Pro (200K tokens shared):**
-- **Claude Code:** 80% (160K tokens) - Daily orchestration, architecture, reviews
-- **Claude Desktop:** 20% (40K tokens) - ONLY for Render deployment emergencies
-
-**Rule:** If Claude Code (in VS Code) can solve it, don't use Claude Desktop.
-
-### **Total Additional Cost: $10-35/month**
-- Roo Code (Grok Code Fast 1): ~$10-15/month
-- v0.dev: $0-20/month (free tier usually sufficient)
+### **Legacy Tools (Keep for specific needs):**
+- **v0.dev:** Still best for initial UI wireframing.
+- **Claude Desktop:** Use for Render deployment monitoring via MCP (Included in Pro sub).
 
 ---
 
@@ -1750,40 +1729,27 @@ Output: .github/workflows/ci.yml
 
 ---
 
-## 8. ROO CODE + OPENROUTER STRATEGY
+## 8. ROO CODE: THE SWARM COMMANDER
 
-### **Why Roo Code is Your Workhorse:**
-- ✅ Can route to ANY OpenRouter model
-- ✅ FREE models available (DeepSeek V3 Free)
-- ✅ Perfect for 80% of coding tasks
+### **Why Roo Code is the Core Interface:**
+- ✅ **Agentic:** Can create files, edit code, and run terminal commands.
+- ✅ **Model Agnostic:** Switch between Claude (Brains) and DeepSeek (Brawn) instantly.
+- ✅ **MCP Support:** Connects directly to your PostgreSQL database and Browser.
 
-### **Roo Code Model Routing (Task-Based):**
+### **Configuration Strategy:**
 
-| Task | Roo Code Model | Cost |
-|------|----------------|------|
-| **Backend API coding** | DeepSeek V3 Free | $0 |
-| **Frontend React coding** | Gemini 2.5 Flash | $0.075/1M |
-| **Database queries** | DeepSeek V3 Free | $0 |
-| **Testing generation** | DeepSeek Coder | $0.14/1M |
-| **Complex algorithms** | DeepSeek R1 Free | $0 |
-| **Refactoring** | DeepSeek V3 Free | $0 |
-
-### **Setup:**
-1. Open Roo Code settings in VS Code
-2. Connect to OpenRouter (add API key)
-3. Set default: `deepseek/deepseek-v3:free`
-4. Manually switch models based on task type
+1.  **Install Roo Code Extension** in VS Code.
+2.  **Connect OpenRouter API Key.**
+3.  **Create `.clinerules` file** in root (see Section 9.11).
+4.  **Set up Custom Modes:**
+    *   **Architect:** System prompt = "You are a Senior Architect. Read docs, create plans. Do not code."
+    *   **Builder:** System prompt = "You are a Senior Engineer. Read plans, write code, run tests, fix errors."
 
 ### **When to Use Roo Code:**
-- ✅ 80% of daily coding (use free DeepSeek V3)
-- ✅ Refactoring large codebases
-- ✅ Implementing features from Architect specs
-- ✅ Bug fixes
+- ✅ **ALWAYS.** This is your primary interface for 95% of work.
 
-### **When to Use Backup (Codex GPT-4):**
-- ⚠️ DeepSeek V3 fails on complex algorithm
-- ⚠️ Need second opinion on tricky code
-- ⚠️ Hit rate limit on free tier
+### **When to Use Web Browsers:**
+- ⚠️ Only for v0.dev (UI generation) or checking email.
 
 ---
 

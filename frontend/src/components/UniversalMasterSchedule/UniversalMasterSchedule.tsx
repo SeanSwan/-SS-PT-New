@@ -903,21 +903,35 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
             </CalendarHeaderRow>
 
             <GridContainer columns={7} gap="0.5rem">
-              {weekDays.map((day, index) => (
-                <DayCard key={index}>
-                  <Caption secondary>
-                    {day.toLocaleDateString('en-US', { weekday: 'short' })}
-                  </Caption>
-                  <PrimaryHeading style={{ fontSize: '1.5rem', margin: '0.5rem 0' }}>
-                    {day.getDate()}
-                  </PrimaryHeading>
+              {weekDays.map((day, index) => {
+                const daySessions = sessions.filter(session => {
+                  const sessionDate = new Date(session.sessionDate);
+                  return sessionDate.toDateString() === day.toDateString();
+                });
 
-                  {sessions
-                    .filter(session => {
-                      const sessionDate = new Date(session.sessionDate);
-                      return sessionDate.toDateString() === day.toDateString();
-                    })
-                    .map(session => {
+                return (
+                  <DayCard key={index}>
+                    <DayCardHeader
+                      onClick={() => drillDownToDay(day)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          drillDownToDay(day);
+                        }
+                      }}
+                    >
+                      <Caption secondary>
+                        {day.toLocaleDateString('en-US', { weekday: 'short' })}
+                      </Caption>
+                      <PrimaryHeading style={{ fontSize: '1.5rem', margin: '0.5rem 0' }}>
+                        {day.getDate()}
+                      </PrimaryHeading>
+                      <Caption secondary>{daySessions.length} sessions</Caption>
+                    </DayCardHeader>
+
+                    {daySessions.map(session => {
                       const isBookable = canQuickBook && session.status === 'available' && !session.isBlocked;
 
                       return (
@@ -954,10 +968,10 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                           )}
                         </WeekSessionItem>
                       );
-                    })
-                  }
-                </DayCard>
-              ))}
+                    })}
+                  </DayCard>
+                );
+              })}
             </GridContainer>
           </>
         )}
@@ -1281,6 +1295,17 @@ const ScheduleContainer = styled.div.attrs({
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
   color: white;
   overflow: hidden;
+
+  /* Tablet */
+  @media (max-width: 1024px) {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  /* Mobile */
+  @media (max-width: 480px) {
+    height: 100dvh; /* Dynamic viewport height for mobile browsers */
+  }
 `;
 
 const ScheduleHeader = styled.div`
@@ -1292,12 +1317,25 @@ const ScheduleHeader = styled.div`
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
-  
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  /* Tablet */
+  @media (max-width: 1024px) {
+    padding: 1.25rem 1.5rem;
+  }
+
+  /* Mobile */
   @media (max-width: 768px) {
     padding: 1rem;
     flex-direction: column;
-    gap: 1rem;
-    align-items: flex-start;
+    gap: 0.75rem;
+    align-items: stretch;
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.75rem;
+    gap: 0.5rem;
   }
 `;
 
@@ -1309,6 +1347,25 @@ const StatsPanel = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   flex-shrink: 0;
+
+  /* Tablet */
+  @media (max-width: 1024px) {
+    margin: 0.75rem 1.5rem;
+    padding: 1.25rem;
+  }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    margin: 0.5rem 1rem;
+    padding: 1rem;
+    border-radius: 10px;
+  }
+
+  @media (max-width: 480px) {
+    margin: 0.5rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+  }
 `;
 
 const CreditWarning = styled.div`
@@ -1321,18 +1378,42 @@ const CreditWarning = styled.div`
   background: rgba(245, 158, 11, 0.12);
   border: 1px solid rgba(245, 158, 11, 0.35);
   color: #fef3c7;
+
+  @media (max-width: 480px) {
+    padding: 0.625rem 0.75rem;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    border-radius: 8px;
+    margin-bottom: 0.75rem;
+  }
 `;
 
 const StatCard = styled(Card)`
   text-align: center;
   padding: 1.5rem;
-  
+
   .stat-value {
     font-size: 2rem;
     font-weight: 700;
     color: #3b82f6;
     margin-bottom: 0.5rem;
     line-height: 1;
+  }
+
+  @media (max-width: 768px) {
+    padding: 1.25rem;
+
+    .stat-value {
+      font-size: 1.75rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    padding: 1rem;
+
+    .stat-value {
+      font-size: 1.5rem;
+    }
   }
 `;
 
@@ -1344,25 +1425,47 @@ const CalendarContainer = styled.div`
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+
   /* Custom scrollbar */
   &::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 4px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.2);
     border-radius: 4px;
-    
+
     &:hover {
       background: rgba(255, 255, 255, 0.3);
     }
+  }
+
+  /* Tablet */
+  @media (max-width: 1024px) {
+    margin: 0 1.5rem 1.5rem;
+    padding: 1.25rem;
+  }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    margin: 0 1rem 1rem;
+    padding: 1rem;
+    border-radius: 10px;
+  }
+
+  @media (max-width: 480px) {
+    margin: 0 0.5rem 0.5rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    /* Allow horizontal scroll on very small screens for week view */
+    overflow-x: auto;
   }
 `;
 
@@ -1385,6 +1488,17 @@ const Legend = styled.div`
   gap: 0.75rem 1rem;
   align-items: center;
   justify-content: flex-end;
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    justify-content: flex-start;
+    gap: 0.5rem 0.75rem;
+  }
+
+  @media (max-width: 480px) {
+    gap: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+  }
 `;
 
 const LegendItem = styled.div`
@@ -1399,6 +1513,7 @@ const LegendSwatch = styled.span<{ $color: string; $striped?: boolean }>`
   border-radius: 3px;
   background-color: ${props => props.$color};
   border: 1px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
   ${props => props.$striped && `
     background-image: repeating-linear-gradient(
       45deg,
@@ -1408,6 +1523,11 @@ const LegendSwatch = styled.span<{ $color: string; $striped?: boolean }>`
       rgba(0, 0, 0, 0.2) 8px
     );
   `}
+
+  @media (max-width: 480px) {
+    width: 12px;
+    height: 12px;
+  }
 `;
 
 const DayCard = styled(Card)`
@@ -1417,6 +1537,52 @@ const DayCard = styled(Card)`
   display: flex;
   flex-direction: column;
   align-items: center;
+  overflow: visible;
+
+  /* Tablet */
+  @media (max-width: 1024px) {
+    min-height: 180px;
+    padding: 0.875rem;
+  }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    min-height: 150px;
+    padding: 0.75rem;
+  }
+
+  @media (max-width: 480px) {
+    min-height: 120px;
+    padding: 0.5rem;
+  }
+`;
+
+const DayCardHeader = styled.div`
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 150ms ease-out;
+  width: 100%;
+  min-height: 44px; /* Minimum touch target */
+
+  &:hover {
+    background: rgba(0, 255, 255, 0.1);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #00ffff;
+    outline-offset: 2px;
+  }
+
+  /* Active state for touch */
+  &:active {
+    background: rgba(0, 255, 255, 0.15);
+    transform: scale(0.98);
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.375rem;
+  }
 `;
 
 const WeekSessionItem = styled.div`
@@ -1440,6 +1606,8 @@ const QuickBookButton = styled.button`
   border: 1px solid rgba(59, 130, 246, 0.9);
   border-radius: 6px;
   cursor: pointer;
+  min-height: 36px; /* Better touch target */
+  transition: all 150ms ease;
 
   &:hover {
     background: rgba(37, 99, 235, 0.85);
@@ -1448,6 +1616,17 @@ const QuickBookButton = styled.button`
   &:focus-visible {
     outline: 2px solid #3b82f6;
     outline-offset: 2px;
+  }
+
+  &:active {
+    transform: scale(0.97);
+    background: rgba(37, 99, 235, 0.95);
+  }
+
+  @media (max-width: 480px) {
+    min-height: 40px;
+    font-size: 0.75rem;
+    padding: 0.4rem 0.5rem;
   }
 `;
 
@@ -1485,6 +1664,12 @@ const BookingCard = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+
+  @media (max-width: 480px) {
+    padding: 0.75rem;
+    border-radius: 8px;
+    gap: 0.375rem;
+  }
 `;
 
 const BookingRow = styled.div`
@@ -1492,6 +1677,12 @@ const BookingRow = styled.div`
   justify-content: space-between;
   gap: 1rem;
   align-items: center;
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
 `;
 
 const CreditCard = styled.div`
@@ -1500,6 +1691,11 @@ const CreditCard = styled.div`
   border-radius: 10px;
   padding: 1rem;
   text-align: center;
+
+  @media (max-width: 480px) {
+    padding: 0.75rem;
+    border-radius: 8px;
+  }
 `;
 
 const AccessDeniedContainer = styled.div`
@@ -1511,4 +1707,13 @@ const AccessDeniedContainer = styled.div`
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   color: white;
   padding: 2rem;
+
+  @media (max-width: 768px) {
+    padding: 1.5rem;
+  }
+
+  @media (max-width: 480px) {
+    padding: 1rem;
+    height: 100dvh;
+  }
 `;

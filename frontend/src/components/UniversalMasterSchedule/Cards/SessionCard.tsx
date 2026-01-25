@@ -72,6 +72,7 @@ const CardContainer = styled.div<{ $status: string }>`
   transition: all 150ms ease-out;
   position: relative;
   overflow: hidden;
+  min-height: 44px; /* Touch target */
 
   ${({ $status }) =>
     $status === 'blocked' &&
@@ -92,9 +93,26 @@ const CardContainer = styled.div<{ $status: string }>`
     box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
   }
 
+  &:active {
+    transform: scale(0.98);
+  }
+
   &:focus-visible {
     outline: 2px solid ${galaxySwanTheme.primary.main};
     outline-offset: 2px;
+  }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    padding: 0.6rem 0.7rem;
+    border-radius: 10px;
+    gap: 0.35rem;
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.5rem 0.6rem;
+    border-radius: 8px;
+    gap: 0.3rem;
   }
 `;
 
@@ -129,6 +147,10 @@ const TimeLabel = styled.span`
   font-size: 0.85rem;
   font-weight: 600;
   color: ${galaxySwanTheme.text.primary};
+
+  @media (max-width: 480px) {
+    font-size: 0.8rem;
+  }
 `;
 
 const DurationLabel = styled.span`
@@ -147,6 +169,10 @@ const NameText = styled.span`
   font-size: 0.9rem;
   font-weight: 600;
   color: ${galaxySwanTheme.text.primary};
+
+  @media (max-width: 480px) {
+    font-size: 0.85rem;
+  }
 `;
 
 const MetaText = styled.span`

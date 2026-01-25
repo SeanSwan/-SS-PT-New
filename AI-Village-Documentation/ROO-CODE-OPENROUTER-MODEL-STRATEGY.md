@@ -16,6 +16,14 @@ This means you can:
 - ✅ Use premium models (Claude, Gemini) only when needed
 - ✅ Optimize cost while maintaining quality
 
+### ⚠️ CRITICAL BILLING NOTE
+**Your Claude Pro ($20/month) subscription DOES NOT work in Roo Code.**
+
+- **Claude Pro** = Claude.ai & Claude Desktop App.
+- **Roo Code** = API Usage (Pay-per-token via OpenRouter/Anthropic).
+
+**STRATEGY:** Use **Claude Desktop** (Pro Sub) for planning. Use **Roo Code + DeepSeek** (Cheap API) for coding.
+
 **Your Current Setup:**
 - Roo Code (paid subscription) → Can connect to OpenRouter
 - OpenRouter account → Access to 400+ models
@@ -29,6 +37,7 @@ This means you can:
 | Model | Input Cost | Output Cost | Context | Best For |
 |-------|------------|-------------|---------|----------|
 | **DeepSeek V3 Free** | $0/1M | $0/1M | 64K | General coding, refactoring |
+| **DeepSeek R1 Free** | $0/1M | $0/1M | 64K | **Complex reasoning, logic checks (Brain #5)** |
 | **DeepSeek R1 Free** | $0/1M | $0/1M | 64K | Complex reasoning, algorithms |
 | **Qwen 2.5 7B** | $0/1M | $0/1M | 32K | Simple coding tasks |
 
@@ -300,6 +309,7 @@ const modelRouting = {
   "react-ui": "google/gemini-2.5-flash",
   "testing": "deepseek/deepseek-coder",
   "frontend": "google/gemini-2.5-flash",
+  "logic-review": "deepseek/deepseek-r1:free",
 
   // 5% of work - PREMIUM (when needed)
   "architecture": "anthropic/claude-3.5-sonnet",
