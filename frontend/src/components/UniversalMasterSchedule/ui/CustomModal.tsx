@@ -39,15 +39,15 @@ const slideUp = keyframes`
   }
 `;
 
-// Backdrop
+// Backdrop - Ultra responsive
 const Backdrop = styled.div`
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
   z-index: 9999;
   display: flex;
   align-items: center;
@@ -55,9 +55,15 @@ const Backdrop = styled.div`
   padding: 1rem;
   animation: ${fadeIn} 0.2s ease;
   overflow-y: auto;
+
+  /* Mobile: full screen modal */
+  @media (max-width: 480px) {
+    padding: 0;
+    align-items: flex-end;
+  }
 `;
 
-// Modal container
+// Modal container - Ultra responsive
 const ModalContainer = styled.div<{ size?: 'sm' | 'md' | 'lg' | 'xl' }>`
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -77,57 +83,97 @@ const ModalContainer = styled.div<{ size?: 'sm' | 'md' | 'lg' | 'xl' }>`
   animation: ${slideUp} 0.3s ease;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
   position: relative;
-  
+
+  /* Tablet */
   @media (max-width: 768px) {
+    max-width: 95%;
+    max-height: 92vh;
+    border-radius: 16px;
+  }
+
+  /* Mobile: slide up sheet style */
+  @media (max-width: 480px) {
     max-width: 100%;
     max-height: 95vh;
+    min-height: 50vh;
+    border-radius: 20px 20px 0 0;
+    margin: 0;
+    animation: ${slideUp} 0.3s ease;
   }
 `;
 
-// Modal header
+// Modal header - Ultra responsive
 const ModalHeader = styled.div`
   padding: 1.5rem;
+  padding-right: 3.5rem; /* Space for close button */
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
-  
+
   h2 {
     margin: 0;
     font-size: 1.5rem;
     font-weight: 500;
     color: #ffffff;
   }
-`;
 
-// Modal body
-const ModalBody = styled.div`
-  padding: 1.5rem;
-  overflow-y: auto;
-  flex: 1;
-  
-  /* Custom scrollbar */
-  &::-webkit-scrollbar {
-    width: 8px;
+  @media (max-width: 768px) {
+    padding: 1.25rem;
+    padding-right: 3rem;
+
+    h2 {
+      font-size: 1.25rem;
+    }
   }
-  
-  &::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 4px;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 4px;
-    
-    &:hover {
-      background: rgba(255, 255, 255, 0.3);
+
+  @media (max-width: 480px) {
+    padding: 1rem;
+    padding-right: 2.5rem;
+
+    h2 {
+      font-size: 1.1rem;
     }
   }
 `;
 
-// Modal footer
+// Modal body - Ultra responsive
+const ModalBody = styled.div`
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+
+  /* Custom scrollbar */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  @media (max-width: 768px) {
+    padding: 1.25rem;
+  }
+
+  @media (max-width: 480px) {
+    padding: 1rem;
+  }
+`;
+
+// Modal footer - Ultra responsive
 const ModalFooter = styled.div`
   padding: 1rem 1.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -136,13 +182,54 @@ const ModalFooter = styled.div`
   align-items: center;
   gap: 0.5rem;
   flex-shrink: 0;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.75rem;
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+
+    button {
+      width: 100%;
+      justify-content: center;
+    }
+  }
 `;
 
-// Close button (positioned absolutely)
+// Close button (positioned absolutely with high z-index) - Ultra responsive
 const CloseButton = styled(IconButton)`
   position: absolute;
   top: 1rem;
   right: 1rem;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.3);
+  min-width: 36px;
+  min-height: 36px;
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.3);
+  }
+
+  /* Better touch target on mobile */
+  @media (max-width: 768px) {
+    top: 0.75rem;
+    right: 0.75rem;
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  @media (max-width: 480px) {
+    top: 0.5rem;
+    right: 0.5rem;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.625rem;
+  }
 `;
 
 // Props interface

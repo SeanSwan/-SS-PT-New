@@ -145,6 +145,17 @@ const AgendaContainer = styled.div`
   max-height: 620px;
   overflow-y: auto;
   padding-right: 0.5rem;
+  -webkit-overflow-scrolling: touch;
+
+  @media (max-width: 768px) {
+    gap: 1.25rem;
+    max-height: none;
+    padding-right: 0;
+  }
+
+  @media (max-width: 480px) {
+    gap: 1rem;
+  }
 `;
 
 const AgendaGroup = styled.section`
@@ -158,6 +169,15 @@ const GroupLabel = styled.div`
   text-transform: uppercase;
   letter-spacing: 0.12em;
   color: ${galaxySwanTheme.text.secondary};
+
+  @media (max-width: 768px) {
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 0.75rem;
+  }
 `;
 
 const GroupList = styled.div`
@@ -182,8 +202,33 @@ const AgendaRow = styled.div`
     box-shadow: ${galaxySwanTheme.shadows.primaryGlow};
   }
 
+  &:active {
+    transform: scale(0.99);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${galaxySwanTheme.primary.main};
+    outline-offset: 2px;
+  }
+
+  /* Tablet */
+  @media (max-width: 1024px) {
+    grid-template-columns: 80px 1fr 150px;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 12px;
+  }
+
+  /* Mobile */
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.625rem;
+    border-radius: 10px;
   }
 `;
 
@@ -216,6 +261,12 @@ const StatusBlock = styled.div`
   gap: 0.5rem;
   align-items: flex-end;
   justify-content: center;
+
+  @media (max-width: 768px) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
 `;
 
 const StatusBadge = styled.div<{ $status: string }>`
@@ -250,10 +301,26 @@ const ActionButton = styled.button`
   font-size: 0.7rem;
   cursor: pointer;
   transition: all 150ms ease-out;
+  min-height: 32px;
 
   &:hover {
     border-color: ${galaxySwanTheme.primary.main};
     box-shadow: ${galaxySwanTheme.shadows.primaryGlow};
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${galaxySwanTheme.primary.main};
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 480px) {
+    min-height: 36px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
   }
 `;
 

@@ -119,12 +119,44 @@ const SelectorContainer = styled.div`
   border: 1px solid ${galaxySwanTheme.borders.elegant};
   border-radius: 12px;
   backdrop-filter: blur(12px);
+
+  /* Tablet */
+  @media (max-width: 1024px) {
+    padding: 0.875rem 1.25rem;
+    gap: 0.75rem;
+  }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.75rem 1rem;
+    gap: 0.75rem;
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.625rem 0.75rem;
+    border-radius: 10px;
+  }
 `;
 
 const Tabs = styled.div`
   display: inline-flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+
+  /* Mobile: full width tabs */
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: center;
+    gap: 0.375rem;
+  }
+
+  @media (max-width: 480px) {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.25rem;
+  }
 `;
 
 const ViewTab = styled.button<{ $active?: boolean }>`
@@ -143,6 +175,7 @@ const ViewTab = styled.button<{ $active?: boolean }>`
       $active ? galaxySwanTheme.primary.main : galaxySwanTheme.borders.elegant};
   box-shadow: ${({ $active }) => ($active ? galaxySwanTheme.shadows.primaryGlow : 'none')};
   transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 40px; /* Touch target */
 
   &:hover {
     border-color: ${galaxySwanTheme.primary.main};
@@ -150,12 +183,52 @@ const ViewTab = styled.button<{ $active?: boolean }>`
     box-shadow: ${galaxySwanTheme.shadows.primaryGlow};
     transform: translateY(-1px);
   }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${galaxySwanTheme.primary.main};
+    outline-offset: 2px;
+  }
+
+  /* Tablet */
+  @media (max-width: 1024px) {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    min-height: 42px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.5rem 0.5rem;
+    font-size: 0.75rem;
+    min-height: 44px;
+    border-radius: 8px;
+  }
 `;
 
 const DateControls = styled.div`
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
+
+  /* Mobile: center the controls */
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  @media (max-width: 480px) {
+    gap: 0.375rem;
+  }
 `;
 
 const NavButton = styled.button`
@@ -168,10 +241,32 @@ const NavButton = styled.button`
   font-size: 1.1rem;
   cursor: pointer;
   transition: all 150ms ease-out;
+  flex-shrink: 0;
 
   &:hover {
     border-color: ${galaxySwanTheme.primary.main};
     box-shadow: ${galaxySwanTheme.shadows.primaryGlow};
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${galaxySwanTheme.primary.main};
+    outline-offset: 2px;
+  }
+
+  /* Mobile: larger touch targets */
+  @media (max-width: 768px) {
+    width: 40px;
+    height: 40px;
+  }
+
+  @media (max-width: 480px) {
+    width: 44px;
+    height: 44px;
+    font-size: 1.25rem;
   }
 `;
 
@@ -181,6 +276,16 @@ const DateLabel = styled.div`
   color: ${galaxySwanTheme.text.primary};
   min-width: 170px;
   text-align: center;
+
+  @media (max-width: 768px) {
+    font-size: 0.95rem;
+    min-width: 150px;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 0.875rem;
+    min-width: 120px;
+  }
 `;
 
 const TodayButton = styled.button`
@@ -193,9 +298,29 @@ const TodayButton = styled.button`
   font-weight: 600;
   cursor: pointer;
   transition: all 150ms ease-out;
+  min-height: 36px;
+  flex-shrink: 0;
 
   &:hover {
     background: ${galaxySwanTheme.interactive.hover};
     box-shadow: ${galaxySwanTheme.shadows.primaryGlow};
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  &:focus-visible {
+    outline: 2px solid ${galaxySwanTheme.primary.main};
+    outline-offset: 2px;
+  }
+
+  @media (max-width: 768px) {
+    min-height: 40px;
+  }
+
+  @media (max-width: 480px) {
+    min-height: 44px;
+    padding: 0.5rem 1rem;
   }
 `;

@@ -209,12 +209,42 @@ const DayViewContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
+
+  /* Mobile: allow horizontal scroll */
+  @media (max-width: 768px) {
+    gap: 0.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    min-width: 100%;
+  }
+
+  @media (max-width: 480px) {
+    gap: 0.4rem;
+  }
 `;
 
 const HeaderRow = styled.div`
   display: grid;
   grid-template-columns: 90px repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.6rem;
+
+  /* Tablet */
+  @media (max-width: 1024px) {
+    grid-template-columns: 70px repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.5rem;
+  }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    grid-template-columns: 60px repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.4rem;
+    min-width: max-content;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 55px repeat(auto-fit, minmax(110px, 1fr));
+    gap: 0.35rem;
+  }
 `;
 
 const TimeHeader = styled.div`
@@ -223,6 +253,17 @@ const TimeHeader = styled.div`
   letter-spacing: 0.12em;
   color: ${galaxySwanTheme.text.secondary};
   padding: 0.5rem;
+
+  @media (max-width: 768px) {
+    font-size: 0.7rem;
+    padding: 0.375rem;
+  }
+
+  @media (max-width: 480px) {
+    font-size: 0.65rem;
+    padding: 0.25rem;
+    letter-spacing: 0.08em;
+  }
 `;
 
 const TrainerHeader = styled.div`
@@ -233,6 +274,18 @@ const TrainerHeader = styled.div`
   color: ${galaxySwanTheme.text.primary};
   font-weight: 600;
   text-align: center;
+
+  @media (max-width: 768px) {
+    padding: 0.5rem 0.5rem;
+    font-size: 0.85rem;
+    border-radius: 8px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.4rem 0.375rem;
+    font-size: 0.75rem;
+    border-radius: 6px;
+  }
 `;
 
 const HourRow = styled.div`
@@ -240,6 +293,24 @@ const HourRow = styled.div`
   grid-template-columns: 90px repeat(auto-fit, minmax(180px, 1fr));
   gap: 0.6rem;
   align-items: stretch;
+
+  /* Tablet */
+  @media (max-width: 1024px) {
+    grid-template-columns: 70px repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.5rem;
+  }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    grid-template-columns: 60px repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.4rem;
+    min-width: max-content;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 55px repeat(auto-fit, minmax(110px, 1fr));
+    gap: 0.35rem;
+  }
 `;
 
 const TimeCell = styled.div`
@@ -250,6 +321,18 @@ const TimeCell = styled.div`
   background: rgba(10, 10, 26, 0.4);
   border-radius: 10px;
   border: 1px solid ${galaxySwanTheme.borders.subtle};
+
+  @media (max-width: 768px) {
+    padding: 0.5rem 0.375rem;
+    font-size: 0.75rem;
+    border-radius: 8px;
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.375rem 0.25rem;
+    font-size: 0.7rem;
+    border-radius: 6px;
+  }
 `;
 
 const SlotCell = styled.div<{ $hasSession?: boolean }>`
@@ -276,6 +359,24 @@ const SlotCell = styled.div<{ $hasSession?: boolean }>`
   &:hover {
     border-color: ${galaxySwanTheme.primary.main};
     box-shadow: ${galaxySwanTheme.shadows.primaryGlow};
+  }
+
+  &:active {
+    transform: scale(0.99);
+  }
+
+  @media (max-width: 768px) {
+    min-height: 70px;
+    padding: 0.4rem;
+    border-radius: 10px;
+    gap: 0.4rem;
+  }
+
+  @media (max-width: 480px) {
+    min-height: 60px;
+    padding: 0.3rem;
+    border-radius: 8px;
+    gap: 0.3rem;
   }
 `;
 

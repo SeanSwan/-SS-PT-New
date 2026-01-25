@@ -1,7 +1,7 @@
-# 🚀 AI VILLAGE MASTER ONBOARDING PROMPT v2.8
-## UNIFIED: Phase 0 Reviews + AI Handoff Coordination + Design Workflow + Coach Cortex v3.1 + Admin Video Library + Dashboard Real Data Integration + Client Data Database Integration + Business Readiness
+# 🚀 AI VILLAGE MASTER ONBOARDING PROMPT v3.0
+## UNIFIED: Swarm Protocols + 5-Brain Review + Phase 0 Reviews + AI Handoff Coordination
 
-**LATEST UPDATE:** 2026-01-15 - Business Readiness & Streamlining Master Plan (Section 9.8)
+**LATEST UPDATE:** 2026-01-24 - 5-Brain Swarm Protocol (Architect, Builder, QA, Visionary, Logician)
 **Previous Update:** 2026-01-11 - Client Data Database Integration System (Section 9.7)
 
 ---
@@ -36,6 +36,7 @@ When you paste this into an AI, they will automatically:
 - ✅ Coordinate via shared files (CURRENT-TASK.md, status files)
 - ✅ Know where to find all documentation
 - ✅ Follow Build Gate process (design → approval → code)
+- ✅ **Enforce 5-Brain Review Rule** (Architect → Builder → QA → Visionary → Logician)
 
 **Result:** No more confusion, no more duplicate work, no more "why did you code without asking?!"
 
@@ -45,7 +46,7 @@ Copy this entire prompt to ANY AI in the AI Village — they will auto‑detect 
 
 ---
 
-## 🤖 AI VILLAGE ROSTER (6 AIs)
+## 🤖 AI VILLAGE ROSTER (5-Brain Swarm)
 
 **SwanStudios AI Village Team - Current Active Members:**
 
@@ -53,10 +54,9 @@ Copy this entire prompt to ANY AI in the AI Village — they will auto‑detect 
 |---|---------|----------|-------------|---------------|
 | 1 | **Claude Code** | Anthropic (Sonnet 4.5) | Main Orchestrator | Full-stack development, architecture, integration |
 | 2 | **Roo Code** | xAI (Grok models) | Backend Specialist | Node.js/Express, PostgreSQL, API design |
-| 3 | **MinMax V2** | Google (Gemini) | UX & Multi-AI Orchestrator | Strategic UX, gamification, consensus building |
-| 4 | **Kilo Code** | DeepSeek (Prover via Grok) | Boot Camp Specialist | Circuit design, group training, proof verification |
-| 5 | **Gemini** | Google (Gemini Code Assist) | Frontend Specialist | React, TypeScript, UI components |
-| 6 | **ChatGPT-5** | OpenAI (GPT-5) | QA Engineer | Testing, quality assurance, edge case detection |
+| 3 | **ChatGPT 5.2** | OpenAI (GPT-4o) | QA Engineer | Testing, quality assurance, edge case detection |
+| 4 | **Gemini 3** | Google (Gemini 1.5 Pro) | Visionary / Frontend | React, UI/UX, Large Context Analysis |
+| 5 | **DeepSeek R1** | DeepSeek (via OpenRouter) | Logician | Complex reasoning, optimization, logic verification |
 
 **Quick Reference:**
 - **For coding tasks**: Claude Code (main), Roo Code (backend), Gemini (frontend)
@@ -506,6 +506,7 @@ For architecture/coding, use Claude Code instead (saves tokens).
 - Fast diagnostic analysis (via Grok models)
 - Refactoring large components
 - Heavy coding work with visible reasoning
+- **Acting as "The Builder" in the Swarm Protocol**
 
 **MODELS YOU USE:**
 - Grok-beta (primary for code generation)
