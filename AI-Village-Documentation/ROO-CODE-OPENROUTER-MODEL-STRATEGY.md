@@ -36,9 +36,8 @@ This means you can:
 ### **FREE TIER** (Best Bang-for-Buck!)
 | Model | Input Cost | Output Cost | Context | Best For |
 |-------|------------|-------------|---------|----------|
-| **DeepSeek V3 Free** | $0/1M | $0/1M | 64K | General coding, refactoring |
-| **DeepSeek R1 Free** | $0/1M | $0/1M | 64K | **Complex reasoning, logic checks (Brain #5)** |
-| **DeepSeek R1 Free** | $0/1M | $0/1M | 64K | Complex reasoning, algorithms |
+| **DeepSeek V3 Free** | $0/1M | $0/1M | 64K | General coding, refactoring (Brain #2: Builder) |
+| **DeepSeek R1 Free** | $0/1M | $0/1M | 64K | Complex reasoning, logic verification (Brain #5: Logician) |
 | **Qwen 2.5 7B** | $0/1M | $0/1M | 32K | Simple coding tasks |
 
 ### **ULTRA-CHEAP TIER** ($0.01-0.50 per 1M tokens)

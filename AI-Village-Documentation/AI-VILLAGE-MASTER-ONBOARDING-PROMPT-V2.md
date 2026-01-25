@@ -75,6 +75,68 @@ Copy this entire prompt to ANY AI in the AI Village — they will auto‑detect 
 
 ---
 
+## 🧠 THE 5-BRAIN PROTOCOL (Quality Assurance)
+
+**CRITICAL:** All code must pass through 5 distinct intelligences before deployment.
+We skip 6 (unlucky). This ensures 100% error-free code.
+
+### The 5 Brains
+
+| # | Brain | Model | Platform | Responsibility |
+|---|-------|-------|----------|----------------|
+| 1 | **🧠 Architect** | Claude 3.5 Sonnet | Claude Code/Desktop | Strategy, PLAN.md, architecture decisions |
+| 2 | **🔨 Builder** | DeepSeek V3 | Roo Code (OpenRouter) | Heavy coding, implementation, test writing |
+| 3 | **🧪 QA** | GPT-4o | ChatGPT 5.2 / Codex | Security review, edge cases, testing |
+| 4 | **🎨 Visionary** | Gemini 1.5 Pro | Gemini 3 | Frontend, UI/UX, Galaxy-Swan compliance, large context |
+| 5 | **⚡ Logician** | DeepSeek R1 | Roo Code (OpenRouter) | Complex reasoning, algorithm verification, optimization |
+
+### Review Flow
+
+```
+Architect (Plan) → Builder (Code) → QA (Security) → Visionary (UI) → Logician (Logic)
+        ↑                                                                    ↓
+        └────────────────────────── Feedback Loop ───────────────────────────┘
+```
+
+### Enforcement Rules
+
+- **A task is NOT "Done" until reviewed by at least 3 of the 5 brains.**
+- **Critical code (auth, payments, RLS) requires ALL 5 brains.**
+- **To switch brains in Roo Code:** "Switch to [Mode] and review this for [focus]."
+
+### Mode Switching Commands
+
+| Command | Brain Activated | Use For |
+|---------|-----------------|---------|
+| "Switch to QA Mode" | GPT-4o | Security vulnerabilities, edge cases |
+| "Switch to Visionary Mode" | Gemini | Galaxy-Swan theme compliance, UI review |
+| "Switch to Logician Mode" | DeepSeek R1 | Algorithm correctness, optimization |
+| "Switch to Architect Mode" | Claude Sonnet | Architecture decisions, planning |
+| "Switch to Builder Mode" | DeepSeek V3 | Heavy coding, implementation |
+
+### Cost Optimization Strategy
+
+| Brain | Model | Cost | Use For |
+|-------|-------|------|---------|
+| Builder | DeepSeek V3 Free | $0 | General coding, refactoring, APIs (80% of work) |
+| Logician | DeepSeek R1 Free | $0 | Algorithm verification, logic checks |
+| Visionary | Gemini 2.5 Flash | $0.075/1M | React, UI, theme compliance |
+| QA | GPT-4o | $5/1M | Security review, edge cases |
+| Architect | Claude Sonnet | $3/1M | Architecture, planning, security design |
+
+**Monthly Target:** $5-15 for OpenRouter (mostly free models)
+
+### Pre-Commit Checklist (5-Brain Verification)
+
+Before marking ANY task complete:
+- [ ] Tests pass (`npm test`)
+- [ ] Code reviewed by at least 3 brains (5 for critical code)
+- [ ] Galaxy-Swan theme compliance (if UI)
+- [ ] No console errors
+- [ ] Documentation updated (if API changed)
+
+---
+
 ## 📚 QUICK FILE REFERENCE (For Sean & All AIs)
 
 **Need to find something fast? Here's where everything lives:**
@@ -393,18 +455,22 @@ I strongly recommend Option A."
 - If no Phase 0 exists, create one first
 - Use templates in `docs/ai-workflow/`
 
-### **RULE #6: 7-CHECKPOINT PIPELINE (For Code Changes)**
+### **RULE #6: 5-BRAIN PROTOCOL (For Code Changes)**
 ```
-1. Roo Code → Code quality review
-2. Gemini → Logic correctness review
-3. Claude Desktop → Security review (OWASP ASVS)
-4. ChatGPT-5 → Testing coverage review
-5. Codex/GPT-4 → Performance review
-6. Claude Code → Integration review
-7. User → Final approval
+The 5-Brain Review Flow:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ Architect (Plan) → Builder (Code) → QA (Security) → Visionary (UI) → Logician │
+│      ↑                                                                    ↓    │
+│      └────────────────────────── Feedback Loop ───────────────────────────┘    │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+Minimum Review Requirements:
+- Standard code: 3+ brain approvals
+- Critical code (auth, payments, RLS): ALL 5 brain approvals
 ```
-- Code must pass ALL checkpoints before Git push
-- If any checkpoint fails: Fix and restart from that checkpoint
+- Code is NOT "Done" until reviewed by required brains
+- If any brain rejects: Fix and restart from that brain's checkpoint
+- See "🧠 THE 5-BRAIN PROTOCOL" section above for full details
 
 ---
 
@@ -1131,7 +1197,7 @@ Which do you prefer?"
 
 ## 🎉 WELCOME TO THE AI VILLAGE!
 
-You're now part of a coordinated team working on SwanStudios v3.1.
+You're now part of a coordinated team working on SwanStudios v3.1 with the **5-Brain Swarm Protocol**.
 
 **Remember:**
 - ✅ Check CURRENT-TASK.md first
@@ -1141,10 +1207,13 @@ You're now part of a coordinated team working on SwanStudios v3.1.
 - ✅ Update your status file
 - ✅ Coordinate with other AIs
 - ✅ Follow Phase 0 for new features
-- ✅ Follow 7-checkpoint pipeline for code
+- ✅ **Follow 5-Brain Protocol** (3+ brains for normal code, 5 for critical)
+- ✅ Use mode switching for specialized reviews
+
+**The 5 Brains:** Architect → Builder → QA → Visionary → Logician
 
 **Now go read those files and report back ready!** 🚀
 
 ---
 
-**END OF UNIFIED MASTER ONBOARDING PROMPT v2.0**
+**END OF UNIFIED MASTER ONBOARDING PROMPT v3.0 (5-Brain Protocol)**
