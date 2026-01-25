@@ -1,7 +1,7 @@
 # ROO CODE + OPENROUTER MODEL STRATEGY
 ## Best Bang-for-Buck AI Models for Your SwanStudios Workflow
 
-**Last Updated:** 2025-10-20
+**Last Updated:** 2026-01-25
 **Your Budget:** Avoid $100+ models, focus on best performance per dollar
 
 ---
@@ -22,7 +22,7 @@ This means you can:
 - **Claude Code (VS Code Extension):** Uses your Subscription (Orchestrator).
 - **Roo Code (Sidebar):** Uses API Keys (Builder).
 
-**STRATEGY:** Use **Claude Desktop** (Pro Sub) for planning. Use **Roo Code + DeepSeek** (Cheap API) for coding.
+**STRATEGY:** Use **Claude Code** (Pro Sub) for planning. Use **Roo Code + DeepSeek/Gemini** (Cheap API) for coding.
 
 **Your Current Setup:**
 - Roo Code (paid subscription) → Can connect to OpenRouter
@@ -31,7 +31,63 @@ This means you can:
 
 ---
 
-## 💰 OPENROUTER PRICING TIERS (2025)
+## 🔧 TOOL USE / MCP REQUIREMENTS (CRITICAL!)
+
+### ⚠️ Why This Matters
+**MCP (Model Context Protocol)** features like Render MCP require **tool use / function calling** support.
+**NOT ALL MODELS SUPPORT TOOLS!** If you try to use MCP with an unsupported model, you'll get:
+```
+404 No endpoints found that support tool use
+```
+
+### ❌ Models WITHOUT Tool Support (Do NOT use for MCP)
+| Model | Tool Support | Use For |
+|-------|--------------|---------|
+| **DeepSeek V3 Free** | ❌ NO | General coding only |
+| **DeepSeek R1 Free** | ❌ NO | Reasoning/algorithms only |
+| **DeepSeek Coder** | ❌ NO | Test generation only |
+| **Qwen 2.5 Free** | ❌ NO | Simple tasks only |
+
+### ✅ Models WITH Tool Support (USE for MCP)
+| Model | Tool Support | Cost | Best For |
+|-------|--------------|------|----------|
+| **Gemini 2.0 Flash** | ✅ YES | $0.10/1M | MCP, agents, tool-heavy workflows |
+| **Gemini 3 Flash Preview** | ✅ YES | ~$0.15/1M | Agentic workflows, latest features |
+| **Gemini 2.5 Flash** | ✅ YES | $0.075/1M | React + MCP combined |
+| **Claude 3.5 Sonnet** | ✅ YES | $3/1M | Architecture + MCP |
+| **GPT-4o** | ✅ YES | $5/1M | Multi-modal + MCP |
+| **GPT-4o-mini** | ✅ YES | $0.15/1M | Budget MCP option |
+
+### 🎯 MCP Model Selection Strategy
+```
+FOR RENDER MCP (deployment, logs, DB):
+├── Budget Option: Gemini 2.0 Flash ($0.10/1M) ✅ RECOMMENDED
+├── Latest Tech: Gemini 3 Flash Preview (~$0.15/1M)
+└── Premium: Claude 3.5 Sonnet ($3/1M)
+
+FOR GENERAL CODING (no MCP needed):
+├── Primary: DeepSeek V3 Free ($0) ✅ BEST VALUE
+└── Backup: DeepSeek V3 Paid ($0.50/1M)
+```
+
+### 🔄 Model Switching Workflow
+1. **Start session**: Use DeepSeek V3 Free for coding
+2. **Need MCP?**: Switch to Gemini 2.0 Flash
+3. **MCP task done**: Switch back to DeepSeek V3 Free
+4. **Security review**: Switch to Claude 3.5 Sonnet
+
+### OpenRouter Model IDs for MCP:
+```
+google/gemini-2.0-flash          # Best for MCP ($0.10/1M)
+google/gemini-3-flash-preview    # Latest agentic features
+google/gemini-2.5-flash          # React + MCP combo
+anthropic/claude-3.5-sonnet      # Premium MCP + security
+openai/gpt-4o-mini               # Budget alternative
+```
+
+---
+
+## 💰 OPENROUTER PRICING TIERS (2026)
 
 ### **FREE TIER** (Best Bang-for-Buck!)
 | Model | Input Cost | Output Cost | Context | Best For |
@@ -47,10 +103,12 @@ This means you can:
 | **DeepSeek Coder** | $0.14/1M | $0.28/1M | 128K | Code generation, debugging |
 | **Qwen 2.5 Coder 32B** | $0.04/1M | $0.16/1M | 128K | Fast coding iteration |
 
-### **VALUE TIER** ($1-5 per 1M tokens)
+### **VALUE TIER** ($0.10-5 per 1M tokens)
 | Model | Input Cost | Output Cost | Context | Best For |
 |-------|------------|-------------|---------|----------|
+| **Gemini 2.0 Flash** | $0.10/1M | $0.40/1M | 1M | **MCP/Tool Use**, agents |
 | **Gemini 2.5 Flash** | $0.075/1M | $0.30/1M | 1M | Fast UI code, React |
+| **Gemini 3 Flash Preview** | $0.15/1M | $0.60/1M | 1M | Latest agentic features |
 | **Gemini 2.5 Pro** | $2.50/1M | $10/1M | 1M | Complex architecture |
 | **Claude 3.5 Sonnet** | $3/1M | $15/1M | 200K | High-quality code, security |
 
@@ -297,7 +355,7 @@ Requirements:
 // For Roo Code settings.json or config
 
 const modelRouting = {
-  // 80% of work - FREE MODELS
+  // 80% of work - FREE MODELS (NO tool/MCP support)
   "general-coding": "deepseek/deepseek-v3:free",
   "refactoring": "deepseek/deepseek-v3:free",
   "bug-fixes": "deepseek/deepseek-v3:free",
@@ -310,9 +368,14 @@ const modelRouting = {
   "frontend": "google/gemini-2.5-flash",
   "logic-review": "deepseek/deepseek-r1:free",
 
+  // MCP/TOOL USE - Must use tool-capable models!
+  "render-mcp": "google/gemini-2.0-flash",        // ✅ Tool support
+  "deployment": "google/gemini-2.0-flash",        // ✅ Tool support
+  "mcp-tasks": "google/gemini-2.0-flash",         // ✅ Tool support
+
   // 5% of work - PREMIUM (when needed)
-  "architecture": "anthropic/claude-3.5-sonnet",
-  "security": "anthropic/claude-3.5-sonnet",
+  "architecture": "anthropic/claude-3.5-sonnet",  // ✅ Tool support
+  "security": "anthropic/claude-3.5-sonnet",      // ✅ Tool support
   "complex-systems": "google/gemini-2.5-pro",
 };
 ```
@@ -441,6 +504,9 @@ For each Roo Code session, manually select model based on task:
 | Debugging | DeepSeek V3 Free | Free, good at code analysis |
 | Styled-components | Gemini 2.5 Flash | Google knows CSS well |
 | Performance optimization | Gemini 2.5 Pro | Worth the cost for perf |
+| **Render MCP (deployment)** | **Gemini 2.0 Flash** | **Tool support required!** |
+| **MCP database queries** | **Gemini 2.0 Flash** | **Tool support required!** |
+| **Agent/tool workflows** | **Gemini 2.0 Flash** | **Best tool support for cost** |
 
 ---
 
@@ -500,6 +566,12 @@ Refactoring          → DeepSeek V3 Free ($0)
 Frontend UI          → Gemini 2.5 Flash ($0.075/1M)
 Architecture review  → Claude 3.5 Sonnet ($3/1M)
 Performance tuning   → Gemini 2.5 Pro ($2.50/1M)
+
+⚠️ MCP/TOOL USE TASKS (Requires tool-capable model!)
+Render MCP           → Gemini 2.0 Flash ($0.10/1M) ✅
+Deployment checks    → Gemini 2.0 Flash ($0.10/1M) ✅
+Database via MCP     → Gemini 2.0 Flash ($0.10/1M) ✅
+Agent workflows      → Gemini 3 Flash Preview ($0.15/1M) ✅
 ```
 
 ---
@@ -552,10 +624,23 @@ If you hit rate limits on free models, fall back to paid DeepSeek V3 ($0.50/1M) 
 **React/Frontend:** Gemini 2.5 Flash (fast, cheap, excellent)
 **Security/Architecture:** Claude 3.5 Sonnet (best-in-class, worth it)
 **Testing:** DeepSeek Coder (ultra-cheap, great quality)
+**MCP/Tool Use:** Gemini 2.0 Flash (best tool support for cost) ⚠️ **NEW!**
 
-**Expected Monthly Cost:** $5-10 (vs. $50-200 if you used premium for everything)
+**Expected Monthly Cost:** $5-15 (vs. $50-200 if you used premium for everything)
 
 **ROI:** Massive. You get world-class coding assistance for less than a Netflix subscription.
+
+---
+
+## ⚠️ TROUBLESHOOTING: Common Errors
+
+### Error: "No endpoints found that support tool use" (404)
+**Cause:** You're using a model without tool/function calling support with an MCP server.
+**Solution:** Switch to `google/gemini-2.0-flash` or another tool-capable model.
+
+### Error: "The language model did not provide any assistant messages"
+**Cause:** Rate limiting on free tier models (DeepSeek Free).
+**Solution:** Wait a few minutes, or switch to paid DeepSeek V3 ($0.50/1M).
 
 ---
 
