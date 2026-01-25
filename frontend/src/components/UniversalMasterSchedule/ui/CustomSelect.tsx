@@ -73,10 +73,12 @@ const DropdownMenu = styled.ul<{ isOpen: boolean }>`
   right: 0;
   max-height: 300px;
   background: #1e293b;
+  background-color: #1e293b;
+  backdrop-filter: none;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
   overflow-y: auto;
-  z-index: 1000;
+  z-index: 9999;
   margin: 0;
   padding: 0.5rem 0;
   list-style: none;
@@ -85,6 +87,7 @@ const DropdownMenu = styled.ul<{ isOpen: boolean }>`
   visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
   transform: ${props => props.isOpen ? 'translateY(0)' : 'translateY(-10px)'};
   transition: all 0.2s ease;
+  isolation: isolate;
   
   /* Custom scrollbar */
   &::-webkit-scrollbar {
@@ -115,14 +118,14 @@ const OptionItem = styled.li<{ isSelected: boolean; isFocused: boolean }>`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: ${props => {
-    if (props.isSelected) return 'rgba(59, 130, 246, 0.1)';
-    if (props.isFocused) return 'rgba(255, 255, 255, 0.08)';
-    return 'transparent';
+  background-color: ${props => {
+    if (props.isSelected) return '#2563eb';
+    if (props.isFocused) return '#334155';
+    return '#1e293b';
   }};
   
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background-color: #334155;
   }
   
   svg {
