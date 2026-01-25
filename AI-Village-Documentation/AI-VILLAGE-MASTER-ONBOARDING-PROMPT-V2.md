@@ -1,7 +1,7 @@
 # 🚀 AI VILLAGE MASTER ONBOARDING PROMPT v3.0
 ## UNIFIED: Swarm Protocols + 5-Brain Review + Phase 0 Reviews + AI Handoff Coordination
 
-**LATEST UPDATE:** 2026-01-24 - 5-Brain Swarm Protocol (Architect, Builder, QA, Visionary, Logician)
+**LATEST UPDATE:** 2026-01-24 - Render MCP Integration & Pro Subscription
 **Previous Update:** 2026-01-11 - Client Data Database Integration System (Section 9.7)
 
 ---
@@ -53,7 +53,7 @@ Copy this entire prompt to ANY AI in the AI Village — they will auto‑detect 
 | # | AI Name | Platform | Primary Role | Key Expertise |
 |---|---------|----------|-------------|---------------|
 | 1 | **Claude Code** | Anthropic (Sonnet 4.5) | Main Orchestrator | Full-stack development, architecture, integration |
-| 2 | **Roo Code** | xAI (Grok models) | Backend Specialist | Node.js/Express, PostgreSQL, API design |
+| 2 | **Roo Code** | xAI (Grok models) | Backend Specialist | Node.js/Express, PostgreSQL, **Render Deployment (MCP)** |
 | 3 | **ChatGPT 5.2** | OpenAI (GPT-4o) | QA Engineer | Testing, quality assurance, edge case detection |
 | 4 | **Gemini 3** | Google (Gemini 1.5 Pro) | Visionary / Frontend | React, UI/UX, Large Context Analysis |
 | 5 | **DeepSeek R1** | DeepSeek (via OpenRouter) | Logician | Complex reasoning, optimization, logic verification |
@@ -64,6 +64,11 @@ Copy this entire prompt to ANY AI in the AI Village — they will auto‑detect 
 - **For boot camp classes**: Kilo Code (DeepSeek Prover)
 - **For testing/QA**: ChatGPT-5
 - **For complex decisions**: MinMax V2 coordinates multi-AI consensus
+
+**Hosting & Deployment:**
+- **Platform:** Render (sswanstudios.com)
+- **Access:** Roo Code via Render MCP (check logs, status, DB)
+- **Documentation:** See Handbook Section 9.12 for MCP setup
 
 **Status Tracking Files:**
 - Claude Code: `docs/ai-workflow/AI-HANDOFF/CLAUDE-CODE-STATUS.md`

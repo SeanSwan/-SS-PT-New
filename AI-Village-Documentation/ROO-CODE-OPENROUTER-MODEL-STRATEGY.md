@@ -17,10 +17,10 @@ This means you can:
 - ✅ Optimize cost while maintaining quality
 
 ### ⚠️ CRITICAL BILLING NOTE
-**Your Claude Pro ($20/month) subscription DOES NOT work in Roo Code.**
+**Your Claude Subscription ($20/mo -> $100/mo Pro) DOES NOT cover Roo Code API costs.**
 
-- **Claude Pro** = Claude.ai & Claude Desktop App.
-- **Roo Code** = API Usage (Pay-per-token via OpenRouter/Anthropic).
+- **Claude Code (VS Code Extension):** Uses your Subscription (Orchestrator).
+- **Roo Code (Sidebar):** Uses API Keys (Builder).
 
 **STRATEGY:** Use **Claude Desktop** (Pro Sub) for planning. Use **Roo Code + DeepSeek** (Cheap API) for coding.
 
@@ -36,8 +36,8 @@ This means you can:
 ### **FREE TIER** (Best Bang-for-Buck!)
 | Model | Input Cost | Output Cost | Context | Best For |
 |-------|------------|-------------|---------|----------|
-| **DeepSeek V3 Free** | $0/1M | $0/1M | 64K | General coding, refactoring (Brain #2: Builder) |
-| **DeepSeek R1 Free** | $0/1M | $0/1M | 64K | Complex reasoning, logic verification (Brain #5: Logician) |
+| **DeepSeek V3 Free** | $0/1M | $0/1M | 64K | General coding, refactoring |
+| **DeepSeek R1 Free** | $0/1M | $0/1M | 64K | Complex reasoning, algorithms |
 | **Qwen 2.5 7B** | $0/1M | $0/1M | 32K | Simple coding tasks |
 
 ### **ULTRA-CHEAP TIER** ($0.01-0.50 per 1M tokens)
