@@ -336,14 +336,15 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
       // Build session object
       const sessionData = {
-        start: formData.sessionDate,
+        sessionDate: formData.sessionDate,
         duration: formData.duration,
         location: formData.location,
         notes: formData.notes,
-        trainerId: formData.trainerId || undefined,
-        clientId: formData.clientId || undefined,
+        trainerId: formData.trainerId || null,
+        userId: formData.clientId || null,
         clientName: useManualClient ? formData.manualClientName : undefined,
-        notifyClient: formData.notifyClient
+        notifyClient: formData.notifyClient,
+        status: 'available'
       };
 
       // Try API call - wrap in sessions array as backend expects
@@ -354,7 +355,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ sessions: [sessionData] })
+          body: JSON.stringify(sessionData)
         });
 
         if (response.ok) {
