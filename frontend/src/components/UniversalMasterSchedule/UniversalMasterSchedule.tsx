@@ -355,7 +355,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify(sessionData)
+          body: JSON.stringify({ sessions: [sessionData] })
         });
 
         if (response.ok) {
