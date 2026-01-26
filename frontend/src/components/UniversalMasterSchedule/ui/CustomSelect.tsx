@@ -72,17 +72,17 @@ const DropdownMenu = styled.ul<{ isOpen: boolean }>`
   left: 0;
   right: 0;
   max-height: 300px;
-  background: #1e293b;
+  background: #1e293b; /* Solid background */
   background-color: #1e293b;
   backdrop-filter: none;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 6px;
   overflow-y: auto;
   z-index: 9999;
   margin: 0;
   padding: 0.5rem 0;
   list-style: none;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
   opacity: ${props => props.isOpen ? 1 : 0};
   visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
   transform: ${props => props.isOpen ? 'translateY(0)' : 'translateY(-10px)'};
@@ -121,7 +121,7 @@ const OptionItem = styled.li<{ isSelected: boolean; isFocused: boolean }>`
   background-color: ${props => {
     if (props.isSelected) return '#2563eb';
     if (props.isFocused) return '#334155';
-    return '#1e293b';
+    return '#1e293b'; /* Ensure solid background for items */
   }};
   
   &:hover {
