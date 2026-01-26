@@ -276,7 +276,6 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       });
       if (trainersRes.ok) {
         const trainersData = await trainersRes.json();
-        console.log('Trainers response:', trainersData);
         setDbTrainers(Array.isArray(trainersData) ? trainersData : (trainersData?.data || []));
       }
 
@@ -286,7 +285,6 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       });
       if (clientsRes.ok) {
         const clientsData = await clientsRes.json();
-        console.log('Clients response:', clientsData);
         setDbClients(Array.isArray(clientsData) ? clientsData : (clientsData?.data || []));
       }
     } catch (error) {
@@ -336,9 +334,16 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         return;
       }
 
+      const startDate = new Date(formData.sessionDate);
+      const endDate = new Date(startDate.getTime() + formData.duration * 60000);
+
       // Build session object
       const sessionData = {
-        sessionDate: new Date(formData.sessionDate).toISOString(), // Ensure ISO format
+        sessionDate: startDate.toISOString(),
+        startTime: startDate.toISOString(), // Added to satisfy potential backend requirement
+        start: startDate.toISOString(),     // Added as fallback
+        endTime: endDate.toISOString(),
+        end: endDate.toISOString(),         // Added as fallback
         duration: formData.duration,
         location: formData.location,
         notes: formData.notes,
@@ -1056,9 +1061,9 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                 onChange={(value) => setFormData({ ...formData, trainerId: value ? Number(value) : undefined })}
                 options={[
                   { value: '', label: '-- Select Trainer --' },
-                  ...dbTrainers.map(t => ({
-                    value: t.id.toString(),
-                    label: `${t.firstName} ${t.lastName}`
+                  ...dbTrainers.map((t: any) => ({
+                    value: (t.id || t.userId || t._id)?.toString(),
+                    label: t.name || `${t.firstName || t.first_name || 'Unknown'} ${t.lastName || t.last_name || 'Trainer'}`.trim()
                   }))
                 ]}
                 aria-label="Select trainer"
@@ -1089,9 +1094,9 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                   onChange={(value) => setFormData({ ...formData, clientId: value ? Number(value) : undefined })}
                   options={[
                     { value: '', label: '-- Select Client --' },
-                    ...dbClients.map(c => ({
-                      value: c.id.toString(),
-                      label: `${c.firstName} ${c.lastName}${c.email ? ` (${c.email})` : ''}`
+                    ...dbClients.map((c: any) => ({
+                      value: (c.id || c.userId || c._id)?.toString(),
+                      label: c.name || `${c.firstName || c.first_name || ''} ${c.lastName || c.last_name || ''}`.trim() || c.email || 'Unknown Client'
                     }))
                   ]}
                   aria-label="Select client"
