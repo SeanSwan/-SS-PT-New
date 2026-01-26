@@ -276,7 +276,8 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       });
       if (trainersRes.ok) {
         const trainersData = await trainersRes.json();
-        setDbTrainers(trainersData.data || trainersData.trainers || []);
+        console.log('Trainers response:', trainersData);
+        setDbTrainers(Array.isArray(trainersData) ? trainersData : (trainersData?.data || []));
       }
 
       // Fetch clients
@@ -285,7 +286,8 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       });
       if (clientsRes.ok) {
         const clientsData = await clientsRes.json();
-        setDbClients(clientsData.data || clientsData.clients || []);
+        console.log('Clients response:', clientsData);
+        setDbClients(Array.isArray(clientsData) ? clientsData : (clientsData?.data || []));
       }
     } catch (error) {
       console.error('Error fetching users for dropdowns:', error);
@@ -1102,13 +1104,16 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
             <FormField>
               <Label htmlFor="duration" required>Duration (minutes)</Label>
-              <StyledInput
-                id="duration"
-                type="number"
-                value={formData.duration}
-                onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) })}
-                min={15}
-                step={15}
+              <CustomSelect
+                value={formData.duration.toString()}
+                onChange={(value) => setFormData({ ...formData, duration: Number(value) })}
+                options={[
+                  { value: '30', label: '30 minutes' },
+                  { value: '60', label: '60 minutes' },
+                  { value: '90', label: '90 minutes' },
+                  { value: '120', label: '120 minutes' },
+                ]}
+                aria-label="Session duration"
               />
             </FormField>
 
