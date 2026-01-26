@@ -568,6 +568,13 @@ router.post("/", protect, adminOnly, async (req, res) => {
   try {
     const Session = getSession();
     const User = getUser();
+    
+    // Handle both single object and { sessions: [...] } wrapper
+    let data = req.body;
+    if (req.body.sessions && Array.isArray(req.body.sessions) && req.body.sessions.length > 0) {
+      data = req.body.sessions[0];
+    }
+
     const { 
       sessionDate, 
       duration, 
@@ -581,7 +588,7 @@ router.post("/", protect, adminOnly, async (req, res) => {
       recurrenceRule,
       recurringGroupId,
       isBlocked
-    } = req.body;
+    } = data;
     
     if (!sessionDate) {
       return res.status(400).json({
