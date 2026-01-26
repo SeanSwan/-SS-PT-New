@@ -236,15 +236,25 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
             normalized = result.sessions || [];
           }
 
-          setSessions(normalized.map((session: any) => ({
-            ...session,
-            isBlocked: Boolean(session.isBlocked) || session.status === 'blocked',
-            isRecurring: Boolean(session.isRecurring) || Boolean(session.recurringGroupId),
-            clientName: session.clientName
-              || (session.client ? `${session.client.firstName} ${session.client.lastName}` : undefined),
-            trainerName: session.trainerName
-              || (session.trainer ? `${session.trainer.firstName} ${session.trainer.lastName}` : undefined)
-          })));
+          setSessions(normalized.map((session: any) => {
+            const clientName = session.clientName || (session.client ? `${session.client.firstName} ${session.client.lastName}` : undefined);
+            const trainerName = session.trainerName || (session.trainer ? `${session.trainer.firstName} ${session.trainer.lastName}` : undefined);
+            
+            // Determine display title based on status and client
+            let title = 'Available';
+            if (session.status === 'blocked') title = 'Blocked';
+            else if (clientName) title = clientName;
+            else if (session.status !== 'available') title = 'Booked';
+
+            return {
+              ...session,
+              title, // Explicitly set title for calendar views
+              isBlocked: Boolean(session.isBlocked) || session.status === 'blocked',
+              isRecurring: Boolean(session.isRecurring) || Boolean(session.recurringGroupId),
+              clientName,
+              trainerName
+            };
+          }));
         } else {
           console.log('API call failed, status:', response.status);
           // Keep empty sessions on error
