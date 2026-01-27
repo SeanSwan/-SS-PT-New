@@ -123,6 +123,7 @@ const OptionItem = styled.li<{ isSelected: boolean; isFocused: boolean }>`
     if (props.isFocused) return '#334155';
     return '#1e293b'; /* Solid background */
   }};
+  opacity: 1;
   
   &:hover {
     background-color: #334155;

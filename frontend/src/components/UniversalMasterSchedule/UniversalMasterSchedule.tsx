@@ -649,9 +649,21 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
       const slotDate = new Date(currentDate);
       slotDate.setHours(hour, 0, 0, 0);
+      
+      // Format as YYYY-MM-DDTHH:mm for datetime-local input (local time)
+      const toDateTimeLocal = (date: Date) => {
+        const pad = (num: number) => String(num).padStart(2, '0');
+        const year = date.getFullYear();
+        const month = pad(date.getMonth() + 1);
+        const day = pad(date.getDate());
+        const hours = pad(date.getHours());
+        const minutes = pad(date.getMinutes());
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      };
+
       setFormData((prev) => ({
         ...prev,
-        sessionDate: slotDate.toISOString().slice(0, 16),
+        sessionDate: toDateTimeLocal(slotDate),
         trainerId
       }));
       setIsSlotSelected(true);
