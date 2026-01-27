@@ -27,6 +27,11 @@ Session.init({
     allowNull: false,
     comment: 'Start date and time of the session'
   },
+  endDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'End date and time of the session'
+  },
   duration: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -110,10 +115,20 @@ Session.init({
     allowNull: true,
     comment: 'Reason for cancellation if applicable'
   },
+  cancellationDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'When the session was cancelled'
+  },
   cancelledBy: {
     type: DataTypes.INTEGER,
     allowNull: true,
     comment: 'User who cancelled the session'
+  },
+  bookingDate: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'When the session was booked'
   },
   sessionDeducted: {
     type: DataTypes.BOOLEAN,
