@@ -50,7 +50,7 @@ const Backdrop = styled.div`
   backdrop-filter: blur(8px);
   z-index: 1300;
   display: flex;
-  align-items: center;
+  align-items: flex-start; /* Changed from center to allow scrolling of tall modals */
   justify-content: center;
   padding: 1rem;
   animation: ${fadeIn} 0.2s ease;
@@ -77,7 +77,8 @@ const ModalContainer = styled.div<{ size?: 'sm' | 'md' | 'lg' | 'xl' }>`
     }
   }};
   width: 100%;
-  max-height: 90vh;
+  margin: auto; /* Centers the modal vertically and horizontally */
+  /* max-height: 90vh; Removed to allow overflow for dropdowns */
   display: flex;
   flex-direction: column;
   animation: ${slideUp} 0.3s ease;
@@ -141,9 +142,8 @@ const ModalHeader = styled.div`
 // Modal body - Ultra responsive
 const ModalBody = styled.div`
   padding: 1.5rem;
-  overflow-y: auto;
+  overflow-y: visible; /* Changed from auto to visible so dropdowns aren't clipped */
   flex: 1;
-  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 
   /* Custom scrollbar */
   &::-webkit-scrollbar {
