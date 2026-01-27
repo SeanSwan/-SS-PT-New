@@ -21,7 +21,11 @@ export interface Session {
   trainerId: string | null;
   location?: string;
   notes?: string;
-  status: 'available' | 'requested' | 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
+  status: 'available' | 'requested' | 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'blocked';
+  notifyClient?: boolean;
+  recurringGroupId?: string | null;
+  isBlocked?: boolean;
+  isRecurring?: boolean;
   client?: Client | null;
   trainer?: Trainer | null;
   createdAt: string;
