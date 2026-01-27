@@ -163,6 +163,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const [dbClients, setDbClients] = useState<Array<{ id: number | string; firstName: string; lastName: string; email?: string }>>([]);
   const [dbTrainers, setDbTrainers] = useState<Array<{ id: number | string; firstName: string; lastName: string }>>([]);
   const [useManualClient, setUseManualClient] = useState(false);
+  const [isSlotSelected, setIsSlotSelected] = useState(false);
 
   const {
     data: credits,
@@ -653,6 +654,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         sessionDate: slotDate.toISOString().slice(0, 16),
         trainerId
       }));
+      setIsSlotSelected(true);
       setShowCreateDialog(true);
     },
     [canCreateSessions, currentDate]
@@ -816,7 +818,21 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
                   <OutlinedButton onClick={() => setShowPaymentModal(true)}>
                     Apply Payment
                   </OutlinedButton>
-                  <PrimaryButton onClick={() => setShowCreateDialog(true)}>
+                  <PrimaryButton onClick={() => {
+                    setFormData({
+                      sessionDate: '',
+                      duration: 60,
+                      location: 'Main Studio',
+                      notes: '',
+                      notifyClient: true,
+                      trainerId: undefined,
+                      clientId: undefined,
+                      manualClientName: ''
+                    });
+                    setUseManualClient(false);
+                    setIsSlotSelected(false);
+                    setShowCreateDialog(true);
+                  }}>
                     <Plus size={18} />
                     Create Session
                   </PrimaryButton>
@@ -1056,12 +1072,18 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
           <FlexBox direction="column" gap="1.5rem">
             <FormField>
               <Label htmlFor="sessionDate" required>Session Date & Time</Label>
-              <StyledInput
-                id="sessionDate"
-                type="datetime-local"
-                value={formData.sessionDate}
-                onChange={(e) => setFormData({ ...formData, sessionDate: e.target.value })}
-              />
+              {isSlotSelected ? (
+                <BodyText style={{ padding: '0.75rem', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  {formData.sessionDate ? new Date(formData.sessionDate).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'No date selected'}
+                </BodyText>
+              ) : (
+                <StyledInput
+                  id="sessionDate"
+                  type="datetime-local"
+                  value={formData.sessionDate}
+                  onChange={(e) => setFormData({ ...formData, sessionDate: e.target.value })}
+                />
+              )}
             </FormField>
 
             <FormField>
