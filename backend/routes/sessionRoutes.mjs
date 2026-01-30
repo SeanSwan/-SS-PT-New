@@ -1166,12 +1166,28 @@ router.get("/analytics", protect, async (req, res) => {
     if (!Session) {
       throw new Error("Session model not initialized");
     }
-    
+
     const userId = req.user?.id;
+
+    // Return empty analytics if no user ID (graceful degradation)
     if (!userId) {
-      return res.status(400).json({ message: "User ID not found in request" });
+      console.warn('[Analytics] No user ID found in request, returning empty analytics', {
+        hasUser: !!req.user,
+        userKeys: req.user ? Object.keys(req.user) : []
+      });
+      return res.json({
+        success: true,
+        totalSessions: 0,
+        totalDuration: 0,
+        averageDuration: 0,
+        caloriesBurned: 0,
+        favoriteExercises: [],
+        weeklyProgress: [],
+        currentStreak: 0,
+        longestStreak: 0
+      });
     }
-    
+
     // Get all completed sessions for the user
     const userSessions = await Session.findAll({
       where: {
@@ -1180,9 +1196,10 @@ router.get("/analytics", protect, async (req, res) => {
       },
       order: [['sessionDate', 'DESC']]
     });
-    
-    if (!userSessions) {
+
+    if (!userSessions || userSessions.length === 0) {
       return res.json({
+        success: true,
         totalSessions: 0,
         totalDuration: 0,
         averageDuration: 0,
