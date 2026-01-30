@@ -527,35 +527,68 @@ export const useCalendarData = () => {
   }, []);
   
   // ==================== MEMOIZED DATA TRANSFORMATIONS ====================
-  
+
+  /**
+   * Transform sessions to include flattened clientName and trainerName
+   * Backend returns nested client/trainer objects, but UI components expect string names
+   */
+  const transformedSessions = useMemo(() => {
+    return sessions.map(session => {
+      // Extract client name from nested object or use existing string
+      let clientName = (session as any).clientName;
+      if (!clientName && session.client) {
+        const client = session.client as any;
+        if (client.firstName || client.lastName) {
+          clientName = `${client.firstName || ''} ${client.lastName || ''}`.trim();
+        }
+      }
+
+      // Extract trainer name from nested object or use existing string
+      let trainerName = (session as any).trainerName;
+      if (!trainerName && session.trainer) {
+        const trainer = session.trainer as any;
+        if (trainer.firstName || trainer.lastName) {
+          trainerName = `${trainer.firstName || ''} ${trainer.lastName || ''}`.trim();
+        }
+      }
+
+      return {
+        ...session,
+        clientName: clientName || undefined,
+        trainerName: trainerName || undefined
+      };
+    });
+  }, [sessions]);
+
   const enhancedStats = useMemo(() => {
     const baseStats = {
-      totalSessions: sessions.length,
+      totalSessions: transformedSessions.length,
       totalClients: clients.length,
       totalTrainers: trainers.length,
       totalAssignments: assignments.length,
       lastUpdated: dataHealth.lastRefresh?.toISOString() || new Date().toISOString()
     };
-    
+
     return {
       ...scheduleStats,
       ...baseStats,
       dataQuality: {
-        healthScore: dataHealth.successfulLoads > 0 ? 
+        healthScore: dataHealth.successfulLoads > 0 ?
           Math.round((dataHealth.successfulLoads / (dataHealth.successfulLoads + dataHealth.failedLoads)) * 100) : 0,
         isStale: dataHealth.isStale,
         lastRefresh: dataHealth.lastRefresh,
-        successRate: dataHealth.successfulLoads + dataHealth.failedLoads > 0 ? 
+        successRate: dataHealth.successfulLoads + dataHealth.failedLoads > 0 ?
           dataHealth.successfulLoads / (dataHealth.successfulLoads + dataHealth.failedLoads) : 1
       }
     };
-  }, [sessions.length, clients.length, trainers.length, assignments.length, scheduleStats, dataHealth]);
+  }, [transformedSessions.length, clients.length, trainers.length, assignments.length, scheduleStats, dataHealth]);
   
   // ==================== RETURN VALUES & ACTIONS ====================
   
   const values: CalendarDataValues = {
     // Core Raw Data (Enhanced with Redux Integration)
-    sessions,
+    // Use transformedSessions to include clientName/trainerName strings
+    sessions: transformedSessions as Session[],
     clients,
     trainers,
     assignments,

@@ -4,7 +4,6 @@ import { galaxySwanTheme } from '../../../styles/galaxy-swan-theme';
 import { SessionCardData } from '../Cards/SessionCard';
 import DraggableSession from '../DragDrop/DraggableSession';
 import DroppableSlot from '../DragDrop/DroppableSlot';
-import { useAvailableSlots } from '../../../hooks/useTrainerAvailability';
 
 export interface DayViewTrainer {
   id: number | string;
@@ -31,6 +30,13 @@ const isSameDay = (left: Date, right: Date) =>
   && left.getMonth() === right.getMonth()
   && left.getDate() === right.getDate();
 
+const isPastTime = (date: Date, hour: number) => {
+  const now = new Date();
+  const slotDate = new Date(date);
+  slotDate.setHours(hour, 0, 0, 0);
+  return slotDate < now;
+};
+
 const toDaySessions = (sessions: DayViewSession[], date: Date) =>
   sessions.filter((session) => isSameDay(new Date(session.sessionDate), date));
 
@@ -55,31 +61,13 @@ const deriveTrainerList = (sessions: DayViewSession[]) => {
   return Array.from(trainerMap.values());
 };
 
-// TODO: Optimize - fetch availability once per trainer at DayView level instead of per-cell
-const TrainerColumnSlots: React.FC<{
-  trainerId: number | string;
-  date: Date;
-  hour: number;
-  children: React.ReactNode;
-}> = ({ trainerId, date, hour, children }) => {
-  const shouldFetch = trainerId !== 'unassigned';
-  const { slots, isLoading } = useAvailableSlots(
-    shouldFetch ? trainerId : null,
-    date,
-    60
-  );
-
-  const isAvailable = !shouldFetch || slots.some(slot => {
-    const slotDate = new Date(slot.startTime);
-    return slotDate.getHours() === hour;
-  });
-
-  return (
-    <>
-      {!isAvailable && !isLoading && <UnavailableOverlay />}
-      {children}
-    </>
-  );
+/**
+ * Check if a session is "scheduled" (not available) - meaning the slot is taken
+ * Scheduled sessions: booked, scheduled, confirmed, completed
+ * Available sessions: available status
+ */
+const isScheduledSession = (session: DayViewSession) => {
+  return session.status !== 'available' && session.status !== 'cancelled';
 };
 
 const DayView: React.FC<DayViewProps> = ({
@@ -125,9 +113,20 @@ const DayView: React.FC<DayViewProps> = ({
             return sessionHour === hour && trainerMatch;
           });
 
+          // Check if any session in this slot is scheduled (not available)
+          const hasScheduledSession = trainerSessions.some(isScheduledSession);
+          const isPast = isPastTime(date, hour);
+
           if (trainerSessions.length > 0) {
             return (
-              <SlotCell key={`${trainer.id}-${hour}`} $hasSession>
+              <SlotCell
+                key={`${trainer.id}-${hour}`}
+                $hasSession
+                $isPast={isPast}
+                $isScheduled={hasScheduledSession}
+              >
+                {/* Show overlay only for scheduled (booked/confirmed) sessions */}
+                {hasScheduledSession && <ScheduledOverlay />}
                 {trainerSessions.map((session) => (
                   <DraggableSession
                     key={String(session.id)}
@@ -147,7 +146,8 @@ const DayView: React.FC<DayViewProps> = ({
             );
           }
 
-          if (enableDrag) {
+          // Empty slot - no sessions
+          if (enableDrag && !isPast) {
             return (
               <DroppableSlot
                 key={`${trainer.id}-${hour}`}
@@ -163,11 +163,9 @@ const DayView: React.FC<DayViewProps> = ({
                   })
                 }
               >
-                <TrainerColumnSlots trainerId={trainer.id} date={date} hour={hour}>
-                  <AvailableSlot>
-                    <span>Available</span>
-                  </AvailableSlot>
-                </TrainerColumnSlots>
+                <AvailableSlot>
+                  <span>Available</span>
+                </AvailableSlot>
               </DroppableSlot>
             );
           }
@@ -175,19 +173,19 @@ const DayView: React.FC<DayViewProps> = ({
           return (
             <SlotCell
               key={`${trainer.id}-${hour}`}
-              onClick={() =>
+              $isPast={isPast}
+              onClick={() => {
+                if (isPast) return;
                 onSelectSlot?.({
                   date,
                   hour,
                   trainerId: trainer.id === 'unassigned' ? undefined : trainer.id
                 })
-              }
+              }}
             >
-              <TrainerColumnSlots trainerId={trainer.id} date={date} hour={hour}>
-                <AvailableSlot>
-                  <span>Available</span>
-                </AvailableSlot>
-              </TrainerColumnSlots>
+              <AvailableSlot $isPast={isPast}>
+                <span>{isPast ? 'Past' : 'Available'}</span>
+              </AvailableSlot>
             </SlotCell>
           );
         })}
@@ -335,30 +333,42 @@ const TimeCell = styled.div`
   }
 `;
 
-const SlotCell = styled.div<{ $hasSession?: boolean }>`
+const SlotCell = styled.div<{ $hasSession?: boolean; $isPast?: boolean; $isScheduled?: boolean }>`
   position: relative;
   min-height: 80px;
   padding: 0.5rem;
   border-radius: 12px;
-  border: 1px dashed ${galaxySwanTheme.primary.main};
-  background: ${({ $hasSession }) =>
-    $hasSession ? 'transparent' : 'rgba(0, 255, 255, 0.05)'};
+  border: 1px dashed ${({ $isPast, $isScheduled }) => {
+    if ($isScheduled) return galaxySwanTheme.primary.main;
+    if ($isPast) return 'rgba(255, 255, 255, 0.1)';
+    return galaxySwanTheme.primary.main;
+  }};
+  background: ${({ $hasSession, $isPast, $isScheduled }) => {
+    if ($isScheduled) return 'rgba(0, 128, 128, 0.15)'; // Teal background for scheduled
+    if ($hasSession) return 'transparent';
+    if ($isPast) return 'rgba(255, 255, 255, 0.02)';
+    return 'rgba(0, 255, 255, 0.05)';
+  }};
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  cursor: ${({ $hasSession }) => ($hasSession ? 'default' : 'pointer')};
+  cursor: ${({ $hasSession, $isPast }) => ($hasSession || $isPast ? 'default' : 'pointer')};
   transition: all 150ms ease-out;
+  opacity: ${({ $isPast }) => $isPast ? 0.6 : 1};
+  pointer-events: ${({ $isPast, $hasSession }) => ($isPast && !$hasSession ? 'none' : 'auto')};
 
-  ${({ $hasSession }) =>
+  ${({ $hasSession, $isScheduled }) =>
     $hasSession &&
     `
       border-style: solid;
-      border-color: rgba(255, 255, 255, 0.12);
+      border-color: ${$isScheduled ? 'rgba(0, 128, 128, 0.5)' : 'rgba(255, 255, 255, 0.12)'};
     `}
 
   &:hover {
-    border-color: ${galaxySwanTheme.primary.main};
-    box-shadow: ${galaxySwanTheme.shadows.primaryGlow};
+    ${({ $isPast, $hasSession }) => !$isPast && !($hasSession) && `
+      border-color: ${galaxySwanTheme.primary.main};
+      box-shadow: ${galaxySwanTheme.shadows.primaryGlow};
+    `}
   }
 
   &:active {
@@ -380,27 +390,29 @@ const SlotCell = styled.div<{ $hasSession?: boolean }>`
   }
 `;
 
-const UnavailableOverlay = styled.div`
+/**
+ * Overlay shown ONLY for scheduled sessions (booked/confirmed/completed)
+ * This indicates the time slot is taken
+ */
+const ScheduledOverlay = styled.div`
   position: absolute;
   inset: 0;
-  background: repeating-linear-gradient(
-    45deg,
-    rgba(0, 0, 0, 0.3),
-    rgba(0, 0, 0, 0.3) 4px,
-    transparent 4px,
-    transparent 8px
+  background: linear-gradient(
+    135deg,
+    rgba(0, 128, 128, 0.2) 0%,
+    rgba(0, 128, 128, 0.1) 100%
   );
   pointer-events: none;
   border-radius: 10px;
   z-index: 1;
 `;
 
-const AvailableSlot = styled.div`
+const AvailableSlot = styled.div<{ $isPast?: boolean }>`
   border-radius: 10px;
-  border: 1px dashed ${galaxySwanTheme.primary.main};
+  border: 1px dashed ${({ $isPast }) => $isPast ? 'rgba(255, 255, 255, 0.1)' : galaxySwanTheme.primary.main};
   padding: 0.5rem;
   text-align: center;
-  color: ${galaxySwanTheme.primary.main};
+  color: ${({ $isPast }) => $isPast ? 'rgba(255, 255, 255, 0.3)' : galaxySwanTheme.primary.main};
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
