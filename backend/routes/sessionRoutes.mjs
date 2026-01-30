@@ -3356,4 +3356,232 @@ router.get("/:userId", protect, async (req, res) => {
   }
 });
 
+/**
+ * @route   GET /api/sessions/admin/cancelled
+ * @desc    ADMIN: Get all cancelled sessions with cancellation details
+ * @access  Private (Admin only)
+ */
+router.get("/admin/cancelled", protect, adminOnly, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+
+    const {
+      limit = 50,
+      offset = 0,
+      startDate,
+      endDate,
+      chargeStatus // 'charged', 'uncharged', 'all'
+    } = req.query;
+
+    // Build where clause
+    const whereClause = { status: 'cancelled' };
+
+    // Date range filter
+    if (startDate && endDate) {
+      whereClause.cancellationDate = {
+        [Op.between]: [new Date(startDate), new Date(endDate)]
+      };
+    }
+
+    // Charge status filter
+    if (chargeStatus === 'charged') {
+      whereClause.cancellationChargedAt = { [Op.ne]: null };
+    } else if (chargeStatus === 'uncharged') {
+      whereClause.cancellationChargedAt = null;
+    }
+
+    const { count, rows: cancelledSessions } = await Session.findAndCountAll({
+      where: whereClause,
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        },
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName'],
+          required: false
+        }
+      ],
+      order: [['cancellationDate', 'DESC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+    // Process each session to add derived fields
+    const processedSessions = cancelledSessions.map(session => {
+      const sessionData = session.toJSON();
+
+      // Calculate if it was a late cancellation (within 24 hours)
+      const sessionTime = new Date(sessionData.sessionDate);
+      const cancellationTime = new Date(sessionData.cancellationDate);
+      const hoursUntilSession = (sessionTime - cancellationTime) / (1000 * 60 * 60);
+      const isLateCancellation = hoursUntilSession < 24 && hoursUntilSession >= 0;
+
+      // Calculate if charge is pending (late cancellation but not charged)
+      const chargePending = isLateCancellation &&
+        !sessionData.cancellationChargedAt &&
+        sessionData.cancellationChargeType !== 'none';
+
+      return {
+        ...sessionData,
+        isLateCancellation,
+        hoursUntilSession: Math.max(0, hoursUntilSession),
+        chargePending,
+        clientName: sessionData.client
+          ? `${sessionData.client.firstName} ${sessionData.client.lastName}`
+          : 'Unknown Client',
+        trainerName: sessionData.trainer
+          ? `${sessionData.trainer.firstName} ${sessionData.trainer.lastName}`
+          : 'Unassigned'
+      };
+    });
+
+    res.json({
+      success: true,
+      data: processedSessions,
+      pagination: {
+        total: count,
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        hasMore: (parseInt(offset) + processedSessions.length) < count
+      }
+    });
+
+  } catch (error) {
+    logger.error("Error fetching cancelled sessions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error fetching cancelled sessions",
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/sessions/:sessionId/charge-cancellation
+ * @desc    ADMIN: Charge a client for a late cancellation
+ * @access  Private (Admin only)
+ */
+router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const { sessionId } = req.params;
+    const { chargeType = 'late_fee', chargeAmount } = req.body;
+
+    const session = await Session.findByPk(sessionId, {
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email']
+        }
+      ]
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found"
+      });
+    }
+
+    if (session.status !== 'cancelled') {
+      return res.status(400).json({
+        success: false,
+        message: "Only cancelled sessions can be charged"
+      });
+    }
+
+    if (session.cancellationChargedAt) {
+      return res.status(400).json({
+        success: false,
+        message: "This cancellation has already been charged"
+      });
+    }
+
+    // Default charge amount based on type
+    let actualChargeAmount = chargeAmount;
+    if (!actualChargeAmount) {
+      switch (chargeType) {
+        case 'full':
+          actualChargeAmount = 75; // Full session rate
+          break;
+        case 'late_fee':
+          actualChargeAmount = 25; // Late cancellation fee
+          break;
+        case 'partial':
+          actualChargeAmount = 37.50; // Half session
+          break;
+        default:
+          actualChargeAmount = 25;
+      }
+    }
+
+    // Update session with charge details
+    session.cancellationChargeType = chargeType;
+    session.cancellationChargeAmount = actualChargeAmount;
+    session.cancellationChargedAt = new Date();
+    await session.save();
+
+    // Send notification to client
+    if (session.client && session.client.email) {
+      const sessionDateFormatted = moment(session.sessionDate).format('MMMM D, YYYY [at] h:mm A');
+
+      try {
+        await sendEmailNotification({
+          to: session.client.email,
+          subject: 'Swan Studios - Cancellation Charge Applied',
+          text: `A cancellation charge of $${actualChargeAmount} has been applied to your cancelled session from ${sessionDateFormatted}.`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #1a1a2e;">Cancellation Charge Applied</h2>
+              <p>A cancellation charge has been applied to your account for the following session:</p>
+              <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <p><strong>Session Date:</strong> ${sessionDateFormatted}</p>
+                <p><strong>Charge Type:</strong> ${chargeType === 'late_fee' ? 'Late Cancellation Fee' : chargeType === 'full' ? 'Full Session Charge' : 'Partial Charge'}</p>
+                <p><strong>Amount:</strong> $${actualChargeAmount}</p>
+              </div>
+              <p>If you have any questions, please contact us.</p>
+            </div>
+          `
+        });
+      } catch (emailError) {
+        logger.warn("Failed to send charge notification email:", emailError);
+      }
+    }
+
+    logger.info(`Cancellation charge applied to session ${sessionId}`, {
+      sessionId,
+      chargeType,
+      chargeAmount: actualChargeAmount,
+      chargedBy: req.user.id
+    });
+
+    res.json({
+      success: true,
+      message: "Cancellation charge applied successfully",
+      data: {
+        sessionId: session.id,
+        chargeType: session.cancellationChargeType,
+        chargeAmount: session.cancellationChargeAmount,
+        chargedAt: session.cancellationChargedAt
+      }
+    });
+
+  } catch (error) {
+    logger.error("Error charging cancellation:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error processing cancellation charge",
+      error: error.message
+    });
+  }
+});
+
 export default router;
