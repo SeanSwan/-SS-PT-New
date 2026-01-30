@@ -163,12 +163,21 @@ class UniversalMasterScheduleService {
     sessionType?: string;
   }>): Promise<{ sessions: Session[]; message: string }> {
     try {
+      // Log payload for debugging
+      console.log('[SessionService] Creating sessions with payload:', {
+        sessions,
+        sessionsCount: sessions?.length,
+        firstSession: sessions?.[0]
+      });
+
       const response: AxiosResponse<{
         success: boolean;
         message: string;
         sessions: Session[];
       }> = await this.api.post('/api/sessions', { sessions });
-      
+
+      console.log('[SessionService] Create response:', response.data);
+
       if (response.data.success) {
         return {
           sessions: response.data.sessions,
@@ -179,6 +188,14 @@ class UniversalMasterScheduleService {
       }
     } catch (error: any) {
       console.error('Error creating sessions:', error);
+      // Log detailed error info
+      if (error.response) {
+        console.error('[SessionService] Server responded with:', {
+          status: error.response.status,
+          data: error.response.data,
+          message: error.response.data?.message
+        });
+      }
       throw error;
     }
   }

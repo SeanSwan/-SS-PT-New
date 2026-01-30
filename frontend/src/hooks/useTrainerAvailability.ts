@@ -4,7 +4,12 @@
  * Provides hooks for fetching and managing trainer availability.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+
+// Simple in-memory cache to deduplicate requests
+const slotsCache = new Map<string, { data: any; timestamp: number; error?: boolean }>();
+const CACHE_TTL = 30000; // 30 seconds
+const ERROR_COOLDOWN = 60000; // 60 seconds before retrying failed requests
 
 export interface AvailabilityEntry {
   id?: number;
@@ -153,15 +158,48 @@ export const useAvailableSlots = (
   const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const fetchedRef = useRef(false);
+  const lastParamsRef = useRef<string>('');
 
-  const dateStr = date ? date.toISOString().split('T')[0] : null;
+  // Memoize dateStr to prevent unnecessary recalculations
+  const dateStr = useMemo(() => {
+    return date ? date.toISOString().split('T')[0] : null;
+  }, [date?.getTime()]);
 
-  const fetchSlots = useCallback(async () => {
-    if (!trainerId || !dateStr) {
+  // Create a stable cache key
+  const cacheKey = useMemo(() => {
+    return trainerId && dateStr ? `${trainerId}-${dateStr}-${duration}` : null;
+  }, [trainerId, dateStr, duration]);
+
+  const fetchSlots = useCallback(async (forceRefresh = false) => {
+    if (!trainerId || !dateStr || !cacheKey) {
       setSlots([]);
       return;
     }
 
+    // Check cache first
+    const cached = slotsCache.get(cacheKey);
+    const now = Date.now();
+
+    // If we have a cached error, don't retry until cooldown expires
+    if (cached?.error && now - cached.timestamp < ERROR_COOLDOWN && !forceRefresh) {
+      return;
+    }
+
+    // If we have valid cached data, use it
+    if (cached && !cached.error && now - cached.timestamp < CACHE_TTL && !forceRefresh) {
+      setSlots(cached.data || []);
+      return;
+    }
+
+    // Prevent duplicate requests for the same params
+    const paramsKey = `${trainerId}-${dateStr}-${duration}`;
+    if (lastParamsRef.current === paramsKey && fetchedRef.current && !forceRefresh) {
+      return;
+    }
+
+    lastParamsRef.current = paramsKey;
+    fetchedRef.current = true;
     setIsLoading(true);
     setError(null);
 
@@ -172,15 +210,30 @@ export const useAvailableSlots = (
       );
 
       if (!response.ok) {
+        // Cache the error to prevent repeated failed requests
+        slotsCache.set(cacheKey, { data: [], timestamp: now, error: true });
         throw new Error('Failed to fetch slots');
       }
 
       const result = await response.json();
-      setSlots(result.data || []);
+      const slotsData = result.data || [];
+
+      // Cache successful response
+      slotsCache.set(cacheKey, { data: slotsData, timestamp: now });
+      setSlots(slotsData);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Unknown error'));
+      setSlots([]);
     } finally {
       setIsLoading(false);
+    }
+  }, [trainerId, dateStr, duration, cacheKey]);
+
+  // Reset fetch state when params change
+  useEffect(() => {
+    const paramsKey = `${trainerId}-${dateStr}-${duration}`;
+    if (lastParamsRef.current !== paramsKey) {
+      fetchedRef.current = false;
     }
   }, [trainerId, dateStr, duration]);
 
@@ -192,6 +245,6 @@ export const useAvailableSlots = (
     slots,
     isLoading,
     error,
-    refetch: fetchSlots
+    refetch: () => fetchSlots(true)
   };
 };
