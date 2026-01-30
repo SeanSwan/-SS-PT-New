@@ -44,13 +44,14 @@ import { triggerSequence } from '../automationService.mjs';
 import realTimeScheduleService from '../realTimeScheduleService.mjs';
 
 // Import consolidated model getters for consistency
-import { 
-  getUser, 
-  getOrder, 
-  getOrderItem, 
-  getStorefrontItem, 
+import {
+  getUser,
+  getOrder,
+  getOrderItem,
+  getStorefrontItem,
   getSession,
-  getFinancialTransaction 
+  getFinancialTransaction,
+  getClientTrainerAssignment
 } from '../../models/index.mjs';
 
 // Import notification utilities
@@ -706,18 +707,29 @@ class UnifiedSessionService {
       const createdSessions = await this.Session.bulkCreate(
         sessions.map(session => {
           const startDate = new Date(session.start);
-          const endDate = session.end ? new Date(session.end) : 
+          const endDate = session.end ? new Date(session.end) :
                          new Date(startDate.getTime() + (session.duration || 60) * 60000);
-          
+
+          // Build notes: include clientName if provided (for manual entry)
+          let sessionNotes = session.notes || '';
+          if (session.clientName && !session.userId) {
+            sessionNotes = sessionNotes ? `${sessionNotes}\nClient: ${session.clientName}` : `Client: ${session.clientName}`;
+          }
+
+          // Determine status: if client is assigned, mark as scheduled instead of available
+          const sessionStatus = session.userId ? 'scheduled' : 'available';
+
           return {
             sessionDate: startDate,
             endDate: endDate,
             duration: session.duration || 60,
-            status: 'available',
+            status: sessionStatus,
             trainerId: session.trainerId || null,
+            userId: session.userId || null,
             location: session.location || 'Main Studio',
-            notes: session.notes || '',
-            sessionType: session.sessionType || 'Standard Training'
+            notes: sessionNotes,
+            sessionType: session.sessionType || 'Standard Training',
+            notifyClient: session.notifyClient !== false
           };
         }),
         { transaction, returning: true }
@@ -1190,10 +1202,10 @@ class UnifiedSessionService {
         },
         transaction
       });
-      
       if (!session) {
         throw new Error('Session is not available for booking');
       }
+      
       
       // Check if session date is in the past
       if (new Date(session.sessionDate) < new Date()) {
@@ -1234,10 +1246,13 @@ class UnifiedSessionService {
           });
 
           if (trainerConflicts > 0) {
+            logger.debug(`[UnifiedSessionService] Trainer ${session.trainerId} has ${trainerConflicts} double-booking conflicts.`);
             throw new Error('Trainer double-booking conflict detected');
           }
+          logger.debug(`[UnifiedSessionService] No trainer double-booking conflicts detected for trainer ${session.trainerId}.`);
         }
 
+        logger.debug(`[UnifiedSessionService] Checking client double-booking for client ${client.id}...`);
         const clientConflicts = await this.Session.count({
           where: {
             id: { [Op.ne]: session.id },
@@ -1256,7 +1271,7 @@ class UnifiedSessionService {
         }
 
         // **TRANSACTIONAL INTEGRITY: Update session and process deduction atomically**
-      
+        
         // Update the session
         session.userId = client.id;
         session.status = 'scheduled';
@@ -1963,11 +1978,49 @@ class UnifiedSessionService {
     }
 
     try {
+      // For admin: return all clients
+      if (user.role === 'admin') {
+        const clients = await this.User.findAll({
+          where: { role: 'client' },
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo']
+        });
+        return clients;
+      }
+
+      // For trainer: return only assigned clients
+      const ClientTrainerAssignment = getClientTrainerAssignment();
+      if (!ClientTrainerAssignment) {
+        logger.warn('[UnifiedSessionService] ClientTrainerAssignment model not available');
+        return [];
+      }
+
+      // Get active assignments for this trainer
+      const assignments = await ClientTrainerAssignment.findAll({
+        where: {
+          trainerId: user.id,
+          status: 'active'
+        },
+        attributes: ['clientId']
+      });
+
+      if (assignments.length === 0) {
+        logger.info(`[UnifiedSessionService] Trainer ${user.id} has no assigned clients`);
+        return [];
+      }
+
+      // Get the client IDs from assignments
+      const clientIds = assignments.map(a => a.clientId);
+
+      // Fetch only the assigned clients
       const clients = await this.User.findAll({
-        where: { role: 'client' },
+        where: {
+          id: { [Op.in]: clientIds },
+          role: 'client'
+        },
         attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo']
       });
-      
+
+      logger.info(`[UnifiedSessionService] Trainer ${user.id} viewing ${clients.length} assigned clients`);
       return clients;
     } catch (error) {
       logger.error(`[UnifiedSessionService] Error fetching clients:`, error);

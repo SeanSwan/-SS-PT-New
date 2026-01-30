@@ -81,10 +81,17 @@ const normalizeEntry = (entry) => ({
 
 const availabilityService = {
   async getAvailabilityForTrainer(trainerId, date) {
-    const records = await TrainerAvailability.findAll({
-      where: { trainerId },
-      order: [['dayOfWeek', 'ASC'], ['startTime', 'ASC']]
-    });
+    let records = [];
+    try {
+      records = await TrainerAvailability.findAll({
+        where: { trainerId },
+        order: [['dayOfWeek', 'ASC'], ['startTime', 'ASC']]
+      });
+    } catch (err) {
+      // Table might not exist yet - return empty availability
+      logger.warn(`Could not fetch trainer availability: ${err.message}`);
+      return { recurring: [], overrides: [] };
+    }
 
     const recurring = records.filter((entry) => entry.isRecurring);
     const overrides = records.filter((entry) => !entry.isRecurring);
@@ -107,13 +114,22 @@ const availabilityService = {
     }
 
     const dayOfWeek = start.getDay();
-    const records = await TrainerAvailability.findAll({
-      where: {
-        trainerId,
-        dayOfWeek,
-        isActive: true
-      }
-    });
+
+    // Attempt to fetch trainer availability, default to available on error
+    let records = [];
+    try {
+      records = await TrainerAvailability.findAll({
+        where: {
+          trainerId,
+          dayOfWeek,
+          isActive: true
+        }
+      });
+    } catch (err) {
+      // Table might not exist - assume trainer is available (optimistic)
+      logger.warn(`Could not check trainer availability: ${err.message}`);
+      return true;
+    }
 
     const recurring = records.filter((entry) => entry.isRecurring && entry.type === 'available');
     const effectiveRecurring = recurring.length > 0 ? recurring : [DEFAULT_AVAILABILITY_BLOCK];
@@ -153,13 +169,21 @@ const availabilityService = {
     }
 
     const dayOfWeek = targetDate.getDay();
-    const records = await TrainerAvailability.findAll({
-      where: {
-        trainerId,
-        dayOfWeek,
-        isActive: true
-      }
-    });
+
+    // Attempt to fetch trainer availability records, fall back to defaults on error
+    let records = [];
+    try {
+      records = await TrainerAvailability.findAll({
+        where: {
+          trainerId,
+          dayOfWeek,
+          isActive: true
+        }
+      });
+    } catch (err) {
+      // Table might not exist yet - log and continue with defaults
+      logger.warn(`Could not fetch trainer availability (table may not exist): ${err.message}`);
+    }
 
     const recurring = records.filter((entry) => entry.isRecurring && entry.type === 'available');
     const overrides = records.filter((entry) =>
@@ -175,14 +199,20 @@ const availabilityService = {
     const dayEnd = new Date(targetDate);
     dayEnd.setHours(23, 59, 59, 999);
 
-    const sessions = await Session.findAll({
-      where: {
-        trainerId,
-        status: { [Op.in]: ACTIVE_SESSION_STATUSES },
-        sessionDate: { [Op.gte]: dayStart, [Op.lte]: dayEnd }
-      },
-      order: [['sessionDate', 'ASC']]
-    });
+    // Attempt to fetch existing sessions, fall back to empty array on error
+    let sessions = [];
+    try {
+      sessions = await Session.findAll({
+        where: {
+          trainerId,
+          status: { [Op.in]: ACTIVE_SESSION_STATUSES },
+          sessionDate: { [Op.gte]: dayStart, [Op.lte]: dayEnd }
+        },
+        order: [['sessionDate', 'ASC']]
+      });
+    } catch (err) {
+      logger.warn(`Could not fetch sessions for availability: ${err.message}`);
+    }
 
     const occupiedBlocks = sessions.map((session) => {
       const sessionStart = new Date(session.sessionDate);

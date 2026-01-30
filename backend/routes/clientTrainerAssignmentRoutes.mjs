@@ -403,7 +403,7 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
           attributes: ['id', 'firstName', 'lastName'] 
         }
       ],
-      order: [['assignedAt', 'DESC']]
+      order: [['createdAt', 'DESC']]
     });
 
     logger.info(`Trainer ${trainerId} retrieved ${assignments.length} assigned clients`, {
@@ -459,7 +459,7 @@ router.get('/client/:clientId', protect, adminOnly, async (req, res) => {
           attributes: ['id', 'firstName', 'lastName'] 
         }
       ],
-      order: [['assignedAt', 'DESC']]
+      order: [['createdAt', 'DESC']]
     });
 
     logger.info(`Retrieved assignment for client ${clientId}`, {
