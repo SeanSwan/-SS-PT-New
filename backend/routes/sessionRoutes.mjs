@@ -885,13 +885,167 @@ router.post("/book/:userId", protect, async (req, res) => {
       }
     }
 
-    res.status(200).json({ 
-      message: "Session booked successfully.", 
-      session 
+    res.status(200).json({
+      message: "Session booked successfully.",
+      session
     });
   } catch (error) {
     console.error("Error booking session:", error.message);
     res.status(500).json({ message: "Server error booking session." });
+  }
+});
+
+/**
+ * @route   POST /api/sessions/:sessionId/book
+ * @desc    Book a specific session by ID (for current authenticated user)
+ * @access  Private (Client)
+ */
+router.post("/:sessionId/book", protect, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const { sessionId } = req.params;
+    const userId = req.user.id;
+
+    // Find the session
+    const session = await Session.findOne({
+      where: { id: sessionId, status: "available" },
+    });
+
+    if (!session) {
+      return res.status(400).json({
+        success: false,
+        message: "Session is not available for booking."
+      });
+    }
+
+    // Check if session is in the past
+    if (new Date(session.sessionDate) < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot book sessions in the past"
+      });
+    }
+
+    // Get the user
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found."
+      });
+    }
+
+    // Check if user has available sessions (admins can bypass this check)
+    if (req.user.role !== 'admin' && (!user.availableSessions || user.availableSessions <= 0)) {
+      return res.status(400).json({
+        success: false,
+        message: "No available sessions. Please purchase a session package to book this session.",
+        availableSessions: user.availableSessions || 0
+      });
+    }
+
+    // Book the session
+    session.userId = userId;
+    session.status = "scheduled";
+    session.bookingDate = new Date();
+    await session.save();
+
+    // Deduct the session (if not admin)
+    if (req.user.role !== 'admin') {
+      user.availableSessions -= 1;
+      await user.save();
+
+      logger.info(`Session deducted for user ${userId}. Remaining sessions: ${user.availableSessions}`);
+    }
+
+    // Broadcast real-time booking event
+    try {
+      realTimeScheduleService.broadcastSessionBooked(session, user);
+    } catch (broadcastError) {
+      logger.warn('Failed to broadcast booking event:', broadcastError.message);
+    }
+
+    // Notify the user via email/SMS (respect notifyClient + preferences)
+    const notifyClient = session.notifyClient !== false;
+    const sessionDateFormatted = new Date(session.sessionDate).toLocaleString(
+      'en-US',
+      {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }
+    );
+
+    // Send email notification
+    if (user.email && shouldNotifyClient({ user, channel: 'email', notifyClient })) {
+      await sendEmailNotification({
+        to: user.email,
+        subject: "Session Booked Successfully",
+        text: `Your session has been booked for ${sessionDateFormatted}`,
+        html: `<p>Your session has been booked for <strong>${sessionDateFormatted}</strong>.</p>
+               <p>Location: ${session.location || 'Main Studio'}</p>
+               <p>Please arrive 10 minutes before your session.</p>`
+      });
+    }
+
+    // Send SMS notification
+    if (user.phone && shouldNotifyClient({ user, channel: 'sms', notifyClient })) {
+      await sendSmsNotification({
+        to: user.phone,
+        body: `Swan Studios: Your session has been booked for ${sessionDateFormatted}. Please arrive 10 minutes early.`
+      });
+    }
+
+    // Notify trainer if one is assigned
+    if (session.trainerId) {
+      const trainer = await User.findByPk(session.trainerId);
+      if (trainer && trainer.email) {
+        await sendEmailNotification({
+          to: trainer.email,
+          subject: "New Session Booked",
+          text: `A new session has been booked with you for ${sessionDateFormatted}`,
+          html: `<p>A new session has been booked with you for <strong>${sessionDateFormatted}</strong>.</p>
+                 <p>Client: ${user.firstName} ${user.lastName}</p>
+                 <p>Location: ${session.location || 'Main Studio'}</p>`
+        });
+      }
+    }
+
+    // Fetch updated session with associations
+    const updatedSession = await Session.findByPk(session.id, {
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        },
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        }
+      ]
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Session booked successfully.",
+      session: updatedSession,
+      availableSessions: user.availableSessions
+    });
+  } catch (error) {
+    logger.error("Error booking session:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error booking session.",
+      error: error.message
+    });
   }
 });
 
@@ -1152,6 +1306,243 @@ router.delete("/cancel/:sessionId", protect, async (req, res) => {
   } catch (error) {
     console.error("Error canceling session:", error.message);
     res.status(500).json({ message: "Server error canceling session." });
+  }
+});
+
+/**
+ * @route   PATCH /api/sessions/:sessionId/cancel
+ * @desc    Cancel a session with MindBody-style charge options
+ * @access  Private (Admin/Trainer or session owner)
+ *
+ * @body {string} reason - Cancellation reason
+ * @body {string} chargeType - 'none' | 'full' | 'partial' | 'late_fee'
+ * @body {number} chargeAmount - Amount to charge (for partial charges)
+ * @body {boolean} restoreCredit - Whether to restore session credit to client
+ * @body {boolean} notifyClient - Whether to send email notification
+ * @body {boolean} notifyTrainer - Whether to notify the assigned trainer
+ */
+router.patch("/:sessionId/cancel", protect, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const { sessionId } = req.params;
+    const {
+      reason,
+      chargeType = 'none',
+      chargeAmount = 0,
+      restoreCredit = true,
+      notifyClient = true,
+      notifyTrainer = true
+    } = req.body || {};
+
+    // Validate charge type
+    const validChargeTypes = ['none', 'full', 'partial', 'late_fee'];
+    if (!validChargeTypes.includes(chargeType)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid charge type. Must be one of: ${validChargeTypes.join(', ')}`
+      });
+    }
+
+    const session = await Session.findByPk(sessionId, {
+      include: [
+        { model: User, as: 'client', attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'availableSessions'] },
+        { model: User, as: 'trainer', attributes: ['id', 'firstName', 'lastName', 'email'] }
+      ]
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found."
+      });
+    }
+
+    if (!['scheduled', 'confirmed', 'requested'].includes(session.status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Only scheduled, confirmed, or requested sessions can be cancelled."
+      });
+    }
+
+    // Check authorization - admin, trainer, or session owner
+    const isAdmin = req.user.role === 'admin';
+    const isTrainer = req.user.role === 'trainer' && session.trainerId === req.user.id;
+    const isOwner = session.userId === req.user.id;
+
+    if (!isAdmin && !isTrainer && !isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to cancel this session."
+      });
+    }
+
+    // Calculate hours until session (for late cancellation policy)
+    const hoursUntilSession = moment(session.sessionDate).diff(moment(), 'hours');
+    const isLateCancellation = hoursUntilSession < 24;
+
+    // Determine actual charge amount based on type
+    let actualChargeAmount = 0;
+    const sessionRate = 75; // Default session rate - could be pulled from user's package
+
+    switch (chargeType) {
+      case 'none':
+        actualChargeAmount = 0;
+        break;
+      case 'full':
+        actualChargeAmount = sessionRate;
+        break;
+      case 'partial':
+        actualChargeAmount = parseFloat(chargeAmount) || (sessionRate * 0.5);
+        break;
+      case 'late_fee':
+        actualChargeAmount = parseFloat(chargeAmount) || 25; // Default late fee
+        break;
+    }
+
+    // Update session with cancellation details
+    session.status = 'cancelled';
+    session.cancellationReason = reason || (isLateCancellation ? 'Late cancellation' : 'No reason provided');
+    session.cancellationDate = new Date();
+    session.cancelledBy = req.user.id;
+    session.cancellationChargeType = chargeType;
+    session.cancellationChargeAmount = actualChargeAmount;
+    session.sessionCreditRestored = restoreCredit && chargeType === 'none';
+    session.cancellationChargedAt = actualChargeAmount > 0 ? new Date() : null;
+
+    await session.save();
+
+    // Restore session credit to client if applicable
+    let creditRestored = false;
+    if (restoreCredit && chargeType === 'none' && session.sessionDeducted && session.userId) {
+      const client = await User.findByPk(session.userId);
+      if (client) {
+        const currentSessions = client.availableSessions || 0;
+        await client.update({ availableSessions: currentSessions + 1 });
+        creditRestored = true;
+        logger.info(`Session credit restored for user ${session.userId}. New balance: ${currentSessions + 1}`);
+      }
+    }
+
+    // Format session date for notifications
+    const sessionDateFormatted = new Date(session.sessionDate).toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    // Build charge message for notifications
+    let chargeMessage = '';
+    if (chargeType !== 'none' && actualChargeAmount > 0) {
+      const chargeTypeLabels = {
+        'full': 'Full session charge',
+        'partial': 'Partial charge',
+        'late_fee': 'Late cancellation fee'
+      };
+      chargeMessage = `\n${chargeTypeLabels[chargeType]}: $${actualChargeAmount.toFixed(2)}`;
+    } else if (creditRestored) {
+      chargeMessage = '\nYour session credit has been restored to your account.';
+    }
+
+    // Send client notification
+    if (notifyClient && session.client && session.client.email && session.client.id !== req.user.id) {
+      await sendEmailNotification({
+        to: session.client.email,
+        subject: chargeType !== 'none' ? "Session Cancelled - Charge Applied" : "Session Cancelled",
+        text: `Your session scheduled for ${sessionDateFormatted} has been cancelled.\n\nReason: ${session.cancellationReason}${chargeMessage}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: ${chargeType !== 'none' ? '#dc2626' : '#2563eb'};">Session Cancelled</h2>
+            <p>Your session scheduled for <strong>${sessionDateFormatted}</strong> has been cancelled.</p>
+            <p><strong>Reason:</strong> ${session.cancellationReason}</p>
+            ${chargeType !== 'none' && actualChargeAmount > 0 ? `
+              <div style="background: #fef2f2; border: 1px solid #dc2626; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                <p style="color: #dc2626; font-weight: bold; margin: 0;">Charge Applied</p>
+                <p style="margin: 8px 0 0 0;">
+                  ${chargeType === 'full' ? 'Full session charge' : chargeType === 'late_fee' ? 'Late cancellation fee' : 'Partial charge'}:
+                  <strong>$${actualChargeAmount.toFixed(2)}</strong>
+                </p>
+              </div>
+            ` : creditRestored ? `
+              <div style="background: #f0fdf4; border: 1px solid #16a34a; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                <p style="color: #16a34a; font-weight: bold; margin: 0;">Credit Restored</p>
+                <p style="margin: 8px 0 0 0;">Your session credit has been restored to your account.</p>
+              </div>
+            ` : ''}
+            <p style="color: #6b7280; font-size: 14px;">If you have any questions, please contact Swan Studios.</p>
+          </div>
+        `
+      });
+
+      // Send SMS if client has phone
+      if (session.client.phone) {
+        const smsChargeMsg = chargeType !== 'none' && actualChargeAmount > 0
+          ? ` Charge: $${actualChargeAmount.toFixed(2)}`
+          : creditRestored ? ' Credit restored.' : '';
+
+        await sendSmsNotification({
+          to: session.client.phone,
+          body: `Swan Studios: Your session on ${sessionDateFormatted} has been cancelled.${smsChargeMsg}`
+        });
+      }
+    }
+
+    // Send trainer notification
+    if (notifyTrainer && session.trainer && session.trainer.email && session.trainer.id !== req.user.id) {
+      const clientName = session.client ? `${session.client.firstName} ${session.client.lastName}` : 'Unknown Client';
+
+      await sendEmailNotification({
+        to: session.trainer.email,
+        subject: "Session Cancelled",
+        text: `A session with ${clientName} scheduled for ${sessionDateFormatted} has been cancelled.\n\nReason: ${session.cancellationReason}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #2563eb;">Session Cancelled</h2>
+            <p>A session with <strong>${clientName}</strong> scheduled for <strong>${sessionDateFormatted}</strong> has been cancelled.</p>
+            <p><strong>Reason:</strong> ${session.cancellationReason}</p>
+            ${isLateCancellation ? '<p style="color: #dc2626;"><strong>Note:</strong> This was a late cancellation (less than 24 hours notice).</p>' : ''}
+          </div>
+        `
+      });
+    }
+
+    // Log the cancellation
+    logger.info(`Session ${sessionId} cancelled by user ${req.user.id}`, {
+      sessionId,
+      chargeType,
+      chargeAmount: actualChargeAmount,
+      creditRestored,
+      isLateCancellation,
+      cancelledBy: req.user.id
+    });
+
+    res.json({
+      success: true,
+      message: "Session cancelled successfully.",
+      data: {
+        sessionId: session.id,
+        status: session.status,
+        cancellationReason: session.cancellationReason,
+        chargeType: session.cancellationChargeType,
+        chargeAmount: actualChargeAmount,
+        creditRestored,
+        isLateCancellation,
+        notificationsSent: {
+          client: notifyClient && session.client?.email ? true : false,
+          trainer: notifyTrainer && session.trainer?.email ? true : false
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Error cancelling session with charge:", error);
+    logger.error("Error cancelling session with charge:", { error: error.message, stack: error.stack });
+    res.status(500).json({
+      success: false,
+      message: "Server error cancelling session."
+    });
   }
 });
 
