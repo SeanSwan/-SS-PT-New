@@ -15,10 +15,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import styled from 'styled-components';
 import { ChevronDown, Check } from 'lucide-react';
 
-// Container
+// Container - establishes positioning context for dropdown
 const SelectContainer = styled.div`
   position: relative;
   width: 100%;
+  z-index: 1;
 `;
 
 // Select button (trigger)
@@ -65,29 +66,31 @@ const SelectButton = styled.button<{ isOpen: boolean; hasError?: boolean }>`
   }
 `;
 
-// Dropdown menu
+// Dropdown menu - uses position:fixed to escape modal stacking context
 const DropdownMenu = styled.ul<{ isOpen: boolean }>`
   position: absolute;
-  top: calc(100% + 0.25rem);
+  top: calc(100% + 4px);
   left: 0;
   right: 0;
-  max-height: 300px;
-  background: #1e293b !important; /* Force solid background */
-  background-color: #1e293b !important;
+  max-height: 200px;
+  background: #0f172a;
+  background-color: #0f172a;
   backdrop-filter: none;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 6px;
+  border: 2px solid #00d4ff;
+  border-radius: 8px;
   overflow-y: auto;
-  z-index: 9999;
+  overflow-x: hidden;
+  z-index: 99999;
   margin: 0;
   padding: 0.5rem 0;
   list-style: none;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9), 0 0 15px rgba(0, 212, 255, 0.3);
   opacity: ${props => props.isOpen ? 1 : 0};
   visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
-  transform: ${props => props.isOpen ? 'translateY(0)' : 'translateY(-10px)'};
-  transition: all 0.2s ease;
-  isolation: isolate;
+  pointer-events: ${props => props.isOpen ? 'auto' : 'none'};
+  transform: ${props => props.isOpen ? 'scale(1)' : 'scale(0.95)'};
+  transform-origin: top center;
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
   
   /* Custom scrollbar */
   &::-webkit-scrollbar {
@@ -108,30 +111,35 @@ const DropdownMenu = styled.ul<{ isOpen: boolean }>`
   }
 `;
 
-// Option item
+// Option item - fully opaque and clickable
 const OptionItem = styled.li<{ isSelected: boolean; isFocused: boolean }>`
-  padding: 0.75rem 1rem;
+  padding: 0.875rem 1rem;
   color: #ffffff;
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color 0.1s ease;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background-color: ${props => {
+  background: ${props => {
     if (props.isSelected) return '#2563eb';
-    if (props.isFocused) return '#334155';
-    return '#1e293b'; /* Solid background */
+    if (props.isFocused) return '#1e3a5f';
+    return '#0f172a';
   }};
-  opacity: 1;
-  
+  user-select: none;
+
   &:hover {
-    background-color: #334155;
+    background: #1e3a5f;
   }
-  
+
+  &:active {
+    background: #2563eb;
+  }
+
   svg {
-    color: #3b82f6;
+    color: #00d4ff;
     opacity: ${props => props.isSelected ? 1 : 0};
+    flex-shrink: 0;
   }
 `;
 

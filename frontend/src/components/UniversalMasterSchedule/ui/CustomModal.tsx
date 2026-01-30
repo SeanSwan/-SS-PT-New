@@ -139,11 +139,14 @@ const ModalHeader = styled.div`
   }
 `;
 
-// Modal body - Ultra responsive
+// Modal body - Ultra responsive with overflow for dropdowns
 const ModalBody = styled.div`
   padding: 1.5rem;
-  overflow-y: visible; /* Changed from auto to visible so dropdowns aren't clipped */
+  padding-bottom: 2rem;
+  overflow: visible;
   flex: 1;
+  position: relative;
+  min-height: 200px;
 
   /* Custom scrollbar */
   &::-webkit-scrollbar {
