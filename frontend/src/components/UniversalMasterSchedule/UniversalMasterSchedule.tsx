@@ -141,6 +141,14 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       }
 
       const startDate = new Date(formData.sessionDate);
+
+      // Validate date is in the future
+      const now = new Date();
+      if (startDate < now) {
+        alert('Cannot create sessions in the past. Please select a future date and time.');
+        return;
+      }
+
       const endDate = new Date(startDate.getTime() + formData.duration * 60000);
 
       const sessionData = {
@@ -168,6 +176,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       if (result.sessions) {
         alert('Session created successfully!');
         setShowCreateDialog(false);
+        setIsSlotSelected(false);
         setFormData({
           sessionDate: '',
           duration: 60,
@@ -331,7 +340,14 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
       const slotDate = new Date(currentDate);
       slotDate.setHours(hour, 0, 0, 0);
-      
+
+      // Prevent creating sessions in the past
+      const now = new Date();
+      if (slotDate < now) {
+        alert('Cannot create sessions in the past. Please select a future time slot.');
+        return;
+      }
+
       const toDateTimeLocal = (date: Date) => {
         const pad = (num: number) => String(num).padStart(2, '0');
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
