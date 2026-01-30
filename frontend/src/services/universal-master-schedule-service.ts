@@ -38,19 +38,31 @@ import type {
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
 
 /**
- * Create axios instance with auth headers
+ * Create axios instance with dynamic auth headers
+ * Uses interceptor to always get fresh token from localStorage
  */
 function createApiClient() {
-  const token = localStorage.getItem('token');
-  
-  return axios.create({
+  const instance = axios.create({
     baseURL: API_BASE_URL,
     headers: {
-      'Content-Type': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` })
+      'Content-Type': 'application/json'
     },
     timeout: 30000
   });
+
+  // Add request interceptor to include fresh token on every request
+  instance.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
+
+  return instance;
 }
 
 /**
