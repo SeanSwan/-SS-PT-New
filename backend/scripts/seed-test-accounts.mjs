@@ -16,7 +16,7 @@
 import bcrypt from 'bcrypt';
 import User from '../models/User.mjs';
 import dotenv from 'dotenv';
-import sequelize from '../database.mjs';
+import sequelize, { Op } from '../database.mjs';
 
 // Load environment variables
 dotenv.config();
@@ -100,38 +100,65 @@ async function seedTestAccounts() {
       // For each test account type
       for (const [role, accountData] of Object.entries(TEST_ACCOUNTS)) {
         console.log(`Processing ${role} account...`);
-        
-        // Check if the user already exists
-        let user = await User.findOne({ 
-          where: { 
-            username: accountData.username 
+
+        // Check if the user already exists by username OR email
+        // This handles cases where user exists with same email but different username
+        // Use paranoid: false to also find soft-deleted users (deletedAt is set)
+        let user = await User.findOne({
+          where: {
+            [Op.or]: [
+              { username: accountData.username },
+              { email: accountData.email }
+            ]
           },
+          paranoid: false, // Include soft-deleted users
           transaction
         });
+
+        // If user was soft-deleted, restore them
+        if (user && user.deletedAt) {
+          console.log(`  → Restoring soft-deleted ${role} account`);
+          await user.restore({ transaction });
+        }
         
         // Prepare user data without the password initially
         const { password, ...userDataWithoutPassword } = accountData;
         
         if (user) {
-          // Update existing user (but don't update password if it's already set)
+          // Update existing user
           const updateData = { ...userDataWithoutPassword };
-          
-          // Only update password if it's not already hashed
-          if (password && !user.password.startsWith('$2')) {
-            const hashedPassword = await bcrypt.hash(password, 10);
-            updateData.password = hashedPassword;
+
+          // Check if password needs to be reset (if corrupted or force reset requested)
+          // A valid bcrypt hash starts with $2a$, $2b$, or $2y$
+          const hasValidPassword = user.password && /^\$2[aby]\$\d+\$/.test(user.password);
+
+          // Verify the password actually works (not double-hashed)
+          let passwordWorks = false;
+          if (hasValidPassword) {
+            try {
+              passwordWorks = await bcrypt.compare(password, user.password);
+            } catch (e) {
+              passwordWorks = false;
+            }
           }
-          
+
+          // Reset password if it's invalid or doesn't match the expected default
+          if (!hasValidPassword || !passwordWorks) {
+            console.log(`  → Resetting password for ${role} (was invalid or corrupted)`);
+            // Pass plain password - let model's beforeUpdate hook hash it
+            updateData.password = password;
+          }
+
           await user.update(updateData, { transaction });
           console.log(`Updated existing ${role} account`);
         } else {
-          // Create new user with hashed password
-          const hashedPassword = await bcrypt.hash(password, 10);
+          // Create new user - let the model's beforeCreate hook handle password hashing
+          // DO NOT pre-hash the password here as it will be double-hashed
           user = await User.create({
             ...userDataWithoutPassword,
-            password: hashedPassword
+            password: password // Plain password - model hook will hash it
           }, { transaction });
-          
+
           console.log(`Created new ${role} account`);
         }
       }
