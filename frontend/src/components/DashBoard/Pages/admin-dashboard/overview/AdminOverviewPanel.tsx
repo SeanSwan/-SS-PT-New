@@ -3,6 +3,7 @@ import { DollarSign, Users, Dumbbell, Monitor, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../../../../../context/AuthContext';
 import RealTimeSignupMonitoring from '../components/RealTimeSignupMonitoring';
 import ContactNotifications from '../components/ContactNotifications';
+import CancelledSessionsWidget from '../components/CancelledSessionsWidget';
 import AdminOverviewMetrics from './AdminOverviewMetrics';
 import AdminSystemHealthPanel from './AdminSystemHealthPanel';
 import AdminQuickActions from './AdminQuickActions';
@@ -197,6 +198,10 @@ const AdminOverviewPanel: React.FC = () => {
       </div>
 
       <AdminOverviewMetrics metrics={metrics} />
+
+      {/* Cancelled Sessions Widget - Shows late cancellations with charge options */}
+      <CancelledSessionsWidget maxItems={10} showChargeButtons={true} />
+
       <AdminSystemHealthPanel systemHealth={systemHealth} onRefresh={fetchAdminOverview} />
       <AdminQuickActions actions={quickActions} />
     </div>

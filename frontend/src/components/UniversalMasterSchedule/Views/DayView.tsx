@@ -37,8 +37,15 @@ const isPastTime = (date: Date, hour: number) => {
   return slotDate < now;
 };
 
+/**
+ * Filter sessions for the given day, excluding cancelled sessions
+ * Cancelled sessions should not appear on the schedule - they go to the cancellation log
+ */
 const toDaySessions = (sessions: DayViewSession[], date: Date) =>
-  sessions.filter((session) => isSameDay(new Date(session.sessionDate), date));
+  sessions.filter((session) =>
+    isSameDay(new Date(session.sessionDate), date) &&
+    session.status !== 'cancelled'
+  );
 
 const deriveTrainerList = (sessions: DayViewSession[]) => {
   const trainerMap = new Map<string, DayViewTrainer>();
