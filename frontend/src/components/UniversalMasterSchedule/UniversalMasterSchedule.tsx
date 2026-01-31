@@ -23,6 +23,9 @@ import ScheduleModals from './components/ScheduleModals';
 import { useCalendarData } from './hooks/useCalendarData';
 import { useSchedule } from '../../hooks/useSchedule';
 import { useSessionCredits } from './hooks/useSessionCredits';
+import { useToast } from '../../hooks/use-toast';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useSessionTemplates } from './hooks/useSessionTemplates';
 
 // UI Components
 import {
@@ -74,6 +77,9 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     refetch: refetchCredits
   } = useSessionCredits(mode === 'client');
 
+  const { success, error: toastError, warning } = useToast();
+  const { templates, addTemplate, removeTemplate, applyTemplate } = useSessionTemplates();
+
   // Local UI State
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showRecurringDialog, setShowRecurringDialog] = useState(false);
@@ -108,6 +114,21 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     manualClientName: ''
   });
   const [useManualClient, setUseManualClient] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
+
+  const isAnyModalOpen = [
+    showCreateDialog,
+    showRecurringDialog,
+    showBlockedDialog,
+    showNotificationDialog,
+    showBookingDialog,
+    showDetailDialog,
+    showSeriesDialog,
+    showAvailabilityEditor,
+    showOverrideModal,
+    showPaymentModal,
+    conflictModalOpen
+  ].some(Boolean);
 
   // Permissions
   const resolvedUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
@@ -126,17 +147,71 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     initializeComponent({ realTimeEnabled: true });
   }, [initializeComponent]);
 
+  useKeyboardShortcuts({
+    onCreateSession: () => {
+      if (!canCreateSessions) return;
+      setFormData({
+        sessionDate: '',
+        duration: 60,
+        location: 'Main Studio',
+        notes: '',
+        notifyClient: true,
+        trainerId: undefined,
+        clientId: undefined,
+        manualClientName: ''
+      });
+      setUseManualClient(false);
+      setIsSlotSelected(false);
+      setShowCreateDialog(true);
+    },
+    onToday: () => setDate(new Date()),
+    onPrevious: () => {
+      const prev = new Date(currentDate);
+      const delta = activeView === 'month' ? 1 : activeView === 'day' ? 1 : 7;
+      if (activeView === 'month') {
+        prev.setMonth(prev.getMonth() - 1);
+      } else {
+        prev.setDate(prev.getDate() - delta);
+      }
+      setDate(prev);
+    },
+    onNext: () => {
+      const next = new Date(currentDate);
+      const delta = activeView === 'month' ? 1 : activeView === 'day' ? 1 : 7;
+      if (activeView === 'month') {
+        next.setMonth(next.getMonth() + 1);
+      } else {
+        next.setDate(next.getDate() + delta);
+      }
+      setDate(next);
+    },
+    onCloseModal: () => {
+      setShowCreateDialog(false);
+      setShowRecurringDialog(false);
+      setShowBlockedDialog(false);
+      setShowNotificationDialog(false);
+      setShowBookingDialog(false);
+      setShowDetailDialog(false);
+      setShowSeriesDialog(false);
+      setShowAvailabilityEditor(false);
+      setShowOverrideModal(false);
+      setShowPaymentModal(false);
+      setConflictModalOpen(false);
+    },
+    isModalOpen: isAnyModalOpen
+  });
+
   // Handlers
   const handleCreateSession = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        alert('Please log in to create sessions');
+        warning('Please log in to create sessions.');
         return;
       }
 
       if (!formData.sessionDate) {
-        alert('Please select a date and time');
+        warning('Please select a date and time.');
         return;
       }
 
@@ -145,7 +220,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       // Validate date is in the future (admin can bypass this check)
       const now = new Date();
       if (startDate < now && mode !== 'admin') {
-        alert('Cannot create sessions in the past. Please select a future date and time.');
+        warning('Cannot create sessions in the past. Please select a future date and time.');
         return;
       }
 
@@ -177,7 +252,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       }]);
 
       if (result.sessions) {
-        alert('Session created successfully!');
+        success('Session created successfully!');
         setShowCreateDialog(false);
         setIsSlotSelected(false);
         setFormData({
@@ -195,8 +270,40 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       }
     } catch (error) {
       console.error('Error creating session:', error);
-      alert('Error creating session. Please try again.');
+      toastError('Error creating session. Please try again.');
     }
+  };
+
+  const handleTemplateChange = (templateId: string) => {
+    setSelectedTemplateId(templateId);
+    if (!templateId) return;
+    const template = applyTemplate(templateId);
+    if (!template) return;
+    setFormData((prev) => ({
+      ...prev,
+      duration: template.duration,
+      location: template.location,
+      notes: template.notes || prev.notes
+    }));
+  };
+
+  const handleSaveTemplate = (name: string) => {
+    if (!name) return;
+    addTemplate({
+      name,
+      duration: formData.duration,
+      location: formData.location,
+      notes: formData.notes || undefined
+    });
+    success('Template saved.');
+  };
+
+  const handleDeleteTemplate = (id: string) => {
+    removeTemplate(id);
+    if (selectedTemplateId === id) {
+      setSelectedTemplateId('');
+    }
+    success('Template deleted.');
   };
 
   const handleBookSession = async () => {
@@ -347,7 +454,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       // Prevent creating sessions in the past (admin can bypass this check)
       const now = new Date();
       if (slotDate < now && mode !== 'admin') {
-        alert('Cannot create sessions in the past. Please select a future time slot.');
+        warning('Cannot create sessions in the past. Please select a future time slot.');
         return;
       }
 
@@ -415,6 +522,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
           });
           setUseManualClient(false);
           setIsSlotSelected(false);
+          setSelectedTemplateId('');
           setShowCreateDialog(true);
         }}
         canManageAvailability={canManageAvailability}
@@ -489,6 +597,11 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         dbClients={clients}
         useManualClient={useManualClient}
         setUseManualClient={setUseManualClient}
+        templates={templates}
+        selectedTemplateId={selectedTemplateId}
+        onTemplateChange={handleTemplateChange}
+        onSaveTemplate={handleSaveTemplate}
+        onDeleteTemplate={handleDeleteTemplate}
         isSlotSelected={isSlotSelected}
         bookingTarget={bookingTarget}
         bookingLoading={bookingLoading}

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { Save } from 'lucide-react';
+import { Save, Trash2 } from 'lucide-react';
 import RecurringSessionModal from '../RecurringSessionModal';
 import BlockedTimeModal from '../BlockedTimeModal';
 import NotificationPreferencesModal from '../NotificationPreferencesModal';
@@ -59,6 +59,18 @@ interface ScheduleModalsProps {
   dbClients: any[];
   useManualClient: boolean;
   setUseManualClient: (use: boolean) => void;
+  templates: Array<{
+    id: string;
+    name: string;
+    duration: number;
+    location: string;
+    notes?: string;
+    isDefault?: boolean;
+  }>;
+  selectedTemplateId: string;
+  onTemplateChange: (templateId: string) => void;
+  onSaveTemplate: (name: string) => void;
+  onDeleteTemplate: (id: string) => void;
   isSlotSelected: boolean;
   
   bookingTarget: any;
@@ -116,6 +128,11 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
   dbClients,
   useManualClient,
   setUseManualClient,
+  templates,
+  selectedTemplateId,
+  onTemplateChange,
+  onSaveTemplate,
+  onDeleteTemplate,
   isSlotSelected,
   
   bookingTarget,
@@ -148,6 +165,66 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
     { value: 'Online', label: 'Online Session' }
   ];
 
+  const [showTemplateNameInput, setShowTemplateNameInput] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateError, setTemplateError] = useState('');
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const templateInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (showTemplateNameInput) {
+      templateInputRef.current?.focus();
+    }
+  }, [showTemplateNameInput]);
+
+  useEffect(() => {
+    if (!showCreateDialog) {
+      setShowTemplateNameInput(false);
+      setTemplateName('');
+      setTemplateError('');
+      setPendingDeleteId(null);
+    }
+  }, [showCreateDialog]);
+
+  const handleSaveTemplateClick = () => {
+    if (!showTemplateNameInput) {
+      setShowTemplateNameInput(true);
+      setTemplateError('');
+      return;
+    }
+
+    const trimmed = templateName.trim();
+    if (trimmed.length < 2 || trimmed.length > 50) {
+      setTemplateError('Name must be 2-50 characters.');
+      return;
+    }
+    const exists = templates.some(
+      (template) => template.name.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (exists) {
+      setTemplateError('Template name already exists.');
+      return;
+    }
+
+    onSaveTemplate(trimmed);
+    setTemplateName('');
+    setTemplateError('');
+    setShowTemplateNameInput(false);
+  };
+
+  const handleTemplateKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleSaveTemplateClick();
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      setShowTemplateNameInput(false);
+      setTemplateName('');
+      setTemplateError('');
+    }
+  };
+
   return (
     <>
       {/* Create Session Modal */}
@@ -162,6 +239,9 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
               <OutlinedButton onClick={() => setShowCreateDialog(false)}>
                 Cancel
               </OutlinedButton>
+              <OutlinedButton onClick={handleSaveTemplateClick}>
+                Save as Template
+              </OutlinedButton>
               <PrimaryButton onClick={handleCreateSession}>
                 <Save size={18} />
                 Create Session
@@ -170,6 +250,90 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
           }
         >
           <FlexBox direction="column" gap="1.5rem">
+            <FormField>
+              <Label htmlFor="sessionTemplate">Template</Label>
+              <CustomSelect
+                value={selectedTemplateId}
+                onChange={(value) => onTemplateChange(value as string)}
+                renderOptionTrailing={(option) => {
+                  const template = templates.find((t) => String(t.id) === String(option.value));
+                  if (!template || template.isDefault) {
+                    return null;
+                  }
+
+                  if (pendingDeleteId === template.id) {
+                    return (
+                      <InlineConfirm>
+                        <ConfirmText>Delete?</ConfirmText>
+                        <ConfirmButton
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            onDeleteTemplate(template.id);
+                            setPendingDeleteId(null);
+                          }}
+                        >
+                          Yes
+                        </ConfirmButton>
+                        <CancelButton
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setPendingDeleteId(null);
+                          }}
+                        >
+                          No
+                        </CancelButton>
+                      </InlineConfirm>
+                    );
+                  }
+
+                  return (
+                    <DeleteButton
+                      type="button"
+                      title="Delete this template?"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setPendingDeleteId(template.id);
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </DeleteButton>
+                  );
+                }}
+                options={[
+                  { value: '', label: '-- No Template --' },
+                  ...templates.map((template) => ({
+                    value: template.id,
+                    label: template.isDefault
+                      ? `${template.name} (Default)`
+                      : template.name
+                  }))
+                ]}
+                aria-label="Session template"
+              />
+            </FormField>
+
+            {showTemplateNameInput && (
+              <FormField>
+                <Label htmlFor="templateName" required>Template Name</Label>
+                <StyledInput
+                  id="templateName"
+                  ref={templateInputRef}
+                  type="text"
+                  value={templateName}
+                  onChange={(event) => {
+                    setTemplateName(event.target.value);
+                    if (templateError) setTemplateError('');
+                  }}
+                  onKeyDown={handleTemplateKeyDown}
+                  placeholder="Enter template name..."
+                  style={templateError ? { borderColor: '#ef4444' } : undefined}
+                />
+                {templateError && <HelperText style={{ color: '#ef4444' }}>{templateError}</HelperText>}
+              </FormField>
+            )}
+
             <FormField>
               <Label htmlFor="sessionDate" required>Session Date & Time</Label>
               {isSlotSelected ? (
@@ -470,4 +634,52 @@ const CreditCard = styled.div`
     padding: 0.75rem;
     border-radius: 8px;
   }
+`;
+
+const DeleteButton = styled.button`
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  padding: 0.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: #ef4444;
+  }
+`;
+
+const InlineConfirm = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+`;
+
+const ConfirmText = styled.span`
+  color: rgba(255, 255, 255, 0.7);
+`;
+
+const ConfirmButton = styled.button`
+  border: none;
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border-radius: 6px;
+  padding: 0.1rem 0.4rem;
+  cursor: pointer;
+  font-size: 0.65rem;
+  font-weight: 600;
+`;
+
+const CancelButton = styled.button`
+  border: none;
+  background: rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+  border-radius: 6px;
+  padding: 0.1rem 0.4rem;
+  cursor: pointer;
+  font-size: 0.65rem;
+  font-weight: 600;
 `;
