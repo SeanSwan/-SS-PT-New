@@ -19,8 +19,9 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { act } from 'react-dom/test-utils';
+import { describe, it, expect, vi, beforeAll, afterAll, afterEach } from 'vitest';
 import PackagesGrid from '../PackagesGrid';
-import { rest } from 'msw';
+import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 
 // ===================== MOCK DATA =====================
@@ -130,60 +131,52 @@ const mockPricingResponses = {
 
 const server = setupServer(
   // Mock pricing endpoint
-  rest.get('/api/storefront/calculate-price', (req, res, ctx) => {
-    const sessions = parseInt(req.url.searchParams.get('sessions') || '0', 10);
+  http.get('/api/storefront/calculate-price', ({ request }) => {
+    const url = new URL(request.url);
+    const sessions = parseInt(url.searchParams.get('sessions') || '0', 10);
 
     // Edge case: missing sessions parameter
     if (!sessions) {
-      return res(
-        ctx.status(400),
-        ctx.json({
-          success: false,
-          message: 'Sessions parameter is required and must be a number'
-        })
-      );
+      return HttpResponse.json({
+        success: false,
+        message: 'Sessions parameter is required and must be a number'
+      }, { status: 400 });
     }
 
     // Edge case: below minimum
     if (sessions < 10) {
-      return res(
-        ctx.status(400),
-        ctx.json({
-          success: false,
-          message: 'Minimum 10 sessions required for custom packages',
-          businessRule: 'Profitability threshold - custom packages must be at least 10 sessions'
-        })
-      );
+      return HttpResponse.json({
+        success: false,
+        message: 'Minimum 10 sessions required for custom packages',
+        businessRule: 'Profitability threshold - custom packages must be at least 10 sessions'
+      }, { status: 400 });
     }
 
     // Edge case: above maximum
     if (sessions > 100) {
-      return res(
-        ctx.status(400),
-        ctx.json({
-          success: false,
-          message: 'Maximum 100 sessions allowed for custom packages',
-          businessRule: 'Capacity planning - contact us for larger packages'
-        })
-      );
+      return HttpResponse.json({
+        success: false,
+        message: 'Maximum 100 sessions allowed for custom packages',
+        businessRule: 'Capacity planning - contact us for larger packages'
+      }, { status: 400 });
     }
 
     // Determine tier and return appropriate response
     if (sessions >= 10 && sessions <= 19) {
-      return res(ctx.json({
+      return HttpResponse.json({
         ...mockPricingResponses.bronze,
         pricing: { ...mockPricingResponses.bronze.pricing, sessions }
-      }));
+      });
     } else if (sessions >= 20 && sessions <= 39) {
-      return res(ctx.json({
+      return HttpResponse.json({
         ...mockPricingResponses.silver,
         pricing: { ...mockPricingResponses.silver.pricing, sessions }
-      }));
+      });
     } else {
-      return res(ctx.json({
+      return HttpResponse.json({
         ...mockPricingResponses.gold,
         pricing: { ...mockPricingResponses.gold.pricing, sessions }
-      }));
+      });
     }
   })
 );
@@ -200,8 +193,8 @@ const defaultProps = {
   canPurchase: true,
   revealPrices: {},
   isAddingToCart: null,
-  onTogglePrice: jest.fn(),
-  onAddToCart: jest.fn()
+  onTogglePrice: vi.fn(),
+  onAddToCart: vi.fn()
 };
 
 // ===================== TEST SUITES =====================
@@ -585,7 +578,7 @@ describe('CustomPackageFlow E2E Tests', () => {
 
   describe('Cart Integration', () => {
     it('should call onAddToCart when "Add to Cart" is clicked', async () => {
-      const mockOnAddToCart = jest.fn();
+      const mockOnAddToCart = vi.fn();
 
       render(<PackagesGrid {...defaultProps} onAddToCart={mockOnAddToCart} />);
 
@@ -603,7 +596,7 @@ describe('CustomPackageFlow E2E Tests', () => {
     });
 
     it('should transform custom package data into correct StoreItem format', async () => {
-      const mockOnAddToCart = jest.fn();
+      const mockOnAddToCart = vi.fn();
 
       render(<PackagesGrid {...defaultProps} onAddToCart={mockOnAddToCart} />);
 
@@ -658,7 +651,7 @@ describe('CustomPackageFlow E2E Tests', () => {
     });
 
     it('should include notes in cart item if provided', async () => {
-      const mockOnAddToCart = jest.fn();
+      const mockOnAddToCart = vi.fn();
 
       render(<PackagesGrid {...defaultProps} onAddToCart={mockOnAddToCart} />);
 

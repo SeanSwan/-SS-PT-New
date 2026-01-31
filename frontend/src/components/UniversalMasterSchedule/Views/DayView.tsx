@@ -102,20 +102,21 @@ const DayView: React.FC<DayViewProps> = ({
     : [{ id: 'unassigned', name: 'All Trainers' }];
 
   return (
-    <DayViewContainer>
-      <HeaderRow>
-        <TimeHeader>Time</TimeHeader>
-        {columns.map((trainer) => (
-          <TrainerHeader key={String(trainer.id)}>
-            {trainer.name}
-          </TrainerHeader>
-        ))}
-      </HeaderRow>
+    <DayViewWrapper>
+      <DayViewContainer>
+        <HeaderRow>
+          <TimeHeader>Time</TimeHeader>
+          {columns.map((trainer) => (
+            <TrainerHeader key={String(trainer.id)}>
+              {trainer.name}
+            </TrainerHeader>
+          ))}
+        </HeaderRow>
 
-      {HOURS.map((hour) => (
-        <HourRow key={hour}>
-          <TimeCell>{formatHour(hour)}</TimeCell>
-        {columns.map((trainer) => {
+        {HOURS.map((hour) => (
+          <HourRow key={hour}>
+            <TimeCell>{formatHour(hour)}</TimeCell>
+            {columns.map((trainer) => {
           const trainerSessions = sessionsForDay.filter((session) => {
             const sessionHour = new Date(session.sessionDate).getHours();
             const trainerMatch = trainer.id === 'unassigned'
@@ -203,11 +204,12 @@ const DayView: React.FC<DayViewProps> = ({
               </AvailableSlot>
             </SlotCell>
           );
-        })}
-      </HourRow>
-    ))}
-  </DayViewContainer>
-);
+            })} 
+          </HourRow>
+        ))}
+      </DayViewContainer>
+    </DayViewWrapper>
+  );
 };
 
 export default DayView;
@@ -218,17 +220,24 @@ const formatHour = (hour: number) => {
   return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 };
 
+const DayViewWrapper = styled.div`
+  width: 100%;
+
+  @media (max-width: 768px) {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.75rem;
+  }
+`;
+
 const DayViewContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
 
-  /* Mobile: allow horizontal scroll */
   @media (max-width: 768px) {
     gap: 0.5rem;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    min-width: 100%;
+    min-width: max-content;
   }
 
   @media (max-width: 480px) {
@@ -249,13 +258,13 @@ const HeaderRow = styled.div`
 
   /* Mobile */
   @media (max-width: 768px) {
-    grid-template-columns: 60px repeat(auto-fit, minmax(130px, 1fr));
+    grid-template-columns: 60px repeat(auto-fit, minmax(120px, 1fr));
     gap: 0.4rem;
     min-width: max-content;
   }
 
   @media (max-width: 480px) {
-    grid-template-columns: 55px repeat(auto-fit, minmax(110px, 1fr));
+    grid-template-columns: 50px repeat(auto-fit, minmax(100px, 1fr));
     gap: 0.35rem;
   }
 `;
@@ -315,13 +324,13 @@ const HourRow = styled.div`
 
   /* Mobile */
   @media (max-width: 768px) {
-    grid-template-columns: 60px repeat(auto-fit, minmax(130px, 1fr));
+    grid-template-columns: 60px repeat(auto-fit, minmax(120px, 1fr));
     gap: 0.4rem;
     min-width: max-content;
   }
 
   @media (max-width: 480px) {
-    grid-template-columns: 55px repeat(auto-fit, minmax(110px, 1fr));
+    grid-template-columns: 50px repeat(auto-fit, minmax(100px, 1fr));
     gap: 0.35rem;
   }
 `;
@@ -443,3 +452,4 @@ const AvailableSlot = styled.div<{ $isPast?: boolean; $isAdminPast?: boolean }>`
   text-transform: uppercase;
   letter-spacing: 0.08em;
 `;
+

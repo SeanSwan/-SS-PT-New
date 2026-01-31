@@ -99,11 +99,13 @@ const MonthView: React.FC<MonthViewProps> = ({ date, sessions, onSelectDate }) =
         const isToday = key === todayKey;
         const orbCount = bucket?.statuses.length || 0;
 
+        const isPast = day < new Date() && !isToday;
         return (
           <DayCell
             key={key}
             $inMonth={inMonth}
             $isToday={isToday}
+            $isPast={isPast}
             type="button"
             aria-label={`View schedule for ${day.toDateString()}`}
             onClick={() => onSelectDate?.(day)}
@@ -188,16 +190,23 @@ const DayHeader = styled.div`
   }
 `;
 
-const DayCell = styled.button<{ $inMonth: boolean; $isToday: boolean }>`
+const DayCell = styled.button<{ $inMonth: boolean; $isToday: boolean; $isPast?: boolean }>`
   min-height: 110px;
   border-radius: 12px;
   padding: 0.65rem;
-  background: ${({ $inMonth }) =>
-    $inMonth ? galaxySwanTheme.background.surface : 'rgba(10, 10, 30, 0.35)'};
-  border: 1px solid ${({ $isToday }) =>
-    $isToday ? galaxySwanTheme.primary.main : galaxySwanTheme.borders.subtle};
+  background: ${({ $inMonth, $isPast }) => {
+    if (!$inMonth) return 'rgba(10, 10, 30, 0.35)';
+    if ($isPast) return 'rgba(20, 20, 40, 0.4)';
+    return galaxySwanTheme.background.surface;
+  }};
+  border: 1px solid ${({ $isToday, $isPast }) => {
+    if ($isToday) return galaxySwanTheme.primary.main;
+    if ($isPast) return 'rgba(255, 255, 255, 0.05)';
+    return galaxySwanTheme.borders.subtle;
+  }};
   box-shadow: ${({ $isToday }) => ($isToday ? galaxySwanTheme.shadows.primaryGlow : 'none')};
-  color: ${galaxySwanTheme.text.primary};
+  color: ${({ $isPast }) => $isPast ? 'rgba(255, 255, 255, 0.3)' : galaxySwanTheme.text.primary};
+  opacity: ${({ $isPast }) => $isPast ? 0.7 : 1};
   display: flex;
   flex-direction: column;
   justify-content: flex-start;

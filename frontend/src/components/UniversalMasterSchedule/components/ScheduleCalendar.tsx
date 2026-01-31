@@ -8,7 +8,6 @@ import DragDropManager from '../DragDrop/DragDropManager';
 import {
   PrimaryHeading,
   Caption,
-  GridContainer,
   Card
 } from '../ui';
 import { CalendarView } from '../types';
@@ -108,7 +107,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
             </Legend>
           </CalendarHeaderRow>
 
-          <GridContainer columns={7} gap="0.5rem">
+          <WeekGridContainer>
             {weekDays.map((day, index) => {
               const daySessions = sessions.filter(session => {
                 const sessionDate = new Date(session.sessionDate);
@@ -172,7 +171,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
                 </DayCard>
               );
             })}
-          </GridContainer>
+          </WeekGridContainer>
         </>
       )}
 
@@ -267,6 +266,24 @@ const CalendarContainer = styled.div`
     padding: 0.75rem;
     border-radius: 8px;
     overflow-x: auto;
+  }
+`;
+
+const WeekGridContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.5rem;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
   }
 `;
 
@@ -452,3 +469,11 @@ const SessionBadge = styled.span<{ tone: 'blocked' | 'recurring' }>`
     ? 'rgba(148, 163, 184, 0.6)'
     : 'rgba(59, 130, 246, 0.5)'};
 `;
+
+
+
+
+
+
+
+

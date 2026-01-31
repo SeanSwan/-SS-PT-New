@@ -153,9 +153,10 @@ const Tabs = styled.div`
   }
 
   @media (max-width: 480px) {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 0.25rem;
+    justify-content: center;
   }
 `;
 
@@ -207,10 +208,12 @@ const ViewTab = styled.button<{ $active?: boolean }>`
   }
 
   @media (max-width: 480px) {
-    padding: 0.5rem 0.5rem;
-    font-size: 0.75rem;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.7rem;
     min-height: 44px;
     border-radius: 8px;
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 `;
 
@@ -324,3 +327,4 @@ const TodayButton = styled.button`
     padding: 0.5rem 1rem;
   }
 `;
+
