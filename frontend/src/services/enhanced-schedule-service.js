@@ -496,14 +496,13 @@ const enhancedScheduleService = {
         }
         
         const startTime = new Date(session.start);
-        
+
         if (isNaN(startTime.getTime())) {
           throw new Error('Invalid date format in session slots');
         }
-        
-        if (startTime <= new Date()) {
-          throw new Error('Cannot create sessions in the past');
-        }
+
+        // Note: Past date validation removed - admin can create past sessions for backfilling
+        // Backend enforces role-based restrictions
       });
       
       // Check if we should use mock data
@@ -582,10 +581,9 @@ const enhancedScheduleService = {
   if (isNaN(startTime.getTime())) {
   throw new Error('Invalid date format');
   }
-  
-  if (startTime <= new Date() && !data.isRecurring) {
-  throw new Error('Cannot create blocked time in the past');
-  }
+
+  // Note: Past date validation removed - admin can create blocked time in past for corrections
+  // Backend enforces role-based restrictions
   
   // Check if we should use mock data
   if (shouldUseMockData()) {
