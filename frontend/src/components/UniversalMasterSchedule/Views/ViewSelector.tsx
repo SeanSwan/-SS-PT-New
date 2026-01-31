@@ -83,6 +83,7 @@ const ViewSelector: React.FC<ViewSelectorProps> = ({
         <NavButton
           type="button"
           aria-label="Previous"
+          title="Previous (←)"
           onClick={() => onDateChange(shiftDate(currentDate, activeView, 'prev'))}
         >
           &#x2039;
@@ -93,12 +94,17 @@ const ViewSelector: React.FC<ViewSelectorProps> = ({
         <NavButton
           type="button"
           aria-label="Next"
+          title="Next (→)"
           onClick={() => onDateChange(shiftDate(currentDate, activeView, 'next'))}
         >
           &#x203A;
         </NavButton>
 
-        <TodayButton type="button" onClick={() => onDateChange(new Date())}>
+        <TodayButton
+          type="button"
+          title="Today (T)"
+          onClick={() => onDateChange(new Date())}
+        >
           Today
         </TodayButton>
       </DateControls>

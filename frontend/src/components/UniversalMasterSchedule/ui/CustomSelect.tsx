@@ -143,6 +143,16 @@ const OptionItem = styled.li<{ isSelected: boolean; isFocused: boolean }>`
   }
 `;
 
+const OptionLabel = styled.span`
+  flex: 1;
+`;
+
+const OptionRight = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+`;
+
 // Search input
 const SearchInput = styled.input`
   width: calc(100% - 1rem);
@@ -180,6 +190,7 @@ export interface CustomSelectProps {
   disabled?: boolean;
   searchable?: boolean;
   hasError?: boolean;
+  renderOptionTrailing?: (option: SelectOption) => React.ReactNode;
   'aria-label'?: string;
   'aria-labelledby'?: string;
 }
@@ -192,6 +203,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   disabled = false,
   searchable = false,
   hasError = false,
+  renderOptionTrailing,
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledby
 }) => {
@@ -371,8 +383,11 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
               role="option"
               aria-selected={option.value === value}
             >
-              {option.label}
-              <Check size={16} />
+              <OptionLabel>{option.label}</OptionLabel>
+              <OptionRight>
+                {renderOptionTrailing ? renderOptionTrailing(option) : null}
+                <Check size={16} />
+              </OptionRight>
             </OptionItem>
           ))
         )}

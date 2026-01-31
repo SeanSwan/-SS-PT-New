@@ -19,11 +19,13 @@ import styled from 'styled-components';
 import { CheckCircle, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
 
 // Types
+export type ToastVariant = 'success' | 'error' | 'warning' | 'info' | 'default' | 'destructive';
+
 export interface Toast {
   id: string;
   title?: string;
   description: string;
-  variant?: 'default' | 'success' | 'warning' | 'destructive' | 'info';
+  variant?: ToastVariant;
   duration?: number;
   action?: {
     label: string;
@@ -46,13 +48,26 @@ export const useToast = () => {
   if (!context) {
     throw new Error('useToast must be used within a ToastProvider');
   }
-  return context;
+
+  return {
+    toast: context.toast,
+    dismiss: context.dismiss,
+    dismissAll: context.dismissAll,
+    success: (message: string, title?: string) =>
+      context.toast({ variant: 'success', title, description: message }),
+    error: (message: string, title?: string) =>
+      context.toast({ variant: 'error', title, description: message }),
+    warning: (message: string, title?: string) =>
+      context.toast({ variant: 'warning', title, description: message }),
+    info: (message: string, title?: string) =>
+      context.toast({ variant: 'info', title, description: message })
+  };
 };
 
 // Styled Components
 const ToastContainer = styled.div`
   position: fixed;
-  top: 1rem;
+  bottom: 1rem;
   right: 1rem;
   z-index: 9999;
   width: 400px;
@@ -60,7 +75,7 @@ const ToastContainer = styled.div`
   pointer-events: none;
   
   @media (max-width: 768px) {
-    top: 0.5rem;
+    bottom: 0.5rem;
     right: 0.5rem;
     left: 0.5rem;
     width: auto;
@@ -74,6 +89,7 @@ const ToastWrapper = styled(motion.div)<{ variant: Toast['variant'] }>`
         return 'rgba(34, 197, 94, 0.1)';
       case 'warning':
         return 'rgba(245, 158, 11, 0.1)';
+      case 'error':
       case 'destructive':
         return 'rgba(239, 68, 68, 0.1)';
       case 'info':
@@ -89,6 +105,7 @@ const ToastWrapper = styled(motion.div)<{ variant: Toast['variant'] }>`
         return 'rgba(34, 197, 94, 0.3)';
       case 'warning':
         return 'rgba(245, 158, 11, 0.3)';
+      case 'error':
       case 'destructive':
         return 'rgba(239, 68, 68, 0.3)';
       case 'info':
@@ -120,6 +137,7 @@ const ToastWrapper = styled(motion.div)<{ variant: Toast['variant'] }>`
           return 'linear-gradient(90deg, #22c55e, #16a34a)';
         case 'warning':
           return 'linear-gradient(90deg, #f59e0b, #d97706)';
+        case 'error':
         case 'destructive':
           return 'linear-gradient(90deg, #ef4444, #dc2626)';
         case 'info':
@@ -146,6 +164,7 @@ const ToastIcon = styled.div<{ variant: Toast['variant'] }>`
         return '#22c55e';
       case 'warning':
         return '#f59e0b';
+      case 'error':
       case 'destructive':
         return '#ef4444';
       case 'info':
@@ -234,6 +253,7 @@ const ToastComponent: React.FC<{
         return <CheckCircle size={20} />;
       case 'warning':
         return <AlertTriangle size={20} />;
+      case 'error':
       case 'destructive':
         return <AlertCircle size={20} />;
       case 'info':
@@ -361,51 +381,6 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
       </ToastContainer>
     </ToastContext.Provider>
   );
-};
-
-// Convenience functions for common toast types
-export const toastSuccess = (message: string, title?: string) => {
-  const context = useContext(ToastContext);
-  if (context) {
-    context.toast({
-      variant: 'success',
-      title,
-      description: message
-    });
-  }
-};
-
-export const toastError = (message: string, title?: string) => {
-  const context = useContext(ToastContext);
-  if (context) {
-    context.toast({
-      variant: 'destructive',
-      title,
-      description: message
-    });
-  }
-};
-
-export const toastWarning = (message: string, title?: string) => {
-  const context = useContext(ToastContext);
-  if (context) {
-    context.toast({
-      variant: 'warning',
-      title,
-      description: message
-    });
-  }
-};
-
-export const toastInfo = (message: string, title?: string) => {
-  const context = useContext(ToastContext);
-  if (context) {
-    context.toast({
-      variant: 'info',
-      title,
-      description: message
-    });
-  }
 };
 
 export default useToast;

@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Calendar, RefreshCw, Bell, Plus, Clock } from 'lucide-react';
+import { Calendar, RefreshCw, Bell, Plus, Clock, ChevronDown } from 'lucide-react';
 import {
   FlexBox,
   Box,
@@ -12,6 +12,7 @@ import {
 } from '../ui';
 import ViewSelector from '../Views/ViewSelector';
 import { CalendarView } from '../types';
+import Dropdown from '../../common/Dropdown/Dropdown';
 
 interface ScheduleHeaderProps {
   mode: 'admin' | 'trainer' | 'client';
@@ -71,42 +72,65 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
           >
             <RefreshCw size={20} />
           </StyledIconButton>
-          <OutlinedButton onClick={onOpenNotifications}>
-            <Bell size={18} />
-            Notification Settings
-          </OutlinedButton>
-          {canManageAvailability && (
-            <OutlinedButton onClick={onOpenAvailability}>
-              <Calendar size={18} />
-              Manage Availability
-            </OutlinedButton>
-          )}
           {(canCreateSessions || canCreateRecurring || canBlockTime) && (
-            <>
-              {canBlockTime && (
-                <OutlinedButton onClick={onOpenBlocked}>
-                  <Clock size={18} />
-                  Block Time
-                </OutlinedButton>
+            <Dropdown
+              align="right"
+              ariaLabel="Create schedule actions"
+              trigger={(
+                <PrimaryButton title="Create Session (N)">
+                  Create
+                  <ChevronDown size={16} />
+                </PrimaryButton>
+              )}
+            >
+              {canCreateSessions && (
+                <MenuItemButton onClick={onOpenCreate}>
+                  <Plus size={16} />
+                  Create Session
+                </MenuItemButton>
               )}
               {canCreateRecurring && (
-                <OutlinedButton onClick={onOpenRecurring}>
-                  <Calendar size={18} />
+                <MenuItemButton onClick={onOpenRecurring}>
+                  <Calendar size={16} />
                   Create Recurring
+                </MenuItemButton>
+              )}
+              {canBlockTime && (
+                <MenuItemButton onClick={onOpenBlocked}>
+                  <Clock size={16} />
+                  Block Time
+                </MenuItemButton>
+              )}
+            </Dropdown>
+          )}
+
+          {(canManageAvailability || canCreateSessions) && (
+            <Dropdown
+              align="right"
+              ariaLabel="Manage schedule actions"
+              trigger={(
+                <OutlinedButton>
+                  Manage
+                  <ChevronDown size={16} />
                 </OutlinedButton>
               )}
-              {canCreateSessions && (
-                <>
-                  <OutlinedButton onClick={onOpenPayment}>
-                    Apply Payment
-                  </OutlinedButton>
-                  <PrimaryButton onClick={onOpenCreate}>
-                    <Plus size={18} />
-                    Create Session
-                  </PrimaryButton>
-                </>
+            >
+              {canManageAvailability && (
+                <MenuItemButton onClick={onOpenAvailability}>
+                  <Calendar size={16} />
+                  Manage Availability
+                </MenuItemButton>
               )}
-            </>
+              <MenuItemButton onClick={onOpenNotifications}>
+                <Bell size={16} />
+                Notification Settings
+              </MenuItemButton>
+              {canCreateSessions && (
+                <MenuItemButton onClick={onOpenPayment}>
+                  Apply Payment
+                </MenuItemButton>
+              )}
+            </Dropdown>
           )}
         </HeaderActions>
       </HeaderContainer>
@@ -171,5 +195,13 @@ const HeaderActions = styled.div`
       min-height: 44px;
     }
   }
+`;
+
+const MenuItemButton = styled(OutlinedButton)`
+  width: 100%;
+  justify-content: flex-start;
+  font-size: 0.85rem;
+  padding: 0.55rem 0.75rem;
+  min-height: 40px;
 `;
 
