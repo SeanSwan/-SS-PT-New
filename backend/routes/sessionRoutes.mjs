@@ -6,8 +6,8 @@
 
 import express from "express";
 import { protect, adminOnly } from "../middleware/authMiddleware.mjs";
-import { getSession, getUser } from "../models/index.mjs";
-import { Op } from "sequelize";
+import { getSession, getUser, getOrder, getOrderItem, getStorefrontItem } from "../models/index.mjs";
+import sequelize, { Op } from "../database.mjs";
 import moment from "moment";
 import rrulePkg from "rrule";
 import { v4 as uuidv4 } from "uuid";
@@ -901,35 +901,47 @@ router.post("/book/:userId", protect, async (req, res) => {
  * @access  Private (Client)
  */
 router.post("/:sessionId/book", protect, async (req, res) => {
+  // Use transaction to prevent race condition (double-booking)
+  const transaction = await sequelize.transaction();
+
   try {
     const Session = getSession();
     const User = getUser();
     const { sessionId } = req.params;
     const userId = req.user.id;
 
-    // Find the session
+    // Find the session with row-level locking to prevent double-booking
     const session = await Session.findOne({
       where: { id: sessionId, status: "available" },
+      lock: transaction.LOCK.UPDATE, // Lock the row for update
+      transaction
     });
 
     if (!session) {
+      await transaction.rollback();
       return res.status(400).json({
         success: false,
         message: "Session is not available for booking."
       });
     }
 
-    // Check if session is in the past
-    if (new Date(session.sessionDate) < new Date()) {
+    // Check if session is in the past (admins can bypass)
+    if (req.user.role !== 'admin' && new Date(session.sessionDate) < new Date()) {
+      await transaction.rollback();
       return res.status(400).json({
         success: false,
         message: "Cannot book sessions in the past"
       });
     }
 
-    // Get the user
-    const user = await User.findByPk(userId);
+    // Get the user with lock
+    const user = await User.findByPk(userId, {
+      lock: transaction.LOCK.UPDATE,
+      transaction
+    });
+
     if (!user) {
+      await transaction.rollback();
       return res.status(404).json({
         success: false,
         message: "User not found."
@@ -938,6 +950,7 @@ router.post("/:sessionId/book", protect, async (req, res) => {
 
     // Check if user has available sessions (admins can bypass this check)
     if (req.user.role !== 'admin' && (!user.availableSessions || user.availableSessions <= 0)) {
+      await transaction.rollback();
       return res.status(400).json({
         success: false,
         message: "No available sessions. Please purchase a session package to book this session.",
@@ -945,19 +958,22 @@ router.post("/:sessionId/book", protect, async (req, res) => {
       });
     }
 
-    // Book the session
+    // Book the session within transaction
     session.userId = userId;
     session.status = "scheduled";
     session.bookingDate = new Date();
-    await session.save();
+    await session.save({ transaction });
 
     // Deduct the session (if not admin)
     if (req.user.role !== 'admin') {
       user.availableSessions -= 1;
-      await user.save();
+      await user.save({ transaction });
 
       logger.info(`Session deducted for user ${userId}. Remaining sessions: ${user.availableSessions}`);
     }
+
+    // Commit the transaction
+    await transaction.commit();
 
     // Broadcast real-time booking event
     try {
@@ -1040,6 +1056,13 @@ router.post("/:sessionId/book", protect, async (req, res) => {
       availableSessions: user.availableSessions
     });
   } catch (error) {
+    // Rollback transaction on error
+    try {
+      await transaction.rollback();
+    } catch (rollbackError) {
+      logger.error("Error rolling back transaction:", rollbackError);
+    }
+
     logger.error("Error booking session:", error);
     res.status(500).json({
       success: false,
@@ -3463,6 +3486,108 @@ router.get("/admin/cancelled", protect, adminOnly, async (req, res) => {
 });
 
 /**
+ * @route   GET /api/sessions/:sessionId/client-package-price
+ * @desc    ADMIN: Get the client's package price per session for a cancelled session
+ * @access  Private (Admin only)
+ */
+router.get("/:sessionId/client-package-price", protect, adminOnly, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const Order = getOrder();
+    const OrderItem = getOrderItem();
+    const StorefrontItem = getStorefrontItem();
+
+    const { sessionId } = req.params;
+
+    const session = await Session.findByPk(sessionId, {
+      include: [{
+        model: User,
+        as: 'client',
+        attributes: ['id', 'firstName', 'lastName', 'email']
+      }]
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found"
+      });
+    }
+
+    if (!session.userId) {
+      return res.json({
+        success: true,
+        data: {
+          sessionId: session.id,
+          pricePerSession: null,
+          packageName: null,
+          fallbackPrice: session.duration >= 60 ? 175 : 100,
+          sessionDuration: session.duration || 60,
+          message: "No client associated with session"
+        }
+      });
+    }
+
+    // Look up client's package price from their most recent completed order
+    let packagePricePerSession = null;
+    let packageName = null;
+
+    const clientOrder = await Order.findOne({
+      where: {
+        userId: session.userId,
+        status: 'completed'
+      },
+      order: [['completedAt', 'DESC'], ['createdAt', 'DESC']],
+      include: [{
+        model: OrderItem,
+        as: 'orderItems',
+        include: [{
+          model: StorefrontItem,
+          as: 'storefrontItem',
+          attributes: ['id', 'name', 'pricePerSession', 'sessions', 'totalSessions']
+        }]
+      }]
+    });
+
+    if (clientOrder && clientOrder.orderItems && clientOrder.orderItems.length > 0) {
+      for (const item of clientOrder.orderItems) {
+        if (item.storefrontItem && item.storefrontItem.pricePerSession) {
+          packagePricePerSession = parseFloat(item.storefrontItem.pricePerSession);
+          packageName = item.storefrontItem.name;
+          break;
+        }
+      }
+    }
+
+    const sessionDuration = session.duration || 60;
+    const fallbackPrice = sessionDuration >= 60 ? 175 : 100;
+
+    res.json({
+      success: true,
+      data: {
+        sessionId: session.id,
+        clientId: session.userId,
+        clientName: session.client ? `${session.client.firstName || ''} ${session.client.lastName || ''}`.trim() : null,
+        pricePerSession: packagePricePerSession,
+        packageName: packageName,
+        fallbackPrice: fallbackPrice,
+        sessionDuration: sessionDuration,
+        defaultChargeAmount: packagePricePerSession || fallbackPrice,
+        lateFeeAmount: Math.round((packagePricePerSession || fallbackPrice) * 0.5)
+      }
+    });
+  } catch (error) {
+    logger.error("Error fetching client package price:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch client package price",
+      error: error.message
+    });
+  }
+});
+
+/**
  * @route   POST /api/sessions/:sessionId/charge-cancellation
  * @desc    ADMIN: Charge a client for a late cancellation
  * @access  Private (Admin only)
@@ -3505,21 +3630,102 @@ router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, r
       });
     }
 
+    // Handle 'none' chargeType - mark as processed without charging
+    if (chargeType === 'none') {
+      session.cancellationChargeType = 'none';
+      session.cancellationChargeAmount = 0;
+      session.cancellationChargedAt = new Date();
+      await session.save();
+
+      logger.info(`Cancellation marked as no charge for session ${sessionId}`, {
+        sessionId,
+        chargeType: 'none',
+        processedBy: req.user.id
+      });
+
+      return res.json({
+        success: true,
+        message: "Cancellation processed - no charge applied",
+        data: {
+          sessionId: session.id,
+          chargeType: 'none',
+          chargeAmount: 0,
+          chargedAt: session.cancellationChargedAt
+        }
+      });
+    }
+
+    // Look up client's package price from their most recent completed order
+    let packagePricePerSession = null;
+    let packageDuration = 60; // Default 60 minutes
+
+    if (session.userId) {
+      try {
+        const Order = getOrder();
+        const OrderItem = getOrderItem();
+        const StorefrontItem = getStorefrontItem();
+
+        const clientOrder = await Order.findOne({
+          where: {
+            userId: session.userId,
+            status: 'completed'
+          },
+          order: [['completedAt', 'DESC'], ['createdAt', 'DESC']],
+          include: [{
+            model: OrderItem,
+            as: 'orderItems',
+            include: [{
+              model: StorefrontItem,
+              as: 'storefrontItem',
+              attributes: ['id', 'name', 'pricePerSession', 'sessions', 'totalSessions']
+            }]
+          }]
+        });
+
+        if (clientOrder && clientOrder.orderItems && clientOrder.orderItems.length > 0) {
+          // Find the first order item with a storefront item that has pricePerSession
+          for (const item of clientOrder.orderItems) {
+            if (item.storefrontItem && item.storefrontItem.pricePerSession) {
+              packagePricePerSession = parseFloat(item.storefrontItem.pricePerSession);
+              logger.info(`Found client package price: $${packagePricePerSession}`, {
+                sessionId,
+                userId: session.userId,
+                storefrontItemId: item.storefrontItem.id,
+                packageName: item.storefrontItem.name
+              });
+              break;
+            }
+          }
+        }
+      } catch (orderError) {
+        logger.warn(`Could not fetch client package price: ${orderError.message}`, {
+          sessionId,
+          userId: session.userId
+        });
+      }
+    }
+
+    // Determine session duration for fallback pricing
+    const sessionDuration = session.duration || 60;
+
     // Default charge amount based on type
     let actualChargeAmount = chargeAmount;
-    if (!actualChargeAmount) {
+    if (!actualChargeAmount && actualChargeAmount !== 0) {
+      // Use package price if available, otherwise use duration-based defaults
+      const defaultRate = packagePricePerSession || (sessionDuration >= 60 ? 175 : 100);
+
       switch (chargeType) {
         case 'full':
-          actualChargeAmount = 75; // Full session rate
+          actualChargeAmount = defaultRate; // Full session rate from package
           break;
         case 'late_fee':
-          actualChargeAmount = 25; // Late cancellation fee
+          actualChargeAmount = Math.round(defaultRate * 0.5); // 50% for late fee
           break;
         case 'partial':
-          actualChargeAmount = 37.50; // Half session
+          actualChargeAmount = Math.round(defaultRate * 0.5); // Half session
           break;
         default:
-          actualChargeAmount = 25;
+          actualChargeAmount = Math.round(defaultRate * 0.5); // Default to 50%
       }
     }
 
@@ -3579,6 +3785,290 @@ router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, r
     res.status(500).json({
       success: false,
       message: "Server error processing cancellation charge",
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/sessions/export
+ * @desc    ADMIN: Export sessions to CSV format
+ * @access  Private (Admin only)
+ */
+router.get("/export", protect, adminOnly, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const { startDate, endDate, status, trainerId, format = 'csv' } = req.query;
+
+    // Build filter criteria
+    const whereClause = {};
+
+    if (startDate && endDate) {
+      whereClause.sessionDate = {
+        [Op.between]: [new Date(startDate), new Date(endDate)]
+      };
+    } else if (startDate) {
+      whereClause.sessionDate = { [Op.gte]: new Date(startDate) };
+    } else if (endDate) {
+      whereClause.sessionDate = { [Op.lte]: new Date(endDate) };
+    }
+
+    if (status) {
+      whereClause.status = status;
+    }
+
+    if (trainerId) {
+      whereClause.trainerId = trainerId;
+    }
+
+    // Fetch sessions with associations
+    const sessions = await Session.findAll({
+      where: whereClause,
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        },
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+          required: false
+        }
+      ],
+      order: [['sessionDate', 'ASC']]
+    });
+
+    if (format === 'json') {
+      return res.json({
+        success: true,
+        count: sessions.length,
+        data: sessions
+      });
+    }
+
+    // Generate CSV
+    const csvHeaders = [
+      'Session ID',
+      'Date',
+      'Time',
+      'Duration (min)',
+      'Status',
+      'Client Name',
+      'Client Email',
+      'Client Phone',
+      'Trainer Name',
+      'Trainer Email',
+      'Location',
+      'Notes',
+      'Cancellation Reason',
+      'Cancellation Charge Type',
+      'Cancellation Charge Amount'
+    ].join(',');
+
+    const csvRows = sessions.map(session => {
+      const sessionDate = new Date(session.sessionDate);
+      const clientName = session.client
+        ? `${session.client.firstName || ''} ${session.client.lastName || ''}`.trim()
+        : '';
+      const trainerName = session.trainer
+        ? `${session.trainer.firstName || ''} ${session.trainer.lastName || ''}`.trim()
+        : '';
+
+      return [
+        session.id,
+        sessionDate.toLocaleDateString(),
+        sessionDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        session.duration || 60,
+        session.status,
+        `"${clientName}"`,
+        session.client?.email || '',
+        session.client?.phone || '',
+        `"${trainerName}"`,
+        session.trainer?.email || '',
+        `"${session.location || ''}"`,
+        `"${(session.notes || '').replace(/"/g, '""')}"`,
+        `"${(session.cancellationReason || '').replace(/"/g, '""')}"`,
+        session.cancellationChargeType || '',
+        session.cancellationChargeAmount || ''
+      ].join(',');
+    });
+
+    const csvContent = [csvHeaders, ...csvRows].join('\n');
+
+    // Set headers for CSV download
+    const filename = `sessions-export-${moment().format('YYYY-MM-DD')}.csv`;
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(csvContent);
+
+    logger.info(`Sessions exported to CSV by admin ${req.user.id}`, {
+      count: sessions.length,
+      filters: { startDate, endDate, status, trainerId }
+    });
+
+  } catch (error) {
+    logger.error("Error exporting sessions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error exporting sessions",
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   POST /api/sessions/:sessionId/feedback
+ * @desc    CLIENT: Submit feedback for a completed session
+ * @access  Private (Client who attended the session)
+ */
+router.post("/:sessionId/feedback", protect, async (req, res) => {
+  try {
+    const Session = getSession();
+    const { sessionId } = req.params;
+    const { rating, comment, wouldRecommend } = req.body;
+    const userId = req.user.id;
+
+    // Find the session
+    const session = await Session.findByPk(sessionId);
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found"
+      });
+    }
+
+    // Verify user is the client of this session or admin
+    if (session.userId !== userId && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: "You can only leave feedback for your own sessions"
+      });
+    }
+
+    // Only allow feedback for completed sessions
+    if (session.status !== 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: "Feedback can only be submitted for completed sessions"
+      });
+    }
+
+    // Check if feedback already exists
+    if (session.feedbackProvided) {
+      return res.status(400).json({
+        success: false,
+        message: "Feedback has already been submitted for this session"
+      });
+    }
+
+    // Validate rating
+    if (rating < 1 || rating > 5) {
+      return res.status(400).json({
+        success: false,
+        message: "Rating must be between 1 and 5"
+      });
+    }
+
+    // Save feedback (uses existing model fields: rating, feedback, feedbackProvided)
+    session.rating = rating;
+    session.feedback = comment || null;
+    session.feedbackProvided = true;
+    await session.save();
+
+    logger.info(`Feedback submitted for session ${sessionId}`, {
+      sessionId,
+      rating,
+      userId
+    });
+
+    res.json({
+      success: true,
+      message: "Thank you for your feedback!",
+      data: {
+        sessionId: session.id,
+        rating: session.rating,
+        feedbackProvided: session.feedbackProvided
+      }
+    });
+
+  } catch (error) {
+    logger.error("Error submitting feedback:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error submitting feedback",
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/sessions/trainer/:trainerId/feedback-summary
+ * @desc    ADMIN: Get feedback summary for a trainer
+ * @access  Private (Admin only)
+ */
+router.get("/trainer/:trainerId/feedback-summary", protect, adminOnly, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const { trainerId } = req.params;
+
+    // Get all sessions with feedback for this trainer
+    const sessions = await Session.findAll({
+      where: {
+        trainerId,
+        feedbackProvided: true,
+        rating: { [Op.ne]: null }
+      },
+      attributes: ['rating', 'feedback', 'feedbackProvided', 'sessionDate', 'updatedAt'],
+      order: [['updatedAt', 'DESC']]
+    });
+
+    if (sessions.length === 0) {
+      return res.json({
+        success: true,
+        data: {
+          trainerId,
+          totalFeedback: 0,
+          averageRating: null,
+          recentFeedback: []
+        }
+      });
+    }
+
+    // Calculate statistics
+    const totalFeedback = sessions.length;
+    const averageRating = sessions.reduce((sum, s) => sum + s.rating, 0) / totalFeedback;
+
+    // Get 5 most recent feedback entries
+    const recentFeedback = sessions
+      .slice(0, 5)
+      .map(s => ({
+        rating: s.rating,
+        comment: s.feedback,
+        sessionDate: s.sessionDate,
+        submittedAt: s.updatedAt
+      }));
+
+    res.json({
+      success: true,
+      data: {
+        trainerId,
+        totalFeedback,
+        averageRating: Math.round(averageRating * 10) / 10,
+        recentFeedback
+      }
+    });
+
+  } catch (error) {
+    logger.error("Error fetching feedback summary:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error fetching feedback summary",
       error: error.message
     });
   }

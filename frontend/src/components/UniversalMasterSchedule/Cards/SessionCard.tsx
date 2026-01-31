@@ -11,6 +11,11 @@ export interface SessionCardData {
   clientName?: string;
   trainerName?: string;
   isBlocked?: boolean;
+  // Reminder and feedback indicators
+  reminderSent?: boolean;
+  reminderSentDate?: string | null; // API returns date, we derive boolean
+  feedbackProvided?: boolean;
+  rating?: number | null;
 }
 
 export interface SessionCardProps {
@@ -20,6 +25,7 @@ export interface SessionCardProps {
 
 const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) => {
   const sessionDate = new Date(session.sessionDate);
+  const isPast = sessionDate < new Date();
   const time = sessionDate.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit'
@@ -28,9 +34,14 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) => {
     ? 'blocked'
     : session.status || 'scheduled';
 
+  // Derive boolean indicators
+  const hasReminderSent = session.reminderSent || Boolean(session.reminderSentDate);
+  const hasFeedback = session.feedbackProvided || (session.rating != null && session.rating > 0);
+
   return (
     <CardContainer
       $status={status}
+      $isPast={isPast}
       role="button"
       tabIndex={0}
       onClick={() => onClick?.(session)}
@@ -46,6 +57,15 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) => {
         <StatusDot $status={status} />
         <TimeLabel>{time}</TimeLabel>
         <DurationLabel>{session.duration ? `${session.duration} min` : ''}</DurationLabel>
+        {/* Session indicators */}
+        <IndicatorContainer>
+          {hasReminderSent && (
+            <Indicator title="Reminder sent" $type="reminder">📬</Indicator>
+          )}
+          {hasFeedback && (
+            <Indicator title="Feedback provided" $type="feedback">⭐</Indicator>
+          )}
+        </IndicatorContainer>
       </CardHeader>
       <CardBody>
         <NameText>
@@ -60,10 +80,11 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) => {
 
 export default SessionCard;
 
-const CardContainer = styled.div<{ $status: string }>`
-  background: rgba(30, 30, 60, 0.4);
+const CardContainer = styled.div<{ $status: string; $isPast?: boolean }>`
+  background: ${({ $isPast }) => $isPast ? 'rgba(20, 20, 40, 0.3)' : 'rgba(30, 30, 60, 0.4)'};
   border-radius: 12px;
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid ${({ $isPast }) => $isPast ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 255, 255, 0.2)'};
+  opacity: ${({ $isPast }) => $isPast ? 0.7 : 1};
   padding: 0.7rem 0.8rem;
   display: flex;
   flex-direction: column;
@@ -89,8 +110,10 @@ const CardContainer = styled.div<{ $status: string }>`
     `}
 
   &:hover {
-    transform: scale(1.02);
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    ${({ $isPast }) => !$isPast && `
+      transform: scale(1.02);
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+    `}
   }
 
   &:active {
@@ -157,6 +180,24 @@ const DurationLabel = styled.span`
   margin-left: auto;
   font-size: 0.75rem;
   color: ${galaxySwanTheme.text.secondary};
+`;
+
+const IndicatorContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.25rem;
+`;
+
+const Indicator = styled.span<{ $type: 'reminder' | 'feedback' }>`
+  font-size: 0.7rem;
+  opacity: 0.9;
+  cursor: help;
+  transition: transform 0.15s ease;
+
+  &:hover {
+    transform: scale(1.2);
+  }
 `;
 
 const CardBody = styled.div`

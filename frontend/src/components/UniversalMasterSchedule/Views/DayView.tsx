@@ -12,6 +12,8 @@ export interface DayViewTrainer {
 
 export interface DayViewSession extends SessionCardData {
   trainerId?: number | string | null;
+  reminderSentDate?: string | null;
+  rating?: number | null;
 }
 
 export interface DayViewProps {
@@ -19,6 +21,7 @@ export interface DayViewProps {
   sessions: DayViewSession[];
   trainers: DayViewTrainer[];
   enableDrag?: boolean;
+  isAdmin?: boolean; // Allow admin to schedule in past slots
   onSelectSession?: (session: DayViewSession) => void;
   onSelectSlot?: (payload: { date: Date; hour: number; trainerId?: number | string }) => void;
 }
@@ -82,6 +85,7 @@ const DayView: React.FC<DayViewProps> = ({
   sessions,
   trainers,
   enableDrag = false,
+  isAdmin = false,
   onSelectSession,
   onSelectSlot
 }) => {
@@ -154,7 +158,10 @@ const DayView: React.FC<DayViewProps> = ({
           }
 
           // Empty slot - no sessions
-          if (enableDrag && !isPast) {
+          // Admin can access past slots, regular users cannot
+          const canAccessSlot = !isPast || isAdmin;
+
+          if (enableDrag && canAccessSlot) {
             return (
               <DroppableSlot
                 key={`${trainer.id}-${hour}`}
@@ -170,8 +177,8 @@ const DayView: React.FC<DayViewProps> = ({
                   })
                 }
               >
-                <AvailableSlot>
-                  <span>Available</span>
+                <AvailableSlot $isPast={isPast} $isAdminPast={isPast && isAdmin}>
+                  <span>{isPast ? 'Past (Admin)' : 'Available'}</span>
                 </AvailableSlot>
               </DroppableSlot>
             );
@@ -181,8 +188,9 @@ const DayView: React.FC<DayViewProps> = ({
             <SlotCell
               key={`${trainer.id}-${hour}`}
               $isPast={isPast}
+              $isAdminAccessible={isPast && isAdmin}
               onClick={() => {
-                if (isPast) return;
+                if (!canAccessSlot) return;
                 onSelectSlot?.({
                   date,
                   hour,
@@ -190,8 +198,8 @@ const DayView: React.FC<DayViewProps> = ({
                 })
               }}
             >
-              <AvailableSlot $isPast={isPast}>
-                <span>{isPast ? 'Past' : 'Available'}</span>
+              <AvailableSlot $isPast={isPast} $isAdminPast={isPast && isAdmin}>
+                <span>{isPast ? (isAdmin ? 'Past (Admin)' : 'Past') : 'Available'}</span>
               </AvailableSlot>
             </SlotCell>
           );
@@ -340,29 +348,31 @@ const TimeCell = styled.div`
   }
 `;
 
-const SlotCell = styled.div<{ $hasSession?: boolean; $isPast?: boolean; $isScheduled?: boolean }>`
+const SlotCell = styled.div<{ $hasSession?: boolean; $isPast?: boolean; $isScheduled?: boolean; $isAdminAccessible?: boolean }>`
   position: relative;
   min-height: 80px;
   padding: 0.5rem;
   border-radius: 12px;
-  border: 1px dashed ${({ $isPast, $isScheduled }) => {
+  border: 1px dashed ${({ $isPast, $isScheduled, $isAdminAccessible }) => {
     if ($isScheduled) return galaxySwanTheme.primary.main;
+    if ($isAdminAccessible) return '#f59e0b'; // Orange for admin-accessible past slots
     if ($isPast) return 'rgba(255, 255, 255, 0.1)';
     return galaxySwanTheme.primary.main;
   }};
-  background: ${({ $hasSession, $isPast, $isScheduled }) => {
+  background: ${({ $hasSession, $isPast, $isScheduled, $isAdminAccessible }) => {
     if ($isScheduled) return 'rgba(0, 128, 128, 0.15)'; // Teal background for scheduled
     if ($hasSession) return 'transparent';
+    if ($isAdminAccessible) return 'rgba(245, 158, 11, 0.1)'; // Light orange for admin past slots
     if ($isPast) return 'rgba(255, 255, 255, 0.02)';
     return 'rgba(0, 255, 255, 0.05)';
   }};
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  cursor: ${({ $hasSession, $isPast }) => ($hasSession || $isPast ? 'default' : 'pointer')};
+  cursor: ${({ $hasSession, $isPast, $isAdminAccessible }) => ($hasSession || ($isPast && !$isAdminAccessible) ? 'default' : 'pointer')};
   transition: all 150ms ease-out;
-  opacity: ${({ $isPast }) => $isPast ? 0.6 : 1};
-  pointer-events: ${({ $isPast, $hasSession }) => ($isPast && !$hasSession ? 'none' : 'auto')};
+  opacity: ${({ $isPast, $isAdminAccessible }) => ($isPast && !$isAdminAccessible) ? 0.6 : ($isPast ? 0.8 : 1)};
+  pointer-events: ${({ $isPast, $hasSession, $isAdminAccessible }) => (($isPast && !$isAdminAccessible) && !$hasSession ? 'none' : 'auto')};
 
   ${({ $hasSession, $isScheduled }) =>
     $hasSession &&
@@ -414,12 +424,20 @@ const ScheduledOverlay = styled.div`
   z-index: 1;
 `;
 
-const AvailableSlot = styled.div<{ $isPast?: boolean }>`
+const AvailableSlot = styled.div<{ $isPast?: boolean; $isAdminPast?: boolean }>`
   border-radius: 10px;
-  border: 1px dashed ${({ $isPast }) => $isPast ? 'rgba(255, 255, 255, 0.1)' : galaxySwanTheme.primary.main};
+  border: 1px dashed ${({ $isPast, $isAdminPast }) => {
+    if ($isAdminPast) return '#f59e0b'; // Orange for admin past slots
+    if ($isPast) return 'rgba(255, 255, 255, 0.1)';
+    return galaxySwanTheme.primary.main;
+  }};
   padding: 0.5rem;
   text-align: center;
-  color: ${({ $isPast }) => $isPast ? 'rgba(255, 255, 255, 0.3)' : galaxySwanTheme.primary.main};
+  color: ${({ $isPast, $isAdminPast }) => {
+    if ($isAdminPast) return '#f59e0b'; // Orange for admin past slots
+    if ($isPast) return 'rgba(255, 255, 255, 0.3)';
+    return galaxySwanTheme.primary.main;
+  }};
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
