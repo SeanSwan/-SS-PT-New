@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from 'styled-components';
 import { Calendar, RefreshCw, Bell, Plus, Clock } from 'lucide-react';
 import {
   FlexBox,
@@ -51,18 +52,7 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
 }) => {
   return (
     <>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center', 
-        padding: '1.5rem 2rem', 
-        background: 'rgba(0, 0, 0, 0.3)', 
-        backdropFilter: 'blur(10px)', 
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        flexShrink: 0,
-        flexWrap: 'wrap',
-        gap: '1rem'
-      }}>
+      <HeaderContainer>
         <FlexBox align="center" gap="1rem">
           <Calendar size={32} color="#3b82f6" />
           <Box>
@@ -72,9 +62,9 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
             </SmallText>
           </Box>
         </FlexBox>
-        
-        <FlexBox align="center" gap="0.5rem">
-          <StyledIconButton 
+
+        <HeaderActions>
+          <StyledIconButton
             onClick={onRefresh}
             aria-label="Refresh sessions"
             size="medium"
@@ -118,8 +108,8 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
               )}
             </>
           )}
-        </FlexBox>
-      </div>
+        </HeaderActions>
+      </HeaderContainer>
 
       <ViewSelector
         activeView={activeView}
@@ -132,3 +122,54 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
 };
 
 export default ScheduleHeader;
+
+const HeaderContainer = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+  gap: 1rem;
+
+  @media (max-width: 1024px) {
+    padding: 1.25rem 1.5rem;
+  }
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
+    gap: 1rem;
+  }
+`;
+
+const HeaderActions = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    justify-content: center;
+  }
+
+  @media (max-width: 480px) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+
+    button {
+      width: 100%;
+      justify-content: center;
+      font-size: 0.75rem;
+      padding: 0.55rem 0.6rem;
+      min-height: 44px;
+    }
+  }
+`;
+

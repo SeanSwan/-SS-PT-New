@@ -169,8 +169,11 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         start: sessionData.startTime,
         duration: sessionData.duration,
         trainerId: sessionData.trainerId?.toString(),
+        userId: formData.clientId?.toString(),
+        clientName: useManualClient ? formData.manualClientName : undefined,
         location: sessionData.location,
-        notes: sessionData.notes
+        notes: sessionData.notes,
+        notifyClient: formData.notifyClient
       }]);
 
       if (result.sessions) {
@@ -434,6 +437,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         trainers={trainers}
         canReschedule={canReschedule}
         canQuickBook={canQuickBook}
+        isAdmin={mode === 'admin'}
         onDrillDown={drillDownToDay}
         onSelectSession={(session) => {
           setDetailSession(session);

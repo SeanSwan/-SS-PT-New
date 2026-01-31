@@ -1,5 +1,4 @@
-// TypeScript compilation test for sessionService.ts
-// This file verifies that all imports and types are working correctly
+// TypeScript compilation + runtime shape tests for sessionService.ts
 
 import { sessionService } from './sessionService';
 import {
@@ -8,6 +7,7 @@ import {
   FilterOptions,
   ScheduleStats
 } from '../components/UniversalMasterSchedule/types';
+import { describe, it, expect } from 'vitest';
 
 // Test type compatibility
 const testFilterOptions: FilterOptions = {
@@ -25,27 +25,28 @@ const testSessionRequest: SessionRequest = {
   status: 'available'
 };
 
-// Test service instantiation
-console.log('SessionService initialized successfully:', !!sessionService);
+describe('sessionService shape', () => {
+  it('exposes expected methods', () => {
+    const testMethods = [
+      'getSessions',
+      'createSession',
+      'updateSession',
+      'deleteSession',
+      'moveSession',
+      'bookSession',
+      'bulkSessionAction',
+      'getSessionStatistics'
+    ];
 
-// Test method availability
-const testMethods = [
-  'getSessions',
-  'createSession',
-  'updateSession',
-  'deleteSession',
-  'moveSession',
-  'bookSession',
-  'bulkSessionAction',
-  'getSessionStatistics'
-];
+    testMethods.forEach((method) => {
+      expect(typeof sessionService[method as keyof typeof sessionService]).toBe('function');
+    });
+  });
 
-testMethods.forEach(method => {
-  if (typeof sessionService[method as keyof typeof sessionService] === 'function') {
-    console.log(`✅ Method ${method} is available`);
-  } else {
-    console.error(`❌ Method ${method} is missing`);
-  }
+  it('accepts typed filter and request objects', () => {
+    const _filter: FilterOptions = testFilterOptions;
+    const _request: SessionRequest = testSessionRequest;
+    expect(_filter.status).toBe('available');
+    expect(_request.duration).toBe(60);
+  });
 });
-
-export { sessionService, testFilterOptions, testSessionRequest };

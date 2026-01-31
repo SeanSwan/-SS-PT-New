@@ -94,6 +94,7 @@ const CardContainer = styled.div<{ $status: string; $isPast?: boolean }>`
   position: relative;
   overflow: hidden;
   min-height: 44px; /* Touch target */
+  min-width: 0;
 
   ${({ $status }) =>
     $status === 'blocked' &&
@@ -143,6 +144,11 @@ const CardHeader = styled.div`
   display: flex;
   align-items: center;
   gap: 0.4rem;
+
+  @media (max-width: 480px) {
+    flex-wrap: wrap;
+    row-gap: 0.25rem;
+  }
 `;
 
 const StatusDot = styled.span<{ $status: string }>`
@@ -170,6 +176,7 @@ const TimeLabel = styled.span`
   font-size: 0.85rem;
   font-weight: 600;
   color: ${galaxySwanTheme.text.primary};
+  word-break: break-word;
 
   @media (max-width: 480px) {
     font-size: 0.8rem;
@@ -180,6 +187,7 @@ const DurationLabel = styled.span`
   margin-left: auto;
   font-size: 0.75rem;
   color: ${galaxySwanTheme.text.secondary};
+  word-break: break-word;
 `;
 
 const IndicatorContainer = styled.div`
@@ -187,6 +195,7 @@ const IndicatorContainer = styled.div`
   align-items: center;
   gap: 0.25rem;
   margin-left: 0.25rem;
+  flex-shrink: 0;
 `;
 
 const Indicator = styled.span<{ $type: 'reminder' | 'feedback' }>`
@@ -210,6 +219,7 @@ const NameText = styled.span`
   font-size: 0.9rem;
   font-weight: 600;
   color: ${galaxySwanTheme.text.primary};
+  word-break: break-word;
 
   @media (max-width: 480px) {
     font-size: 0.85rem;
@@ -219,4 +229,6 @@ const NameText = styled.span`
 const MetaText = styled.span`
   font-size: 0.75rem;
   color: ${galaxySwanTheme.text.secondary};
+  word-break: break-word;
 `;
+
