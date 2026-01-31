@@ -30,6 +30,11 @@ export interface Session {
   trainer?: Trainer | null;
   createdAt: string;
   updatedAt: string;
+  // Feedback and reminder indicators
+  rating?: number | null;
+  feedback?: string | null;
+  feedbackProvided?: boolean;
+  reminderSentDate?: string | null;
 }
 
 /**

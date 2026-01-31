@@ -20,6 +20,7 @@ interface ScheduleCalendarProps {
   trainers: any[];
   canReschedule: boolean;
   canQuickBook: boolean;
+  isAdmin?: boolean; // Allow admin to schedule in past slots
   onDrillDown: (day: Date) => void;
   onSelectSession: (session: any) => void;
   onSelectSlot: (slot: any) => void;
@@ -36,6 +37,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
   trainers,
   canReschedule,
   canQuickBook,
+  isAdmin = false,
   onDrillDown,
   onSelectSession,
   onSelectSlot,
@@ -188,6 +190,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
               sessions={sessions}
               trainers={trainers}
               enableDrag
+              isAdmin={isAdmin}
               onSelectSession={onSelectSession}
               onSelectSlot={onSelectSlot}
             />
@@ -197,6 +200,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
             date={currentDate}
             sessions={sessions}
             trainers={trainers}
+            isAdmin={isAdmin}
             onSelectSession={onSelectSession}
             onSelectSlot={onSelectSlot}
           />
