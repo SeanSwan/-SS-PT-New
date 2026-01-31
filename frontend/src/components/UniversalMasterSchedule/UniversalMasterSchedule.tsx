@@ -142,9 +142,9 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
       const startDate = new Date(formData.sessionDate);
 
-      // Validate date is in the future
+      // Validate date is in the future (admin can bypass this check)
       const now = new Date();
-      if (startDate < now) {
+      if (startDate < now && mode !== 'admin') {
         alert('Cannot create sessions in the past. Please select a future date and time.');
         return;
       }
@@ -344,9 +344,9 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       const slotDate = new Date(currentDate);
       slotDate.setHours(hour, 0, 0, 0);
 
-      // Prevent creating sessions in the past
+      // Prevent creating sessions in the past (admin can bypass this check)
       const now = new Date();
-      if (slotDate < now) {
+      if (slotDate < now && mode !== 'admin') {
         alert('Cannot create sessions in the past. Please select a future time slot.');
         return;
       }
