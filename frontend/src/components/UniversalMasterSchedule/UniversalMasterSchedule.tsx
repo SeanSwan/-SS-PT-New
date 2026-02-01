@@ -18,6 +18,7 @@ import ScheduleHeader from './components/ScheduleHeader';
 import ScheduleStats from './components/ScheduleStats';
 import ScheduleCalendar from './components/ScheduleCalendar';
 import ScheduleModals from './components/ScheduleModals';
+import SessionTypeManager from './Config/SessionTypeManager';
 
 // Hooks
 import { useCalendarData } from './hooks/useCalendarData';
@@ -32,7 +33,8 @@ import {
   Spinner,
   BodyText,
   PrimaryHeading,
-  Box
+  Box,
+  Modal
 } from './ui';
 
 // Types
@@ -101,6 +103,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const [showOverrideModal, setShowOverrideModal] = useState(false);
   const [availabilityTrainerId, setAvailabilityTrainerId] = useState<number | string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showSessionTypeManager, setShowSessionTypeManager] = useState(false);
   const [isSlotSelected, setIsSlotSelected] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -127,6 +130,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     showAvailabilityEditor,
     showOverrideModal,
     showPaymentModal,
+    showSessionTypeManager,
     conflictModalOpen
   ].some(Boolean);
 
@@ -139,6 +143,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const canReschedule = mode === 'admin' || mode === 'trainer';
   const canOverrideConflicts = mode === 'admin';
   const canManageAvailability = mode === 'admin' || mode === 'trainer';
+  const canManageSessionTypes = mode === 'admin';
   const sessionsRemaining = credits?.sessionsRemaining;
   const lowCredits = typeof sessionsRemaining === 'number' && sessionsRemaining < 3;
 
@@ -196,6 +201,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       setShowAvailabilityEditor(false);
       setShowOverrideModal(false);
       setShowPaymentModal(false);
+      setShowSessionTypeManager(false);
       setConflictModalOpen(false);
     },
     isModalOpen: isAnyModalOpen
@@ -509,6 +515,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         onOpenBlocked={() => setShowBlockedDialog(true)}
         onOpenRecurring={() => setShowRecurringDialog(true)}
         onOpenPayment={() => setShowPaymentModal(true)}
+        onOpenSessionTypes={() => setShowSessionTypeManager(true)}
         onOpenCreate={() => {
           setFormData({
             sessionDate: '',
@@ -529,6 +536,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         canBlockTime={canBlockTime}
         canCreateRecurring={canCreateRecurring}
         canCreateSessions={canCreateSessions}
+        canManageSessionTypes={canManageSessionTypes}
       />
 
       <ScheduleStats
@@ -633,6 +641,17 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         fetchSessions={() => refreshData(true)}
         openSeriesDialog={openSeriesDialog}
       />
+
+      {showSessionTypeManager && (
+        <Modal
+          isOpen={showSessionTypeManager}
+          onClose={() => setShowSessionTypeManager(false)}
+          title="Session Types"
+          size="lg"
+        >
+          <SessionTypeManager />
+        </Modal>
+      )}
     </ScheduleContainer>
   );
 };

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { galaxySwanTheme } from '../../../styles/galaxy-swan-theme';
 import { SessionCardData } from '../Cards/SessionCard';
+import BufferZone from '../Cards/BufferZone';
 import DraggableSession from '../DragDrop/DraggableSession';
 import DroppableSlot from '../DragDrop/DroppableSlot';
 
@@ -14,6 +15,8 @@ export interface DayViewSession extends SessionCardData {
   trainerId?: number | string | null;
   reminderSentDate?: string | null;
   rating?: number | null;
+  bufferBefore?: number;
+  bufferAfter?: number;
 }
 
 export interface DayViewProps {
@@ -27,6 +30,7 @@ export interface DayViewProps {
 }
 
 const HOURS = Array.from({ length: 18 }, (_, index) => 5 + index); // 5am to 10pm
+const PIXELS_PER_HOUR = 80;
 
 const isSameDay = (left: Date, right: Date) =>
   left.getFullYear() === right.getFullYear()
@@ -139,21 +143,44 @@ const DayView: React.FC<DayViewProps> = ({
               >
                 {/* Show overlay only for scheduled (booked/confirmed) sessions */}
                 {hasScheduledSession && <ScheduledOverlay />}
-                {trainerSessions.map((session) => (
-                  <DraggableSession
-                    key={String(session.id)}
-                    session={session}
-                    onClick={() => onSelectSession?.(session)}
-                    disabled={
-                      !enableDrag
-                      || Boolean(session.isBlocked)
-                      || session.status === 'blocked'
-                      || session.status === 'available'
-                      || session.status === 'completed'
-                      || session.status === 'cancelled'
-                    }
-                  />
-                ))}
+                {trainerSessions.map((session) => {
+                  const bufferBefore = Number(session.bufferBefore || 0);
+                  const bufferAfter = Number(session.bufferAfter || 0);
+                  const sessionStart = new Date(session.sessionDate);
+
+                  return (
+                    <React.Fragment key={String(session.id)}>
+                      {bufferBefore > 0 && (
+                        <BufferZone
+                          startTime={sessionStart}
+                          durationMinutes={bufferBefore}
+                          type="before"
+                          pixelsPerHour={PIXELS_PER_HOUR}
+                        />
+                      )}
+                      <DraggableSession
+                        session={session}
+                        onClick={() => onSelectSession?.(session)}
+                        disabled={
+                          !enableDrag
+                          || Boolean(session.isBlocked)
+                          || session.status === 'blocked'
+                          || session.status === 'available'
+                          || session.status === 'completed'
+                          || session.status === 'cancelled'
+                        }
+                      />
+                      {bufferAfter > 0 && (
+                        <BufferZone
+                          startTime={sessionStart}
+                          durationMinutes={bufferAfter}
+                          type="after"
+                          pixelsPerHour={PIXELS_PER_HOUR}
+                        />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </SlotCell>
             );
           }

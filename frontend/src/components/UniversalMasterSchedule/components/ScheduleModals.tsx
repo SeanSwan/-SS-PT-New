@@ -10,6 +10,7 @@ import AvailabilityEditor from '../Availability/AvailabilityEditor';
 import AvailabilityOverrideModal from '../Availability/AvailabilityOverrideModal';
 import ApplyPaymentModal from '../ApplyPaymentModal';
 import ConflictPanel from '../Conflicts/ConflictPanel';
+import useSessionTypes from '../hooks/useSessionTypes';
 import {
   Modal,
   OutlinedButton,
@@ -170,6 +171,12 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
   const [templateError, setTemplateError] = useState('');
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const templateInputRef = useRef<HTMLInputElement>(null);
+  const {
+    sessionTypes,
+    loading: sessionTypesLoading,
+    error: sessionTypesError,
+    fetchSessionTypes
+  } = useSessionTypes();
 
   useEffect(() => {
     if (showTemplateNameInput) {
@@ -185,6 +192,30 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
       setPendingDeleteId(null);
     }
   }, [showCreateDialog]);
+
+  useEffect(() => {
+    if (showCreateDialog) {
+      fetchSessionTypes().catch(() => undefined);
+    }
+  }, [showCreateDialog, fetchSessionTypes]);
+
+  const selectedSessionType = sessionTypes.find(
+    (type) => String(type.id) === String(formData.sessionTypeId)
+  );
+  const effectiveBlock = (() => {
+    if (!formData.sessionDate) return null;
+    const start = new Date(formData.sessionDate);
+    if (Number.isNaN(start.getTime())) return null;
+    const bufferBefore = Number(formData.bufferBefore || 0);
+    const bufferAfter = Number(formData.bufferAfter || 0);
+    const duration = Number(formData.duration || 0);
+    const effectiveStart = new Date(start.getTime() - bufferBefore * 60000);
+    const effectiveEnd = new Date(start.getTime() + (duration + bufferAfter) * 60000);
+    return {
+      start: effectiveStart,
+      end: effectiveEnd
+    };
+  })();
 
   const handleSaveTemplateClick = () => {
     if (!showTemplateNameInput) {
@@ -348,6 +379,11 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
                   onChange={(e) => setFormData({ ...formData, sessionDate: e.target.value })}
                 />
               )}
+              {effectiveBlock && (
+                <HelperText>
+                  Effective block: {effectiveBlock.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {effectiveBlock.end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </HelperText>
+              )}
             </FormField>
 
             <FormField>
@@ -404,18 +440,36 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
             </FormField>
 
             <FormField>
-              <Label htmlFor="duration" required>Duration (minutes)</Label>
+              <Label htmlFor="sessionType">Session Type</Label>
               <CustomSelect
-                value={formData.duration.toString()}
-                onChange={(value) => setFormData({ ...formData, duration: Number(value) })}
+                value={formData.sessionTypeId?.toString() || ''}
+                onChange={(value) => {
+                  const selected = sessionTypes.find((type) => String(type.id) === String(value));
+                  setFormData({
+                    ...formData,
+                    sessionTypeId: value ? Number(value) : undefined,
+                    duration: selected?.duration ?? formData.duration,
+                    bufferBefore: selected?.bufferBefore ?? 0,
+                    bufferAfter: selected?.bufferAfter ?? 0
+                  });
+                }}
                 options={[
-                  { value: '30', label: '30 minutes' },
-                  { value: '60', label: '60 minutes' },
-                  { value: '90', label: '90 minutes' },
-                  { value: '120', label: '120 minutes' },
+                  { value: '', label: sessionTypesLoading ? 'Loading session types...' : '-- Select Session Type --' },
+                  ...sessionTypes.map((type) => ({
+                    value: type.id.toString(),
+                    label: `${type.name} (${type.duration} min)`
+                  }))
                 ]}
-                aria-label="Session duration"
+                aria-label="Session type"
               />
+              {sessionTypesError && (
+                <HelperText style={{ color: '#ef4444' }}>{sessionTypesError}</HelperText>
+              )}
+              {selectedSessionType && (
+                <HelperText>
+                  Duration: {selectedSessionType.duration} min | Buffer: {selectedSessionType.bufferBefore} min before, {selectedSessionType.bufferAfter} min after
+                </HelperText>
+              )}
             </FormField>
 
             <FormField>
