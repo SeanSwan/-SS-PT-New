@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Calendar, RefreshCw, Bell, Plus, Clock, ChevronDown } from 'lucide-react';
+import { Calendar, RefreshCw, Bell, Plus, Clock, ChevronDown, Settings } from 'lucide-react';
 import {
   FlexBox,
   Box,
@@ -27,10 +27,12 @@ interface ScheduleHeaderProps {
   onOpenRecurring: () => void;
   onOpenPayment: () => void;
   onOpenCreate: () => void;
+  onOpenSessionTypes: () => void;
   canManageAvailability: boolean;
   canBlockTime: boolean;
   canCreateRecurring: boolean;
   canCreateSessions: boolean;
+  canManageSessionTypes: boolean;
 }
 
 const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
@@ -46,10 +48,12 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
   onOpenRecurring,
   onOpenPayment,
   onOpenCreate,
+  onOpenSessionTypes,
   canManageAvailability,
   canBlockTime,
   canCreateRecurring,
-  canCreateSessions
+  canCreateSessions,
+  canManageSessionTypes
 }) => {
   return (
     <>
@@ -104,7 +108,7 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
             </Dropdown>
           )}
 
-          {(canManageAvailability || canCreateSessions) && (
+          {(canManageAvailability || canCreateSessions || canManageSessionTypes) && (
             <Dropdown
               align="right"
               ariaLabel="Manage schedule actions"
@@ -125,6 +129,12 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
                 <Bell size={16} />
                 Notification Settings
               </MenuItemButton>
+              {canManageSessionTypes && (
+                <MenuItemButton onClick={onOpenSessionTypes}>
+                  <Settings size={16} />
+                  Session Types
+                </MenuItemButton>
+              )}
               {canCreateSessions && (
                 <MenuItemButton onClick={onOpenPayment}>
                   Apply Payment

@@ -38,6 +38,27 @@ Session.init({
     defaultValue: 60,
     comment: 'Duration in minutes'
   },
+  sessionTypeId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    comment: 'Reference to standardized session type',
+    references: {
+      model: 'session_types',
+      key: 'id'
+    }
+  },
+  bufferBefore: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+    comment: 'Buffer before session start (minutes)'
+  },
+  bufferAfter: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0,
+    comment: 'Buffer after session end (minutes)'
+  },
   userId: {
     // Updated to INTEGER to match User.id primary key
     type: DataTypes.INTEGER,
@@ -183,6 +204,37 @@ Session.init({
     type: DataTypes.INTEGER,
     allowNull: true,
     comment: 'Admin user who assigned the trainer to this session'
+  },
+  // MindBody-style cancellation charge fields
+  cancellationChargeType: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Type of cancellation charge: none, full, partial, late_fee',
+    validate: {
+      isIn: {
+        args: [['none', 'full', 'partial', 'late_fee', null]],
+        msg: 'Cancellation charge type must be one of: none, full, partial, late_fee'
+      }
+    }
+  },
+  cancellationChargeAmount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Amount charged for cancellation (in dollars)'
+  },
+  sessionCreditRestored: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    comment: 'Whether session credit was restored to client after cancellation'
+  },
+  cancellationChargedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Timestamp when cancellation charge was processed'
   }
 }, {
   sequelize,

@@ -12,9 +12,10 @@ import logger from '../utils/logger.mjs';
 
 const ACTIVE_STATUSES = ['available', 'assigned', 'requested', 'scheduled', 'confirmed', 'booked', 'blocked'];
 
-const isOverlapping = (start, end, sessionStart, duration = 60) => {
-  const sessionEnd = new Date(sessionStart.getTime() + duration * 60000);
-  return start < sessionEnd && sessionStart < end;
+const isOverlapping = (start, end, sessionStart, duration = 60, bufferBefore = 0, bufferAfter = 0) => {
+  const effectiveStart = new Date(sessionStart.getTime() - bufferBefore * 60000);
+  const effectiveEnd = new Date(sessionStart.getTime() + (duration + bufferAfter) * 60000);
+  return start < effectiveEnd && effectiveStart < end;
 };
 
 const normalizeSession = (session) => {
@@ -26,6 +27,8 @@ const normalizeSession = (session) => {
     id: session.id,
     sessionDate: session.sessionDate,
     duration: session.duration,
+    bufferBefore: session.bufferBefore ?? 0,
+    bufferAfter: session.bufferAfter ?? 0,
     status: session.status,
     clientName
   };
@@ -107,7 +110,14 @@ const ConflictService = {
         });
 
         const trainerConflict = trainerSessions.find((session) =>
-          isOverlapping(start, end, new Date(session.sessionDate), session.duration)
+          isOverlapping(
+            start,
+            end,
+            new Date(session.sessionDate),
+            session.duration,
+            session.bufferBefore ?? 0,
+            session.bufferAfter ?? 0
+          )
         );
 
         if (trainerConflict) {
@@ -133,7 +143,14 @@ const ConflictService = {
         });
 
         const clientConflict = clientSessions.find((session) =>
-          isOverlapping(start, end, new Date(session.sessionDate), session.duration)
+          isOverlapping(
+            start,
+            end,
+            new Date(session.sessionDate),
+            session.duration,
+            session.bufferBefore ?? 0,
+            session.bufferAfter ?? 0
+          )
         );
 
         if (clientConflict) {

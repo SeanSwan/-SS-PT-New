@@ -14,6 +14,7 @@ const setupAssociations = async () => {
     // Import ONLY SEQUELIZE MODELS (PostgreSQL)
     const UserModule = await import('./User.mjs');
     const SessionModule = await import('./Session.mjs');
+    const SessionTypeModule = await import('./SessionType.mjs');
     const ClientProgressModule = await import('./ClientProgress.mjs');
     const GamificationModule = await import('./Gamification.mjs');
     const AchievementModule = await import('./Achievement.mjs');
@@ -95,6 +96,7 @@ const setupAssociations = async () => {
     // Extract default exports for SEQUELIZE models only
     const User = UserModule.default;
     const Session = SessionModule.default;
+    const SessionType = SessionTypeModule.default;
     const ClientProgress = ClientProgressModule.default;
     const Gamification = GamificationModule.default;
     const Achievement = AchievementModule.default;
@@ -211,7 +213,7 @@ const setupAssociations = async () => {
       }
       
       return {
-        User, ClientProgress, Gamification, Achievement, GamificationSettings,
+        User, SessionType, ClientProgress, Gamification, Achievement, GamificationSettings,
         UserAchievement, UserReward, UserMilestone, Reward, Milestone,
         PointTransaction, StorefrontItem, ShoppingCart, CartItem, Order,
         OrderItem, Package, FoodIngredient, FoodProduct, FoodScanHistory,
@@ -241,6 +243,10 @@ const setupAssociations = async () => {
     // User as trainer in sessions
     User.hasMany(Session, { foreignKey: 'trainerId', as: 'trainerSessions' });
     Session.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+
+    // Session type associations (Phase 5 - buffer-aware scheduling)
+    Session.belongsTo(SessionType, { foreignKey: 'sessionTypeId', as: 'sessionType' });
+    SessionType.hasMany(Session, { foreignKey: 'sessionTypeId', as: 'sessions' });
 
     // Trainer availability (weekly + overrides)
     User.hasMany(TrainerAvailability, { foreignKey: 'trainerId', as: 'availability' });
@@ -571,6 +577,7 @@ const setupAssociations = async () => {
     return {
       User,
       Session,
+      SessionType,
       ClientProgress,
       Gamification,
       Achievement,
