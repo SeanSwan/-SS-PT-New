@@ -3957,8 +3957,7 @@ router.get("/export", protect, adminOnly, async (req, res) => {
       ].join(',');
     });
 
-    const csvContent = [csvHeaders, ...csvRows].join('
-');
+    const csvContent = [csvHeaders, ...csvRows].join('\n');
 
     // Set headers for CSV download
     const filename = `sessions-export-${moment().format('YYYY-MM-DD')}.csv`;
