@@ -1,12 +1,12 @@
 /**
  * RENDER PRODUCTION PACKAGE SEEDER
  * ================================
- * Seeds the production database on Render with SwanStudios luxury packages
+ * Seeds the production database on Render with SwanStudios Phase 6 packages
  */
 
 console.log('🚀 RENDER PRODUCTION PACKAGE SEEDER');
 console.log('===================================');
-console.log('🎯 Seeding SwanStudios luxury packages to production database');
+console.log('🎯 Seeding SwanStudios Phase 6 packages to production database');
 
 // Force production environment if DATABASE_URL is available
 if (process.env.DATABASE_URL) {
@@ -62,148 +62,85 @@ try {
   
   console.log(`📊 Schema: isActive(${hasIsActive}), displayOrder(${hasDisplayOrder})`);
   
-  // Production-ready SwanStudios luxury packages
+  // Production-ready SwanStudios Phase 6 packages
   console.log('\n💎 Creating SwanStudios Luxury Collection for Production...');
   
-  const productionPackages = [
+  
+  // Phase 6 packages (store redesign)
+  console.log('\n???? Creating SwanStudios Phase 6 Packages for Production...');
+
+  const PHASE_6_PACKAGES = [
     {
+      name: '10-Pack Bundle',
+      description: '10 personal training sessions (60 min each). Valid for 6 months.',
       packageType: 'fixed',
-      name: 'Silver Swan Wing',
-      description: 'Your elegant introduction to premium personal training with Sean Swan',
-      sessions: 1,
-      pricePerSession: 175.00,
-      totalCost: 175.00,
-      price: 175.00,
-      displayPrice: 175.00,
-      totalSessions: 1,
+      price: 1650.00,
+      sessions: 10,
+      pricePerSession: 165.00,
+      months: 6,
+      totalSessions: 10,
       ...(hasIsActive && { isActive: true }),
       ...(hasDisplayOrder && { displayOrder: 1 })
     },
     {
+      name: '24-Pack Bundle',
+      description: '24 personal training sessions (60 min each). Valid for 12 months.',
       packageType: 'fixed',
-      name: 'Golden Swan Flight',
-      description: 'Begin your transformation journey with 8 sessions of expert guidance',
-      sessions: 8,
-      pricePerSession: 170.00,
-      totalCost: 1360.00,
-      price: 1360.00,
-      displayPrice: 1360.00,
-      totalSessions: 8,
+      price: 3600.00,
+      sessions: 24,
+      pricePerSession: 150.00,
+      months: 12,
+      totalSessions: 24,
       ...(hasIsActive && { isActive: true }),
       ...(hasDisplayOrder && { displayOrder: 2 })
     },
     {
-      packageType: 'fixed',
-      name: 'Sapphire Swan Soar',
-      description: 'Elevate your fitness with 20 sessions of premium training excellence',
-      sessions: 20,
-      pricePerSession: 165.00,
-      totalCost: 3300.00,
-      price: 3300.00,
-      displayPrice: 3300.00,
-      totalSessions: 20,
+      name: '6-Month Unlimited',
+      description: 'Unlimited sessions for 6 months. Maximum 5 per week.',
+      packageType: 'monthly',
+      price: 7200.00,
+      sessions: null,
+      months: 6,
+      sessionsPerWeek: 5,
+      totalSessions: 120,
+      pricePerSession: 60.00,
       ...(hasIsActive && { isActive: true }),
       ...(hasDisplayOrder && { displayOrder: 3 })
     },
     {
-      packageType: 'fixed',
-      name: 'Platinum Swan Grace',
-      description: 'Master your potential with 50 sessions of elite personal training',
-      sessions: 50,
-      pricePerSession: 160.00,
-      totalCost: 8000.00,
-      price: 8000.00,
-      displayPrice: 8000.00,
-      totalSessions: 50,
+      name: '12-Month Unlimited',
+      description: 'Unlimited sessions for 12 months. Maximum 5 per week.',
+      packageType: 'monthly',
+      price: 12000.00,
+      sessions: null,
+      months: 12,
+      sessionsPerWeek: 5,
+      totalSessions: 240,
+      pricePerSession: 50.00,
       ...(hasIsActive && { isActive: true }),
       ...(hasDisplayOrder && { displayOrder: 4 })
     },
     {
-      packageType: 'monthly',
-      name: 'Emerald Swan Evolution',
-      description: 'Transform your life with 3 months of dedicated training (4x per week)',
+      name: 'Express 30',
+      description: '10 quick sessions (30 min each). Valid for 3 months.',
+      packageType: 'fixed',
+      price: 1100.00,
+      sessions: 10,
+      pricePerSession: 110.00,
       months: 3,
-      sessionsPerWeek: 4,
-      totalSessions: 52,
-      pricePerSession: 155.00,
-      totalCost: 8060.00,
-      price: 8060.00,
-      displayPrice: 8060.00,
+      totalSessions: 10,
       ...(hasIsActive && { isActive: true }),
       ...(hasDisplayOrder && { displayOrder: 5 })
-    },
-    {
-      packageType: 'monthly',
-      name: 'Diamond Swan Dynasty',
-      description: 'Build lasting strength with 6 months of premium training mastery',
-      months: 6,
-      sessionsPerWeek: 4,
-      totalSessions: 104,
-      pricePerSession: 150.00,
-      totalCost: 15600.00,
-      price: 15600.00,
-      displayPrice: 15600.00,
-      ...(hasIsActive && { isActive: true }),
-      ...(hasDisplayOrder && { displayOrder: 6 })
-    },
-    {
-      packageType: 'monthly',
-      name: 'Ruby Swan Reign',
-      description: 'Command your fitness destiny with 9 months of elite transformation',
-      months: 9,
-      sessionsPerWeek: 4,
-      totalSessions: 156,
-      pricePerSession: 145.00,
-      totalCost: 22620.00,
-      price: 22620.00,
-      displayPrice: 22620.00,
-      ...(hasIsActive && { isActive: true }),
-      ...(hasDisplayOrder && { displayOrder: 7 })
-    },
-    {
-      packageType: 'monthly',
-      name: 'Rhodium Swan Royalty',
-      description: 'The ultimate year-long journey to peak performance and royal fitness',
-      months: 12,
-      sessionsPerWeek: 4,
-      totalSessions: 208,
-      pricePerSession: 140.00,
-      totalCost: 29120.00,
-      price: 29120.00,
-      displayPrice: 29120.00,
-      ...(hasIsActive && { isActive: true }),
-      ...(hasDisplayOrder && { displayOrder: 8 })
     }
   ];
-  
-  const createdPackages = [];
-  
-  for (let i = 0; i < productionPackages.length; i++) {
-    const pkg = productionPackages[i];
-    console.log(`\n💎 Creating ${i + 1}/8: ${pkg.name}`);
-    console.log(`   💰 $${pkg.displayPrice} (${pkg.sessions || pkg.totalSessions} sessions)`);
-    
-    try {
-      const created = await StorefrontItem.create(pkg);
-      createdPackages.push(created);
-      
-      // Verify pricing was set correctly
-      const verifyPrice = created.displayPrice || created.price || created.totalCost || 0;
-      if (verifyPrice > 0) {
-        console.log(`   ✅ SUCCESS: $${verifyPrice} verified`);
-      } else {
-        console.log(`   🚨 WARNING: Pricing verification failed!`);
-      }
-      
-    } catch (createError) {
-      console.error(`   ❌ FAILED: ${createError.message}`);
-      throw createError;
-    }
-  }
-  
-  // Final verification
+
+  const createdPackages = await StorefrontItem.bulkCreate(PHASE_6_PACKAGES, {
+    validate: false
+  });
+
+// Final verification
   console.log(`\n🎉 PRODUCTION SEEDING COMPLETE!`);
-  console.log(`✨ Created ${createdPackages.length} luxury packages`);
+  console.log(`✨ Created ${createdPackages.length} Phase 6 packages`);
   
   // Verify final state
   const finalCheck = await StorefrontItem.findAll({
