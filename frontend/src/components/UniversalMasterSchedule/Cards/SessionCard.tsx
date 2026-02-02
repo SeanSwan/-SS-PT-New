@@ -11,6 +11,12 @@ export interface SessionCardData {
   clientName?: string;
   trainerName?: string;
   isBlocked?: boolean;
+  packageInfo?: {
+    name: string;
+    sessionsRemaining?: number;
+    sessionsTotal?: number | null;
+    purchasedAt?: string | Date | null;
+  };
   // Reminder and feedback indicators
   reminderSent?: boolean;
   reminderSentDate?: string | null; // API returns date, we derive boolean
@@ -73,6 +79,14 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) => {
         </NameText>
         <MetaText>{session.trainerName || 'Trainer TBD'}</MetaText>
         <MetaText>{session.location || 'Main Studio'}</MetaText>
+        {session.packageInfo && (
+          <PackageInfo>
+            {session.packageInfo.name}
+            {session.packageInfo.sessionsTotal != null
+              ? ` (${Math.max(0, session.packageInfo.sessionsRemaining ?? 0)} left)`
+              : ' (Unlimited)'}
+          </PackageInfo>
+        )}
       </CardBody>
     </CardContainer>
   );
@@ -230,5 +244,14 @@ const MetaText = styled.span`
   font-size: 0.75rem;
   color: ${galaxySwanTheme.text.secondary};
   word-break: break-word;
+`;
+
+const PackageInfo = styled.span`
+  font-size: 0.625rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 

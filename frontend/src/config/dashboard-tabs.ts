@@ -191,6 +191,17 @@ export const ADMIN_DASHBOARD_TABS: DashboardTab[] = [
     isNew: true,
   },
   {
+    key: 'admin-specials',
+    label: 'Admin Specials',
+    icon: 'Star',
+    order: 9.07,
+    status: 'real',
+    section: 'business',
+    route: '/dashboard/admin-specials',
+    description: 'Manage bonus session promotions',
+    isNew: true,
+  },
+  {
     key: 'nutrition-plans',
     label: 'Nutrition Plans',
     icon: 'UtensilsCrossed',

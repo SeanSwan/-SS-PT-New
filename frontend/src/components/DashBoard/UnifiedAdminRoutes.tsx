@@ -7,6 +7,7 @@ import EnhancedAdminSessionsView from './Pages/admin-sessions/enhanced-admin-ses
 import ModernUserManagementSystem from './Pages/user-management/modern-user-management';
 import AdminClientProgressView from './Pages/admin-client-progress/admin-client-progress-view.V2';
 import AdminPackagesView from './Pages/admin-packages/admin-packages-view';
+import AdminSpecialsManager from './Pages/admin-specials/AdminSpecialsManager';
 import TrainersManagementSection from './Pages/admin-dashboard/TrainersManagementSection';
 import AdminGamificationView from './Pages/admin-gamification/admin-gamification-view';
 import MessagingPage from '../../pages/MessagingPage';
@@ -90,6 +91,7 @@ const UnifiedAdminRoutes: React.FC = () => (
     <Route path="/admin-sessions" element={<EnhancedAdminSessionsView />} />
     <Route path="/admin/master-schedule" element={wrap(<UniversalSchedule mode="admin" />)} />
     <Route path="/admin-packages" element={<AdminPackagesView />} />
+    <Route path="/admin-specials" element={wrap(<AdminSpecialsManager />)} />
     <Route path="/content" element={wrap(<ContentModerationSection />)} />
 
     {/* Business Intelligence Routes */}

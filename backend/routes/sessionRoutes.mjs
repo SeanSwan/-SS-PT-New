@@ -548,7 +548,61 @@ router.get("/", protect, async (req, res) => {
       order: [['sessionDate', 'ASC']]
     });
     
-    res.status(200).json(sessions);
+    const Order = getOrder();
+    const OrderItem = getOrderItem();
+    const StorefrontItem = getStorefrontItem();
+
+    const clientIds = [...new Set(sessions.map((session) => session.userId).filter(Boolean))];
+    let sessionsWithPackage = sessions.map((session) => session.toJSON());
+
+    if (clientIds.length > 0) {
+      const clientPackages = await Promise.all(
+        clientIds.map(async (clientId) => {
+          const [order, user] = await Promise.all([
+            Order.findOne({
+              where: { userId: clientId, status: 'completed' },
+              order: [['createdAt', 'DESC']],
+              include: [{
+                model: OrderItem,
+                as: 'orderItems',
+                include: [{
+                  model: StorefrontItem,
+                  as: 'storefrontItem'
+                }]
+              }]
+            }),
+            User.findByPk(clientId, { attributes: ['availableSessions'] })
+          ]);
+
+          const orderItem = order?.orderItems?.[0];
+          const pkg = orderItem?.storefrontItem;
+          if (pkg) {
+            return {
+              clientId,
+              packageInfo: {
+                name: pkg.name,
+                sessionsTotal: pkg.sessions ?? null,
+                sessionsRemaining: user?.availableSessions ?? 0,
+                purchasedAt: order?.createdAt ?? null
+              }
+            };
+          }
+
+          return { clientId, packageInfo: null };
+        })
+      );
+
+      const packageMap = Object.fromEntries(
+        clientPackages.map((item) => [item.clientId, item.packageInfo])
+      );
+
+      sessionsWithPackage = sessionsWithPackage.map((session) => ({
+        ...session,
+        packageInfo: packageMap[session.userId] || null
+      }));
+    }
+
+    res.status(200).json(sessionsWithPackage);
     
   } catch (error) {
     console.error("Error fetching sessions:", error.message);
@@ -1465,9 +1519,11 @@ router.patch("/:sessionId/cancel", protect, async (req, res) => {
         'partial': 'Partial charge',
         'late_fee': 'Late cancellation fee'
       };
-      chargeMessage = `\n${chargeTypeLabels[chargeType]}: $${actualChargeAmount.toFixed(2)}`;
+      chargeMessage = `
+${chargeTypeLabels[chargeType]}: $${actualChargeAmount.toFixed(2)}`;
     } else if (creditRestored) {
-      chargeMessage = '\nYour session credit has been restored to your account.';
+      chargeMessage = '
+Your session credit has been restored to your account.';
     }
 
     // Send client notification
@@ -1475,7 +1531,9 @@ router.patch("/:sessionId/cancel", protect, async (req, res) => {
       await sendEmailNotification({
         to: session.client.email,
         subject: chargeType !== 'none' ? "Session Cancelled - Charge Applied" : "Session Cancelled",
-        text: `Your session scheduled for ${sessionDateFormatted} has been cancelled.\n\nReason: ${session.cancellationReason}${chargeMessage}`,
+        text: `Your session scheduled for ${sessionDateFormatted} has been cancelled.
+
+Reason: ${session.cancellationReason}${chargeMessage}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: ${chargeType !== 'none' ? '#dc2626' : '#2563eb'};">Session Cancelled</h2>
@@ -1520,7 +1578,9 @@ router.patch("/:sessionId/cancel", protect, async (req, res) => {
       await sendEmailNotification({
         to: session.trainer.email,
         subject: "Session Cancelled",
-        text: `A session with ${clientName} scheduled for ${sessionDateFormatted} has been cancelled.\n\nReason: ${session.cancellationReason}`,
+        text: `A session with ${clientName} scheduled for ${sessionDateFormatted} has been cancelled.
+
+Reason: ${session.cancellationReason}`,
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #2563eb;">Session Cancelled</h2>
@@ -3897,7 +3957,8 @@ router.get("/export", protect, adminOnly, async (req, res) => {
       ].join(',');
     });
 
-    const csvContent = [csvHeaders, ...csvRows].join('\n');
+    const csvContent = [csvHeaders, ...csvRows].join('
+');
 
     // Set headers for CSV download
     const filename = `sessions-export-${moment().format('YYYY-MM-DD')}.csv`;
@@ -4075,3 +4136,5 @@ router.get("/trainer/:trainerId/feedback-summary", protect, adminOnly, async (re
 });
 
 export default router;
+
+

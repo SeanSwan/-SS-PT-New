@@ -56,12 +56,12 @@ const GALAXY_COLORS = {
 // Asset paths
 const swanIcon = "/Logo.png";
 
-// Package Interface (Enhanced to support custom packages - Roo's requirement)
+// Package Interface
 interface StoreItem {
   id: number;
   name: string;
   description: string;
-  packageType: 'fixed' | 'monthly' | 'custom'; // ✅ Added 'custom' support
+  packageType: 'fixed' | 'monthly';
   pricePerSession?: number;
   sessions?: number;
   months?: number;
@@ -75,15 +75,6 @@ interface StoreItem {
   imageUrl: string | null;
   displayOrder?: number;
   includedFeatures?: string | null;
-  // Custom package configuration (only present for packageType === 'custom')
-  customPackageConfig?: {
-    selectedSessions: number;
-    pricePerSession: number;
-    volumeDiscount: number;
-    discountTier: 'bronze' | 'silver' | 'gold';
-    calculatedTotal: number;
-    expirationDate?: string; // ISO 8601 format
-  };
 }
 
 // Utility function to determine theme from package name
