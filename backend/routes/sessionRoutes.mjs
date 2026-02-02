@@ -1522,8 +1522,8 @@ router.patch("/:sessionId/cancel", protect, async (req, res) => {
       chargeMessage = `
 ${chargeTypeLabels[chargeType]}: $${actualChargeAmount.toFixed(2)}`;
     } else if (creditRestored) {
-      chargeMessage = '
-Your session credit has been restored to your account.';
+      chargeMessage = `
+Your session credit has been restored to your account.`;
     }
 
     // Send client notification
