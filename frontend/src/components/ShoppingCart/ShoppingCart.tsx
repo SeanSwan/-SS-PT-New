@@ -34,7 +34,6 @@ import {
   CelebrationParticles,
   SmartNotifications
 } from "../AdvancedCartInteractions";
-import { CustomPackageCartItem } from "./CustomPackageCartItem";
 
 // Animations
 const shimmer = keyframes`
@@ -878,34 +877,6 @@ const ShoppingCart: React.FC<ShoppingCartProps> = ({ onClose }) => {
                         const itemSessions = storefrontItem?.sessions || storefrontItem?.totalSessions || 0;
                         const totalItemSessions = itemSessions * item.quantity;
                         const packageType = storefrontItem?.packageType || 'unknown';
-
-                        // 🎯 ENHANCED: Check if this is a custom package (Gemini's Enhancement)
-                        const isCustomPackage = packageType === 'custom';
-
-                        // Render custom package cart item if applicable
-                        if (isCustomPackage && storefrontItem) {
-                          return (
-                            <CustomPackageCartItem
-                              key={item.id}
-                              name={storefrontItem.name || 'Custom Training Package'}
-                              sessions={storefrontItem.sessions || 0}
-                              pricePerSession={storefrontItem.pricePerSession || 0}
-                              totalCost={item.price}
-                              discountTier={storefrontItem.customPackageConfig?.discountTier || 'bronze'}
-                              volumeDiscount={storefrontItem.customPackageConfig?.volumeDiscount || 0}
-                              schedulePreference={
-                                storefrontItem.includedFeatures?.split('|')[0]?.trim().replace(' scheduling', '') || undefined
-                              }
-                              notes={
-                                storefrontItem.includedFeatures?.includes('Notes:')
-                                  ? storefrontItem.includedFeatures.split('Notes:')[1]?.trim()
-                                  : undefined
-                              }
-                              quantity={item.quantity}
-                              onRemove={() => handleRemoveItem(item.id)}
-                            />
-                          );
-                        }
 
                         // Determine if this item has sessions (training package)
                         const hasSessionData = itemSessions > 0;

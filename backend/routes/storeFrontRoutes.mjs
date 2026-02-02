@@ -1,7 +1,7 @@
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
 // 🚀 ENHANCED: Coordinated model imports with associations
-import { getStorefrontItem } from '../models/index.mjs';
+import { getStorefrontItem, getAdminSpecial } from '../models/index.mjs';
 
 // 🎯 ENHANCED P0 FIX: Lazy loading model to prevent initialization race condition
 // StorefrontItem model will be retrieved via getStorefrontItem() inside each route handler when needed
@@ -26,6 +26,7 @@ router.get('/', async (req, res) => {
   try {
     // 🎯 ENHANCED P0 FIX: Lazy load model to prevent race condition
     const StorefrontItem = getStorefrontItem();
+    const AdminSpecial = getAdminSpecial();
     
     const { 
       sortBy = 'id', 
@@ -68,6 +69,8 @@ router.get('/', async (req, res) => {
     });
 
     // Transform data to meet frontend expectations
+    const activeSpecials = await AdminSpecial.getActiveSpecials();
+
     const transformedItems = items.map(item => ({
       id: item.id,
       name: item.name,
@@ -98,10 +101,43 @@ router.get('/', async (req, res) => {
 
     logger.info(`Retrieved ${items.length} storefront items`);
 
+    const packagesWithSpecials = transformedItems.map((pkg) => {
+      const applicableSpecial = activeSpecials.find(
+        (special) =>
+          !special.applicablePackageIds?.length ||
+          special.applicablePackageIds.includes(pkg.id)
+      );
+
+      if (applicableSpecial) {
+        return {
+          ...pkg,
+          activeSpecial: {
+            id: applicableSpecial.id,
+            name: applicableSpecial.name,
+            bonusSessions: applicableSpecial.bonusSessions,
+            bonusDuration: applicableSpecial.bonusDuration,
+            endsAt: applicableSpecial.endDate
+          }
+        };
+      }
+
+      return pkg;
+    });
+
     // Return success response with data structure frontend expects
     res.json({
       success: true,
-      items: transformedItems
+      items: packagesWithSpecials,
+      data: {
+        packages: packagesWithSpecials,
+        activeSpecials: activeSpecials.map((special) => ({
+          id: special.id,
+          name: special.name,
+          bonusSessions: special.bonusSessions,
+          applicablePackageIds: special.applicablePackageIds,
+          endsAt: special.endDate
+        }))
+      }
     });
   } catch (error) {
     logger.error('Error fetching storefront items:', error);

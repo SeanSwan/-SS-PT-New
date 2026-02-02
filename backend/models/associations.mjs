@@ -41,6 +41,7 @@ const setupAssociations = async () => {
     const OrderItemModule = await import('./OrderItem.mjs');
     const SessionPackageModule = await import('./SessionPackage.mjs');
     const PackageModule = await import('./Package.mjs');
+    const AdminSpecialModule = await import('./AdminSpecial.mjs');
 
     // Food Scanner Models (Sequelize)
     const FoodIngredientModule = await import('./FoodIngredient.mjs');
@@ -123,6 +124,7 @@ const setupAssociations = async () => {
     const OrderItem = OrderItemModule.default;
     const SessionPackage = SessionPackageModule.default;
     const Package = PackageModule.default;
+    const AdminSpecial = AdminSpecialModule.default;
 
     // Food Scanner Models
     const FoodIngredient = FoodIngredientModule.default;
@@ -216,7 +218,7 @@ const setupAssociations = async () => {
         User, SessionType, ClientProgress, Gamification, Achievement, GamificationSettings,
         UserAchievement, UserReward, UserMilestone, Reward, Milestone,
         PointTransaction, StorefrontItem, ShoppingCart, CartItem, Order,
-        OrderItem, Package, FoodIngredient, FoodProduct, FoodScanHistory,
+        OrderItem, Package, AdminSpecial, FoodIngredient, FoodProduct, FoodScanHistory,
         SocialPost, SocialComment, SocialLike, Friendship, SocialChallenge, SocialChallengeParticipant, ChallengeTeam,
         PostReport, ModerationAction,
         WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, WorkoutSession, WorkoutExercise, Exercise, Set,
@@ -252,6 +254,10 @@ const setupAssociations = async () => {
     User.hasMany(TrainerAvailability, { foreignKey: 'trainerId', as: 'availability' });
     TrainerAvailability.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
     
+    // Admin specials (Phase 6)
+    User.hasMany(AdminSpecial, { foreignKey: 'createdBy', as: 'adminSpecials' });
+    AdminSpecial.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+
     // User to achievements (many-to-many through UserAchievements)
     User.belongsToMany(Achievement, { 
       through: 'UserAchievements',
@@ -617,6 +623,7 @@ const setupAssociations = async () => {
       OrderItem,
       SessionPackage,
       Package,
+      AdminSpecial,
       
       // Food Scanner Models
       FoodIngredient,

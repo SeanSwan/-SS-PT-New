@@ -20,6 +20,7 @@ import React, { memo, useCallback } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import GlowButton from '../../../components/ui/GlowButton';
+import { SpecialBadge } from './SpecialBadge';
 
 // Galaxy Theme Constants
 const GALAXY_COLORS = {
@@ -64,6 +65,13 @@ interface PackageCardProps {
   isAdding: boolean;
   onTogglePrice: (packageId: number) => void;
   onAddToCart: (pkg: StoreItem) => void;
+  activeSpecial?: {
+    id: number;
+    name: string;
+    bonusSessions: number;
+    bonusDuration?: number;
+    endsAt: string;
+  };
 }
 
 // Utility Functions
@@ -544,7 +552,8 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
   isPriceRevealed,
   isAdding,
   onTogglePrice,
-  onAddToCart
+  onAddToCart,
+  activeSpecial
 }) => {
   // Stable event handlers
   const handleCardClick = useCallback(() => {
@@ -591,6 +600,13 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
       onKeyPress={handleKeyPress}
       variants={itemVariants}
     >
+      {activeSpecial && (
+        <SpecialBadge
+          name={activeSpecial.name}
+          bonusSessions={activeSpecial.bonusSessions}
+          endsAt={activeSpecial.endsAt}
+        />
+      )}
       <CosmicCardMedia>
         <MediaContent 
           mediaInfo={mediaInfo}
@@ -610,7 +626,7 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
           <SessionInfo>
             <div className="session-details">
               {pkg.packageType === 'fixed' 
-                ? `${pkg.sessions} training sessions`
+                ? `${pkg.sessions}${activeSpecial ? ` + ${activeSpecial.bonusSessions} Bonus ` : ' '}training sessions`
                 : `${pkg.months} months • ${pkg.sessionsPerWeek} sessions/week • ${pkg.totalSessions} total sessions`}
             </div>
             <div className="per-session-price">

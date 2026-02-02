@@ -129,6 +129,7 @@ export const getNotification = () => getModel('Notification');
 export const getContact = () => getModel('Contact');
 export const getFinancialTransaction = () => getModel('FinancialTransaction');
 export const getAdminNotification = () => getModel('AdminNotification');
+export const getAdminSpecial = () => getModel('AdminSpecial');
 export const getPackage = () => getModel('Package');
 
 // Exercise Models

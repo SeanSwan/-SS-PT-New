@@ -38,6 +38,12 @@ interface Session {
   isRecurring?: boolean;
   isBlocked?: boolean;
   recurringGroupId?: string | null;
+  packageInfo?: {
+    name: string;
+    sessionsRemaining?: number;
+    sessionsTotal?: number | null;
+    purchasedAt?: string | Date | null;
+  };
 }
 
 interface SessionDetailModalProps {
@@ -595,6 +601,67 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
         </SmallText>
       )}
 
+      {session.packageInfo && (
+        <PackageSection>
+          <PackageSectionTitle>Package Info</PackageSectionTitle>
+          <PackageDetail>
+            <PackageLabel>Package</PackageLabel>
+            <PackageValue>{session.packageInfo.name}</PackageValue>
+          </PackageDetail>
+          {session.packageInfo.purchasedAt && (
+            <PackageDetail>
+              <PackageLabel>Purchased</PackageLabel>
+              <PackageValue>
+                {new Date(session.packageInfo.purchasedAt).toLocaleDateString()}
+              </PackageValue>
+            </PackageDetail>
+          )}
+          {session.packageInfo.sessionsTotal != null ? (
+            <>
+              <PackageDetail>
+                <PackageLabel>Sessions Used</PackageLabel>
+                <PackageValue>
+                  {Math.max(
+                    0,
+                    session.packageInfo.sessionsTotal - (session.packageInfo.sessionsRemaining ?? 0)
+                  )}{' '}
+                  of {session.packageInfo.sessionsTotal}
+                </PackageValue>
+              </PackageDetail>
+              <PackageDetail>
+                <PackageLabel>Sessions Remaining</PackageLabel>
+                <PackageValue style={{ color: '#00FF88' }}>
+                  {Math.max(0, session.packageInfo.sessionsRemaining ?? 0)}
+                </PackageValue>
+              </PackageDetail>
+              <SessionsProgress>
+                <PackageLabel>Progress</PackageLabel>
+                <ProgressBar>
+                  <ProgressFill
+                    $percent={
+                      session.packageInfo.sessionsTotal > 0
+                        ? Math.min(
+                          100,
+                          (Math.max(
+                            0,
+                            session.packageInfo.sessionsTotal - (session.packageInfo.sessionsRemaining ?? 0)
+                          ) / session.packageInfo.sessionsTotal) * 100
+                        )
+                        : 0
+                    }
+                  />
+                </ProgressBar>
+              </SessionsProgress>
+            </>
+          ) : (
+            <PackageDetail>
+              <PackageLabel>Plan Type</PackageLabel>
+              <PackageValue style={{ color: '#FFD700' }}>Unlimited</PackageValue>
+            </PackageDetail>
+          )}
+        </PackageSection>
+      )}
+
       <FormField>
         <Label htmlFor="session-notes">Trainer Notes</Label>
         <StyledTextarea
@@ -1019,6 +1086,64 @@ const PackageInfoBanner = styled.div`
   background: rgba(16, 185, 129, 0.1);
   border: 1px solid rgba(16, 185, 129, 0.3);
   margin-bottom: 1rem;
+`;
+
+const PackageSection = styled.div`
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(120, 81, 169, 0.1);
+  border: 1px solid rgba(120, 81, 169, 0.3);
+  border-radius: 8px;
+`;
+
+const PackageSectionTitle = styled.h4`
+  color: #00FFFF;
+  font-size: 0.875rem;
+  margin: 0 0 12px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+`;
+
+const PackageDetail = styled.div`
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+  &:last-child {
+    border-bottom: none;
+  }
+`;
+
+const PackageLabel = styled.span`
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.875rem;
+`;
+
+const PackageValue = styled.span`
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+`;
+
+const SessionsProgress = styled.div`
+  margin-top: 12px;
+`;
+
+const ProgressBar = styled.div`
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 6px;
+`;
+
+const ProgressFill = styled.div<{ $percent: number }>`
+  height: 100%;
+  width: ${({ $percent }) => $percent}%;
+  background: linear-gradient(90deg, #00FFFF, #7851A9);
+  border-radius: 4px;
+  transition: width 0.3s ease;
 `;
 
 const ChargeTypeGrid = styled.div`

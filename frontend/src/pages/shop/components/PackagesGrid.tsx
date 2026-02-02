@@ -6,7 +6,6 @@
  * Responsibilities:
  * - Grid layout for packages
  * - Package filtering (fixed vs monthly)
- * - Custom package CTA and wizard integration (Gemini's Enhancement)
  * - Section titles and animations
  * - Package state management coordination
  *
@@ -15,16 +14,12 @@
  * - Stable animation references
  * - Efficient filtering logic
  *
- * Enhanced by: Gemini (UX/UI Lead) - Custom Package Integration
  */
 
-import React, { memo, useRef, useState, useCallback } from 'react';
+import React, { memo, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { motion, useAnimation, useInView } from 'framer-motion';
 import PackageCard from './PackageCard';
-import CustomPackageCard from './CustomPackageCard';
-import CustomPackageBuilder, { CustomPackageData } from './CustomPackageBuilder';
-import { CustomPackageErrorBoundary } from './CustomPackageErrorBoundary';
 
 // Galaxy Theme Constants
 const GALAXY_COLORS = {
@@ -35,14 +30,14 @@ const GALAXY_COLORS = {
 // Asset paths
 const swanIcon = "/Logo.png";
 
-// Package Interface (Enhanced to support custom packages - Roo's requirement)
+// Package Interface
 interface StoreItem {
   id: number;
   name: string;
   description: string;
-  packageType: 'fixed' | 'monthly' | 'custom';
-  pricePerSession?: number;
-  sessions?: number;
+  pricePerSession?: number | null;
+  sessions?: number | null;
+  packageType: 'fixed' | 'monthly';
   months?: number;
   sessionsPerWeek?: number;
   totalSessions?: number;
@@ -54,14 +49,12 @@ interface StoreItem {
   imageUrl: string | null;
   displayOrder?: number;
   includedFeatures?: string | null;
-  // Custom package configuration (only present for packageType === 'custom')
-  customPackageConfig?: {
-    selectedSessions: number;
-    pricePerSession: number;
-    volumeDiscount: number;
-    discountTier: 'bronze' | 'silver' | 'gold';
-    calculatedTotal: number;
-    expirationDate?: string;
+  activeSpecial?: {
+    id: number;
+    name: string;
+    bonusSessions: number;
+    bonusDuration?: number;
+    endsAt: string;
   };
 }
 
@@ -160,27 +153,24 @@ const SectionTitle = styled(motion.h2)`
 
 const GalaxyGrid = styled(motion.div)`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 2.5rem;
-  margin-bottom: 4rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
   position: relative;
   z-index: 15;
-  
+
+  @media (min-width: 1200px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  @media (min-width: 900px) and (max-width: 1199px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-  
-  @media (min-width: 1024px) { 
-    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-    max-width: 1200px;
-    margin: 0 auto 4rem;
-    gap: 3rem;
-  }
-  
-  @media (min-width: 1400px) {
-    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
-    max-width: 1600px;
   }
 `;
 
@@ -229,23 +219,19 @@ const PackagesGrid: React.FC<PackagesGridProps> = memo(({
   onTogglePrice,
   onAddToCart
 }) => {
-  // 🎯 ENHANCED: Custom Package Wizard State (Gemini's Enhancement)
-  const [isCustomWizardOpen, setIsCustomWizardOpen] = useState(false);
-
   // Refs for intersection observer
   const fixedPackagesSectionRef = useRef<HTMLDivElement>(null);
   const monthlyPackagesSectionRef = useRef<HTMLDivElement>(null);
-  const customPackageSectionRef = useRef<HTMLDivElement>(null);
 
   // Animation controls
   const fixedPackagesControls = useAnimation();
   const monthlyPackagesControls = useAnimation();
-  const customPackageControls = useAnimation();
+  // No custom package section (Phase 6 cleanup)
 
   // Intersection observers
   const isFixedPackagesInView = useInView(fixedPackagesSectionRef, { once: true, amount: 0.1 });
   const isMonthlyPackagesInView = useInView(monthlyPackagesSectionRef, { once: true, amount: 0.1 });
-  const isCustomPackageInView = useInView(customPackageSectionRef, { once: true, amount: 0.1 });
+  // No custom package section (Phase 6 cleanup)
 
   // Trigger animations when in view
   React.useEffect(() => {
@@ -260,12 +246,6 @@ const PackagesGrid: React.FC<PackagesGridProps> = memo(({
     }
   }, [isMonthlyPackagesInView, monthlyPackagesControls]);
 
-  React.useEffect(() => {
-    if (isCustomPackageInView) {
-      customPackageControls.start("visible");
-    }
-  }, [isCustomPackageInView, customPackageControls]);
-
   // Filter packages by type
   const fixedPackages = React.useMemo(() => 
     packages.filter(pkg => pkg.packageType === 'fixed'), 
@@ -277,54 +257,13 @@ const PackagesGrid: React.FC<PackagesGridProps> = memo(({
     [packages]
   );
 
-  // 🎯 ENHANCED: Custom Package Wizard Handlers (Gemini's Enhancement)
-  const handleOpenCustomWizard = useCallback(() => {
-    setIsCustomWizardOpen(true);
-  }, []);
-
-  const handleCloseCustomWizard = useCallback(() => {
-    setIsCustomWizardOpen(false);
-  }, []);
-
-  const handleCustomPackageComplete = useCallback((packageData: CustomPackageData) => {
-    // Transform custom package data into StoreItem format for cart
-    const customPackageItem: StoreItem = {
-      id: Date.now(), // Temporary ID for custom package
-      name: `Custom Training Package (${packageData.sessions} Sessions)`,
-      description: `${packageData.sessions} sessions at $${packageData.pricePerSession}/session with ${packageData.discountTier} tier discount`,
-      packageType: 'custom',
-      sessions: packageData.sessions,
-      pricePerSession: packageData.pricePerSession,
-      totalCost: packageData.totalCost,
-      displayPrice: packageData.totalCost,
-      price: packageData.totalCost,
-      theme: 'cosmic',
-      isActive: true,
-      imageUrl: null,
-      displayOrder: 999,
-      includedFeatures: `${packageData.schedulePreference} scheduling${packageData.notes ? ` | Notes: ${packageData.notes}` : ''}`,
-      customPackageConfig: {
-        selectedSessions: packageData.sessions,
-        pricePerSession: packageData.pricePerSession,
-        volumeDiscount: packageData.volumeDiscount,
-        discountTier: packageData.discountTier,
-        calculatedTotal: packageData.totalCost
-      }
-    };
-
-    // Add to cart via parent's handler
-    onAddToCart(customPackageItem);
-
-    // Close wizard
-    setIsCustomWizardOpen(false);
-  }, [onAddToCart]);
-
   // Render package cards
   const renderPackageCards = React.useCallback((packageList: StoreItem[]) => {
     return packageList.map(pkg => (
       <PackageCard
         key={pkg.id}
         package={pkg}
+        activeSpecial={pkg.activeSpecial}
         canViewPrices={canViewPrices}
         canPurchase={canPurchase}
         isPriceRevealed={revealPrices[pkg.id] || false}
@@ -391,38 +330,6 @@ const PackagesGrid: React.FC<PackagesGridProps> = memo(({
         </PackageSection>
       )}
 
-      {/* 🎯 ENHANCED: Custom Package Section (Gemini's Enhancement) */}
-      <PackageSection
-        ref={customPackageSectionRef}
-        initial="hidden"
-        animate={customPackageControls}
-        variants={containerVariants}
-      >
-        <SectionTitle
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          variants={itemVariants}
-        >
-          Build Your Perfect Package
-        </SectionTitle>
-        <GalaxyGrid
-          initial="hidden"
-          animate={customPackageControls}
-          variants={gridVariants}
-          aria-label="Custom package builder"
-        >
-          <CustomPackageCard onClick={handleOpenCustomWizard} />
-        </GalaxyGrid>
-      </PackageSection>
-
-      {/* 🎯 ENHANCED: Custom Package Builder Wizard Modal (Gemini's Enhancement) */}
-      <CustomPackageErrorBoundary onReset={handleCloseCustomWizard}>
-        <CustomPackageBuilder
-          isOpen={isCustomWizardOpen}
-          onClose={handleCloseCustomWizard}
-          onComplete={handleCustomPackageComplete}
-        />
-      </CustomPackageErrorBoundary>
     </SectionContainer>
   );
 });

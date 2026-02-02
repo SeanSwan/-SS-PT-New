@@ -821,6 +821,7 @@ const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
   UserCheck,
   UserPlus,
   Package,
+  Star,
   Dumbbell,
   UtensilsCrossed,
   Camera,

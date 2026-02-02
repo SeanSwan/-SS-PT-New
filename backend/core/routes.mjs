@@ -77,6 +77,7 @@ import adminClientRoutes from '../routes/adminClientRoutes.mjs';
 import adminPackageRoutes from '../routes/adminPackageRoutes.mjs';
 import adminFinanceRoutes from '../routes/admin/adminFinanceRoutes.mjs';
 import adminStoreRoutes from '../routes/admin/adminStoreRoutes.mjs';
+import adminSpecialRoutes from '../routes/adminSpecialRoutes.mjs';
 import adminMcpRoutes from '../routes/adminMcpRoutes.mjs';
 import adminEnterpriseRoutes from '../routes/adminEnterpriseRoutes.mjs';
 import adminContentModerationRoutes from '../routes/adminContentModerationRoutes.mjs';
@@ -269,6 +270,7 @@ export const setupRoutes = async (app) => {
 
   app.use('/api/admin/finance', adminFinanceRoutes);
   app.use('/api/admin/store', adminStoreRoutes);
+  app.use('/api/admin/specials', adminSpecialRoutes);
   app.use('/api/admin/analytics', analyticsRevenueRoutes);
   app.use('/api/admin/analytics', analyticsUserRoutes);
   app.use('/api/admin/analytics', analyticsSystemRoutes);
