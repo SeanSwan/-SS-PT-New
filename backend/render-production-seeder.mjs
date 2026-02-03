@@ -8,6 +8,12 @@ console.log('🚀 RENDER PRODUCTION PACKAGE SEEDER');
 console.log('===================================');
 console.log('🎯 Seeding SwanStudios Phase 6 packages to production database');
 
+// Allow disabling seeder in production to prevent overwriting live data
+if (process.env.DISABLE_PROD_SEEDER === 'true') {
+  console.log('⏭️  Production seeder disabled via DISABLE_PROD_SEEDER=true');
+  process.exit(0);
+}
+
 // Force production environment if DATABASE_URL is available
 if (process.env.DATABASE_URL) {
   process.env.NODE_ENV = 'production';
