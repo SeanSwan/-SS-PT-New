@@ -29,12 +29,15 @@ router.get('/', async (req, res) => {
     const AdminSpecial = getAdminSpecial();
     
     const { 
-      sortBy = 'id', 
+      // Default to displayOrder so storefront renders in curated order.
+      // Fallback to id occurs automatically if displayOrder isn't a column.
+      sortBy = 'displayOrder', 
       sortOrder = 'ASC',
       limit = 100,
       offset = 0,
       packageType,
-      isActive
+      // Default to active-only items for public storefront.
+      isActive = 'true'
     } = req.query;
 
     // Validate sortOrder
