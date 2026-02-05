@@ -124,6 +124,7 @@ export const getUser = () => getModel('User');
 export const getOrder = () => getModel('Order');
 export const getOrderItem = () => getModel('OrderItem');
 export const getSession = () => getModel('Session');
+export const getSessionType = () => getModel('SessionType');
 export const getClientProgress = () => getModel('ClientProgress');
 export const getNotification = () => getModel('Notification');
 export const getContact = () => getModel('Contact');
@@ -131,6 +132,14 @@ export const getFinancialTransaction = () => getModel('FinancialTransaction');
 export const getAdminNotification = () => getModel('AdminNotification');
 export const getAdminSpecial = () => getModel('AdminSpecial');
 export const getPackage = () => getModel('Package');
+
+// Challenge/Gamification Models
+export const getChallenge = () => getModel('Challenge');
+export const getChallengeParticipant = () => getModel('ChallengeParticipant');
+export const getGoal = () => getModel('Goal');
+export const getProgressData = () => getModel('ProgressData');
+export const getUserFollow = () => getModel('UserFollow');
+export const getSessionPackage = () => getModel('SessionPackage');
 
 // Exercise Models
 export const getExercise = () => getModel('Exercise');

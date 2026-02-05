@@ -1,20 +1,24 @@
 /**
- * Custom Modal Component
- * ======================
- * Fully accessible modal dialog to replace MUI Dialog
- * 
+ * Custom Modal Component - Mobile Bottom Sheet Edition
+ * =====================================================
+ * Fully accessible modal dialog with mobile bottom sheet UX pattern
+ *
  * Features:
+ * - Desktop: Centered modal with backdrop
+ * - Mobile: Bottom sheet with drag-to-dismiss
  * - Focus trap (focus stays within modal)
  * - ESC key to close
  * - Click backdrop to close
  * - Return focus to trigger element
  * - ARIA attributes for accessibility
  * - Smooth animations
+ * - iOS safe area support
+ * - Touch-optimized 44px targets
  */
 
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { createPortal } from 'react-dom';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { X } from 'lucide-react';
 import { IconButton } from './StyledButton';
 
@@ -39,8 +43,31 @@ const slideUp = keyframes`
   }
 `;
 
+const slideUpFromBottom = keyframes`
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+`;
+
+// Mobile detection hook
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth <= 480);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  return isMobile;
+};
+
 // Backdrop - Ultra responsive
-const Backdrop = styled.div`
+const Backdrop = styled.div<{ isMobile?: boolean }>`
   position: fixed;
   top: 0;
   left: 0;
@@ -50,21 +77,34 @@ const Backdrop = styled.div`
   backdrop-filter: blur(8px);
   z-index: 1300;
   display: flex;
-  align-items: flex-start; /* Changed from center to allow scrolling of tall modals */
+  align-items: ${props => props.isMobile ? 'flex-end' : 'flex-start'};
   justify-content: center;
-  padding: 1rem;
+  padding: ${props => props.isMobile ? '0' : '1rem'};
   animation: ${fadeIn} 0.2s ease;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+`;
 
-  /* Mobile: full screen modal */
-  @media (max-width: 480px) {
-    padding: 0;
-    align-items: flex-end;
+// Drag handle for mobile bottom sheet
+const DragHandle = styled.div`
+  width: 36px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  margin: 0 auto 0.5rem;
+  flex-shrink: 0;
+
+  @media (min-width: 481px) {
+    display: none;
   }
 `;
 
 // Modal container - Ultra responsive
-const ModalContainer = styled.div<{ size?: 'sm' | 'md' | 'lg' | 'xl' }>`
+const ModalContainer = styled.div<{
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  isMobile?: boolean;
+  translateY?: number;
+}>`
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
@@ -77,8 +117,7 @@ const ModalContainer = styled.div<{ size?: 'sm' | 'md' | 'lg' | 'xl' }>`
     }
   }};
   width: 100%;
-  margin: auto; /* Centers the modal vertically and horizontally */
-  /* max-height: 90vh; Removed to allow overflow for dropdowns */
+  margin: auto;
   display: flex;
   flex-direction: column;
   animation: ${slideUp} 0.3s ease;
@@ -92,21 +131,39 @@ const ModalContainer = styled.div<{ size?: 'sm' | 'md' | 'lg' | 'xl' }>`
     border-radius: 16px;
   }
 
-  /* Mobile: slide up sheet style */
+  /* Mobile: Bottom Sheet Pattern */
   @media (max-width: 480px) {
     max-width: 100%;
-    max-height: 95vh;
-    min-height: 50vh;
+    max-height: 90vh;
+    min-height: 40vh;
     border-radius: 20px 20px 0 0;
     margin: 0;
-    animation: ${slideUp} 0.3s ease;
+    animation: ${slideUpFromBottom} 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    transform: ${props => props.translateY ? `translateY(${props.translateY}px)` : 'translateY(0)'};
+    transition: transform 0.1s ease-out;
+    /* iOS safe area */
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-bottom: max(env(safe-area-inset-bottom, 0), 0.5rem);
+  }
+`;
+
+// Mobile header wrapper with drag zone
+const MobileHeaderWrapper = styled.div`
+  @media (max-width: 480px) {
+    padding-top: 0.5rem;
+    touch-action: pan-y;
+    cursor: grab;
+
+    &:active {
+      cursor: grabbing;
+    }
   }
 `;
 
 // Modal header - Ultra responsive
 const ModalHeader = styled.div`
   padding: 1.5rem;
-  padding-right: 3.5rem; /* Space for close button */
+  padding-right: 3.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   justify-content: space-between;
@@ -130,7 +187,7 @@ const ModalHeader = styled.div`
   }
 
   @media (max-width: 480px) {
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     padding-right: 2.5rem;
 
     h2 {
@@ -143,10 +200,12 @@ const ModalHeader = styled.div`
 const ModalBody = styled.div`
   padding: 1.5rem;
   padding-bottom: 2rem;
-  overflow: visible;
+  overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
   position: relative;
-  min-height: 200px;
+  min-height: 100px;
+  -webkit-overflow-scrolling: touch;
 
   /* Custom scrollbar */
   &::-webkit-scrollbar {
@@ -173,6 +232,8 @@ const ModalBody = styled.div`
 
   @media (max-width: 480px) {
     padding: 1rem;
+    /* Ensure content doesn't get cut off */
+    padding-bottom: 1.5rem;
   }
 `;
 
@@ -193,13 +254,16 @@ const ModalFooter = styled.div`
   }
 
   @media (max-width: 480px) {
-    padding: 0.75rem;
+    padding: 0.75rem 1rem;
     flex-direction: column-reverse;
     gap: 0.5rem;
+    /* iOS safe area */
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
 
     button {
       width: 100%;
       justify-content: center;
+      min-height: 44px; /* Touch target */
     }
   }
 `;
@@ -227,8 +291,8 @@ const CloseButton = styled(IconButton)`
   }
 
   @media (max-width: 480px) {
-    top: 0.5rem;
-    right: 0.5rem;
+    top: calc(0.5rem + 4px); /* Account for drag handle */
+    right: 0.75rem;
     min-width: 44px;
     min-height: 44px;
     padding: 0.625rem;
@@ -266,6 +330,14 @@ export const Modal: React.FC<ModalProps> = ({
   const modalRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedElement = useRef<HTMLElement | null>(null);
   const titleId = ariaLabelledby || 'modal-title';
+  const isMobile = useIsMobile();
+
+  // Drag state for mobile bottom sheet
+  const [dragState, setDragState] = useState({
+    isDragging: false,
+    startY: 0,
+    currentY: 0
+  });
 
   // Store the previously focused element
   useEffect(() => {
@@ -335,12 +407,19 @@ export const Modal: React.FC<ModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      // Prevent iOS bounce
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
     } else {
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
     }
 
     return () => {
       document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
     };
   }, [isOpen]);
 
@@ -351,13 +430,43 @@ export const Modal: React.FC<ModalProps> = ({
     }
   }, [closeOnBackdropClick, onClose]);
 
+  // Mobile drag handlers for swipe-to-dismiss
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (!isMobile) return;
+    setDragState({
+      isDragging: true,
+      startY: e.touches[0].clientY,
+      currentY: 0
+    });
+  }, [isMobile]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!dragState.isDragging || !isMobile) return;
+    const deltaY = e.touches[0].clientY - dragState.startY;
+    // Only allow dragging down
+    if (deltaY > 0) {
+      setDragState(prev => ({ ...prev, currentY: deltaY }));
+    }
+  }, [dragState.isDragging, dragState.startY, isMobile]);
+
+  const handleTouchEnd = useCallback(() => {
+    if (!isMobile) return;
+    // If dragged more than 100px, close the modal
+    if (dragState.currentY > 100) {
+      onClose();
+    }
+    setDragState({ isDragging: false, startY: 0, currentY: 0 });
+  }, [dragState.currentY, onClose, isMobile]);
+
   if (!isOpen) return null;
 
   const modalContent = (
-    <Backdrop onClick={handleBackdropClick}>
+    <Backdrop onClick={handleBackdropClick} isMobile={isMobile}>
       <ModalContainer
         ref={modalRef}
         size={size}
+        isMobile={isMobile}
+        translateY={isMobile ? dragState.currentY : 0}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -373,7 +482,24 @@ export const Modal: React.FC<ModalProps> = ({
           </CloseButton>
         )}
 
-        {title && (
+        {/* Mobile: Drag handle zone */}
+        {isMobile && (
+          <MobileHeaderWrapper
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+          >
+            <DragHandle />
+            {title && (
+              <ModalHeader>
+                <h2 id={titleId}>{title}</h2>
+              </ModalHeader>
+            )}
+          </MobileHeaderWrapper>
+        )}
+
+        {/* Desktop: Normal header */}
+        {!isMobile && title && (
           <ModalHeader>
             <h2 id={titleId}>{title}</h2>
           </ModalHeader>
