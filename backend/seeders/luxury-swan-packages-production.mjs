@@ -7,6 +7,13 @@
 
 // Create the main function and export it
 async function seedLuxuryPackagesProduction() {
+  // Check if seeder is disabled - prevent overwriting Phase 6 packages
+  if (process.env.DISABLE_PROD_SEEDER === 'true') {
+    console.log('⏭️  Production seeder DISABLED via DISABLE_PROD_SEEDER=true');
+    console.log('✅ Skipping luxury package seeding to preserve Phase 6 packages');
+    return { success: true, packagesCreated: 0, skipped: true };
+  }
+
   console.log('🦢 CREATING SWANSTUDIOS LUXURY COLLECTION - PRODUCTION VERSION');
   console.log('==============================================================');
   console.log('✨ Rare Elements × Swan Elegance × Premium Training');
