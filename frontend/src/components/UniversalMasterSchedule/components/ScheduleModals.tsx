@@ -6,6 +6,7 @@ import BlockedTimeModal from '../BlockedTimeModal';
 import NotificationPreferencesModal from '../NotificationPreferencesModal';
 import SessionDetailModal from '../SessionDetailModal';
 import RecurringSeriesModal from '../RecurringSeriesModal';
+import ClientRecurringBookingModal from '../ClientRecurringBookingModal';
 import AvailabilityEditor from '../Availability/AvailabilityEditor';
 import AvailabilityOverrideModal from '../Availability/AvailabilityOverrideModal';
 import ApplyPaymentModal from '../ApplyPaymentModal';
@@ -53,7 +54,9 @@ interface ScheduleModalsProps {
   setShowPaymentModal: (show: boolean) => void;
   conflictModalOpen: boolean;
   setConflictModalOpen: (show: boolean) => void;
-  
+  showClientRecurringDialog: boolean;
+  setShowClientRecurringDialog: (show: boolean) => void;
+
   formData: any;
   setFormData: (data: any) => void;
   dbTrainers: any[];
@@ -79,6 +82,7 @@ interface ScheduleModalsProps {
   bookingError: string | null;
   creditsDisplay: string | number;
   sessionsRemaining: number | undefined;
+  availableSessions: any[];
   
   detailSession: any;
   activeSeriesGroupId: string | null;
@@ -122,7 +126,9 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
   setShowPaymentModal,
   conflictModalOpen,
   setConflictModalOpen,
-  
+  showClientRecurringDialog,
+  setShowClientRecurringDialog,
+
   formData,
   setFormData,
   dbTrainers,
@@ -141,7 +147,8 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
   bookingError,
   creditsDisplay,
   sessionsRemaining,
-  
+  availableSessions,
+
   detailSession,
   activeSeriesGroupId,
   seriesSessions,
@@ -573,6 +580,16 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
         onClose={() => setShowBlockedDialog(false)}
         onSuccess={fetchSessions}
       />
+
+      {mode === 'client' && (
+        <ClientRecurringBookingModal
+          open={showClientRecurringDialog}
+          onClose={() => setShowClientRecurringDialog(false)}
+          onSuccess={fetchSessions}
+          availableSessions={availableSessions}
+          userCredits={sessionsRemaining || 0}
+        />
+      )}
 
       <NotificationPreferencesModal
         open={showNotificationDialog}

@@ -104,6 +104,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const [availabilityTrainerId, setAvailabilityTrainerId] = useState<number | string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSessionTypeManager, setShowSessionTypeManager] = useState(false);
+  const [showClientRecurringDialog, setShowClientRecurringDialog] = useState(false);
   const [isSlotSelected, setIsSlotSelected] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -131,6 +132,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     showOverrideModal,
     showPaymentModal,
     showSessionTypeManager,
+    showClientRecurringDialog,
     conflictModalOpen
   ].some(Boolean);
 
@@ -493,6 +495,12 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     ? sessions.filter((session) => session.recurringGroupId === activeSeriesGroupId)
     : [];
 
+  // Filter available sessions for client recurring booking modal
+  const availableSessions = useMemo(() =>
+    sessions.filter((session: any) => session.status === 'available'),
+    [sessions]
+  );
+
   if (dataLoading.sessions && sessions.length === 0) {
     return <Spinner size={60} text="Loading Schedule..." fullscreen />;
   }
@@ -516,6 +524,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         onOpenRecurring={() => setShowRecurringDialog(true)}
         onOpenPayment={() => setShowPaymentModal(true)}
         onOpenSessionTypes={() => setShowSessionTypeManager(true)}
+        onOpenClientRecurring={() => setShowClientRecurringDialog(true)}
         onOpenCreate={() => {
           setFormData({
             sessionDate: '',
@@ -599,6 +608,8 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         setShowPaymentModal={setShowPaymentModal}
         conflictModalOpen={conflictModalOpen}
         setConflictModalOpen={setConflictModalOpen}
+        showClientRecurringDialog={showClientRecurringDialog}
+        setShowClientRecurringDialog={setShowClientRecurringDialog}
         formData={formData}
         setFormData={setFormData}
         dbTrainers={trainers}
@@ -616,6 +627,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         bookingError={bookingError}
         creditsDisplay={creditsDisplay}
         sessionsRemaining={sessionsRemaining}
+        availableSessions={availableSessions}
         detailSession={detailSession}
         activeSeriesGroupId={activeSeriesGroupId}
         seriesSessions={seriesSessions}
