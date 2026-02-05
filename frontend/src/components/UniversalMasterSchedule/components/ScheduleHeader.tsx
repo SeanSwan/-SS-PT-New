@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Calendar, RefreshCw, Bell, Plus, Clock, ChevronDown, Settings } from 'lucide-react';
+import { Calendar, RefreshCw, Bell, Plus, Clock, ChevronDown, Settings, Repeat } from 'lucide-react';
 import {
   FlexBox,
   Box,
@@ -28,6 +28,7 @@ interface ScheduleHeaderProps {
   onOpenPayment: () => void;
   onOpenCreate: () => void;
   onOpenSessionTypes: () => void;
+  onOpenClientRecurring?: () => void;
   canManageAvailability: boolean;
   canBlockTime: boolean;
   canCreateRecurring: boolean;
@@ -49,6 +50,7 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
   onOpenPayment,
   onOpenCreate,
   onOpenSessionTypes,
+  onOpenClientRecurring,
   canManageAvailability,
   canBlockTime,
   canCreateRecurring,
@@ -76,6 +78,12 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
           >
             <RefreshCw size={20} />
           </StyledIconButton>
+          {mode === 'client' && onOpenClientRecurring && (
+            <PrimaryButton onClick={onOpenClientRecurring} title="Book Recurring Sessions">
+              <Repeat size={16} />
+              Book Recurring
+            </PrimaryButton>
+          )}
           {(canCreateSessions || canCreateRecurring || canBlockTime) && (
             <Dropdown
               align="right"

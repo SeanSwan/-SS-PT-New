@@ -1127,6 +1127,425 @@ router.post("/:sessionId/book", protect, async (req, res) => {
 });
 
 /**
+ * @route   POST /api/sessions/book-recurring
+ * @desc    CLIENT: Book multiple available sessions as a recurring series
+ * @access  Private
+ *
+ * Body options:
+ * 1. { sessionIds: [1, 2, 3] } - Book specific available sessions
+ * 2. { trainerId, daysOfWeek, timeSlot, weeksAhead } - Auto-find matching slots
+ */
+router.post("/book-recurring", protect, async (req, res) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const userId = req.user.id;
+    const {
+      sessionIds,           // Option 1: Specific session IDs to book
+      trainerId,            // Option 2: Find sessions by trainer
+      daysOfWeek,           // Option 2: Days to book (0=Sun, 1=Mon, etc.)
+      timeSlot,             // Option 2: Time to match (HH:MM format)
+      weeksAhead = 4        // Option 2: How many weeks ahead to book
+    } = req.body;
+
+    // Get user with lock
+    const user = await User.findByPk(userId, {
+      lock: transaction.LOCK.UPDATE,
+      transaction
+    });
+
+    if (!user) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "User not found."
+      });
+    }
+
+    let sessionsToBook = [];
+
+    // Option 1: Book specific session IDs
+    if (sessionIds && Array.isArray(sessionIds) && sessionIds.length > 0) {
+      sessionsToBook = await Session.findAll({
+        where: {
+          id: { [Op.in]: sessionIds },
+          status: 'available',
+          sessionDate: { [Op.gt]: new Date() }
+        },
+        order: [['sessionDate', 'ASC']],
+        lock: transaction.LOCK.UPDATE,
+        transaction
+      });
+
+      if (sessionsToBook.length !== sessionIds.length) {
+        await transaction.rollback();
+        const foundIds = sessionsToBook.map(s => s.id);
+        const unavailableIds = sessionIds.filter(id => !foundIds.includes(id));
+        return res.status(400).json({
+          success: false,
+          message: `Some sessions are not available for booking.`,
+          unavailableSessionIds: unavailableIds,
+          availableCount: sessionsToBook.length,
+          requestedCount: sessionIds.length
+        });
+      }
+    }
+    // Option 2: Find matching available sessions by pattern
+    else if (trainerId && daysOfWeek && Array.isArray(daysOfWeek) && timeSlot) {
+      const startDate = new Date();
+      const endDate = moment().add(weeksAhead, 'weeks').toDate();
+
+      // Parse time slot
+      const [targetHours, targetMinutes] = timeSlot.split(':').map(Number);
+
+      // Find available sessions matching criteria
+      const candidates = await Session.findAll({
+        where: {
+          trainerId,
+          status: 'available',
+          sessionDate: {
+            [Op.between]: [startDate, endDate]
+          }
+        },
+        order: [['sessionDate', 'ASC']],
+        lock: transaction.LOCK.UPDATE,
+        transaction
+      });
+
+      // Filter by day of week and time
+      sessionsToBook = candidates.filter(session => {
+        const sessionDate = new Date(session.sessionDate);
+        const dayMatch = daysOfWeek.includes(sessionDate.getDay());
+        const hourMatch = sessionDate.getHours() === targetHours;
+        const minuteMatch = Math.abs(sessionDate.getMinutes() - (targetMinutes || 0)) <= 15;
+        return dayMatch && hourMatch && minuteMatch;
+      });
+
+      if (sessionsToBook.length === 0) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: "No available sessions found matching your criteria.",
+          criteria: { trainerId, daysOfWeek, timeSlot, weeksAhead }
+        });
+      }
+    } else {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Invalid request. Provide either 'sessionIds' array or pattern fields (trainerId, daysOfWeek, timeSlot)."
+      });
+    }
+
+    // Check user has enough available sessions (admins bypass)
+    const sessionsNeeded = sessionsToBook.length;
+    if (req.user.role !== 'admin' && (!user.availableSessions || user.availableSessions < sessionsNeeded)) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: `Not enough available sessions. You have ${user.availableSessions || 0} sessions but need ${sessionsNeeded}.`,
+        availableSessions: user.availableSessions || 0,
+        sessionsNeeded
+      });
+    }
+
+    // Generate recurring group ID to link these bookings
+    const recurringGroupId = uuidv4();
+    const bookingDate = new Date();
+
+    // Book all sessions
+    const bookedSessions = [];
+    for (const session of sessionsToBook) {
+      session.userId = userId;
+      session.status = 'scheduled';
+      session.bookingDate = bookingDate;
+      session.isRecurring = true;
+      session.recurringGroupId = recurringGroupId;
+      await session.save({ transaction });
+      bookedSessions.push(session);
+    }
+
+    // Deduct sessions (if not admin)
+    if (req.user.role !== 'admin') {
+      user.availableSessions -= sessionsNeeded;
+      await user.save({ transaction });
+      logger.info(`Recurring booking: ${sessionsNeeded} sessions deducted for user ${userId}. Remaining: ${user.availableSessions}`);
+    }
+
+    // Commit transaction
+    await transaction.commit();
+
+    // Broadcast real-time booking events
+    try {
+      for (const session of bookedSessions) {
+        realTimeScheduleService.broadcastSessionBooked(session, user);
+      }
+    } catch (broadcastError) {
+      logger.warn('Failed to broadcast recurring booking events:', broadcastError.message);
+    }
+
+    // Send single consolidated notification for recurring booking
+    const sessionDates = bookedSessions.map(s =>
+      new Date(s.sessionDate).toLocaleString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    );
+
+    if (user.email && shouldNotifyClient({ user, channel: 'email', notifyClient: true })) {
+      await sendEmailNotification({
+        to: user.email,
+        subject: `${sessionsNeeded} Recurring Sessions Booked`,
+        text: `Your recurring sessions have been booked:\n\n${sessionDates.join('\n')}`,
+        html: `<p>Your recurring sessions have been booked:</p>
+               <ul>${sessionDates.map(d => `<li>${d}</li>`).join('')}</ul>
+               <p>Location: ${bookedSessions[0]?.location || 'Main Studio'}</p>
+               <p>Please arrive 10 minutes before each session.</p>`
+      });
+    }
+
+    if (user.phone && shouldNotifyClient({ user, channel: 'sms', notifyClient: true })) {
+      await sendSmsNotification({
+        to: user.phone,
+        body: `Swan Studios: ${sessionsNeeded} recurring sessions booked. First session: ${sessionDates[0]}`
+      });
+    }
+
+    // Notify trainer about recurring booking
+    if (bookedSessions[0]?.trainerId) {
+      const trainer = await User.findByPk(bookedSessions[0].trainerId);
+      if (trainer?.email) {
+        await sendEmailNotification({
+          to: trainer.email,
+          subject: `New Recurring Sessions Booked - ${sessionsNeeded} sessions`,
+          text: `${user.firstName} ${user.lastName} has booked ${sessionsNeeded} recurring sessions with you.`,
+          html: `<p><strong>${user.firstName} ${user.lastName}</strong> has booked ${sessionsNeeded} recurring sessions with you:</p>
+                 <ul>${sessionDates.map(d => `<li>${d}</li>`).join('')}</ul>`
+        });
+      }
+    }
+
+    // Fetch updated sessions with associations
+    const updatedSessions = await Session.findAll({
+      where: { recurringGroupId },
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        },
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        }
+      ],
+      order: [['sessionDate', 'ASC']]
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Successfully booked ${sessionsNeeded} recurring sessions.`,
+      recurringGroupId,
+      sessions: updatedSessions,
+      availableSessions: user.availableSessions,
+      totalBooked: sessionsNeeded
+    });
+  } catch (error) {
+    try {
+      await transaction.rollback();
+    } catch (rollbackError) {
+      logger.error("Error rolling back recurring booking transaction:", rollbackError);
+    }
+
+    logger.error("Error booking recurring sessions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error booking recurring sessions.",
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/sessions/my-recurring
+ * @desc    CLIENT: Get all recurring session groups for current user
+ * @access  Private
+ */
+router.get("/my-recurring", protect, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const userId = req.user.id;
+
+    // Find all sessions with recurring group IDs for this user
+    const sessions = await Session.findAll({
+      where: {
+        userId,
+        isRecurring: true,
+        recurringGroupId: { [Op.not]: null }
+      },
+      include: [
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName'],
+          required: false
+        }
+      ],
+      order: [['sessionDate', 'ASC']]
+    });
+
+    // Group sessions by recurringGroupId
+    const groupedSessions = {};
+    sessions.forEach(session => {
+      const groupId = session.recurringGroupId;
+      if (!groupedSessions[groupId]) {
+        groupedSessions[groupId] = {
+          recurringGroupId: groupId,
+          trainer: session.trainer,
+          location: session.location,
+          sessions: [],
+          upcomingCount: 0,
+          completedCount: 0,
+          cancelledCount: 0
+        };
+      }
+      groupedSessions[groupId].sessions.push(session);
+
+      if (session.status === 'completed') {
+        groupedSessions[groupId].completedCount++;
+      } else if (session.status === 'cancelled') {
+        groupedSessions[groupId].cancelledCount++;
+      } else if (new Date(session.sessionDate) > new Date()) {
+        groupedSessions[groupId].upcomingCount++;
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      recurringGroups: Object.values(groupedSessions),
+      totalGroups: Object.keys(groupedSessions).length
+    });
+  } catch (error) {
+    logger.error("Error fetching recurring sessions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error fetching recurring sessions.",
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   DELETE /api/sessions/my-recurring/:groupId
+ * @desc    CLIENT: Cancel all future sessions in a recurring group
+ * @access  Private
+ */
+router.delete("/my-recurring/:groupId", protect, async (req, res) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const userId = req.user.id;
+    const { groupId } = req.params;
+    const { reason } = req.body;
+
+    // Find all future sessions in this recurring group owned by the user
+    const sessions = await Session.findAll({
+      where: {
+        userId,
+        recurringGroupId: groupId,
+        status: { [Op.notIn]: ['completed', 'cancelled'] },
+        sessionDate: { [Op.gt]: new Date() }
+      },
+      lock: transaction.LOCK.UPDATE,
+      transaction
+    });
+
+    if (sessions.length === 0) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "No cancellable sessions found in this recurring group."
+      });
+    }
+
+    const user = await User.findByPk(userId, {
+      lock: transaction.LOCK.UPDATE,
+      transaction
+    });
+
+    // Cancel sessions and restore credits
+    let sessionsRestored = 0;
+    for (const session of sessions) {
+      session.status = 'cancelled';
+      session.cancellationReason = reason || 'Recurring series cancelled by client';
+      session.cancellationDate = new Date();
+      session.cancelledBy = userId;
+      session.sessionCreditRestored = true;
+      await session.save({ transaction });
+      sessionsRestored++;
+    }
+
+    // Restore session credits to user
+    user.availableSessions = (user.availableSessions || 0) + sessionsRestored;
+    await user.save({ transaction });
+
+    await transaction.commit();
+
+    // Broadcast cancellation events
+    try {
+      for (const session of sessions) {
+        realTimeScheduleService.broadcastSessionCancelled(session, user);
+      }
+    } catch (broadcastError) {
+      logger.warn('Failed to broadcast recurring cancellation events:', broadcastError.message);
+    }
+
+    // Notify user
+    if (user.email && shouldNotifyClient({ user, channel: 'email', notifyClient: true })) {
+      await sendEmailNotification({
+        to: user.email,
+        subject: `Recurring Sessions Cancelled - ${sessionsRestored} sessions`,
+        text: `Your recurring sessions have been cancelled. ${sessionsRestored} session credits have been restored to your account.`,
+        html: `<p>Your recurring sessions have been cancelled.</p>
+               <p><strong>${sessionsRestored} session credits</strong> have been restored to your account.</p>
+               <p>You now have ${user.availableSessions} available sessions.</p>`
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Cancelled ${sessionsRestored} recurring sessions. Session credits restored.`,
+      cancelledCount: sessionsRestored,
+      availableSessions: user.availableSessions
+    });
+  } catch (error) {
+    try {
+      await transaction.rollback();
+    } catch (rollbackError) {
+      logger.error("Error rolling back recurring cancellation transaction:", rollbackError);
+    }
+
+    logger.error("Error cancelling recurring sessions:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error cancelling recurring sessions.",
+      error: error.message
+    });
+  }
+});
+
+/**
  * @route   PUT /api/sessions/reschedule/:sessionId
  * @desc    CLIENT: Reschedule a session.
  * @access  Private
