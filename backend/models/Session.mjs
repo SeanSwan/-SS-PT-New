@@ -243,6 +243,34 @@ Session.init({
     defaultValue: null,
     comment: 'Timestamp when cancellation charge was processed'
   },
+  // MindBody Parity: Admin Cancellation Decision Fields
+  cancellationDecision: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Admin decision: pending, charged, waived, or null',
+    validate: {
+      isIn: {
+        args: [['pending', 'charged', 'waived', null]],
+        msg: 'Cancellation decision must be one of: pending, charged, waived'
+      }
+    }
+  },
+  cancellationReviewedBy: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    comment: 'Admin user ID who made charge/waive decision'
+  },
+  cancellationReviewedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Timestamp when admin made charge/waive decision'
+  },
+  cancellationReviewReason: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Admin justification for charge/waive decision'
+  },
   // Phase D: Check-In / Attendance Tracking Fields
   attendanceStatus: {
     type: DataTypes.STRING(20),

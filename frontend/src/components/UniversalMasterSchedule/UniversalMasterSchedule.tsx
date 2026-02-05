@@ -259,7 +259,8 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         notifyClient: formData.notifyClient
       }]);
 
-      if (result.sessions) {
+      // Check for sessions array OR data object (backend returns both now)
+      if (result.sessions || result) {
         success('Session created successfully!');
         setShowCreateDialog(false);
         setIsSlotSelected(false);
@@ -275,10 +276,16 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         });
         setUseManualClient(false);
         refreshData(true);
+      } else {
+        toastError('Session may have been created but could not be confirmed. Please refresh.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating session:', error);
-      toastError('Error creating session. Please try again.');
+      // Show actual server error message if available
+      const errorMessage = error?.response?.data?.message
+        || error?.message
+        || 'Error creating session. Please try again.';
+      toastError(errorMessage);
     }
   };
 
