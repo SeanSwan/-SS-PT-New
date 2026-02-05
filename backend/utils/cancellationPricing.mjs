@@ -9,8 +9,6 @@
  * - Cancellation policy window (24-hour rule)
  */
 
-import { Op } from 'sequelize';
-import moment from 'moment';
 import logger from './logger.mjs';
 
 // Default fallback prices (only used if no package found)
@@ -31,14 +29,15 @@ const SPECIAL_PACKAGE_THRESHOLDS = {
 /**
  * Fetch client's package pricing from their most recent order
  * @param {number} clientId - User ID of the client
- * @param {object} models - Sequelize models { Order, StorefrontItem }
+ * @param {object} models - Sequelize models { Order, OrderItem, StorefrontItem }
  * @returns {object} Package pricing info
  */
 export async function getClientPackagePricing(clientId, models) {
-  const { Order, StorefrontItem } = models;
+  const { Order, OrderItem, StorefrontItem } = models;
 
   try {
     // Find the most recent completed order for this client
+    // Uses correct association chain: Order -> OrderItem -> StorefrontItem
     const recentOrder = await Order.findOne({
       where: {
         userId: clientId,
@@ -46,13 +45,22 @@ export async function getClientPackagePricing(clientId, models) {
       },
       order: [['createdAt', 'DESC']],
       include: [{
-        model: StorefrontItem,
-        as: 'items',
-        attributes: ['id', 'name', 'price', 'sessions', 'packageType', 'isActive']
+        model: OrderItem,
+        as: 'orderItems',
+        include: [{
+          model: StorefrontItem,
+          as: 'storefrontItem',
+          attributes: ['id', 'name', 'price', 'sessions', 'packageType', 'isActive']
+        }]
       }]
     });
 
-    if (!recentOrder || !recentOrder.items || recentOrder.items.length === 0) {
+    // Extract storefront items from nested orderItems
+    const storefrontItems = recentOrder?.orderItems
+      ?.map(oi => oi.storefrontItem)
+      ?.filter(Boolean) || [];
+
+    if (!recentOrder || storefrontItems.length === 0) {
       logger.info(`No completed order found for client ${clientId}, using fallback pricing`);
       return {
         pricePerSession: FALLBACK_PRICES.STANDARD_60_MIN,
@@ -64,9 +72,9 @@ export async function getClientPackagePricing(clientId, models) {
     }
 
     // Find the session package item (not one-time purchases)
-    const sessionPackage = recentOrder.items.find(item =>
+    const sessionPackage = storefrontItems.find(item =>
       item.sessions > 0 && item.packageType !== 'one-time'
-    ) || recentOrder.items[0];
+    ) || storefrontItems[0];
 
     const pricePerSession = sessionPackage.sessions > 0
       ? parseFloat(sessionPackage.price) / sessionPackage.sessions

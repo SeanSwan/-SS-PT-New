@@ -1935,6 +1935,7 @@ router.patch("/:sessionId/cancel", protect, async (req, res) => {
     const Session = getSession();
     const User = getUser();
     const Order = getOrder();
+    const OrderItem = getOrderItem();
     const StorefrontItem = getStorefrontItem();
     const { sessionId } = req.params;
     const {
@@ -1994,7 +1995,7 @@ router.patch("/:sessionId/cancel", protect, async (req, res) => {
     const isLateCancellation = hoursUntilSession < 24;
 
     // MindBody Parity: Use unified pricing helper - NO HARDCODED FEES
-    const packageInfo = await getClientPackagePricing(session.userId, { Order, StorefrontItem });
+    const packageInfo = await getClientPackagePricing(session.userId, { Order, OrderItem, StorefrontItem });
     const chargeCalc = computeCancellationCharge(session, packageInfo, {
       chargeType,
       customAmount: chargeAmount
@@ -4535,6 +4536,7 @@ router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, r
     const Session = getSession();
     const User = getUser();
     const Order = getOrder();
+    const OrderItem = getOrderItem();
     const StorefrontItem = getStorefrontItem();
     const { sessionId } = req.params;
     const {
@@ -4592,7 +4594,7 @@ router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, r
     let packageInfo = { pricePerSession: 175, packageName: 'Fallback', isFallback: true };
     if (session.userId) {
       try {
-        packageInfo = await getClientPackagePricing(session.userId, { Order, StorefrontItem });
+        packageInfo = await getClientPackagePricing(session.userId, { Order, OrderItem, StorefrontItem });
       } catch (pricingError) {
         logger.warn(`Could not fetch package pricing: ${pricingError.message}`);
       }
