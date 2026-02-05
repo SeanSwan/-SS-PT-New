@@ -21,6 +21,7 @@ import sessionAllocationService from '../services/SessionAllocationService.mjs';
 import trainerAssignmentService from '../services/TrainerAssignmentService.mjs';
 import realTimeScheduleService from '../services/realTimeScheduleService.mjs';
 import logger from '../utils/logger.mjs';
+import { getClientPackagePricing, computeCancellationCharge, getCancellationPolicy } from '../utils/cancellationPricing.mjs';
 
 const router = express.Router();
 
@@ -629,22 +630,26 @@ router.post("/", protect, adminOnly, async (req, res) => {
       data = req.body.sessions[0];
     }
 
-    const { 
-      sessionDate, 
-      duration, 
-      location, 
-      trainerId, 
-      userId, 
-      status, 
-      notes, 
+    const {
+      sessionDate,
+      start,  // Frontend sends "start" as alias for sessionDate
+      duration,
+      location,
+      trainerId,
+      userId,
+      status,
+      notes,
       sessionType,
       notifyClient,
       recurrenceRule,
       recurringGroupId,
       isBlocked
     } = data;
-    
-    if (!sessionDate) {
+
+    // Accept both "sessionDate" and "start" (frontend uses "start")
+    const resolvedSessionDate = sessionDate || start;
+
+    if (!resolvedSessionDate) {
       return res.status(400).json({
         success: false,
         message: "Session date is required"
@@ -656,7 +661,7 @@ router.post("/", protect, adminOnly, async (req, res) => {
 
     // Create the session
     const newSession = await Session.create({
-      sessionDate: new Date(sessionDate),
+      sessionDate: new Date(resolvedSessionDate),
       duration: duration || 60,
       location: location || 'Main Studio',
       trainerId: trainerId || null,
@@ -697,10 +702,12 @@ router.post("/", protect, adminOnly, async (req, res) => {
       logger.warn('Failed to broadcast session creation:', broadcastError.message);
     }
     
+    // Return both "data" (for backwards compat) and "sessions" (for frontend service)
     res.status(201).json({
       success: true,
       message: "Session created successfully",
-      data: createdSession
+      data: createdSession,
+      sessions: [createdSession]  // Frontend expects sessions array
     });
     
   } catch (error) {
@@ -1921,11 +1928,14 @@ router.delete("/cancel/:sessionId", protect, async (req, res) => {
  * @body {boolean} restoreCredit - Whether to restore session credit to client
  * @body {boolean} notifyClient - Whether to send email notification
  * @body {boolean} notifyTrainer - Whether to notify the assigned trainer
+ * @body {boolean} silent - If true, suppress ALL notifications regardless of other flags
  */
 router.patch("/:sessionId/cancel", protect, async (req, res) => {
   try {
     const Session = getSession();
     const User = getUser();
+    const Order = getOrder();
+    const StorefrontItem = getStorefrontItem();
     const { sessionId } = req.params;
     const {
       reason,
@@ -1933,7 +1943,8 @@ router.patch("/:sessionId/cancel", protect, async (req, res) => {
       chargeAmount = 0,
       restoreCredit = true,
       notifyClient = true,
-      notifyTrainer = true
+      notifyTrainer = true,
+      silent = false  // MindBody Parity: suppress ALL notifications when true
     } = req.body || {};
 
     // Validate charge type
@@ -1982,9 +1993,16 @@ router.patch("/:sessionId/cancel", protect, async (req, res) => {
     const hoursUntilSession = moment(session.sessionDate).diff(moment(), 'hours');
     const isLateCancellation = hoursUntilSession < 24;
 
-    // Determine actual charge amount based on type
+    // MindBody Parity: Use unified pricing helper - NO HARDCODED FEES
+    const packageInfo = await getClientPackagePricing(session.userId, { Order, StorefrontItem });
+    const chargeCalc = computeCancellationCharge(session, packageInfo, {
+      chargeType,
+      customAmount: chargeAmount
+    });
+
+    // Determine actual charge amount based on type and unified pricing
     let actualChargeAmount = 0;
-    const sessionRate = 75; // Default session rate - could be pulled from user's package
+    const sessionRate = packageInfo.pricePerSession;  // Dynamic from package, no hardcoding!
 
     switch (chargeType) {
       case 'none':
@@ -1997,9 +2015,13 @@ router.patch("/:sessionId/cancel", protect, async (req, res) => {
         actualChargeAmount = parseFloat(chargeAmount) || (sessionRate * 0.5);
         break;
       case 'late_fee':
-        actualChargeAmount = parseFloat(chargeAmount) || 25; // Default late fee
+        actualChargeAmount = parseFloat(chargeAmount) || chargeCalc.lateFeeAmount; // 50% of session price
         break;
     }
+
+    // MindBody Parity: Set decision status for late cancellations needing admin review
+    const needsAdminReview = isLateCancellation && !isAdmin;
+    const cancellationDecision = needsAdminReview ? 'pending' : null;
 
     // Update session with cancellation details
     session.status = 'cancelled';
@@ -2010,6 +2032,11 @@ router.patch("/:sessionId/cancel", protect, async (req, res) => {
     session.cancellationChargeAmount = actualChargeAmount;
     session.sessionCreditRestored = restoreCredit && chargeType === 'none';
     session.cancellationChargedAt = actualChargeAmount > 0 ? new Date() : null;
+
+    // MindBody Parity: Set decision status for pending admin review
+    if (cancellationDecision) {
+      session.cancellationDecision = cancellationDecision;
+    }
 
     await session.save();
 
@@ -2050,8 +2077,11 @@ ${chargeTypeLabels[chargeType]}: $${actualChargeAmount.toFixed(2)}`;
 Your session credit has been restored to your account.`;
     }
 
-    // Send client notification
-    if (notifyClient && session.client && session.client.email && session.client.id !== req.user.id) {
+    // MindBody Parity: Silent mode suppresses ALL notifications
+    const shouldSendNotifications = !silent;
+
+    // Send client notification (unless silent mode)
+    if (shouldSendNotifications && notifyClient && session.client && session.client.email && session.client.id !== req.user.id) {
       await sendEmailNotification({
         to: session.client.email,
         subject: chargeType !== 'none' ? "Session Cancelled - Charge Applied" : "Session Cancelled",
@@ -2082,7 +2112,7 @@ Reason: ${session.cancellationReason}${chargeMessage}`,
         `
       });
 
-      // Send SMS if client has phone
+      // Send SMS if client has phone (unless silent mode)
       if (session.client.phone) {
         const smsChargeMsg = chargeType !== 'none' && actualChargeAmount > 0
           ? ` Charge: $${actualChargeAmount.toFixed(2)}`
@@ -2095,8 +2125,8 @@ Reason: ${session.cancellationReason}${chargeMessage}`,
       }
     }
 
-    // Send trainer notification
-    if (notifyTrainer && session.trainer && session.trainer.email && session.trainer.id !== req.user.id) {
+    // Send trainer notification (unless silent mode)
+    if (shouldSendNotifications && notifyTrainer && session.trainer && session.trainer.email && session.trainer.id !== req.user.id) {
       const clientName = session.client ? `${session.client.firstName} ${session.client.lastName}` : 'Unknown Client';
 
       await sendEmailNotification({
@@ -2123,7 +2153,14 @@ Reason: ${session.cancellationReason}`,
       chargeAmount: actualChargeAmount,
       creditRestored,
       isLateCancellation,
-      cancelledBy: req.user.id
+      cancelledBy: req.user.id,
+      silentMode: silent,
+      cancellationDecision,
+      packagePricing: {
+        sessionRate,
+        packageName: packageInfo.packageName,
+        isFallback: packageInfo.isFallback
+      }
     });
 
     res.json({
@@ -2137,9 +2174,20 @@ Reason: ${session.cancellationReason}`,
         chargeAmount: actualChargeAmount,
         creditRestored,
         isLateCancellation,
+        // MindBody Parity: Decision status for admin review queue
+        cancellationDecision: session.cancellationDecision || null,
+        requiresAdminReview: needsAdminReview,
+        // MindBody Parity: Dynamic pricing info
+        pricing: {
+          sessionRate,
+          lateFeeAmount: chargeCalc.lateFeeAmount,
+          packageName: packageInfo.packageName,
+          isFallbackPricing: packageInfo.isFallback
+        },
         notificationsSent: {
-          client: notifyClient && session.client?.email ? true : false,
-          trainer: notifyTrainer && session.trainer?.email ? true : false
+          client: shouldSendNotifications && notifyClient && session.client?.email ? true : false,
+          trainer: shouldSendNotifications && notifyTrainer && session.trainer?.email ? true : false,
+          silentMode: silent
         }
       }
     });
@@ -4220,6 +4268,13 @@ router.get("/:userId", protect, async (req, res) => {
  * @route   GET /api/sessions/admin/cancelled
  * @desc    ADMIN: Get all cancelled sessions with cancellation details
  * @access  Private (Admin only)
+ *
+ * MindBody Parity: Added decisionStatus filter for admin review workflow
+ *
+ * Query params:
+ * - decisionStatus: 'pending' | 'charged' | 'waived' | 'all' (default: 'all')
+ * - chargeStatus: 'charged' | 'uncharged' | 'all' (legacy, maps to decision)
+ * - startDate, endDate: Date range filter
  */
 router.get("/admin/cancelled", protect, adminOnly, async (req, res) => {
   try {
@@ -4231,7 +4286,8 @@ router.get("/admin/cancelled", protect, adminOnly, async (req, res) => {
       offset = 0,
       startDate,
       endDate,
-      chargeStatus // 'charged', 'uncharged', 'all'
+      chargeStatus, // Legacy: 'charged', 'uncharged', 'all'
+      decisionStatus = 'all' // New: 'pending', 'charged', 'waived', 'all'
     } = req.query;
 
     // Build where clause
@@ -4244,11 +4300,18 @@ router.get("/admin/cancelled", protect, adminOnly, async (req, res) => {
       };
     }
 
-    // Charge status filter
-    if (chargeStatus === 'charged') {
-      whereClause.cancellationChargedAt = { [Op.ne]: null };
-    } else if (chargeStatus === 'uncharged') {
-      whereClause.cancellationChargedAt = null;
+    // Decision status filter (new MindBody parity feature)
+    if (decisionStatus && decisionStatus !== 'all') {
+      whereClause.cancellationDecision = decisionStatus;
+    }
+
+    // Legacy charge status filter (for backwards compatibility)
+    if (!decisionStatus || decisionStatus === 'all') {
+      if (chargeStatus === 'charged') {
+        whereClause.cancellationChargedAt = { [Op.ne]: null };
+      } else if (chargeStatus === 'uncharged') {
+        whereClause.cancellationChargedAt = null;
+      }
     }
 
     const { count, rows: cancelledSessions } = await Session.findAndCountAll({
@@ -4263,6 +4326,12 @@ router.get("/admin/cancelled", protect, adminOnly, async (req, res) => {
         {
           model: User,
           as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName'],
+          required: false
+        },
+        {
+          model: User,
+          as: 'reviewer',
           attributes: ['id', 'firstName', 'lastName'],
           required: false
         }
@@ -4282,16 +4351,32 @@ router.get("/admin/cancelled", protect, adminOnly, async (req, res) => {
       const hoursUntilSession = (sessionTime - cancellationTime) / (1000 * 60 * 60);
       const isLateCancellation = hoursUntilSession < 24 && hoursUntilSession >= 0;
 
-      // Calculate if charge is pending (late cancellation but not charged)
+      // Calculate if charge is pending (late cancellation but not decided)
       const chargePending = isLateCancellation &&
-        !sessionData.cancellationChargedAt &&
-        sessionData.cancellationChargeType !== 'none';
+        (!sessionData.cancellationDecision || sessionData.cancellationDecision === 'pending');
+
+      // Build reviewer info if available
+      let reviewerInfo = null;
+      if (sessionData.cancellationReviewedBy) {
+        reviewerInfo = {
+          id: sessionData.cancellationReviewedBy,
+          name: sessionData.reviewer
+            ? `${sessionData.reviewer.firstName} ${sessionData.reviewer.lastName}`
+            : 'Admin',
+          reviewedAt: sessionData.cancellationReviewedAt
+        };
+      }
 
       return {
         ...sessionData,
         isLateCancellation,
         hoursUntilSession: Math.max(0, hoursUntilSession),
         chargePending,
+        // Decision status (new)
+        decision: sessionData.cancellationDecision || 'pending',
+        reviewReason: sessionData.cancellationReviewReason,
+        reviewerInfo,
+        // Client/trainer names
         clientName: sessionData.client
           ? `${sessionData.client.firstName} ${sessionData.client.lastName}`
           : 'Unknown Client',
@@ -4309,6 +4394,12 @@ router.get("/admin/cancelled", protect, adminOnly, async (req, res) => {
         limit: parseInt(limit),
         offset: parseInt(offset),
         hasMore: (parseInt(offset) + processedSessions.length) < count
+      },
+      // Summary stats for dashboard
+      stats: {
+        pending: processedSessions.filter(s => s.decision === 'pending').length,
+        charged: processedSessions.filter(s => s.decision === 'charged').length,
+        waived: processedSessions.filter(s => s.decision === 'waived').length
       }
     });
 
@@ -4426,15 +4517,48 @@ router.get("/:sessionId/client-package-price", protect, adminOnly, async (req, r
 
 /**
  * @route   POST /api/sessions/:sessionId/charge-cancellation
- * @desc    ADMIN: Charge a client for a late cancellation
+ * @desc    ADMIN: Charge/waive a client for a late cancellation with audit trail
  * @access  Private (Admin only)
+ *
+ * MindBody Parity: Admin decision with reason tracking
+ *
+ * Request body:
+ * {
+ *   decision: 'charged' | 'waived',  // Explicit decision (required)
+ *   reason: string,                   // Required for waived, optional for charged
+ *   chargeType: 'none' | 'late_fee' | 'full' | 'partial' | 'custom',
+ *   chargeAmount: number (optional, for custom amount)
+ * }
  */
 router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, res) => {
   try {
     const Session = getSession();
     const User = getUser();
+    const Order = getOrder();
+    const StorefrontItem = getStorefrontItem();
     const { sessionId } = req.params;
-    const { chargeType = 'late_fee', chargeAmount } = req.body;
+    const {
+      decision,
+      reason,
+      chargeType = 'late_fee',
+      chargeAmount
+    } = req.body;
+
+    // Validate decision is provided
+    if (!decision || !['charged', 'waived'].includes(decision)) {
+      return res.status(400).json({
+        success: false,
+        message: "Decision is required and must be 'charged' or 'waived'"
+      });
+    }
+
+    // Validate reason is required for waived decisions
+    if (decision === 'waived' && (!reason || reason.trim().length === 0)) {
+      return res.status(400).json({
+        success: false,
+        message: "Reason is required when waiving a cancellation charge"
+      });
+    }
 
     const session = await Session.findByPk(sessionId, {
       include: [
@@ -4460,120 +4584,64 @@ router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, r
       });
     }
 
-    if (session.cancellationChargedAt) {
-      return res.status(400).json({
-        success: false,
-        message: "This cancellation has already been charged"
-      });
-    }
+    // Track if this is updating an existing decision (for audit)
+    const isUpdatingDecision = session.cancellationDecision && session.cancellationDecision !== 'pending';
+    const previousDecision = session.cancellationDecision;
 
-    // Handle 'none' chargeType - mark as processed without charging
-    if (chargeType === 'none') {
-      session.cancellationChargeType = 'none';
-      session.cancellationChargeAmount = 0;
-      session.cancellationChargedAt = new Date();
-      await session.save();
-
-      logger.info(`Cancellation marked as no charge for session ${sessionId}`, {
-        sessionId,
-        chargeType: 'none',
-        processedBy: req.user.id
-      });
-
-      return res.json({
-        success: true,
-        message: "Cancellation processed - no charge applied",
-        data: {
-          sessionId: session.id,
-          chargeType: 'none',
-          chargeAmount: 0,
-          chargedAt: session.cancellationChargedAt
-        }
-      });
-    }
-
-    // Look up client's package price from their most recent completed order
-    let packagePricePerSession = null;
-    let packageDuration = 60; // Default 60 minutes
-
+    // Get package pricing using unified helper
+    let packageInfo = { pricePerSession: 175, packageName: 'Fallback', isFallback: true };
     if (session.userId) {
       try {
-        const Order = getOrder();
-        const OrderItem = getOrderItem();
-        const StorefrontItem = getStorefrontItem();
-
-        const clientOrder = await Order.findOne({
-          where: {
-            userId: session.userId,
-            status: 'completed'
-          },
-          order: [['completedAt', 'DESC'], ['createdAt', 'DESC']],
-          include: [{
-            model: OrderItem,
-            as: 'orderItems',
-            include: [{
-              model: StorefrontItem,
-              as: 'storefrontItem',
-              attributes: ['id', 'name', 'pricePerSession', 'sessions', 'totalSessions']
-            }]
-          }]
-        });
-
-        if (clientOrder && clientOrder.orderItems && clientOrder.orderItems.length > 0) {
-          // Find the first order item with a storefront item that has pricePerSession
-          for (const item of clientOrder.orderItems) {
-            if (item.storefrontItem && item.storefrontItem.pricePerSession) {
-              packagePricePerSession = parseFloat(item.storefrontItem.pricePerSession);
-              logger.info(`Found client package price: $${packagePricePerSession}`, {
-                sessionId,
-                userId: session.userId,
-                storefrontItemId: item.storefrontItem.id,
-                packageName: item.storefrontItem.name
-              });
-              break;
-            }
-          }
-        }
-      } catch (orderError) {
-        logger.warn(`Could not fetch client package price: ${orderError.message}`, {
-          sessionId,
-          userId: session.userId
-        });
+        packageInfo = await getClientPackagePricing(session.userId, { Order, StorefrontItem });
+      } catch (pricingError) {
+        logger.warn(`Could not fetch package pricing: ${pricingError.message}`);
       }
     }
 
-    // Determine session duration for fallback pricing
-    const sessionDuration = session.duration || 60;
+    // Compute charge based on decision
+    let actualChargeAmount = 0;
+    let actualChargeType = chargeType;
 
-    // Default charge amount based on type
-    let actualChargeAmount = chargeAmount;
-    if (!actualChargeAmount && actualChargeAmount !== 0) {
-      // Use package price if available, otherwise use duration-based defaults
-      const defaultRate = packagePricePerSession || (sessionDuration >= 60 ? 175 : 100);
-
-      switch (chargeType) {
-        case 'full':
-          actualChargeAmount = defaultRate; // Full session rate from package
-          break;
-        case 'late_fee':
-          actualChargeAmount = Math.round(defaultRate * 0.5); // 50% for late fee
-          break;
-        case 'partial':
-          actualChargeAmount = Math.round(defaultRate * 0.5); // Half session
-          break;
-        default:
-          actualChargeAmount = Math.round(defaultRate * 0.5); // Default to 50%
-      }
+    if (decision === 'waived') {
+      // Waived = no charge
+      actualChargeAmount = 0;
+      actualChargeType = 'none';
+    } else {
+      // Charged - use pricing helper
+      const chargeCalc = computeCancellationCharge(session, packageInfo, {
+        chargeType,
+        customAmount: chargeAmount
+      });
+      actualChargeAmount = chargeCalc.chargeAmount;
+      actualChargeType = chargeCalc.chargeType;
     }
 
-    // Update session with charge details
-    session.cancellationChargeType = chargeType;
+    const now = new Date();
+
+    // Update session with charge details and audit fields
+    session.cancellationChargeType = actualChargeType;
     session.cancellationChargeAmount = actualChargeAmount;
-    session.cancellationChargedAt = new Date();
+    session.cancellationChargedAt = now;
+    session.cancellationDecision = decision;
+    session.cancellationReviewedBy = req.user.id;
+    session.cancellationReviewedAt = now;
+    session.cancellationReviewReason = reason || null;
+
+    // If waived, restore session credit if applicable
+    if (decision === 'waived' && session.sessionDeducted && !session.sessionCreditRestored) {
+      const client = await User.findByPk(session.userId);
+      if (client) {
+        const currentSessions = client.availableSessions || 0;
+        await client.update({ availableSessions: currentSessions + 1 });
+        session.sessionCreditRestored = true;
+        logger.info(`Session credit restored for user ${session.userId} due to waived cancellation`);
+      }
+    }
+
     await session.save();
 
-    // Send notification to client
-    if (session.client && session.client.email) {
+    // Send notification to client only if charged (not waived)
+    if (decision === 'charged' && actualChargeAmount > 0 && session.client && session.client.email) {
       const sessionDateFormatted = moment(session.sessionDate).format('MMMM D, YYYY [at] h:mm A');
 
       try {
@@ -4587,7 +4655,7 @@ router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, r
               <p>A cancellation charge has been applied to your account for the following session:</p>
               <div style="background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 15px 0;">
                 <p><strong>Session Date:</strong> ${sessionDateFormatted}</p>
-                <p><strong>Charge Type:</strong> ${chargeType === 'late_fee' ? 'Late Cancellation Fee' : chargeType === 'full' ? 'Full Session Charge' : 'Partial Charge'}</p>
+                <p><strong>Charge Type:</strong> ${actualChargeType === 'late_fee' ? 'Late Cancellation Fee' : actualChargeType === 'full' ? 'Full Session Charge' : 'Partial Charge'}</p>
                 <p><strong>Amount:</strong> $${actualChargeAmount}</p>
               </div>
               <p>If you have any questions, please contact us.</p>
@@ -4599,21 +4667,37 @@ router.post("/:sessionId/charge-cancellation", protect, adminOnly, async (req, r
       }
     }
 
-    logger.info(`Cancellation charge applied to session ${sessionId}`, {
+    logger.info(`Cancellation decision recorded for session ${sessionId}`, {
       sessionId,
-      chargeType,
+      decision,
+      chargeType: actualChargeType,
       chargeAmount: actualChargeAmount,
-      chargedBy: req.user.id
+      reason: reason || 'N/A',
+      reviewedBy: req.user.id,
+      isUpdate: isUpdatingDecision,
+      previousDecision
     });
 
     res.json({
       success: true,
-      message: "Cancellation charge applied successfully",
+      message: decision === 'waived'
+        ? "Cancellation waived - no charge applied"
+        : `Cancellation charge of $${actualChargeAmount} applied successfully`,
       data: {
         sessionId: session.id,
+        decision: session.cancellationDecision,
         chargeType: session.cancellationChargeType,
-        chargeAmount: session.cancellationChargeAmount,
-        chargedAt: session.cancellationChargedAt
+        chargeAmount: parseFloat(session.cancellationChargeAmount) || 0,
+        chargedAt: session.cancellationChargedAt,
+        reviewedBy: session.cancellationReviewedBy,
+        reviewedAt: session.cancellationReviewedAt,
+        reason: session.cancellationReviewReason,
+        creditRestored: session.sessionCreditRestored,
+        packageInfo: {
+          pricePerSession: packageInfo.pricePerSession,
+          packageName: packageInfo.packageName,
+          isFallback: packageInfo.isFallback
+        }
       }
     });
 
