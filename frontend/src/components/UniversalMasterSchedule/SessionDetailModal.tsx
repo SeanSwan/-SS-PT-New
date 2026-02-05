@@ -44,6 +44,12 @@ interface Session {
     sessionsTotal?: number | null;
     purchasedAt?: string | Date | null;
   };
+  // Attendance tracking fields (Phase D)
+  attendanceStatus?: 'present' | 'no_show' | 'late' | null;
+  checkInTime?: string | null;
+  checkOutTime?: string | null;
+  noShowReason?: string | null;
+  attendanceRecordedAt?: string | null;
 }
 
 interface SessionDetailModalProps {
@@ -98,6 +104,23 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   const [feedbackLoading, setFeedbackLoading] = useState(false);
 
+  // Attendance tracking state (Phase D)
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [noShowReasonInput, setNoShowReasonInput] = useState('');
+  const [showNoShowReason, setShowNoShowReason] = useState(false);
+
+  // Late cancel warning state (Phase E)
+  const [showLateCancelWarning, setShowLateCancelWarning] = useState(false);
+  const [lateCancelWarning, setLateCancelWarning] = useState<{
+    isLateCancellation: boolean;
+    hoursUntilSession: number;
+    lateFeeAmount: number;
+    creditRestored: boolean;
+    warningMessage: string;
+    sessionDateFormatted: string;
+  } | null>(null);
+  const [lateCancelLoading, setLateCancelLoading] = useState(false);
+
   const isBlocked = Boolean(session?.isBlocked) || session?.status === 'blocked';
   const canManage = mode === 'admin' || mode === 'trainer';
   const canManageSeries = mode === 'admin' && Boolean(session?.recurringGroupId);
@@ -138,6 +161,18 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     && (canManage || (mode === 'client' && session.userId === currentUserId))
   );
 
+  // Phase D: Check if attendance can be recorded
+  const canRecordAttendance = Boolean(
+    session
+    && canManage
+    && isTrainerAssigned
+    && !isBlocked
+    && !session.attendanceStatus // Not already recorded
+    && (session.status === 'scheduled' || session.status === 'confirmed')
+  );
+
+  const hasAttendanceRecorded = Boolean(session?.attendanceStatus);
+
   useEffect(() => {
     if (!open || !session) {
       setFormError(null);
@@ -161,6 +196,11 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     setClientComment('');
     setFeedbackSubmitted(session.rating != null && session.rating > 0);
     setFeedbackLoading(false);
+
+    // Phase E: Reset late cancel warning state
+    setShowLateCancelWarning(false);
+    setLateCancelWarning(null);
+    setLateCancelLoading(false);
   }, [open, session]);
 
   useEffect(() => {
@@ -275,6 +315,69 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     }
   };
 
+  // Phase D: Handle attendance recording
+  const handleRecordAttendance = async (status: 'present' | 'no_show' | 'late') => {
+    if (!session) return;
+
+    // For no-show, show reason input first
+    if (status === 'no_show' && !showNoShowReason) {
+      setShowNoShowReason(true);
+      return;
+    }
+
+    setFormError(null);
+    setAttendanceLoading(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setFormError('Please log in to record attendance.');
+        return;
+      }
+
+      const payload: {
+        attendanceStatus: string;
+        noShowReason?: string;
+        notes?: string;
+      } = {
+        attendanceStatus: status
+      };
+
+      if (status === 'no_show' && noShowReasonInput.trim()) {
+        payload.noShowReason = noShowReasonInput.trim();
+      }
+
+      if (notes.trim()) {
+        payload.notes = notes.trim();
+      }
+
+      const response = await fetch(`/api/sessions/${session.id}/attendance`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || result?.success === false) {
+        setFormError(result?.message || 'Failed to record attendance.');
+        return;
+      }
+
+      setShowNoShowReason(false);
+      setNoShowReasonInput('');
+      onUpdated();
+      onClose();
+    } catch (error) {
+      console.error('Error recording attendance:', error);
+      setFormError('Failed to record attendance. Please try again.');
+    } finally {
+      setAttendanceLoading(false);
+    }
+  };
+
   const handleDeleteSeries = async () => {
     if (!session?.recurringGroupId) {
       return;
@@ -362,6 +465,55 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
     }
   };
 
+  // Phase E: Fetch late cancel warning before showing confirmation
+  const fetchCancelWarning = async () => {
+    if (!session) return;
+
+    setLateCancelLoading(true);
+    setFormError(null);
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setFormError('Please log in to cancel sessions.');
+        return;
+      }
+
+      const response = await fetch(`/api/sessions/${session.id}/cancel-warning`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (!response.ok || result?.success === false) {
+        setFormError(result?.message || 'Failed to check cancellation status.');
+        return;
+      }
+
+      // Store warning info
+      setLateCancelWarning({
+        isLateCancellation: result.isLateCancellation,
+        hoursUntilSession: result.hoursUntilSession,
+        lateFeeAmount: result.cancellationPolicy?.lateFeeAmount || defaultLateFee,
+        creditRestored: result.cancellationPolicy?.creditRestored ?? true,
+        warningMessage: result.warningMessage,
+        sessionDateFormatted: result.sessionDateFormatted
+      });
+
+      // Show the warning dialog
+      setShowLateCancelWarning(true);
+
+    } catch (error) {
+      console.error('Error fetching cancel warning:', error);
+      setFormError('Failed to check cancellation status. Please try again.');
+    } finally {
+      setLateCancelLoading(false);
+    }
+  };
+
   const handleCancelClick = () => {
     // For admins/trainers, show the cancel options panel
     if (canManage) {
@@ -378,9 +530,15 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
         setRestoreCredit(false);
       }
     } else {
-      // For clients, just proceed with basic confirmation
-      handleCancel();
+      // Phase E: For clients, fetch and show late cancel warning first
+      fetchCancelWarning();
     }
+  };
+
+  // Phase E: Proceed with cancellation after warning acknowledgment
+  const handleConfirmLateCancellation = () => {
+    setShowLateCancelWarning(false);
+    handleCancel();
   };
 
   const handleCancel = async () => {
@@ -495,13 +653,13 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           <OutlinedButton onClick={onClose} disabled={loading}>
             Close
           </OutlinedButton>
-          {canCancel && !showCancelOptions && (
+          {canCancel && !showCancelOptions && !showLateCancelWarning && (
             <OutlinedButton
               onClick={handleCancelClick}
-              disabled={loading}
+              disabled={loading || lateCancelLoading}
               style={{ borderColor: '#ef4444', color: '#ef4444' }}
             >
-              Cancel Session
+              {lateCancelLoading ? 'Checking...' : 'Cancel Session'}
             </OutlinedButton>
           )}
           {showCancelOptions && (
@@ -521,7 +679,53 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
               </OutlinedButton>
             </>
           )}
-          {canComplete && (
+          {/* Phase D: Attendance buttons */}
+          {canRecordAttendance && !showCancelOptions && !showNoShowReason && (
+            <>
+              <AttendanceButton
+                onClick={() => handleRecordAttendance('present')}
+                disabled={attendanceLoading}
+                $variant="present"
+              >
+                {attendanceLoading ? 'Recording...' : 'Present'}
+              </AttendanceButton>
+              <AttendanceButton
+                onClick={() => handleRecordAttendance('late')}
+                disabled={attendanceLoading}
+                $variant="late"
+              >
+                Late
+              </AttendanceButton>
+              <AttendanceButton
+                onClick={() => handleRecordAttendance('no_show')}
+                disabled={attendanceLoading}
+                $variant="noshow"
+              >
+                No-Show
+              </AttendanceButton>
+            </>
+          )}
+          {showNoShowReason && (
+            <>
+              <OutlinedButton
+                onClick={() => {
+                  setShowNoShowReason(false);
+                  setNoShowReasonInput('');
+                }}
+                disabled={attendanceLoading}
+              >
+                Back
+              </OutlinedButton>
+              <AttendanceButton
+                onClick={() => handleRecordAttendance('no_show')}
+                disabled={attendanceLoading}
+                $variant="noshow"
+              >
+                {attendanceLoading ? 'Recording...' : 'Confirm No-Show'}
+              </AttendanceButton>
+            </>
+          )}
+          {canComplete && !showNoShowReason && (
             <PrimaryButton onClick={handleComplete} disabled={loading}>
               Mark Complete
             </PrimaryButton>
@@ -533,6 +737,30 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
         <ErrorText style={{ marginBottom: '1rem' }}>
           {formError}
         </ErrorText>
+      )}
+
+      {/* Phase D: No-Show Reason Input */}
+      {showNoShowReason && (
+        <NoShowReasonBox>
+          <Label>No-Show Reason (Optional)</Label>
+          <StyledTextarea
+            value={noShowReasonInput}
+            onChange={(e) => setNoShowReasonInput(e.target.value)}
+            placeholder="Enter reason for no-show..."
+            rows={3}
+          />
+          <SmallText secondary>
+            Client will be notified about the no-show.
+          </SmallText>
+        </NoShowReasonBox>
+      )}
+
+      {/* Show existing no-show reason if recorded */}
+      {session?.noShowReason && (
+        <NoShowReasonDisplay>
+          <Caption secondary>No-Show Reason</Caption>
+          <BodyText>{session.noShowReason}</BodyText>
+        </NoShowReasonDisplay>
       )}
 
       {canManageSeries && (
@@ -575,6 +803,22 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
           <Caption secondary>Status</Caption>
           <StatusBadge $tone={statusTone}>{session.status}</StatusBadge>
         </DetailItem>
+        {hasAttendanceRecorded && (
+          <DetailItem>
+            <Caption secondary>Attendance</Caption>
+            <AttendanceBadge $status={session.attendanceStatus || 'present'}>
+              {session.attendanceStatus === 'present' && 'Present'}
+              {session.attendanceStatus === 'no_show' && 'No-Show'}
+              {session.attendanceStatus === 'late' && 'Late'}
+            </AttendanceBadge>
+          </DetailItem>
+        )}
+        {session.checkInTime && (
+          <DetailItem>
+            <Caption secondary>Checked In</Caption>
+            <SmallText>{new Date(session.checkInTime).toLocaleTimeString()}</SmallText>
+          </DetailItem>
+        )}
         <DetailItem>
           <Caption secondary>Location</Caption>
           <BodyText>{session.location || 'Main Studio'}</BodyText>
@@ -768,7 +1012,100 @@ const SessionDetailModal: React.FC<SessionDetailModalProps> = ({
         </ClientFeedbackPanel>
       )}
 
-      {canCancel && !showCancelOptions && !canManage && (
+      {/* Phase E: Late Cancel Warning for Clients */}
+      {showLateCancelWarning && !canManage && lateCancelWarning && (
+        lateCancelWarning.isLateCancellation ? (
+          <LateCancelWarningPanel>
+            <LateCancelWarningHeader>
+              <LateCancelWarningIcon>⚠️</LateCancelWarningIcon>
+              Late Cancellation Warning
+            </LateCancelWarningHeader>
+            <LateCancelSessionInfo>
+              <LateCancelSessionDate>{lateCancelWarning.sessionDateFormatted}</LateCancelSessionDate>
+              <LateCancelHoursLeft>
+                {lateCancelWarning.hoursUntilSession > 0
+                  ? `${lateCancelWarning.hoursUntilSession.toFixed(1)} hours until session`
+                  : 'Session time has passed'}
+              </LateCancelHoursLeft>
+            </LateCancelSessionInfo>
+            <LateCancelWarningMessage>
+              {lateCancelWarning.warningMessage}
+            </LateCancelWarningMessage>
+            <LateCancelFeeBox>
+              <LateCancelFeeLabel>Late Cancellation Fee</LateCancelFeeLabel>
+              <LateCancelFeeAmount>${lateCancelWarning.lateFeeAmount}</LateCancelFeeAmount>
+            </LateCancelFeeBox>
+            <FormField>
+              <Label htmlFor="cancel-reason">Cancellation Reason (optional)</Label>
+              <StyledInput
+                id="cancel-reason"
+                type="text"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Reason for cancelling"
+              />
+            </FormField>
+            <LateCancelButtonRow>
+              <LateCancelBackButton
+                onClick={() => setShowLateCancelWarning(false)}
+                disabled={loading}
+              >
+                Go Back
+              </LateCancelBackButton>
+              <LateCancelContinueButton
+                onClick={handleConfirmLateCancellation}
+                disabled={loading}
+              >
+                {loading ? 'Cancelling...' : 'I Understand, Cancel Session'}
+              </LateCancelContinueButton>
+            </LateCancelButtonRow>
+          </LateCancelWarningPanel>
+        ) : (
+          <EarlyCancelPanel>
+            <EarlyCancelHeader>
+              <span>✓</span>
+              Free Cancellation Available
+            </EarlyCancelHeader>
+            <LateCancelSessionInfo>
+              <LateCancelSessionDate>{lateCancelWarning.sessionDateFormatted}</LateCancelSessionDate>
+              <LateCancelHoursLeft>
+                {lateCancelWarning.hoursUntilSession.toFixed(1)} hours until session
+              </LateCancelHoursLeft>
+            </LateCancelSessionInfo>
+            <LateCancelWarningMessage style={{ color: 'rgba(16, 185, 129, 0.9)' }}>
+              {lateCancelWarning.warningMessage}
+            </LateCancelWarningMessage>
+            <FormField>
+              <Label htmlFor="cancel-reason">Cancellation Reason (optional)</Label>
+              <StyledInput
+                id="cancel-reason"
+                type="text"
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Reason for cancelling"
+              />
+            </FormField>
+            <LateCancelButtonRow>
+              <LateCancelBackButton
+                onClick={() => setShowLateCancelWarning(false)}
+                disabled={loading}
+              >
+                Go Back
+              </LateCancelBackButton>
+              <LateCancelContinueButton
+                onClick={handleConfirmLateCancellation}
+                disabled={loading}
+                style={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
+              >
+                {loading ? 'Cancelling...' : 'Cancel Session (No Fee)'}
+              </LateCancelContinueButton>
+            </LateCancelButtonRow>
+          </EarlyCancelPanel>
+        )
+      )}
+
+      {/* Original client cancel section - hidden when warning is shown */}
+      {canCancel && !showCancelOptions && !canManage && !showLateCancelWarning && (
         <FormField>
           <Label htmlFor="cancel-reason">Cancellation Reason (optional)</Label>
           <StyledInput
@@ -1077,6 +1414,141 @@ const LateCancelWarning = styled.span`
   font-weight: 500;
 `;
 
+// Phase E: Late Cancel Warning Dialog Styles
+const LateCancelWarningPanel = styled.div`
+  padding: 1.25rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  border-radius: 12px;
+  margin: 1rem 0;
+`;
+
+const LateCancelWarningHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  color: #ef4444;
+  font-weight: 600;
+  font-size: 1.1rem;
+`;
+
+const LateCancelWarningIcon = styled.span`
+  font-size: 1.5rem;
+`;
+
+const LateCancelWarningMessage = styled.p`
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0 0 1rem 0;
+`;
+
+const LateCancelFeeBox = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(239, 68, 68, 0.15);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+`;
+
+const LateCancelFeeLabel = styled.span`
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+`;
+
+const LateCancelFeeAmount = styled.span`
+  color: #ef4444;
+  font-weight: 600;
+  font-size: 1.1rem;
+`;
+
+const LateCancelSessionInfo = styled.div`
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+`;
+
+const LateCancelSessionDate = styled.div`
+  color: white;
+  font-weight: 500;
+  font-size: 0.95rem;
+`;
+
+const LateCancelHoursLeft = styled.div`
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+`;
+
+const LateCancelButtonRow = styled.div`
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+`;
+
+const LateCancelContinueButton = styled.button`
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+const LateCancelBackButton = styled.button`
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+`;
+
+// Early (no penalty) cancel confirmation styling
+const EarlyCancelPanel = styled.div`
+  padding: 1.25rem;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: 12px;
+  margin: 1rem 0;
+`;
+
+const EarlyCancelHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  color: #10b981;
+  font-weight: 600;
+  font-size: 1.1rem;
+`;
+
 const PackageInfoBanner = styled.div`
   display: flex;
   flex-direction: column;
@@ -1350,4 +1822,107 @@ const FeedbackThankYou = styled.div`
   gap: 0.5rem;
   padding: 1.5rem;
   text-align: center;
+`;
+
+// Phase D: Attendance Styled Components
+const AttendanceButton = styled.button<{ $variant: 'present' | 'late' | 'noshow' }>`
+  padding: 0.625rem 1.25rem;
+  min-height: 44px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid;
+
+  ${props => {
+    switch (props.$variant) {
+      case 'present':
+        return `
+          background: rgba(16, 185, 129, 0.15);
+          border-color: #10b981;
+          color: #10b981;
+          &:hover:not(:disabled) {
+            background: rgba(16, 185, 129, 0.25);
+          }
+        `;
+      case 'late':
+        return `
+          background: rgba(245, 158, 11, 0.15);
+          border-color: #f59e0b;
+          color: #f59e0b;
+          &:hover:not(:disabled) {
+            background: rgba(245, 158, 11, 0.25);
+          }
+        `;
+      case 'noshow':
+        return `
+          background: rgba(239, 68, 68, 0.15);
+          border-color: #ef4444;
+          color: #ef4444;
+          &:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.25);
+          }
+        `;
+    }
+  }}
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const AttendanceBadge = styled.span<{ $status: 'present' | 'no_show' | 'late' }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+
+  ${props => {
+    switch (props.$status) {
+      case 'present':
+        return `
+          background: rgba(16, 185, 129, 0.15);
+          border: 1px solid rgba(16, 185, 129, 0.4);
+          color: #10b981;
+        `;
+      case 'late':
+        return `
+          background: rgba(245, 158, 11, 0.15);
+          border: 1px solid rgba(245, 158, 11, 0.4);
+          color: #f59e0b;
+        `;
+      case 'no_show':
+        return `
+          background: rgba(239, 68, 68, 0.15);
+          border: 1px solid rgba(239, 68, 68, 0.4);
+          color: #ef4444;
+        `;
+    }
+  }}
+`;
+
+const NoShowReasonBox = styled.div`
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+
+  textarea {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+`;
+
+const NoShowReasonDisplay = styled.div`
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
 `;
