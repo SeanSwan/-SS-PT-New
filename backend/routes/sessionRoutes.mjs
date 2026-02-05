@@ -1693,6 +1693,111 @@ router.put("/reschedule/:sessionId", protect, async (req, res) => {
 });
 
 /**
+ * @route   GET /api/sessions/:sessionId/cancel-warning
+ * @desc    Get late cancellation warning info before cancelling
+ * @access  Private
+ *
+ * Phase E: Late Cancel Warning
+ * Returns information about whether cancellation would be "late" (< 24 hours)
+ * and what fees may apply.
+ */
+router.get("/:sessionId/cancel-warning", protect, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const { sessionId } = req.params;
+
+    const session = await Session.findByPk(sessionId, {
+      include: [
+        { model: User, as: 'client', attributes: ['id', 'firstName', 'lastName'] },
+        { model: User, as: 'trainer', attributes: ['id', 'firstName', 'lastName'] }
+      ]
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found."
+      });
+    }
+
+    // Check authorization - user must be admin, trainer, or session owner
+    const isAdmin = req.user.role === 'admin';
+    const isTrainer = req.user.role === 'trainer' && session.trainerId === req.user.id;
+    const isOwner = session.userId === req.user.id;
+
+    if (!isAdmin && !isTrainer && !isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to view this session."
+      });
+    }
+
+    // Check if session is cancellable
+    if (!['scheduled', 'confirmed', 'requested'].includes(session.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Session cannot be cancelled. Current status: ${session.status}`,
+        canCancel: false
+      });
+    }
+
+    // Calculate hours until session
+    const sessionTime = new Date(session.sessionDate).getTime();
+    const now = Date.now();
+    const hoursUntilSession = (sessionTime - now) / (1000 * 60 * 60);
+    const isLateCancellation = hoursUntilSession < 24;
+
+    // Define cancellation policy
+    const defaultLateFee = 25; // Could be configured per client/package
+    const cancellationPolicyHours = 24;
+
+    // Format session date for display
+    const sessionDateFormatted = new Date(session.sessionDate).toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    // Build warning response
+    const response = {
+      success: true,
+      canCancel: true,
+      sessionId: session.id,
+      sessionDate: session.sessionDate,
+      sessionDateFormatted,
+      trainerName: session.trainer ? `${session.trainer.firstName} ${session.trainer.lastName}` : null,
+      clientName: session.client ? `${session.client.firstName} ${session.client.lastName}` : null,
+      isLateCancellation,
+      hoursUntilSession: Math.max(0, Math.round(hoursUntilSession * 10) / 10),
+      cancellationPolicy: {
+        requiredNoticeHours: cancellationPolicyHours,
+        lateFeeAmount: defaultLateFee,
+        creditRestored: !isLateCancellation // Credit only restored for early cancellations
+      },
+      warningMessage: isLateCancellation
+        ? `This is a late cancellation. Sessions cancelled less than ${cancellationPolicyHours} hours in advance may be subject to a $${defaultLateFee} late cancellation fee. Your session credit may not be restored.`
+        : `You may cancel this session without penalty. Your session credit will be restored.`,
+      confirmationRequired: isLateCancellation
+    };
+
+    logger.info(`Cancel warning requested for session ${sessionId} by user ${req.user.id}. Late: ${isLateCancellation}`);
+
+    res.status(200).json(response);
+
+  } catch (error) {
+    logger.error("Error fetching cancel warning:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error fetching cancellation info."
+    });
+  }
+});
+
+/**
  * @route   DELETE /api/sessions/cancel/:sessionId
  * @desc    CLIENT: Cancel a scheduled session.
  * @access  Private
@@ -2661,6 +2766,259 @@ router.put("/complete/:sessionId", protect, async (req, res) => {
   } catch (error) {
     console.error("Error completing session:", error);
     res.status(500).json({ message: "Server error completing session" });
+  }
+});
+
+/**
+ * @route   PATCH /api/sessions/:sessionId/attendance
+ * @desc    Record attendance for a session (Mark Present/No-Show/Late)
+ * @access  Private (Trainer/Admin only)
+ *
+ * Body:
+ * - attendanceStatus: 'present' | 'no_show' | 'late' (required)
+ * - checkInTime: ISO8601 timestamp (optional, defaults to now for 'present'/'late')
+ * - checkOutTime: ISO8601 timestamp (optional)
+ * - noShowReason: string (optional, for 'no_show')
+ * - notes: string (optional, additional notes)
+ */
+router.patch("/:sessionId/attendance", protect, async (req, res) => {
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const { sessionId } = req.params;
+    const { attendanceStatus, checkInTime, checkOutTime, noShowReason, notes } = req.body;
+
+    // Only trainers and admins can record attendance
+    if (req.user.role !== 'admin' && req.user.role !== 'trainer') {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to record attendance'
+      });
+    }
+
+    // Validate attendance status
+    const validStatuses = ['present', 'no_show', 'late'];
+    if (!attendanceStatus || !validStatuses.includes(attendanceStatus)) {
+      return res.status(400).json({
+        success: false,
+        message: `Attendance status must be one of: ${validStatuses.join(', ')}`
+      });
+    }
+
+    // Find the session
+    const session = await Session.findByPk(sessionId, {
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        },
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        }
+      ]
+    });
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: 'Session not found'
+      });
+    }
+
+    // Trainers can only record attendance for their own sessions
+    if (req.user.role === 'trainer' && session.trainerId !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: 'Trainers can only record attendance for their own sessions'
+      });
+    }
+
+    // Validate session is in a state where attendance can be recorded
+    const validStatesForAttendance = ['scheduled', 'confirmed'];
+    if (!validStatesForAttendance.includes(session.status) && session.status !== 'completed') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot record attendance for session with status: ${session.status}. Session must be scheduled or confirmed.`
+      });
+    }
+
+    // Record attendance
+    const now = new Date();
+    session.attendanceStatus = attendanceStatus;
+    session.markedPresentBy = req.user.id;
+    session.attendanceRecordedAt = now;
+
+    // Set check-in time
+    if (attendanceStatus === 'present' || attendanceStatus === 'late') {
+      session.checkInTime = checkInTime ? new Date(checkInTime) : now;
+    }
+
+    // Set check-out time if provided
+    if (checkOutTime) {
+      session.checkOutTime = new Date(checkOutTime);
+    }
+
+    // Set no-show reason if applicable
+    if (attendanceStatus === 'no_show' && noShowReason) {
+      session.noShowReason = noShowReason;
+    }
+
+    // Add notes if provided
+    if (notes) {
+      session.notes = session.notes
+        ? `${session.notes}\n\nAttendance Note (${now.toISOString()}): ${notes}`
+        : `Attendance Note (${now.toISOString()}): ${notes}`;
+    }
+
+    // If marking present/late, also mark session as completed
+    if (attendanceStatus === 'present' || attendanceStatus === 'late') {
+      session.status = 'completed';
+    }
+
+    await session.save();
+
+    // Broadcast real-time update
+    try {
+      if (attendanceStatus === 'present' || attendanceStatus === 'late') {
+        realTimeScheduleService.broadcastSessionCompleted(session, session.client);
+      } else {
+        realTimeScheduleService.broadcastSessionUpdated(session);
+      }
+    } catch (broadcastError) {
+      logger.warn('Failed to broadcast attendance update:', broadcastError.message);
+    }
+
+    // Send notifications for no-show
+    if (attendanceStatus === 'no_show' && session.client) {
+      const client = session.client;
+      const sessionDateFormatted = new Date(session.sessionDate).toLocaleString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+
+      if (client.email && shouldNotifyClient({ user: client, channel: 'email', notifyClient: true })) {
+        await sendEmailNotification({
+          to: client.email,
+          subject: 'Missed Session Notification',
+          text: `You were marked as a no-show for your session on ${sessionDateFormatted}.`,
+          html: `<p>You were marked as a <strong>no-show</strong> for your session on <strong>${sessionDateFormatted}</strong>.</p>
+                 ${noShowReason ? `<p>Reason noted: ${noShowReason}</p>` : ''}
+                 <p>If you believe this is an error, please contact us.</p>`
+        });
+      }
+    }
+
+    // Fetch updated session with associations
+    const updatedSession = await Session.findByPk(sessionId, {
+      include: [
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        },
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'phone'],
+          required: false
+        }
+      ]
+    });
+
+    logger.info(`Attendance recorded for session ${sessionId}: ${attendanceStatus} by user ${req.user.id}`);
+
+    res.status(200).json({
+      success: true,
+      message: `Attendance recorded: ${attendanceStatus}`,
+      session: updatedSession
+    });
+  } catch (error) {
+    logger.error('Error recording attendance:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error recording attendance',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * @route   GET /api/sessions/attendance-report
+ * @desc    Get attendance statistics for a trainer or all sessions (Admin)
+ * @access  Private (Trainer/Admin)
+ */
+router.get("/attendance-report", protect, async (req, res) => {
+  try {
+    const Session = getSession();
+    const { trainerId, startDate, endDate, clientId } = req.query;
+
+    // Build query conditions
+    const where = {
+      attendanceStatus: { [Op.not]: null }
+    };
+
+    // Trainers can only see their own sessions
+    if (req.user.role === 'trainer') {
+      where.trainerId = req.user.id;
+    } else if (trainerId) {
+      where.trainerId = parseInt(trainerId);
+    }
+
+    if (clientId) {
+      where.userId = parseInt(clientId);
+    }
+
+    if (startDate) {
+      where.sessionDate = { ...where.sessionDate, [Op.gte]: new Date(startDate) };
+    }
+
+    if (endDate) {
+      where.sessionDate = { ...where.sessionDate, [Op.lte]: new Date(endDate) };
+    }
+
+    // Get attendance counts
+    const sessions = await Session.findAll({
+      where,
+      attributes: ['attendanceStatus'],
+      raw: true
+    });
+
+    const stats = {
+      total: sessions.length,
+      present: sessions.filter(s => s.attendanceStatus === 'present').length,
+      noShow: sessions.filter(s => s.attendanceStatus === 'no_show').length,
+      late: sessions.filter(s => s.attendanceStatus === 'late').length,
+      attendanceRate: 0,
+      noShowRate: 0
+    };
+
+    if (stats.total > 0) {
+      stats.attendanceRate = Math.round(((stats.present + stats.late) / stats.total) * 100);
+      stats.noShowRate = Math.round((stats.noShow / stats.total) * 100);
+    }
+
+    res.status(200).json({
+      success: true,
+      stats,
+      filters: { trainerId, clientId, startDate, endDate }
+    });
+  } catch (error) {
+    logger.error('Error fetching attendance report:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error fetching attendance report',
+      error: error.message
+    });
   }
 });
 

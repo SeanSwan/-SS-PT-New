@@ -16,6 +16,13 @@ const SESSION_STATUSES = [
   'blocked'
 ];
 
+// Define attendance statuses for check-in tracking
+const ATTENDANCE_STATUSES = [
+  'present',   // Client showed up
+  'no_show',   // Client did not show up
+  'late'       // Client arrived late
+];
+
 Session.init({
   id: {
     type: DataTypes.INTEGER,
@@ -235,6 +242,44 @@ Session.init({
     allowNull: true,
     defaultValue: null,
     comment: 'Timestamp when cancellation charge was processed'
+  },
+  // Phase D: Check-In / Attendance Tracking Fields
+  attendanceStatus: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Attendance status: present, no_show, late, or null',
+    validate: {
+      isIn: {
+        args: [['present', 'no_show', 'late', null]],
+        msg: 'Attendance status must be one of: present, no_show, late'
+      }
+    }
+  },
+  checkInTime: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Timestamp when client checked in'
+  },
+  checkOutTime: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Timestamp when client checked out'
+  },
+  noShowReason: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Reason for no-show (if applicable)'
+  },
+  markedPresentBy: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    comment: 'User ID of admin/trainer who recorded attendance'
+  },
+  attendanceRecordedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Timestamp when attendance was recorded'
   }
 }, {
   sequelize,
