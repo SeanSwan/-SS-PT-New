@@ -24,9 +24,15 @@ Notification.init(
       allowNull: false,
     },
     type: {
-      type: DataTypes.ENUM('orientation', 'system', 'order', 'workout', 'client', 'admin'),
+      type: DataTypes.STRING(20),
       allowNull: false,
       defaultValue: 'system',
+      validate: {
+        isIn: {
+          args: [['orientation', 'system', 'order', 'workout', 'client', 'admin', 'session', 'achievement', 'reward']],
+          msg: 'Invalid notification type'
+        }
+      }
     },
     read: {
       type: DataTypes.BOOLEAN,
