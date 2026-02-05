@@ -215,16 +215,17 @@ const setupAssociations = async () => {
       }
       
       return {
-        User, SessionType, ClientProgress, Gamification, Achievement, GamificationSettings,
+        User, Session, SessionType, ClientProgress, Gamification, Achievement, GamificationSettings,
         UserAchievement, UserReward, UserMilestone, Reward, Milestone,
         PointTransaction, StorefrontItem, ShoppingCart, CartItem, Order,
-        OrderItem, Package, AdminSpecial, FoodIngredient, FoodProduct, FoodScanHistory,
+        OrderItem, SessionPackage, Package, AdminSpecial, FoodIngredient, FoodProduct, FoodScanHistory,
         SocialPost, SocialComment, SocialLike, Friendship, SocialChallenge, SocialChallengeParticipant, ChallengeTeam,
         PostReport, ModerationAction,
+        Challenge, ChallengeParticipant, Goal, ProgressData, UserFollow,
         WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, WorkoutSession, WorkoutExercise, Exercise, Set,
         MuscleGroup, ExerciseMuscleGroup, Equipment, ExerciseEquipment,
         Orientation, Notification, NotificationSettings, AdminSettings, Contact,
-      FinancialTransaction, BusinessMetrics, AdminNotification,
+        FinancialTransaction, BusinessMetrics, AdminNotification,
         ClientTrainerAssignment, TrainerPermissions, TrainerAvailability, DailyWorkoutForm, ClientOnboardingQuestionnaire,
         ClientBaselineMeasurements, ClientNutritionPlan, ClientPhoto, ClientNote,
         AutomationSequence, AutomationLog

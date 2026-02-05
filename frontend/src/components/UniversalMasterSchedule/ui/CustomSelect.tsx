@@ -1,17 +1,20 @@
 /**
- * Custom Select Component
- * =======================
- * Fully accessible dropdown to replace MUI Select
- * 
+ * Custom Select Component - React Portal Edition
+ * ===============================================
+ * Fully accessible dropdown with React Portal for proper z-index handling
+ *
  * Features:
+ * - React Portal to escape modal overflow clipping
  * - Keyboard navigation (Arrow keys, Enter, ESC)
  * - Click to open/close
  * - Search/filter options
  * - ARIA attributes
  * - Full accessibility
+ * - Proper positioning relative to trigger
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import styled from 'styled-components';
 import { ChevronDown, Check } from 'lucide-react';
 
@@ -39,40 +42,53 @@ const SelectButton = styled.button<{ isOpen: boolean; hasError?: boolean }>`
   align-items: center;
   text-align: left;
   outline: none;
-  
+  min-height: 44px; /* Mobile touch target */
+
   &:hover {
     border-color: rgba(255, 255, 255, 0.3);
     background: rgba(255, 255, 255, 0.08);
   }
-  
+
   &:focus-visible {
     border-color: #3b82f6;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
-  
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
-  
+
   svg {
     flex-shrink: 0;
     transition: transform 0.2s ease;
     transform: ${props => props.isOpen ? 'rotate(180deg)' : 'rotate(0)'};
   }
-  
+
   .placeholder {
     color: rgba(255, 255, 255, 0.4);
   }
 `;
 
-// Dropdown menu - uses position:fixed to escape modal stacking context
-const DropdownMenu = styled.ul<{ isOpen: boolean }>`
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 0;
-  right: 0;
-  max-height: 200px;
+// Portal-rendered dropdown container - uses fixed positioning
+const PortalDropdown = styled.div<{
+  isOpen: boolean;
+  top: number;
+  left: number;
+  width: number;
+  openDirection: 'down' | 'up';
+}>`
+  position: fixed;
+  top: ${props => props.top}px;
+  left: ${props => props.left}px;
+  width: ${props => props.width}px;
+  z-index: 999999;
+  pointer-events: ${props => props.isOpen ? 'auto' : 'none'};
+`;
+
+// Dropdown menu - rendered inside portal
+const DropdownMenu = styled.ul<{ isOpen: boolean; openDirection: 'down' | 'up' }>`
+  max-height: 240px;
   background: #0f172a;
   background-color: #0f172a;
   backdrop-filter: none;
@@ -80,40 +96,39 @@ const DropdownMenu = styled.ul<{ isOpen: boolean }>`
   border-radius: 8px;
   overflow-y: auto;
   overflow-x: hidden;
-  z-index: 99999;
   margin: 0;
   padding: 0.5rem 0;
   list-style: none;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.9), 0 0 15px rgba(0, 212, 255, 0.3);
   opacity: ${props => props.isOpen ? 1 : 0};
   visibility: ${props => props.isOpen ? 'visible' : 'hidden'};
-  pointer-events: ${props => props.isOpen ? 'auto' : 'none'};
   transform: ${props => props.isOpen ? 'scale(1)' : 'scale(0.95)'};
-  transform-origin: top center;
+  transform-origin: ${props => props.openDirection === 'up' ? 'bottom center' : 'top center'};
   transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
-  
+
   /* Custom scrollbar */
   &::-webkit-scrollbar {
     width: 8px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.05);
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.2);
     border-radius: 4px;
-    
+
     &:hover {
       background: rgba(255, 255, 255, 0.3);
     }
   }
 `;
 
-// Option item - fully opaque and clickable
+// Option item - fully opaque and clickable with proper touch target
 const OptionItem = styled.li<{ isSelected: boolean; isFocused: boolean }>`
   padding: 0.875rem 1rem;
+  min-height: 44px; /* Mobile touch target */
   color: #ffffff;
   font-size: 0.9rem;
   cursor: pointer;
@@ -158,17 +173,18 @@ const SearchInput = styled.input`
   width: calc(100% - 1rem);
   margin: 0.5rem;
   padding: 0.5rem 0.75rem;
+  min-height: 44px; /* Mobile touch target */
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 4px;
   color: #ffffff;
-  font-size: 0.875rem;
+  font-size: 1rem; /* Prevent iOS zoom */
   outline: none;
-  
+
   &::placeholder {
     color: rgba(255, 255, 255, 0.4);
   }
-  
+
   &:focus {
     border-color: #3b82f6;
   }
@@ -210,13 +226,17 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [focusedIndex, setFocusedIndex] = useState(-1);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [openDirection, setOpenDirection] = useState<'down' | 'up'>('down');
+
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Filter options based on search
   const filteredOptions = searchable && searchQuery
-    ? options.filter(opt => 
+    ? options.filter(opt =>
         opt.label.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : options;
@@ -224,10 +244,60 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   // Get selected option
   const selectedOption = options.find(opt => opt.value === value);
 
+  // Calculate dropdown position when opening
+  const updateDropdownPosition = useCallback(() => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      const dropdownHeight = Math.min(240, filteredOptions.length * 44 + 16); // Estimated height
+
+      // Determine if dropdown should open upward
+      if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+        setOpenDirection('up');
+        setDropdownPosition({
+          top: rect.top - dropdownHeight - 4,
+          left: rect.left,
+          width: rect.width
+        });
+      } else {
+        setOpenDirection('down');
+        setDropdownPosition({
+          top: rect.bottom + 4,
+          left: rect.left,
+          width: rect.width
+        });
+      }
+    }
+  }, [filteredOptions.length]);
+
+  // Update position when opening or on scroll/resize
+  useEffect(() => {
+    if (isOpen) {
+      updateDropdownPosition();
+
+      const handleScroll = () => updateDropdownPosition();
+      const handleResize = () => updateDropdownPosition();
+
+      window.addEventListener('scroll', handleScroll, true);
+      window.addEventListener('resize', handleResize);
+
+      return () => {
+        window.removeEventListener('scroll', handleScroll, true);
+        window.removeEventListener('resize', handleResize);
+      };
+    }
+  }, [isOpen, updateDropdownPosition]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const isInsideContainer = containerRef.current?.contains(target);
+      const isInsideDropdown = dropdownRef.current?.contains(target);
+
+      if (!isInsideContainer && !isInsideDropdown) {
         setIsOpen(false);
         setSearchQuery('');
       }
@@ -243,7 +313,8 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   // Focus search input when dropdown opens
   useEffect(() => {
     if (isOpen && searchable && searchRef.current) {
-      searchRef.current.focus();
+      // Small delay to ensure portal is rendered
+      setTimeout(() => searchRef.current?.focus(), 10);
     }
   }, [isOpen, searchable]);
 
@@ -281,7 +352,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         if (!isOpen) {
           setIsOpen(true);
         } else {
-          setFocusedIndex(prev => 
+          setFocusedIndex(prev =>
             prev < filteredOptions.length - 1 ? prev + 1 : prev
           );
         }
@@ -330,6 +401,68 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
     }
   };
 
+  // Render dropdown via portal
+  const renderDropdown = () => {
+    const dropdown = (
+      <PortalDropdown
+        ref={dropdownRef}
+        isOpen={isOpen}
+        top={dropdownPosition.top}
+        left={dropdownPosition.left}
+        width={dropdownPosition.width}
+        openDirection={openDirection}
+      >
+        <DropdownMenu
+          isOpen={isOpen}
+          openDirection={openDirection}
+          role="listbox"
+          aria-label={ariaLabel || 'Options'}
+        >
+          {searchable && (
+            <SearchInput
+              ref={searchRef}
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setFocusedIndex(-1);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={handleKeyDown}
+            />
+          )}
+
+          {filteredOptions.length === 0 ? (
+            <OptionItem isSelected={false} isFocused={false} style={{ cursor: 'default' }}>
+              No options found
+            </OptionItem>
+          ) : (
+            filteredOptions.map((option, index) => (
+              <OptionItem
+                key={option.value}
+                isSelected={option.value === value}
+                isFocused={index === focusedIndex}
+                onClick={() => handleOptionClick(option)}
+                role="option"
+                aria-selected={option.value === value}
+              >
+                <OptionLabel>{option.label}</OptionLabel>
+                <OptionRight>
+                  {renderOptionTrailing ? renderOptionTrailing(option) : null}
+                  <Check size={16} />
+                </OptionRight>
+              </OptionItem>
+            ))
+          )}
+        </DropdownMenu>
+      </PortalDropdown>
+    );
+
+    // Use portal to render dropdown at document body level
+    return createPortal(dropdown, document.body);
+  };
+
   return (
     <SelectContainer ref={containerRef} onKeyDown={handleKeyDown}>
       <SelectButton
@@ -350,48 +483,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         <ChevronDown size={18} />
       </SelectButton>
 
-      <DropdownMenu
-        isOpen={isOpen}
-        role="listbox"
-        aria-label={ariaLabel || 'Options'}
-      >
-        {searchable && (
-          <SearchInput
-            ref={searchRef}
-            type="text"
-            placeholder="Search..."
-            value={searchQuery}
-            onChange={(e) => {
-              setSearchQuery(e.target.value);
-              setFocusedIndex(-1);
-            }}
-            onClick={(e) => e.stopPropagation()}
-          />
-        )}
-
-        {filteredOptions.length === 0 ? (
-          <OptionItem isSelected={false} isFocused={false} style={{ cursor: 'default' }}>
-            No options found
-          </OptionItem>
-        ) : (
-          filteredOptions.map((option, index) => (
-            <OptionItem
-              key={option.value}
-              isSelected={option.value === value}
-              isFocused={index === focusedIndex}
-              onClick={() => handleOptionClick(option)}
-              role="option"
-              aria-selected={option.value === value}
-            >
-              <OptionLabel>{option.label}</OptionLabel>
-              <OptionRight>
-                {renderOptionTrailing ? renderOptionTrailing(option) : null}
-                <Check size={16} />
-              </OptionRight>
-            </OptionItem>
-          ))
-        )}
-      </DropdownMenu>
+      {renderDropdown()}
     </SelectContainer>
   );
 };
