@@ -90,28 +90,42 @@ module.exports = {
         }
       }
 
-      // Update existing cancelled sessions to have 'pending' decision if they have charges pending
-      await queryInterface.sequelize.query(`
-        UPDATE sessions
-        SET "cancellationDecision" = 'pending'
-        WHERE status = 'cancelled'
-        AND "cancellationDecision" IS NULL
-        AND "cancellationChargedAt" IS NULL
-      `, { transaction });
-      console.log('✅ Updated existing cancelled sessions with pending decision');
+      // Check if cancellationChargedAt column exists before using it
+      const hasChargedAtColumn = tableInfo.cancellationChargedAt !== undefined;
 
-      // Update existing cancelled sessions that were already charged
-      await queryInterface.sequelize.query(`
-        UPDATE sessions
-        SET "cancellationDecision" = CASE
-          WHEN "cancellationChargeType" = 'none' THEN 'waived'
-          ELSE 'charged'
-        END
-        WHERE status = 'cancelled'
-        AND "cancellationDecision" IS NULL
-        AND "cancellationChargedAt" IS NOT NULL
-      `, { transaction });
-      console.log('✅ Updated existing charged/waived sessions');
+      if (hasChargedAtColumn) {
+        // Update existing cancelled sessions to have 'pending' decision if they have charges pending
+        await queryInterface.sequelize.query(`
+          UPDATE sessions
+          SET "cancellationDecision" = 'pending'
+          WHERE status = 'cancelled'
+          AND "cancellationDecision" IS NULL
+          AND "cancellationChargedAt" IS NULL
+        `, { transaction });
+        console.log('✅ Updated existing cancelled sessions with pending decision');
+
+        // Update existing cancelled sessions that were already charged
+        await queryInterface.sequelize.query(`
+          UPDATE sessions
+          SET "cancellationDecision" = CASE
+            WHEN "cancellationChargeType" = 'none' THEN 'waived'
+            ELSE 'charged'
+          END
+          WHERE status = 'cancelled'
+          AND "cancellationDecision" IS NULL
+          AND "cancellationChargedAt" IS NOT NULL
+        `, { transaction });
+        console.log('✅ Updated existing charged/waived sessions');
+      } else {
+        // If cancellationChargedAt doesn't exist, just set all cancelled sessions to 'pending'
+        await queryInterface.sequelize.query(`
+          UPDATE sessions
+          SET "cancellationDecision" = 'pending'
+          WHERE status = 'cancelled'
+          AND "cancellationDecision" IS NULL
+        `, { transaction });
+        console.log('✅ Updated existing cancelled sessions with pending decision (no charge columns yet)');
+      }
 
       await transaction.commit();
       console.log('✅ Migration completed successfully');
