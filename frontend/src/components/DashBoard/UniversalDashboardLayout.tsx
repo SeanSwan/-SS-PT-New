@@ -215,8 +215,9 @@ const UniversalLayoutContainer = styled.div`
     return props.theme[role]?.gradients?.background || props.theme.admin.gradients.background;
   }};
   position: relative;
-  overflow: hidden;
-  
+  /* SCROLL FIX: Removed overflow: hidden which was blocking body scroll */
+  overflow-x: hidden;
+
   /* Role-specific cosmic particle background */
   &::before {
     content: '';
@@ -229,7 +230,7 @@ const UniversalLayoutContainer = styled.div`
       const role = props.theme.currentRole || 'admin';
       const primaryColor = props.theme[role]?.secondary || props.theme.admin.secondary;
       const accentColor = props.theme.common.stellarWhite;
-      
+
       return `
         radial-gradient(2px 2px at 40px 60px, ${primaryColor}30, transparent),
         radial-gradient(1px 1px at 90px 120px, ${primaryColor}20, transparent),
@@ -238,15 +239,28 @@ const UniversalLayoutContainer = styled.div`
     }};
     background-size: 200px 160px;
     background-repeat: repeat;
+    /* SCROLL FIX: Disable animation on mobile to prevent scroll jank */
     animation: universalFloat 60s linear infinite;
     opacity: 0.4;
     pointer-events: none;
     z-index: -1;
+    /* GPU layer promotion for smoother animation */
+    transform: translateZ(0);
+    will-change: transform;
   }
-  
+
   @keyframes universalFloat {
     0% { transform: translateY(0) rotate(0deg); }
     100% { transform: translateY(-20px) rotate(360deg); }
+  }
+
+  /* SCROLL FIX: Disable expensive animation on mobile */
+  @media (max-width: 768px) {
+    &::before {
+      animation: none;
+      transform: none;
+      will-change: auto;
+    }
   }
 `;
 
@@ -256,12 +270,22 @@ const UniversalMainContent = styled(motion.main)`
   padding: ${props => props.theme.spacing.lg};
   min-height: 100vh;
   position: relative;
+  /* SCROLL FIX: Replaced expensive backdrop-filter with solid background on mobile */
   background: rgba(248, 250, 252, 0.02);
-  backdrop-filter: blur(10px);
-  
+  /* GPU layer promotion for smooth scrolling */
+  transform: translateZ(0);
+  -webkit-overflow-scrolling: touch;
+
+  @media (min-width: 769px) {
+    /* Only use backdrop-filter on desktop where it's less impactful */
+    backdrop-filter: blur(10px);
+  }
+
   @media (max-width: 768px) {
     margin-left: 0;
     padding: ${props => props.theme.spacing.md};
+    /* Solid background instead of blur for mobile performance */
+    background: rgba(10, 10, 15, 0.95);
   }
 `;
 
