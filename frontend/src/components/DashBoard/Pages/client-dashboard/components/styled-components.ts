@@ -776,11 +776,20 @@ export const HeatmapDay = styled(Box)<{ intensity: number }>`
     if (props.intensity === 3) return 'rgba(120, 81, 169, 0.6)';
     return 'rgba(120, 81, 169, 0.8)';
   }};
-  transition: all 0.2s ease;
-  
+  /* GPU layer promotion for smoother rendering */
+  transform: translateZ(0);
+
   &:hover {
     transform: scale(1.2);
     box-shadow: 0 0 8px rgba(120, 81, 169, 0.5);
+  }
+
+  @media (max-width: 768px) {
+    /* Disable hover effects on mobile for smoother scrolling */
+    &:hover {
+      transform: translateZ(0);
+      box-shadow: none;
+    }
   }
 `;
 

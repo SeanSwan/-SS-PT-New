@@ -89,14 +89,27 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   ];
 
   return (
-    <PageContainer sx={{ 
+    <PageContainer sx={{
       bgcolor: '#0a0a1a',
-      backgroundImage: 'url("/swan-bg.jpg")',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-      backgroundAttachment: 'fixed',
-      minHeight: '100vh'
+      /* Background image handled via pseudo-element for better mobile scroll performance */
+      position: 'relative',
+      minHeight: '100vh',
+      '&::before': {
+        content: '""',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundImage: 'url("/swan-bg.jpg")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        zIndex: -1,
+        /* GPU acceleration for the background layer */
+        transform: 'translateZ(0)',
+        willChange: 'transform'
+      }
     }}>
       {/* Enhanced SwanStudios Header */}
       <EnhancedDashboardHeader 
