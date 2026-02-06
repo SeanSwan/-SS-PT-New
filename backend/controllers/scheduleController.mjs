@@ -17,10 +17,12 @@ import { QueryTypes } from 'sequelize';
  * Query Params:
  * - start: ISO 8601 string for the start of the date range
  * - end: ISO 8601 string for the end of the date range
+ * - adminScope: 'my' or 'global' (admin only) - MindBody parity toggle
+ * - trainerId: Filter by specific trainer (admin only)
  */
 export const getScheduleEvents = async (req, res) => {
   try {
-    const { start, end } = req.query;
+    const { start, end, adminScope = 'global', trainerId } = req.query;
 
     // Check if user is authenticated
     if (!req.user || !req.user.id) {
@@ -44,37 +46,88 @@ export const getScheduleEvents = async (req, res) => {
       statuses: ['scheduled', 'confirmed', 'completed'],
     };
 
-    // Role-based filtering
+    // Role-based filtering (RBAC - MindBody Parity)
     if (role === 'client') {
+      // SECURITY: Clients can ONLY see their own sessions
       whereClause += ' AND s."userId" = :userId';
       replacements.userId = userId;
     } else if (role === 'trainer') {
+      // SECURITY: Trainers see only sessions assigned to them
       whereClause += ' AND s."trainerId" = :userId';
       replacements.userId = userId;
+    } else if (role === 'admin') {
+      // Admin scope toggle (MindBody parity)
+      if (adminScope === 'my') {
+        // "My Schedule" mode - admin sees only sessions where they are the trainer
+        whereClause += ' AND s."trainerId" = :adminUserId';
+        replacements.adminUserId = userId;
+      } else if (trainerId) {
+        // Filter by specific trainer
+        whereClause += ' AND s."trainerId" = :filterTrainerId';
+        replacements.filterTrainerId = parseInt(trainerId, 10);
+      }
+      // Global mode with no trainerId filter shows all sessions
     }
-    // Admins see all sessions
 
-    const query = `
-      SELECT
+    // Role-based SELECT fields for PII protection
+    // Clients only see their trainer's name, not other client info
+    // Trainers see their clients' names
+    // Admins see all
+    const selectFields = role === 'client'
+      ? `
         s.id,
         s."sessionDate" as start,
         s."sessionDate" + (s.duration || ' minutes')::interval as "end",
         s.status,
+        'Session with ' || t."firstName" || ' ' || t."lastName" as title,
+        json_build_object(
+          'trainerId', t.id,
+          'trainerName', t."firstName" || ' ' || t."lastName"
+        ) as resource
+      `
+      : role === 'trainer'
+      ? `
+        s.id,
+        s."sessionDate" as start,
+        s."sessionDate" + (s.duration || ' minutes')::interval as "end",
+        s.status,
+        'Session with ' || c."firstName" || ' ' || c."lastName" as title,
+        json_build_object(
+          'clientId', c.id,
+          'clientName', c."firstName" || ' ' || c."lastName",
+          'clientEmail', c.email,
+          'clientPhone', c.phone
+        ) as resource
+      `
+      : `
+        s.id,
+        s."sessionDate" as start,
+        s."sessionDate" + (s.duration || ' minutes')::interval as "end",
+        s.status,
+        s."trainerId",
+        s."userId",
         CASE
           WHEN s."userId" = :requestingUserId THEN 'Session with ' || t."firstName" || ' ' || t."lastName"
           WHEN s."trainerId" = :requestingUserId THEN 'Session with ' || c."firstName" || ' ' || c."lastName"
-          ELSE 'Session: ' || c."firstName" || ' & ' || t."firstName"
+          ELSE c."firstName" || ' ' || c."lastName" || ' / ' || t."firstName" || ' ' || t."lastName"
         END as title,
         json_build_object(
           'clientId', c.id,
           'clientName', c."firstName" || ' ' || c."lastName",
+          'clientEmail', c.email,
+          'clientPhone', c.phone,
           'trainerId', t.id,
           'trainerName', t."firstName" || ' ' || t."lastName"
         ) as resource
+      `;
+
+    const query = `
+      SELECT ${selectFields}
       FROM sessions s
       LEFT JOIN users c ON s."userId" = c.id
       LEFT JOIN users t ON s."trainerId" = t.id
       WHERE ${whereClause}
+      ORDER BY s."sessionDate" ASC
     `;
 
     replacements.requestingUserId = userId;

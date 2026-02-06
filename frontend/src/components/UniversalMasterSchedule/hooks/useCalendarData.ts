@@ -83,10 +83,10 @@ export interface CalendarDataActions {
   initializeComponent: (params: {
     realTimeEnabled?: boolean;
   }) => Promise<void>;
-  refreshData: (force?: boolean) => Promise<void>;
-  
+  refreshData: (force?: boolean, filterOptions?: import('../types').FilterOptions) => Promise<void>;
+
   // Granular Data Loading
-  loadSessions: (options?: { force?: boolean; showLoading?: boolean }) => Promise<void>;
+  loadSessions: (options?: { force?: boolean; showLoading?: boolean; filterOptions?: import('../types').FilterOptions }) => Promise<void>;
   loadClients: (options?: { force?: boolean; showLoading?: boolean }) => Promise<void>;
   loadTrainers: (options?: { force?: boolean; showLoading?: boolean }) => Promise<void>;
   loadAssignments: (options?: { force?: boolean; showLoading?: boolean }) => Promise<void>;
@@ -284,20 +284,33 @@ export const useCalendarData = () => {
   
   // ==================== ENHANCED DATA LOADING FUNCTIONS ====================
   
-  const loadSessions = useCallback(async (options: { force?: boolean; showLoading?: boolean } = {}) => {
-    const { force = false, showLoading = true } = options;
-    
+  const loadSessions = useCallback(async (options: { force?: boolean; showLoading?: boolean; filterOptions?: import('../types').FilterOptions } = {}) => {
+    const { force = false, showLoading = true, filterOptions } = options;
+
     try {
       await executeWithCircuitBreaker(
         async () => {
           const userRole = user?.role || 'user';
           const userId = user?.id || '';
-          
+
+          // Build filter options with role info and any additional filters (e.g., adminScope)
+          const filters: import('../types').FilterOptions = {
+            ...(filterOptions || {}),
+            trainerId: filterOptions?.trainerId || '',
+            clientId: filterOptions?.clientId || '',
+            status: filterOptions?.status || 'all',
+            dateRange: filterOptions?.dateRange || 'all',
+            location: filterOptions?.location || '',
+            searchTerm: filterOptions?.searchTerm || ''
+          };
+
+          // Pass role context for backwards compatibility
           if (userRole === 'admin' || userRole === 'trainer') {
-            return await dispatch(fetchEvents({ role: userRole as any, userId }));
-          } else {
-            return await dispatch(fetchEvents());
+            (filters as any).role = userRole;
+            (filters as any).userId = userId;
           }
+
+          return await dispatch(fetchEvents(filters));
         },
         'loadSessions',
         { showLoading, dataType: 'sessions' }
@@ -462,32 +475,32 @@ export const useCalendarData = () => {
     }
   }, [loadSessions, loadClients, loadTrainers, loadAssignments, clearErrors, updateDataHealth, initializeRealTimeUpdates]);
   
-  const refreshData = useCallback(async (force: boolean = false) => {
-    console.log(`🔄 Refreshing data${force ? ' (forced)' : ''}...`);
-    
+  const refreshData = useCallback(async (force: boolean = false, filterOptions?: import('../types').FilterOptions) => {
+    console.log(`🔄 Refreshing data${force ? ' (forced)' : ''}...`, filterOptions ? `with filters: ${JSON.stringify(filterOptions)}` : '');
+
     try {
       setLoading(prev => ({ ...prev, refreshing: true }));
-      
+
       if (force) {
         invalidateCache();
       }
-      
+
       // Refresh all data in parallel
       const refreshPromises = [
-        loadSessions({ force, showLoading: false }),
+        loadSessions({ force, showLoading: false, filterOptions }),
         loadClients({ force, showLoading: false }),
         loadTrainers({ force, showLoading: false }),
         loadAssignments({ force, showLoading: false })
       ];
-      
+
       const results = await Promise.allSettled(refreshPromises);
-      
+
       // Check results
       const successCount = results.filter(r => r.status === 'fulfilled').length;
       console.log(`✅ Data refresh completed: ${successCount}/4 successful`);
-      
+
       updateDataHealth(successCount > 0);
-      
+
     } catch (error) {
       console.error('❌ Error refreshing data:', error);
       updateDataHealth(false);

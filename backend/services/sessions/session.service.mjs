@@ -533,28 +533,43 @@ class UnifiedSessionService {
         filter.location = location;
       }
 
-      // **CRITICAL: Role-based filtering at service level**
+      // **CRITICAL: Role-based filtering at service level (RBAC)**
+      // SECURITY FIX: Removed { status: 'available' } leak - clients only see their own sessions
       if (user.role === 'client') {
-        // Clients can only see their own sessions or available sessions
-        filter[Op.or] = [
-          { userId: user.id },
-          { status: 'available' }
-        ];
+        // Clients can ONLY see their own sessions - no exceptions
+        // Previously leaked ALL 'available' sessions to ALL clients
+        filter.userId = user.id;
       } else if (user.role === 'trainer') {
         // Trainers can see sessions assigned to them
         filter.trainerId = user.id;
+      } else if (user.role === 'admin') {
+        // Admin can see all, with optional trainer/client filters
+        // Specific trainer filter (admin only)
+        if (trainerId) {
+          filter.trainerId = trainerId;
+        }
+        // Specific client filter (admin only)
+        if (userId) {
+          filter.userId = userId;
+        }
+      } else {
+        // Unknown role - deny access
+        logger.warn(`[UnifiedSessionService] Unknown role: ${user.role}`);
+        return [];
       }
-      // Admins can see all sessions, so no additional filter needed
 
-      // Specific trainer filter (admin only)
-      if (trainerId && user.role === 'admin') {
-        filter.trainerId = trainerId;
-      }
+      // Role-based attribute selection for PII protection
+      // Clients should never see other client's contact info
+      // Trainers only see full contact info for their assigned clients
+      const clientAttributes = user.role === 'admin'
+        ? ['id', 'firstName', 'lastName', 'email', 'phone', 'photo']
+        : user.role === 'trainer'
+          ? ['id', 'firstName', 'lastName', 'email', 'phone', 'photo'] // Trainer sees their clients
+          : ['id', 'firstName', 'lastName', 'photo']; // Clients see minimal trainer info
 
-      // Specific client filter (admin only)
-      if (userId && user.role === 'admin') {
-        filter.userId = userId;
-      }
+      const trainerAttributes = user.role === 'client'
+        ? ['id', 'firstName', 'lastName', 'photo', 'bio', 'specialties'] // No trainer email/phone to clients
+        : ['id', 'firstName', 'lastName', 'email', 'photo', 'bio', 'specialties'];
 
       // Fetch sessions with related user data
       const sessions = await this.Session.findAll({
@@ -563,12 +578,12 @@ class UnifiedSessionService {
           {
             model: this.User,
             as: 'client',
-            attributes: ['id', 'firstName', 'lastName', 'email', 'phone', 'photo']
+            attributes: clientAttributes
           },
           {
             model: this.User,
             as: 'trainer',
-            attributes: ['id', 'firstName', 'lastName', 'email', 'photo', 'bio', 'specialties']
+            attributes: trainerAttributes
           }
         ],
         order: [['sessionDate', 'ASC']]
