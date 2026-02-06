@@ -37,41 +37,44 @@ export const textGlow = keyframes`
 `;
 
 // --- Animation Variants ---
+// Mobile-optimized: Reduced Y-axis transforms to prevent "floating up" layout shift
 export const containerVariants = {
   hidden: { opacity: 0 },
-  visible: { 
-    opacity: 1, 
-    transition: { 
+  visible: {
+    opacity: 1,
+    transition: {
       when: "beforeChildren",
-      staggerChildren: 0.1,
-      duration: 0.3
+      staggerChildren: 0.08,
+      duration: 0.2
     }
   }
 };
 
+// Mobile-optimized: Reduced Y transform to minimize CLS on mobile Safari
 export const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: { 
-    y: 0, 
-    opacity: 1, 
-    transition: { 
-      type: "spring", 
-      stiffness: 100, 
-      damping: 10 
+  hidden: { y: 10, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: {
+      type: "tween",
+      duration: 0.15,
+      ease: "easeOut"
     }
   }
 };
 
+// Mobile-optimized: Reduced Y transform for staggered items
 export const staggeredItemVariants = {
-  hidden: { y: 20, opacity: 0 },
+  hidden: { y: 10, opacity: 0 },
   visible: (custom: number) => ({
     y: 0,
     opacity: 1,
     transition: {
-      delay: custom * 0.1,
-      type: "spring",
-      stiffness: 100,
-      damping: 10
+      delay: custom * 0.05,
+      type: "tween",
+      duration: 0.15,
+      ease: "easeOut"
     }
   })
 };
@@ -80,10 +83,22 @@ export const staggeredItemVariants = {
 export const PageContainer = styled.div`
   position: relative;
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
   color: #7851a9;
+  /* Use 100dvh for mobile Safari dynamic viewport, with 100vh fallback */
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
+  /* GPU layer promotion for smoother scrolling */
+  transform: translateZ(0);
+
+  @media (max-width: 768px) {
+    /* Allow natural height on mobile for better scroll behavior */
+    min-height: auto;
+    min-height: 100dvh;
+  }
 `;
 
 export const ContentContainer = styled.div`
@@ -94,6 +109,18 @@ export const ContentContainer = styled.div`
   margin: 0;
   box-sizing: border-box;
   width: 100%;
+  /* Ensure scrollable content on mobile */
+  overflow: visible;
+
+  @media (max-width: 768px) {
+    padding: 0.75rem;
+    /* Prevent horizontal overflow on mobile */
+    overflow-x: hidden;
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.5rem;
+  }
 `;
 
 export const DashboardGrid = styled.div`
@@ -101,6 +128,19 @@ export const DashboardGrid = styled.div`
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1.5rem;
   width: 100%;
+  /* Prevent layout shift during card load */
+  contain: layout style;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    /* Reduce containment on mobile for flexibility */
+    contain: style;
+  }
+
+  @media (max-width: 480px) {
+    gap: 0.75rem;
+  }
 `;
 
 // --- Card Components ---
@@ -110,16 +150,35 @@ export const StyledCard = styled(Card)`
   background: #1d1f2b !important;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(120, 81, 169, 0.3) !important;
-  transition: all 0.3s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
   height: 100%;
   display: flex;
   flex-direction: column;
-  
+  /* GPU layer promotion for smoother scroll */
+  transform: translateZ(0);
+  will-change: transform;
+
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3) !important;
     border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  }
+
+  @media (max-width: 768px) {
+    /* Reduce blur on mobile for better scroll performance */
+    backdrop-filter: blur(6px);
+    border-radius: 12px !important;
+
+    &:hover {
+      /* Disable transform on mobile to prevent layout shift during scroll */
+      transform: translateZ(0);
+    }
+  }
+
+  @media (max-width: 480px) {
+    backdrop-filter: blur(4px);
+    border-radius: 10px !important;
   }
 `;
 
@@ -364,11 +423,20 @@ export const ExerciseRow = styled.div`
   margin-bottom: 0.75rem;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.2s ease;
-  
+  transition: background 0.15s ease;
+  /* GPU layer promotion */
+  transform: translateZ(0);
+
   &:hover {
     background: rgba(255, 255, 255, 0.1);
     transform: translateY(-2px);
+  }
+
+  @media (max-width: 768px) {
+    &:hover {
+      /* Disable hover transform on mobile */
+      transform: translateZ(0);
+    }
   }
 `;
 
@@ -449,7 +517,7 @@ export const StatsGrid = styled.div`
 `;
 
 export const StatCard = styled.div<{ color?: string }>`
-  background: ${props => 
+  background: ${props =>
     props.color === 'primary' ? 'rgba(0, 115, 255, 0.1)' :
     props.color === 'success' ? 'rgba(0, 184, 148, 0.1)' :
     props.color === 'warning' ? 'rgba(255, 209, 102, 0.1)' :
@@ -463,7 +531,7 @@ export const StatCard = styled.div<{ color?: string }>`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 1px solid ${props => 
+  border: 1px solid ${props =>
     props.color === 'primary' ? 'rgba(0, 115, 255, 0.2)' :
     props.color === 'success' ? 'rgba(0, 184, 148, 0.2)' :
     props.color === 'warning' ? 'rgba(255, 209, 102, 0.2)' :
@@ -471,10 +539,21 @@ export const StatCard = styled.div<{ color?: string }>`
     props.color === 'secondary' ? 'rgba(120, 81, 169, 0.2)' :
     'rgba(0, 255, 255, 0.2)'
   };
-  transition: all 0.3s ease;
-  
+  transition: transform 0.2s ease;
+  /* GPU layer promotion */
+  transform: translateZ(0);
+
   &:hover {
     transform: translateY(-3px);
+  }
+
+  @media (max-width: 768px) {
+    padding: 0.875rem;
+
+    &:hover {
+      /* Disable hover transform on mobile */
+      transform: translateZ(0);
+    }
   }
 `;
 
@@ -506,12 +585,20 @@ export const StatLabel = styled(Typography)`
 // --- Enhanced Interactive Components ---
 export const InteractiveCard = styled(StyledCard)`
   cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-  
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+
   &:hover {
     transform: translateY(-8px);
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
     border-color: rgba(0, 255, 255, 0.3);
+  }
+
+  @media (max-width: 768px) {
+    /* Disable hover transform on mobile for smoother scrolling */
+    &:hover {
+      transform: translateZ(0);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
   }
 `;
 
@@ -609,13 +696,26 @@ export const WorkoutCard = styled(Box)`
   border-radius: 12px;
   background: rgba(30, 30, 60, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
-  
+  transition: transform 0.2s ease, background 0.2s ease;
+  /* GPU layer promotion */
+  transform: translateZ(0);
+
   &:hover {
     transform: translateY(-5px);
     background: rgba(30, 30, 60, 0.6);
     border-color: rgba(0, 255, 255, 0.3);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  }
+
+  @media (max-width: 768px) {
+    padding: 0.875rem;
+    border-radius: 10px;
+
+    &:hover {
+      /* Disable hover transform on mobile */
+      transform: translateZ(0);
+      box-shadow: none;
+    }
   }
 `;
 
@@ -695,16 +795,17 @@ export const ChallengeCard = styled(Box)<{ active: boolean }>`
   position: relative;
   padding: 1.25rem;
   border-radius: 12px;
-  background: ${props => props.active 
-    ? 'linear-gradient(135deg, rgba(120, 81, 169, 0.2), rgba(0, 255, 255, 0.2))' 
+  background: ${props => props.active
+    ? 'linear-gradient(135deg, rgba(120, 81, 169, 0.2), rgba(0, 255, 255, 0.2))'
     : 'rgba(30, 30, 60, 0.4)'};
-  border: 1px solid ${props => props.active 
-    ? 'rgba(120, 81, 169, 0.3)' 
+  border: 1px solid ${props => props.active
+    ? 'rgba(120, 81, 169, 0.3)'
     : 'rgba(255, 255, 255, 0.1)'};
-  
-  transition: all 0.3s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   overflow: hidden;
-  
+  /* GPU layer promotion */
+  transform: translateZ(0);
+
   ${props => props.active && `
     &:before {
       content: '';
@@ -718,10 +819,21 @@ export const ChallengeCard = styled(Box)<{ active: boolean }>`
       border-color: transparent rgba(120, 81, 169, 0.6) transparent transparent;
     }
   `}
-  
+
   &:hover {
     transform: translateY(-5px);
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  }
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+    border-radius: 10px;
+
+    &:hover {
+      /* Disable hover transform on mobile */
+      transform: translateZ(0);
+      box-shadow: none;
+    }
   }
 `;
 
@@ -812,28 +924,29 @@ export const RewardCard = styled(Box)<{ unlocked: boolean }>`
   align-items: center;
   padding: 1rem;
   border-radius: 12px;
-  background: ${props => props.unlocked 
+  background: ${props => props.unlocked
     ? 'linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(120, 81, 169, 0.1))'
     : 'rgba(255, 255, 255, 0.03)'};
-  border: 1px solid ${props => props.unlocked 
+  border: 1px solid ${props => props.unlocked
     ? 'rgba(0, 255, 255, 0.2)'
     : 'rgba(255, 255, 255, 0.05)'};
-  
   opacity: ${props => props.unlocked ? 1 : 0.5};
   filter: ${props => props.unlocked ? 'none' : 'grayscale(1)'};
-  transition: all 0.3s ease;
-  
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  /* GPU layer promotion */
+  transform: translateZ(0);
+
   &:hover {
-    transform: ${props => props.unlocked ? 'translateY(-5px)' : 'none'};
+    transform: ${props => props.unlocked ? 'translateY(-5px)' : 'translateZ(0)'};
     box-shadow: ${props => props.unlocked ? '0 10px 25px rgba(0, 0, 0, 0.3)' : 'none'};
   }
-  
+
   & .icon {
     font-size: 2rem;
     margin-bottom: 0.5rem;
     color: ${props => props.unlocked ? 'rgba(0, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.3)'};
   }
-  
+
   & .title {
     font-size: 0.9rem;
     font-weight: 500;
@@ -841,10 +954,21 @@ export const RewardCard = styled(Box)<{ unlocked: boolean }>`
     color: ${props => props.unlocked ? 'white' : 'rgba(255, 255, 255, 0.5)'};
     margin-bottom: 0.25rem;
   }
-  
+
   & .description {
     font-size: 0.7rem;
     text-align: center;
     color: rgba(255, 255, 255, 0.6);
+  }
+
+  @media (max-width: 768px) {
+    padding: 0.875rem;
+    border-radius: 10px;
+
+    &:hover {
+      /* Disable hover transform on mobile */
+      transform: translateZ(0);
+      box-shadow: none;
+    }
   }
 `;
