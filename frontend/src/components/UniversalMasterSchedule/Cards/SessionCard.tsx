@@ -107,14 +107,32 @@ const SessionCardComponent: React.FC<SessionCardProps> = ({ session, onClick }) 
 };
 
 // Memoize to prevent unnecessary re-renders during scroll
+// Comparator covers ALL rendered fields to prevent stale data bugs
+// (e.g., packageInfo.sessionsRemaining can change independently of status)
 const SessionCard = memo(SessionCardComponent, (prevProps, nextProps) => {
-  // Only re-render if session data actually changed
-  // Include onClick reference to prevent stale closure bugs
+  const prevS = prevProps.session;
+  const nextS = nextProps.session;
   return (
-    prevProps.session.id === nextProps.session.id &&
-    prevProps.session.status === nextProps.session.status &&
-    prevProps.session.clientName === nextProps.session.clientName &&
-    prevProps.session.sessionDate === nextProps.session.sessionDate &&
+    // Core identity
+    prevS.id === nextS.id &&
+    prevS.status === nextS.status &&
+    prevS.sessionDate === nextS.sessionDate &&
+    prevS.isBlocked === nextS.isBlocked &&
+    // Rendered text fields
+    prevS.clientName === nextS.clientName &&
+    prevS.trainerName === nextS.trainerName &&
+    prevS.duration === nextS.duration &&
+    prevS.location === nextS.location &&
+    // Package info (can change independently when user buys sessions)
+    prevS.packageInfo?.name === nextS.packageInfo?.name &&
+    prevS.packageInfo?.sessionsRemaining === nextS.packageInfo?.sessionsRemaining &&
+    prevS.packageInfo?.sessionsTotal === nextS.packageInfo?.sessionsTotal &&
+    // Indicator fields (shown on desktop)
+    prevS.reminderSent === nextS.reminderSent &&
+    prevS.reminderSentDate === nextS.reminderSentDate &&
+    prevS.feedbackProvided === nextS.feedbackProvided &&
+    prevS.rating === nextS.rating &&
+    // Handler reference
     prevProps.onClick === nextProps.onClick
   );
 });
