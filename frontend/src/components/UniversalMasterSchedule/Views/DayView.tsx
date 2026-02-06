@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, memo } from 'react';
 import styled from 'styled-components';
 import { galaxySwanTheme } from '../../../styles/galaxy-swan-theme';
 import { SessionCardData } from '../Cards/SessionCard';
 import BufferZone from '../Cards/BufferZone';
 import DraggableSession from '../DragDrop/DraggableSession';
 import DroppableSlot from '../DragDrop/DroppableSlot';
+import { schedulePerf, trackRender } from '../../../utils/schedulePerformance';
 
 export interface DayViewTrainer {
   id: number | string;
@@ -84,7 +85,7 @@ const isScheduledSession = (session: DayViewSession) => {
   return session.status !== 'available' && session.status !== 'cancelled';
 };
 
-const DayView: React.FC<DayViewProps> = ({
+const DayViewComponent: React.FC<DayViewProps> = ({
   date,
   sessions,
   trainers,
@@ -93,7 +94,21 @@ const DayView: React.FC<DayViewProps> = ({
   onSelectSession,
   onSelectSlot
 }) => {
-  const sessionsForDay = useMemo(() => toDaySessions(sessions, date), [sessions, date]);
+  // DEV: Track render counts
+  if (schedulePerf.IS_DEV) {
+    trackRender('DayView');
+  }
+
+  // Apply session limiting for performance testing
+  const limitedSessions = useMemo(() => {
+    const limit = schedulePerf.LIMIT_SESSIONS;
+    if (limit > 0) {
+      return sessions.slice(0, limit);
+    }
+    return sessions;
+  }, [sessions]);
+
+  const sessionsForDay = useMemo(() => toDaySessions(limitedSessions, date), [limitedSessions, date]);
   const trainerList = useMemo(() => {
     if (trainers.length > 0) {
       return trainers;
@@ -104,6 +119,9 @@ const DayView: React.FC<DayViewProps> = ({
   const columns = trainerList.length > 0
     ? trainerList
     : [{ id: 'unassigned', name: 'All Trainers' }];
+
+  // Mobile lite mode: disable drag-drop for better scroll performance
+  const effectiveEnableDrag = enableDrag && !schedulePerf.DISABLE_DRAG_DROP;
 
   return (
     <DayViewWrapper>
@@ -162,7 +180,7 @@ const DayView: React.FC<DayViewProps> = ({
                         session={session}
                         onClick={() => onSelectSession?.(session)}
                         disabled={
-                          !enableDrag
+                          !effectiveEnableDrag
                           || Boolean(session.isBlocked)
                           || session.status === 'blocked'
                           || session.status === 'available'
@@ -189,7 +207,7 @@ const DayView: React.FC<DayViewProps> = ({
           // Admin can access past slots, regular users cannot
           const canAccessSlot = !isPast || isAdmin;
 
-          if (enableDrag && canAccessSlot) {
+          if (effectiveEnableDrag && canAccessSlot) {
             return (
               <DroppableSlot
                 key={`${trainer.id}-${hour}`}
@@ -238,6 +256,18 @@ const DayView: React.FC<DayViewProps> = ({
     </DayViewWrapper>
   );
 };
+
+// Memoize DayView to prevent unnecessary re-renders during parent state changes
+const DayView = memo(DayViewComponent, (prevProps, nextProps) => {
+  // Only re-render if meaningful props change
+  return (
+    prevProps.date.getTime() === nextProps.date.getTime() &&
+    prevProps.sessions === nextProps.sessions &&
+    prevProps.trainers === nextProps.trainers &&
+    prevProps.enableDrag === nextProps.enableDrag &&
+    prevProps.isAdmin === nextProps.isAdmin
+  );
+});
 
 export default DayView;
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, memo } from 'react';
 import styled from 'styled-components';
 import MonthView from '../Views/MonthView';
 import DayView from '../Views/DayView';
@@ -11,6 +11,7 @@ import {
   Card
 } from '../ui';
 import { CalendarView } from '../types';
+import { schedulePerf, trackRender } from '../../../utils/schedulePerformance';
 
 interface ScheduleCalendarProps {
   activeView: CalendarView;
@@ -29,7 +30,7 @@ interface ScheduleCalendarProps {
   openConflictPanel: (conflicts: any[], alternatives: any[], drop: any) => void;
 }
 
-const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
+const ScheduleCalendarComponent: React.FC<ScheduleCalendarProps> = ({
   activeView,
   currentDate,
   sessions,
@@ -45,6 +46,23 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
   handleReschedule,
   openConflictPanel
 }) => {
+  // DEV: Track render counts
+  if (schedulePerf.IS_DEV) {
+    trackRender('ScheduleCalendar');
+  }
+
+  // Apply session limiting for performance testing
+  const limitedSessions = useMemo(() => {
+    const limit = schedulePerf.LIMIT_SESSIONS;
+    if (limit > 0) {
+      return sessions.slice(0, limit);
+    }
+    return sessions;
+  }, [sessions]);
+
+  // Disable drag on mobile lite mode
+  const effectiveCanReschedule = canReschedule && !schedulePerf.DISABLE_DRAG_DROP;
+
   // Status color helper
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -77,7 +95,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
       {activeView === 'month' && (
         <MonthView
           date={currentDate}
-          sessions={sessions}
+          sessions={limitedSessions}
           onSelectDate={onDrillDown}
         />
       )}
@@ -109,7 +127,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
 
           <WeekGridContainer>
             {weekDays.map((day, index) => {
-              const daySessions = sessions.filter(session => {
+              const daySessions = limitedSessions.filter(session => {
                 const sessionDate = new Date(session.sessionDate);
                 return sessionDate.toDateString() === day.toDateString();
               });
@@ -176,9 +194,9 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
       )}
 
       {activeView === 'day' && (
-        (canReschedule ? (
+        (effectiveCanReschedule ? (
           <DragDropManager
-            checkConflicts={checkConflicts}
+            checkConflicts={schedulePerf.DISABLE_CONFLICT_CHECK ? async () => ({ hasConflicts: false }) : checkConflicts}
             onDragEnd={(drop) => handleReschedule(drop)}
             onConflict={({ conflicts: nextConflicts, alternatives: nextAlternatives, drop }) => {
               openConflictPanel(nextConflicts, nextAlternatives, drop);
@@ -186,7 +204,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
           >
             <DayView
               date={currentDate}
-              sessions={sessions}
+              sessions={limitedSessions}
               trainers={trainers}
               enableDrag
               isAdmin={isAdmin}
@@ -197,7 +215,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
         ) : (
           <DayView
             date={currentDate}
-            sessions={sessions}
+            sessions={limitedSessions}
             trainers={trainers}
             isAdmin={isAdmin}
             onSelectSession={onSelectSession}
@@ -209,7 +227,7 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
       {activeView === 'agenda' && (
         <AgendaView
           date={currentDate}
-          sessions={sessions}
+          sessions={limitedSessions}
           onSelectSession={onSelectSession}
           onEdit={onSelectSession}
           onCancel={onSelectSession}
@@ -218,6 +236,19 @@ const ScheduleCalendar: React.FC<ScheduleCalendarProps> = ({
     </CalendarContainer>
   );
 };
+
+// Memoize ScheduleCalendar to prevent unnecessary re-renders
+const ScheduleCalendar = memo(ScheduleCalendarComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.activeView === nextProps.activeView &&
+    prevProps.currentDate.getTime() === nextProps.currentDate.getTime() &&
+    prevProps.sessions === nextProps.sessions &&
+    prevProps.trainers === nextProps.trainers &&
+    prevProps.canReschedule === nextProps.canReschedule &&
+    prevProps.canQuickBook === nextProps.canQuickBook &&
+    prevProps.isAdmin === nextProps.isAdmin
+  );
+});
 
 export default ScheduleCalendar;
 

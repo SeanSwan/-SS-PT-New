@@ -743,11 +743,20 @@ const ScheduleContainer = styled.div`
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  /* GPU layer promotion for smooth scrolling */
+  transform: translateZ(0);
 
   @media (max-width: 1024px) {
     height: auto;
     min-height: 100vh;
     min-height: 100dvh;
+  }
+
+  @media (max-width: 768px) {
+    /* Use simpler background on mobile */
+    background: #0f172a;
+    /* Ensure iOS momentum scrolling */
+    -webkit-overflow-scrolling: touch;
   }
 
   @media (max-width: 480px) {
