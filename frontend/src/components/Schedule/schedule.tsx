@@ -146,18 +146,32 @@ const CalendarContainer = styled(motion.div)`
   display: flex;
   flex-direction: column;
   flex: 1; /* Take up all remaining space */
-  background: rgba(24, 24, 48, 0.8); /* Darker background for better contrast */
+  background: rgba(24, 24, 48, 0.95); /* Solid background for mobile */
   border-radius: 16px;
   padding: 1.5rem; /* Slightly more padding for better spacing */
   position: relative;
   width: 100%;
-  overflow: hidden;
-  
-  /* Glass morphism effect with improved visibility */
-  backdrop-filter: blur(10px);
+  /* SCROLL FIX: Changed from overflow: hidden to allow proper scrolling */
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
+  /* Glass morphism effect with improved visibility - desktop only */
   border: 2px solid rgba(255, 255, 255, 0.15); /* Thicker border for better visibility */
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  
+  /* GPU layer promotion */
+  transform: translateZ(0);
+
+  @media (min-width: 769px) {
+    backdrop-filter: blur(10px);
+    background: rgba(24, 24, 48, 0.8);
+  }
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+    border-radius: 8px;
+  }
+
   /* Gradient border effect */
   &:before {
     content: "";
@@ -166,13 +180,14 @@ const CalendarContainer = styled(motion.div)`
     border-radius: 16px;
     padding: 2px; /* Thicker gradient border */
     background: linear-gradient(45deg, #00ffff, #7851a9);
-    -webkit-mask: 
-      linear-gradient(#fff 0 0) content-box, 
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
       linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     opacity: 0.7; /* Slightly increased opacity */
     z-index: -1;
+    pointer-events: none;
   }
 `;
 

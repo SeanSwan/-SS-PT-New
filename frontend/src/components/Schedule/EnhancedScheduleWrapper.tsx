@@ -32,20 +32,31 @@ const PageContainer = styled(motion.div)`
 const ContentWrapper = styled(motion.div)`
   width: 100%;
   max-width: 90%; /* Increased from 1400px to 90% of screen space */
-  height: 90vh; /* Set the height to 90% of the viewport height */
+  /* SCROLL FIX: Changed from fixed height to min-height to allow natural document flow */
+  min-height: 80vh;
   margin: 0 auto;
-  background: rgba(20, 17, 40, 0.8);
-  backdrop-filter: blur(10px);
+  background: rgba(20, 17, 40, 0.95);
+  /* SCROLL FIX: Only use backdrop-filter on desktop */
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   padding: 2rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column; /* Make the children stack vertically */
-  
+  /* GPU layer promotion for smooth scrolling */
+  transform: translateZ(0);
+
+  @media (min-width: 769px) {
+    backdrop-filter: blur(10px);
+    background: rgba(20, 17, 40, 0.8);
+  }
+
   @media (max-width: 768px) {
     padding: 1rem;
-    height: 85vh; /* Slightly smaller on mobile for better usability */
+    max-width: 100%;
+    border-radius: 8px;
+    /* Solid background for mobile performance */
+    background: rgba(20, 17, 40, 0.98);
   }
 `;
 
