@@ -304,32 +304,71 @@ router.get('/', protect, adminOnly, async (req, res) => {
     const ClientTrainerAssignment = getClientTrainerAssignment();
     const User = getUser();
 
-    const { count, rows: assignments } = await ClientTrainerAssignment.findAndCountAll({
-      where: whereConditions,
-      attributes: {
-        exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
-      },
-      include: [
-        { 
-          model: User, 
-          as: 'client', 
-          attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions'] 
+    // Try with full associations first, fallback to basic query if associations fail
+    let count = 0;
+    let assignments = [];
+
+    try {
+      const result = await ClientTrainerAssignment.findAndCountAll({
+        where: whereConditions,
+        attributes: {
+          exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
         },
-        { 
-          model: User, 
-          as: 'trainer', 
-          attributes: ['id', 'firstName', 'lastName', 'email', 'role'] 
+        include: [
+          {
+            model: User,
+            as: 'client',
+            attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions'],
+            required: false
+          },
+          {
+            model: User,
+            as: 'trainer',
+            attributes: ['id', 'firstName', 'lastName', 'email', 'role'],
+            required: false
+          },
+          {
+            model: User,
+            as: 'assignedByUser',
+            attributes: ['id', 'firstName', 'lastName'],
+            required: false // Make optional in case assignedBy column is missing
+          }
+        ],
+        order: [['createdAt', 'DESC']],
+        limit: parseInt(limit),
+        offset: offset
+      });
+      count = result.count;
+      assignments = result.rows;
+    } catch (includeError) {
+      // If include fails, try without assignedByUser association
+      logger.warn('Full association query failed, trying without assignedByUser:', includeError.message);
+      const result = await ClientTrainerAssignment.findAndCountAll({
+        where: whereConditions,
+        attributes: {
+          exclude: ['lastModifiedBy', 'assignedBy'] // Exclude potentially missing fields
         },
-        { 
-          model: User, 
-          as: 'assignedByUser', 
-          attributes: ['id', 'firstName', 'lastName'] 
-        }
-      ],
-      order: [['createdAt', 'DESC']],
-      limit: parseInt(limit),
-      offset: offset
-    });
+        include: [
+          {
+            model: User,
+            as: 'client',
+            attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions'],
+            required: false
+          },
+          {
+            model: User,
+            as: 'trainer',
+            attributes: ['id', 'firstName', 'lastName', 'email', 'role'],
+            required: false
+          }
+        ],
+        order: [['createdAt', 'DESC']],
+        limit: parseInt(limit),
+        offset: offset
+      });
+      count = result.count;
+      assignments = result.rows;
+    }
 
     const totalPages = Math.ceil(count / parseInt(limit));
 

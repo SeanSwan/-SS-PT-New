@@ -141,22 +141,33 @@ export const getAllNotifications = async (req, res) => {
     // Get the user ID from the authenticated user
     const userId = req.user.id;
 
-    // Get all notifications for this user
-    const notifications = await Notification.findAll({
-      where: { userId },
-      order: [['createdAt', 'DESC']],
-      include: [
-        {
-          model: User,
-          as: 'sender',
-          attributes: ['id', 'firstName', 'lastName', 'profilePicture'],
-        }
-      ]
-    });
-    
+    // Try to get notifications with sender association
+    let notifications;
+    try {
+      notifications = await Notification.findAll({
+        where: { userId },
+        order: [['createdAt', 'DESC']],
+        include: [
+          {
+            model: User,
+            as: 'sender',
+            attributes: ['id', 'firstName', 'lastName', 'profilePicture'],
+            required: false // Make association optional to avoid failure if column missing
+          }
+        ]
+      });
+    } catch (includeError) {
+      // If include fails (e.g., missing senderId column), fallback to query without association
+      logger.warn('Sender include failed, falling back to basic query:', includeError.message);
+      notifications = await Notification.findAll({
+        where: { userId },
+        order: [['createdAt', 'DESC']]
+      });
+    }
+
     // Count unread notifications
     const unreadCount = notifications.filter(notification => !notification.read).length;
-    
+
     return successResponse(res, {
       notifications,
       unreadCount

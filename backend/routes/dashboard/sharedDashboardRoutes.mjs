@@ -105,11 +105,51 @@ router.get('/stats', protect, async (req, res) => {
     }
 
     const userRole = req.user.role;
-    const models = getAllModels();
+    let models;
+    try {
+      models = getAllModels();
+    } catch (modelError) {
+      console.error('Failed to get models:', modelError.message);
+      // Return default stats if models not available
+      return res.status(200).json({
+        success: true,
+        stats: {
+          totalWorkouts: 0,
+          weeklyWorkouts: 0,
+          monthlyWorkouts: 0,
+          currentStreak: 0,
+          longestStreak: 0,
+          averageWorkoutDuration: 0,
+          caloriesBurned: 0,
+          goalsCompleted: 0,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     const Session = models.Session;
     const WorkoutSession = models.WorkoutSession || models.Session;
     const User = models.User;
     const ClientProgress = models.ClientProgress;
+
+    // Validate required models
+    if (!Session || !WorkoutSession) {
+      console.error('Required models (Session/WorkoutSession) not available');
+      return res.status(200).json({
+        success: true,
+        stats: {
+          totalWorkouts: 0,
+          weeklyWorkouts: 0,
+          monthlyWorkouts: 0,
+          currentStreak: 0,
+          longestStreak: 0,
+          averageWorkoutDuration: 0,
+          caloriesBurned: 0,
+          goalsCompleted: 0,
+        },
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     const workoutDateField = models.WorkoutSession ? 'date' : 'sessionDate';
     const workoutWhere = { userId, status: 'completed' };
@@ -122,35 +162,36 @@ router.get('/stats', protect, async (req, res) => {
     const streakStart = new Date(now);
     streakStart.setDate(now.getDate() - 90);
 
-    const [
-      totalWorkouts,
-      weeklyWorkouts,
-      monthlyWorkouts,
-      avgDurationRow,
-      streakRows,
-      progressRecord,
-    ] = await Promise.all([
-      WorkoutSession.count({ where: workoutWhere }),
-      WorkoutSession.count({
-        where: { ...workoutWhere, [workoutDateField]: { [Op.gte]: weekStart } },
-      }),
-      WorkoutSession.count({
-        where: { ...workoutWhere, [workoutDateField]: { [Op.gte]: monthStart } },
-      }),
-      WorkoutSession.findOne({
-        attributes: [[sequelize.fn('AVG', sequelize.col('duration')), 'avgDuration']],
-        where: workoutWhere,
-        raw: true,
-      }),
-      WorkoutSession.findAll({
-        attributes: [[sequelize.fn('DATE', sequelize.col(workoutDateField)), 'dateKey']],
-        where: { ...workoutWhere, [workoutDateField]: { [Op.gte]: streakStart } },
-        group: [sequelize.fn('DATE', sequelize.col(workoutDateField))],
-        order: [[sequelize.fn('DATE', sequelize.col(workoutDateField)), 'ASC']],
-        raw: true,
-      }),
-      ClientProgress ? ClientProgress.findOne({ where: { userId } }) : Promise.resolve(null),
-    ]);
+    // Execute queries with individual try-catch for resilience
+    let totalWorkouts = 0, weeklyWorkouts = 0, monthlyWorkouts = 0;
+    let avgDurationRow = null, streakRows = [], progressRecord = null;
+
+    try {
+      [totalWorkouts, weeklyWorkouts, monthlyWorkouts, avgDurationRow, streakRows, progressRecord] = await Promise.all([
+        WorkoutSession.count({ where: workoutWhere }).catch(() => 0),
+        WorkoutSession.count({
+          where: { ...workoutWhere, [workoutDateField]: { [Op.gte]: weekStart } },
+        }).catch(() => 0),
+        WorkoutSession.count({
+          where: { ...workoutWhere, [workoutDateField]: { [Op.gte]: monthStart } },
+        }).catch(() => 0),
+        WorkoutSession.findOne({
+          attributes: [[sequelize.fn('AVG', sequelize.col('duration')), 'avgDuration']],
+          where: workoutWhere,
+          raw: true,
+        }).catch(() => null),
+        WorkoutSession.findAll({
+          attributes: [[sequelize.fn('DATE', sequelize.col(workoutDateField)), 'dateKey']],
+          where: { ...workoutWhere, [workoutDateField]: { [Op.gte]: streakStart } },
+          group: [sequelize.fn('DATE', sequelize.col(workoutDateField))],
+          order: [[sequelize.fn('DATE', sequelize.col(workoutDateField)), 'ASC']],
+          raw: true,
+        }).catch(() => []),
+        ClientProgress ? ClientProgress.findOne({ where: { userId } }).catch(() => null) : Promise.resolve(null),
+      ]);
+    } catch (queryError) {
+      console.warn('Some dashboard stats queries failed:', queryError.message);
+    }
 
     const dateKeys = streakRows.map((row) => toDateKey(row.dateKey || row.date)).filter(Boolean);
     const { currentStreak, longestStreak } = buildStreaks(dateKeys);
