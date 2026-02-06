@@ -59,7 +59,9 @@ const dashboardTheme = {
 // Styled Components
 const DashboardContainer = styled.div`
   display: flex;
+  /* Use 100dvh for mobile Safari dynamic viewport, with 100vh fallback */
   min-height: 100vh;
+  min-height: 100dvh;
   background-color: ${props => props.theme.colors.background};
   color: ${props => props.theme.colors.textPrimary};
 `;
@@ -78,9 +80,14 @@ const AppBar = styled.header<{ $drawerOpen: boolean }>`
   align-items: center;
   padding: 0 1.5rem;
   transition: left ${props => props.theme.transitions.duration} ${props => props.theme.transitions.easing};
-  
+  /* GPU layer promotion for smoother scrolling */
+  will-change: left;
+  transform: translateZ(0);
+
   @media (max-width: 768px) {
     left: 0;
+    /* Reduce blur on mobile for better scroll performance */
+    backdrop-filter: blur(10px);
   }
 `;
 
@@ -211,30 +218,36 @@ const Drawer = styled.aside<{ $open: boolean }>`
   border-right: 1px solid rgba(255, 255, 255, 0.1);
   overflow-x: hidden;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   transition: width ${props => props.theme.transitions.duration} ${props => props.theme.transitions.easing};
   z-index: 1250;
-  
+  /* GPU layer promotion for smoother animations */
+  will-change: width, transform;
+  transform: translateZ(0);
+
   /* Custom scrollbar */
   &::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.05);
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: rgba(0, 255, 255, 0.3);
     border-radius: 3px;
-    
+
     &:hover {
       background: rgba(0, 255, 255, 0.5);
     }
   }
-  
+
   @media (max-width: 768px) {
     transform: ${props => props.$open ? 'translateX(0)' : `translateX(-${drawerWidth}px)`};
     width: ${drawerWidth}px;
+    /* Reduce blur on mobile for better scroll performance */
+    backdrop-filter: blur(10px);
   }
 `;
 
@@ -309,11 +322,16 @@ const MainContent = styled.main<{ $drawerOpen: boolean }>`
   margin-top: 64px;
   padding: 2rem;
   transition: margin-left ${props => props.theme.transitions.duration} ${props => props.theme.transitions.easing};
+  /* Use 100dvh for mobile Safari dynamic viewport, with 100vh fallback */
   min-height: calc(100vh - 64px);
-  
+  min-height: calc(100dvh - 64px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+
   @media (max-width: 768px) {
     margin-left: 0;
     padding: 1rem;
+    min-height: auto;
   }
 `;
 

@@ -29,7 +29,16 @@ import OptimizedGalaxyStoreFront from '../../../pages/shop/OptimizedGalaxyStoreF
 // Styled Components
 const StyledBox = styled.div`
   width: 100%;
+  /* Use 100dvh for mobile Safari dynamic viewport, with 100vh fallback */
   height: calc(100vh - 120px);
+  height: calc(100dvh - 120px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+
+  @media (max-width: 768px) {
+    height: auto;
+    min-height: calc(100dvh - 120px);
+  }
 `;
 
 const ErrorFallbackContainer = styled.div`
@@ -109,23 +118,22 @@ const SafeRender = ({ component, fallback }: { component: React.ReactNode, fallb
   }
 };
 
+// Mobile-optimized animation: opacity-only to prevent layout shift ("floating up")
+// Y-axis transforms during mount cause CLS issues on mobile Safari
 const variants = {
   initial: {
-    opacity: 0,
-    y: 20
+    opacity: 0
   },
   animate: {
     opacity: 1,
-    y: 0,
     transition: {
-      duration: 0.3
+      duration: 0.2
     }
   },
   exit: {
     opacity: 0,
-    y: -20,
     transition: {
-      duration: 0.2
+      duration: 0.15
     }
   }
 };

@@ -224,12 +224,14 @@ export default ScheduleCalendar;
 const CalendarContainer = styled.div`
   flex: 1;
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
   margin: 0 2rem 2rem;
   padding: 1.5rem;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  -webkit-overflow-scrolling: touch;
+  /* Ensure layout stability - prevent content from causing reflow */
+  contain: layout style;
 
   &::-webkit-scrollbar {
     width: 8px;
@@ -265,7 +267,10 @@ const CalendarContainer = styled.div`
     margin: 0 0.5rem 0.5rem;
     padding: 0.75rem;
     border-radius: 8px;
-    overflow-x: auto;
+    /* Allow both directions for horizontal scrolling tables */
+    overflow: auto;
+    /* Reduce containment on mobile for better flexibility */
+    contain: style;
   }
 `;
 

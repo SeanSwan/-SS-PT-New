@@ -732,19 +732,28 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 export default UniversalMasterSchedule;
 
 const ScheduleContainer = styled.div`
+  /* Use 100dvh for mobile Safari dynamic viewport, with 100vh fallback */
   height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
   color: white;
-  overflow: hidden;
+  /* Allow overflow on Y for immediate scroll availability */
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 
   @media (max-width: 1024px) {
     height: auto;
     min-height: 100vh;
+    min-height: 100dvh;
   }
 
   @media (max-width: 480px) {
-    height: 100dvh;
+    height: auto;
+    min-height: 100dvh;
+    /* Ensure content is scrollable immediately */
+    overflow-y: auto;
   }
 `;
