@@ -121,6 +121,162 @@ router.post("/check-conflicts", protect, trainerOrAdminOnly, async (req, res) =>
   }
 });
 
+// ==================== USER ANALYTICS (MUST BE BEFORE /:id ROUTE) ====================
+
+/**
+ * GET /api/sessions/analytics
+ * Get session analytics for the current user
+ * NOTE: This route MUST be defined before /:id to avoid "analytics" being parsed as an ID
+ */
+router.get("/analytics", protect, async (req, res) => {
+  try {
+    const userId = req.user?.id;
+
+    // Return empty analytics if no user ID (graceful degradation)
+    if (!userId) {
+      logger.warn('[Analytics] No user ID found in request, returning empty analytics', {
+        hasUser: !!req.user,
+        userKeys: req.user ? Object.keys(req.user) : []
+      });
+      return res.status(200).json({
+        success: true,
+        totalSessions: 0,
+        totalDuration: 0,
+        averageDuration: 0,
+        caloriesBurned: 0,
+        favoriteExercises: [],
+        weeklyProgress: [],
+        currentStreak: 0,
+        longestStreak: 0
+      });
+    }
+
+    // Get all completed sessions for the user
+    const userSessions = await Session.findAll({
+      where: {
+        userId,
+        status: 'completed'
+      },
+      order: [['sessionDate', 'DESC']]
+    });
+
+    if (!userSessions || userSessions.length === 0) {
+      return res.status(200).json({
+        success: true,
+        totalSessions: 0,
+        totalDuration: 0,
+        averageDuration: 0,
+        caloriesBurned: 0,
+        favoriteExercises: [],
+        weeklyProgress: [],
+        currentStreak: 0,
+        longestStreak: 0
+      });
+    }
+
+    // Calculate basic analytics
+    const totalSessions = userSessions.length;
+    const totalDuration = userSessions.reduce((sum, session) => {
+      return sum + (session.duration || 0);
+    }, 0);
+
+    const averageDuration = totalSessions > 0 ? Math.round(totalDuration / totalSessions) : 0;
+
+    // Calculate weekly progress (last 12 weeks)
+    const weeklyProgress = [];
+    const now = new Date();
+
+    for (let i = 11; i >= 0; i--) {
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - (i * 7));
+      weekStart.setHours(0, 0, 0, 0);
+
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      weekEnd.setHours(23, 59, 59, 999);
+
+      const weekSessions = userSessions.filter(session => {
+        const sessionDate = new Date(session.sessionDate);
+        return sessionDate >= weekStart && sessionDate <= weekEnd;
+      });
+
+      const weekDuration = weekSessions.reduce((sum, s) => sum + (s.duration || 0), 0);
+
+      weeklyProgress.push({
+        week: weekStart.toISOString().split('T')[0],
+        sessionsCompleted: weekSessions.length,
+        totalDuration: weekDuration,
+        caloriesBurned: weekSessions.reduce((sum, s) => sum + (s.caloriesBurned || 0), 0)
+      });
+    }
+
+    // Calculate current streak (consecutive days with sessions)
+    let currentStreak = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 365; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(today.getDate() - i);
+
+      const hasSession = userSessions.some(session => {
+        const sessionDate = new Date(session.sessionDate);
+        sessionDate.setHours(0, 0, 0, 0);
+        return sessionDate.getTime() === checkDate.getTime();
+      });
+
+      if (hasSession) {
+        currentStreak++;
+      } else if (i > 0) {
+        break;
+      }
+    }
+
+    // Calculate longest streak
+    let longestStreak = 0;
+    let tempStreak = 0;
+    const sortedDates = [...new Set(userSessions.map(s => {
+      const d = new Date(s.sessionDate);
+      d.setHours(0, 0, 0, 0);
+      return d.getTime();
+    }))].sort((a, b) => a - b);
+
+    for (let i = 0; i < sortedDates.length; i++) {
+      if (i === 0) {
+        tempStreak = 1;
+      } else {
+        const diff = (sortedDates[i] - sortedDates[i - 1]) / (1000 * 60 * 60 * 24);
+        if (diff === 1) {
+          tempStreak++;
+        } else {
+          longestStreak = Math.max(longestStreak, tempStreak);
+          tempStreak = 1;
+        }
+      }
+    }
+    longestStreak = Math.max(longestStreak, tempStreak);
+
+    return res.status(200).json({
+      success: true,
+      totalSessions,
+      totalDuration,
+      averageDuration,
+      caloriesBurned: userSessions.reduce((sum, s) => sum + (s.caloriesBurned || 0), 0),
+      favoriteExercises: [], // TODO: Implement when exercise tracking is added
+      weeklyProgress,
+      currentStreak,
+      longestStreak
+    });
+  } catch (error) {
+    logger.error('Error in GET /api/sessions/analytics:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error fetching analytics',
+      error: error.message
+    });
+  }
+});
+
 /**
  * GET /api/sessions/:id
  * Get a single session by ID with role-based access control
@@ -776,161 +932,6 @@ router.get("/users/clients", protect, trainerOrAdminOnly, async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Server error fetching clients',
-      error: error.message
-    });
-  }
-});
-
-// ==================== USER ANALYTICS ====================
-
-/**
- * GET /api/sessions/analytics
- * Get session analytics for the current user
- */
-router.get("/analytics", protect, async (req, res) => {
-  try {
-    const userId = req.user?.id;
-
-    // Return empty analytics if no user ID (graceful degradation)
-    if (!userId) {
-      logger.warn('[Analytics] No user ID found in request, returning empty analytics', {
-        hasUser: !!req.user,
-        userKeys: req.user ? Object.keys(req.user) : []
-      });
-      return res.status(200).json({
-        success: true,
-        totalSessions: 0,
-        totalDuration: 0,
-        averageDuration: 0,
-        caloriesBurned: 0,
-        favoriteExercises: [],
-        weeklyProgress: [],
-        currentStreak: 0,
-        longestStreak: 0
-      });
-    }
-
-    // Get all completed sessions for the user
-    const userSessions = await Session.findAll({
-      where: {
-        userId,
-        status: 'completed'
-      },
-      order: [['sessionDate', 'DESC']]
-    });
-
-    if (!userSessions || userSessions.length === 0) {
-      return res.status(200).json({
-        success: true,
-        totalSessions: 0,
-        totalDuration: 0,
-        averageDuration: 0,
-        caloriesBurned: 0,
-        favoriteExercises: [],
-        weeklyProgress: [],
-        currentStreak: 0,
-        longestStreak: 0
-      });
-    }
-
-    // Calculate basic analytics
-    const totalSessions = userSessions.length;
-    const totalDuration = userSessions.reduce((sum, session) => {
-      return sum + (session.duration || 0);
-    }, 0);
-
-    const averageDuration = totalSessions > 0 ? Math.round(totalDuration / totalSessions) : 0;
-
-    // Calculate weekly progress (last 12 weeks)
-    const weeklyProgress = [];
-    const now = new Date();
-
-    for (let i = 11; i >= 0; i--) {
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - (i * 7));
-      weekStart.setHours(0, 0, 0, 0);
-
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 6);
-      weekEnd.setHours(23, 59, 59, 999);
-
-      const weekSessions = userSessions.filter(session => {
-        const sessionDate = new Date(session.sessionDate);
-        return sessionDate >= weekStart && sessionDate <= weekEnd;
-      });
-
-      const weekDuration = weekSessions.reduce((sum, s) => sum + (s.duration || 0), 0);
-
-      weeklyProgress.push({
-        week: weekStart.toISOString().split('T')[0],
-        sessionsCompleted: weekSessions.length,
-        totalDuration: weekDuration,
-        caloriesBurned: weekSessions.reduce((sum, s) => sum + (s.caloriesBurned || 0), 0)
-      });
-    }
-
-    // Calculate current streak (consecutive days with sessions)
-    let currentStreak = 0;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    for (let i = 0; i < 365; i++) {
-      const checkDate = new Date(today);
-      checkDate.setDate(today.getDate() - i);
-
-      const hasSession = userSessions.some(session => {
-        const sessionDate = new Date(session.sessionDate);
-        sessionDate.setHours(0, 0, 0, 0);
-        return sessionDate.getTime() === checkDate.getTime();
-      });
-
-      if (hasSession) {
-        currentStreak++;
-      } else if (i > 0) {
-        break;
-      }
-    }
-
-    // Calculate longest streak
-    let longestStreak = 0;
-    let tempStreak = 0;
-    const sortedDates = [...new Set(userSessions.map(s => {
-      const d = new Date(s.sessionDate);
-      d.setHours(0, 0, 0, 0);
-      return d.getTime();
-    }))].sort((a, b) => a - b);
-
-    for (let i = 0; i < sortedDates.length; i++) {
-      if (i === 0) {
-        tempStreak = 1;
-      } else {
-        const diff = (sortedDates[i] - sortedDates[i - 1]) / (1000 * 60 * 60 * 24);
-        if (diff === 1) {
-          tempStreak++;
-        } else {
-          longestStreak = Math.max(longestStreak, tempStreak);
-          tempStreak = 1;
-        }
-      }
-    }
-    longestStreak = Math.max(longestStreak, tempStreak);
-
-    return res.status(200).json({
-      success: true,
-      totalSessions,
-      totalDuration,
-      averageDuration,
-      caloriesBurned: userSessions.reduce((sum, s) => sum + (s.caloriesBurned || 0), 0),
-      favoriteExercises: [], // TODO: Implement when exercise tracking is added
-      weeklyProgress,
-      currentStreak,
-      longestStreak
-    });
-  } catch (error) {
-    logger.error('Error in GET /api/sessions/analytics:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error fetching analytics',
       error: error.message
     });
   }
