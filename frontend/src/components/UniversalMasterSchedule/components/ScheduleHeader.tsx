@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Calendar, RefreshCw, Bell, Plus, Clock, ChevronDown, Settings, Repeat } from 'lucide-react';
+import { Calendar, RefreshCw, Bell, Plus, Clock, ChevronDown, Settings, Repeat, Users, User } from 'lucide-react';
 import {
   FlexBox,
   Box,
@@ -13,6 +13,9 @@ import {
 import ViewSelector from '../Views/ViewSelector';
 import { CalendarView } from '../types';
 import Dropdown from '../../common/Dropdown/Dropdown';
+
+// Admin View Scope Options (MindBody Parity)
+export type AdminViewScope = 'my' | 'global';
 
 interface ScheduleHeaderProps {
   mode: 'admin' | 'trainer' | 'client';
@@ -34,6 +37,13 @@ interface ScheduleHeaderProps {
   canCreateRecurring: boolean;
   canCreateSessions: boolean;
   canManageSessionTypes: boolean;
+  // MindBody Parity: Admin view scope toggle
+  adminViewScope?: AdminViewScope;
+  onAdminViewScopeChange?: (scope: AdminViewScope) => void;
+  // Trainer filter for admin global view
+  trainers?: Array<{ id: number | string; firstName: string; lastName: string }>;
+  selectedTrainerId?: number | string | null;
+  onTrainerFilterChange?: (trainerId: number | string | null) => void;
 }
 
 const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
@@ -55,7 +65,13 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
   canBlockTime,
   canCreateRecurring,
   canCreateSessions,
-  canManageSessionTypes
+  canManageSessionTypes,
+  // MindBody Parity props
+  adminViewScope = 'global',
+  onAdminViewScopeChange,
+  trainers = [],
+  selectedTrainerId,
+  onTrainerFilterChange
 }) => {
   return (
     <>
@@ -71,6 +87,43 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
         </FlexBox>
 
         <HeaderActions>
+          {/* MindBody Parity: Admin View Scope Toggle */}
+          {mode === 'admin' && onAdminViewScopeChange && (
+            <AdminScopeToggle>
+              <ScopeButton
+                $active={adminViewScope === 'my'}
+                onClick={() => onAdminViewScopeChange('my')}
+                title="View only your schedule"
+              >
+                <User size={14} />
+                My Schedule
+              </ScopeButton>
+              <ScopeButton
+                $active={adminViewScope === 'global'}
+                onClick={() => onAdminViewScopeChange('global')}
+                title="View all trainers"
+              >
+                <Users size={14} />
+                All Trainers
+              </ScopeButton>
+            </AdminScopeToggle>
+          )}
+
+          {/* Trainer Filter (admin global view only) */}
+          {mode === 'admin' && adminViewScope === 'global' && trainers.length > 0 && onTrainerFilterChange && (
+            <TrainerSelect
+              value={selectedTrainerId?.toString() || ''}
+              onChange={(e) => onTrainerFilterChange(e.target.value ? parseInt(e.target.value, 10) : null)}
+            >
+              <option value="">All Trainers</option>
+              {trainers.map((trainer) => (
+                <option key={trainer.id} value={trainer.id.toString()}>
+                  {trainer.firstName} {trainer.lastName}
+                </option>
+              ))}
+            </TrainerSelect>
+          )}
+
           <StyledIconButton
             onClick={onRefresh}
             aria-label="Refresh sessions"
@@ -221,5 +274,85 @@ const MenuItemButton = styled(OutlinedButton)`
   font-size: 0.85rem;
   padding: 0.55rem 0.75rem;
   min-height: 40px;
+`;
+
+// MindBody Parity: Admin View Scope Toggle Styles
+const AdminScopeToggle = styled.div`
+  display: flex;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+
+  @media (max-width: 480px) {
+    grid-column: span 2;
+    width: 100%;
+    justify-content: center;
+  }
+`;
+
+const ScopeButton = styled.button<{ $active: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 36px;
+  white-space: nowrap;
+
+  ${({ $active }) =>
+    $active
+      ? `
+        background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(0, 212, 255, 0.3);
+      `
+      : `
+        background: transparent;
+        color: rgba(255, 255, 255, 0.6);
+        &:hover {
+          background: rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.9);
+        }
+      `}
+
+  @media (max-width: 480px) {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.75rem;
+    flex: 1;
+    justify-content: center;
+  }
+`;
+
+const TrainerSelect = styled.select`
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 0.85rem;
+  min-height: 36px;
+  cursor: pointer;
+  outline: none;
+
+  &:focus {
+    border-color: #00d4ff;
+    box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.2);
+  }
+
+  option {
+    background: #1a1a2e;
+    color: white;
+  }
+
+  @media (max-width: 480px) {
+    grid-column: span 2;
+    width: 100%;
+  }
 `;
 

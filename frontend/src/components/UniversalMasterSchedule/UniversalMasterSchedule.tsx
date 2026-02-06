@@ -120,6 +120,54 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const [useManualClient, setUseManualClient] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
 
+  // MindBody Parity: Admin View Scope State
+  // Persisted to localStorage for convenience
+  const [adminViewScope, setAdminViewScope] = useState<'my' | 'global'>(() => {
+    if (typeof window !== 'undefined' && mode === 'admin') {
+      return (localStorage.getItem('adminScheduleViewScope') as 'my' | 'global') || 'global';
+    }
+    return 'global';
+  });
+  const [selectedTrainerId, setSelectedTrainerId] = useState<number | string | null>(null);
+
+  // Handle admin scope change with localStorage persistence
+  const handleAdminScopeChange = useCallback((scope: 'my' | 'global') => {
+    setAdminViewScope(scope);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('adminScheduleViewScope', scope);
+    }
+    // Reset trainer filter when switching to 'my' mode
+    const newTrainerId = scope === 'my' ? null : selectedTrainerId;
+    if (scope === 'my') {
+      setSelectedTrainerId(null);
+    }
+    // Trigger data refresh with new scope - pass filter options directly
+    refreshData(false, {
+      adminScope: scope,
+      trainerId: newTrainerId?.toString() || '',
+      clientId: '',
+      status: 'all',
+      dateRange: 'all',
+      location: '',
+      searchTerm: ''
+    });
+  }, [refreshData, selectedTrainerId]);
+
+  // Handle trainer filter change
+  const handleTrainerFilterChange = useCallback((trainerId: number | string | null) => {
+    setSelectedTrainerId(trainerId);
+    // Refresh data with new trainer filter - pass filter options directly
+    refreshData(false, {
+      adminScope: adminViewScope,
+      trainerId: trainerId?.toString() || '',
+      clientId: '',
+      status: 'all',
+      dateRange: 'all',
+      location: '',
+      searchTerm: ''
+    });
+  }, [refreshData, adminViewScope]);
+
   const isAnyModalOpen = [
     showCreateDialog,
     showRecurringDialog,
@@ -553,6 +601,12 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         canCreateRecurring={canCreateRecurring}
         canCreateSessions={canCreateSessions}
         canManageSessionTypes={canManageSessionTypes}
+        // MindBody Parity: Admin View Scope
+        adminViewScope={adminViewScope}
+        onAdminViewScopeChange={handleAdminScopeChange}
+        trainers={trainers}
+        selectedTrainerId={selectedTrainerId}
+        onTrainerFilterChange={handleTrainerFilterChange}
       />
 
       <ScheduleStats

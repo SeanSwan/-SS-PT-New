@@ -93,6 +93,8 @@ class UniversalMasterScheduleService {
       if (filters?.clientId) params.append('userId', filters.clientId); // Backend uses 'userId' for client filtering
       if (filters?.location) params.append('location', filters.location);
       if (filters?.confirmed !== undefined) params.append('confirmed', filters.confirmed.toString());
+      // MindBody Parity: Admin view scope toggle ('my' = my schedule only, 'global' = all trainers)
+      if (filters?.adminScope) params.append('adminScope', filters.adminScope);
       
       const response: AxiosResponse<Session[]> = await this.api.get(`/api/sessions?${params.toString()}`);
       return response.data;
@@ -126,14 +128,15 @@ class UniversalMasterScheduleService {
    * Get sessions formatted for calendar display
    * Uses the unified getSessions with date filtering
    */
-  async getCalendarEvents(start: string, end: string, filters?: { trainerId?: string; clientId?: string }): Promise<SessionEvent[]> {
+  async getCalendarEvents(start: string, end: string, filters?: { trainerId?: string; clientId?: string; adminScope?: 'my' | 'global' }): Promise<SessionEvent[]> {
     try {
       // Use unified getSessions with date range
       const sessions = await this.getSessions({
         customDateStart: start,
         customDateEnd: end,
         trainerId: filters?.trainerId,
-        clientId: filters?.clientId
+        clientId: filters?.clientId,
+        adminScope: filters?.adminScope
       });
       
       // Transform to calendar events format (sessions already have correct format from unified backend)
@@ -152,15 +155,19 @@ class UniversalMasterScheduleService {
 
   /**
    * Create available session slots (Admin only)
+   * Can optionally assign a client during creation
    */
   async createAvailableSessions(sessions: Array<{
     start: string;
     end?: string;
     duration?: number;
     trainerId?: string;
+    userId?: string;
+    clientName?: string;
     location?: string;
     notes?: string;
     sessionType?: string;
+    notifyClient?: boolean;
   }>): Promise<{ sessions: Session[]; message: string }> {
     try {
       // Log payload for debugging

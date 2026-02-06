@@ -150,6 +150,11 @@ export interface SlotSelectionData {
 // ==================== FILTER AND SEARCH TYPES ====================
 
 /**
+ * Admin View Scope Options (MindBody Parity)
+ */
+export type AdminViewScope = 'my' | 'global';
+
+/**
  * Filter options for the schedule view
  */
 export interface FilterOptions {
@@ -161,6 +166,9 @@ export interface FilterOptions {
   searchTerm: string;
   customDateStart?: string;
   customDateEnd?: string;
+  // MindBody Parity: Admin view scope toggle
+  adminScope?: AdminViewScope;
+  confirmed?: boolean;
 }
 
 /**
