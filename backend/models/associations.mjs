@@ -251,6 +251,10 @@ const setupAssociations = async () => {
     Session.belongsTo(SessionType, { foreignKey: 'sessionTypeId', as: 'sessionType' });
     SessionType.hasMany(Session, { foreignKey: 'sessionTypeId', as: 'sessions' });
 
+    // User as reviewer of cancellation decisions (MindBody parity)
+    User.hasMany(Session, { foreignKey: 'cancellationReviewedBy', as: 'reviewedCancellations' });
+    Session.belongsTo(User, { foreignKey: 'cancellationReviewedBy', as: 'reviewer' });
+
     // Trainer availability (weekly + overrides)
     User.hasMany(TrainerAvailability, { foreignKey: 'trainerId', as: 'availability' });
     TrainerAvailability.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
