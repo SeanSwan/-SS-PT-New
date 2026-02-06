@@ -116,6 +116,29 @@ const DayViewComponent: React.FC<DayViewProps> = ({
     return deriveTrainerList(sessionsForDay);
   }, [trainers, sessionsForDay]);
 
+  // O(1) lookup: Pre-index sessions by trainerId+hour for faster rendering
+  const sessionsBySlot = useMemo(() => {
+    const map = new Map<string, DayViewSession[]>();
+
+    sessionsForDay.forEach((session) => {
+      const sessionHour = new Date(session.sessionDate).getHours();
+      const trainerId = String(session.trainerId ?? 'unassigned');
+      const key = `${trainerId}-${sessionHour}`;
+
+      const existing = map.get(key) || [];
+      existing.push(session);
+      map.set(key, existing);
+
+      // Also add to 'unassigned' key for "All Trainers" column
+      const unassignedKey = `unassigned-${sessionHour}`;
+      const unassignedExisting = map.get(unassignedKey) || [];
+      unassignedExisting.push(session);
+      map.set(unassignedKey, unassignedExisting);
+    });
+
+    return map;
+  }, [sessionsForDay]);
+
   const columns = trainerList.length > 0
     ? trainerList
     : [{ id: 'unassigned', name: 'All Trainers' }];
@@ -139,13 +162,9 @@ const DayViewComponent: React.FC<DayViewProps> = ({
           <HourRow key={hour}>
             <TimeCell>{formatHour(hour)}</TimeCell>
             {columns.map((trainer) => {
-          const trainerSessions = sessionsForDay.filter((session) => {
-            const sessionHour = new Date(session.sessionDate).getHours();
-            const trainerMatch = trainer.id === 'unassigned'
-              ? true
-              : String(session.trainerId ?? '') === String(trainer.id);
-            return sessionHour === hour && trainerMatch;
-          });
+          // O(1) lookup using pre-indexed Map instead of O(n) filter
+          const slotKey = `${String(trainer.id)}-${hour}`;
+          const trainerSessions = sessionsBySlot.get(slotKey) || [];
 
           // Check if any session in this slot is scheduled (not available)
           const hasScheduledSession = trainerSessions.some(isScheduledSession);
@@ -260,12 +279,15 @@ const DayViewComponent: React.FC<DayViewProps> = ({
 // Memoize DayView to prevent unnecessary re-renders during parent state changes
 const DayView = memo(DayViewComponent, (prevProps, nextProps) => {
   // Only re-render if meaningful props change
+  // Include callback references to prevent stale closure bugs
   return (
     prevProps.date.getTime() === nextProps.date.getTime() &&
     prevProps.sessions === nextProps.sessions &&
     prevProps.trainers === nextProps.trainers &&
     prevProps.enableDrag === nextProps.enableDrag &&
-    prevProps.isAdmin === nextProps.isAdmin
+    prevProps.isAdmin === nextProps.isAdmin &&
+    prevProps.onSelectSession === nextProps.onSelectSession &&
+    prevProps.onSelectSlot === nextProps.onSelectSlot
   );
 });
 

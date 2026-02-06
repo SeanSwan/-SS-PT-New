@@ -109,11 +109,13 @@ const SessionCardComponent: React.FC<SessionCardProps> = ({ session, onClick }) 
 // Memoize to prevent unnecessary re-renders during scroll
 const SessionCard = memo(SessionCardComponent, (prevProps, nextProps) => {
   // Only re-render if session data actually changed
+  // Include onClick reference to prevent stale closure bugs
   return (
     prevProps.session.id === nextProps.session.id &&
     prevProps.session.status === nextProps.session.status &&
     prevProps.session.clientName === nextProps.session.clientName &&
-    prevProps.session.sessionDate === nextProps.session.sessionDate
+    prevProps.session.sessionDate === nextProps.session.sessionDate &&
+    prevProps.onClick === nextProps.onClick
   );
 });
 
@@ -164,9 +166,7 @@ const CardContainer = styled.div<{ $status: string; $isPast?: boolean; $liteMode
   overflow: hidden;
   min-height: 44px; /* Touch target */
   min-width: 0;
-  /* GPU layer promotion for smoother scroll */
-  transform: translateZ(0);
-  will-change: ${({ $liteMode }) => $liteMode ? 'auto' : 'transform'};
+  /* NOTE: GPU layer promotion removed - should only be on scroll containers, not individual cards */
 
   ${({ $status }) =>
     $status === 'blocked' &&
@@ -205,15 +205,14 @@ const CardContainer = styled.div<{ $status: string; $isPast?: boolean; $liteMode
     gap: 0.35rem;
     /* Disable transforms on mobile for better scroll */
     transition: none;
-    will-change: auto;
 
     &:hover {
-      transform: translateZ(0);
+      transform: none;
       box-shadow: none;
     }
 
     &:active {
-      transform: translateZ(0);
+      transform: none;
     }
   }
 

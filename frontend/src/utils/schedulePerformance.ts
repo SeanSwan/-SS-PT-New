@@ -50,16 +50,19 @@ const isMobileDevice = (): boolean => {
 export const schedulePerf = {
   // Core render toggles
   get DISABLE_SESSION_RENDER() { return getToggle('DISABLE_SESSION_RENDER'); },
-  get DISABLE_SESSION_BADGES() { return getToggle('DISABLE_SESSION_BADGES'); },
+  get DISABLE_SESSION_BADGES() { return getToggle('DISABLE_SESSION_BADGES') || this.MOBILE_LITE_MODE; },
   get DISABLE_ANIMATIONS() { return getToggle('DISABLE_ANIMATIONS') || this.MOBILE_LITE_MODE; },
-  get DISABLE_DRAG_DROP() { return getToggle('DISABLE_DRAG_DROP'); },
-  get DISABLE_CONFLICT_CHECK() { return getToggle('DISABLE_CONFLICT_CHECK'); },
+  // Drag-drop and conflict check disabled on mobile by default (heavy event listeners)
+  get DISABLE_DRAG_DROP() { return getToggle('DISABLE_DRAG_DROP') || this.MOBILE_LITE_MODE; },
+  get DISABLE_CONFLICT_CHECK() { return getToggle('DISABLE_CONFLICT_CHECK') || this.MOBILE_LITE_MODE; },
   get DISABLE_BACKDROP_FILTER() { return getToggle('DISABLE_BACKDROP_FILTER') || this.MOBILE_LITE_MODE; },
 
   // Session limiting
   get LIMIT_SESSIONS() { return getNumber('LIMIT_SESSIONS', 0); }, // 0 = no limit
 
-  // Mobile lite mode - enables all mobile optimizations
+  // Mobile lite mode - enables all mobile optimizations automatically on mobile
+  // This cascades to: DISABLE_SESSION_BADGES, DISABLE_ANIMATIONS, DISABLE_DRAG_DROP,
+  // DISABLE_CONFLICT_CHECK, DISABLE_BACKDROP_FILTER
   get MOBILE_LITE_MODE() {
     const forceOn = getToggle('MOBILE_LITE_MODE');
     const autoOn = getToggle('AUTO_MOBILE_LITE', true); // Default ON for mobile
