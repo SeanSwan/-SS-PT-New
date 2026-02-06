@@ -431,15 +431,17 @@ router.get('/trainer/:trainerId', protect, trainerOrAdminOnly, async (req, res) 
         exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
       },
       include: [
-        { 
-          model: User, 
-          as: 'client', 
-          attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'phone'] 
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions', 'phone'],
+          required: false
         },
-        { 
-          model: User, 
-          as: 'assignedByUser', 
-          attributes: ['id', 'firstName', 'lastName'] 
+        {
+          model: User,
+          as: 'assignedByUser',
+          attributes: ['id', 'firstName', 'lastName'],
+          required: false // Make optional in case assignedBy column is missing or null
         }
       ],
       order: [['createdAt', 'DESC']]
@@ -487,15 +489,17 @@ router.get('/client/:clientId', protect, adminOnly, async (req, res) => {
         exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
       },
       include: [
-        { 
-          model: User, 
-          as: 'trainer', 
-          attributes: ['id', 'firstName', 'lastName', 'email', 'role'] 
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email', 'role'],
+          required: false
         },
-        { 
-          model: User, 
-          as: 'assignedByUser', 
-          attributes: ['id', 'firstName', 'lastName'] 
+        {
+          model: User,
+          as: 'assignedByUser',
+          attributes: ['id', 'firstName', 'lastName'],
+          required: false // Make optional in case assignedBy column is missing or null
         }
       ],
       order: [['createdAt', 'DESC']]
@@ -626,20 +630,23 @@ router.post('/', protect, adminOnly, async (req, res) => {
         exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
       },
       include: [
-        { 
-          model: User, 
-          as: 'client', 
-          attributes: ['id', 'firstName', 'lastName', 'email'] 
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+          required: false
         },
-        { 
-          model: User, 
-          as: 'trainer', 
-          attributes: ['id', 'firstName', 'lastName', 'email'] 
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+          required: false
         },
-        { 
-          model: User, 
-          as: 'assignedByUser', 
-          attributes: ['id', 'firstName', 'lastName'] 
+        {
+          model: User,
+          as: 'assignedByUser',
+          attributes: ['id', 'firstName', 'lastName'],
+          required: false // Make optional in case assignedBy column is missing or null
         }
       ]
     });
@@ -715,20 +722,23 @@ router.put('/:id', protect, adminOnly, async (req, res) => {
         exclude: ['lastModifiedBy'] // Exclude field that doesn't exist in database yet
       },
       include: [
-        { 
-          model: User, 
-          as: 'client', 
-          attributes: ['id', 'firstName', 'lastName', 'email'] 
+        {
+          model: User,
+          as: 'client',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+          required: false
         },
-        { 
-          model: User, 
-          as: 'trainer', 
-          attributes: ['id', 'firstName', 'lastName', 'email'] 
+        {
+          model: User,
+          as: 'trainer',
+          attributes: ['id', 'firstName', 'lastName', 'email'],
+          required: false
         },
-        { 
-          model: User, 
-          as: 'assignedByUser', 
-          attributes: ['id', 'firstName', 'lastName'] 
+        {
+          model: User,
+          as: 'assignedByUser',
+          attributes: ['id', 'firstName', 'lastName'],
+          required: false // Make optional in case assignedBy column is missing or null
         }
       ]
     });
