@@ -120,11 +120,14 @@ const EnhancedDashboardHeader: React.FC<EnhancedDashboardHeaderProps> = ({
         left: 0,
         right: 0,
         zIndex: 1000,
-        background: '#0a0a1a',
-        transition: 'all 0.3s ease',
-        backdropFilter: scrolled ? 'blur(10px)' : 'none',
+        /* Solid background - no blur for better mobile scroll performance */
+        background: scrolled ? 'rgba(10, 10, 26, 0.98)' : '#0a0a1a',
+        transition: 'background 0.2s ease, box-shadow 0.2s ease',
         boxShadow: scrolled ? '0 5px 20px rgba(0, 0, 0, 0.3)' : 'none',
-        borderBottom: '1px solid rgba(255,255,255,0.05)'
+        borderBottom: '1px solid rgba(255,255,255,0.05)',
+        /* GPU layer promotion */
+        transform: 'translateZ(0)',
+        willChange: 'background, box-shadow'
       }}
     >
       <Container 
