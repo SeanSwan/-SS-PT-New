@@ -197,7 +197,7 @@ const DayViewComponent: React.FC<DayViewProps> = ({
                       )}
                       <DraggableSession
                         session={session}
-                        onClick={() => onSelectSession?.(session)}
+                        onSelectSession={onSelectSession}
                         disabled={
                           !effectiveEnableDrag
                           || Boolean(session.isBlocked)
