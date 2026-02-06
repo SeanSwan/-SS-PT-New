@@ -228,6 +228,8 @@ const HeaderContainer = styled.div`
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
   gap: 1rem;
+  /* GPU layer promotion for smoother scroll */
+  transform: translateZ(0);
 
   @media (max-width: 1024px) {
     padding: 1.25rem 1.5rem;
@@ -238,6 +240,8 @@ const HeaderContainer = styled.div`
     align-items: flex-start;
     padding: 1rem;
     gap: 1rem;
+    /* Reduce blur on mobile for better scroll performance */
+    backdrop-filter: blur(6px);
   }
 `;
 
