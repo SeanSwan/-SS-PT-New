@@ -40,6 +40,7 @@ const DraggableSessionComponent: React.FC<DraggableSessionProps> = ({ session, o
 
 // Memoize to prevent re-renders when parent state changes
 // Comparator covers ALL rendered fields to prevent stale data bugs
+// NOTE: Must stay aligned with SessionCard's comparator
 const DraggableSession = memo(DraggableSessionComponent, (prevProps, nextProps) => {
   const prevS = prevProps.session;
   const nextS = nextProps.session;
@@ -58,9 +59,11 @@ const DraggableSession = memo(DraggableSessionComponent, (prevProps, nextProps) 
     prevS.packageInfo?.name === nextS.packageInfo?.name &&
     prevS.packageInfo?.sessionsRemaining === nextS.packageInfo?.sessionsRemaining &&
     prevS.packageInfo?.sessionsTotal === nextS.packageInfo?.sessionsTotal &&
-    // Indicator fields
+    // Indicator fields (must match SessionCard comparator)
     prevS.reminderSent === nextS.reminderSent &&
+    prevS.reminderSentDate === nextS.reminderSentDate &&
     prevS.feedbackProvided === nextS.feedbackProvided &&
+    prevS.rating === nextS.rating &&
     // Props
     prevProps.disabled === nextProps.disabled &&
     prevProps.onSelectSession === nextProps.onSelectSession
