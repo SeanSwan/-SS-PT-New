@@ -537,10 +537,34 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     [canCreateSessions, currentDate]
   );
 
-  const openSeriesDialog = (groupId: string) => {
+  const handleBookingDialog = useCallback((session: any) => {
+    setBookingTarget(session);
+    setBookingError(null);
+    setShowBookingDialog(true);
+  }, []);
+
+  const handleOpenConflictPanel = useCallback((
+    nextConflicts: Conflict[],
+    nextAlternatives: Alternative[],
+    drop: DragDropResult
+  ) => {
+    setConflicts(nextConflicts);
+    setAlternatives(nextAlternatives);
+    setPendingReschedule(drop);
+    setConflictModalOpen(true);
+  }, []);
+
+  // Memoized handler for selecting a session (opens detail dialog)
+  const handleSelectSession = useCallback((session: any) => {
+    setDetailSession(session);
+    setShowDetailDialog(true);
+  }, []);
+
+  // Memoized handler for opening series dialog
+  const openSeriesDialog = useCallback((groupId: string) => {
     setActiveSeriesGroupId(groupId);
     setShowSeriesDialog(true);
-  };
+  }, []);
 
   const creditsDisplay = creditsLoading
     ? '...'
@@ -625,24 +649,12 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         canQuickBook={canQuickBook}
         isAdmin={mode === 'admin'}
         onDrillDown={drillDownToDay}
-        onSelectSession={(session) => {
-          setDetailSession(session);
-          setShowDetailDialog(true);
-        }}
+        onSelectSession={handleSelectSession}
         onSelectSlot={handleSelectSlot}
-        onBookingDialog={(session) => {
-          setBookingTarget(session);
-          setBookingError(null);
-          setShowBookingDialog(true);
-        }}
+        onBookingDialog={handleBookingDialog}
         checkConflicts={checkConflicts}
         handleReschedule={handleReschedule}
-        openConflictPanel={(nextConflicts, nextAlternatives, drop) => {
-          setConflicts(nextConflicts);
-          setAlternatives(nextAlternatives);
-          setPendingReschedule(drop);
-          setConflictModalOpen(true);
-        }}
+        openConflictPanel={handleOpenConflictPanel}
       />
 
       <ScheduleModals

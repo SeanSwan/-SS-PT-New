@@ -159,6 +159,8 @@ const MonthGrid = styled.div`
     gap: 0.375rem;
     padding: 0.5rem;
     border-radius: 12px;
+    /* Disable backdrop-filter on mobile for better scroll performance */
+    backdrop-filter: none;
   }
 
   @media (max-width: 480px) {

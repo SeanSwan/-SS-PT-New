@@ -240,8 +240,9 @@ const HeaderContainer = styled.div`
     align-items: flex-start;
     padding: 1rem;
     gap: 1rem;
-    /* Reduce blur on mobile for better scroll performance */
-    backdrop-filter: blur(6px);
+    /* Disable backdrop-filter on mobile for better scroll performance */
+    backdrop-filter: none;
+    background: rgba(0, 0, 0, 0.6);
   }
 `;
 

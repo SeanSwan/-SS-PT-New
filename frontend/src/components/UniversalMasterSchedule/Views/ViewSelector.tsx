@@ -138,6 +138,8 @@ const SelectorContainer = styled.div`
     align-items: stretch;
     padding: 0.75rem 1rem;
     gap: 0.75rem;
+    /* Disable backdrop-filter on mobile for better scroll performance */
+    backdrop-filter: none;
   }
 
   @media (max-width: 480px) {
