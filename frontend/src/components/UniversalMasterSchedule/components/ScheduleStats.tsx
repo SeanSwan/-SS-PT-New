@@ -83,8 +83,7 @@ const StatsPanel = styled.div`
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   flex-shrink: 0;
-  /* GPU layer promotion for smoother scroll */
-  transform: translateZ(0);
+  /* NOTE: GPU layer promotion removed - only scroll containers should have this */
 
   @media (max-width: 1024px) {
     margin: 0.75rem 1.5rem;
@@ -95,16 +94,15 @@ const StatsPanel = styled.div`
     margin: 0.5rem 1rem;
     padding: 1rem;
     border-radius: 10px;
-    /* Reduce blur on mobile for better scroll performance */
-    backdrop-filter: blur(6px);
+    /* Disable backdrop-filter on mobile for better scroll performance */
+    backdrop-filter: none;
+    background: rgba(20, 20, 40, 0.85);
   }
 
   @media (max-width: 480px) {
     margin: 0.5rem;
     padding: 0.75rem;
     border-radius: 8px;
-    /* Minimal blur on small mobile for performance */
-    backdrop-filter: blur(4px);
   }
 `;
 
