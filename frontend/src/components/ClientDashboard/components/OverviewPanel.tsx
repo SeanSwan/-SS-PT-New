@@ -32,13 +32,28 @@ const PanelContainer = styled.div`
   border-radius: 15px;
   padding: 1.5rem;
   color: white;
-  
+  /* GPU layer promotion for smoother scroll */
+  transform: translateZ(0);
+
   h2 {
     color: #00ffff;
     margin-bottom: 1.5rem;
     font-size: 1.4rem;
     text-align: center;
     text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+  }
+
+  @media (max-width: 768px) {
+    /* Reduce blur on mobile for better scroll performance */
+    backdrop-filter: blur(6px);
+    padding: 1.25rem;
+    border-radius: 12px;
+  }
+
+  @media (max-width: 480px) {
+    backdrop-filter: blur(4px);
+    padding: 1rem;
+    border-radius: 10px;
   }
 `;
 
@@ -54,12 +69,24 @@ const MetricCard = styled.div<{ color?: string }>`
   border-radius: 10px;
   padding: 1rem;
   text-align: center;
-  transition: all 0.3s ease;
-  
+  transition: background 0.2s ease, border-color 0.2s ease;
+  /* GPU layer promotion */
+  transform: translateZ(0);
+
   &:hover {
     background: rgba(255, 255, 255, 0.1);
     border-color: ${props => props.color || '#00ffff'};
     box-shadow: 0 0 20px ${props => props.color || '#00ffff'}33;
+  }
+
+  @media (max-width: 768px) {
+    padding: 0.875rem;
+
+    &:hover {
+      /* Disable hover effects on mobile for smoother scrolling */
+      transform: translateZ(0);
+      box-shadow: none;
+    }
   }
 `;
 
