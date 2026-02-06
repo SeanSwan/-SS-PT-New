@@ -6,6 +6,7 @@
  * Usage:
  * 1. Set toggles in localStorage: localStorage.setItem('PERF_DISABLE_ANIMATIONS', 'true')
  * 2. Or import and use directly: if (schedulePerf.DISABLE_ANIMATIONS) { ... }
+ * 3. Or use React hook: const { MOBILE_LITE_MODE } = usePerfToggles();
  *
  * Toggle Reference:
  * - DISABLE_SESSION_RENDER: Render simple placeholders instead of full session cards
@@ -16,6 +17,8 @@
  * - LIMIT_SESSIONS: Limit rendered sessions to first N items
  * - MOBILE_LITE_MODE: Enable all mobile optimizations at once
  */
+
+import { useState, useEffect } from 'react';
 
 const isDev = import.meta.env?.DEV ?? process.env.NODE_ENV === 'development';
 
@@ -191,5 +194,53 @@ if (isDev && typeof window !== 'undefined') {
 
   console.log('[PERF] Schedule performance harness loaded. Use window.logPerfToggles() to see current state.');
 }
+
+/**
+ * React hook to access performance toggles with automatic updates
+ * Re-renders component when:
+ * - Window resizes (mobile detection may change)
+ * - localStorage perf toggles are modified via setPerfToggle
+ */
+export const usePerfToggles = () => {
+  const [toggles, setToggles] = useState(() => ({
+    DISABLE_SESSION_RENDER: schedulePerf.DISABLE_SESSION_RENDER,
+    DISABLE_SESSION_BADGES: schedulePerf.DISABLE_SESSION_BADGES,
+    DISABLE_ANIMATIONS: schedulePerf.DISABLE_ANIMATIONS,
+    DISABLE_DRAG_DROP: schedulePerf.DISABLE_DRAG_DROP,
+    DISABLE_CONFLICT_CHECK: schedulePerf.DISABLE_CONFLICT_CHECK,
+    DISABLE_BACKDROP_FILTER: schedulePerf.DISABLE_BACKDROP_FILTER,
+    LIMIT_SESSIONS: schedulePerf.LIMIT_SESSIONS,
+    MOBILE_LITE_MODE: schedulePerf.MOBILE_LITE_MODE,
+    IS_MOBILE: schedulePerf.IS_MOBILE,
+  }));
+
+  useEffect(() => {
+    const updateToggles = () => {
+      setToggles({
+        DISABLE_SESSION_RENDER: schedulePerf.DISABLE_SESSION_RENDER,
+        DISABLE_SESSION_BADGES: schedulePerf.DISABLE_SESSION_BADGES,
+        DISABLE_ANIMATIONS: schedulePerf.DISABLE_ANIMATIONS,
+        DISABLE_DRAG_DROP: schedulePerf.DISABLE_DRAG_DROP,
+        DISABLE_CONFLICT_CHECK: schedulePerf.DISABLE_CONFLICT_CHECK,
+        DISABLE_BACKDROP_FILTER: schedulePerf.DISABLE_BACKDROP_FILTER,
+        LIMIT_SESSIONS: schedulePerf.LIMIT_SESSIONS,
+        MOBILE_LITE_MODE: schedulePerf.MOBILE_LITE_MODE,
+        IS_MOBILE: schedulePerf.IS_MOBILE,
+      });
+    };
+
+    // Listen for resize (mobile detection may change)
+    window.addEventListener('resize', updateToggles);
+    // Listen for storage changes (for cross-tab toggle updates)
+    window.addEventListener('storage', updateToggles);
+
+    return () => {
+      window.removeEventListener('resize', updateToggles);
+      window.removeEventListener('storage', updateToggles);
+    };
+  }, []);
+
+  return toggles;
+};
 
 export default schedulePerf;
