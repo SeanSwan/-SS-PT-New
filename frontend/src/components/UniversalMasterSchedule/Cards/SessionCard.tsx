@@ -1,6 +1,7 @@
-import React from 'react';
-import styled from 'styled-components';
+import React, { memo } from 'react';
+import styled, { css } from 'styled-components';
 import { galaxySwanTheme } from '../../../styles/galaxy-swan-theme';
+import { schedulePerf } from '../../../utils/schedulePerformance';
 
 export interface SessionCardData {
   id: number | string;
@@ -29,7 +30,7 @@ export interface SessionCardProps {
   onClick?: (session: SessionCardData) => void;
 }
 
-const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) => {
+const SessionCardComponent: React.FC<SessionCardProps> = ({ session, onClick }) => {
   const sessionDate = new Date(session.sessionDate);
   const isPast = sessionDate < new Date();
   const time = sessionDate.toLocaleTimeString('en-US', {
@@ -40,14 +41,25 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) => {
     ? 'blocked'
     : session.status || 'scheduled';
 
-  // Derive boolean indicators
-  const hasReminderSent = session.reminderSent || Boolean(session.reminderSentDate);
-  const hasFeedback = session.feedbackProvided || (session.rating != null && session.rating > 0);
+  // Derive boolean indicators - skip on mobile lite mode for perf
+  const hasReminderSent = !schedulePerf.MOBILE_LITE_MODE && (session.reminderSent || Boolean(session.reminderSentDate));
+  const hasFeedback = !schedulePerf.MOBILE_LITE_MODE && (session.feedbackProvided || (session.rating != null && session.rating > 0));
+
+  // Lite mode: render minimal card
+  if (schedulePerf.DISABLE_SESSION_RENDER) {
+    return (
+      <LiteCardContainer $status={status} onClick={() => onClick?.(session)}>
+        <TimeLabel>{time}</TimeLabel>
+        <NameText>{session.clientName || 'Session'}</NameText>
+      </LiteCardContainer>
+    );
+  }
 
   return (
     <CardContainer
       $status={status}
       $isPast={isPast}
+      $liteMode={schedulePerf.MOBILE_LITE_MODE}
       role="button"
       tabIndex={0}
       onClick={() => onClick?.(session)}
@@ -63,15 +75,17 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) => {
         <StatusDot $status={status} />
         <TimeLabel>{time}</TimeLabel>
         <DurationLabel>{session.duration ? `${session.duration} min` : ''}</DurationLabel>
-        {/* Session indicators */}
-        <IndicatorContainer>
-          {hasReminderSent && (
-            <Indicator title="Reminder sent" $type="reminder">📬</Indicator>
-          )}
-          {hasFeedback && (
-            <Indicator title="Feedback provided" $type="feedback">⭐</Indicator>
-          )}
-        </IndicatorContainer>
+        {/* Session indicators - hidden in lite mode */}
+        {!schedulePerf.DISABLE_SESSION_BADGES && (
+          <IndicatorContainer>
+            {hasReminderSent && (
+              <Indicator title="Reminder sent" $type="reminder">📬</Indicator>
+            )}
+            {hasFeedback && (
+              <Indicator title="Feedback provided" $type="feedback">⭐</Indicator>
+            )}
+          </IndicatorContainer>
+        )}
       </CardHeader>
       <CardBody>
         <NameText>
@@ -79,7 +93,7 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) => {
         </NameText>
         <MetaText>{session.trainerName || 'Trainer TBD'}</MetaText>
         <MetaText>{session.location || 'Main Studio'}</MetaText>
-        {session.packageInfo && (
+        {!schedulePerf.DISABLE_SESSION_BADGES && session.packageInfo && (
           <PackageInfo>
             {session.packageInfo.name}
             {session.packageInfo.sessionsTotal != null
@@ -92,9 +106,50 @@ const SessionCard: React.FC<SessionCardProps> = ({ session, onClick }) => {
   );
 };
 
+// Memoize to prevent unnecessary re-renders during scroll
+const SessionCard = memo(SessionCardComponent, (prevProps, nextProps) => {
+  // Only re-render if session data actually changed
+  return (
+    prevProps.session.id === nextProps.session.id &&
+    prevProps.session.status === nextProps.session.status &&
+    prevProps.session.clientName === nextProps.session.clientName &&
+    prevProps.session.sessionDate === nextProps.session.sessionDate
+  );
+});
+
 export default SessionCard;
 
-const CardContainer = styled.div<{ $status: string; $isPast?: boolean }>`
+// Lite mode card for performance testing
+const LiteCardContainer = styled.div<{ $status: string }>`
+  background: rgba(30, 30, 60, 0.4);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  cursor: pointer;
+  min-height: 44px;
+`;
+
+// Mobile lite mode optimizations
+const mobileOptimizations = css`
+  /* Disable expensive transforms and shadows on mobile */
+  @media (max-width: 768px) {
+    transition: none;
+
+    &:hover {
+      transform: none;
+      box-shadow: none;
+    }
+
+    &:active {
+      transform: none;
+    }
+  }
+`;
+
+const CardContainer = styled.div<{ $status: string; $isPast?: boolean; $liteMode?: boolean }>`
   background: ${({ $isPast }) => $isPast ? 'rgba(20, 20, 40, 0.3)' : 'rgba(30, 30, 60, 0.4)'};
   border-radius: 12px;
   border: 1px solid ${({ $isPast }) => $isPast ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 255, 255, 0.2)'};
@@ -104,11 +159,14 @@ const CardContainer = styled.div<{ $status: string; $isPast?: boolean }>`
   flex-direction: column;
   gap: 0.4rem;
   cursor: pointer;
-  transition: all 150ms ease-out;
+  transition: ${({ $liteMode }) => $liteMode ? 'none' : 'all 150ms ease-out'};
   position: relative;
   overflow: hidden;
   min-height: 44px; /* Touch target */
   min-width: 0;
+  /* GPU layer promotion for smoother scroll */
+  transform: translateZ(0);
+  will-change: ${({ $liteMode }) => $liteMode ? 'auto' : 'transform'};
 
   ${({ $status }) =>
     $status === 'blocked' &&
@@ -125,14 +183,14 @@ const CardContainer = styled.div<{ $status: string; $isPast?: boolean }>`
     `}
 
   &:hover {
-    ${({ $isPast }) => !$isPast && `
+    ${({ $isPast, $liteMode }) => !$isPast && !$liteMode && `
       transform: scale(1.02);
       box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
     `}
   }
 
   &:active {
-    transform: scale(0.98);
+    ${({ $liteMode }) => !$liteMode && `transform: scale(0.98);`}
   }
 
   &:focus-visible {
@@ -140,11 +198,23 @@ const CardContainer = styled.div<{ $status: string; $isPast?: boolean }>`
     outline-offset: 2px;
   }
 
-  /* Mobile */
+  /* Mobile optimizations */
   @media (max-width: 768px) {
     padding: 0.6rem 0.7rem;
     border-radius: 10px;
     gap: 0.35rem;
+    /* Disable transforms on mobile for better scroll */
+    transition: none;
+    will-change: auto;
+
+    &:hover {
+      transform: translateZ(0);
+      box-shadow: none;
+    }
+
+    &:active {
+      transform: translateZ(0);
+    }
   }
 
   @media (max-width: 480px) {
