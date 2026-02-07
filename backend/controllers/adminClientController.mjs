@@ -316,6 +316,7 @@ class AdminClientController {
       }
 
       // Include related data
+      // NOTE: Only include associations that actually exist
       const includeOptions = [
         {
           model: ClientProgress,
@@ -329,16 +330,9 @@ class AdminClientController {
           where: { status: { [Op.in]: ['scheduled', 'confirmed'] } },
           separate: true,
           limit: 5
-        },
-        {
-          model: WorkoutSession,
-          as: 'workoutSessions',
-          required: false,
-          where: { status: 'completed' },
-          separate: true,
-          limit: 5,
-          order: [['completedAt', 'DESC']]
         }
+        // WorkoutSession association doesn't exist on User model
+        // Removed to fix 500 error
       ];
 
       const { count, rows: clients } = await User.findAndCountAll({
@@ -367,7 +361,7 @@ class AdminClientController {
           ...clientData,
           totalWorkouts,
           totalOrders,
-          lastWorkout: clientData.workoutSessions?.[0] || null,
+          lastWorkout: null, // WorkoutSession association removed - query separately if needed
           nextSession: clientData.clientSessions?.[0] || null
         };
       }));
@@ -419,12 +413,8 @@ class AdminClientController {
               }
             ]
           },
-          {
-            model: WorkoutSession,
-            as: 'workoutSessions',
-            limit: 10,
-            order: [['createdAt', 'DESC']]
-          },
+          // NOTE: WorkoutSession association doesn't exist on User model
+          // Removed to fix 500 error - query workouts separately if needed
           {
             model: Order,
             as: 'orders',
