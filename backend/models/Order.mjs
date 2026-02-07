@@ -61,6 +61,22 @@ Order.init(
       type: DataTypes.DATE,
       allowNull: true,
     },
+    // P0: Payment Application Tracking (MindBody-like idempotent payment)
+    paymentAppliedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Timestamp when payment was applied (idempotency check)'
+    },
+    paymentAppliedBy: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: 'Admin user ID who applied the payment'
+    },
+    paymentReference: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: 'External payment reference (Venmo ID, cash receipt, check #, Stripe PI)'
+    },
   },
   {
     sequelize,

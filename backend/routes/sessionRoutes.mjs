@@ -4997,6 +4997,214 @@ router.get("/trainer/:trainerId/feedback-summary", protect, adminOnly, async (re
   }
 });
 
+/**
+ * @route   POST /api/sessions/admin/book
+ * @desc    Admin books a session on behalf of a client (P0 Billing & Sessions)
+ * @access  Private (Admin only)
+ * @body {
+ *   clientId: number,
+ *   sessionDate: string (ISO 8601),
+ *   trainerId?: number,
+ *   duration?: number (minutes, default 60),
+ *   notes?: string,
+ *   location?: string
+ * }
+ */
+router.post("/admin/book", protect, adminOnly, async (req, res) => {
+  const transaction = await sequelize.transaction();
+
+  try {
+    const Session = getSession();
+    const User = getUser();
+    const { clientId, sessionDate, trainerId, duration = 60, notes, location } = req.body;
+
+    // Validation
+    if (!clientId) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "clientId is required"
+      });
+    }
+
+    if (!sessionDate) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "sessionDate is required"
+      });
+    }
+
+    // Verify client exists and has available sessions
+    const client = await User.findByPk(clientId, { transaction });
+    if (!client) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: "Client not found"
+      });
+    }
+
+    if (!client.availableSessions || client.availableSessions <= 0) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Client has no available sessions. Add sessions first.",
+        availableSessions: client.availableSessions || 0
+      });
+    }
+
+    // Parse session date
+    const parsedSessionDate = new Date(sessionDate);
+    if (isNaN(parsedSessionDate.getTime())) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: "Invalid sessionDate format. Use ISO 8601."
+      });
+    }
+
+    // Calculate end date
+    const endDate = new Date(parsedSessionDate.getTime() + duration * 60 * 1000);
+
+    // Check trainer availability if trainer specified
+    if (trainerId) {
+      const trainer = await User.findByPk(trainerId, { transaction });
+      if (!trainer || !['trainer', 'admin'].includes(trainer.role)) {
+        await transaction.rollback();
+        return res.status(404).json({
+          success: false,
+          message: "Trainer not found"
+        });
+      }
+
+      // Check for conflicts
+      const conflictingSession = await Session.findOne({
+        where: {
+          trainerId,
+          status: { [Op.in]: ['scheduled', 'confirmed'] },
+          [Op.or]: [
+            {
+              sessionDate: { [Op.lt]: endDate },
+              endDate: { [Op.gt]: parsedSessionDate }
+            },
+            {
+              sessionDate: { [Op.between]: [parsedSessionDate, endDate] }
+            }
+          ]
+        },
+        transaction
+      });
+
+      if (conflictingSession) {
+        await transaction.rollback();
+        return res.status(409).json({
+          success: false,
+          message: "Trainer has a conflicting session at this time",
+          conflictingSession: {
+            id: conflictingSession.id,
+            sessionDate: conflictingSession.sessionDate,
+            endDate: conflictingSession.endDate
+          }
+        });
+      }
+    }
+
+    // Create the session
+    const session = await Session.create({
+      sessionDate: parsedSessionDate,
+      endDate,
+      duration,
+      userId: clientId,
+      trainerId: trainerId || null,
+      status: 'scheduled',
+      notes,
+      location: location || 'Main Studio',
+      bookedByAdminId: req.user.id,
+      bookingDate: new Date(),
+      isBlocked: false,
+      confirmed: false
+    }, { transaction });
+
+    // Deduct session credit from client
+    client.availableSessions -= 1;
+    await client.save({ transaction });
+
+    await transaction.commit();
+
+    // Format date for notifications
+    const sessionDateFormatted = parsedSessionDate.toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    // Send notifications (outside transaction)
+    try {
+      if (client.email && shouldNotifyClient({ user: client, channel: 'email', notifyClient: true })) {
+        await sendEmailNotification({
+          to: client.email,
+          subject: "Session Booked by Admin",
+          text: `A session has been booked for you for ${sessionDateFormatted}`,
+          html: `<p>A session has been booked for you for <strong>${sessionDateFormatted}</strong>.</p>
+                 <p>Location: ${session.location || 'Main Studio'}</p>
+                 <p>Please arrive 10 minutes before your session.</p>`
+        });
+      }
+
+      if (client.phone && shouldNotifyClient({ user: client, channel: 'sms', notifyClient: true })) {
+        await sendSmsNotification({
+          to: client.phone,
+          body: `Swan Studios: A session has been booked for you for ${sessionDateFormatted}. Please arrive 10 minutes early.`
+        });
+      }
+    } catch (notifyError) {
+      logger.error("Error sending booking notifications:", notifyError);
+      // Don't fail the request
+    }
+
+    // Broadcast real-time update
+    try {
+      realTimeScheduleService.broadcast('session:created', {
+        session: session.toJSON(),
+        bookedByAdmin: true
+      });
+    } catch (broadcastError) {
+      logger.error("Error broadcasting session update:", broadcastError);
+    }
+
+    logger.info(`Admin ${req.user.id} booked session ${session.id} for client ${clientId}`, {
+      sessionDate: parsedSessionDate.toISOString(),
+      trainerId,
+      remainingSessions: client.availableSessions
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Session booked successfully",
+      session: session.toJSON(),
+      client: {
+        id: client.id,
+        firstName: client.firstName,
+        lastName: client.lastName,
+        availableSessions: client.availableSessions
+      }
+    });
+
+  } catch (error) {
+    await transaction.rollback();
+    logger.error("Error in admin book session:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error booking session",
+      error: error.message
+    });
+  }
+});
+
 export default router;
 
 

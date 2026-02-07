@@ -95,6 +95,9 @@ import {
 import { adminClientService } from '../../../../services/adminClientService';
 import { useToast } from '../../../../hooks/use-toast';
 
+// P0: Billing & Sessions Card
+import BillingSessionsCard from './BillingSessionsCard';
+
 // Types
 interface Client {
   id: number;
@@ -266,9 +269,23 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
     return age;
   };
   
+  // Callback for billing card updates
+  const handleBillingUpdate = useCallback(() => {
+    fetchClientData();
+  }, [fetchClientData]);
+
   // Render Tab Content
   const renderPersonalInfo = () => (
     <Grid container spacing={3} sx={{ p: 3 }}>
+      {/* P0: Billing & Sessions Card - Prominent at top */}
+      <Grid item xs={12}>
+        <BillingSessionsCard
+          clientId={client.id}
+          clientName={`${client.firstName} ${client.lastName}`}
+          onUpdate={handleBillingUpdate}
+        />
+      </Grid>
+
       <Grid item xs={12} md={4}>
         <Card sx={{ background: 'rgba(71, 85, 105, 0.5)', textAlign: 'center' }}>
           <CardContent>

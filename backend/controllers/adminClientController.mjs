@@ -930,6 +930,142 @@ class AdminClientController {
   }
 
   /**
+   * P0: Get client billing overview for admin dashboard
+   * Returns session credits, pending orders, and upcoming sessions
+   */
+  async getBillingOverview(req, res) {
+    try {
+      const { clientId } = req.params;
+
+      // Get client with session credits
+      const client = await User.findOne({
+        where: { id: clientId, role: 'client' },
+        attributes: ['id', 'firstName', 'lastName', 'email', 'availableSessions']
+      });
+
+      if (!client) {
+        return res.status(404).json({
+          success: false,
+          message: 'Client not found'
+        });
+      }
+
+      // Get last completed order (most recent purchase with credits granted)
+      const lastPurchase = await Order.findOne({
+        where: {
+          userId: clientId,
+          creditsGrantedAt: { [Op.not]: null }
+        },
+        order: [['creditsGrantedAt', 'DESC']],
+        attributes: ['id', 'packageName', 'sessionsTotal', 'totalAmount', 'creditsGrantedAt', 'paymentAppliedAt', 'paymentReference']
+      });
+
+      // Get pending orders (awaiting payment)
+      const pendingOrders = await Order.findAll({
+        where: {
+          userId: clientId,
+          status: { [Op.in]: ['pending_payment', 'pending'] }
+        },
+        order: [['createdAt', 'DESC']],
+        attributes: ['id', 'packageName', 'sessionsTotal', 'totalAmount', 'status', 'createdAt']
+      });
+
+      // Get next upcoming scheduled session
+      const nextSession = await Session.findOne({
+        where: {
+          clientId: clientId,
+          status: { [Op.in]: ['scheduled', 'confirmed'] },
+          sessionDate: { [Op.gte]: new Date() }
+        },
+        order: [['sessionDate', 'ASC']],
+        include: [
+          {
+            model: User,
+            as: 'trainer',
+            attributes: ['id', 'firstName', 'lastName']
+          }
+        ],
+        attributes: ['id', 'sessionDate', 'duration', 'status', 'notes']
+      });
+
+      // Get recent session history (last 5 completed)
+      const recentSessions = await Session.findAll({
+        where: {
+          clientId: clientId,
+          status: 'completed'
+        },
+        order: [['sessionDate', 'DESC']],
+        limit: 5,
+        include: [
+          {
+            model: User,
+            as: 'trainer',
+            attributes: ['id', 'firstName', 'lastName']
+          }
+        ],
+        attributes: ['id', 'sessionDate', 'duration', 'status', 'completedAt']
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          client: {
+            id: client.id,
+            name: `${client.firstName} ${client.lastName}`,
+            email: client.email
+          },
+          sessionsRemaining: client.availableSessions || 0,
+          lastPurchase: lastPurchase ? {
+            id: lastPurchase.id,
+            packageName: lastPurchase.packageName,
+            sessions: lastPurchase.sessionsTotal,
+            amount: lastPurchase.totalAmount,
+            grantedAt: lastPurchase.creditsGrantedAt,
+            paymentAppliedAt: lastPurchase.paymentAppliedAt,
+            paymentReference: lastPurchase.paymentReference
+          } : null,
+          pendingOrders: pendingOrders.map(order => ({
+            id: order.id,
+            packageName: order.packageName,
+            sessions: order.sessionsTotal,
+            amount: order.totalAmount,
+            status: order.status,
+            createdAt: order.createdAt
+          })),
+          nextSession: nextSession ? {
+            id: nextSession.id,
+            date: nextSession.sessionDate,
+            duration: nextSession.duration,
+            status: nextSession.status,
+            notes: nextSession.notes,
+            trainer: nextSession.trainer ? {
+              id: nextSession.trainer.id,
+              name: `${nextSession.trainer.firstName} ${nextSession.trainer.lastName}`
+            } : null
+          } : null,
+          recentSessions: recentSessions.map(session => ({
+            id: session.id,
+            date: session.sessionDate,
+            duration: session.duration,
+            completedAt: session.completedAt,
+            trainer: session.trainer ? {
+              id: session.trainer.id,
+              name: `${session.trainer.firstName} ${session.trainer.lastName}`
+            } : null
+          }))
+        }
+      });
+    } catch (error) {
+      logger.error('Error fetching billing overview:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Error fetching billing overview',
+        error: error.message
+      });
+    }
+  }
+
+  /**
    * Get MCP server health status
    */
   async getMCPStatus(req, res) {

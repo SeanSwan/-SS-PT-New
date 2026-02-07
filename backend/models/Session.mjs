@@ -212,6 +212,12 @@ Session.init({
     allowNull: true,
     comment: 'Admin user who assigned the trainer to this session'
   },
+  // P0: Admin Booking on behalf of Client
+  bookedByAdminId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    comment: 'Admin user who booked this session on behalf of the client'
+  },
   // MindBody-style cancellation charge fields
   cancellationChargeType: {
     type: DataTypes.STRING(20),
