@@ -34,8 +34,24 @@ self.addEventListener('activate', (event) => {
 
 // Pass through all fetch requests without caching
 self.addEventListener('fetch', (event) => {
-  // Just pass through to network - no caching
-  event.respondWith(fetch(event.request));
+  // Skip cross-origin requests to prevent CORS error storms
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) {
+    // Let browser handle cross-origin requests directly
+    return;
+  }
+
+  // For same-origin requests, pass through with error handling
+  event.respondWith(
+    fetch(event.request).catch((error) => {
+      console.log('SW: Fetch failed for', event.request.url, error.message);
+      // Return a simple error response instead of throwing
+      return new Response('Service Worker: Network error', {
+        status: 503,
+        statusText: 'Service Unavailable'
+      });
+    })
+  );
 });
 
 // Notify clients that PWA is disabled
