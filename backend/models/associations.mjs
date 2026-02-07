@@ -242,10 +242,19 @@ const setupAssociations = async () => {
     // User as client in sessions
     User.hasMany(Session, { foreignKey: 'userId', as: 'clientSessions' });
     Session.belongsTo(User, { foreignKey: 'userId', as: 'client' });
-    
+
     // User as trainer in sessions
     User.hasMany(Session, { foreignKey: 'trainerId', as: 'trainerSessions' });
     Session.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
+
+    // USER-WORKOUTSESSION ASSOCIATIONS (for admin client workout history)
+    // ===================================================================
+    User.hasMany(WorkoutSession, { foreignKey: 'userId', as: 'workoutSessions' });
+    WorkoutSession.belongsTo(User, { foreignKey: 'userId', as: 'client' });
+
+    // Trainer who led the workout (optional - for trainer-led sessions)
+    User.hasMany(WorkoutSession, { foreignKey: 'trainerId', as: 'ledWorkoutSessions' });
+    WorkoutSession.belongsTo(User, { foreignKey: 'trainerId', as: 'trainer' });
 
     // Session type associations (Phase 5 - buffer-aware scheduling)
     Session.belongsTo(SessionType, { foreignKey: 'sessionTypeId', as: 'sessionType' });

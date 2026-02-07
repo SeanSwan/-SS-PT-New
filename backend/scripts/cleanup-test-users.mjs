@@ -11,6 +11,9 @@
  * Options:
  *   --dry-run    Preview what would be deleted without actually deleting
  *   --force      Skip confirmation prompt
+ *
+ * Production Safety:
+ *   Set ALLOW_PROD_CLEANUP=true to run on production database
  */
 
 import sequelize from '../database.mjs';
@@ -19,6 +22,21 @@ import readline from 'readline';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const FORCE = process.argv.includes('--force');
+
+// Production safety guard
+const isProduction = process.env.NODE_ENV === 'production' ||
+                     process.env.DATABASE_URL?.includes('render.com') ||
+                     process.env.DATABASE_URL?.includes('amazonaws.com');
+
+if (isProduction && !process.env.ALLOW_PROD_CLEANUP) {
+  console.error('\n========================================');
+  console.error('  PRODUCTION ENVIRONMENT DETECTED');
+  console.error('========================================');
+  console.error('\nThis script will DELETE users from your production database.');
+  console.error('To proceed, set the environment variable:');
+  console.error('\n  ALLOW_PROD_CLEANUP=true node backend/scripts/cleanup-test-users.mjs\n');
+  process.exit(1);
+}
 
 // Configuration: How many of each role to keep
 const KEEP_CONFIG = {
