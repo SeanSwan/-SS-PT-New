@@ -49,6 +49,15 @@ data/
 .cache/
 .temp/
 
+# Python / Flask
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+backend/flask_server/venv/
+
 # IDE and Editor files
 .vscode/
 .idea/
