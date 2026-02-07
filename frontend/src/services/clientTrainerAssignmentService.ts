@@ -61,8 +61,17 @@ class ClientTrainerAssignmentService {
       const queryString = params.toString();
       const url = `/api/client-trainer-assignments${queryString ? `?${queryString}` : ''}`;
       
-      const response = await this.apiService.get<ClientTrainerAssignment[]>(url);
-      return response.data;
+      const response = await this.apiService.get<any>(url);
+      const payload = response.data;
+
+      // Backend response shape may be either a raw array or a wrapper
+      // { success: true, assignments: [...] } / { success: true, data: [...] }.
+      if (Array.isArray(payload)) return payload;
+      if (payload?.data && Array.isArray(payload.data)) return payload.data;
+      if (payload?.assignments && Array.isArray(payload.assignments)) return payload.assignments;
+
+      console.warn('[ClientTrainerAssignmentService] Unexpected assignments response shape:', payload);
+      return [];
     } catch (error) {
       console.error('Error fetching assignments:', error);
       throw error;
