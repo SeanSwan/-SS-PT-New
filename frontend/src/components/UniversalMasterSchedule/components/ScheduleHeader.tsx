@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { Calendar, RefreshCw, Bell, Plus, Clock, ChevronDown, Settings, Repeat, Users, User } from 'lucide-react';
+import { Calendar, RefreshCw, Bell, Plus, Clock, ChevronDown, Settings, Repeat, Users, User, Columns, Rows, Maximize, Minimize } from 'lucide-react';
 import {
   FlexBox,
   Box,
@@ -12,6 +12,7 @@ import {
 } from '../ui';
 import ViewSelector from '../Views/ViewSelector';
 import { CalendarView } from '../types';
+import type { LayoutMode, DensityMode } from '../types';
 import Dropdown from '../../common/Dropdown/Dropdown';
 
 // Admin View Scope Options (MindBody Parity)
@@ -44,6 +45,11 @@ interface ScheduleHeaderProps {
   trainers?: Array<{ id: number | string; firstName: string; lastName: string }>;
   selectedTrainerId?: number | string | null;
   onTrainerFilterChange?: (trainerId: number | string | null) => void;
+  // Layout & Density toggles (MindBody stacked view)
+  layoutMode?: LayoutMode;
+  onLayoutModeChange?: (mode: LayoutMode) => void;
+  density?: DensityMode;
+  onDensityChange?: (density: DensityMode) => void;
 }
 
 const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
@@ -71,7 +77,12 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
   onAdminViewScopeChange,
   trainers = [],
   selectedTrainerId,
-  onTrainerFilterChange
+  onTrainerFilterChange,
+  // Layout & Density
+  layoutMode = 'columns',
+  onLayoutModeChange,
+  density = 'comfortable',
+  onDensityChange
 }) => {
   return (
     <>
@@ -122,6 +133,50 @@ const ScheduleHeader: React.FC<ScheduleHeaderProps> = ({
                 </option>
               ))}
             </TrainerSelect>
+          )}
+
+          {/* Layout & Density toggles (Day view only) */}
+          {activeView === 'day' && onLayoutModeChange && (
+            <LayoutDensityBar>
+              <ToggleGroup aria-label="Layout mode">
+                <ToggleButton
+                  $active={layoutMode === 'columns'}
+                  onClick={() => onLayoutModeChange('columns')}
+                  title="Column layout"
+                  aria-label="Column layout"
+                >
+                  <Columns size={14} />
+                </ToggleButton>
+                <ToggleButton
+                  $active={layoutMode === 'stacked'}
+                  onClick={() => onLayoutModeChange('stacked')}
+                  title="Stacked layout"
+                  aria-label="Stacked layout"
+                >
+                  <Rows size={14} />
+                </ToggleButton>
+              </ToggleGroup>
+              {onDensityChange && (
+                <ToggleGroup aria-label="Density mode">
+                  <ToggleButton
+                    $active={density === 'comfortable'}
+                    onClick={() => onDensityChange('comfortable')}
+                    title="Comfortable density"
+                    aria-label="Comfortable density"
+                  >
+                    <Maximize size={14} />
+                  </ToggleButton>
+                  <ToggleButton
+                    $active={density === 'compact'}
+                    onClick={() => onDensityChange('compact')}
+                    title="Compact density"
+                    aria-label="Compact density"
+                  >
+                    <Minimize size={14} />
+                  </ToggleButton>
+                </ToggleGroup>
+              )}
+            </LayoutDensityBar>
           )}
 
           <StyledIconButton
@@ -331,6 +386,59 @@ const ScopeButton = styled.button<{ $active: boolean }>`
     font-size: 0.75rem;
     flex: 1;
     justify-content: center;
+  }
+`;
+
+// Layout & Density Toggle Styles
+const LayoutDensityBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+
+  @media (max-width: 480px) {
+    grid-column: span 2;
+    width: 100%;
+    justify-content: center;
+  }
+`;
+
+const ToggleGroup = styled.div`
+  display: flex;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+`;
+
+const ToggleButton = styled.button<{ $active: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  ${({ $active }) =>
+    $active
+      ? `
+        background: rgba(0, 212, 255, 0.25);
+        color: #00d4ff;
+      `
+      : `
+        background: transparent;
+        color: rgba(255, 255, 255, 0.45);
+        &:hover {
+          background: rgba(255, 255, 255, 0.08);
+          color: rgba(255, 255, 255, 0.8);
+        }
+      `}
+
+  @media (max-width: 480px) {
+    width: 36px;
+    height: 36px;
   }
 `;
 
