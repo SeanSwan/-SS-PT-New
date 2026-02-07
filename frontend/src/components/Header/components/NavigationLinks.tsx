@@ -200,14 +200,6 @@ const NavigationLinks: React.FC<NavigationLinksProps> = ({
             SwanStudios Store
           </StyledNavLink>
 
-          <StyledNavLink
-            to="/gamification"
-            $isActive={isActive('/gamification')}
-            variants={itemVariants}
-          >
-            Gamification
-          </StyledNavLink>
-
           <Box sx={{ ml: 1, mr: 1 }}>
             <DashboardSelector />
           </Box>

@@ -11,7 +11,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 import ShoppingBagIcon from '@mui/icons-material/ShoppingBag';
 import PersonIcon from '@mui/icons-material/Person';
-import { LayoutDashboard, Users, Gamepad2 } from 'lucide-react';
+import { LayoutDashboard, Users } from 'lucide-react';
 
 // Galaxy Theme Colors (copied from header for consistency)
 const GALAXY_THEME_COLORS = {
@@ -324,16 +324,6 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             </MobileNavLink>
           </motion.div>
           
-          <motion.div variants={itemVariants}>
-            <MobileNavLink
-              to="/gamification"
-              onClick={closeMobileMenu}
-              $isActive={isActive('/gamification')}
-            >
-              <Gamepad2 size={20} /> Gamification Hub
-            </MobileNavLink>
-          </motion.div>
-
           <motion.div variants={itemVariants}>
             <MobileNavLink
               to="/contact"
