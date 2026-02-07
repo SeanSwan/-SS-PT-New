@@ -86,7 +86,10 @@
     "audit-database": "node scripts/audit-database-data.mjs",
     "verify-migrations": "node scripts/verify-migrations.mjs",
     "fix-duplicate-indexes": "node scripts/fix-duplicate-indexes.mjs",
-    "mark-completed-migrations": "node scripts/mark-completed-migrations.mjs"
+    "mark-completed-migrations": "node scripts/mark-completed-migrations.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "keywords": [],
   "author": "",
@@ -134,8 +137,10 @@
     "axios": "^1.9.0",
     "chalk": "^5.4.1",
     "concurrently": "^8.2.2",
-    "nodemon": "^3.1.4",
+    "nodemon": "^3.1.11",
     "ora": "^8.2.0",
-    "sequelize-cli": "^6.6.2"
+    "sequelize-cli": "^6.6.2",
+    "supertest": "^7.2.2",
+    "vitest": "^4.0.18"
   }
 }

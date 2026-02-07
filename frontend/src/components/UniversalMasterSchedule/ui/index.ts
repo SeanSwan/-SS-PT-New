@@ -19,6 +19,21 @@ export * from './StyledCard';
 // Loading
 export { Spinner, LoadingContainer, InlineSpinner } from './Spinner';
 
+// Skeletons (P1-14)
+export {
+  Skeleton,
+  SkeletonCard,
+  SessionCardSkeleton,
+  SkeletonGrid,
+  SkeletonRow,
+  SkeletonTimeCell,
+  SkeletonSlotCell,
+  DayViewSkeleton,
+  SkeletonDayCell,
+  MonthViewSkeleton,
+  AgendaSkeleton,
+} from './Skeleton';
+
 // Modal
 export { Modal, ModalHeader, ModalBody, ModalFooter } from './CustomModal';
 export type { ModalProps } from './CustomModal';

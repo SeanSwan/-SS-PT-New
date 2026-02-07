@@ -150,15 +150,19 @@ const TabButton = styled(motion.button)<{
   white-space: nowrap;
   outline: none;
   user-select: none;
+
+  /* P1-4: Mobile touch feedback */
+  -webkit-tap-highlight-color: rgba(0, 255, 255, 0.15);
+  touch-action: manipulation; /* Remove 300ms tap delay */
   
-  /* Size variants */
+  /* Size variants - P1-2 Fix: 44px minimum touch targets */
   ${({ size }) => {
     switch (size) {
       case 'small':
         return css`
-          padding: 0.5rem 1rem;
+          padding: 0.625rem 1rem;
           font-size: 0.875rem;
-          min-height: 36px;
+          min-height: 44px; /* P1-2: WCAG minimum touch target */
         `;
       case 'large':
         return css`
@@ -170,7 +174,7 @@ const TabButton = styled(motion.button)<{
         return css`
           padding: 0.75rem 1.25rem;
           font-size: 1rem;
-          min-height: 42px;
+          min-height: 44px; /* P1-2: WCAG minimum touch target */
         `;
     }
   }}
@@ -282,15 +286,22 @@ const TabButton = styled(motion.button)<{
     outline-offset: 2px;
   }
   
-  /* Active state */
+  /* Active state - P1-4: Enhanced visual feedback on touch */
   &:active {
     transform: scale(0.98);
+    background: rgba(0, 255, 255, 0.1);
   }
-  
+
   /* Mobile optimizations */
   @media (max-width: 768px) {
     min-width: fit-content;
-    
+
+    /* P1-4: Immediate touch feedback on mobile */
+    &:active {
+      background: rgba(0, 255, 255, 0.15);
+      transition: background 0.05s ease;
+    }
+
     ${({ size }) => size === 'large' && css`
       padding: 0.75rem 1.25rem;
       font-size: 1rem;

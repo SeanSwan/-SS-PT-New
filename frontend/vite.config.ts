@@ -37,9 +37,22 @@ export default defineConfig({
         entryFileNames: 'v3/[name].[hash].js',
         chunkFileNames: 'v3/[name].[hash].js',
         assetFileNames: 'v3/[name].[hash].[ext]',
-        // Ensure styled-components is in its own chunk to prevent duplication
+        // Performance: Split vendor bundles for better caching
         manualChunks: {
-          'styled-components': ['styled-components']
+          // React core - rarely changes, cache aggressively
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          // Styled components - separate chunk prevents duplication
+          'styled-components': ['styled-components'],
+          // Animation libraries - used across many components
+          'animation-vendor': ['framer-motion'],
+          // Data fetching - used everywhere
+          'query-vendor': ['@tanstack/react-query'],
+          // Redux state management
+          'redux-vendor': ['react-redux', '@reduxjs/toolkit'],
+          // Date utilities
+          'date-vendor': ['date-fns'],
+          // Icons - lazy load separately
+          'icons-vendor': ['lucide-react'],
         }
       }
       // REMOVED incorrect 'external' configuration that was breaking V2 imports

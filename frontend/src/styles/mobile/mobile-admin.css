@@ -482,8 +482,8 @@
   }
 }
 
-/* Mobile Bottom Sheet Style Dialog */
-@media (max-width: 640px) {
+/* Mobile Bottom Sheet Style Dialog - P1-15: Safe area support */
+@media (max-width: 768px) {
   .mobile-bottom-sheet .MuiDialog-paper {
     position: fixed !important;
     bottom: 0 !important;
@@ -495,7 +495,8 @@
     width: 100% !important;
     max-width: none !important;
     border-radius: var(--mobile-border-radius-lg) var(--mobile-border-radius-lg) 0 0 !important;
-    max-height: 85vh !important;
+    max-height: calc(85vh - env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
   }
 }
 
@@ -503,10 +504,10 @@
    MOBILE ADMIN COMPONENTS
    ========================================================================== */
 
-/* Mobile Action Buttons */
+/* Mobile Action Buttons - P1-15: Safe area support for notch devices */
 .mobile-admin-fab {
   position: fixed;
-  bottom: var(--space-lg);
+  bottom: calc(var(--space-lg) + env(safe-area-inset-bottom, 0px));
   right: var(--space-lg);
   z-index: var(--z-admin-modal);
   background: var(--admin-primary);

@@ -7,7 +7,7 @@
 import styled from 'styled-components';
 import { Label, ErrorText, HelperText } from './Typography';
 
-// Base input styles
+// Base input styles - P1-3 Fix: 16px font-size on mobile prevents iOS auto-zoom
 const baseInputStyles = `
   width: 100%;
   padding: 0.75rem 1rem;
@@ -15,26 +15,27 @@ const baseInputStyles = `
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 6px;
   color: #ffffff;
-  font-size: 0.875rem;
+  font-size: 1rem; /* P1-3: 16px minimum prevents iOS auto-zoom */
   font-family: inherit;
   transition: all 0.2s ease;
   outline: none;
-  
+  min-height: 44px; /* P1-2: WCAG touch target */
+
   &::placeholder {
     color: rgba(255, 255, 255, 0.4);
   }
-  
+
   &:hover:not(:disabled) {
     border-color: rgba(255, 255, 255, 0.3);
     background: rgba(255, 255, 255, 0.08);
   }
-  
+
   &:focus {
     border-color: #3b82f6;
     background: rgba(255, 255, 255, 0.1);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
   }
-  
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;

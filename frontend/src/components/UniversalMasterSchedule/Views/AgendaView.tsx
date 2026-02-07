@@ -147,9 +147,11 @@ const AgendaContainer = styled.div`
   padding-right: 0.5rem;
   -webkit-overflow-scrolling: touch;
 
+  /* P1-5: Prevent nested scroll on mobile - let parent container scroll */
   @media (max-width: 768px) {
     gap: 1.25rem;
     max-height: none;
+    overflow-y: visible; /* Disable inner scroll, use parent scroll */
     padding-right: 0;
   }
 
