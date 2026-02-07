@@ -233,9 +233,11 @@ const HeaderTitle = styled.div`
 
 const ScheduleContent = styled.div`
   flex: 1;
-  overflow: hidden;
+  min-height: 0; /* Allow flex child to shrink and scroll */
   display: flex;
   flex-direction: column;
+  /* Let child handle its own scrolling */
+  overflow: visible;
 `;
 
 const ErrorContainer = styled.div`

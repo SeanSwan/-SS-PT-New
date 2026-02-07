@@ -753,37 +753,29 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 export default UniversalMasterSchedule;
 
 const ScheduleContainer = styled.div`
-  /* Use 100dvh for mobile Safari dynamic viewport, with 100vh fallback */
-  height: 100vh;
-  height: 100dvh;
+  /* Fit within parent container - parent controls viewport height */
+  height: 100%;
+  min-height: 0; /* Allow flex shrinking */
   display: flex;
   flex-direction: column;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
   color: white;
-  /* Allow overflow on Y for immediate scroll availability */
+  /* Allow overflow on Y for scrollable content */
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  /* Prevent scroll chaining to parent - fixes "gummy" feel on mobile */
+  overscroll-behavior: contain;
   /* GPU layer promotion for smooth scrolling */
   transform: translateZ(0);
-
-  @media (max-width: ${BREAKPOINTS.DESKTOP}) {
-    height: auto;
-    min-height: 100vh;
-    min-height: 100dvh;
-  }
 
   @media (max-width: ${BREAKPOINTS.TABLET}) {
     /* Use simpler background on mobile */
     background: #0f172a;
-    /* Ensure iOS momentum scrolling */
-    -webkit-overflow-scrolling: touch;
   }
 
   @media (max-width: ${BREAKPOINTS.MOBILE}) {
-    height: auto;
+    /* On mobile standalone, use viewport height */
     min-height: 100dvh;
-    /* Ensure content is scrollable immediately */
-    overflow-y: auto;
   }
 `;
