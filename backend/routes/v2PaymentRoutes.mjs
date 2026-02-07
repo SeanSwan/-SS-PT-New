@@ -461,11 +461,35 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
       return sum + ((item.storefrontItem?.sessions || 0) * (item.quantity || 0));
     }, 0);
 
-    // Update cart status
+    // IDEMPOTENCY CHECK: Only grant sessions if not already processed
+    // This prevents double-grants if both webhook and verify-session are called
+    const alreadyProcessed = cart.sessionsGranted === true || cart.status === 'completed';
+
+    if (alreadyProcessed) {
+      console.log('⚠️ [v2 Payment] Sessions already granted for this order - skipping (idempotent)');
+      logger.info(`[v2 Payment] Idempotency: Order ${cart.id} already processed, skipping session grant`);
+
+      // Still return success but don't add more sessions
+      return res.status(200).json({
+        success: true,
+        message: 'Order already verified (idempotent response)',
+        data: {
+          sessionId: session.id,
+          amount: session.amount_total / 100,
+          sessionsAdded: 0, // Already added previously
+          alreadyProcessed: true,
+          customerEmail: session.customer_details?.email || cart.user?.email,
+          orderDate: cart.completedAt?.toISOString() || new Date().toISOString()
+        }
+      });
+    }
+
+    // Update cart status with sessionsGranted flag for idempotency
     await cart.update({
       status: 'completed',
       paymentStatus: 'paid',
       completedAt: new Date(),
+      sessionsGranted: true, // IDEMPOTENCY FLAG
       stripeSessionData: JSON.stringify({
         sessionId: session.id,
         paymentIntentId: session.payment_intent,
@@ -473,7 +497,8 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
         amountTotal: session.amount_total,
         currency: session.currency,
         customerDetails: session.customer_details,
-        completedAt: new Date()
+        completedAt: new Date(),
+        grantedBy: 'verify-session' // Track which endpoint granted sessions
       })
     });
 
@@ -485,6 +510,8 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
       hasPurchasedBefore: true,
       lastPurchaseDate: new Date()
     });
+
+    console.log(`✅ [v2 Payment] Sessions granted via verify-session endpoint (idempotency flag set)`);
 
     console.log('✅ [v2 Payment] Order completed successfully');
     console.log(`🎯 [v2 Payment] Added ${sessionsToAdd} sessions to user account`);

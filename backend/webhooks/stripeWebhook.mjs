@@ -61,34 +61,44 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
-        
+
         // Extract cart ID from metadata
         const cartId = session.metadata?.cartId;
-        
+
         if (!cartId) {
           logger.error('No cartId found in session metadata');
           break;
         }
-        
+
         // Get the cart and complete the order
         const cart = await ShoppingCart.findByPk(cartId);
-        
+
         if (!cart) {
           logger.error(`Cart with ID ${cartId} not found`);
           break;
         }
-        
-        // Mark cart as completed
+
+        // IDEMPOTENCY CHECK: Skip if sessions already granted
+        // This prevents double-grants if verify-session already processed this order
+        if (cart.sessionsGranted === true) {
+          logger.info(`[Webhook] Idempotency: Cart ${cartId} already has sessions granted - skipping`);
+          console.log(`⚠️ [Webhook] Sessions already granted for cart ${cartId} - idempotent skip`);
+          break;
+        }
+
+        // Mark cart as completed with sessionsGranted flag
         cart.status = 'completed';
         cart.paymentStatus = 'paid';
         cart.completedAt = new Date();
         cart.checkoutSessionId = session.id;
+        cart.sessionsGranted = true; // IDEMPOTENCY FLAG - set BEFORE processing
         await cart.save();
-        
+
         // Process any necessary follow-up actions (e.g., provision digital products, etc.)
         await processCompletedOrder(cartId);
-        
-        logger.info(`Order completed for cart ID: ${cartId}`);
+
+        logger.info(`Order completed for cart ID: ${cartId} (via webhook)`);
+        console.log(`✅ [Webhook] Sessions granted via webhook (idempotency flag set)`);
         break;
       }
       case 'checkout.session.expired': {
