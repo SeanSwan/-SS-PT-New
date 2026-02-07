@@ -30,11 +30,13 @@ import { RootState } from '../store';
 // Import types from the service (ensure consistency)
 import type {
   Session,
-  SessionEvent, 
+  SessionEvent,
   Client,
   Trainer,
   FilterOptions,
-  ScheduleStats
+  ScheduleStats,
+  LayoutMode,
+  DensityMode
 } from '../../components/UniversalMasterSchedule/types';
 
 // Redux-specific type extensions
@@ -70,6 +72,10 @@ interface ScheduleState {
   currentUserId: string | null;
   // Additional state for real-time updates
   lastSyncTimestamp: string | null;
+  // Stacked view state (MindBody parity)
+  layoutMode: LayoutMode;
+  density: DensityMode;
+  expandedTrainerIds: (string | number)[];
 }
 
 // Initial state
@@ -102,7 +108,15 @@ const initialState: ScheduleState = {
   // Role-based context
   currentUserRole: null,
   currentUserId: null,
-  lastSyncTimestamp: null
+  lastSyncTimestamp: null,
+  // Stacked view (MindBody parity) - load from localStorage if available
+  layoutMode: (typeof window !== 'undefined'
+    ? (localStorage.getItem('scheduleLayoutMode') as LayoutMode) || 'columns'
+    : 'columns') as LayoutMode,
+  density: (typeof window !== 'undefined'
+    ? (localStorage.getItem('scheduleDensity') as DensityMode) || 'comfortable'
+    : 'comfortable') as DensityMode,
+  expandedTrainerIds: []
 };
 
 // ==================== ASYNC THUNKS (UNIFIED BACKEND INTEGRATION) ====================
@@ -524,6 +538,35 @@ const scheduleSlice = createSlice({
     // Sync timestamp for real-time updates
     updateSyncTimestamp: (state) => {
       state.lastSyncTimestamp = new Date().toISOString();
+    },
+
+    // Stacked view controls (MindBody parity)
+    setLayoutMode: (state, action: PayloadAction<LayoutMode>) => {
+      state.layoutMode = action.payload;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('scheduleLayoutMode', action.payload);
+      }
+    },
+
+    setDensity: (state, action: PayloadAction<DensityMode>) => {
+      state.density = action.payload;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('scheduleDensity', action.payload);
+      }
+    },
+
+    toggleTrainerExpand: (state, action: PayloadAction<string | number>) => {
+      const id = action.payload;
+      const index = state.expandedTrainerIds.indexOf(id);
+      if (index === -1) {
+        state.expandedTrainerIds.push(id);
+      } else {
+        state.expandedTrainerIds.splice(index, 1);
+      }
+    },
+
+    setExpandedTrainerIds: (state, action: PayloadAction<(string | number)[]>) => {
+      state.expandedTrainerIds = action.payload;
     }
   },
   
@@ -669,8 +712,8 @@ const scheduleSlice = createSlice({
 
 // ==================== EXPORT ACTIONS AND REDUCER ====================
 
-export const { 
-  resetScheduleStatus, 
+export const {
+  resetScheduleStatus,
   updateSession,
   addSession,
   removeSession,
@@ -680,7 +723,11 @@ export const {
   setFilters,
   resetFilters,
   setUserContext,
-  updateSyncTimestamp
+  updateSyncTimestamp,
+  setLayoutMode,
+  setDensity,
+  toggleTrainerExpand,
+  setExpandedTrainerIds
 } = scheduleSlice.actions;
 
 export default scheduleSlice.reducer;
@@ -719,6 +766,11 @@ export const selectUserContext = (state: RootState) => ({
   userId: state?.schedule?.currentUserId || null
 });
 export const selectLastSyncTimestamp = (state: RootState) => state?.schedule?.lastSyncTimestamp || null;
+
+// Stacked view selectors
+export const selectLayoutMode = (state: RootState) => state?.schedule?.layoutMode || 'columns';
+export const selectDensity = (state: RootState) => state?.schedule?.density || 'comfortable';
+export const selectExpandedTrainerIds = (state: RootState) => state?.schedule?.expandedTrainerIds || [];
 
 // ==================== ROLE-BASED SELECTORS FOR ADAPTIVE UI ====================
 
