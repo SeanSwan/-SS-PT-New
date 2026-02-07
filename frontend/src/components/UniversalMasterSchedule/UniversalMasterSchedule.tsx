@@ -39,6 +39,7 @@ import {
   toggleTrainerExpand
 } from '../../redux/slices/scheduleSlice';
 import type { LayoutMode, DensityMode } from './types';
+import { useResponsiveLayout } from './hooks/useResponsiveLayout';
 
 // UI Components
 import {
@@ -108,6 +109,17 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   const layoutMode = useSelector(selectLayoutMode);
   const density = useSelector(selectDensity);
   const expandedTrainerIds = useSelector(selectExpandedTrainerIds);
+
+  // Auto-switch layout on mobile (only if user hasn't set a preference)
+  const { suggestedLayout, suggestedDensity, isMobile } = useResponsiveLayout();
+  useEffect(() => {
+    // Only auto-switch if no saved preference in localStorage
+    const savedLayout = localStorage.getItem('scheduleLayoutMode');
+    if (!savedLayout && isMobile) {
+      dispatch(setLayoutMode(suggestedLayout));
+      dispatch(setDensity(suggestedDensity));
+    }
+  }, [isMobile, suggestedLayout, suggestedDensity, dispatch]);
 
   const handleLayoutModeChange = useCallback((mode: LayoutMode) => {
     dispatch(setLayoutMode(mode));
