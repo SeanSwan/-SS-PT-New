@@ -151,7 +151,7 @@ const ModalContainer = styled.div<{
 const MobileHeaderWrapper = styled.div`
   @media (max-width: 480px) {
     padding-top: 0.5rem;
-    touch-action: pan-y;
+    touch-action: none; /* Prevent browser scrolling while dragging */
     cursor: grab;
 
     &:active {
