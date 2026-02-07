@@ -950,14 +950,15 @@ class AdminClientController {
         });
       }
 
-      // Get last completed order (most recent purchase with credits granted)
+      // Get last completed order (most recent purchase)
+      // Use completedAt for ordering since it exists on base orders table
       const lastPurchase = await Order.findOne({
         where: {
           userId: clientId,
-          creditsGrantedAt: { [Op.not]: null }
+          status: 'completed'
         },
-        order: [['creditsGrantedAt', 'DESC']],
-        attributes: ['id', 'packageName', 'sessionsTotal', 'totalAmount', 'creditsGrantedAt', 'paymentAppliedAt', 'paymentReference']
+        order: [['completedAt', 'DESC']],
+        attributes: ['id', 'orderNumber', 'totalAmount', 'completedAt', 'paymentAppliedAt', 'paymentReference', 'notes']
       });
 
       // Get pending orders (awaiting payment)
@@ -967,13 +968,13 @@ class AdminClientController {
           status: { [Op.in]: ['pending_payment', 'pending'] }
         },
         order: [['createdAt', 'DESC']],
-        attributes: ['id', 'packageName', 'sessionsTotal', 'totalAmount', 'status', 'createdAt']
+        attributes: ['id', 'orderNumber', 'totalAmount', 'status', 'createdAt', 'notes']
       });
 
-      // Get next upcoming scheduled session
+      // Get next upcoming scheduled session (sessions table uses userId, not clientId)
       const nextSession = await Session.findOne({
         where: {
-          clientId: clientId,
+          userId: clientId,
           status: { [Op.in]: ['scheduled', 'confirmed'] },
           sessionDate: { [Op.gte]: new Date() }
         },
@@ -991,7 +992,7 @@ class AdminClientController {
       // Get recent session history (last 5 completed)
       const recentSessions = await Session.findAll({
         where: {
-          clientId: clientId,
+          userId: clientId,
           status: 'completed'
         },
         order: [['sessionDate', 'DESC']],
@@ -1003,7 +1004,8 @@ class AdminClientController {
             attributes: ['id', 'firstName', 'lastName']
           }
         ],
-        attributes: ['id', 'sessionDate', 'duration', 'status', 'completedAt']
+        // Don't select completedAt if it doesn't exist - use sessionDate instead
+        attributes: ['id', 'sessionDate', 'duration', 'status']
       });
 
       return res.status(200).json({
@@ -1017,17 +1019,17 @@ class AdminClientController {
           sessionsRemaining: client.availableSessions || 0,
           lastPurchase: lastPurchase ? {
             id: lastPurchase.id,
-            packageName: lastPurchase.packageName,
-            sessions: lastPurchase.sessionsTotal,
+            packageName: lastPurchase.orderNumber || 'Session Package',  // Use orderNumber as fallback
+            sessions: null,  // Would need order items lookup
             amount: lastPurchase.totalAmount,
-            grantedAt: lastPurchase.creditsGrantedAt,
+            grantedAt: lastPurchase.completedAt,  // Use completedAt as grantedAt
             paymentAppliedAt: lastPurchase.paymentAppliedAt,
             paymentReference: lastPurchase.paymentReference
           } : null,
           pendingOrders: pendingOrders.map(order => ({
             id: order.id,
-            packageName: order.packageName,
-            sessions: order.sessionsTotal,
+            packageName: order.orderNumber || 'Pending Order',  // Use orderNumber as fallback
+            sessions: null,  // Would need order items lookup
             amount: order.totalAmount,
             status: order.status,
             createdAt: order.createdAt
@@ -1047,7 +1049,7 @@ class AdminClientController {
             id: session.id,
             date: session.sessionDate,
             duration: session.duration,
-            completedAt: session.completedAt,
+            completedAt: session.sessionDate, // Use sessionDate as completedAt fallback
             trainer: session.trainer ? {
               id: session.trainer.id,
               name: `${session.trainer.firstName} ${session.trainer.lastName}`

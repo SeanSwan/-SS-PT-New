@@ -383,6 +383,7 @@ class AdminClientService {
   /**
    * Add session credits to a client (admin grant)
    * Uses existing session-packages endpoint
+   * Backend expects: { clientId, sessions, notes }
    */
   async addSessionCredits(clientId: string | number, data: {
     sessions: number;
@@ -390,9 +391,12 @@ class AdminClientService {
     adminNote?: string;
   }) {
     try {
+      // Map frontend fields to backend expected format
+      const notes = [data.reason, data.adminNote].filter(Boolean).join(' - ');
       const response = await api.post('/session-packages/add-sessions', {
-        userId: clientId,
-        ...data
+        clientId: clientId,  // Backend expects clientId, not userId
+        sessions: data.sessions,
+        notes: notes || undefined
       });
       return response.data;
     } catch (error) {
