@@ -276,6 +276,9 @@ router.delete('/clients/:clientId', adminClientController.deleteClient);
 router.post('/clients/:clientId/reset-password', adminClientController.resetClientPassword);
 router.post('/clients/:clientId/assign-trainer', adminClientController.assignTrainer);
 
+// P0: Billing & Sessions overview
+router.get('/clients/:clientId/billing-overview', adminClientController.getBillingOverview);
+
 // MCP integration routes
 router.get('/clients/:clientId/workout-stats', adminClientController.getClientWorkoutStats);
 router.post('/clients/:clientId/generate-workout-plan', adminClientController.generateWorkoutPlan);

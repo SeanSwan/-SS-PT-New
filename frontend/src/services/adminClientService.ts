@@ -323,7 +323,87 @@ class AdminClientService {
       return { status: 'unavailable' };
     }
   }
-  
+
+  // ==================== P0: BILLING & SESSIONS ====================
+
+  /**
+   * Get billing overview for a client (session credits, pending orders, upcoming sessions)
+   */
+  async getBillingOverview(clientId: string) {
+    try {
+      const response = await api.get(`/admin/clients/${clientId}/billing-overview`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching billing overview:', error);
+      throw new Error('Failed to fetch billing overview');
+    }
+  }
+
+  /**
+   * Apply payment to an order (idempotent - prevents double-charging)
+   * @param orderId - The order ID to apply payment to
+   * @param paymentData - Payment details { method, reference }
+   */
+  async applyPayment(orderId: string | number, paymentData: { method: string; reference?: string }) {
+    try {
+      const response = await api.post(`/orders/${orderId}/apply-payment`, paymentData);
+      return response.data;
+    } catch (error) {
+      console.error('Error applying payment:', error);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to apply payment');
+    }
+  }
+
+  /**
+   * Book a session for a client (admin booking on behalf of client)
+   * @param data - Session booking details { clientId, sessionDate, trainerId, duration, notes }
+   */
+  async bookSessionForClient(data: {
+    clientId: number | string;
+    sessionDate: string;
+    trainerId: number | string;
+    duration: number;
+    notes?: string;
+  }) {
+    try {
+      const response = await api.post('/sessions/admin/book', data);
+      return response.data;
+    } catch (error) {
+      console.error('Error booking session for client:', error);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to book session');
+    }
+  }
+
+  /**
+   * Add session credits to a client (admin grant)
+   * Uses existing session-packages endpoint
+   */
+  async addSessionCredits(clientId: string | number, data: {
+    sessions: number;
+    reason?: string;
+    adminNote?: string;
+  }) {
+    try {
+      const response = await api.post('/session-packages/add-sessions', {
+        userId: clientId,
+        ...data
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error adding session credits:', error);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to add session credits');
+    }
+  }
+
   // ==================== UTILITY FUNCTIONS ====================
   
   /**
@@ -414,6 +494,73 @@ class AdminClientService {
   }
 }
 
+// P0: Billing Overview Types
+export interface BillingOverviewData {
+  client: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  sessionsRemaining: number;
+  lastPurchase: {
+    id: number;
+    packageName: string;
+    sessions: number;
+    amount: number;
+    grantedAt: string;
+    paymentAppliedAt: string | null;
+    paymentReference: string | null;
+  } | null;
+  pendingOrders: Array<{
+    id: number;
+    packageName: string;
+    sessions: number;
+    amount: number;
+    status: string;
+    createdAt: string;
+  }>;
+  nextSession: {
+    id: number;
+    date: string;
+    duration: number;
+    status: string;
+    notes: string | null;
+    trainer: {
+      id: number;
+      name: string;
+    } | null;
+  } | null;
+  recentSessions: Array<{
+    id: number;
+    date: string;
+    duration: number;
+    completedAt: string;
+    trainer: {
+      id: number;
+      name: string;
+    } | null;
+  }>;
+}
+
+export interface ApplyPaymentData {
+  method: 'stripe' | 'cash' | 'venmo' | 'check' | 'other';
+  reference?: string;
+}
+
+export interface BookSessionData {
+  clientId: number | string;
+  sessionDate: string;
+  trainerId: number | string;
+  duration: number;
+  notes?: string;
+}
+
+export interface AddSessionCreditsData {
+  sessions: number;
+  reason?: string;
+  adminNote?: string;
+}
+
 // TypeScript interface for the service
 export interface AdminClientServiceInterface {
   getClients(params?: any): Promise<any>;
@@ -433,6 +580,11 @@ export interface AdminClientServiceInterface {
   getClientPayments(clientId: string, params?: any): Promise<any>;
   addSessions(clientId: string, sessionCount: number, packageId?: string | null): Promise<any>;
   getMCPStatus(): Promise<any>;
+  // P0: Billing & Sessions
+  getBillingOverview(clientId: string): Promise<{ success: boolean; data: BillingOverviewData }>;
+  applyPayment(orderId: string | number, paymentData: ApplyPaymentData): Promise<any>;
+  bookSessionForClient(data: BookSessionData): Promise<any>;
+  addSessionCredits(clientId: string | number, data: AddSessionCreditsData): Promise<any>;
 }
 
 // Factory function for creating the service with custom API instance
