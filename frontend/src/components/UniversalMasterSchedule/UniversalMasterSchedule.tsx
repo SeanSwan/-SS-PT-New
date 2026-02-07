@@ -18,6 +18,7 @@ import ScheduleHeader from './components/ScheduleHeader';
 import ScheduleStats from './components/ScheduleStats';
 import ScheduleCalendar from './components/ScheduleCalendar';
 import ScheduleModals from './components/ScheduleModals';
+import { ErrorBoundary } from '../ui/ErrorBoundary';
 import SessionTypeManager from './Config/SessionTypeManager';
 
 // Hooks
@@ -236,7 +237,9 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   ].some(Boolean);
 
   // Permissions
-  const resolvedUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+  const resolvedUserId = userId
+    ? (typeof userId === 'string' ? parseInt(userId, 10) || null : userId)
+    : null;
   const canCreateSessions = mode === 'admin';
   const canCreateRecurring = mode === 'admin';
   const canBlockTime = mode === 'admin' || mode === 'trainer';
@@ -636,7 +639,8 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   }
 
   return (
-    <ScheduleContainer>
+    <ErrorBoundary>
+    <ScheduleContainer role="application" aria-label="Universal Master Schedule">
       <ScheduleHeader
         mode={mode}
         activeView={activeView}
@@ -646,8 +650,8 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         onRefresh={() => refreshData(true)}
         onOpenNotifications={() => setShowNotificationDialog(true)}
         onOpenAvailability={() => {
-          const tId = mode === 'trainer' ? resolvedUserId : userId;
-          setAvailabilityTrainerId(tId !== undefined ? tId : null);
+          const tId = mode === 'trainer' ? resolvedUserId : (userId ?? null);
+          setAvailabilityTrainerId(tId);
           setShowAvailabilityEditor(true);
         }}
         onOpenBlocked={() => setShowBlockedDialog(true)}
@@ -799,6 +803,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         </Modal>
       )}
     </ScheduleContainer>
+    </ErrorBoundary>
   );
 };
 
