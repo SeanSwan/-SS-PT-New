@@ -180,7 +180,51 @@ temp_fix/
 debug_solutions/
 test-build/
 
-# PII Security - NEVER commit client registry (migrated to encrypted database)
+# PII Security - NEVER commit client registry or client data
 CLIENT-REGISTRY.md
 **/CLIENT-REGISTRY.md
-client-data/CLIENT-REGISTRY.md
+client-data/
+
+# Credentials & tokens - NEVER commit
+admin-login.json
+token.txt
+test-login*.json
+test-register*.json
+test-*-assignment*.json
+test-*-onboarding*.json
+*.credentials
+*.secret
+
+# Windows artifacts
+nul
+
+# Stray root-level source files (should be in frontend/src/ or backend/)
+/*.tsx
+/*.mjs
+!render-build.mjs
+
+# Old deploy/diagnostic scripts
+deploy-*.bat
+deploy-*.sh
+diagnose-*.bat
+diagnose-*.sh
+diagnose-*.js
+diagnose-*.mjs
+diagnostic.mjs
+quickfix.bat
+restore-main.bat
+isolate-*.bat
+fix-*.bat
+swan.bat
+swan.mjs
+verify.bat
+
+# Test artifacts at root level
+test-*.ps1
+test_*.mjs
+test-*.bat
+BROWSER_CONSOLE_TESTS.js
+
+# Generated reports at root
+*-report.json
+*-verification-report.json
