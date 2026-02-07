@@ -43,6 +43,7 @@ const SelectButton = styled.button<{ isOpen: boolean; hasError?: boolean }>`
   text-align: left;
   outline: none;
   min-height: 44px; /* Mobile touch target */
+  touch-action: manipulation; /* Prevent 300ms tap delay */
 
   &:hover {
     border-color: rgba(255, 255, 255, 0.3);

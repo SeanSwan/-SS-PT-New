@@ -49,6 +49,15 @@ interface UniversalMasterScheduleProps {
   userId?: string | number;
 }
 
+// Mobile-First Breakpoints (Consistent with Theme)
+const BREAKPOINTS = {
+  MOBILE: '480px',
+  TABLET: '768px',
+  DESKTOP: '1024px'
+};
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
+
 const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
   mode = 'admin',
   userId
@@ -424,7 +433,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
       // Note: universalMasterScheduleService doesn't have checkConflicts yet,
       // but we can use the api instance from it or keep fetch for now if it's a custom endpoint.
       // Given the goal is production readiness, I'll keep the fetch but use the token from service if possible.
-      const response = await fetch('/api/sessions/check-conflicts', {
+      const response = await fetch(`${API_BASE_URL}/api/sessions/check-conflicts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -471,7 +480,7 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     try {
       // Note: universalMasterScheduleService doesn't have reschedule yet,
       // keeping fetch for now but ensuring it's consistent.
-      const response = await fetch(`/api/sessions/${drop.sessionId}/reschedule`, {
+      const response = await fetch(`${API_BASE_URL}/api/sessions/${drop.sessionId}/reschedule`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -758,20 +767,20 @@ const ScheduleContainer = styled.div`
   /* GPU layer promotion for smooth scrolling */
   transform: translateZ(0);
 
-  @media (max-width: 1024px) {
+  @media (max-width: ${BREAKPOINTS.DESKTOP}) {
     height: auto;
     min-height: 100vh;
     min-height: 100dvh;
   }
 
-  @media (max-width: 768px) {
+  @media (max-width: ${BREAKPOINTS.TABLET}) {
     /* Use simpler background on mobile */
     background: #0f172a;
     /* Ensure iOS momentum scrolling */
     -webkit-overflow-scrolling: touch;
   }
 
-  @media (max-width: 480px) {
+  @media (max-width: ${BREAKPOINTS.MOBILE}) {
     height: auto;
     min-height: 100dvh;
     /* Ensure content is scrollable immediately */
