@@ -7,6 +7,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+// API Base URL for production/development compatibility
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
+
 interface Exercise {
   id: string | number;
   name: string;
@@ -60,7 +63,7 @@ export function useCurrentWorkout(userId?: number): UseCurrentWorkoutResult {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/workouts/${userId}/current`, {
+      const response = await fetch(`${API_BASE_URL}/api/workouts/${userId}/current`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
