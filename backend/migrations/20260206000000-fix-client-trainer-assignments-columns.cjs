@@ -1,16 +1,17 @@
 'use strict';
 
 /**
- * FIX Migration: Rename camelCase columns to snake_case
- * =====================================================
+ * FIX Migration: Sync column names to match model (camelCase)
+ * ===========================================================
  *
- * Problem: Two conflicting migrations created the client_trainer_assignments table:
- * - 20250714... created columns with camelCase (clientId, trainerId, assignedBy)
- * - 20250806... expected snake_case columns (client_id, trainer_id, assigned_by)
+ * Problem: Two conflicting migrations may have created different column names:
+ * - 20250714... creates camelCase (clientId, trainerId, assignedBy)
+ * - 20250806... creates snake_case (client_id, trainer_id, assigned_by)
  *
- * The model uses `field: 'client_id'` mappings, so Sequelize queries expect
- * snake_case column names. This migration renames camelCase columns to snake_case
- * if they exist, making the database match the model expectations.
+ * The model now uses camelCase WITHOUT field mappings, so Sequelize expects
+ * camelCase column names in the database. This migration:
+ * 1. Detects which columns exist
+ * 2. Renames snake_case to camelCase if needed
  *
  * Safe to run multiple times - checks column existence before renaming.
  */
@@ -35,43 +36,42 @@ module.exports = {
       const columnNames = Object.keys(tableInfo);
       console.log('📋 Current columns:', columnNames.join(', '));
 
-      // Map of camelCase to snake_case columns that need renaming
+      // Map of snake_case to camelCase columns that need renaming
+      // (model expects camelCase)
       const renameMap = {
-        'clientId': 'client_id',
-        'trainerId': 'trainer_id',
-        'assignedBy': 'assigned_by',
-        'lastModifiedBy': 'last_modified_by',
-        'deactivatedAt': 'deactivated_at',
-        'assignedAt': 'assigned_at',
-        'createdAt': 'created_at',
-        'updatedAt': 'updated_at'
+        'client_id': 'clientId',
+        'trainer_id': 'trainerId',
+        'assigned_by': 'assignedBy',
+        'assigned_at': 'assignedAt',
+        'created_at': 'createdAt',
+        'updated_at': 'updatedAt'
       };
 
       let renamedCount = 0;
 
-      for (const [camelCase, snakeCase] of Object.entries(renameMap)) {
-        // Check if camelCase column exists and snake_case does not
-        if (tableInfo[camelCase] && !tableInfo[snakeCase]) {
-          console.log(`  📝 Renaming ${camelCase} → ${snakeCase}`);
+      for (const [snakeCase, camelCase] of Object.entries(renameMap)) {
+        // Check if snake_case column exists and camelCase does not
+        if (tableInfo[snakeCase] && !tableInfo[camelCase]) {
+          console.log(`  📝 Renaming ${snakeCase} → ${camelCase}`);
           await queryInterface.renameColumn(
             'client_trainer_assignments',
-            camelCase,
             snakeCase,
+            camelCase,
             { transaction }
           );
           renamedCount++;
-        } else if (tableInfo[snakeCase]) {
-          console.log(`  ✓ ${snakeCase} already exists`);
-        } else if (!tableInfo[camelCase] && !tableInfo[snakeCase]) {
-          console.log(`  ⚠️ Neither ${camelCase} nor ${snakeCase} exists`);
+        } else if (tableInfo[camelCase]) {
+          console.log(`  ✓ ${camelCase} already exists`);
+        } else if (!tableInfo[snakeCase] && !tableInfo[camelCase]) {
+          console.log(`  ⚠️ Neither ${snakeCase} nor ${camelCase} exists`);
         }
       }
 
-      // Update indexes to use snake_case column names if they reference camelCase
+      // Update indexes to use camelCase column names if they were renamed
       if (renamedCount > 0) {
         console.log('🔄 Recreating indexes with correct column names...');
 
-        // Drop old indexes that might reference camelCase columns
+        // Drop old indexes that might reference snake_case columns
         const oldIndexes = [
           'idx_client_trainer_assignments_client_id',
           'idx_client_trainer_assignments_trainer_id',
@@ -90,25 +90,25 @@ module.exports = {
           }
         }
 
-        // Recreate indexes with snake_case column names
+        // Recreate indexes with camelCase column names
         try {
-          await queryInterface.addIndex('client_trainer_assignments', ['client_id'], {
+          await queryInterface.addIndex('client_trainer_assignments', ['clientId'], {
             name: 'idx_client_trainer_assignments_client_id',
             transaction
           });
-          console.log('  ✅ Created index on client_id');
+          console.log('  ✅ Created index on clientId');
         } catch (e) {
-          console.log('  ⚠️ Could not create client_id index:', e.message);
+          console.log('  ⚠️ Could not create clientId index:', e.message);
         }
 
         try {
-          await queryInterface.addIndex('client_trainer_assignments', ['trainer_id'], {
+          await queryInterface.addIndex('client_trainer_assignments', ['trainerId'], {
             name: 'idx_client_trainer_assignments_trainer_id',
             transaction
           });
-          console.log('  ✅ Created index on trainer_id');
+          console.log('  ✅ Created index on trainerId');
         } catch (e) {
-          console.log('  ⚠️ Could not create trainer_id index:', e.message);
+          console.log('  ⚠️ Could not create trainerId index:', e.message);
         }
 
         try {
@@ -122,7 +122,7 @@ module.exports = {
         }
 
         try {
-          await queryInterface.addIndex('client_trainer_assignments', ['client_id', 'trainer_id'], {
+          await queryInterface.addIndex('client_trainer_assignments', ['clientId', 'trainerId'], {
             name: 'idx_unique_active_client_trainer',
             unique: true,
             where: { status: 'active' },
@@ -137,9 +137,9 @@ module.exports = {
       await transaction.commit();
 
       if (renamedCount > 0) {
-        console.log(`✅ Column naming fix complete! Renamed ${renamedCount} columns.`);
+        console.log(`✅ Column naming fix complete! Renamed ${renamedCount} columns to camelCase.`);
       } else {
-        console.log('✅ Columns already use correct naming convention.');
+        console.log('✅ Columns already use correct naming convention (camelCase).');
       }
 
     } catch (error) {

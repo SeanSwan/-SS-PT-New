@@ -63,9 +63,8 @@ ClientTrainerAssignment.init(
     clientId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      field: 'client_id', // Map camelCase to snake_case
       references: { 
-        model: 'users', // Table name in snake_case
+        model: 'users',
         key: 'id' 
       },
       comment: 'ID of the client being assigned'
@@ -73,9 +72,8 @@ ClientTrainerAssignment.init(
     trainerId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      field: 'trainer_id', // Map camelCase to snake_case
       references: { 
-        model: 'users', // Table name in snake_case
+        model: 'users',
         key: 'id' 
       },
       comment: 'ID of the trainer receiving the assignment'
@@ -83,12 +81,17 @@ ClientTrainerAssignment.init(
     assignedBy: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      field: 'assigned_by', // Map camelCase to snake_case
       references: { 
-        model: 'users', // Table name in snake_case
+        model: 'users',
         key: 'id' 
       },
       comment: 'ID of the admin who created this assignment'
+    },
+    assignedAt: {
+      type: DataTypes.DATE,
+      allowNull: false,
+      defaultValue: DataTypes.NOW,
+      comment: 'Timestamp when the assignment was created'
     },
     status: {
       type: DataTypes.ENUM('active', 'inactive', 'pending'),
@@ -100,23 +103,6 @@ ClientTrainerAssignment.init(
       type: DataTypes.TEXT,
       allowNull: true,
       comment: 'Optional notes about the assignment context or special instructions'
-    },
-    // Audit fields for tracking changes
-    lastModifiedBy: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      field: 'last_modified_by', // Map camelCase to snake_case
-      references: { 
-        model: 'users',
-        key: 'id' 
-      },
-      comment: 'ID of the last admin to modify this assignment'
-    },
-    deactivatedAt: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      field: 'deactivated_at', // Map camelCase to snake_case
-      comment: 'Timestamp when assignment was deactivated (if applicable)'
     }
   },
   {
@@ -126,23 +112,23 @@ ClientTrainerAssignment.init(
     timestamps: true, // Enables createdAt and updatedAt
     paranoid: false, // We use status instead of soft deletes for this model
     indexes: [
-      // Optimize for common queries - using DB column names (snake_case)
+      // Optimize for common queries
       {
         name: 'idx_client_trainer_assignments_client_id',
-        fields: ['client_id']
+        fields: ['clientId']
       },
       {
         name: 'idx_client_trainer_assignments_trainer_id',
-        fields: ['trainer_id']
+        fields: ['trainerId']
       },
       {
         name: 'idx_client_trainer_assignments_status',
         fields: ['status']
       },
-      // Ensure no duplicate active assignments - using DB column names
+      // Ensure no duplicate active assignments
       {
         name: 'idx_unique_active_client_trainer',
-        fields: ['client_id', 'trainer_id'],
+        fields: ['clientId', 'trainerId'],
         unique: true,
         where: {
           status: 'active'
