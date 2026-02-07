@@ -21,20 +21,28 @@ const baseButtonStyles = css`
   transition: all 0.2s ease;
   outline: none;
   position: relative;
-  
+
+  /* P1-6: WCAG minimum touch target */
+  min-height: 44px;
+  min-width: 44px;
+
+  /* P1-4: Mobile touch feedback */
+  -webkit-tap-highlight-color: rgba(59, 130, 246, 0.2);
+  touch-action: manipulation; /* Remove 300ms tap delay */
+
   /* Accessibility: Clear focus indicator */
   &:focus-visible {
     outline: 2px solid #3b82f6;
     outline-offset: 2px;
   }
-  
+
   /* Disabled state */
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     pointer-events: none;
   }
-  
+
   /* Icon alignment */
   svg {
     flex-shrink: 0;

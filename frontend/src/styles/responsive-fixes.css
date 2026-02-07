@@ -280,6 +280,109 @@ html {
   scrollbar-gutter: stable;
 }
 
+/* ==========================================================================
+   P2 FIX: VERY SMALL SCREENS (< 360px)
+   ========================================================================== */
+@media screen and (max-width: 359px) {
+  /* Reduce padding on very small screens */
+  .container-mobile,
+  .mobile-padding,
+  .admin-dashboard-container {
+    padding: 8px !important;
+  }
+
+  /* Reduce font sizes */
+  h1 { font-size: 1.5rem !important; }
+  h2 { font-size: 1.25rem !important; }
+  h3 { font-size: 1.125rem !important; }
+
+  /* Stack all buttons vertically */
+  .button-group,
+  .action-buttons,
+  .form-buttons {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  /* Full width cards */
+  .card,
+  .card-mobile {
+    border-radius: 8px !important;
+    padding: 12px !important;
+  }
+}
+
+/* ==========================================================================
+   P2 FIX: LANDSCAPE MODE ON PHONES
+   ========================================================================== */
+@media screen and (max-height: 500px) and (orientation: landscape) {
+  /* Reduce header height in landscape */
+  .mobile-workout-header,
+  .app-header,
+  header {
+    min-height: 48px !important;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important;
+  }
+
+  /* Reduce modal height and add scroll */
+  .modal-content,
+  .MuiDialog-paper,
+  .bottom-sheet-content {
+    max-height: 80vh !important;
+    overflow-y: auto !important;
+  }
+
+  /* Hide non-essential elements in landscape */
+  .landscape-hide {
+    display: none !important;
+  }
+
+  /* Reduce spacing */
+  .mobile-bottom-actions {
+    padding: 8px 16px !important;
+  }
+
+  /* Ensure touch targets remain accessible */
+  button,
+  .button,
+  input[type="button"],
+  input[type="submit"] {
+    min-height: 40px !important;
+  }
+}
+
+/* ==========================================================================
+   P2 FIX: FOCUS VISIBLE FOR KEYBOARD NAVIGATION
+   ========================================================================== */
+*:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Remove focus outline for mouse users */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ==========================================================================
+   P2 FIX: PRINT STYLES
+   ========================================================================== */
+@media print {
+  .no-print,
+  .mobile-menu-button,
+  .floating-action-button,
+  nav,
+  footer {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+  }
+}
+
 /* JS script to fix mobile viewport height calculation */
 /* Include this script in your index.html or main.jsx/ts file:
 
