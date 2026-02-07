@@ -64,6 +64,42 @@ ShoppingCart.init(
       allowNull: false,
       comment: 'Whether the checkout session has expired'
     },
+    // IDEMPOTENCY: Tracks whether sessions have been granted for this order
+    // Prevents double-grants when both webhook and verify-session are called
+    sessionsGranted: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false,
+      comment: 'Whether sessions have been granted to user (idempotency flag)'
+    },
+    // Optional: Track which endpoint granted the sessions
+    stripeSessionData: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'JSON data from Stripe session for audit trail'
+    },
+    // Optional: Store customer info for admin dashboard
+    customerInfo: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'JSON customer info for admin dashboard'
+    },
+    // Subtotal and tax for order breakdown
+    subtotal: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      comment: 'Subtotal before tax'
+    },
+    tax: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: true,
+      comment: 'Tax amount'
+    },
+    lastCheckoutAttempt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Last checkout attempt timestamp'
+    },
   },
   {
     sequelize,

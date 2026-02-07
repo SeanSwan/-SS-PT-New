@@ -1,10 +1,21 @@
 # STORE PACKAGE REDESIGN - PHASE 6
 ## Package Restructure + Admin Specials System
 
-**Created:** 2026-01-31  
-**Status:** PENDING APPROVAL  
-**Priority:** P1 (High)  
-**Depends On:** Phase 5 Complete  
+> **SUPERSEDED NOTICE (2026-02-06)**
+>
+> The "unlimited packages" concept in this document is **NOT being implemented**.
+>
+> **Authoritative Source:** `backend/render-production-seeder.mjs`
+>
+> **Correct Pricing Model:**
+> - All packages have FIXED session counts (no unlimited)
+> - Discounts are given as BONUS SESSIONS (2-7 extra), not price reductions
+> - See `OPERATIONS-READY-TESTPLAN-AND-GAPS.md` for current authoritative package list
+
+**Created:** 2026-01-31
+**Status:** PARTIALLY SUPERSEDED
+**Priority:** P1 (High)
+**Depends On:** Phase 5 Complete
 **Theme:** Galaxy-Swan (Cyan PRIMARY, Purple SECONDARY)
 
 ---

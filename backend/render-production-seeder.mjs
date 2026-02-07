@@ -1,12 +1,20 @@
 /**
  * RENDER PRODUCTION PACKAGE SEEDER
  * ================================
- * Seeds the production database on Render with SwanStudios Phase 6 packages
+ * Seeds the production database on Render with SwanStudios packages
+ *
+ * SAFETY FEATURES:
+ * - Will NOT run if DISABLE_PROD_SEEDER=true
+ * - Will NOT overwrite existing packages (empty-table guard)
+ * - Requires FORCE_RESEED=true to overwrite existing data
+ *
+ * Usage:
+ *   Normal (safe): node render-production-seeder.mjs
+ *   Force reseed:  FORCE_RESEED=true node render-production-seeder.mjs
  */
 
 console.log('🚀 RENDER PRODUCTION PACKAGE SEEDER');
 console.log('===================================');
-console.log('🎯 Seeding SwanStudios Phase 6 packages to production database');
 
 // Allow disabling seeder in production to prevent overwriting live data
 if (process.env.DISABLE_PROD_SEEDER === 'true') {
@@ -25,35 +33,70 @@ try {
   console.log('📂 Connecting to Render production database...');
   const { default: sequelize } = await import('./database.mjs');
   const { default: StorefrontItem } = await import('./models/StorefrontItem.mjs');
-  
+
   // Verify connection
   await sequelize.authenticate();
   console.log('✅ Connected to Render production database');
-  
+
   // Check environment
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'unknown'}`);
   console.log(`🔌 Database: ${process.env.DATABASE_URL ? 'PostgreSQL on Render' : 'Local'}`);
-  
-  // Clear existing packages safely
-  console.log('\n🧹 Clearing existing packages from production...');
-  
-  try {
-    // Import dependent models for safe clearing
-    const { default: CartItem } = await import('./models/CartItem.mjs');
-    const { default: OrderItem } = await import('./models/OrderItem.mjs');
-    
-    // Clear dependencies first
-    await CartItem.destroy({ where: {} });
-    await OrderItem.destroy({ where: {} });
-    await StorefrontItem.destroy({ where: {} });
-    
-    console.log('✅ Existing packages cleared safely');
-  } catch (clearError) {
-    console.log('⚠️ Using PostgreSQL TRUNCATE for production...');
-    await sequelize.query('TRUNCATE TABLE storefront_items RESTART IDENTITY CASCADE;');
-    console.log('✅ Production database cleared with CASCADE');
+
+  // ============================================================================
+  // SAFETY CHECK: Empty-table guard
+  // ============================================================================
+  const existingPackages = await StorefrontItem.count();
+  const forceReseed = process.env.FORCE_RESEED === 'true';
+
+  console.log(`\n📊 Existing packages in database: ${existingPackages}`);
+
+  if (existingPackages > 0 && !forceReseed) {
+    console.log('\n✅ PACKAGES ALREADY EXIST - Skipping seeder (safe mode)');
+    console.log('');
+    console.log('   To force reseed, run with: FORCE_RESEED=true');
+    console.log('   ⚠️  WARNING: This will DELETE all existing packages!');
+    console.log('');
+
+    // Show existing packages for verification
+    const packages = await StorefrontItem.findAll({
+      order: [['displayOrder', 'ASC'], ['id', 'ASC']]
+    });
+
+    console.log('📦 Current packages:');
+    packages.forEach((pkg, i) => {
+      const price = pkg.price || pkg.totalCost || 0;
+      const active = pkg.isActive ? '✅' : '❌';
+      console.log(`   ${i + 1}. ${active} ${pkg.name}: $${price}`);
+    });
+
+    await sequelize.close();
+    process.exit(0);
   }
-  
+
+  // If forcing reseed, clear existing data
+  if (existingPackages > 0 && forceReseed) {
+    console.log('\n⚠️  FORCE_RESEED=true detected');
+    console.log('🧹 Clearing existing packages...');
+
+    try {
+      const { default: CartItem } = await import('./models/CartItem.mjs');
+      const { default: OrderItem } = await import('./models/OrderItem.mjs');
+
+      // Clear dependencies first
+      await CartItem.destroy({ where: {} });
+      await OrderItem.destroy({ where: {} });
+      await StorefrontItem.destroy({ where: {} });
+
+      console.log('✅ Existing packages cleared');
+    } catch (clearError) {
+      console.log('⚠️ Using PostgreSQL TRUNCATE...');
+      await sequelize.query('TRUNCATE TABLE storefront_items RESTART IDENTITY CASCADE;');
+      console.log('✅ Database cleared with CASCADE');
+    }
+  } else {
+    console.log('\n📭 Table is empty - proceeding with initial seed');
+  }
+
   // Check table schema
   console.log('\n📋 Checking production table schema...');
   const [results] = await sequelize.query(`
@@ -68,17 +111,15 @@ try {
   
   console.log(`📊 Schema: isActive(${hasIsActive}), displayOrder(${hasDisplayOrder})`);
   
-  // Production-ready SwanStudios Phase 6 packages
-  console.log('\n💎 Creating SwanStudios Luxury Collection for Production...');
-  
-  
-  // Phase 6 packages (store redesign)
-  console.log('\n???? Creating SwanStudios Phase 6 Packages for Production...');
+  // Production-ready SwanStudios packages
+  console.log('\n💎 Creating SwanStudios Package Collection...');
 
-  const PHASE_6_PACKAGES = [
+  // SwanStudios Packages (Authoritative Pricing)
+  // Business Model: Fixed sessions only, discounts given as bonus sessions (2-7)
+  const SWANSTUDIOS_PACKAGES = [
     {
       name: 'SwanStudios 10-Pack',
-      description: '10 personal training sessions (60 min each). Valid for 16 months.',
+      description: '10 personal training sessions (60 min each). Valid for 16 months. Includes +2 bonus sessions!',
       packageType: 'fixed',
       price: 1750.00,
       sessions: 10,
@@ -90,7 +131,7 @@ try {
     },
     {
       name: 'SwanStudios 24-Pack',
-      description: '24 personal training sessions (60 min each). Valid for 16 months.',
+      description: '24 personal training sessions (60 min each). Valid for 16 months. Includes +3 bonus sessions!',
       packageType: 'fixed',
       price: 4200.00,
       sessions: 24,
@@ -102,7 +143,7 @@ try {
     },
     {
       name: 'SwanStudios 6 Month',
-      description: '108 personal training sessions. Valid for 16 months.',
+      description: '108 personal training sessions. Valid for 16 months. Includes +5 bonus sessions!',
       packageType: 'fixed',
       price: 18900.00,
       sessions: 108,
@@ -114,7 +155,7 @@ try {
     },
     {
       name: 'SwanStudios 12 Month',
-      description: '208 personal training sessions. Valid for 16 months.',
+      description: '208 personal training sessions. Valid for 16 months. Includes +7 bonus sessions!',
       packageType: 'fixed',
       price: 36400.00,
       sessions: 208,
@@ -126,7 +167,7 @@ try {
     },
     {
       name: 'SwanStudios Express',
-      description: '10 quick sessions (30 min each). Valid for 16 months.',
+      description: '10 quick sessions (30 min each). Valid for 16 months. Includes +2 bonus sessions!',
       packageType: 'fixed',
       price: 1100.00,
       sessions: 10,
@@ -138,13 +179,13 @@ try {
     }
   ];
 
-  const createdPackages = await StorefrontItem.bulkCreate(PHASE_6_PACKAGES, {
+  const createdPackages = await StorefrontItem.bulkCreate(SWANSTUDIOS_PACKAGES, {
     validate: false
   });
 
-// Final verification
+  // Final verification
   console.log(`\n🎉 PRODUCTION SEEDING COMPLETE!`);
-  console.log(`✨ Created ${createdPackages.length} Phase 6 packages`);
+  console.log(`✨ Created ${createdPackages.length} SwanStudios packages`);
   
   // Verify final state
   const finalCheck = await StorefrontItem.findAll({

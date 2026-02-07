@@ -113,23 +113,31 @@ router.get('/', protect, async (req, res) => {
  */
 router.get('/:id', protect, async (req, res) => {
   try {
-    const session = await WorkoutSession.findById(req.params.id);
-    
+    // FIXED: Use Sequelize findByPk instead of Mongoose findById
+    const session = await WorkoutSession.findByPk(req.params.id, {
+      include: [{
+        model: User,
+        as: 'user',
+        attributes: ['id', 'firstName', 'lastName', 'email']
+      }]
+    });
+
     if (!session) {
-      return res.status(404).json({ message: 'Workout session not found' });
+      return res.status(404).json({ success: false, message: 'Workout session not found' });
     }
-    
-    // Check authorization
-    if (session.userId.toString() !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
-      return res.status(403).json({ 
-        message: 'You are not authorized to view this workout session' 
+
+    // Check authorization - compare as integers
+    if (session.userId !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to view this workout session'
       });
     }
-    
-    res.json({ session });
+
+    res.json({ success: true, session });
   } catch (error) {
     console.error('Error fetching workout session:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
@@ -179,9 +187,10 @@ router.post('/',
       } else {
         // Verify the target user exists if admin/trainer is creating for someone else
         if (sessionData.userId !== req.user.id) {
-          const userExists = await User.findById(sessionData.userId);
+          // FIXED: Use Sequelize findByPk instead of Mongoose findById
+          const userExists = await User.findByPk(sessionData.userId);
           if (!userExists) {
-            return res.status(404).json({ message: 'Target user not found' });
+            return res.status(404).json({ success: false, message: 'Target user not found' });
           }
         }
       }
@@ -205,41 +214,38 @@ router.post('/',
  * @desc    Update a workout session
  * @access  Private
  */
-router.put('/:id', 
-  protect, 
-  validationMiddleware(workoutSessionSchema), 
+router.put('/:id',
+  protect,
+  validationMiddleware(workoutSessionSchema),
   async (req, res) => {
     try {
       const sessionData = req.body;
-      
-      // Find the session
-      const existingSession = await WorkoutSession.findById(req.params.id);
-      
+
+      // FIXED: Use Sequelize findByPk instead of Mongoose findById
+      const existingSession = await WorkoutSession.findByPk(req.params.id);
+
       if (!existingSession) {
-        return res.status(404).json({ message: 'Workout session not found' });
+        return res.status(404).json({ success: false, message: 'Workout session not found' });
       }
-      
-      // Check authorization
-      if (existingSession.userId.toString() !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
-        return res.status(403).json({ 
-          message: 'You are not authorized to update this workout session' 
+
+      // Check authorization - compare as integers
+      if (existingSession.userId !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'You are not authorized to update this workout session'
         });
       }
-      
-      // Update the session
-      const updatedSession = await WorkoutSession.findByIdAndUpdate(
-        req.params.id,
-        { $set: sessionData },
-        { new: true }
-      );
-      
-      // Update user's progress metrics (if we had a ClientProgress model)
-      // await updateClientProgress(sessionData.userId, sessionData);
-      
-      res.json({ session: updatedSession });
+
+      // FIXED: Use Sequelize update instead of Mongoose findByIdAndUpdate
+      await existingSession.update(sessionData);
+
+      // Reload to get the updated version
+      await existingSession.reload();
+
+      res.json({ success: true, session: existingSession });
     } catch (error) {
       console.error('Error updating workout session:', error);
-      res.status(500).json({ message: 'Server error' });
+      res.status(500).json({ success: false, message: 'Server error', error: error.message });
     }
   }
 );
@@ -251,30 +257,28 @@ router.put('/:id',
  */
 router.delete('/:id', protect, async (req, res) => {
   try {
-    // Find the session
-    const session = await WorkoutSession.findById(req.params.id);
-    
+    // FIXED: Use Sequelize findByPk instead of Mongoose findById
+    const session = await WorkoutSession.findByPk(req.params.id);
+
     if (!session) {
-      return res.status(404).json({ message: 'Workout session not found' });
+      return res.status(404).json({ success: false, message: 'Workout session not found' });
     }
-    
-    // Check authorization
-    if (session.userId.toString() !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
-      return res.status(403).json({ 
-        message: 'You are not authorized to delete this workout session' 
+
+    // Check authorization - compare as integers
+    if (session.userId !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to delete this workout session'
       });
     }
-    
-    // Delete the session
-    await WorkoutSession.findByIdAndDelete(req.params.id);
-    
-    // Update user's progress metrics (if we had a ClientProgress model)
-    // await updateClientProgressAfterDelete(session.userId, session);
-    
-    res.json({ success: true });
+
+    // FIXED: Use Sequelize destroy instead of Mongoose findByIdAndDelete
+    await session.destroy();
+
+    res.json({ success: true, message: 'Workout session deleted' });
   } catch (error) {
     console.error('Error deleting workout session:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
@@ -325,18 +329,19 @@ router.post('/start', protect, async (req, res) => {
 router.post('/:id/end', protect, async (req, res) => {
   try {
     const { duration, notes } = req.body;
-    
-    // Find the session
-    const session = await WorkoutSession.findById(req.params.id);
-    
+
+    // FIXED: Use Sequelize findByPk instead of Mongoose findById
+    const session = await WorkoutSession.findByPk(req.params.id);
+
     if (!session) {
-      return res.status(404).json({ message: 'Workout session not found' });
+      return res.status(404).json({ success: false, message: 'Workout session not found' });
     }
-    
-    // Check authorization
-    if (session.userId.toString() !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
-      return res.status(403).json({ 
-        message: 'You are not authorized to update this workout session' 
+
+    // Check authorization - compare as integers
+    if (session.userId !== req.user.id && !['admin', 'trainer'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to update this workout session'
       });
     }
     
@@ -411,22 +416,25 @@ router.get('/statistics/:userId', protect, async (req, res) => {
       });
     }
     
-    // Build query
-    const query = { userId };
-    
+    // FIXED: Build Sequelize where clause instead of Mongoose query
+    const where = { userId };
+
     // Add date range filters if provided
     if (startDate || endDate) {
-      query.date = {};
+      where.workoutDate = {};
       if (startDate) {
-        query.date.$gte = new Date(startDate);
+        where.workoutDate[Op.gte] = new Date(startDate);
       }
       if (endDate) {
-        query.date.$lte = new Date(endDate);
+        where.workoutDate[Op.lte] = new Date(endDate);
       }
     }
-    
-    // Get all sessions matching the query
-    const sessions = await WorkoutSession.find(query).sort({ date: -1 });
+
+    // FIXED: Use Sequelize findAll instead of Mongoose find
+    const sessions = await WorkoutSession.findAll({
+      where,
+      order: [['workoutDate', 'DESC']]
+    });
     
     // Calculate basic statistics
     const totalWorkouts = sessions.length;
@@ -502,15 +510,16 @@ router.get('/statistics/:userId', protect, async (req, res) => {
       
       // Weekday breakdown
       if (includeWeekdayBreakdown) {
-        const sessionDate = new Date(session.date);
+        // FIXED: Use workoutDate instead of date (Sequelize field name)
+        const sessionDate = new Date(session.workoutDate);
         const weekday = sessionDate.getDay(); // 0 = Sunday, 6 = Saturday
         weekdayCounts[weekday]++;
       }
-      
+
       // Intensity trends
       if (includeIntensityTrends) {
-        const sessionDate = new Date(session.date);
-        const weekNumber = getWeekNumber(sessionDate);
+        // FIXED: Use workoutDate instead of date (Sequelize field name)
+        const sessionDate = new Date(session.workoutDate);
         const weekKey = `W${weekNumber}`;
         
         if (!weeklyIntensity[weekKey]) {

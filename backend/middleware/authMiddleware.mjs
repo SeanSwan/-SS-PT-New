@@ -617,12 +617,36 @@ export const checkTrainerClientRelationship = async (req, res, next) => {
       return next();
     }
     
-    // Trainer accessing client data - simple check for now
-    // In a full implementation, this would check a TrainerClient relationship table
+    // Trainer accessing client data - check actual assignment
     if (req.user.role === 'trainer') {
-      // For now, just allow trainers to access any client data
-      // TODO: Implement proper trainer-client relationship checking
-      return next();
+      // Import ClientTrainerAssignment model dynamically to avoid circular dependencies
+      const { default: ClientTrainerAssignment } = await import('../models/ClientTrainerAssignment.mjs');
+
+      // Check if this trainer is assigned to this client
+      const assignment = await ClientTrainerAssignment.findOne({
+        where: {
+          trainerId: req.user.id,
+          clientId: clientId,
+          status: 'active'
+        }
+      });
+
+      if (assignment) {
+        // Trainer has active assignment to this client
+        return next();
+      }
+
+      // No active assignment found - deny access
+      logger.warn('Trainer attempting to access unassigned client', {
+        trainerId: req.user.id,
+        requestedClientId: clientId,
+        path: req.path
+      });
+
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: You are not assigned to this client'
+      });
     }
     
     // If we get here, access is denied
