@@ -5036,7 +5036,11 @@ router.post("/admin/book", protect, adminOnly, async (req, res) => {
     }
 
     // Verify client exists and has available sessions
-    const client = await User.findByPk(clientId, { transaction });
+    // P0 FIX: Use row-level locking to prevent race condition when two admins book simultaneously
+    const client = await User.findByPk(clientId, {
+      transaction,
+      lock: transaction.LOCK.UPDATE  // Prevents concurrent session booking from causing negative credits
+    });
     if (!client) {
       await transaction.rollback();
       return res.status(404).json({
