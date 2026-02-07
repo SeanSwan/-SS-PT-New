@@ -19,14 +19,21 @@ interface UseClientStatsResult {
   refetch: () => Promise<void>;
 }
 
-export function useClientStats(userId?: number): UseClientStatsResult {
+/**
+ * @param userId - The user ID to fetch stats for
+ * @param isClient - Optional flag to indicate if the target user is a client.
+ *                   If explicitly false, skips API call (prevents 404 for non-client users).
+ */
+export function useClientStats(userId?: number, isClient?: boolean): UseClientStatsResult {
   const [data, setData] = useState<ClientStatsSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchStats = useCallback(async () => {
-    if (!userId) {
+    // Skip API call if no userId or if explicitly marked as non-client
+    if (!userId || isClient === false) {
       setIsLoading(false);
+      setData(null);
       return;
     }
 
@@ -57,7 +64,7 @@ export function useClientStats(userId?: number): UseClientStatsResult {
     } finally {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, [userId, isClient]);
 
   useEffect(() => {
     fetchStats();

@@ -144,7 +144,9 @@ export const OverviewGalaxy: React.FC = () => (
 
 export const WorkoutUniverse: React.FC = () => {
   const { user } = useAuth();
-  const { data: workout, isLoading, error } = useCurrentWorkout(user?.id);
+  // Only fetch client-specific data if user is a client (prevents 404 for admin/trainer users)
+  const isClient = user?.role === 'client';
+  const { data: workout, isLoading, error } = useCurrentWorkout(user?.id, isClient);
 
   return (
     <motion.div
@@ -369,7 +371,9 @@ export const CommunicationHub: React.FC = () => (
 
 export const PersonalStarmap: React.FC = () => {
   const { user } = useAuth();
-  const { data: clientStats } = useClientStats(user?.id);
+  // Only fetch client-specific data if user is a client (prevents 404 for admin/trainer users)
+  const isClient = user?.role === 'client';
+  const { data: clientStats } = useClientStats(user?.id, isClient);
   const displayName =
     user?.spiritName ||
     [user?.firstName, user?.lastName].filter(Boolean).join(' ') ||
@@ -495,13 +499,15 @@ export const PersonalizedVideoHub: React.FC = () => (
 export const LogsAndTrackers: React.FC = () => {
   const { user } = useAuth();
   const userId = user?.id;
-  const { data: nutritionPlan, isLoading: nutritionLoading } = useNutritionPlan(userId);
+  // Only fetch client-specific data if user is a client (prevents 404 for admin/trainer users)
+  const isClient = user?.role === 'client';
+  const { data: nutritionPlan, isLoading: nutritionLoading } = useNutritionPlan(userId, isClient);
   const {
     data: workoutHistory,
     isLoading: historyLoading,
     error: historyError
-  } = useWorkoutHistory(userId, 3);
-  const { data: clientStats } = useClientStats(userId);
+  } = useWorkoutHistory(userId, 3, isClient);
+  const { data: clientStats } = useClientStats(userId, isClient);
 
   const formatLogDate = (value?: string) => {
     if (!value) {

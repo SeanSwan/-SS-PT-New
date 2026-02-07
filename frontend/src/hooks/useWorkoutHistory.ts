@@ -22,14 +22,22 @@ interface UseWorkoutHistoryResult {
   refetch: () => Promise<void>;
 }
 
-export function useWorkoutHistory(userId?: number, limit = 5): UseWorkoutHistoryResult {
+/**
+ * @param userId - The user ID to fetch workout history for
+ * @param limit - Max number of entries to return
+ * @param isClient - Optional flag to indicate if the target user is a client.
+ *                   If explicitly false, skips API call (prevents 404 for non-client users).
+ */
+export function useWorkoutHistory(userId?: number, limit = 5, isClient?: boolean): UseWorkoutHistoryResult {
   const [data, setData] = useState<WorkoutHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchHistory = useCallback(async () => {
-    if (!userId) {
+    // Skip API call if no userId or if explicitly marked as non-client
+    if (!userId || isClient === false) {
       setIsLoading(false);
+      setData([]);
       return;
     }
 
@@ -60,7 +68,7 @@ export function useWorkoutHistory(userId?: number, limit = 5): UseWorkoutHistory
     } finally {
       setIsLoading(false);
     }
-  }, [limit, userId]);
+  }, [limit, userId, isClient]);
 
   useEffect(() => {
     fetchHistory();

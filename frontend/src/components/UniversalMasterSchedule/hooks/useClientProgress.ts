@@ -44,10 +44,16 @@ const fetchClientProgress = async (userId: number): Promise<ClientProgressSummar
   return result?.data;
 };
 
-export const useClientProgress = (userId?: number) => {
+/**
+ * @param userId - The user ID to fetch progress for
+ * @param isClient - Optional flag to indicate if the target user is a client.
+ *                   If explicitly false, skips API call (prevents 404 for non-client users).
+ */
+export const useClientProgress = (userId?: number, isClient?: boolean) => {
   return useQuery({
     queryKey: ['clientProgress', userId],
     queryFn: () => fetchClientProgress(userId as number),
-    enabled: Number.isFinite(userId)
+    // Only fetch if userId is valid and user is not explicitly marked as non-client
+    enabled: Number.isFinite(userId) && isClient !== false
   });
 };
