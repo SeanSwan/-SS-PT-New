@@ -8,7 +8,7 @@
  * - POST /api/orders/:id/apply-payment (idempotent)
  * - POST /api/sessions/admin/book
  *
- * Run: node backend/tests/billing-sessions.test.mjs
+ * Run: node backend/scripts/billing-sessions.smoke.mjs
  */
 
 import fetch from 'node-fetch';
