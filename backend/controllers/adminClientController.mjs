@@ -264,14 +264,24 @@
  */
 
 // backend/controllers/adminClientController.mjs
-import { getModels } from '../models/index.mjs';
+import { getAllModels } from '../models/index.mjs';
 import { Op } from 'sequelize';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 import bcrypt from 'bcryptjs';
 
-// Get models from cache
-const { User, ClientProgress, Session, WorkoutSession, Order } = getModels();
+// NOTE: Do not call async getModels() here. Models are initialized at server startup via initializeModelsCache().
+// We load models lazily from the cache to avoid module-load timing issues in tests/CLI tooling.
+let User;
+let ClientProgress;
+let Session;
+let WorkoutSession;
+let Order;
+
+const ensureModels = () => {
+  if (User && ClientProgress && Session && WorkoutSession && Order) return;
+  ({ User, ClientProgress, Session, WorkoutSession, Order } = getAllModels());
+};
 
 /**
  * AdminClientController class
@@ -283,6 +293,7 @@ class AdminClientController {
    */
   async getClients(req, res) {
     try {
+      ensureModels();
       const { 
         page = 1, 
         limit = 10, 
@@ -316,6 +327,9 @@ class AdminClientController {
       }
 
       // Include related data
+      // Only include WorkoutSession if the association exists (defensive check)
+      const hasWorkoutAssociation = User.associations?.workoutSessions;
+
       const includeOptions = [
         {
           model: ClientProgress,
@@ -329,8 +343,12 @@ class AdminClientController {
           where: { status: { [Op.in]: ['scheduled', 'confirmed'] } },
           separate: true,
           limit: 5
-        },
-        {
+        }
+      ];
+
+      // Only add WorkoutSession include if association is defined
+      if (hasWorkoutAssociation) {
+        includeOptions.push({
           model: WorkoutSession,
           as: 'workoutSessions',
           required: false,
@@ -338,8 +356,8 @@ class AdminClientController {
           separate: true,
           limit: 5,
           order: [['completedAt', 'DESC']]
-        }
-      ];
+        });
+      }
 
       const { count, rows: clients } = await User.findAndCountAll({
         where: whereClause,
@@ -399,39 +417,48 @@ class AdminClientController {
    */
   async getClientDetails(req, res) {
     try {
+      ensureModels();
       const { clientId } = req.params;
+
+      // Build include options with defensive WorkoutSession check
+      const hasWorkoutAssociation = User.associations?.workoutSessions;
+      const detailIncludes = [
+        {
+          model: ClientProgress,
+          as: 'clientProgress'
+        },
+        {
+          model: Session,
+          as: 'clientSessions',
+          include: [
+            {
+              model: User,
+              as: 'trainer',
+              attributes: ['id', 'firstName', 'lastName', 'email']
+            }
+          ]
+        },
+        {
+          model: Order,
+          as: 'orders',
+          limit: 10,
+          order: [['createdAt', 'DESC']]
+        }
+      ];
+
+      // Only add WorkoutSession if association exists
+      if (hasWorkoutAssociation) {
+        detailIncludes.push({
+          model: WorkoutSession,
+          as: 'workoutSessions',
+          limit: 10,
+          order: [['completedAt', 'DESC']]
+        });
+      }
 
       const client = await User.findOne({
         where: { id: clientId, role: 'client' },
-        include: [
-          {
-            model: ClientProgress,
-            as: 'clientProgress'
-          },
-          {
-            model: Session,
-            as: 'clientSessions',
-            include: [
-              {
-                model: User,
-                as: 'trainer',
-                attributes: ['id', 'firstName', 'lastName', 'email']
-              }
-            ]
-          },
-          {
-            model: WorkoutSession,
-            as: 'workoutSessions',
-            limit: 10,
-            order: [['completedAt', 'DESC']]
-          },
-          {
-            model: Order,
-            as: 'orders',
-            limit: 10,
-            order: [['createdAt', 'DESC']]
-          }
-        ],
+        include: detailIncludes,
         attributes: { exclude: ['password', 'refreshTokenHash'] }
       });
 
@@ -484,6 +511,7 @@ class AdminClientController {
     const transaction = await sequelize.transaction();
     
     try {
+      ensureModels();
       const {
         firstName,
         lastName,
@@ -601,6 +629,7 @@ class AdminClientController {
     const transaction = await sequelize.transaction();
     
     try {
+      ensureModels();
       const { clientId } = req.params;
       const updates = req.body;
 
@@ -664,6 +693,7 @@ class AdminClientController {
     const transaction = await sequelize.transaction();
     
     try {
+      ensureModels();
       const { clientId } = req.params;
       const { softDelete = true } = req.body;
 
@@ -710,6 +740,7 @@ class AdminClientController {
    */
   async resetClientPassword(req, res) {
     try {
+      ensureModels();
       const { clientId } = req.params;
       const { newPassword } = req.body;
 
@@ -755,6 +786,7 @@ class AdminClientController {
     const transaction = await sequelize.transaction();
     
     try {
+      ensureModels();
       const { clientId } = req.params;
       const { trainerId, sessionCount = 1 } = req.body;
 
@@ -838,6 +870,7 @@ class AdminClientController {
    */
   async getClientWorkoutStats(req, res) {
     try {
+      ensureModels();
       const { clientId } = req.params;
       const { startDate, endDate } = req.query;
 
@@ -881,6 +914,7 @@ class AdminClientController {
    */
   async generateWorkoutPlan(req, res) {
     try {
+      ensureModels();
       const { clientId } = req.params;
       const { 
         trainerId, 
@@ -935,6 +969,7 @@ class AdminClientController {
    */
   async getBillingOverview(req, res) {
     try {
+      ensureModels();
       const { clientId } = req.params;
 
       // Get client with session credits
