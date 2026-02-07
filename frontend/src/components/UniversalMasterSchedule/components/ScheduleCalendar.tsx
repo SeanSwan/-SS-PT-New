@@ -2,6 +2,7 @@ import React, { useMemo, memo } from 'react';
 import styled from 'styled-components';
 import MonthView from '../Views/MonthView';
 import DayView from '../Views/DayView';
+import DayViewStacked from '../Views/DayViewStacked';
 import AgendaView from '../Views/AgendaView';
 import SessionCard from '../Cards/SessionCard';
 import DragDropManager from '../DragDrop/DragDropManager';
@@ -11,6 +12,7 @@ import {
   Card
 } from '../ui';
 import { CalendarView } from '../types';
+import type { LayoutMode, DensityMode } from '../types';
 import { schedulePerf, trackRender } from '../../../utils/schedulePerformance';
 
 interface ScheduleCalendarProps {
@@ -28,6 +30,11 @@ interface ScheduleCalendarProps {
   checkConflicts: (sessionId: any, newDate: Date, newHour: number, trainerId?: any) => Promise<any>;
   handleReschedule: (drop: any, options?: any) => Promise<void>;
   openConflictPanel: (conflicts: any[], alternatives: any[], drop: any) => void;
+  // Stacked view props
+  layoutMode?: LayoutMode;
+  density?: DensityMode;
+  expandedTrainerIds?: (string | number)[];
+  onToggleTrainerExpand?: (trainerId: string | number) => void;
 }
 
 const ScheduleCalendarComponent: React.FC<ScheduleCalendarProps> = ({
@@ -44,7 +51,11 @@ const ScheduleCalendarComponent: React.FC<ScheduleCalendarProps> = ({
   onBookingDialog,
   checkConflicts,
   handleReschedule,
-  openConflictPanel
+  openConflictPanel,
+  layoutMode = 'columns',
+  density = 'comfortable',
+  expandedTrainerIds = [],
+  onToggleTrainerExpand
 }) => {
   // DEV: Track render counts
   if (schedulePerf.IS_DEV) {
@@ -194,34 +205,71 @@ const ScheduleCalendarComponent: React.FC<ScheduleCalendarProps> = ({
       )}
 
       {activeView === 'day' && (
-        (effectiveCanReschedule ? (
-          <DragDropManager
-            checkConflicts={schedulePerf.DISABLE_CONFLICT_CHECK ? async () => ({ hasConflicts: false }) : checkConflicts}
-            onDragEnd={(drop) => handleReschedule(drop)}
-            onConflict={({ conflicts: nextConflicts, alternatives: nextAlternatives, drop }) => {
-              openConflictPanel(nextConflicts, nextAlternatives, drop);
-            }}
-          >
+        layoutMode === 'stacked' && onToggleTrainerExpand ? (
+          effectiveCanReschedule ? (
+            <DragDropManager
+              checkConflicts={schedulePerf.DISABLE_CONFLICT_CHECK ? async () => ({ hasConflicts: false }) : checkConflicts}
+              onDragEnd={(drop) => handleReschedule(drop)}
+              onConflict={({ conflicts: nextConflicts, alternatives: nextAlternatives, drop }) => {
+                openConflictPanel(nextConflicts, nextAlternatives, drop);
+              }}
+            >
+              <DayViewStacked
+                date={currentDate}
+                sessions={limitedSessions}
+                trainers={trainers}
+                enableDrag
+                isAdmin={isAdmin}
+                density={density}
+                expandedTrainerIds={expandedTrainerIds}
+                onToggleTrainerExpand={onToggleTrainerExpand}
+                onSelectSession={onSelectSession}
+                onSelectSlot={onSelectSlot}
+              />
+            </DragDropManager>
+          ) : (
+            <DayViewStacked
+              date={currentDate}
+              sessions={limitedSessions}
+              trainers={trainers}
+              isAdmin={isAdmin}
+              density={density}
+              expandedTrainerIds={expandedTrainerIds}
+              onToggleTrainerExpand={onToggleTrainerExpand}
+              onSelectSession={onSelectSession}
+              onSelectSlot={onSelectSlot}
+            />
+          )
+        ) : (
+          effectiveCanReschedule ? (
+            <DragDropManager
+              checkConflicts={schedulePerf.DISABLE_CONFLICT_CHECK ? async () => ({ hasConflicts: false }) : checkConflicts}
+              onDragEnd={(drop) => handleReschedule(drop)}
+              onConflict={({ conflicts: nextConflicts, alternatives: nextAlternatives, drop }) => {
+                openConflictPanel(nextConflicts, nextAlternatives, drop);
+              }}
+            >
+              <DayView
+                date={currentDate}
+                sessions={limitedSessions}
+                trainers={trainers}
+                enableDrag
+                isAdmin={isAdmin}
+                onSelectSession={onSelectSession}
+                onSelectSlot={onSelectSlot}
+              />
+            </DragDropManager>
+          ) : (
             <DayView
               date={currentDate}
               sessions={limitedSessions}
               trainers={trainers}
-              enableDrag
               isAdmin={isAdmin}
               onSelectSession={onSelectSession}
               onSelectSlot={onSelectSlot}
             />
-          </DragDropManager>
-        ) : (
-          <DayView
-            date={currentDate}
-            sessions={limitedSessions}
-            trainers={trainers}
-            isAdmin={isAdmin}
-            onSelectSession={onSelectSession}
-            onSelectSlot={onSelectSlot}
-          />
-        ))
+          )
+        )
       )}
 
       {activeView === 'agenda' && (
@@ -246,7 +294,10 @@ const ScheduleCalendar = memo(ScheduleCalendarComponent, (prevProps, nextProps) 
     prevProps.trainers === nextProps.trainers &&
     prevProps.canReschedule === nextProps.canReschedule &&
     prevProps.canQuickBook === nextProps.canQuickBook &&
-    prevProps.isAdmin === nextProps.isAdmin
+    prevProps.isAdmin === nextProps.isAdmin &&
+    prevProps.layoutMode === nextProps.layoutMode &&
+    prevProps.density === nextProps.density &&
+    prevProps.expandedTrainerIds === nextProps.expandedTrainerIds
   );
 });
 

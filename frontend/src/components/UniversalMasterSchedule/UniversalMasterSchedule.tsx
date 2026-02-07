@@ -28,6 +28,18 @@ import { useToast } from '../../hooks/use-toast';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useSessionTemplates } from './hooks/useSessionTemplates';
 
+// Redux: Layout & Density state
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  selectLayoutMode,
+  selectDensity,
+  selectExpandedTrainerIds,
+  setLayoutMode,
+  setDensity,
+  toggleTrainerExpand
+} from '../../redux/slices/scheduleSlice';
+import type { LayoutMode, DensityMode } from './types';
+
 // UI Components
 import {
   Spinner,
@@ -90,6 +102,24 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
   const { success, error: toastError, warning } = useToast();
   const { templates, addTemplate, removeTemplate, applyTemplate } = useSessionTemplates();
+
+  // Redux: Layout & Density
+  const dispatch = useDispatch();
+  const layoutMode = useSelector(selectLayoutMode);
+  const density = useSelector(selectDensity);
+  const expandedTrainerIds = useSelector(selectExpandedTrainerIds);
+
+  const handleLayoutModeChange = useCallback((mode: LayoutMode) => {
+    dispatch(setLayoutMode(mode));
+  }, [dispatch]);
+
+  const handleDensityChange = useCallback((d: DensityMode) => {
+    dispatch(setDensity(d));
+  }, [dispatch]);
+
+  const handleToggleTrainerExpand = useCallback((trainerId: string | number) => {
+    dispatch(toggleTrainerExpand(trainerId));
+  }, [dispatch]);
 
   // Local UI State
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -640,6 +670,11 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         trainers={trainers}
         selectedTrainerId={selectedTrainerId}
         onTrainerFilterChange={handleTrainerFilterChange}
+        // Layout & Density toggles
+        layoutMode={layoutMode}
+        onLayoutModeChange={handleLayoutModeChange}
+        density={density}
+        onDensityChange={handleDensityChange}
       />
 
       <ScheduleStats
@@ -664,6 +699,11 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         checkConflicts={checkConflicts}
         handleReschedule={handleReschedule}
         openConflictPanel={handleOpenConflictPanel}
+        // Stacked view props
+        layoutMode={layoutMode}
+        density={density}
+        expandedTrainerIds={expandedTrainerIds}
+        onToggleTrainerExpand={handleToggleTrainerExpand}
       />
 
       <ScheduleModals
