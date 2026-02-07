@@ -228,7 +228,9 @@ const ClientProgressView: React.FC = () => {
   });
 
   const resolvedClientId = user?.role === 'client' ? user?.id : selectedClientId;
-  const { data, isLoading, error } = useClientProgress(resolvedClientId);
+  // Trainer/admin always selects a client to view, and clients view their own data
+  // So the target is always a client when resolvedClientId is set
+  const { data, isLoading, error } = useClientProgress(resolvedClientId, true);
 
   const handleLoadClient = () => {
     const parsed = Number(clientIdInput);

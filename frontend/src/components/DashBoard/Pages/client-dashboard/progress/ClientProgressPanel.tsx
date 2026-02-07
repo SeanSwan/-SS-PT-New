@@ -232,8 +232,12 @@ const calculateGoalProgress = (
 const ClientProgressPanel: React.FC<{ userId?: number }> = ({ userId }) => {
   const { user } = useAuth();
   const resolvedUserId = userId ?? Number(user?.id);
+  // Only fetch client-specific data if the resolved user is a client (prevents 404 for admin/trainer)
+  // When viewing own data (no userId prop), check logged-in user's role
+  // When viewing another user's data (userId prop provided), assume they are a client
+  const isClient = userId !== undefined || user?.role === 'client';
 
-  const { data, isLoading, error } = useClientProgress(resolvedUserId);
+  const { data, isLoading, error } = useClientProgress(resolvedUserId, isClient);
 
   if (!resolvedUserId) {
     return <EmptyState>Log in to view progress.</EmptyState>;

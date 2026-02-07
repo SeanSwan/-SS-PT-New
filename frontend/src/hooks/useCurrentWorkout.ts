@@ -47,14 +47,21 @@ interface UseCurrentWorkoutResult {
   refetch: () => Promise<void>;
 }
 
-export function useCurrentWorkout(userId?: number): UseCurrentWorkoutResult {
+/**
+ * @param userId - The user ID to fetch workout for
+ * @param isClient - Optional flag to indicate if the target user is a client.
+ *                   If explicitly false, skips API call (prevents 404 for non-client users).
+ */
+export function useCurrentWorkout(userId?: number, isClient?: boolean): UseCurrentWorkoutResult {
   const [data, setData] = useState<WorkoutPlan | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchWorkout = useCallback(async () => {
-    if (!userId) {
+    // Skip API call if no userId or if explicitly marked as non-client
+    if (!userId || isClient === false) {
       setIsLoading(false);
+      setData(null);
       return;
     }
 
@@ -88,7 +95,7 @@ export function useCurrentWorkout(userId?: number): UseCurrentWorkoutResult {
     } finally {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, [userId, isClient]);
 
   useEffect(() => {
     fetchWorkout();
