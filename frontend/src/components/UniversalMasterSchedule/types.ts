@@ -593,3 +593,71 @@ export const EXPORT_FORMATS = ['csv', 'excel', 'pdf', 'json'] as const;
  * Date range options
  */
 export const DATE_RANGES = ['all', 'today', 'week', 'month', 'custom'] as const;
+
+// ==================== STACKED VIEW TYPES (MindBody Parity) ====================
+
+/**
+ * Layout modes for Day view
+ * - columns: side-by-side trainer columns (desktop default, existing behavior)
+ * - stacked: vertical trainer sections (mobile default, MindBody-style)
+ */
+export const LAYOUT_MODES = ['columns', 'stacked'] as const;
+export type LayoutMode = typeof LAYOUT_MODES[number];
+
+/**
+ * Density modes for schedule grid
+ * - comfortable: standard spacing (80px rows, 14px font)
+ * - compact: tight spacing (48px rows, 12px font, no shadows/blur)
+ */
+export const DENSITY_MODES = ['comfortable', 'compact'] as const;
+export type DensityMode = typeof DENSITY_MODES[number];
+
+/**
+ * Schedule view preferences (persisted to localStorage)
+ */
+export interface ScheduleViewPreferences {
+  layoutMode: LayoutMode;
+  density: DensityMode;
+  maxVisibleTrainers: number;
+  expandedTrainerIds: (string | number)[];
+}
+
+/**
+ * Stacked view trainer section data
+ */
+export interface StackedTrainerSection {
+  trainer: {
+    id: string | number;
+    name: string;
+    initials: string;
+    photo?: string;
+  };
+  sessionCount: number;
+  bookedCount: number;
+  availableCount: number;
+  isExpanded: boolean;
+}
+
+/**
+ * Density-specific style constants
+ */
+export const DENSITY_SPECS = {
+  comfortable: {
+    rowHeight: 80,
+    fontSize: 14,
+    cardPadding: 12,
+    useBackdropFilter: true,
+    useBoxShadow: true,
+    showBadges: true,
+    timeLabelInterval: 1, // show every hour
+  },
+  compact: {
+    rowHeight: 48,
+    fontSize: 12,
+    cardPadding: 6,
+    useBackdropFilter: false,
+    useBoxShadow: false,
+    showBadges: false,
+    timeLabelInterval: 2, // show every 2 hours
+  },
+} as const;
