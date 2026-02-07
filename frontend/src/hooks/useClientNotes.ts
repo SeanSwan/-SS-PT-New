@@ -40,8 +40,10 @@ export function useClientNotes(userId?: number): UseClientNotesResult {
   const [error, setError] = useState<string | null>(null);
 
   const fetchNotes = useCallback(async () => {
-    if (!userId) {
+    // Guard against invalid IDs like -1, 0, null, undefined
+    if (!userId || userId <= 0) {
       setIsLoading(false);
+      setData([]);
       return;
     }
 
@@ -73,7 +75,8 @@ export function useClientNotes(userId?: number): UseClientNotesResult {
   }, [userId]);
 
   const createNote = useCallback(async (content: string, type: string = 'general'): Promise<boolean> => {
-    if (!userId) return false;
+    // Guard against invalid IDs
+    if (!userId || userId <= 0) return false;
 
     try {
       const token = localStorage.getItem('token');

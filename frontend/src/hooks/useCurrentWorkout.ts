@@ -58,8 +58,9 @@ export function useCurrentWorkout(userId?: number, isClient?: boolean): UseCurre
   const [error, setError] = useState<string | null>(null);
 
   const fetchWorkout = useCallback(async () => {
-    // Skip API call if no userId or if explicitly marked as non-client
-    if (!userId || isClient === false) {
+    // Skip API call if no valid userId or if explicitly marked as non-client
+    // Guard against invalid IDs like -1, 0, null, undefined
+    if (!userId || userId <= 0 || isClient === false) {
       setIsLoading(false);
       setData(null);
       return;
