@@ -1,11 +1,13 @@
 // backend/routes/adminPackageRoutes.mjs
 import express from 'express';
 import { protect } from '../middleware/authMiddleware.mjs';
-import { getModels } from '../models/index.mjs';
+import { getAllModels } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
 
 const router = express.Router();
-const { StorefrontItem } = getModels();
+
+// NOTE: Get model inside route handlers, not at module level
+// Module-level getModels() runs before cache initialization causing undefined model
 
 // Middleware to ensure admin access
 const requireAdmin = (req, res, next) => {
@@ -29,8 +31,9 @@ router.use(requireAdmin);
  */
 router.get('/', async (req, res) => {
   try {
-    const { 
-      sortBy = 'id', 
+    const { StorefrontItem } = getAllModels();
+    const {
+      sortBy = 'id',
       sortOrder = 'ASC',
       limit = 100,
       offset = 0,
@@ -40,15 +43,15 @@ router.get('/', async (req, res) => {
 
     // Build the where clause for filtering
     const whereClause = {};
-    
+
     if (packageType) {
       whereClause.packageType = packageType;
     }
-    
+
     if (isActive !== undefined) {
       whereClause.isActive = isActive === 'true';
     }
-    
+
     // Check if the sortBy field exists in the model
     const validColumns = Object.keys(StorefrontItem.rawAttributes);
     const validSortBy = validColumns.includes(sortBy) ? sortBy : 'id';
@@ -108,9 +111,10 @@ router.get('/', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
+    const { StorefrontItem } = getAllModels();
     // Validate required fields
     const { name, packageType, pricePerSession } = req.body;
-    
+
     if (!name || !packageType || !pricePerSession) {
       return res.status(400).json({
         success: false,
@@ -155,6 +159,7 @@ router.post('/', async (req, res) => {
  */
 router.put('/:id', async (req, res) => {
   try {
+    const { StorefrontItem } = getAllModels();
     const item = await StorefrontItem.findByPk(req.params.id);
     
     if (!item) {
@@ -201,6 +206,7 @@ router.put('/:id', async (req, res) => {
  */
 router.delete('/:id', async (req, res) => {
   try {
+    const { StorefrontItem } = getAllModels();
     const item = await StorefrontItem.findByPk(req.params.id);
     
     if (!item) {
@@ -238,6 +244,7 @@ router.delete('/:id', async (req, res) => {
  */
 router.get('/:id', async (req, res) => {
   try {
+    const { StorefrontItem } = getAllModels();
     const item = await StorefrontItem.findByPk(req.params.id);
     
     if (!item) {
@@ -270,8 +277,9 @@ router.get('/:id', async (req, res) => {
  */
 router.get('/packages', async (req, res) => {
   try {
-    const { 
-      sortBy = 'id', 
+    const { StorefrontItem } = getAllModels();
+    const {
+      sortBy = 'id',
       sortOrder = 'ASC',
       limit = 100,
       offset = 0,
@@ -281,15 +289,15 @@ router.get('/packages', async (req, res) => {
 
     // Build the where clause for filtering
     const whereClause = {};
-    
+
     if (packageType) {
       whereClause.packageType = packageType;
     }
-    
+
     if (isActive !== undefined) {
       whereClause.isActive = isActive === 'true';
     }
-    
+
     // Check if the sortBy field exists in the model
     const validColumns = Object.keys(StorefrontItem.rawAttributes);
     const validSortBy = validColumns.includes(sortBy) ? sortBy : 'id';
@@ -348,9 +356,10 @@ router.get('/packages', async (req, res) => {
  */
 router.post('/packages', async (req, res) => {
   try {
+    const { StorefrontItem } = getAllModels();
     // Validate required fields
     const { name, packageType, pricePerSession } = req.body;
-    
+
     if (!name || !packageType || !pricePerSession) {
       return res.status(400).json({
         success: false,
@@ -394,6 +403,7 @@ router.post('/packages', async (req, res) => {
  */
 router.get('/packages/:id', async (req, res) => {
   try {
+    const { StorefrontItem } = getAllModels();
     const item = await StorefrontItem.findByPk(req.params.id);
     
     if (!item) {
@@ -423,6 +433,7 @@ router.get('/packages/:id', async (req, res) => {
  */
 router.put('/packages/:id', async (req, res) => {
   try {
+    const { StorefrontItem } = getAllModels();
     const item = await StorefrontItem.findByPk(req.params.id);
     
     if (!item) {
@@ -468,6 +479,7 @@ router.put('/packages/:id', async (req, res) => {
  */
 router.delete('/packages/:id', async (req, res) => {
   try {
+    const { StorefrontItem } = getAllModels();
     const item = await StorefrontItem.findByPk(req.params.id);
     
     if (!item) {
