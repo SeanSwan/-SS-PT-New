@@ -62,7 +62,8 @@ const formatHour = (hour: number) => {
   return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 };
 
-const getInitials = (name: string) => {
+const getInitials = (name: string | undefined | null) => {
+  if (!name) return '??';
   const parts = name.split(' ');
   if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
   return name.slice(0, 2).toUpperCase();
@@ -180,13 +181,13 @@ const DayViewStackedComponent: React.FC<DayViewStackedProps> = ({
               $density={density}
               role="button"
               aria-expanded={isExpanded}
-              aria-label={`${trainer.name} schedule - ${stats.booked} booked, ${stats.available} open`}
+              aria-label={`${trainer.name || 'Unknown'} schedule - ${stats.booked} booked, ${stats.available} open`}
             >
               <TrainerAvatar $density={density}>
                 {getInitials(trainer.name)}
               </TrainerAvatar>
               <TrainerInfo>
-                <TrainerName $density={density}>{trainer.name}</TrainerName>
+                <TrainerName $density={density}>{trainer.name || 'Unknown Trainer'}</TrainerName>
                 <TrainerStats $density={density}>
                   {stats.booked} booked &middot; {stats.available} open
                 </TrainerStats>
