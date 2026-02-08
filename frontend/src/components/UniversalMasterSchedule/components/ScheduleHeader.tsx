@@ -285,6 +285,9 @@ const HeaderContainer = styled.div`
   gap: 1rem;
   /* GPU layer promotion for smoother scroll */
   transform: translateZ(0);
+  /* Ensure dropdowns render above ViewSelector below */
+  position: relative;
+  z-index: 10;
 
   @media (max-width: 1024px) {
     padding: 1.25rem 1.5rem;
