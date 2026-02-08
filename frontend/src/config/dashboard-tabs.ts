@@ -402,6 +402,17 @@ export const ADMIN_DASHBOARD_TABS: DashboardTab[] = [
     description: 'Living style guide and design system',
     isNew: true,
   },
+  {
+    key: 'design-playground',
+    label: 'Design Playground',
+    icon: 'Palette',
+    order: 22,
+    status: 'new' as TabStatus,
+    section: 'system',
+    route: '/dashboard/design-playground',
+    description: 'Homepage redesign concepts for owner review',
+    isNew: true,
+  },
 ];
 
 // Trainer-specific tabs
