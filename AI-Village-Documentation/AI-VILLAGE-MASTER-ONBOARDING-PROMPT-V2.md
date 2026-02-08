@@ -146,12 +146,16 @@ Before marking ANY task complete:
 
 **Need to find something fast? Here's where everything lives:**
 
-### **🎯 Start Here (3 files you'll use constantly):**
+### **🎯 Start Here (5 files you'll use constantly):**
 1. `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md` - What's happening RIGHT NOW
-2. `AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md` - Complete AI Village guide
-3. `docs/ai-workflow/DESIGN-MASTER-PROMPT-ANALYSIS.md` - Design Master Prompt v3.0
+2. `CLAUDE.md` - Project intelligence (Claude Code auto-reads this)
+3. `docs/ai-workflow/SWANSTUDIOS-UI-REDESIGN-MASTER-PROMPT.md` - **UI/UX Redesign Master Prompt (ACTIVE)**
+4. `AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md` - Complete AI Village guide
+5. `docs/ai-workflow/DESIGN-MASTER-PROMPT-ANALYSIS.md` - Design Master Prompt v3.0
 
 ### **🎨 Design & Planning:**
+- **UI/UX Redesign (ACTIVE):** `docs/ai-workflow/SWANSTUDIOS-UI-REDESIGN-MASTER-PROMPT.md` - Single source of truth for redesign
+- **AI Review Team Prompt:** `docs/ai-workflow/AI-REVIEW-TEAM-PROMPT.md` - Structured multi-AI review format
 - Design workflow: `AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md` (Section 6.6)
 - Design Master Prompt v3.0: `docs/ai-workflow/DESIGN-MASTER-PROMPT-ANALYSIS.md`
 - Phase 0 registry: `docs/ai-workflow/PHASE-0-REGISTRY.md`
@@ -319,9 +323,15 @@ if (user.role === 'client') // Training access only
 
 ---
 
-## 🚨 CRITICAL: READ THESE FILES FIRST (30 SECONDS)
+## CRITICAL: READ THESE FILES FIRST (60 SECONDS)
 
-**BEFORE YOU DO ANYTHING, read these 3 files in order:**
+**BEFORE YOU DO ANYTHING, read these files in order:**
+
+### **0. PROJECT INTELLIGENCE (if using Claude Code)**
+```
+File: CLAUDE.md (project root)
+Purpose: Claude Code auto-reads this - project overview, build commands, conventions, redesign workflow
+```
 
 ### **1. CURRENT STATUS (10 seconds)**
 ```
@@ -330,14 +340,22 @@ Purpose: Where are we RIGHT NOW?
 Shows: Current phase, active work, locked files, what other AIs are doing
 ```
 
-### **2. COORDINATION RULES (10 seconds)**
+### **2. UI/UX REDESIGN MASTER PROMPT (if doing ANY UI work)**
+```
+File: docs/ai-workflow/SWANSTUDIOS-UI-REDESIGN-MASTER-PROMPT.md
+Purpose: Single source of truth for the active UI/UX redesign
+Shows: Design phases, KPIs, feature flags, breakpoints, visual QA protocol, seed data contract
+Also read: docs/ai-workflow/AI-REVIEW-TEAM-PROMPT.md (structured review format)
+```
+
+### **3. COORDINATION RULES (10 seconds)**
 ```
 File: docs/ai-workflow/AI-HANDOFF/HANDOFF-PROTOCOL.md
 Purpose: How AIs coordinate to avoid chaos
 Shows: Golden rules, workflow, file size limits, anti-patterns
 ```
 
-### **3. YOUR STATUS (10 seconds)**
+### **4. YOUR STATUS (10 seconds)**
 ```
 File: docs/ai-workflow/AI-HANDOFF/[YOUR-AI-NAME]-STATUS.md
 Purpose: Your personal work log
@@ -1103,11 +1121,11 @@ Which do you prefer?"
   - userManagement.types.ts (80 lines)
 ```
 
-### **❌ The Lone Wolf**
+### **The Lone Wolf**
 ```
-❌ BAD: Edit files without checking other AIs
+BAD: Edit files without checking other AIs
 
-✅ GOOD:
+GOOD:
   - Check CURRENT-TASK.md for locked files
   - Read other AI status files
   - Coordinate via status file updates
@@ -1122,15 +1140,21 @@ Which do you prefer?"
 
 ---
 
-## 📁 KEY FILES & LOCATIONS
+## KEY FILES & LOCATIONS
 
-**AI Coordination (NEW SYSTEM):**
+**Project Intelligence:**
+- `CLAUDE.md` ← Project overview, build commands, conventions (Claude Code auto-reads)
+
+**UI/UX Redesign (ACTIVE):**
+- `docs/ai-workflow/SWANSTUDIOS-UI-REDESIGN-MASTER-PROMPT.md` ← Single source of truth for redesign
+- `docs/ai-workflow/AI-REVIEW-TEAM-PROMPT.md` ← Multi-AI structured review format
+
+**AI Coordination:**
 - `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md` ← Check first!
 - `docs/ai-workflow/AI-HANDOFF/HANDOFF-PROTOCOL.md` ← The rules
 - `docs/ai-workflow/AI-HANDOFF/[AI-NAME]-STATUS.md` ← Your status
-- `docs/ai-workflow/AI-HANDOFF/MASTER-ONBOARDING-PROMPT.md` ← This prompt (simplified)
 
-**AI Village Docs (EXISTING SYSTEM):**
+**AI Village Docs:**
 - `AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md` ← Complete handbook
 - `AI-Village-Documentation/YOUR-AI-VILLAGE-ROLE-ASSIGNMENTS.md` ← Role details
 - `AI-Village-Documentation/CODE-APPROVAL-PIPELINE.md` ← 7 checkpoints

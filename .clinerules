@@ -158,12 +158,53 @@ Before marking ANY task complete:
 
 ---
 
-## 📚 REFERENCE FILES
+## UI/UX REDESIGN WORKFLOW (ACTIVE)
+
+**MANDATORY: Before ANY frontend UI work, read these documents:**
+
+### Step 1: Read the Master Prompt (Single Source of Truth)
+```
+File: docs/ai-workflow/SWANSTUDIOS-UI-REDESIGN-MASTER-PROMPT.md
+Purpose: Complete redesign specification - phases, KPIs, QA protocol, seed data, feature flags
+All flag names, thresholds, breakpoints, and naming conventions are defined HERE.
+```
+
+### Step 2: Read the Review Template
+```
+File: docs/ai-workflow/AI-REVIEW-TEAM-PROMPT.md
+Purpose: Structured multi-AI review format for design/implementation deliverables
+```
+
+### Redesign Rules (Quick Reference - see master prompt for definitive values)
+1. **Galaxy-Swan identity preserved** - Dark cosmic aesthetic, cyan accents, glass surfaces
+2. **10 breakpoints** - 320px through 3840px (4K) - see master prompt for exact values
+3. **Monetization flows are sacred** - 0.1% investigate / 0.5% fail (component-level diff)
+4. **No AI slop** - No generic gradients, stock patterns, or cookie-cutter layouts
+5. **Runtime feature flag** - `useNewTheme` via `/api/feature-flags` with localStorage cache + 1.5s timeout
+6. **Build-time flag** - `VITE_USE_NEW_THEME` (simpler, requires redeploy to rollback)
+7. **Concept routes** - Guarded by `VITE_DESIGN_PLAYGROUND=true` (never in prod)
+8. **Playwright MCP** - Used for visual QA screenshots and browser automation
+9. **5 Concept Technique** - Generate 5 distinct designs, owner picks 2, iterate
+
+### Phase Gates
+| Phase | Gate Requirement |
+|-------|-----------------|
+| Phase 0: Baseline | Screenshots + Lighthouse for every route |
+| Phase 1: 5 Concepts | Owner picks 2 favorites from 5 directions |
+| Phase 2: Design System | Token file + 6 primitives implemented |
+| Phase 3: Page Rollout | Each page behind feature flag, A/B tested |
+| Phase 4: QA + Launch | All KPIs green, 0 Critical/High regressions |
+
+---
+
+## REFERENCE FILES
 
 | Purpose | File Path |
 |---------|-----------|
 | Current Task | `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md` |
 | Design Specs | `docs/ai-workflow/DESIGN-MASTER-PROMPT-ANALYSIS.md` |
+| **UI Redesign Master Prompt** | `docs/ai-workflow/SWANSTUDIOS-UI-REDESIGN-MASTER-PROMPT.md` |
+| **AI Review Team Prompt** | `docs/ai-workflow/AI-REVIEW-TEAM-PROMPT.md` |
 | Phase 0 Registry | `docs/ai-workflow/PHASE-0-REGISTRY.md` |
 | AI Handbook | `AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md` |
 | Model Strategy | `AI-Village-Documentation/ROO-CODE-OPENROUTER-MODEL-STRATEGY.md` |

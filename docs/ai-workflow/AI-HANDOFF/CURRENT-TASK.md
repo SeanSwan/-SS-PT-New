@@ -1,7 +1,41 @@
 # CURRENT TASK - SINGLE SOURCE OF TRUTH
 
-**Last Updated:** 2026-01-17
-**Updated By:** AI Village
+**Last Updated:** 2026-02-08
+**Updated By:** Claude Code (Opus 4.6)
+
+---
+
+## ACTIVE PRIORITY: UI/UX REDESIGN WORKFLOW
+
+**Current Phase:** PHASE 0 - BASELINE CAPTURE (NOT YET STARTED)
+**Status:** PLANNING COMPLETE - Ready to Execute
+**Goal:** Full UI/UX redesign following the 5-Concept Technique with enterprise-grade QA
+
+### MANDATORY READING (Before ANY UI Work)
+1. **Master Redesign Prompt:** `docs/ai-workflow/SWANSTUDIOS-UI-REDESIGN-MASTER-PROMPT.md`
+2. **AI Review Team Prompt:** `docs/ai-workflow/AI-REVIEW-TEAM-PROMPT.md`
+3. **Project Intelligence:** `CLAUDE.md` (project root)
+
+### Redesign Phases
+| Phase | Name | Status |
+|-------|------|--------|
+| 0 | Baseline Capture (screenshots + Lighthouse) | NOT STARTED |
+| 1 | 5 Concept Designs (owner picks 2) | NOT STARTED |
+| 2 | Design System Extraction (tokens + primitives) | NOT STARTED |
+| 3 | Page-by-Page Rollout (feature-flagged) | NOT STARTED |
+| 4 | QA + Launch (KPIs green, 0 Critical/High) | NOT STARTED |
+
+### Tools & Skills
+- **Playwright MCP** - Browser automation for visual QA (configured in `.claude/mcp.json`)
+- **frontend-design skill** - Anthropic's design guidance (avoid AI slop)
+- **ui-ux-pro-max skill** - 67 styles, 96 palettes, 57 font pairings
+
+### Key Constraints
+- Galaxy-Swan identity preserved (dark cosmic, cyan accents)
+- 10 breakpoints: 320px through 3840px (4K) - see master prompt for exact values
+- Monetization flows sacred (0.1% investigate / 0.5% fail component-level diff)
+- Runtime feature flag: `useNewTheme` via `/api/feature-flags` (build-time: `VITE_USE_NEW_THEME`)
+- Concept routes: `VITE_DESIGN_PLAYGROUND=true` only
 
 ---
 
@@ -30,7 +64,33 @@
 3.  Add Phase 1 wireframes + UI flow review before frontend implementation.
 
 ### Locked Files
-*None*
+- backend/services/adminSpecial.test.mjs - Locked by ChatGPT-5 - Phase 6 Step 14 tests
+- frontend/src/pages/shop/components/SpecialBadge.test.tsx - Locked by ChatGPT-5 - Phase 6 Step 14 tests
+- frontend/src/pages/shop/components/PackageCard.test.tsx - Locked by ChatGPT-5 - Phase 6 Step 14 tests
+- docs/ai-workflow/blueprints/STORE-PACKAGE-PHASE-6-REDESIGN.md - Locked by ChatGPT-5 - Phase 6 blueprint creation
+- backend/migrations/20260201000003-restructure-packages.cjs - Locked by ChatGPT-5 - Phase 6 Step 1 migration
+- backend/migrations/20260201000004-create-admin-specials.cjs - Locked by ChatGPT-5 - Phase 6 Step 3 migration
+- backend/models/AdminSpecial.mjs - Locked by ChatGPT-5 - Phase 6 Step 4 model
+- backend/models/associations.mjs - Locked by ChatGPT-5 - Phase 6 Step 4 associations
+- backend/models/index.mjs - Locked by ChatGPT-5 - Phase 6 Step 4 model export
+- backend/controllers/adminSpecialController.mjs - Locked by ChatGPT-5 - Phase 6 Step 5 controller
+- backend/routes/adminSpecialRoutes.mjs - Locked by ChatGPT-5 - Phase 6 Step 5 routes
+- backend/core/routes.mjs - Locked by ChatGPT-5 - Phase 6 Step 5 route registration
+- backend/routes/storeFrontRoutes.mjs - Locked by ChatGPT-5 - Phase 6 Step 6 storefront specials response
+- frontend/src/pages/shop/components/PackagesGrid.tsx - Locked by ChatGPT-5 - Phase 6 Step 7 remove custom builder
+- frontend/src/pages/shop/OptimizedGalaxyStoreFront.tsx - Locked by ChatGPT-5 - Phase 6 Step 7 remove custom package types
+- frontend/src/components/ShoppingCart/ShoppingCart.tsx - Locked by ChatGPT-5 - Phase 6 Step 7 remove custom cart items
+- frontend/src/pages/shop/components/SpecialBadge.tsx - Locked by ChatGPT-5 - Phase 6 Step 8 special badge component
+- frontend/src/pages/shop/components/__tests__/CustomPackageFlow.e2e.test.tsx - Locked by ChatGPT-5 - Phase 6 Step 7 cleanup
+- frontend/src/pages/shop/components/PackageCard.tsx - Locked by ChatGPT-5 - Phase 6 Step 9 specials display
+- frontend/src/components/DashBoard/Pages/admin-specials/AdminSpecialsManager.tsx - Locked by ChatGPT-5 - Phase 6 Step 11 admin specials UI
+- frontend/src/components/DashBoard/Pages/admin-specials/AdminSpecialsTable.tsx - Locked by ChatGPT-5 - Phase 6 Step 11 admin specials UI
+- frontend/src/components/DashBoard/Pages/admin-specials/AdminSpecialsModal.tsx - Locked by ChatGPT-5 - Phase 6 Step 11 admin specials UI
+- frontend/src/components/DashBoard/Pages/admin-specials/adminSpecials.styles.ts - Locked by ChatGPT-5 - Phase 6 Step 11 admin specials UI
+- frontend/src/components/DashBoard/Pages/admin-specials/adminSpecials.types.ts - Locked by ChatGPT-5 - Phase 6 Step 11 admin specials UI
+- frontend/src/components/DashBoard/UnifiedAdminRoutes.tsx - Locked by ChatGPT-5 - Phase 6 Step 11 admin specials route
+- frontend/src/config/dashboard-tabs.ts - Locked by ChatGPT-5 - Phase 6 Step 11 admin specials nav
+- frontend/src/components/DashBoard/Pages/admin-dashboard/AdminStellarSidebar.tsx - Locked by ChatGPT-5 - Phase 6 Step 11 admin specials nav
 
 ---
 
@@ -810,7 +870,21 @@ Each tab must be wired to a real API endpoint with proper error handling.
 - ✅ **Universal Master Schedule Refactor**: Modularized monolithic component into `ScheduleHeader`, `ScheduleStats`, `ScheduleCalendar`, and `ScheduleModals`.
 - ✅ **Production Integration**: Integrated `useCalendarData` hook and `universalMasterScheduleService` for robust data management.
 - ✅ **Galaxy-Swan Theme**: Ensured full compliance with design tokens and glass-morphism effects.
+- ✅ **UI Fixes**: Resolved dropdown transparency issues and implemented "grey out" logic for past time slots.
+- ✅ **Testing Infrastructure**: Created automated test script `scripts/test-universal-schedule.mjs` and verified core API flows.
+
+## COMPLETED TODAY (2026-01-31)
+- âœ… **Vitest + RTL Setup**: Added `vitest.config.ts`, `src/test/setup.ts`, and test scripts; restricted test include/exclude.
+- âœ… **Unit Tests**: Added `SessionCard` tests and stabilized existing tests (sessionService + useClientDashboardMcp).
+- âœ… **Test Run**: `npx vitest run --reporter verbose` passing (3 files, 10 tests).
+- âœ… **Phase 4.1 Toasts**: Reused existing toast system, added success/error/warning/info helpers, replaced alert() in UniversalMasterSchedule.
+- âœ… **Phase 4.2 Header Dropdowns**: Consolidated schedule header actions into Create/Manage dropdowns.
+- âœ… **Phase 4.3 Shortcuts**: Added keyboard shortcuts (N/T/Arrows/Esc) with modal + input safety checks.
+- âœ… **Phase 4.4 Templates**: Added session template hook, template selector, and save-as-template flow.
+- ? **Phase 4 Polish**: Added inline template name validation, template delete UI, and shortcut tooltips.
 
 **END OF CURRENT-TASK.md**
+
+
 
 

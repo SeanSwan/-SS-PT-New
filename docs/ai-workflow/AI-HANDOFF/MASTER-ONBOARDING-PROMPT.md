@@ -12,7 +12,34 @@
 
 **Before you do ANYTHING, read these files in this exact order:**
 
-### **1. CURRENT STATE (Read First!)**
+### **0. PROJECT INTELLIGENCE (Read FIRST if using Claude Code!)**
+```
+File: CLAUDE.md (project root)
+Purpose: Claude Code auto-reads this - project overview, build commands, code conventions
+What it tells you:
+- Tech stack and build commands
+- Code conventions (no MUI, styled-components only)
+- UI/UX redesign workflow (ACTIVE)
+- Common gotchas
+```
+
+### **0.5. UI/UX REDESIGN MASTER PROMPT (Read if doing ANY UI work!)**
+```
+File: docs/ai-workflow/SWANSTUDIOS-UI-REDESIGN-MASTER-PROMPT.md
+Purpose: Complete redesign specification with enterprise-grade QA
+What it tells you:
+- Design philosophy and 5 theme directions
+- 10-breakpoint responsive matrix (320px to 4K)
+- Business KPIs with hard fail gates
+- Seed data contract for visual QA
+- Phased execution plan with Definition of Done per phase
+- Playwright MCP setup for visual feedback loops
+- Feature flag and rollback strategy
+
+Also read: docs/ai-workflow/AI-REVIEW-TEAM-PROMPT.md (structured review format)
+```
+
+### **1. CURRENT STATE (Read Second!)**
 ```
 File: docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md
 Purpose: Single source of truth - where we are RIGHT NOW
@@ -329,6 +356,13 @@ If ANY checkpoint fails → Fix and restart from that checkpoint
 ---
 
 ## 📁 KEY FILES & LOCATIONS
+
+**Project Intelligence:**
+- `CLAUDE.md` ← Project overview, build commands, conventions (Claude Code auto-reads this)
+
+**UI/UX Redesign (ACTIVE):**
+- `docs/ai-workflow/SWANSTUDIOS-UI-REDESIGN-MASTER-PROMPT.md` ← Full redesign specification
+- `docs/ai-workflow/AI-REVIEW-TEAM-PROMPT.md` ← Multi-AI structured review format
 
 **AI Coordination:**
 - `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md` ← Check first!
