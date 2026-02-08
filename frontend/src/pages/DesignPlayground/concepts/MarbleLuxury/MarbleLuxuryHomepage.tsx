@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
 import { ArrowRight, Star, Award, Clock, MapPin, Phone, Mail } from 'lucide-react';
@@ -7,11 +7,6 @@ import ConceptWrapper from '../shared/ConceptWrapper';
 import { marbleLuxuryTheme as theme } from './MarbleLuxuryTheme';
 
 /* ─── Animations ─── */
-const goldShine = keyframes`
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-`;
-
 const marbleShift = keyframes`
   0% { background-position: 0% 0%; }
   50% { background-position: 100% 100%; }
@@ -108,7 +103,6 @@ const LuxuryButton = styled(motion.button)`
   &:hover {
     background: ${theme.colors.secondary};
     color: ${theme.colors.primary};
-    letter-spacing: 5px;
   }
 `;
 
@@ -528,10 +522,10 @@ const MarbleLuxuryHomepage: React.FC = () => {
           </FooterBrand>
           <FooterCol>
             <h4>Links</h4>
-            <a href="/">Home</a>
-            <a href="/store">Store</a>
-            <a href="/about">About</a>
-            <a href="/contact">Contact</a>
+            <Link to="/">Home</Link>
+            <Link to="/store">Store</Link>
+            <Link to="/about">About</Link>
+            <Link to="/contact">Contact</Link>
           </FooterCol>
           <FooterCol>
             <h4>Contact</h4>

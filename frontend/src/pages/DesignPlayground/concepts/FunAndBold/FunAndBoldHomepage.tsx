@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
 import { Flame, Dumbbell, Users, Zap, ArrowRight, MapPin, Phone, Mail, Heart } from 'lucide-react';
@@ -10,23 +10,6 @@ import { funAndBoldTheme as theme } from './FunAndBoldTheme';
 const bounce = keyframes`
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
-`;
-
-const wiggle = keyframes`
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(3deg); }
-  75% { transform: rotate(-3deg); }
-`;
-
-const pop = keyframes`
-  0% { transform: scale(0); }
-  80% { transform: scale(1.1); }
-  100% { transform: scale(1); }
-`;
-
-const confetti = keyframes`
-  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(-200px) rotate(720deg); opacity: 0; }
 `;
 
 /* ─── Styled Components ─── */
@@ -582,10 +565,10 @@ const FunAndBoldHomepage: React.FC = () => {
           </FooterBrand>
           <FooterCol>
             <h4>Links</h4>
-            <a href="/">Home</a>
-            <a href="/store">Store</a>
-            <a href="/about">About</a>
-            <a href="/contact">Contact</a>
+            <Link to="/">Home</Link>
+            <Link to="/store">Store</Link>
+            <Link to="/about">About</Link>
+            <Link to="/contact">Contact</Link>
           </FooterCol>
           <FooterCol>
             <h4>Contact</h4>
