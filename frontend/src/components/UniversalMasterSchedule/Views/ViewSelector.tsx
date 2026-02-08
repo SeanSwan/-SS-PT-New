@@ -285,17 +285,18 @@ const DateLabel = styled.div`
   font-size: 1rem;
   font-weight: 600;
   color: ${galaxySwanTheme.text.primary};
-  min-width: 170px;
+  width: 280px;
   text-align: center;
+  flex-shrink: 0;
 
   @media (max-width: 768px) {
     font-size: 0.95rem;
-    min-width: 150px;
+    width: 260px;
   }
 
   @media (max-width: 480px) {
     font-size: 0.875rem;
-    min-width: 120px;
+    width: 220px;
   }
 `;
 
