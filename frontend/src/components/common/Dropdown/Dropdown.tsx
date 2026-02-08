@@ -75,6 +75,7 @@ export default Dropdown;
 const Container = styled.div`
   position: relative;
   display: inline-flex;
+  z-index: 100;
 `;
 
 const TriggerWrapper = styled.div`
