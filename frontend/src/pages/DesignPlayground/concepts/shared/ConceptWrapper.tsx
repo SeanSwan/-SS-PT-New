@@ -1,12 +1,29 @@
 import React, { useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
-import styled from 'styled-components';
+import styled, { createGlobalStyle } from 'styled-components';
 import type { ConceptTheme } from './ConceptTypes';
 
 interface ConceptWrapperProps {
   theme: ConceptTheme;
   children: React.ReactNode;
 }
+
+const ReducedMotionStyles = createGlobalStyle`
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+`;
+
+const FocusStyles = createGlobalStyle`
+  button:focus-visible, a:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+`;
 
 const ConceptContainer = styled.div<{ $bg: string; $font: string }>`
   min-height: 100vh;
@@ -29,6 +46,8 @@ const ConceptWrapper: React.FC<ConceptWrapperProps> = ({ theme, children }) => {
         <link href={theme.fonts.googleImportUrl} rel="stylesheet" />
         <title>{`SwanStudios — ${theme.name} Concept`}</title>
       </Helmet>
+      <ReducedMotionStyles />
+      <FocusStyles />
       <ConceptContainer $bg={theme.colors.background} $font={theme.fonts.body}>
         {children}
       </ConceptContainer>

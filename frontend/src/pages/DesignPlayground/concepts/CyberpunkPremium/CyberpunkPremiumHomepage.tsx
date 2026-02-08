@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import styled, { keyframes, css } from 'styled-components';
+import React from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
 import { Zap, Shield, Target, TrendingUp, ChevronRight, MapPin, Phone, Mail } from 'lucide-react';
 import ConceptWrapper from '../shared/ConceptWrapper';
@@ -23,16 +23,6 @@ const glitch = keyframes`
 const pulse = keyframes`
   0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.3); }
   50% { box-shadow: 0 0 40px rgba(0, 255, 255, 0.6), 0 0 80px rgba(0, 255, 255, 0.2); }
-`;
-
-const typewriter = keyframes`
-  from { width: 0; }
-  to { width: 100%; }
-`;
-
-const blink = keyframes`
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
 `;
 
 const gridMove = keyframes`
@@ -538,10 +528,10 @@ const CyberpunkPremiumHomepage: React.FC = () => {
           </FooterBrand>
           <FooterCol>
             <h4>Navigate</h4>
-            <a href="/">Home</a>
-            <a href="/store">Store</a>
-            <a href="/about">About</a>
-            <a href="/contact">Contact</a>
+            <Link to="/">Home</Link>
+            <Link to="/store">Store</Link>
+            <Link to="/about">About</Link>
+            <Link to="/contact">Contact</Link>
           </FooterCol>
           <FooterCol>
             <h4>Connect</h4>

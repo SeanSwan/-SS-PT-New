@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
 import { Leaf, Sun, Droplets, Wind, Heart, ArrowRight, MapPin, Phone, Mail } from 'lucide-react';
@@ -309,7 +309,7 @@ const FooterLinks = styled.div`
     color: ${theme.colors.accent};
     margin: 0 0 16px;
   }
-  a {
+  a, a:visited {
     display: block;
     color: #d4e8d4;
     text-decoration: none;
@@ -478,10 +478,10 @@ const NatureWellnessHomepage: React.FC = () => {
           </FooterBrand>
           <FooterLinks>
             <h4>Quick Links</h4>
-            <a href="/">Home</a>
-            <a href="/store">Store</a>
-            <a href="/about">About</a>
-            <a href="/contact">Contact</a>
+            <Link to="/">Home</Link>
+            <Link to="/store">Store</Link>
+            <Link to="/about">About</Link>
+            <Link to="/contact">Contact</Link>
           </FooterLinks>
           <FooterContact>
             <h4>Contact</h4>

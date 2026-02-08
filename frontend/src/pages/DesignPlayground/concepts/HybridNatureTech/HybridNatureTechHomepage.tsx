@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
 import { Dna, Brain, Activity, Sprout, ArrowRight, MapPin, Phone, Mail } from 'lucide-react';
@@ -10,17 +10,6 @@ import { hybridNatureTechTheme as theme } from './HybridNatureTechTheme';
 const bioGlow = keyframes`
   0%, 100% { opacity: 0.4; filter: blur(60px); }
   50% { opacity: 0.7; filter: blur(80px); }
-`;
-
-const cellGrow = keyframes`
-  0% { transform: scale(0.8); opacity: 0.3; }
-  50% { transform: scale(1.1); opacity: 0.6; }
-  100% { transform: scale(0.8); opacity: 0.3; }
-`;
-
-const neuralPulse = keyframes`
-  0%, 100% { stroke-dashoffset: 100; }
-  50% { stroke-dashoffset: 0; }
 `;
 
 /* ─── Styled Components ─── */
@@ -48,21 +37,6 @@ const BioOrb = styled.div<{ $color: string; $size: string; $top: string; $left: 
   animation: ${bioGlow} ${({ $delay }) => `${5 + parseInt($delay)}s`} ease-in-out infinite;
   animation-delay: ${({ $delay }) => $delay}s;
   z-index: 0;
-`;
-
-const CellSvg = styled.svg`
-  position: absolute;
-  width: 200px;
-  height: 200px;
-  opacity: 0.15;
-  z-index: 0;
-
-  circle {
-    fill: none;
-    stroke: ${theme.colors.primary};
-    stroke-width: 1;
-    animation: ${cellGrow} 6s ease-in-out infinite;
-  }
 `;
 
 const HeroLabel = styled.p`
@@ -555,10 +529,10 @@ const HybridNatureTechHomepage: React.FC = () => {
           </FooterBrand>
           <FooterCol>
             <h4>Navigate</h4>
-            <a href="/">Home</a>
-            <a href="/store">Store</a>
-            <a href="/about">About</a>
-            <a href="/contact">Contact</a>
+            <Link to="/">Home</Link>
+            <Link to="/store">Store</Link>
+            <Link to="/about">About</Link>
+            <Link to="/contact">Contact</Link>
           </FooterCol>
           <FooterCol>
             <h4>Connect</h4>
