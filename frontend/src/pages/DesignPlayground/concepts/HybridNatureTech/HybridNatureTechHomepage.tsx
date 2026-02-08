@@ -41,7 +41,7 @@ const BioOrb = styled.div<{ $color: string; $size: string; $top: string; $left: 
 
 const HeroLabel = styled.p`
   font-family: '${theme.fonts.body}', sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 4px;
   color: ${theme.colors.primary};
@@ -117,7 +117,7 @@ const SectionInner = styled.div`
 
 const SectionLabel = styled.p`
   font-family: '${theme.fonts.body}', sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 3px;
   color: ${theme.colors.primary};
@@ -233,7 +233,7 @@ const GrowthNumber = styled.div`
 
 const GrowthLabel = styled.div`
   font-family: '${theme.fonts.body}', sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: ${theme.colors.textSecondary};
   margin-top: 4px;
 `;
@@ -331,7 +331,7 @@ const FooterBrand = styled.div`
 const FooterCol = styled.div`
   h4 {
     font-family: '${theme.fonts.display}', sans-serif;
-    font-size: 0.8rem;
+    font-size: 0.875rem;
     text-transform: uppercase;
     letter-spacing: 2px;
     color: ${theme.colors.accent};
@@ -362,7 +362,7 @@ const Copyright = styled.div`
   padding-top: 32px;
   margin-top: 32px;
   border-top: 1px solid rgba(88, 214, 141, 0.05);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   color: ${theme.colors.textSecondary};
 `;
 
@@ -381,9 +381,9 @@ const HybridNatureTechHomepage: React.FC = () => {
     <ConceptWrapper theme={theme}>
       {/* ─── Hero ─── */}
       <Hero>
-        <BioOrb $color="rgba(88, 214, 141, 0.15)" $size="400px" $top="20%" $left="10%" $delay="0" />
-        <BioOrb $color="rgba(93, 173, 226, 0.1)" $size="300px" $top="40%" $left="70%" $delay="2" />
-        <BioOrb $color="rgba(247, 220, 111, 0.05)" $size="200px" $top="70%" $left="30%" $delay="4" />
+        <BioOrb $color="rgba(88, 214, 141, 0.15)" $size="400px" $top="20%" $left="10%" $delay="0" aria-hidden="true" />
+        <BioOrb $color="rgba(93, 173, 226, 0.1)" $size="300px" $top="40%" $left="70%" $delay="2" aria-hidden="true" />
+        <BioOrb $color="rgba(247, 220, 111, 0.05)" $size="200px" $top="70%" $left="30%" $delay="4" aria-hidden="true" />
 
         <HeroLabel>Bio-Engineered Fitness</HeroLabel>
         <HeroTitle {...fadeUp}>
@@ -501,8 +501,8 @@ const HybridNatureTechHomepage: React.FC = () => {
 
       {/* ─── CTA ─── */}
       <CTASection>
-        <BioOrb $color="rgba(88, 214, 141, 0.1)" $size="300px" $top="30%" $left="5%" $delay="0" />
-        <BioOrb $color="rgba(93, 173, 226, 0.08)" $size="250px" $top="20%" $left="75%" $delay="3" />
+        <BioOrb $color="rgba(88, 214, 141, 0.1)" $size="300px" $top="30%" $left="5%" $delay="0" aria-hidden="true" />
+        <BioOrb $color="rgba(93, 173, 226, 0.08)" $size="250px" $top="20%" $left="75%" $delay="3" aria-hidden="true" />
         <motion.div {...fadeUp} style={{ position: 'relative', zIndex: 1 }}>
           <SectionLabel>Next Step</SectionLabel>
           <CTATitle>Ready to <GreenText>Evolve</GreenText>?</CTATitle>

@@ -168,7 +168,7 @@ const SectionInner = styled.div`
 
 const SectionLabel = styled.p`
   font-family: '${theme.fonts.body}', monospace;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 4px;
   color: ${theme.colors.primary};
@@ -289,7 +289,7 @@ const StatNumber = styled.div`
 
 const StatLabel = styled.div`
   font-family: '${theme.fonts.body}', sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   color: ${theme.colors.textSecondary};
   text-transform: uppercase;
   letter-spacing: 2px;
@@ -361,7 +361,7 @@ const FooterBrand = styled.div`
 const FooterCol = styled.div`
   h4 {
     font-family: '${theme.fonts.display}', sans-serif;
-    font-size: 0.8rem;
+    font-size: 0.875rem;
     text-transform: uppercase;
     letter-spacing: 3px;
     color: ${theme.colors.secondary};
@@ -393,7 +393,7 @@ const Copyright = styled.div`
   padding-top: 32px;
   margin-top: 32px;
   border-top: 1px solid rgba(0, 255, 255, 0.05);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   color: ${theme.colors.textSecondary};
   font-family: '${theme.fonts.body}', monospace;
   letter-spacing: 2px;
@@ -414,8 +414,8 @@ const CyberpunkPremiumHomepage: React.FC = () => {
     <ConceptWrapper theme={theme}>
       {/* ─── Hero ─── */}
       <Hero>
-        <GridOverlay />
-        <ScanLine />
+        <GridOverlay aria-hidden="true" />
+        <ScanLine aria-hidden="true" />
         <TerminalPrefix>{'>'} SYSTEM_UPGRADE_AVAILABLE</TerminalPrefix>
         <HeroTitle {...fadeUp}>
           <CyanText>Upgrade</CyanText> Your<br />
@@ -502,7 +502,7 @@ const CyberpunkPremiumHomepage: React.FC = () => {
 
       {/* ─── CTA ─── */}
       <CTASection>
-        <GridOverlay />
+        <GridOverlay aria-hidden="true" />
         <motion.div {...fadeUp}>
           <SectionLabel>{'>'} EXECUTE</SectionLabel>
           <CTATitle>Ready to <CyanText>Reboot</CyanText>?</CTATitle>

@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { MotionConfig } from 'framer-motion';
 import styled, { createGlobalStyle } from 'styled-components';
 import type { ConceptTheme } from './ConceptTypes';
 
@@ -48,9 +49,11 @@ const ConceptWrapper: React.FC<ConceptWrapperProps> = ({ theme, children }) => {
       </Helmet>
       <ReducedMotionStyles />
       <FocusStyles />
-      <ConceptContainer $bg={theme.colors.background} $font={theme.fonts.body}>
-        {children}
-      </ConceptContainer>
+      <MotionConfig reducedMotion="user">
+        <ConceptContainer $bg={theme.colors.background} $font={theme.fonts.body}>
+          {children}
+        </ConceptContainer>
+      </MotionConfig>
     </>
   );
 };
