@@ -50,7 +50,7 @@ const GoldDivider = styled.div`
 
 const HeroLabel = styled.p`
   font-family: '${theme.fonts.body}', sans-serif;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   text-transform: uppercase;
   letter-spacing: 6px;
   color: ${theme.colors.secondary};
@@ -336,7 +336,7 @@ const FooterBrand = styled.div`
 const FooterCol = styled.div`
   h4 {
     font-family: '${theme.fonts.body}', sans-serif;
-    font-size: 0.75rem;
+    font-size: 0.8125rem;
     text-transform: uppercase;
     letter-spacing: 4px;
     color: ${theme.colors.secondary};
@@ -373,7 +373,7 @@ const Copyright = styled.div`
   border-top: 1px solid #E8E4DD;
   text-align: center;
   font-family: '${theme.fonts.body}', sans-serif;
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 300;
   color: ${theme.colors.textSecondary};
   letter-spacing: 2px;
@@ -395,7 +395,7 @@ const MarbleLuxuryHomepage: React.FC = () => {
     <ConceptWrapper theme={theme}>
       {/* ─── Hero ─── */}
       <Hero>
-        <MarbleTexture />
+        <MarbleTexture aria-hidden="true" />
         <HeroLabel>Swan Studios — Est. 2018</HeroLabel>
         <GoldDivider />
         <HeroTitle {...fadeUp}>
@@ -425,7 +425,7 @@ const MarbleLuxuryHomepage: React.FC = () => {
 
           <ProgramRow {...fadeUp}>
             <ProgramImage $accent={theme.colors.secondary}>
-              <ProgramImageIcon><Star size={64} /></ProgramImageIcon>
+              <ProgramImageIcon aria-hidden="true"><Star size={64} /></ProgramImageIcon>
             </ProgramImage>
             <ProgramContent>
               <ProgramNumber>01</ProgramNumber>
@@ -440,7 +440,7 @@ const MarbleLuxuryHomepage: React.FC = () => {
 
           <ProgramRow $reverse {...fadeUp}>
             <ProgramImage $accent={theme.colors.accent}>
-              <ProgramImageIcon><Award size={64} /></ProgramImageIcon>
+              <ProgramImageIcon aria-hidden="true"><Award size={64} /></ProgramImageIcon>
             </ProgramImage>
             <ProgramContent>
               <ProgramNumber>02</ProgramNumber>
@@ -455,7 +455,7 @@ const MarbleLuxuryHomepage: React.FC = () => {
 
           <ProgramRow {...fadeUp}>
             <ProgramImage $accent={theme.colors.secondary}>
-              <ProgramImageIcon><Clock size={64} /></ProgramImageIcon>
+              <ProgramImageIcon aria-hidden="true"><Clock size={64} /></ProgramImageIcon>
             </ProgramImage>
             <ProgramContent>
               <ProgramNumber>03</ProgramNumber>

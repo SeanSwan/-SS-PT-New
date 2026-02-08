@@ -395,7 +395,7 @@ const Copyright = styled.div`
   padding-top: 32px;
   margin-top: 32px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   opacity: 0.5;
   display: flex;
   align-items: center;
@@ -425,17 +425,17 @@ const FunAndBoldHomepage: React.FC = () => {
     <ConceptWrapper theme={theme}>
       {/* ─── Hero ─── */}
       <Hero>
-        <HeroGradientBlob $color={theme.colors.accent} $top="10%" $left="5%" $size="400px" />
-        <HeroGradientBlob $color={theme.colors.primary} $top="50%" $left="60%" $size="350px" />
-        <HeroGradientBlob $color={theme.colors.secondary} $top="30%" $left="80%" $size="250px" />
+        <HeroGradientBlob $color={theme.colors.accent} $top="10%" $left="5%" $size="400px" aria-hidden="true" />
+        <HeroGradientBlob $color={theme.colors.primary} $top="50%" $left="60%" $size="350px" aria-hidden="true" />
+        <HeroGradientBlob $color={theme.colors.secondary} $top="30%" $left="80%" $size="250px" aria-hidden="true" />
 
-        <FloatingShape $top="15%" $right="15%" $delay="0s">
+        <FloatingShape $top="15%" $right="15%" $delay="0s" aria-hidden="true">
           <svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill={theme.colors.accent} opacity="0.5" /></svg>
         </FloatingShape>
-        <FloatingShape $top="60%" $right="10%" $delay="0.5s">
+        <FloatingShape $top="60%" $right="10%" $delay="0.5s" aria-hidden="true">
           <svg width="30" height="30" viewBox="0 0 30 30"><rect width="24" height="24" x="3" y="3" rx="4" fill={theme.colors.secondary} opacity="0.4" transform="rotate(15, 15, 15)" /></svg>
         </FloatingShape>
-        <FloatingShape $top="40%" $right="85%" $delay="1s">
+        <FloatingShape $top="40%" $right="85%" $delay="1s" aria-hidden="true">
           <svg width="24" height="24" viewBox="0 0 24 24"><polygon points="12,2 15,9 22,9 16,14 18,22 12,17 6,22 8,14 2,9 9,9" fill={theme.colors.primary} opacity="0.4" /></svg>
         </FloatingShape>
 

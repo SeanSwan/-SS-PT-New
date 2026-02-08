@@ -137,7 +137,7 @@ const SectionInner = styled.div`
 
 const SectionLabel = styled.p`
   font-family: '${theme.fonts.body}', sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 3px;
   color: ${theme.colors.primary};
@@ -345,7 +345,7 @@ const Copyright = styled.div`
   padding-top: 32px;
   margin-top: 32px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
-  font-size: 0.8rem;
+  font-size: 0.875rem;
   opacity: 0.6;
 `;
 
@@ -364,12 +364,12 @@ const NatureWellnessHomepage: React.FC = () => {
     <ConceptWrapper theme={theme}>
       {/* ─── Hero ─── */}
       <Hero>
-        <FloatingLeaf $top="15%" $left="10%" $delay="0s"><Leaf size={32} /></FloatingLeaf>
-        <FloatingLeaf $top="25%" $left="85%" $delay="1s"><Leaf size={24} /></FloatingLeaf>
-        <FloatingLeaf $top="70%" $left="15%" $delay="2s"><Leaf size={20} /></FloatingLeaf>
-        <FloatingLeaf $top="60%" $left="80%" $delay="0.5s"><Leaf size={28} /></FloatingLeaf>
+        <FloatingLeaf $top="15%" $left="10%" $delay="0s" aria-hidden="true"><Leaf size={32} /></FloatingLeaf>
+        <FloatingLeaf $top="25%" $left="85%" $delay="1s" aria-hidden="true"><Leaf size={24} /></FloatingLeaf>
+        <FloatingLeaf $top="70%" $left="15%" $delay="2s" aria-hidden="true"><Leaf size={20} /></FloatingLeaf>
+        <FloatingLeaf $top="60%" $left="80%" $delay="0.5s" aria-hidden="true"><Leaf size={28} /></FloatingLeaf>
 
-        <BotanicalSilhouette />
+        <BotanicalSilhouette aria-hidden="true" />
         <BreathePrompt>Breathe with us</BreathePrompt>
         <HeroTitle {...fadeUp}>
           Train in <HeroAccent>Harmony</HeroAccent><br />
