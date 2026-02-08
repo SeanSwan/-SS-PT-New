@@ -44,6 +44,7 @@ import AdminSocialManagementView from './Pages/admin-dashboard/components/AdminS
 import NASMCompliancePanel from './Pages/admin-dashboard/components/NASMCompliancePanel';
 import AdminExerciseCommandCenter from './Pages/admin-exercises';
 import { TheAestheticCodex } from '../../core';
+import DesignPlayground from '../../pages/DesignPlayground/DesignPlayground';
 
 const ClientOnboardingWizard = React.lazy(() => import('../../pages/onboarding/ClientOnboardingWizard'));
 const SocialMediaCommandCenter = React.lazy(
@@ -110,6 +111,9 @@ const UnifiedAdminRoutes: React.FC = () => (
 
     {/* The Aesthetic Codex */}
     <Route path="/style-guide" element={wrap(<TheAestheticCodex />)} />
+
+    {/* Design Playground - Admin concept viewer */}
+    <Route path="/design-playground" element={wrap(<DesignPlayground />)} />
 
     {/* Enterprise Business Intelligence Routes */}
     <Route path="/mcp-overview" element={wrap(<MCPServersSection />)} />
