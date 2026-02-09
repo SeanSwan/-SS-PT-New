@@ -63,7 +63,7 @@ const Badge = styled.span`
 `;
 
 /* ─── Filter Tabs ─── */
-const FilterBar = styled.div`
+const FilterBar = styled.div.attrs({ role: 'toolbar', 'aria-label': 'Filter by category' })`
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -226,19 +226,17 @@ const PaletteRow = styled.div`
   align-items: center;
 `;
 
-const ColorSwatch = styled.div<{ $color: string }>`
+const ColorSwatch = styled.span.attrs<{ $color: string }>((props) => ({
+  role: 'img',
+  'aria-label': props.title || 'color swatch',
+}))<{ $color: string }>`
+  display: inline-block;
   width: 28px;
   height: 28px;
   border-radius: 50%;
   background: ${({ $color }) => $color};
   border: 2px solid rgba(255, 255, 255, 0.15);
   flex-shrink: 0;
-  cursor: help;
-  transition: transform 0.2s;
-
-  &:hover {
-    transform: scale(1.2);
-  }
 `;
 
 const FontPair = styled.div`
@@ -311,7 +309,7 @@ const DesignPlayground: React.FC = () => {
     <PageContainer>
       <Helmet>
         {allConcepts.map((c) => (
-          <link key={c.id} href={c.fonts.googleImportUrl} rel="stylesheet" />
+          <link key={c.id} href={c.fonts.googleImportUrl} rel="stylesheet" media="print" onLoad={(e) => { (e.target as HTMLLinkElement).media = 'all'; }} />
         ))}
       </Helmet>
 
@@ -331,6 +329,7 @@ const DesignPlayground: React.FC = () => {
             key={opt.key}
             $active={activeFilter === opt.key}
             onClick={() => setActiveFilter(opt.key)}
+            aria-pressed={activeFilter === opt.key}
           >
             {opt.label}
           </FilterTab>

@@ -128,19 +128,19 @@ const NavDot = styled.button<{ $active: boolean; $color: string }>`
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 2px solid ${({ $active, $color }) => ($active ? $color : 'rgba(255, 255, 255, 0.2)')};
-  background: ${({ $active, $color }) => ($active ? $color : 'transparent')};
+  border: none;
+  background: transparent;
   cursor: pointer;
   padding: 0;
   transition: all 0.2s;
-  min-width: 28px;
-  min-height: 28px;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
 
-  &:hover {
+  &:hover > div {
     border-color: ${({ $color }) => $color};
     background: ${({ $color }) => $color}33;
   }
@@ -160,6 +160,18 @@ const Separator = styled.div`
   height: 20px;
   background: rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
+`;
+
+const MobileCounter = styled.span`
+  color: #e0e0e0;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  display: none;
+
+  @media (max-width: 768px) {
+    display: inline;
+  }
 `;
 
 const ConceptInfo = styled.span`
@@ -265,6 +277,8 @@ const DesignPlaygroundLayout: React.FC = () => {
         >
           <ChevronLeft size={16} />
         </ArrowButton>
+
+        <MobileCounter>{currentIndex + 1} / {allConcepts.length}</MobileCounter>
 
         {conceptCategories.map((cat) => (
           <CategoryGroup key={cat.category}>
