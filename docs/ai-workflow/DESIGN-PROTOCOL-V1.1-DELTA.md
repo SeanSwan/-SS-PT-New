@@ -136,6 +136,17 @@ export const TYPOGRAPHY = {
 };
 ```
 
+#### Typography Readability Policy (Mobile Minimums)
+
+| Text Role | Minimum Size | rem Value | Examples |
+|-----------|-------------|-----------|----------|
+| **Actionable text** | 16px | `1rem` | Form labels, nav items, error messages, buttons, body copy |
+| **Non-actionable metadata** | 14px | `0.875rem` | Section labels, footer headings, stat captions, taglines |
+| **Legal / tertiary text** | 13px | `0.8125rem` | Copyright notices, establishment dates, fine print |
+| **Hard floor** | 12px | `0.75rem` | Nothing below this — ever |
+
+> WCAG recommends 16px for body text readability, not as a blanket rule for every label/caption. These tiers preserve intentional typographic hierarchy while remaining accessible. Cross-AI reviews should reference this table — sizes within policy are not findings.
+
 ### Spacing (4-Point Grid)
 
 ```typescript
