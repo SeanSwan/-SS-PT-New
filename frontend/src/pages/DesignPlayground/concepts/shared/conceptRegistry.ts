@@ -13,8 +13,9 @@ import { hybridNatureTechV2Theme } from '../HybridNatureTech/HybridNatureTechV2T
 import { funAndBoldTheme } from '../FunAndBold/FunAndBoldTheme';
 import { funAndBoldV2Theme } from '../FunAndBold/FunAndBoldV2Theme';
 import { artDecoGlamourTheme } from '../ArtDecoGlamour/ArtDecoGlamourTheme';
+import { etherealWildernessTheme } from '../EtherealWilderness/EtherealWildernessTheme';
 
-/* ─── All 11 Concepts (flat) ─── */
+/* ─── All 12 Concepts (flat) ─── */
 export const allConcepts: ConceptTheme[] = [
   natureWellnessTheme,
   natureWellnessV2Theme,
@@ -27,6 +28,7 @@ export const allConcepts: ConceptTheme[] = [
   funAndBoldTheme,
   funAndBoldV2Theme,
   artDecoGlamourTheme,
+  etherealWildernessTheme,
 ];
 
 /* ─── Category Grouping ─── */
@@ -43,6 +45,7 @@ export const conceptCategories: ConceptCategory[] = [
   { category: 'hybrid-nature-tech', label: 'Hybrid Nature-Tech', concepts: [hybridNatureTechTheme, hybridNatureTechV2Theme] },
   { category: 'fun-and-bold', label: 'Fun & Bold', concepts: [funAndBoldTheme, funAndBoldV2Theme] },
   { category: 'art-deco-glamour', label: 'Art Deco Glamour', concepts: [artDecoGlamourTheme] },
+  { category: 'ethereal-wilderness', label: 'Ethereal Wilderness', concepts: [etherealWildernessTheme] },
 ];
 
 /* ─── Lazy-Loaded Homepage Components ─── */
@@ -58,6 +61,7 @@ export const conceptComponents: Record<string, React.LazyExoticComponent<React.C
   'fun-and-bold-v1': lazy(() => import('../FunAndBold/FunAndBoldHomepage')),
   'fun-and-bold-v2': lazy(() => import('../FunAndBold/FunAndBoldV2Homepage')),
   'art-deco-glamour-v1': lazy(() => import('../ArtDecoGlamour/ArtDecoGlamourHomepage')),
+  'ethereal-wilderness-v1': lazy(() => import('../EtherealWilderness/EtherealWildernessHomepage')),
 };
 
 /* ─── Quick Lookup ─── */
