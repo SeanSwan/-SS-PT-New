@@ -53,6 +53,7 @@ const InstagramSection = styled.section`
   background: linear-gradient(to bottom, #0a0a0a, #121212);
   position: relative;
   overflow: hidden;
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
 `;
 
 // A decorative background shape for added visual interest
@@ -99,12 +100,13 @@ const SectionTitle = styled(motion.h2)`
   font-size: 2.5rem;
   margin-bottom: 1rem;
   color: white;
-  background: linear-gradient(90deg, #00ffff, #7851a9);
+  background: linear-gradient(90deg, #00D4AA, #7851a9);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
   position: relative;
   display: inline-block;
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
   
   &::after {
     content: "";
@@ -113,7 +115,7 @@ const SectionTitle = styled(motion.h2)`
     left: 0;
     width: 100%;
     height: 3px;
-    background: linear-gradient(90deg, #00ffff, #7851a9);
+    background: linear-gradient(90deg, #00D4AA, #7851a9);
     border-radius: 3px;
   }
   
@@ -140,7 +142,7 @@ const InstagramHandle = styled(motion.a)`
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  color: var(--neon-blue, #00ffff);
+  color: var(--neon-blue, #00D4AA);
   font-size: 1.2rem;
   text-decoration: none;
   margin-top: 1rem;
@@ -314,7 +316,7 @@ const PostAvatar = styled.div`
   border-radius: 50%;
   overflow: hidden;
   margin-right: 0.5rem;
-  border: 2px solid var(--neon-blue, #00ffff);
+  border: 2px solid var(--neon-blue, #00D4AA);
   flex-shrink: 0;
   
   img {
@@ -364,7 +366,7 @@ const PostCaption = styled.p`
 // Hashtags styling with neon-blue color
 const PostHashtags = styled.p`
   font-size: 0.9rem;
-  color: var(--neon-blue, #00ffff);
+  color: var(--neon-blue, #00D4AA);
   margin-bottom: 1rem;
   white-space: nowrap;
   overflow: hidden;

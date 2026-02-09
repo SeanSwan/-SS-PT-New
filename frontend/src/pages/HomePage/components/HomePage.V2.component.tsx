@@ -73,70 +73,69 @@ const PageContainer = styled.main`
   width: 100%;
   min-height: 100vh;
   overflow-x: hidden;
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
 `;
 
 /**
  * Section divider animation
  */
-const diagonalShimmer = keyframes`
-  0% {
-    background-position: 0% 0%;
-  }
-  100% {
-    background-position: 100% 100%;
-  }
+const mistDrift = keyframes`
+  0% { transform: translateX(-5%); opacity: 0.4; }
+  50% { transform: translateX(5%); opacity: 0.7; }
+  100% { transform: translateX(-5%); opacity: 0.4; }
 `;
 
 const SectionDivider = styled.div`
   position: relative;
-  height: 150px;
-  background: linear-gradient(
-    to right,
-    rgba(0, 255, 255, 0.05),
-    rgba(120, 81, 169, 0.05)
-  );
+  height: 100px;
   margin: 0;
   overflow: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 
+  /* Organic mist transition */
   &::before {
     content: "";
     position: absolute;
-    width: 100%;
-    height: 2px;
+    width: 120%;
+    height: 100%;
+    left: -10%;
+    background: radial-gradient(
+      ellipse at 30% 50%,
+      rgba(0, 212, 170, 0.06) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 70% 50%,
+      rgba(120, 81, 169, 0.04) 0%,
+      transparent 50%
+    );
+    animation: ${mistDrift} 12s ease-in-out infinite;
+  }
+
+  /* Subtle center line */
+  &::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 10%;
+    right: 10%;
+    height: 1px;
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(0, 255, 255, 0.8),
-      rgba(120, 81, 169, 0.8),
+      rgba(0, 212, 170, 0.3),
+      rgba(120, 81, 169, 0.2),
       transparent
     );
   }
 
-  &::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      135deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.05) 25%,
-      rgba(255, 255, 255, 0.1) 50%,
-      rgba(255, 255, 255, 0.05) 75%,
-      transparent 100%
-    );
-    background-size: 200% 200%;
-    animation: ${diagonalShimmer} 5s linear infinite;
-    pointer-events: none;
+  @media (max-width: 768px) {
+    height: 60px;
   }
 
-  @media (max-width: 768px) {
-    height: 120px;
+  @media (prefers-reduced-motion: reduce) {
+    &::before {
+      animation: none;
+    }
   }
 `;
 

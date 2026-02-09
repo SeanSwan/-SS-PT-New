@@ -79,6 +79,7 @@ const TestimonialSection = styled.section`
   padding: 6rem 2rem 8rem;
   background: linear-gradient(145deg, #080818, #1a1a3a);
   overflow: hidden;
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
   @media (max-width: 768px) {
     padding: 4rem 1rem 6rem;
   }
@@ -246,7 +247,7 @@ const ClientImage = styled.div<{ image: string }>`
   background-image: url(${props => props.image});
   background-size: cover;
   background-position: center;
-  border: 4px solid var(--neon-blue, #00ffff);
+  border: 4px solid var(--neon-blue, #00D4AA);
   margin-right: 0;
   margin-bottom: 1.5rem;
   box-shadow: 0 8px 20px rgba(0, 255, 255, 0.35);
@@ -274,11 +275,12 @@ const ClientName = styled.h3`
   overflow-wrap: break-word;
   word-wrap: break-word;
   hyphens: auto;
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
 `;
 
 const ClientDetails = styled.p`
   font-size: 1rem;
-  color: var(--neon-blue, #00ffff);
+  color: var(--neon-blue, #00D4AA);
   margin-bottom: 0.6rem;
   opacity: 0.9;
   overflow-wrap: break-word;
@@ -323,6 +325,7 @@ const TestimonialText = styled.div`
   text-align: left;
   overflow-wrap: break-word;
   word-wrap: break-word;
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
 
   @media (max-width: 900px) {
     text-align: center;
@@ -386,7 +389,7 @@ const RelatedProgramLink = styled.a`
   text-align: center;
   margin-top: 2rem;
   padding: 0.5rem 1rem;
-  color: var(--neon-blue, #00ffff);
+  color: var(--neon-blue, #00D4AA);
   text-decoration: underline;
   font-size: 0.9rem;
   opacity: 0.8;
@@ -409,7 +412,7 @@ const NavigationButton = styled(motion.button)`
   cursor: pointer;
   z-index: 2;
   font-size: 2rem;
-  color: #00ffff;
+  color: #00D4AA;
   &:hover { color: white; }
   &.prev { left: -60px; }
   &.next { right: -60px; }
@@ -431,7 +434,7 @@ const ProgressDot = styled.button<{ $active: boolean }>`
   height: 12px;
   border-radius: 50%;
   margin: 0 5px;
-  background-color: ${props => props.$active ? "#00ffff" : "#555"};
+  background-color: ${props => props.$active ? "#00D4AA" : "#555"};
   border: none;
   cursor: pointer;
 `;

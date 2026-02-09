@@ -39,6 +39,7 @@ const NewsletterSection = styled.section`
   max-width: 100vw;
   margin: 0;
   box-sizing: border-box;
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
 `;
 
 const BackgroundEffect = styled.div`
@@ -146,7 +147,7 @@ const InputIcon = styled.div`
   left: 1rem;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--neon-blue, #00ffff);
+  color: var(--neon-blue, #00D4AA);
   font-size: 1.2rem;
 `;
 
@@ -162,7 +163,7 @@ const Input = styled.input`
   
   &:focus {
     outline: none;
-    border-color: var(--neon-blue, #00ffff);
+    border-color: var(--neon-blue, #00D4AA);
     box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.2);
   }
   
@@ -210,6 +211,7 @@ const SuccessMessage = styled(motion.div)`
     align-items: center;
     justify-content: center;
     gap: 0.5rem;
+    font-family: 'Cormorant Garamond', 'Georgia', serif;
   }
   
   p {
@@ -292,7 +294,7 @@ const BenefitIcon = styled.div`
   align-items: center;
   justify-content: center;
   margin-bottom: 1rem;
-  color: var(--neon-blue, #00ffff);
+  color: var(--neon-blue, #00D4AA);
   font-size: 1.5rem;
   position: relative;
   z-index: 1;
@@ -304,6 +306,7 @@ const BenefitTitle = styled.h3`
   margin-bottom: 0.5rem;
   position: relative;
   z-index: 1;
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
 `;
 
 const BenefitText = styled.p`
