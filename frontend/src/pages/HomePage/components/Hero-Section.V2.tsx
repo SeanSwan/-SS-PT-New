@@ -181,7 +181,7 @@ const HeroSectionV2: React.FC = () => {
 
         <ButtonGroup initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.8, delay: 0.6 }}>
           <GlowButton text="View Packages in Store" theme="cosmic" size="large" rightIcon={<ArrowRight />} onClick={() => navigate('/shop')} animateOnRender />
-          <GlowButton text="Book Free Movement Screen" theme="primary" size="large" onClick={() => navigate('/book-screen')} animateOnRender />
+          <GlowButton text="Book Free Movement Screen" theme="primary" size="large" onClick={() => navigate('/contact')} animateOnRender />
         </ButtonGroup>
       </ContentWrapper>
     </HeroContainer>
