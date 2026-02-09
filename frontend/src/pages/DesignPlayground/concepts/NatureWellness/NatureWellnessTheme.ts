@@ -1,7 +1,10 @@
 import type { ConceptTheme } from '../shared/ConceptTypes';
 
 export const natureWellnessTheme: ConceptTheme = {
-  id: 1,
+  id: 'nature-wellness-v1',
+  version: 1,
+  category: 'nature-wellness',
+  categoryLabel: 'Nature Wellness',
   name: 'Nature Wellness',
   tagline: 'Train in harmony with nature',
   fonts: {

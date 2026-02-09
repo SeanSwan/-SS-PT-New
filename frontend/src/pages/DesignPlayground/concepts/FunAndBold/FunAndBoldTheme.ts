@@ -1,7 +1,10 @@
 import type { ConceptTheme } from '../shared/ConceptTypes';
 
 export const funAndBoldTheme: ConceptTheme = {
-  id: 5,
+  id: 'fun-and-bold-v1',
+  version: 1,
+  category: 'fun-and-bold',
+  categoryLabel: 'Fun & Bold',
   name: 'Fun & Bold',
   tagline: 'Fitness should feel like this',
   fonts: {

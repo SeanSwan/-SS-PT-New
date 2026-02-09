@@ -1,7 +1,10 @@
 import type { ConceptTheme } from '../shared/ConceptTypes';
 
 export const hybridNatureTechTheme: ConceptTheme = {
-  id: 4,
+  id: 'hybrid-nature-tech-v1',
+  version: 1,
+  category: 'hybrid-nature-tech',
+  categoryLabel: 'Hybrid Nature-Tech',
   name: 'Hybrid Nature-Tech',
   tagline: 'Where biology meets engineering',
   fonts: {
