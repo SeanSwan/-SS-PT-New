@@ -541,8 +541,8 @@ const MainRoutes: RouteObject = {
       )
     },
 
-    // Design Playground - Full-page concept viewer (admin-only, dev-only)
-    ...(import.meta.env.VITE_DESIGN_PLAYGROUND === 'true' ? [{
+    // Design Playground - Full-page concept viewer (admin-only)
+    {
       path: 'designs/:id',
       element: (
         <ProtectedRoute requiredRole="admin">
@@ -551,7 +551,7 @@ const MainRoutes: RouteObject = {
           </Suspense>
         </ProtectedRoute>
       )
-    }] : []),
+    },
     
     // Enhanced Admin Dashboard Routes
     {
