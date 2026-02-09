@@ -1,13 +1,15 @@
-# Cross-AI Review Prompt — Hero Section Redesign Plan
+# Cross-AI Review Prompt — Full Homepage Redesign Plan
 
-> **Purpose:** Have another AI review the hero redesign analysis and enhancement plan before implementation begins.
+> **Purpose:** Have another AI review the full homepage redesign analysis and enhancement plan before implementation begins.
 > **What to review:** `docs/ai-workflow/AI-HANDOFF/HERO-REDESIGN-ANALYSIS.md`
 
 ---
 
 ## Context for Reviewer
 
-You are reviewing a **production hero section enhancement plan** for SwanStudios (sswanstudios.com), a personal training SaaS platform. The plan proposes to upgrade the existing hero section with:
+You are reviewing a **full production homepage enhancement plan** for SwanStudios (sswanstudios.com), a personal training SaaS platform. The plan proposes to upgrade **all 10 homepage sections** with the Ethereal Wilderness theme:
+
+**Hero Section:**
 - Video background (tropical Waves.mp4)
 - Floating bioluminescent orbs (anime mystic forest aesthetic)
 - Mist/cloud atmospheric layers
@@ -15,6 +17,15 @@ You are reviewing a **production hero section enhancement plan** for SwanStudios
 - Logo upgrade from PNG to SVG
 - Typography upgrade (Cormorant Garamond + Source Sans 3)
 - 10-breakpoint responsive matrix
+
+**All Other Sections (Programs, Features, Creative, Trainers, Testimonials, Stats, Instagram, Newsletter):**
+- Cormorant Garamond + Source Sans 3 typography throughout
+- Ethereal Wilderness color palette replacing hardcoded colors
+- Glass-morphism surfaces, mist/orb atmospheric effects
+- Premium luxury copy upgrades for every section
+- V1ThemeBridge removal
+- Icon library consolidation (react-icons/fa → lucide-react)
+- Route path audit for broken links
 
 The owner wants the site to feel like **"digital nature that looks organically real"** — luxury, organic, premium polish for wealthy clients ages 16-80.
 
@@ -96,11 +107,11 @@ URL: https://sswanstudios.com
 - [ ] Will text contrast meet 4.5:1 over video backgrounds?
 - [ ] Are touch targets maintained at 44px minimum?
 - [ ] Is the video `muted` and `playsInline` (no autoplay audio)?
-- [ ] Does the poster fallback provide equivalent visual information?
+- [ ] Does the gradient-only mobile fallback (no `<video>` in DOM) provide equivalent visual information?
 
 ### C. Performance
 - [ ] Is 7.2MB video acceptable for desktop load? (vs current 0KB video)
-- [ ] Is the mobile strategy sound? (poster only, no video download)
+- [ ] Is the mobile strategy sound? (no `<video>` element rendered, conditional via `useMediaQuery`)
 - [ ] Will 10-16 orb CSS animations cause paint/composite issues?
 - [ ] Does switching from 795KB PNG to 4.4KB SVG improve LCP?
 - [ ] Are `will-change` properties used appropriately (not overused)?
@@ -112,11 +123,13 @@ URL: https://sswanstudios.com
 - [ ] Is the video hidden on mobile a good UX decision?
 
 ### E. Scope & Risk
-- [ ] Is the "1 file modified" claim realistic for this scope of changes?
+- [ ] Is the 10-file modification plan realistic and well-ordered?
 - [ ] Are there hidden dependencies (font loading, video preload, etc.)?
-- [ ] Will V1ThemeBridge sections still look cohesive after hero changes?
-- [ ] Is the performance budget realistic?
+- [ ] Will V1ThemeBridge removal cause visual regressions?
+- [ ] Is the section-by-section implementation order sound?
+- [ ] Is the performance budget realistic given 10 sections changing?
 - [ ] Any risks to monetization flows (checkout, booking)?
+- [ ] Are the proposed copy changes tonally consistent across all sections?
 
 ### F. Missing Items
 - [ ] Should there be a fallback for video load failure?
@@ -124,6 +137,10 @@ URL: https://sswanstudios.com
 - [ ] Is there a plan for the scroll indicator from V1?
 - [ ] Should the title copy change? ("Forge Your Body, Free Your Spirit" vs Ethereal Wilderness "Train in Harmony with Nature")
 - [ ] Dark/light toggle — should it be included or deferred?
+- [ ] Trainer photos are Logo.png placeholders — should real photos be required before launch?
+- [ ] .jsx → .tsx conversion for NewsletterSignup — any typing issues anticipated?
+- [ ] react-icons/fa → lucide-react migration — will this affect bundle size?
+- [ ] Feature linkTo routes (/services/*) — do these routes exist or need fallbacks?
 
 ---
 
