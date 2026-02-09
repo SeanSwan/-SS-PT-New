@@ -17,6 +17,7 @@ const categoryAbbr: Record<string, string> = {
   'hybrid-nature-tech': 'HNT',
   'fun-and-bold': 'FB',
   'art-deco-glamour': 'ADG',
+  'ethereal-wilderness': 'EW',
 };
 
 /* ─── Animations ─── */

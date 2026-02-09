@@ -315,7 +315,7 @@ const DesignPlayground: React.FC = () => {
 
       <Header>
         <Title>Design Playground</Title>
-        <Subtitle>11 Homepage Redesign Concepts — Compare Directions & Versions</Subtitle>
+        <Subtitle>12 Homepage Redesign Concepts — Compare Directions & Versions</Subtitle>
         <Badge>
           <Sparkles size={14} />
           Phase 1: Design Exploration
