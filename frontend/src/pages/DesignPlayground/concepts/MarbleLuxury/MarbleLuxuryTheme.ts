@@ -1,7 +1,10 @@
 import type { ConceptTheme } from '../shared/ConceptTypes';
 
 export const marbleLuxuryTheme: ConceptTheme = {
-  id: 3,
+  id: 'marble-luxury-v1',
+  version: 1,
+  category: 'marble-luxury',
+  categoryLabel: 'Marble Professional Luxury',
   name: 'Marble Professional Luxury',
   tagline: 'Where excellence meets elegance',
   fonts: {

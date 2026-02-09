@@ -1,7 +1,10 @@
 import type { ConceptTheme } from '../shared/ConceptTypes';
 
 export const cyberpunkPremiumTheme: ConceptTheme = {
-  id: 2,
+  id: 'cyberpunk-premium-v1',
+  version: 1,
+  category: 'cyberpunk-premium',
+  categoryLabel: 'Cyberpunk Premium',
   name: 'Cyberpunk Premium',
   tagline: 'Upgrade your operating system',
   fonts: {

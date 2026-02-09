@@ -1,29 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import { Palette, ExternalLink, Eye, Sparkles } from 'lucide-react';
+import { Eye, Sparkles, Filter } from 'lucide-react';
 import { Helmet } from 'react-helmet-async';
-import type { ConceptTheme } from './concepts/shared/ConceptTypes';
-import { natureWellnessTheme } from './concepts/NatureWellness/NatureWellnessTheme';
-import { cyberpunkPremiumTheme } from './concepts/CyberpunkPremium/CyberpunkPremiumTheme';
-import { marbleLuxuryTheme } from './concepts/MarbleLuxury/MarbleLuxuryTheme';
-import { hybridNatureTechTheme } from './concepts/HybridNatureTech/HybridNatureTechTheme';
-import { funAndBoldTheme } from './concepts/FunAndBold/FunAndBoldTheme';
-
-const allConcepts: ConceptTheme[] = [
-  natureWellnessTheme,
-  cyberpunkPremiumTheme,
-  marbleLuxuryTheme,
-  hybridNatureTechTheme,
-  funAndBoldTheme,
-];
-
+import { allConcepts, conceptCategories } from './concepts/shared/conceptRegistry';
 /* ─── Animations ─── */
-const shimmer = keyframes`
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
-`;
-
 const fadeInUp = keyframes`
   from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
@@ -43,7 +24,7 @@ const PageContainer = styled.div`
 
 const Header = styled.header`
   text-align: center;
-  margin-bottom: 48px;
+  margin-bottom: 32px;
   animation: ${fadeInUp} 0.6s ease-out;
 `;
 
@@ -81,12 +62,69 @@ const Badge = styled.span`
   margin-top: 12px;
 `;
 
-const ConceptGrid = styled.div`
+/* ─── Filter Tabs ─── */
+const FilterBar = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  max-width: 1400px;
+  margin: 0 auto 32px;
+  animation: ${fadeInUp} 0.6s ease-out 0.2s both;
+`;
+
+const FilterTab = styled.button<{ $active: boolean }>`
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid ${({ $active }) => ($active ? 'rgba(0, 255, 255, 0.5)' : 'rgba(255, 255, 255, 0.1)')};
+  background: ${({ $active }) => ($active ? 'rgba(0, 255, 255, 0.1)' : 'transparent')};
+  color: ${({ $active }) => ($active ? '#00ffff' : '#8888aa')};
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-height: 44px;
+
+  &:hover {
+    border-color: rgba(0, 255, 255, 0.4);
+    color: #00ffff;
+  }
+`;
+
+/* ─── Category Section ─── */
+const CategorySection = styled.section`
+  max-width: 1400px;
+  margin: 0 auto 48px;
+`;
+
+const CategoryHeader = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+`;
+
+const CategoryTitle = styled.h2`
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+`;
+
+const CategoryCount = styled.span`
+  font-size: 0.8rem;
+  color: #6666aa;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+`;
+
+const ConceptRow = styled.div`
   display: grid;
   grid-template-columns: 1fr;
   gap: 24px;
-  max-width: 1400px;
-  margin: 0 auto 64px;
 
   @media (min-width: 768px) {
     grid-template-columns: repeat(2, 1fr);
@@ -97,6 +135,7 @@ const ConceptGrid = styled.div`
   }
 `;
 
+/* ─── Concept Card ─── */
 const ConceptCard = styled.div<{ $delay: number }>`
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -141,6 +180,24 @@ const PreviewTagline = styled.div<{ $font: string; $color: string }>`
   text-align: center;
   margin-top: 4px;
   z-index: 1;
+`;
+
+const VersionPill = styled.span<{ $version: number }>`
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  z-index: 2;
+  background: ${({ $version }) =>
+    $version === 1 ? 'rgba(0, 255, 255, 0.2)' : 'rgba(120, 81, 169, 0.3)'};
+  color: ${({ $version }) => ($version === 1 ? '#00ffff' : '#b088f0')};
+  border: 1px solid ${({ $version }) =>
+    $version === 1 ? 'rgba(0, 255, 255, 0.4)' : 'rgba(120, 81, 169, 0.5)'};
+  backdrop-filter: blur(8px);
 `;
 
 const CardBody = styled.div`
@@ -233,111 +290,22 @@ const ViewButton = styled.button`
   }
 `;
 
-/* ─── Comparison Section ─── */
-const SectionTitle = styled.h2`
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #ffffff;
-  margin: 0 0 24px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-`;
-
-const ComparisonSection = styled.section`
-  max-width: 1400px;
-  margin: 0 auto 64px;
-  animation: ${fadeInUp} 0.6s ease-out 0.8s both;
-`;
-
-const ComparisonTable = styled.div`
-  overflow-x: auto;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 700px;
-  }
-
-  th {
-    background: rgba(0, 255, 255, 0.06);
-    padding: 12px 16px;
-    text-align: left;
-    font-size: 0.85rem;
-    color: #00ffff;
-    font-weight: 600;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  }
-
-  td {
-    padding: 10px 16px;
-    font-size: 0.85rem;
-    color: #aaaacc;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  }
-
-  tr:hover td {
-    background: rgba(255, 255, 255, 0.02);
-  }
-`;
-
-/* ─── Inspiration Section ─── */
-const InspirationSection = styled.section`
-  max-width: 1400px;
-  margin: 0 auto;
-  animation: ${fadeInUp} 0.6s ease-out 1s both;
-`;
-
-const InspirationGrid = styled.div`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-
-  @media (min-width: 768px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-`;
-
-const InspirationCard = styled.div`
-  padding: 20px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-`;
-
-const InspirationTitle = styled.h4`
-  font-size: 1rem;
-  font-weight: 600;
-  color: #ffffff;
-  margin: 0 0 8px;
-`;
-
-const InspirationText = styled.p`
-  font-size: 0.85rem;
-  color: #8888aa;
-  line-height: 1.5;
-  margin: 0;
-`;
-
-const InspirationLink = styled.a`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  color: #00ffff;
-  font-size: 0.8rem;
-  text-decoration: none;
-  margin-top: 8px;
-
-  &:hover {
-    text-decoration: underline;
-  }
-`;
-
 /* ─── Component ─── */
 const DesignPlayground: React.FC = () => {
   const navigate = useNavigate();
+  const [activeFilter, setActiveFilter] = useState<string>('all');
+
+  const filterOptions = [
+    { key: 'all', label: 'All' },
+    ...conceptCategories.map((c) => ({ key: c.category, label: c.label })),
+  ];
+
+  const filteredCategories =
+    activeFilter === 'all'
+      ? conceptCategories
+      : conceptCategories.filter((c) => c.category === activeFilter);
+
+  let cardDelay = 0;
 
   return (
     <PageContainer>
@@ -349,161 +317,84 @@ const DesignPlayground: React.FC = () => {
 
       <Header>
         <Title>Design Playground</Title>
-        <Subtitle>5 Homepage Redesign Concepts — Choose Your Direction</Subtitle>
+        <Subtitle>11 Homepage Redesign Concepts — Compare Directions & Versions</Subtitle>
         <Badge>
           <Sparkles size={14} />
           Phase 1: Design Exploration
         </Badge>
       </Header>
 
-      <ConceptGrid>
-        {allConcepts.map((concept, i) => (
-          <ConceptCard key={concept.id} $delay={i * 0.1}>
-            <PreviewArea $gradient={concept.gradients.hero}>
-              <PreviewTitle $font={concept.fonts.display} $color={concept.colors.text}>
-                SwanStudios
-              </PreviewTitle>
-              <PreviewTagline $font={concept.fonts.body} $color={concept.colors.textSecondary}>
-                {concept.tagline}
-              </PreviewTagline>
-            </PreviewArea>
-            <CardBody>
-              <ConceptName>
-                {concept.id}. {concept.name}
-              </ConceptName>
-              <ConceptTagline>"{concept.tagline}"</ConceptTagline>
-
-              <PaletteRow>
-                <ColorSwatch $color={concept.colors.primary} title="Primary" />
-                <ColorSwatch $color={concept.colors.secondary} title="Secondary" />
-                <ColorSwatch $color={concept.colors.accent} title="Accent" />
-                <ColorSwatch $color={concept.colors.background} title="Background" />
-                <ColorSwatch $color={concept.colors.text} title="Text" />
-              </PaletteRow>
-
-              <FontPair>
-                {concept.fonts.display} + {concept.fonts.body}
-              </FontPair>
-
-              <MomentQuote>{concept.memorableMoment}</MomentQuote>
-
-              <Rationale>{concept.rationale}</Rationale>
-
-              <ViewButton onClick={() => navigate(`/designs/${concept.id}`)}>
-                <Eye size={16} />
-                View Full Concept
-              </ViewButton>
-            </CardBody>
-          </ConceptCard>
+      <FilterBar>
+        <Filter size={16} style={{ color: '#6666aa', marginTop: 2 }} aria-hidden="true" />
+        {filterOptions.map((opt) => (
+          <FilterTab
+            key={opt.key}
+            $active={activeFilter === opt.key}
+            onClick={() => setActiveFilter(opt.key)}
+          >
+            {opt.label}
+          </FilterTab>
         ))}
-      </ConceptGrid>
+      </FilterBar>
 
-      <ComparisonSection>
-        <SectionTitle>
-          <Palette size={20} />
-          Quick Comparison
-        </SectionTitle>
-        <ComparisonTable>
-          <table>
-            <thead>
-              <tr>
-                <th>Attribute</th>
-                <th>Nature</th>
-                <th>Cyberpunk</th>
-                <th>Marble</th>
-                <th>Hybrid</th>
-                <th>Fun</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Mood</td>
-                <td>Serene</td>
-                <td>Intense</td>
-                <td>Refined</td>
-                <td>Organic-tech</td>
-                <td>Energetic</td>
-              </tr>
-              <tr>
-                <td>Background</td>
-                <td>Light</td>
-                <td>Dark</td>
-                <td>Light</td>
-                <td>Dark</td>
-                <td>Light</td>
-              </tr>
-              <tr>
-                <td>Fonts</td>
-                <td>Serif + Sans</td>
-                <td>Geometric</td>
-                <td>Serif + Sans</td>
-                <td>Geometric</td>
-                <td>Bold + Round</td>
-              </tr>
-              <tr>
-                <td>CTA Color</td>
-                <td>Green</td>
-                <td>Cyan</td>
-                <td>Black</td>
-                <td>Green-Blue</td>
-                <td>Orange</td>
-              </tr>
-              <tr>
-                <td>Target</td>
-                <td>Wellness</td>
-                <td>Tech-savvy</td>
-                <td>Premium</td>
-                <td>Data-driven</td>
-                <td>Younger</td>
-              </tr>
-              <tr>
-                <td>Risk Level</td>
-                <td>Low</td>
-                <td>Medium</td>
-                <td>Low</td>
-                <td>Medium</td>
-                <td>Medium</td>
-              </tr>
-            </tbody>
-          </table>
-        </ComparisonTable>
-      </ComparisonSection>
+      {filteredCategories.map((category) => {
+        return (
+          <CategorySection key={category.category}>
+            <CategoryHeader>
+              <CategoryTitle>{category.label}</CategoryTitle>
+              <CategoryCount>
+                {category.concepts.length} version{category.concepts.length > 1 ? 's' : ''}
+              </CategoryCount>
+            </CategoryHeader>
+            <ConceptRow>
+              {category.concepts.map((concept) => {
+                const delay = cardDelay * 0.1;
+                cardDelay++;
+                return (
+                  <ConceptCard key={concept.id} $delay={delay}>
+                    <PreviewArea $gradient={concept.gradients.hero}>
+                      <VersionPill $version={concept.version}>
+                        V{concept.version}
+                      </VersionPill>
+                      <PreviewTitle $font={concept.fonts.display} $color={concept.colors.text}>
+                        SwanStudios
+                      </PreviewTitle>
+                      <PreviewTagline $font={concept.fonts.body} $color={concept.colors.textSecondary}>
+                        {concept.tagline}
+                      </PreviewTagline>
+                    </PreviewArea>
+                    <CardBody>
+                      <ConceptName>{concept.name}</ConceptName>
+                      <ConceptTagline>"{concept.tagline}"</ConceptTagline>
 
-      <InspirationSection>
-        <SectionTitle>
-          <Sparkles size={20} />
-          Design Inspiration Sources
-        </SectionTitle>
-        <InspirationGrid>
-          <InspirationCard>
-            <InspirationTitle>Phive Clubs</InspirationTitle>
-            <InspirationText>
-              Awwwards SOTD winner. Portuguese fitness site using Inter Tight, bold orange/blue/green accents on dark base. Demonstrates that fitness sites can be award-winning.
-            </InspirationText>
-            <InspirationLink href="https://www.awwwards.com/sites/phive-clubs" target="_blank" rel="noopener noreferrer">
-              View on Awwwards <ExternalLink size={12} />
-            </InspirationLink>
-          </InspirationCard>
-          <InspirationCard>
-            <InspirationTitle>Dark Dashboard Trends 2026</InspirationTitle>
-            <InspirationText>
-              Soft gradients + bold typography. Neon accents against minimal type. Card-based layouts with glowing elements. Dark elegance with lavender or cyan accents.
-            </InspirationText>
-            <InspirationLink href="https://muz.li/blog/best-dashboard-design-examples-inspirations-for-2026/" target="_blank" rel="noopener noreferrer">
-              View on Muzli <ExternalLink size={12} />
-            </InspirationLink>
-          </InspirationCard>
-          <InspirationCard>
-            <InspirationTitle>2026 UI/UX Trends</InspirationTitle>
-            <InspirationText>
-              Glassmorphism returning. Digital textures — buttons that look like jelly or chrome. 3D depth-centric design. Dark mode with desaturated grays, not pure black.
-            </InspirationText>
-            <InspirationLink href="https://muz.li/inspiration/dark-mode/" target="_blank" rel="noopener noreferrer">
-              View Dark Mode Gallery <ExternalLink size={12} />
-            </InspirationLink>
-          </InspirationCard>
-        </InspirationGrid>
-      </InspirationSection>
+                      <PaletteRow>
+                        <ColorSwatch $color={concept.colors.primary} title="Primary" />
+                        <ColorSwatch $color={concept.colors.secondary} title="Secondary" />
+                        <ColorSwatch $color={concept.colors.accent} title="Accent" />
+                        <ColorSwatch $color={concept.colors.background} title="Background" />
+                        <ColorSwatch $color={concept.colors.text} title="Text" />
+                      </PaletteRow>
+
+                      <FontPair>
+                        {concept.fonts.display} + {concept.fonts.body}
+                      </FontPair>
+
+                      <MomentQuote>{concept.memorableMoment}</MomentQuote>
+
+                      <Rationale>{concept.rationale}</Rationale>
+
+                      <ViewButton onClick={() => navigate(`/designs/${concept.id}`)}>
+                        <Eye size={16} />
+                        View Full Concept
+                      </ViewButton>
+                    </CardBody>
+                  </ConceptCard>
+                );
+              })}
+            </ConceptRow>
+          </CategorySection>
+        );
+      })}
     </PageContainer>
   );
 };

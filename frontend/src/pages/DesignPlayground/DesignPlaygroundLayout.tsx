@@ -1,22 +1,22 @@
-import React, { lazy, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
-import { ArrowLeft, Circle } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  allConcepts,
+  conceptComponents,
+  conceptNames,
+  conceptCategories,
+} from './concepts/shared/conceptRegistry';
 
-const conceptNames: Record<number, string> = {
-  1: 'Nature Wellness',
-  2: 'Cyberpunk Premium',
-  3: 'Marble Luxury',
-  4: 'Hybrid Nature-Tech',
-  5: 'Fun & Bold',
-};
-
-const concepts: Record<number, React.LazyExoticComponent<React.ComponentType>> = {
-  1: lazy(() => import('./concepts/NatureWellness/NatureWellnessHomepage')),
-  2: lazy(() => import('./concepts/CyberpunkPremium/CyberpunkPremiumHomepage')),
-  3: lazy(() => import('./concepts/MarbleLuxury/MarbleLuxuryHomepage')),
-  4: lazy(() => import('./concepts/HybridNatureTech/HybridNatureTechHomepage')),
-  5: lazy(() => import('./concepts/FunAndBold/FunAndBoldHomepage')),
+/* ─── Category abbreviations for compact nav ─── */
+const categoryAbbr: Record<string, string> = {
+  'nature-wellness': 'NW',
+  'cyberpunk-premium': 'CP',
+  'marble-luxury': 'ML',
+  'hybrid-nature-tech': 'HNT',
+  'fun-and-bold': 'FB',
+  'art-deco-glamour': 'ADG',
 };
 
 /* ─── Animations ─── */
@@ -39,20 +39,21 @@ const FloatingNav = styled.nav`
   z-index: 9999;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 10px 20px;
-  background: rgba(10, 10, 26, 0.85);
+  gap: 8px;
+  padding: 8px 16px;
+  background: rgba(10, 10, 26, 0.9);
   backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 50px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  max-width: calc(100vw - 32px);
 `;
 
 const BackButton = styled.button`
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: 4px;
+  padding: 8px 12px;
   border: 1px solid rgba(0, 255, 255, 0.3);
   border-radius: 20px;
   background: transparent;
@@ -63,6 +64,7 @@ const BackButton = styled.button`
   transition: all 0.2s;
   white-space: nowrap;
   min-height: 44px;
+  flex-shrink: 0;
 
   &:hover {
     background: rgba(0, 255, 255, 0.1);
@@ -70,51 +72,118 @@ const BackButton = styled.button`
   }
 `;
 
-const DotContainer = styled.div`
-  display: flex;
-  gap: 8px;
-  align-items: center;
-`;
-
-const NavDot = styled.button<{ $active: boolean }>`
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px solid ${({ $active }) => ($active ? '#00ffff' : 'rgba(255, 255, 255, 0.3)')};
-  background: ${({ $active }) => ($active ? '#00ffff' : 'transparent')};
-  cursor: pointer;
-  padding: 0;
-  transition: all 0.2s;
-  min-width: 44px;
-  min-height: 44px;
-  display: flex;
+const ArrowButton = styled.button`
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  background: transparent;
+  color: #e0e0e0;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  min-width: 44px;
+  min-height: 44px;
 
   &:hover {
-    border-color: #00ffff;
-    background: rgba(0, 255, 255, 0.2);
+    background: rgba(0, 255, 255, 0.1);
+    border-color: rgba(0, 255, 255, 0.4);
+    color: #00ffff;
+  }
+
+  &:disabled {
+    opacity: 0.3;
+    cursor: default;
+    &:hover {
+      background: transparent;
+      border-color: rgba(255, 255, 255, 0.15);
+      color: #e0e0e0;
+    }
   }
 `;
 
-const DotInner = styled.div<{ $active: boolean }>`
+const CategoryGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 2px;
+
+  @media (max-width: 768px) {
+    display: none;
+  }
+`;
+
+const CategoryLabel = styled.span`
+  font-size: 0.65rem;
+  color: #6666aa;
+  letter-spacing: 1px;
+  margin-right: 2px;
+  min-width: 24px;
+  text-align: right;
+`;
+
+const NavDot = styled.button<{ $active: boolean; $color: string }>`
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: ${({ $active }) => ($active ? '#00ffff' : 'transparent')};
-  border: 2px solid ${({ $active }) => ($active ? '#00ffff' : 'rgba(255, 255, 255, 0.3)')};
+  border: 2px solid ${({ $active, $color }) => ($active ? $color : 'rgba(255, 255, 255, 0.2)')};
+  background: ${({ $active, $color }) => ($active ? $color : 'transparent')};
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s;
+  min-width: 28px;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+
+  &:hover {
+    border-color: ${({ $color }) => $color};
+    background: ${({ $color }) => $color}33;
+  }
+`;
+
+const DotInner = styled.div<{ $active: boolean; $color: string }>`
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: ${({ $active, $color }) => ($active ? $color : 'transparent')};
+  border: 2px solid ${({ $active, $color }) => ($active ? $color : 'rgba(255, 255, 255, 0.2)')};
   transition: all 0.2s;
 `;
 
-const ConceptLabel = styled.span`
+const Separator = styled.div`
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+`;
+
+const ConceptInfo = styled.span`
   color: #e0e0e0;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 500;
   white-space: nowrap;
 
-  @media (max-width: 600px) {
+  @media (max-width: 900px) {
     display: none;
   }
+`;
+
+const VersionBadge = styled.span<{ $version: number }>`
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-left: 6px;
+  background: ${({ $version }) =>
+    $version === 1 ? 'rgba(0, 255, 255, 0.15)' : 'rgba(120, 81, 169, 0.25)'};
+  color: ${({ $version }) => ($version === 1 ? '#00ffff' : '#b088f0')};
+  border: 1px solid ${({ $version }) =>
+    $version === 1 ? 'rgba(0, 255, 255, 0.3)' : 'rgba(120, 81, 169, 0.4)'};
 `;
 
 const LoadingContainer = styled.div`
@@ -159,13 +228,16 @@ const ErrorTitle = styled.h2`
 const DesignPlaygroundLayout: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const conceptId = Number(id);
+  const conceptId = id || '';
 
-  if (!conceptId || conceptId < 1 || conceptId > 5) {
+  const currentIndex = allConcepts.findIndex((c) => c.id === conceptId);
+  const currentConcept = currentIndex >= 0 ? allConcepts[currentIndex] : null;
+
+  if (!currentConcept || !conceptComponents[conceptId]) {
     return (
       <ErrorContainer>
         <ErrorTitle>Concept Not Found</ErrorTitle>
-        <p>Please select a concept between 1 and 5.</p>
+        <p>No concept matches "{conceptId}". Please select a valid concept.</p>
         <BackButton onClick={() => navigate('/dashboard/design-playground')}>
           <ArrowLeft size={14} /> Back to Playground
         </BackButton>
@@ -173,7 +245,9 @@ const DesignPlaygroundLayout: React.FC = () => {
     );
   }
 
-  const ConceptComponent = concepts[conceptId];
+  const ConceptComponent = conceptComponents[conceptId];
+  const prevId = currentIndex > 0 ? allConcepts[currentIndex - 1].id : null;
+  const nextId = currentIndex < allConcepts.length - 1 ? allConcepts[currentIndex + 1].id : null;
 
   return (
     <ViewerContainer>
@@ -181,16 +255,49 @@ const DesignPlaygroundLayout: React.FC = () => {
         <BackButton onClick={() => navigate('/dashboard/design-playground')}>
           <ArrowLeft size={14} /> Back
         </BackButton>
-        <DotContainer>
-          {[1, 2, 3, 4, 5].map((n) => (
-            <NavDot key={n} $active={conceptId === n} onClick={() => navigate(`/designs/${n}`)}>
-              <DotInner $active={conceptId === n} />
-            </NavDot>
-          ))}
-        </DotContainer>
-        <ConceptLabel>
-          {conceptId}. {conceptNames[conceptId]}
-        </ConceptLabel>
+
+        <Separator />
+
+        <ArrowButton
+          onClick={() => prevId && navigate(`/designs/${prevId}`)}
+          disabled={!prevId}
+          aria-label="Previous concept"
+        >
+          <ChevronLeft size={16} />
+        </ArrowButton>
+
+        {conceptCategories.map((cat) => (
+          <CategoryGroup key={cat.category}>
+            <CategoryLabel>{categoryAbbr[cat.category]}</CategoryLabel>
+            {cat.concepts.map((c) => (
+              <NavDot
+                key={c.id}
+                $active={conceptId === c.id}
+                $color={c.colors.primary}
+                onClick={() => navigate(`/designs/${c.id}`)}
+                aria-label={`${c.name} (v${c.version})`}
+                title={`${c.name} (v${c.version})`}
+              >
+                <DotInner $active={conceptId === c.id} $color={c.colors.primary} />
+              </NavDot>
+            ))}
+          </CategoryGroup>
+        ))}
+
+        <ArrowButton
+          onClick={() => nextId && navigate(`/designs/${nextId}`)}
+          disabled={!nextId}
+          aria-label="Next concept"
+        >
+          <ChevronRight size={16} />
+        </ArrowButton>
+
+        <Separator />
+
+        <ConceptInfo>
+          {currentConcept.name}
+          <VersionBadge $version={currentConcept.version}>v{currentConcept.version}</VersionBadge>
+        </ConceptInfo>
       </FloatingNav>
 
       <Suspense

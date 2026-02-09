@@ -22,7 +22,10 @@ export interface ConceptGradients {
 }
 
 export interface ConceptTheme {
-  id: number;
+  id: string;
+  version: number;
+  category: string;
+  categoryLabel: string;
   name: string;
   tagline: string;
   fonts: ConceptFonts;
