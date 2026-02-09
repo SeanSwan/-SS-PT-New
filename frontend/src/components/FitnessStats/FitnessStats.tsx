@@ -113,10 +113,11 @@ const glow = keyframes`
 // Styled components
 const StatsSection = styled.section`
   padding: 6rem 2rem;
-  background: linear-gradient(135deg, #09041e, #1a1a3c); // Adjusted to match theme 
+  background: linear-gradient(135deg, #09041e, #1a1a3c); // Adjusted to match theme
   position: relative;
   overflow: hidden;
-  
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+
   @media (max-width: 768px) {
     padding: 4rem 1rem;
   }
@@ -161,6 +162,7 @@ const SectionTitle = styled(motion.h2)`
   font-size: 2.5rem;
   margin-bottom: 1rem;
   color: white;
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
   background: linear-gradient(
     to right,
     #a9f8fb,
@@ -409,6 +411,7 @@ const ChartTitle = styled.h3`
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); // Added shadow for depth
   position: relative;
   z-index: 1;
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
   
   &:after {
     content: "";
@@ -549,7 +552,7 @@ const statItems: StatItem[] = [
     value: 847,
     unit: "successful journeys",
     icon: <FaUsers />,
-    color: "#00ffff", // Kept teal
+    color: "#00D4AA", // Kept teal
     animation: { duration: 3.0, delay: 0 } // Slowed down
   },
   {
@@ -621,7 +624,7 @@ const chartConfigs: ChartConfig[] = [
       { name: "Week 11", value: 17.5 },
       { name: "Week 12", value: 19.2 }
     ],
-    colors: ["#00ffff", "#7851a9"] // Kept teal/purple
+    colors: ["#00D4AA", "#7851a9"] // Kept teal/purple
   },
   {
     id: "strength-gains",
@@ -648,7 +651,7 @@ const chartConfigs: ChartConfig[] = [
       { name: "Overall Health", value: 10 },
       { name: "Rehabilitation", value: 5 }
     ],
-    colors: ["#00ffff", "#7851a9", "#46cdcf", "#00fd9f", "#c8b6ff"] // Updated colors to theme
+    colors: ["#00D4AA", "#7851a9", "#46cdcf", "#00fd9f", "#c8b6ff"] // Updated colors to theme
   }
 ];
 

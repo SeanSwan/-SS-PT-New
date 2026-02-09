@@ -1,19 +1,11 @@
 // frontend/src/components/FeaturesSection/FeaturesSection.V2.tsx
 
 /**
- * Features Section v2.0 - Homepage Refactor
+ * Features Section v2.0 — Ethereal Wilderness Theme
  *
- * **Major Changes from v1.0:**
- * 1. Wrapped each feature card in FrostedCard (mid glass)
- * 2. Added ParallaxSectionWrapper (medium speed for mid-ground)
- * 3. Simplified animations (respects prefers-reduced-motion)
- * 4. Updated icons to use lucide-react for consistency
- * 5. Improved theme token usage (no hardcoded colors)
- *
- * **Created for:**
- * Homepage Refactor v2.0 (Week 2) - Features Section
- *
- * @see docs/ai-workflow/HOMEPAGE-REFACTOR-FINAL-PLAN.md
+ * Cormorant Garamond headings, Source Sans 3 body,
+ * Ethereal Wilderness color tokens, FrostedCard glass,
+ * ParallaxSectionWrapper depth, prefers-reduced-motion
  */
 
 import React, { useRef } from "react";
@@ -37,6 +29,17 @@ import ParallaxSectionWrapper from "../ui-kit/parallax/ParallaxSectionWrapper";
 // Hooks
 import { useReducedMotion } from "../../hooks/useReducedMotion";
 
+// --- Design Tokens (from EtherealWildernessTheme) ---
+const T = {
+  bg: '#0a0a1a',
+  surface: 'rgba(15, 25, 35, 0.92)',
+  primary: '#00D4AA',
+  secondary: '#7851A9',
+  accent: '#48E8C8',
+  text: '#F0F8FF',
+  textSecondary: '#8AA8B8',
+} as const;
+
 // --- TypeScript Interfaces ---
 
 interface Feature {
@@ -53,9 +56,14 @@ interface Feature {
 
 const SectionContainer = styled.section`
   padding: 6rem 2rem;
-  background: linear-gradient(135deg, #09041e, #1a1a3c);
+  background: linear-gradient(
+    135deg,
+    ${T.bg} 0%,
+    rgba(15, 20, 35, 1) 100%
+  );
   position: relative;
   overflow: hidden;
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
 
   @media (max-width: 768px) {
     padding: 4rem 1rem;
@@ -68,8 +76,8 @@ const BackgroundGlow = styled.div`
   height: 80vh;
   background: radial-gradient(
     ellipse at center,
-    rgba(0, 255, 255, 0.1) 0%,
-    rgba(120, 81, 169, 0.05) 50%,
+    rgba(0, 212, 170, 0.08) 0%,
+    rgba(120, 81, 169, 0.04) 50%,
     transparent 70%
   );
   border-radius: 50%;
@@ -77,7 +85,7 @@ const BackgroundGlow = styled.div`
   left: 60%;
   filter: blur(80px);
   z-index: 0;
-  opacity: 0.4;
+  opacity: 0.5;
 `;
 
 const ContentWrapper = styled.div`
@@ -88,12 +96,15 @@ const ContentWrapper = styled.div`
 `;
 
 const SectionTitle = styled(motion.h2)`
-  font-size: 2.5rem;
-  font-weight: 300;
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
+  font-size: 2.8rem;
+  font-weight: 600;
+  font-style: italic;
   text-align: center;
   margin-bottom: 1rem;
-  color: ${({ theme }) => theme.text?.primary || "#E8F0FF"};
-  text-shadow: 0 0 20px ${({ theme }) => theme.colors?.primary || "#00FFFF"}30;
+  background: linear-gradient(135deg, ${T.text} 0%, ${T.primary} 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 
   @media (max-width: 768px) {
     font-size: 2rem;
@@ -102,12 +113,14 @@ const SectionTitle = styled(motion.h2)`
 
 const SectionSubtitle = styled(motion.p)`
   text-align: center;
-  font-size: 1.2rem;
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+  font-size: 1.15rem;
   margin-bottom: 3rem;
-  color: ${({ theme }) => theme.text?.secondary || "#c0c0c0"};
-  max-width: 800px;
+  color: ${T.textSecondary};
+  max-width: 700px;
   margin-left: auto;
   margin-right: auto;
+  line-height: 1.7;
 
   @media (max-width: 768px) {
     font-size: 1rem;
@@ -135,23 +148,20 @@ const FeaturesGrid = styled(motion.div)`
   }
 `;
 
-/**
- * v2.0 Feature Card Wrapper
- * Uses FrostedCard for consistent glassmorphism
- */
 const FeatureCardWrapper = styled.div`
   cursor: pointer;
   transition: transform 0.3s ease;
   height: 100%;
 
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
   &:hover {
-    transform: translateY(-10px);
+    transform: translateY(-8px);
   }
 `;
 
-/**
- * Card content (inside FrostedCard)
- */
 const FeatureCardContent = styled.div`
   padding: 2rem;
   display: flex;
@@ -162,34 +172,32 @@ const FeatureCardContent = styled.div`
   min-height: 280px;
 `;
 
-/**
- * Feature Icon Container
- */
 const IconContainer = styled.div<{ $color: string }>`
-  width: 80px;
-  height: 80px;
+  width: 72px;
+  height: 72px;
   margin-bottom: 1.5rem;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  background: ${({ $color }) => $color}20;
-  box-shadow: 0 0 20px ${({ $color }) => $color}40;
+  background: ${({ $color }) => $color}15;
+  box-shadow: 0 0 20px ${({ $color }) => $color}30;
 
   svg {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     color: ${({ $color }) => $color};
-    filter: drop-shadow(0 0 10px ${({ $color }) => $color}60);
+    filter: drop-shadow(0 0 8px ${({ $color }) => $color}50);
   }
 `;
 
 const FeatureTitle = styled.h3`
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
   font-size: 1.4rem;
   font-weight: 600;
   margin-bottom: 1rem;
-  color: ${({ theme }) => theme.text?.primary || "#E8F0FF"};
+  color: ${T.text};
   line-height: 1.3;
 
   @media (max-width: 768px) {
@@ -198,9 +206,10 @@ const FeatureTitle = styled.h3`
 `;
 
 const FeatureDescription = styled.p`
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
   font-size: 0.95rem;
-  line-height: 1.6;
-  color: ${({ theme }) => theme.text?.secondary || "rgba(255, 255, 255, 0.8)"};
+  line-height: 1.7;
+  color: ${T.textSecondary};
   flex-grow: 1;
 
   @media (max-width: 768px) {
@@ -208,7 +217,7 @@ const FeatureDescription = styled.p`
   }
 `;
 
-// --- Features Data (v2.0 with lucide-react icons) ---
+// --- Features Data (Ethereal Wilderness palette) ---
 
 const features: Feature[] = [
   {
@@ -217,7 +226,7 @@ const features: Feature[] = [
     description:
       "Experience personalized coaching from NASM-certified experts with over 25 years of experience. Our science-based approach is tailored to your unique goals and needs.",
     icon: <Dumbbell />,
-    iconColor: "#00FFFF", // Swan Cyan (primary)
+    iconColor: T.primary,
     theme: "primary",
     linkTo: "/services/personal-training",
   },
@@ -227,7 +236,7 @@ const features: Feature[] = [
     description:
       "Our comprehensive evaluation uses cutting-edge technology to analyze your movement patterns, strength imbalances, and metabolic efficiency to create your optimal program.",
     icon: <Activity />,
-    iconColor: "#7851A9", // Cosmic Purple (secondary)
+    iconColor: T.secondary,
     theme: "secondary",
     linkTo: "/services/assessment",
   },
@@ -237,7 +246,7 @@ const features: Feature[] = [
     description:
       "Transform your relationship with food through our evidence-based nutrition protocols, personalized macro planning, and sustainable eating strategies.",
     icon: <Salad />,
-    iconColor: "#00E8B0", // Emerald Green
+    iconColor: T.accent,
     theme: "emerald",
     linkTo: "/services/nutrition",
   },
@@ -247,7 +256,7 @@ const features: Feature[] = [
     description:
       "Optimize your body's repair process with cutting-edge recovery techniques including mobility training, myofascial release, and specialized regeneration protocols.",
     icon: <Sparkles />,
-    iconColor: "#7851A9", // Cosmic Purple (secondary)
+    iconColor: T.secondary,
     theme: "secondary",
     linkTo: "/services/recovery",
   },
@@ -257,7 +266,7 @@ const features: Feature[] = [
     description:
       "Get expert guidance anywhere with customized training programs, nutrition plans, and regular check-ins through our premium coaching platform.",
     icon: <Laptop />,
-    iconColor: "#00FFFF", // Swan Cyan (primary)
+    iconColor: T.primary,
     theme: "primary",
     linkTo: "/services/online-coaching",
   },
@@ -267,7 +276,7 @@ const features: Feature[] = [
     description:
       "Join our exclusive small-group sessions combining the energy of group workouts with personalized attention for maximum results at a more accessible price point.",
     icon: <Users />,
-    iconColor: "#7851A9", // Cosmic Purple (secondary)
+    iconColor: T.secondary,
     theme: "secondary",
     linkTo: "/services/group-training",
   },
@@ -277,7 +286,7 @@ const features: Feature[] = [
     description:
       "Elevate your athletic performance with specialized programs designed for your sport, focusing on the specific skills, movements, and energy systems you need to excel.",
     icon: <Trophy />,
-    iconColor: "#00E8B0", // Emerald Green
+    iconColor: T.accent,
     theme: "emerald",
     linkTo: "/services/sports-training",
   },
@@ -287,7 +296,7 @@ const features: Feature[] = [
     description:
       "Boost team productivity and morale with our comprehensive corporate wellness programs including on-site fitness sessions, workshops, and wellness challenges.",
     icon: <Briefcase />,
-    iconColor: "#7851A9", // Cosmic Purple (secondary)
+    iconColor: T.secondary,
     theme: "secondary",
     linkTo: "/services/corporate-wellness",
   },
@@ -349,7 +358,7 @@ const FeaturesSectionV2: React.FC = () => {
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
           >
-            Our Premium Services
+            Premium Services
           </SectionTitle>
 
           <SectionSubtitle
@@ -358,7 +367,7 @@ const FeaturesSectionV2: React.FC = () => {
             animate={isInView ? "visible" : "hidden"}
           >
             Comprehensive fitness solutions designed to transform your body,
-            elevate your performance, and optimize your health
+            elevate your performance, and optimize your well-being
           </SectionSubtitle>
 
           {/* Features Grid */}
@@ -371,7 +380,6 @@ const FeaturesSectionV2: React.FC = () => {
               <motion.div key={feature.id} variants={itemVariants}>
                 <FeatureCardWrapper
                   onClick={() => {
-                    // Navigate to feature page
                     window.location.href = feature.linkTo;
                   }}
                   role="button"

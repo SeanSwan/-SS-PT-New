@@ -12,7 +12,6 @@ import {
   Flame,
   Calendar
 } from "lucide-react";
-import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
 // Assuming GlowButton path is correct relative to this file
 import GlowButton from "../../../components/ui/buttons/GlowButton";
 import SectionTitle from "../../../components/ui/SectionTitle"; // Assuming this path is correct
@@ -95,6 +94,7 @@ const SectionContainer = styled.section`
   max-width: 100vw; // Ensure it doesn't exceed viewport width
   margin: 0;
   box-sizing: border-box;
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
 
   @media (max-width: 768px) {
     padding: 4rem 1rem;
@@ -286,6 +286,7 @@ const TrainerName = styled.h3`
   color: ${({ theme }) => theme.text.primary};
   font-weight: 600;
   transition: color 0.3s ease;
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
 
   @media (max-width: 480px) {
     font-size: 1.5rem;
@@ -298,6 +299,7 @@ const TrainerTitle = styled.h4`
   color: ${({ theme }) => theme.colors.primary};
   font-weight: 400;
   transition: color 0.3s ease;
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
 
   @media (max-width: 480px) {
     font-size: 1rem;
@@ -769,8 +771,8 @@ const TrainerProfilesSection: React.FC = () => {
             </TrainerCard>
           </AnimatePresence>
 
-          <NavigationButton className="prev" onClick={() => navigate(-1)} variants={buttonVariants} initial="visible" whileHover="hover" whileTap="tap" aria-label="Previous trainer"> <FaArrowLeft /> </NavigationButton>
-          <NavigationButton className="next" onClick={() => navigate(1)} variants={buttonVariants} initial="visible" whileHover="hover" whileTap="tap" aria-label="Next trainer"> <FaArrowRight /> </NavigationButton>
+          <NavigationButton className="prev" onClick={() => navigate(-1)} variants={buttonVariants} initial="visible" whileHover="hover" whileTap="tap" aria-label="Previous trainer"> <ArrowLeft /> </NavigationButton>
+          <NavigationButton className="next" onClick={() => navigate(1)} variants={buttonVariants} initial="visible" whileHover="hover" whileTap="tap" aria-label="Next trainer"> <ArrowRight /> </NavigationButton>
         </TrainerCarousel>
 
         <DotsContainer>

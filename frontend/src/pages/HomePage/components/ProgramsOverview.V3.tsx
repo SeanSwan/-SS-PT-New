@@ -1,9 +1,34 @@
 import React, { useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 import { motion, useInView } from "framer-motion";
 import { Check, ArrowRight } from "lucide-react";
 import GlowButton from "../../../components/ui/buttons/GlowButton";
+
+// ═══════════════════════════════════════════════════
+// Programs Overview V3 — Ethereal Wilderness Theme
+// ═══════════════════════════════════════════════════
+// Cormorant Garamond headings, Source Sans 3 body,
+// Ethereal Wilderness tokens, glass-morphism cards
+// ═══════════════════════════════════════════════════
+
+// --- Design Tokens (from EtherealWildernessTheme) ---
+const T = {
+  bg: '#0a0a1a',
+  surface: 'rgba(15, 25, 35, 0.92)',
+  primary: '#00D4AA',
+  secondary: '#7851A9',
+  accent: '#48E8C8',
+  text: '#F0F8FF',
+  textSecondary: '#8AA8B8',
+} as const;
+
+const noMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
 
 // === STYLED COMPONENTS ===
 
@@ -11,7 +36,8 @@ const Section = styled.section`
   padding: 6rem 2rem;
   position: relative;
   overflow: hidden;
-  
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+
   @media (max-width: 768px) {
     padding: 4rem 1rem;
   }
@@ -27,25 +53,28 @@ const Container = styled.div`
 const Header = styled.div`
   text-align: center;
   margin-bottom: 4rem;
-  
+
   h2 {
+    font-family: 'Cormorant Garamond', 'Georgia', serif;
     font-size: 3rem;
-    font-weight: 800;
+    font-weight: 600;
+    font-style: italic;
     margin-bottom: 1rem;
-    background: linear-gradient(135deg, #fff 0%, #a5f3fc 100%);
+    background: linear-gradient(135deg, ${T.text} 0%, ${T.primary} 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    
+
     @media (max-width: 768px) {
       font-size: 2.2rem;
     }
   }
-  
+
   p {
-    color: rgba(255, 255, 255, 0.7);
+    color: ${T.textSecondary};
     font-size: 1.1rem;
     max-width: 600px;
     margin: 0 auto;
+    line-height: 1.7;
   }
 `;
 
@@ -53,11 +82,11 @@ const Grid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 2rem;
-  
+
   @media (max-width: 1024px) {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     max-width: 450px;
@@ -68,18 +97,21 @@ const Grid = styled.div`
 const Card = styled(motion.div)`
   position: relative;
   height: 600px;
-  border-radius: 24px;
+  border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: #0a0a15;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  border: 1px solid rgba(0, 212, 170, 0.12);
+  background: ${T.surface};
+  backdrop-filter: blur(12px);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
   display: flex;
   flex-direction: column;
+  ${noMotion}
 
   &:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 20px 40px -10px rgba(0, 255, 255, 0.15);
-    border-color: rgba(0, 255, 255, 0.3);
+    transform: translateY(-8px);
+    box-shadow: 0 20px 50px -10px rgba(0, 212, 170, 0.15),
+                0 0 30px rgba(0, 212, 170, 0.05);
+    border-color: rgba(0, 212, 170, 0.3);
   }
 `;
 
@@ -90,7 +122,7 @@ const VideoBackground = styled.div`
   width: 100%;
   height: 100%;
   z-index: 0;
-  
+
   &::after {
     content: '';
     position: absolute;
@@ -100,9 +132,9 @@ const VideoBackground = styled.div`
     bottom: 0;
     background: linear-gradient(
       to bottom,
-      rgba(10, 10, 20, 0.3) 0%,
-      rgba(10, 10, 20, 0.8) 50%,
-      rgba(10, 10, 20, 0.98) 100%
+      rgba(10, 10, 26, 0.3) 0%,
+      rgba(10, 10, 26, 0.8) 50%,
+      rgba(10, 10, 26, 0.98) 100%
     );
     z-index: 1;
   }
@@ -113,7 +145,7 @@ const VideoBackground = styled.div`
     object-fit: cover;
     opacity: 0.6;
   }
-  
+
   img {
     width: 100%;
     height: 100%;
@@ -139,12 +171,13 @@ const Badge = styled.div`
   position: absolute;
   top: 1.5rem;
   right: 1.5rem;
-  background: rgba(0, 255, 255, 0.1);
+  background: rgba(0, 212, 170, 0.1);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(0, 255, 255, 0.2);
+  border: 1px solid rgba(0, 212, 170, 0.25);
   padding: 0.5rem 1rem;
   border-radius: 50px;
-  color: #00ffff;
+  color: ${T.primary};
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
   font-size: 0.8rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -153,24 +186,27 @@ const Badge = styled.div`
 `;
 
 const PlanName = styled.h3`
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
   font-size: 2rem;
-  font-weight: 700;
-  color: white;
+  font-weight: 600;
+  color: ${T.text};
   margin-bottom: 0.5rem;
 `;
 
 const Tagline = styled.div`
-  font-size: 1.1rem;
-  color: #00ffff;
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+  font-size: 1rem;
+  color: ${T.primary};
   margin-bottom: 0.75rem;
   font-weight: 500;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
 `;
 
 const WhoFor = styled.div`
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
   font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: ${T.textSecondary};
   margin-bottom: 1.5rem;
   font-style: italic;
 `;
@@ -188,12 +224,13 @@ const OutcomeItem = styled.li`
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(240, 248, 255, 0.9);
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
   font-size: 0.95rem;
   line-height: 1.4;
 
   svg {
-    color: #00ffff;
+    color: ${T.primary};
     flex-shrink: 0;
     margin-top: 2px;
   }
@@ -314,11 +351,11 @@ const ProgramsOverviewV3: React.FC = () => {
     <Section id="programs">
       <Container>
         <Header>
-          <h2>Choose Your Path</h2>
+          <h2>Discover Your Path</h2>
           <p>
-            Every journey starts with understanding your body. Our NASM-certified
-            programs identify your movement patterns and build a strategy that
-            delivers real results. View pricing and packages in our store.
+            Every transformation begins with understanding your body. Our NASM-certified
+            programs assess your movement patterns and craft a strategy that
+            delivers lasting results. Explore packages and pricing in our store.
           </p>
         </Header>
 
@@ -326,8 +363,8 @@ const ProgramsOverviewV3: React.FC = () => {
           {/* CARD 1: Express Precision */}
           <ProgramCard
             title="Express Precision"
-            tagline="Built for Busy Schedules"
-            whoFor="Best for: Time-stressed professionals needing maximum efficiency"
+            tagline="Refined for Busy Schedules"
+            whoFor="Ideal for: Professionals who demand maximum efficiency"
             outcomes={[
               "30-minute high-intensity precision sessions",
               "Metabolic conditioning for rapid results",
@@ -342,8 +379,8 @@ const ProgramsOverviewV3: React.FC = () => {
           {/* CARD 2: Signature Performance */}
           <ProgramCard
             title="Signature Performance"
-            tagline="Premium Coaching Experience"
-            whoFor="Best for: Serious athletes and goal-driven clients"
+            tagline="The Premium Coaching Experience"
+            whoFor="Ideal for: Serious athletes and goal-driven individuals"
             outcomes={[
               "60-minute expert biomechanical coaching",
               "Full NASM movement analysis (OHSA protocol)",
@@ -360,7 +397,7 @@ const ProgramsOverviewV3: React.FC = () => {
           <ProgramCard
             title="Transformation Programs"
             tagline="Commit to Lasting Change"
-            whoFor="Best for: Clients ready to make a real lifestyle investment"
+            whoFor="Ideal for: Clients ready for a meaningful lifestyle investment"
             outcomes={[
               "Multi-session commitment packages available",
               "Comprehensive NASM assessment included",
@@ -376,7 +413,7 @@ const ProgramsOverviewV3: React.FC = () => {
 
         <CTAFooter>
           <GlowButton
-            text="View All Packages & Pricing in Store"
+            text="View All Packages & Pricing"
             onClick={() => navigate('/shop')}
             size="large"
             theme="cosmic"

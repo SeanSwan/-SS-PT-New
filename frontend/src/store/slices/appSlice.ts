@@ -15,13 +15,13 @@ export interface AppState {
 
 const initialState: AppState = {
   isInitialized: false,
-  version: process.env.REACT_APP_VERSION || '1.0.0',
-  environment: (process.env.NODE_ENV as 'development' | 'staging' | 'production') || 'development',
+  version: (import.meta.env.VITE_APP_VERSION as string) || '1.0.0',
+  environment: (import.meta.env.MODE as 'development' | 'staging' | 'production') || 'development',
   features: {
     // Feature flags
-    enableNewDashboard: process.env.REACT_APP_ENABLE_NEW_DASHBOARD === 'true',
-    enableAdvancedAnalytics: process.env.REACT_APP_ENABLE_ADVANCED_ANALYTICS === 'true',
-    enableMockMode: process.env.NODE_ENV === 'development'
+    enableNewDashboard: import.meta.env.VITE_ENABLE_NEW_DASHBOARD === 'true',
+    enableAdvancedAnalytics: import.meta.env.VITE_ENABLE_ADVANCED_ANALYTICS === 'true',
+    enableMockMode: import.meta.env.DEV
   }
 };
 

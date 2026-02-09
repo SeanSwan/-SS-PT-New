@@ -36,7 +36,8 @@ const SectionContainer = styled.section`
   background: linear-gradient(to bottom, ${({ theme }) => theme.background.primary}, ${({ theme }) => theme.background.secondary});
   position: relative;
   overflow: hidden;
-  
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+
   @media (max-width: 768px) {
     padding: 4rem 1rem;
   }
@@ -234,6 +235,7 @@ const CardTitle = styled.h3`
   position: relative;
   z-index: 2;
   transition: all 0.3s ease;
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
   
   &.heart-card-title {
     background: ${({ theme }) => theme.gradients.accent};
