@@ -89,6 +89,16 @@ Upgrade the UX/UI and frontend architecture to enterprise quality - pixel-perfec
 7. **MEDIUM - Style Selection**: Cohesive design language, appropriate for audience and industry
 8. **LOW - Charts & Data**: Clear data visualization, accessible charts, responsive chart sizing
 
+### Typography Readability Policy:
+| Text Role | Minimum Size (mobile) | Examples |
+|-----------|----------------------|----------|
+| **Actionable text** | `1rem` (16px) | Form labels, nav items, error messages, buttons, body copy |
+| **Non-actionable metadata** | `0.875rem` (14px) | Section labels, footer headings, stat captions, taglines |
+| **Legal / tertiary text** | `0.8125rem` (13px) | Copyright notices, "est. 2018" labels, fine print |
+| **Hard floor** | `0.75rem` (12px) | Nothing below this — ever |
+
+> **Rationale**: WCAG recommends 16px for body text, not for every label/caption. Enforcing 1rem on all text flattens visual hierarchy. The tiers above preserve intentional typographic scale while remaining accessible.
+
 ### Pre-Delivery Checklist:
 - [ ] All interactive elements keyboard accessible
 - [ ] Touch targets >= 44px
@@ -104,6 +114,7 @@ Upgrade the UX/UI and frontend architecture to enterprise quality - pixel-perfec
 - [ ] iOS safe-area-inset respected (notch, home indicator)
 - [ ] Virtual keyboard / IME does not obscure focused inputs
 - [ ] Dynamic viewport units (dvh/svh) used where appropriate for mobile
+- [ ] Typography sizes follow readability policy (see above)
 
 ---
 
