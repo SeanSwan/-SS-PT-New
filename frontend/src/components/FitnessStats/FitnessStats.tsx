@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import styled, { keyframes } from "styled-components";
 import { motion, useInView, Variants } from "framer-motion";
-import { 
-  FaTrophy, 
-  FaUsers, 
-  FaWeight, 
-  FaFireAlt, 
-  FaHeartbeat, 
-  FaClock 
+import {
+  FaUsers,
+  FaWeight,
+  FaFireAlt,
+  FaHeartbeat,
+  FaClock,
+  FaSwimmer
 } from "react-icons/fa";
 
 import {
@@ -86,40 +86,28 @@ const diagonalGlimmer = keyframes`
   }
 `;
 
-const pulse = keyframes`
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.03);
-  }
-  100% {
-    transform: scale(1);
-  }
-`;
-
 const glow = keyframes`
   0% {
-    box-shadow: 0 0 5px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 5px rgba(0, 212, 170, 0.3);
   }
   50% {
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 20px rgba(0, 212, 170, 0.5);
   }
   100% {
-    box-shadow: 0 0 5px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 0 5px rgba(0, 212, 170, 0.3);
   }
 `;
 
 // Styled components
 const StatsSection = styled.section`
   padding: 6rem 2rem;
-  background: linear-gradient(135deg, #09041e, #1a1a3c); // Adjusted to match theme
+  background: linear-gradient(135deg, #0a0a1a, rgba(15, 20, 35, 1));
   position: relative;
   overflow: hidden;
   font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
 
   @media (max-width: 768px) {
-    padding: 4rem 1rem;
+    padding: 3rem 1rem;
   }
 `;
 
@@ -129,7 +117,7 @@ const BackgroundGlow = styled.div`
   height: 80vh;
   background: radial-gradient(
     ellipse at center,
-    rgba(0, 255, 255, 0.1) 0%,
+    rgba(0, 212, 170, 0.08) 0%,
     rgba(120, 81, 169, 0.05) 50%,
     transparent 70%
   );
@@ -163,59 +151,57 @@ const SectionTitle = styled(motion.h2)`
   margin-bottom: 1rem;
   color: white;
   font-family: 'Cormorant Garamond', 'Georgia', serif;
-  background: linear-gradient(
-    to right,
-    #a9f8fb,
-    #46cdcf,
-    #7b2cbf,
-    #c8b6ff,
-    #a9f8fb
-  );
-  background-size: 200% auto;
+  font-style: italic;
+  background: linear-gradient(135deg, #F0F8FF 0%, #00D4AA 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  color: transparent;
-  animation: ${diagonalGlimmer} 8s ease-in-out infinite;
   position: relative;
-  
+
   &::after {
     content: "";
     position: absolute;
     bottom: -10px;
     left: 50%;
     transform: translateX(-50%);
-    width: 150px;
-    height: 3px;
-    background: linear-gradient(90deg, #46cdcf, #7851a9);
-    border-radius: 3px;
+    width: 80px;
+    height: 2px;
+    background: linear-gradient(90deg, #00D4AA, #7851A9);
+    border-radius: 2px;
   }
-  
+
   @media (max-width: 768px) {
-    font-size: 2.2rem;
+    font-size: clamp(1.6rem, 5vw, 2.2rem);
   }
 `;
 
 const SectionSubtitle = styled(motion.p)`
   text-align: center;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   margin-bottom: 1rem;
-  color: #c0c0c0;
-  max-width: 800px;
-  
+  color: #8AA8B8;
+  max-width: 600px;
+  line-height: 1.7;
+
   @media (max-width: 768px) {
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
 `;
 
 const StatsGrid = styled(motion.div)`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
   margin-bottom: 3rem;
-  
-  @media (min-width: 1024px) {
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 768px) {
     grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
   }
 `;
 
@@ -238,10 +224,14 @@ const StatCard = styled(motion.div)`
     0 -2px 5px rgba(0, 0, 0, 0.3) inset;
   
   backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: transform 0.5s ease, box-shadow 0.5s ease;
-  
-  /* Natural diagonal glimmer effect (top-right to bottom-left) */
+  border: 1px solid rgba(0, 212, 170, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
+  /* Natural diagonal glimmer effect */
   &:after {
     content: "";
     position: absolute;
@@ -262,19 +252,24 @@ const StatCard = styled(motion.div)`
     pointer-events: none;
     border-radius: 15px;
     opacity: 0.6;
+
+    @media (prefers-reduced-motion: reduce) {
+      animation: none;
+    }
   }
-  
-  &:hover {
-    transform: translateY(-10px) scale(1.02);
-    box-shadow: 
-      0 15px 35px rgba(0, 0, 0, 0.5),
-      0 2px 10px rgba(255, 255, 255, 0.1) inset,
-      0 -2px 10px rgba(0, 0, 0, 0.4) inset,
-      0 0 20px rgba(70, 205, 207, 0.2);
-    animation: ${pulse} 4s ease infinite;
-    
-    &:after {
-      opacity: 1;
+
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-6px);
+      box-shadow:
+        0 15px 35px rgba(0, 0, 0, 0.5),
+        0 2px 10px rgba(255, 255, 255, 0.1) inset,
+        0 0 20px rgba(0, 212, 170, 0.15);
+      border-color: rgba(0, 212, 170, 0.2);
+
+      &:after {
+        opacity: 1;
+      }
     }
   }
 `;
@@ -323,9 +318,10 @@ const StatValue = styled(motion.div)`
 
 const StatTitle = styled.div`
   font-size: 1rem;
-  color: #c0c0c0;
+  color: #8AA8B8;
   margin-bottom: 0.5rem;
   font-weight: 500;
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
 `;
 
 const StatUnit = styled.div`
@@ -337,12 +333,14 @@ const StatUnit = styled.div`
 // Enhanced 3D ChartCard with improved diagonal glimmer
 const ChartsContainer = styled(motion.div)`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  margin-top: 4rem;
-  
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin-top: 3rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 4rem;
   }
 `;
 
@@ -361,45 +359,28 @@ const ChartCard = styled(motion.div)`
     0 -2px 5px rgba(0, 0, 0, 0.3) inset;
     
   backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 212, 170, 0.08);
   display: flex;
   flex-direction: column;
-  transition: transform 0.5s ease, box-shadow 0.5s ease;
-  
-  /* Single subtle diagonal glimmer effect (top-right to bottom-left) */
-  &:after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      135deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.05) 25%,
-      rgba(255, 255, 255, 0.1) 50%,
-      rgba(255, 255, 255, 0.05) 75%,
-      transparent 100%
-    );
-    background-size: 200% 200%;
-    animation: ${diagonalGlimmer} 5s linear infinite;
-    pointer-events: none;
-    border-radius: 15px;
-    opacity: 0;
-    z-index: 0;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
   }
-  
-  &:hover {
-    transform: translateY(-10px) scale(1.02);
-    box-shadow: 
-      0 15px 35px rgba(0, 0, 0, 0.5),
-      0 2px 10px rgba(255, 255, 255, 0.1) inset,
-      0 -2px 10px rgba(0, 0, 0, 0.4) inset,
-      0 0 20px rgba(70, 205, 207, 0.2);
-      
-    &:after {
-      opacity: 1;
+
+  @media (max-width: 768px) {
+    height: 300px;
+    padding: 1rem;
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-6px);
+      box-shadow:
+        0 15px 35px rgba(0, 0, 0, 0.5),
+        0 2px 10px rgba(255, 255, 255, 0.1) inset,
+        0 0 20px rgba(0, 212, 170, 0.15);
+      border-color: rgba(0, 212, 170, 0.2);
     }
   }
 `;
@@ -426,10 +407,11 @@ const ChartTitle = styled.h3`
 
 const ChartDescription = styled.p`
   font-size: 0.9rem;
-  color: #c0c0c0;
+  color: #8AA8B8;
   margin-bottom: 1rem;
   position: relative;
   z-index: 1;
+  line-height: 1.5;
 `;
 
 const ChartContent = styled.div`
@@ -456,7 +438,7 @@ const TooltipLabel = styled.p`
 `;
 
 const TooltipValue = styled.p`
-  color: #46cdcf; // Updated to theme color
+  color: #00D4AA;
 `;
 
 // Helper function to convert hex to rgb
@@ -594,12 +576,12 @@ const statItems: StatItem[] = [
   },
   {
     id: 6,
-    title: "Fitness Competitions Won",
-    value: 214,
-    unit: "championships",
-    icon: <FaTrophy />,
-    color: "#c8b6ff", // Changed from gold to lavender
-    animation: { duration: 3.0, delay: 1 } // Slowed down
+    title: "New Swimmers Taught",
+    value: 312,
+    unit: "confident in the water",
+    icon: <FaSwimmer />,
+    color: "#48E8C8",
+    animation: { duration: 3.0, delay: 1 }
   }
 ];
 
@@ -661,7 +643,7 @@ const FitnessStats: React.FC = () => {
   );
   
   const sectionRef = useRef<HTMLDivElement>(null);
-  const isInView = useInView(sectionRef, { once: false, amount: 0.2 });
+  const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
   
   // Counter animation effect
   useEffect(() => {
