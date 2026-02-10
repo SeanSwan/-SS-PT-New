@@ -1,10 +1,10 @@
-// ═══════════════════════════════════════════════════
+// ==========================================================
 // FitnessStats V2 - "Our Results in Numbers"
-// ═══════════════════════════════════════════════════
+// ==========================================================
 // Glass-morphism cards matching ProgramsOverview.V3
 // Smoke video background (desktop only)
 // Cormorant Garamond + Source Sans 3 typography
-// ═══════════════════════════════════════════════════
+// ==========================================================
 
 import React, { useState, useEffect, useRef } from "react";
 import styled, { css } from "styled-components";
@@ -493,7 +493,7 @@ const statItems: StatItem[] = [
     value: 847,
     unit: "successful journeys",
     icon: <FaUsers />,
-    color: "#00D4AA",
+    color: T.primary,
     animation: { duration: 3.0, delay: 0 },
   },
   {
@@ -502,7 +502,7 @@ const statItems: StatItem[] = [
     value: 12450,
     unit: "pounds collectively",
     icon: <FaWeight />,
-    color: "#00D4AA",
+    color: T.primary,
     animation: { duration: 3.0, delay: 0.2 },
   },
   {
@@ -511,7 +511,7 @@ const statItems: StatItem[] = [
     value: 42810,
     unit: "hours of coaching",
     icon: <FaClock />,
-    color: "#7851A9",
+    color: T.secondary,
     animation: { duration: 3.0, delay: 0.4 },
   },
   {
@@ -521,7 +521,7 @@ const statItems: StatItem[] = [
     unit: "million total",
     prefix: "",
     icon: <FaFireAlt />,
-    color: "#7851A9",
+    color: T.secondary,
     animation: { duration: 3.0, delay: 0.6 },
   },
   {
@@ -530,7 +530,7 @@ const statItems: StatItem[] = [
     value: 6.3,
     unit: "points",
     icon: <FaHeartbeat />,
-    color: "#48E8C8",
+    color: T.accent,
     animation: { duration: 3.0, delay: 0.8 },
   },
   {
@@ -539,7 +539,7 @@ const statItems: StatItem[] = [
     value: 312,
     unit: "confident in the water",
     icon: <FaSwimmer />,
-    color: "#48E8C8",
+    color: T.accent,
     animation: { duration: 3.0, delay: 1 },
   },
 ];
