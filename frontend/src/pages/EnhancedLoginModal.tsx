@@ -533,8 +533,11 @@ const EnhancedLoginModal: React.FC = () => {
             navigate("/client-dashboard");
           }
         }, 200);
-      } else {
+      } else if (result.success) {
         setError("Login successful but user data missing. Please try again.");
+        setIsLoading(false);
+      } else {
+        setError(result.error || result.message || "Invalid email or password. Please try again.");
         setIsLoading(false);
       }
     } catch (err: any) {
@@ -542,20 +545,7 @@ const EnhancedLoginModal: React.FC = () => {
       
       // Handle cases where the server is down
       if (!serverStatus.connected || err?.message?.includes('connection') || err?.code === 'ERR_NETWORK') {
-        // Create a mock login for development purposes
-        console.warn("Server connection issue detected. Using mock login for development.");
-        
-        // Call our auth context login function with fallback behavior
-        const result = await login(credentials.username, credentials.password);
-        
-        if (result.success) {
-          setTimeout(() => {
-            navigate("/client-dashboard");
-          }, 200);
-        } else {
-          setError("Failed to create mock login. Please try again.");
-        }
-        
+        setError("Unable to connect to server. Please check your connection and try again.");
         return;
       }
       
