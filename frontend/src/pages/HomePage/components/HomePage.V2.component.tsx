@@ -245,12 +245,10 @@ const HomePageV2: React.FC = () => {
 
         <SectionDivider />
 
-        {/* Fitness Stats (v1.0 with bridge) */}
-        <V1ThemeBridge>
-          <Suspense fallback={<SectionLoader>Loading stats</SectionLoader>}>
-            <FitnessStats />
-          </Suspense>
-        </V1ThemeBridge>
+        {/* Fitness Stats v2.0 — glass-morphism + video background */}
+        <Suspense fallback={<SectionLoader>Loading stats</SectionLoader>}>
+          <FitnessStats />
+        </Suspense>
 
         <SectionDivider />
 
