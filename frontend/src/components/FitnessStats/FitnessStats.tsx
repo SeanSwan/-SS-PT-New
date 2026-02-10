@@ -543,7 +543,7 @@ const statItems: StatItem[] = [
     value: 12450,
     unit: "pounds collectively",
     icon: <FaWeight />,
-    color: "#46cdcf", // Changed from pink to teal
+    color: "#00D4AA", // EW primary teal
     animation: { duration: 3.0, delay: 0.2 } // Slowed down
   },
   {
@@ -552,7 +552,7 @@ const statItems: StatItem[] = [
     value: 42810,
     unit: "hours of coaching",
     icon: <FaClock />,
-    color: "#c894ff", // Kept purple
+    color: "#7851A9", // EW secondary purple
     animation: { duration: 3.0, delay: 0.4 } // Slowed down
   },
   {
@@ -562,7 +562,7 @@ const statItems: StatItem[] = [
     unit: "million total",
     prefix: "",
     icon: <FaFireAlt />,
-    color: "#7851a9", // Changed from pink to purple
+    color: "#7851A9", // EW secondary purple
     animation: { duration: 3.0, delay: 0.6 } // Slowed down
   },
   {
@@ -571,7 +571,7 @@ const statItems: StatItem[] = [
     value: 6.3,
     unit: "points",
     icon: <FaHeartbeat />,
-    color: "#00fd9f", // Kept emerald
+    color: "#48E8C8", // EW accent teal
     animation: { duration: 3.0, delay: 0.8 } // Slowed down
   },
   {
@@ -619,7 +619,7 @@ const chartConfigs: ChartConfig[] = [
       { name: "Deadlift", value: 91 },
       { name: "Shoulder Press", value: 39 }
     ],
-    colors: ["#46cdcf", "#7851a9"] // Changed from pink to teal/purple
+    colors: ["#00D4AA", "#7851A9"] // EW primary + secondary
   },
   {
     id: "client-goals",
@@ -633,7 +633,7 @@ const chartConfigs: ChartConfig[] = [
       { name: "Overall Health", value: 10 },
       { name: "Rehabilitation", value: 5 }
     ],
-    colors: ["#00D4AA", "#7851a9", "#46cdcf", "#00fd9f", "#c8b6ff"] // Updated colors to theme
+    colors: ["#00D4AA", "#7851A9", "#48E8C8", "#00B894", "#9B7AC7"] // EW palette: primary, secondary, accent, teal, light purple
   }
 ];
 
@@ -704,11 +704,11 @@ const FitnessStats: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                 <XAxis 
                   dataKey="name" 
-                  tick={{ fill: '#c0c0c0' }}
+                  tick={{ fill: '#8AA8B8' }}
                   axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
                 />
                 <YAxis 
-                  tick={{ fill: '#c0c0c0' }}
+                  tick={{ fill: '#8AA8B8' }}
                   axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
                 />
                 <Tooltip content={<CustomTooltip />} />
@@ -740,11 +740,11 @@ const FitnessStats: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
                 <XAxis 
                   dataKey="name" 
-                  tick={{ fill: '#c0c0c0' }}
+                  tick={{ fill: '#8AA8B8' }}
                   axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
                 />
                 <YAxis 
-                  tick={{ fill: '#c0c0c0' }}
+                  tick={{ fill: '#8AA8B8' }}
                   axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
                 />
                 <Tooltip content={<CustomTooltip />} />
@@ -778,7 +778,7 @@ const FitnessStats: React.FC = () => {
                   labelLine={false}
                   outerRadius={80}
                   innerRadius={40}
-                  fill="#8884d8"
+                  fill="#7851A9"
                   dataKey="value"
                   animationDuration={1500}
                 >
