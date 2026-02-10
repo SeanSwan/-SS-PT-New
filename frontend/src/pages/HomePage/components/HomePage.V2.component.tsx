@@ -216,25 +216,20 @@ const HomePageV2: React.FC = () => {
 
         <SectionDivider />
 
+        {/* Creative Expression v2.0 - EW tokens */}
+        <CreativeExpressionSection />
+
+        <SectionDivider />
+
+        {/* Trainer Profiles v2.0 - EW tokens */}
+        <TrainerProfilesSection />
+
+        <SectionDivider />
+
         {/* ========================================
             DEFERRED SECTIONS (v1.0 wrapped in V1ThemeBridge)
-            These sections remain v1.0 for now, but V1ThemeBridge
-            ensures visual cohesion with v2.0 sections
+            Testimonials, Instagram, Newsletter remain v1.0 for now
             ======================================== */}
-
-        {/* Creative Expression Section (v1.0 with bridge) */}
-        <V1ThemeBridge>
-          <CreativeExpressionSection />
-        </V1ThemeBridge>
-
-        <SectionDivider />
-
-        {/* Trainer Profiles Section (v1.0 with bridge) */}
-        <V1ThemeBridge>
-          <TrainerProfilesSection />
-        </V1ThemeBridge>
-
-        <SectionDivider />
 
         {/* Testimonial Slider (v1.0 with bridge) */}
         <V1ThemeBridge>

@@ -1,13 +1,32 @@
 // frontend/src/pages/HomePage/components/CreativeExpressionSection.tsx
+// === CreativeExpression v2.0 - Ethereal Wilderness tokens ===
 
 import React, { useRef } from "react";
-import styled, { keyframes } from "styled-components";
-import { motion, useInView } from "framer-motion";
+import styled, { keyframes, css } from "styled-components";
+import { motion, useInView, MotionConfig } from "framer-motion";
 import { Music, Paintbrush, Mic, Heart } from "lucide-react";
 import SectionTitle from "../../../components/ui/SectionTitle";
-import { useUniversalTheme } from "../../../context/ThemeContext";
 
-// --- Animation Keyframes ---
+// === EW Design Tokens (shared with ProgramsOverview.V3 / FitnessStats V2) ===
+const T = {
+  bg: '#0a0a1a',
+  surface: 'rgba(15, 25, 35, 0.92)',
+  primary: '#00D4AA',
+  secondary: '#7851A9',
+  accent: '#48E8C8',
+  text: '#F0F8FF',
+  textSecondary: '#8AA8B8',
+} as const;
+
+// === Reduced-motion helper ===
+const noMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
+
+// === Animation Keyframes ===
 const float = keyframes`
   0% { transform: translateY(0); }
   50% { transform: translateY(-10px); }
@@ -30,10 +49,10 @@ const stellarGlow = keyframes`
   50% { opacity: 1; transform: scale(1.05); }
 `;
 
-// --- Styled Components ---
+// === Styled Components ===
 const SectionContainer = styled.section`
   padding: 6rem 2rem;
-  background: linear-gradient(to bottom, ${({ theme }) => theme.background.primary}, ${({ theme }) => theme.background.secondary});
+  background: ${T.bg};
   position: relative;
   overflow: hidden;
   font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
@@ -48,7 +67,7 @@ const GlowEffect = styled.div`
   width: 70vh;
   height: 70vh;
   border-radius: 50%;
-  background: ${({ theme }) => theme.gradients.cosmic};
+  background: radial-gradient(circle, rgba(0, 212, 170, 0.15), rgba(120, 81, 169, 0.08), transparent 70%);
   top: 10%;
   left: 50%;
   transform: translateX(-50%);
@@ -56,20 +75,11 @@ const GlowEffect = styled.div`
   z-index: 0;
   opacity: 0.6;
   pointer-events: none;
-  animation: ${stellarGlow} 8s ease-in-out infinite;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    width: 40%;
-    height: 40%;
-    background: ${({ theme }) => theme.gradients.primary};
-    border-radius: 50%;
-    top: 30%;
-    left: 30%;
-    filter: blur(40px);
-    animation: ${float} 6s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: ${stellarGlow} 8s ease-in-out infinite;
   }
+  ${noMotion}
 `;
 
 const ContentWrapper = styled.div`
@@ -86,25 +96,28 @@ const SectionDescription = styled(motion.p)`
   text-align: center;
   font-size: 1.2rem;
   margin-bottom: 4rem;
-  color: ${({ theme }) => theme.text.secondary};
+  color: ${T.textSecondary};
   max-width: 800px;
   line-height: 1.6;
-  
+
   span {
-    background: ${({ theme }) => theme.gradients.cosmic};
+    background: linear-gradient(135deg, ${T.primary}, ${T.secondary});
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
     font-weight: 600;
   }
-  
+
+  strong {
+    color: ${T.text};
+  }
+
   @media (max-width: 768px) {
     font-size: 1rem;
     margin-bottom: 3rem;
   }
 `;
 
-// Updated CardGrid for T-shape layout
 const CardGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -112,21 +125,21 @@ const CardGrid = styled.div`
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
-  
-  // The Community & Heart card will span the full width on large screens (3-col layout)
+
+  /* Community & Heart card spans full width on 3-col layout */
   & > div:nth-child(4) {
     grid-column: 1 / -1;
   }
-  
+
   @media (max-width: 1024px) {
     grid-template-columns: repeat(2, 1fr);
-    
-    // Reset span for 2-column layout to create a perfect 2x2 grid
+
+    /* Reset span for 2-col -> 2x2 grid */
     & > div:nth-child(4) {
       grid-column: auto;
     }
   }
-  
+
   @media (max-width: 700px) {
     grid-template-columns: 1fr;
     gap: 1.5rem;
@@ -134,9 +147,9 @@ const CardGrid = styled.div`
 `;
 
 const ExpressionCard = styled(motion.div)`
-  background: ${({ theme }) => theme.background.surface}CC;
+  background: ${T.surface};
   backdrop-filter: blur(12px);
-  border-radius: 24px;
+  border-radius: 16px;
   padding: 2.5rem 2rem;
   display: flex;
   flex-direction: column;
@@ -144,90 +157,82 @@ const ExpressionCard = styled(motion.div)`
   text-align: center;
   position: relative;
   overflow: hidden;
-  border: 1px solid ${({ theme }) => theme.borders.subtle};
-  box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3);
+  border: 1px solid rgba(0, 212, 170, 0.12);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   height: 100%;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      ${({ theme }) => theme.colors.primary}20,
-      transparent
-    );
-    transition: left 0.6s ease;
-    z-index: 1;
-  }
-  
-  &:hover {
-    transform: translateY(-10px);
-    box-shadow: ${({ theme }) => theme.shadows.cosmic};
-    border-color: ${({ theme }) => theme.borders.elegant};
-    
-    &::before {
-      left: 100%;
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    &:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 40px -10px rgba(0, 212, 170, 0.2);
+      border-color: rgba(0, 212, 170, 0.3);
     }
   }
-  
+
   &.heart-card {
-    background: linear-gradient(135deg, ${({ theme }) => theme.background.surface}E6, ${({ theme }) => theme.colors.primary}10);
-    border: 1px solid ${({ theme }) => theme.colors.accent}40;
-    
-    &:hover {
-      border-color: ${({ theme }) => theme.colors.accent};
-      box-shadow: ${({ theme }) => theme.shadows.accent};
+    background: linear-gradient(135deg, ${T.surface}, rgba(0, 212, 170, 0.06));
+    border: 1px solid rgba(72, 232, 200, 0.25);
+
+    @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+      &:hover {
+        border-color: ${T.accent};
+        box-shadow: 0 20px 40px -10px rgba(72, 232, 200, 0.25);
+      }
     }
   }
 
   @media (max-width: 768px) {
     padding: 2rem 1.5rem;
   }
+
+  ${noMotion}
 `;
 
 const IconContainer = styled.div`
   font-size: 3rem;
   margin-bottom: 1.5rem;
-  color: ${({ theme }) => theme.colors.primary};
+  color: ${T.primary};
   position: relative;
   z-index: 2;
   transition: all 0.3s ease;
-  
+
   svg {
-    filter: drop-shadow(0 0 8px ${({ theme }) => theme.colors.primary}80);
+    filter: drop-shadow(0 0 8px rgba(0, 212, 170, 0.5));
     transition: all 0.3s ease;
     width: 48px;
     height: 48px;
   }
-  
+
   &.heart-icon {
-    color: ${({ theme }) => theme.colors.accent};
-    animation: ${pulse} 3s ease-in-out infinite;
-    
+    color: ${T.accent};
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation: ${pulse} 3s ease-in-out infinite;
+    }
+
     svg {
-      filter: drop-shadow(0 0 8px ${({ theme }) => theme.colors.accent}80);
+      filter: drop-shadow(0 0 8px rgba(72, 232, 200, 0.5));
     }
   }
-  
-  ${ExpressionCard}:hover & {
-    animation: ${stellarGlow} 2s ease-in-out infinite;
-    
-    svg {
-      filter: drop-shadow(0 0 15px currentColor);
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    ${ExpressionCard}:hover & {
+      animation: ${stellarGlow} 2s ease-in-out infinite;
+
+      svg {
+        filter: drop-shadow(0 0 15px currentColor);
+      }
     }
   }
+
+  ${noMotion}
 `;
 
 const CardTitle = styled.h3`
   font-size: 1.8rem;
   margin-bottom: 1rem;
-  background: ${({ theme }) => theme.gradients.stellar};
+  background: linear-gradient(135deg, ${T.text}, ${T.primary});
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
@@ -236,26 +241,30 @@ const CardTitle = styled.h3`
   z-index: 2;
   transition: all 0.3s ease;
   font-family: 'Cormorant Garamond', 'Georgia', serif;
-  
+
   &.heart-card-title {
-    background: ${({ theme }) => theme.gradients.accent};
+    background: linear-gradient(135deg, ${T.text}, ${T.accent});
     background-clip: text;
     -webkit-background-clip: text;
   }
-  
-  ${ExpressionCard}:hover & {
-    background-size: 200% 200%;
-    animation: ${shimmer} 2s linear infinite;
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    ${ExpressionCard}:hover & {
+      background-size: 200% 200%;
+      animation: ${shimmer} 2s linear infinite;
+    }
   }
 
   @media (max-width: 768px) {
     font-size: 1.5rem;
   }
+
+  ${noMotion}
 `;
 
 const CardDescription = styled.p`
   font-size: 1.1rem;
-  color: ${({ theme }) => theme.text.secondary};
+  color: ${T.textSecondary};
   line-height: 1.6;
   margin-bottom: 1.5rem;
   position: relative;
@@ -281,23 +290,27 @@ const BenefitItem = styled.li`
   margin-bottom: 0.75rem;
   display: flex;
   align-items: flex-start;
-  color: ${({ theme }) => theme.text.muted};
+  color: ${T.textSecondary};
   font-size: 1rem;
   line-height: 1.4;
   transition: color 0.3s ease;
-  
+
   &::before {
-    content: "✦";
+    content: "\u2726";
     margin-right: 10px;
-    color: ${({ theme }) => theme.colors.primary};
+    color: ${T.primary};
     transition: all 0.3s ease;
     line-height: 1.4;
   }
-  
-  ${ExpressionCard}:hover & {
-    color: ${({ theme }) => theme.text.primary};
-    
-    &::before {
+
+  @media (hover: hover) {
+    ${ExpressionCard}:hover & {
+      color: ${T.text};
+    }
+  }
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    ${ExpressionCard}:hover &::before {
       animation: ${stellarGlow} 2s ease-in-out infinite;
     }
   }
@@ -305,9 +318,11 @@ const BenefitItem = styled.li`
   @media (max-width: 768px) {
     font-size: 0.95rem;
   }
+
+  ${noMotion}
 `;
 
-// --- Animation Variants ---
+// === Animation Variants ===
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -343,12 +358,11 @@ const textVariants = {
   }
 };
 
-// --- Component Implementation ---
+// === Component Implementation ===
 const CreativeExpressionSection: React.FC = () => {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: false, amount: 0.2 });
-  const { theme } = useUniversalTheme();
-  
+  const isInView = useInView(ref, { once: true, amount: 0.2 });
+
   const expressionCategories = [
     {
       title: "Dance",
@@ -395,50 +409,52 @@ const CreativeExpressionSection: React.FC = () => {
       ]
     }
   ];
-  
+
   return (
-    <SectionContainer id="creative-expression" ref={ref}>
-      <GlowEffect />
-      <ContentWrapper>
-        <SectionTitle>FORGE YOUR BODY, FREE YOUR SPIRIT</SectionTitle>
-        <SectionDescription
-          variants={textVariants}
-          initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
-        >
-          At SwanStudios, we build <span>warriors and artists</span>. True power is found when peak physical strength is united with unbridled creative expression. Here, we don't just lift weights; we lift each other. <strong>EVERY POSITIVE ACTION IS REWARDED</strong> - your journey is holistic. You earn points for everything: crushing a workout, creating art, motivating a teammate. In this ecosystem, your growth in body, mind, and spirit is our most valued currency.
-        </SectionDescription>
-        
-        <motion.div 
-          variants={containerVariants}
-          initial="hidden"
-          animate={isInView ? "visible" : "hidden"}
-        >
-          <CardGrid>
-            {expressionCategories.map((category, index) => (
-              <ExpressionCard 
-                key={index} 
-                variants={itemVariants}
-                className={`expression-card ${category.title.includes('Heart') ? 'heart-card' : ''}`}
-              >
-                <IconContainer className={category.title.includes('Heart') ? 'heart-icon' : ''}>
-                  {category.icon}
-                </IconContainer>
-                <CardTitle className={category.title.includes('Heart') ? 'heart-card-title' : ''}>
-                  {category.title}
-                </CardTitle>
-                <CardDescription>{category.description}</CardDescription>
-                <BenefitsList>
-                  {category.benefits.map((benefit, i) => (
-                    <BenefitItem key={i}>{benefit}</BenefitItem>
-                  ))}
-                </BenefitsList>
-              </ExpressionCard>
-            ))}
-          </CardGrid>
-        </motion.div>
-      </ContentWrapper>
-    </SectionContainer>
+    <MotionConfig reducedMotion="user">
+      <SectionContainer id="creative-expression" ref={ref}>
+        <GlowEffect />
+        <ContentWrapper>
+          <SectionTitle variant="ew">FORGE YOUR BODY, FREE YOUR SPIRIT</SectionTitle>
+          <SectionDescription
+            variants={textVariants}
+            initial="hidden"
+            animate={isInView ? "visible" : "hidden"}
+          >
+            At SwanStudios, we build <span>warriors and artists</span>. True power is found when peak physical strength is united with unbridled creative expression. Here, we don't just lift weights; we lift each other. <strong>EVERY POSITIVE ACTION IS REWARDED</strong> - your journey is holistic. You earn points for everything: crushing a workout, creating art, motivating a teammate. In this ecosystem, your growth in body, mind, and spirit is our most valued currency.
+          </SectionDescription>
+
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            animate={isInView ? "visible" : "hidden"}
+          >
+            <CardGrid>
+              {expressionCategories.map((category, index) => (
+                <ExpressionCard
+                  key={index}
+                  variants={itemVariants}
+                  className={`expression-card ${category.title.includes('Heart') ? 'heart-card' : ''}`}
+                >
+                  <IconContainer className={category.title.includes('Heart') ? 'heart-icon' : ''}>
+                    {category.icon}
+                  </IconContainer>
+                  <CardTitle className={category.title.includes('Heart') ? 'heart-card-title' : ''}>
+                    {category.title}
+                  </CardTitle>
+                  <CardDescription>{category.description}</CardDescription>
+                  <BenefitsList>
+                    {category.benefits.map((benefit, i) => (
+                      <BenefitItem key={i}>{benefit}</BenefitItem>
+                    ))}
+                  </BenefitsList>
+                </ExpressionCard>
+              ))}
+            </CardGrid>
+          </motion.div>
+        </ContentWrapper>
+      </SectionContainer>
+    </MotionConfig>
   );
 };
 
