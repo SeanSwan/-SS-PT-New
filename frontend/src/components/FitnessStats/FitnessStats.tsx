@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════
-// FitnessStats V2 — "Our Results in Numbers"
+// FitnessStats V2 - "Our Results in Numbers"
 // ═══════════════════════════════════════════════════
 // Glass-morphism cards matching ProgramsOverview.V3
 // Smoke video background (desktop only)
@@ -42,6 +42,9 @@ const T = {
   accent: "#48E8C8",
   text: "#F0F8FF",
   textSecondary: "#8AA8B8",
+  // Derived chart palette (tinted variants for multi-series)
+  primaryDark: "#00B894",
+  secondaryLight: "#9B7AC7",
 } as const;
 
 // --- Helpers ---
@@ -561,7 +564,7 @@ const chartConfigs: ChartConfig[] = [
       { name: "Week 11", value: 17.5 },
       { name: "Week 12", value: 19.2 },
     ],
-    colors: ["#00D4AA", "#7851A9"],
+    colors: [T.primary, T.secondary],
   },
   {
     id: "strength-gains",
@@ -574,7 +577,7 @@ const chartConfigs: ChartConfig[] = [
       { name: "Deadlift", value: 91 },
       { name: "Shoulder Press", value: 39 },
     ],
-    colors: ["#00D4AA", "#7851A9"],
+    colors: [T.primary, T.secondary],
   },
   {
     id: "client-goals",
@@ -588,7 +591,7 @@ const chartConfigs: ChartConfig[] = [
       { name: "Overall Health", value: 10 },
       { name: "Rehabilitation", value: 5 },
     ],
-    colors: ["#00D4AA", "#7851A9", "#48E8C8", "#00B894", "#9B7AC7"],
+    colors: [T.primary, T.secondary, T.accent, T.primaryDark, T.secondaryLight],
   },
 ];
 
@@ -800,15 +803,15 @@ const FitnessStats: React.FC = () => {
 
   return (
     <StatsSection id="stats" ref={sectionRef}>
-      {/* Background: video on desktop, gradient on mobile */}
-      {isDesktop && !prefersReducedMotion ? (
+      {/* Background: video lazy-mounts when section enters viewport (desktop only) */}
+      {isDesktop && !prefersReducedMotion && isInView ? (
         <SectionVideoBackground>
           <video
             autoPlay
             loop
             muted
             playsInline
-            preload="metadata"
+            preload="none"
             aria-hidden="true"
           >
             <source src="/smoke.mp4" type="video/mp4" />
