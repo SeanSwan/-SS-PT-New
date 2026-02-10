@@ -497,17 +497,13 @@ router.post('/user', protect, adminOnly, async (req, res) => {
       });
     }
     
-    // Hash password before saving
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-    
-    // Create the user
+    // Password hashed by User.beforeCreate hook (do not pre-hash here)
     const user = await User.create({
       firstName,
       lastName,
       email,
       username,
-      password: hashedPassword,
+      password,
       role,
       phone,
       availableSessions: availableSessions || 0,
@@ -603,10 +599,9 @@ router.put('/user/:id', protect, adminOnly, async (req, res) => {
       if (bio !== undefined) user.bio = bio;
     }
     
-    // Handle password update if provided
+    // Handle password update if provided (hook handles hashing on save)
     if (password) {
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(password, salt);
+      user.password = password;
     }
     
     await user.save();

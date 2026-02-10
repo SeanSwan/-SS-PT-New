@@ -306,6 +306,14 @@ User.init(
 // Hash password before creating a new user
 User.beforeCreate(async (user) => {
   try {
+    // Skip if password is null, empty, or already a bcrypt hash
+    if (!user.password || user.password.length === 0) {
+      return;
+    }
+    // Prevent double-hashing when callers pre-hash before User.create()
+    if (user.password.startsWith('$2')) {
+      return;
+    }
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(user.password, salt);
   } catch (err) {
@@ -317,16 +325,11 @@ User.beforeCreate(async (user) => {
 // Hash password before updating if it changed
 User.beforeUpdate(async (user) => {
   try {
-    // Only hash the password if it's changed AND is not already hashed
-    // This prevents double-hashing when updating users with model-based scripts
-    if (user.changed('password')) {
-      // Simple check to detect if password is already hashed (bcrypt hashes start with $2a$, $2b$ or $2y$)
+    // Only hash if password changed, is non-empty, and is not already hashed
+    if (user.changed('password') && user.password && user.password.length > 0) {
       if (!user.password.startsWith('$2')) {
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(user.password, salt);
-        console.log('Password hashed during update');
-      } else {
-        console.log('Password already hashed, skipping rehash');
       }
     }
   } catch (err) {
