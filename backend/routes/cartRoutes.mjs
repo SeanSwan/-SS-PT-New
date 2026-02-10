@@ -18,6 +18,7 @@ import Stripe from 'stripe';
 import logger from '../utils/logger.mjs';
 import { isStripeEnabled } from '../utils/apiKeyChecker.mjs';
 import cartHelpers from '../utils/cartHelpers.mjs';
+import { grantSessionsForCart } from '../services/SessionGrantService.mjs';
 const { updateCartTotals, getCartTotalsWithFallback, debugCartState } = cartHelpers;
 
 const router = express.Router();
@@ -768,55 +769,50 @@ router.post('/webhook', express.raw({type: 'application/json'}), async (req, res
   
   // Handle the event
   try {
-    // 🎯 ENHANCED P0 FIX: Lazy load models to prevent race condition
-    const ShoppingCart = getShoppingCart();
-    
     switch (event.type) {
       case 'checkout.session.completed': {
-        // Payment was successful
         const session = event.data.object;
-        
+
         if (session.payment_status === 'paid') {
           const { cartId, userId } = session.metadata;
-          
+
           if (cartId && userId) {
-            // Update cart status to completed
-            await ShoppingCart.update(
-              { 
-                status: 'completed',
-                paymentStatus: 'paid', 
-                completedAt: new Date()
-              },
-              { where: { id: cartId, userId } }
+            // Grant sessions via shared service (transaction + row lock + atomic increment)
+            // If verify-session already ran, this is idempotent (returns alreadyProcessed=true)
+            const result = await grantSessionsForCart(
+              parseInt(cartId), parseInt(userId), 'webhook'
             );
-            
-            // Additional processing can be added here (e.g., create order record)
-            logger.info(`✅ Payment completed for cart ${cartId} (User: ${userId})`);
+
+            if (result.granted) {
+              logger.info(`[Webhook] Sessions granted for cart ${cartId} (User: ${userId}), added ${result.sessionsAdded}`);
+            } else {
+              logger.info(`[Webhook] Cart ${cartId} already processed (idempotent)`);
+            }
           }
         }
         break;
       }
-      
+
       case 'checkout.session.expired': {
-        // Checkout session expired without payment
         const session = event.data.object;
         const { cartId } = session.metadata;
-        
+
         if (cartId) {
-          const ShoppingCartExpired = getShoppingCart(); // 🎯 ENHANCED: Lazy load for expired session
-          await ShoppingCartExpired.update(
+          const ShoppingCart = getShoppingCart();
+          await ShoppingCart.update(
             { checkoutSessionExpired: true },
             { where: { id: cartId } }
           );
-          logger.info(`⚠️ Checkout session expired for cart ${cartId}`);
+          logger.info(`[Webhook] Checkout session expired for cart ${cartId}`);
         }
         break;
       }
     }
-    
+
     res.json({ received: true });
   } catch (err) {
-    logger.error(`Error processing webhook event: ${err.message}`);
+    // Return 5xx so Stripe retries the webhook (prevents lost credits)
+    logger.error(`[Webhook] Processing error: ${err.message}`);
     res.status(500).send(`Webhook processing error: ${err.message}`);
   }
 });

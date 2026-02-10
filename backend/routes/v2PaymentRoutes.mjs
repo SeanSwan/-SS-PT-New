@@ -34,6 +34,7 @@ import { protect } from '../middleware/authMiddleware.mjs';
 // 🎯 P0 FIX: Use coordinated model getters to prevent race condition
 import { getShoppingCart, getCartItem, getStorefrontItem, getUser } from '../models/index.mjs';
 import logger from '../utils/logger.mjs';
+import { grantSessionsForCart } from '../services/SessionGrantService.mjs';
 
 const router = express.Router();
 
@@ -417,32 +418,10 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
       });
     }
 
-    // 🎯 P0 FIX: Get coordinated models for verify-session endpoint
+    // Find the cart by checkout session ID (scoped to authenticated user)
     const ShoppingCart = getShoppingCart();
-    const CartItem = getCartItem();
-    const StorefrontItem = getStorefrontItem();
-    const User = getUser();
-    
-    // Find and update the cart
     const cart = await ShoppingCart.findOne({
-      where: { 
-        checkoutSessionId: sessionId,
-        userId 
-      },
-      include: [
-        { 
-          model: CartItem, 
-          as: 'cartItems',
-          include: [{ 
-            model: StorefrontItem, 
-            as: 'storefrontItem' 
-          }]
-        },
-        {
-          model: User,
-          as: 'user'
-        }
-      ]
+      where: { checkoutSessionId: sessionId, userId }
     });
 
     if (!cart) {
@@ -456,88 +435,37 @@ router.post('/verify-session', protect, checkStripeAvailability, async (req, res
       });
     }
 
-    // Calculate sessions to add
-    const sessionsToAdd = cart.cartItems.reduce((sum, item) => {
-      return sum + ((item.storefrontItem?.sessions || 0) * (item.quantity || 0));
-    }, 0);
+    // Delegate to shared service (handles transaction, row lock, idempotency, atomic increment)
+    const result = await grantSessionsForCart(cart.id, userId, 'verify-session');
 
-    // IDEMPOTENCY CHECK: Only grant sessions if not already processed
-    // This prevents double-grants if both webhook and verify-session are called
-    const alreadyProcessed = cart.sessionsGranted === true || cart.status === 'completed';
-
-    if (alreadyProcessed) {
-      console.log('⚠️ [v2 Payment] Sessions already granted for this order - skipping (idempotent)');
-      logger.info(`[v2 Payment] Idempotency: Order ${cart.id} already processed, skipping session grant`);
-
-      // Still return success but don't add more sessions
+    if (result.alreadyProcessed) {
       return res.status(200).json({
         success: true,
         message: 'Order already verified (idempotent response)',
         data: {
           sessionId: session.id,
           amount: session.amount_total / 100,
-          sessionsAdded: 0, // Already added previously
+          sessionsAdded: 0,
           alreadyProcessed: true,
-          customerEmail: session.customer_details?.email || cart.user?.email,
-          orderDate: cart.completedAt?.toISOString() || new Date().toISOString()
+          customerEmail: session.customer_details?.email,
+          orderDate: new Date().toISOString()
         }
       });
     }
 
-    // Update cart status with sessionsGranted flag for idempotency
-    await cart.update({
-      status: 'completed',
-      paymentStatus: 'paid',
-      completedAt: new Date(),
-      sessionsGranted: true, // IDEMPOTENCY FLAG
-      stripeSessionData: JSON.stringify({
-        sessionId: session.id,
-        paymentIntentId: session.payment_intent,
-        paymentStatus: session.payment_status,
-        amountTotal: session.amount_total,
-        currency: session.currency,
-        customerDetails: session.customer_details,
-        completedAt: new Date(),
-        grantedBy: 'verify-session' // Track which endpoint granted sessions
-      })
-    });
-
-    // Add sessions to user account for training
-    const user = cart.user;
-    const currentSessions = user.availableSessions || 0;
-    await user.update({
-      availableSessions: currentSessions + sessionsToAdd,
-      hasPurchasedBefore: true,
-      lastPurchaseDate: new Date()
-    });
-
-    console.log(`✅ [v2 Payment] Sessions granted via verify-session endpoint (idempotency flag set)`);
-
-    console.log('✅ [v2 Payment] Order completed successfully');
-    console.log(`🎯 [v2 Payment] Added ${sessionsToAdd} sessions to user account`);
-    console.log('📊 [Admin Dashboard] Transaction data available for analytics');
-
-    // Return success response with order data
     res.status(200).json({
       success: true,
       message: 'Order verified and completed successfully',
       data: {
         sessionId: session.id,
-        amount: session.amount_total / 100, // Convert from cents
-        sessionsAdded: sessionsToAdd,
-        customerName: session.customer_details?.name || user.firstName + ' ' + user.lastName,
-        customerEmail: session.customer_details?.email || user.email,
-        orderDate: new Date().toISOString(),
-        items: cart.cartItems.map(item => ({
-          name: item.storefrontItem?.name,
-          quantity: item.quantity,
-          price: item.price,
-          sessions: item.storefrontItem?.sessions || 0
-        }))
+        amount: session.amount_total / 100,
+        sessionsAdded: result.sessionsAdded,
+        customerEmail: session.customer_details?.email,
+        orderDate: new Date().toISOString()
       }
     });
 
-    logger.info(`[v2 Payment] Session verified successfully: ${sessionId}, added ${sessionsToAdd} sessions`);
+    logger.info(`[v2 Payment] Session verified successfully: ${sessionId}, added ${result.sessionsAdded} sessions`);
 
   } catch (error) {
     logger.error('[v2 Payment] Error verifying session:', error);

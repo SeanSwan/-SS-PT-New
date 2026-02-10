@@ -108,11 +108,10 @@ describe('Payment Flow API', () => {
 
   describe('Payment Verification (IDEMPOTENCY)', () => {
     it('should detect already-processed orders', async () => {
-      // P0 Fix: Idempotency check
+      // P0 Fix: Idempotency uses sessionsGranted ONLY (not status)
       const completedCart = testCarts.completed;
 
-      const alreadyProcessed = completedCart.sessionsGranted === true ||
-                               completedCart.status === 'completed';
+      const alreadyProcessed = completedCart.sessionsGranted === true;
 
       expect(alreadyProcessed).toBe(true);
     });
