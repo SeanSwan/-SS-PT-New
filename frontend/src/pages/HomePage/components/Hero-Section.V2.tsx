@@ -115,16 +115,17 @@ const VideoBackground = styled.div`
     opacity: 0.35;
   }
 
-  /* Dark overlay for text readability */
+  /* Dark overlay for text readability over smoke */
   &::after {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
     background: linear-gradient(
       180deg,
-      rgba(10, 10, 26, 0.6) 0%,
-      rgba(10, 10, 26, 0.4) 40%,
-      rgba(10, 10, 26, 0.7) 100%
+      rgba(10, 10, 26, 0.55) 0%,
+      rgba(10, 10, 26, 0.35) 35%,
+      rgba(10, 10, 26, 0.45) 65%,
+      rgba(10, 10, 26, 0.75) 100%
     );
     z-index: 1;
   }
@@ -219,6 +220,20 @@ const ContentWrapper = styled.div`
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
+  padding: clamp(2rem, 4vw, 3.5rem);
+  background: rgba(10, 15, 25, 0.45);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 24px;
+  border: 1px solid rgba(0, 212, 170, 0.08);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  @media (max-width: 768px) {
+    padding: 2rem 1.25rem;
+    border-radius: 16px;
+  }
 `;
 
 const Logo = styled(motion.img)`
@@ -346,7 +361,7 @@ const HeroSectionV2: React.FC = () => {
             preload="auto"
             poster=""
           >
-            <source src="/Waves.mp4" type="video/mp4" />
+            <source src="/smoke.mp4" type="video/mp4" />
           </video>
         </VideoBackground>
       ) : (
