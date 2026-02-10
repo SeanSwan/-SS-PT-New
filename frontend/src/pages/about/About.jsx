@@ -361,7 +361,7 @@ const LoadingLogo = styled.div`
   height: 30px;
   top: 15px;
   left: 15px;
-  background-image: url('/logo-icon.png');
+  background-image: url('/logo.svg');
   background-size: contain;
   background-position: center;
   background-repeat: no-repeat;
