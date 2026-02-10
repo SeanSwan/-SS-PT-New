@@ -1,33 +1,23 @@
 /**
- * OptimizedGalaxyStoreFront.tsx - Decomposed Main StoreFront Component
- * =====================================================================
- * Completely refactored from monolithic GalaxyThemedStoreFront.tsx
- * 
- * Master Prompt v28.6 Compliance:
- * ✅ Decomposed from 1,600+ lines to ~400 lines
- * ✅ Single Responsibility Principle enforced
- * ✅ Performance optimized (no more infinite re-renders)
- * ✅ Stable dependencies and memoized callbacks
- * ✅ Removed over-engineered performance systems
- * ✅ Clean component separation
- * 
+ * OptimizedGalaxyStoreFront.tsx - Main StoreFront (EW Theme v2.0)
+ * ================================================================
+ * Ethereal Wilderness token migration. Container shell + state orchestration.
+ *
  * Architecture:
  * - HeroSection: Video background, logo, hero content
  * - PackagesGrid: Package display and management
  * - FloatingCart: Cart button functionality
  * - Main Component: Orchestrates everything
- * 
- * Performance Optimizations:
+ *
+ * Performance Optimized:
  * - Memoized callbacks to prevent re-render loops
  * - Stable dependency arrays
- * - Efficient state management
- * - Removed cosmic performance optimizer
- * - Optimized scroll event handling
+ * - Reduced-motion gated animations
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import styled, { keyframes } from "styled-components";
-import { AnimatePresence } from "framer-motion";
+import styled, { keyframes, css } from "styled-components";
+import { AnimatePresence, MotionConfig } from "framer-motion";
 
 // Context and Service Imports
 import { useAuth } from "../../context/AuthContext";
@@ -44,17 +34,24 @@ import OrientationForm from "../../components/OrientationForm/orientationForm";
 import { CheckoutView } from "../../components/NewCheckout";
 import { ThemedGlowButton } from '../../styles/swan-theme-utils';
 
-// Galaxy Theme Constants
-const GALAXY_COLORS = {
-  deepSpace: '#0a0a0f',
-  nebulaPurple: '#1e1e3f',
-  cyberCyan: '#00ffff',
-  stellarWhite: '#ffffff',
-  warningRed: '#ff416c'
-};
+// EW Design Tokens
+const T = {
+  bg: '#0a0a1a',
+  surface: 'rgba(15, 25, 35, 0.92)',
+  primary: '#00D4AA',
+  secondary: '#7851A9',
+  accent: '#48E8C8',
+  text: '#F0F8FF',
+  textSecondary: '#8AA8B8',
+  warningRed: '#ff416c',
+} as const;
 
-// Asset paths
-const swanIcon = "/Logo.png";
+const noMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
 
 // Package Interface
 interface StoreItem {
@@ -77,26 +74,7 @@ interface StoreItem {
   includedFeatures?: string | null;
 }
 
-// Utility function to determine theme from package name
-const getThemeFromName = (name: string): string => {
-  const nameLower = name.toLowerCase();
-  if (nameLower.includes('silver') || nameLower.includes('wing')) return 'emerald';
-  if (nameLower.includes('golden') || nameLower.includes('flight')) return 'ruby';
-  if (nameLower.includes('sapphire') || nameLower.includes('soar')) return 'cosmic';
-  if (nameLower.includes('platinum') || nameLower.includes('grace')) return 'purple';
-  if (nameLower.includes('emerald') || nameLower.includes('evolution')) return 'emerald';
-  if (nameLower.includes('diamond') || nameLower.includes('dynasty')) return 'cosmic';
-  if (nameLower.includes('ruby') || nameLower.includes('reign')) return 'ruby';
-  if (nameLower.includes('rhodium') || nameLower.includes('royalty')) return 'purple';
-  return 'purple';
-};
-
 // Keyframe animations
-const starSparkle = keyframes`
-  0%, 100% { opacity: 0.3; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.2); }
-`;
-
 const spinnerAnimation = keyframes`
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
@@ -108,11 +86,11 @@ const GalaxyContainer = styled.div`
   overflow-x: hidden;
   overflow-y: auto;
   scroll-behavior: smooth;
-  background: linear-gradient(135deg, ${GALAXY_COLORS.deepSpace}, ${GALAXY_COLORS.nebulaPurple});
-  color: ${GALAXY_COLORS.stellarWhite};
+  background: ${T.bg};
+  color: ${T.text};
   z-index: 1;
   min-height: 100vh;
-  
+
   &::before {
     content: '';
     position: fixed;
@@ -120,13 +98,13 @@ const GalaxyContainer = styled.div`
     left: 0;
     right: 0;
     bottom: 0;
-    background: 
-      radial-gradient(2px 2px at 20px 30px, ${GALAXY_COLORS.cyberCyan}, transparent),
-      radial-gradient(1px 1px at 90px 40px, ${GALAXY_COLORS.stellarWhite}, transparent),
-      radial-gradient(1px 1px at 130px 80px, ${GALAXY_COLORS.cyberCyan}, transparent);
+    background:
+      radial-gradient(2px 2px at 20px 30px, rgba(0, 212, 170, 0.6), transparent),
+      radial-gradient(1px 1px at 90px 40px, rgba(240, 248, 255, 0.5), transparent),
+      radial-gradient(1px 1px at 130px 80px, rgba(0, 212, 170, 0.4), transparent);
     background-repeat: repeat;
     background-size: 200px 100px;
-    opacity: 0.2;
+    opacity: 0.15;
     pointer-events: none;
     z-index: -1;
   }
@@ -143,35 +121,20 @@ const AuthBanner = styled.div`
   top: 56px;
   left: 0;
   width: 100%;
-  padding: 12px;
-  background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(120, 81, 169, 0.3));
-  color: white;
+  padding: 12px 1rem;
+  background: ${T.surface};
+  color: ${T.text};
   text-align: center;
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
   font-size: 0.9rem;
   backdrop-filter: blur(15px);
   z-index: 999;
-  border-bottom: 2px solid rgba(0, 255, 255, 0.4);
+  border-bottom: 1px solid rgba(0, 212, 170, 0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1rem;
-  
-  &:before,
-  &:after {
-    content: "";
-    width: 24px;
-    height: 24px;
-    background-image: url(${swanIcon});
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    filter: invert(1) sepia(1) saturate(5) hue-rotate(175deg);
-    animation: ${starSparkle} 2s ease-in-out infinite;
-  }
-  
-  &:after {
-    animation-delay: 0.5s;
-  }
+  gap: 0.75rem;
+  letter-spacing: 0.5px;
 `;
 
 const LoadingContainer = styled.div`
@@ -181,18 +144,23 @@ const LoadingContainer = styled.div`
   min-height: 400px;
   flex-direction: column;
   gap: 1rem;
-  
+
   .spinner {
     width: 50px;
     height: 50px;
-    border: 4px solid rgba(0, 255, 255, 0.1);
-    border-left: 4px solid rgba(0, 255, 255, 0.8);
+    border: 4px solid rgba(0, 212, 170, 0.1);
+    border-left: 4px solid rgba(0, 212, 170, 0.8);
     border-radius: 50%;
-    animation: ${spinnerAnimation} 1s linear infinite;
+    ${noMotion}
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation: ${spinnerAnimation} 1s linear infinite;
+    }
   }
-  
+
   .loading-text {
-    color: rgba(255, 255, 255, 0.8);
+    color: ${T.textSecondary};
+    font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
     font-size: 1.1rem;
   }
 `;
@@ -205,19 +173,21 @@ const ErrorContainer = styled.div`
   flex-direction: column;
   gap: 1rem;
   text-align: center;
-  
+
   .error-title {
+    font-family: 'Cormorant Garamond', 'Georgia', serif;
     font-size: 1.5rem;
-    color: ${GALAXY_COLORS.warningRed};
+    color: ${T.warningRed};
     margin-bottom: 0.5rem;
   }
-  
+
   .error-message {
-    color: rgba(255, 255, 255, 0.8);
+    color: ${T.textSecondary};
+    font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
     font-size: 1.1rem;
     max-width: 600px;
   }
-  
+
   .retry-button {
     margin-top: 1rem;
   }
@@ -229,11 +199,12 @@ const SectionContainer = styled.section`
   margin: 0 auto;
   position: relative;
   z-index: 10;
-  
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+
   @media (max-width: 768px) {
     padding: 3rem 1rem;
   }
-  
+
   @media (max-width: 480px) {
     padding: 2.5rem 0.75rem;
   }
@@ -568,133 +539,133 @@ const OptimizedGalaxyStoreFront: React.FC = () => {
   // Render loading state
   if (isLoadingPackages) {
     return (
-      <GalaxyContainer>
-        {!isAuthenticated && (
-          <AuthBanner>
-            Please login or register to view pricing and purchase training packages
-          </AuthBanner>
-        )}
-        <ContentOverlay style={{ paddingTop: !isAuthenticated ? '60px' : '0' }}>
-          <SectionContainer>
-            <LoadingContainer>
-              <div className="spinner"></div>
-              <div className="loading-text">Loading your luxury Swan packages...</div>
-            </LoadingContainer>
-          </SectionContainer>
-        </ContentOverlay>
-      </GalaxyContainer>
+      <MotionConfig reducedMotion="user">
+        <GalaxyContainer>
+          {!isAuthenticated && (
+            <AuthBanner>
+              Please login or register to view pricing and purchase training packages
+            </AuthBanner>
+          )}
+          <ContentOverlay style={{ paddingTop: !isAuthenticated ? '60px' : '0' }}>
+            <SectionContainer>
+              <LoadingContainer>
+                <div className="spinner"></div>
+                <div className="loading-text">Loading premium training packages...</div>
+              </LoadingContainer>
+            </SectionContainer>
+          </ContentOverlay>
+        </GalaxyContainer>
+      </MotionConfig>
     );
   }
 
   // Render error state
   if (packagesError && packages.length === 0) {
     return (
+      <MotionConfig reducedMotion="user">
+        <GalaxyContainer>
+          {!isAuthenticated && (
+            <AuthBanner>
+              Please login or register to view pricing and purchase training packages
+            </AuthBanner>
+          )}
+          <ContentOverlay style={{ paddingTop: !isAuthenticated ? '60px' : '0' }}>
+            <SectionContainer>
+              <ErrorContainer>
+                <div className="error-title">Failed to Load Packages</div>
+                <div className="error-message">
+                  We couldn't load the training packages. Please try again.
+                </div>
+                <div className="retry-button">
+                  <ThemedGlowButton
+                    text="Retry Loading"
+                    variant="primary"
+                    size="medium"
+                    onClick={fetchPackages}
+                  />
+                </div>
+              </ErrorContainer>
+            </SectionContainer>
+          </ContentOverlay>
+        </GalaxyContainer>
+      </MotionConfig>
+    );
+  }
+
+  // Main render
+  return (
+    <MotionConfig reducedMotion="user">
       <GalaxyContainer>
         {!isAuthenticated && (
           <AuthBanner>
             Please login or register to view pricing and purchase training packages
           </AuthBanner>
         )}
-        <ContentOverlay style={{ paddingTop: !isAuthenticated ? '60px' : '0' }}>
-          <SectionContainer>
-            <ErrorContainer>
-              <div className="error-title">Failed to Load Packages</div>
-              <div className="error-message">
-                We couldn't load the training packages. This might be because the luxury Swan packages need to be restored to the database.
-              </div>
-              <div className="retry-button">
-                <ThemedGlowButton 
-                  text="Retry Loading" 
-                  variant="primary" 
-                  size="medium" 
-                  onClick={fetchPackages}
-                />
-              </div>
-            </ErrorContainer>
-          </SectionContainer>
-        </ContentOverlay>
-      </GalaxyContainer>
-    );
-  }
 
-  // Main render
-  return (
-    <GalaxyContainer>
-      {/* Authentication Banner */}
-      {!isAuthenticated && (
-        <AuthBanner>
-          Please login or register to view pricing and purchase training packages
-        </AuthBanner>
-      )}
-      
-      <ContentOverlay style={{ paddingTop: !isAuthenticated ? '60px' : '0' }}>
-        {/* Hero Section */}
-        <HeroSection 
-          onBookConsultation={handleBookConsultation}
-          onViewPackages={handleViewPackages}
+        <ContentOverlay style={{ paddingTop: !isAuthenticated ? '60px' : '0' }}>
+          <HeroSection
+            onBookConsultation={handleBookConsultation}
+            onViewPackages={handleViewPackages}
+          />
+
+          {hasPackages && (
+            <>
+              <PackagesGrid
+                packages={packages}
+                canViewPrices={canViewPrices}
+                canPurchase={canPurchase}
+                revealPrices={revealPrices}
+                isAddingToCart={isAddingToCart}
+                onTogglePrice={handleTogglePrice}
+                onAddToCart={handleAddToCart}
+              />
+
+              <SectionContainer>
+                <ConsultationButtonContainer>
+                  <ThemedGlowButton
+                    text="Schedule Consultation"
+                    variant="primary"
+                    size="large"
+                    onClick={handleBookConsultation}
+                    {...buttonMotionProps}
+                  />
+                </ConsultationButtonContainer>
+              </SectionContainer>
+            </>
+          )}
+        </ContentOverlay>
+
+        <FloatingCart
+          isAuthenticated={isAuthenticated}
+          cartItemCount={cartItemCount}
+          showPulse={showPulse}
+          onToggleCart={handleToggleCart}
         />
 
-        {/* Packages Grid */}
-        {hasPackages && (
-          <>
-            <PackagesGrid 
-              packages={packages}
-              canViewPrices={canViewPrices}
-              canPurchase={canPurchase}
-              revealPrices={revealPrices}
-              isAddingToCart={isAddingToCart}
-              onTogglePrice={handleTogglePrice}
-              onAddToCart={handleAddToCart}
+        <AnimatePresence mode="wait">
+          {showOrientation && (
+            <OrientationForm
+              key="orientation-modal"
+              onClose={() => setShowOrientation(false)}
             />
-            
-            {/* Consultation Button */}
-            <SectionContainer>
-              <ConsultationButtonContainer>
-                <ThemedGlowButton 
-                  text="Schedule Consultation" 
-                  variant="primary" 
-                  size="large" 
-                  onClick={handleBookConsultation}
-                  {...buttonMotionProps}
-                />
-              </ConsultationButtonContainer>
-            </SectionContainer>
-          </>
-        )}
-      </ContentOverlay>
-
-      {/* Floating Cart Button */}
-      <FloatingCart 
-        isAuthenticated={isAuthenticated}
-        cartItemCount={cartItemCount}
-        showPulse={showPulse}
-        onToggleCart={handleToggleCart}
-      />
-
-      {/* Modals */}
-      <AnimatePresence mode="wait">
-        {showOrientation && (
-          <OrientationForm 
-            key="orientation-modal" 
-            onClose={() => setShowOrientation(false)} 
-          />
-        )}
-        {showCart && (
-          <CheckoutView 
-            key="checkout-modal" 
-            onCancel={handleHideCart}
-            onSuccess={() => {
-              console.log('✅ Checkout completed successfully');
-              handleHideCart();
-              toast({
-                title: "Success!",
-                description: "Your training package purchase is complete!"
-              });
-            }}
-          />
-        )}
-      </AnimatePresence>
-    </GalaxyContainer>
+          )}
+          {showCart && (
+            <CheckoutView
+              key="checkout-modal"
+              onCancel={handleHideCart}
+              onSuccess={() => {
+                console.log('Checkout completed successfully');
+                handleHideCart();
+                toast({
+                  title: "Success!",
+                  description: "Your training package purchase is complete!"
+                });
+              }}
+            />
+          )}
+        </AnimatePresence>
+      </GalaxyContainer>
+    </MotionConfig>
   );
 };
 
