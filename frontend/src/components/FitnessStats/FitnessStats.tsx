@@ -1,5 +1,13 @@
+// ═══════════════════════════════════════════════════
+// FitnessStats V2 — "Our Results in Numbers"
+// ═══════════════════════════════════════════════════
+// Glass-morphism cards matching ProgramsOverview.V3
+// Smoke video background (desktop only)
+// Cormorant Garamond + Source Sans 3 typography
+// ═══════════════════════════════════════════════════
+
 import React, { useState, useEffect, useRef } from "react";
-import styled, { keyframes } from "styled-components";
+import styled, { css } from "styled-components";
 import { motion, useInView, Variants } from "framer-motion";
 import {
   FaUsers,
@@ -7,11 +15,10 @@ import {
   FaFireAlt,
   FaHeartbeat,
   FaClock,
-  FaSwimmer
+  FaSwimmer,
 } from "react-icons/fa";
-
 import {
-  LineChart, 
+  LineChart,
   Line,
   BarChart,
   Bar,
@@ -22,10 +29,52 @@ import {
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell
+  Cell,
 } from "recharts";
+import { useReducedMotion } from "../../hooks/useReducedMotion";
 
-// TypeScript interfaces
+// --- Design Tokens (Ethereal Wilderness, matches ProgramsOverview.V3) ---
+const T = {
+  bg: "#0a0a1a",
+  surface: "rgba(15, 25, 35, 0.92)",
+  primary: "#00D4AA",
+  secondary: "#7851A9",
+  accent: "#48E8C8",
+  text: "#F0F8FF",
+  textSecondary: "#8AA8B8",
+} as const;
+
+// --- Helpers ---
+
+const noMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
+
+function hexToRgb(hex: string): string {
+  hex = hex.replace("#", "");
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  return `${r}, ${g}, ${b}`;
+}
+
+function useIsDesktop(): boolean {
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return isDesktop;
+}
+
+// --- TypeScript Interfaces ---
+
 interface StatItem {
   id: number;
   title: string;
@@ -34,10 +83,7 @@ interface StatItem {
   icon: React.ReactNode;
   color: string;
   prefix?: string;
-  animation: {
-    duration: number;
-    delay: number;
-  };
+  animation: { duration: number; delay: number };
 }
 
 interface ChartDataPoint {
@@ -50,109 +96,121 @@ interface ChartConfig {
   id: string;
   title: string;
   description: string;
-  type: 'line' | 'bar' | 'pie';
+  type: "line" | "bar" | "pie";
   data: ChartDataPoint[];
   colors: string[];
 }
 
 interface IconWrapperProps {
-  color: string;
+  $color: string;
 }
 
-// Fixed custom tooltip props
 interface CustomTooltipProps {
   active?: boolean;
-  payload?: Array<{
-    value: number;
-    unit?: string;
-    name?: string;
-  }>;
+  payload?: Array<{ value: number; unit?: string; name?: string }>;
   label?: string;
 }
 
-// Animation keyframes - Single subtle diagonal glimmer animation every 5 seconds
-const diagonalGlimmer = keyframes`
-  0%, 85% {
-    background-position: -200% 200%;
-    opacity: 0;
-  }
-  90%, 95% {
-    background-position: 0% 0%;
-    opacity: 0.8;
-  }
-  100% {
-    background-position: 200% -200%;
-    opacity: 0;
-  }
-`;
+// --- Styled Components ---
 
-const glow = keyframes`
-  0% {
-    box-shadow: 0 0 5px rgba(0, 212, 170, 0.3);
-  }
-  50% {
-    box-shadow: 0 0 20px rgba(0, 212, 170, 0.5);
-  }
-  100% {
-    box-shadow: 0 0 5px rgba(0, 212, 170, 0.3);
-  }
-`;
-
-// Styled components
 const StatsSection = styled.section`
-  padding: 6rem 2rem;
-  background: linear-gradient(135deg, #0a0a1a, rgba(15, 20, 35, 1));
   position: relative;
   overflow: hidden;
-  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+  padding: 6rem 2rem;
+  font-family: "Source Sans 3", "Source Sans Pro", sans-serif;
+  background: ${T.bg};
+  /* Override global content-visibility: auto that breaks Recharts offscreen */
+  content-visibility: visible;
+
+  @media (max-width: 1024px) {
+    padding: 4rem 1.5rem;
+  }
 
   @media (max-width: 768px) {
-    padding: 3rem 1rem;
+    padding: 4rem 1rem;
+  }
+
+  @media (max-width: 430px) {
+    padding: 3rem 0.75rem;
   }
 `;
 
-const BackgroundGlow = styled.div`
+const SectionVideoBackground = styled.div`
   position: absolute;
-  width: 80vh;
-  height: 80vh;
-  background: radial-gradient(
-    ellipse at center,
-    rgba(0, 212, 170, 0.08) 0%,
-    rgba(120, 81, 169, 0.05) 50%,
-    transparent 70%
-  );
-  border-radius: 50%;
-  top: 30%;
-  left: 20%;
-  filter: blur(80px);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 0;
-  opacity: 0.6;
+
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.25;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      180deg,
+      rgba(10, 10, 26, 0.7) 0%,
+      rgba(10, 10, 26, 0.5) 40%,
+      rgba(10, 10, 26, 0.6) 70%,
+      rgba(10, 10, 26, 0.85) 100%
+    );
+    z-index: 1;
+  }
+`;
+
+const GradientFallback = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  background: radial-gradient(
+      ellipse at 30% 20%,
+      rgba(0, 212, 170, 0.1),
+      transparent 50%
+    ),
+    radial-gradient(
+      ellipse at 70% 80%,
+      rgba(120, 81, 169, 0.06),
+      transparent 50%
+    ),
+    linear-gradient(180deg, ${T.bg} 0%, #0d1a1a 100%);
 `;
 
 const ContentWrapper = styled.div`
   max-width: 1200px;
   margin: 0 auto;
   position: relative;
-  z-index: 1;
+  z-index: 2;
 `;
 
-const TitleContainer = styled.div`
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 2rem;
+const Header = styled.div`
+  text-align: center;
+  margin-bottom: 4rem;
+
+  @media (max-width: 768px) {
+    margin-bottom: 2.5rem;
+  }
 `;
 
 const SectionTitle = styled(motion.h2)`
-  text-align: center;
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
-  color: white;
-  font-family: 'Cormorant Garamond', 'Georgia', serif;
+  font-family: "Cormorant Garamond", "Georgia", serif;
+  font-size: 3rem;
+  font-weight: 600;
   font-style: italic;
-  background: linear-gradient(135deg, #F0F8FF 0%, #00D4AA 100%);
+  margin-bottom: 1.25rem;
+  background: linear-gradient(135deg, ${T.text} 0%, ${T.primary} 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -166,21 +224,20 @@ const SectionTitle = styled(motion.h2)`
     transform: translateX(-50%);
     width: 80px;
     height: 2px;
-    background: linear-gradient(90deg, #00D4AA, #7851A9);
+    background: linear-gradient(90deg, ${T.primary}, ${T.secondary});
     border-radius: 2px;
   }
 
   @media (max-width: 768px) {
-    font-size: clamp(1.6rem, 5vw, 2.2rem);
+    font-size: clamp(1.8rem, 5vw, 2.4rem);
   }
 `;
 
 const SectionSubtitle = styled(motion.p)`
-  text-align: center;
   font-size: 1.1rem;
-  margin-bottom: 1rem;
-  color: #8AA8B8;
+  color: ${T.textSecondary};
   max-width: 600px;
+  margin: 1.5rem auto 0;
   line-height: 1.7;
 
   @media (max-width: 768px) {
@@ -190,343 +247,242 @@ const SectionSubtitle = styled(motion.p)`
 
 const StatsGrid = styled(motion.div)`
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
-  margin-bottom: 3rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
 
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-    gap: 0.75rem;
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
   }
 
-  @media (min-width: 768px) {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1.5rem;
+  @media (max-width: 767px) {
+    grid-template-columns: 1fr;
+    max-width: 450px;
+    margin: 0 auto;
+    gap: 1.25rem;
   }
 `;
 
-// Enhanced 3D StatCard with improved diagonal glimmer
-const StatCard = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(25, 25, 45, 0.95), rgba(10, 10, 25, 0.95));
-  border-radius: 15px;
-  padding: 1.5rem;
+const StatCard = styled.div`
+  position: relative;
+  height: 280px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 212, 170, 0.12);
+  background: ${T.surface};
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   text-align: center;
-  position: relative;
-  overflow: hidden;
-  
-  /* Enhanced 3D effect with stronger shadow and depth */
-  box-shadow: 
-    0 10px 30px rgba(0, 0, 0, 0.5),
-    0 2px 5px rgba(255, 255, 255, 0.05) inset,
-    0 -2px 5px rgba(0, 0, 0, 0.3) inset;
-  
-  backdrop-filter: blur(5px);
-  border: 1px solid rgba(0, 212, 170, 0.08);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-
-  /* Natural diagonal glimmer effect */
-  &:after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      135deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.03) 25%,
-      rgba(255, 255, 255, 0.05) 50%,
-      rgba(255, 255, 255, 0.03) 75%,
-      transparent 100%
-    );
-    background-size: 400% 400%;
-    animation: ${diagonalGlimmer} 12s ease-in-out infinite;
-    pointer-events: none;
-    border-radius: 15px;
-    opacity: 0.6;
-
-    @media (prefers-reduced-motion: reduce) {
-      animation: none;
-    }
-  }
+  padding: 2rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  ${noMotion}
 
   @media (hover: hover) {
     &:hover {
-      transform: translateY(-6px);
-      box-shadow:
-        0 15px 35px rgba(0, 0, 0, 0.5),
-        0 2px 10px rgba(255, 255, 255, 0.1) inset,
-        0 0 20px rgba(0, 212, 170, 0.15);
-      border-color: rgba(0, 212, 170, 0.2);
-
-      &:after {
-        opacity: 1;
-      }
+      transform: translateY(-8px);
+      box-shadow: 0 20px 50px -10px rgba(0, 212, 170, 0.15),
+        0 0 30px rgba(0, 212, 170, 0.05);
+      border-color: rgba(0, 212, 170, 0.3);
     }
+  }
+
+  @media (max-width: 767px) {
+    height: auto;
+    min-height: 220px;
+    padding: 1.5rem;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
   }
 `;
 
-// Enhanced IconWrapper with theme-aligned colors
-const IconWrapper = styled.div<IconWrapperProps>`
-  width: 60px;
-  height: 60px;
+const StatIconWrapper = styled.div<IconWrapperProps>`
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.8rem;
-  margin-bottom: 1rem;
-  background: ${props => `rgba(${hexToRgb(props.color)}, 0.15)`};
-  color: ${props => props.color};
-  position: relative;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  
-  &:before {
-    content: '';
-    position: absolute;
-    top: -3px;
-    left: -3px;
-    right: -3px;
-    bottom: -3px;
-    border-radius: 50%;
-    border: 1px solid ${props => props.color};
-    opacity: 0.5;
-    animation: ${glow} 6s ease-in-out infinite;
-  }
+  margin-bottom: 1.25rem;
+  background: ${(props) => `rgba(${hexToRgb(props.$color)}, 0.12)`};
+  box-shadow: 0 0 20px ${(props) => `rgba(${hexToRgb(props.$color)}, 0.2)`};
+  font-size: 1.6rem;
+  color: ${(props) => props.$color};
+  border: 1px solid ${(props) => `rgba(${hexToRgb(props.$color)}, 0.25)`};
 `;
 
-const StatValue = styled(motion.div)`
-  font-size: 2.5rem;
-  font-weight: 600;
-  color: white;
-  margin-bottom: 0.5rem;
+const StatValueDisplay = styled.div`
+  font-family: "Source Sans 3", "Source Sans Pro", sans-serif;
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  font-weight: 700;
+  color: ${T.text};
   line-height: 1;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); // Added shadow for depth
-  
-  @media (max-width: 768px) {
-    font-size: 2rem;
-  }
-`;
-
-const StatTitle = styled.div`
-  font-size: 1rem;
-  color: #8AA8B8;
   margin-bottom: 0.5rem;
-  font-weight: 500;
-  font-family: 'Cormorant Garamond', 'Georgia', serif;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
 `;
 
-const StatUnit = styled.div`
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.6);
-  font-style: italic;
-`;
-
-// Enhanced 3D ChartCard with improved diagonal glimmer
-const ChartsContainer = styled(motion.div)`
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-  margin-top: 3rem;
-
-  @media (min-width: 768px) {
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 2rem;
-    margin-top: 4rem;
-  }
-`;
-
-const ChartCard = styled(motion.div)`
-  background: linear-gradient(135deg, rgba(25, 25, 45, 0.95), rgba(10, 10, 25, 0.95));
-  border-radius: 15px;
-  padding: 1.5rem;
-  position: relative;
-  overflow: hidden;
-  height: 350px;
-  
-  /* Enhanced 3D effect with stronger shadow and depth */
-  box-shadow: 
-    0 10px 30px rgba(0, 0, 0, 0.5),
-    0 2px 5px rgba(255, 255, 255, 0.05) inset,
-    0 -2px 5px rgba(0, 0, 0, 0.3) inset;
-    
-  backdrop-filter: blur(5px);
-  border: 1px solid rgba(0, 212, 170, 0.08);
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-
-  @media (prefers-reduced-motion: reduce) {
-    transition: none;
-  }
-
-  @media (max-width: 768px) {
-    height: 300px;
-    padding: 1rem;
-  }
-
-  @media (hover: hover) {
-    &:hover {
-      transform: translateY(-6px);
-      box-shadow:
-        0 15px 35px rgba(0, 0, 0, 0.5),
-        0 2px 10px rgba(255, 255, 255, 0.1) inset,
-        0 0 20px rgba(0, 212, 170, 0.15);
-      border-color: rgba(0, 212, 170, 0.2);
-    }
-  }
-`;
-
-const ChartTitle = styled.h3`
-  font-size: 1.3rem;
-  color: white;
-  margin-bottom: 0.5rem;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5); // Added shadow for depth
-  position: relative;
-  z-index: 1;
-  font-family: 'Cormorant Garamond', 'Georgia', serif;
-  
-  &:after {
-    content: "";
-    position: absolute;
-    left: 0;
-    bottom: -5px;
-    width: 40px;
-    height: 2px;
-    background: rgba(255, 255, 255, 0.3);
-  }
-`;
-
-const ChartDescription = styled.p`
-  font-size: 0.9rem;
-  color: #8AA8B8;
-  margin-bottom: 1rem;
-  position: relative;
-  z-index: 1;
-  line-height: 1.5;
-`;
-
-const ChartContent = styled.div`
-  flex: 1;
-  width: 100%;
-  height: 250px;
-  position: relative;
-  z-index: 1;
-`;
-
-// Enhanced tooltip styles
-const TooltipContainer = styled.div`
-  background: rgba(20, 20, 30, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 5px;
-  padding: 0.75rem;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-`;
-
-const TooltipLabel = styled.p`
-  color: white;
+const StatLabel = styled.div`
+  font-family: "Cormorant Garamond", "Georgia", serif;
+  font-size: 1.1rem;
   font-weight: 600;
+  color: ${T.text};
   margin-bottom: 0.25rem;
 `;
 
-const TooltipValue = styled.p`
-  color: #00D4AA;
+const StatUnit = styled.div`
+  font-family: "Source Sans 3", "Source Sans Pro", sans-serif;
+  font-size: 0.85rem;
+  color: ${T.textSecondary};
+  font-style: italic;
 `;
 
-// Helper function to convert hex to rgb
-function hexToRgb(hex: string): string {
-  // Remove # if present
-  hex = hex.replace('#', '');
-  
-  // Parse the hex values
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-  
-  return `${r}, ${g}, ${b}`;
-}
+const ChartsGrid = styled(motion.div)`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2rem;
+  margin-top: 4rem;
 
-// Custom tooltip component
-const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    gap: 1.5rem;
+    margin-top: 3rem;
+  }
+`;
+
+const ChartCard = styled.div`
+  position: relative;
+  height: 380px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 212, 170, 0.12);
+  background: ${T.surface};
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  ${noMotion}
+
+  @media (hover: hover) {
+    &:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 20px 50px -10px rgba(0, 212, 170, 0.15),
+        0 0 30px rgba(0, 212, 170, 0.05);
+      border-color: rgba(0, 212, 170, 0.3);
+    }
+  }
+
+  @media (max-width: 767px) {
+    height: 320px;
+    padding: 1rem;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+`;
+
+const ChartHeader = styled.div`
+  margin-bottom: 1rem;
+`;
+
+const ChartTitle = styled.h3`
+  font-family: "Cormorant Garamond", "Georgia", serif;
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: ${T.text};
+  margin-bottom: 0.5rem;
+`;
+
+const ChartDescription = styled.p`
+  font-family: "Source Sans 3", "Source Sans Pro", sans-serif;
+  font-size: 0.9rem;
+  color: ${T.textSecondary};
+  line-height: 1.5;
+`;
+
+const ChartBody = styled.div`
+  flex: 1;
+  width: 100%;
+  min-height: 240px;
+`;
+
+const TooltipContainer = styled.div`
+  background: rgba(15, 25, 35, 0.95);
+  border: 1px solid rgba(0, 212, 170, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+`;
+
+const TooltipLabel = styled.p`
+  color: ${T.text};
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+`;
+
+const TooltipValue = styled.p`
+  color: ${T.primary};
+  font-size: 0.9rem;
+`;
+
+// --- Custom Tooltip ---
+
+const CustomTooltip: React.FC<CustomTooltipProps> = ({
+  active,
+  payload,
+  label,
+}) => {
   if (active && payload && payload.length > 0) {
     return (
       <TooltipContainer>
         <TooltipLabel>{label}</TooltipLabel>
         <TooltipValue>
-          {payload[0].value} {payload[0].unit || ''}
+          {payload[0].value} {payload[0].unit || ""}
         </TooltipValue>
       </TooltipContainer>
     );
   }
-  
   return null;
 };
 
-// Animation variants
-const sectionVariants: Variants = {
+// --- Animation Variants ---
+
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
-  visible: { 
+  visible: {
     opacity: 1,
-    transition: { 
-      duration: 0.8, // Slowed down
-      staggerChildren: 0.15
-    }
-  }
+    transition: { staggerChildren: 0.12, delayChildren: 0.2 },
+  },
+};
+
+const itemVariants: Variants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" },
+  },
 };
 
 const titleVariants: Variants = {
   hidden: { opacity: 0, y: -20 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: { duration: 0.8 } // Slowed down
-  }
-};
-
-const subtitleVariants: Variants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: { duration: 0.8, delay: 0.3 } // Slowed down
-  }
-};
-
-const cardVariants: Variants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: { 
-    y: 0, 
+  visible: {
     opacity: 1,
-    transition: { 
-      type: "spring",
-      stiffness: 100, // Reduced for slower animation
-      damping: 15,
-      duration: 0.8 // Slowed down
-    }
-  }
+    y: 0,
+    transition: { duration: 0.6, ease: "easeOut" },
+  },
 };
 
-const chartVariants: Variants = {
-  hidden: { opacity: 0, scale: 0.95 },
-  visible: { 
-    opacity: 1, 
-    scale: 1,
-    transition: { 
-      duration: 0.8, // Slowed down
-      ease: "easeOut"
-    } 
-  }
-};
+// --- Data ---
 
-// Updated sample data for stats - removed hot pink colors
 const statItems: StatItem[] = [
   {
     id: 1,
@@ -534,8 +490,8 @@ const statItems: StatItem[] = [
     value: 847,
     unit: "successful journeys",
     icon: <FaUsers />,
-    color: "#00D4AA", // Kept teal
-    animation: { duration: 3.0, delay: 0 } // Slowed down
+    color: "#00D4AA",
+    animation: { duration: 3.0, delay: 0 },
   },
   {
     id: 2,
@@ -543,8 +499,8 @@ const statItems: StatItem[] = [
     value: 12450,
     unit: "pounds collectively",
     icon: <FaWeight />,
-    color: "#00D4AA", // EW primary teal
-    animation: { duration: 3.0, delay: 0.2 } // Slowed down
+    color: "#00D4AA",
+    animation: { duration: 3.0, delay: 0.2 },
   },
   {
     id: 3,
@@ -552,8 +508,8 @@ const statItems: StatItem[] = [
     value: 42810,
     unit: "hours of coaching",
     icon: <FaClock />,
-    color: "#7851A9", // EW secondary purple
-    animation: { duration: 3.0, delay: 0.4 } // Slowed down
+    color: "#7851A9",
+    animation: { duration: 3.0, delay: 0.4 },
   },
   {
     id: 4,
@@ -562,8 +518,8 @@ const statItems: StatItem[] = [
     unit: "million total",
     prefix: "",
     icon: <FaFireAlt />,
-    color: "#7851A9", // EW secondary purple
-    animation: { duration: 3.0, delay: 0.6 } // Slowed down
+    color: "#7851A9",
+    animation: { duration: 3.0, delay: 0.6 },
   },
   {
     id: 5,
@@ -571,8 +527,8 @@ const statItems: StatItem[] = [
     value: 6.3,
     unit: "points",
     icon: <FaHeartbeat />,
-    color: "#48E8C8", // EW accent teal
-    animation: { duration: 3.0, delay: 0.8 } // Slowed down
+    color: "#48E8C8",
+    animation: { duration: 3.0, delay: 0.8 },
   },
   {
     id: 6,
@@ -581,11 +537,10 @@ const statItems: StatItem[] = [
     unit: "confident in the water",
     icon: <FaSwimmer />,
     color: "#48E8C8",
-    animation: { duration: 3.0, delay: 1 }
-  }
+    animation: { duration: 3.0, delay: 1 },
+  },
 ];
 
-// Updated chart data - replaced hot pink with purple/teal
 const chartConfigs: ChartConfig[] = [
   {
     id: "weight-loss",
@@ -604,9 +559,9 @@ const chartConfigs: ChartConfig[] = [
       { name: "Week 9", value: 14.9 },
       { name: "Week 10", value: 16.1 },
       { name: "Week 11", value: 17.5 },
-      { name: "Week 12", value: 19.2 }
+      { name: "Week 12", value: 19.2 },
     ],
-    colors: ["#00D4AA", "#7851a9"] // Kept teal/purple
+    colors: ["#00D4AA", "#7851A9"],
   },
   {
     id: "strength-gains",
@@ -617,9 +572,9 @@ const chartConfigs: ChartConfig[] = [
       { name: "Bench Press", value: 53 },
       { name: "Squat", value: 87 },
       { name: "Deadlift", value: 91 },
-      { name: "Shoulder Press", value: 39 }
+      { name: "Shoulder Press", value: 39 },
     ],
-    colors: ["#00D4AA", "#7851A9"] // EW primary + secondary
+    colors: ["#00D4AA", "#7851A9"],
   },
   {
     id: "client-goals",
@@ -631,234 +586,296 @@ const chartConfigs: ChartConfig[] = [
       { name: "Muscle Gain", value: 28 },
       { name: "Athletic Performance", value: 15 },
       { name: "Overall Health", value: 10 },
-      { name: "Rehabilitation", value: 5 }
+      { name: "Rehabilitation", value: 5 },
     ],
-    colors: ["#00D4AA", "#7851A9", "#48E8C8", "#00B894", "#9B7AC7"] // EW palette: primary, secondary, accent, teal, light purple
-  }
+    colors: ["#00D4AA", "#7851A9", "#48E8C8", "#00B894", "#9B7AC7"],
+  },
 ];
 
+// --- Component ---
+
 const FitnessStats: React.FC = () => {
-  const [animatedValues, setAnimatedValues] = useState<Record<number, number>>(
-    statItems.reduce((acc, item) => ({ ...acc, [item.id]: 0 }), {})
-  );
-  
   const sectionRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
-  
-  // Counter animation effect
+  const isDesktop = useIsDesktop();
+  const prefersReducedMotion = useReducedMotion();
+
+  const [animatedValues, setAnimatedValues] = useState<
+    Record<number, number>
+  >(statItems.reduce((acc, item) => ({ ...acc, [item.id]: 0 }), {}));
+
+  // Counter animation
   useEffect(() => {
     if (!isInView) return;
-    
+
+    // Reduced motion: immediately show final values
+    if (prefersReducedMotion) {
+      setAnimatedValues(
+        statItems.reduce((acc, item) => ({ ...acc, [item.id]: item.value }), {})
+      );
+      return;
+    }
+
     const timers: NodeJS.Timeout[] = [];
-    
+
     statItems.forEach((stat) => {
       const { id, value, animation } = stat;
       const { duration, delay } = animation;
-      
-      // Reset animated value
+
       setAnimatedValues((prev) => ({ ...prev, [id]: 0 }));
-      
-      // Delay start of animation
+
       const timer = setTimeout(() => {
         let startTime: number;
         const animateCount = (timestamp: number) => {
           if (!startTime) startTime = timestamp;
-          
           const progress = (timestamp - startTime) / (duration * 1000);
           const percentage = Math.min(progress, 1);
-          
           const currentValue = Math.floor(percentage * value);
-          
+
           setAnimatedValues((prev) => {
             if (prev[id] === currentValue) return prev;
             return { ...prev, [id]: currentValue };
           });
-          
+
           if (percentage < 1) {
             requestAnimationFrame(animateCount);
           }
         };
-        
         requestAnimationFrame(animateCount);
       }, delay * 1000);
-      
+
       timers.push(timer);
     });
-    
+
     return () => {
       timers.forEach(clearTimeout);
     };
-  }, [isInView]);
-  
-  // Render the charts - FIXED to handle TypeScript properly
+  }, [isInView, prefersReducedMotion]);
+
+  // Reduced-motion-aware animation variants
+  const activeContainerVariants: Variants = prefersReducedMotion
+    ? { hidden: { opacity: 1 }, visible: { opacity: 1 } }
+    : containerVariants;
+
+  const activeItemVariants: Variants = prefersReducedMotion
+    ? { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0 } }
+    : itemVariants;
+
+  const activeTitleVariants: Variants = prefersReducedMotion
+    ? { hidden: { opacity: 1, y: 0 }, visible: { opacity: 1, y: 0 } }
+    : titleVariants;
+
+  // Chart rendering
   const renderChart = (config: ChartConfig): React.ReactNode => {
     const { type, data, colors, id } = config;
-    
-    switch(type) {
-      case 'line':
+
+    switch (type) {
+      case "line":
         return (
-          <div style={{ width: '100%', height: '100%' }}>
-            {/* Fixed ResponsiveContainer by adding width and height props */}
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fill: '#8AA8B8' }}
-                  axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
-                />
-                <YAxis 
-                  tick={{ fill: '#8AA8B8' }}
-                  axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <defs>
-                  <linearGradient id={`lineColorGradient-${id}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={colors[0]} stopOpacity={0.8} />
-                    <stop offset="95%" stopColor={colors[1]} stopOpacity={0.3} />
-                  </linearGradient>
-                </defs>
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke={`url(#lineColorGradient-${id})`}
-                  strokeWidth={3}
-                  dot={{ stroke: colors[0], strokeWidth: 2, r: 4, fill: '#181830' }}
-                  activeDot={{ r: 6, fill: colors[0] }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        );
-        
-      case 'bar':
-        return (
-          <div style={{ width: '100%', height: '100%' }}>
-            {/* Fixed ResponsiveContainer by adding width and height props */}
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fill: '#8AA8B8' }}
-                  axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
-                />
-                <YAxis 
-                  tick={{ fill: '#8AA8B8' }}
-                  axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <defs>
-                  <linearGradient id={`barColorGradient-${id}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={colors[0]} stopOpacity={0.8} />
-                    <stop offset="95%" stopColor={colors[1]} stopOpacity={0.3} />
-                  </linearGradient>
-                </defs>
-                <Bar 
-                  dataKey="value" 
-                  fill={`url(#barColorGradient-${id})`}
-                  radius={[5, 5, 0, 0]}
-                  barSize={40}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        );
-        
-      case 'pie':
-        return (
-          <div style={{ width: '100%', height: '100%' }}>
-            {/* Fixed ResponsiveContainer by adding width and height props */}
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={80}
-                  innerRadius={40}
-                  fill="#7851A9"
-                  dataKey="value"
-                  animationDuration={1500}
+          <ResponsiveContainer width="100%" height={240} debounce={100}>
+            <LineChart
+              data={data}
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="rgba(255,255,255,0.1)"
+              />
+              <XAxis
+                dataKey="name"
+                tick={{ fill: T.textSecondary }}
+                axisLine={{ stroke: "rgba(255,255,255,0.2)" }}
+              />
+              <YAxis
+                tick={{ fill: T.textSecondary }}
+                axisLine={{ stroke: "rgba(255,255,255,0.2)" }}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <defs>
+                <linearGradient
+                  id={`lineGradient-${id}`}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
                 >
-                  {data.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={colors[index % colors.length]} 
-                    />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  content={<CustomTooltip />} 
-                  formatter={(value: any) => [`${value}%`, 'Value']}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+                  <stop offset="5%" stopColor={colors[0]} stopOpacity={0.8} />
+                  <stop offset="95%" stopColor={colors[1]} stopOpacity={0.3} />
+                </linearGradient>
+              </defs>
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke={`url(#lineGradient-${id})`}
+                strokeWidth={3}
+                dot={{
+                  stroke: colors[0],
+                  strokeWidth: 2,
+                  r: 4,
+                  fill: T.bg,
+                }}
+                activeDot={{ r: 6, fill: colors[0] }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
         );
-        
+
+      case "bar":
+        return (
+          <ResponsiveContainer width="100%" height={240} debounce={100}>
+            <BarChart
+              data={data}
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="rgba(255,255,255,0.1)"
+              />
+              <XAxis
+                dataKey="name"
+                tick={{ fill: T.textSecondary }}
+                axisLine={{ stroke: "rgba(255,255,255,0.2)" }}
+              />
+              <YAxis
+                tick={{ fill: T.textSecondary }}
+                axisLine={{ stroke: "rgba(255,255,255,0.2)" }}
+              />
+              <Tooltip content={<CustomTooltip />} />
+              <defs>
+                <linearGradient
+                  id={`barGradient-${id}`}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop offset="5%" stopColor={colors[0]} stopOpacity={0.8} />
+                  <stop offset="95%" stopColor={colors[1]} stopOpacity={0.3} />
+                </linearGradient>
+              </defs>
+              <Bar
+                dataKey="value"
+                fill={`url(#barGradient-${id})`}
+                radius={[5, 5, 0, 0]}
+                barSize={40}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        );
+
+      case "pie":
+        return (
+          <ResponsiveContainer width="100%" height={240} debounce={100}>
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                outerRadius={70}
+                innerRadius={35}
+                fill={T.secondary}
+                dataKey="value"
+                animationDuration={1500}
+              >
+                {data.map((_entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={colors[index % colors.length]}
+                  />
+                ))}
+              </Pie>
+              <Tooltip
+                content={<CustomTooltip />}
+                formatter={(value: any) => [`${value}%`, "Value"]}
+              />
+            </PieChart>
+          </ResponsiveContainer>
+        );
+
       default:
         return null;
     }
   };
-  
+
   return (
     <StatsSection id="stats" ref={sectionRef}>
-      <BackgroundGlow />
+      {/* Background: video on desktop, gradient on mobile */}
+      {isDesktop && !prefersReducedMotion ? (
+        <SectionVideoBackground>
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="metadata"
+            aria-hidden="true"
+          >
+            <source src="/smoke.mp4" type="video/mp4" />
+          </video>
+        </SectionVideoBackground>
+      ) : (
+        <GradientFallback />
+      )}
+
       <ContentWrapper>
-        <TitleContainer>
+        <Header>
           <SectionTitle
-            variants={titleVariants}
+            variants={activeTitleVariants}
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
           >
             Our Results in Numbers
           </SectionTitle>
-          
           <SectionSubtitle
-            variants={subtitleVariants}
+            variants={activeTitleVariants}
             initial="hidden"
             animate={isInView ? "visible" : "hidden"}
           >
-            Proven success metrics from years of transforming lives through elite fitness coaching
+            Proven success metrics from years of transforming lives through
+            elite fitness coaching
           </SectionSubtitle>
-        </TitleContainer>
-        
+        </Header>
+
         <StatsGrid
-          variants={sectionVariants}
+          variants={activeContainerVariants}
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}
         >
           {statItems.map((stat) => (
-            <StatCard key={stat.id} variants={cardVariants}>
-              <IconWrapper color={stat.color}>
-                {stat.icon}
-              </IconWrapper>
-              <StatValue>
-                {stat.prefix && stat.prefix}{animatedValues[stat.id].toLocaleString()}
-              </StatValue>
-              <StatTitle>{stat.title}</StatTitle>
-              <StatUnit>{stat.unit}</StatUnit>
-            </StatCard>
+            <motion.div key={stat.id} variants={activeItemVariants}>
+              <StatCard>
+                <StatIconWrapper $color={stat.color}>
+                  {stat.icon}
+                </StatIconWrapper>
+                <StatValueDisplay>
+                  {stat.prefix !== undefined && stat.prefix}
+                  {animatedValues[stat.id]?.toLocaleString()}
+                </StatValueDisplay>
+                <StatLabel>{stat.title}</StatLabel>
+                <StatUnit>{stat.unit}</StatUnit>
+              </StatCard>
+            </motion.div>
           ))}
         </StatsGrid>
-        
-        <ChartsContainer
-          variants={sectionVariants}
+
+        <ChartsGrid
+          variants={activeContainerVariants}
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}
         >
           {chartConfigs.map((chart) => (
-            <ChartCard key={chart.id} variants={chartVariants}>
-              <ChartTitle>{chart.title}</ChartTitle>
-              <ChartDescription>{chart.description}</ChartDescription>
-              <ChartContent>
-                {renderChart(chart)}
-              </ChartContent>
-            </ChartCard>
+            <motion.div key={chart.id} variants={activeItemVariants}>
+              <ChartCard>
+                <ChartHeader>
+                  <ChartTitle>{chart.title}</ChartTitle>
+                  <ChartDescription>{chart.description}</ChartDescription>
+                </ChartHeader>
+                <ChartBody>{renderChart(chart)}</ChartBody>
+              </ChartCard>
+            </motion.div>
           ))}
-        </ChartsContainer>
+        </ChartsGrid>
       </ContentWrapper>
     </StatsSection>
   );

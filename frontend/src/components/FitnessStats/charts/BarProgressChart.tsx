@@ -6,11 +6,9 @@ import {
   Cell,
   ResponsiveContainer,
   Tooltip,
-  TooltipProps,
   XAxis,
   YAxis,
 } from 'recharts';
-import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 
 interface BarProgressChartProps {
   data: any[];
@@ -28,12 +26,19 @@ interface BarProgressChartProps {
 /**
  * Custom tooltip for the bar chart
  */
-const CustomTooltip = ({
+interface BarTooltipProps {
+  active?: boolean;
+  payload?: Array<{ value: number; name?: string; color?: string }>;
+  label?: string;
+  valueFormatter?: (value: number) => string;
+}
+
+const CustomTooltip: React.FC<BarTooltipProps> = ({
   active,
   payload,
   label,
   valueFormatter
-}: TooltipProps<ValueType, NameType> & { valueFormatter?: (value: number) => string }) => {
+}) => {
   if (active && payload && payload.length) {
     const value = payload[0].value as number;
     const displayValue = valueFormatter ? valueFormatter(value) : value;
@@ -154,7 +159,7 @@ const BarProgressChart: React.FC<BarProgressChartProps> = ({
             name={labelKey || yKey}
             radius={[4, 4, 0, 0]}
           >
-            {data.map((entry, index) => (
+            {data.map((_entry: any, index: number) => (
               <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
             ))}
           </Bar>

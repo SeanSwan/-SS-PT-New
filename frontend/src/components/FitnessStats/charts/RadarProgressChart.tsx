@@ -7,9 +7,7 @@ import {
   RadarChart,
   ResponsiveContainer,
   Tooltip,
-  TooltipProps
 } from 'recharts';
-import { NameType, ValueType } from 'recharts/types/component/DefaultTooltipContent';
 
 interface RadarProgressChartProps {
   data: any[];
@@ -25,11 +23,17 @@ interface RadarProgressChartProps {
 /**
  * Custom tooltip for the radar chart
  */
-const CustomTooltip = ({
+interface RadarTooltipProps {
+  active?: boolean;
+  payload?: Array<{ value: number | string; name?: string; color?: string }>;
+  label?: string;
+}
+
+const CustomTooltip: React.FC<RadarTooltipProps> = ({
   active,
   payload,
   label,
-}: TooltipProps<ValueType, NameType>) => {
+}) => {
   if (active && payload && payload.length) {
     return (
       <div
@@ -43,7 +47,7 @@ const CustomTooltip = ({
         }}
       >
         <p style={{ margin: 0, fontWeight: 'bold', marginBottom: '8px' }}>{label}</p>
-        {payload.map((entry, index) => (
+        {payload.map((entry: { value: number | string; name?: string; color?: string }, index: number) => (
           <p key={`item-${index}`} style={{ margin: 0, display: 'flex', alignItems: 'center' }}>
             <span
               style={{
