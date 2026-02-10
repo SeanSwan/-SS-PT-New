@@ -147,7 +147,7 @@ img, video, iframe, object, embed {
 }
 
 /* Fix for charts and data visualization on mobile
-   NOTE: .recharts-wrapper/.recharts-surface removed — Recharts' ResponsiveContainer
+   NOTE: .recharts-wrapper/.recharts-surface removed -- Recharts' ResponsiveContainer
    handles responsive sizing; overriding width/height breaks its internal measurement. */
 @media screen and (max-width: 767px) {
   .chart-container,

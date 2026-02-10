@@ -245,7 +245,7 @@ const HomePageV2: React.FC = () => {
 
         <SectionDivider />
 
-        {/* Fitness Stats v2.0 — glass-morphism + video background */}
+        {/* Fitness Stats v2.0 - glass-morphism + video background */}
         <Suspense fallback={<SectionLoader>Loading stats</SectionLoader>}>
           <FitnessStats />
         </Suspense>
