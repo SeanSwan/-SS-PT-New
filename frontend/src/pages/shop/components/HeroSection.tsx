@@ -1,43 +1,47 @@
 /**
- * HeroSection.tsx - Decomposed Hero Section Component
+ * HeroSection.tsx - Store Hero Section (EW Theme v2.0)
  * ================================================================
- * Extracted from monolithic GalaxyThemedStoreFront.tsx
- * 
+ * Ethereal Wilderness token migration. Video background preserved.
+ *
  * Responsibilities:
  * - Video background display
  * - Logo and branding
  * - Hero content (title, subtitle, description)
  * - Call-to-action buttons
  * - Scroll indicator
- * 
+ *
  * Performance Optimized:
  * - Memoized to prevent unnecessary re-renders
  * - Optimized scroll event handling
- * - Stable animation references
+ * - Reduced-motion gated animations
  */
 
 import React, { useState, useEffect, useRef, memo } from 'react';
-import styled, { keyframes } from 'styled-components';
-import { motion, useAnimation, useInView } from 'framer-motion';
+import styled, { keyframes, css } from 'styled-components';
+import { motion, useAnimation, useInView, MotionConfig } from 'framer-motion';
 import { ThemedGlowButton } from '../../../styles/swan-theme-utils';
 
-// Galaxy Theme Constants
-const GALAXY_COLORS = {
-  deepSpace: '#0a0a0f',
-  nebulaPurple: '#1e1e3f',
-  cyberCyan: '#00ffff',
-  stellarWhite: '#ffffff',
-  cosmicPurple: '#7851a9',
-  starGold: '#ffd700',
-  energyBlue: '#00c8ff',
-  plasmaGreen: '#00ff88',
-  warningRed: '#ff416c'
-};
+// EW Design Tokens
+const T = {
+  bg: '#0a0a1a',
+  surface: 'rgba(15, 25, 35, 0.92)',
+  primary: '#00D4AA',
+  secondary: '#7851A9',
+  accent: '#48E8C8',
+  text: '#F0F8FF',
+  textSecondary: '#8AA8B8',
+} as const;
+
+const noMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
 
 // Asset paths
 const swanVideo = "/Swans.mp4";
 const logoImg = "/Logo.png";
-const swanIcon = "/Logo.png";
 
 // Keyframe animations
 const float = keyframes`
@@ -46,12 +50,7 @@ const float = keyframes`
   100% { transform: translateY(0px); }
 `;
 
-const starSparkle = keyframes`
-  0%, 100% { opacity: 0.3; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.2); }
-`;
-
-const galacticShimmer = keyframes`
+const shimmer = keyframes`
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 `;
@@ -78,22 +77,22 @@ const VideoBackground = styled.div`
   z-index: 0;
   overflow: hidden;
 
-  &:after {
+  &::after {
     content: "";
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient( 
-      to bottom, 
-      rgba(0, 0, 0, 0.6), 
-      rgba(10, 10, 30, 0.8), 
-      rgba(30, 30, 60, 0.9) 
+    background: linear-gradient(
+      to bottom,
+      rgba(10, 10, 26, 0.5),
+      rgba(10, 10, 26, 0.75),
+      rgba(10, 10, 26, 0.95)
     );
     z-index: 1;
   }
-  
+
   video {
     position: absolute;
     top: 50%;
@@ -113,23 +112,26 @@ const LogoContainer = styled(motion.div)`
   justify-content: center;
   align-items: center;
   width: 100%;
-  animation: ${float} 6s ease-in-out infinite;
-  filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.6));
   margin-bottom: 1.5rem;
   z-index: 2;
-  will-change: transform;
+  filter: drop-shadow(0 0 15px rgba(0, 212, 170, 0.4));
+  ${noMotion}
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: ${float} 6s ease-in-out infinite;
+  }
 
   img {
     height: 160px;
     max-width: 90%;
     object-fit: contain;
   }
-  
+
   @media (max-width: 768px) {
     img { height: 120px; }
     margin-bottom: 1rem;
   }
-  
+
   @media (max-width: 480px) {
     img { height: 100px; }
     margin-bottom: 0.5rem;
@@ -142,13 +144,13 @@ const HeroContent = styled(motion.div)`
   margin: 0 auto;
   position: relative;
   z-index: 2;
-  background: linear-gradient(135deg, rgba(30, 30, 60, 0.6), rgba(120, 81, 169, 0.3));
-  padding: 2rem;
-  border-radius: 20px;
-  backdrop-filter: blur(15px);
-  border: 2px solid rgba(0, 255, 255, 0.3);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-  
+  background: ${T.surface};
+  padding: 2.5rem;
+  border-radius: 16px;
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 212, 170, 0.15);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+
   @media (max-width: 768px) {
     padding: 1.5rem;
   }
@@ -158,111 +160,78 @@ const PremiumBadge = styled(motion.div)`
   position: absolute;
   top: 1.5rem;
   right: 1.5rem;
-  font-family: 'Playfair Display', serif;
-  font-size: 1rem;
-  padding: 12px 20px;
-  border: 2px solid rgba(0, 255, 255, 0.5);
-  border-radius: 8px;
-  background: linear-gradient(135deg, rgba(30, 30, 60, 0.8), rgba(120, 81, 169, 0.6));
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
+  font-size: 0.9rem;
+  padding: 10px 18px;
+  border: 1px solid rgba(0, 212, 170, 0.25);
+  border-radius: 50px;
+  background: rgba(0, 212, 170, 0.1);
   backdrop-filter: blur(10px);
-  color: ${GALAXY_COLORS.stellarWhite};
+  color: ${T.primary};
   z-index: 3;
   letter-spacing: 3px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  
-  &:before {
-    content: "";
-    width: 24px;
-    height: 24px;
-    background-image: url(${swanIcon});
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    filter: invert(1) sepia(1) saturate(5) hue-rotate(175deg);
-  }
-  
-  &:after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(45deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
-    background-size: 200% auto;
-    animation: ${galacticShimmer} 3s linear infinite;
-    border-radius: 8px;
-  }
-`;
-
-const AnimatedName = styled(motion.span)`
-  display: inline-block;
-  background: linear-gradient( 
-    to right, 
-    ${GALAXY_COLORS.cyberCyan}, 
-    ${GALAXY_COLORS.starGold}, 
-    ${GALAXY_COLORS.cosmicPurple}, 
-    ${GALAXY_COLORS.energyBlue}, 
-    ${GALAXY_COLORS.cyberCyan}
-  );
-  background-size: 200% auto;
-  background-clip: text;
-  -webkit-background-clip: text;
-  color: transparent;
-  animation: ${galacticShimmer} 3s linear infinite;
-  padding: 0 5px;
-  text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+  font-weight: 700;
+  text-transform: uppercase;
 `;
 
 const HeroTitle = styled(motion.h1)`
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
   font-size: 3.2rem;
+  font-weight: 600;
   margin-bottom: 1rem;
-  font-weight: 300;
-  color: ${GALAXY_COLORS.stellarWhite};
-  text-shadow: 0 0 15px rgba(0, 255, 255, 0.4);
+  color: ${T.text};
   letter-spacing: 1px;
-  
+  line-height: 1.2;
+
   @media (max-width: 768px) {
     font-size: 2.5rem;
   }
 `;
 
-const HeroSubtitle = styled(motion.h2)`
-  font-size: 1.75rem;
-  margin-bottom: 1.5rem;
-  background: linear-gradient( 
-    to right, 
-    ${GALAXY_COLORS.cyberCyan}, 
-    ${GALAXY_COLORS.starGold}, 
-    ${GALAXY_COLORS.cosmicPurple}, 
-    ${GALAXY_COLORS.energyBlue}
+const AnimatedName = styled(motion.span)`
+  display: inline-block;
+  background: linear-gradient(
+    to right,
+    ${T.primary},
+    ${T.accent},
+    ${T.secondary},
+    ${T.primary}
   );
   background-size: 200% auto;
   background-clip: text;
   -webkit-background-clip: text;
   color: transparent;
-  animation: ${galacticShimmer} 4s linear infinite;
-  display: inline-block;
-  font-weight: 300;
-  
+  ${noMotion}
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: ${shimmer} 4s linear infinite;
+  }
+`;
+
+const HeroSubtitle = styled(motion.h2)`
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin-bottom: 1.5rem;
+  color: ${T.primary};
+  letter-spacing: 1px;
+
   @media (max-width: 768px) {
-    font-size: 1.25rem;
+    font-size: 1.15rem;
   }
 `;
 
 const HeroDescription = styled(motion.p)`
-  font-size: 1.125rem;
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+  font-size: 1.05rem;
   margin-bottom: 2rem;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.9);
-  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
-  max-width: 800px;
+  line-height: 1.7;
+  color: rgba(240, 248, 255, 0.85);
+  max-width: 700px;
   margin: 0 auto 2rem;
-  
+
   @media (max-width: 768px) {
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
 `;
 
@@ -273,7 +242,7 @@ const ButtonsContainer = styled(motion.div)`
   justify-content: center;
   position: relative;
   z-index: 3;
-  
+
   & > div,
   & > button {
     position: relative;
@@ -281,12 +250,12 @@ const ButtonsContainer = styled(motion.div)`
     min-width: 180px;
     max-width: 250px;
   }
-  
+
   @media (max-width: 600px) {
     flex-direction: column;
     gap: 1rem;
     align-items: center;
-    
+
     & > div,
     & > button {
       width: 100%;
@@ -303,17 +272,23 @@ const ScrollIndicator = styled(motion.div)`
   display: flex;
   flex-direction: column;
   align-items: center;
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.7);
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+  font-size: 0.75rem;
+  color: ${T.textSecondary};
   letter-spacing: 2px;
+  text-transform: uppercase;
   z-index: 2;
-  
-  &:after {
-    content: "↓";
+  ${noMotion}
+
+  &::after {
+    content: "\\2193";
     font-size: 1.5rem;
     margin-top: 0.5rem;
-    animation: ${float} 3s ease-in-out infinite;
-    color: ${GALAXY_COLORS.cyberCyan};
+    color: ${T.primary};
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation: ${float} 3s ease-in-out infinite;
+    }
   }
 `;
 
@@ -347,7 +322,6 @@ const itemVariants = {
   }
 };
 
-// Button motion props
 const buttonMotionProps = {
   whileHover: {
     scale: 1.05,
@@ -363,16 +337,15 @@ const buttonMotionProps = {
 };
 
 // Memoized HeroSection Component
-const HeroSection: React.FC<HeroSectionProps> = memo(({ 
-  onBookConsultation, 
-  onViewPackages 
+const HeroSection: React.FC<HeroSectionProps> = memo(({
+  onBookConsultation,
+  onViewPackages
 }) => {
   const [animateScrollIndicator, setAnimateScrollIndicator] = useState(true);
   const heroRef = useRef<HTMLDivElement>(null);
   const heroControls = useAnimation();
   const isHeroInView = useInView(heroRef, { once: true, amount: 0.3 });
 
-  // Optimized scroll handler
   useEffect(() => {
     let ticking = false;
     const handleScroll = () => {
@@ -384,12 +357,11 @@ const HeroSection: React.FC<HeroSectionProps> = memo(({
         ticking = true;
       }
     };
-    
+
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Animation trigger
   useEffect(() => {
     if (isHeroInView) {
       heroControls.start("visible");
@@ -397,82 +369,84 @@ const HeroSection: React.FC<HeroSectionProps> = memo(({
   }, [isHeroInView, heroControls]);
 
   return (
-    <HeroContainer ref={heroRef}>
-      <VideoBackground>
-        <video autoPlay loop muted playsInline key="hero-bg-video">
-          <source src={swanVideo} type="video/mp4" />
-        </video>
-      </VideoBackground>
-      
-      <PremiumBadge 
-        initial={{ opacity: 0, x: 20 }} 
-        animate={heroControls} 
-        variants={itemVariants} 
-        transition={{ delay: 0.5 }}
-      > 
-        PREMIER
-      </PremiumBadge>
+    <MotionConfig reducedMotion="user">
+      <HeroContainer ref={heroRef}>
+        <VideoBackground>
+          <video autoPlay loop muted playsInline key="hero-bg-video">
+            <source src={swanVideo} type="video/mp4" />
+          </video>
+        </VideoBackground>
 
-      <motion.div 
-        initial={{ opacity: 0 }} 
-        animate={heroControls} 
-        variants={containerVariants} 
-        style={{ 
-          width: '100%', 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center', 
-          zIndex: 2 
-        }}
-      >
-        <LogoContainer variants={itemVariants}>
-          <img src={logoImg} alt="Swan Studios Logo" loading="lazy" />
-        </LogoContainer>
-        
-        <HeroContent variants={itemVariants}>
-          <HeroTitle variants={itemVariants}>
-            Elite Training Designed by{' '}
-            <AnimatedName>Sean Swan</AnimatedName>
-          </HeroTitle>
-          <HeroSubtitle variants={itemVariants}>
-            25+ Years of Experience & NASM-Approved Protocols
-          </HeroSubtitle>
-          <HeroDescription variants={itemVariants}>
-            Discover a revolutionary workout program tailored to your unique goals. 
-            Leveraging over two decades of expertise and cutting-edge techniques, 
-            Sean Swan delivers results that redefine your limits.
-          </HeroDescription>
-          <ButtonsContainer variants={itemVariants}>
-            <motion.div {...buttonMotionProps}>
-              <ThemedGlowButton 
-                text="Book Consultation" 
-                variant="primary" 
-                size="large" 
-                onClick={onBookConsultation} 
-              />
-            </motion.div>
-            <motion.div {...buttonMotionProps}>
-              <ThemedGlowButton 
-                text="View Packages" 
-                variant="secondary" 
-                size="large" 
-                onClick={onViewPackages}
-              />
-            </motion.div>
-          </ButtonsContainer>
-        </HeroContent>
-      </motion.div>
-      
-      {animateScrollIndicator && (
-        <ScrollIndicator 
-          initial={{ opacity: 0 }} 
-          animate={{ opacity: [0, 0.7, 0] }} 
-          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+        <PremiumBadge
+          initial={{ opacity: 0, x: 20 }}
+          animate={heroControls}
+          variants={itemVariants}
+          transition={{ delay: 0.5 }}
         >
-          DISCOVER SWANSTUDIOS
-        </ScrollIndicator>
-      )}
-    </HeroContainer>
+          PREMIER
+        </PremiumBadge>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={heroControls}
+          variants={containerVariants}
+          style={{
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            zIndex: 2
+          }}
+        >
+          <LogoContainer variants={itemVariants}>
+            <img src={logoImg} alt="Swan Studios Logo" loading="lazy" />
+          </LogoContainer>
+
+          <HeroContent variants={itemVariants}>
+            <HeroTitle variants={itemVariants}>
+              Elite Training Designed by{' '}
+              <AnimatedName>Sean Swan</AnimatedName>
+            </HeroTitle>
+            <HeroSubtitle variants={itemVariants}>
+              25+ Years of Experience &amp; NASM-Approved Protocols
+            </HeroSubtitle>
+            <HeroDescription variants={itemVariants}>
+              Discover a revolutionary workout program tailored to your unique goals.
+              Leveraging over two decades of expertise and cutting-edge techniques,
+              Sean Swan delivers results that redefine your limits.
+            </HeroDescription>
+            <ButtonsContainer variants={itemVariants}>
+              <motion.div {...buttonMotionProps}>
+                <ThemedGlowButton
+                  text="Book Consultation"
+                  variant="primary"
+                  size="large"
+                  onClick={onBookConsultation}
+                />
+              </motion.div>
+              <motion.div {...buttonMotionProps}>
+                <ThemedGlowButton
+                  text="View Packages"
+                  variant="secondary"
+                  size="large"
+                  onClick={onViewPackages}
+                />
+              </motion.div>
+            </ButtonsContainer>
+          </HeroContent>
+        </motion.div>
+
+        {animateScrollIndicator && (
+          <ScrollIndicator
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.7, 0] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+          >
+            DISCOVER SWANSTUDIOS
+          </ScrollIndicator>
+        )}
+      </HeroContainer>
+    </MotionConfig>
   );
 });
 

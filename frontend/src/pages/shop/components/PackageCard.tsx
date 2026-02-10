@@ -1,39 +1,45 @@
 /**
- * PackageCard.tsx - Decomposed Package Card Component
+ * PackageCard.tsx - Package Card Component (EW Theme v2.0)
  * ================================================================
- * Extracted from monolithic GalaxyThemedStoreFront.tsx
- * 
+ * Ethereal Wilderness glass-morphism card system.
+ * Matches homepage ProgramsOverview.V3 visual language.
+ *
  * Responsibilities:
  * - Individual package display and styling
  * - Price reveal/hide functionality
  * - Add to cart interaction
  * - Theme-based visual styling
  * - Accessibility features
- * 
+ *
  * Performance Optimized:
  * - Memoized to prevent unnecessary re-renders
  * - Stable event handlers
- * - Optimized animations
+ * - Reduced-motion gated animations
  */
 
 import React, { memo, useCallback } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import GlowButton from '../../../components/ui/GlowButton';
+import GlowButton, { type GlowButtonColorScheme } from '../../../components/ui/GlowButton';
 import { SpecialBadge } from './SpecialBadge';
 
-// Galaxy Theme Constants
-const GALAXY_COLORS = {
-  deepSpace: '#0a0a0f',
-  nebulaPurple: '#1e1e3f',
-  cyberCyan: '#00ffff',
-  stellarWhite: '#ffffff',
-  cosmicPurple: '#7851a9',
-  starGold: '#ffd700',
-  energyBlue: '#00c8ff',
-  plasmaGreen: '#00ff88',
-  warningRed: '#ff416c'
-};
+// EW Design Tokens (shared with ProgramsOverview.V3 / FitnessStats V2)
+const T = {
+  bg: '#0a0a1a',
+  surface: 'rgba(15, 25, 35, 0.92)',
+  primary: '#00D4AA',
+  secondary: '#7851A9',
+  accent: '#48E8C8',
+  text: '#F0F8FF',
+  textSecondary: '#8AA8B8',
+} as const;
+
+const noMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
 
 // Package Interface
 interface StoreItem {
@@ -74,37 +80,36 @@ interface PackageCardProps {
   };
 }
 
-// Utility Functions
-const getGalaxyGradient = (theme: string = 'purple') => {
+// Subtle theme accent for card top-border glow
+const getThemeAccent = (theme: string = 'purple') => {
   switch (theme) {
-    case "cosmic":  return 'linear-gradient(135deg, rgba(93, 63, 211, 0.4), rgba(0, 255, 255, 0.3), rgba(255, 46, 99, 0.2))';
-    case "ruby":    return 'linear-gradient(135deg, rgba(232, 0, 70, 0.4), rgba(253, 0, 159, 0.3), rgba(120, 81, 169, 0.2))';
-    case "emerald": return 'linear-gradient(135deg, rgba(0, 232, 176, 0.4), rgba(0, 253, 159, 0.3), rgba(0, 255, 255, 0.2))';
+    case "cosmic":  return 'rgba(93, 63, 211, 0.3)';
+    case "ruby":    return 'rgba(232, 80, 120, 0.3)';
+    case "emerald": return 'rgba(0, 212, 170, 0.3)';
     case "purple":
-    default:        return 'linear-gradient(135deg, rgba(120, 0, 245, 0.4), rgba(120, 81, 169, 0.3), rgba(200, 148, 255, 0.2))';
+    default:        return 'rgba(120, 81, 169, 0.3)';
   }
 };
 
-// Available movie files in public folder (verified via directory listing)
-const AVAILABLE_MOVIES = [
-  'fish.mp4',
-  'forest.mp4', 
-  'Run.mp4',
-  'smoke.mp4',
-  'swan.mp4',
-  'Swans.mp4',
-  'Waves.mp4'
-];
+// Fallback gradient for video error
+const getFallbackGradient = (theme: string = 'purple') => {
+  switch (theme) {
+    case "cosmic":  return `linear-gradient(135deg, rgba(93, 63, 211, 0.4), rgba(0, 212, 170, 0.2))`;
+    case "ruby":    return `linear-gradient(135deg, rgba(232, 80, 120, 0.4), rgba(120, 81, 169, 0.2))`;
+    case "emerald": return `linear-gradient(135deg, rgba(0, 212, 170, 0.4), rgba(72, 232, 200, 0.2))`;
+    case "purple":
+    default:        return `linear-gradient(135deg, rgba(120, 81, 169, 0.4), rgba(200, 148, 255, 0.2))`;
+  }
+};
 
 // Dynamic movie matching utility
 const getMatchingMovieFile = (packageName: string): string | null => {
   if (!packageName) return null;
-  
+
   const nameLower = packageName.toLowerCase();
-  
-  // Direct name matching with priority (using only available files)
+
   const matchingRules = [
-    { keywords: ['silver', 'elite'], movie: 'Swans.mp4' }, // Silver packages get premium Swans video
+    { keywords: ['silver', 'elite'], movie: 'Swans.mp4' },
     { keywords: ['swans', 'multiple', 'platinum', 'premium'], movie: 'Swans.mp4' },
     { keywords: ['swan'], movie: 'swan.mp4' },
     { keywords: ['run', 'running', 'cardio'], movie: 'Run.mp4' },
@@ -113,15 +118,13 @@ const getMatchingMovieFile = (packageName: string): string | null => {
     { keywords: ['smoke', 'intensity', 'transformation'], movie: 'smoke.mp4' },
     { keywords: ['fish', 'aqua', 'marine'], movie: 'fish.mp4' }
   ];
-  
-  // Find best match based on keywords in package name
+
   for (const rule of matchingRules) {
     if (rule.keywords.some(keyword => nameLower.includes(keyword))) {
       return `/${rule.movie}`;
     }
   }
-  
-  // Fallback strategy - use default based on package type or position
+
   const fallbackMovies = ['Waves.mp4', 'forest.mp4', 'smoke.mp4', 'swan.mp4'];
   const fallbackIndex = Math.abs(packageName.length % fallbackMovies.length);
   return `/${fallbackMovies[fallbackIndex]}`;
@@ -129,32 +132,28 @@ const getMatchingMovieFile = (packageName: string): string | null => {
 
 const formatPrice = (price: number | null | undefined): string => {
   if (typeof price !== 'number' || isNaN(price)) { return '$0'; }
-  return price.toLocaleString("en-US", { 
-    style: 'currency', 
-    currency: 'USD', 
-    minimumFractionDigits: 0, 
-    maximumFractionDigits: 0 
+  return price.toLocaleString("en-US", {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   });
 };
 
-// Enhanced function to get package media (video or image)
 const getPackageMedia = (imageUrl: string | null, packageName: string): { type: 'video' | 'image'; url: string } => {
-  // First try to find a matching movie file
   const movieFile = getMatchingMovieFile(packageName);
   if (movieFile) {
     return { type: 'video', url: movieFile };
   }
-  
-  // Fallback to provided image or default texture
-  return { 
-    type: 'image', 
-    url: imageUrl || '/marble-texture.png' 
+  return {
+    type: 'image',
+    url: imageUrl || '/marble-texture.png'
   };
 };
 
 const getValueBadge = (pkg: StoreItem): { text: string; isGoodValue: boolean } => {
   if (!pkg.pricePerSession) return { text: '', isGoodValue: false };
-  
+
   if (pkg.pricePerSession <= 142) {
     return { text: 'Best Value', isGoodValue: true };
   } else if (pkg.pricePerSession <= 150) {
@@ -166,19 +165,20 @@ const getValueBadge = (pkg: StoreItem): { text: string; isGoodValue: boolean } =
 };
 
 // Keyframe animations
-const galacticShimmer = keyframes`
+const shimmer = keyframes`
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
 `;
 
-// Styled Components
-const CosmicPackageCard = styled(motion.div)<{ $theme?: string }>`
+// Styled Components — EW Glass-Morphism Card System
+const CardContainer = styled(motion.div)<{ $theme?: string }>`
   position: relative;
-  border-radius: 25px;
+  border-radius: 16px;
   overflow: hidden;
-  background: ${props => getGalaxyGradient(props.$theme)};
-  border: 2px solid rgba(0, 255, 255, 0.4);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: ${T.surface};
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 212, 170, 0.12);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
   cursor: pointer;
   height: 100%;
@@ -187,51 +187,52 @@ const CosmicPackageCard = styled(motion.div)<{ $theme?: string }>`
   flex-direction: column;
   isolation: isolate;
   z-index: 20;
-  will-change: transform;
-  
+  ${noMotion}
+
   @media (max-width: 768px) {
     min-height: 480px;
-    border-radius: 20px;
   }
-  
+
   &::after {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at 50% 50%, rgba(0, 255, 255, 0.05) 0%, transparent 60%);
-    pointer-events: none;
-    z-index: 0;
+    height: 3px;
+    background: ${props => getThemeAccent(props.$theme)};
+    z-index: 1;
   }
-  
-  &:hover {
-    transform: translateY(-8px) scale(1.02);
-    border-color: rgba(0, 255, 255, 0.7);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 25px rgba(0, 255, 255, 0.3);
-    z-index: 25;
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    &:hover {
+      transform: translateY(-8px);
+      border-color: rgba(0, 212, 170, 0.3);
+      box-shadow:
+        0 20px 50px -10px rgba(0, 212, 170, 0.15),
+        0 0 30px rgba(0, 212, 170, 0.05);
+      z-index: 25;
+    }
   }
-  
-  &:focus {
-    outline: 3px solid rgba(0, 255, 255, 0.8);
-    outline-offset: 4px;
+
+  &:focus-visible {
+    outline: 2px solid ${T.primary};
+    outline-offset: 3px;
   }
 `;
 
-const CosmicCardMedia = styled.div`
+const CardMedia = styled.div`
   width: 100%;
   height: 220px;
   position: relative;
   overflow: hidden;
-  border-radius: 25px 25px 0 0;
-  
+  border-radius: 16px 16px 0 0;
+
   @media (max-width: 768px) {
     height: 180px;
-    border-radius: 20px 20px 0 0;
   }
-  
-  &:before {
+
+  &::before {
     content: "";
     position: absolute;
     top: 0;
@@ -239,51 +240,52 @@ const CosmicCardMedia = styled.div`
     width: 100%;
     height: 100%;
     background: linear-gradient(
-      to bottom, 
-      rgba(0, 0, 0, 0) 0%,
-      rgba(30, 30, 60, 0.4) 60%,
-      rgba(30, 30, 60, 0.8) 100%
+      to bottom,
+      rgba(10, 10, 26, 0) 0%,
+      rgba(10, 10, 26, 0.4) 60%,
+      rgba(10, 10, 26, 0.85) 100%
     );
     z-index: 2;
   }
 `;
 
-// Enhanced media container that supports both video and image
-const CosmicCardMediaContent = styled.div<{$theme?: string}>`
+const MediaContentWrapper = styled.div`
   width: 100%;
   height: 100%;
   position: relative;
   transition: transform 0.4s ease;
-  
-  ${CosmicPackageCard}:hover & {
-    transform: scale(1.08);
+  ${noMotion}
+
+  ${CardContainer}:hover & {
+    @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+      transform: scale(1.05);
+    }
   }
 `;
 
-const CosmicCardVideo = styled.video`
+const CardVideo = styled.video`
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
-  transition: transform 0.4s ease;
-  
+
   &::-webkit-media-controls {
     display: none !important;
   }
-  
+
   &::-webkit-media-controls-panel {
     display: none !important;
   }
 `;
 
-const CosmicCardImage = styled.div<{$imageUrl?: string | null; $theme?: string}>`
+const CardImage = styled.div<{$imageUrl?: string | null; $theme?: string}>`
   width: 100%;
   height: 100%;
   background-image: ${props => props.$imageUrl ? `url(${props.$imageUrl})` : 'none'};
-  background-size: ${props => props.$imageUrl ? 'cover' : '200% 200%'};
+  background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  background: ${props => !props.$imageUrl && getGalaxyGradient(props.$theme)};
+  background-color: ${T.bg};
 `;
 
 // Video/Image wrapper component
@@ -296,8 +298,8 @@ interface MediaContentProps {
 const MediaContent: React.FC<MediaContentProps> = ({ mediaInfo, packageName, theme }) => {
   if (mediaInfo.type === 'video') {
     return (
-      <CosmicCardMediaContent $theme={theme}>
-        <CosmicCardVideo
+      <MediaContentWrapper>
+        <CardVideo
           src={mediaInfo.url}
           autoPlay
           loop
@@ -306,100 +308,101 @@ const MediaContent: React.FC<MediaContentProps> = ({ mediaInfo, packageName, the
           aria-label={`Video background for ${packageName}`}
           onError={(e) => {
             console.warn(`Video failed to load for ${packageName}:`, mediaInfo.url);
-            // Fallback to image background
             const target = e.target as HTMLVideoElement;
             const parent = target.parentElement;
             if (parent) {
-              parent.style.background = getGalaxyGradient(theme);
+              parent.style.background = getFallbackGradient(theme);
               target.style.display = 'none';
             }
           }}
         />
-      </CosmicCardMediaContent>
+      </MediaContentWrapper>
     );
   }
-  
+
   return (
-    <CosmicCardMediaContent $theme={theme}>
-      <CosmicCardImage $imageUrl={mediaInfo.url} $theme={theme} />
-    </CosmicCardMediaContent>
+    <MediaContentWrapper>
+      <CardImage $imageUrl={mediaInfo.url} $theme={theme} />
+    </MediaContentWrapper>
   );
 };
 
-const CosmicCardContent = styled.div`
-  padding: 2rem;
+const CardContent = styled.div`
+  padding: 1.75rem;
   position: relative;
   flex: 1;
   display: flex;
   flex-direction: column;
   z-index: 3;
-  
+
   @media (max-width: 768px) {
     padding: 1.5rem;
   }
-  
-  &:before {
+
+  &::before {
     content: "";
     position: absolute;
     top: 0;
     left: 50%;
     transform: translateX(-50%);
     width: 80%;
-    height: 2px;
+    height: 1px;
     background: linear-gradient(
-      to right, 
-      transparent, 
-      rgba(0, 255, 255, 0.5), 
+      to right,
+      transparent,
+      rgba(0, 212, 170, 0.3),
       transparent
     );
   }
 `;
 
-const CosmicCardTitle = styled.h3`
+const CardTitle = styled.h3`
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
   font-size: 1.8rem;
-  margin-bottom: 1rem;
-  color: ${GALAXY_COLORS.stellarWhite};
-  text-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
   font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: ${T.text};
   line-height: 1.3;
-  
+
   @media (max-width: 768px) {
     font-size: 1.6rem;
   }
-  
+
   @media (min-width: 1024px) {
     font-size: 1.9rem;
   }
 `;
 
-const CosmicBadge = styled.span<{ $theme?: string }>`
+const Badge = styled.span`
   position: absolute;
-  top: 1.5rem;
-  right: 1.5rem;
-  padding: 0.75rem 1.25rem;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(30, 30, 60, 0.8));
-  border-radius: 25px;
-  font-size: 0.85rem;
-  color: ${GALAXY_COLORS.cyberCyan};
-  z-index: 3;
-  border: 1px solid rgba(0, 255, 255, 0.4);
+  top: 1.25rem;
+  right: 1.25rem;
+  padding: 0.5rem 1rem;
+  background: rgba(0, 212, 170, 0.1);
   backdrop-filter: blur(10px);
-  font-weight: 600;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+  border: 1px solid rgba(0, 212, 170, 0.25);
+  border-radius: 50px;
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: ${T.primary};
+  z-index: 3;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 `;
 
-const CosmicDescription = styled.p`
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 1.5rem;
+const CardDescription = styled.p`
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+  font-size: 0.95rem;
+  color: ${T.textSecondary};
+  margin-bottom: 1.25rem;
   line-height: 1.6;
-  font-weight: 300;
-  
+
   @media (max-width: 768px) {
-    font-size: 0.95rem;
-    margin-bottom: 1.25rem;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
   }
-  
+
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -407,96 +410,108 @@ const CosmicDescription = styled.p`
 `;
 
 const SessionInfo = styled.div`
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
   padding: 1rem;
-  background: linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(30, 30, 60, 0.4));
-  border-radius: 15px;
-  border: 1px solid rgba(0, 255, 255, 0.3);
-  backdrop-filter: blur(10px);
-  
+  background: rgba(15, 25, 35, 0.6);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 212, 170, 0.1);
+  backdrop-filter: blur(8px);
+
   .session-details {
-    font-size: 1rem;
-    color: rgba(255, 255, 255, 0.9);
+    font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+    font-size: 0.95rem;
+    color: rgba(240, 248, 255, 0.85);
     margin-bottom: 0.5rem;
   }
-  
+
   .per-session-price {
-    font-size: 1.2rem;
+    font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+    font-size: 1.15rem;
     font-weight: 700;
-    color: ${GALAXY_COLORS.cyberCyan};
-    text-shadow: 0 0 15px rgba(0, 255, 255, 0.6);
+    color: ${T.primary};
   }
 `;
 
-const CosmicPriceBox = styled(motion.div)`
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  border-radius: 15px;
-  background: linear-gradient(135deg, rgba(30, 30, 60, 0.8), rgba(120, 81, 169, 0.4));
-  border: 2px solid rgba(0, 255, 255, 0.4);
+const PriceBox = styled(motion.div)`
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  border-radius: 12px;
+  background: rgba(15, 25, 35, 0.6);
+  border: 1px solid rgba(0, 212, 170, 0.12);
   text-align: center;
   position: relative;
   overflow: hidden;
-  min-height: 120px;
+  min-height: 110px;
   isolation: isolate;
-  
-  &:before {
+
+  &::before {
     content: "";
     position: absolute;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%);
+    background: linear-gradient(135deg, transparent 0%, rgba(0, 212, 170, 0.03) 50%, transparent 100%);
     background-size: 200% 200%;
-    animation: ${galacticShimmer} 8s ease-in-out infinite;
     pointer-events: none;
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation: ${shimmer} 8s ease-in-out infinite;
+    }
   }
+  ${noMotion}
 `;
 
-const CosmicPriceContent = styled(motion.div)`
+const PriceContent = styled(motion.div)`
   position: relative;
   z-index: 1;
 `;
 
 const PriceLabel = styled.div`
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.7);
-  margin-bottom: 0.75rem;
-  letter-spacing: 1px;
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+  font-size: 0.85rem;
+  color: ${T.textSecondary};
+  margin-bottom: 0.5rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
 `;
 
 const Price = styled.div`
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
   font-size: 2.5rem;
-  font-weight: bold;
-  color: ${GALAXY_COLORS.stellarWhite};
+  font-weight: 700;
+  color: ${T.text};
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 0.75rem;
-  text-shadow: 0 0 20px rgba(0, 255, 255, 0.6);
+  margin-bottom: 0.5rem;
 `;
 
 const ValueBadge = styled.div<{ $isGoodValue?: boolean }>`
   display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 50px;
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+  font-size: 0.75rem;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
   ${props => props.$isGoodValue ? `
-    background: linear-gradient(45deg, ${GALAXY_COLORS.plasmaGreen}, #00ffaa);
-    color: #003322;
-    box-shadow: 0 0 15px rgba(0, 255, 136, 0.6);
+    background: rgba(0, 212, 170, 0.15);
+    color: ${T.primary};
+    border: 1px solid rgba(0, 212, 170, 0.25);
   ` : `
-    background: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.7);
+    background: rgba(240, 248, 255, 0.06);
+    color: ${T.textSecondary};
+    border: 1px solid rgba(240, 248, 255, 0.08);
   `}
 `;
 
 const LoginMessage = styled.div`
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
   font-style: italic;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 1rem;
+  color: ${T.textSecondary};
+  font-size: 0.95rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -510,7 +525,7 @@ const CardActions = styled.div`
   padding-top: 1rem;
   position: relative;
   z-index: 30;
-  
+
   & > div {
     width: 90%;
     max-width: 260px;
@@ -555,31 +570,30 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
   onAddToCart,
   activeSpecial
 }) => {
-  // Stable event handlers
+  const cardTheme = (pkg.theme || 'purple') as GlowButtonColorScheme;
+
   const handleCardClick = useCallback(() => {
     onTogglePrice(pkg.id);
   }, [onTogglePrice, pkg.id]);
 
   const handleAddToCart = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
-    
-    // Validate package ID before calling handler
+
     if (!pkg || !pkg.id) {
-      console.error('🚨 BUTTON CLICK ERROR: Invalid package data!', { pkg, pkgId: pkg?.id });
+      console.error('BUTTON CLICK ERROR: Invalid package data!', { pkg, pkgId: pkg?.id });
       return;
     }
-    
-    console.log('🔘 Button clicked for package:', { id: pkg.id, name: pkg.name });
+
+    console.log('Button clicked for package:', { id: pkg.id, name: pkg.name });
     onAddToCart(pkg);
   }, [onAddToCart, pkg]);
 
-  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       onTogglePrice(pkg.id);
     }
   }, [onTogglePrice, pkg.id]);
 
-  // Calculate badge display text
   let badgeDisplay = '';
   if (pkg.packageType === 'fixed' && pkg.sessions) {
     badgeDisplay = `${pkg.sessions} Session${pkg.sessions > 1 ? 's' : ''}`;
@@ -591,13 +605,13 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
   const mediaInfo = getPackageMedia(pkg.imageUrl, pkg.name);
 
   return (
-    <CosmicPackageCard 
+    <CardContainer
       $theme={pkg.theme}
       onClick={handleCardClick}
       aria-label={`View details for ${pkg.name}`}
       role="button"
       tabIndex={0}
-      onKeyPress={handleKeyPress}
+      onKeyDown={handleKeyDown}
       variants={itemVariants}
     >
       {activeSpecial && (
@@ -607,43 +621,43 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
           endsAt={activeSpecial.endsAt}
         />
       )}
-      <CosmicCardMedia>
-        <MediaContent 
+      <CardMedia>
+        <MediaContent
           mediaInfo={mediaInfo}
           packageName={pkg.name}
           theme={pkg.theme}
         />
-        {badgeDisplay && <CosmicBadge $theme={pkg.theme}>{badgeDisplay}</CosmicBadge>}
-      </CosmicCardMedia>
-      
-      <CosmicCardContent>
-        <CosmicCardTitle>{pkg.name}</CosmicCardTitle>
-        <CosmicDescription>
+        {badgeDisplay && <Badge>{badgeDisplay}</Badge>}
+      </CardMedia>
+
+      <CardContent>
+        <CardTitle>{pkg.name}</CardTitle>
+        <CardDescription>
           {pkg.description || 'Premium training package designed for stellar results.'}
-        </CosmicDescription>
-        
+        </CardDescription>
+
         {canViewPrices && pkg.pricePerSession && (
           <SessionInfo>
             <div className="session-details">
-              {pkg.packageType === 'fixed' 
+              {pkg.packageType === 'fixed'
                 ? `${pkg.sessions}${activeSpecial ? ` + ${activeSpecial.bonusSessions} Bonus ` : ' '}training sessions`
-                : `${pkg.months} months • ${pkg.sessionsPerWeek} sessions/week • ${pkg.totalSessions} total sessions`}
+                : `${pkg.months} months \u2022 ${pkg.sessionsPerWeek} sessions/week \u2022 ${pkg.totalSessions} total sessions`}
             </div>
             <div className="per-session-price">
               {formatPrice(pkg.pricePerSession)} per session
             </div>
           </SessionInfo>
         )}
-        
-        <CosmicPriceBox variants={itemVariants} aria-live="polite">
+
+        <PriceBox variants={itemVariants} aria-live="polite">
           <AnimatePresence mode="wait">
             {canViewPrices ? (
               isPriceRevealed ? (
-                <CosmicPriceContent 
-                  key="price" 
-                  initial={{ opacity: 0 }} 
-                  animate={{ opacity: 1 }} 
-                  exit={{ opacity: 0 }} 
+                <PriceContent
+                  key="price"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
                   transition={{ duration: 0.3 }}
                 >
                   <PriceLabel>Total Investment</PriceLabel>
@@ -653,36 +667,36 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
                       {valueBadge.text}
                     </ValueBadge>
                   )}
-                </CosmicPriceContent>
+                </PriceContent>
               ) : (
-                <motion.div 
-                  key="reveal" 
-                  initial={{ opacity: 0 }} 
-                  animate={{ opacity: 1 }} 
-                  exit={{ opacity: 0 }} 
-                  transition={{ duration: 0.3 }} 
-                  style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    height: '100%', 
-                    color: 'rgba(255,255,255,0.7)'
+                <motion.div
+                  key="reveal"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    color: T.textSecondary
                   }}
                 >
                   Click to reveal price
                 </motion.div>
               )
             ) : (
-              <motion.div 
-                key="login" 
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
-                exit={{ opacity: 0 }} 
-                transition={{ duration: 0.3 }} 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
+              <motion.div
+                key="login"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   height: '100%'
                 }}
               >
@@ -690,14 +704,14 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
               </motion.div>
             )}
           </AnimatePresence>
-        </CosmicPriceBox>
-        
+        </PriceBox>
+
         <CardActions>
           <motion.div {...buttonMotionProps} style={{ width: '100%'}}>
-            <GlowButton 
-              text={isAdding ? "Adding..." : "Add to Cart"} 
-              theme={pkg.theme || "purple"}
-              size="medium" 
+            <GlowButton
+              text={isAdding ? "Adding..." : "Add to Cart"}
+              theme={cardTheme}
+              size="medium"
               isLoading={isAdding}
               disabled={isAdding || !canPurchase}
               onClick={handleAddToCart}
@@ -706,8 +720,8 @@ const PackageCard: React.FC<PackageCardProps> = memo(({
             />
           </motion.div>
         </CardActions>
-      </CosmicCardContent>
-    </CosmicPackageCard>
+      </CardContent>
+    </CardContainer>
   );
 });
 

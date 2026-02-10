@@ -1,7 +1,7 @@
 /**
- * PackagesGrid.tsx - Decomposed Packages Grid Component
+ * PackagesGrid.tsx - Packages Grid Component (EW Theme v2.0)
  * ================================================================
- * Extracted from monolithic GalaxyThemedStoreFront.tsx
+ * Ethereal Wilderness section layout with glass-morphism cards.
  *
  * Responsibilities:
  * - Grid layout for packages
@@ -12,23 +12,31 @@
  * Performance Optimized:
  * - Memoized to prevent unnecessary re-renders
  * - Stable animation references
- * - Efficient filtering logic
- *
+ * - MotionConfig for reduced-motion compliance
  */
 
-import React, { memo, useRef, useCallback } from 'react';
-import styled from 'styled-components';
-import { motion, useAnimation, useInView } from 'framer-motion';
+import React, { memo, useRef } from 'react';
+import styled, { css } from 'styled-components';
+import { motion, useAnimation, useInView, MotionConfig } from 'framer-motion';
 import PackageCard from './PackageCard';
 
-// Galaxy Theme Constants
-const GALAXY_COLORS = {
-  stellarWhite: '#ffffff',
-  cyberCyan: '#00ffff'
-};
+// EW Design Tokens
+const T = {
+  bg: '#0a0a1a',
+  surface: 'rgba(15, 25, 35, 0.92)',
+  primary: '#00D4AA',
+  secondary: '#7851A9',
+  accent: '#48E8C8',
+  text: '#F0F8FF',
+  textSecondary: '#8AA8B8',
+} as const;
 
-// Asset paths
-const swanIcon = "/Logo.png";
+const noMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
 
 // Package Interface
 interface StoreItem {
@@ -69,12 +77,6 @@ interface PackagesGridProps {
   onAddToCart: (pkg: StoreItem) => void;
 }
 
-// Keyframe animations
-const starSparkle = `
-  0%, 100% { opacity: 0.3; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1.2); }
-`;
-
 // Styled Components
 const SectionContainer = styled.section`
   padding: 5rem 2rem;
@@ -82,11 +84,12 @@ const SectionContainer = styled.section`
   margin: 0 auto;
   position: relative;
   z-index: 10;
-  
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+
   @media (max-width: 768px) {
     padding: 3rem 1rem;
   }
-  
+
   @media (max-width: 480px) {
     padding: 2.5rem 0.75rem;
   }
@@ -94,7 +97,7 @@ const SectionContainer = styled.section`
 
 const PackageSection = styled(motion.section)`
   margin-bottom: 5rem;
-  
+
   @media (max-width: 768px) {
     margin-bottom: 3rem;
   }
@@ -103,57 +106,39 @@ const PackageSection = styled(motion.section)`
 const SectionTitle = styled(motion.h2)`
   text-align: center;
   margin-bottom: 3rem;
+  font-family: 'Cormorant Garamond', 'Georgia', serif;
   font-size: 2.8rem;
-  font-weight: 300;
+  font-weight: 600;
+  font-style: italic;
   position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
   padding-bottom: 20px;
-  color: ${GALAXY_COLORS.stellarWhite};
   width: 100%;
-  text-shadow: 0 0 20px rgba(0, 255, 255, 0.4);
-  
-  &:before {
-    content: "";
-    width: 32px;
-    height: 32px;
-    background-image: url(${swanIcon});
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    filter: invert(1) sepia(1) saturate(5) hue-rotate(175deg);
-    animation: ${starSparkle} 2s ease-in-out infinite;
+  background: linear-gradient(135deg, ${T.text} 0%, ${T.primary} 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  ${noMotion}
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 2px;
+    background: linear-gradient(90deg, ${T.primary}, ${T.secondary});
+    border-radius: 1px;
   }
-  
-  &:after {
-    content: "";
-    width: 32px;
-    height: 32px;
-    background-image: url(${swanIcon});
-    background-size: contain;
-    background-repeat: no-repeat;
-    background-position: center;
-    filter: invert(1) sepia(1) saturate(5) hue-rotate(175deg);
-    animation: ${starSparkle} 2s ease-in-out infinite 0.5s;
-  }
-  
+
   @media (max-width: 768px) {
     font-size: 2.2rem;
     margin-bottom: 2rem;
-    
-    &:before,
-    &:after {
-      width: 24px;
-      height: 24px;
-    }
   }
 `;
 
 const GalaxyGrid = styled(motion.div)`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 24px;
   max-width: 1400px;
   margin: 0 auto;
@@ -171,6 +156,8 @@ const GalaxyGrid = styled(motion.div)`
 
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
+    max-width: 450px;
+    margin: 0 auto;
   }
 `;
 
@@ -219,21 +206,15 @@ const PackagesGrid: React.FC<PackagesGridProps> = memo(({
   onTogglePrice,
   onAddToCart
 }) => {
-  // Refs for intersection observer
   const fixedPackagesSectionRef = useRef<HTMLDivElement>(null);
   const monthlyPackagesSectionRef = useRef<HTMLDivElement>(null);
 
-  // Animation controls
   const fixedPackagesControls = useAnimation();
   const monthlyPackagesControls = useAnimation();
-  // No custom package section (Phase 6 cleanup)
 
-  // Intersection observers
   const isFixedPackagesInView = useInView(fixedPackagesSectionRef, { once: true, amount: 0.1 });
   const isMonthlyPackagesInView = useInView(monthlyPackagesSectionRef, { once: true, amount: 0.1 });
-  // No custom package section (Phase 6 cleanup)
 
-  // Trigger animations when in view
   React.useEffect(() => {
     if (isFixedPackagesInView) {
       fixedPackagesControls.start("visible");
@@ -246,18 +227,16 @@ const PackagesGrid: React.FC<PackagesGridProps> = memo(({
     }
   }, [isMonthlyPackagesInView, monthlyPackagesControls]);
 
-  // Filter packages by type
-  const fixedPackages = React.useMemo(() => 
-    packages.filter(pkg => pkg.packageType === 'fixed'), 
-    [packages]
-  );
-  
-  const monthlyPackages = React.useMemo(() => 
-    packages.filter(pkg => pkg.packageType === 'monthly'), 
+  const fixedPackages = React.useMemo(() =>
+    packages.filter(pkg => pkg.packageType === 'fixed'),
     [packages]
   );
 
-  // Render package cards
+  const monthlyPackages = React.useMemo(() =>
+    packages.filter(pkg => pkg.packageType === 'monthly'),
+    [packages]
+  );
+
   const renderPackageCards = React.useCallback((packageList: StoreItem[]) => {
     return packageList.map(pkg => (
       <PackageCard
@@ -275,62 +254,63 @@ const PackagesGrid: React.FC<PackagesGridProps> = memo(({
   }, [canViewPrices, canPurchase, revealPrices, isAddingToCart, onTogglePrice, onAddToCart]);
 
   return (
-    <SectionContainer>
-      {/* Fixed Packages Section */}
-      {fixedPackages.length > 0 && (
-        <PackageSection
-          id="packages-section"
-          ref={fixedPackagesSectionRef}
-          initial="hidden"
-          animate={fixedPackagesControls}
-          variants={containerVariants}
-        >
-          <SectionTitle
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            variants={itemVariants}
-          >
-            Premium Training Packages
-          </SectionTitle>
-          <GalaxyGrid
+    <MotionConfig reducedMotion="user">
+      <SectionContainer>
+        {/* Fixed Packages Section */}
+        {fixedPackages.length > 0 && (
+          <PackageSection
+            id="packages-section"
+            ref={fixedPackagesSectionRef}
             initial="hidden"
             animate={fixedPackagesControls}
-            variants={gridVariants}
-            aria-label="Session packages"
+            variants={containerVariants}
           >
-            {renderPackageCards(fixedPackages)}
-          </GalaxyGrid>
-        </PackageSection>
-      )}
+            <SectionTitle
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              variants={itemVariants}
+            >
+              Premium Training Packages
+            </SectionTitle>
+            <GalaxyGrid
+              initial="hidden"
+              animate={fixedPackagesControls}
+              variants={gridVariants}
+              aria-label="Session packages"
+            >
+              {renderPackageCards(fixedPackages)}
+            </GalaxyGrid>
+          </PackageSection>
+        )}
 
-      {/* Monthly Packages Section */}
-      {monthlyPackages.length > 0 && (
-        <PackageSection
-          ref={monthlyPackagesSectionRef}
-          style={fixedPackages.length > 0 ? { marginTop: '0rem' } : {}}
-          initial="hidden"
-          animate={monthlyPackagesControls}
-          variants={containerVariants}
-        >
-          <SectionTitle
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            variants={itemVariants}
-          >
-            Long-Term Excellence Programs
-          </SectionTitle>
-          <GalaxyGrid
+        {/* Monthly Packages Section */}
+        {monthlyPackages.length > 0 && (
+          <PackageSection
+            ref={monthlyPackagesSectionRef}
+            style={fixedPackages.length > 0 ? { marginTop: '0rem' } : {}}
             initial="hidden"
             animate={monthlyPackagesControls}
-            variants={gridVariants}
-            aria-label="Monthly packages"
+            variants={containerVariants}
           >
-            {renderPackageCards(monthlyPackages)}
-          </GalaxyGrid>
-        </PackageSection>
-      )}
-
-    </SectionContainer>
+            <SectionTitle
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              variants={itemVariants}
+            >
+              Long-Term Excellence Programs
+            </SectionTitle>
+            <GalaxyGrid
+              initial="hidden"
+              animate={monthlyPackagesControls}
+              variants={gridVariants}
+              aria-label="Monthly packages"
+            >
+              {renderPackageCards(monthlyPackages)}
+            </GalaxyGrid>
+          </PackageSection>
+        )}
+      </SectionContainer>
+    </MotionConfig>
   );
 });
 

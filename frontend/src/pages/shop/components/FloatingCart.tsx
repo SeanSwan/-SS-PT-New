@@ -1,31 +1,41 @@
 /**
- * FloatingCart.tsx - Decomposed Floating Cart Component
+ * FloatingCart.tsx - Floating Cart Component (EW Theme v2.0)
  * ================================================================
- * Extracted from monolithic GalaxyThemedStoreFront.tsx
- * 
+ * Ethereal Wilderness token migration. Cart FAB with pulse states.
+ *
  * Responsibilities:
  * - Floating cart button display
  * - Cart count indicator
  * - Pulsing animation states
  * - Cart toggle functionality
- * 
+ *
  * Performance Optimized:
  * - Memoized to prevent unnecessary re-renders
- * - Stable animation references
- * - Efficient state management
+ * - Reduced-motion gated animations
  */
 
 import React, { memo } from 'react';
-import styled, { keyframes } from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
+import styled, { keyframes, css } from 'styled-components';
+import { motion, AnimatePresence, MotionConfig } from 'framer-motion';
 
-// Galaxy Theme Constants
-const GALAXY_COLORS = {
-  cosmicPurple: '#7851a9',
-  cyberCyan: '#00ffff',
+// EW Design Tokens
+const T = {
+  bg: '#0a0a1a',
+  surface: 'rgba(15, 25, 35, 0.92)',
+  primary: '#00D4AA',
+  secondary: '#7851A9',
+  accent: '#48E8C8',
+  text: '#F0F8FF',
+  textSecondary: '#8AA8B8',
   warningRed: '#ff416c',
-  nebulaPurple: '#1e1e3f'
-};
+} as const;
+
+const noMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
 
 // Component Props Interface
 interface FloatingCartProps {
@@ -35,14 +45,14 @@ interface FloatingCartProps {
   onToggleCart: () => void;
 }
 
-// AAA 7-STAR ANIMATION KEYFRAMES
+// Keyframe animations
 const stellarPulse = keyframes`
-  0%, 100% { 
-    box-shadow: 0 0 25px rgba(0, 255, 255, 0.4), 0 0 50px rgba(120, 81, 169, 0.3);
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(0, 212, 170, 0.3), 0 0 40px rgba(120, 81, 169, 0.2);
     transform: scale(1);
   }
-  50% { 
-    box-shadow: 0 0 40px rgba(0, 255, 255, 0.7), 0 0 80px rgba(120, 81, 169, 0.5);
+  50% {
+    box-shadow: 0 0 30px rgba(0, 212, 170, 0.5), 0 0 60px rgba(120, 81, 169, 0.35);
     transform: scale(1.05);
   }
 `;
@@ -53,62 +63,67 @@ const cartBounce = keyframes`
   100% { transform: scale(1); }
 `;
 
-// AAA 7-STAR STYLED COMPONENTS
+// Styled Components
 const CartButton = styled(motion.button)`
   position: fixed;
   bottom: 2rem;
   right: 2rem;
-  width: 75px;
-  height: 75px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, ${GALAXY_COLORS.cosmicPurple}, ${GALAXY_COLORS.cyberCyan});
-  border: 3px solid rgba(0, 255, 255, 0.6);
+  background: linear-gradient(135deg, ${T.secondary}, ${T.primary});
+  border: 1px solid rgba(0, 212, 170, 0.3);
   color: white;
-  font-size: 2rem;
+  font-size: 1.6rem;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 
-    0 10px 30px rgba(0, 0, 0, 0.5), 
-    0 0 35px rgba(0, 255, 255, 0.5),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(0, 212, 170, 0.3);
   z-index: 1000;
-  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   backdrop-filter: blur(15px);
-  
-  /* Professional accessibility */
-  &:focus {
-    outline: 3px solid rgba(0, 255, 255, 0.6);
-    outline-offset: 2px;
+  ${noMotion}
+
+  @media (prefers-reduced-motion: no-preference) {
+    transition: all 0.3s ease;
   }
-  
-  &:hover {
-    transform: scale(1.2) rotate(5deg);
-    box-shadow: 
-      0 15px 40px rgba(0, 0, 0, 0.6), 
-      0 0 50px rgba(0, 255, 255, 0.7),
-      inset 0 1px 0 rgba(255, 255, 255, 0.3);
-    animation: ${stellarPulse} 1.8s ease-in-out infinite;
+
+  &:focus-visible {
+    outline: 2px solid ${T.primary};
+    outline-offset: 3px;
   }
-  
-  /* Mobile optimization */
+
+  @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+    &:hover {
+      transform: scale(1.1);
+      border-color: rgba(0, 212, 170, 0.5);
+      box-shadow:
+        0 12px 35px rgba(0, 0, 0, 0.5),
+        0 0 30px rgba(0, 212, 170, 0.4);
+    }
+  }
+
   @media (max-width: 768px) {
     bottom: 1.5rem;
     right: 1.5rem;
-    width: 70px;
-    height: 70px;
-    font-size: 1.8rem;
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
   }
 `;
 
 const PulsingCartButton = styled(CartButton)`
-  animation: ${stellarPulse} 2.5s infinite;
-  box-shadow: 
-    0 12px 35px rgba(0, 0, 0, 0.5), 
-    0 0 40px rgba(0, 255, 255, 0.7),
-    inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.4),
+    0 0 25px rgba(0, 212, 170, 0.4);
+  ${noMotion}
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: ${stellarPulse} 2.5s infinite;
+  }
+
   &::before {
     content: '';
     position: absolute;
@@ -116,55 +131,60 @@ const PulsingCartButton = styled(CartButton)`
     left: -2px;
     right: -2px;
     bottom: -2px;
-    background: linear-gradient(45deg, #00ffff, #7851a9, #00ffff);
+    background: linear-gradient(45deg, ${T.primary}, ${T.secondary}, ${T.primary});
     border-radius: 50%;
     z-index: -1;
-    animation: ${stellarPulse} 2.5s infinite;
-    opacity: 0.8;
+    opacity: 0.6;
+    ${noMotion}
+
+    @media (prefers-reduced-motion: no-preference) {
+      animation: ${stellarPulse} 2.5s infinite;
+    }
   }
 `;
 
 const CartCount = styled.span`
   position: absolute;
-  top: -10px;
-  right: -10px;
-  background: linear-gradient(135deg, ${GALAXY_COLORS.warningRed}, #ff6b9d);
+  top: -8px;
+  right: -8px;
+  background: linear-gradient(135deg, ${T.warningRed}, #ff6b9d);
   color: white;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.95rem;
+  font-family: 'Source Sans 3', 'Source Sans Pro', sans-serif;
+  font-size: 0.85rem;
   font-weight: 700;
-  border: 3px solid rgba(10, 10, 26, 0.9);
-  box-shadow: 
-    0 0 15px rgba(255, 65, 108, 0.7),
-    inset 0 1px 0 rgba(255, 255, 255, 0.3);
-  animation: ${cartBounce} 0.6s ease-in-out;
-  
-  /* Ensure readability */
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-  
+  border: 2px solid ${T.bg};
+  box-shadow: 0 2px 8px rgba(255, 65, 108, 0.5);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  ${noMotion}
+
+  @media (prefers-reduced-motion: no-preference) {
+    animation: ${cartBounce} 0.6s ease-in-out;
+  }
+
   @media (max-width: 768px) {
-    width: 28px;
-    height: 28px;
-    font-size: 0.85rem;
-    top: -8px;
-    right: -8px;
+    width: 24px;
+    height: 24px;
+    font-size: 0.75rem;
+    top: -6px;
+    right: -6px;
   }
 `;
 
-// AAA 7-STAR ANIMATION VARIANTS
+// Animation variants
 const cartButtonVariants = {
-  initial: { 
-    scale: 0.6, 
+  initial: {
+    scale: 0.6,
     opacity: 0,
     rotate: -180
   },
-  animate: { 
-    scale: 1, 
+  animate: {
+    scale: 1,
     opacity: 1,
     rotate: 0,
     transition: {
@@ -174,8 +194,8 @@ const cartButtonVariants = {
       duration: 0.6
     }
   },
-  exit: { 
-    scale: 0.6, 
+  exit: {
+    scale: 0.6,
     opacity: 0,
     rotate: 180,
     transition: {
@@ -191,8 +211,8 @@ const cartButtonVariants = {
 
 const countVariants = {
   initial: { scale: 0, opacity: 0 },
-  animate: { 
-    scale: 1, 
+  animate: {
+    scale: 1,
     opacity: 1,
     transition: {
       type: 'spring',
@@ -201,8 +221,8 @@ const countVariants = {
       delay: 0.2
     }
   },
-  exit: { 
-    scale: 0, 
+  exit: {
+    scale: 0,
     opacity: 0,
     transition: { duration: 0.2 }
   }
@@ -235,67 +255,69 @@ const FloatingCart: React.FC<FloatingCartProps> = memo(({
   const cartLabel = `View Cart (${cartItemCount || 0} items)`;
 
   return (
-    <AnimatePresence mode="wait">
-      {showPulse ? (
-        <PulsingCartButton 
-          className="cart-follow-button"
-          key="pulsing-cart" 
-          onClick={handleCartClick}
-          variants={cartButtonVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          whileTap="tap"
-          aria-label={cartLabel}
-          title={cartLabel}
-        >
-          🛒
-          <AnimatePresence>
-            {cartItemCount > 0 && (
-              <CartCount
-                as={motion.span}
-                variants={countVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                key={cartItemCount} // Re-animate when count changes
-              >
-                {cartItemCount > 99 ? '99+' : cartItemCount}
-              </CartCount>
-            )}
-          </AnimatePresence>
-        </PulsingCartButton>
-      ) : (
-        <CartButton 
-          className="cart-follow-button"
-          key="static-cart" 
-          onClick={handleCartClick}
-          variants={cartButtonVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          whileTap="tap"
-          aria-label={cartLabel}
-          title={cartLabel}
-        >
-          🛒
-          <AnimatePresence>
-            {cartItemCount > 0 && (
-              <CartCount
-                as={motion.span}
-                variants={countVariants}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                key={cartItemCount} // Re-animate when count changes
-              >
-                {cartItemCount > 99 ? '99+' : cartItemCount}
-              </CartCount>
-            )}
-          </AnimatePresence>
-        </CartButton>
-      )}
-    </AnimatePresence>
+    <MotionConfig reducedMotion="user">
+      <AnimatePresence mode="wait">
+        {showPulse ? (
+          <PulsingCartButton
+            className="cart-follow-button"
+            key="pulsing-cart"
+            onClick={handleCartClick}
+            variants={cartButtonVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            whileTap="tap"
+            aria-label={cartLabel}
+            title={cartLabel}
+          >
+            🛒
+            <AnimatePresence>
+              {cartItemCount > 0 && (
+                <CartCount
+                  as={motion.span}
+                  variants={countVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  key={cartItemCount}
+                >
+                  {cartItemCount > 99 ? '99+' : cartItemCount}
+                </CartCount>
+              )}
+            </AnimatePresence>
+          </PulsingCartButton>
+        ) : (
+          <CartButton
+            className="cart-follow-button"
+            key="static-cart"
+            onClick={handleCartClick}
+            variants={cartButtonVariants}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            whileTap="tap"
+            aria-label={cartLabel}
+            title={cartLabel}
+          >
+            🛒
+            <AnimatePresence>
+              {cartItemCount > 0 && (
+                <CartCount
+                  as={motion.span}
+                  variants={countVariants}
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  key={cartItemCount}
+                >
+                  {cartItemCount > 99 ? '99+' : cartItemCount}
+                </CartCount>
+              )}
+            </AnimatePresence>
+          </CartButton>
+        )}
+      </AnimatePresence>
+    </MotionConfig>
   );
 });
 
