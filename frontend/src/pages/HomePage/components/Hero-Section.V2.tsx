@@ -358,7 +358,7 @@ const HeroSectionV2: React.FC = () => {
             loop
             muted
             playsInline
-            preload="auto"
+            preload="metadata"
             poster=""
           >
             <source src="/smoke.mp4" type="video/mp4" />
