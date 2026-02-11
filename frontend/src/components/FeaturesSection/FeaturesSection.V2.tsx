@@ -152,6 +152,13 @@ const FeatureCardWrapper = styled.div`
   cursor: pointer;
   transition: transform 0.3s ease;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  /* Stretch FrostedCard to fill available height */
+  > * {
+    flex: 1;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
@@ -306,7 +313,7 @@ const features: Feature[] = [
 
 const FeaturesSectionV2: React.FC = () => {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: false, amount: 0.2 });
+  const isInView = useInView(ref, { once: true, amount: 0.15 });
   const prefersReducedMotion = useReducedMotion();
 
   // Animation variants
@@ -377,7 +384,7 @@ const FeaturesSectionV2: React.FC = () => {
             animate={isInView ? "visible" : "hidden"}
           >
             {features.map((feature) => (
-              <motion.div key={feature.id} variants={itemVariants}>
+              <motion.div key={feature.id} variants={itemVariants} style={{ height: '100%' }}>
                 <FeatureCardWrapper
                   onClick={() => {
                     window.location.href = feature.linkTo;
