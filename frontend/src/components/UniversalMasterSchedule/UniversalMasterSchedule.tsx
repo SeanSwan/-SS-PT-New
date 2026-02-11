@@ -812,7 +812,6 @@ export default UniversalMasterSchedule;
 const ScheduleContainer = styled.div`
   /* Fit within parent container - parent controls viewport height */
   height: 100%;
-  min-height: 0; /* Allow flex shrinking */
   display: flex;
   flex-direction: column;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
@@ -829,10 +828,14 @@ const ScheduleContainer = styled.div`
   @media (max-width: ${BREAKPOINTS.TABLET}) {
     /* Use simpler background on mobile */
     background: #0f172a;
+    /* On tablet/mobile, allow content to determine height */
+    height: auto;
+    min-height: 100%;
   }
 
   @media (max-width: ${BREAKPOINTS.MOBILE}) {
-    /* On mobile standalone, use viewport height */
-    min-height: 100dvh;
+    /* On mobile, let content flow naturally */
+    height: auto;
+    min-height: auto;
   }
 `;

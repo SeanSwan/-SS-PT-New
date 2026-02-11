@@ -42,7 +42,7 @@ export const SubsectionTitle = styled.h3`
 `;
 
 // Heading variant with primary color
-export const PrimaryHeading = styled.h4`
+export const PrimaryHeading = styled.h2`
   margin: 0;
   font-size: 2rem;
   font-weight: 600;

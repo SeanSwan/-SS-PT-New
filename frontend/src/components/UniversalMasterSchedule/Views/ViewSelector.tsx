@@ -296,7 +296,10 @@ const DateLabel = styled.div`
 
   @media (max-width: 480px) {
     font-size: 0.875rem;
-    width: 220px;
+    /* Flexible width instead of fixed - prevents overflow on small screens */
+    width: auto;
+    flex: 1 1 auto;
+    min-width: 0;
   }
 `;
 
@@ -310,7 +313,7 @@ const TodayButton = styled.button`
   font-weight: 600;
   cursor: pointer;
   transition: all 150ms ease-out;
-  min-height: 36px;
+  min-height: 44px;
   flex-shrink: 0;
 
   &:hover {

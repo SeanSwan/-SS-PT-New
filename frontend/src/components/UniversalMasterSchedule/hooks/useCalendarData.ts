@@ -136,9 +136,9 @@ export const useCalendarData = () => {
   
   // Enhanced loading states
   const [loading, setLoading] = useState({
-    sessions: false,
-    clients: false,
-    trainers: false,
+    sessions: true,
+    clients: true,
+    trainers: true,
     assignments: false,
     refreshing: false
   });
