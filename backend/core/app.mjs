@@ -24,6 +24,12 @@ export const createApp = async () => {
   const app = express();
   const isProduction = process.env.NODE_ENV === 'production';
 
+  // Trust first proxy (Render reverse proxy) so req.ip returns real client IP
+  // Required for accurate rate limiting behind Render's load balancer
+  if (isProduction) {
+    app.set('trust proxy', 1);
+  }
+
   // ===================== PATH SETUP FOR STATIC FILES =====================
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
