@@ -56,7 +56,7 @@ export const BodyText = styled.p<{ secondary?: boolean }>`
   margin: 0;
   font-size: 1rem;
   font-weight: 400;
-  color: ${props => props.secondary ? '${galaxySwanTheme.text.muted}' : '#ffffff'};
+  color: ${props => props.secondary ? galaxySwanTheme.text.muted : galaxySwanTheme.text.primary};
   line-height: 1.5;
 `;
 
@@ -65,7 +65,7 @@ export const SmallText = styled.p<{ secondary?: boolean }>`
   margin: 0;
   font-size: 0.875rem;
   font-weight: 400;
-  color: ${props => props.secondary ? '${galaxySwanTheme.text.muted}' : '#ffffff'};
+  color: ${props => props.secondary ? galaxySwanTheme.text.muted : galaxySwanTheme.text.primary};
   line-height: 1.4;
 `;
 
@@ -73,7 +73,7 @@ export const SmallText = styled.p<{ secondary?: boolean }>`
 export const Caption = styled.span<{ secondary?: boolean }>`
   font-size: 0.75rem;
   font-weight: 400;
-  color: ${props => props.secondary ? '${galaxySwanTheme.text.muted}' : '#ffffff'};
+  color: ${props => props.secondary ? galaxySwanTheme.text.muted : galaxySwanTheme.text.primary};
   line-height: 1.3;
   display: inline-block;
 `;
