@@ -276,6 +276,7 @@ const ScheduleCalendarComponent: React.FC<ScheduleCalendarProps> = ({
         <AgendaView
           date={currentDate}
           sessions={limitedSessions}
+          isAdmin={isAdmin}
           onSelectSession={onSelectSession}
           onEdit={onSelectSession}
           onCancel={onSelectSession}

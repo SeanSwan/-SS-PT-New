@@ -58,6 +58,9 @@ Comprehensive responsive/accessibility overhaul of the Universal Master Schedule
 - ToggleButton: 32px → 36px desktop, 36px → 44px mobile
 - MenuItemButton: 40px → 44px
 - TodayButton: 36px → 44px (done in Fix 2)
+- ActionButton (AgendaView): 32px → 44px
+- ViewTab (ViewSelector): 40px → 44px at all breakpoints
+- NavButton (ViewSelector): 36px → 44px at all breakpoints
 
 **Fix 6: Loading State**
 - **Before:** `loading.sessions` initialized to `false`, spinner didn't show on initial fetch
@@ -80,8 +83,9 @@ Comprehensive responsive/accessibility overhaul of the Universal Master Schedule
 - [ ] **375w mobile:** Stats cards show in 2-column grid (all 4 stats visible)
 - [ ] **768w tablet:** Stats cards show in 2-column grid
 - [ ] **Agenda view:** Only shows sessions within viewed month ±1 week
-- [ ] **Agenda view:** No unbooked "available" slots cluttering the list
-- [ ] **Touch targets:** All interactive elements ≥ 44px on mobile
+- [ ] **Agenda view (client):** No unbooked "available" slots cluttering the list
+- [ ] **Agenda view (admin/trainer):** Unbooked available slots still visible for scheduling
+- [ ] **Touch targets:** All interactive elements ≥ 44px at all breakpoints
 
 ### Should Verify (Important)
 - [ ] **1280w desktop:** No visual regressions in week/month/day views
@@ -114,10 +118,10 @@ Comprehensive responsive/accessibility overhaul of the Universal Master Schedule
 
 ## Prerequisite Documents
 
-1. `UNIVERSAL-SCHEDULE-SYSTEM-MAP.md` — Full architecture reference (90+ files, 23 hooks, 55+ endpoints)
-2. `UNIVERSAL-SCHEDULE-PROD-AUDIT.md` — Playwright audit with 14 findings across 4 viewports
-3. `UNIVERSAL-SCHEDULE-GAP-MATRIX.md` — Gap-to-fix mapping with root causes
-4. `UNIVERSAL-SCHEDULE-IMPLEMENTATION-PLAN.md` — Ordered fix plan with file:line references
+1. `docs/ai-workflow/UNIVERSAL-SCHEDULE-SYSTEM-MAP.md` — Full architecture reference (90+ files, 23 hooks, 55+ endpoints)
+2. `docs/ai-workflow/AI-HANDOFF/UNIVERSAL-SCHEDULE-PROD-AUDIT.md` — Playwright audit with 14 findings across 4 viewports
+3. `docs/ai-workflow/AI-HANDOFF/UNIVERSAL-SCHEDULE-GAP-MATRIX.md` — Gap-to-fix mapping with root causes
+4. `docs/ai-workflow/AI-HANDOFF/UNIVERSAL-SCHEDULE-IMPLEMENTATION-PLAN.md` — Ordered fix plan with file:line references
 
 ---
 

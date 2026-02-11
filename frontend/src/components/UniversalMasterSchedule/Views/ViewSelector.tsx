@@ -184,7 +184,7 @@ const ViewTab = styled.button<{ $active?: boolean }>`
       $active ? galaxySwanTheme.primary.main : galaxySwanTheme.borders.elegant};
   box-shadow: ${({ $active }) => ($active ? galaxySwanTheme.shadows.primaryGlow : 'none')};
   transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: 40px; /* Touch target */
+  min-height: 44px; /* Touch target - WCAG 2.5.8 */
 
   &:hover {
     border-color: ${galaxySwanTheme.primary.main};
@@ -212,13 +212,11 @@ const ViewTab = styled.button<{ $active?: boolean }>`
   @media (max-width: 768px) {
     padding: 0.5rem 0.75rem;
     font-size: 0.85rem;
-    min-height: 42px;
   }
 
   @media (max-width: 480px) {
     padding: 0.4rem 0.6rem;
     font-size: 0.7rem;
-    min-height: 44px;
     border-radius: 8px;
     flex: 0 0 auto;
     white-space: nowrap;
@@ -243,8 +241,8 @@ const DateControls = styled.div`
 `;
 
 const NavButton = styled.button`
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 1px solid ${galaxySwanTheme.borders.elegant};
   background: ${galaxySwanTheme.background.surface};
@@ -268,15 +266,7 @@ const NavButton = styled.button`
     outline-offset: 2px;
   }
 
-  /* Mobile: larger touch targets */
-  @media (max-width: 768px) {
-    width: 40px;
-    height: 40px;
-  }
-
   @media (max-width: 480px) {
-    width: 44px;
-    height: 44px;
     font-size: 1.25rem;
   }
 `;

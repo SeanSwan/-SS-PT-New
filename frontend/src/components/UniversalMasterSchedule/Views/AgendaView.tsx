@@ -11,6 +11,7 @@ export interface AgendaSession extends SessionCardData {
 export interface AgendaViewProps {
   date: Date;
   sessions: AgendaSession[];
+  isAdmin?: boolean;
   onSelectSession?: (session: AgendaSession) => void;
   onEdit?: (session: AgendaSession) => void;
   onCancel?: (session: AgendaSession) => void;
@@ -39,6 +40,7 @@ const stripTime = (value: Date) =>
 const AgendaView: React.FC<AgendaViewProps> = ({
   date,
   sessions,
+  isAdmin = false,
   onSelectSession,
   onEdit,
   onCancel,
@@ -57,8 +59,9 @@ const AgendaView: React.FC<AgendaViewProps> = ({
       const sessionDate = new Date(session.sessionDate);
       // Filter to date range
       if (sessionDate < rangeStart || sessionDate > rangeEnd) return false;
-      // Filter out unbooked available slots (Open Slot / Trainer TBD clutter)
-      if (session.status === 'available' && !session.clientName) return false;
+      // Filter out unbooked available slots for clients only
+      // Admin/trainer need to see open slots for scheduling workflows
+      if (!isAdmin && session.status === 'available' && !session.clientName) return false;
       return true;
     });
 
@@ -323,7 +326,7 @@ const ActionButton = styled.button`
   font-size: 0.7rem;
   cursor: pointer;
   transition: all 150ms ease-out;
-  min-height: 32px;
+  min-height: 44px;
 
   &:hover {
     border-color: ${galaxySwanTheme.primary.main};
@@ -340,7 +343,6 @@ const ActionButton = styled.button`
   }
 
   @media (max-width: 480px) {
-    min-height: 36px;
     padding: 0.35rem 0.75rem;
     font-size: 0.75rem;
   }
