@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { AlertTriangle } from 'lucide-react';
+import { galaxySwanTheme } from '../../../styles/galaxy-swan-theme';
 import {
   PrimaryHeading,
   GridContainer,
@@ -43,26 +44,26 @@ const ScheduleStats: React.FC<ScheduleStatsProps> = ({
           <Caption secondary>Total Sessions</Caption>
         </StatCard>
         <StatCard>
-          <div className="stat-value" style={{ color: '#10b981' }}>
+          <div className="stat-value" style={{ color: galaxySwanTheme.primary.blue }}>
             {sessions.filter(s => s.status === 'available').length}
           </div>
           <Caption secondary>Available</Caption>
         </StatCard>
         <StatCard>
-          <div className="stat-value" style={{ color: '#f59e0b' }}>
+          <div className="stat-value" style={{ color: galaxySwanTheme.secondary.main }}>
             {sessions.filter(s => s.status === 'scheduled').length}
           </div>
           <Caption secondary>Scheduled</Caption>
         </StatCard>
         <StatCard>
-          <div className="stat-value" style={{ color: '#6b7280' }}>
+          <div className="stat-value" style={{ color: galaxySwanTheme.text.muted }}>
             {sessions.filter(s => s.status === 'completed').length}
           </div>
           <Caption secondary>Completed</Caption>
         </StatCard>
         {mode === 'client' && (
           <StatCard>
-            <div className="stat-value" style={{ color: '#38bdf8' }}>
+            <div className="stat-value" style={{ color: galaxySwanTheme.primary.main }}>
               {creditsDisplay}
             </div>
             <Caption secondary>Credits Remaining</Caption>
@@ -133,7 +134,7 @@ const StatCard = styled(Card)`
   .stat-value {
     font-size: 2rem;
     font-weight: 700;
-    color: #3b82f6;
+    color: ${galaxySwanTheme.primary.main};
     margin-bottom: 0.5rem;
     line-height: 1;
   }

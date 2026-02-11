@@ -4,6 +4,7 @@ import {
   DragOverlay,
   KeyboardSensor,
   PointerSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -59,6 +60,9 @@ const DragDropManager: React.FC<DragDropManagerProps> = ({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    // TouchSensor with delay lets the browser distinguish scroll from drag —
+    // without this, touchmove is captured and vertical scroll breaks in DayView
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
     useSensor(KeyboardSensor)
   );
 

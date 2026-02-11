@@ -306,14 +306,16 @@ export default ScheduleCalendar;
 
 const CalendarContainer = styled.div`
   flex: 1 0 auto;
-  overflow: auto;
+  /* Horizontal scroll for wide DayView grids on narrow viewports;
+     vertical scroll delegated to ScheduleContainer parent */
+  overflow-x: auto;
+  overflow-y: visible;
   -webkit-overflow-scrolling: touch;
   margin: 0 2rem 2rem;
   padding: 1.5rem;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  /* Style containment only - layout containment prevents content from sizing container */
   contain: style;
 
   &::-webkit-scrollbar {
@@ -350,7 +352,6 @@ const CalendarContainer = styled.div`
     margin: 0 0.5rem 0.5rem;
     padding: 0.75rem;
     border-radius: 8px;
-    overflow: auto;
   }
 `;
 

@@ -124,7 +124,10 @@ const SelectorContainer = styled.div`
   background: ${galaxySwanTheme.background.surface};
   border: 1px solid ${galaxySwanTheme.borders.elegant};
   border-radius: 12px;
-  backdrop-filter: blur(12px);
+  /* Sticky within the scrolling ScheduleContainer — keeps view tabs visible */
+  position: sticky;
+  top: 0;
+  z-index: 5;
 
   /* Tablet */
   @media (max-width: 1024px) {
@@ -138,8 +141,6 @@ const SelectorContainer = styled.div`
     align-items: stretch;
     padding: 0.75rem 1rem;
     gap: 0.75rem;
-    /* Disable backdrop-filter on mobile for better scroll performance */
-    backdrop-filter: none;
   }
 
   @media (max-width: 480px) {

@@ -7,6 +7,7 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { Loader2 } from 'lucide-react';
+import { galaxySwanTheme } from '../../../styles/galaxy-swan-theme';
 
 // Spin animation
 const spin = keyframes`
@@ -26,7 +27,7 @@ const SpinnerContainer = styled.div<{ size?: number }>`
   svg {
     width: ${props => props.size || 24}px;
     height: ${props => props.size || 24}px;
-    color: #3b82f6;
+    color: ${galaxySwanTheme.primary.main};
   }
 `;
 

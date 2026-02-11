@@ -87,17 +87,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({
   }, [sessions, date]);
 
   return (
-    <AgendaContainer
-      onScroll={(event) => {
-        if (!onLoadMore) {
-          return;
-        }
-        const target = event.currentTarget;
-        if (target.scrollTop + target.clientHeight >= target.scrollHeight - 60) {
-          onLoadMore();
-        }
-      }}
-    >
+    <AgendaContainer>
       {grouped.length === 0 && (
         <EmptyState>No sessions scheduled yet.</EmptyState>
       )}
@@ -165,17 +155,11 @@ const AgendaContainer = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  max-height: 620px;
-  overflow-y: auto;
-  padding-right: 0.5rem;
-  -webkit-overflow-scrolling: touch;
+  /* No max-height or overflow-y here — ScheduleContainer is the single
+     scroll container. Nested scroll created confusing UX. */
 
-  /* P1-5: Prevent nested scroll on mobile - let parent container scroll */
   @media (max-width: 768px) {
     gap: 1.25rem;
-    max-height: none;
-    overflow-y: visible; /* Disable inner scroll, use parent scroll */
-    padding-right: 0;
   }
 
   @media (max-width: 480px) {
