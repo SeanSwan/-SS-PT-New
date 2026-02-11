@@ -353,6 +353,18 @@ const CalendarContainer = styled.div`
     padding: 0.75rem;
     border-radius: 8px;
   }
+
+  /* Large-screen scaling */
+  @media (min-width: 2560px) {
+    margin: 0 2.5rem 2.5rem;
+    padding: 2rem;
+    border-radius: 16px;
+  }
+
+  @media (min-width: 3840px) {
+    margin: 0 3rem 3rem;
+    padding: 2.5rem;
+  }
 `;
 
 const WeekGridContainer = styled.div`
@@ -370,6 +382,15 @@ const WeekGridContainer = styled.div`
 
   @media (max-width: 480px) {
     grid-template-columns: 1fr;
+  }
+
+  /* Large-screen scaling */
+  @media (min-width: 2560px) {
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 3840px) {
+    gap: 1rem;
   }
 `;
 
@@ -456,6 +477,17 @@ const DayCard = styled(Card)`
     min-height: 120px;
     padding: 0.5rem;
   }
+
+  /* Large-screen scaling */
+  @media (min-width: 2560px) {
+    min-height: 240px;
+    padding: 1.25rem;
+  }
+
+  @media (min-width: 3840px) {
+    min-height: 280px;
+    padding: 1.5rem;
+  }
 `;
 
 const DayCardHeader = styled.div`
@@ -492,6 +524,15 @@ const DayNumber = styled.span`
   color: #3b82f6;
   line-height: 1.2;
   margin: 0.5rem 0;
+
+  /* Large-screen scaling */
+  @media (min-width: 2560px) {
+    font-size: 1.75rem;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 2.25rem;
+  }
 `;
 
 const WeekSessionItem = styled.div`
@@ -537,6 +578,19 @@ const QuickBookButton = styled.button`
     font-size: 0.75rem;
     padding: 0.4rem 0.5rem;
   }
+
+  /* Large-screen scaling */
+  @media (min-width: 2560px) {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.6rem;
+    min-height: 40px;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem;
+    min-height: 44px;
+  }
 `;
 
 const SessionMetaRow = styled.div`
@@ -563,6 +617,17 @@ const SessionBadge = styled.span<{ tone: 'blocked' | 'recurring' }>`
   border: 1px solid ${props => props.tone === 'blocked'
     ? 'rgba(148, 163, 184, 0.6)'
     : 'rgba(59, 130, 246, 0.5)'};
+
+  /* Large-screen scaling */
+  @media (min-width: 2560px) {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.6rem;
+  }
 `;
 
 

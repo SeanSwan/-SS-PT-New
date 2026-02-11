@@ -300,6 +300,17 @@ const HeaderContainer = styled.div`
     backdrop-filter: none;
     background: rgba(0, 0, 0, 0.6);
   }
+
+  /* Large-screen scaling */
+  @media (min-width: 2560px) {
+    padding: 2rem 2.5rem;
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 3840px) {
+    padding: 2.5rem 3rem;
+    gap: 2rem;
+  }
 `;
 
 const HeaderActions = styled.div`
@@ -330,6 +341,20 @@ const HeaderActions = styled.div`
       font-size: 0.75rem;
       padding: 0.55rem 0.6rem;
       min-height: 44px;
+    }
+  }
+
+  /* Large-screen scaling */
+  @media (min-width: 2560px) {
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 3840px) {
+    gap: 1rem;
+
+    button {
+      font-size: 1rem;
+      padding: 0.7rem 1.2rem;
     }
   }
 `;

@@ -147,6 +147,17 @@ const SelectorContainer = styled.div`
     padding: 0.625rem 0.75rem;
     border-radius: 10px;
   }
+
+  /* Large-screen scaling */
+  @media (min-width: 2560px) {
+    padding: 1.25rem 2rem;
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 3840px) {
+    padding: 1.5rem 2.5rem;
+    gap: 1.5rem;
+  }
 `;
 
 const Tabs = styled.div`
@@ -222,6 +233,18 @@ const ViewTab = styled.button<{ $active?: boolean }>`
     flex: 0 0 auto;
     white-space: nowrap;
   }
+
+  /* Large-screen scaling */
+  @media (min-width: 2560px) {
+    padding: 0.65rem 1.3rem;
+    font-size: 1.1rem;
+  }
+
+  @media (min-width: 3840px) {
+    padding: 0.75rem 1.5rem;
+    font-size: 1.25rem;
+    min-height: 52px;
+  }
 `;
 
 const DateControls = styled.div`
@@ -270,6 +293,13 @@ const NavButton = styled.button`
   @media (max-width: 480px) {
     font-size: 1.25rem;
   }
+
+  /* Large-screen scaling */
+  @media (min-width: 3840px) {
+    width: 52px;
+    height: 52px;
+    font-size: 1.35rem;
+  }
 `;
 
 const DateLabel = styled.div`
@@ -291,6 +321,17 @@ const DateLabel = styled.div`
     width: auto;
     flex: 1 1 auto;
     min-width: 0;
+  }
+
+  /* Large-screen scaling */
+  @media (min-width: 2560px) {
+    font-size: 1.15rem;
+    width: 320px;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 1.35rem;
+    width: 380px;
   }
 `;
 
@@ -328,6 +369,18 @@ const TodayButton = styled.button`
   @media (max-width: 480px) {
     min-height: 44px;
     padding: 0.5rem 1rem;
+  }
+
+  /* Large-screen scaling */
+  @media (min-width: 2560px) {
+    font-size: 1rem;
+    padding: 0.55rem 1.1rem;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 1.15rem;
+    padding: 0.65rem 1.3rem;
+    min-height: 52px;
   }
 `;
 

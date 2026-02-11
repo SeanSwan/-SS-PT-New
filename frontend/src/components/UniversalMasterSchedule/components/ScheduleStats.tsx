@@ -105,6 +105,18 @@ const StatsPanel = styled.div`
     padding: 0.75rem;
     border-radius: 8px;
   }
+
+  /* Large-screen scaling */
+  @media (min-width: 2560px) {
+    margin: 1.25rem 2.5rem;
+    padding: 2rem;
+    border-radius: 16px;
+  }
+
+  @media (min-width: 3840px) {
+    margin: 1.5rem 3rem;
+    padding: 2.5rem;
+  }
 `;
 
 const CreditWarning = styled.div`
@@ -152,6 +164,23 @@ const StatCard = styled(Card)`
 
     .stat-value {
       font-size: 1.5rem;
+    }
+  }
+
+  /* Large-screen scaling */
+  @media (min-width: 2560px) {
+    padding: 2rem;
+
+    .stat-value {
+      font-size: 2.5rem;
+    }
+  }
+
+  @media (min-width: 3840px) {
+    padding: 2.5rem;
+
+    .stat-value {
+      font-size: 3rem;
     }
   }
 `;
