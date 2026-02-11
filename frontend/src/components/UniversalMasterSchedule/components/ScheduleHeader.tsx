@@ -311,9 +311,14 @@ const HeaderActions = styled.div`
   flex-wrap: wrap;
   justify-content: flex-end;
 
+  @media (max-width: 1024px) {
+    gap: 0.375rem;
+  }
+
   @media (max-width: 768px) {
     width: 100%;
     justify-content: center;
+    gap: 0.375rem;
   }
 
   @media (max-width: 480px) {
@@ -336,7 +341,7 @@ const MenuItemButton = styled(OutlinedButton)`
   justify-content: flex-start;
   font-size: 0.85rem;
   padding: 0.55rem 0.75rem;
-  min-height: 40px;
+  min-height: 44px;
 `;
 
 // MindBody Parity: Admin View Scope Toggle Styles
@@ -365,7 +370,7 @@ const ScopeButton = styled.button<{ $active: boolean }>`
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-height: 36px;
+  min-height: 44px;
   white-space: nowrap;
 
   ${({ $active }) =>
@@ -417,8 +422,8 @@ const ToggleButton = styled.button<{ $active: boolean }>`
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -440,8 +445,8 @@ const ToggleButton = styled.button<{ $active: boolean }>`
       `}
 
   @media (max-width: 480px) {
-    width: 36px;
-    height: 36px;
+    width: 44px;
+    height: 44px;
   }
 `;
 
@@ -452,7 +457,7 @@ const TrainerSelect = styled.select`
   background: rgba(255, 255, 255, 0.1);
   color: white;
   font-size: 0.85rem;
-  min-height: 36px;
+  min-height: 44px;
   cursor: pointer;
   outline: none;
 

@@ -153,9 +153,9 @@ const ScheduleCalendarComponent: React.FC<ScheduleCalendarProps> = ({
                     <Caption secondary>
                       {day.toLocaleDateString('en-US', { weekday: 'short' })}
                     </Caption>
-                    <PrimaryHeading style={{ fontSize: '1.5rem', margin: '0.5rem 0' }}>
+                    <DayNumber>
                       {day.getDate()}
-                    </PrimaryHeading>
+                    </DayNumber>
                     <Caption secondary>{daySessions.length} sessions</Caption>
                   </DayCardHeader>
 
@@ -304,7 +304,7 @@ const ScheduleCalendar = memo(ScheduleCalendarComponent, (prevProps, nextProps) 
 export default ScheduleCalendar;
 
 const CalendarContainer = styled.div`
-  flex: 1;
+  flex: 1 0 auto;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   margin: 0 2rem 2rem;
@@ -312,8 +312,8 @@ const CalendarContainer = styled.div`
   background: rgba(255, 255, 255, 0.05);
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  /* Ensure layout stability - prevent content from causing reflow */
-  contain: layout style;
+  /* Style containment only - layout containment prevents content from sizing container */
+  contain: style;
 
   &::-webkit-scrollbar {
     width: 8px;
@@ -349,10 +349,7 @@ const CalendarContainer = styled.div`
     margin: 0 0.5rem 0.5rem;
     padding: 0.75rem;
     border-radius: 8px;
-    /* Allow both directions for horizontal scrolling tables */
     overflow: auto;
-    /* Reduce containment on mobile for better flexibility */
-    contain: style;
   }
 `;
 
@@ -484,6 +481,15 @@ const DayCardHeader = styled.div`
   @media (max-width: 480px) {
     padding: 0.375rem;
   }
+`;
+
+const DayNumber = styled.span`
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #3b82f6;
+  line-height: 1.2;
+  margin: 0.5rem 0;
 `;
 
 const WeekSessionItem = styled.div`

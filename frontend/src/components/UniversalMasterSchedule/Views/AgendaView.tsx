@@ -37,6 +37,7 @@ const stripTime = (value: Date) =>
   new Date(value.getFullYear(), value.getMonth(), value.getDate());
 
 const AgendaView: React.FC<AgendaViewProps> = ({
+  date,
   sessions,
   onSelectSession,
   onEdit,
@@ -44,14 +45,31 @@ const AgendaView: React.FC<AgendaViewProps> = ({
   onLoadMore
 }) => {
   const grouped = useMemo(() => {
+    // Filter sessions to the viewed month (+/- 1 week buffer)
+    const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+    const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59);
+    const rangeStart = new Date(monthStart);
+    rangeStart.setDate(rangeStart.getDate() - 7);
+    const rangeEnd = new Date(monthEnd);
+    rangeEnd.setDate(rangeEnd.getDate() + 7);
+
+    const filtered = sessions.filter((session) => {
+      const sessionDate = new Date(session.sessionDate);
+      // Filter to date range
+      if (sessionDate < rangeStart || sessionDate > rangeEnd) return false;
+      // Filter out unbooked available slots (Open Slot / Trainer TBD clutter)
+      if (session.status === 'available' && !session.clientName) return false;
+      return true;
+    });
+
     const map = new Map<string, AgendaSession[]>();
-    const sorted = [...sessions].sort((a, b) => {
+    const sorted = [...filtered].sort((a, b) => {
       return new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime();
     });
 
     sorted.forEach((session) => {
-      const date = new Date(session.sessionDate);
-      const key = date.toISOString().slice(0, 10);
+      const sessionDate = new Date(session.sessionDate);
+      const key = sessionDate.toISOString().slice(0, 10);
       if (!map.has(key)) {
         map.set(key, []);
       }
@@ -63,7 +81,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({
       label: formatGroupLabel(new Date(key)),
       sessions: list
     }));
-  }, [sessions]);
+  }, [sessions, date]);
 
   return (
     <AgendaContainer
@@ -108,24 +126,26 @@ const AgendaView: React.FC<AgendaViewProps> = ({
                   <StatusBadge $status={session.isBlocked ? 'blocked' : session.status || 'scheduled'}>
                     {session.isBlocked ? 'Blocked' : session.status || 'Scheduled'}
                   </StatusBadge>
-                  <ActionRow>
-                    {onEdit && (
-                      <ActionButton type="button" onClick={(event) => {
-                        event.stopPropagation();
-                        onEdit(session);
-                      }}>
-                        Edit
-                      </ActionButton>
-                    )}
-                    {onCancel && (
-                      <ActionButton type="button" onClick={(event) => {
-                        event.stopPropagation();
-                        onCancel(session);
-                      }}>
-                        Cancel
-                      </ActionButton>
-                    )}
-                  </ActionRow>
+                  {session.status !== 'cancelled' && session.status !== 'completed' && (
+                    <ActionRow>
+                      {onEdit && (
+                        <ActionButton type="button" onClick={(event) => {
+                          event.stopPropagation();
+                          onEdit(session);
+                        }}>
+                          Edit
+                        </ActionButton>
+                      )}
+                      {onCancel && (
+                        <ActionButton type="button" onClick={(event) => {
+                          event.stopPropagation();
+                          onCancel(session);
+                        }}>
+                          Cancel
+                        </ActionButton>
+                      )}
+                    </ActionRow>
+                  )}
                 </StatusBlock>
               </AgendaRow>
             ))}
