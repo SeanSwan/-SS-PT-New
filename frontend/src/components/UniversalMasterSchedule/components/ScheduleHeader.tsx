@@ -283,8 +283,6 @@ const HeaderContainer = styled.div`
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   flex-shrink: 0;
   gap: 1rem;
-  /* GPU layer promotion for smoother scroll */
-  transform: translateZ(0);
   /* Ensure dropdowns render above ViewSelector below */
   position: relative;
   z-index: 10;

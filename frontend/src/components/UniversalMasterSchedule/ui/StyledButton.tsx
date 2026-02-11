@@ -5,6 +5,7 @@
  */
 
 import styled, { css } from 'styled-components';
+import { galaxySwanTheme } from '../../../styles/galaxy-swan-theme';
 
 // Base button styles
 const baseButtonStyles = css`
@@ -32,7 +33,7 @@ const baseButtonStyles = css`
 
   /* Accessibility: Clear focus indicator */
   &:focus-visible {
-    outline: 2px solid #3b82f6;
+    outline: 2px solid ${galaxySwanTheme.primary.main};
     outline-offset: 2px;
   }
 
@@ -52,13 +53,13 @@ const baseButtonStyles = css`
 // Primary button (filled)
 export const PrimaryButton = styled.button`
   ${baseButtonStyles}
-  background: linear-gradient(135deg, #3b82f6, #1e40af);
-  color: #ffffff;
-  
+  background: ${galaxySwanTheme.gradients.primaryCosmic};
+  color: ${galaxySwanTheme.text.primary};
+
   &:hover:not(:disabled) {
-    background: linear-gradient(135deg, #1e40af, #1e3a8a);
+    filter: brightness(1.1);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    box-shadow: ${galaxySwanTheme.shadows.primaryGlow};
   }
   
   &:active:not(:disabled) {

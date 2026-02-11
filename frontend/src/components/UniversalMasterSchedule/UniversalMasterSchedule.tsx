@@ -810,32 +810,35 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 export default UniversalMasterSchedule;
 
 const ScheduleContainer = styled.div`
-  /* Fit within parent container - parent controls viewport height */
-  height: 100%;
+  /*
+   * Viewport-relative height — bypasses the broken minHeight chain in MainLayout.
+   * The parent Content Box uses flex:1 + overflow:hidden but its own parent has
+   * minHeight (not height), so height:100% never resolved to a definite value.
+   * Using calc(100dvh - 80px) gives a definite constraint from the viewport,
+   * enabling overflow-y:auto to create the scrollbar.
+   * 80px = 64px AppBar + ~16px breathing room for breadcrumbs/padding.
+   */
+  height: calc(100dvh - 80px);
   display: flex;
   flex-direction: column;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
   color: white;
-  /* Allow overflow on Y for scrollable content */
+  /* Primary vertical scroll container for the entire schedule */
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  /* Prevent scroll chaining to parent - fixes "gummy" feel on mobile */
+  /* Prevent scroll chaining to parent — stops "gummy" over-scroll on mobile */
   overscroll-behavior: contain;
-  /* GPU layer promotion for smooth scrolling */
-  transform: translateZ(0);
+  /* GPU hint for smooth scrolling (replaces transform:translateZ(0) which can
+     break native scroll input on some Chromium builds) */
+  will-change: scroll-position;
 
   @media (max-width: ${BREAKPOINTS.TABLET}) {
-    /* Use simpler background on mobile */
     background: #0f172a;
-    /* On tablet/mobile, allow content to determine height */
-    height: auto;
-    min-height: 100%;
+    height: calc(100dvh - 72px);
   }
 
   @media (max-width: ${BREAKPOINTS.MOBILE}) {
-    /* On mobile, let content flow naturally */
-    height: auto;
-    min-height: auto;
+    height: calc(100dvh - 64px);
   }
 `;

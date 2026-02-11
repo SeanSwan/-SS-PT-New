@@ -5,6 +5,7 @@
  */
 
 import styled from 'styled-components';
+import { galaxySwanTheme } from '../../../styles/galaxy-swan-theme';
 
 // Base card (replaces MUI Paper)
 export const Card = styled.div<{ elevated?: boolean; interactive?: boolean }>`
@@ -88,28 +89,28 @@ export const StatCard = styled(Card)`
   .stat-value {
     font-size: 2rem;
     font-weight: 700;
-    color: #3b82f6;
+    color: ${galaxySwanTheme.primary.main};
     margin-bottom: 0.5rem;
     line-height: 1;
   }
-  
+
   .stat-label {
     font-size: 0.875rem;
-    color: #94a3b8;
+    color: ${galaxySwanTheme.text.muted};
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
-  
+
   .stat-change {
     font-size: 0.75rem;
     margin-top: 0.5rem;
-    
+
     &.positive {
-      color: #10b981;
+      color: ${galaxySwanTheme.status?.success || '#10b981'};
     }
-    
+
     &.negative {
-      color: #ef4444;
+      color: ${galaxySwanTheme.status?.error || '#ef4444'};
     }
   }
 `;
