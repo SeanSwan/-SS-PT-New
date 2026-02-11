@@ -227,8 +227,9 @@ const HomePageV2: React.FC = () => {
         <SectionDivider />
 
         {/* ========================================
-            DEFERRED SECTIONS (v1.0 wrapped in V1ThemeBridge)
-            Testimonials, Instagram, Newsletter remain v1.0 for now
+            DEFERRED SECTIONS
+            Testimonials + Newsletter remain v1.0 (V1ThemeBridge)
+            Social Feed + Fitness Stats are v2.0 (EW-native)
             ======================================== */}
 
         {/* Testimonial Slider (v1.0 with bridge) */}
@@ -247,12 +248,10 @@ const HomePageV2: React.FC = () => {
 
         <SectionDivider />
 
-        {/* Instagram Feed (v1.0 with bridge) */}
-        <V1ThemeBridge>
-          <Suspense fallback={<SectionLoader>Loading Instagram feed</SectionLoader>}>
-            <InstagramFeed />
-          </Suspense>
-        </V1ThemeBridge>
+        {/* Social Feed v2.0 - Platform-Diverse Mosaic (EW tokens native) */}
+        <Suspense fallback={<SectionLoader>Loading social feed</SectionLoader>}>
+          <InstagramFeed />
+        </Suspense>
 
         <SectionDivider />
 
