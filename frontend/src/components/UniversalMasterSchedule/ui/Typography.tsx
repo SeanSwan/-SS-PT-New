@@ -14,9 +14,17 @@ export const PageTitle = styled.h1`
   font-weight: 400;
   color: ${galaxySwanTheme.text.primary};
   line-height: 1.2;
-  
+
   @media (max-width: 768px) {
     font-size: 1.5rem;
+  }
+
+  @media (min-width: 2560px) {
+    font-size: 2.5rem;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 3rem;
   }
 `;
 
@@ -27,9 +35,17 @@ export const SectionTitle = styled.h2`
   font-weight: 500;
   color: ${galaxySwanTheme.text.primary};
   line-height: 1.3;
-  
+
   @media (max-width: 768px) {
     font-size: 1.25rem;
+  }
+
+  @media (min-width: 2560px) {
+    font-size: 1.75rem;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 2.25rem;
   }
 `;
 
@@ -49,6 +65,14 @@ export const PrimaryHeading = styled.h2`
   font-weight: 600;
   color: ${galaxySwanTheme.primary.main};
   line-height: 1.2;
+
+  @media (min-width: 2560px) {
+    font-size: 2.5rem;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 3rem;
+  }
 `;
 
 // Body text (regular paragraphs)
@@ -58,6 +82,14 @@ export const BodyText = styled.p<{ secondary?: boolean }>`
   font-weight: 400;
   color: ${props => props.secondary ? galaxySwanTheme.text.muted : galaxySwanTheme.text.primary};
   line-height: 1.5;
+
+  @media (min-width: 2560px) {
+    font-size: 1.125rem;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 1.25rem;
+  }
 `;
 
 // Small body text
@@ -67,6 +99,14 @@ export const SmallText = styled.p<{ secondary?: boolean }>`
   font-weight: 400;
   color: ${props => props.secondary ? galaxySwanTheme.text.muted : galaxySwanTheme.text.primary};
   line-height: 1.4;
+
+  @media (min-width: 2560px) {
+    font-size: 1rem;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 1.125rem;
+  }
 `;
 
 // Caption text (smallest)
@@ -76,6 +116,14 @@ export const Caption = styled.span<{ secondary?: boolean }>`
   color: ${props => props.secondary ? galaxySwanTheme.text.muted : galaxySwanTheme.text.primary};
   line-height: 1.3;
   display: inline-block;
+
+  @media (min-width: 2560px) {
+    font-size: 0.875rem;
+  }
+
+  @media (min-width: 3840px) {
+    font-size: 1rem;
+  }
 `;
 
 // Label text (for forms)

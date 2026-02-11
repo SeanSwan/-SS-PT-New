@@ -63,11 +63,13 @@ interface UniversalMasterScheduleProps {
   userId?: string | number;
 }
 
-// Mobile-First Breakpoints (Consistent with Theme)
+// Responsive Breakpoints (Consistent with Theme)
 const BREAKPOINTS = {
   MOBILE: '480px',
   TABLET: '768px',
-  DESKTOP: '1024px'
+  DESKTOP: '1024px',
+  QHD: '2560px',
+  UHD: '3840px'
 };
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
@@ -811,7 +813,7 @@ export default UniversalMasterSchedule;
 
 const ScheduleContainer = styled.div`
   /*
-   * Viewport-relative height — bypasses the broken minHeight chain in MainLayout.
+   * Viewport-relative height -- bypasses the broken minHeight chain in MainLayout.
    * The parent Content Box uses flex:1 + overflow:hidden but its own parent has
    * minHeight (not height), so height:100% never resolved to a definite value.
    * --shell-chrome is the combined height of AppBar + any breadcrumbs/padding
@@ -827,7 +829,7 @@ const ScheduleContainer = styled.div`
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  /* Prevent scroll chaining to parent — stops "gummy" over-scroll on mobile */
+  /* Prevent scroll chaining to parent -- stops "gummy" over-scroll on mobile */
   overscroll-behavior: contain;
   /* GPU hint for smooth scrolling (replaces transform:translateZ(0) which can
      break native scroll input on some Chromium builds) */
@@ -840,5 +842,16 @@ const ScheduleContainer = styled.div`
 
   @media (max-width: ${BREAKPOINTS.MOBILE}) {
     --shell-chrome: 64px;
+  }
+
+  /* Large-screen scaling: constrain content width + increase breathing room */
+  @media (min-width: ${BREAKPOINTS.QHD}) {
+    padding-left: 5%;
+    padding-right: 5%;
+  }
+
+  @media (min-width: ${BREAKPOINTS.UHD}) {
+    padding-left: 12%;
+    padding-right: 12%;
   }
 `;
