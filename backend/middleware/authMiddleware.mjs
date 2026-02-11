@@ -153,8 +153,8 @@
  * - Data isolation: Trainers only see assigned clients
  * - Privacy: Client A's data hidden from Client B's trainer
  * - Business logic: Trainer-client assignments managed by admins
- * - TODO noted: Full implementation needs TrainerClient junction table
- * - Current: Trainers can access all clients (permissive, needs refinement)
+ * - Implemented: ClientTrainerAssignment junction table enforces trainer-client scope
+ * - Current: Trainers can only access their assigned clients (checkTrainerClientRelationship)
  *
  * WHY Simple Rate Limiter (Not External Library)?
  * - Zero dependencies: No express-rate-limit or rate-limiter-flexible
@@ -677,21 +677,17 @@ export const checkTrainerClientRelationship = async (req, res, next) => {
   }
 };
 
-// Rate limiting middleware - simplified version (TEMPORARILY DISABLED FOR TESTING)
+// Rate limiting middleware - simplified in-memory version
 export const rateLimiter = (options = {}) => {
   const {
     windowMs = 60 * 1000,
-    max = 1000, // TEMPORARILY INCREASED FOR TESTING
+    max = 100,
     message = 'Too many requests, please try again later.'
   } = options;
-  
+
   const requests = new Map();
-  
+
   return (req, res, next) => {
-    // TEMPORARILY DISABLED FOR TESTING
-    next();
-    return;
-    
     const key = req.ip || 'unknown';
     const now = Date.now();
     
