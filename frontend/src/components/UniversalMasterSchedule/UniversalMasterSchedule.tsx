@@ -814,11 +814,11 @@ const ScheduleContainer = styled.div`
    * Viewport-relative height — bypasses the broken minHeight chain in MainLayout.
    * The parent Content Box uses flex:1 + overflow:hidden but its own parent has
    * minHeight (not height), so height:100% never resolved to a definite value.
-   * Using calc(100dvh - 80px) gives a definite constraint from the viewport,
-   * enabling overflow-y:auto to create the scrollbar.
-   * 80px = 64px AppBar + ~16px breathing room for breadcrumbs/padding.
+   * --shell-chrome is the combined height of AppBar + any breadcrumbs/padding
+   * above this container. Adjust it here if the layout shell changes.
    */
-  height: calc(100dvh - 80px);
+  --shell-chrome: 80px;
+  height: calc(100dvh - var(--shell-chrome));
   display: flex;
   flex-direction: column;
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
@@ -834,11 +834,11 @@ const ScheduleContainer = styled.div`
   will-change: scroll-position;
 
   @media (max-width: ${BREAKPOINTS.TABLET}) {
+    --shell-chrome: 72px;
     background: #0f172a;
-    height: calc(100dvh - 72px);
   }
 
   @media (max-width: ${BREAKPOINTS.MOBILE}) {
-    height: calc(100dvh - 64px);
+    --shell-chrome: 64px;
   }
 `;

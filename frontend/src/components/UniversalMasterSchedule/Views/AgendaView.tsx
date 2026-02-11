@@ -15,7 +15,6 @@ export interface AgendaViewProps {
   onSelectSession?: (session: AgendaSession) => void;
   onEdit?: (session: AgendaSession) => void;
   onCancel?: (session: AgendaSession) => void;
-  onLoadMore?: () => void;
 }
 
 const formatGroupLabel = (target: Date) => {
@@ -43,8 +42,7 @@ const AgendaView: React.FC<AgendaViewProps> = ({
   isAdmin = false,
   onSelectSession,
   onEdit,
-  onCancel,
-  onLoadMore
+  onCancel
 }) => {
   const grouped = useMemo(() => {
     // Filter sessions to the viewed month (+/- 1 week buffer)
