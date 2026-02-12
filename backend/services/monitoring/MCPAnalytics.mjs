@@ -42,9 +42,18 @@ class MCPAnalytics extends EventEmitter {
     // Initialize metrics tracking
     this.metricsHistory = new Map();
     this.realTimeMetrics = new Map();
-    
-    // Start real-time monitoring
-    this.startRealTimeMonitoring();
+
+    // MCP servers are not deployed in production — skip real-time monitoring unless explicitly enabled
+    const isProduction = process.env.NODE_ENV === 'production';
+    const mcpEnabled = isProduction
+      ? process.env.ENABLE_MCP_SERVICES === 'true'
+      : process.env.ENABLE_MCP_SERVICES !== 'false';
+
+    if (mcpEnabled) {
+      this.startRealTimeMonitoring();
+    } else {
+      piiSafeLogger.info('MCP Analytics real-time monitoring DISABLED (MCP services not enabled)');
+    }
   }
 
   /**
