@@ -156,39 +156,80 @@ const DEFAULT_SECURITY_SETTINGS = {
 export const getSystemSettings = async () => {
   try {
     const AdminSettings = getAdminSettings();
-    
+
+    // Try raw SQL first to discover actual table structure
+    let tableInfo = null;
+    try {
+      const sequelize = AdminSettings.sequelize;
+      const [cols] = await sequelize.query(
+        `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'admin_settings' ORDER BY ordinal_position;`
+      );
+      tableInfo = cols.map(c => `${c.column_name}:${c.data_type}`);
+    } catch (e) {
+      tableInfo = [`schema-query-failed: ${e.message}`];
+    }
+
+    // Try raw SQL query to get settings
+    let rawResult = null;
+    try {
+      const sequelize = AdminSettings.sequelize;
+      const [rows] = await sequelize.query(
+        `SELECT * FROM admin_settings LIMIT 5;`
+      );
+      rawResult = rows;
+    } catch (e) {
+      rawResult = { error: e.message };
+    }
+
+    // Try ORM query
     const systemSettings = await AdminSettings.findOne({
       where: { userId: 'system' },
       attributes: ['settings']
     });
-    
+
     if (!systemSettings) {
-      // Return default settings if none exist
       return {
         category: 'system',
         settings: DEFAULT_SYSTEM_SETTINGS,
         lastUpdated: null,
-        isDefault: true
+        isDefault: true,
+        _diag: { tableInfo, rawRows: rawResult?.length || 0 }
       };
     }
-    
+
     return {
       category: 'system',
       settings: systemSettings.settings || DEFAULT_SYSTEM_SETTINGS,
       lastUpdated: systemSettings.updatedAt,
       isDefault: false
     };
-    
+
   } catch (error) {
     logger.error('Error fetching system settings:', error);
     // Return defaults on DB error so the UI still renders
+    // Include diagnostic info temporarily
+    let tableInfo = null;
+    let rawResult = null;
+    try {
+      const AdminSettings = getAdminSettings();
+      const sequelize = AdminSettings.sequelize;
+      const [cols] = await sequelize.query(
+        `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'admin_settings' ORDER BY ordinal_position;`
+      );
+      tableInfo = cols.map(c => `${c.column_name}:${c.data_type}`);
+      const [rows] = await sequelize.query(`SELECT * FROM admin_settings LIMIT 3;`);
+      rawResult = rows;
+    } catch (e2) {
+      tableInfo = [`diag-failed: ${e2.message}`];
+    }
+
     return {
       category: 'system',
       settings: DEFAULT_SYSTEM_SETTINGS,
       lastUpdated: null,
       isDefault: true,
       dbError: error.message,
-      dbSql: error.sql || null
+      _diag: { tableInfo, rawResult }
     };
   }
 };
