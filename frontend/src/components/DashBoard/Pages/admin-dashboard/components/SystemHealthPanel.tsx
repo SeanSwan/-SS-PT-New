@@ -20,7 +20,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Server, Database, Globe, Wifi, Activity, Zap,
@@ -191,7 +191,7 @@ const StatusDot = styled(motion.div)<{ status: string }>`
   height: 12px;
   border-radius: 50%;
   
-  ${props => props.status === 'healthy' && `
+  ${props => props.status === 'healthy' && css`
     background: #10b981;
     box-shadow: 0 0 20px rgba(16, 185, 129, 0.6);
     animation: ${systemPulse} 2s infinite;
@@ -286,7 +286,7 @@ const MetricIcon = styled.div<{ color: string; status?: string }>`
   justify-content: center;
   color: ${props => props.color};
   
-  ${props => props.status === 'critical' && `
+  ${props => props.status === 'critical' && css`
     animation: ${systemPulse} 1s infinite;
   `}
 `;
