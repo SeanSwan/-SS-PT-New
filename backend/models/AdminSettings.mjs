@@ -1,4 +1,4 @@
-// backend/models/AdminSettings.js
+// backend/models/AdminSettings.mjs
 import { DataTypes, Model } from 'sequelize';
 import sequelize from '../database.mjs';
 
@@ -11,16 +11,14 @@ AdminSettings.init(
       primaryKey: true,
       autoIncrement: true,
     },
-    // Store admin settings as JSON.
     settings: {
       type: DataTypes.JSON,
       allowNull: true,
     },
-    // Category key (e.g. 'system', 'notifications', 'security') or actual userId
-    userId: {
+    // Category key: 'system', 'notifications', 'security'
+    category: {
       type: DataTypes.STRING,
-      allowNull: false,
-      field: 'user_id',
+      allowNull: true,
     },
   },
   {
@@ -28,7 +26,6 @@ AdminSettings.init(
     modelName: 'AdminSettings',
     tableName: 'admin_settings',
     timestamps: true,
-    underscored: true,
   }
 );
 

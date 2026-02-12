@@ -17,39 +17,67 @@
  * Uses existing AdminSettings model for data persistence
  */
 
-import { getAdminSettings } from '../models/index.mjs';
 import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
 
 /**
  * Helper: Find admin settings row by category using raw SQL.
- * Tries multiple column names to handle schema variations.
+ * Uses the 'category' column (added by startup migration).
  */
 async function findSettingsByCategory(category) {
-  // Try common column names for the category key
-  for (const col of ['user_id', 'userId', 'category']) {
-    try {
-      const [rows] = await sequelize.query(
-        `SELECT * FROM admin_settings WHERE "${col}" = :category LIMIT 1`,
-        { replacements: { category } }
-      );
-      if (rows && rows.length > 0) {
-        const row = rows[0];
-        const settingsVal = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
-        return {
-          settings: settingsVal,
-          updatedAt: row.updatedAt || row.updated_at || row.updatedat || null
-        };
-      }
-      return null; // Column exists but no matching row
-    } catch (e) {
-      // Column doesn't exist, try next
-      logger.debug(`[AdminSettings] Column "${col}" not found: ${e.message}`);
-      continue;
+  try {
+    const [rows] = await sequelize.query(
+      `SELECT * FROM admin_settings WHERE category = :category LIMIT 1`,
+      { replacements: { category } }
+    );
+    if (rows && rows.length > 0) {
+      const row = rows[0];
+      const settingsVal = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
+      return {
+        settings: settingsVal,
+        updatedAt: row.updatedAt || row.updated_at || row.updatedat || null
+      };
     }
+    return null;
+  } catch (e) {
+    logger.warn(`[AdminSettings] findSettingsByCategory error: ${e.message}`);
+    return null;
   }
-  logger.warn('[AdminSettings] No matching column found in admin_settings table');
-  return null; // No column worked
+}
+
+/**
+ * Helper: Upsert admin settings by category using raw SQL.
+ */
+async function upsertSettingsByCategory(category, settingsJson) {
+  try {
+    // Check if row exists
+    const [existing] = await sequelize.query(
+      `SELECT id FROM admin_settings WHERE category = :category LIMIT 1`,
+      { replacements: { category } }
+    );
+
+    const settingsStr = JSON.stringify(settingsJson);
+    const now = new Date().toISOString();
+
+    if (existing && existing.length > 0) {
+      // Update existing
+      await sequelize.query(
+        `UPDATE admin_settings SET settings = :settings, "updatedAt" = :now WHERE category = :category`,
+        { replacements: { settings: settingsStr, now, category } }
+      );
+    } else {
+      // Insert new
+      await sequelize.query(
+        `INSERT INTO admin_settings (category, settings, "createdAt", "updatedAt") VALUES (:category, :settings, :now, :now)`,
+        { replacements: { category, settings: settingsStr, now } }
+      );
+    }
+
+    return { settings: settingsJson, updatedAt: now };
+  } catch (e) {
+    logger.error(`[AdminSettings] upsertSettingsByCategory error: ${e.message}`);
+    throw e;
+  }
 }
 
 // Default settings configurations
@@ -221,40 +249,26 @@ export const getSystemSettings = async () => {
  */
 export const updateSystemSettings = async (newSettings, adminUserId) => {
   try {
-    const AdminSettings = getAdminSettings();
-    
-    // Validate settings structure
     const validatedSettings = validateSystemSettings(newSettings);
-    
-    // Find or create system settings record
-    const [settings, created] = await AdminSettings.findOrCreate({
-      where: { userId: 'system' },
-      defaults: {
-        userId: 'system',
-        settings: validatedSettings
-      }
-    });
-    
-    if (!created) {
-      // Update existing settings
-      settings.settings = { ...settings.settings, ...validatedSettings };
-      await settings.save();
-    }
-    
-    // Log the settings change for audit
+
+    // Merge with existing or defaults
+    const existing = await findSettingsByCategory('system');
+    const merged = { ...(existing?.settings || DEFAULT_SYSTEM_SETTINGS), ...validatedSettings };
+
+    const result = await upsertSettingsByCategory('system', merged);
+
     await logSettingsChange('system', validatedSettings, adminUserId);
-    
+
     logger.info(`System settings updated by admin ${adminUserId}`, {
       updatedFields: Object.keys(validatedSettings)
     });
-    
+
     return {
       category: 'system',
-      settings: settings.settings,
-      lastUpdated: settings.updatedAt,
+      settings: result.settings,
+      lastUpdated: result.updatedAt,
       updatedBy: adminUserId
     };
-    
   } catch (error) {
     logger.error('Error updating system settings:', error);
     throw new Error('Failed to update system settings');
@@ -300,40 +314,25 @@ export const getNotificationSettings = async () => {
  */
 export const updateNotificationSettings = async (newSettings, adminUserId) => {
   try {
-    const AdminSettings = getAdminSettings();
-    
-    // Validate settings structure
     const validatedSettings = validateNotificationSettings(newSettings);
-    
-    // Find or create notification settings record
-    const [settings, created] = await AdminSettings.findOrCreate({
-      where: { userId: 'notifications' },
-      defaults: {
-        userId: 'notifications',
-        settings: validatedSettings
-      }
-    });
-    
-    if (!created) {
-      // Update existing settings
-      settings.settings = { ...settings.settings, ...validatedSettings };
-      await settings.save();
-    }
-    
-    // Log the settings change for audit
+
+    const existing = await findSettingsByCategory('notifications');
+    const merged = { ...(existing?.settings || DEFAULT_NOTIFICATION_SETTINGS), ...validatedSettings };
+
+    const result = await upsertSettingsByCategory('notifications', merged);
+
     await logSettingsChange('notifications', validatedSettings, adminUserId);
-    
+
     logger.info(`Notification settings updated by admin ${adminUserId}`, {
       updatedFields: Object.keys(validatedSettings)
     });
-    
+
     return {
       category: 'notifications',
-      settings: settings.settings,
-      lastUpdated: settings.updatedAt,
+      settings: result.settings,
+      lastUpdated: result.updatedAt,
       updatedBy: adminUserId
     };
-    
   } catch (error) {
     logger.error('Error updating notification settings:', error);
     throw new Error('Failed to update notification settings');
@@ -434,40 +433,25 @@ export const getSecuritySettings = async () => {
  */
 export const updateSecuritySettings = async (newSettings, adminUserId) => {
   try {
-    const AdminSettings = getAdminSettings();
-    
-    // Validate settings structure
     const validatedSettings = validateSecuritySettings(newSettings);
-    
-    // Find or create security settings record
-    const [settings, created] = await AdminSettings.findOrCreate({
-      where: { userId: 'security' },
-      defaults: {
-        userId: 'security',
-        settings: validatedSettings
-      }
-    });
-    
-    if (!created) {
-      // Update existing settings
-      settings.settings = { ...settings.settings, ...validatedSettings };
-      await settings.save();
-    }
-    
-    // Log the settings change for audit
+
+    const existing = await findSettingsByCategory('security');
+    const merged = { ...(existing?.settings || DEFAULT_SECURITY_SETTINGS), ...validatedSettings };
+
+    const result = await upsertSettingsByCategory('security', merged);
+
     await logSettingsChange('security', validatedSettings, adminUserId);
-    
+
     logger.info(`Security settings updated by admin ${adminUserId}`, {
       updatedFields: Object.keys(validatedSettings)
     });
-    
+
     return {
       category: 'security',
-      settings: settings.settings,
-      lastUpdated: settings.updatedAt,
+      settings: result.settings,
+      lastUpdated: result.updatedAt,
       updatedBy: adminUserId
     };
-    
   } catch (error) {
     logger.error('Error updating security settings:', error);
     throw new Error('Failed to update security settings');
@@ -559,55 +543,35 @@ export const getAuditLogs = async (options = {}) => {
  */
 export const resetToDefaults = async (category, adminUserId) => {
   try {
-    const AdminSettings = getAdminSettings();
-    
     let defaultSettings;
-    let userId;
-    
+
     switch (category) {
       case 'system':
         defaultSettings = DEFAULT_SYSTEM_SETTINGS;
-        userId = 'system';
         break;
       case 'notifications':
         defaultSettings = DEFAULT_NOTIFICATION_SETTINGS;
-        userId = 'notifications';
         break;
       case 'security':
         defaultSettings = DEFAULT_SECURITY_SETTINGS;
-        userId = 'security';
         break;
       default:
         throw new Error(`Invalid category: ${category}`);
     }
-    
-    // Update or create settings with defaults
-    const [settings, created] = await AdminSettings.findOrCreate({
-      where: { userId },
-      defaults: {
-        userId,
-        settings: defaultSettings
-      }
-    });
-    
-    if (!created) {
-      settings.settings = defaultSettings;
-      await settings.save();
-    }
-    
-    // Log the reset action for audit
+
+    const result = await upsertSettingsByCategory(category, defaultSettings);
+
     await logSettingsChange(category, defaultSettings, adminUserId, 'reset');
-    
+
     logger.info(`${category} settings reset to defaults by admin ${adminUserId}`);
-    
+
     return {
       category,
       settings: defaultSettings,
-      lastUpdated: settings.updatedAt,
+      lastUpdated: result.updatedAt,
       resetBy: adminUserId,
       action: 'reset_to_defaults'
     };
-    
   } catch (error) {
     logger.error('Error resetting settings to defaults:', error);
     throw new Error('Failed to reset settings to defaults');
