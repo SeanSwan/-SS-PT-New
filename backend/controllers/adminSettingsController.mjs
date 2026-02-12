@@ -181,7 +181,14 @@ export const getSystemSettings = async () => {
     
   } catch (error) {
     logger.error('Error fetching system settings:', error);
-    throw new Error('Failed to retrieve system settings');
+    // Return defaults on DB error so the UI still renders
+    return {
+      category: 'system',
+      settings: DEFAULT_SYSTEM_SETTINGS,
+      lastUpdated: null,
+      isDefault: true,
+      dbError: error.message
+    };
   }
 };
 
@@ -260,7 +267,13 @@ export const getNotificationSettings = async () => {
     
   } catch (error) {
     logger.error('Error fetching notification settings:', error);
-    throw new Error('Failed to retrieve notification settings');
+    return {
+      category: 'notifications',
+      settings: DEFAULT_NOTIFICATION_SETTINGS,
+      lastUpdated: null,
+      isDefault: true,
+      dbError: error.message
+    };
   }
 };
 
@@ -394,7 +407,13 @@ export const getSecuritySettings = async () => {
     
   } catch (error) {
     logger.error('Error fetching security settings:', error);
-    throw new Error('Failed to retrieve security settings');
+    return {
+      category: 'security',
+      settings: DEFAULT_SECURITY_SETTINGS,
+      lastUpdated: null,
+      isDefault: true,
+      dbError: error.message
+    };
   }
 };
 
