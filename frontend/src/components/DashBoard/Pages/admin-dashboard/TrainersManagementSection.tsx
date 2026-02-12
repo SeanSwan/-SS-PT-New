@@ -439,8 +439,8 @@ const TrainersManagementSection: React.FC = () => {
       email: trainer.email || '',
       phone: trainer.phone || '',
       avatar: trainer.photo || '',
-      specialty: trainer.specialties ? trainer.specialties.split(',').map((s: string) => s.trim()) : [],
-      certifications: trainer.certifications ? trainer.certifications.split(',').map((c: string) => c.trim()) : [],
+      specialty: Array.isArray(trainer.specialties) ? trainer.specialties : (trainer.specialties ? (() => { try { const p = JSON.parse(trainer.specialties); return Array.isArray(p) ? p : String(trainer.specialties).split(',').map((s: string) => s.trim()); } catch { return String(trainer.specialties).split(',').map((s: string) => s.trim()); } })() : []),
+      certifications: Array.isArray(trainer.certifications) ? trainer.certifications : (trainer.certifications ? (() => { try { const p = JSON.parse(trainer.certifications); return Array.isArray(p) ? p : String(trainer.certifications).split(',').map((c: string) => c.trim()); } catch { return String(trainer.certifications).split(',').map((c: string) => c.trim()); } })() : []),
       verified: true, // All trainers in the system are considered verified
       status: 'active', // Default status
       joinedAt: trainer.createdAt || new Date().toISOString(),

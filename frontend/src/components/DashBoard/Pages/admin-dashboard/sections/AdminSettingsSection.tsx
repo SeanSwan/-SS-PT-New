@@ -573,22 +573,22 @@ const AdminSettingsSection: React.FC = () => {
       ]);
       
       if (systemRes.data.success) {
-        setSystemSettings(systemRes.data.settings);
+        setSystemSettings(systemRes.data.data?.settings || systemRes.data.settings);
       }
-      
+
       if (securityRes.data.success) {
-        setSecuritySettings(securityRes.data.settings);
+        setSecuritySettings(securityRes.data.data?.settings || securityRes.data.settings);
       }
-      
+
       if (notificationRes.data.success) {
-        setNotificationSettings(notificationRes.data.settings);
+        setNotificationSettings(notificationRes.data.data?.settings || notificationRes.data.settings);
       }
-      
+
       if (apiKeysRes.data.success) {
-        setApiKeys(apiKeysRes.data.keys);
+        setApiKeys(apiKeysRes.data.data?.keys || apiKeysRes.data.keys || []);
       }
     } catch (error) {
-      console.error('Error fetching settings:', error);
+      console.error('[AdminSettings] API error - using defaults:', error);
       setMockData();
     } finally {
       setLoading(false);

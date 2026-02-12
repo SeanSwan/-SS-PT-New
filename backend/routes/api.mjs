@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { getUsers } from '../controllers/userController.mjs';
 import workoutRoutes from './workoutRoutes.mjs';
 import clientProgressRoutes from './clientProgressRoutes.mjs';
 import exerciseRoutes from './exerciseRoutes.mjs';
@@ -20,7 +19,9 @@ import adminFinanceRoutes from './admin/adminFinanceRoutes.mjs';
 
 const router = Router();
 
-router.get('/users', getUsers);
+// REMOVED: Unauthenticated GET /api/users (P0 security fix)
+// Exposed ALL user data including password hashes, PII, health info
+// Use GET /api/admin/users (authenticated + admin-only) instead
 
 // Mount workout routes
 router.use('/workouts', workoutRoutes);

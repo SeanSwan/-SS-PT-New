@@ -638,12 +638,14 @@ const NotificationsSection: React.FC = () => {
         setNotifications(notificationsData);
         calculateStats(notificationsData);
       } else {
-        console.error('Failed to fetch notifications:', response.data.message);
-        setMockData();
+        console.warn('[Notifications] Empty response from API:', response.data.message);
+        setNotifications([]);
+        calculateStats([]);
       }
     } catch (error) {
-      console.error('Error fetching notifications:', error);
-      setMockData();
+      console.error('[Notifications] API error:', error);
+      setNotifications([]);
+      calculateStats([]);
     } finally {
       setLoading(false);
     }

@@ -260,8 +260,7 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin/videos', videoLibraryRoutes); // Frontend-compatible alias
   app.use('/api/admin/exercise-library', videoLibraryRoutes); // Original endpoint
 
-  app.use('/api/admin', adminPackageRoutes);            // Provides: /api/admin/packages/* (aliased from storefront)
-  app.use('/api/admin/storefront', adminPackageRoutes); // Legacy compatibility
+  app.use('/api/admin/storefront', adminPackageRoutes); // Admin package CRUD (frontend uses /api/admin/storefront/*)
   app.use('/api/admin', adminMcpRoutes);                // Provides: /api/admin/mcp/* endpoints
   app.use('/api/admin/content', adminContentModerationRoutes); // Provides: /api/admin/content/* endpoints
 
