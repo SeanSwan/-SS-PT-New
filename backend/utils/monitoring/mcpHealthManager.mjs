@@ -10,9 +10,15 @@ import { piiSafeLogger } from './piiSafeLogging.mjs';
 class MCPHealthManager {
   constructor() {
     // Production-safe configuration for MCP health checks
+    // MCP servers are not deployed in production — health checks are opt-IN in prod, opt-OUT in dev
     this.isProduction = process.env.NODE_ENV === 'production';
-    this.enableHealthChecks = process.env.ENABLE_MCP_HEALTH_CHECKS !== 'false';
-    this.enableHealthAlerting = process.env.ENABLE_MCP_HEALTH_ALERTS !== 'false';
+    const mcpMasterSwitch = process.env.ENABLE_MCP_SERVICES !== 'false';
+    this.enableHealthChecks = this.isProduction
+      ? (process.env.ENABLE_MCP_HEALTH_CHECKS === 'true' && mcpMasterSwitch)
+      : process.env.ENABLE_MCP_HEALTH_CHECKS !== 'false';
+    this.enableHealthAlerting = this.isProduction
+      ? (process.env.ENABLE_MCP_HEALTH_ALERTS === 'true' && mcpMasterSwitch)
+      : process.env.ENABLE_MCP_HEALTH_ALERTS !== 'false';
     
     // Define all MCP servers with their configurations
     this.mcpServers = {

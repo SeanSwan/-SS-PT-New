@@ -72,54 +72,10 @@ services:
       - key: NODE_ENV
         value: production
 
-  # MCP Servers (background workers)
-  - type: worker
-    name: swanstudios-mcp-yolo
-    runtime: python
-    repo: https://github.com/YOUR-USERNAME/SS-PT
-    branch: main
-    rootDir: ./backend/mcp_server
-    buildCommand: pip install -r yolo_mcp_server/requirements-minimal.txt
-    startCommand: cd yolo_mcp_server && python start_yolo_server.py
-    env:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: swanstudios-db
-          property: connectionString
-      - key: PORT
-        value: 8002
-
-  - type: worker
-    name: swanstudios-mcp-workout
-    runtime: python
-    repo: https://github.com/YOUR-USERNAME/SS-PT
-    branch: main
-    rootDir: ./backend/mcp_server
-    buildCommand: pip install -r workout_requirements.txt
-    startCommand: python workout_launcher.py
-    env:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: swanstudios-db
-          property: connectionString
-      - key: PORT
-        value: 8001
-
-  - type: worker
-    name: swanstudios-mcp-gamification
-    runtime: python
-    repo: https://github.com/YOUR-USERNAME/SS-PT
-    branch: main
-    rootDir: ./backend/mcp_server
-    buildCommand: pip install -r gamification_mcp_server/requirements.txt
-    startCommand: python start_gamification_server.py
-    env:
-      - key: DATABASE_URL
-        fromDatabase:
-          name: swanstudios-db
-          property: connectionString
-      - key: PORT
-        value: 8003
+  # MCP Servers — DECOMMISSIONED 2026-02-12
+  # External Python MCP servers are no longer deployed.
+  # All features migrated to in-app implementations.
+  # See docs/ai-workflow/launch-readiness/MCP-DECOMMISSION-PLAN.md
 
 # PostgreSQL database
 databases:
