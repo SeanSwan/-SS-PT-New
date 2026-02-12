@@ -1,0 +1,67 @@
+# Post-Deploy Smoke Results
+
+Each deploy gets one entry. Run all 5 checks within 10-15 minutes of deploy confirmation.
+
+---
+
+## Smoke Check Definitions
+
+| # | Check | Method | Pass Criteria |
+|---|-------|--------|---------------|
+| 1 | API Health | `GET /api/health` | `status: healthy`, `database: connected`, `store.ready: true` |
+| 2 | Login/Logout | Playwright or API login for admin + client | 200 + valid token, logout clears session |
+| 3 | Purchase Flow | Store packages load, checkout requires auth | Packages visible, 401 without auth, Stripe configured |
+| 4 | Schedule | Create + book + cancel session via API | 201 create, 200 book/cancel, session appears in list |
+| 5 | Admin Dashboard | Load dashboard, check stats + user list | 200, stats object returned, user list accessible |
+
+**Bonus (Critical deploys only):**
+| # | Check | Method | Pass Criteria |
+|---|-------|--------|---------------|
+| 6 | Inactive login block | Login as deactivated account | 401 + "Account is inactive" + no token |
+| 7 | RBAC boundaries | Client accessing admin endpoints | 403 on all admin-only routes |
+| 8 | Session visibility | Compare admin vs trainer vs client session counts | Correct isolation per role |
+
+---
+
+## Results
+
+### Smoke #0 — Commit `714cfa03` + `4728591a` (Stabilization Sprint)
+**Date:** 2026-02-12 ~22:07 UTC
+**Deploy class:** Critical + Docs
+
+| # | Check | Result | Evidence |
+|---|-------|--------|----------|
+| 1 | API Health | PASS | `healthy`, DB connected, store ready, uptime 1207s |
+| 2 | Login/Logout | PASS | admin/trainer/client login verified, inactive blocked |
+| 3 | Purchase Flow | PASS | 5 active packages, checkout 401 without auth, Stripe configured |
+| 4 | Schedule | PASS | 47 sessions visible to admin, session ID 73 created during test |
+| 5 | Admin Dashboard | PASS | Dashboard stats 200, user list 200 (30 users) |
+| 6 | Inactive login block | PASS | 401 "Account is inactive. Please contact support." hasToken=false |
+| 7 | RBAC boundaries | PASS | 7/8 return 403, session analytics 200 for client (by design) |
+| 8 | Session visibility | PASS | Admin: 47, Trainer: 15, Client: 0 (correct isolation) |
+
+**Verdict:** ALL PASS
+
+---
+
+### Smoke #N — TEMPLATE
+**Date:** YYYY-MM-DD HH:MM UTC
+**Deploy class:** Critical / Non-critical
+**Commit:** `<hash>`
+
+| # | Check | Result | Evidence |
+|---|-------|--------|----------|
+| 1 | API Health | | |
+| 2 | Login/Logout | | |
+| 3 | Purchase Flow | | |
+| 4 | Schedule | | |
+| 5 | Admin Dashboard | | |
+| 6 | Inactive login block | | |
+| 7 | RBAC boundaries | | |
+| 8 | Session visibility | | |
+
+**Verdict:**
+
+---
+
+*One entry per deploy. Copy the template, fill in results.*
