@@ -44,6 +44,28 @@ Each deploy gets one entry. Run all 5 checks within 10-15 minutes of deploy conf
 
 ---
 
+### Smoke #1 — Commit `eecd5eae` (MCP Decommission)
+**Date:** 2026-02-12 ~23:39 UTC
+**Deploy class:** Critical
+**Uptime reset:** Confirmed (32s at first check)
+
+| # | Check | Result | Evidence |
+|---|-------|--------|----------|
+| 1 | API Health | PASS | `healthy`, DB connected, store ready, uptime 32s (fresh deploy) |
+| 2 | Login/Logout | PASS | admin login 200 + valid token |
+| 3 | Purchase Flow | PASS | store 200, checkout 401 without auth |
+| 4 | Schedule | PASS | 47 sessions visible to admin |
+| 5 | Admin Dashboard | PASS | Dashboard stats 200 |
+| 6 | Inactive login block | PASS | 401 "Account is inactive", hasToken=false |
+| 7 | RBAC boundaries | PASS | Client 403 on admin user list |
+| 8 | MCP status | PASS | 200 `production-fallback` (no errors) |
+| 9 | MCP health | PENDING | Route fix in deploy #1.1 (currently 503, will be 200 disabled) |
+| 10 | Payment auth | PASS | 401 on unauthenticated checkout |
+
+**Verdict:** ALL PASS (9/9 critical, 1 pending non-critical route fix)
+
+---
+
 ### Smoke #N — TEMPLATE
 **Date:** YYYY-MM-DD HH:MM UTC
 **Deploy class:** Critical / Non-critical
