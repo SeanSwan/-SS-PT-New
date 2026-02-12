@@ -542,14 +542,17 @@ router.get('/health', async (req, res) => {
       mcpServicesEnabled: MCP_SERVICES_ENABLED
     };
     
-    // If MCP services are disabled, return early with disabled status
-    if (!MCP_SERVICES_ENABLED) {
+    // If MCP services are disabled or not actually available, return early
+    if (!MCP_ACTUALLY_AVAILABLE) {
       health.status = 'disabled';
-      health.message = 'MCP services are disabled in this environment';
+      health.message = isProduction
+        ? 'MCP services are not deployed in production (in-app implementations active)'
+        : 'MCP services are disabled in this environment';
       health.services = {
-        workout: { status: 'disabled', message: 'Service disabled via configuration' },
-        gamification: { status: 'disabled', message: 'Service disabled via configuration' }
+        workout: { status: 'disabled', message: health.message },
+        gamification: { status: 'disabled', message: health.message }
       };
+      health.mcpServicesEnabled = false;
       return res.status(200).json(health);
     }
 
