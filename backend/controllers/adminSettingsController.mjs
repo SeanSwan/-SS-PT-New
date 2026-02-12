@@ -30,22 +30,25 @@ async function findSettingsByCategory(category) {
   for (const col of ['user_id', 'userId', 'category']) {
     try {
       const [rows] = await sequelize.query(
-        `SELECT settings, "updatedAt", "updated_at" FROM admin_settings WHERE "${col}" = :category LIMIT 1`,
-        { replacements: { category }, type: sequelize.QueryTypes ? undefined : undefined }
+        `SELECT * FROM admin_settings WHERE "${col}" = :category LIMIT 1`,
+        { replacements: { category } }
       );
       if (rows && rows.length > 0) {
         const row = rows[0];
+        const settingsVal = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
         return {
-          settings: typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings,
-          updatedAt: row.updatedAt || row.updated_at || null
+          settings: settingsVal,
+          updatedAt: row.updatedAt || row.updated_at || row.updatedat || null
         };
       }
       return null; // Column exists but no matching row
     } catch (e) {
       // Column doesn't exist, try next
+      logger.debug(`[AdminSettings] Column "${col}" not found: ${e.message}`);
       continue;
     }
   }
+  logger.warn('[AdminSettings] No matching column found in admin_settings table');
   return null; // No column worked
 }
 
