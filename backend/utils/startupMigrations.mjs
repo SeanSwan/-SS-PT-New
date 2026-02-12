@@ -27,7 +27,14 @@ async function migrateAdminSettingsUserId() {
       return;
     }
 
-    // Check current column type - column is snake_case (user_id) in the DB
+    // Dump all columns for diagnostics
+    const [allCols] = await sequelize.query(
+      `SELECT column_name, data_type FROM information_schema.columns
+       WHERE table_name = 'admin_settings' ORDER BY ordinal_position;`
+    );
+    logger.info(`[Migration] admin_settings columns: ${JSON.stringify(allCols.map(c => c.column_name + ':' + c.data_type))}`);
+
+    // Check current column type - try both naming conventions
     const [columns] = await sequelize.query(
       `SELECT column_name, data_type FROM information_schema.columns
        WHERE table_name = 'admin_settings' AND column_name IN ('userId', 'user_id');`
