@@ -307,9 +307,12 @@ export default ScheduleCalendar;
 const CalendarContainer = styled.div`
   flex: 1 0 auto;
   /* Horizontal scroll for wide DayView grids on narrow viewports;
-     vertical scroll delegated to ScheduleContainer parent */
+     vertical scroll delegated to ScheduleContainer parent.
+     NOTE: overflow-y MUST be 'hidden' (not 'visible') because CSS spec
+     promotes 'visible' to 'auto' when the other axis is auto/scroll,
+     which creates a nested scroll trap that blocks parent scrolling. */
   overflow-x: auto;
-  overflow-y: visible;
+  overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   margin: 0 2rem 2rem;
   padding: 1.5rem;
