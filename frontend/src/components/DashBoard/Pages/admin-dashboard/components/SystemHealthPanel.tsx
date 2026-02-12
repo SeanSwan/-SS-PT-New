@@ -1058,7 +1058,7 @@ const SystemHealthPanel: React.FC = () => {
         background: 'rgba(59, 130, 246, 0.05)',
         borderRadius: '12px',
         display: 'flex',
-        justifyContent: space-between,
+        justifyContent: 'space-between',
         alignItems: 'center',
         fontSize: '0.875rem',
         color: 'rgba(255, 255, 255, 0.7)'

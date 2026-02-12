@@ -16,9 +16,9 @@ AdminSettings.init(
       type: DataTypes.JSON,
       allowNull: true,
     },
-    // UserID as foreign key to User model
+    // Category key (e.g. 'system', 'notifications', 'security') or actual userId
     userId: {
-      type: DataTypes.UUID,
+      type: DataTypes.STRING,
       allowNull: false,
     },
   },
