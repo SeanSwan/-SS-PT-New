@@ -20,6 +20,7 @@ AdminSettings.init(
     userId: {
       type: DataTypes.STRING,
       allowNull: false,
+      field: 'user_id',
     },
   },
   {

@@ -187,7 +187,8 @@ export const getSystemSettings = async () => {
       settings: DEFAULT_SYSTEM_SETTINGS,
       lastUpdated: null,
       isDefault: true,
-      dbError: error.message
+      dbError: error.message,
+      dbSql: error.sql || null
     };
   }
 };
