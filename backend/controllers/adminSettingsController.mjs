@@ -18,7 +18,36 @@
  */
 
 import { getAdminSettings } from '../models/index.mjs';
+import sequelize from '../database.mjs';
 import logger from '../utils/logger.mjs';
+
+/**
+ * Helper: Find admin settings row by category using raw SQL.
+ * Tries multiple column names to handle schema variations.
+ */
+async function findSettingsByCategory(category) {
+  // Try common column names for the category key
+  for (const col of ['user_id', 'userId', 'category']) {
+    try {
+      const [rows] = await sequelize.query(
+        `SELECT settings, "updatedAt", "updated_at" FROM admin_settings WHERE "${col}" = :category LIMIT 1`,
+        { replacements: { category }, type: sequelize.QueryTypes ? undefined : undefined }
+      );
+      if (rows && rows.length > 0) {
+        const row = rows[0];
+        return {
+          settings: typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings,
+          updatedAt: row.updatedAt || row.updated_at || null
+        };
+      }
+      return null; // Column exists but no matching row
+    } catch (e) {
+      // Column doesn't exist, try next
+      continue;
+    }
+  }
+  return null; // No column worked
+}
 
 // Default settings configurations
 const DEFAULT_SYSTEM_SETTINGS = {
@@ -155,81 +184,31 @@ const DEFAULT_SECURITY_SETTINGS = {
  */
 export const getSystemSettings = async () => {
   try {
-    const AdminSettings = getAdminSettings();
+    const result = await findSettingsByCategory('system');
 
-    // Try raw SQL first to discover actual table structure
-    let tableInfo = null;
-    try {
-      const sequelize = AdminSettings.sequelize;
-      const [cols] = await sequelize.query(
-        `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'admin_settings' ORDER BY ordinal_position;`
-      );
-      tableInfo = cols.map(c => `${c.column_name}:${c.data_type}`);
-    } catch (e) {
-      tableInfo = [`schema-query-failed: ${e.message}`];
-    }
-
-    // Try raw SQL query to get settings
-    let rawResult = null;
-    try {
-      const sequelize = AdminSettings.sequelize;
-      const [rows] = await sequelize.query(
-        `SELECT * FROM admin_settings LIMIT 5;`
-      );
-      rawResult = rows;
-    } catch (e) {
-      rawResult = { error: e.message };
-    }
-
-    // Try ORM query
-    const systemSettings = await AdminSettings.findOne({
-      where: { userId: 'system' },
-      attributes: ['settings']
-    });
-
-    if (!systemSettings) {
+    if (!result) {
       return {
         category: 'system',
         settings: DEFAULT_SYSTEM_SETTINGS,
         lastUpdated: null,
-        isDefault: true,
-        _diag: { tableInfo, rawRows: rawResult?.length || 0 }
+        isDefault: true
       };
     }
 
     return {
       category: 'system',
-      settings: systemSettings.settings || DEFAULT_SYSTEM_SETTINGS,
-      lastUpdated: systemSettings.updatedAt,
+      settings: result.settings || DEFAULT_SYSTEM_SETTINGS,
+      lastUpdated: result.updatedAt,
       isDefault: false
     };
 
   } catch (error) {
     logger.error('Error fetching system settings:', error);
-    // Return defaults on DB error so the UI still renders
-    // Include diagnostic info temporarily
-    let tableInfo = null;
-    let rawResult = null;
-    try {
-      const AdminSettings = getAdminSettings();
-      const sequelize = AdminSettings.sequelize;
-      const [cols] = await sequelize.query(
-        `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'admin_settings' ORDER BY ordinal_position;`
-      );
-      tableInfo = cols.map(c => `${c.column_name}:${c.data_type}`);
-      const [rows] = await sequelize.query(`SELECT * FROM admin_settings LIMIT 3;`);
-      rawResult = rows;
-    } catch (e2) {
-      tableInfo = [`diag-failed: ${e2.message}`];
-    }
-
     return {
       category: 'system',
       settings: DEFAULT_SYSTEM_SETTINGS,
       lastUpdated: null,
-      isDefault: true,
-      dbError: error.message,
-      _diag: { tableInfo, rawResult }
+      isDefault: true
     };
   }
 };
@@ -284,14 +263,9 @@ export const updateSystemSettings = async (newSettings, adminUserId) => {
  */
 export const getNotificationSettings = async () => {
   try {
-    const AdminSettings = getAdminSettings();
-    
-    const notificationSettings = await AdminSettings.findOne({
-      where: { userId: 'notifications' },
-      attributes: ['settings', 'updatedAt']
-    });
-    
-    if (!notificationSettings) {
+    const result = await findSettingsByCategory('notifications');
+
+    if (!result) {
       return {
         category: 'notifications',
         settings: DEFAULT_NOTIFICATION_SETTINGS,
@@ -299,22 +273,21 @@ export const getNotificationSettings = async () => {
         isDefault: true
       };
     }
-    
+
     return {
       category: 'notifications',
-      settings: notificationSettings.settings || DEFAULT_NOTIFICATION_SETTINGS,
-      lastUpdated: notificationSettings.updatedAt,
+      settings: result.settings || DEFAULT_NOTIFICATION_SETTINGS,
+      lastUpdated: result.updatedAt,
       isDefault: false
     };
-    
+
   } catch (error) {
     logger.error('Error fetching notification settings:', error);
     return {
       category: 'notifications',
       settings: DEFAULT_NOTIFICATION_SETTINGS,
       lastUpdated: null,
-      isDefault: true,
-      dbError: error.message
+      isDefault: true
     };
   }
 };
@@ -424,14 +397,9 @@ export const getApiKeyInfo = async () => {
  */
 export const getSecuritySettings = async () => {
   try {
-    const AdminSettings = getAdminSettings();
-    
-    const securitySettings = await AdminSettings.findOne({
-      where: { userId: 'security' },
-      attributes: ['settings', 'updatedAt']
-    });
-    
-    if (!securitySettings) {
+    const result = await findSettingsByCategory('security');
+
+    if (!result) {
       return {
         category: 'security',
         settings: DEFAULT_SECURITY_SETTINGS,
@@ -439,22 +407,21 @@ export const getSecuritySettings = async () => {
         isDefault: true
       };
     }
-    
+
     return {
       category: 'security',
-      settings: securitySettings.settings || DEFAULT_SECURITY_SETTINGS,
-      lastUpdated: securitySettings.updatedAt,
+      settings: result.settings || DEFAULT_SECURITY_SETTINGS,
+      lastUpdated: result.updatedAt,
       isDefault: false
     };
-    
+
   } catch (error) {
     logger.error('Error fetching security settings:', error);
     return {
       category: 'security',
       settings: DEFAULT_SECURITY_SETTINGS,
       lastUpdated: null,
-      isDefault: true,
-      dbError: error.message
+      isDefault: true
     };
   }
 };
