@@ -2,7 +2,7 @@
 
 **Protocol:** Controlled Continuous-Deploy (no freeze)
 **Started:** 2026-02-12
-**Rollback-ready commit:** `4728591a` (verified stable)
+**Rollback-ready commit:** `bc3cec81` (verified stable — includes `714cfa03` auth security fix)
 
 ---
 
@@ -29,13 +29,12 @@ If any P0 regression: **rollback immediately**, document root cause below.
 ## Rollback Procedure
 
 ```bash
-# 1. Identify last known good commit
+# 1. Identify the bad commit
 git log --oneline -10
 
-# 2. Reset to last stable
-git revert HEAD --no-edit   # preferred: creates forward-fix commit
-# OR for emergencies:
-# git reset --hard <LAST_GOOD_COMMIT> && git push --force origin main
+# 2. Revert the bad commit (preserves history, auditable)
+git revert <BAD_COMMIT> --no-edit
+git push origin main
 
 # 3. Verify Render redeploy (2-5 min)
 curl https://sswanstudios.com/api/health
@@ -43,7 +42,11 @@ curl https://sswanstudios.com/api/health
 # 4. Run smoke loop (see POST-DEPLOY-SMOKE-RESULTS.md)
 ```
 
-**Current last known good:** `4728591a` docs(launch): add launch readiness audit deliverables
+**NEVER use `git reset --hard` or `git push --force` on main.**
+History must stay intact and auditable. Always revert forward.
+
+**Current last known good:** `bc3cec81` docs(launch): add launch week operational documents
+**Security floor:** Never roll back past `714cfa03` — that commit blocks inactive-user token issuance
 
 ---
 
