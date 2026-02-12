@@ -663,6 +663,15 @@ export const login = async (req, res) => {
       });
     }
 
+    // Check if account is active (block deactivated users before token issuance)
+    if (user.isActive === false) {
+      logger.warn(`Login attempt on inactive account: ${username}`);
+      return res.status(401).json({
+        success: false,
+        message: 'Account is inactive. Please contact support.'
+      });
+    }
+
     // Check password with error handling
     console.log('🔐 Verifying password...');
     let isMatch;
