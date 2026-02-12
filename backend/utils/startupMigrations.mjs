@@ -11,56 +11,68 @@ import sequelize from '../database.mjs';
 import logger from './logger.mjs';
 
 /**
- * Migration 1: Fix admin_settings.userId column type
- * - Controller queries with string keys ('system', 'notifications', 'security')
- * - Column was UUID, causing cast errors on findOne with string literals
- * - Changes to VARCHAR(255) which accepts both UUIDs and category keys
+ * Migration 1: Ensure admin_settings has a 'category' column
+ * - The table was created with only (id, settings, createdAt, updatedAt)
+ * - We need a 'category' column to store which settings category each row belongs to
+ * - Also adds a UNIQUE constraint on category for findOrCreate support
  */
-async function migrateAdminSettingsUserId() {
+async function migrateAdminSettingsCategory() {
   try {
     // Check if table exists
     const [tables] = await sequelize.query(
       `SELECT tablename FROM pg_tables WHERE tablename = 'admin_settings';`
     );
     if (!tables || tables.length === 0) {
-      logger.info('[Migration] admin_settings table does not exist yet, skipping userId fix');
+      logger.info('[Migration] admin_settings table does not exist yet, skipping');
       return;
     }
 
-    // Dump all columns for diagnostics
-    const [allCols] = await sequelize.query(
-      `SELECT column_name, data_type FROM information_schema.columns
-       WHERE table_name = 'admin_settings' ORDER BY ordinal_position;`
+    // Check if category column already exists
+    const [cols] = await sequelize.query(
+      `SELECT column_name FROM information_schema.columns
+       WHERE table_name = 'admin_settings' AND column_name = 'category';`
     );
-    logger.info(`[Migration] admin_settings columns: ${JSON.stringify(allCols.map(c => c.column_name + ':' + c.data_type))}`);
 
-    // Check current column type - try both naming conventions
-    const [columns] = await sequelize.query(
-      `SELECT column_name, data_type FROM information_schema.columns
+    if (cols && cols.length > 0) {
+      logger.info('[Migration] admin_settings.category column already exists - no change needed');
+      return;
+    }
+
+    // Also check for userId/user_id (legacy column name)
+    const [legacyCols] = await sequelize.query(
+      `SELECT column_name FROM information_schema.columns
        WHERE table_name = 'admin_settings' AND column_name IN ('userId', 'user_id');`
     );
 
-    if (!columns || columns.length === 0) {
-      logger.info('[Migration] admin_settings userId/user_id column not found, skipping');
+    if (legacyCols && legacyCols.length > 0) {
+      // Rename legacy column to 'category'
+      const oldName = legacyCols[0].column_name;
+      logger.info(`[Migration] Renaming admin_settings.${oldName} to category...`);
+      await sequelize.query(
+        `ALTER TABLE admin_settings RENAME COLUMN "${oldName}" TO category;`
+      );
+      // Ensure it's VARCHAR
+      await sequelize.query(
+        `ALTER TABLE admin_settings ALTER COLUMN category TYPE VARCHAR(255);`
+      );
+      logger.info('[Migration] Renamed to category successfully');
       return;
     }
 
-    const col = columns[0];
-    const colName = col.column_name;
-    const currentType = col.data_type;
-
-    if (currentType === 'character varying') {
-      logger.info(`[Migration] admin_settings.${colName} already VARCHAR - no change needed`);
-      return;
-    }
-
-    logger.info(`[Migration] Changing admin_settings.${colName} from ${currentType} to VARCHAR(255)...`);
+    // No category or userId column exists - add category column
+    logger.info('[Migration] Adding category column to admin_settings...');
     await sequelize.query(
-      `ALTER TABLE admin_settings ALTER COLUMN "${colName}" TYPE VARCHAR(255) USING "${colName}"::VARCHAR(255);`
+      `ALTER TABLE admin_settings ADD COLUMN category VARCHAR(255);`
     );
-    logger.info(`[Migration] admin_settings.${colName} changed to VARCHAR(255) successfully`);
+
+    // Add unique index on category for findOrCreate support
+    await sequelize.query(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_admin_settings_category ON admin_settings(category);`
+    );
+
+    logger.info('[Migration] admin_settings.category column added successfully');
   } catch (error) {
-    logger.warn(`[Migration] admin_settings userId fix failed (non-critical): ${error.message}`);
+    logger.warn(`[Migration] admin_settings category fix failed (non-critical): ${error.message}`);
   }
 }
 
@@ -149,7 +161,7 @@ export async function runStartupMigrations() {
   try {
     logger.info('[Migrations] Running startup migrations...');
 
-    await migrateAdminSettingsUserId();
+    await migrateAdminSettingsCategory();
     await migrateMessagingTables();
 
     logger.info('[Migrations] All startup migrations completed');
