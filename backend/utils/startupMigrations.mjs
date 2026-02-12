@@ -27,28 +27,31 @@ async function migrateAdminSettingsUserId() {
       return;
     }
 
-    // Check current column type
+    // Check current column type - column is snake_case (user_id) in the DB
     const [columns] = await sequelize.query(
-      `SELECT data_type FROM information_schema.columns
-       WHERE table_name = 'admin_settings' AND column_name = 'userId';`
+      `SELECT column_name, data_type FROM information_schema.columns
+       WHERE table_name = 'admin_settings' AND column_name IN ('userId', 'user_id');`
     );
 
     if (!columns || columns.length === 0) {
-      logger.info('[Migration] admin_settings.userId column not found, skipping');
+      logger.info('[Migration] admin_settings userId/user_id column not found, skipping');
       return;
     }
 
-    const currentType = columns[0].data_type;
+    const col = columns[0];
+    const colName = col.column_name;
+    const currentType = col.data_type;
+
     if (currentType === 'character varying') {
-      logger.info('[Migration] admin_settings.userId already VARCHAR - no change needed');
+      logger.info(`[Migration] admin_settings.${colName} already VARCHAR - no change needed`);
       return;
     }
 
-    logger.info(`[Migration] Changing admin_settings.userId from ${currentType} to VARCHAR(255)...`);
+    logger.info(`[Migration] Changing admin_settings.${colName} from ${currentType} to VARCHAR(255)...`);
     await sequelize.query(
-      `ALTER TABLE admin_settings ALTER COLUMN "userId" TYPE VARCHAR(255) USING "userId"::VARCHAR(255);`
+      `ALTER TABLE admin_settings ALTER COLUMN "${colName}" TYPE VARCHAR(255) USING "${colName}"::VARCHAR(255);`
     );
-    logger.info('[Migration] admin_settings.userId changed to VARCHAR(255) successfully');
+    logger.info(`[Migration] admin_settings.${colName} changed to VARCHAR(255) successfully`);
   } catch (error) {
     logger.warn(`[Migration] admin_settings userId fix failed (non-critical): ${error.message}`);
   }

@@ -27,6 +27,7 @@ AdminSettings.init(
     modelName: 'AdminSettings',
     tableName: 'admin_settings',
     timestamps: true,
+    underscored: true,
   }
 );
 
