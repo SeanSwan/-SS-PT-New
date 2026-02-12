@@ -1,6 +1,7 @@
 # Security Regression Tracker — Launch Week
 
 **Baseline established:** 2026-02-12
+**Last retested:** 2026-02-12 ~23:39 UTC (post MCP decommission deploy `eecd5eae`)
 **Retest cadence:** After every Critical deploy + daily sweep
 
 ---

@@ -45,7 +45,7 @@ curl https://sswanstudios.com/api/health
 **NEVER use `git reset --hard` or `git push --force` on main.**
 History must stay intact and auditable. Always revert forward.
 
-**Current last known good:** `bc3cec81` docs(launch): add launch week operational documents
+**Current last known good:** `e6d844af` fix(mcp): use MCP_ACTUALLY_AVAILABLE in health endpoint
 **Security floor:** Never roll back past `714cfa03` — that commit blocks inactive-user token issuance
 
 ---
@@ -72,6 +72,28 @@ History must stay intact and auditable. Always revert forward.
 | **Scope** | Documentation only — no code changes |
 | **Risk** | None |
 | **Smoke result** | N/A (docs only) |
+| **Rollback needed** | No |
+
+### Deploy #1 — MCP Decommission (noise fix)
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-02-12 |
+| **Commit** | `eecd5eae` fix(mcp): disable legacy MCP health checks and monitoring in production |
+| **Class** | Critical |
+| **Scope** | Disabled 60s MCP health-check interval + 30s analytics interval in production. Set VITE_ENABLE_MCP_SERVICES=false. Removed 3 MCP worker services from render.yaml. |
+| **Risk** | Low — health checks were failing silently, features already use in-app implementations |
+| **Smoke result** | PASS — all 9 checks pass, security quick sweep clean, uptime reset confirmed |
+| **Rollback needed** | No |
+
+### Deploy #1.1 — MCP health endpoint fix
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-02-12 |
+| **Commit** | `e6d844af` fix(mcp): use MCP_ACTUALLY_AVAILABLE in health endpoint |
+| **Class** | Non-critical |
+| **Scope** | /api/mcp/health now returns 200 disabled instead of 503 degraded in production |
+| **Risk** | Low — single route guard change |
+| **Smoke result** | Pending Render deploy (build in progress) |
 | **Rollback needed** | No |
 
 ---
