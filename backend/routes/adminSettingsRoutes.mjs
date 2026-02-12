@@ -549,4 +549,51 @@ router.get('/health', protect, adminOnly, async (req, res) => {
   }
 });
 
+/**
+ * @route   GET /api/admin/settings/diagnostic
+ * @desc    Temporary: dump admin_settings table structure and sample data
+ * @access  Admin Only
+ */
+router.get('/diagnostic', protect, adminOnly, async (req, res) => {
+  try {
+    const sequelize = (await import('../database.mjs')).default;
+
+    // Get column info
+    const [columns] = await sequelize.query(
+      `SELECT column_name, data_type, is_nullable, column_default
+       FROM information_schema.columns
+       WHERE table_name = 'admin_settings'
+       ORDER BY ordinal_position;`
+    );
+
+    // Get row count
+    const [countResult] = await sequelize.query(
+      `SELECT COUNT(*) as count FROM admin_settings;`
+    );
+
+    // Get sample rows
+    const [sampleRows] = await sequelize.query(
+      `SELECT * FROM admin_settings LIMIT 5;`
+    );
+
+    res.json({
+      success: true,
+      data: {
+        columns,
+        rowCount: countResult[0]?.count || 0,
+        sampleRows: sampleRows.map(row => {
+          // Truncate settings JSON for readability
+          const r = { ...row };
+          if (r.settings && typeof r.settings === 'object') {
+            r.settings = '[JSON object - keys: ' + Object.keys(r.settings).join(', ') + ']';
+          }
+          return r;
+        })
+      }
+    });
+  } catch (error) {
+    res.json({ success: false, error: error.message });
+  }
+});
+
 export default router;
