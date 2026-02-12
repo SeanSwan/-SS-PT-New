@@ -39,6 +39,9 @@ export const ExecutiveMainContent = styled(motion.main)`
   margin-left: 280px;
   padding: ${props => props.theme.spacing.lg};
   height: 100vh;
+  @supports (height: 100dvh) {
+    height: 100dvh;
+  }
   position: relative;
   background: rgba(248, 250, 252, 0.02);
   backdrop-filter: blur(10px);

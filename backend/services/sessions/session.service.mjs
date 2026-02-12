@@ -712,10 +712,8 @@ class UnifiedSessionService {
           throw new Error('Each session must include a start time');
         }
         
-        // Check if date is in the past (admins can bypass this for backfilling)
-        if (new Date(session.start) < new Date() && user.role !== 'admin') {
-          throw new Error('Cannot create sessions in the past');
-        }
+        // Past-date check removed: only admins reach this method (line 698
+        // guard), and admins need to backfill sessions freely.
       }
 
       // Create all sessions in a single transaction
