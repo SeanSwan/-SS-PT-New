@@ -38,10 +38,12 @@ export const ExecutiveMainContent = styled(motion.main)`
   flex: 1;
   margin-left: 280px;
   padding: ${props => props.theme.spacing.lg};
-  min-height: 100vh;
+  height: 100vh;
   position: relative;
   background: rgba(248, 250, 252, 0.02);
   backdrop-filter: blur(10px);
+  overflow-y: auto;
+  overflow-x: hidden;
 
   @media (max-width: 768px) {
     margin-left: 0;
