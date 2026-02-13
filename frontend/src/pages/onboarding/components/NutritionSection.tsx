@@ -1,6 +1,5 @@
 import React from "react";
-import { FieldGroup, InputField } from "../../../components/form";
-import { useUniversalTheme } from "../../../context/ThemeContext/UniversalThemeContext";
+import { FieldGroup, InputField, TextAreaField } from "../../../components/form";
 import styled from "styled-components";
 
 const SectionContainer = styled.div`
@@ -9,48 +8,73 @@ const SectionContainer = styled.div`
   gap: 1.5rem;
 `;
 
+const FieldRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
 const NutritionSection: React.FC<{
   formData: any;
   updateFormData: (data: any) => void;
 }> = ({ formData, updateFormData }) => {
-  const { isDarkMode } = useUniversalTheme();
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     updateFormData({ [name]: value });
   };
 
   return (
     <SectionContainer>
-      <FieldGroup label="Daily Protein Intake (grams)">
-        <InputField
-          name="dailyProtein"
-          type="number"
-          value={formData.dailyProtein || ""}
-          onChange={handleChange}
-          placeholder="e.g. 150"
-          $isDarkMode={isDarkMode}
-        />
-      </FieldGroup>
+      <FieldRow>
+        <FieldGroup label="Meals Per Day">
+          <InputField
+            name="mealsPerDay"
+            type="number"
+            value={formData.mealsPerDay || ""}
+            onChange={handleChange}
+            placeholder="e.g. 3"
+          />
+        </FieldGroup>
+        <FieldGroup label="Water Intake (oz/day)">
+          <InputField
+            name="waterIntake"
+            type="number"
+            value={formData.waterIntake || ""}
+            onChange={handleChange}
+            placeholder="e.g. 64"
+          />
+        </FieldGroup>
+      </FieldRow>
 
-      <FieldGroup label="Water Intake (oz per day)">
-        <InputField
-          name="waterIntake"
-          type="number"
-          value={formData.waterIntake || ""}
-          onChange={handleChange}
-          placeholder="e.g. 64"
-          $isDarkMode={isDarkMode}
-        />
-      </FieldGroup>
-
-      <FieldGroup label="Dietary Preferences">
+      <FieldGroup label="Dietary Preferences or Restrictions">
         <InputField
           name="dietaryPreferences"
           value={formData.dietaryPreferences || ""}
           onChange={handleChange}
-          placeholder="e.g. High protein, Low carb"
-          $isDarkMode={isDarkMode}
+          placeholder="e.g. Vegetarian, Gluten-free, High protein"
+        />
+      </FieldGroup>
+
+      <FieldGroup label="Food Allergies">
+        <InputField
+          name="foodAllergies"
+          value={formData.foodAllergies || ""}
+          onChange={handleChange}
+          placeholder="e.g. Peanuts, Shellfish, None"
+        />
+      </FieldGroup>
+
+      <FieldGroup label="Typical Daily Diet (optional)">
+        <TextAreaField
+          name="typicalDiet"
+          value={formData.typicalDiet || ""}
+          onChange={handleChange}
+          placeholder="Briefly describe what you eat on a typical day"
+          rows={3}
         />
       </FieldGroup>
     </SectionContainer>

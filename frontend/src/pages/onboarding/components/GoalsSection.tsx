@@ -1,6 +1,5 @@
 import React from "react";
 import { FieldGroup, InputField, TextAreaField } from "../../../components/form";
-import { useUniversalTheme } from "../../../context/ThemeContext/UniversalThemeContext";
 import styled from "styled-components";
 
 const SectionContainer = styled.div`
@@ -13,8 +12,6 @@ const GoalsSection: React.FC<{
   formData: any;
   updateFormData: (data: any) => void;
 }> = ({ formData, updateFormData }) => {
-  const { isDarkMode } = useUniversalTheme();
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     updateFormData({ [name]: value });
@@ -27,8 +24,7 @@ const GoalsSection: React.FC<{
           name="primaryGoal"
           value={formData.primaryGoal || ""}
           onChange={handleChange}
-          placeholder="Weight loss, muscle gain, etc."
-          $isDarkMode={isDarkMode}
+          placeholder="e.g. Fat loss, muscle gain, strength, athletic performance"
         />
       </FieldGroup>
 
@@ -37,20 +33,18 @@ const GoalsSection: React.FC<{
           name="whyGoalMatters"
           value={formData.whyGoalMatters || ""}
           onChange={handleChange}
-          placeholder="Explain why achieving this goal is important to you"
+          placeholder="What's driving you to make this change?"
           rows={3}
-          $isDarkMode={isDarkMode}
         />
       </FieldGroup>
 
-      <FieldGroup label="What Success Looks Like In 6 Months">
+      <FieldGroup label="What Does Success Look Like In 6 Months?">
         <TextAreaField
           name="successIn6Months"
           value={formData.successIn6Months || ""}
           onChange={handleChange}
-          placeholder="Describe your vision of success"
+          placeholder="Describe your vision — be specific"
           rows={3}
-          $isDarkMode={isDarkMode}
         />
       </FieldGroup>
 
@@ -59,8 +53,7 @@ const GoalsSection: React.FC<{
           name="desiredTimeline"
           value={formData.desiredTimeline || ""}
           onChange={handleChange}
-          placeholder="3 months, 6 months, etc."
-          $isDarkMode={isDarkMode}
+          placeholder="3 months, 6 months, 1 year"
         />
       </FieldGroup>
     </SectionContainer>
