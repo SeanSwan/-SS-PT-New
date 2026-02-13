@@ -1,7 +1,7 @@
 # Archive Manifest — Refactor Sprint 2026-02-13
 
 **Archive location:** `archive/pending-deletion/2026-02-13/`
-**Total files archived:** 63
+**Total files archived:** 77 (20 backend + 57 frontend)
 **Verification:** Backend 155/155 tests pass, frontend build succeeds
 
 ---
@@ -118,6 +118,37 @@ All files from `components/Checkout/_ARCHIVED/` — replaced by NewCheckout/Chec
 |---------------|-----------|
 | `components/Header/header-ORIGINAL-BACKUP.tsx` | Excluded by tsconfig |
 | `components/Header/header-SIMPLIFIED-BACKUP.tsx` | Excluded by tsconfig |
+
+---
+
+## Phase 2 — MCP Python Servers + Deprecated Scripts
+
+### backend-mcp-server-python/ (137 files)
+| Original Path | Why Bloat | Evidence |
+|---------------|-----------|----------|
+| `backend/mcp_server/` (entire directory) | Python MCP servers decommissioned; zero runtime imports from Node.js | Only config string refs in MasterPromptIntegration.mjs (dead code) |
+
+### backend-scripts-deprecated/ (2 files)
+| Original Path | Why Bloat |
+|---------------|-----------|
+| `backend/scripts/deprecated/reset-db-manual.mjs` | Explicitly deprecated |
+| `backend/scripts/deprecated/reset-db-windows.mjs` | Explicitly deprecated |
+
+### backend-scripts-backup/ (6 files)
+| Original Path | Why Bloat |
+|---------------|-----------|
+| `backend/scripts/backup/add-storefront-items.sql` | Backup — not in package.json |
+| `backend/scripts/backup/check-storefront-packages.mjs` | Backup — not in package.json |
+| `backend/scripts/backup/README.md` | Backup folder docs |
+| `backend/scripts/backup/remove-duplicate-storefront-items.mjs` | Backup — not in package.json |
+| `backend/scripts/backup/seed-storefront-enhanced.mjs` | Backup — not in package.json |
+| `backend/scripts/backup/seed-storefront-items.mjs` | Backup — not in package.json |
+
+### backend-root-backups/ (2 files)
+| Original Path | Why Bloat |
+|---------------|-----------|
+| `backend/test-cart-helpers-phase1-BACKUP.mjs` | Explicit BACKUP suffix, zero references |
+| `backend/verify-cart-total-fix-BACKUP.mjs` | Explicit BACKUP suffix, zero references |
 
 ---
 

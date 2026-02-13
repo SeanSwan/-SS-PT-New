@@ -419,6 +419,11 @@ class EnhancedClientDashboardService {
 
   // === GAMIFICATION SERVICES (MCP Integration) ===
   async getGamificationData(userId?: string): Promise<GamificationData> {
+    // Short-circuit when MCP is disabled — return fallback data without network call
+    if (import.meta.env.VITE_ENABLE_MCP_SERVICES !== 'true') {
+      return this.getFallbackGamificationData();
+    }
+
     try {
       const targetUserId = userId || this.userId;
       if (!targetUserId) throw new Error('User ID required');

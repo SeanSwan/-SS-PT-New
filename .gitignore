@@ -236,14 +236,14 @@ BROWSER_CONSOLE_TESTS.js
 # Root-level Playwright/QA screenshots (use docs/qa/baseline/ instead)
 /*.png
 
-# Jupyter notebooks
-*.ipynb
+# Root-level Jupyter notebooks (scoped to root to avoid ignoring intentional notebooks in subdirs)
+/*.ipynb
 
 # Windows null device artifacts
 /nul
 
-# Executable installers (should never be in a web app repo)
-*.exe
+# Executable installers in frontend assets (scoped to avoid ignoring intentional binaries elsewhere)
+frontend/src/assets/*.exe
 
 # Untracked MCP/AI server directories
 /backend/unified-ai-server/

@@ -402,17 +402,18 @@ export const ADMIN_DASHBOARD_TABS: DashboardTab[] = [
     description: 'Living style guide and design system',
     isNew: true,
   },
-  {
+  // Design Playground tab — only visible when VITE_DESIGN_PLAYGROUND=true (dev only)
+  ...(import.meta.env.VITE_DESIGN_PLAYGROUND === 'true' ? [{
     key: 'design-playground',
     label: 'Design Playground',
     icon: 'Palette',
     order: 22,
     status: 'new' as TabStatus,
-    section: 'system',
+    section: 'system' as const,
     route: '/dashboard/design-playground',
     description: 'Homepage redesign concepts for owner review',
     isNew: true,
-  },
+  }] : []),
 ];
 
 // Trainer-specific tabs

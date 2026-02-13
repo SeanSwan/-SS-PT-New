@@ -111,8 +111,14 @@ const ProgressAnalysis = ({ onClose }) => {
       return;
     }
     
+    // Short-circuit when MCP is disabled
+    if (import.meta.env.VITE_ENABLE_MCP_SERVICES !== 'true') {
+      enqueueSnackbar('AI progress analysis is currently disabled', { variant: 'info' });
+      return;
+    }
+
     setIsLoading(true);
-    
+
     try {
       // Prepare analysis context
       const mcpContext = {
@@ -122,7 +128,7 @@ const ProgressAnalysis = ({ onClose }) => {
         includeComparisons: true,
         generateRecommendations: true
       };
-      
+
       // Call MCP backend for analysis
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/mcp/analyze`, {
         method: 'POST',

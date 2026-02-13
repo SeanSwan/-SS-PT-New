@@ -19,7 +19,7 @@ SwanStudios (2.4 GB total)
 │   ├── utils/        29 utilities (logging, config, database helpers)
 │   ├── scripts/      88 CLI scripts (admin, migration, seeding, diagnostics)
 │   ├── migrations/   118+ Sequelize migrations (.cjs)
-│   ├── mcp_server/   Python MCP servers (DECOMMISSIONED, not deployed)
+│   ├── mcp_server/   ARCHIVED to archive/pending-deletion/ (Phase 2)
 │   └── tests/        18 test files (vitest)
 ├── frontend/         React 18 + TypeScript + Vite + styled-components
 │   └── src/
@@ -75,9 +75,10 @@ Mounts 75+ route modules in order: Core Auth → User Management → Business Lo
 
 - Backend: Health checks disabled in production (opt-IN via `ENABLE_MCP_SERVICES=true`)
 - Frontend: `VITE_ENABLE_MCP_SERVICES=false` in .env.production
-- Python MCP servers: Removed from render.yaml, directories still exist
+- Frontend gating: `mcpConfig.ts` short-circuits all API calls when disabled (Phase 2)
+- McpHealthMonitor: Skips 30s polling when `VITE_ENABLE_MCP_SERVICES !== 'true'` (Phase 2)
+- Python MCP servers: Archived to `archive/pending-deletion/2026-02-13/backend-mcp-server-python/`
 - Routes: Return `production-fallback` / `disabled` data
-- Frontend hooks: Still imported unconditionally (no build-time gating)
 
 ---
 
@@ -104,7 +105,7 @@ Mounts 75+ route modules in order: Core Auth → User Management → Business Lo
 | /schedule | Schedule | Auth |
 | /dashboard | Role-based dashboard | Auth + RBAC |
 | /dashboard/admin/* | Admin sections | Admin only |
-| /designs/:id | DesignPlayground | Admin only |
+| /designs/:id | DesignPlayground | Admin + VITE_DESIGN_PLAYGROUND=true |
 
 ---
 
@@ -117,9 +118,9 @@ Mounts 75+ route modules in order: Core Auth → User Management → Business Lo
 
 ## Known Technical Debt
 
-1. **MCP frontend hooks run unconditionally** — McpStatusDot in sidebar causes 30s health checks even though MCP is disabled
+1. ~~MCP frontend hooks run unconditionally~~ — **FIXED Phase 2**: `mcpConfig.ts` short-circuits when `VITE_ENABLE_MCP_SERVICES=false`
 2. **Material-UI in package.json** — @mui/material installed despite "No MUI" design constraint
-3. **88 backend scripts** — Many one-off diagnostics never cleaned up
-4. **52+ backup/archived files in frontend** — Explicit BACKUP/ARCHIVED/old naming
-5. **526 MB frontend assets** — Videos should be in CDN, .exe files should not exist
-6. **Design Playground routes accessible in prod** — Missing VITE_DESIGN_PLAYGROUND guard
+3. **162 root-level backend scripts** — Organizational debt; should be in subdirectories
+4. ~~52+ backup/archived files in frontend~~ — **FIXED Phase 1**: Archived to pending-deletion/
+5. **526 MB frontend assets** — Videos should be in CDN, .exe files now gitignored
+6. ~~Design Playground routes accessible in prod~~ — **FIXED Phase 2**: Guarded by `VITE_DESIGN_PLAYGROUND`

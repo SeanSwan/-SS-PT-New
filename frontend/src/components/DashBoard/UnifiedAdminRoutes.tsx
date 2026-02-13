@@ -44,7 +44,10 @@ import AdminSocialManagementView from './Pages/admin-dashboard/components/AdminS
 import NASMCompliancePanel from './Pages/admin-dashboard/components/NASMCompliancePanel';
 import AdminExerciseCommandCenter from './Pages/admin-exercises';
 import { TheAestheticCodex } from '../../core';
-import DesignPlayground from '../../pages/DesignPlayground/DesignPlayground';
+// Design Playground — lazy-loaded only when VITE_DESIGN_PLAYGROUND=true (not shipped to prod bundle)
+const DesignPlayground = import.meta.env.VITE_DESIGN_PLAYGROUND === 'true'
+  ? React.lazy(() => import('../../pages/DesignPlayground/DesignPlayground'))
+  : null;
 
 const ClientOnboardingWizard = React.lazy(() => import('../../pages/onboarding/ClientOnboardingWizard'));
 const SocialMediaCommandCenter = React.lazy(
@@ -112,8 +115,14 @@ const UnifiedAdminRoutes: React.FC = () => (
     {/* The Aesthetic Codex */}
     <Route path="/style-guide" element={wrap(<TheAestheticCodex />)} />
 
-    {/* Design Playground - Admin concept viewer */}
-    <Route path="/design-playground" element={wrap(<DesignPlayground />)} />
+    {/* Design Playground - Admin concept viewer (build-time gated per CLAUDE.md) */}
+    {DesignPlayground && (
+      <Route path="/design-playground" element={wrap(
+        <React.Suspense fallback={<div>Loading...</div>}>
+          <DesignPlayground />
+        </React.Suspense>
+      )} />
+    )}
 
     {/* Enterprise Business Intelligence Routes */}
     <Route path="/mcp-overview" element={wrap(<MCPServersSection />)} />
