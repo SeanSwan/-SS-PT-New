@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUniversalTheme } from "../../context/ThemeContext/UniversalThemeContext";
 import { useNavigate } from "react-router-dom";
@@ -10,114 +10,122 @@ import GoalsSection from "./components/GoalsSection";
 import NutritionSection from "./components/NutritionSection";
 import LifestyleSection from "./components/LifestyleSection";
 import TrainingSection from "./components/TrainingSection";
-import AICoachingSection from "./components/AICoachingSection";
-import PackageSection from "./components/PackageSection";
 import SummarySection from "./components/SummarySection";
 
-const WizardContainer = styled.div<{ $isDarkMode: boolean; $embedded?: boolean }>`
+/* ── Galaxy-Swan theme tokens ── */
+const GALAXY_CORE = "#0a0a1a";
+const SWAN_CYAN = "#00FFFF";
+const COSMIC_PURPLE = "#7851A9";
+
+const cyanPulse = keyframes`
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.1); }
+  50% { box-shadow: 0 0 30px rgba(0, 255, 255, 0.2); }
+`;
+
+const WizardContainer = styled.div<{ $embedded?: boolean }>`
   min-height: ${(props) => (props.$embedded ? "auto" : "100vh")};
   background: ${(props) =>
     props.$embedded
       ? "transparent"
-      : props.$isDarkMode
-      ? "linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f23 100%)"
-      : "linear-gradient(135deg, #f0f4f8 0%, #d9e2ec 50%, #bcccdc 100%)"};
+      : `linear-gradient(135deg, ${GALAXY_CORE} 0%, #1a1a2e 50%, #0f0f23 100%)`};
   padding: ${(props) => (props.$embedded ? "0" : "2rem")};
   display: flex;
   justify-content: center;
   align-items: ${(props) => (props.$embedded ? "stretch" : "center")};
 `;
 
-const WizardCard = styled(motion.div)<{ $isDarkMode: boolean }>`
-  background: ${(props) =>
-    props.$isDarkMode ? "rgba(20, 20, 40, 0.95)" : "rgba(255, 255, 255, 0.95)"};
-  border-radius: 24px;
-  box-shadow: ${(props) =>
-    props.$isDarkMode
-      ? "0 20px 60px rgba(0, 255, 255, 0.3)"
-      : "0 20px 60px rgba(0, 0, 0, 0.15)"};
-  border: 2px solid
-    ${(props) => (props.$isDarkMode ? "rgba(0, 255, 255, 0.3)" : "rgba(100, 150, 200, 0.3)")};
-  padding: 3rem;
+const WizardCard = styled(motion.div)`
+  background: rgba(15, 15, 35, 0.92);
+  border-radius: 20px;
+  box-shadow: 0 8px 40px rgba(0, 255, 255, 0.1), inset 0 1px 0 rgba(255,255,255,0.05);
+  border: 1px solid rgba(0, 255, 255, 0.2);
+  padding: 2.5rem;
   max-width: 900px;
   width: 100%;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(20px);
+  animation: ${cyanPulse} 4s ease-in-out infinite;
 
   @media (max-width: 768px) {
-    padding: 2rem 1.5rem;
+    padding: 1.5rem 1.25rem;
     border-radius: 16px;
   }
 `;
 
-const ProgressBarContainer = styled.div<{ $isDarkMode: boolean }>`
+const ProgressBarContainer = styled.div`
   width: 100%;
-  height: 8px;
-  background: ${(props) =>
-    props.$isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   margin-bottom: 2rem;
   overflow: hidden;
 `;
 
-const ProgressBar = styled(motion.div)<{ $isDarkMode: boolean }>`
+const ProgressBar = styled(motion.div)`
   height: 100%;
-  background: ${(props) =>
-    props.$isDarkMode
-      ? "linear-gradient(90deg, #00ffff, #00ccff, #0099ff)"
-      : "linear-gradient(90deg, #4caf50, #45a049, #3d8b40)"};
+  background: linear-gradient(90deg, ${SWAN_CYAN}, ${COSMIC_PURPLE});
   border-radius: 10px;
-  box-shadow: 0 0 20px
-    ${(props) => (props.$isDarkMode ? "rgba(0, 255, 255, 0.6)" : "rgba(76, 175, 80, 0.6)")};
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.5);
 `;
 
-const StepIndicator = styled.div<{ $isDarkMode: boolean }>`
+const StepIndicator = styled.div`
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   margin-bottom: 2rem;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0;
 `;
 
-const Step = styled.div<{ $active: boolean; $completed: boolean; $isDarkMode: boolean }>`
-  flex: 1;
-  min-width: 60px;
-  height: 60px;
+const Step = styled.div<{ $active: boolean; $completed: boolean }>`
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: bold;
-  font-size: 0.9rem;
+  font-weight: 700;
+  font-size: 0.85rem;
   border: 2px solid
     ${(props) => {
-      if (props.$completed) return props.$isDarkMode ? "#00ffff" : "#4caf50";
-      if (props.$active) return props.$isDarkMode ? "#00ccff" : "#2196f3";
-      return props.$isDarkMode ? "rgba(255, 255, 255, 0.2)" : "rgba(0, 0, 0, 0.2)";
+      if (props.$completed) return SWAN_CYAN;
+      if (props.$active) return COSMIC_PURPLE;
+      return "rgba(255, 255, 255, 0.15)";
     }};
   background: ${(props) => {
-    if (props.$completed)
-      return props.$isDarkMode ? "rgba(0, 255, 255, 0.2)" : "rgba(76, 175, 80, 0.2)";
-    if (props.$active)
-      return props.$isDarkMode ? "rgba(0, 204, 255, 0.2)" : "rgba(33, 150, 243, 0.2)";
-    return "transparent";
+    if (props.$completed) return "rgba(0, 255, 255, 0.15)";
+    if (props.$active) return "rgba(120, 81, 169, 0.25)";
+    return "rgba(255, 255, 255, 0.03)";
   }};
   color: ${(props) => {
-    if (props.$completed || props.$active)
-      return props.$isDarkMode ? "#00ffff" : "#2196f3";
-    return props.$isDarkMode ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.4)";
+    if (props.$completed) return SWAN_CYAN;
+    if (props.$active) return "#ffffff";
+    return "rgba(255, 255, 255, 0.35)";
   }};
   cursor: ${(props) => (props.$completed ? "pointer" : "default")};
   transition: all 0.3s ease;
+  ${(props) => props.$active && `box-shadow: 0 0 16px rgba(120, 81, 169, 0.4);`}
 
   &:hover {
-    transform: ${(props) => (props.$completed ? "scale(1.1)" : "none")};
+    transform: ${(props) => (props.$completed ? "scale(1.12)" : "none")};
   }
 
   @media (max-width: 768px) {
-    min-width: 50px;
-    height: 50px;
-    font-size: 0.8rem;
+    width: 36px;
+    height: 36px;
+    font-size: 0.75rem;
+  }
+`;
+
+const StepConnector = styled.div<{ $completed: boolean }>`
+  width: 24px;
+  height: 2px;
+  background: ${(props) =>
+    props.$completed
+      ? `linear-gradient(90deg, ${SWAN_CYAN}, ${COSMIC_PURPLE})`
+      : "rgba(255, 255, 255, 0.1)"};
+  transition: background 0.3s ease;
+
+  @media (max-width: 768px) {
+    width: 12px;
   }
 `;
 
@@ -132,8 +140,8 @@ const ButtonGroup = styled.div`
   }
 `;
 
-const Button = styled.button<{ $variant?: "primary" | "secondary"; $isDarkMode: boolean }>`
-  padding: 1rem 2.5rem;
+const Button = styled.button<{ $variant?: "primary" | "secondary" }>`
+  padding: 0.875rem 2rem;
   border-radius: 12px;
   font-weight: 600;
   font-size: 1rem;
@@ -141,43 +149,33 @@ const Button = styled.button<{ $variant?: "primary" | "secondary"; $isDarkMode: 
   cursor: pointer;
   transition: all 0.3s ease;
   flex: 1;
+  min-height: 48px;
 
   ${(props) =>
     props.$variant === "primary"
       ? `
-    background: ${
-      props.$isDarkMode
-        ? "linear-gradient(135deg, #00ffff, #00ccff)"
-        : "linear-gradient(135deg, #4CAF50, #45a049)"
-    };
-    color: ${props.$isDarkMode ? "#0a0a0f" : "#fff"};
-    box-shadow: 0 4px 15px ${
-      props.$isDarkMode ? "rgba(0, 255, 255, 0.4)" : "rgba(76, 175, 80, 0.4)"
-    };
+    background: linear-gradient(135deg, ${SWAN_CYAN}, #00aadd);
+    color: ${GALAXY_CORE};
+    box-shadow: 0 4px 18px rgba(0, 255, 255, 0.35);
 
     &:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 20px ${
-        props.$isDarkMode ? "rgba(0, 255, 255, 0.6)" : "rgba(76, 175, 80, 0.6)"
-      };
+      box-shadow: 0 6px 24px rgba(0, 255, 255, 0.5);
     }
   `
       : `
-    background: ${
-      props.$isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.05)"
-    };
-    color: ${props.$isDarkMode ? "#00ffff" : "#2196F3"};
-    border: 2px solid ${props.$isDarkMode ? "#00ffff" : "#2196F3"};
+    background: rgba(255, 255, 255, 0.06);
+    color: ${SWAN_CYAN};
+    border: 1px solid rgba(0, 255, 255, 0.3);
 
     &:hover {
-      background: ${
-        props.$isDarkMode ? "rgba(255, 255, 255, 0.15)" : "rgba(0, 0, 0, 0.1)"
-      };
+      background: rgba(255, 255, 255, 0.1);
+      border-color: ${SWAN_CYAN};
     }
   `}
 
   &:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
     &:hover {
       transform: none;
@@ -185,40 +183,36 @@ const Button = styled.button<{ $variant?: "primary" | "secondary"; $isDarkMode: 
   }
 `;
 
-const Title = styled.h1<{ $isDarkMode: boolean }>`
-  font-size: 2.5rem;
+const Title = styled.h1`
+  font-size: 2.2rem;
   font-weight: 800;
-  margin-bottom: 1rem;
-  background: ${(props) =>
-    props.$isDarkMode
-      ? "linear-gradient(135deg, #00ffff, #00ccff, #0099ff)"
-      : "linear-gradient(135deg, #4CAF50, #2196F3, #9C27B0)"};
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, ${SWAN_CYAN}, ${COSMIC_PURPLE});
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   text-align: center;
+  letter-spacing: -0.02em;
 
   @media (max-width: 768px) {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
   }
 `;
 
-const Subtitle = styled.p<{ $isDarkMode: boolean }>`
-  font-size: 1.1rem;
-  color: ${(props) =>
-    props.$isDarkMode ? "rgba(255, 255, 255, 0.7)" : "rgba(0, 0, 0, 0.6)"};
+const Subtitle = styled.p`
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.55);
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 `;
 
-const ErrorMessage = styled.div<{ $isDarkMode: boolean }>`
-  background: ${(props) =>
-    props.$isDarkMode ? "rgba(255, 50, 50, 0.2)" : "rgba(255, 50, 50, 0.1)"};
-  border: 2px solid #ff3232;
+const ErrorMessage = styled.div`
+  background: rgba(255, 50, 50, 0.12);
+  border: 1px solid rgba(255, 50, 50, 0.4);
   border-radius: 12px;
   padding: 1rem 1.5rem;
   margin-bottom: 1.5rem;
-  color: ${(props) => (props.$isDarkMode ? "#ff6b6b" : "#d32f2f")};
+  color: #ff6b6b;
   font-weight: 500;
   display: flex;
   align-items: center;
@@ -236,7 +230,7 @@ const ModalOverlay = styled(motion.div)`
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -244,17 +238,15 @@ const ModalOverlay = styled(motion.div)`
   padding: 2rem;
 `;
 
-const ModalContent = styled(motion.div)<{ $isDarkMode: boolean }>`
-  background: ${(props) =>
-    props.$isDarkMode
-      ? "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)"
-      : "linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)"};
-  border-radius: 24px;
-  padding: 3rem;
+const ModalContent = styled(motion.div)`
+  background: linear-gradient(135deg, rgba(15, 15, 35, 0.98) 0%, rgba(25, 25, 55, 0.98) 100%);
+  border-radius: 20px;
+  padding: 2.5rem;
   max-width: 600px;
   width: 100%;
-  box-shadow: 0 20px 60px rgba(0, 255, 255, 0.4);
-  border: 2px solid ${(props) => (props.$isDarkMode ? "#00ffff" : "#4CAF50")};
+  box-shadow: 0 20px 60px rgba(0, 255, 255, 0.25);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  backdrop-filter: blur(20px);
   text-align: center;
 
   @media (max-width: 768px) {
@@ -262,65 +254,60 @@ const ModalContent = styled(motion.div)<{ $isDarkMode: boolean }>`
   }
 `;
 
-const ModalTitle = styled.h2<{ $isDarkMode: boolean }>`
-  font-size: 2rem;
+const ModalTitle = styled.h2`
+  font-size: 1.8rem;
   font-weight: 800;
   margin-bottom: 1rem;
-  background: ${(props) =>
-    props.$isDarkMode
-      ? "linear-gradient(135deg, #00ffff, #00ccff)"
-      : "linear-gradient(135deg, #4CAF50, #2196F3)"};
+  background: linear-gradient(135deg, ${SWAN_CYAN}, ${COSMIC_PURPLE});
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 `;
 
-const ModalText = styled.p<{ $isDarkMode: boolean }>`
-  font-size: 1.1rem;
-  color: ${(props) =>
-    props.$isDarkMode ? "rgba(255, 255, 255, 0.8)" : "rgba(0, 0, 0, 0.7)"};
+const ModalText = styled.p`
+  font-size: 1.05rem;
+  color: rgba(255, 255, 255, 0.8);
   margin-bottom: 0.75rem;
   line-height: 1.6;
 `;
 
-const HighlightText = styled.span<{ $isDarkMode: boolean }>`
+const HighlightText = styled.span`
   font-weight: 700;
-  color: ${(props) => (props.$isDarkMode ? "#00ffff" : "#2196F3")};
+  color: ${SWAN_CYAN};
   font-size: 1.2rem;
 `;
 
-const CredentialsBox = styled.div<{ $isDarkMode: boolean }>`
-  background: ${(props) =>
-    props.$isDarkMode ? "rgba(0, 255, 255, 0.1)" : "rgba(33, 150, 243, 0.1)"};
-  border: 2px solid ${(props) => (props.$isDarkMode ? "#00ffff" : "#2196F3")};
+const CredentialsBox = styled.div`
+  background: rgba(0, 255, 255, 0.06);
+  border: 1px solid rgba(0, 255, 255, 0.25);
   border-radius: 12px;
   padding: 1.5rem;
   margin: 1.5rem 0;
   text-align: left;
 `;
 
-const CredentialRow = styled.div<{ $isDarkMode: boolean }>`
+const CredentialRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.75rem;
-  color: ${(props) =>
-    props.$isDarkMode ? "rgba(255, 255, 255, 0.9)" : "rgba(0, 0, 0, 0.8)"};
+  color: rgba(255, 255, 255, 0.9);
 
   &:last-child {
     margin-bottom: 0;
   }
 `;
 
-const Label = styled.span`
+const CredLabel = styled.span`
   font-weight: 600;
   margin-right: 1rem;
+  color: rgba(255, 255, 255, 0.7);
 `;
 
-const Value = styled.span<{ $isDarkMode: boolean }>`
-  font-family: monospace;
+const CredValue = styled.span`
+  font-family: "Courier New", monospace;
   font-size: 1rem;
-  color: ${(props) => (props.$isDarkMode ? "#00ffff" : "#2196F3")};
+  color: ${SWAN_CYAN};
 `;
 
 interface ClientOnboardingWizardProps {
@@ -334,7 +321,9 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
   onComplete,
   onCancel,
 }) => {
-  const { isDarkMode } = useUniversalTheme();
+  // Force dark mode for this wizard (Galaxy-Swan is always dark)
+  const _themeCtx = useUniversalTheme();
+  void _themeCtx; // consumed but we always render dark
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<any>({});
@@ -344,15 +333,13 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const steps = [
-    { id: 1, label: "Basic", component: BasicInfo },
+    { id: 1, label: "Basic Info", component: BasicInfo },
     { id: 2, label: "Goals", component: GoalsSection },
     { id: 3, label: "Health", component: HealthSection },
     { id: 4, label: "Nutrition", component: NutritionSection },
     { id: 5, label: "Lifestyle", component: LifestyleSection },
     { id: 6, label: "Training", component: TrainingSection },
-    { id: 7, label: "AI Coach", component: AICoachingSection },
-    { id: 8, label: "Package", component: PackageSection },
-    { id: 9, label: "Summary", component: SummarySection },
+    { id: 7, label: "Summary", component: SummarySection },
   ];
 
   const CurrentSection = steps[currentStep].component;
@@ -429,60 +416,60 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
   };
 
   return (
-    <WizardContainer $isDarkMode={isDarkMode} $embedded={embedded}>
+    <WizardContainer $embedded={embedded}>
       <WizardCard
-        $isDarkMode={isDarkMode}
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
       >
-        <Title $isDarkMode={isDarkMode}>Client Onboarding</Title>
-        <Subtitle $isDarkMode={isDarkMode}>
-          Step {currentStep + 1} of {steps.length} - {steps[currentStep].label}
+        <Title>Client Onboarding</Title>
+        <Subtitle>
+          Step {currentStep + 1} of {steps.length} &mdash; {steps[currentStep].label}
         </Subtitle>
 
-        <ProgressBarContainer $isDarkMode={isDarkMode}>
+        <ProgressBarContainer>
           <ProgressBar
-            $isDarkMode={isDarkMode}
             initial={{ width: "0%" }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.5 }}
           />
         </ProgressBarContainer>
 
-        <StepIndicator $isDarkMode={isDarkMode}>
+        <StepIndicator>
           {steps.map((step, index) => (
-            <Step
-              key={step.id}
-              $active={index === currentStep}
-              $completed={index < currentStep}
-              $isDarkMode={isDarkMode}
-              onClick={() => handleJumpToStep(index)}
-              title={step.label}
-            >
-              {index < currentStep ? "OK" : index + 1}
-            </Step>
+            <React.Fragment key={step.id}>
+              <Step
+                $active={index === currentStep}
+                $completed={index < currentStep}
+                onClick={() => handleJumpToStep(index)}
+                title={step.label}
+              >
+                {index < currentStep ? "\u2713" : index + 1}
+              </Step>
+              {index < steps.length - 1 && (
+                <StepConnector $completed={index < currentStep} />
+              )}
+            </React.Fragment>
           ))}
         </StepIndicator>
 
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStep}
-            initial={{ opacity: 0, x: 50 }}
+            initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0, x: -40 }}
+            transition={{ duration: 0.25 }}
           >
             <CurrentSection formData={formData} updateFormData={updateFormData} />
           </motion.div>
         </AnimatePresence>
 
-        {error && <ErrorMessage $isDarkMode={isDarkMode}>{error}</ErrorMessage>}
+        {error && <ErrorMessage>{error}</ErrorMessage>}
 
         <ButtonGroup>
           <Button
             $variant="secondary"
-            $isDarkMode={isDarkMode}
             onClick={currentStep === 0 ? handleExit : handlePrev}
             disabled={isSubmitting}
           >
@@ -490,7 +477,6 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
           </Button>
           <Button
             $variant="primary"
-            $isDarkMode={isDarkMode}
             onClick={currentStep === steps.length - 1 ? handleSubmit : handleNext}
             disabled={isSubmitting}
           >
@@ -517,41 +503,40 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
             }}
           >
             <ModalContent
-              $isDarkMode={isDarkMode}
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ duration: 0.3 }}
               onClick={(e) => e.stopPropagation()}
             >
-              <ModalTitle $isDarkMode={isDarkMode}>Welcome to SwanStudios!</ModalTitle>
+              <ModalTitle>Welcome to SwanStudios!</ModalTitle>
 
-              <ModalText $isDarkMode={isDarkMode}>
+              <ModalText>
                 Your onboarding is complete. You have been assigned a Spirit Name:
               </ModalText>
 
-              <HighlightText $isDarkMode={isDarkMode}>
+              <HighlightText>
                 {submissionResult.spiritName}
               </HighlightText>
 
-              <CredentialsBox $isDarkMode={isDarkMode}>
-                <CredentialRow $isDarkMode={isDarkMode}>
-                  <Label>Client ID:</Label>
-                  <Value $isDarkMode={isDarkMode}>{submissionResult.clientId}</Value>
+              <CredentialsBox>
+                <CredentialRow>
+                  <CredLabel>Client ID:</CredLabel>
+                  <CredValue>{submissionResult.clientId}</CredValue>
                 </CredentialRow>
-                <CredentialRow $isDarkMode={isDarkMode}>
-                  <Label>Email:</Label>
-                  <Value $isDarkMode={isDarkMode}>{submissionResult.email}</Value>
+                <CredentialRow>
+                  <CredLabel>Email:</CredLabel>
+                  <CredValue>{submissionResult.email}</CredValue>
                 </CredentialRow>
                 {submissionResult.tempPassword && (
-                  <CredentialRow $isDarkMode={isDarkMode}>
-                    <Label>Temporary Password:</Label>
-                    <Value $isDarkMode={isDarkMode}>{submissionResult.tempPassword}</Value>
+                  <CredentialRow>
+                    <CredLabel>Temporary Password:</CredLabel>
+                    <CredValue>{submissionResult.tempPassword}</CredValue>
                   </CredentialRow>
                 )}
               </CredentialsBox>
 
-              <ModalText $isDarkMode={isDarkMode}>
+              <ModalText>
                 {submissionResult.tempPassword
                   ? "Please save your temporary password. You will be asked to change it on first login."
                   : "Your login credentials have been sent to your email."}
@@ -559,7 +544,6 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
 
               <Button
                 $variant="primary"
-                $isDarkMode={isDarkMode}
                 onClick={() => {
                   setShowSuccessModal(false);
                   if (!onComplete) {

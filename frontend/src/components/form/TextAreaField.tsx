@@ -8,32 +8,29 @@ interface TextAreaFieldProps extends React.TextareaHTMLAttributes<HTMLTextAreaEl
 const StyledTextArea = styled.textarea<{ $isDarkMode: boolean }>`
   padding: 0.75rem 1rem;
   border-radius: 8px;
-  border: 2px solid ${(props) => 
-    props.$isDarkMode ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"};
-  background: ${(props) => 
-    props.$isDarkMode ? "rgba(20, 20, 40, 0.5)" : "rgba(255, 255, 255, 0.8)"};
-  color: ${(props) => 
-    props.$isDarkMode ? "#ffffff" : "#333333"};
+  border: 1px solid rgba(0, 255, 255, 0.15);
+  background: rgba(10, 10, 30, 0.6);
+  color: #ffffff;
   font-size: 1rem;
   transition: all 0.2s ease;
   min-height: 100px;
   resize: vertical;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: inherit;
 
   &:focus {
     outline: none;
-    border-color: ${(props) => 
-      props.$isDarkMode ? "#00ccff" : "#2196F3"};
-    box-shadow: 0 0 0 2px ${(props) => 
-      props.$isDarkMode ? "rgba(0, 204, 255, 0.2)" : "rgba(33, 150, 243, 0.2)"};
+    border-color: #00ccff;
+    box-shadow: 0 0 0 2px rgba(0, 204, 255, 0.2), 0 0 12px rgba(0, 255, 255, 0.1);
   }
 
   &::placeholder {
-    color: ${(props) => 
-      props.$isDarkMode ? "rgba(255, 255, 255, 0.4)" : "rgba(0, 0, 0, 0.4)"};
+    color: rgba(255, 255, 255, 0.3);
   }
 `;
 
-const TextAreaField: React.FC<TextAreaFieldProps> = ({ $isDarkMode = false, ...props }) => {
+const TextAreaField: React.FC<TextAreaFieldProps> = ({ $isDarkMode = true, ...props }) => {
   return <StyledTextArea $isDarkMode={$isDarkMode} {...props} />;
 };
 

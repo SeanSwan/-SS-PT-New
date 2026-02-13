@@ -10,10 +10,12 @@ const FieldGroupContainer = styled.div`
 const Label = styled.label`
   font-weight: 600;
   font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.85);
+  letter-spacing: 0.01em;
 `;
 
 const RequiredIndicator = styled.span`
-  color: #ff4d4f;
+  color: #00ffff;
   margin-left: 0.25rem;
 `;
 
