@@ -154,6 +154,44 @@ async function migrateMessagingTables() {
 }
 
 /**
+ * Migration 3: Add stabilization sprint columns to existing tables
+ * - Users: forcePasswordChange (BOOLEAN), bannerPhoto (VARCHAR)
+ * - session_types: creditsRequired (INTEGER)
+ * - daily_workout_forms: trainer_notes (TEXT), client_summary (TEXT)
+ * These columns were added to models but sequelize.sync({ alter }) may fail
+ * if any model has constraint errors, so we add them explicitly here.
+ */
+async function migrateStabilizationColumns() {
+  // Helper: add column if it doesn't exist
+  const addColumnIfMissing = async (table, column, definition) => {
+    try {
+      const [cols] = await sequelize.query(
+        `SELECT column_name FROM information_schema.columns
+         WHERE table_name = '${table}' AND column_name = '${column}';`
+      );
+      if (cols && cols.length > 0) return; // already exists
+
+      logger.info(`[Migration] Adding ${table}.${column}...`);
+      await sequelize.query(`ALTER TABLE "${table}" ADD COLUMN "${column}" ${definition};`);
+      logger.info(`[Migration] ${table}.${column} added successfully`);
+    } catch (error) {
+      logger.warn(`[Migration] ${table}.${column} add failed (non-critical): ${error.message}`);
+    }
+  };
+
+  // Users table - camelCase columns (no underscored option)
+  await addColumnIfMissing('Users', 'forcePasswordChange', 'BOOLEAN DEFAULT false');
+  await addColumnIfMissing('Users', 'bannerPhoto', 'VARCHAR(255)');
+
+  // session_types table
+  await addColumnIfMissing('session_types', 'creditsRequired', 'INTEGER DEFAULT 1');
+
+  // daily_workout_forms table - uses snake_case field mappings
+  await addColumnIfMissing('daily_workout_forms', 'trainer_notes', 'TEXT');
+  await addColumnIfMissing('daily_workout_forms', 'client_summary', 'TEXT');
+}
+
+/**
  * Run all startup migrations - called during server initialization.
  * Each migration is idempotent and wrapped in its own try/catch.
  */
@@ -163,6 +201,7 @@ export async function runStartupMigrations() {
 
     await migrateAdminSettingsCategory();
     await migrateMessagingTables();
+    await migrateStabilizationColumns();
 
     logger.info('[Migrations] All startup migrations completed');
     return true;
