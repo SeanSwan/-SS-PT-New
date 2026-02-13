@@ -66,6 +66,30 @@ Each deploy gets one entry. Run all 5 checks within 10-15 minutes of deploy conf
 
 ---
 
+### Smoke #2 — Commit `94365346` (MCP Route Gating Review Fix)
+**Date:** 2026-02-13 ~00:40 UTC
+**Deploy class:** Critical
+**Uptime reset:** Confirmed (164s at first check)
+
+| # | Check | Result | Evidence |
+|---|-------|--------|----------|
+| 1 | API Health | PASS | `healthy`, DB connected, store ready, uptime 164s (fresh deploy) |
+| 2 | Login/Logout | PASS | admin login 200 + valid token |
+| 3 | Purchase Flow | PASS | store packages accessible |
+| 4 | Schedule | PASS | admin sees sessions (3 returned) |
+| 5 | Admin Dashboard | PASS | Dashboard stats 200, user list 200 (34KB response) |
+| 6 | Inactive login block | PASS | Returns "Invalid credentials", hasToken=false |
+| 7 | MCP status | PASS | 200 `production-fallback` |
+| 8 | MCP health | PASS | 200 `disabled`, mcpServicesEnabled=false |
+| 9 | MCP generate | PASS | 503 `disabled` — no localhost attempt |
+| 10 | MCP alternatives | PASS | 503 `disabled` — no localhost attempt |
+| 11 | MCP nutrition | PASS | 503 `disabled` — no localhost attempt |
+| 12 | MCP gamification | PASS | 503 `disabled` — no localhost attempt |
+
+**Verdict:** ALL PASS (12/12). MCP route gating fully verified — all action endpoints return `serviceStatus: "disabled"` immediately without attempting localhost connections.
+
+---
+
 ### Smoke #N — TEMPLATE
 **Date:** YYYY-MM-DD HH:MM UTC
 **Deploy class:** Critical / Non-critical
