@@ -10,6 +10,19 @@
 
 import productionApiService from '../api.service';
 
+// Build-time gate: skip all MCP API calls when disabled (prevents 30s polling and wasted requests)
+const MCP_ENABLED = import.meta.env.VITE_ENABLE_MCP_SERVICES === 'true';
+
+const DISABLED_HEALTH: McpHealth = {
+  status: 'disabled',
+  timestamp: new Date().toISOString(),
+  services: {
+    workout: { status: 'disabled', message: 'MCP services disabled via VITE_ENABLE_MCP_SERVICES' },
+    gamification: { status: 'disabled', message: 'MCP services disabled via VITE_ENABLE_MCP_SERVICES' }
+  },
+  mcpServicesEnabled: false
+};
+
 export interface McpServerStatus {
   status: 'online' | 'offline' | 'fallback' | 'disabled';
   message?: string;
@@ -40,8 +53,11 @@ class McpConfigService {
    * Check MCP server health status
    */
   async checkHealth(forceRefresh = false): Promise<McpHealth> {
+    // Short-circuit when MCP is disabled — no API calls, no polling
+    if (!MCP_ENABLED) return DISABLED_HEALTH;
+
     const now = Date.now();
-    
+
     // Return cached health if within TTL and not forcing refresh
     if (!forceRefresh && this.healthCache && (now - this.lastHealthCheck) < this.HEALTH_CACHE_TTL) {
       return this.healthCache;
@@ -83,6 +99,7 @@ class McpConfigService {
    * Check if MCP services are available
    */
   async isAvailable(): Promise<boolean> {
+    if (!MCP_ENABLED) return false;
     const health = await this.checkHealth();
     return health.mcpServicesEnabled && (
       health.services.workout.status === 'online' || 
@@ -94,6 +111,7 @@ class McpConfigService {
    * Check if a specific MCP service is available
    */
   async isServiceAvailable(service: 'workout' | 'gamification'): Promise<boolean> {
+    if (!MCP_ENABLED) return false;
     const health = await this.checkHealth();
     return health.mcpServicesEnabled && health.services[service].status === 'online';
   }
@@ -102,6 +120,7 @@ class McpConfigService {
    * Get MCP server status
    */
   async getStatus() {
+    if (!MCP_ENABLED) return { status: 'disabled', mcpServicesEnabled: false };
     try {
       const response = await productionApiService.get('/mcp/status');
       return response.data;

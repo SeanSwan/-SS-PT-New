@@ -184,11 +184,17 @@ export class McpHealthMonitor {
    * @param intervalMs - Monitoring interval in milliseconds (default: 30000 = 30 seconds)
    */
   startMonitoring(intervalMs = 30000): void {
+    // Skip monitoring entirely when MCP is disabled at build time
+    if (import.meta.env.VITE_ENABLE_MCP_SERVICES !== 'true') {
+      console.log('[MCP Health Monitor] MCP disabled — skipping health monitoring');
+      return;
+    }
+
     if (this.monitoringInterval) {
       console.warn('[MCP Health Monitor] Already monitoring, stopping previous interval');
       this.stopMonitoring();
     }
-    
+
     console.log(`[MCP Health Monitor] Starting health monitoring (interval: ${intervalMs}ms)`);
     
     // Initial check

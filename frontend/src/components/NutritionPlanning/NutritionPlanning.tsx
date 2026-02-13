@@ -145,8 +145,14 @@ const NutritionPlanning = ({ onClose }) => {
       return;
     }
     
+    // Short-circuit when MCP is disabled
+    if (import.meta.env.VITE_ENABLE_MCP_SERVICES !== 'true') {
+      enqueueSnackbar('AI nutrition planning is currently disabled', { variant: 'info' });
+      return;
+    }
+
     setIsLoading(true);
-    
+
     try {
       // Prepare nutrition context
       const mcpContext = {
@@ -162,7 +168,7 @@ const NutritionPlanning = ({ onClose }) => {
           budgetLevel: 'moderate'
         }
       };
-      
+
       // Call MCP backend for nutrition planning
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/mcp/nutrition`, {
         method: 'POST',

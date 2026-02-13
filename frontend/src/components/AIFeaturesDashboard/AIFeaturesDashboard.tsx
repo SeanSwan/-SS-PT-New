@@ -244,6 +244,15 @@ const AIFeaturesDashboard = () => {
    * Check MCP server status
    */
   const checkMcpStatus = async () => {
+    // Short-circuit when MCP is disabled — no network calls
+    if (import.meta.env.VITE_ENABLE_MCP_SERVICES !== 'true') {
+      setMcpStatus({
+        workout: { status: 'disabled', details: { error: 'MCP disabled' } },
+        gamification: { status: 'disabled', details: { error: 'MCP disabled' } }
+      });
+      setIsLoading(false);
+      return;
+    }
     try {
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/api/mcp/status`);
       const data = await response.json();

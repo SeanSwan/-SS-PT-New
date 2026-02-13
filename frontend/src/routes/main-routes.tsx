@@ -240,11 +240,13 @@ const AdvancedGamificationPage = lazyLoadWithErrorHandling(
   'Advanced Gamification Hub'
 );
 
-// Design Playground - Admin-only concept viewer
-const DesignPlaygroundLayout = lazyLoadWithErrorHandling(
-  () => import('../pages/DesignPlayground/DesignPlaygroundLayout'),
-  'Design Playground Viewer'
-);
+// Design Playground - Admin-only concept viewer (build-time gated — not loaded in production)
+const DesignPlaygroundLayout = import.meta.env.VITE_DESIGN_PLAYGROUND === 'true'
+  ? lazyLoadWithErrorHandling(
+      () => import('../pages/DesignPlayground/DesignPlaygroundLayout'),
+      'Design Playground Viewer'
+    )
+  : null;
 
 /**
  * Main application routes configuration
@@ -541,8 +543,8 @@ const MainRoutes: RouteObject = {
       )
     },
 
-    // Design Playground - Full-page concept viewer (admin-only)
-    {
+    // Design Playground - Full-page concept viewer (admin-only, build-time gated)
+    ...(import.meta.env.VITE_DESIGN_PLAYGROUND === 'true' ? [{
       path: 'designs/:id',
       element: (
         <ProtectedRoute requiredRole="admin">
@@ -551,7 +553,7 @@ const MainRoutes: RouteObject = {
           </Suspense>
         </ProtectedRoute>
       )
-    },
+    }] : []),
     
     // Enhanced Admin Dashboard Routes
     {

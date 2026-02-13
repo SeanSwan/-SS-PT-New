@@ -185,8 +185,14 @@ const ExerciseAlternatives = ({ onClose }) => {
       return;
     }
     
+    // Short-circuit when MCP is disabled
+    if (import.meta.env.VITE_ENABLE_MCP_SERVICES !== 'true') {
+      enqueueSnackbar('AI exercise alternatives are currently disabled', { variant: 'info' });
+      return;
+    }
+
     setIsLoading(true);
-    
+
     try {
       // Prepare context for AI
       const mcpContext = {
@@ -201,7 +207,7 @@ const ExerciseAlternatives = ({ onClose }) => {
           includeRegressions: true
         }
       };
-      
+
       // Call MCP backend for alternatives
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/mcp/alternatives`, {
         method: 'POST',

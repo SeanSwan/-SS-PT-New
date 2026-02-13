@@ -1,7 +1,0 @@
-# Simplified requirements without ML dependencies
-fastapi
-uvicorn[standard]
-requests
-pydantic
-python-multipart
-python-dotenv

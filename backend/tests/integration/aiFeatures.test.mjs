@@ -4,7 +4,7 @@
  * Aligned with Ethical AI, Accessibility, and Gamification principles
  */
 
-import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../../server.mjs';
 import { ethicalAIReview } from '../../services/ai/EthicalAIReview.mjs';
