@@ -267,6 +267,18 @@ DailyWorkoutForm.init(
       allowNull: true,
       field: 'estimated_duration', // Map camelCase to snake_case
       comment: 'Estimated workout duration in minutes (calculated from form data)'
+    },
+    trainerNotes: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'trainer_notes',
+      comment: 'Trainer notes visible to client (homework, focus areas)'
+    },
+    clientSummary: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'client_summary',
+      comment: 'Client-ready workout summary (auto-generated or manual)'
     }
   },
   {

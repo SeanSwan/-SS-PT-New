@@ -141,6 +141,13 @@ Exercise.init(
       defaultValue: false,
     },
     
+    // Coaching cues for trainers and clients
+    coachingCues: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      comment: 'Array of coaching/form cues for the exercise'
+    },
+
     // Safety information
     contraindicationNotes: {
       type: DataTypes.TEXT,

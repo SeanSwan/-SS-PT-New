@@ -85,6 +85,12 @@ SessionType.init(
       allowNull: true,
       comment: 'Optional price override for this session type'
     },
+    creditsRequired: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 1,
+      comment: 'Number of session credits consumed when booking'
+    },
     isActive: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

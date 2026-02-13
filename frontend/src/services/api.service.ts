@@ -323,14 +323,22 @@ class ProductionApiService {
     try {
       console.log('[API] Attempting login...');
       const response = await this.client.post('/api/auth/login', credentials);
-      
+
       if (response.data.success) {
+        // Handle force-password-change flow — clear any stale auth, no tokens to store yet
+        if (response.data.forcePasswordChange) {
+          ProductionTokenManager.clearAuthData();
+          delete this.client.defaults.headers.common['Authorization'];
+          console.log('[API] Force password change required');
+          return response.data;
+        }
+
         const { token, refreshToken, user } = response.data;
-        
+
         ProductionTokenManager.setToken(token);
         ProductionTokenManager.setRefreshToken(refreshToken);
         ProductionTokenManager.setUser(user);
-        
+
         console.log('[API] Login successful');
         return response.data;
       } else {
@@ -338,6 +346,28 @@ class ProductionApiService {
       }
     } catch (error) {
       console.error('[API] Login error:', error);
+      throw error;
+    }
+  }
+
+  async forceChangePassword(tempToken: string, newPassword: string) {
+    try {
+      const response = await this.client.post('/api/auth/force-change-password', {
+        tempToken,
+        newPassword
+      });
+
+      if (response.data.success) {
+        const { token, refreshToken, user } = response.data;
+        ProductionTokenManager.setToken(token);
+        ProductionTokenManager.setRefreshToken(refreshToken);
+        ProductionTokenManager.setUser(user);
+        return response.data;
+      } else {
+        throw new Error(response.data.message || 'Password change failed');
+      }
+    } catch (error) {
+      console.error('[API] Force password change error:', error);
       throw error;
     }
   }

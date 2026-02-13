@@ -258,6 +258,9 @@
 import express from 'express';
 import { protect, authorize } from '../middleware/authMiddleware.mjs';
 import adminClientController from '../controllers/adminClientController.mjs';
+import { createNotification } from '../controllers/notificationController.mjs';
+import { getUser } from '../models/index.mjs';
+import logger from '../utils/logger.mjs';
 
 const router = express.Router();
 
@@ -275,6 +278,67 @@ router.delete('/clients/:clientId', adminClientController.deleteClient);
 // Client-specific actions
 router.post('/clients/:clientId/reset-password', adminClientController.resetClientPassword);
 router.post('/clients/:clientId/assign-trainer', adminClientController.assignTrainer);
+
+/**
+ * POST /api/admin/clients/:clientId/notify
+ * Send a custom in-app notification to a client
+ */
+router.post('/clients/:clientId/notify', async (req, res) => {
+  try {
+    const { clientId } = req.params;
+    const { title, message, type = 'admin' } = req.body;
+
+    if (!title || !message) {
+      return res.status(400).json({
+        success: false,
+        message: 'title and message are required'
+      });
+    }
+
+    // Verify client exists
+    const User = getUser();
+    const client = await User.findOne({
+      where: { id: clientId, role: 'client' }
+    });
+
+    if (!client) {
+      return res.status(404).json({
+        success: false,
+        message: 'Client not found'
+      });
+    }
+
+    const result = await createNotification({
+      userId: parseInt(clientId),
+      title,
+      message,
+      type,
+      senderId: req.user.id
+    });
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to create notification'
+      });
+    }
+
+    logger.info(`Admin ${req.user.id} sent notification to client ${clientId}: "${title}"`);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Notification sent successfully',
+      data: { notificationId: result.notification?.id }
+    });
+  } catch (error) {
+    logger.error('Error sending admin notification:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error sending notification',
+      error: error.message
+    });
+  }
+});
 
 // P0: Billing & Sessions overview
 router.get('/clients/:clientId/billing-overview', adminClientController.getBillingOverview);

@@ -50,21 +50,25 @@ import {
   getOrderItem,
   getStorefrontItem,
   getSession,
+  getSessionType,
   getFinancialTransaction,
   getClientTrainerAssignment
 } from '../../models/index.mjs';
 
 // Import notification utilities
-import { 
+import {
   sendEmailNotification,
   sendSmsNotification,
-  notifySessionBooked, 
-  notifyAdminSessionBooked, 
+  notifySessionBooked,
+  notifyAdminSessionBooked,
   notifySessionCancelled,
   processSessionDeduction,
   notifyLowSessionsRemaining,
   sendSessionReminder
 } from '../../utils/notification.mjs';
+
+// Import DB notification creator for in-app notifications
+import { createNotification } from '../../controllers/notificationController.mjs';
 
 const { RRule } = rrulePkg;
 
@@ -181,6 +185,7 @@ class UnifiedSessionService {
     this._OrderItem = null;
     this._StorefrontItem = null;
     this._FinancialTransaction = null;
+    this._SessionType = null;
   }
 
   // ✅ ENHANCED P0 FIX: Robust lazy getters with initialization checks
@@ -212,6 +217,21 @@ class UnifiedSessionService {
       }
     }
     return this._User;
+  }
+
+  get SessionType() {
+    if (!this._SessionType) {
+      try {
+        this._SessionType = getSessionType();
+        if (!this._SessionType) {
+          throw new Error('SessionType model not available - models cache may not be initialized');
+        }
+      } catch (error) {
+        logger.warn('[UnifiedSessionService] SessionType model not available:', error.message);
+        return null;
+      }
+    }
+    return this._SessionType;
   }
 
   get Order() {
@@ -272,6 +292,29 @@ class UnifiedSessionService {
       }
     }
     return this._FinancialTransaction;
+  }
+
+  // ==================== SESSION TYPE RESOLUTION ====================
+
+  /**
+   * Resolve a session type name string to a sessionTypeId FK.
+   * Falls back to null if SessionType table is unavailable or name not found.
+   * Caches lookups for the lifetime of this request batch.
+   */
+  async resolveSessionTypeId(sessionTypeName, transaction = null) {
+    if (!sessionTypeName || sessionTypeName === 'Blocked Time') return null;
+
+    try {
+      const ST = this.SessionType;
+      if (!ST) return null;
+
+      const opts = transaction ? { where: { name: sessionTypeName }, transaction } : { where: { name: sessionTypeName } };
+      const row = await ST.findOne(opts);
+      return row ? row.id : null;
+    } catch (err) {
+      logger.warn(`[UnifiedSessionService] Could not resolve sessionType "${sessionTypeName}":`, err.message);
+      return null;
+    }
   }
 
   // ==================== REAL-TIME EVENT BROADCASTING METHODS ====================
@@ -716,6 +759,13 @@ class UnifiedSessionService {
         // guard), and admins need to backfill sessions freely.
       }
 
+      // Resolve sessionType names to IDs (batch-unique names to minimize DB queries)
+      const uniqueTypeNames = [...new Set(sessions.map(s => s.sessionType || 'Standard Training').filter(n => n !== 'Blocked Time'))];
+      const typeNameToId = {};
+      for (const name of uniqueTypeNames) {
+        typeNameToId[name] = await this.resolveSessionTypeId(name, transaction);
+      }
+
       // Create all sessions in a single transaction
       const createdSessions = await this.Session.bulkCreate(
         sessions.map(session => {
@@ -731,6 +781,7 @@ class UnifiedSessionService {
 
           // Determine status: if client is assigned, mark as scheduled instead of available
           const sessionStatus = session.userId ? 'scheduled' : 'available';
+          const typeName = session.sessionType || 'Standard Training';
 
           return {
             sessionDate: startDate,
@@ -741,7 +792,7 @@ class UnifiedSessionService {
             userId: session.userId || null,
             location: session.location || 'Main Studio',
             notes: sessionNotes,
-            sessionType: session.sessionType || 'Standard Training',
+            sessionTypeId: session.sessionTypeId || typeNameToId[typeName] || null,
             notifyClient: session.notifyClient !== false
           };
         }),
@@ -775,6 +826,21 @@ class UnifiedSessionService {
 
       // Notify trainers about assigned sessions (async)
       this.notifyTrainersAboutNewSessions(createdSessions);
+
+      // Create in-app notifications for client-assigned sessions (respects notifyClient flag)
+      for (const session of createdSessions) {
+        const sessionData = session.get({ plain: true });
+        if (sessionData.userId && sessionData.notifyClient !== false) {
+          createNotification({
+            userId: sessionData.userId,
+            title: 'New Session Scheduled',
+            message: `A training session has been scheduled for ${new Date(sessionData.sessionDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`,
+            type: 'session',
+            link: '/schedule',
+            senderId: user.id
+          }).catch(err => logger.warn('[SessionNotify] Failed to create session notification:', err.message));
+        }
+      }
 
       logger.info(`[UnifiedSessionService] Created ${createdSessions.length} available sessions with real-time broadcasting`);
 
@@ -858,6 +924,9 @@ class UnifiedSessionService {
       const resolvedStatus = resolvedIsBlocked ? 'blocked' : 'available';
       const resolvedSessionType = sessionType || (resolvedIsBlocked ? 'Blocked Time' : 'Standard Training');
 
+      // Resolve sessionType name to sessionTypeId FK
+      const resolvedSessionTypeId = await this.resolveSessionTypeId(resolvedSessionType, transaction);
+
       // Generate session slots
       const sessions = [];
 
@@ -880,7 +949,7 @@ class UnifiedSessionService {
             status: resolvedStatus,
             trainerId: trainerId || null,
             location: location || 'Main Studio',
-            sessionType: resolvedSessionType,
+            sessionTypeId: resolvedSessionTypeId,
             notifyClient: resolvedNotifyClient,
             recurrenceRule,
             recurringGroupId,
@@ -895,23 +964,23 @@ class UnifiedSessionService {
         // Loop through each day until end date
         while (currentDate <= end) {
           const dayOfWeek = currentDate.getDay();
-          
+
           // Check if current day is one of the selected days
           if (daysOfWeek.includes(dayOfWeek)) {
             // For each selected time on this day
             for (const time of times) {
               const [hours, minutes] = time.split(':').map(Number);
-              
+
               // Create date for this specific time slot
               const sessionDate = new Date(currentDate);
               sessionDate.setHours(hours, minutes, 0, 0);
-              
+
               // Only add future sessions
               if (sessionDate >= new Date()) {
                 // Calculate end time
                 const endDateForOccurrence = new Date(sessionDate);
                 endDateForOccurrence.setMinutes(endDateForOccurrence.getMinutes() + (duration || 60));
-                
+
                 sessions.push({
                   sessionDate,
                   endDate: endDateForOccurrence,
@@ -919,7 +988,7 @@ class UnifiedSessionService {
                   status: resolvedStatus,
                   trainerId: trainerId || null,
                   location: location || 'Main Studio',
-                  sessionType: resolvedSessionType,
+                  sessionTypeId: resolvedSessionTypeId,
                   notifyClient: resolvedNotifyClient,
                   recurringGroupId,
                   isRecurring: true,
@@ -928,7 +997,7 @@ class UnifiedSessionService {
               }
             }
           }
-          
+
           // Move to next day
           currentDate.setDate(currentDate.getDate() + 1);
         }
@@ -1006,7 +1075,7 @@ class UnifiedSessionService {
           status: 'blocked',
           trainerId: trainerId || (user.role === 'trainer' ? user.id : null),
           location: location || 'Main Studio',
-          sessionType: 'Blocked Time',
+          sessionTypeId: null, // Blocked time has no session type
           reason: reason || 'Blocked time',
           notifyClient: resolvedNotifyClient,
           recurringGroupId,
@@ -1238,8 +1307,17 @@ class UnifiedSessionService {
           : new Date(sessionStart.getTime() + (session.duration || 60) * 60000);
         const shouldDeduct = bookingData.deductSession !== false;
 
-        if (shouldDeduct && (!client.availableSessions || client.availableSessions <= 0)) {
-          throw new Error('Insufficient session credits');
+        // Determine credits required from session type (default: 1)
+        let creditsRequired = 1;
+        if (session.sessionTypeId) {
+          const sessionType = await this.SessionType?.findByPk(session.sessionTypeId, { transaction });
+          if (sessionType && typeof sessionType.creditsRequired === 'number') {
+            creditsRequired = sessionType.creditsRequired;
+          }
+        }
+
+        if (shouldDeduct && creditsRequired > 0 && (!client.availableSessions || client.availableSessions < creditsRequired)) {
+          throw new Error(`Insufficient session credits (need ${creditsRequired}, have ${client.availableSessions || 0})`);
         }
 
         // Prevent double-booking for trainer or client
@@ -2289,6 +2367,17 @@ class UnifiedSessionService {
         await notifySessionBooked(session, client);
       }
       await notifyAdminSessionBooked(session, client);
+
+      // Create in-app DB notification for client (same gate as email/SMS)
+      if (client?.id && shouldNotifyClient(session, client, { respectQuietHours: true })) {
+        await createNotification({
+          userId: client.id,
+          title: 'Session Booked',
+          message: `Your training session has been confirmed for ${new Date(session.sessionDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`,
+          type: 'session',
+          link: '/schedule'
+        });
+      }
     } catch (error) {
       logger.error('Error sending booking notifications:', error);
       // Don't throw - notifications are non-critical
@@ -2309,6 +2398,20 @@ class UnifiedSessionService {
 
       if (client && shouldNotifyClient(session, client, { respectQuietHours: !isUrgent })) {
         await notifySessionCancelled(session, client, canceller, reason);
+      }
+
+      // Create in-app DB notification for client (same gate as email/SMS)
+      if (client?.id && shouldNotifyClient(session, client, { respectQuietHours: !isUrgent })) {
+        await createNotification({
+          userId: client.id,
+          title: 'Session Cancelled',
+          message: reason
+            ? `Your session has been cancelled: ${reason}`
+            : 'Your training session has been cancelled',
+          type: 'session',
+          link: '/schedule',
+          senderId: canceller?.id || null
+        });
       }
     } catch (error) {
       logger.error('Error sending cancellation notifications:', error);

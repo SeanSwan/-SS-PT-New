@@ -446,6 +446,11 @@ const EnhancedLoginModal: React.FC = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [serverStatus, setServerStatus] = useState({ connected: false, checked: false });
+  // Force password change state
+  const [forcePasswordChange, setForcePasswordChange] = useState(false);
+  const [tempToken, setTempToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   
   // Check server connection status on component mount
   useEffect(() => {
@@ -523,6 +528,14 @@ const EnhancedLoginModal: React.FC = () => {
       // When calling login, pass the credentials directly
       const result = await login(credentials.username, credentials.password);
       
+      // Handle force-password-change redirect
+      if (result.success && result.forcePasswordChange && result.tempToken) {
+        setForcePasswordChange(true);
+        setTempToken(result.tempToken);
+        setIsLoading(false);
+        return;
+      }
+
       // Check if login was successful and has user data
       if (result.success && result.user) {
         console.log('Login successful!', { role: result.user.role });
@@ -570,6 +583,38 @@ const EnhancedLoginModal: React.FC = () => {
       });
       
       setError(errorMessage);
+    }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+
+    if (newPassword.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await apiService.forceChangePassword(tempToken, newPassword);
+      if (result.success && result.user) {
+        // Normal login completed — store token/user already handled by api.service
+        const { login: contextLogin } = { login };
+        // Re-login to set context state since forceChangePassword returns tokens
+        // The api.service already stored them, we just need to update React state
+        window.location.href = result.user.role === 'admin' ? '/dashboard/admin' : '/client-dashboard';
+      } else {
+        setError("Password change failed. Please try again.");
+        setIsLoading(false);
+      }
+    } catch (err: any) {
+      setIsLoading(false);
+      setError(err?.response?.data?.message || err?.message || "Password change failed.");
     }
   };
 
@@ -646,7 +691,9 @@ const EnhancedLoginModal: React.FC = () => {
             <HeaderText>SwanStudios</HeaderText>
           </ModalHeader>
 
-          <FormTitle variants={itemVariants}>Access Your Account</FormTitle>
+          <FormTitle variants={itemVariants}>
+            {forcePasswordChange ? "Set Your New Password" : "Access Your Account"}
+          </FormTitle>
 
           {error && (
             <ErrorMessage
@@ -660,46 +707,82 @@ const EnhancedLoginModal: React.FC = () => {
             </ErrorMessage>
           )}
 
-          <form onSubmit={handleSubmit}>
-            <InputField
-              type="text"
-              name="username"
-              placeholder="Username or Email"
-              value={credentials.username}
-              onChange={handleChange}
-              required
-              disabled={isLoading}
-              variants={itemVariants}
-            />
-            <InputField
-              type="password"
-              name="password"
-              placeholder="Password"
-              value={credentials.password}
-              onChange={handleChange}
-              required
-              disabled={isLoading}
-              variants={itemVariants}
-            />
-            <Button
-              type="submit"
-              disabled={isLoading}
-              variants={itemVariants}
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              {isLoading ? "Authenticating..." : "Sign In"}
-            </Button>
-          </form>
+          {forcePasswordChange ? (
+            <form onSubmit={handlePasswordChange}>
+              <InputField
+                type="password"
+                name="newPassword"
+                placeholder="New Password (min 8 characters)"
+                value={newPassword}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
+                required
+                disabled={isLoading}
+                variants={itemVariants}
+              />
+              <InputField
+                type="password"
+                name="confirmPassword"
+                placeholder="Confirm New Password"
+                value={confirmPassword}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+                required
+                disabled={isLoading}
+                variants={itemVariants}
+              />
+              <Button
+                type="submit"
+                disabled={isLoading}
+                variants={itemVariants}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                {isLoading ? "Updating..." : "Set Password & Continue"}
+              </Button>
+            </form>
+          ) : (
+            <>
+              <form onSubmit={handleSubmit}>
+                <InputField
+                  type="text"
+                  name="username"
+                  placeholder="Username or Email"
+                  value={credentials.username}
+                  onChange={handleChange}
+                  required
+                  disabled={isLoading}
+                  variants={itemVariants}
+                />
+                <InputField
+                  type="password"
+                  name="password"
+                  placeholder="Password"
+                  value={credentials.password}
+                  onChange={handleChange}
+                  required
+                  disabled={isLoading}
+                  variants={itemVariants}
+                />
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  variants={itemVariants}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {isLoading ? "Authenticating..." : "Sign In"}
+                </Button>
+              </form>
 
-          <ForgotPasswordLink
-            href="#"
-            onClick={handleForgotPassword}
-            variants={itemVariants}
-            whileHover={{ scale: 1.05 }}
-          >
-            Forgot Password?
-          </ForgotPasswordLink>
+              <ForgotPasswordLink
+                href="#"
+                onClick={handleForgotPassword}
+                variants={itemVariants}
+                whileHover={{ scale: 1.05 }}
+              >
+                Forgot Password?
+              </ForgotPasswordLink>
+            </>
+          )}
           
           {serverStatus.checked && (
             <ConnectionStatus theme={{ connected: serverStatus.connected }}>
