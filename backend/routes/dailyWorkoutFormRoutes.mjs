@@ -945,4 +945,90 @@ router.get('/stats/overview', protect, adminOnly, async (req, res) => {
   }
 });
 
+/**
+ * @route   GET /api/workout-forms/:id/summary
+ * @desc    Generate client-friendly workout summary from form data
+ * @access  Trainer or Admin
+ */
+router.get('/:id/summary', protect, trainerOrAdminOnly, async (req, res) => {
+  try {
+    const DailyWorkoutForm = getDailyWorkoutForm();
+
+    const form = await DailyWorkoutForm.findByPk(req.params.id);
+
+    if (!form) {
+      return res.status(404).json({
+        success: false,
+        message: 'Workout form not found'
+      });
+    }
+
+    const { formData, trainerNotes, clientSummary, date } = form;
+
+    // If a manual client summary exists, return it
+    if (clientSummary) {
+      return res.status(200).json({
+        success: true,
+        data: {
+          formId: form.id,
+          date,
+          summary: clientSummary,
+          trainerNotes: trainerNotes || null,
+          source: 'manual'
+        }
+      });
+    }
+
+    // Auto-generate summary from formData
+    const exercises = formData?.exercises || [];
+    const totalSets = exercises.reduce((sum, ex) => sum + (ex.sets?.length || 0), 0);
+    const totalVolume = exercises.reduce((sum, ex) => {
+      return sum + (ex.sets || []).reduce((s, set) => s + ((set.weight || 0) * (set.reps || 0)), 0);
+    }, 0);
+    const avgRpe = exercises.reduce((sum, ex) => {
+      const rpes = (ex.sets || []).filter(s => s.rpe).map(s => s.rpe);
+      return sum + rpes.reduce((a, b) => a + b, 0) / Math.max(rpes.length, 1);
+    }, 0) / Math.max(exercises.length, 1);
+
+    const exerciseLines = exercises.map(ex => {
+      const sets = ex.sets?.length || 0;
+      return `- ${ex.exerciseName || 'Exercise'}: ${sets} set${sets !== 1 ? 's' : ''}`;
+    });
+
+    const generatedSummary = [
+      `Workout on ${new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`,
+      ``,
+      `Exercises (${exercises.length}):`,
+      ...exerciseLines,
+      ``,
+      `Total: ${totalSets} sets, ${Math.round(totalVolume).toLocaleString()} lbs volume`,
+      avgRpe > 0 ? `Average intensity (RPE): ${avgRpe.toFixed(1)}/10` : null,
+      trainerNotes ? `\nTrainer Notes: ${trainerNotes}` : null,
+    ].filter(Boolean).join('\n');
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        formId: form.id,
+        date,
+        summary: generatedSummary,
+        trainerNotes: trainerNotes || null,
+        stats: {
+          exerciseCount: exercises.length,
+          totalSets,
+          totalVolume: Math.round(totalVolume),
+          avgRpe: Math.round(avgRpe * 10) / 10
+        },
+        source: 'auto-generated'
+      }
+    });
+  } catch (error) {
+    logger.error('Error generating workout summary:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate workout summary'
+    });
+  }
+});
+
 export default router;

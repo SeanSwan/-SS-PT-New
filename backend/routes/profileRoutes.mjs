@@ -51,6 +51,80 @@ router.post(
 );
 
 /**
+ * @route   POST /api/profile/upload-banner-photo
+ * @desc    Upload user profile banner/cover photo
+ * @access  Private
+ */
+router.post(
+  '/upload-banner-photo',
+  protect,
+  rateLimiter({ windowMs: 15 * 60 * 1000, max: 10 }),
+  upload.single('bannerPhoto'),
+  async (req, res) => {
+    try {
+      const { default: path } = await import('path');
+      const { default: fs } = await import('fs/promises');
+      const { fileURLToPath } = await import('url');
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No file uploaded' });
+      }
+
+      const fileExt = path.extname(req.file.originalname).toLowerCase();
+      const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+      if (!allowedExtensions.includes(fileExt)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid file type. Only JPG, JPEG, PNG, and WEBP files are allowed.'
+        });
+      }
+
+      const uploadDir = path.join(__dirname, '../uploads/banners');
+      await fs.mkdir(uploadDir, { recursive: true });
+
+      const filename = `banner-${req.user.id}-${Date.now()}${fileExt}`;
+      const filePath = path.join(uploadDir, filename);
+      await fs.writeFile(filePath, req.file.buffer);
+
+      const bannerUrl = `/uploads/banners/${filename}`;
+
+      // Import User model lazily
+      const { getUser } = await import('../models/index.mjs');
+      const User = getUser();
+      const user = await User.findByPk(req.user.id);
+
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      // Delete old banner if exists
+      if (user.bannerPhoto && !user.bannerPhoto.startsWith('http')) {
+        try {
+          const oldPath = path.join(__dirname, '..', user.bannerPhoto);
+          await fs.access(oldPath);
+          await fs.unlink(oldPath);
+        } catch { /* old file may not exist */ }
+      }
+
+      await user.update({ bannerPhoto: bannerUrl });
+
+      logger.info('Banner photo uploaded', { userId: req.user.id, bannerUrl });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Banner photo uploaded successfully',
+        data: { bannerPhoto: bannerUrl }
+      });
+    } catch (error) {
+      logger.error('Banner photo upload error:', { error: error.message, userId: req.user?.id });
+      return res.status(500).json({ success: false, message: 'Server error uploading banner' });
+    }
+  }
+);
+
+/**
  * @route   GET /api/profile
  * @desc    Get current user profile
  * @access  Private

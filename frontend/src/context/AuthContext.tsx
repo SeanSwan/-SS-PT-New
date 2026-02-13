@@ -35,7 +35,7 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   token: string | null;
-  login: (username: string, password: string) => Promise<{success: boolean, user: User | null, error?: string}>;
+  login: (username: string, password: string) => Promise<{success: boolean, user: User | null, error?: string, forcePasswordChange?: boolean, tempToken?: string}>;
   logout: () => void;
   register: (data: any) => Promise<{success: boolean, user: User | null, error?: string}>;
   updateUser: (data: any) => Promise<{success: boolean, user: User | null, error?: string}>;
@@ -247,17 +247,25 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   }, []); // Empty dependency array - only run once on mount
   
   // Login function - PRODUCTION ONLY
-  const login = async (username: string, password: string): Promise<{success: boolean, user: User | null, error?: string}> => {
+  const login = async (username: string, password: string): Promise<{success: boolean, user: User | null, error?: string, forcePasswordChange?: boolean, tempToken?: string}> => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // PRODUCTION: Only use real API login
       const response = await apiService.login({ username, password });
-      
+
+      // Handle force-password-change flow — clear stale auth state, no user/token yet
+      if (response?.forcePasswordChange && response?.tempToken) {
+        console.log('Login requires password change');
+        setUser(null);
+        setToken(null);
+        return { success: true, user: null, forcePasswordChange: true, tempToken: response.tempToken };
+      }
+
       if (response?.user && response?.token) {
         const { user: userData, token } = response;
-        
+
         // Format user data
         const formattedUser: User = {
           id: userData.id,
@@ -273,19 +281,19 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
           trainerInfo: userData.trainerInfo,
           clientInfo: userData.clientInfo
         };
-        
+
         // Store token and user using cleanup utility
         tokenCleanup.storeToken(token, formattedUser);
         apiService.setAuthToken(token);
-        
+
         setUser(formattedUser);
         setToken(token);
-        
+
         // Update Redux if available
         if (dispatch) {
           dispatch(setReduxUser(formattedUser));
         }
-        
+
         console.log('Login successful:', formattedUser.username, formattedUser.role);
         return { success: true, user: formattedUser };
       } else {

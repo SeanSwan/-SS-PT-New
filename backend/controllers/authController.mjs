@@ -707,10 +707,26 @@ export const login = async (req, res) => {
       });
     }
 
+    // Force password change check (admin-created accounts)
+    if (user.forcePasswordChange) {
+      logger.info(`Force password change required for user: ${username}`);
+      const tempToken = jwt.sign(
+        { id: user.id, tokenType: 'force-password-change', tokenId: uuidv4() },
+        process.env.JWT_SECRET,
+        { expiresIn: '15m' }
+      );
+      return res.status(200).json({
+        success: true,
+        forcePasswordChange: true,
+        tempToken,
+        message: 'Password change required before first use'
+      });
+    }
+
     // Generate tokens with error handling
     console.log('🎫 Generating tokens...');
     let accessToken, refreshToken;
-    
+
     try {
       accessToken = generateAccessToken(user.id, user.role);
       refreshToken = generateRefreshToken(user.id);
@@ -1246,5 +1262,90 @@ export const getUserProfile = async (req, res) => {
   } catch (error) {
     logger.error('Error fetching user profile:', { error: error.message, stack: error.stack });
     return errorResponse(res, 'Failed to retrieve user profile', 500);
+  }
+};
+
+/**
+ * @desc    Force password change for admin-created accounts
+ * @route   POST /api/auth/force-change-password
+ * @access  Requires tempToken from force-password-change login response
+ */
+export const changePasswordForced = async (req, res) => {
+  try {
+    const { tempToken, newPassword } = req.body;
+
+    if (!tempToken || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'tempToken and newPassword are required'
+      });
+    }
+
+    if (newPassword.length < PASSWORD_MIN_LENGTH) {
+      return res.status(400).json({
+        success: false,
+        message: `Password must be at least ${PASSWORD_MIN_LENGTH} characters`
+      });
+    }
+
+    // Verify the temp token
+    let decoded;
+    try {
+      decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+    } catch (tokenErr) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid or expired temporary token. Please login again.'
+      });
+    }
+
+    if (decoded.tokenType !== 'force-password-change') {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token type'
+      });
+    }
+
+    const User = getUser();
+    const user = await User.findByPk(decoded.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Update password and clear the force flag
+    user.password = newPassword; // Hashed by beforeUpdate hook
+    user.forcePasswordChange = false;
+    user.failedLoginAttempts = 0;
+    await user.save();
+
+    // Generate normal tokens so user is logged in after password change
+    const accessToken = generateAccessToken(user.id, user.role);
+    const refreshTokenValue = generateRefreshToken(user.id);
+
+    await user.update({
+      lastLogin: new Date(),
+      lastActive: new Date(),
+      refreshTokenHash: await bcrypt.hash(refreshTokenValue, 10)
+    });
+
+    logger.info(`Force password change completed for user ${user.id}`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password changed successfully',
+      user: sanitizeUser(user),
+      token: accessToken,
+      refreshToken: refreshTokenValue
+    });
+  } catch (error) {
+    logger.error('Force password change error:', { error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: 'Server error during password change'
+    });
   }
 };

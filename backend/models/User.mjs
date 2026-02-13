@@ -65,6 +65,11 @@ User.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    bannerPhoto: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      comment: 'Banner/cover photo URL for client profile'
+    },
     // Role - now supports user, client, trainer, and admin
     role: {
       type: DataTypes.ENUM('user', 'client', 'trainer', 'admin'),
@@ -176,6 +181,12 @@ User.init(
       allowNull: false,
       defaultValue: true,
       comment: 'Whether the user account is active'
+    },
+    forcePasswordChange: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+      comment: 'Requires password change on next login (admin-created accounts)'
     },
     lastLogin: {
       type: DataTypes.DATE,

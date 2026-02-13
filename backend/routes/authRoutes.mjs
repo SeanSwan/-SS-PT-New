@@ -308,14 +308,15 @@
  * Enhanced: 2025-11-14 (Level 5/5 Documentation - Blueprint-First Standard)
  */
 import express from 'express';
-import { 
-  register, 
-  login, 
+import {
+  register,
+  login,
   logout,
-  validateToken, 
+  validateToken,
   refreshToken,
   getUserById,
-  getProfile
+  getProfile,
+  changePasswordForced
 } from '../controllers/authController.mjs';
 import { 
   protect, 
@@ -435,6 +436,17 @@ router.put(
       });
     }
   }
+);
+
+/**
+ * @route   POST /api/auth/force-change-password
+ * @desc    Change password using temp token (admin-created accounts)
+ * @access  Public (requires valid tempToken)
+ */
+router.post(
+  '/force-change-password',
+  rateLimiter({ windowMs: 15 * 60 * 1000, max: 5 }),
+  changePasswordForced
 );
 
 /**

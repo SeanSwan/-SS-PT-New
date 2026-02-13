@@ -28,6 +28,7 @@ import unifiedSessionService from "../services/sessions/session.service.mjs";
 import ConflictService from "../services/conflictService.mjs";
 import Session from "../models/Session.mjs";
 import logger from '../utils/logger.mjs';
+import { createNotification } from '../controllers/notificationController.mjs';
 
 const router = express.Router();
 
@@ -595,6 +596,19 @@ router.put("/:id/reschedule", protect, trainerOrAdminOnly, async (req, res) => {
       trainerId: resolvedTrainerId,
       notifyClient: typeof notifyClient === 'boolean' ? notifyClient : session.notifyClient
     });
+
+    // Create in-app notification for client if session is assigned and notifyClient is not false
+    const resolvedNotifyClient = typeof notifyClient === 'boolean' ? notifyClient : session.notifyClient;
+    if (session.userId && resolvedNotifyClient !== false) {
+      createNotification({
+        userId: session.userId,
+        title: 'Session Rescheduled',
+        message: `Your training session has been moved to ${new Date(startTime).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`,
+        type: 'session',
+        link: '/schedule',
+        senderId: req.user.id
+      }).catch(err => logger.warn('[SessionNotify] Reschedule notification failed:', err.message));
+    }
 
     const updatedSession = await unifiedSessionService.getSessionById(sessionId, req.user);
 

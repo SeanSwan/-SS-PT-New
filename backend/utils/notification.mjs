@@ -472,16 +472,47 @@ export const processSessionDeduction = async (session, client, transaction = nul
       if (!session || !client) {
         throw new Error('Session and client information required');
       }
-    
-    // Check if client has available sessions
-    if (!client.availableSessions || client.availableSessions <= 0) {
+
+    // Determine credits to deduct from session type (default: 1)
+    let creditsToDeduct = 1;
+    if (session.sessionTypeId) {
+      try {
+        const { getSessionType } = await import('../models/index.mjs');
+        const SessionType = getSessionType();
+        const sessionType = await SessionType.findByPk(session.sessionTypeId, {
+          ...(transaction ? { transaction } : {})
+        });
+        if (sessionType && typeof sessionType.creditsRequired === 'number') {
+          creditsToDeduct = sessionType.creditsRequired;
+        }
+      } catch (err) {
+        logger.warn(`[processSessionDeduction] Could not resolve session type ${session.sessionTypeId}, defaulting to 1 credit:`, err.message);
+      }
+    }
+
+    // 0-credit session types (e.g. Assessment, Orientation) skip deduction entirely
+    if (creditsToDeduct === 0) {
+      session.sessionDeducted = true;
+      session.deductionDate = new Date();
+      const saveOptions = transaction ? { transaction } : {};
+      await session.save(saveOptions);
+      return {
+        success: true,
+        deducted: false,
+        creditsDeducted: 0,
+        message: 'No credits required for this session type'
+      };
+    }
+
+    // Check if client has enough available sessions
+    if (!client.availableSessions || client.availableSessions < creditsToDeduct) {
       return {
         success: false,
         deducted: false,
-        message: 'Client has no available sessions'
+        message: `Insufficient session credits (need ${creditsToDeduct}, have ${client.availableSessions || 0})`
       };
     }
-    
+
     // Check if session was already deducted
     if (session.sessionDeducted) {
       return {
@@ -490,11 +521,11 @@ export const processSessionDeduction = async (session, client, transaction = nul
         message: 'Session already deducted'
       };
     }
-    
-    // Deduct session from client's available sessions
+
+    // Deduct session credits from client's available sessions
       const saveOptions = transaction ? { transaction } : {};
 
-      client.availableSessions -= 1;
+      client.availableSessions -= creditsToDeduct;
       await client.save(saveOptions);
     
     // Mark session as deducted

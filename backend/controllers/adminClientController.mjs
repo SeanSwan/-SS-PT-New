@@ -509,7 +509,7 @@ class AdminClientController {
    */
   async createClient(req, res) {
     const transaction = await sequelize.transaction();
-    
+
     try {
       ensureModels();
       const {
@@ -528,7 +528,8 @@ class AdminClientController {
         healthConcerns,
         emergencyContact,
         availableSessions = 0,
-        trainerId
+        trainerId,
+        forcePasswordChange = true // Default true for admin-created accounts
       } = req.body;
 
       // Check if email/username already exists
@@ -546,7 +547,7 @@ class AdminClientController {
         });
       }
 
-      // Create the client
+      // Create the client (password hashed by User.beforeCreate hook)
       const newClient = await User.create({
         firstName,
         lastName,
@@ -563,6 +564,7 @@ class AdminClientController {
         healthConcerns,
         emergencyContact,
         availableSessions,
+        forcePasswordChange,
         role: 'client',
         isActive: true
       }, { transaction });
@@ -586,18 +588,11 @@ class AdminClientController {
         await Session.bulkCreate(sessions, { transaction });
       }
 
-      // Initialize gamification in MCP server
-      try {
-        await fetch(`http://localhost:8001/tools/InitializeClient`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: newClient.id })
-        });
-      } catch (mcpError) {
-        logger.warn('Could not initialize gamification:', mcpError.message);
-      }
+      // Gamification initialization skipped — MCP servers disabled
 
       await transaction.commit();
+
+      logger.info(`Admin ${req.user.id} created client ${newClient.id} (${email}), forcePasswordChange=${forcePasswordChange}`);
 
       return res.status(201).json({
         success: true,
@@ -607,8 +602,12 @@ class AdminClientController {
             id: newClient.id,
             firstName: newClient.firstName,
             lastName: newClient.lastName,
-            email: newClient.email
-          }
+            email: newClient.email,
+            forcePasswordChange
+          },
+          // Admin sees temp password once to hand off verbally or via secure channel
+          // Masked in logs by logger config; never persisted beyond this response
+          temporaryPassword: password
         }
       });
     } catch (error) {
@@ -711,10 +710,25 @@ class AdminClientController {
       }
 
       if (softDelete) {
-        // Soft delete - just deactivate
+        // Soft delete - deactivate and cancel future sessions
         await client.update({ isActive: false }, { transaction });
+
+        // Cancel any future scheduled sessions for this client
+        const cancelledCount = await Session.update(
+          { status: 'cancelled', notes: 'Auto-cancelled: client account deactivated' },
+          {
+            where: {
+              userId: clientId,
+              status: { [Op.in]: ['available', 'scheduled', 'confirmed'] },
+              sessionDate: { [Op.gt]: new Date() }
+            },
+            transaction
+          }
+        );
+
+        logger.info(`Deactivated client ${clientId}, cancelled ${cancelledCount[0]} future sessions`);
       } else {
-        // Hard delete - remove completely
+        // Hard delete - remove completely (paranoid soft delete in model)
         await client.destroy({ transaction });
       }
 
