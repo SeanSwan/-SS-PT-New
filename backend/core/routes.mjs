@@ -84,6 +84,7 @@ import adminContentModerationRoutes from '../routes/adminContentModerationRoutes
 import videoLibraryRoutes from '../routes/videoLibraryRoutes.mjs';
 import adminNotificationsRoutes from '../routes/adminNotificationsRoutes.mjs';
 import adminOnboardingRoutes from '../routes/adminOnboardingRoutes.mjs';
+import adminReconciliationRoutes from '../routes/adminReconciliationRoutes.mjs';
 
 // ===================== ENTERPRISE ADMIN ANALYTICS & INTELLIGENCE =====================
 // 🚀 Real Stripe Business Analytics (replaces mock data)
@@ -288,6 +289,8 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin', adminOrdersRoutes);
   // 🔍 Data Verification and Debugging Tools (verify data accuracy)
   app.use('/api/admin', adminDataVerificationRoutes);
+  // 🔧 Payment Reconciliation (ungranted session detection)
+  app.use('/api/admin/reconciliation', adminReconciliationRoutes);
 
   // ===================== DASHBOARD ROUTES =====================
   // Shared dashboard routes for all users (client, trainer, admin)

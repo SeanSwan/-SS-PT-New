@@ -62,7 +62,6 @@ export async function grantSessionsForCart(cartId, userId, grantedBy) {
     });
 
     if (!cart) {
-      await transaction.rollback();
       throw new Error(`Cart ${cartId} not found for user ${userId}`);
     }
 
@@ -86,7 +85,6 @@ export async function grantSessionsForCart(cartId, userId, grantedBy) {
     });
 
     if (!user) {
-      await transaction.rollback();
       throw new Error(`User ${userId} not found for cart ${cartId}`);
     }
 
@@ -125,7 +123,12 @@ export async function grantSessionsForCart(cartId, userId, grantedBy) {
     return { granted: true, sessionsAdded: sessionsToAdd, alreadyProcessed: false };
 
   } catch (error) {
-    await transaction.rollback();
+    try {
+      await transaction.rollback();
+    } catch (rollbackError) {
+      // Transaction may already be finished (committed/rolled back); log but don't mask original error
+      logger.warn(`[SessionGrant] Rollback warning for cart ${cartId}: ${rollbackError.message}`);
+    }
     logger.error(`[SessionGrant] Failed for cart ${cartId} (user ${userId}, caller: ${grantedBy}): ${error.message}`);
     throw error;
   }

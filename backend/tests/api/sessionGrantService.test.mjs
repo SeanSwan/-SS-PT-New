@@ -203,12 +203,12 @@ describe('SessionGrantService', () => {
   // ─────────────────────────────────────────────────────────
   // P1: Cart not found
   // ─────────────────────────────────────────────────────────
-  it('throws for non-existent cart', async () => {
+  it('throws for non-existent cart and rolls back exactly once', async () => {
     mockShoppingCart.findOne.mockResolvedValue(null);
 
     await expect(grantSessionsForCart(999, 100, 'verify-session'))
       .rejects.toThrow('Cart 999 not found for user 100');
-    expect(mockTransaction.rollback).toHaveBeenCalled();
+    expect(mockTransaction.rollback).toHaveBeenCalledTimes(1);
   });
 
   // ─────────────────────────────────────────────────────────
