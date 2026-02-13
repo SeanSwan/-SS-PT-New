@@ -228,3 +228,22 @@ BROWSER_CONSOLE_TESTS.js
 # Generated reports at root
 *-report.json
 *-verification-report.json
+
+# ============================================
+# Refactor Sprint 2026-02-13 — Bloat prevention
+# ============================================
+
+# Root-level Playwright/QA screenshots (use docs/qa/baseline/ instead)
+/*.png
+
+# Jupyter notebooks
+*.ipynb
+
+# Windows null device artifacts
+/nul
+
+# Executable installers (should never be in a web app repo)
+*.exe
+
+# Untracked MCP/AI server directories
+/backend/unified-ai-server/
