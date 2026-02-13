@@ -15,10 +15,15 @@ const router = express.Router();
 // MCP Server Configuration
 const WORKOUT_MCP_URL = process.env.WORKOUT_MCP_URL || 'http://localhost:8000';
 const GAMIFICATION_MCP_URL = process.env.GAMIFICATION_MCP_URL || 'http://localhost:8002';
-const MCP_SERVICES_ENABLED = process.env.ENABLE_MCP_SERVICES !== 'false';
 const isProduction = process.env.NODE_ENV === 'production';
 
-// In production, disable MCP services if URLs point to localhost (not available)
+// Unified MCP enable semantics: opt-IN in production, opt-OUT in dev
+// This matches mcpHealthManager.mjs and MCPAnalytics.mjs
+const MCP_SERVICES_ENABLED = isProduction
+  ? process.env.ENABLE_MCP_SERVICES === 'true'
+  : process.env.ENABLE_MCP_SERVICES !== 'false';
+
+// Double-check: even if explicitly enabled, localhost URLs won't work in production
 const isLocalMcpUrl = WORKOUT_MCP_URL.includes('localhost') || GAMIFICATION_MCP_URL.includes('localhost');
 const MCP_ACTUALLY_AVAILABLE = MCP_SERVICES_ENABLED && (!isProduction || !isLocalMcpUrl);
 
@@ -101,8 +106,8 @@ router.get('/status', async (req, res) => {
 router.post('/generate', authMiddleware, async (req, res) => {
   const startTime = Date.now();
   
-  // Check if MCP services are enabled
-  if (!MCP_SERVICES_ENABLED) {
+  // Check if MCP services are actually available (disabled in production)
+  if (!MCP_ACTUALLY_AVAILABLE) {
     return res.status(503).json({
       success: false,
       message: 'MCP workout generation services are not available in this environment',
@@ -296,8 +301,8 @@ router.post('/analyze', authMiddleware, async (req, res) => {
 router.post('/alternatives', authMiddleware, async (req, res) => {
   const startTime = Date.now();
   
-  // Check if MCP services are enabled
-  if (!MCP_SERVICES_ENABLED) {
+  // Check if MCP services are actually available (disabled in production)
+  if (!MCP_ACTUALLY_AVAILABLE) {
     return res.status(503).json({
       success: false,
       message: 'MCP exercise alternatives services are not available in this environment',
@@ -377,8 +382,8 @@ router.post('/alternatives', authMiddleware, async (req, res) => {
 router.post('/nutrition', authMiddleware, async (req, res) => {
   const startTime = Date.now();
   
-  // Check if MCP services are enabled
-  if (!MCP_SERVICES_ENABLED) {
+  // Check if MCP services are actually available (disabled in production)
+  if (!MCP_ACTUALLY_AVAILABLE) {
     return res.status(503).json({
       success: false,
       message: 'MCP nutrition planning services are not available in this environment',
@@ -458,8 +463,8 @@ router.post('/nutrition', authMiddleware, async (req, res) => {
 router.post('/gamification/:action', authMiddleware, async (req, res) => {
   const startTime = Date.now();
   
-  // Check if MCP services are enabled
-  if (!MCP_SERVICES_ENABLED) {
+  // Check if MCP services are actually available (disabled in production)
+  if (!MCP_ACTUALLY_AVAILABLE) {
     return res.status(503).json({
       success: false,
       message: 'MCP gamification services are not available in this environment',

@@ -2,7 +2,7 @@
 
 **Date:** 2026-02-12
 **Classification:** Critical (touches monitoring + config)
-**Rollback-ready commit:** `0c59fbd3`
+**Rollback-ready commit:** `e6d844af` fix(mcp): use MCP_ACTUALLY_AVAILABLE in health endpoint
 **Security floor:** Never roll back past `714cfa03`
 
 ---
