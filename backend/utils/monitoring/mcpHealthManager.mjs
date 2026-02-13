@@ -12,7 +12,10 @@ class MCPHealthManager {
     // Production-safe configuration for MCP health checks
     // MCP servers are not deployed in production — health checks are opt-IN in prod, opt-OUT in dev
     this.isProduction = process.env.NODE_ENV === 'production';
-    const mcpMasterSwitch = process.env.ENABLE_MCP_SERVICES !== 'false';
+    // Unified semantics: opt-IN in production, opt-OUT in dev (matches mcpRoutes.mjs + MCPAnalytics.mjs)
+    const mcpMasterSwitch = this.isProduction
+      ? process.env.ENABLE_MCP_SERVICES === 'true'
+      : process.env.ENABLE_MCP_SERVICES !== 'false';
     this.enableHealthChecks = this.isProduction
       ? (process.env.ENABLE_MCP_HEALTH_CHECKS === 'true' && mcpMasterSwitch)
       : process.env.ENABLE_MCP_HEALTH_CHECKS !== 'false';
