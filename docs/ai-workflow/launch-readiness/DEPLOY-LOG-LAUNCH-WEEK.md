@@ -2,7 +2,7 @@
 
 **Protocol:** Controlled Continuous-Deploy (no freeze)
 **Started:** 2026-02-12
-**Rollback-ready commit:** `bc3cec81` (verified stable — includes `714cfa03` auth security fix)
+**Rollback-ready commit:** `e6d844af` (last verified-stable code deploy — includes `714cfa03` auth security fix)
 
 ---
 

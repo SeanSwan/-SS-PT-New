@@ -1,7 +1,7 @@
 # Pre-Launch Database Snapshot
 
 **Captured:** 2026-02-12T22:07 UTC
-**Production commit:** `4728591a` (includes `714cfa03` inactive-user login block)
+**Production commit at snapshot time:** `4728591a` (includes `714cfa03` inactive-user login block)
 **Server uptime:** ~1207s
 
 ---
