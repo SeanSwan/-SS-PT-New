@@ -2,7 +2,7 @@
 
 **Protocol:** Controlled Continuous-Deploy (no freeze)
 **Started:** 2026-02-12
-**Rollback-ready commit:** `e6d844af` (last verified-stable code deploy — includes `714cfa03` auth security fix)
+**Rollback-ready commit:** `94365346` (last verified-stable code deploy — includes `714cfa03` auth security fix)
 
 ---
 
@@ -45,7 +45,7 @@ curl https://sswanstudios.com/api/health
 **NEVER use `git reset --hard` or `git push --force` on main.**
 History must stay intact and auditable. Always revert forward.
 
-**Current last known good:** `e6d844af` fix(mcp): use MCP_ACTUALLY_AVAILABLE in health endpoint
+**Current last known good:** `94365346` fix(mcp): unify route gating + normalize doc references
 **Security floor:** Never roll back past `714cfa03` — that commit blocks inactive-user token issuance
 
 ---
@@ -93,7 +93,18 @@ History must stay intact and auditable. Always revert forward.
 | **Class** | Non-critical |
 | **Scope** | /api/mcp/health now returns 200 disabled instead of 503 degraded in production |
 | **Risk** | Low — single route guard change |
-| **Smoke result** | Pending Render deploy (build in progress) |
+| **Smoke result** | PASS — /api/mcp/health returns 200 disabled (verified in Smoke #1) |
+| **Rollback needed** | No |
+
+### Deploy #1.2 — MCP route gating review fix
+| Field | Value |
+|-------|-------|
+| **Date** | 2026-02-12 |
+| **Commit** | `94365346` fix(mcp): unify route gating + normalize doc references |
+| **Class** | Critical |
+| **Scope** | All 4 MCP action endpoints now gate on MCP_ACTUALLY_AVAILABLE (not MCP_SERVICES_ENABLED). Unified ENABLE_MCP_SERVICES semantics to opt-IN in production across all 3 components. Normalized rollback refs in docs. |
+| **Risk** | Low — MCP routes already returned fallback data; this ensures they never attempt localhost connections in prod |
+| **Smoke result** | PASS — 12/12 checks pass, all 4 MCP action endpoints return disabled without localhost attempts |
 | **Rollback needed** | No |
 
 ---
