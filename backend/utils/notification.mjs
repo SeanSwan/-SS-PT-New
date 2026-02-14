@@ -84,17 +84,7 @@ export const sendEmailNotification = async (options) => {
   }
 
   try {
-    // If regular email (no template) and using emailService
-    if (!options.templateId && typeof sendEmail === 'function') {
-      return await sendEmail({
-        to: options.to,
-        subject: options.subject,
-        text: options.text,
-        html: options.html
-      });
-    }
-    
-    // If using SendGrid template or direct SendGrid API
+    // Prefer SendGrid when it's ready (covers both template and plain emails)
     if (sendgridReady) {
       const msg = {
         to: options.to,
@@ -118,6 +108,16 @@ export const sendEmailNotification = async (options) => {
       return { success: true };
     }
     
+    // Fallback to Nodemailer emailService if SendGrid is not available
+    if (!options.templateId && typeof sendEmail === 'function') {
+      return await sendEmail({
+        to: options.to,
+        subject: options.subject,
+        text: options.text,
+        html: options.html
+      });
+    }
+
     // If we get here and no email service is available, throw error
     throw new Error('No email service available');
   } catch (error) {
