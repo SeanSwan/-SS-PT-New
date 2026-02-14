@@ -1376,8 +1376,10 @@ export const forgotPassword = async (req, res) => {
         logger.error('[forgotPassword] RESET_SECRET not configured — aborting');
         return;
       }
+      logger.info('[forgotPassword] RESET_SECRET=ok');
 
       const User = getUser();
+      logger.info(`[forgotPassword] getUser=${User ? 'ok' : 'null'}`);
       const user = await User.findOne({
         where: sequelize.where(
           sequelize.fn('LOWER', sequelize.col('email')),
@@ -1418,7 +1420,7 @@ export const forgotPassword = async (req, res) => {
         logger.error(`[forgotPassword] email_send=failed id=${user.id} error=${emailResult.error?.message || 'unknown'}`);
       }
     } catch (err) {
-      logger.error('[forgotPassword] background_error:', err.message);
+      logger.error(`[forgotPassword] background_error: ${String(err?.message || err)}`, { stack: err?.stack });
     }
   });
 };
