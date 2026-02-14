@@ -4,17 +4,19 @@ import twilio from 'twilio';
 import dotenv from 'dotenv';
 import { format } from 'date-fns';
 import User from '../models/User.mjs';
-import { sendEmail } from '../emailService.mjs';
+import { sendEmail, isEmailServiceConfigured } from '../emailService.mjs';
 import logger from './logger.mjs';
-import { isSendGridEnabled, isTwilioEnabled } from './apiKeyChecker.mjs';
+import { isTwilioEnabled } from './apiKeyChecker.mjs';
 
 dotenv.config();
 
-// --- Conditionally initialize SendGrid ---
+// --- Conditionally initialize SendGrid directly from env ---
+// (avoids startup-order dependency on checkApiKeys() which runs later)
 let sendgridReady = false;
-if (isSendGridEnabled()) {
+const sgKey = process.env.SENDGRID_API_KEY;
+if (sgKey && sgKey.startsWith('SG.')) {
   try {
-    sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+    sgMail.setApiKey(sgKey);
     sendgridReady = true;
     logger.info('SendGrid client configured successfully.');
   } catch (error) {
@@ -69,9 +71,9 @@ const getFormattedSessionTime = (sessionDate, duration = 60) => {
  * @returns {Promise} - Promise that resolves with the response
  */
 export const sendEmailNotification = async (options) => {
-  // Check if emailService or SendGrid is ready before attempting to send
-  if (!sendgridReady && typeof sendEmail !== 'function') {
-    logger.error('Attempted to send email notification, but email service is not configured/ready.');
+  // Check if any email service is available
+  if (!sendgridReady && !isEmailServiceConfigured()) {
+    logger.error('Attempted to send email notification, but no email service is configured.');
     // For development, log what would have been sent
     if (process.env.NODE_ENV !== 'production') {
       logger.info('Email that would have been sent:', {
@@ -88,7 +90,7 @@ export const sendEmailNotification = async (options) => {
     if (sendgridReady) {
       const msg = {
         to: options.to,
-        from: process.env.EMAIL_FROM || process.env.SENDGRID_FROM_EMAIL || 'noreply@swanstudios.com',
+        from: process.env.SENDGRID_FROM_EMAIL || process.env.EMAIL_FROM || 'noreply@swanstudios.com',
         subject: options.subject,
         text: options.text,
         html: options.html,
@@ -109,7 +111,7 @@ export const sendEmailNotification = async (options) => {
     }
     
     // Fallback to Nodemailer emailService if SendGrid is not available
-    if (!options.templateId && typeof sendEmail === 'function') {
+    if (!options.templateId && isEmailServiceConfigured()) {
       return await sendEmail({
         to: options.to,
         subject: options.subject,
