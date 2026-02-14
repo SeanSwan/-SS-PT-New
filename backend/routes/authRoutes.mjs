@@ -316,7 +316,9 @@ import {
   refreshToken,
   getUserById,
   getProfile,
-  changePasswordForced
+  changePasswordForced,
+  forgotPassword,
+  resetPassword
 } from '../controllers/authController.mjs';
 import { 
   protect, 
@@ -447,6 +449,32 @@ router.post(
   '/force-change-password',
   rateLimiter({ windowMs: 15 * 60 * 1000, max: 5 }),
   changePasswordForced
+);
+
+/**
+ * @route   POST /api/auth/forgot-password
+ * @desc    Request password reset email
+ * @access  Public
+ * @limits  Rate limited (5 per 15 min)
+ */
+router.post(
+  '/forgot-password',
+  rateLimiter({ windowMs: 15 * 60 * 1000, max: 5 }),
+  validate('forgotPassword'),
+  forgotPassword
+);
+
+/**
+ * @route   POST /api/auth/reset-password
+ * @desc    Reset password using token from email
+ * @access  Public
+ * @limits  Rate limited (5 per 15 min)
+ */
+router.post(
+  '/reset-password',
+  rateLimiter({ windowMs: 15 * 60 * 1000, max: 5 }),
+  validate('resetPassword'),
+  resetPassword
 );
 
 /**

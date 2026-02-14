@@ -139,6 +139,14 @@ const LoginModal = lazyLoadWithErrorHandling(
   () => import('../pages/EnhancedLoginModal'),
   'Login Modal'
 );
+const ForgotPasswordModal = lazyLoadWithErrorHandling(
+  () => import('../pages/ForgotPasswordModal'),
+  'Forgot Password'
+);
+const ResetPasswordPage = lazyLoadWithErrorHandling(
+  () => import('../pages/ResetPasswordPage'),
+  'Reset Password'
+);
 const SignupModal = lazyLoadWithErrorHandling(
   () => import('../pages/OptimizedSignupModal'),
   'Signup Modal'
@@ -274,6 +282,22 @@ const MainRoutes: RouteObject = {
       element: (
         <Suspense fallback={<PageLoader />}>
           <LoginModal />
+        </Suspense>
+      )
+    },
+    {
+      path: 'forgot-password',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <ForgotPasswordModal />
+        </Suspense>
+      )
+    },
+    {
+      path: 'reset-password/:token',
+      element: (
+        <Suspense fallback={<PageLoader />}>
+          <ResetPasswordPage />
         </Suspense>
       )
     },

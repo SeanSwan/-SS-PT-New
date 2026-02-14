@@ -40,6 +40,7 @@ interface AuthContextType {
   register: (data: any) => Promise<{success: boolean, user: User | null, error?: string}>;
   updateUser: (data: any) => Promise<{success: boolean, user: User | null, error?: string}>;
   refreshToken: () => Promise<boolean>;
+  forgotPassword: (email: string) => Promise<{success: boolean}>;
   checkPermission: (permission: string) => boolean;
   services: {
     clientProgress: ClientProgressServiceInterface;
@@ -61,6 +62,7 @@ const AuthContext = createContext<AuthContextType>({
   register: async () => ({ success: false, user: null }),
   updateUser: async () => ({ success: false, user: null }),
   refreshToken: async () => false,
+  forgotPassword: async () => ({ success: false }),
   checkPermission: () => false,
   services: {
     clientProgress: null as any,
@@ -128,6 +130,16 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     }
   }, []); // No dependencies - this function is stable
   
+  // Request password reset email
+  const forgotPassword = useCallback(async (email: string): Promise<{success: boolean}> => {
+    try {
+      const response = await apiService.post('/api/auth/forgot-password', { email });
+      return { success: response.data?.success ?? true };
+    } catch {
+      return { success: true }; // Always return success to prevent email enumeration
+    }
+  }, []);
+
   // Check if user has permission - Memoized with stable user.role dependency
   const checkPermission = useCallback((permission: string): boolean => {
     if (!user) return false;
@@ -462,6 +474,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     register,
     updateUser,
     refreshToken,
+    forgotPassword,
     checkPermission,
     services,
     authAxios: apiService

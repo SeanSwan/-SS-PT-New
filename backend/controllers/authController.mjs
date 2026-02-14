@@ -221,6 +221,7 @@
 import logger from '../utils/logger.mjs';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 // 🚀 ENHANCED: Coordinated model imports for consistent associations
 import { getUser } from '../models/index.mjs';
 import sequelize from '../database.mjs';
@@ -228,6 +229,7 @@ import { Op } from 'sequelize';
 import dotenv from 'dotenv';
 import { successResponse, errorResponse } from '../utils/apiResponse.mjs';
 import { v4 as uuidv4, validate as uuidValidate } from 'uuid';
+import { sendEmailNotification } from '../utils/notification.mjs';
 
 // 🎯 ENHANCED P0 FIX: Lazy loading User model to prevent initialization race condition
 // User model will be retrieved via getUser() inside each function when needed
@@ -240,6 +242,7 @@ dotenv.config();
 const JWT_EXPIRY = process.env.JWT_EXPIRES_IN || '3h';
 const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRES_IN || '7d';
 const PASSWORD_MIN_LENGTH = 8;
+const RESET_SECRET = process.env.PASSWORD_RESET_SECRET || process.env.JWT_SECRET;
 const LOGIN_ATTEMPT_LIMIT = 50; // TEMPORARILY INCREASED FOR TESTING
 const LOGIN_ATTEMPT_WINDOW = 15 * 60 * 1000; // 15 minutes in milliseconds
 
@@ -1346,6 +1349,132 @@ export const changePasswordForced = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Server error during password change'
+    });
+  }
+};
+
+/**
+ * @desc    Request password reset email
+ * @route   POST /api/auth/forgot-password
+ * @access  Public
+ */
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  // Respond IMMEDIATELY — truly constant timing (no DB work before response)
+  res.status(200).json({
+    success: true,
+    message: 'If an account with that email exists, a password reset link has been sent.'
+  });
+
+  // Background work AFTER response is sent (fire-and-forget)
+  setImmediate(async () => {
+    try {
+      if (!RESET_SECRET) {
+        logger.error('Password reset secret not configured');
+        return;
+      }
+
+      const User = getUser();
+      const user = await User.findOne({
+        where: sequelize.where(
+          sequelize.fn('LOWER', sequelize.col('email')),
+          email.toLowerCase()
+        )
+      });
+      if (!user) return;
+
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      const hashedToken = crypto.createHmac('sha256', RESET_SECRET)
+        .update(rawToken).digest('hex');
+
+      // Persist token (must succeed before email is useful)
+      await user.update({
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: new Date(Date.now() + 3600000) // 1 hour
+      });
+
+      // Send email (only after token is in DB)
+      const resetUrl = `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/reset-password/${rawToken}`;
+      await sendEmailNotification({
+        to: user.email,
+        subject: 'SwanStudios Password Reset',
+        html: `<p>You requested a password reset for your SwanStudios account.</p>
+               <p>Click <a href="${resetUrl}">here</a> to reset your password.</p>
+               <p>This link expires in 1 hour. If you did not request this, please ignore this email.</p>`,
+        text: `Reset your SwanStudios password: ${resetUrl} (expires in 1 hour). If you did not request this, please ignore this email.`
+      });
+      logger.info(`Password reset email sent to user ID ${user.id}`);
+    } catch (err) {
+      logger.error('Forgot password background error:', err.message);
+    }
+  });
+};
+
+/**
+ * @desc    Reset password using token from email
+ * @route   POST /api/auth/reset-password
+ * @access  Public
+ */
+export const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!RESET_SECRET) {
+      return res.status(500).json({
+        success: false,
+        message: 'Password reset is not configured'
+      });
+    }
+
+    // Compute HMAC hash of provided token for O(1) indexed lookup
+    const hashedToken = crypto.createHmac('sha256', RESET_SECRET)
+      .update(token).digest('hex');
+
+    const User = getUser();
+    const user = await User.findOne({
+      where: {
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: { [Op.gt]: new Date() }
+      }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired reset token'
+      });
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePasswordStrength(newPassword);
+    if (!passwordValidation.success) {
+      return res.status(400).json({
+        success: false,
+        message: passwordValidation.message
+      });
+    }
+
+    // Update password (model beforeUpdate hook hashes it)
+    // Clear token fields + revoke active sessions
+    await user.update({
+      password: newPassword,
+      resetPasswordToken: null,
+      resetPasswordExpires: null,
+      refreshTokenHash: null
+    });
+
+    logger.info(`Password reset successful for user ID ${user.id}`);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password has been reset successfully. Please log in with your new password.'
+    });
+  } catch (error) {
+    logger.error('Reset password error:', { error: error.message });
+    return res.status(500).json({
+      success: false,
+      message: 'Server error during password reset'
     });
   }
 };
