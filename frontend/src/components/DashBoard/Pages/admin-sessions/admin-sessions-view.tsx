@@ -498,7 +498,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
         trainerId: newSessionTrainer || null // Assign trainer if selected
       };
 
-      const response = await authAxios.post('/api/sessions/admin/create', newSessionData);
+      const response = await authAxios.post('/api/sessions', newSessionData);
 
       if (response.status === 201) {
         toast({
