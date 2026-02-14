@@ -304,6 +304,30 @@ const validationSchemas = {
       .matches(/[!@#$%^&*(),.?":{}|<>]/).withMessage('New password must contain at least one special character')
   ],
   
+  forgotPassword: [
+    body('email')
+      .trim()
+      .notEmpty().withMessage('Email is required')
+      .isEmail().withMessage('Please provide a valid email address')
+      .normalizeEmail()
+  ],
+
+  resetPassword: [
+    body('token')
+      .trim()
+      .notEmpty().withMessage('Reset token is required')
+      .isHexadecimal().withMessage('Invalid reset token format')
+      .isLength({ min: 64, max: 64 }).withMessage('Invalid reset token length'),
+
+    body('newPassword')
+      .notEmpty().withMessage('New password is required')
+      .isLength({ min: 8 }).withMessage('New password must be at least 8 characters long')
+      .matches(/[A-Z]/).withMessage('New password must contain at least one uppercase letter')
+      .matches(/[a-z]/).withMessage('New password must contain at least one lowercase letter')
+      .matches(/[0-9]/).withMessage('New password must contain at least one number')
+      .matches(/[!@#$%^&*(),.?":{}|<>]/).withMessage('New password must contain at least one special character')
+  ],
+
   register: [
     body('firstName')
       .trim()

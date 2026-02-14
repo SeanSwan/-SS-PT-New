@@ -489,7 +489,7 @@ const EnhancedLoginModal: React.FC = () => {
 
   const handleForgotPassword = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    alert("Forgot password functionality not implemented yet.");
+    navigate('/forgot-password');
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

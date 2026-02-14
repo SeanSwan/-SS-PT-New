@@ -139,8 +139,10 @@ const ForgotPasswordModal = () => {
     setError("");
     setMessage("");
     try {
-      await forgotPassword(email);
-      setMessage("Password reset email sent. Please check your inbox.");
+      const result = await forgotPassword(email);
+      if (result.success) {
+        setMessage("If an account with that email exists, a password reset link has been sent.");
+      }
     } catch (err) {
       setError("Failed to send reset email. Please try again.");
     }
