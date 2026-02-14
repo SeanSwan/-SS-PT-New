@@ -1370,8 +1370,10 @@ export const forgotPassword = async (req, res) => {
   // Background work AFTER response is sent (fire-and-forget)
   setImmediate(async () => {
     try {
+      logger.info('[forgotPassword] request_received');
+
       if (!RESET_SECRET) {
-        logger.error('Password reset secret not configured');
+        logger.error('[forgotPassword] RESET_SECRET not configured — aborting');
         return;
       }
 
@@ -1382,7 +1384,11 @@ export const forgotPassword = async (req, res) => {
           email.toLowerCase()
         )
       });
-      if (!user) return;
+      if (!user) {
+        logger.info('[forgotPassword] user_lookup=not_found');
+        return;
+      }
+      logger.info(`[forgotPassword] user_lookup=found id=${user.id}`);
 
       const rawToken = crypto.randomBytes(32).toString('hex');
       const hashedToken = crypto.createHmac('sha256', RESET_SECRET)
@@ -1393,10 +1399,11 @@ export const forgotPassword = async (req, res) => {
         resetPasswordToken: hashedToken,
         resetPasswordExpires: new Date(Date.now() + 3600000) // 1 hour
       });
+      logger.info(`[forgotPassword] token_persisted=true id=${user.id}`);
 
       // Send email (only after token is in DB)
       const resetUrl = `${process.env.FRONTEND_URL || 'https://sswanstudios.com'}/reset-password/${rawToken}`;
-      await sendEmailNotification({
+      const emailResult = await sendEmailNotification({
         to: user.email,
         subject: 'SwanStudios Password Reset',
         html: `<p>You requested a password reset for your SwanStudios account.</p>
@@ -1404,9 +1411,14 @@ export const forgotPassword = async (req, res) => {
                <p>This link expires in 1 hour. If you did not request this, please ignore this email.</p>`,
         text: `Reset your SwanStudios password: ${resetUrl} (expires in 1 hour). If you did not request this, please ignore this email.`
       });
-      logger.info(`Password reset email sent to user ID ${user.id}`);
+
+      if (emailResult.success) {
+        logger.info(`[forgotPassword] email_send=success id=${user.id}`);
+      } else {
+        logger.error(`[forgotPassword] email_send=failed id=${user.id} error=${emailResult.error?.message || 'unknown'}`);
+      }
     } catch (err) {
-      logger.error('Forgot password background error:', err.message);
+      logger.error('[forgotPassword] background_error:', err.message);
     }
   });
 };
