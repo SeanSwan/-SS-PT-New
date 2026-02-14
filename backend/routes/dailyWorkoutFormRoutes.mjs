@@ -183,12 +183,30 @@ const checkTrainerPermission = async (trainerId, permissionType) => {
 
 /**
  * Helper function to process MCP integration asynchronously
+ * Gated behind ENABLE_MCP_PROCESSING env var (disabled by default)
  */
 const processMCPIntegration = async (formId, formData) => {
+  if (process.env.ENABLE_MCP_PROCESSING !== 'true') {
+    logger.info(`[MCP] Skipping MCP processing for form ${formId} (MCP disabled)`);
+    // Mark as processed with zero points to prevent reprocess queue buildup
+    try {
+      const DailyWorkoutForm = getDailyWorkoutForm();
+      await DailyWorkoutForm.update({
+        mcpProcessed: true,
+        mcpProcessedAt: new Date(),
+        totalPointsEarned: 0,
+        processingErrors: null
+      }, { where: { id: formId } });
+    } catch (err) {
+      logger.warn(`[MCP] Failed to mark form ${formId} as processed: ${err.message}`);
+    }
+    return;
+  }
+
+  // MCP processing code preserved for future re-enablement
   try {
     logger.info(`Starting MCP processing for form ${formId}`);
 
-    // Prepare MCP payload
     const mcpPayload = {
       formId,
       clientId: formData.clientId,
@@ -200,7 +218,6 @@ const processMCPIntegration = async (formId, formData) => {
       submittedAt: formData.submittedAt
     };
 
-    // Send to Gamification MCP Server
     let pointsEarned = 0;
     let mcpErrors = [];
 
@@ -210,7 +227,7 @@ const processMCPIntegration = async (formId, formData) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(mcpPayload),
-        timeout: 30000 // 30 second timeout
+        timeout: 30000
       });
 
       if (gamificationResponse.ok) {
@@ -227,14 +244,13 @@ const processMCPIntegration = async (formId, formData) => {
       logger.warn(`Gamification MCP connection error:`, gamificationError);
     }
 
-    // Send to Workout MCP Server for progress updates
     try {
       const workoutUrl = process.env.WORKOUT_MCP_URL || 'http://localhost:8000';
       const workoutResponse = await fetch(`${workoutUrl}/tools/UpdateClientProgress`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(mcpPayload),
-        timeout: 30000 // 30 second timeout
+        timeout: 30000
       });
 
       if (workoutResponse.ok) {
@@ -249,7 +265,6 @@ const processMCPIntegration = async (formId, formData) => {
       logger.warn(`Workout MCP connection error:`, workoutError);
     }
 
-    // Update form with MCP results
     const DailyWorkoutForm = getDailyWorkoutForm();
     await DailyWorkoutForm.update({
       totalPointsEarned: pointsEarned,
@@ -267,14 +282,13 @@ const processMCPIntegration = async (formId, formData) => {
 
   } catch (error) {
     logger.error(`MCP processing failed for form ${formId}:`, error);
-    
-    // Update form with error status
+
     try {
       const DailyWorkoutForm = getDailyWorkoutForm();
       await DailyWorkoutForm.update({
         mcpProcessed: true,
         mcpProcessedAt: new Date(),
-        processingErrors: { 
+        processingErrors: {
           errors: [`Processing failed: ${error.message}`],
           timestamp: new Date().toISOString()
         }

@@ -25,9 +25,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import styled, { ThemeProvider, keyframes } from 'styled-components';
 import {
   OverviewGalaxy, WorkoutUniverse, ProgressConstellation, 
-  AchievementNebula, TimeWarp, SocialGalaxy, 
+  AchievementNebula, TimeWarp, SocialGalaxy,
   CommunicationHub, PersonalStarmap, PersonalizedVideoHub,
-  LogsAndTrackers, PackageSubscription
+  LogsAndTrackers, PackageSubscription, OnboardingGalaxy
 } from './GalaxySections';
 import StellarSidebar from './StellarSidebar';
 import { useAuth } from '../../context/AuthContext';
@@ -244,8 +244,9 @@ const Particle = styled(motion.div)`
 `;
 
 // === SECTION MAPPING ===
-const sectionComponents = {
+const sectionComponents: Record<string, React.FC> = {
   overview: OverviewGalaxy,
+  onboarding: OnboardingGalaxy,
   workouts: WorkoutUniverse,
   videos: PersonalizedVideoHub,
   progress: ProgressConstellation,
@@ -259,8 +260,9 @@ const sectionComponents = {
   settings: PersonalStarmap // Using profile as placeholder for settings
 };
 
-const sectionTitles = {
+const sectionTitles: Record<string, string> = {
   overview: 'Mission Control',
+  onboarding: 'Your Fitness Profile',
   workouts: 'Training Universe',
   videos: 'Stellar Cinema',
   progress: 'Progress Constellation',
@@ -274,8 +276,9 @@ const sectionTitles = {
   settings: 'Control Panel'
 };
 
-const sectionDescriptions = {
+const sectionDescriptions: Record<string, string> = {
   overview: 'Your complete fitness command center',
+  onboarding: 'Complete your profile to unlock personalized training',
   workouts: 'Explore training programs and exercise galaxies',
   videos: 'Discover personalized content in our stellar library',
   progress: 'Track your transformation through the cosmos',

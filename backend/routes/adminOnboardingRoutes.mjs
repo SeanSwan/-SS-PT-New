@@ -10,7 +10,7 @@ const router = express.Router();
 
 // All admin onboarding routes require authentication and admin/trainer role
 router.use(protect);
-router.use(authorize('admin', 'trainer'));
+router.use(authorize(['admin', 'trainer']));
 
 /**
  * GET /api/admin/onboarding

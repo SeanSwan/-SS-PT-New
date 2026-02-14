@@ -277,10 +277,11 @@ let ClientProgress;
 let Session;
 let WorkoutSession;
 let Order;
+let DailyWorkoutForm;
 
 const ensureModels = () => {
-  if (User && ClientProgress && Session && WorkoutSession && Order) return;
-  ({ User, ClientProgress, Session, WorkoutSession, Order } = getAllModels());
+  if (User && ClientProgress && Session && WorkoutSession && Order && DailyWorkoutForm) return;
+  ({ User, ClientProgress, Session, WorkoutSession, Order, DailyWorkoutForm } = getAllModels());
 };
 
 /**
@@ -370,19 +371,21 @@ class AdminClientController {
 
       // Enrich client data with computed fields
       const enrichedClients = await Promise.all(clients.map(async (client) => {
-        const clientData = client.toJSON();
-        
+        // Strip masterPromptJson from list response (large blob, fetch on detail view only)
+        const { masterPromptJson, ...clientData } = client.toJSON();
+
         // Calculate additional metrics
         const totalWorkouts = await WorkoutSession.count({
           where: { userId: client.id, status: 'completed' }
         });
-        
+
         const totalOrders = await Order.count({
           where: { userId: client.id }
         });
-        
+
         return {
           ...clientData,
+          onboardingComplete: masterPromptJson != null,
           totalWorkouts,
           totalOrders,
           lastWorkout: clientData.workoutSessions?.[0] || null,
@@ -469,23 +472,8 @@ class AdminClientController {
         });
       }
 
-      // Get additional statistics from MCP servers if available
-      let mcpStats = {};
-      try {
-        // Call workout MCP for additional stats
-        const workoutMCPResponse = await fetch(`http://localhost:8000/tools/GetWorkoutStatistics`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: clientId })
-        });
-        
-        if (workoutMCPResponse.ok) {
-          const workoutData = await workoutMCPResponse.json();
-          mcpStats.workout = workoutData.statistics;
-        }
-      } catch (mcpError) {
-        logger.warn('Could not fetch MCP stats:', mcpError.message);
-      }
+      // MCP servers decommissioned — stats fetched from local DB only
+      const mcpStats = {};
 
       return res.status(200).json({
         success: true,
@@ -651,19 +639,7 @@ class AdminClientController {
       // Update client data
       await client.update(safeUpdates, { transaction });
 
-      // Sync updates with MCP servers
-      try {
-        await fetch(`http://localhost:8000/tools/UpdateClientProfile`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            userId: clientId,
-            profile: safeUpdates
-          })
-        });
-      } catch (mcpError) {
-        logger.warn('Could not sync with workout MCP:', mcpError.message);
-      }
+      // MCP servers decommissioned — profile already saved via client.update() above
 
       await transaction.commit();
 
@@ -880,7 +856,7 @@ class AdminClientController {
   }
 
   /**
-   * Get client workout statistics using MCP
+   * Get client workout statistics (local DB — MCP decommissioned)
    */
   async getClientWorkoutStats(req, res) {
     try {
@@ -888,33 +864,31 @@ class AdminClientController {
       const { clientId } = req.params;
       const { startDate, endDate } = req.query;
 
-      // Call workout MCP server directly
-      const mcpResponse = await fetch(`http://localhost:8000/tools/GetWorkoutStatistics`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: clientId,
-          startDate,
-          endDate,
-          includeExerciseBreakdown: true,
-          includeMuscleGroupBreakdown: true,
-          includeWeekdayBreakdown: true,
-          includeIntensityTrends: true
-        })
-      });
-
-      if (!mcpResponse.ok) {
-        throw new Error(`MCP Server responded with ${mcpResponse.status}`);
+      // Build date filter for both queries
+      const dateFilter = {};
+      if (startDate && endDate) {
+        dateFilter.date = { [Op.between]: [startDate, endDate] };
+      } else if (startDate) {
+        dateFilter.date = { [Op.gte]: startDate };
+      } else if (endDate) {
+        dateFilter.date = { [Op.lte]: endDate };
       }
 
-      const stats = await mcpResponse.json();
+      const [totalWorkouts, totalForms] = await Promise.all([
+        WorkoutSession.count({ where: { userId: clientId, status: 'completed', ...dateFilter } }),
+        DailyWorkoutForm.count({ where: { clientId, ...dateFilter } })
+      ]);
 
       return res.status(200).json({
         success: true,
-        data: stats
+        data: {
+          totalWorkouts,
+          totalForms,
+          dateRange: { startDate: startDate || null, endDate: endDate || null }
+        }
       });
     } catch (error) {
-      logger.error('Error fetching workout stats from MCP:', error);
+      logger.error('Error fetching workout stats:', error);
       return res.status(500).json({
         success: false,
         message: 'Error fetching workout statistics',
@@ -924,57 +898,13 @@ class AdminClientController {
   }
 
   /**
-   * Generate workout plan for client using MCP
+   * Generate workout plan for client (MCP decommissioned)
    */
   async generateWorkoutPlan(req, res) {
-    try {
-      ensureModels();
-      const { clientId } = req.params;
-      const { 
-        trainerId, 
-        name, 
-        description, 
-        goal, 
-        daysPerWeek = 3,
-        difficulty = 'intermediate',
-        focusAreas = []
-      } = req.body;
-
-      // Call workout MCP server to generate plan
-      const mcpResponse = await fetch(`http://localhost:8000/tools/GenerateWorkoutPlan`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          trainerId,
-          clientId,
-          name,
-          description,
-          goal,
-          daysPerWeek,
-          difficulty,
-          focusAreas
-        })
-      });
-
-      if (!mcpResponse.ok) {
-        throw new Error(`MCP Server responded with ${mcpResponse.status}`);
-      }
-
-      const planData = await mcpResponse.json();
-
-      return res.status(200).json({
-        success: true,
-        message: 'Workout plan generated successfully',
-        data: planData
-      });
-    } catch (error) {
-      logger.error('Error generating workout plan:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error generating workout plan',
-        error: error.message
-      });
-    }
+    return res.status(503).json({
+      success: false,
+      message: 'Workout plan generation requires MCP servers (disabled in production)'
+    });
   }
 
   /**
@@ -1117,58 +1047,36 @@ class AdminClientController {
   }
 
   /**
-   * Get MCP server health status
+   * Get MCP server health status (MCP decommissioned)
    */
   async getMCPStatus(req, res) {
-    try {
-      const mcpServers = [
-        { name: 'Workout MCP', url: 'http://localhost:8000' },
-        { name: 'Gamification MCP', url: 'http://localhost:8001' },
-        { name: 'YOLO MCP', url: 'http://localhost:8002' },
-        { name: 'Social Media MCP', url: 'http://localhost:8003' },
-        { name: 'Food Scanner MCP', url: 'http://localhost:8004' },
-        { name: 'Video Processing MCP', url: 'http://localhost:8005' }
-      ];
+    const mcpServers = [
+      { name: 'Workout MCP', url: 'http://localhost:8000' },
+      { name: 'Gamification MCP', url: 'http://localhost:8001' },
+      { name: 'YOLO MCP', url: 'http://localhost:8002' },
+      { name: 'Social Media MCP', url: 'http://localhost:8003' },
+      { name: 'Food Scanner MCP', url: 'http://localhost:8004' },
+      { name: 'Video Processing MCP', url: 'http://localhost:8005' }
+    ];
 
-      const statusPromises = mcpServers.map(async (server) => {
-        try {
-          const response = await fetch(`${server.url}/`, { timeout: 5000 });
-          return {
-            ...server,
-            status: response.ok ? 'online' : 'error',
-            lastChecked: new Date()
-          };
-        } catch (error) {
-          return {
-            ...server,
-            status: 'offline',
-            error: error.message,
-            lastChecked: new Date()
-          };
+    const statuses = mcpServers.map(server => ({
+      ...server,
+      status: 'decommissioned',
+      lastChecked: new Date()
+    }));
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        servers: statuses,
+        summary: {
+          online: 0,
+          offline: 0,
+          error: 0,
+          decommissioned: statuses.length
         }
-      });
-
-      const statuses = await Promise.all(statusPromises);
-
-      return res.status(200).json({
-        success: true,
-        data: {
-          servers: statuses,
-          summary: {
-            online: statuses.filter(s => s.status === 'online').length,
-            offline: statuses.filter(s => s.status === 'offline').length,
-            error: statuses.filter(s => s.status === 'error').length
-          }
-        }
-      });
-    } catch (error) {
-      logger.error('Error checking MCP status:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error checking MCP server status',
-        error: error.message
-      });
-    }
+      }
+    });
   }
 }
 

@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Wrench,
   XCircle,
+  ClipboardList,
 } from 'lucide-react';
 
 export type NavStatus = 'real' | 'mock' | 'partial' | 'fix' | 'progress' | 'new' | 'error';
@@ -44,6 +45,7 @@ export interface NavItemData {
 export const navigationItems: NavItemData[] = [
   // Priority
   { id: 'overview', label: 'Overview', icon: Home, section: 'priority', status: 'real' },
+  { id: 'onboarding', label: 'Onboarding', icon: ClipboardList, section: 'priority', status: 'new' },
   { id: 'schedule', label: 'Schedule', icon: Calendar, section: 'priority', status: 'partial' },
 
   // Core Features

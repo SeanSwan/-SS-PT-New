@@ -6,6 +6,7 @@
  */
 
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 
 // Import all controllers
 import gamificationController from '../controllers/gamificationController.mjs';
@@ -34,6 +35,37 @@ const requireUser = (req, res, next) => {
   }
 };
 
+// Ownership middleware: ensures :userId param matches authenticated user (or staff bypass)
+const ensureOwnerOrStaff = (req, res, next) => {
+  if (!/^\d+$/.test(req.params.userId)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid user ID'
+    });
+  }
+  const targetUserId = parseInt(req.params.userId, 10);
+  if (targetUserId <= 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid user ID'
+    });
+  }
+  if (req.user.role === 'admin' || req.user.role === 'trainer') return next();
+  if (Number(req.user.id) === targetUserId) return next();
+  return res.status(403).json({
+    success: false,
+    message: 'Forbidden: You can only access your own data'
+  });
+};
+
+// Rate limiter for point-earning actions (20 per hour per user)
+const pointActionLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 20,
+  keyGenerator: (req) => `points:${req.user?.id || req.ip}`,
+  message: { success: false, message: 'Too many point actions. Please try again later.' }
+});
+
 // ============================================================================
 // 📊 USER STATS & PROGRESS ENDPOINTS
 // ============================================================================
@@ -43,28 +75,28 @@ const requireUser = (req, res, next) => {
  * @desc    Get comprehensive user statistics (FRONTEND EXPECTED)
  * @access  Authenticated users
  */
-router.get('/users/:userId/stats', authenticate, requireUser, progressController.getUserStats);
+router.get('/users/:userId/stats', authenticate, ensureOwnerOrStaff, progressController.getUserStats);
 
 /**
  * @route   GET /api/v1/gamification/users/:userId/progress
  * @desc    Get user progress data with analytics (FRONTEND EXPECTED)
  * @access  Authenticated users
  */
-router.get('/users/:userId/progress', authenticate, requireUser, progressController.getUserProgress);
+router.get('/users/:userId/progress', authenticate, ensureOwnerOrStaff, progressController.getUserProgress);
 
 /**
  * @route   POST /api/v1/gamification/users/:userId/progress
  * @desc    Record new progress entry
  * @access  Authenticated users
  */
-router.post('/users/:userId/progress', authenticate, requireUser, progressController.recordProgressEntry);
+router.post('/users/:userId/progress', authenticate, ensureOwnerOrStaff, progressController.recordProgressEntry);
 
 /**
  * @route   GET /api/v1/gamification/users/:userId/insights
  * @desc    Get detailed progress insights and recommendations
  * @access  Authenticated users
  */
-router.get('/users/:userId/insights', authenticate, requireUser, progressController.getProgressInsights);
+router.get('/users/:userId/insights', authenticate, ensureOwnerOrStaff, progressController.getProgressInsights);
 
 // ============================================================================
 // 🏆 LEADERBOARD ENDPOINTS
@@ -135,7 +167,7 @@ router.get('/challenges/:id/leaderboard', challengeController.getChallengeLeader
  * @desc    Get user's challenges (active/completed)
  * @access  Authenticated users
  */
-router.get('/users/:userId/challenges', authenticate, requireUser, challengeController.getUserChallenges);
+router.get('/users/:userId/challenges', authenticate, ensureOwnerOrStaff, challengeController.getUserChallenges);
 
 // ============================================================================
 // 🏅 ACHIEVEMENT SYSTEM ENDPOINTS
@@ -153,7 +185,7 @@ router.get('/achievements', gamificationController.getAllAchievements);
  * @desc    Get user's achievements (FRONTEND EXPECTED)
  * @access  Authenticated users
  */
-router.get('/users/:userId/achievements', authenticate, requireUser, async (req, res) => {
+router.get('/users/:userId/achievements', authenticate, ensureOwnerOrStaff, async (req, res) => {
   try {
     // This is a wrapper to get user-specific achievements
     req.params.userId = req.params.userId;
@@ -225,7 +257,7 @@ router.post('/users/:userId/points', authenticate, requireTrainer, gamificationC
  * @desc    Get user point transaction history
  * @access  Authenticated users
  */
-router.get('/users/:userId/transactions', authenticate, requireUser, gamificationController.getUserTransactions);
+router.get('/users/:userId/transactions', authenticate, ensureOwnerOrStaff, gamificationController.getUserTransactions);
 
 /**
  * @route   GET /api/v1/gamification/rewards
@@ -267,7 +299,7 @@ router.delete('/rewards/:id', authenticate, requireAdmin, gamificationController
  * @desc    Redeem reward for user
  * @access  Authenticated users
  */
-router.post('/users/:userId/rewards/:rewardId/redeem', authenticate, requireUser, gamificationController.redeemReward);
+router.post('/users/:userId/rewards/:rewardId/redeem', authenticate, ensureOwnerOrStaff, pointActionLimiter, gamificationController.redeemReward);
 
 // ============================================================================
 // 🎖️ MILESTONES SYSTEM
@@ -324,7 +356,7 @@ router.post('/users/:userId/check-milestones', authenticate, requireTrainer, gam
  * @desc    Get user's goals with filtering (FRONTEND EXPECTED)
  * @access  Authenticated users
  */
-router.get('/users/:userId/goals', authenticate, requireUser, goalController.getUserGoals);
+router.get('/users/:userId/goals', authenticate, ensureOwnerOrStaff, goalController.getUserGoals);
 
 /**
  * @route   GET /api/v1/gamification/goals/:id
@@ -373,7 +405,7 @@ router.get('/goals/:id/analytics', authenticate, requireUser, goalController.get
  * @desc    Get goal categories statistics
  * @access  Authenticated users
  */
-router.get('/users/:userId/goals/categories', authenticate, requireUser, goalController.getGoalCategoriesStats);
+router.get('/users/:userId/goals/categories', authenticate, ensureOwnerOrStaff, goalController.getGoalCategoriesStats);
 
 // ============================================================================
 // 👥 SOCIAL FEATURES & USER INTERACTIONS
@@ -462,7 +494,7 @@ router.put('/settings', authenticate, requireAdmin, gamificationController.updat
  * @desc    Record workout completion and award points
  * @access  Authenticated users
  */
-router.post('/record-workout', authenticate, requireUser, gamificationController.recordWorkoutCompletion);
+router.post('/record-workout', authenticate, requireUser, pointActionLimiter, gamificationController.recordWorkoutCompletion);
 
 // ============================================================================
 // 🔔 NOTIFICATIONS
@@ -484,7 +516,7 @@ router.patch('/notifications/:notificationId/read', authenticate, requireUser, g
  * @desc    Get user gamification profile
  * @access  Authenticated users
  */
-router.get('/users/:userId/profile', authenticate, requireUser, gamificationController.getUserProfile);
+router.get('/users/:userId/profile', authenticate, ensureOwnerOrStaff, gamificationController.getUserProfile);
 
 // ============================================================================
 // 🎯 ADDITIONAL ENDPOINTS FOR FRONTEND COMPATIBILITY

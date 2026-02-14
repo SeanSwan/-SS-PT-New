@@ -2075,7 +2075,7 @@ const gamificationController = {
       
       // Use userId from request body or fallback to authenticated user
       const targetUserId = userId || req.user?.id;
-      
+
       if (!targetUserId) {
         await transaction.rollback();
         return res.status(400).json({
@@ -2083,9 +2083,23 @@ const gamificationController = {
           message: 'User ID is required'
         });
       }
-      
-      // Verify user exists
-      const user = await User.findByPk(targetUserId, { transaction });
+
+      // OWNERSHIP CHECK: non-admin/trainer can only record for themselves
+      if (req.user.role !== 'admin' && req.user.role !== 'trainer') {
+        if (Number(targetUserId) !== Number(req.user.id)) {
+          await transaction.rollback();
+          return res.status(403).json({
+            success: false,
+            message: 'Forbidden: You can only record workouts for yourself'
+          });
+        }
+      }
+
+      // Verify user exists (with row-level lock for concurrency safety)
+      const user = await User.findByPk(targetUserId, {
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
       
       if (!user) {
         await transaction.rollback();
@@ -2116,21 +2130,77 @@ const gamificationController = {
         pointsToAward = Math.round(pointsToAward * settings.pointsMultiplier);
       }
       
+      // Same-day duplicate workout guard
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const lastActivity = user.lastActivityDate ? new Date(user.lastActivityDate) : null;
+      if (lastActivity) lastActivity.setHours(0, 0, 0, 0);
+
+      if (lastActivity && lastActivity.getTime() === today.getTime()) {
+        await transaction.rollback();
+        return res.status(429).json({
+          success: false,
+          message: 'Workout already recorded today. Points can only be earned once per day.'
+        });
+      }
+
       // Update user stats
       const updatedStats = {
         totalWorkouts: (user.totalWorkouts || 0) + 1,
         totalExercises: (user.totalExercises || 0) + (exercisesCompleted || 0),
         points: user.points + pointsToAward
       };
-      
-      // Check if this extends the user's streak
-      const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      
-      // For simplicity, we'll increment streak days
-      // In a real app, you'd check the last workout date
-      updatedStats.streakDays = (user.streakDays || 0) + 1;
+
+      // Streak validation using lastActivityDate
+      const daysSinceLast = lastActivity
+        ? Math.floor((today - lastActivity) / (1000 * 60 * 60 * 24))
+        : Infinity;
+
+      if (daysSinceLast === 0) {
+        // Same day — keep current streak (defensive, guard above should catch this)
+        updatedStats.streakDays = user.streakDays || 1;
+      } else if (daysSinceLast === 1) {
+        // Consecutive day — extend streak
+        updatedStats.streakDays = (user.streakDays || 0) + 1;
+      } else if (daysSinceLast === 2) {
+        // Grace day — 1 per rolling 30-day window
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const GRACE_PREFIX = '[STREAK_GRACE]';
+        const graceUsedRecently = await PointTransaction.count({
+          where: {
+            userId: targetUserId,
+            transactionType: 'adjustment',
+            source: 'admin_adjustment',
+            description: { [Op.startsWith]: GRACE_PREFIX },
+            createdAt: { [Op.gte]: thirtyDaysAgo }
+          },
+          transaction
+        });
+
+        if (graceUsedRecently === 0) {
+          // Grace available — extend streak and record grace usage
+          updatedStats.streakDays = (user.streakDays || 0) + 1;
+          await PointTransaction.create({
+            userId: targetUserId,
+            points: 0,
+            balance: user.points,
+            transactionType: 'adjustment',
+            source: 'admin_adjustment',
+            description: `${GRACE_PREFIX} Streak grace day used (1 per 30-day window)`,
+            metadata: { streakDays: updatedStats.streakDays, windowStart: thirtyDaysAgo.toISOString() },
+            awardedBy: null
+          }, { transaction });
+        } else {
+          // Grace already used in this window — streak broken
+          updatedStats.streakDays = 1;
+        }
+      } else {
+        // Streak broken — reset to 1
+        updatedStats.streakDays = 1;
+      }
+      updatedStats.lastActivityDate = today;
       
       // Award streak bonus if applicable
       if (updatedStats.streakDays % 7 === 0 && settings?.pointsPerStreak) {

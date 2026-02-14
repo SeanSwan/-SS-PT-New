@@ -378,14 +378,20 @@ router.get('/features/availability', async (req, res) => {
 });
 
 // =====================================================
-// MCP SERVER MANAGEMENT
+// MCP SERVER MANAGEMENT (decommissioned in production)
 // =====================================================
+const MCP_ADMIN_ENABLED = process.env.NODE_ENV === 'production'
+  ? process.env.ENABLE_MCP_ROUTES === 'true'
+  : process.env.ENABLE_MCP_ROUTES !== 'false';
 
 /**
  * Get all MCP servers status
  * GET /api/admin/mcp-servers
  */
 router.get('/mcp-servers', async (req, res) => {
+  if (!MCP_ADMIN_ENABLED) {
+    return res.status(200).json({ success: true, servers: [], message: 'MCP servers decommissioned', timestamp: new Date().toISOString() });
+  }
   try {
     // Mock MCP server data for now
     const servers = [
@@ -548,14 +554,14 @@ router.get('/mcp-servers', async (req, res) => {
  * POST /api/admin/mcp-servers/:serverId/start
  */
 router.post('/mcp-servers/:serverId/start', async (req, res) => {
+  if (!MCP_ADMIN_ENABLED) {
+    return res.status(503).json({ success: false, message: 'MCP servers decommissioned' });
+  }
   try {
     const { serverId } = req.params;
-    
+
     logger.info(`Admin ${req.user.id} starting MCP server ${serverId}`);
-    
-    // TODO: Implement actual server start logic
-    // For now, return success
-    
+
     res.json({
       success: true,
       message: `MCP server ${serverId} start command sent`,
@@ -578,13 +584,14 @@ router.post('/mcp-servers/:serverId/start', async (req, res) => {
  * POST /api/admin/mcp-servers/:serverId/stop
  */
 router.post('/mcp-servers/:serverId/stop', async (req, res) => {
+  if (!MCP_ADMIN_ENABLED) {
+    return res.status(503).json({ success: false, message: 'MCP servers decommissioned' });
+  }
   try {
     const { serverId } = req.params;
-    
+
     logger.info(`Admin ${req.user.id} stopping MCP server ${serverId}`);
-    
-    // TODO: Implement actual server stop logic
-    
+
     res.json({
       success: true,
       message: `MCP server ${serverId} stop command sent`,
@@ -607,13 +614,14 @@ router.post('/mcp-servers/:serverId/stop', async (req, res) => {
  * POST /api/admin/mcp-servers/:serverId/restart
  */
 router.post('/mcp-servers/:serverId/restart', async (req, res) => {
+  if (!MCP_ADMIN_ENABLED) {
+    return res.status(503).json({ success: false, message: 'MCP servers decommissioned' });
+  }
   try {
     const { serverId } = req.params;
-    
+
     logger.info(`Admin ${req.user.id} restarting MCP server ${serverId}`);
-    
-    // TODO: Implement actual server restart logic
-    
+
     res.json({
       success: true,
       message: `MCP server ${serverId} restart command sent`,
@@ -636,10 +644,13 @@ router.post('/mcp-servers/:serverId/restart', async (req, res) => {
  * GET /api/admin/mcp-servers/:serverId/logs
  */
 router.get('/mcp-servers/:serverId/logs', async (req, res) => {
+  if (!MCP_ADMIN_ENABLED) {
+    return res.status(503).json({ success: false, message: 'MCP servers decommissioned' });
+  }
   try {
     const { serverId } = req.params;
     const { limit = 100 } = req.query;
-    
+
     // Mock log data for now
     const logs = [
       {

@@ -2,6 +2,7 @@
 import User from '../models/User.mjs';
 import sequelize from '../database.mjs';
 import { triggerSequence } from '../services/automationService.mjs';
+import { generateChallengesFromGoals } from '../services/gamification/goalChallengeService.mjs';
 
 /**
  * Onboarding Controller
@@ -356,6 +357,11 @@ export const createClientOnboarding = async (req, res) => {
         console.error('[Onboarding Controller] Automation trigger failed:', sequenceError);
       }
 
+      // Generate gamification challenges from onboarding goals (non-blocking)
+      generateChallengesFromGoals(user.id, masterPromptJson).catch(err => {
+        console.error('[Onboarding Controller] Challenge generation failed:', err.message);
+      });
+
       return res.status(201).json({
         success: true,
         message: 'Client onboarding created successfully',
@@ -424,7 +430,96 @@ export const getClientMasterPrompt = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/onboarding/self
+ * Client self-service onboarding (authenticated client fills their own profile)
+ */
+export const createClientSelfOnboarding = async (req, res) => {
+  try {
+    const formData = req.body;
+    const userId = req.user.id;
+
+    if (!formData.primaryGoal) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required field: primaryGoal'
+      });
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+
+    // Use existing name from user record if not provided in form
+    const fullName = formData.fullName || `${user.firstName} ${user.lastName}`;
+    formData.fullName = fullName;
+    formData.email = formData.email || user.email;
+    formData.phone = formData.phone || user.phone;
+
+    const spiritName = generateSpiritName(formData);
+    const masterPromptJson = transformQuestionnaireToMasterPrompt(formData, userId);
+    masterPromptJson.client.alias = spiritName;
+
+    await user.update({
+      masterPromptJson,
+      spiritName,
+      phone: formData.phone || user.phone,
+      dateOfBirth: formData.dateOfBirth || user.dateOfBirth,
+      gender: formData.gender || user.gender,
+      weight: formData.currentWeight ? parseFloat(formData.currentWeight) : user.weight,
+      height: formData.heightFeet && formData.heightInches
+        ? parseInt(formData.heightFeet) * 12 + parseInt(formData.heightInches)
+        : user.height,
+      fitnessGoal: formData.primaryGoal
+    });
+
+    // Upsert PII record
+    const clientId = `PT-${String(userId).padStart(5, '0')}`;
+    await sequelize.query(`
+      INSERT INTO clients_pii (client_id, real_name, spirit_name, status, start_date, privacy_level, "createdAt", "updatedAt")
+      VALUES (:clientId, :realName, :spiritName, 'active', CURRENT_DATE, 'standard', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ON CONFLICT (client_id) DO UPDATE SET
+        real_name = EXCLUDED.real_name,
+        spirit_name = EXCLUDED.spirit_name,
+        "updatedAt" = CURRENT_TIMESTAMP
+    `, {
+      replacements: {
+        clientId,
+        realName: fullName,
+        spiritName
+      }
+    });
+
+    // Generate gamification challenges from onboarding goals (non-blocking)
+    generateChallengesFromGoals(userId, masterPromptJson).catch(err => {
+      console.error('[Onboarding Controller] Challenge generation failed:', err.message);
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile completed successfully',
+      data: {
+        userId,
+        spiritName,
+        masterPromptCreated: true
+      }
+    });
+  } catch (error) {
+    console.error('[Onboarding Controller] Self-onboarding error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to save onboarding data',
+      details: error.message
+    });
+  }
+};
+
 export default {
   createClientOnboarding,
-  getClientMasterPrompt
+  getClientMasterPrompt,
+  createClientSelfOnboarding
 };

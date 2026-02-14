@@ -3,6 +3,7 @@ import styled, { keyframes } from "styled-components";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUniversalTheme } from "../../context/ThemeContext/UniversalThemeContext";
 import { useNavigate } from "react-router-dom";
+import apiService from "../../services/api.service";
 
 import BasicInfo from "./components/BasicInfoSection";
 import HealthSection from "./components/HealthSection";
@@ -312,12 +313,14 @@ const CredValue = styled.span`
 
 interface ClientOnboardingWizardProps {
   embedded?: boolean;
+  selfSubmit?: boolean;
   onComplete?: (result: any) => void;
   onCancel?: () => void;
 }
 
 const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
   embedded = false,
+  selfSubmit = false,
   onComplete,
   onCancel,
 }) => {
@@ -379,27 +382,12 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
     setIsSubmitting(true);
     setError(null);
 
-    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-
-    if (!token) {
-      setError("You must be logged in to submit onboarding. Please log in first.");
-      setIsSubmitting(false);
-      return;
-    }
-
     try {
-      const response = await fetch("/api/onboarding", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+      const endpoint = selfSubmit ? "/api/onboarding/self" : "/api/onboarding";
+      const response = await apiService.post(endpoint, formData);
+      const data = response.data;
 
-      const data = await response.json();
-
-      if (!response.ok) {
+      if (!data.success) {
         setError(data.error || data.message || "Submission failed. Please try again.");
       } else {
         setSubmissionResult(data.data);
@@ -409,7 +397,8 @@ const ClientOnboardingWizard: React.FC<ClientOnboardingWizardProps> = ({
         }
       }
     } catch (err: any) {
-      setError(err.message || "Network error. Please check your connection and try again.");
+      const msg = err.response?.data?.error || err.response?.data?.message || err.message || "Network error. Please check your connection and try again.";
+      setError(msg);
     } finally {
       setIsSubmitting(false);
     }
