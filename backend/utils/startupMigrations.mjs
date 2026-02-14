@@ -192,6 +192,44 @@ async function migrateStabilizationColumns() {
 }
 
 /**
+ * Migration 4: Add password reset columns to Users table
+ * - resetPasswordToken (VARCHAR) - HMAC-SHA256 hashed token for lookup
+ * - resetPasswordExpires (TIMESTAMPTZ) - token expiry time
+ * - Partial index on resetPasswordToken for O(1) lookups
+ */
+async function migrateResetPasswordColumns() {
+  const addColumnIfMissing = async (table, column, definition) => {
+    try {
+      const [cols] = await sequelize.query(
+        `SELECT column_name FROM information_schema.columns
+         WHERE table_name = '${table}' AND column_name = '${column}';`
+      );
+      if (cols && cols.length > 0) return;
+
+      logger.info(`[Migration] Adding ${table}.${column}...`);
+      await sequelize.query(`ALTER TABLE "${table}" ADD COLUMN "${column}" ${definition};`);
+      logger.info(`[Migration] ${table}.${column} added successfully`);
+    } catch (error) {
+      logger.warn(`[Migration] ${table}.${column} add failed (non-critical): ${error.message}`);
+    }
+  };
+
+  await addColumnIfMissing('Users', 'resetPasswordToken', 'VARCHAR(255)');
+  await addColumnIfMissing('Users', 'resetPasswordExpires', 'TIMESTAMPTZ');
+
+  // Partial index for O(1) token lookups
+  try {
+    await sequelize.query(
+      `CREATE INDEX IF NOT EXISTS idx_users_reset_password_token
+       ON "Users" ("resetPasswordToken")
+       WHERE "resetPasswordToken" IS NOT NULL;`
+    );
+  } catch (error) {
+    logger.warn(`[Migration] reset password index creation failed (non-critical): ${error.message}`);
+  }
+}
+
+/**
  * Run all startup migrations - called during server initialization.
  * Each migration is idempotent and wrapped in its own try/catch.
  */
@@ -202,6 +240,7 @@ export async function runStartupMigrations() {
     await migrateAdminSettingsCategory();
     await migrateMessagingTables();
     await migrateStabilizationColumns();
+    await migrateResetPasswordColumns();
 
     logger.info('[Migrations] All startup migrations completed');
     return true;
