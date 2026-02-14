@@ -81,6 +81,11 @@ const auroraShift = keyframes`
   100% { background-position: 0% 50%; }
 `;
 
+const glowPulse = keyframes`
+  0%, 100% { box-shadow: 0 0 8px rgba(0, 255, 255, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(0, 255, 255, 0.6), 0 0 40px rgba(0, 255, 255, 0.2); }
+`;
+
 export const SidebarContainer = styled(motion.aside)<{ isCollapsed: boolean; isMobile: boolean }>`
   position: fixed;
   top: 56px;
@@ -299,6 +304,9 @@ export const NavStatusBadge = styled.span<{ status: NavStatus; isCollapsed: bool
   color: ${props => navStatusStyles[props.status].color};
   background: ${props => navStatusStyles[props.status].background};
   border: 1px solid ${props => navStatusStyles[props.status].border};
+  ${props => props.status === 'new' && css`
+    animation: ${glowPulse} 2s ease-in-out infinite;
+  `}
 `;
 
 export const NavItem = styled(motion.button)<{ isActive: boolean; isCollapsed: boolean }>`

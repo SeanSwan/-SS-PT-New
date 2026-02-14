@@ -262,7 +262,15 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin/exercise-library', videoLibraryRoutes); // Original endpoint
 
   app.use('/api/admin/storefront', adminPackageRoutes); // Admin package CRUD (frontend uses /api/admin/storefront/*)
-  app.use('/api/admin', adminMcpRoutes);                // Provides: /api/admin/mcp/* endpoints
+
+  // Gate admin MCP routes: opt-IN in production, opt-OUT in dev
+  const ADMIN_MCP_ROUTES_ENABLED = isProduction
+    ? process.env.ENABLE_MCP_ROUTES === 'true'
+    : process.env.ENABLE_MCP_ROUTES !== 'false';
+  if (ADMIN_MCP_ROUTES_ENABLED) {
+    app.use('/api/admin', adminMcpRoutes);              // Provides: /api/admin/mcp/* endpoints
+  }
+
   app.use('/api/admin/content', adminContentModerationRoutes); // Provides: /api/admin/content/* endpoints
 
   app.use('/api/admin', adminNotificationsRoutes); // Admin notifications API
@@ -283,8 +291,6 @@ export const setupRoutes = async (app) => {
   app.use('/api/admin', analyticsSystemRoutes);
   // ⚙️ Admin Settings Management (system, notifications, API keys, security)
   app.use('/api/admin/settings', adminSettingsRoutes);
-  // 🤖 Advanced MCP Server Management and Real-time Monitoring
-  app.use('/api/admin', adminMcpRoutes);
   // 📦 Comprehensive Order Management with Real Stripe Integration
   app.use('/api/admin', adminOrdersRoutes);
   // 🔍 Data Verification and Debugging Tools (verify data accuracy)

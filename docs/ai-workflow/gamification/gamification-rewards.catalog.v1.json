@@ -1,0 +1,1088 @@
+{
+  "meta": {
+    "version": "1.0.0",
+    "createdAt": "2026-02-13",
+    "source": "Imported and enhanced from legacy brainstorm list",
+    "notes": [
+      "Use legacyId for continuity with old planning docs",
+      "Implement mvp first; keep phase2 and phase3 disabled initially"
+    ]
+  },
+  "schema": {
+    "requiredFields": [
+      "legacyId",
+      "code",
+      "title",
+      "category",
+      "rewardType",
+      "unlockRules",
+      "issuance",
+      "phase",
+      "enabled"
+    ],
+    "categoryEnum": [
+      "user",
+      "client",
+      "trainer",
+      "creator",
+      "moderator"
+    ],
+    "rewardTypeEnum": [
+      "badge",
+      "title",
+      "honor",
+      "discount",
+      "unlock",
+      "item"
+    ],
+    "issuanceEnum": [
+      "auto",
+      "admin_review",
+      "admin_award"
+    ],
+    "phaseEnum": [
+      "mvp",
+      "phase2",
+      "phase3"
+    ]
+  },
+  "catalog": [
+    {
+      "legacyId": 101,
+      "code": "USR-101",
+      "title": "Swan Hatchling",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Welcome badge for new members who complete profile and first qualified activity.",
+      "unlockRules": [
+        "profile_completion == 100",
+        "qualified_activity_count >= 1"
+      ],
+      "issuance": "auto",
+      "priority": "high",
+      "phase": "mvp",
+      "enabled": true
+    },
+    {
+      "legacyId": 102,
+      "code": "USR-102",
+      "title": "Friendly Swan",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Symbolizes making first social connection.",
+      "unlockRules": [
+        "friend_or_follow_count >= 1"
+      ],
+      "issuance": "auto",
+      "priority": "high",
+      "phase": "mvp",
+      "enabled": true
+    },
+    {
+      "legacyId": 103,
+      "code": "USR-103",
+      "title": "Connector",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Built a small social network in the app.",
+      "unlockRules": [
+        "friend_or_follow_count >= 5"
+      ],
+      "issuance": "auto",
+      "priority": "medium",
+      "phase": "mvp",
+      "enabled": true
+    },
+    {
+      "legacyId": 104,
+      "code": "USR-104",
+      "title": "Social Butterfly",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Highly connected socially.",
+      "unlockRules": [
+        "friend_or_follow_count >= 20"
+      ],
+      "issuance": "auto",
+      "priority": "medium",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 105,
+      "code": "USR-105",
+      "title": "First Step",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 10,
+      "spendRequiredUsd": 0,
+      "description": "First meaningful activity point milestone.",
+      "unlockRules": [
+        "points_total >= 10"
+      ],
+      "issuance": "auto",
+      "priority": "high",
+      "phase": "mvp",
+      "enabled": true
+    },
+    {
+      "legacyId": 106,
+      "code": "USR-106",
+      "title": "Active Week",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "One week of consistency.",
+      "unlockRules": [
+        "activity_streak_days >= 7"
+      ],
+      "issuance": "auto",
+      "priority": "high",
+      "phase": "mvp",
+      "enabled": true
+    },
+    {
+      "legacyId": 107,
+      "code": "USR-107",
+      "title": "Monthly Marathon",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Full month engagement streak.",
+      "unlockRules": [
+        "activity_streak_days >= 30"
+      ],
+      "issuance": "auto",
+      "priority": "high",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 108,
+      "code": "USR-108",
+      "title": "Year of the Swan",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Elite consistency badge for annual commitment.",
+      "unlockRules": [
+        "activity_streak_days >= 365"
+      ],
+      "issuance": "auto",
+      "priority": "low",
+      "phase": "phase3",
+      "enabled": false
+    },
+    {
+      "legacyId": 109,
+      "code": "USR-109",
+      "title": "Positivity Beacon",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "title",
+      "pointsRequired": 100,
+      "spendRequiredUsd": 0,
+      "description": "Recognizes positive community support.",
+      "unlockRules": [
+        "points_total >= 100",
+        "supportive_reaction_count >= 50"
+      ],
+      "issuance": "admin_review",
+      "priority": "medium",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 110,
+      "code": "USR-110",
+      "title": "Community Mentor",
+      "category": "user",
+      "ageGroup": "50+",
+      "rewardType": "honor",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Older members guiding new users.",
+      "unlockRules": [
+        "age >= 50",
+        "mentor_helpful_marks >= 3"
+      ],
+      "issuance": "admin_review",
+      "priority": "low",
+      "phase": "phase3",
+      "enabled": false
+    },
+    {
+      "legacyId": 111,
+      "code": "USR-111",
+      "title": "Rising Star",
+      "category": "user",
+      "ageGroup": "14-17",
+      "rewardType": "badge",
+      "pointsRequired": 50,
+      "spendRequiredUsd": 0,
+      "description": "Youth-focused early engagement badge.",
+      "unlockRules": [
+        "age >= 14",
+        "age <= 17",
+        "points_earned_first_30_days >= 50"
+      ],
+      "issuance": "auto",
+      "priority": "low",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 112,
+      "code": "USR-112",
+      "title": "Lifelong Learner",
+      "category": "user",
+      "ageGroup": "50+",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Celebrates continued growth for older adults.",
+      "unlockRules": [
+        "age >= 50",
+        "classes_or_workshops_completed >= 10"
+      ],
+      "issuance": "auto",
+      "priority": "low",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 113,
+      "code": "USR-113",
+      "title": "Challenge Participant",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 20,
+      "spendRequiredUsd": 0,
+      "description": "Joined and completed a community challenge.",
+      "unlockRules": [
+        "official_challenge_completed_count >= 1",
+        "event_points_earned >= 20"
+      ],
+      "issuance": "auto",
+      "priority": "medium",
+      "phase": "mvp",
+      "enabled": true
+    },
+    {
+      "legacyId": 114,
+      "code": "USR-114",
+      "title": "Feather of Unity",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "honor",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Admin-awarded event honor for cross-group collaboration.",
+      "unlockRules": [
+        "special_event_participation == true"
+      ],
+      "issuance": "admin_award",
+      "priority": "low",
+      "phase": "phase3",
+      "enabled": false
+    },
+    {
+      "legacyId": 115,
+      "code": "USR-115",
+      "title": "Swan Advocate",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "First successful referral milestone.",
+      "unlockRules": [
+        "qualified_referrals_count >= 1"
+      ],
+      "issuance": "auto",
+      "priority": "high",
+      "phase": "mvp",
+      "enabled": true,
+      "antiAbuseChecks": [
+        "referred_user_must_complete_minimum_activity",
+        "duplicate_device_and_payment_method_filter"
+      ]
+    },
+    {
+      "legacyId": 116,
+      "code": "USR-116",
+      "title": "Community Builder",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "title",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "High referral growth milestone.",
+      "unlockRules": [
+        "qualified_referrals_count >= 10"
+      ],
+      "issuance": "admin_review",
+      "priority": "medium",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 117,
+      "code": "USR-117",
+      "title": "Early Bird",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 5,
+      "spendRequiredUsd": 0,
+      "description": "Morning consistency behavior.",
+      "unlockRules": [
+        "activities_before_7am_count_in_month >= 5"
+      ],
+      "issuance": "auto",
+      "priority": "low",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 118,
+      "code": "USR-118",
+      "title": "Night Owl",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 5,
+      "spendRequiredUsd": 0,
+      "description": "Late-night activity consistency.",
+      "unlockRules": [
+        "activities_after_midnight_count >= 5"
+      ],
+      "issuance": "auto",
+      "priority": "low",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 119,
+      "code": "USR-119",
+      "title": "Explorer Badge",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 30,
+      "spendRequiredUsd": 0,
+      "description": "Rewards multi-mode participation.",
+      "unlockRules": [
+        "fitness_activity_points >= 10",
+        "creative_activity_points >= 10",
+        "social_event_points >= 10"
+      ],
+      "issuance": "auto",
+      "priority": "medium",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 201,
+      "code": "CLT-201",
+      "title": "New Client",
+      "category": "client",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "First trainer-led session completed.",
+      "unlockRules": [
+        "trainer_led_sessions_completed >= 1"
+      ],
+      "issuance": "auto",
+      "priority": "high",
+      "phase": "mvp",
+      "enabled": true
+    },
+    {
+      "legacyId": 202,
+      "code": "CLT-202",
+      "title": "On Track",
+      "category": "client",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 100,
+      "spendRequiredUsd": 0,
+      "description": "Consistent trainer program engagement.",
+      "unlockRules": [
+        "trainer_led_sessions_completed >= 10",
+        "points_total >= 100"
+      ],
+      "issuance": "auto",
+      "priority": "high",
+      "phase": "mvp",
+      "enabled": true
+    },
+    {
+      "legacyId": 203,
+      "code": "CLT-203",
+      "title": "Goal Achiever",
+      "category": "client",
+      "ageGroup": "all",
+      "rewardType": "honor",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Trainer-verified personal goal completion.",
+      "unlockRules": [
+        "trainer_confirmed_goal_count >= 1"
+      ],
+      "issuance": "admin_review",
+      "priority": "high",
+      "phase": "mvp",
+      "enabled": true
+    },
+    {
+      "legacyId": 204,
+      "code": "CLT-204",
+      "title": "VIP Swan",
+      "category": "client",
+      "ageGroup": "all",
+      "rewardType": "title",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 50,
+      "description": "Premium membership recognition title.",
+      "unlockRules": [
+        "premium_subscription_active == true"
+      ],
+      "issuance": "auto",
+      "priority": "medium",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 205,
+      "code": "CLT-205",
+      "title": "Loyal Client",
+      "category": "client",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 200,
+      "description": "Spending milestone for long-term commitment.",
+      "unlockRules": [
+        "lifetime_spend_usd >= 200"
+      ],
+      "issuance": "auto",
+      "priority": "medium",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 206,
+      "code": "CLT-206",
+      "title": "Referral Bonus",
+      "category": "client",
+      "ageGroup": "all",
+      "rewardType": "discount",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "20% next class discount for qualified client referral.",
+      "unlockRules": [
+        "qualified_client_referrals_count >= 1"
+      ],
+      "issuance": "auto",
+      "priority": "medium",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 207,
+      "code": "CLT-207",
+      "title": "Priority Booking Access",
+      "category": "client",
+      "ageGroup": "all",
+      "rewardType": "unlock",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 50,
+      "description": "Early booking for high-demand sessions.",
+      "unlockRules": [
+        "premium_subscription_active == true OR monthly_spend_usd >= 50"
+      ],
+      "issuance": "auto",
+      "priority": "low",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 208,
+      "code": "CLT-208",
+      "title": "Milestone 100 Classes",
+      "category": "client",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 500,
+      "spendRequiredUsd": 0,
+      "description": "Elite class attendance milestone.",
+      "unlockRules": [
+        "trainer_led_sessions_completed >= 100",
+        "points_total >= 500"
+      ],
+      "issuance": "auto",
+      "priority": "low",
+      "phase": "phase3",
+      "enabled": false
+    },
+    {
+      "legacyId": 301,
+      "code": "TRN-301",
+      "title": "Certified Trainer",
+      "category": "trainer",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Trainer onboarding and approval complete.",
+      "unlockRules": [
+        "trainer_onboarding_completed == true",
+        "first_program_approved == true"
+      ],
+      "issuance": "auto",
+      "priority": "high",
+      "phase": "mvp",
+      "enabled": true
+    },
+    {
+      "legacyId": 302,
+      "code": "TRN-302",
+      "title": "First Class Delivered",
+      "category": "trainer",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "First hosted session with attendance.",
+      "unlockRules": [
+        "hosted_sessions_with_attendance >= 1"
+      ],
+      "issuance": "auto",
+      "priority": "high",
+      "phase": "mvp",
+      "enabled": true
+    },
+    {
+      "legacyId": 303,
+      "code": "TRN-303",
+      "title": "Rising Coach",
+      "category": "trainer",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Early trainer momentum badge.",
+      "unlockRules": [
+        "hosted_sessions_completed >= 10",
+        "average_rating >= 4.0"
+      ],
+      "issuance": "auto",
+      "priority": "medium",
+      "phase": "mvp",
+      "enabled": true
+    },
+    {
+      "legacyId": 304,
+      "code": "TRN-304",
+      "title": "Elite Coach",
+      "category": "trainer",
+      "ageGroup": "all",
+      "rewardType": "title",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Top trainer quality and retention milestone.",
+      "unlockRules": [
+        "hosted_sessions_completed >= 50",
+        "average_rating >= 4.5",
+        "unique_clients_trained >= 20"
+      ],
+      "issuance": "admin_review",
+      "priority": "medium",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 305,
+      "code": "TRN-305",
+      "title": "Mentor Trainer",
+      "category": "trainer",
+      "ageGroup": "all",
+      "rewardType": "honor",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Trainer helps clients hit meaningful goals.",
+      "unlockRules": [
+        "clients_with_goal_achiever_badge >= 5"
+      ],
+      "issuance": "admin_review",
+      "priority": "low",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 306,
+      "code": "TRN-306",
+      "title": "Community Builder (Trainer)",
+      "category": "trainer",
+      "ageGroup": "all",
+      "rewardType": "honor",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Trainer hosts free engagement events.",
+      "unlockRules": [
+        "free_community_events_hosted >= 3"
+      ],
+      "issuance": "admin_review",
+      "priority": "low",
+      "phase": "phase3",
+      "enabled": false
+    },
+    {
+      "legacyId": 307,
+      "code": "TRN-307",
+      "title": "Earnings Milestone $1000",
+      "category": "trainer",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Trainer revenue milestone.",
+      "unlockRules": [
+        "lifetime_trainer_revenue_usd >= 1000"
+      ],
+      "issuance": "auto",
+      "priority": "low",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 308,
+      "code": "TRN-308",
+      "title": "Diversity Champion",
+      "category": "trainer",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Recognizes inclusive, multi-style training delivery.",
+      "unlockRules": [
+        "distinct_class_styles_taught >= 3",
+        "diverse_attendance_verified == true"
+      ],
+      "issuance": "admin_review",
+      "priority": "low",
+      "phase": "phase3",
+      "enabled": false
+    },
+    {
+      "legacyId": 309,
+      "code": "TRN-309",
+      "title": "Trainer of the Month",
+      "category": "trainer",
+      "ageGroup": "all",
+      "rewardType": "honor",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Monthly featured trainer recognition.",
+      "unlockRules": [
+        "admin_monthly_selection == true"
+      ],
+      "issuance": "admin_award",
+      "priority": "low",
+      "phase": "phase3",
+      "enabled": false
+    },
+    {
+      "legacyId": 401,
+      "code": "CRT-401",
+      "title": "First Creation",
+      "category": "creator",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "First original published creative content.",
+      "unlockRules": [
+        "approved_creative_upload_count >= 1"
+      ],
+      "issuance": "auto",
+      "priority": "high",
+      "phase": "mvp",
+      "enabled": true
+    },
+    {
+      "legacyId": 402,
+      "code": "CRT-402",
+      "title": "Creative Contributor I",
+      "category": "creator",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Consistent creative sharing milestone.",
+      "unlockRules": [
+        "approved_creative_upload_count >= 10"
+      ],
+      "issuance": "auto",
+      "priority": "medium",
+      "phase": "mvp",
+      "enabled": true
+    },
+    {
+      "legacyId": 403,
+      "code": "CRT-403",
+      "title": "Creative Contributor II",
+      "category": "creator",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Prolific creator milestone.",
+      "unlockRules": [
+        "approved_creative_upload_count >= 50"
+      ],
+      "issuance": "auto",
+      "priority": "low",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 404,
+      "code": "CRT-404",
+      "title": "Creative Visionary",
+      "category": "creator",
+      "ageGroup": "all",
+      "rewardType": "title",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Top-tier creator influence badge.",
+      "unlockRules": [
+        "approved_creative_upload_count >= 100",
+        "content_avg_rating >= 4.0 OR total_likes >= 1000"
+      ],
+      "issuance": "admin_review",
+      "priority": "low",
+      "phase": "phase3",
+      "enabled": false
+    },
+    {
+      "legacyId": 405,
+      "code": "CRT-405",
+      "title": "Popular Creator",
+      "category": "creator",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Single-content traction milestone.",
+      "unlockRules": [
+        "single_content_views_or_likes >= 100"
+      ],
+      "issuance": "auto",
+      "priority": "medium",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 406,
+      "code": "CRT-406",
+      "title": "Collaborator",
+      "category": "creator",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Cross-role co-creation completed.",
+      "unlockRules": [
+        "co_created_published_content_count >= 1"
+      ],
+      "issuance": "auto",
+      "priority": "medium",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 407,
+      "code": "CRT-407",
+      "title": "Community Inspirer",
+      "category": "creator",
+      "ageGroup": "all",
+      "rewardType": "honor",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Content triggered broad positive community action.",
+      "unlockRules": [
+        "moderator_or_admin_featured_for_community_impact == true"
+      ],
+      "issuance": "admin_award",
+      "priority": "low",
+      "phase": "phase3",
+      "enabled": false
+    },
+    {
+      "legacyId": 408,
+      "code": "CRT-408",
+      "title": "Earnings Milestone $100 (Creator)",
+      "category": "creator",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Creator monetization milestone.",
+      "unlockRules": [
+        "lifetime_creator_earnings_usd >= 100"
+      ],
+      "issuance": "auto",
+      "priority": "low",
+      "phase": "phase3",
+      "enabled": false
+    },
+    {
+      "legacyId": 409,
+      "code": "CRT-409",
+      "title": "Patron Supported",
+      "category": "creator",
+      "ageGroup": "all",
+      "rewardType": "honor",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Broad community patron support.",
+      "unlockRules": [
+        "distinct_tippers_count >= 10"
+      ],
+      "issuance": "admin_review",
+      "priority": "low",
+      "phase": "phase3",
+      "enabled": false
+    },
+    {
+      "legacyId": 501,
+      "code": "MOD-501",
+      "title": "Guardian of the Community",
+      "category": "moderator",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Moderator role activation and first resolved issue.",
+      "unlockRules": [
+        "moderator_role_active == true",
+        "resolved_moderation_issues_count >= 1"
+      ],
+      "issuance": "auto",
+      "priority": "low",
+      "phase": "phase3",
+      "enabled": false
+    },
+    {
+      "legacyId": 502,
+      "code": "MOD-502",
+      "title": "Peacekeeper",
+      "category": "moderator",
+      "ageGroup": "all",
+      "rewardType": "honor",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Conflict mediation excellence.",
+      "unlockRules": [
+        "mediated_conflicts_count >= 5",
+        "resolution_feedback_score >= 4.0"
+      ],
+      "issuance": "admin_review",
+      "priority": "low",
+      "phase": "phase3",
+      "enabled": false
+    },
+    {
+      "legacyId": 503,
+      "code": "MOD-503",
+      "title": "Swan Sentinel",
+      "category": "moderator",
+      "ageGroup": "all",
+      "rewardType": "title",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Sustained moderator excellence over time.",
+      "unlockRules": [
+        "moderator_months_in_good_standing >= 6",
+        "unresolved_flag_rate <= 0.05"
+      ],
+      "issuance": "admin_review",
+      "priority": "low",
+      "phase": "phase3",
+      "enabled": false
+    },
+    {
+      "legacyId": 504,
+      "code": "MOD-504",
+      "title": "Feather of Justice",
+      "category": "moderator",
+      "ageGroup": "all",
+      "rewardType": "honor",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Admin nomination for handling major moderation cases fairly.",
+      "unlockRules": [
+        "admin_nomination_for_critical_case == true"
+      ],
+      "issuance": "admin_award",
+      "priority": "low",
+      "phase": "phase3",
+      "enabled": false
+    },
+    {
+      "legacyId": 601,
+      "code": "XRL-601",
+      "title": "Anniversary - 1 Year",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Loyalty badge for one active year.",
+      "unlockRules": [
+        "account_age_days >= 365",
+        "monthly_active_months_last_12 >= 12"
+      ],
+      "issuance": "auto",
+      "priority": "medium",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 602,
+      "code": "XRL-602",
+      "title": "Swan Legend",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "title",
+      "pointsRequired": 10000,
+      "spendRequiredUsd": 0,
+      "description": "Ultimate cross-domain excellence title.",
+      "unlockRules": [
+        "points_total >= 10000",
+        "high_tier_badge_user >= 1",
+        "high_tier_badge_client_or_trainer >= 1",
+        "high_tier_badge_creator >= 1"
+      ],
+      "issuance": "admin_review",
+      "priority": "low",
+      "phase": "phase3",
+      "enabled": false
+    },
+    {
+      "legacyId": 603,
+      "code": "XRL-603",
+      "title": "Free Class Pass",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "discount",
+      "pointsRequired": 500,
+      "spendRequiredUsd": 0,
+      "description": "Redeemable free class pass code.",
+      "unlockRules": [
+        "redeem_points >= 500"
+      ],
+      "issuance": "auto",
+      "priority": "medium",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 604,
+      "code": "XRL-604",
+      "title": "Merchandise Discount 10%",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "discount",
+      "pointsRequired": 300,
+      "spendRequiredUsd": 0,
+      "description": "Redeemable merchandise discount.",
+      "unlockRules": [
+        "redeem_points >= 300"
+      ],
+      "issuance": "auto",
+      "priority": "low",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 605,
+      "code": "XRL-605",
+      "title": "Avatar Custom: Swan Wings",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "item",
+      "pointsRequired": 200,
+      "spendRequiredUsd": 0,
+      "description": "Cosmetic avatar unlock.",
+      "unlockRules": [
+        "redeem_points >= 200"
+      ],
+      "issuance": "auto",
+      "priority": "low",
+      "phase": "phase2",
+      "enabled": false
+    },
+    {
+      "legacyId": 606,
+      "code": "XRL-606",
+      "title": "Heart of Gold",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Generous support of community creators/trainers.",
+      "unlockRules": [
+        "total_tips_or_gifts_given_count >= 50"
+      ],
+      "issuance": "auto",
+      "priority": "low",
+      "phase": "phase3",
+      "enabled": false
+    },
+    {
+      "legacyId": 607,
+      "code": "XRL-607",
+      "title": "Dual Talent",
+      "category": "user",
+      "ageGroup": "all",
+      "rewardType": "badge",
+      "pointsRequired": 0,
+      "spendRequiredUsd": 0,
+      "description": "Balanced participation in fitness and creativity.",
+      "unlockRules": [
+        "monthly_workouts_completed >= 4",
+        "monthly_creative_uploads >= 4"
+      ],
+      "issuance": "auto",
+      "priority": "medium",
+      "phase": "phase2",
+      "enabled": false
+    }
+  ]
+}

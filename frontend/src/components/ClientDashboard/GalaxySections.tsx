@@ -26,11 +26,13 @@ import {
   Activity,
   Award,
   BarChart3,
+  ClipboardList,
   CreditCard,
   Loader,
   MessageCircle,
   Package,
   Rocket,
+  Sparkles,
   Target,
   Trophy,
   User,
@@ -38,6 +40,13 @@ import {
   Video
 } from 'lucide-react';
 import ClientProgressPanel from '../DashBoard/Pages/client-dashboard/progress/ClientProgressPanel';
+import { useClientOnboardingData } from '../../hooks/useClientOnboardingData';
+import { useGamificationProfile } from '../../hooks/useGamificationProfile';
+import { useUserChallenges } from '../../hooks/useUserChallenges';
+import { useUserGoals } from '../../hooks/useUserGoals';
+import GoalProgressChart from './charts/GoalProgressChart';
+import ChallengeActivityChart from './charts/ChallengeActivityChart';
+import StreakCalendarChart from './charts/StreakCalendarChart';
 
 // === SHARED STYLED COMPONENTS ===
 const SectionCard = styled(motion.div)`
@@ -256,59 +265,176 @@ export const WorkoutUniverse: React.FC = () => {
   );
 };
 
-export const ProgressConstellation: React.FC = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5 }}
-  >
-    <ClientProgressPanel />
-  </motion.div>
-);
+export const ProgressConstellation: React.FC = () => {
+  const { user } = useAuth();
+  const { goals } = useUserGoals(user?.id);
+  const { challenges } = useUserChallenges(user?.id);
 
-export const AchievementNebula: React.FC = () => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5 }}
-  >
-    <SectionCard>
-      <SectionTitle>
-        <Award /> Achievement Gallery
-      </SectionTitle>
-      <div
-        style={{
-          background: 'rgba(255, 215, 0, 0.08)',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          border: '1px dashed rgba(255, 215, 0, 0.35)',
-          textAlign: 'center',
-          color: 'rgba(255, 255, 255, 0.7)'
-        }}
-      >
-        Complete sessions and hit milestones to unlock achievements.
-      </div>
-    </SectionCard>
-    
-    <SectionCard>
-      <SectionTitle>
-        <Trophy /> Leaderboard
-      </SectionTitle>
-      <div
-        style={{
-          background: 'rgba(0, 255, 255, 0.05)',
-          borderRadius: '12px',
-          padding: '1.5rem',
-          border: '1px dashed rgba(0, 255, 255, 0.3)',
-          textAlign: 'center',
-          color: 'rgba(255, 255, 255, 0.7)'
-        }}
-      >
-        Leaderboards will appear once community challenges go live.
-      </div>
-    </SectionCard>
-  </motion.div>
-);
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <ClientProgressPanel />
+      {goals.length > 0 && <GoalProgressChart goals={goals} />}
+      {challenges.length > 0 ? (
+        <ChallengeActivityChart challenges={challenges} />
+      ) : (
+        <SectionCard style={{ textAlign: 'center', padding: '2rem' }}>
+          <Target size={36} style={{ color: 'rgba(0, 255, 255, 0.5)', marginBottom: '0.75rem' }} />
+          <h4 style={{ color: '#00ffff', margin: '0 0 0.5rem 0' }}>Start a Challenge</h4>
+          <p style={{ color: 'rgba(255, 255, 255, 0.6)', margin: 0, fontSize: '0.9rem' }}>
+            Complete your onboarding to unlock personalized challenges.
+          </p>
+        </SectionCard>
+      )}
+    </motion.div>
+  );
+};
+
+export const AchievementNebula: React.FC = () => {
+  const { user } = useAuth();
+  const { profile, loading } = useGamificationProfile(user?.id);
+
+  const achievements = profile?.achievements || [];
+  const level = profile?.level ?? 0;
+  const points = profile?.points ?? 0;
+  const tier = profile?.tier || 'Bronze';
+  const nextLevelProgress = profile?.nextLevelProgress ?? 0;
+  const streakDays = profile?.streakDays ?? 0;
+  const totalWorkouts = profile?.totalWorkouts ?? 0;
+
+  const tierColors: Record<string, string> = {
+    Bronze: '#cd7f32',
+    Silver: '#c0c0c0',
+    Gold: '#ffd700',
+    Platinum: '#e5e4e2'
+  };
+  const tierColor = tierColors[tier] || '#00ffff';
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      {/* XP / Level / Tier Card */}
+      <SectionCard>
+        <SectionTitle>
+          <Award /> Achievement Gallery
+        </SectionTitle>
+
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '2rem', color: 'rgba(255,255,255,0.6)' }}>
+            <Loader size={24} style={{ animation: 'spin 1s linear infinite' }} />
+            <p>Loading achievements...</p>
+          </div>
+        ) : (
+          <>
+            {/* Level + XP Progress Bar */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <span style={{ color: tierColor, fontWeight: 'bold', fontSize: '1.1rem' }}>
+                  {tier} — Level {level}
+                </span>
+                <span style={{ color: '#00ffff', fontSize: '0.9rem' }}>
+                  {points.toLocaleString()} XP
+                </span>
+              </div>
+              <div style={{
+                height: '10px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '5px',
+                overflow: 'hidden'
+              }}>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(nextLevelProgress, 100)}%` }}
+                  transition={{ duration: 1.2, ease: 'easeOut' }}
+                  style={{
+                    height: '100%',
+                    background: `linear-gradient(90deg, #00ffff, ${tierColor})`,
+                    borderRadius: '5px'
+                  }}
+                />
+              </div>
+              <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem', margin: '0.25rem 0 0 0' }}>
+                {nextLevelProgress}% to next level
+              </p>
+            </div>
+
+            {/* Achievements Grid */}
+            {achievements.length > 0 ? (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+                gap: '0.75rem',
+                marginBottom: '1rem'
+              }}>
+                {achievements.slice(0, 8).map((ach: any, idx: number) => (
+                  <div
+                    key={ach.id || idx}
+                    style={{
+                      background: 'rgba(255, 215, 0, 0.08)',
+                      border: '1px solid rgba(255, 215, 0, 0.25)',
+                      borderRadius: '10px',
+                      padding: '0.75rem',
+                      textAlign: 'center'
+                    }}
+                  >
+                    <Trophy size={24} style={{ color: '#ffd700', marginBottom: '0.4rem' }} />
+                    <div style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 600 }}>
+                      {ach.name || ach.title || `Achievement ${idx + 1}`}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{
+                background: 'rgba(255, 215, 0, 0.08)',
+                borderRadius: '12px',
+                padding: '1.5rem',
+                border: '1px dashed rgba(255, 215, 0, 0.35)',
+                textAlign: 'center',
+                color: 'rgba(255, 255, 255, 0.7)',
+                marginBottom: '1rem'
+              }}>
+                Complete sessions and hit milestones to unlock achievements.
+              </div>
+            )}
+          </>
+        )}
+      </SectionCard>
+
+      {/* Streak Calendar */}
+      <StreakCalendarChart
+        streakDays={streakDays}
+        totalWorkouts={totalWorkouts}
+        lastActivityDate={undefined}
+      />
+
+      {/* Leaderboard placeholder */}
+      <SectionCard>
+        <SectionTitle>
+          <Trophy /> Leaderboard
+        </SectionTitle>
+        <div
+          style={{
+            background: 'rgba(0, 255, 255, 0.05)',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            border: '1px dashed rgba(0, 255, 255, 0.3)',
+            textAlign: 'center',
+            color: 'rgba(255, 255, 255, 0.7)'
+          }}
+        >
+          Leaderboards will appear once community challenges go live.
+        </div>
+      </SectionCard>
+    </motion.div>
+  );
+};
 
 // Import the enhanced TimeWarp component
 import EnhancedTimeWarp from './EnhancedTimeWarp';
@@ -970,6 +1096,113 @@ export const PackageSubscription: React.FC = () => {
             size="medium"
             onClick={() => navigate('/shop')}
           />
+        </div>
+      </SectionCard>
+    </motion.div>
+  );
+};
+
+// === ONBOARDING GALAXY SECTION ===
+const OnboardingCTA = styled(motion.div)`
+  background: linear-gradient(135deg, rgba(0, 255, 255, 0.15) 0%, rgba(120, 81, 169, 0.15) 100%);
+  border: 2px solid rgba(0, 255, 255, 0.4);
+  border-radius: 20px;
+  padding: 2.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: rgba(0, 255, 255, 0.8);
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.3), 0 0 60px rgba(0, 255, 255, 0.1);
+    transform: translateY(-2px);
+  }
+`;
+
+const LazyClientOnboardingWizard = React.lazy(
+  () => import('../../pages/onboarding/ClientOnboardingWizard')
+);
+
+export const OnboardingGalaxy: React.FC = () => {
+  const { user } = useAuth();
+  const { data: onboardingData, loading, refetch } = useClientOnboardingData(user?.id);
+  const [showWizard, setShowWizard] = React.useState(false);
+
+  const isComplete = onboardingData?.onboardingStatus?.completed === true;
+
+  const handleWizardComplete = React.useCallback(async () => {
+    setShowWizard(false);
+    await refetch();
+  }, [refetch]);
+
+  if (loading) {
+    return (
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+        <SectionCard style={{ textAlign: 'center', padding: '3rem' }}>
+          <Loader size={32} style={{ color: '#00ffff', animation: 'spin 1s linear infinite' }} />
+          <p style={{ color: 'rgba(255, 255, 255, 0.7)', marginTop: '1rem' }}>Loading your profile...</p>
+        </SectionCard>
+      </motion.div>
+    );
+  }
+
+  if (!isComplete || showWizard) {
+    return (
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+        <SectionCard>
+          <SectionTitle>
+            <ClipboardList /> Your Fitness Profile
+          </SectionTitle>
+
+          {showWizard ? (
+            <React.Suspense fallback={<div style={{ textAlign: 'center', padding: '2rem' }}><Loader size={24} style={{ color: '#00ffff' }} /></div>}>
+              <LazyClientOnboardingWizard
+                embedded={true}
+                selfSubmit={true}
+                onComplete={handleWizardComplete}
+                onCancel={() => setShowWizard(false)}
+              />
+            </React.Suspense>
+          ) : (
+            <OnboardingCTA
+              onClick={() => setShowWizard(true)}
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.99 }}
+            >
+              <Sparkles size={48} style={{ color: '#00ffff', marginBottom: '1rem' }} />
+              <h3 style={{ color: '#00ffff', fontSize: '1.5rem', marginBottom: '0.75rem' }}>
+                Complete Your Fitness Profile
+              </h3>
+              <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '1rem', maxWidth: '400px', margin: '0 auto' }}>
+                Tell us about your goals, health history, and preferences to unlock personalized training.
+              </p>
+            </OnboardingCTA>
+          )}
+        </SectionCard>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+      <SectionCard>
+        <SectionTitle>
+          <ClipboardList /> Your Fitness Profile
+        </SectionTitle>
+        <div style={{ padding: '1.5rem', textAlign: 'center' }}>
+          <Award size={48} style={{ color: '#00ff88', marginBottom: '1rem' }} />
+          <h3 style={{ color: '#00ff88', marginBottom: '0.5rem' }}>Profile Complete</h3>
+          <p style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+            Your fitness profile is set up. Your trainer can now create personalized plans for you.
+          </p>
+          {onboardingData?.onboardingStatus?.primaryGoal && (
+            <div style={{ marginTop: '1rem', padding: '1rem', background: 'rgba(0, 255, 255, 0.1)', borderRadius: '12px', border: '1px solid rgba(0, 255, 255, 0.2)' }}>
+              <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '0.85rem' }}>Primary Goal</span>
+              <p style={{ color: '#00ffff', fontSize: '1.1rem', margin: '0.25rem 0 0 0', fontWeight: 600 }}>
+                {onboardingData.onboardingStatus.primaryGoal}
+              </p>
+            </div>
+          )}
         </div>
       </SectionCard>
     </motion.div>
