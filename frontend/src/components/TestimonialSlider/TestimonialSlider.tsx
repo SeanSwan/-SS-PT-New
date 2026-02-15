@@ -428,8 +428,8 @@ const NavigationButton = styled(motion.button)`
   &.next { right: -60px; }
 
   @media (max-width: 1300px) {
-    &.prev { left: 10px; background: rgba(0,0,0,0.3); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
-    &.next { right: 10px; background: rgba(0,0,0,0.3); width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    &.prev { left: 10px; background: rgba(0,0,0,0.3); width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    &.next { right: 10px; background: rgba(0,0,0,0.3); width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
   }
 `;
 
