@@ -1,7 +1,15 @@
 // src/components/FeaturesSection/FeaturesSection.tsx
 import React, { useRef } from "react";
-import styled, { keyframes } from "styled-components";
+import styled, { keyframes, css } from "styled-components";
 import { motion, useInView } from "framer-motion";
+
+// Reduced-motion helper
+const reducedMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
 import GlowButton from "../ui/buttons/GlowButton";
 import SectionTitle from "../ui/SectionTitle";
 
@@ -202,6 +210,7 @@ const FeatureCard = styled(motion.div)<{ theme: string }>`
     );
     background-size: 200% 200%;
     animation: ${diagonalGlimmer} 5s linear infinite;
+    ${reducedMotion}
     pointer-events: none;
     border-radius: 15px;
     opacity: 0;
@@ -260,6 +269,7 @@ const IconContainer = styled.div<{ theme: string }>`
     }
   }};
   animation: ${float} 8s ease-in-out infinite, ${glow} 6s ease-in-out infinite;
+  ${reducedMotion}
   
   /* Enhanced glow effect */
   box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
@@ -284,6 +294,7 @@ const IconContainer = styled.div<{ theme: string }>`
       }
     }};
     animation: ${pulseGlow} 6s ease-in-out infinite;
+    ${reducedMotion}
   }
 `;
 

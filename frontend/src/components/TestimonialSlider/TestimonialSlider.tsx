@@ -1,5 +1,13 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import styled, { keyframes } from "styled-components";
+import styled, { keyframes, css } from "styled-components";
+
+// Reduced-motion helper
+const reducedMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
 import { motion, AnimatePresence } from "framer-motion";
 import { Quote, Star, ArrowRight, ArrowLeft } from "lucide-react";
 import SectionTitle from "../ui/SectionTitle";
@@ -172,6 +180,7 @@ const TestimonialCard = styled(motion.div)`
     );
     background-size: 200% 200%;
     animation: ${diagonalGlimmer} 5s linear infinite;
+    ${reducedMotion}
     pointer-events: none;
     z-index: -1;
     border-radius: inherit;
@@ -252,6 +261,7 @@ const ClientImage = styled.div<{ image: string }>`
   margin-bottom: 1.5rem;
   box-shadow: 0 8px 20px rgba(0, 255, 255, 0.35);
   animation: ${pulseGlow} 5s ease-in-out infinite;
+  ${reducedMotion}
   flex-shrink: 0;
 
   @media (max-width: 900px) {
@@ -434,9 +444,16 @@ const ProgressDot = styled.button<{ $active: boolean }>`
   height: 12px;
   border-radius: 50%;
   margin: 0 5px;
+  padding: 16px;
   background-color: ${props => props.$active ? "#00D4AA" : "#555"};
+  background-clip: content-box;
   border: none;
   cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid rgba(0, 255, 255, 0.8);
+    outline-offset: 2px;
+  }
 `;
 
 const QuoteIcon = styled(motion.div).withConfig({
@@ -573,7 +590,7 @@ const TestimonialSlider: React.FC = () => {
   const renderRating = (rating: number) => {
     const stars = [];
     for (let i = 0; i < Math.floor(rating); i++) {
-      stars.push(<Star key={i} />);
+      stars.push(<Star key={i} aria-hidden="true" />);
     }
     return stars;
   };
@@ -623,7 +640,7 @@ const TestimonialSlider: React.FC = () => {
                   <ClientInfo>
                     <ClientName>{currentTestimonial.name}</ClientName>
                     <ClientDetails>{currentTestimonial.details}</ClientDetails>
-                    <RatingContainer>{renderRating(currentTestimonial.rating)}</RatingContainer>
+                    <RatingContainer role="img" aria-label={`${currentTestimonial.rating} out of 5 stars`}>{renderRating(currentTestimonial.rating)}</RatingContainer>
                     <ResultsLabel>{currentTestimonial.resultLabel}</ResultsLabel>
                   </ClientInfo>
                 </ProfileColumn>
@@ -651,11 +668,11 @@ const TestimonialSlider: React.FC = () => {
               </TestimonialContent>
             </TestimonialCard>
           </AnimatePresence>
-          <NavigationButton className="prev" onClick={() => navigate(-1)}>
-            <ArrowLeft />
+          <NavigationButton className="prev" onClick={() => navigate(-1)} aria-label="Previous testimonial">
+            <ArrowLeft aria-hidden="true" />
           </NavigationButton>
-          <NavigationButton className="next" onClick={() => navigate(1)}>
-            <ArrowRight />
+          <NavigationButton className="next" onClick={() => navigate(1)} aria-label="Next testimonial">
+            <ArrowRight aria-hidden="true" />
           </NavigationButton>
         </TestimonialCarousel>
         <ProgressIndicator>
