@@ -151,6 +151,7 @@ const LogoContainer = styled(motion.div)`
   &:hover img {
     filter: drop-shadow(0 0 25px ${({ theme }) => theme.colors.primary}80);
     animation: ${stellarGlow} 2s ease-in-out infinite;
+    ${reducedMotion}
   }
 
   @media (max-width: 768px) {
@@ -229,6 +230,7 @@ const Title = styled(motion.h1)`
   &:hover {
     transform: scale(1.02);
     animation: ${textShine} 4s linear infinite;
+    ${reducedMotion}
   }
 
   @media (max-width: 768px) {
@@ -287,6 +289,7 @@ const Tagline = styled(motion.h2)`
     
     &:hover {
       animation: ${textShine} 3s linear infinite;
+      ${reducedMotion}
     }
   }
 
