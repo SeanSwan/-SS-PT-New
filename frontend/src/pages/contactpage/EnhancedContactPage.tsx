@@ -1,6 +1,6 @@
-import React, { useRef, useEffect, useState } from "react";
-import styled, { keyframes } from "styled-components";
-import { motion, useAnimation, useInView } from "framer-motion";
+import React, { useState } from "react";
+import styled, { keyframes, css } from "styled-components";
+import { motion } from "framer-motion";
 import GlowButton from "../../components/ui/GlowButton";
 import {
   MapPin,
@@ -8,7 +8,6 @@ import {
   Mail,
   Instagram,
   Facebook,
-  Twitter,
   Youtube,
   Clock,
   X,
@@ -17,19 +16,23 @@ import {
 } from "lucide-react";
 import axios from "axios";
 
-// Import asset for background video - update path if needed
 const swanVideo = "/swan.mp4";
 
-/*
-  🌟 Premium Contact Page 2025 Edition - 100% MUI-FREE
-  ---------------------
-  - Features **immersive animations** and **next-level visual effects**
-  - Implements **3D glass-morphism** for an ultra-premium feel
-  - Includes **intelligent interaction elements** for visual richness
-  - Enhanced with **award-winning layout** and visual hierarchy
-  - Delivers a **cohesive premium aesthetic** matching other components
-  - 🎯 COMPLETELY CONVERTED: All MUI dependencies eliminated
-*/
+/**
+ * EnhancedContactPage — Galaxy-Swan Contact Form
+ * ================================================
+ * Mobile-first responsive contact page with glass morphism.
+ * 10-breakpoint matrix: 320–3840px. Touch targets ≥44px.
+ * Respects prefers-reduced-motion. No MUI dependencies.
+ */
+
+// Shared reduced-motion helper
+const reducedMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
 
 // ======================= 🎨 Animation Keyframes =======================
 const shimmer = keyframes`
@@ -94,16 +97,7 @@ const slideUp = keyframes`
   }
 `;
 
-const fadeIn = keyframes`
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-`;
-
-// ======================= 🎨 Styled Components =======================
+// ======================= Styled Components =======================
 
 // Main wrapper with consistent styling
 const ContactPageWrapper = styled.div`
@@ -113,17 +107,27 @@ const ContactPageWrapper = styled.div`
   margin: 0;
   padding: 0;
   color: #ffffff;
-  font-family: "Arial", sans-serif;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   display: flex;
   flex-direction: column;
   align-items: center;
   overflow-x: hidden;
-  background: linear-gradient(135deg, #0a0a1a, #1e1e3f);
+  background: linear-gradient(135deg, #0a0a1a 0%, #1e1e3f 50%, #0a0a1a 100%);
+  background-attachment: fixed;
+
+  /* Ensure dark bg covers entire page — no white bleed */
+  &::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: #0a0a1a;
+    z-index: -1;
+  }
 `;
 
-// Premium video background with improved styling
+// Premium video background — fixed position covers full viewport
 const VideoBackground = styled.video`
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
@@ -132,12 +136,17 @@ const VideoBackground = styled.video`
   margin: 0;
   padding: 0;
   z-index: 0;
-  opacity: 0.6; /* Slightly increased opacity for luxury feel */
+  opacity: 0.6;
+  ${reducedMotion}
+
+  @media (max-width: 768px) {
+    opacity: 0.4;
+  }
 `;
 
-// Enhanced overlay with luxury gradient animation
+// Enhanced overlay — fixed to cover full viewport with video
 const Overlay = styled.div`
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
@@ -165,10 +174,11 @@ const Overlay = styled.div`
     background-size: 200% 200%;
     animation: ${gradientShift} 15s ease infinite;
     z-index: -1;
+    ${reducedMotion}
   }
 `;
 
-// Premium decorative orb elements
+// Premium decorative orb elements — hidden on mobile to reduce GPU load + CLS
 const TopLeftOrb = styled.div`
   position: fixed;
   top: 10%;
@@ -182,6 +192,11 @@ const TopLeftOrb = styled.div`
   z-index: 2;
   pointer-events: none;
   animation: ${float} 15s infinite ease-in-out;
+  ${reducedMotion}
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 const BottomRightOrb = styled.div`
@@ -197,6 +212,11 @@ const BottomRightOrb = styled.div`
   z-index: 2;
   pointer-events: none;
   animation: ${float} 18s infinite ease-in-out reverse;
+  ${reducedMotion}
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 // Luxury main content container with glass morphism effect
@@ -209,9 +229,36 @@ const MainContent = styled(motion.main)`
   padding: 0;
   border-radius: 20px;
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
-  
+
+  @media (max-width: 1024px) {
+    width: 94%;
+    margin: 2.5rem auto;
+  }
+
   @media (max-width: 768px) {
-    margin-top: 2rem;
+    width: 96%;
+    margin: 2rem auto;
+    border-radius: 16px;
+  }
+
+  @media (max-width: 430px) {
+    width: 98%;
+    margin: 1.5rem auto;
+    border-radius: 12px;
+  }
+
+  @media (max-width: 375px) {
+    width: 100%;
+    margin: 1rem 0;
+    border-radius: 0;
+  }
+
+  @media (min-width: 1920px) {
+    max-width: 1400px;
+  }
+
+  @media (min-width: 2560px) {
+    max-width: 1600px;
   }
 `;
 
@@ -260,26 +307,24 @@ const PageTitle = styled(motion.h1)`
     );
   }
 
+  ${reducedMotion}
+
   @media (max-width: 768px) {
     font-size: 2.5rem;
+    margin-bottom: 1.25rem;
   }
-  
-  @media (max-width: 480px) {
-    font-size: 2rem;
-  }
-`;
 
-// Enhanced subtitle
-const SubHeading = styled(motion.h3)`
-  font-size: 1.8rem;
-  font-weight: 300;
-  margin-bottom: 2rem;
-  text-align: center;
-  color: #00ffff;
-  text-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
-  
-  @media (max-width: 768px) {
-    font-size: 1.5rem;
+  @media (max-width: 430px) {
+    font-size: 2rem;
+    letter-spacing: 1px;
+  }
+
+  @media (max-width: 375px) {
+    font-size: clamp(1.5rem, 6vw, 2rem);
+  }
+
+  @media (max-width: 320px) {
+    font-size: 1.4rem;
   }
 `;
 
@@ -296,7 +341,8 @@ const ContactSectionsContainer = styled(motion.div)`
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
   animation: ${pulseGlow} 8s infinite ease-in-out;
   position: relative;
-  
+  ${reducedMotion}
+
   /* Gradient border effect */
   &:before {
     content: "";
@@ -324,11 +370,19 @@ const FormSection = styled(motion.div)`
   flex: 1;
   padding: 3rem;
   border-right: 1px solid rgba(255, 255, 255, 0.1);
-  
+
   @media (max-width: 968px) {
     border-right: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     padding: 2rem 1.5rem;
+  }
+
+  @media (max-width: 430px) {
+    padding: 1.5rem 1rem;
+  }
+
+  @media (max-width: 320px) {
+    padding: 1rem 0.75rem;
   }
 `;
 
@@ -339,9 +393,17 @@ const InfoSection = styled(motion.div)`
   background: rgba(20, 20, 50, 0.3);
   display: flex;
   flex-direction: column;
-  
+
   @media (max-width: 968px) {
     padding: 2rem 1.5rem;
+  }
+
+  @media (max-width: 430px) {
+    padding: 1.5rem 1rem;
+  }
+
+  @media (max-width: 320px) {
+    padding: 1rem 0.75rem;
   }
 `;
 
@@ -430,19 +492,26 @@ const StyledInput = styled.input<{ $multiline?: boolean }>`
   font-size: 1rem;
   font-family: inherit;
   width: 100%;
-  
+  min-height: 44px;
+  ${reducedMotion}
+
   &:focus {
     outline: none;
     border-color: rgba(0, 255, 255, 0.8);
     box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
   }
-  
+
   &:hover {
     border-color: rgba(0, 255, 255, 0.4);
   }
-  
+
   &::placeholder {
     color: rgba(255, 255, 255, 0.5);
+  }
+
+  @media (max-width: 430px) {
+    font-size: 16px; /* prevents iOS zoom on focus */
+    padding: 12px;
   }
 `;
 
@@ -459,19 +528,26 @@ const StyledTextarea = styled.textarea`
   width: 100%;
   min-height: 120px;
   resize: vertical;
-  
+  ${reducedMotion}
+
   &:focus {
     outline: none;
     border-color: rgba(0, 255, 255, 0.8);
     box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
   }
-  
+
   &:hover {
     border-color: rgba(0, 255, 255, 0.4);
   }
-  
+
   &::placeholder {
     color: rgba(255, 255, 255, 0.5);
+  }
+
+  @media (max-width: 430px) {
+    font-size: 16px;
+    padding: 12px;
+    min-height: 100px;
   }
 `;
 
@@ -528,24 +604,29 @@ const SocialIconsContainer = styled.div`
   margin-top: 1rem;
 `;
 
-const SocialIconButton = styled.button`
+const SocialIconLink = styled.a`
   background: rgba(255, 255, 255, 0.05);
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 50%;
   width: 48px;
   height: 48px;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s ease;
-  
-  &:hover {
+  text-decoration: none;
+
+  &:hover, &:focus-visible {
     background: rgba(0, 255, 255, 0.2);
     color: #00ffff;
     transform: translateY(-3px);
     border-color: rgba(0, 255, 255, 0.4);
+    outline: 2px solid rgba(0, 255, 255, 0.6);
+    outline-offset: 2px;
   }
 `;
 
@@ -582,30 +663,32 @@ const TooltipContent = styled.div<{ $visible?: boolean }>`
   }
 `;
 
-// Custom Tooltip Wrapper
+// Custom Tooltip Wrapper — supports mouse hover and keyboard focus
 const Tooltip: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => {
   const [visible, setVisible] = useState(false);
-  
+
   return (
     <TooltipContainer
       onMouseEnter={() => setVisible(true)}
       onMouseLeave={() => setVisible(false)}
+      onFocus={() => setVisible(true)}
+      onBlur={() => setVisible(false)}
     >
       {children}
-      <TooltipContent $visible={visible}>
+      <TooltipContent $visible={visible} role="tooltip">
         {title}
       </TooltipContent>
     </TooltipContainer>
   );
 };
 
-// Custom Grid System (Replacing MUI Grid)
+// Custom Grid System
 const GridContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
   width: 100%;
-  
+
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     gap: 1rem;
@@ -627,9 +710,21 @@ const FAQSection = styled(motion.div)`
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
   animation: ${pulseGlow} 8s infinite ease-in-out;
-  
+  ${reducedMotion}
+
   @media (max-width: 768px) {
     padding: 1.5rem;
+    border-radius: 16px;
+  }
+
+  @media (max-width: 430px) {
+    padding: 1rem;
+    border-radius: 12px;
+  }
+
+  @media (max-width: 375px) {
+    padding: 0.75rem;
+    border-radius: 0;
   }
 `;
 
@@ -682,6 +777,7 @@ const NotificationContainer = styled.div<{ $visible?: boolean; $type?: 'success'
   visibility: ${({ $visible }) => $visible ? 'visible' : 'hidden'};
   transition: all 0.3s ease;
   animation: ${({ $visible }) => $visible ? slideUp : 'none'} 0.3s ease;
+  ${reducedMotion}
 `;
 
 const AlertBox = styled.div<{ $type?: 'success' | 'error' }>`
@@ -768,62 +864,7 @@ const EnhancedContactPage = () => {
   // Focus states for input labels
   const [focusedField, setFocusedField] = useState<string>("");
   
-  // Refs for animation triggers
-  const contentRef = useRef(null);
-  const titleRef = useRef(null);
-  const formSectionRef = useRef(null);
-  const infoSectionRef = useRef(null);
-  const faqSectionRef = useRef(null);
-  
-  // Animation controls
-  const controls = useAnimation();
-  const titleControls = useAnimation();
-  const formControls = useAnimation();
-  const infoControls = useAnimation();
-  const faqControls = useAnimation();
-  
-  // In-view detection
-  const isContentInView = useInView(contentRef, { once: true, amount: 0.2 });
-  const isTitleInView = useInView(titleRef, { once: true });
-  const isFormInView = useInView(formSectionRef, { once: true, amount: 0.3 });
-  const isInfoInView = useInView(infoSectionRef, { once: true, amount: 0.3 });
-  const isFaqInView = useInView(faqSectionRef, { once: true, amount: 0.3 });
-  
-  // Start animations when elements come into view
-  useEffect(() => {
-    if (isContentInView) {
-      controls.start("visible");
-    }
-    
-    if (isTitleInView) {
-      titleControls.start("visible");
-    }
-    
-    if (isFormInView) {
-      formControls.start("visible");
-    }
-    
-    if (isInfoInView) {
-      infoControls.start("visible");
-    }
-    
-    if (isFaqInView) {
-      faqControls.start("visible");
-    }
-  }, [
-    isContentInView, 
-    isTitleInView, 
-    isFormInView,
-    isInfoInView,
-    isFaqInView,
-    controls, 
-    titleControls, 
-    formControls,
-    infoControls,
-    faqControls
-  ]);
-  
-  // Animation variants
+  // Animation variants — direct mount animations (no useInView/useAnimation)
   const containerVariants = {
     hidden: { 
       opacity: 0,
@@ -878,7 +919,7 @@ const EnhancedContactPage = () => {
       opacity: 0,
       x: -30
     },
-    visible: (i) => ({
+    visible: (i: number) => ({
       opacity: 1,
       x: 0,
       transition: {
@@ -888,13 +929,13 @@ const EnhancedContactPage = () => {
       }
     })
   };
-  
+
   const faqItemVariants = {
-    hidden: { 
+    hidden: {
       opacity: 0,
       y: 20
     },
-    visible: (i) => ({
+    visible: (i: number) => ({
       opacity: 1,
       y: 0,
       transition: {
@@ -906,7 +947,7 @@ const EnhancedContactPage = () => {
   };
   
   // Form submission handler
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validation
@@ -915,17 +956,12 @@ const EnhancedContactPage = () => {
       return;
     }
     
-    console.log('🚀 Starting contact form submission...');
-    console.log('📋 Form data:', { name, email, subject, message });
-    
     try {
-      // FIXED: Real API call instead of simulation
       const API_BASE_URL = window.location.origin.includes('sswanstudios.com')
         ? 'https://ss-pt-new.onrender.com'
         : 'http://localhost:5000';
-      
+
       const submitUrl = `${API_BASE_URL}/api/contact`;
-      console.log('📍 Submitting to:', submitUrl);
       
       const response = await axios.post(submitUrl, { 
         name, 
@@ -934,8 +970,6 @@ const EnhancedContactPage = () => {
         consultationType: 'general',
         priority: 'normal'
       });
-      
-      console.log('✅ Contact submission successful:', response.data);
       
       // Show success
       setSuccess(true);
@@ -950,18 +984,17 @@ const EnhancedContactPage = () => {
         setSuccess(false);
       }, 5000);
       
-    } catch (err) {
-      console.error('❌ Contact form submission failed:', err);
-      console.error('❌ Error details:', err.response?.data || err.message);
-      
-      if (err.response?.status === 404) {
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { status?: number; data?: { message?: string } }; message?: string; code?: string };
+
+      if (axiosErr.response?.status === 404) {
         setError("Contact service not found. Please try again later.");
-      } else if (err.response?.status >= 500) {
+      } else if (axiosErr.response?.status && axiosErr.response.status >= 500) {
         setError("Server error. Please try again later.");
-      } else if (err.code === 'NETWORK_ERROR' || !err.response) {
+      } else if (axiosErr.code === 'NETWORK_ERROR' || !axiosErr.response) {
         setError("Network error. Please check your connection and try again.");
       } else {
-        setError(`Failed to send message: ${err.response?.data?.message || err.message}`);
+        setError(`Failed to send message: ${axiosErr.response?.data?.message || axiosErr.message}`);
       }
     }
   };
@@ -976,6 +1009,14 @@ const EnhancedContactPage = () => {
     setSuccess(false);
   };
 
+  // Autocomplete mapping for form fields
+  const autoCompleteMap: Record<string, string> = {
+    name: 'name',
+    email: 'email',
+    subject: 'off',
+    message: 'off',
+  };
+
   // Input field helper function
   const renderInputField = (
     id: string,
@@ -987,11 +1028,11 @@ const EnhancedContactPage = () => {
   ) => {
     const isFocused = focusedField === id;
     const hasValue = value.length > 0;
-    
+
     return (
       <InputField>
-        <InputLabel 
-          $focused={isFocused} 
+        <InputLabel
+          $focused={isFocused}
           $hasValue={hasValue}
           htmlFor={id}
         >
@@ -1000,21 +1041,25 @@ const EnhancedContactPage = () => {
         {type === 'textarea' ? (
           <StyledTextarea
             id={id}
+            name={id}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onFocus={() => setFocusedField(id)}
             onBlur={() => setFocusedField("")}
             required={required}
+            autoComplete={autoCompleteMap[id] || 'off'}
           />
         ) : (
           <StyledInput
             id={id}
+            name={id}
             type={type}
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onFocus={() => setFocusedField(id)}
             onBlur={() => setFocusedField("")}
             required={required}
+            autoComplete={autoCompleteMap[id] || 'off'}
           />
         )}
       </InputField>
@@ -1044,16 +1089,14 @@ const EnhancedContactPage = () => {
       
       {/* Main Content with Glass Morphism */}
       <MainContent
-        ref={contentRef}
         initial="hidden"
-        animate={controls}
+        animate="visible"
         variants={containerVariants}
       >
         {/* Premium Title */}
         <PageTitle
-          ref={titleRef}
           initial="hidden"
-          animate={titleControls}
+          animate="visible"
           variants={titleVariants}
         >
           Connect With Us
@@ -1063,9 +1106,8 @@ const EnhancedContactPage = () => {
         <ContactSectionsContainer>
           {/* Form Section */}
           <FormSection
-            ref={formSectionRef}
             initial="hidden"
-            animate={formControls}
+            animate="visible"
             variants={sectionVariants}
           >
             <FormTitle variants={titleVariants}>Send Us a Message</FormTitle>
@@ -1090,9 +1132,8 @@ const EnhancedContactPage = () => {
           
           {/* Info Section */}
           <InfoSection
-            ref={infoSectionRef}
             initial="hidden"
-            animate={infoControls}
+            animate="visible"
             variants={sectionVariants}
           >
             <InfoTitle variants={titleVariants}>Contact Information</InfoTitle>
@@ -1105,8 +1146,7 @@ const EnhancedContactPage = () => {
                 <MapPin className="icon" size={24} />
                 <div className="text">
                   <strong>Location</strong><br />
-                  123 Fitness Avenue, Suite 100<br />
-                  Newport Beach, CA 92660
+                  Anaheim Hills, CA
                 </div>
               </InfoItem>
             </InfoCard>
@@ -1154,24 +1194,19 @@ const EnhancedContactPage = () => {
               <h4 style={{ marginBottom: '0.5rem', color: 'rgba(255, 255, 255, 0.7)' }}>Connect With Us</h4>
               <SocialIconsContainer>
                 <Tooltip title="Facebook">
-                  <SocialIconButton>
+                  <SocialIconLink href="https://facebook.com/swanstudios" target="_blank" rel="noopener noreferrer" aria-label="Facebook">
                     <Facebook size={20} />
-                  </SocialIconButton>
+                  </SocialIconLink>
                 </Tooltip>
                 <Tooltip title="Instagram">
-                  <SocialIconButton>
+                  <SocialIconLink href="https://instagram.com/swanstudios" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
                     <Instagram size={20} />
-                  </SocialIconButton>
+                  </SocialIconLink>
                 </Tooltip>
-                <Tooltip title="Twitter">
-                  <SocialIconButton>
-                    <Twitter size={20} />
-                  </SocialIconButton>
-                </Tooltip>
-                <Tooltip title="YouTube">
-                  <SocialIconButton>
+<Tooltip title="YouTube">
+                  <SocialIconLink href="https://youtube.com/@swanstudios" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
                     <Youtube size={20} />
-                  </SocialIconButton>
+                  </SocialIconLink>
                 </Tooltip>
               </SocialIconsContainer>
             </div>
@@ -1180,9 +1215,8 @@ const EnhancedContactPage = () => {
         
         {/* FAQ Section */}
         <FAQSection
-          ref={faqSectionRef}
           initial="hidden"
-          animate={faqControls}
+          animate="visible"
           variants={sectionVariants}
         >
           <FAQTitle variants={titleVariants}>Frequently Asked Questions</FAQTitle>
