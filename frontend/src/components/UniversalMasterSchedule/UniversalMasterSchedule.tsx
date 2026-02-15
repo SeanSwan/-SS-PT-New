@@ -126,15 +126,20 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
   const displaySessions = useMemo(() => {
     if (!statusFilter || statusFilter === 'total') return sessions;
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const isUpcoming = (s: any) => {
+      const date = s.sessionDate || s.start || s.startTime;
+      if (!date) return true;
+      return new Date(date) >= startOfToday;
+    };
     if (statusFilter === 'scheduled') {
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-      return sessions.filter((s: any) => {
-        if (s.status !== 'scheduled' && s.status !== 'confirmed') return false;
-        const date = s.sessionDate || s.start || s.startTime;
-        if (!date) return true; // no date = keep visible
-        return new Date(date) >= startOfToday;
-      });
+      return sessions.filter((s: any) =>
+        (s.status === 'scheduled' || s.status === 'confirmed') && isUpcoming(s)
+      );
+    }
+    if (statusFilter === 'available') {
+      return sessions.filter((s: any) => s.status === 'available' && isUpcoming(s));
     }
     return sessions.filter((s: any) => s.status === statusFilter);
   }, [sessions, statusFilter]);
