@@ -632,21 +632,6 @@ const EnhancedFooter = () => {
             >
               <Youtube />
             </SocialIcon>
-            <SocialIcon 
-              href="https://tiktok.com/@swanstudios2018" 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              aria-label="TikTok"
-              className="social-icon"
-              custom={5}
-              variants={iconAnimation}
-              initial="hidden"
-              animate="visible"
-              whileHover={{ scale: 1.1 }}
-            >
-              {/* TikTok icon - using T since FaTiktok not available */}
-              <span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>T</span>
-            </SocialIcon>
           </SocialIcons>
         </LogoSection>
         
