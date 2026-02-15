@@ -139,6 +139,7 @@ const Overlay = styled.div`
     );
     background-size: 200% 200%;
     animation: ${gradientShift} 15s ease infinite;
+    ${reducedMotion}
     z-index: -1;
   }
 `;
@@ -188,7 +189,8 @@ const LogoContainer = styled(motion.div)`
   height: 180px;
   margin-bottom: 1.5rem;
   animation: ${float} 6s ease-in-out infinite;
-  
+  ${reducedMotion}
+
   /* Premium glow effect */
   &:after {
     content: "";
@@ -202,8 +204,9 @@ const LogoContainer = styled(motion.div)`
     filter: blur(15px);
     z-index: -1;
     animation: ${pulseGlow} 4s infinite ease-in-out;
+    ${reducedMotion}
   }
-  
+
   @media (max-width: 768px) {
     width: 150px;
     height: 150px;
@@ -244,6 +247,7 @@ const Sparkle = styled.div`
   z-index: -1;
   animation: ${sparkle} 2s infinite ease-out;
   animation-delay: ${props => props.delay || "0s"};
+  ${reducedMotion}
   top: ${props => props.top || "0"};
   left: ${props => props.left || "0"};
   opacity: 0;
@@ -270,6 +274,7 @@ const Title = styled(motion.h1)`
   -webkit-background-clip: text;
   color: transparent;
   animation: ${shimmer} 4s linear infinite;
+  ${reducedMotion}
 
   @media (max-width: 1024px) {
     font-size: 4rem;
@@ -313,6 +318,7 @@ const Tagline = styled(motion.p)`
       transform-origin: left;
       animation: ${reveal} 1.5s ease forwards;
       animation-delay: 1.5s;
+      ${reducedMotion}
     }
   }
 
@@ -334,6 +340,7 @@ const TaglineWords = styled(motion.span)`
   opacity: 0;
   animation: ${fadeInUp} 0.5s forwards;
   animation-delay: ${props => props.delay || "0s"};
+  ${reducedMotion}
 `;
 
 // Luxury button container for spacing
@@ -390,6 +397,7 @@ const ScrollIndicator = styled(motion.div)`
     background-color: #00ffff;
     border-radius: 10px;
     animation: ${scroll} 1.5s infinite;
+    ${reducedMotion}
     box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
   }
   
@@ -483,16 +491,25 @@ export default function Hero() {
     delay: `${Math.random() * 2}s`
   })));
   
-  // Ensure video plays properly
+  // Ensure video plays properly with proper cleanup
   useEffect(() => {
     const video = videoRef.current;
+    let clickHandler: (() => void) | null = null;
+
     if (video) {
       video.play().catch(() => {
-        document.addEventListener('click', () => {
+        clickHandler = () => {
           video.play().catch(() => {});
-        }, { once: true });
+        };
+        document.addEventListener('click', clickHandler, { once: true });
       });
     }
+
+    return () => {
+      if (clickHandler) {
+        document.removeEventListener('click', clickHandler);
+      }
+    };
   }, []);
   
   // Premium animation variants with enhanced transitions
