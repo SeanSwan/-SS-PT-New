@@ -1,4 +1,4 @@
-# 🤝 AI VILLAGE HANDOFF PROTOCOL
+﻿# ðŸ¤ AI VILLAGE HANDOFF PROTOCOL
 
 **Purpose:** Prevent AI chaos, coordinate work, avoid monolithic files
 **Audience:** All AIs in the AI Village
@@ -6,7 +6,46 @@
 
 ---
 
-## 🎯 THE GOLDEN RULES
+## 2026-02-15 Protocol Update (Operational Override)
+
+If this document conflicts with newer execution reality, apply this override first.
+
+### Source-of-truth order
+1. `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md`
+2. `docs/ai-workflow/AI-HANDOFF/VISION-SYNC-2026-02-15.md`
+3. This protocol file
+4. `docs/MASTER-HANDBOOK.md`
+
+### Current quorum model
+- Minimum 3 AIs for high-impact changes:
+  1. Implementer
+  2. Reviewer A (correctness/security)
+  3. Reviewer B (UX/data semantics)
+- Optional 4th AI for tie-break/high-risk disagreements.
+
+### Required evidence for completion
+- Build/test summary (use `verification-before-completion` skill)
+- Files changed
+- Verification notes
+- UI changes: before/after screenshots (desktop + mobile) — use `webapp-testing` or `agent-browser`
+- UI compliance: run `web-design-guidelines` for contrast/accessibility
+- Auth/email changes: application logs + provider event interpretation
+
+### Skills infrastructure
+All AIs must be aware of the installed skills. See `docs/ai-workflow/SKILLS-INFRASTRUCTURE.md` for the full registry, usage guidelines, and skill chains.
+
+**Mandatory skills per completion claim:**
+- `verification-before-completion` — before ANY "done" or "fixed" claim
+- `requesting-code-review` — before merge to main
+
+**Mandatory skills per role:**
+- Implementer: `systematic-debugging`, `test-driven-development`, `verification-before-completion`
+- Reviewer A: `requesting-code-review`, `verification-before-completion`
+- Reviewer B: `web-design-guidelines`, `webapp-testing`
+
+---
+
+## ðŸŽ¯ THE GOLDEN RULES
 
 ### **Rule #1: Read CURRENT-TASK.md First**
 Before doing ANYTHING, read `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md`
@@ -33,15 +72,15 @@ NEVER write code without an approved architectural blueprint
 - NO "vibe coding" or "figure it out as we go"
 
 ### **Rule #7: STOP IF CODE LACKS DIAGRAMS (DIAGRAM-FIRST ENFORCEMENT)**
-🚨 **CRITICAL - THIS OVERRIDES ALL OTHER RULES**
+ðŸš¨ **CRITICAL - THIS OVERRIDES ALL OTHER RULES**
 
 **If you encounter ANY code (new OR existing) that lacks:**
-- ❌ Architecture diagram (Mermaid/ASCII)
-- ❌ Database ERD
-- ❌ Flowchart (logic flow)
-- ❌ Wireframe (UI components)
-- ❌ API specifications
-- ❌ WHY sections explaining decisions
+- âŒ Architecture diagram (Mermaid/ASCII)
+- âŒ Database ERD
+- âŒ Flowchart (logic flow)
+- âŒ Wireframe (UI components)
+- âŒ API specifications
+- âŒ WHY sections explaining decisions
 
 **YOU MUST:**
 1. **STOP** - Do not modify the code immediately
@@ -52,10 +91,10 @@ NEVER write code without an approved architectural blueprint
 
 **Example:**
 ```
-"⚠️ STOP - Documentation Missing
+"âš ï¸ STOP - Documentation Missing
 
 I see sessionController.mjs lacks:
- - Architecture diagram (controller → service → database flow)
+ - Architecture diagram (controller â†’ service â†’ database flow)
  - Flowchart for booking logic
  - WHY sections (session deduction policy explanation)
 
@@ -72,17 +111,17 @@ I strongly recommend Option A."
 
 ---
 
-## 🏗️ BLUEPRINT-FIRST ENFORCEMENT
+## ðŸ—ï¸ BLUEPRINT-FIRST ENFORCEMENT
 
 ### **What is "Vibe Coding"?**
-❌ **VIBE CODING** = Starting to code without a clear architectural plan
+âŒ **VIBE CODING** = Starting to code without a clear architectural plan
 - "Let's just try this and see if it works"
 - "I'll figure out the structure as I go"
 - "We can refactor later"
 - Writing code before understanding full system impact
 
 ### **What is Blueprint-First Development?**
-✅ **BLUEPRINT-FIRST** = Architecture documentation BEFORE any code
+âœ… **BLUEPRINT-FIRST** = Architecture documentation BEFORE any code
 - Complete ERD diagrams for database changes
 - API flow diagrams (Mermaid sequence diagrams)
 - Component architecture diagrams
@@ -93,65 +132,24 @@ I strongly recommend Option A."
 ### **Level 5/5 Documentation Standard**
 
 Every code file MUST have comprehensive headers including:
-
-**For Controllers/Services:**
 - Blueprint reference link
-- Architecture Overview (ASCII diagram)
-- Database Relationships (ERD)
-- API Flow (Mermaid sequence diagram)
-- API Endpoints list
-- Security Model
-- Error Handling Strategy
-- Business Logic Decisions (WHY sections)
-- Dependencies
-- Environment Variables
-- Performance Considerations
-- Testing references
-
-**For Database Migrations:**
-- Blueprint reference link
-- Table Relationships (ER Diagram)
-- Complete schema documentation
-- Data Flow descriptions
-- Indexes list with descriptions
+- Architecture Overview (ASCII/Mermaid diagram)
+- Database Relationships (ERD) — for controllers/migrations
+- API Flow + Endpoints — for routes/controllers
+- Security Model + Auth Strategy
 - Business Logic WHY sections
-- Security considerations
-- Migration safety notes
+- Error Handling + Performance Considerations
 
-**For Routes:**
-- Blueprint reference link
-- Architecture Overview
-- Middleware Flow diagram
-- API Endpoints table
-- Request/Response Flow (Mermaid)
-- Authentication Strategy
-- Error Responses
-- Security Model
-
-**For Middleware:**
-- Blueprint reference link
-- Architecture Overview
-- Authentication Flow (Mermaid)
-- Security Model
-- Error Responses
-- Usage Examples
-- Performance Considerations
-
-### **Example: Level 5/5 Header**
+### **Example: Level 5/5 Header (Condensed)**
 ```javascript
 /**
- * Video Library Controller (Admin Exercise Management)
- * =====================================================
- *
- * Purpose: Manage NASM exercise library with YouTube + upload video demonstrations
- *
+ * Video Library Controller
  * Blueprint Reference: docs/ai-workflow/AI-HANDOFF/VIDEO-LIBRARY-COMPLETE-STATUS.md
- *
  * Architecture Overview:
- * ┌─────────────────┐      ┌──────────────────┐      ┌─────────────────┐
- * │  Admin Client   │─────▶│  Video Library   │─────▶│   PostgreSQL    │
- * │   (Frontend)    │      │   Controller     │      │   + YouTube API │
- * └─────────────────┘      └──────────────────┘      └─────────────────┘
+ * â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”      â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”      â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+ * â”‚  Admin Client   â”‚â”€â”€â”€â”€â”€â–¶â”‚  Video Library   â”‚â”€â”€â”€â”€â”€â–¶â”‚   PostgreSQL    â”‚
+ * â”‚   (Frontend)    â”‚      â”‚   Controller     â”‚      â”‚   + YouTube API â”‚
+ * â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜      â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜      â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
  *
  * [Full architecture diagram, ERDs, Mermaid diagrams, etc.]
  *
@@ -165,61 +163,23 @@ Every code file MUST have comprehensive headers including:
  */
 ```
 
-### **Blueprint-First Workflow**
-
-**Step 1: User Requests Feature**
-```
-User: "Add video library to exercise management"
-```
-
-**Step 2: AI Creates Architecture Doc (NO CODE YET)**
-```
-AI:
-1. Creates: docs/ai-workflow/features/VIDEO-LIBRARY-ARCHITECTURE.md
-2. Documents:
-   - Database schema (ERD diagrams)
-   - API endpoints (Mermaid sequence diagrams)
-   - Security model
-   - Business logic decisions (WHY sections)
-   - Performance considerations
-   - Testing strategy
-3. Presents to user for approval
-4. WAITS for approval
-```
-
-**Step 3: User Approves Blueprint**
-```
-User: "Approved, proceed with implementation"
-```
-
-**Step 4: AI Implements with Level 5/5 Docs**
-```
-AI:
-1. Creates migration files with comprehensive headers (ER diagrams, WHY sections)
-2. Creates controller with comprehensive headers (Mermaid diagrams, security model)
-3. Creates routes with comprehensive headers (middleware flow, auth strategy)
-4. Every file references the blueprint document
-5. Every file has embedded architecture diagrams
-```
-
-**Step 5: AI Updates Blueprint Status**
-```
-AI:
-1. Updates blueprint doc with "✅ IMPLEMENTED" status
-2. Links to all implementation files
-3. Documents any deviations from original plan
-```
+### **Blueprint-First Workflow (Summary)**
+1. User requests feature
+2. AI creates architecture doc (ERD, API specs, security model, WHY sections) — NO CODE YET
+3. User approves blueprint
+4. AI implements with Level 5/5 headers, every file references blueprint
+5. AI updates blueprint doc with IMPLEMENTED status + links to all files
 
 ### **Enforcement Rules**
 
-**❌ PROHIBITED:**
+**âŒ PROHIBITED:**
 - Writing code without approved blueprint
 - "Let me try this approach" without doc
 - Refactoring without architecture plan
 - "Quick fixes" that bypass blueprint process
 - Files with basic comments (Level 1-2 documentation)
 
-**✅ REQUIRED:**
+**âœ… REQUIRED:**
 - Blueprint doc approved BEFORE coding
 - All files have Level 5/5 headers
 - Architecture diagrams embedded in code
@@ -241,19 +201,18 @@ Before marking work complete, verify:
 
 ---
 
-## 📋 WORKFLOW FOR EVERY AI
+## ðŸ“‹ WORKFLOW FOR EVERY AI
 
 ### **Step 1: Onboarding (When User Pastes Master Prompt)**
 ```
 1. Read docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md
-2. Read docs/ai-workflow/AI-HANDOFF/HANDOFF-PROTOCOL.md (this file)
-3. Read your personal status file (e.g., CLAUDE-CODE-STATUS.md)
-4. Read AI Village documentation:
-   - AI-Village-Documentation/YOUR-AI-VILLAGE-ROLE-ASSIGNMENTS.md
-   - AI-Village-Documentation/CODE-APPROVAL-PIPELINE.md
-5. Check what other AIs are working on (read their status files)
-6. Understand your role and current phase
-7. DO NOT START WORK YET
+2. Read docs/ai-workflow/AI-HANDOFF/VISION-SYNC-2026-02-15.md
+3. Read docs/ai-workflow/AI-HANDOFF/HANDOFF-PROTOCOL.md (this file)
+4. Read docs/ai-workflow/SKILLS-INFRASTRUCTURE.md (skills registry)
+5. Read your personal status file (e.g., CLAUDE-CODE-STATUS.md)
+6. Check what other AIs are working on (read their status files)
+7. Understand your role, current phase, and which skills apply
+8. DO NOT START WORK YET
 ```
 
 ### **Step 2: Analysis**
@@ -283,13 +242,13 @@ Before marking work complete, verify:
 ### **Step 4: Get Permission**
 ```
 User says: "Option A" or "Do it" or "Yes"
-→ You have permission to proceed
+â†’ You have permission to proceed
 
 User says: "Wait" or "Let me check" or asks questions
-→ DO NOT proceed, answer questions
+â†’ DO NOT proceed, answer questions
 
 User says: "No" or "Try option B"
-→ Adjust and re-present
+â†’ Adjust and re-present
 ```
 
 ### **Step 5: Lock Files**
@@ -302,7 +261,7 @@ User says: "No" or "Try option B"
 
 ### **Step 6: Do The Work**
 ```
-1. Update your status file: Set status to "🟢 ACTIVE"
+1. Update your status file: Set status to "ðŸŸ¢ ACTIVE"
 2. Implement the approved solution
 3. Keep files under size limits (split if needed)
 4. Follow coding standards
@@ -311,25 +270,29 @@ User says: "No" or "Try option B"
 
 ### **Step 7: Complete & Handoff**
 ```
-1. Unlock files in CURRENT-TASK.md
-2. Update your status file: Set status to "✅ COMPLETE"
-3. Add to "COMPLETED TODAY" section in CURRENT-TASK.md
-4. Commit your changes
-5. If passing work to another AI:
+1. Run verification-before-completion skill (build, tests, behavior check)
+2. Run requesting-code-review skill (for non-trivial changes)
+3. If UI work: run web-design-guidelines + webapp-testing skills
+4. Unlock files in CURRENT-TASK.md
+5. Update your status file: Set status to "âœ… COMPLETE"
+6. Add to "COMPLETED TODAY" section in CURRENT-TASK.md
+7. Commit your changes
+8. If passing work to another AI:
    - Update their status file
    - Add task to their queue
+   - Include skill verification evidence in handoff notes
    - Notify user
 ```
 
 ---
 
-## 🚫 ANTI-PATTERNS (NEVER DO THESE)
+## ðŸš« ANTI-PATTERNS (NEVER DO THESE)
 
-### **❌ The Cowboy Coder**
+### **âŒ The Cowboy Coder**
 ```
-❌ BAD: User asks "Fix the bug" → AI immediately starts editing files
+âŒ BAD: User asks "Fix the bug" â†’ AI immediately starts editing files
 
-✅ GOOD: User asks "Fix the bug" → AI:
+âœ… GOOD: User asks "Fix the bug" â†’ AI:
   1. Reads CURRENT-TASK.md
   2. Analyzes root cause
   3. Presents 3 options
@@ -337,11 +300,11 @@ User says: "No" or "Try option B"
   5. Then fixes
 ```
 
-### **❌ The Monolith Maker**
+### **âŒ The Monolith Maker**
 ```
-❌ BAD: AI writes 2000-line component file
+âŒ BAD: AI writes 2000-line component file
 
-✅ GOOD: AI splits into:
+âœ… GOOD: AI splits into:
   - MyComponent.tsx (200 lines)
   - MyComponent.styles.ts (100 lines)
   - MyComponent.types.ts (50 lines)
@@ -349,41 +312,41 @@ User says: "No" or "Try option B"
   - MyComponent.hooks.ts (100 lines)
 ```
 
-### **❌ The Lone Wolf**
+### **âŒ The Lone Wolf**
 ```
-❌ BAD: AI edits files without checking what other AIs are doing
+âŒ BAD: AI edits files without checking what other AIs are doing
 
-✅ GOOD: AI checks:
+âœ… GOOD: AI checks:
   - CURRENT-TASK.md (locked files?)
   - Other AI status files (conflicts?)
   - Coordinates or waits
 ```
 
-### **❌ The Assumption Maker**
+### **âŒ The Assumption Maker**
 ```
-❌ BAD: AI assumes user wants approach X and implements it
+âŒ BAD: AI assumes user wants approach X and implements it
 
-✅ GOOD: AI presents options A, B, C and lets user choose
+âœ… GOOD: AI presents options A, B, C and lets user choose
 ```
 
 ---
 
-## 📂 FILE STRUCTURE
+## ðŸ“‚ FILE STRUCTURE
 
 ```
 docs/ai-workflow/AI-HANDOFF/
-├── CURRENT-TASK.md          ← Single source of truth (read first!)
-├── HANDOFF-PROTOCOL.md      ← This file (the rules)
-├── CLAUDE-CODE-STATUS.md    ← Claude Code's work log
-├── GEMINI-STATUS.md         ← Gemini's work log
-├── CHATGPT-STATUS.md        ← ChatGPT-5's work log
-├── ROO-CODE-STATUS.md       ← Roo Code's work log (uses Grok models)
-└── MINMAX-V2-STATUS.md      ← MinMax v2's work log (Strategic UX & Multi-AI Orchestrator)
+â”œâ”€â”€ CURRENT-TASK.md          â† Single source of truth (read first!)
+â”œâ”€â”€ HANDOFF-PROTOCOL.md      â† This file (the rules)
+â”œâ”€â”€ CLAUDE-CODE-STATUS.md    â† Claude Code's work log
+â”œâ”€â”€ GEMINI-STATUS.md         â† Gemini's work log
+â”œâ”€â”€ CHATGPT-STATUS.md        â† ChatGPT-5's work log
+â”œâ”€â”€ ROO-CODE-STATUS.md       â† Roo Code's work log (uses Grok models)
+â””â”€â”€ MINMAX-V2-STATUS.md      â† MinMax v2's work log (Strategic UX & Multi-AI Orchestrator)
 ```
 
 ---
 
-## 🎯 STATUS FILE FORMAT
+## ðŸŽ¯ STATUS FILE FORMAT
 
 Each AI has a status file. Format:
 
@@ -391,98 +354,57 @@ Each AI has a status file. Format:
 # [AI NAME] STATUS
 
 **Last Updated:** YYYY-MM-DD HH:MM AM/PM
-**Current Status:** 🟢 ACTIVE | ⏸️ IDLE | ✅ COMPLETE | 🔴 BLOCKED
+**Current Status:** ðŸŸ¢ ACTIVE | â¸ï¸ IDLE | âœ… COMPLETE | ðŸ”´ BLOCKED
 
 ---
 
-## 🎯 CURRENT WORK
+## ðŸŽ¯ CURRENT WORK
 
 **Task:** [Description]
 **Files Editing:** [List of files]
-**Permission:** ✅ GRANTED | ⏸️ WAITING | ❌ DENIED
+**Permission:** âœ… GRANTED | â¸ï¸ WAITING | âŒ DENIED
 **ETA:** [Time estimate]
 **Blocked By:** [If blocked, what's blocking]
 
 ---
 
-## ✅ COMPLETED TODAY
+## âœ… COMPLETED TODAY
 
 1. [Task 1] - [Time completed]
 2. [Task 2] - [Time completed]
 
 ---
 
-## 📋 QUEUED TASKS
+## ðŸ“‹ QUEUED TASKS
 
 1. [Pending task 1]
 2. [Pending task 2]
 
 ---
 
-## 💬 NOTES / HANDOFF
+## ðŸ’¬ NOTES / HANDOFF
 
 [Any notes for other AIs or user]
 ```
 
 ---
 
-## 🔄 HANDOFF SCENARIOS
+## HANDOFF SCENARIOS (Summary)
 
-### **Scenario 1: Claude → Gemini (Frontend Work)**
-```
-Claude Code:
-1. Completes backend API
-2. Updates CURRENT-TASK.md
-3. Updates GEMINI-STATUS.md with queued task
-4. Notifies user: "Backend done. Gemini should build frontend now."
-
-User:
-Pastes master prompt to Gemini
-
-Gemini:
-1. Reads CURRENT-TASK.md
-2. Reads GEMINI-STATUS.md
-3. Sees queued task from Claude
-4. Presents options to user
-5. Waits for approval
-```
-
-### **Scenario 2: Multiple AIs Need Same File**
-```
-Situation: Both Claude and Gemini want to edit App.tsx
-
-Solution:
-1. First AI locks the file in CURRENT-TASK.md
-2. Second AI sees file is locked
-3. Second AI either:
-   a. Waits for unlock
-   b. Works on different files
-   c. Coordinates with first AI via status files
-4. User decides priority if conflict
-```
-
-### **Scenario 3: Emergency Situation**
-```
-User: "Site is down! Fix now!"
-
-Any AI:
-1. Still reads CURRENT-TASK.md (10 seconds)
-2. Presents FAST analysis + 1-2 options
-3. User picks one
-4. AI fixes immediately
-5. Updates status files after fix
-```
+- **AI-to-AI handoff:** Completing AI updates CURRENT-TASK.md + receiving AI's status file, then notifies user.
+- **File conflict:** First AI locks file in CURRENT-TASK.md. Second AI waits or works on different files. User breaks ties.
+- **Emergency:** Still read CURRENT-TASK.md (10 seconds), present fast analysis, fix immediately, update status after.
 
 ---
 
-## 📏 FILE SIZE LIMITS
+## ðŸ“ FILE SIZE LIMITS
 
 ### **When to Split Files:**
 
 **Documentation:**
 - Max 500 lines per file
 - If longer: Split into Part 1, Part 2, etc.
-- Example: MASTER-PLAN.md → MASTER-PLAN-PART-1.md, MASTER-PLAN-PART-2.md
+- Example: MASTER-PLAN.md â†’ MASTER-PLAN-PART-1.md, MASTER-PLAN-PART-2.md
 
 **Components:**
 - Max 300 lines per component file
@@ -499,7 +421,7 @@ Any AI:
 - Split by domain/feature
 - Example:
   ```
-  userService.ts → Split into:
+  userService.ts â†’ Split into:
   - userAuthService.ts (login, logout)
   - userProfileService.ts (profile CRUD)
   - userSettingsService.ts (settings management)
@@ -507,42 +429,20 @@ Any AI:
 
 **If AI Suggests Large File:**
 ```
-User: "Create user management system"
-
-❌ BAD AI Response:
-"I'll create UserManagement.tsx (1200 lines)"
-
-✅ GOOD AI Response:
-"I'll create a user management system split into:
-- UserManagementContainer.tsx (100 lines) - Main container
-- UserTable.tsx (200 lines) - Table display
-- UserForm.tsx (150 lines) - Create/edit form
-- UserFilters.tsx (100 lines) - Search/filter UI
-- userManagement.service.ts (300 lines) - API calls
-- userManagement.types.ts (80 lines) - TypeScript types
-
-Total: 6 files, ~930 lines (average 155 lines/file)
-
-Options:
-A. Create all 6 files now
-B. Start with container + table, add rest later
-C. Different structure?
-
-What do you prefer?"
-```
 
 ---
 
-## 🎯 MASTER PROMPT INTEGRATION
+## ðŸŽ¯ MASTER PROMPT INTEGRATION
 
 **When user pastes master prompt, AI should:**
 
 1. **Immediately read these files (in order):**
    ```
    a. docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md
-   b. docs/ai-workflow/AI-HANDOFF/HANDOFF-PROTOCOL.md
-   c. docs/ai-workflow/AI-HANDOFF/[YOUR-AI-NAME]-STATUS.md
-   d. AI-Village-Documentation/YOUR-AI-VILLAGE-ROLE-ASSIGNMENTS.md
+   b. docs/ai-workflow/AI-HANDOFF/VISION-SYNC-2026-02-15.md
+   c. docs/ai-workflow/AI-HANDOFF/HANDOFF-PROTOCOL.md (this file)
+   d. docs/ai-workflow/SKILLS-INFRASTRUCTURE.md
+   e. docs/ai-workflow/AI-HANDOFF/[YOUR-AI-NAME]-STATUS.md
    ```
 
 2. **Understand context:**
@@ -569,40 +469,26 @@ What do you prefer?"
 
 ---
 
-## ✅ BENEFITS OF THIS SYSTEM
+##ðŸš€ SKILLS QUICK REFERENCE
 
-**For User (You):**
-- ✅ Paste master prompt = AI instantly knows everything
-- ✅ No more "where were we?" confusion
-- ✅ No duplicate work from multiple AIs
-- ✅ Clear visibility into what every AI is doing
-- ✅ No monolithic nightmare files
-- ✅ Easy to switch between AIs mid-task
+**10 skills installed** across `.agents/skills/` — full docs: `docs/ai-workflow/SKILLS-INFRASTRUCTURE.md`
 
-**For AIs:**
-- ✅ Clear instructions
-- ✅ No conflicts
-- ✅ Proper handoffs
-- ✅ Structured communication
-- ✅ Quality standards enforced
+| Skill | When to Use |
+|-------|-------------|
+| `verification-before-completion` | Before ANY "done" or "fixed" claim |
+| `systematic-debugging` | Any bug, test failure, or unexpected behavior |
+| `requesting-code-review` | After task completion, before merge |
+| `test-driven-development` | Before writing production code |
+| `webapp-testing` | After frontend changes with user-facing behavior |
+| `web-design-guidelines` | After UI/styled-component changes |
+| `agent-browser` | Form testing, login flows, visual verification |
+| `audit-website` | Pre-launch, regression detection |
+| `frontend-design` | Building new components/pages |
+| `ui-ux-pro-max` | Design system, palettes, font pairings |
 
-**For Codebase:**
-- ✅ No monoliths
-- ✅ Clean, maintainable files
-- ✅ Proper documentation
-- ✅ Zero rework (files done right first time)
-
----
-
-## 🚀 GETTING STARTED
-
-**Next Steps:**
-1. ✅ This protocol is now in place
-2. ⏳ Create individual AI status files
-3. ⏳ Create master prompt that references this system
-4. ⏳ Test with next task
-5. ⏳ Refine based on real usage
+**Maintenance:** `npx skills check` | `npx skills update` | `npx skills find <keyword>`
 
 ---
 
 **END OF HANDOFF-PROTOCOL.md**
+
