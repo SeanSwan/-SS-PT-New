@@ -9,6 +9,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 // Services
 import { universalMasterScheduleService } from '../../services/universal-master-schedule-service';
@@ -75,9 +76,18 @@ const BREAKPOINTS = {
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:10000';
 
 const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
-  mode = 'admin',
-  userId
+  mode: modeProp,
+  userId: userIdProp
 }) => {
+  // Derive mode from auth context when not explicitly passed (route-level safety)
+  const { user } = useAuth();
+  const mode = modeProp || (
+    user?.role === 'admin' ? 'admin' :
+    user?.role === 'trainer' ? 'trainer' :
+    'client'
+  );
+  const userId = userIdProp || user?.id;
+
   // Production Data Hook
   const {
     sessions,
@@ -106,6 +116,28 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
 
   const { success, error: toastError, warning } = useToast();
   const { templates, addTemplate, removeTemplate, applyTemplate } = useSessionTemplates();
+
+  // KPI card status filter (composes with existing admin scope / trainer filters)
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+
+  const handleStatusFilterChange = useCallback((status: string | null) => {
+    setStatusFilter(prev => prev === status ? null : status);
+  }, []);
+
+  const displaySessions = useMemo(() => {
+    if (!statusFilter || statusFilter === 'total') return sessions;
+    if (statusFilter === 'scheduled') {
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      return sessions.filter((s: any) => {
+        if (s.status !== 'scheduled' && s.status !== 'confirmed') return false;
+        const date = s.sessionDate || s.start || s.startTime;
+        if (!date) return true; // no date = keep visible
+        return new Date(date) >= startOfToday;
+      });
+    }
+    return sessions.filter((s: any) => s.status === statusFilter);
+  }, [sessions, statusFilter]);
 
   // Redux: Layout & Density
   const dispatch = useDispatch();
@@ -700,12 +732,14 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
         sessions={sessions}
         creditsDisplay={creditsDisplay}
         lowCredits={lowCredits}
+        statusFilter={statusFilter}
+        onStatusFilterChange={handleStatusFilterChange}
       />
 
       <ScheduleCalendar
         activeView={activeView}
         currentDate={currentDate}
-        sessions={sessions}
+        sessions={displaySessions}
         trainers={trainers}
         canReschedule={canReschedule}
         canQuickBook={canQuickBook}

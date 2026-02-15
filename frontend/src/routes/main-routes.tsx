@@ -194,10 +194,18 @@ const UnauthorizedPage = lazyLoadWithErrorHandling(
   'Unauthorized Page'
 );
 
-// Schedule Related Components - Emergency Safe Version
+// Schedule Related Components - Emergency fallback retained, primary component activated
 const EmergencyAdminScheduleIntegration = lazyLoadWithErrorHandling(
   () => import('../components/UniversalMasterSchedule/EmergencyAdminScheduleIntegration'),
   'Emergency Admin Schedule Integration'
+);
+
+// Primary schedule component — switched from emergency placeholder 2026-02-14
+const UniversalMasterSchedule = lazyLoadWithErrorHandling(
+  () => import('../components/UniversalMasterSchedule/UniversalMasterSchedule'),
+  'Universal Master Schedule',
+  // Fallback to emergency view if primary fails to load
+  () => import('../components/UniversalMasterSchedule/EmergencyAdminScheduleIntegration')
 );
 
 // Checkout Pages - Genesis Checkout System
@@ -602,13 +610,14 @@ const MainRoutes: RouteObject = {
       element: <Navigate to="/store" replace />
     },
     
-    // Schedule Route - Using Emergency Safe Version
+    // Schedule Route - Primary UniversalMasterSchedule (switched from emergency 2026-02-14)
+    // Falls back to EmergencyAdminScheduleIntegration if chunk fails to load
     {
       path: 'schedule',
       element: (
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
-            <EmergencyAdminScheduleIntegration />
+            <UniversalMasterSchedule />
           </Suspense>
         </ProtectedRoute>
       )
