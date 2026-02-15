@@ -84,7 +84,23 @@ Any AI session that involves frontend UI/UX work MUST read these documents first
 - This project uses a Multi-AI Swarm (see `.clinerules` for full protocol)
 - **Current task tracker:** `docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md`
 - **Handoff protocol:** `docs/ai-workflow/AI-HANDOFF/HANDOFF-PROTOCOL.md`
+- **Vision sync:** `docs/ai-workflow/AI-HANDOFF/VISION-SYNC-2026-02-15.md`
+- **Skills infrastructure:** `docs/ai-workflow/SKILLS-INFRASTRUCTURE.md`
 - **AI status files:** `docs/ai-workflow/AI-HANDOFF/[AI-NAME]-STATUS.md`
+- **Master handbook:** `docs/MASTER-HANDBOOK.md`
+
+## AI Agent Skills (10 installed)
+Skills are in `.agents/skills/` (symlinked to `.claude/skills/`). Key process skills:
+- `verification-before-completion` — MANDATORY before any "done" or "fixed" claim
+- `systematic-debugging` — MANDATORY for any bug investigation (root-cause-first)
+- `requesting-code-review` — MANDATORY before merge to main
+- `test-driven-development` — write tests before production code
+- `webapp-testing` — Playwright-based frontend testing
+- `web-design-guidelines` — UI accessibility/contrast audit
+- `audit-website` — comprehensive site audit (SEO, perf, security, a11y)
+- `agent-browser` — browser automation for visual verification
+- `frontend-design` + `ui-ux-pro-max` — design and styling skills
+- **Maintenance:** `npx skills check` | `npx skills update` | `npx skills find <keyword>`
 
 ## Common Gotchas
 - `transform: translateZ(0)` creates CSS stacking contexts - add `position: relative; z-index` to parent if dropdowns are trapped
