@@ -6,6 +6,14 @@ import { Helmet } from "react-helmet-async";
 import { useNavigate } from "react-router-dom";
 import GlowButton from "../../../components/ui/GlowButton";
 
+// Reduced-motion helper
+const reducedMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
+
 // Import components
 import HeroSection from "./Hero-Section";
 import ParallaxSection from "../../../components/ParallaxSection/ParallaxSection";
@@ -103,8 +111,9 @@ const SectionLoader = styled.div`
   background: rgba(10, 10, 30, 0.5);
   opacity: 0;
   animation: ${fadeIn} 0.5s ease-in-out forwards;
+  ${reducedMotion}
   position: relative;
-  
+
   &::after {
     content: "";
     width: 50px;
@@ -113,6 +122,7 @@ const SectionLoader = styled.div`
     border-top-color: rgba(0, 255, 255, 0.8);
     border-radius: 50%;
     animation: ${spin} 1s linear infinite, ${pulse} 2s ease-in-out infinite;
+    ${reducedMotion}
   }
 `;
 
@@ -180,6 +190,7 @@ const SectionDivider = styled(motion.div)`
     );
     background-size: 200% 200%;
     animation: ${diagonalShimmer} 5s linear infinite;
+    ${reducedMotion}
     pointer-events: none;
   }
   
@@ -232,6 +243,7 @@ const ScrollPrompt = styled(motion.div)`
     content: "↓";
     font-size: 1.5rem;
     animation: ${pulse} 2s infinite;
+    ${reducedMotion}
   }
   
   @media (max-width: 480px) {

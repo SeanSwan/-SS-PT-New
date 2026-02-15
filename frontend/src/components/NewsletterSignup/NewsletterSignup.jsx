@@ -1,5 +1,13 @@
 import React, { useState } from 'react';
-import styled, { keyframes } from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
+
+// Reduced-motion helper
+const reducedMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Check, AlertTriangle, Lock, ArrowRight, Dumbbell, Apple, Brain } from 'lucide-react';
 import SectionTitle from '../ui/SectionTitle';
@@ -118,6 +126,7 @@ const FormContainer = styled(motion.div)`
     );
     background-size: 200% 200%;
     animation: ${diagonalGlimmer} 5s linear infinite;
+    ${reducedMotion}
     pointer-events: none;
     opacity: 0;
     z-index: -1;
@@ -270,6 +279,7 @@ const BenefitCard = styled(motion.div)`
     );
     background-size: 400% 400%;
     animation: ${diagonalGlimmer} 12s ease-in-out infinite;
+    ${reducedMotion}
     pointer-events: none;
     border-radius: 10px;
     opacity: 0.6;
@@ -415,7 +425,7 @@ const NewsletterSignup = () => {
       setIsSubmitting(false);
       setIsSuccess(true);
       // In a real application, you would send this data to your API
-      console.log('Subscription data:', { name, email });
+      // Data would be sent to API in production
     }, 1500);
   };
   

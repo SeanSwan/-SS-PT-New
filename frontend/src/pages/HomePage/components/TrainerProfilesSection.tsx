@@ -725,7 +725,7 @@ const TrainerProfilesSection: React.FC = () => {
   const currentTrainer = trainers[currentTrainerIndex];
 
   if (!currentTrainer) {
-    console.error("Trainer data is missing or index is invalid:", activeIndex);
+    // Trainer data is missing or index is invalid — show loading fallback
     return (
       <SectionContainer id="trainers">
         <ContentWrapper>

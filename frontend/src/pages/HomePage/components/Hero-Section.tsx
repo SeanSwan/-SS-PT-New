@@ -1,8 +1,16 @@
 // frontend/src/pages/HomePage/components/Hero-Section.tsx
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import styled, { keyframes } from "styled-components";
-import { motion, useAnimation, useInView } from "framer-motion";
+import styled, { keyframes, css } from "styled-components";
+import { motion } from "framer-motion";
+
+// Reduced-motion helper
+const reducedMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
 import { useNavigate } from "react-router-dom";
 import GlowButton from "../../../components/ui/buttons/GlowButton";
 import OrientationForm from "../../../components/OrientationForm/orientationForm";
@@ -126,6 +134,7 @@ const LogoContainer = styled(motion.div)`
   display: flex;
   justify-content: center;
   animation: ${float} 6s ease-in-out infinite, ${glow} 4s ease-in-out infinite, ${subtleRotate} 10s ease-in-out infinite;
+  ${reducedMotion}
   margin-bottom: 1.5rem;
   margin-top: 2rem;
   z-index: 5;
@@ -214,6 +223,7 @@ const Title = styled(motion.h1)`
   letter-spacing: 1px;
   text-align: center;
   animation: ${textShine} 8s linear infinite;
+  ${reducedMotion}
   transition: all 0.3s ease;
   
   &:hover {
@@ -374,6 +384,7 @@ const ScrollIndicator = styled(motion.div)`
     font-size: 1.5rem;
     margin-top: 0.5rem;
     animation: ${float} 2s ease-in-out infinite;
+    ${reducedMotion}
     color: ${({ theme }) => theme.colors.primary};
   }
 
@@ -421,9 +432,7 @@ const HeroSection: React.FC = () => {
 
   const [showScrollIndicator, setShowScrollIndicator] = useState<boolean>(true);
 
-  const controls = useAnimation();
   const containerRef = useRef<HTMLDivElement>(null);
-  const isInView = useInView(containerRef, { once: true });
   const navigate = useNavigate();
   
   // Theme-aware button variants
@@ -441,26 +450,21 @@ const HeroSection: React.FC = () => {
   };
 
   useEffect(() => {
-    if (isInView) {
-      controls.start("visible");
-    }
-
     const handleScroll = () => {
       setShowScrollIndicator(window.scrollY <= 200);
     };
     window.addEventListener("scroll", handleScroll);
     return () => {
-      
       window.removeEventListener("scroll", handleScroll);
     };
-  }, [isInView, controls]);
+  }, []);
 
   const scrollToServices = () => {
     const servicesSection = document.getElementById("services");
     if (servicesSection) {
       servicesSection.scrollIntoView({ behavior: "smooth" });
     } else {
-      console.warn("Could not find element with id='services'");
+      // Services section not found in DOM
     }
   };
 
@@ -484,7 +488,7 @@ const HeroSection: React.FC = () => {
 
 
 
-      <motion.div initial="hidden" animate={controls} variants={containerVariants}>
+      <motion.div initial="hidden" animate="visible" variants={containerVariants}>
         <LogoContainer variants={itemVariants}>
           <img src={logoSource} alt="Swan Studios Logo" loading="eager" />
         </LogoContainer>
