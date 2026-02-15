@@ -10,8 +10,8 @@
 ## Quick Links
 
 - 📊 **Registry:** [PHASE-0-REGISTRY.md](../PHASE-0-REGISTRY.md)
-- 📝 **Prompts:** [AI-ROLE-PROMPTS.md](../AI-ROLE-PROMPTS.md)
-- 🎯 **Process Guide:** [PHASE-0-DESIGN-APPROVAL.md](../PHASE-0-DESIGN-APPROVAL.md)
+- 📝 **Prompts:** [AI-ROLE-PROMPTS.md](../archive/old-versions/AI-ROLE-PROMPTS.md)
+- 🎯 **Process Guide:** [PHASE-0-DESIGN-APPROVAL.md](../archive/phase-0/PHASE-0-DESIGN-APPROVAL.md)
 
 ---
 
@@ -178,7 +178,7 @@ components/
 
 **Final Consensus Date:** [YYYY-MM-DD]
 
-**Next Step:** Move to Phase 1-7 implementation via [FEATURE-TEMPLATE.md](../FEATURE-TEMPLATE.md)
+**Next Step:** Move to Phase 1-7 implementation via [FEATURE-TEMPLATE.md](FEATURE-TEMPLATE.md)
 
 **Implementation Branch:** `feature/[feature-name]`
 

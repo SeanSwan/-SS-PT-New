@@ -882,8 +882,8 @@ System is **production-ready** when:
 ## 📚 RELATED DOCUMENTATION
 
 - [COACH-CORTEX-V3.0-ULTIMATE.md](../COACH-CORTEX-V3.0-ULTIMATE.md) - Complete AI intelligence system
-- [PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.1.md](../personal-training/PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.1.md) - System architecture
-- [MASTER-PROMPT-TEMPLATE.json](../../client-data/templates/MASTER-PROMPT-TEMPLATE.json) - Client data schema
+- PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.1.md (`../personal-training/PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.1.md`) - System architecture
+- MASTER-PROMPT-TEMPLATE.json (`../../client-data/templates/MASTER-PROMPT-TEMPLATE.json`) - Client data schema
 - [AI-VILLAGE-COORDINATION-PROTOCOL.md](./AI-VILLAGE-COORDINATION-PROTOCOL.md) - Multi-AI orchestration *(to be created)*
 
 ---

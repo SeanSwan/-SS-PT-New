@@ -51,7 +51,7 @@ Each component will be evaluated on:
 These components MUST have MUI removed before M0 ends (Weeks 1-2):
 
 ### **1. DiagnosticsDashboard.tsx**
-**Location:** [admin-dashboard/DiagnosticsDashboard.tsx](frontend/src/components/DashBoard/Pages/admin-dashboard/DiagnosticsDashboard.tsx)
+**Location:** [admin-dashboard/DiagnosticsDashboard.tsx](../../../../frontend/src/components/DashBoard/Pages/admin-dashboard/DiagnosticsDashboard.tsx)
 **MUI Imports:**
 ```typescript
 import { Box, Grid, Card, Typography, LinearProgress } from '@mui/material';
@@ -75,7 +75,7 @@ import { Box, Grid, Card, Typography, LinearProgress } from '@mui/material';
 ---
 
 ### **2. AdminDebugPanel.tsx**
-**Location:** [admin-dashboard/AdminDebugPanel.tsx](frontend/src/components/DashBoard/Pages/admin-dashboard/AdminDebugPanel.tsx)
+**Location:** [admin-dashboard/AdminDebugPanel.tsx](../../../../frontend/src/components/DashBoard/Pages/admin-dashboard/AdminDebugPanel.tsx)
 **MUI Imports:**
 ```typescript
 import { Accordion, AccordionSummary, AccordionDetails, Chip } from '@mui/material';
@@ -97,7 +97,7 @@ import { Accordion, AccordionSummary, AccordionDetails, Chip } from '@mui/materi
 ---
 
 ### **3. AIMonitoringPanel.tsx**
-**Location:** [admin-dashboard/components/AIMonitoringPanel.tsx](frontend/src/components/DashBoard/Pages/admin-dashboard/components/AIMonitoringPanel.tsx)
+**Location:** [admin-dashboard/components/AIMonitoringPanel.tsx](../../../../frontend/src/components/DashBoard/Pages/admin-dashboard/components/AIMonitoringPanel.tsx)
 **MUI Imports:**
 ```typescript
 import { Box, Card, Typography, Tooltip, Badge } from '@mui/material';
@@ -119,7 +119,7 @@ import { Box, Card, Typography, Tooltip, Badge } from '@mui/material';
 ---
 
 ### **4. SecurityMonitoringPanel.tsx**
-**Location:** [admin-dashboard/components/SecurityMonitoringPanel.tsx](frontend/src/components/DashBoard/Pages/admin-dashboard/components/SecurityMonitoringPanel.tsx)
+**Location:** [admin-dashboard/components/SecurityMonitoringPanel.tsx](../../../../frontend/src/components/DashBoard/Pages/admin-dashboard/components/SecurityMonitoringPanel.tsx)
 **MUI Imports:**
 ```typescript
 import { Box, Grid, Card, Alert, IconButton } from '@mui/material';
@@ -141,7 +141,7 @@ import { Box, Grid, Card, Alert, IconButton } from '@mui/material';
 ---
 
 ### **5. DataManagementPanel.tsx**
-**Location:** [admin-dashboard/DataManagementPanel.tsx](frontend/src/components/DashBoard/Pages/admin-dashboard/DataManagementPanel.tsx)
+**Location:** admin-dashboard/DataManagementPanel.tsx (`frontend/src/components/DashBoard/Pages/admin-dashboard/DataManagementPanel.tsx`)
 **MUI Imports:**
 ```typescript
 import { Box, Card, Button, Dialog, DialogTitle } from '@mui/material';
@@ -163,7 +163,7 @@ import { Box, Card, Button, Dialog, DialogTitle } from '@mui/material';
 ---
 
 ### **6. PerformanceMetricsPanel.tsx**
-**Location:** [admin-dashboard/components/PerformanceMetricsPanel.tsx](frontend/src/components/DashBoard/Pages/admin-dashboard/components/PerformanceMetricsPanel.tsx)
+**Location:** admin-dashboard/components/PerformanceMetricsPanel.tsx (`frontend/src/components/DashBoard/Pages/admin-dashboard/components/PerformanceMetricsPanel.tsx`)
 **MUI Imports:**
 ```typescript
 import { Box, Card, Typography, LinearProgress } from '@mui/material';
@@ -185,7 +185,7 @@ import { Box, Card, Typography, LinearProgress } from '@mui/material';
 ---
 
 ### **7. AnalyticsControlCenter.tsx**
-**Location:** [admin-dashboard/AnalyticsControlCenter.tsx](frontend/src/components/DashBoard/Pages/admin-dashboard/AnalyticsControlCenter.tsx)
+**Location:** admin-dashboard/AnalyticsControlCenter.tsx (`frontend/src/components/DashBoard/Pages/admin-dashboard/AnalyticsControlCenter.tsx`)
 **MUI Imports:**
 ```typescript
 import { Box, Grid, Card, Typography, Select } from '@mui/material';
@@ -207,7 +207,7 @@ import { Box, Grid, Card, Typography, Select } from '@mui/material';
 ---
 
 ### **8. NotificationCenter.tsx**
-**Location:** [admin-dashboard/NotificationCenter.tsx](frontend/src/components/DashBoard/Pages/admin-dashboard/NotificationCenter.tsx)
+**Location:** admin-dashboard/NotificationCenter.tsx (`frontend/src/components/DashBoard/Pages/admin-dashboard/NotificationCenter.tsx`)
 **MUI Imports:**
 ```typescript
 import { Box, Card, Badge, IconButton, Menu } from '@mui/material';
@@ -229,7 +229,7 @@ import { Box, Card, Badge, IconButton, Menu } from '@mui/material';
 ---
 
 ### **9. SettingsPanel.tsx**
-**Location:** [admin-dashboard/SettingsPanel.tsx](frontend/src/components/DashBoard/Pages/admin-dashboard/SettingsPanel.tsx)
+**Location:** admin-dashboard/SettingsPanel.tsx (`frontend/src/components/DashBoard/Pages/admin-dashboard/SettingsPanel.tsx`)
 **MUI Imports:**
 ```typescript
 import { Box, Card, Switch, TextField, Button } from '@mui/material';
@@ -251,7 +251,7 @@ import { Box, Card, Switch, TextField, Button } from '@mui/material';
 ---
 
 ### **10. UserManagementPanel.tsx**
-**Location:** [admin-dashboard/UserManagementPanel.tsx](frontend/src/components/DashBoard/Pages/admin-dashboard/UserManagementPanel.tsx)
+**Location:** admin-dashboard/UserManagementPanel.tsx (`frontend/src/components/DashBoard/Pages/admin-dashboard/UserManagementPanel.tsx`)
 **MUI Imports:**
 ```typescript
 import { Box, Card, Table, TableHead, TableRow, TableCell } from '@mui/material';
@@ -273,7 +273,7 @@ import { Box, Card, Table, TableHead, TableRow, TableCell } from '@mui/material'
 ---
 
 ### **11. RevenueAnalyticsPanel.tsx**
-**Location:** [admin-dashboard/components/RevenueAnalyticsPanel.tsx](frontend/src/components/DashBoard/Pages/admin-dashboard/components/RevenueAnalyticsPanel.tsx)
+**Location:** [admin-dashboard/components/RevenueAnalyticsPanel.tsx](../../../../frontend/src/components/DashBoard/Pages/admin-dashboard/components/RevenueAnalyticsPanel.tsx)
 **MUI Imports:**
 ```typescript
 import { Box, Card, Typography } from '@mui/material';
@@ -295,7 +295,7 @@ import { Box, Card, Typography } from '@mui/material';
 ---
 
 ### **12. SystemHealthPanel.tsx**
-**Location:** [admin-dashboard/components/SystemHealthPanel.tsx](frontend/src/components/DashBoard/Pages/admin-dashboard/components/SystemHealthPanel.tsx)
+**Location:** [admin-dashboard/components/SystemHealthPanel.tsx](../../../../frontend/src/components/DashBoard/Pages/admin-dashboard/components/SystemHealthPanel.tsx)
 **MUI Imports:**
 ```typescript
 import { Box, Card, Typography, LinearProgress, Chip } from '@mui/material';
@@ -362,7 +362,7 @@ These components are MUI-free but need Galaxy-Swan theme token integration:
 ## 🟢 MEDIUM PRIORITY: LARGE FILE SPLITTING (3 files)
 
 ### **28. AdminDashboardView.tsx**
-**Location:** [admin-dashboard/admin-dashboard-view.tsx](frontend/src/components/DashBoard/Pages/admin-dashboard/admin-dashboard-view.tsx)
+**Location:** [admin-dashboard/admin-dashboard-view.tsx](../../../../frontend/src/components/DashBoard/Pages/admin-dashboard/admin-dashboard-view.tsx)
 **Current Size:** ~1200 lines
 **Issues:**
 - Single file contains multiple dashboard views

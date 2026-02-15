@@ -56,7 +56,7 @@ Open `PHASE-0-REGISTRY.md` and add to "Active Reviews" table:
 ```markdown
 | Feature Name | File | Status | Approvals | Started | Owner |
 |--------------|------|--------|-----------|---------|-------|
-| **My Feature** | [reviews/my-feature-name.md](reviews/my-feature-name.md) | 🟡 PENDING (0/5) | None yet | 2025-10-29 | Your Name |
+| **My Feature** | reviews/my-feature-name.md (`reviews/my-feature-name.md`) | 🟡 PENDING (0/5) | None yet | 2025-10-29 | Your Name |
 ```
 
 **Step 3: Fill In Design Artifacts**
@@ -86,7 +86,7 @@ Edit `reviews/my-feature-name.md`:
 ```markdown
 | Feature | File | Status | Approvals | Started | Owner |
 |---------|------|--------|-----------|---------|-------|
-| **My Feature** | [reviews/my-feature-name.md](reviews/my-feature-name.md) | 🟡 PENDING (3/5) | Claude Code ✅, Roo ✅, ChatGPT ✅ | 2025-10-29 | You |
+| **My Feature** | reviews/my-feature-name.md (`reviews/my-feature-name.md`) | 🟡 PENDING (3/5) | Claude Code ✅, Roo ✅, ChatGPT ✅ | 2025-10-29 | You |
 ```
 
 ---
@@ -101,7 +101,7 @@ Move from "Active Reviews" to "Consensus Reached":
 
 | Feature | File | Consensus Date | Implementation Status |
 |---------|------|----------------|----------------------|
-| **My Feature** | [reviews/my-feature-name.md](reviews/my-feature-name.md) | 2025-10-29 | 🟡 IN PROGRESS |
+| **My Feature** | reviews/my-feature-name.md (`reviews/my-feature-name.md`) | 2025-10-29 | 🟡 IN PROGRESS |
 ```
 
 **Step 2: Create Feature Tracking File**
@@ -136,7 +136,7 @@ Move from "Consensus Reached" to "Completed & Implemented":
 
 | Feature | File | Completed | Deployed | Archive |
 |---------|------|-----------|----------|---------|
-| **My Feature** | [archive/completed-2025-10.md#my-feature](archive/completed-2025-10.md#my-feature) | 2025-10-30 | 2025-10-30 | ✅ |
+| **My Feature** | archive/completed-2025-10.md#my-feature (`archive/completed-2025-10.md#my-feature`) | 2025-10-30 | 2025-10-30 | ✅ |
 ```
 
 ---

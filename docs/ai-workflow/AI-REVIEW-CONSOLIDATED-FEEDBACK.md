@@ -3,7 +3,7 @@
 ## 📊 Review Summary
 
 **Date**: 2025-11-02
-**Document Reviewed**: [GAMIFICATION-MASTER-PROMPT.md](GAMIFICATION-MASTER-PROMPT.md)
+**Document Reviewed**: [GAMIFICATION-MASTER-PROMPT.md](archive/old-versions/GAMIFICATION-MASTER-PROMPT.md)
 **Reviewers**: Gemini, Roo Code, ChatGPT, Claude Code
 
 ---
@@ -731,7 +731,7 @@ The gamification system design is **excellent** but requires **3 critical fixes*
 ## 📎 Files to Update
 
 ### Documentation:
-- [ ] [GAMIFICATION-MASTER-PROMPT.md](GAMIFICATION-MASTER-PROMPT.md) - Add Economy, Security, Privacy sections
+- [ ] [GAMIFICATION-MASTER-PROMPT.md](archive/old-versions/GAMIFICATION-MASTER-PROMPT.md) - Add Economy, Security, Privacy sections
 - [ ] Create `GAMIFICATION-ECONOMY-MODEL.md` - Define conversion rates, earning caps, sinks
 - [ ] Create `GAMIFICATION-SECURITY-SPEC.md` - Idempotency, fraud prevention, audit trail
 

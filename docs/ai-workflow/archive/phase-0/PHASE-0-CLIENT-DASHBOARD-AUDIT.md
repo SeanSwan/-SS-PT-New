@@ -56,7 +56,7 @@ Each component will be evaluated on:
 ## 🔴 CRITICAL: MUI ELIMINATION REQUIRED (2 files)
 
 ### **1. ProgressChart.tsx**
-**Location:** [ClientDashboard/ProgressChart.tsx](frontend/src/components/ClientDashboard/ProgressChart.tsx)
+**Location:** [ClientDashboard/ProgressChart.tsx](../../../../frontend/src/components/ClientDashboard/components/ProgressChart.tsx)
 **MUI Imports:**
 ```typescript
 import { Box, Typography } from '@mui/material';
@@ -137,7 +137,7 @@ export const ProgressChart: React.FC<ProgressChartProps> = ({ data, type, title 
 ---
 
 ### **2. GamificationSection.tsx**
-**Location:** [ClientDashboard/GamificationSection.tsx](frontend/src/components/ClientDashboard/GamificationSection.tsx)
+**Location:** [ClientDashboard/GamificationSection.tsx](../../../../frontend/src/components/ClientDashboard/sections/GamificationSection.tsx)
 **MUI Imports:**
 ```typescript
 import { Box, Grid, Typography, LinearProgress, Chip } from '@mui/material';
@@ -245,7 +245,7 @@ export const GamificationSection: React.FC<Props> = ({ userStats }) => {
 These components are MUI-free but need Galaxy-Swan theme token integration:
 
 ### **3. RevolutionaryClientDashboard.tsx**
-**Location:** [ClientDashboard/RevolutionaryClientDashboard.tsx](frontend/src/components/ClientDashboard/RevolutionaryClientDashboard.tsx)
+**Location:** [ClientDashboard/RevolutionaryClientDashboard.tsx](../../../../frontend/src/components/ClientDashboard/RevolutionaryClientDashboard.tsx)
 **Status:** ✅ MUI-free, ⚠️ Partial theme tokens, ⚠️ VERY LARGE (1000+ lines)
 **Issues:**
 - Hardcoded colors for workout cards
@@ -274,7 +274,7 @@ ClientDashboard/
 ---
 
 ### **4. GalaxySections.tsx**
-**Location:** [ClientDashboard/GalaxySections.tsx](frontend/src/components/ClientDashboard/GalaxySections.tsx)
+**Location:** [ClientDashboard/GalaxySections.tsx](../../../../frontend/src/components/ClientDashboard/GalaxySections.tsx)
 **Status:** ✅ MUI-free, ⚠️ Theme tokens needed, 🔴 CONSTELLATION NOT PERSISTED
 
 **CRITICAL ISSUE: Constellation SVG Ephemeral**

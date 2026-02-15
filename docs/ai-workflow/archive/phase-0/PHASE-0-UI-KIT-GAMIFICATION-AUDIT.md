@@ -51,7 +51,7 @@ This Phase 0 packet audits:
 ## 🟡 HIGH PRIORITY: THEME TOKEN COMPLETION (9 files)
 
 ### **1. Typography.tsx**
-**Location:** [ui-kit/Typography.tsx](frontend/src/components/ui-kit/Typography.tsx)
+**Location:** [ui-kit/Typography.tsx](../../../../frontend/src/components/ui-kit/Typography.tsx)
 **Status:** ✅ MUI-free, ⚠️ Partial theme tokens, ❌ No tests
 
 **Exports:**
@@ -112,7 +112,7 @@ export const BodyText = styled.p`
 ---
 
 ### **2. Button.tsx**
-**Location:** [ui-kit/Button.tsx](frontend/src/components/ui-kit/Button.tsx)
+**Location:** [ui-kit/Button.tsx](../../../../frontend/src/components/ui-kit/Button.tsx)
 **Status:** ✅ MUI-free, ⚠️ Partial theme tokens, ❌ No tests
 
 **Exports:**
@@ -196,7 +196,7 @@ export const PrimaryButton = styled.button`
 ---
 
 ### **3. Input.tsx**
-**Location:** [ui-kit/Input.tsx](frontend/src/components/ui-kit/Input.tsx)
+**Location:** [ui-kit/Input.tsx](../../../../frontend/src/components/ui-kit/Input.tsx)
 **Status:** ✅ MUI-free, ⚠️ Partial theme tokens, ❌ No tests
 
 **Exports:**
@@ -277,7 +277,7 @@ export const ErrorText = styled.span`
 ---
 
 ### **4. Card.tsx**
-**Location:** [ui-kit/Card.tsx](frontend/src/components/ui-kit/Card.tsx)
+**Location:** [ui-kit/Card.tsx](../../../../frontend/src/components/ui-kit/Card.tsx)
 **Status:** ✅ MUI-free, ⚠️ Partial theme tokens, ❌ No tests
 
 **Exports:**
@@ -370,7 +370,7 @@ export const StatsCard = styled(Card)<{ trend?: 'up' | 'down' | 'neutral' }>`
 ---
 
 ### **5. Table.tsx**
-**Location:** [ui-kit/Table.tsx](frontend/src/components/ui-kit/Table.tsx)
+**Location:** [ui-kit/Table.tsx](../../../../frontend/src/components/ui-kit/Table.tsx)
 **Status:** ✅ MUI-free, ⚠️ Partial theme tokens, ❌ No tests
 
 **Compound Component Pattern:**
@@ -496,7 +496,7 @@ export const TableRow = styled.tr<{ selectable?: boolean; selected?: boolean }>`
 ---
 
 ### **7. GamificationDashboard.tsx**
-**Location:** [Gamification/GamificationDashboard.tsx](frontend/src/components/Gamification/GamificationDashboard.tsx)
+**Location:** [Gamification/GamificationDashboard.tsx](../../../../frontend/src/components/Gamification/GamificationDashboard.tsx)
 **Status:** ✅ MUI-free, ⚠️ Partial theme tokens, ⚠️ VERY LARGE (~800 lines)
 
 **Current Features (Gamification 1.0):**
@@ -641,7 +641,7 @@ router.post('/users/:userId/quests/:questId/progress', authenticateUser, async (
 ---
 
 ### **8. GamificationDisplay.tsx**
-**Location:** [Gamification/GamificationDisplay.tsx](frontend/src/components/Gamification/GamificationDisplay.tsx)
+**Location:** [Gamification/GamificationDisplay.tsx](../../../../frontend/src/components/Gamification/GamificationDisplay.tsx)
 **Status:** ✅ MUI-free, ⚠️ Partial theme tokens, ❌ No tests
 
 **Current Features:**

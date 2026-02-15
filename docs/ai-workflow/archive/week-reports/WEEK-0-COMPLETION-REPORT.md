@@ -29,7 +29,7 @@ Week 0 comprehensive audit and documentation infrastructure is **100% COMPLETE**
 
 ### **1. PHASE 0 AUDIT PACKETS (4 packets, ~5,000 lines)**
 
-#### **[PHASE-0-ADMIN-DASHBOARD-AUDIT.md](./PHASE-0-ADMIN-DASHBOARD-AUDIT.md)**
+#### **[PHASE-0-ADMIN-DASHBOARD-AUDIT.md](../phase-0/PHASE-0-ADMIN-DASHBOARD-AUDIT.md)**
 - **Components Audited:** 47 files
 - **Critical Issues:** 12 files with MUI dependencies
 - **High Priority:** 15 files need theme tokens
@@ -37,7 +37,7 @@ Week 0 comprehensive audit and documentation infrastructure is **100% COMPLETE**
 - **Low Priority:** 17 files need tests only
 - **Status:** ⏳ Pending AI Village approval (0/5)
 
-#### **[PHASE-0-CLIENT-DASHBOARD-AUDIT.md](./PHASE-0-CLIENT-DASHBOARD-AUDIT.md)**
+#### **[PHASE-0-CLIENT-DASHBOARD-AUDIT.md](../phase-0/PHASE-0-CLIENT-DASHBOARD-AUDIT.md)**
 - **Components Audited:** 37 files
 - **CRITICAL ISSUE FOUND:** Constellation SVG is ephemeral (not persisted)
   - **Impact:** SEVERE - users lose progress on refresh
@@ -45,14 +45,14 @@ Week 0 comprehensive audit and documentation infrastructure is **100% COMPLETE**
 - **MUI Dependencies:** 2 files (ProgressChart, GamificationSection)
 - **Status:** ⏳ Pending AI Village approval (0/5)
 
-#### **[PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md](./PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md)**
+#### **[PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md](../phase-0/PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md)**
 - **Components Audited:** 13 files (11 UI Kit + 2 Gamification)
 - **Good News:** 100% MUI-free ✅
 - **Quest System Designed:** Database schema + API for Gamification 2.0
 - **Theme Tokens:** 9 files need Galaxy-Swan integration
 - **Status:** ⏳ Pending AI Village approval (0/5)
 
-#### **[PHASE-0-COMPREHENSIVE-TESTING-STRATEGY.md](./PHASE-0-COMPREHENSIVE-TESTING-STRATEGY.md)**
+#### **[PHASE-0-COMPREHENSIVE-TESTING-STRATEGY.md](../phase-0/PHASE-0-COMPREHENSIVE-TESTING-STRATEGY.md)**
 - **Test Types Defined:** 6 categories (unit, integration, E2E, visual, a11y, perf)
 - **Coverage Targets:** 70% (M0) → 80% (M1-M4) → 90% (M5-M9)
 - **Tools Selected:** Jest, RTL, MSW, Playwright, Percy, axe-core
@@ -63,7 +63,7 @@ Week 0 comprehensive audit and documentation infrastructure is **100% COMPLETE**
 
 ### **2. AI VILLAGE HANDBOOK UPDATES (~2,000 lines)**
 
-#### **[SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md](../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md)**
+#### **[SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md](../../../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md)**
 
 **NEW SECTION 12.6: Component Documentation Standards**
 - **Core Principle:** "If an AI can read the docs and implement without asking a question, the docs are complete."
@@ -83,7 +83,7 @@ Week 0 comprehensive audit and documentation infrastructure is **100% COMPLETE**
 
 ### **3. COMPONENT DOCUMENTATION TEMPLATES (~8,500 lines)**
 
-#### **[docs/ai-workflow/component-docs/templates/](./component-docs/templates/)**
+#### **docs/ai-workflow/component-docs/templates/ (`./component-docs/templates/`)**
 
 **Files Created:**
 1. **README.md** ✅ - Complete guide with AI assignment matrix, quick start, troubleshooting
@@ -100,7 +100,7 @@ Week 0 comprehensive audit and documentation infrastructure is **100% COMPLETE**
 
 ### **4. GIT AUTOMATION WORKFLOW (~1,000 lines)**
 
-#### **[GIT-AUTOMATION-WORKFLOW.md](./GIT-AUTOMATION-WORKFLOW.md)**
+#### **[GIT-AUTOMATION-WORKFLOW.md](../../workflows/GIT-AUTOMATION-WORKFLOW.md)**
 
 **Commit Triggers:**
 1. Logical component completion (e.g., full React component + tests)
@@ -133,7 +133,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 ### **5. GOOGLE DOCS WORKFLOW INTEGRATION (~1,000 lines)**
 
-#### **[GOOGLE-DOCS-WORKFLOW.md](./GOOGLE-DOCS-WORKFLOW.md)**
+#### **[GOOGLE-DOCS-WORKFLOW.md](../../workflows/GOOGLE-DOCS-WORKFLOW.md)**
 
 **Core Principle:** "Google Docs is single source of truth for human-readable docs. GitHub is single source of truth for code."
 
@@ -163,7 +163,7 @@ SwanStudios AI Village/
 
 ### **6. ENHANCED AI ROLE PROMPTS (~2,500 lines)**
 
-#### **[AI-ROLE-PROMPTS-ENHANCED.md](./AI-ROLE-PROMPTS-ENHANCED.md)**
+#### **[AI-ROLE-PROMPTS-ENHANCED.md](../old-versions/AI-ROLE-PROMPTS-ENHANCED.md)**
 
 **ALL 5 AIs Enhanced With:**
 1. **Component Documentation Standards:** Required in all roles
@@ -183,7 +183,7 @@ SwanStudios AI Village/
 
 ### **7. AI VILLAGE DISTRIBUTION SUMMARY**
 
-#### **[PHASE-0-WEEK-0-SUMMARY.md](./PHASE-0-WEEK-0-SUMMARY.md)**
+#### **[PHASE-0-WEEK-0-SUMMARY.md](../phase-0/PHASE-0-WEEK-0-SUMMARY.md)**
 
 **2-Page Executive Summary:**
 - Audit statistics (97 components, 14 MUI dependencies, 0 tests)
@@ -245,7 +245,7 @@ SwanStudios AI Village/
 ## 🎯 IMMEDIATE NEXT STEPS
 
 ### **✅ READY: Proceed with AI Village Distribution** (Recommended)
-**Action:** Send [PHASE-0-WEEK-0-SUMMARY.md](./PHASE-0-WEEK-0-SUMMARY.md) to all 5 AIs
+**Action:** Send [PHASE-0-WEEK-0-SUMMARY.md](../phase-0/PHASE-0-WEEK-0-SUMMARY.md) to all 5 AIs
 **Method:** Individual assignments via VS Code, Google Docs, or Slack (if enabled)
 **Timeline:** 48-72 hours for 20/20 approvals
 **Next:** Begin M0 Foundation after approvals
@@ -260,7 +260,7 @@ SwanStudios AI Village/
 ---
 
 ### **Optional: Setup Slack for On-the-Go Access** (~15-20 minutes)
-**Action:** Follow [SLACK-INTEGRATION-WORKFLOW.md](./SLACK-INTEGRATION-WORKFLOW.md)
+**Action:** Follow [SLACK-INTEGRATION-WORKFLOW.md](../../workflows/SLACK-INTEGRATION-WORKFLOW.md)
 **Benefit:** Mobile/tablet access for approvals and status checks
 **When:** Setup now or during M0 (not blocking)
 
@@ -305,33 +305,33 @@ SwanStudios AI Village/
 ## 📚 ALL DOCUMENTATION LINKS
 
 **Phase 0 Audit Packets:**
-- [PHASE-0-ADMIN-DASHBOARD-AUDIT.md](./PHASE-0-ADMIN-DASHBOARD-AUDIT.md)
-- [PHASE-0-CLIENT-DASHBOARD-AUDIT.md](./PHASE-0-CLIENT-DASHBOARD-AUDIT.md)
-- [PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md](./PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md)
-- [PHASE-0-COMPREHENSIVE-TESTING-STRATEGY.md](./PHASE-0-COMPREHENSIVE-TESTING-STRATEGY.md)
+- [PHASE-0-ADMIN-DASHBOARD-AUDIT.md](../phase-0/PHASE-0-ADMIN-DASHBOARD-AUDIT.md)
+- [PHASE-0-CLIENT-DASHBOARD-AUDIT.md](../phase-0/PHASE-0-CLIENT-DASHBOARD-AUDIT.md)
+- [PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md](../phase-0/PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md)
+- [PHASE-0-COMPREHENSIVE-TESTING-STRATEGY.md](../phase-0/PHASE-0-COMPREHENSIVE-TESTING-STRATEGY.md)
 
 **Distribution & Tracking:**
-- [PHASE-0-WEEK-0-SUMMARY.md](./PHASE-0-WEEK-0-SUMMARY.md)
+- [PHASE-0-WEEK-0-SUMMARY.md](../phase-0/PHASE-0-WEEK-0-SUMMARY.md)
 
 **Workflows:**
-- [GIT-AUTOMATION-WORKFLOW.md](./GIT-AUTOMATION-WORKFLOW.md)
-- [GOOGLE-DOCS-WORKFLOW.md](./GOOGLE-DOCS-WORKFLOW.md)
+- [GIT-AUTOMATION-WORKFLOW.md](../../workflows/GIT-AUTOMATION-WORKFLOW.md)
+- [GOOGLE-DOCS-WORKFLOW.md](../../workflows/GOOGLE-DOCS-WORKFLOW.md)
 
 **AI Village:**
-- [AI-ROLE-PROMPTS-ENHANCED.md](./AI-ROLE-PROMPTS-ENHANCED.md)
-- [SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md](../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md)
+- [AI-ROLE-PROMPTS-ENHANCED.md](../old-versions/AI-ROLE-PROMPTS-ENHANCED.md)
+- [SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md](../../../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md)
 
 **Templates:**
-- [component-docs/templates/README.md](./component-docs/templates/README.md)
-- [component-template.mermaid.md](./component-docs/templates/component-template.mermaid.md)
-- [component-template.wireframe.md](./component-docs/templates/component-template.wireframe.md)
-- [component-template.flowchart.md](./component-docs/templates/component-template.flowchart.md)
-- [component-template.api-spec.md](./component-docs/templates/component-template.api-spec.md)
-- [component-template.test-spec.md](./component-docs/templates/component-template.test-spec.md)
-- [component-template.a11y.md](./component-docs/templates/component-template.a11y.md)
+- [component-docs/templates/README.md](../../../../AI-Village-Documentation/README.md)
+- [component-template.mermaid.md](../../templates/component-templates/component-template.mermaid.md)
+- [component-template.wireframe.md](../../templates/component-templates/component-template.wireframe.md)
+- [component-template.flowchart.md](../../templates/component-templates/component-template.flowchart.md)
+- [component-template.api-spec.md](../../templates/component-templates/component-template.api-spec.md)
+- [component-template.test-spec.md](../../templates/component-templates/component-template.test-spec.md)
+- [component-template.a11y.md](../../templates/component-templates/component-template.a11y.md)
 
 **Optional Enhancement:**
-- [SLACK-INTEGRATION-WORKFLOW.md](./SLACK-INTEGRATION-WORKFLOW.md)
+- [SLACK-INTEGRATION-WORKFLOW.md](../../workflows/SLACK-INTEGRATION-WORKFLOW.md)
 
 ---
 

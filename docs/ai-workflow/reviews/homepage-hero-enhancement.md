@@ -10,9 +10,9 @@
 ## Quick Links
 
 - 📊 **Registry:** [PHASE-0-REGISTRY.md](../PHASE-0-REGISTRY.md)
-- 📝 **Prompts:** [AI-ROLE-PROMPTS.md](../AI-ROLE-PROMPTS.md)
-- 🎯 **Process Guide:** [PHASE-0-DESIGN-APPROVAL.md](../PHASE-0-DESIGN-APPROVAL.md)
-- 🔍 **Current State:** [CURRENT-PAGES-ANALYSIS.md](../CURRENT-PAGES-ANALYSIS.md)
+- 📝 **Prompts:** [AI-ROLE-PROMPTS.md](../archive/old-versions/AI-ROLE-PROMPTS.md)
+- 🎯 **Process Guide:** [PHASE-0-DESIGN-APPROVAL.md](../archive/phase-0/PHASE-0-DESIGN-APPROVAL.md)
+- 🔍 **Current State:** [CURRENT-PAGES-ANALYSIS.md](../archive/old-versions/CURRENT-PAGES-ANALYSIS.md)
 - 🎨 **Theme Specs:** [../../current/GALAXY-SWAN-THEME-DOCS.md](../../current/GALAXY-SWAN-THEME-DOCS.md)
 
 ---
@@ -32,7 +32,7 @@
 - Must support video uploads and online training features
 - Keep cyan glow aesthetic (open to refinements)
 
-**Analysis Document:** See [CURRENT-PAGES-ANALYSIS.md](../CURRENT-PAGES-ANALYSIS.md) for full current state wireframe
+**Analysis Document:** See [CURRENT-PAGES-ANALYSIS.md](../archive/old-versions/CURRENT-PAGES-ANALYSIS.md) for full current state wireframe
 
 ---
 

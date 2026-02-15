@@ -265,10 +265,10 @@ See `docs/ai-workflow/component-docs/examples/` for fully completed documentatio
 
 ## 📚 RELATED DOCUMENTATION
 
-- [AI Village Handbook - Section 12.6: Component Documentation Standards](../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md#126-component-documentation-standards)
-- [Phase 0 Design Review System](../PHASE-0-DESIGN-APPROVAL.md)
-- [Component Documentation Examples](./examples/)
-- [CI/CD Documentation Checker](../../../scripts/ci/documentation-completeness-checker.js)
+- [AI Village Handbook - Section 12.6: Component Documentation Standards](../../../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md#126-component-documentation-standards)
+- [Phase 0 Design Review System](../../archive/phase-0/PHASE-0-DESIGN-APPROVAL.md)
+- Component Documentation Examples (`./examples/`)
+- CI/CD Documentation Checker (`../../../scripts/ci/documentation-completeness-checker.js`)
 
 ---
 

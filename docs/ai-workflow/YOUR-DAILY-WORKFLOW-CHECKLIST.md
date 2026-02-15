@@ -928,32 +928,32 @@ Keep it up! Can't wait to see what you accomplish next! 💪🔥
 
 **Read these in order**:
 
-1. **Start here**: [WHERE-ARE-MY-FILES.md](../../client-data/WHERE-ARE-MY-FILES.md)
+1. **Start here**: WHERE-ARE-MY-FILES.md (`../../client-data/WHERE-ARE-MY-FILES.md`)
    - Visual map of all files and folders
    - Quick navigation guide
 
-2. **Client management**: [CREATE-NEW-CLIENT-NOW.md](../../client-data/CREATE-NEW-CLIENT-NOW.md)
+2. **Client management**: CREATE-NEW-CLIENT-NOW.md (`../../client-data/CREATE-NEW-CLIENT-NOW.md`)
    - Step-by-step client creation
    - Master Prompt explanation
 
-3. **Real examples**: [REAL-CLIENT-EXAMPLE-WALKTHROUGHS.md](../../client-data/guides/REAL-CLIENT-EXAMPLE-WALKTHROUGHS.md)
+3. **Real examples**: REAL-CLIENT-EXAMPLE-WALKTHROUGHS.md (`../../client-data/guides/REAL-CLIENT-EXAMPLE-WALKTHROUGHS.md`)
    - 5 detailed client scenarios
    - Learn by example
 
-4. **System overview**: [PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.1.md](../personal-training/PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.1.md)
+4. **System overview**: PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.1.md (`../personal-training/PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.1.md`)
    - Complete system architecture
    - Future capabilities (Phase 1-2)
 
-5. **AI workflows**: [COACH-CORTEX-V3.0-ULTIMATE.md](../COACH-CORTEX-V3.0-ULTIMATE.md)
+5. **AI workflows**: [COACH-CORTEX-V3.0-ULTIMATE.md](COACH-CORTEX-V3.0-ULTIMATE.md)
    - How the AI system works
    - Multi-AI consensus protocols
 
 ### Quick References
 
 **Keep these bookmarked**:
-- [QUICK-REFERENCE-CARD.md](../../client-data/QUICK-REFERENCE-CARD.md) - Print and keep on desk
-- [CLIENT-REGISTRY.md](../../client-data/CLIENT-REGISTRY.md) - Master list of all clients
-- [MASTER-PROMPT-TEMPLATE.json](../../client-data/templates/MASTER-PROMPT-TEMPLATE.json) - Copy for new clients
+- [QUICK-REFERENCE-CARD.md](../../AI-Village-Documentation/QUICK-REFERENCE-CARD.md) - Print and keep on desk
+- CLIENT-REGISTRY.md (`../../client-data/CLIENT-REGISTRY.md`) - Master list of all clients
+- MASTER-PROMPT-TEMPLATE.json (`../../client-data/templates/MASTER-PROMPT-TEMPLATE.json`) - Copy for new clients
 
 ---
 

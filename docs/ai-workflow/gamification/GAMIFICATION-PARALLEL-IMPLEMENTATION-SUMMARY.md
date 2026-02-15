@@ -86,7 +86,7 @@ Both work **in parallel** to build a world-class gamification system.
 
 ---
 
-### **4. [AI-REVIEW-CONSOLIDATED-FEEDBACK.md](AI-REVIEW-CONSOLIDATED-FEEDBACK.md)**
+### **4. [AI-REVIEW-CONSOLIDATED-FEEDBACK.md](../AI-REVIEW-CONSOLIDATED-FEEDBACK.md)**
 **Reference**: Consolidated review from Gemini, Roo Code, ChatGPT
 **Contains**: Critical issues identified, approval status, implementation checklist
 

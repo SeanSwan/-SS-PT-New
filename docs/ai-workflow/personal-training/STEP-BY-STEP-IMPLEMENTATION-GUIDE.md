@@ -21,7 +21,7 @@ You're implementing a privacy-first, AI-powered personal training documentation 
 ## 📋 PHASE 1: FOUNDATION SETUP (30 minutes)
 
 ### ✅ Step 1.1: Review the Client Registry
-**File:** [CLIENT-REGISTRY.md](CLIENT-REGISTRY.md)
+**File:** CLIENT-REGISTRY.md (`CLIENT-REGISTRY.md`)
 
 **What You'll See:**
 - 14 clients with ID numbers (PT-10001 through PT-10014)

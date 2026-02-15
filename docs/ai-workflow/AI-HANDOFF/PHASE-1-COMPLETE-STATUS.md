@@ -21,7 +21,7 @@ Successfully implemented **Phase 1** of the Admin Video Library backend and fixe
 
 **Solution:**
 - ✅ Fixed [START-ALL-MCP-SERVERS.bat](../../../scripts/development/START-ALL-MCP-SERVERS.bat) to call Python launchers
-- ✅ User already created unified [launch.py](../../../backend/mcp_server/launch.py) for all servers
+- ✅ User already created unified [launch.py](../../../archive/pending-deletion/2026-02-13/backend-mcp-server-python/launch.py) for all servers
 - ✅ Documented in [MCP-SERVER-CONFIGURATION-GUIDE.md](../MCP-SERVER-CONFIGURATION-GUIDE.md) (500+ lines)
 - ✅ Created [MCP-SERVER-TESTING-CHECKLIST.md](../MCP-SERVER-TESTING-CHECKLIST.md) (271 lines)
 
@@ -37,7 +37,7 @@ Successfully implemented **Phase 1** of the Admin Video Library backend and fixe
 
 #### **Database Migrations (3 files)**
 
-✅ [20251113000000-create-exercise-videos-table.cjs](../../../backend/migrations/20251113000000-create-exercise-videos-table.cjs) (150 lines)
+✅ 20251113000000-create-exercise-videos-table.cjs (`../../../backend/migrations/20251113000000-create-exercise-videos-table.cjs`) (150 lines)
 - exercise_videos table with soft deletes (deletedAt)
 - Supports YouTube + upload videos
 - HLS streaming metadata (manifest URL, variants)
@@ -47,7 +47,7 @@ Successfully implemented **Phase 1** of the Admin Video Library backend and fixe
 - View tracking (views counter)
 - Tags for search (JSONB GIN index)
 
-✅ [20251113000001-create-video-analytics-table.cjs](../../../backend/migrations/20251113000001-create-video-analytics-table.cjs) (140 lines)
+✅ 20251113000001-create-video-analytics-table.cjs (`../../../backend/migrations/20251113000001-create-video-analytics-table.cjs`) (140 lines)
 - Individual view tracking (not just aggregates)
 - Watch duration and completion percentage
 - Chapter engagement tracking
@@ -55,7 +55,7 @@ Successfully implemented **Phase 1** of the Admin Video Library backend and fixe
 - Context tracking (admin_library, client_dashboard, workout_plan)
 - Soft deletes for historical data preservation
 
-✅ [20251113000002-add-video-library-to-exercise-library.cjs](../../../backend/migrations/20251113000002-add-video-library-to-exercise-library.cjs) (200 lines)
+✅ 20251113000002-add-video-library-to-exercise-library.cjs (`../../../backend/migrations/20251113000002-add-video-library-to-exercise-library.cjs`) (200 lines)
 - Auto-updating video_count trigger
 - primary_video_id (featured video)
 - deletedAt (soft delete alignment)
@@ -191,9 +191,9 @@ ERROR: relation "WorkoutSessions" does not exist
 2. [backend/middleware/adminAuth.mjs](../../../backend/middleware/adminAuth.mjs) - 280 lines
 3. [backend/routes/videoLibraryRoutes.mjs](../../../backend/routes/videoLibraryRoutes.mjs) - 140 lines
 4. [backend/migrations/20250714000001-create-workout-sessions-table.cjs](../../../backend/migrations/20250714000001-create-workout-sessions-table.cjs) - 220 lines
-5. [backend/migrations/20251113000000-create-exercise-videos-table.cjs](../../../backend/migrations/20251113000000-create-exercise-videos-table.cjs) - 150 lines
-6. [backend/migrations/20251113000001-create-video-analytics-table.cjs](../../../backend/migrations/20251113000001-create-video-analytics-table.cjs) - 140 lines
-7. [backend/migrations/20251113000002-add-video-library-to-exercise-library.cjs](../../../backend/migrations/20251113000002-add-video-library-to-exercise-library.cjs) - 200 lines
+5. backend/migrations/20251113000000-create-exercise-videos-table.cjs (`../../../backend/migrations/20251113000000-create-exercise-videos-table.cjs`) - 150 lines
+6. backend/migrations/20251113000001-create-video-analytics-table.cjs (`../../../backend/migrations/20251113000001-create-video-analytics-table.cjs`) - 140 lines
+7. backend/migrations/20251113000002-add-video-library-to-exercise-library.cjs (`../../../backend/migrations/20251113000002-add-video-library-to-exercise-library.cjs`) - 200 lines
 8. [docs/ai-workflow/VIDEO-LIBRARY-BACKEND-DEPLOYMENT-CHECKLIST.md](../VIDEO-LIBRARY-BACKEND-DEPLOYMENT-CHECKLIST.md) - 650 lines
 9. [docs/ai-workflow/MCP-SERVER-CONFIGURATION-GUIDE.md](../MCP-SERVER-CONFIGURATION-GUIDE.md) - 500 lines
 10. [docs/ai-workflow/MCP-SERVER-TESTING-CHECKLIST.md](../MCP-SERVER-TESTING-CHECKLIST.md) - 271 lines

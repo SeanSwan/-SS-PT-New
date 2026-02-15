@@ -202,7 +202,7 @@ When exporting Google Docs to Markdown:
 2. **Bold:** Export as `**bold**`
 3. **Code blocks:** Export as ` ```code``` `
 4. **Tables:** Export as Markdown tables (use Google Docs → Markdown addon)
-5. **Links:** Export as `[text](url)`
+5. **Links:** Export as `text (`url`)`
 6. **Comments:** Export as `<!-- AI feedback: ... -->`
 
 **Tools:**
@@ -376,8 +376,8 @@ DECISIONS MADE:
 ## 📚 RELATED DOCUMENTATION
 
 - [Git Automation Workflow](./GIT-AUTOMATION-WORKFLOW.md)
-- [Component Documentation Standards](../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md#126-component-documentation-standards)
-- [Phase 0 Design Review System](./PHASE-0-DESIGN-APPROVAL.md)
+- [Component Documentation Standards](../../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md#126-component-documentation-standards)
+- [Phase 0 Design Review System](../archive/phase-0/PHASE-0-DESIGN-APPROVAL.md)
 
 ---
 

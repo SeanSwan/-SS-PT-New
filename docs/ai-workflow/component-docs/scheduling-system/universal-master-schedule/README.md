@@ -105,7 +105,7 @@ UniversalMasterSchedule/
 
 - [Wireframe Specification](./universal-master-schedule.wireframe.md)
 - [API Specification](./universal-master-schedule.api-spec.md)
-- [UX/UI Design Protocol](/docs/ai-workflow/blueprints/UX-UI-DESIGN-PROTOCOL.md)
+- [UX/UI Design Protocol](../../../blueprints/UX-UI-DESIGN-PROTOCOL.md)
 
 ---
 

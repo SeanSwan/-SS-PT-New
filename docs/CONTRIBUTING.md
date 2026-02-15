@@ -114,7 +114,7 @@ mv docs/current/OLD_DOCUMENT.md docs/archive/
 - Move old doc to archive
 - Create new doc in current
 - Update index.md
-- Add note in archived doc: "**Status: ARCHIVED** - Replaced by [New Doc](../current/NEW_DOCUMENT.md)"
+- Add note in archived doc: "**Status: ARCHIVED** - Replaced by New Doc (`../current/NEW_DOCUMENT.md`)"
 
 ### 3. Fix/Enhancement is Applied
 
@@ -183,8 +183,8 @@ Content here...
 ---
 
 ## Related Documentation
-- [Related Doc 1](path/to/doc1.md)
-- [Related Doc 2](path/to/doc2.md)
+- Related Doc 1 (`path/to/doc1.md`)
+- Related Doc 2 (`path/to/doc2.md`)
 
 ---
 
@@ -264,7 +264,7 @@ We use `markdown-link-check` in our CI pipeline to validate all documentation li
 npm run check-docs-links
 
 # Output will show broken links:
-# ❌ docs/index.md:42 - [Current Architecture](WRONG_PATH.md)
+# ❌ docs/index.md:42 - Current Architecture (`WRONG_PATH.md`)
 # ✅ Should be: [Current Architecture](current/CURRENT_ARCHITECTURE.md)
 ```
 
@@ -369,7 +369,7 @@ Use this checklist when adding or updating documentation:
    ```markdown
    ### Current Documentation
    ...
-   - **[Real-time Collaboration](current/REALTIME_COLLABORATION.md)** - WebSocket-based collaboration system with live updates
+   - **Real-time Collaboration (`current/REALTIME_COLLABORATION.md`)** - WebSocket-based collaboration system with live updates
    ```
 4. Create component README: `frontend/src/components/Collaboration/README.md`
 5. Link them together
@@ -391,7 +391,7 @@ Use this checklist when adding or updating documentation:
    # MUI Elimination Guide
 
    > **Status: ARCHIVED** (2025-10-27)
-   > This migration is complete. For current styling practices, see [UI Kit Migration Guide](../current/UI-KIT-MIGRATION-GUIDE.md).
+   > This migration is complete. For current styling practices, see [UI Kit Migration Guide](current/UI-KIT-MIGRATION-GUIDE.md).
    ```
 3. Update `docs/index.md`:
    - Move from "Current Documentation" to "Archived Documentation"

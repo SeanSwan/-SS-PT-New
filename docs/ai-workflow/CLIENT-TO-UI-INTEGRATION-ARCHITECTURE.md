@@ -765,8 +765,8 @@ export const LivingConstellation: React.FC<LivingConstellationProps> = ({
 
 - [Design Master Prompt v3.0](DESIGN-MASTER-PROMPT-ANALYSIS.md) - Base design system
 - [Personal Training Master Blueprint v3.0](personal-training/PERSONAL-TRAINING-MASTER-BLUEPRINT-V3.0.md) - Client data system
-- [Master Prompt JSON Schema v3.0](../client-data/templates/MASTER-PROMPT-SCHEMA-v3.0.json) - Data validation
-- [Security & Privacy Implementation](../client-data/guides/SECURITY-PRIVACY-IMPLEMENTATION.md) - Data protection
+- Master Prompt JSON Schema v3.0 (`../client-data/templates/MASTER-PROMPT-SCHEMA-v3.0.json`) - Data validation
+- Security & Privacy Implementation (`../client-data/guides/SECURITY-PRIVACY-IMPLEMENTATION.md`) - Data protection
 
 ---
 

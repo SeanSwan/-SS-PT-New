@@ -4597,9 +4597,9 @@ For deeper dives, see:
 ### Phase 0 Design Review System:
 - [docs/ai-workflow/README.md](../docs/ai-workflow/README.md) - System overview
 - [docs/ai-workflow/PHASE-0-REGISTRY.md](../docs/ai-workflow/PHASE-0-REGISTRY.md) - Central index (start here)
-- [docs/ai-workflow/PHASE-0-DESIGN-APPROVAL.md](../docs/ai-workflow/PHASE-0-DESIGN-APPROVAL.md) - Process guide
+- [docs/ai-workflow/PHASE-0-DESIGN-APPROVAL.md](../docs/ai-workflow/archive/phase-0/PHASE-0-DESIGN-APPROVAL.md) - Process guide
 - [docs/ai-workflow/NEW-FILE-STRUCTURE-GUIDE.md](../docs/ai-workflow/NEW-FILE-STRUCTURE-GUIDE.md) - How new system works
-- [docs/ai-workflow/AI-ROLE-PROMPTS.md](../docs/ai-workflow/AI-ROLE-PROMPTS.md) - Copy-paste prompts for all AIs
+- [docs/ai-workflow/AI-ROLE-PROMPTS.md](../docs/ai-workflow/archive/old-versions/AI-ROLE-PROMPTS.md) - Copy-paste prompts for all AIs
 
 ---
 

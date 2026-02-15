@@ -10,22 +10,22 @@
 **Please use the new file structure instead:**
 
 ### For Active Reviews:
-1. **Start Here:** [PHASE-0-REGISTRY.md](PHASE-0-REGISTRY.md) - Central index of all reviews
+1. **Start Here:** [PHASE-0-REGISTRY.md](../../PHASE-0-REGISTRY.md) - Central index of all reviews
 2. **Find Your Feature:** `reviews/[feature-name].md` - One file per feature
-3. **Use Template:** [templates/PHASE-0-REVIEW-TEMPLATE.md](templates/PHASE-0-REVIEW-TEMPLATE.md) - For new reviews
+3. **Use Template:** [templates/PHASE-0-REVIEW-TEMPLATE.md](../../templates/PHASE-0-REVIEW-TEMPLATE.md) - For new reviews
 
 ### For Completed Reviews:
 - **Archives:** `archive/completed-YYYY-MM.md` - Organized by month
 
 ### For Process Guidance:
-- **How It Works:** [NEW-FILE-STRUCTURE-GUIDE.md](NEW-FILE-STRUCTURE-GUIDE.md) - Complete guide
-- **Phase 0 Process:** [PHASE-0-DESIGN-APPROVAL.md](PHASE-0-DESIGN-APPROVAL.md) - Design approval rules
+- **How It Works:** [NEW-FILE-STRUCTURE-GUIDE.md](../../NEW-FILE-STRUCTURE-GUIDE.md) - Complete guide
+- **Phase 0 Process:** [PHASE-0-DESIGN-APPROVAL.md](../phase-0/PHASE-0-DESIGN-APPROVAL.md) - Design approval rules
 
 ---
 
 ## 📊 Current Active Reviews
 
-See [PHASE-0-REGISTRY.md](PHASE-0-REGISTRY.md) for up-to-date status.
+See [PHASE-0-REGISTRY.md](../../PHASE-0-REGISTRY.md) for up-to-date status.
 
 **Example (as of 2025-10-28):**
 - **Homepage Hero Enhancement:** `reviews/homepage-hero-enhancement.md` (3/5 approvals)
@@ -37,8 +37,8 @@ See [PHASE-0-REGISTRY.md](PHASE-0-REGISTRY.md) for up-to-date status.
 The content below is kept for historical reference. **Do not add new reviews here.**
 
 For the Homepage Hero Enhancement review that was extracted from this file, see:
-- **Current location:** [reviews/homepage-hero-enhancement.md](reviews/homepage-hero-enhancement.md)
-- **Registry entry:** [PHASE-0-REGISTRY.md](PHASE-0-REGISTRY.md)
+- **Current location:** [reviews/homepage-hero-enhancement.md](../../reviews/homepage-hero-enhancement.md)
+- **Registry entry:** [PHASE-0-REGISTRY.md](../../PHASE-0-REGISTRY.md)
 
 ---
 
@@ -68,10 +68,10 @@ For the Homepage Hero Enhancement review that was extracted from this file, see:
 
 ## What to Do If You End Up Here
 
-1. **Go to:** [PHASE-0-REGISTRY.md](PHASE-0-REGISTRY.md)
+1. **Go to:** [PHASE-0-REGISTRY.md](../../PHASE-0-REGISTRY.md)
 2. **Find your feature** in the registry table
 3. **Click the link** to the feature's review file
-4. **If starting new review:** Use [templates/PHASE-0-REVIEW-TEMPLATE.md](templates/PHASE-0-REVIEW-TEMPLATE.md)
+4. **If starting new review:** Use [templates/PHASE-0-REVIEW-TEMPLATE.md](../../templates/PHASE-0-REVIEW-TEMPLATE.md)
 
 ---
 

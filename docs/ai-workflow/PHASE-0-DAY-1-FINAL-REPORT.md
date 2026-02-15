@@ -339,7 +339,7 @@ build: {
 
 Two CLIENT-REGISTRY.md files contain **real client names** (Personally Identifiable Information) stored in plain text:
 
-**File 1**: [docs/ai-workflow/personal-training/CLIENT-REGISTRY.md](C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\docs\ai-workflow\personal-training\CLIENT-REGISTRY.md)
+**File 1**: docs/ai-workflow/personal-training/CLIENT-REGISTRY.md (`C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\docs\ai-workflow\personal-training\CLIENT-REGISTRY.md`)
 - Contains real names of 11+ active clients
 - Links real names to "Spirit Names" and client IDs
 - Includes program details and medical notes
@@ -353,7 +353,7 @@ Two CLIENT-REGISTRY.md files contain **real client names** (Personally Identifia
 - **Special Notes:** Ankle stability work, naturally thick build
 ```
 
-**File 2**: [client-data/CLIENT-REGISTRY.md](C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\client-data\CLIENT-REGISTRY.md)
+**File 2**: client-data/CLIENT-REGISTRY.md (`C:\Users\BigotSmasher\Desktop\quick-pt\SS-PT\client-data\CLIENT-REGISTRY.md`)
 - Template file (no real data yet - SAFE)
 - Uses placeholder "[Example Client]"
 - Contains tier structure ($50/$125/$200 monthly pricing)

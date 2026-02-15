@@ -458,8 +458,8 @@ router.get(
 ## Files Modified
 
 ### Bug Fixes
-- [backend/services/youtubeValidationService.mjs](../../backend/services/youtubeValidationService.mjs:35) - Fixed Redis import
-- [backend/routes/videoLibraryRoutes.mjs](../../backend/routes/videoLibraryRoutes.mjs:43) - Fixed auth middleware import
+- backend/services/youtubeValidationService.mjs (`../../backend/services/youtubeValidationService.mjs:35`) - Fixed Redis import
+- backend/routes/videoLibraryRoutes.mjs (`../../backend/routes/videoLibraryRoutes.mjs:43`) - Fixed auth middleware import
 
 ### Testing Utilities Created
 - [backend/test-video-library.mjs](../../backend/test-video-library.mjs) - Comprehensive test suite
