@@ -1,6 +1,14 @@
 import React, { useRef, useEffect, useState } from "react";
 import styled, { keyframes, css } from "styled-components";
-import { motion, useInView, useAnimation } from "framer-motion";
+import { motion, useInView } from "framer-motion";
+
+// Reduced-motion helper — disables CSS animations for users who prefer it
+const reducedMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
 import GlowButton from "../../components/ui/buttons/GlowButton";
 
 // Import Header Component
@@ -138,6 +146,7 @@ const Title = styled(motion.h2)`
     color: transparent;
     animation: ${shimmer} 4s linear infinite;
     font-weight: 400;
+    ${reducedMotion}
   }
   
   &:after {
@@ -289,6 +298,7 @@ const ImageWrapper = styled(motion.div)`
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
   animation: ${pulseGlow} 4s infinite ease-in-out;
+  ${reducedMotion}
   width: 100%;
   max-width: 450px; /* Set maximum width constraint */
   margin: 0 auto; /* Center the component if smaller than parent */
@@ -346,6 +356,7 @@ const TopLeftElement = styled(OrnamentalElement)`
   left: -50px;
   background: radial-gradient(circle at center, rgba(0, 255, 255, 0.1) 0%, transparent 70%);
   animation: ${float} 7s ease-in-out infinite;
+  ${reducedMotion}
 `;
 
 const BottomRightElement = styled(OrnamentalElement)`
@@ -353,6 +364,7 @@ const BottomRightElement = styled(OrnamentalElement)`
   right: -50px;
   background: radial-gradient(circle at center, rgba(120, 81, 169, 0.1) 0%, transparent 70%);
   animation: ${float} 5s ease-in-out infinite;
+  ${reducedMotion}
 `;
 
 const StatsContainer = styled(motion.div)`
@@ -542,6 +554,7 @@ const TimelineYear = styled.div`
     border-radius: 50%;
     border: 1px dashed rgba(255, 255, 255, 0.3);
     animation: ${spin} 10s linear infinite;
+    ${reducedMotion}
   }
   
   @media (max-width: 768px) {
@@ -709,7 +722,8 @@ const PhilosophyIcon = styled.div`
   position: relative;
   z-index: 1;
   animation: ${breathe} 3s infinite ease-in-out;
-  
+  ${reducedMotion}
+
   &:before {
     content: "";
     position: absolute;
@@ -717,6 +731,7 @@ const PhilosophyIcon = styled.div`
     border-radius: 50%;
     border: 1px dashed rgba(0, 255, 255, 0.3);
     animation: ${spin} 15s linear infinite;
+    ${reducedMotion}
   }
   
   svg {
@@ -840,29 +855,13 @@ const CertificationBadge = styled(motion.div)`
 
 // ======================= 🚀 AboutContent Component =======================
 const AboutContent = () => {
-  // References for scroll animations
-  const titleRef = useRef(null);
+  // References for scroll-triggered functional animations (counter + typing)
   const textRef = useRef(null);
-  const imageRef = useRef(null);
   const statsRef = useRef(null);
-  const timelineRef = useRef(null);
-  const philosophyRef = useRef(null);
-  
-  // Determine if elements are in view
-  const titleInView = useInView(titleRef, { once: true });
+
+  // InView hooks — only kept for counter and typing animations
   const textInView = useInView(textRef, { once: true });
-  const imageInView = useInView(imageRef, { once: true });
   const statsInView = useInView(statsRef, { once: true });
-  const timelineInView = useInView(timelineRef, { once: true });
-  const philosophyInView = useInView(philosophyRef, { once: true });
-  
-  // Animation controls
-  const titleControls = useAnimation();
-  const textControls = useAnimation();
-  const imageControls = useAnimation();
-  const statsControls = useAnimation();
-  const timelineControls = useAnimation();
-  const philosophyControls = useAnimation();
   
   // State for number counter animation
   const [countedStats, setCountedStats] = useState({
@@ -919,57 +918,6 @@ const AboutContent = () => {
     }
   }, [textInView, typedText, fullText]);
   
-  // Trigger animations when elements come into view
-  useEffect(() => {
-    if (titleInView) {
-      titleControls.start({
-        opacity: 1,
-        y: 0,
-        transition: { duration: 0.8, ease: "easeOut" }
-      });
-    }
-    
-    if (textInView) {
-      textControls.start({
-        opacity: 1,
-        x: 0,
-        transition: { duration: 0.8, ease: "easeOut" }
-      });
-    }
-    
-    if (imageInView) {
-      imageControls.start({
-        opacity: 1,
-        x: 0,
-        transition: { duration: 0.8, ease: "easeOut", delay: 0.2 }
-      });
-    }
-    
-    if (statsInView) {
-      statsControls.start("visible");
-    }
-    
-    if (timelineInView) {
-      timelineControls.start("visible");
-    }
-    
-    if (philosophyInView) {
-      philosophyControls.start("visible");
-    }
-  }, [
-    titleInView, 
-    textInView, 
-    imageInView, 
-    statsInView, 
-    timelineInView,
-    philosophyInView,
-    titleControls, 
-    textControls, 
-    imageControls, 
-    statsControls,
-    timelineControls,
-    philosophyControls
-  ]);
 
   // Timeline data
   const timeline = [
@@ -1046,10 +994,10 @@ const AboutContent = () => {
       </VideoBackground>
       
       <Container>
-        <TitleContainer 
-          ref={titleRef}
+        <TitleContainer
           initial={{ opacity: 0, y: 30 }}
-          animate={titleControls}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
         >
           <Title>
             About <span>SwanStudios</span>
@@ -1064,7 +1012,8 @@ const AboutContent = () => {
           <TextContent
             ref={textRef}
             initial={{ opacity: 0, x: -30 }}
-            animate={textControls}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <p>
               At <strong>SwanStudios</strong>, we don't believe in gimmicks—just real, <strong>results-driven training</strong> designed to transform your body and mindset. With over <strong>25 years of hands-on experience</strong>, we've built a system that is <strong>proven to work</strong> for anyone willing to commit.
@@ -1152,9 +1101,9 @@ const AboutContent = () => {
           </TextContent>
 
           <ImageContainer
-            ref={imageRef}
             initial={{ opacity: 0, x: 30 }}
-            animate={imageControls}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
           >
             <ImageWrapper>
               <ImageContent
@@ -1178,7 +1127,7 @@ const AboutContent = () => {
         <StatsContainer
           ref={statsRef}
           initial="hidden"
-          animate={statsControls}
+          animate="visible"
           variants={{
             hidden: { opacity: 0 },
             visible: {
@@ -1210,9 +1159,8 @@ const AboutContent = () => {
         
         {/* Philosophy Cards Section */}
         <PhilosophyContainer
-          ref={philosophyRef}
           initial="hidden"
-          animate={philosophyControls}
+          animate="visible"
           variants={{
             hidden: { opacity: 0 },
             visible: {
@@ -1253,9 +1201,8 @@ const AboutContent = () => {
         
         {/* Timeline Section */}
         <TimelineSection
-          ref={timelineRef}
           initial="hidden"
-          animate={timelineControls}
+          animate="visible"
           variants={{
             hidden: { opacity: 0 },
             visible: {

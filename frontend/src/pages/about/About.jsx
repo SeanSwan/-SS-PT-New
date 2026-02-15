@@ -1,6 +1,14 @@
 import React, { useEffect, useState, useRef } from "react";
 import styled, { keyframes, css } from "styled-components";
-import { motion, useAnimation, useInView } from "framer-motion";
+import { motion } from "framer-motion";
+
+// Shared reduced-motion helper
+const reducedMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
 import { Helmet } from "react-helmet-async";
 
 // Import enhanced components
@@ -111,7 +119,7 @@ const AboutPage = styled(motion.div)`
   }
 `;
 
-// Premium decorative orb elements with improved animation styling
+// Premium decorative orb elements — hidden on mobile to reduce GPU load
 const TopLeftOrb = styled.div`
   position: fixed;
   top: 10%;
@@ -125,6 +133,8 @@ const TopLeftOrb = styled.div`
   z-index: 0;
   pointer-events: none;
   animation: ${float} 15s infinite ease-in-out;
+  ${reducedMotion}
+  @media (max-width: 768px) { display: none; }
 `;
 
 const BottomRightOrb = styled.div`
@@ -140,6 +150,8 @@ const BottomRightOrb = styled.div`
   z-index: 0;
   pointer-events: none;
   animation: ${float} 18s infinite ease-in-out reverse;
+  ${reducedMotion}
+  @media (max-width: 768px) { display: none; }
 `;
 
 const CenterOrb = styled.div`
@@ -161,6 +173,8 @@ const CenterOrb = styled.div`
   z-index: 0;
   pointer-events: none;
   animation: ${breathe} 10s infinite ease-in-out;
+  ${reducedMotion}
+  @media (max-width: 768px) { display: none; }
 `;
 
 // Enhanced navigation dots for section scrolling
@@ -189,14 +203,17 @@ const NavDot = styled.button`
   transition: all 0.3s ease;
   cursor: pointer;
   position: relative;
+  /* Expand touch target to 44px while keeping visual dot small */
+  padding: 16px;
+  background-clip: content-box;
   
   &:hover {
     transform: scale(1.2);
   }
   
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.5);
+  &:focus-visible {
+    outline: 2px solid rgba(0, 255, 255, 0.8);
+    outline-offset: 2px;
   }
   
   &:after {
@@ -265,7 +282,8 @@ const ScrollToTopButton = styled(motion.button)`
   transition: all 0.3s ease;
   overflow: hidden;
   animation: ${pulseGlow} 4s infinite ease-in-out;
-  
+  ${reducedMotion}
+
   /* Gradient border effect */
   &:before {
     content: "";
@@ -302,11 +320,11 @@ const ScrollToTopButton = styled(motion.button)`
     }
   }
   
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 255, 255, 0.5);
+  &:focus-visible {
+    outline: 2px solid rgba(0, 255, 255, 0.8);
+    outline-offset: 2px;
   }
-  
+
   @media (max-width: 768px) {
     width: 45px;
     height: 45px;
@@ -441,9 +459,8 @@ const FloatingCTAButtons = styled.div`
 // ======================= 🚀 Enhanced About Component =======================
 
 export default function About() {
-  // Animation controls
-  const controls = useAnimation();
-  const ctaBarControls = useAnimation();
+  // CTA bar animation state
+  const [showCTABar, setShowCTABar] = useState(false);
   
   // Section refs for navigation
   const heroRef = useRef(null);
@@ -471,17 +488,7 @@ export default function About() {
     }
     
     // Show/hide floating CTA bar
-    if (scrollPosition > window.innerHeight * 0.8) {
-      ctaBarControls.start({
-        y: 0,
-        transition: { duration: 0.5, ease: "easeOut" }
-      });
-    } else {
-      ctaBarControls.start({
-        y: "100%",
-        transition: { duration: 0.5, ease: "easeIn" }
-      });
-    }
+    setShowCTABar(scrollPosition > window.innerHeight * 0.8);
     
     // Determine active section
     const heroRect = heroRef.current?.getBoundingClientRect();
@@ -518,41 +525,20 @@ export default function About() {
   
   // Initialize scroll listener and handle page load
   useEffect(() => {
-    // Add a small delay to ensure CSS is properly applied
-    setTimeout(() => {
-      document.body.style.margin = "0";
-      document.body.style.padding = "0";
-      document.body.style.overflow = "hidden";
-      document.documentElement.style.margin = "0";
-      document.documentElement.style.padding = "0";
-      document.documentElement.style.overflow = "hidden";
-    }, 0);
-    
-    // Simulate loading (remove this in production and use real loading logic)
+    // Brief loading state then reveal
     const timer = setTimeout(() => {
       setIsLoading(false);
-      document.body.style.overflow = "auto";
-      document.documentElement.style.overflow = "auto";
-      
-      controls.start({
-        opacity: 1,
-        y: 0,
-        transition: { 
-          duration: 0.8, 
-          ease: "easeOut"
-        }
-      });
     }, 800);
-    
+
     // Add scroll event listener
     window.addEventListener('scroll', handleScroll);
-    
+
     // Cleanup
     return () => {
       window.removeEventListener('scroll', handleScroll);
       clearTimeout(timer);
     };
-  }, [controls]);
+  }, []);
   
   return (
     <PageWrapper>
@@ -646,9 +632,10 @@ export default function About() {
       </NavDotsContainer>
       
       {/* Main Content */}
-      <AboutPage 
+      <AboutPage
         initial={{ opacity: 0, y: 20 }}
-        animate={controls}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8, ease: "easeOut", delay: 0.8 }}
       >
         {/* Hero Section */}
         <div ref={heroRef} id="hero-section">
@@ -683,7 +670,8 @@ export default function About() {
         {/* Floating CTA Bar */}
         <FloatingCTABar
           initial={{ y: "100%" }}
-          animate={ctaBarControls}
+          animate={{ y: showCTABar ? 0 : "100%" }}
+          transition={{ duration: 0.5, ease: showCTABar ? "easeOut" : "easeIn" }}
         >
           <FloatingCTAText>
             Ready to transform your fitness journey? <span>Join SwanStudios today!</span>
