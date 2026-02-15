@@ -1,6 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
-import styled, { keyframes } from "styled-components";
-import { motion, useAnimation, useInView } from "framer-motion";
+import styled, { keyframes, css } from "styled-components";
+import { motion } from "framer-motion";
+
+const reducedMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
 // Import GlowButton component
 import GlowButton from "../../components/ui/buttons/GlowButton";
 
@@ -463,10 +470,7 @@ const AwardBadge = styled(motion.div)`
 `;
 
 export default function Hero() {
-  const videoRef = useRef(null);
-  const contentRef = useRef(null);
-  const controls = useAnimation();
-  const isInView = useInView(contentRef, { once: false });
+  const videoRef = useRef<HTMLVideoElement>(null);
   
   // Split the tagline for word-by-word animation
   const taglineText = "Achieve Your Best Self: Training Designed For You";
@@ -479,29 +483,17 @@ export default function Hero() {
     delay: `${Math.random() * 2}s`
   })));
   
-  // Ensure video plays properly and fills container
+  // Ensure video plays properly
   useEffect(() => {
     const video = videoRef.current;
     if (video) {
-      video.play().catch(error => {
-        console.log("Video autoplay was prevented:", error);
-        
-        // Add event listener for user interaction to play video
+      video.play().catch(() => {
         document.addEventListener('click', () => {
-          video.play().catch(e => console.log(e));
+          video.play().catch(() => {});
         }, { once: true });
       });
     }
   }, []);
-  
-  // Animation for content when in view
-  useEffect(() => {
-    if (isInView) {
-      controls.start('visible');
-    } else {
-      controls.start('hidden');
-    }
-  }, [controls, isInView]);
   
   // Premium animation variants with enhanced transitions
   const containerVariants = {
@@ -580,10 +572,9 @@ export default function Hero() {
 
       {/* Luxury content section with glass morphism effect */}
       <Content
-        ref={contentRef}
         variants={containerVariants}
         initial="hidden"
-        animate={controls}
+        animate="visible"
       >
         {/* Animated logo with glow effect */}
         <LogoContainer variants={itemVariants}>
@@ -651,6 +642,7 @@ export default function Hero() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5, duration: 0.5 }}
+        aria-hidden="true"
       >
         <div className="scroll-text">Scroll to explore</div>
         <div className="mouse">

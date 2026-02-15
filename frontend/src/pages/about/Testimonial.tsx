@@ -1,5 +1,13 @@
 import React, { forwardRef } from "react";
-import styled, { keyframes } from "styled-components";
+import styled, { keyframes, css } from "styled-components";
+
+// Reduced-motion helper
+const reducedMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
 import { motion } from "framer-motion";
 
 /*
@@ -117,6 +125,7 @@ const ImageContainer = styled.div`
     z-index: -1;
     opacity: 0.7;
     animation: ${pulseGlow} 4s infinite ease-in-out;
+    ${reducedMotion}
   }
 `;
 
@@ -247,6 +256,7 @@ const Star = styled.span.withConfig({
   transition: all 0.3s ease;
   animation: ${float} 3s infinite ease-in-out;
   animation-delay: ${props => props.index * 0.1}s;
+  ${reducedMotion}
   
   ${TestimonialCard}:hover & {
     transform: ${props => props.filled ? 'scale(1.2)' : 'scale(1)'};
@@ -319,9 +329,9 @@ const Testimonial = forwardRef<HTMLDivElement, TestimonialProps>((props, ref) =>
       
       <TestimonialText>{text}</TestimonialText>
       
-      <RatingContainer>
+      <RatingContainer role="img" aria-label={`${rating} out of 5 stars`}>
         {[1, 2, 3, 4, 5].map((star, index) => (
-          <Star key={star} filled={star <= rating} index={index}>
+          <Star key={star} filled={star <= rating} index={index} aria-hidden="true">
             ★
           </Star>
         ))}

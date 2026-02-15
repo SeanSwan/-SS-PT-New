@@ -1,6 +1,14 @@
-import React, { useRef, useEffect } from "react";
-import styled, { keyframes } from "styled-components";
-import { motion, useAnimation, useInView } from "framer-motion";
+import React from "react";
+import styled, { keyframes, css } from "styled-components";
+import { motion } from "framer-motion";
+
+// Reduced-motion helper — disables CSS animations for users who prefer it
+const reducedMotion = css`
+  @media (prefers-reduced-motion: reduce) {
+    animation: none !important;
+    transition: none !important;
+  }
+`;
 import Testimonial from "./Testimonial";
 import GlowButton from "../../components/ui/buttons/GlowButton";
 
@@ -81,6 +89,11 @@ const DecorativeOrb = styled.div`
   opacity: 0.5;
   z-index: 0;
   animation: ${pulse} 8s infinite ease-in-out;
+  ${reducedMotion}
+
+  @media (max-width: 768px) {
+    display: none;
+  }
 `;
 
 // Section header with centered text
@@ -171,8 +184,9 @@ const TitleHighlight = styled.span`
     background: linear-gradient(90deg, #4a00e0, #8e2de2, #00ffff, #8e2de2);
     background-size: 200% auto;
     animation: ${shimmer} 3s linear infinite;
+    ${reducedMotion}
   }
-  
+
   @media (max-width: 768px) {
     font-size: 1.75rem;
   }
@@ -255,8 +269,9 @@ const FeaturedImage = styled.div`
     z-index: -1;
     opacity: 0.7;
     animation: ${pulseGlow} 4s infinite ease-in-out;
+    ${reducedMotion}
   }
-  
+
   img {
     width: 100%;
     height: 100%;
@@ -455,25 +470,6 @@ interface TestimonialData {
 
 // ======================= 🚀 TestimonialSection Component =======================
 export default function FixedTestimonialSection() {
-  // References for scroll animations
-  const sectionRef = useRef<HTMLElement>(null);
-  const headerRef = useRef<HTMLDivElement>(null);
-  const featuredRef = useRef<HTMLDivElement>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
-  const ctaRef = useRef<HTMLDivElement>(null);
-  
-  // Animation controls
-  const headerControls = useAnimation();
-  const featuredControls = useAnimation();
-  const gridControls = useAnimation();
-  const ctaControls = useAnimation();
-  
-  // In-view detection
-  const isHeaderInView = useInView(headerRef, { once: true, amount: 0.3 });
-  const isFeaturedInView = useInView(featuredRef, { once: true, amount: 0.3 });
-  const isGridInView = useInView(gridRef, { once: true, amount: 0.3 });
-  const isCTAInView = useInView(ctaRef, { once: true, amount: 0.3 });
-  
   // Testimonials data
   const testimonials: TestimonialData[] = [
     {
@@ -505,34 +501,6 @@ export default function FixedTestimonialSection() {
       rating: 5
     }
   ];
-
-  // Start animations when elements come into view
-  useEffect(() => {
-    if (isHeaderInView) {
-      headerControls.start("visible");
-    }
-    
-    if (isFeaturedInView) {
-      featuredControls.start("visible");
-    }
-    
-    if (isGridInView) {
-      gridControls.start("visible");
-    }
-    
-    if (isCTAInView) {
-      ctaControls.start("visible");
-    }
-  }, [
-    isHeaderInView, 
-    isFeaturedInView, 
-    isGridInView, 
-    isCTAInView,
-    headerControls, 
-    featuredControls, 
-    gridControls,
-    ctaControls
-  ]);
 
   // Animation variants
   const fadeIn = {
@@ -580,7 +548,7 @@ export default function FixedTestimonialSection() {
   };
 
   return (
-    <TestimonialSectionContainer ref={sectionRef} id="testimonials-section">
+    <TestimonialSectionContainer id="testimonials-section">
       {/* Decorative Elements */}
       <DecorativeOrb 
         style={{ 
@@ -604,10 +572,9 @@ export default function FixedTestimonialSection() {
       />
 
       {/* Header Section */}
-      <SectionHeader 
-        ref={headerRef}
+      <SectionHeader
         initial="hidden"
-        animate={headerControls}
+        animate="visible"
         variants={fadeIn}
       >
         <Title>What Our Clients Say</Title>
@@ -618,10 +585,10 @@ export default function FixedTestimonialSection() {
       </SectionHeader>
       
       {/* Featured Testimonial */}
-      <div ref={featuredRef}>
-        <FeaturedTitle 
+      <div>
+        <FeaturedTitle
           initial="hidden"
-          animate={featuredControls}
+          animate="visible"
           variants={fadeIn}
         >
           <TitleText>
@@ -632,7 +599,7 @@ export default function FixedTestimonialSection() {
         
         <FeaturedCard
           initial="hidden"
-          animate={featuredControls}
+          animate="visible"
           variants={fadeIn}
         >
           <FeaturedContent>
@@ -646,9 +613,9 @@ export default function FixedTestimonialSection() {
           <div className="quote">
           My journey with SwanStudios began after years of trying everything else. Their science-based approach and personalized attention completely changed my relationship with fitness. In just six months, I've surpassed goals I never thought possible. The trainers here don't just help you look better—they teach you how to move better, feel better, and live better.
           </div>
-          <div className="stars">
+          <div className="stars" role="img" aria-label="5 out of 5 stars">
           {[1, 2, 3, 4, 5].map((star) => (
-          <div key={star} className="star">★</div>
+          <div key={star} className="star" aria-hidden="true">★</div>
           ))}
           </div>
           </FeaturedText>
@@ -657,10 +624,10 @@ export default function FixedTestimonialSection() {
       </div>
       
       {/* Community Testimonials in T-Shape */}
-      <div ref={gridRef}>
+      <div>
         <TShapedGrid
           initial="hidden"
-          animate={gridControls}
+          animate="visible"
           variants={staggered}
         >
           {testimonials.map((testimonial, index) => (
@@ -682,9 +649,8 @@ export default function FixedTestimonialSection() {
       
       {/* CTA Section */}
       <CTAContainer
-        ref={ctaRef}
         initial="hidden"
-        animate={ctaControls}
+        animate="visible"
         variants={fadeIn}
       >
         <h3>
