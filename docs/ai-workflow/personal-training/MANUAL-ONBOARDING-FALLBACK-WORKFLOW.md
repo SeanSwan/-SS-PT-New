@@ -522,8 +522,8 @@ ORDER BY "createdAt" DESC;
 
 **Questions about manual onboarding?**
 - Docs: [ONBOARDING-TO-DATABASE-PIPELINE-COMPLETE.md](../ONBOARDING-TO-DATABASE-PIPELINE-COMPLETE.md)
-- Schema: [MASTER-PROMPT-SCHEMA-v3.0.json](../../../client-data/templates/MASTER-PROMPT-SCHEMA-v3.0.json)
-- Template: [MASTER-PROMPT-TEMPLATE.json](../../../client-data/templates/MASTER-PROMPT-TEMPLATE.json)
+- Schema: MASTER-PROMPT-SCHEMA-v3.0.json (`../../../client-data/templates/MASTER-PROMPT-SCHEMA-v3.0.json`)
+- Template: MASTER-PROMPT-TEMPLATE.json (`../../../client-data/templates/MASTER-PROMPT-TEMPLATE.json`)
 
 **Report issues:**
 - Database errors: Check PostgreSQL logs

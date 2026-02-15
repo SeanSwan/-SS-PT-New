@@ -486,9 +486,9 @@ git checkout new-branch-name
 
 ## 📚 RELATED DOCUMENTATION
 
-- [AI Village Handbook - Git Workflow](../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md)
-- [Component Documentation Standards](../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md#126-component-documentation-standards)
-- [Phase 0 Design Review System](./PHASE-0-DESIGN-APPROVAL.md)
+- [AI Village Handbook - Git Workflow](../../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md)
+- [Component Documentation Standards](../../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md#126-component-documentation-standards)
+- [Phase 0 Design Review System](../archive/phase-0/PHASE-0-DESIGN-APPROVAL.md)
 
 ---
 

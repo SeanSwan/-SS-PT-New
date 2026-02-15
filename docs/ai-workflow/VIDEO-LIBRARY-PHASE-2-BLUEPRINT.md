@@ -1296,7 +1296,7 @@ it('should have no accessibility violations', async () => {
 4. [CURRENT-TASK.md](AI-HANDOFF/CURRENT-TASK.md) - Current status
 
 ### **SwanStudios Standards:**
-1. [SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md](../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md) - Complete handbook
+1. [SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md](../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md) - Complete handbook
 2. [DESIGN-MASTER-PROMPT-ANALYSIS.md](DESIGN-MASTER-PROMPT-ANALYSIS.md) - Galaxy-Swan theme specs
 3. Galaxy-Swan Theme Docs (in codebase): `docs/current/GALAXY-SWAN-THEME-DOCS.md`
 

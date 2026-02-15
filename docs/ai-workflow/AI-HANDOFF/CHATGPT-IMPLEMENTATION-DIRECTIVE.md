@@ -59,7 +59,7 @@ cd backend
 npm install openai
 ```
 
-**Why:** Your AI Workout Controller ([backend/controllers/aiWorkoutController.mjs:27-45](backend/controllers/aiWorkoutController.mjs#L27-L45)) imports `openai` but it's not in package.json. This will error on first call.
+**Why:** Your AI Workout Controller ([backend/controllers/aiWorkoutController.mjs:27-45](../../../backend/controllers/aiWorkoutController.mjs#L27-L45)) imports `openai` but it's not in package.json. This will error on first call.
 
 #### 0.2: Run All Pending Migrations
 ```bash
@@ -264,7 +264,7 @@ node backend/seed-client-data.mjs
 1. ✅ Screenshot of migration logs (or terminal output)
 2. ✅ Screenshot of database tables in pgAdmin/psql
 3. ✅ Test script output showing associations work
-4. ✅ Update [CURRENT-TASK.md:516](docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md#L516) marking Phase 0 as ✅ COMPLETE
+4. ✅ Update [CURRENT-TASK.md:516](CURRENT-TASK.md#L516) marking Phase 0 as ✅ COMPLETE
 
 ---
 
@@ -761,7 +761,7 @@ export const RevolutionaryClientDashboard: React.FC = () => {
 **Dependencies:** Phase 0-1 complete
 
 ### Overview
-Consolidate 7 duplicate client dashboard layouts into 1 canonical dashboard ([RevolutionaryClientDashboard.tsx](frontend/src/components/ClientDashboard/RevolutionaryClientDashboard.tsx)). Fix all broken tabs (Workouts, Nutrition, Progress, Photos, Notes) by wiring to real API endpoints.
+Consolidate 7 duplicate client dashboard layouts into 1 canonical dashboard ([RevolutionaryClientDashboard.tsx](../../../frontend/src/components/ClientDashboard/RevolutionaryClientDashboard.tsx)). Fix all broken tabs (Workouts, Nutrition, Progress, Photos, Notes) by wiring to real API endpoints.
 
 ### Phase 2.1: Dashboard Consolidation
 
@@ -852,7 +852,7 @@ Each tab must be wired to a real API endpoint with proper error handling.
 #### Tab 2: Nutrition
 **Endpoint:** `GET /api/nutrition/:userId/current`
 
-**Controller:** Already exists ([backend/models/ClientNutritionPlan.mjs](backend/models/ClientNutritionPlan.mjs)), create controller
+**Controller:** Already exists ([backend/models/ClientNutritionPlan.mjs](../../../backend/models/ClientNutritionPlan.mjs)), create controller
 
 **Admin UI:** Admin Nutrition Plan Builder
 - **File:** `frontend/src/pages/admin/NutritionPlanBuilder.tsx`
@@ -1142,7 +1142,7 @@ export async function sendWelcomeMessage(userId) {
 ```
 
 #### Sequence 2-4: Day 1, 3, 7 Follow-Ups
-Similar implementation for each sequence (see [CURRENT-TASK.md:396-411](docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md#L396-L411) for full details).
+Similar implementation for each sequence (see [CURRENT-TASK.md:396-411](CURRENT-TASK.md#L396-L411) for full details).
 
 ### Phase 4.3: Admin Automation Manager
 
@@ -1240,7 +1240,7 @@ Similar implementation for each sequence (see [CURRENT-TASK.md:396-411](docs/ai-
 
 ## 📊 PROGRESS TRACKING
 
-Update [CURRENT-TASK.md:512-523](docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md#L512-L523) after completing each phase.
+Update [CURRENT-TASK.md:512-523](CURRENT-TASK.md#L512-L523) after completing each phase.
 
 | Phase | Status | Timeline | Completion Date |
 |-------|--------|----------|-----------------|
@@ -1293,16 +1293,16 @@ Update [CURRENT-TASK.md:512-523](docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md#L51
 3. **PHASE 0.3:** Verify all 5 tables exist in database
 4. **PHASE 0.4:** Test model associations
 5. **PHASE 0.5:** Create seed data
-6. **Mark Phase 0 COMPLETE** in [CURRENT-TASK.md](docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md)
+6. **Mark Phase 0 COMPLETE** in [CURRENT-TASK.md](CURRENT-TASK.md)
 7. **Begin Phase 1.1:** Create POST /api/onboarding/:userId/questionnaire
 
 ---
 
 ## 📚 REFERENCE DOCUMENTS
 
-- **Master Plan:** [CURRENT-TASK.md](docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md)
-- **AI Handbook:** [SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md](AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md) (Section 9.8)
-- **Client Data Integration:** [CLIENT-DATA-INTEGRATION-REFACTORED-PROMPT.md](docs/ai-workflow/CLIENT-DATA-INTEGRATION-REFACTORED-PROMPT.md)
+- **Master Plan:** [CURRENT-TASK.md](CURRENT-TASK.md)
+- **AI Handbook:** [SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md](../../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md) (Section 9.8)
+- **Client Data Integration:** [CLIENT-DATA-INTEGRATION-REFACTORED-PROMPT.md](../CLIENT-DATA-INTEGRATION-REFACTORED-PROMPT.md)
 
 ---
 

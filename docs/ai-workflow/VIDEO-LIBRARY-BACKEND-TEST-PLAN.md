@@ -2,8 +2,8 @@
 
 ## 📋 Test Objectives
 Verify all Video Library backend functionality meets requirements from:
-- [`ADMIN-VIDEO-LIBRARY-ARCHITECTURE.mermaid.md`](docs/ai-workflow/ADMIN-VIDEO-LIBRARY-ARCHITECTURE.mermaid.md)
-- [`videoLibraryController.mjs`](backend/controllers/videoLibraryController.mjs)
+- [`ADMIN-VIDEO-LIBRARY-ARCHITECTURE.mermaid.md`](ADMIN-VIDEO-LIBRARY-ARCHITECTURE.mermaid.md)
+- [`videoLibraryController.mjs`](../../backend/controllers/videoLibraryController.mjs)
 
 ## 🧰 Test Environment
 - PostgreSQL 15

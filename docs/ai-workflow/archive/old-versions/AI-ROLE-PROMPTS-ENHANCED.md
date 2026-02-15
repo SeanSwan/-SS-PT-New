@@ -42,7 +42,7 @@ Changes:
 Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
-**See:** [GIT-AUTOMATION-WORKFLOW.md](./GIT-AUTOMATION-WORKFLOW.md)
+**See:** [GIT-AUTOMATION-WORKFLOW.md](../../workflows/GIT-AUTOMATION-WORKFLOW.md)
 
 ---
 
@@ -61,7 +61,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 4. Get human approval
 5. **ONLY THEN** implement component to match documentation EXACTLY
 
-**See:** [Component Documentation Standards](../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md#126-component-documentation-standards)
+**See:** [Component Documentation Standards](../../../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md#126-component-documentation-standards)
 
 ---
 
@@ -76,7 +76,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 - Phase 0 approval (5/5 AIs + human)
 - Implementation complete (archival)
 
-**See:** [GOOGLE-DOCS-WORKFLOW.md](./GOOGLE-DOCS-WORKFLOW.md)
+**See:** [GOOGLE-DOCS-WORKFLOW.md](../../workflows/GOOGLE-DOCS-WORKFLOW.md)
 
 ---
 
@@ -718,11 +718,11 @@ Co-Authored-By: Claude Desktop <noreply@anthropic.com>
 
 ## 📚 RELATED DOCUMENTATION
 
-- [Git Automation Workflow](./GIT-AUTOMATION-WORKFLOW.md)
-- [Google Docs Workflow](./GOOGLE-DOCS-WORKFLOW.md)
-- [Component Documentation Standards](../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md#126-component-documentation-standards)
-- [Phase 0 Design Review System](./PHASE-0-DESIGN-APPROVAL.md)
-- [AI Village Handbook](../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md)
+- [Git Automation Workflow](../../workflows/GIT-AUTOMATION-WORKFLOW.md)
+- [Google Docs Workflow](../../workflows/GOOGLE-DOCS-WORKFLOW.md)
+- [Component Documentation Standards](../../../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md#126-component-documentation-standards)
+- [Phase 0 Design Review System](../phase-0/PHASE-0-DESIGN-APPROVAL.md)
+- [AI Village Handbook](../../../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md)
 
 ---
 

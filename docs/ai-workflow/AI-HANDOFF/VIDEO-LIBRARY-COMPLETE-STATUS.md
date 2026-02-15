@@ -411,7 +411,7 @@ WHERE id = COALESCE(NEW.exercise_id, OLD.exercise_id);
 
 ## Security Implementation
 
-### Middleware: [backend/middleware/adminAuth.mjs](backend/middleware/adminAuth.mjs)
+### Middleware: [backend/middleware/adminAuth.mjs](../../../backend/middleware/adminAuth.mjs)
 
 **3 Functions:**
 
@@ -441,7 +441,7 @@ WHERE id = COALESCE(NEW.exercise_id, OLD.exercise_id);
 
 ## YouTube Data API Integration
 
-### File: [backend/controllers/videoLibraryController.mjs](backend/controllers/videoLibraryController.mjs)
+### File: [backend/controllers/videoLibraryController.mjs](../../../backend/controllers/videoLibraryController.mjs)
 
 **Function:** `fetchYouTubeMetadata(videoId)`
 
@@ -504,7 +504,7 @@ GET https://www.googleapis.com/youtube/v3/videos
 
 ### Manual Migration Runner:
 
-**File:** [backend/run-video-library-migrations.mjs](backend/run-video-library-migrations.mjs)
+**File:** [backend/run-video-library-migrations.mjs](../../../backend/run-video-library-migrations.mjs)
 
 **Why Needed:**
 - Migrations use Knex.js syntax (`table.uuid()`, `table.enu()`)

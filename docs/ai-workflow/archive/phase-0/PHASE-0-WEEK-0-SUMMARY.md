@@ -37,7 +37,7 @@ Week 0 comprehensive audit of **SwanStudios v3.1** is complete. We audited **97 
 
 #### **1. Constellation SVG is Ephemeral (NOT Persisted)**
 **Impact:** SEVERE - User progress visualization is lost on page refresh
-**Location:** [GalaxySections.tsx:204](frontend/src/components/ClientDashboard/GalaxySections.tsx#L204)
+**Location:** [GalaxySections.tsx:204](../../../../frontend/src/components/ClientDashboard/GalaxySections.tsx#L204)
 **Problem:**
 - Constellation stars are generated randomly on each page load
 - NOT saved to database
@@ -56,7 +56,7 @@ Week 0 comprehensive audit of **SwanStudios v3.1** is complete. We audited **97 
 
 #### **2. Quest System Has UI But No Backend**
 **Impact:** HIGH - Gamification 1.0 has quest completion logic (line 353) but no persistence
-**Location:** [GamificationDashboard.tsx:353](frontend/src/components/Gamification/GamificationDashboard.tsx#L353)
+**Location:** [GamificationDashboard.tsx:353](../../../../frontend/src/components/Gamification/GamificationDashboard.tsx#L353)
 **Problem:**
 - Quest UI exists but no database models
 - No API endpoints for quest tracking
@@ -430,7 +430,7 @@ Thank you for your time and expertise! 🙏
 - [Client Dashboard Audit (38 pages)](./PHASE-0-CLIENT-DASHBOARD-AUDIT.md)
 - [UI Kit & Gamification Audit (32 pages)](./PHASE-0-UI-KIT-GAMIFICATION-AUDIT.md)
 - [Comprehensive Testing Strategy (28 pages)](./PHASE-0-COMPREHENSIVE-TESTING-STRATEGY.md)
-- [SwanStudios V3.1 Ultra-Comprehensive Refactor (Master Plan)](./SWANSTUDIOS-V3.1-ULTRA-COMPREHENSIVE-REFACTOR.md)
+- [SwanStudios V3.1 Ultra-Comprehensive Refactor (Master Plan)](../master-plans/SWANSTUDIOS-V3.1-ULTRA-COMPREHENSIVE-REFACTOR.md)
 
 **Total Documentation:** 143 pages + this 2-page summary = **145 pages** of comprehensive planning before a single line of code is changed. 📚
 

@@ -475,11 +475,11 @@ docs/ai-workflow/personal-training/PHASE-0-IMPLEMENTATION-GUIDE-IPAD-WORKFLOW.md
 ### Daily Use (Bookmark These)
 1. [PHASE-0-IMPLEMENTATION-GUIDE-IPAD-WORKFLOW.md](PHASE-0-IMPLEMENTATION-GUIDE-IPAD-WORKFLOW.md) - Your main reference
 2. [YOUR-DAILY-WORKFLOW-CHECKLIST.md](../YOUR-DAILY-WORKFLOW-CHECKLIST.md) - Morning/session/evening routines
-3. [WHERE-ARE-MY-FILES.md](../../../client-data/WHERE-ARE-MY-FILES.md) - File navigation help
+3. WHERE-ARE-MY-FILES.md (`../../../client-data/WHERE-ARE-MY-FILES.md`) - File navigation help
 
 ### Onboarding New Clients
-4. [CREATE-NEW-CLIENT-NOW.md](../../../client-data/CREATE-NEW-CLIENT-NOW.md) - Step-by-step client creation
-5. [MASTER-PROMPT-TEMPLATE.json](../../../client-data/templates/MASTER-PROMPT-TEMPLATE.json) - Copy this for new clients
+4. CREATE-NEW-CLIENT-NOW.md (`../../../client-data/CREATE-NEW-CLIENT-NOW.md`) - Step-by-step client creation
+5. MASTER-PROMPT-TEMPLATE.json (`../../../client-data/templates/MASTER-PROMPT-TEMPLATE.json`) - Copy this for new clients
 
 ### AI Village Reference
 6. [SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md](../../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md) - AI roles & responsibilities

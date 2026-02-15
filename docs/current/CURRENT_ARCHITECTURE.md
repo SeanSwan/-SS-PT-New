@@ -135,7 +135,7 @@ The backend includes **4 specialized MCP servers** for AI-powered features:
    - Form detection
    - Real-time pose analysis
 
-**MCP Documentation:** See [backend/mcp_server/README.md](../../backend/mcp_server/README.md)
+**MCP Documentation:** See [backend/mcp_server/README.md](../../AI-Village-Documentation/README.md)
 
 ### API Architecture
 
@@ -528,7 +528,7 @@ npm test
 - [Golden Standard Pattern](GOLDEN-STANDARD-PATTERN.md) - Component development guide
 - [UI Kit Migration Guide](UI-KIT-MIGRATION-GUIDE.md) - MUI to UI Kit migration
 - [Galaxy-Swan Theme](GALAXY-SWAN-THEME-DOCS.md) - Design system documentation
-- [MCP Servers](../../backend/mcp_server/README.md) - MCP server overview
+- [MCP Servers](../../AI-Village-Documentation/README.md) - MCP server overview
 
 ---
 

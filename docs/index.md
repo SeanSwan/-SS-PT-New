@@ -102,11 +102,11 @@ Component and module READMEs remain in their respective directories for contextu
 - [MCP Types README](../frontend/src/types/mcp/README.md) - MCP TypeScript types
 
 ### Backend
-- [MCP Server README](../backend/mcp_server/README.md) - MCP servers overview and setup
-- [Gamification MCP README](../backend/mcp_server/gamification_mcp_server/README.md) - Gamification server documentation
-- [Workout MCP README](../backend/mcp_server/workout_mcp_server/README.md) - Workout server documentation
-- [YOLO MCP README](../backend/mcp_server/yolo_mcp_server/README.md) - YOLO detection server documentation
-- [Backup Scripts README](../backend/scripts/backup/README.md) - Database backup procedures
+- [MCP Server README](../AI-Village-Documentation/README.md) - MCP servers overview and setup
+- [Gamification MCP README](../archive/pending-deletion/2026-02-13/backend-mcp-server-python/gamification_mcp_server/README.md) - Gamification server documentation
+- [Workout MCP README](../archive/pending-deletion/2026-02-13/backend-mcp-server-python/workout_mcp_server/README.md) - Workout server documentation
+- [YOLO MCP README](../archive/pending-deletion/2026-02-13/backend-mcp-server-python/yolo_mcp_server/README.md) - YOLO detection server documentation
+- [Backup Scripts README](../backend/seeders/backup/README.md) - Database backup procedures
 - [Seeders Backup README](../backend/seeders/backup/README.md) - Seeder backup documentation
 
 ---
@@ -118,15 +118,15 @@ Component and module READMEs remain in their respective directories for contextu
 Essential guides for development workflow and production deployment.
 
 ### Development
-- **[Development Guide](DEVELOPMENT_GUIDE.md)** - Complete development workflow, scripts, testing, and debugging procedures
+- **[Development Guide](current/DEVELOPMENT_GUIDE.md)** - Complete development workflow, scripts, testing, and debugging procedures
 
 ### Deployment
-- **[Deployment Checklist (Stripe & Analytics)](deployment/DEPLOYMENT_CHECKLIST_REAL_STRIPE_ANALYTICS.md)** - Production deployment checklist with Stripe and analytics verification
-- **[Deployment Commands](deployment/DEPLOYMENT_COMMANDS.md)** - Quick reference for deployment commands
+- **[Deployment Checklist (Stripe & Analytics)](current/deployment/DEPLOYMENT_CHECKLIST_REAL_STRIPE_ANALYTICS.md)** - Production deployment checklist with Stripe and analytics verification
+- **[Deployment Commands](current/deployment/DEPLOYMENT_COMMANDS.md)** - Quick reference for deployment commands
 
 ### Testing & Verification
-- **[Mobile PWA Testing Guide](guides/MOBILE_PWA_TESTING_GUIDE.md)** - Progressive Web App testing procedures
-- **[Stripe Data Verification Guide](guides/STRIPE_DATA_VERIFICATION_GUIDE.md)** - Stripe integration testing and verification
+- **[Mobile PWA Testing Guide](current/guides/MOBILE_PWA_TESTING_GUIDE.md)** - Progressive Web App testing procedures
+- **[Stripe Data Verification Guide](current/guides/STRIPE_DATA_VERIFICATION_GUIDE.md)** - Stripe integration testing and verification
 
 ---
 
@@ -153,12 +153,12 @@ The structured, multi-AI collaborative development process for SwanStudios. This
 This section provides curated learning paths for common tasks.
 
 ### New Developer Onboarding
-1. Start with [Development Guide](DEVELOPMENT_GUIDE.md) for setup and workflow
+1. Start with [Development Guide](current/DEVELOPMENT_GUIDE.md) for setup and workflow
 2. Review [Current Architecture Summary](current/CURRENT_ARCHITECTURE.md) for tech stack overview
 3. Study [Golden Standard Pattern](current/GOLDEN-STANDARD-PATTERN.md) for component development
 4. Reference [UI Kit Migration Guide](current/UI-KIT-MIGRATION-GUIDE.md) for component patterns
 5. Understand [Galaxy-Swan Theme](current/GALAXY-SWAN-THEME-DOCS.md) for design system
-1. **Setup & Workflow**: Start with the [Development Guide](DEVELOPMENT_GUIDE.md).
+1. **Setup & Workflow**: Start with the [Development Guide](current/DEVELOPMENT_GUIDE.md).
 2. **System Overview**: Review the [Current Architecture Summary](current/CURRENT_ARCHITECTURE.md).
 3. **Component Development**: Study the [Golden Standard Pattern](current/GOLDEN-STANDARD-PATTERN.md).
 4. **Design System**: Understand the [Galaxy-Swan Theme](current/GALAXY-SWAN-THEME-DOCS.md).
@@ -169,19 +169,19 @@ This section provides curated learning paths for common tasks.
 - Check component-specific READMEs for implementation details
 
 ### Working with MCP Servers
-- Start with [MCP Server README](../backend/mcp_server/README.md)
+- Start with [MCP Server README](../AI-Village-Documentation/README.md)
 - Review specific server documentation for implementation details
 - Reference [MCP Financial Events API](current/MCP_FINANCIAL_EVENTS_API.md) for API patterns
 
 ### Deploying to Production
-1. Review [Development Guide - Production Deployment](DEVELOPMENT_GUIDE.md#3-production-deployment)
-2. Follow [Deployment Checklist](deployment/DEPLOYMENT_CHECKLIST_REAL_STRIPE_ANALYTICS.md)
-3. Use [Deployment Commands](deployment/DEPLOYMENT_COMMANDS.md) reference
-4. Verify with [Stripe Data Verification Guide](guides/STRIPE_DATA_VERIFICATION_GUIDE.md)
-1. **Process**: Review the [Production Deployment Section](DEVELOPMENT_GUIDE.md#3-production-deployment) in the main development guide.
-2. **Checklist**: Follow the [Deployment Checklist (Stripe & Analytics)](deployment/DEPLOYMENT_CHECKLIST_REAL_STRIPE_ANALYTICS.md).
-3. **Commands**: Use the [Deployment Commands](deployment/DEPLOYMENT_COMMANDS.md) for quick reference.
-4. **Verification**: After deployment, use the [Stripe Data Verification Guide](guides/STRIPE_DATA_VERIFICATION_GUIDE.md).
+1. Review [Development Guide - Production Deployment](current/DEVELOPMENT_GUIDE.md#3-production-deployment)
+2. Follow [Deployment Checklist](current/deployment/DEPLOYMENT_CHECKLIST_REAL_STRIPE_ANALYTICS.md)
+3. Use [Deployment Commands](current/deployment/DEPLOYMENT_COMMANDS.md) reference
+4. Verify with [Stripe Data Verification Guide](current/guides/STRIPE_DATA_VERIFICATION_GUIDE.md)
+1. **Process**: Review the [Production Deployment Section](current/DEVELOPMENT_GUIDE.md#3-production-deployment) in the main development guide.
+2. **Checklist**: Follow the [Deployment Checklist (Stripe & Analytics)](current/deployment/DEPLOYMENT_CHECKLIST_REAL_STRIPE_ANALYTICS.md).
+3. **Commands**: Use the [Deployment Commands](current/deployment/DEPLOYMENT_COMMANDS.md) for quick reference.
+4. **Verification**: After deployment, use the [Stripe Data Verification Guide](current/guides/STRIPE_DATA_VERIFICATION_GUIDE.md).
 
 ---
 

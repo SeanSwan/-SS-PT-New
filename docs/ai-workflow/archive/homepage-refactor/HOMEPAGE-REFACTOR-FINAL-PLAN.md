@@ -954,7 +954,7 @@ frontend/src/pages/HomePage/components/
 ## 🔄 NEXT STEPS
 
 1. **Claude Code (NOW):**
-   - ✅ Update [CURRENT-TASK.md](docs/ai-workflow/AI-HANDOFF/CURRENT-TASK.md)
+   - ✅ Update [CURRENT-TASK.md](../../AI-HANDOFF/CURRENT-TASK.md)
    - ✅ Lock files that will be modified
    - ✅ Create Phase 0 entry in PHASE-0-REGISTRY.md
    - ✅ Request AI Village approvals

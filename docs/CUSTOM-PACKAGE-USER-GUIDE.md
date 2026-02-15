@@ -432,8 +432,8 @@ A: Yes! The wizard is fully keyboard accessible:
 
 For technical implementation details, see:
 - [Backend API Documentation](../backend/routes/storeFrontRoutes.mjs#L116-L245)
-- [Frontend Component Documentation](../frontend/src/pages/shop/components/CustomPackageBuilder.tsx)
-- [Testing Suite](../frontend/src/pages/shop/components/__tests__/CustomPackageFlow.e2e.test.tsx)
+- Frontend Component Documentation (`../frontend/src/pages/shop/components/CustomPackageBuilder.tsx`)
+- Testing Suite (`../frontend/src/pages/shop/components/__tests__/CustomPackageFlow.e2e.test.tsx`)
 
 ---
 

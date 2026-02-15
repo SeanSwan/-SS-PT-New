@@ -38,11 +38,11 @@ This document requests comprehensive review from all 5 AI Village members for:
    - Rollback strategy
 
 ### Supporting Context
-3. **[AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md](../AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md)**
+3. **[AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md](../../AI-Village-Documentation/AI-VILLAGE-MASTER-ONBOARDING-PROMPT-V2.md)**
    - Project context and standards
    - Phase 0 requirements
 
-4. **[SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md](../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md)**
+4. **[SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md](../../AI-Village-Documentation/SWANSTUDIOS-AI-VILLAGE-HANDBOOK-FINAL.md)**
    - Section 12.6: Component Documentation Standards
    - AI collaboration protocol
 
