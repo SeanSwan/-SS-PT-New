@@ -13,7 +13,8 @@
  * These tests validate the interactive KPI stat cards on the /schedule route:
  *   - Click/toggle filtering
  *   - Keyboard (Tab → Enter/Space) activation
- *   - Drill-down panel open/close
+ *   - Drill-down panel open/close + scrollable region
+ *   - Available KPI excludes past dates
  *   - Mobile viewport tap targets (≥ 44px)
  */
 
@@ -126,6 +127,33 @@ test.describe('Schedule KPI Cards', () => {
     await expect(drillDown).not.toBeVisible({ timeout: 2000 });
   });
 
+  test('drill-down scroll area exists and has overflow-y', async ({ page }) => {
+    await page.locator(cardSelector('total')).click();
+
+    const scrollArea = page.locator('[data-testid="schedule-drilldown-scroll"]');
+    await expect(scrollArea).toBeVisible({ timeout: 2000 });
+
+    // Verify it has scrollable styles
+    const overflowY = await scrollArea.evaluate(el => getComputedStyle(el).overflowY);
+    expect(overflowY).toBe('auto');
+  });
+
+  test('drill-down row count matches KPI card value', async ({ page }) => {
+    // Click "available" and compare KPI value vs drill-down count
+    const availableCard = page.locator(cardSelector('available'));
+    const kpiValue = await availableCard.locator('.stat-value').textContent();
+    const kpiNum = parseInt(kpiValue || '0', 10);
+
+    await availableCard.click();
+    const drillDown = page.locator('[data-testid="schedule-kpi-drilldown"]');
+    await expect(drillDown).toBeVisible({ timeout: 2000 });
+
+    // The drill-down count text should contain the same number
+    const countText = await drillDown.locator('text=/\\d+ session/').first().textContent();
+    const countNum = parseInt((countText || '').match(/(\d+)/)?.[1] || '0', 10);
+    expect(countNum).toBe(kpiNum);
+  });
+
   test('keyboard: Tab to card and activate with Enter', async ({ page }) => {
     // Focus first KPI card via Tab
     const firstCard = page.locator(cardSelector('total'));
@@ -146,6 +174,14 @@ test.describe('Schedule KPI Cards', () => {
 
     await page.keyboard.press('Space');
     await expect(card).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('screenshot: desktop KPI cards', async ({ page }) => {
+    await page.screenshot({ path: 'e2e/screenshots/kpi-desktop-before.png', fullPage: false });
+
+    await page.locator(cardSelector('available')).click();
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: 'e2e/screenshots/kpi-desktop-drilldown.png', fullPage: false });
   });
 });
 
@@ -182,5 +218,13 @@ test.describe('Schedule KPI Cards — Mobile', () => {
     // Panel should not overflow horizontally
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(375 + 2); // small tolerance
+  });
+
+  test('screenshot: mobile KPI cards', async ({ page }) => {
+    await page.screenshot({ path: 'e2e/screenshots/kpi-mobile-before.png', fullPage: false });
+
+    await page.locator(cardSelector('completed')).tap();
+    await page.waitForTimeout(500);
+    await page.screenshot({ path: 'e2e/screenshots/kpi-mobile-drilldown.png', fullPage: false });
   });
 });
