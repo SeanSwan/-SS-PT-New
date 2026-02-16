@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Typography, Avatar, Button, Card, CardContent, Box, Divider, Skeleton, List, ListItem, ListItemAvatar, ListItemText, TextField, InputAdornment, IconButton } from '@mui/material';
 import { Search, UserPlus, Users, UserCheck, UserX, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '../../../context/AuthContext';
@@ -46,6 +47,7 @@ const EmptyStateWrapper = styled.div`
  * Displays a list of friends with search and filter capabilities
  */
 const FriendsList: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { friends, isLoading, removeFriend } = useSocialFriends();
   const [searchQuery, setSearchQuery] = useState('');
@@ -70,8 +72,7 @@ const FriendsList: React.FC = () => {
   
   // Handle view profile
   const handleViewProfile = (friendId: string) => {
-    // Navigate to friend's profile
-    window.location.href = `/profile/${friendId}`;
+    navigate(`/profile/${friendId}`);
   };
   
   // Render loading state

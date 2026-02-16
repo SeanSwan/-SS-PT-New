@@ -386,6 +386,7 @@ import GamificationSettings from '../models/GamificationSettings.mjs';
 import UserAchievement from '../models/UserAchievement.mjs';
 import UserReward from '../models/UserReward.mjs';
 import UserMilestone from '../models/UserMilestone.mjs';
+import WorkoutSession from '../models/WorkoutSession.mjs';
 import { Op } from 'sequelize';
 import db from '../database.mjs';
 const gamificationController = {
@@ -2283,7 +2284,7 @@ const gamificationController = {
       // Award milestone bonus points
       if (totalMilestoneBonus > 0) {
         const finalBalance = updatedStats.points + totalMilestoneBonus;
-        
+
         await PointTransaction.create({
           userId: targetUserId,
           points: totalMilestoneBonus,
@@ -2294,11 +2295,64 @@ const gamificationController = {
           metadata: { milestoneIds: awardedMilestones.map(m => m.id) },
           awardedBy: req.user?.id
         }, { transaction });
-        
+
         // Update user points again
         await user.update({ points: finalBalance }, { transaction });
       }
-      
+
+      // Tag workout session with milestone info (if workoutId provided and milestones earned)
+      if (workoutId) {
+        let milestoneType = null;
+
+        // Determine milestone type based on workout count thresholds
+        const workoutCount = updatedStats.totalWorkouts;
+        const WORKOUT_MILESTONES = [500, 250, 100, 50, 25, 10, 1];
+        for (const threshold of WORKOUT_MILESTONES) {
+          if (workoutCount === threshold) {
+            milestoneType = `workout_count_${threshold}`;
+            break;
+          }
+        }
+
+        // Streak-based milestones
+        if (!milestoneType && updatedStats.streakDays) {
+          const STREAK_MILESTONES = [365, 180, 90, 60, 30, 14, 7];
+          for (const threshold of STREAK_MILESTONES) {
+            if (updatedStats.streakDays === threshold) {
+              milestoneType = `streak_${threshold}`;
+              break;
+            }
+          }
+        }
+
+        // Duration-based milestone (first 60+ minute session)
+        if (!milestoneType && duration && duration >= 60) {
+          const priorLongSession = await WorkoutSession.count({
+            where: {
+              userId: targetUserId,
+              duration: { [Op.gte]: 60 },
+              id: { [Op.ne]: workoutId }
+            },
+            transaction
+          });
+          if (priorLongSession === 0) {
+            milestoneType = 'first_60min';
+          }
+        }
+
+        // Also flag if gamification milestones were newly awarded
+        if (!milestoneType && awardedMilestones.length > 0) {
+          milestoneType = `milestone_${awardedMilestones[0].name.replace(/\s+/g, '_').toLowerCase()}`;
+        }
+
+        if (milestoneType) {
+          await WorkoutSession.update(
+            { isMilestone: true, milestoneType },
+            { where: { id: workoutId }, transaction }
+          );
+        }
+      }
+
       // Commit the transaction
       await transaction.commit();
       

@@ -184,6 +184,19 @@ WorkoutSession.init({
     },
     comment: 'Trainer who led this session (null for solo workouts)'
   },
+  // Milestone tracking for Trophy Case / gamification display
+  isMilestone: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    comment: 'Whether this workout session represents a milestone achievement'
+  },
+  milestoneType: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: null,
+    comment: 'Type of milestone, e.g. workout_count_100, streak_30, first_60min'
+  },
   createdAt: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW

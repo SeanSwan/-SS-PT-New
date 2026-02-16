@@ -142,23 +142,25 @@ export const uploadProfilePhoto = async (req, res) => {
  */
 export const getUserProfile = async (req, res) => {
   try {
-    const user = await User.findByPk(req.user.id, {
+    const targetUserId = req.params.userId || req.user.id;
+    const user = await User.findByPk(targetUserId, {
       attributes: { exclude: ['password', 'refreshTokenHash'] }
     });
-    
+
     if (!user) {
-      logger.error('User not found during profile fetch', { userId: req.user.id });
+      logger.error('User not found during profile fetch', { userId: targetUserId });
       return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
-    
-    logger.info('User profile retrieved successfully', { userId: user.id });
+
+    logger.info('User profile retrieved successfully', { userId: user.id, requestedBy: req.user.id });
     return res.status(200).json({
       success: true,
       message: 'Profile retrieved successfully',
-      user
+      user,
+      data: user
     });
   } catch (error) {
     logger.error('Error getting user profile', { 
@@ -423,11 +425,11 @@ export const getUserPosts = async (req, res) => {
     const userId = req.params.userId || req.user.id;
     const limit = parseInt(req.query.limit) || 20;
     const offset = parseInt(req.query.offset) || 0;
-    
-    // Check if requesting another user's posts
+
+    // Check if requesting another user's posts (coerce to string for safe compare)
     let whereClause = { userId };
-    
-    if (userId !== req.user.id) {
+
+    if (String(userId) !== String(req.user.id)) {
       // Check friendship status to determine visibility
       const friendship = await Friendship.findOne({
         where: {
