@@ -33,6 +33,13 @@ const setupAssociations = async () => {
     const ProgressDataModule = await import('./ProgressData.mjs');
     const UserFollowModule = await import('./UserFollow.mjs');
 
+    // Social Gamification Models
+    const StreakModule = await import('./Streak.mjs');
+    const GoalSupporterModule = await import('./GoalSupporter.mjs');
+    const GoalCommentModule = await import('./GoalComment.mjs');
+    const GoalLikeModule = await import('./GoalLike.mjs');
+    const GoalMilestoneModule = await import('./GoalMilestone.mjs');
+
     // E-Commerce Models (Sequelize)
     const StorefrontItemModule = await import('./StorefrontItem.mjs');
     const ShoppingCartModule = await import('./ShoppingCart.mjs');
@@ -115,6 +122,13 @@ const setupAssociations = async () => {
     const Goal = GoalModule.default;
     const ProgressData = ProgressDataModule.default;
     const UserFollow = UserFollowModule.default;
+
+    // Social Gamification Models
+    const Streak = StreakModule.default;
+    const GoalSupporter = GoalSupporterModule.default;
+    const GoalComment = GoalCommentModule.default;
+    const GoalLike = GoalLikeModule.default;
+    const GoalMilestone = GoalMilestoneModule.default;
 
     // E-Commerce Models
     const StorefrontItem = StorefrontItemModule.default;
@@ -222,6 +236,7 @@ const setupAssociations = async () => {
         SocialPost, SocialComment, SocialLike, Friendship, SocialChallenge, SocialChallengeParticipant, ChallengeTeam,
         PostReport, ModerationAction,
         Challenge, ChallengeParticipant, Goal, ProgressData, UserFollow,
+        Streak, GoalSupporter, GoalComment, GoalLike, GoalMilestone,
         WorkoutPlan, WorkoutPlanDay, WorkoutPlanDayExercise, WorkoutSession, WorkoutExercise, Exercise, Set,
         MuscleGroup, ExerciseMuscleGroup, Equipment, ExerciseEquipment,
         Orientation, Notification, NotificationSettings, AdminSettings, Contact,
@@ -423,6 +438,34 @@ const setupAssociations = async () => {
     User.hasMany(ProgressData, { foreignKey: 'userId', as: 'progressData' });
     ProgressData.belongsTo(User, { foreignKey: 'userId', as: 'user' });
     
+    // ─── SOCIAL GAMIFICATION ASSOCIATIONS ─────────────────────────────────────
+
+    // User -> Streaks
+    User.hasMany(Streak, { foreignKey: 'userId', as: 'streaks' });
+    Streak.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+    // Goal -> Supporters (many-to-many through GoalSupporter)
+    Goal.hasMany(GoalSupporter, { foreignKey: 'goalId', as: 'supporters' });
+    GoalSupporter.belongsTo(Goal, { foreignKey: 'goalId', as: 'goal' });
+    User.hasMany(GoalSupporter, { foreignKey: 'supporterId', as: 'supportedGoals' });
+    GoalSupporter.belongsTo(User, { foreignKey: 'supporterId', as: 'supporter' });
+
+    // Goal -> Comments
+    Goal.hasMany(GoalComment, { foreignKey: 'goalId', as: 'comments' });
+    GoalComment.belongsTo(Goal, { foreignKey: 'goalId', as: 'goal' });
+    User.hasMany(GoalComment, { foreignKey: 'userId', as: 'goalComments' });
+    GoalComment.belongsTo(User, { foreignKey: 'userId', as: 'author' });
+
+    // Goal -> Likes
+    Goal.hasMany(GoalLike, { foreignKey: 'goalId', as: 'likes' });
+    GoalLike.belongsTo(Goal, { foreignKey: 'goalId', as: 'goal' });
+    User.hasMany(GoalLike, { foreignKey: 'userId', as: 'goalLikes' });
+    GoalLike.belongsTo(User, { foreignKey: 'userId', as: 'liker' });
+
+    // Goal -> Milestones (normalized checkpoints)
+    Goal.hasMany(GoalMilestone, { foreignKey: 'goalId', as: 'milestoneCheckpoints' });
+    GoalMilestone.belongsTo(Goal, { foreignKey: 'goalId', as: 'goal' });
+
     // User -> Social Following (Enhanced)
     User.hasMany(UserFollow, { foreignKey: 'followerId', as: 'following' });
     User.hasMany(UserFollow, { foreignKey: 'followingId', as: 'followers' });
@@ -615,7 +658,14 @@ const setupAssociations = async () => {
       Goal,
       ProgressData,
       UserFollow,
-      
+
+      // Social Gamification Models
+      Streak,
+      GoalSupporter,
+      GoalComment,
+      GoalLike,
+      GoalMilestone,
+
       // Social Models
       SocialPost,
       SocialComment,
