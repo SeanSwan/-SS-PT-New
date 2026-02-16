@@ -22,6 +22,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
+import DemoDataBanner from './DemoDataBanner';
 import {
   Users, UserPlus, UserCheck, UserX, Activity, Eye,
   Globe, Smartphone, Monitor, Tablet, Clock, Calendar,
@@ -442,7 +443,8 @@ const UserAnalyticsPanel: React.FC = () => {
   const [liveUsers, setLiveUsers] = useState(0);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [autoRefresh, setAutoRefresh] = useState(true);
-  
+  const [isDemoData, setIsDemoData] = useState(false);
+
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const liveUsersIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -475,6 +477,7 @@ const UserAnalyticsPanel: React.FC = () => {
       if (data.success) {
         setUserAnalytics(data.data);
         setLastUpdated(new Date());
+        setIsDemoData(false);
       } else {
         throw new Error(data.message || 'Failed to fetch user analytics');
       }
@@ -482,8 +485,9 @@ const UserAnalyticsPanel: React.FC = () => {
       console.error('User analytics fetch error:', err);
       setError(err.message || 'Failed to load user analytics');
       
-      // Fallback to impressive demo data
+      // Fallback to demo data — flag it so the banner shows
       setUserAnalytics(generateUserDemoData());
+      setIsDemoData(true);
     } finally {
       setLoading(false);
     }
@@ -502,12 +506,12 @@ const UserAnalyticsPanel: React.FC = () => {
         const data = await response.json();
         setLiveUsers(data.liveUsers || 0);
       } else {
-        // Simulate live users for demo
-        setLiveUsers(Math.floor(Math.random() * 50) + 15);
+        setLiveUsers(0);
+        setIsDemoData(true);
       }
-    } catch (error) {
-      // Simulate live users for demo
-      setLiveUsers(Math.floor(Math.random() * 50) + 15);
+    } catch {
+      setLiveUsers(0);
+      setIsDemoData(true);
     }
   }, []);
 
@@ -788,6 +792,8 @@ const UserAnalyticsPanel: React.FC = () => {
           </ActionButton>
         </ControlsContainer>
       </PanelHeader>
+
+      {isDemoData && <DemoDataBanner />}
 
       {/* User Metrics Grid */}
       {userAnalytics && (

@@ -23,6 +23,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
+import DemoDataBanner from './DemoDataBanner';
 import {
   DollarSign, TrendingUp, TrendingDown, Users, ShoppingBag,
   Calendar, Download, RefreshCw, Filter, Eye, BarChart3,
@@ -431,7 +432,8 @@ const RevenueAnalyticsPanel: React.FC = () => {
   const [timeRange, setTimeRange] = useState('7d');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [status, setStatus] = useState<'live' | 'updating' | 'error'>('live');
-  
+  const [isDemoData, setIsDemoData] = useState(false);
+
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // =====================================================
@@ -465,6 +467,7 @@ const RevenueAnalyticsPanel: React.FC = () => {
         setRevenueData(data.data);
         setLastUpdated(new Date());
         setStatus('live');
+        setIsDemoData(false);
       } else {
         throw new Error(data.message || 'Failed to fetch revenue data');
       }
@@ -473,8 +476,9 @@ const RevenueAnalyticsPanel: React.FC = () => {
       setError(err.message || 'Failed to load revenue analytics');
       setStatus('error');
       
-      // Fallback to impressive demo data if API fails
+      // Fallback to demo data — flag it so the banner shows
       setRevenueData(generateDemoData());
+      setIsDemoData(true);
     } finally {
       setLoading(false);
     }
@@ -760,6 +764,8 @@ const RevenueAnalyticsPanel: React.FC = () => {
           </ActionButton>
         </ControlsContainer>
       </PanelHeader>
+
+      {isDemoData && <DemoDataBanner />}
 
       {/* KPI Cards Grid */}
       {revenueData && (
