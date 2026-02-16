@@ -167,6 +167,13 @@ router.get('/achievements', protect, getUserAchievements);
 router.get('/follow-stats', protect, getUserFollowStats);
 
 /**
+ * @route   GET /api/profile/:userId/posts
+ * @desc    Get specific user's posts (visibility-scoped)
+ * @access  Private
+ */
+router.get('/:userId/posts', protect, getUserPosts);
+
+/**
  * @route   GET /api/profile/:userId
  * @desc    Get specific user profile (public view)
  * @access  Private

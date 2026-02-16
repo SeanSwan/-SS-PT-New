@@ -255,6 +255,10 @@ const AdvancedGamificationPage = lazyLoadWithErrorHandling(
   () => import('../pages/AdvancedGamificationPage'),
   'Advanced Gamification Hub'
 );
+const UserProfilePage = lazyLoadWithErrorHandling(
+  () => import('../pages/Social/UserProfilePage'),
+  'User Profile Page'
+);
 
 // Design Playground - Admin-only concept viewer (build-time gated — not loaded in production)
 const DesignPlaygroundLayout = import.meta.env.VITE_DESIGN_PLAYGROUND === 'true'
@@ -542,6 +546,18 @@ const MainRoutes: RouteObject = {
       element: <Navigate to="/gamification" replace />
     },
     
+    // User Profile Route — resolves /profile/:userId for social navigation
+    {
+      path: 'profile/:userId',
+      element: (
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <UserProfilePage />
+          </Suspense>
+        </ProtectedRoute>
+      )
+    },
+
     {
       path: 'workout',
       element: (
