@@ -70,8 +70,8 @@ const challengeController = {
           },
           {
             model: ChallengeParticipant,
-            as: 'challengeParticipants',
-            attributes: ['id', 'userId', 'progress', 'isCompleted', 'joinedAt'],
+            as: 'participants',
+            attributes: ['id', 'userId', 'currentProgress', 'progressPercentage', 'status', 'joinedAt'],
             include: [{
               model: User,
               as: 'user',
@@ -131,14 +131,14 @@ const challengeController = {
           },
           {
             model: ChallengeParticipant,
-            as: 'challengeParticipants',
-            attributes: ['id', 'userId', 'progress', 'isCompleted', 'joinedAt', 'completedAt'],
+            as: 'participants',
+            attributes: ['id', 'userId', 'currentProgress', 'progressPercentage', 'status', 'joinedAt', 'completedAt'],
             include: [{
               model: User,
               as: 'user',
               attributes: ['id', 'firstName', 'lastName', 'username', 'photo']
             }],
-            order: [['progress', 'DESC'], ['joinedAt', 'ASC']]
+            order: [['progressPercentage', 'DESC'], ['joinedAt', 'ASC']]
           }
         ]
       });
@@ -151,10 +151,10 @@ const challengeController = {
       }
 
       // Calculate additional metrics
-      const totalParticipants = challenge.challengeParticipants.length;
-      const completedParticipants = challenge.challengeParticipants.filter(p => p.isCompleted).length;
-      const averageProgress = totalParticipants > 0 
-        ? challenge.challengeParticipants.reduce((sum, p) => sum + p.progress, 0) / totalParticipants
+      const totalParticipants = challenge.participants.length;
+      const completedParticipants = challenge.participants.filter(p => p.status === 'completed').length;
+      const averageProgress = totalParticipants > 0
+        ? challenge.participants.reduce((sum, p) => sum + (parseFloat(p.progressPercentage) || 0), 0) / totalParticipants
         : 0;
 
       const challengeWithMetrics = {
@@ -311,7 +311,7 @@ const challengeController = {
       const challenge = await Challenge.findByPk(id, {
         include: [{
           model: ChallengeParticipant,
-          as: 'challengeParticipants'
+          as: 'participants'
         }],
         transaction
       });
@@ -373,8 +373,9 @@ const challengeController = {
       const participation = await ChallengeParticipant.create({
         challengeId: id,
         userId,
-        progress: 0,
-        isCompleted: false,
+        currentProgress: 0,
+        progressPercentage: 0,
+        status: 'joined',
         joinedAt: now
       }, { transaction });
 
@@ -448,7 +449,7 @@ const challengeController = {
         });
       }
 
-      if (participation.isCompleted) {
+      if (participation.status === 'completed') {
         await transaction.rollback();
         return res.status(400).json({
           success: false,
@@ -457,22 +458,18 @@ const challengeController = {
       }
 
       // Calculate progress percentage
-      const progressPercentage = Math.min(100, Math.max(0, (progress / challenge.maxProgress) * 100));
-      const wasCompleted = progressPercentage >= 100 && !participation.isCompleted;
+      const newProgressPercentage = Math.min(100, Math.max(0, (progress / challenge.maxProgress) * 100));
+      const wasCompleted = newProgressPercentage >= 100 && participation.status !== 'completed';
 
       // Update participation
       const updatedFields = {
-        progress: Math.min(challenge.maxProgress, Math.max(0, progress)),
-        progressPercentage,
+        currentProgress: Math.min(challenge.maxProgress, Math.max(0, progress)),
+        progressPercentage: newProgressPercentage,
         updatedAt: new Date()
       };
 
-      if (notes) {
-        updatedFields.notes = notes;
-      }
-
       if (wasCompleted) {
-        updatedFields.isCompleted = true;
+        updatedFields.status = 'completed';
         updatedFields.completedAt = new Date();
       }
 
@@ -504,7 +501,7 @@ const challengeController = {
 
         // Update challenge completion stats
         const completedCount = await ChallengeParticipant.count({
-          where: { challengeId: id, isCompleted: true },
+          where: { challengeId: id, status: 'completed' },
           transaction
         });
 
@@ -573,14 +570,14 @@ const challengeController = {
       let orderBy;
       switch (challenge.leaderboardType) {
         case 'completion_time':
-          orderBy = [['completedAt', 'ASC'], ['progress', 'DESC']];
+          orderBy = [['completedAt', 'ASC'], ['progressPercentage', 'DESC']];
           break;
         case 'total_score':
-          orderBy = [['totalScore', 'DESC'], ['progress', 'DESC']];
+          orderBy = [['score', 'DESC'], ['progressPercentage', 'DESC']];
           break;
         case 'progress':
         default:
-          orderBy = [['progress', 'DESC'], ['joinedAt', 'ASC']];
+          orderBy = [['progressPercentage', 'DESC'], ['joinedAt', 'ASC']];
           break;
       }
 
@@ -646,7 +643,7 @@ const challengeController = {
         });
       }
 
-      if (participation.isCompleted) {
+      if (participation.status === 'completed') {
         await transaction.rollback();
         return res.status(400).json({
           success: false,
@@ -700,9 +697,9 @@ const challengeController = {
       const whereClause = { userId };
       
       if (status === 'active') {
-        whereClause.isCompleted = false;
+        whereClause.status = { [Op.in]: ['joined', 'active'] };
       } else if (status === 'completed') {
-        whereClause.isCompleted = true;
+        whereClause.status = 'completed';
       }
 
       const userChallenges = await ChallengeParticipant.findAndCountAll({
