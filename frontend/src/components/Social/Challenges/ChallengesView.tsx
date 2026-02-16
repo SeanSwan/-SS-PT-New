@@ -338,7 +338,7 @@ const ChallengesView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ChallengeStatus>('active');
   const prefersReducedMotion = useReducedMotion();
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const { challenges, loading, isDemoData, joinChallenge, leaveChallenge } = useChallenges();
+  const { challenges, loading, isDemoData, joinChallenge } = useChallenges();
 
   // Use API data when available, mock data as fallback
   const displayData = isDemoData ? MOCK_CHALLENGES : challenges;
