@@ -87,6 +87,14 @@ const CARD_CONFIGS: CardConfig[] = [
     color: TEAL.muted,
     getValue: (s) => s.completed,
   },
+  {
+    key: 'other',
+    label: 'Other',
+    subtitle: 'Cancelled/blocked/etc',
+    definition: 'Sessions with cancelled, blocked, or requested status',
+    color: TEAL.warn,
+    getValue: (s) => s.other,
+  },
 ];
 
 // ─── Status helpers ──────────────────────────────────────────────────────────
@@ -114,6 +122,8 @@ function getSessionDate(session: any): Date {
   return date ? new Date(date) : new Date(0);
 }
 
+const KNOWN_STATUSES = ['available', 'scheduled', 'confirmed', 'completed'];
+
 function getSessionsForFilter(sessions: any[], filterKey: string): any[] {
   if (filterKey === 'total') return sessions;
   if (filterKey === 'scheduled') {
@@ -123,6 +133,11 @@ function getSessionsForFilter(sessions: any[], filterKey: string): any[] {
   }
   if (filterKey === 'available') {
     return sessions.filter(s => s.status === 'available' && isUpcoming(s));
+  }
+  if (filterKey === 'other') {
+    return sessions.filter(s =>
+      !s.status || !KNOWN_STATUSES.includes(s.status)
+    );
   }
   return sessions.filter(s => s.status === filterKey);
 }
@@ -236,7 +251,7 @@ const ScheduleStats: React.FC<ScheduleStatsProps> = ({
         </CreditWarning>
       )}
 
-      <GridContainer columns={mode === 'client' ? 5 : 4} gap="1rem">
+      <GridContainer columns={mode === 'client' ? 6 : 5} gap="1rem">
         {CARD_CONFIGS.map((card) => (
           <InteractiveStatCard
             key={card.key}
@@ -326,6 +341,8 @@ const ScheduleStats: React.FC<ScheduleStatsProps> = ({
                     ? 'Create available slots from the schedule header'
                     : statusFilter === 'scheduled'
                     ? 'Sessions will appear here once clients book'
+                    : statusFilter === 'other'
+                    ? 'No cancelled, blocked, or requested sessions found'
                     : 'Sessions will appear here once completed'}
                 </EmptySubtext>
               </EmptyState>
@@ -531,7 +548,7 @@ const CardLabel = styled.div`
 
 const CardSubtitle = styled.div`
   font-size: 0.7rem;
-  color: #64748b;
+  color: #94a3b8;
   margin-top: 2px;
 `;
 
@@ -753,6 +770,7 @@ const ClearButton = styled.button`
 `;
 
 const TableScrollArea = styled.div`
+  position: relative;
   max-height: 420px;
   overflow-y: auto;
   border-radius: 8px;
@@ -775,7 +793,7 @@ const TableScrollArea = styled.div`
   }
 
   @media (max-width: 768px) {
-    max-height: 300px;
+    max-height: 50vh;
   }
 `;
 
@@ -788,7 +806,7 @@ const SessionTable = styled.table`
     position: sticky;
     top: 0;
     z-index: 2;
-    background: rgba(15, 23, 42, 0.98);
+    background: #0f172a;
   }
 
   thead th {
@@ -868,7 +886,7 @@ const EmptyTitle = styled.p`
 const EmptySubtext = styled.p`
   margin: 0;
   font-size: 0.85rem;
-  color: #64748b;
+  color: #94a3b8;
 `;
 
 const TableFooter = styled.div`

@@ -16,7 +16,12 @@ import {
   OutlinedButton,
   ErrorText,
   HelperText,
-  SmallText
+  SmallText,
+  TimeWheelPicker,
+  combineDateAndTime,
+  getLocalToday,
+  getMinTimeForToday,
+  getTimezoneAbbr,
 } from './ui';
 
 interface BlockedTimeModalProps {
@@ -41,7 +46,25 @@ const BlockedTimeModal: React.FC<BlockedTimeModalProps> = ({
   const [trainers, setTrainers] = useState<TrainerOption[]>([]);
   const [isTrainerUser, setIsTrainerUser] = useState(false);
 
-  const [sessionDate, setSessionDate] = useState('');
+  const [blockedDateStr, setBlockedDateStr] = useState('');
+  const [blockedTimeStr, setBlockedTimeStr] = useState('');
+  const frozenNowRef = React.useRef(Date.now());
+
+  // Compute sessionDate from split state
+  const sessionDate = React.useMemo(() => {
+    if (blockedDateStr && blockedTimeStr) {
+      try { return combineDateAndTime(blockedDateStr, blockedTimeStr); } catch { return ''; }
+    }
+    return blockedDateStr || '';
+  }, [blockedDateStr, blockedTimeStr]);
+
+  // Compute minTime for today
+  const blockedIsToday = blockedDateStr === getLocalToday();
+  const blockedMinTime = React.useMemo(() => {
+    if (!blockedIsToday) return undefined;
+    return getMinTimeForToday(15, frozenNowRef.current);
+  }, [blockedIsToday]);
+
   const [duration, setDuration] = useState(60);
   const [trainerId, setTrainerId] = useState('');
   const [location, setLocation] = useState('Main Studio');
@@ -59,6 +82,8 @@ const BlockedTimeModal: React.FC<BlockedTimeModalProps> = ({
     if (!open) {
       setFormError(null);
       setFieldErrors({});
+      setBlockedDateStr('');
+      setBlockedTimeStr('');
       return;
     }
 
@@ -220,11 +245,31 @@ const BlockedTimeModal: React.FC<BlockedTimeModalProps> = ({
         </Label>
         <StyledInput
           id="blocked-session-date"
-          type="datetime-local"
-          value={sessionDate}
-          onChange={(e) => setSessionDate(e.target.value)}
+          type="date"
+          value={blockedDateStr}
+          onChange={(e) => {
+            setBlockedDateStr(e.target.value);
+            frozenNowRef.current = Date.now();
+          }}
           hasError={Boolean(fieldErrors.sessionDate)}
         />
+        <div style={{ marginTop: '0.5rem' }}>
+          <TimeWheelPicker
+            value={blockedTimeStr}
+            onChange={setBlockedTimeStr}
+            minTime={blockedMinTime}
+            step={15}
+            disabled={!blockedDateStr}
+            label="Block Time"
+            timezone={getTimezoneAbbr()}
+            data-testid="blocked-time-picker"
+          />
+        </div>
+        {blockedMinTime === null && blockedIsToday && (
+          <HelperText style={{ color: '#f59e0b' }}>
+            No times available today. Select a future date.
+          </HelperText>
+        )}
         {fieldErrors.sessionDate && <ErrorText>{fieldErrors.sessionDate}</ErrorText>}
       </FormField>
 

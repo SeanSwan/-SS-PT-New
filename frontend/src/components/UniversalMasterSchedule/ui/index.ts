@@ -41,3 +41,15 @@ export type { ModalProps } from './CustomModal';
 // Select
 export { CustomSelect } from './CustomSelect';
 export type { CustomSelectProps, SelectOption } from './CustomSelect';
+
+// Time Picker
+export { TimeWheelPicker } from './TimeWheelPicker';
+export type { TimeWheelPickerProps } from './TimeWheelPicker';
+export {
+  combineDateAndTime,
+  getLocalToday,
+  getMinTimeForToday,
+  getTimezoneAbbr,
+  roundUpToStep,
+  validateTimeRange,
+} from './TimeWheelPicker';

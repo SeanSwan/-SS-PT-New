@@ -141,6 +141,12 @@ const UniversalMasterSchedule: React.FC<UniversalMasterScheduleProps> = ({
     if (statusFilter === 'available') {
       return sessions.filter((s: any) => s.status === 'available' && isUpcoming(s));
     }
+    if (statusFilter === 'other') {
+      const KNOWN_STATUSES = ['available', 'scheduled', 'confirmed', 'completed'];
+      return sessions.filter((s: any) =>
+        !s.status || !KNOWN_STATUSES.includes(s.status)
+      );
+    }
     return sessions.filter((s: any) => s.status === statusFilter);
   }, [sessions, statusFilter]);
 

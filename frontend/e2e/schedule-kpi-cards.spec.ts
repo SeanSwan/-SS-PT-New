@@ -45,7 +45,7 @@ async function loginAndNavigateToSchedule(page: Page) {
 
 // ─── Stat Card IDs ───────────────────────────────────────────────────────────
 
-const CARD_KEYS = ['total', 'available', 'scheduled', 'completed'] as const;
+const CARD_KEYS = ['total', 'available', 'scheduled', 'completed', 'other'] as const;
 const cardSelector = (key: string) => `[data-testid="schedule-kpi-${key}"]`;
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ test.describe('Schedule KPI Cards', () => {
     await loginAndNavigateToSchedule(page);
   });
 
-  test('all 4 KPI cards render with numeric values', async ({ page }) => {
+  test('all 5 KPI cards render with numeric values', async ({ page }) => {
     for (const key of CARD_KEYS) {
       const card = page.locator(cardSelector(key));
       await expect(card).toBeVisible();
@@ -174,6 +174,30 @@ test.describe('Schedule KPI Cards', () => {
 
     await page.keyboard.press('Space');
     await expect(card).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('"Other" card activates and shows drill-down', async ({ page }) => {
+    const otherCard = page.locator(cardSelector('other'));
+    await expect(otherCard).toBeVisible();
+
+    await otherCard.click();
+    await expect(otherCard).toHaveAttribute('aria-pressed', 'true');
+
+    const drillDown = page.locator('[data-testid="schedule-kpi-drilldown"]');
+    await expect(drillDown).toBeVisible({ timeout: 2000 });
+  });
+
+  test('sticky table header stays visible while scrolling drill-down', async ({ page }) => {
+    await page.locator(cardSelector('total')).click();
+
+    const scrollArea = page.locator('[data-testid="schedule-drilldown-scroll"]');
+    await expect(scrollArea).toBeVisible({ timeout: 2000 });
+
+    // Check thead has position:sticky
+    const position = await page.locator('[data-testid="schedule-drilldown-scroll"] thead').evaluate(
+      el => getComputedStyle(el).position
+    );
+    expect(position).toBe('sticky');
   });
 
   test('screenshot: desktop KPI cards', async ({ page }) => {
