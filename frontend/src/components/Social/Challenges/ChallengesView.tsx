@@ -510,10 +510,7 @@ const ChallengesView: React.FC = () => {
                       Completed
                     </ActionButton>
                   ) : challenge.joined ? (
-                    <ActionButton
-                      $variant="secondary"
-                      onClick={() => !isDemoData && leaveChallenge(challenge.id)}
-                    >
+                    <ActionButton $variant="secondary">
                       View Progress
                       <ChevronRight size={16} />
                     </ActionButton>

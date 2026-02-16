@@ -172,15 +172,11 @@ module.exports = {
       },
 
       // Team Participation (if challenge allows teams)
+      // NOTE: FK to ChallengeTeams deferred — table lives in social migrations path.
+      // Add constraint via ALTER TABLE once ChallengeTeams migration is unified.
       teamId: {
         type: Sequelize.UUID,
         allowNull: true,
-        references: {
-          model: 'ChallengeTeams', // Assuming this table exists
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL',
         comment: 'Team ID if participating as part of a team'
       },
 
