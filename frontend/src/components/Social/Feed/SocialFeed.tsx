@@ -34,6 +34,7 @@ import {
   Users,
   Trophy
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import { useSocialFeed } from '../../../hooks/social/useSocialFeed';
 import { useGamificationData } from '../../../hooks/gamification/useGamificationData';
@@ -141,6 +142,7 @@ const LiveActivityBadge = styled(Badge)`
  * Displays posts from friends and allows creating new posts
  */
 const SocialFeed: React.FC = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { 
     posts, 
@@ -333,14 +335,14 @@ const SocialFeed: React.FC = () => {
             <Button 
               variant="contained" 
               color="primary"
-              onClick={() => window.location.href = '/social/friends'}
+              onClick={() => navigate('/social/friends')}
             >
               Find Friends
             </Button>
-            <Button 
-              variant="outlined" 
+            <Button
+              variant="outlined"
               color="primary"
-              onClick={() => window.location.href = '/social/challenges'}
+              onClick={() => navigate('/social/challenges')}
             >
               Browse Challenges
             </Button>
