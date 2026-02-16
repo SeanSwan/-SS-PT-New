@@ -22,8 +22,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
+import DemoDataBanner from './DemoDataBanner';
 import {
-  TrendingUp, Target, Users, DollarSign, Award, 
+  TrendingUp, Target, Users, DollarSign, Award,
   BarChart3, PieChart, LineChart, Globe, Star,
   Calendar, Clock, Zap, Activity, Eye, Heart,
   ArrowUp, ArrowDown, RefreshCw, Download, Filter,
@@ -406,7 +407,8 @@ const BusinessIntelligenceDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [autoRefresh, setAutoRefresh] = useState(true);
-  
+  const [isDemoData, setIsDemoData] = useState(false);
+
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // =====================================================
@@ -438,15 +440,17 @@ const BusinessIntelligenceDashboard: React.FC = () => {
       if (data.success) {
         setBusinessData(data.data);
         setLastUpdated(new Date());
+        setIsDemoData(false);
       } else {
         throw new Error(data.message || 'Failed to fetch business intelligence');
       }
     } catch (err: any) {
       console.error('Business intelligence fetch error:', err);
       setError(err.message || 'Failed to load business intelligence');
-      
-      // Fallback to impressive executive demo data
+
+      // Fallback to demo data — flag it so the banner shows
       setBusinessData(generateExecutiveDemoData());
+      setIsDemoData(true);
     } finally {
       setLoading(false);
     }
@@ -703,6 +707,8 @@ const BusinessIntelligenceDashboard: React.FC = () => {
           </ExecutiveButton>
         </ControlsContainer>
       </ExecutiveHeader>
+
+      {isDemoData && <DemoDataBanner />}
 
       {/* Executive KPI Grid */}
       {businessData && (

@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import DemoDataBanner from './DemoDataBanner';
 import { useAuth } from '../../../../../context/AuthContext';
 
 // ============================================
@@ -367,6 +368,8 @@ const SecurityMonitoringPanel: React.FC = () => {
         <Title>Security Monitoring</Title>
         <Subtitle>Real-time security monitoring and threat detection</Subtitle>
       </Header>
+
+      <DemoDataBanner noApi />
 
       {/* Metrics Overview */}
       <MetricsGrid>

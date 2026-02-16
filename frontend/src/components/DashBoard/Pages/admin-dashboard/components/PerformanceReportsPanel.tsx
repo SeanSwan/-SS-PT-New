@@ -25,8 +25,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styled from 'styled-components';
-import { 
-  FileText, 
+import DemoDataBanner from './DemoDataBanner';
+import {
+  FileText,
   TrendingUp, 
   TrendingDown, 
   Calendar, 
@@ -481,6 +482,8 @@ const PerformanceReportsPanel: React.FC = () => {
           </ActionButton>
         </HeaderActions>
       </ReportsHeader>
+
+      <DemoDataBanner noApi />
 
       {/* KPI Dashboard */}
       <KPIGrid>

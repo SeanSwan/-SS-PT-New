@@ -22,6 +22,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
+import DemoDataBanner from './DemoDataBanner';
 import {
   Server, Database, Globe, Wifi, Activity, Zap,
   Shield, AlertTriangle, CheckCircle, Clock, Cpu,
@@ -470,7 +471,8 @@ const SystemHealthPanel: React.FC = () => {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [overallStatus, setOverallStatus] = useState<'healthy' | 'warning' | 'critical'>('healthy');
-  
+  const [isDemoData, setIsDemoData] = useState(false);
+
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // =====================================================
@@ -503,6 +505,7 @@ const SystemHealthPanel: React.FC = () => {
         setSystemHealth(data.data);
         setOverallStatus(data.data.overallStatus);
         setLastUpdated(new Date());
+        setIsDemoData(false);
       } else {
         throw new Error(data.message || 'Failed to fetch system health');
       }
@@ -510,10 +513,11 @@ const SystemHealthPanel: React.FC = () => {
       console.error('System health fetch error:', err);
       setError(err.message || 'Failed to load system health');
       
-      // Fallback to impressive demo data
+      // Fallback to demo data — flag it so the banner shows
       const demoData = generateSystemDemoData();
       setSystemHealth(demoData);
       setOverallStatus(demoData.overallStatus);
+      setIsDemoData(true);
     } finally {
       setLoading(false);
     }
@@ -788,6 +792,8 @@ const SystemHealthPanel: React.FC = () => {
           </ActionButton>
         </ControlsContainer>
       </PanelHeader>
+
+      {isDemoData && <DemoDataBanner />}
 
       {/* System Metrics Grid */}
       {systemHealth && (
