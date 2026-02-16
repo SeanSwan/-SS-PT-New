@@ -16,7 +16,8 @@ import {
   OutlinedButton,
   ErrorText,
   HelperText,
-  SmallText
+  SmallText,
+  TimeWheelPicker,
 } from './ui';
 
 interface RecurringSessionModalProps {
@@ -301,13 +302,16 @@ const RecurringSessionModal: React.FC<RecurringSessionModalProps> = ({
         <Label required>Times</Label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {times.map((time, index) => (
-            <div key={`time-${index}`} style={{ display: 'flex', gap: '0.5rem' }}>
-              <StyledInput
-                type="time"
-                value={time}
-                onChange={(e) => updateTime(index, e.target.value)}
-                hasError={Boolean(fieldErrors.times)}
-              />
+            <div key={`time-${index}`} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <div style={{ flex: 1 }}>
+                <TimeWheelPicker
+                  value={time}
+                  onChange={(val) => updateTime(index, val)}
+                  step={15}
+                  label={`Session time ${index + 1}`}
+                  data-testid={`recurring-time-${index}`}
+                />
+              </div>
               <OutlinedButton
                 onClick={() => removeTime(index)}
                 disabled={times.length === 1}

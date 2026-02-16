@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import styled from 'styled-components';
 import { Save, Trash2 } from 'lucide-react';
 import RecurringSessionModal from '../RecurringSessionModal';
@@ -27,7 +27,12 @@ import {
   StyledTextarea,
   SmallText,
   PrimaryHeading,
-  ErrorText
+  ErrorText,
+  TimeWheelPicker,
+  combineDateAndTime,
+  getLocalToday,
+  getMinTimeForToday,
+  getTimezoneAbbr,
 } from '../ui';
 
 interface ScheduleModalsProps {
@@ -185,6 +190,53 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
     fetchSessionTypes
   } = useSessionTypes();
 
+  // Split date/time state for TimeWheelPicker integration
+  const [sessionDateStr, setSessionDateStr] = useState('');
+  const [sessionTimeStr, setSessionTimeStr] = useState('');
+  const frozenNowRef = useRef(Date.now());
+
+  // Sync from formData.sessionDate → split state (when opening or slot-select fills it)
+  useEffect(() => {
+    const sd = formData.sessionDate || '';
+    if (sd.includes('T')) {
+      const [d, t] = sd.split('T');
+      setSessionDateStr(d || '');
+      setSessionTimeStr((t || '').slice(0, 5)); // "HH:mm"
+    } else if (sd) {
+      setSessionDateStr(sd);
+      setSessionTimeStr('');
+    }
+  }, [formData.sessionDate]);
+
+  // Recompute frozenNow when date changes
+  useEffect(() => {
+    frozenNowRef.current = Date.now();
+  }, [sessionDateStr]);
+
+  // Compute minTime for today
+  const isToday = sessionDateStr === getLocalToday();
+  const computedMinTime = useMemo(() => {
+    if (!isToday) return undefined;
+    return getMinTimeForToday(15, frozenNowRef.current);
+  }, [isToday]);
+
+  // Sync split state → formData.sessionDate
+  const handleDateChange = (date: string) => {
+    setSessionDateStr(date);
+    if (date && sessionTimeStr) {
+      setFormData({ ...formData, sessionDate: combineDateAndTime(date, sessionTimeStr) });
+    } else if (date) {
+      setFormData({ ...formData, sessionDate: date });
+    }
+  };
+
+  const handleTimeChange = (time: string) => {
+    setSessionTimeStr(time);
+    if (sessionDateStr && time) {
+      setFormData({ ...formData, sessionDate: combineDateAndTime(sessionDateStr, time) });
+    }
+  };
+
   useEffect(() => {
     if (showTemplateNameInput) {
       templateInputRef.current?.focus();
@@ -197,6 +249,8 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
       setTemplateName('');
       setTemplateError('');
       setPendingDeleteId(null);
+      setSessionDateStr('');
+      setSessionTimeStr('');
     }
   }, [showCreateDialog]);
 
@@ -379,12 +433,29 @@ const ScheduleModals: React.FC<ScheduleModalsProps> = ({
                   {formData.sessionDate ? new Date(formData.sessionDate).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'No date selected'}
                 </BodyText>
               ) : (
-                <StyledInput
-                  id="sessionDate"
-                  type="datetime-local"
-                  value={formData.sessionDate}
-                  onChange={(e) => setFormData({ ...formData, sessionDate: e.target.value })}
-                />
+                <FlexBox gap="0.75rem" style={{ flexDirection: 'column' }}>
+                  <StyledInput
+                    id="sessionDate"
+                    type="date"
+                    value={sessionDateStr}
+                    onChange={(e) => handleDateChange(e.target.value)}
+                  />
+                  <TimeWheelPicker
+                    value={sessionTimeStr}
+                    onChange={handleTimeChange}
+                    minTime={computedMinTime}
+                    step={15}
+                    disabled={!sessionDateStr}
+                    label="Session Time"
+                    timezone={getTimezoneAbbr()}
+                    data-testid="session-time-picker"
+                  />
+                  {computedMinTime === null && isToday && (
+                    <HelperText style={{ color: '#f59e0b' }}>
+                      No times available today. Select a future date.
+                    </HelperText>
+                  )}
+                </FlexBox>
               )}
               {effectiveBlock && (
                 <HelperText>
