@@ -8,14 +8,24 @@
 ## CURRENT VISION SNAPSHOT (2026-02-15)
 
 ### Active Product Priorities
-1. **Schedule truthfulness and usability**
+1. **Social & Gamification Integration (ACTIVE)**
+   - ✅ **Social Profile Page:** Foundation complete (UserProfilePage, Routes, API).
+   - ⏳ **Challenges UI:** Frontend implementation needed (currently "Coming Soon").
+   - ⏳ **Social Gamification:** Backend goals and milestones integration.
+
+2. **Admin Dashboard Stabilization (ACTIVE)**
+   - ✅ **Demo Data Transparency:** Banners added for API failures/mock data.
+   - ⏳ **Navigation Fix:** Move "Client Onboarding" to sidebar.
+   - ⏳ **Role Promotion:** Fix owner account permissions.
+
+3. **Schedule truthfulness and usability**
    - KPI counts must match filter semantics and user expectations.
    - "Available" must represent upcoming open slots (not stale past slots).
    - Drill-down must be readable, high-contrast, and visibly scrollable when data is large.
-2. **Auth recovery reliability**
+4. **Auth recovery reliability**
    - Forgot/reset password flow is production priority.
    - SendGrid delivery observability and suppression hygiene are required.
-3. **Quality bar**
+5. **Quality bar**
    - Accessibility, contrast, and mobile touch targets are required deliverables.
    - No regressions in auth, sessions, checkout, or RBAC.
 
