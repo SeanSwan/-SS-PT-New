@@ -259,6 +259,10 @@ const UserProfilePage = lazyLoadWithErrorHandling(
   () => import('../pages/Social/UserProfilePage'),
   'User Profile Page'
 );
+const SocialPage = lazyLoadWithErrorHandling(
+  () => import('../pages/Social/SocialPage'),
+  'Social Hub'
+);
 
 // Design Playground - Admin-only concept viewer (build-time gated — not loaded in production)
 const DesignPlaygroundLayout = import.meta.env.VITE_DESIGN_PLAYGROUND === 'true'
@@ -553,6 +557,28 @@ const MainRoutes: RouteObject = {
         <ProtectedRoute>
           <Suspense fallback={<PageLoader />}>
             <UserProfilePage />
+          </Suspense>
+        </ProtectedRoute>
+      )
+    },
+
+    // Social Hub Routes — /social, /social/friends, /social/challenges
+    {
+      path: 'social',
+      element: (
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <SocialPage />
+          </Suspense>
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: 'social/:tab',
+      element: (
+        <ProtectedRoute>
+          <Suspense fallback={<PageLoader />}>
+            <SocialPage />
           </Suspense>
         </ProtectedRoute>
       )

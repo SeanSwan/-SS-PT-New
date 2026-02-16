@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -30,6 +30,7 @@ import {
   TrendingUp,
   Award
 } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useGamificationData } from '../../hooks/gamification/useGamificationData';
 import SocialFeed from '../../components/Social/Feed/SocialFeed';
@@ -119,19 +120,33 @@ const NotificationBadge = styled(Badge)`
  * Main Social Page Component
  * Displays the social feed and provides navigation to other social features
  */
+const VALID_TABS = ['feed', 'friends', 'challenges'] as const;
+type SocialTab = typeof VALID_TABS[number];
+
 const SocialPage: React.FC = () => {
   const { user } = useAuth();
   const { profile } = useGamificationData();
+  const { tab } = useParams<{ tab?: string }>();
+  const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const [activeTab, setActiveTab] = useState<'feed' | 'friends' | 'challenges'>('feed');
-  
+
+  const initialTab: SocialTab = VALID_TABS.includes(tab as SocialTab) ? (tab as SocialTab) : 'feed';
+  const [activeTab, setActiveTab] = useState<SocialTab>(initialTab);
+
+  // Sync tab state when URL param changes
+  useEffect(() => {
+    const urlTab = VALID_TABS.includes(tab as SocialTab) ? (tab as SocialTab) : 'feed';
+    setActiveTab(urlTab);
+  }, [tab]);
+
   // Mock notification count for demo
   const notificationCount = 3;
-  
-  // Handle tab change
-  const handleTabChange = (tab: 'feed' | 'friends' | 'challenges') => {
-    setActiveTab(tab);
+
+  // Handle tab change — update URL so back/forward work
+  const handleTabChange = (newTab: SocialTab) => {
+    setActiveTab(newTab);
+    navigate(newTab === 'feed' ? '/social' : `/social/${newTab}`, { replace: true });
   };
   
   // Render content based on active tab
