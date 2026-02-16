@@ -3,9 +3,10 @@
  * Galaxy-Swan themed challenges UI with tabs for active/upcoming/completed.
  * Uses mock data — backend integration deferred.
  */
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import {
   Trophy,
   Clock,
@@ -322,17 +323,58 @@ const TABS: { key: ChallengeStatus; label: string; icon: React.ElementType }[] =
 
 const ChallengesView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ChallengeStatus>('active');
+  const prefersReducedMotion = useReducedMotion();
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const filtered = MOCK_CHALLENGES.filter((c) => c.status === activeTab);
 
+  const handleTabKeyDown = useCallback((e: React.KeyboardEvent) => {
+    const currentIdx = TABS.findIndex((t) => t.key === activeTab);
+    let nextIdx = currentIdx;
+
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      nextIdx = (currentIdx + 1) % TABS.length;
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      nextIdx = (currentIdx - 1 + TABS.length) % TABS.length;
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      nextIdx = 0;
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      nextIdx = TABS.length - 1;
+    } else {
+      return;
+    }
+
+    setActiveTab(TABS[nextIdx].key);
+    tabRefs.current[nextIdx]?.focus();
+  }, [activeTab]);
+
+  const noMotion = prefersReducedMotion;
+  const panelTransition = noMotion
+    ? { initial: false as const, animate: {}, exit: {}, transition: { duration: 0 } }
+    : { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -8 }, transition: { duration: 0.2 } };
+  const cardTransition = noMotion
+    ? { initial: false as const, animate: {}, transition: { duration: 0 } }
+    : { initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.25 } };
+  const barTransition = (progress: number) => noMotion
+    ? { initial: { width: `${progress}%` }, animate: { width: `${progress}%` }, transition: { duration: 0 } }
+    : { initial: { width: 0 }, animate: { width: `${progress}%` }, transition: { duration: 0.6, ease: 'easeOut' as const } };
+
   return (
     <Container>
-      <TabBar role="tablist">
-        {TABS.map(({ key, label, icon: Icon }) => (
+      <TabBar role="tablist" aria-label="Challenge status" onKeyDown={handleTabKeyDown}>
+        {TABS.map(({ key, label, icon: Icon }, idx) => (
           <TabButton
             key={key}
+            ref={(el) => { tabRefs.current[idx] = el; }}
             role="tab"
+            id={`challenge-tab-${key}`}
             aria-selected={activeTab === key}
+            aria-controls={`challenge-panel-${key}`}
+            tabIndex={activeTab === key ? 0 : -1}
             $active={activeTab === key}
             onClick={() => setActiveTab(key)}
           >
@@ -342,13 +384,16 @@ const ChallengesView: React.FC = () => {
         ))}
       </TabBar>
 
+      <div
+        role="tabpanel"
+        id={`challenge-panel-${activeTab}`}
+        aria-labelledby={`challenge-tab-${activeTab}`}
+        tabIndex={0}
+      >
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.2 }}
+          {...panelTransition}
           style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
         >
           {filtered.length === 0 ? (
@@ -375,10 +420,8 @@ const ChallengesView: React.FC = () => {
               return (
                 <ChallengeCard
                   key={challenge.id}
-                  layout
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.25 }}
+                  layout={!noMotion}
+                  {...cardTransition}
                 >
                   <CardHeader>
                     <CardTitleRow>
@@ -397,9 +440,7 @@ const ChallengesView: React.FC = () => {
                       <ProgressBarOuter>
                         <ProgressBarInner
                           $color={catColor}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${challenge.progress}%` }}
-                          transition={{ duration: 0.6, ease: 'easeOut' }}
+                          {...barTransition(challenge.progress)}
                         />
                       </ProgressBarOuter>
                       <MetaItem style={{ fontSize: '0.8rem' }}>
@@ -453,6 +494,7 @@ const ChallengesView: React.FC = () => {
           )}
         </motion.div>
       </AnimatePresence>
+      </div>
     </Container>
   );
 };
