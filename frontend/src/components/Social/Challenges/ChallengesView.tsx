@@ -1,12 +1,14 @@
 /**
  * ChallengesView.tsx
  * Galaxy-Swan themed challenges UI with tabs for active/upcoming/completed.
- * Uses mock data — backend integration deferred.
+ * Fetches real data from /api/v1/gamification/challenges; falls back to
+ * mock data when the API is unavailable (e.g., migration not yet run).
  */
 import React, { useState, useCallback, useRef } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
+import { useChallenges, type Challenge, type ChallengeStatus, type ChallengeCategory } from '../../../hooks/useChallenges';
 import {
   Trophy,
   Clock,
@@ -16,29 +18,12 @@ import {
   Dumbbell,
   ChevronRight,
   CheckCircle2,
-  Lock
+  Lock,
+  AlertTriangle,
+  Loader2
 } from 'lucide-react';
 
-/* ─── Types ────────────────────────────────────────── */
-
-type ChallengeStatus = 'active' | 'upcoming' | 'completed';
-type ChallengeCategory = 'strength' | 'cardio' | 'consistency' | 'social';
-
-interface Challenge {
-  id: string;
-  title: string;
-  description: string;
-  category: ChallengeCategory;
-  status: ChallengeStatus;
-  progress: number;        // 0-100
-  participants: number;
-  daysLeft?: number;
-  startsIn?: string;
-  reward: string;
-  joined: boolean;
-}
-
-/* ─── Mock Data ────────────────────────────────────── */
+/* ─── Mock Data (fallback when API unavailable) ────── */
 
 const MOCK_CHALLENGES: Challenge[] = [
   {
@@ -313,6 +298,34 @@ const EmptyIcon = styled.div`
   opacity: 0.4;
 `;
 
+const DemoBanner = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fcd34d;
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  gap: 16px;
+  color: #94a3b8;
+`;
+
+const Spinner = styled(Loader2)`
+  @keyframes spin { to { transform: rotate(360deg); } }
+  animation: spin 1s linear infinite;
+`;
+
 /* ─── Component ────────────────────────────────────── */
 
 const TABS: { key: ChallengeStatus; label: string; icon: React.ElementType }[] = [
@@ -325,8 +338,11 @@ const ChallengesView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ChallengeStatus>('active');
   const prefersReducedMotion = useReducedMotion();
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const { challenges, loading, isDemoData, joinChallenge, leaveChallenge } = useChallenges();
 
-  const filtered = MOCK_CHALLENGES.filter((c) => c.status === activeTab);
+  // Use API data when available, mock data as fallback
+  const displayData = isDemoData ? MOCK_CHALLENGES : challenges;
+  const filtered = displayData.filter((c) => c.status === activeTab);
 
   const handleTabKeyDown = useCallback((e: React.KeyboardEvent) => {
     const currentIdx = TABS.findIndex((t) => t.key === activeTab);
@@ -363,8 +379,24 @@ const ChallengesView: React.FC = () => {
     ? { initial: { width: `${progress}%` }, animate: { width: `${progress}%` }, transition: { duration: 0 } }
     : { initial: { width: 0 }, animate: { width: `${progress}%` }, transition: { duration: 0.6, ease: 'easeOut' as const } };
 
+  if (loading) {
+    return (
+      <LoadingContainer>
+        <Spinner size={32} />
+        <span>Loading challenges...</span>
+      </LoadingContainer>
+    );
+  }
+
   return (
     <Container>
+      {isDemoData && (
+        <DemoBanner role="status" aria-live="polite">
+          <AlertTriangle size={18} style={{ flexShrink: 0 }} />
+          <span>Showing sample challenges — live data will appear once challenges are created.</span>
+        </DemoBanner>
+      )}
+
       <TabBar role="tablist" aria-label="Challenge status" onKeyDown={handleTabKeyDown}>
         {TABS.map(({ key, label, icon: Icon }, idx) => (
           <TabButton
@@ -478,12 +510,18 @@ const ChallengesView: React.FC = () => {
                       Completed
                     </ActionButton>
                   ) : challenge.joined ? (
-                    <ActionButton $variant="secondary">
+                    <ActionButton
+                      $variant="secondary"
+                      onClick={() => !isDemoData && leaveChallenge(challenge.id)}
+                    >
                       View Progress
                       <ChevronRight size={16} />
                     </ActionButton>
                   ) : (
-                    <ActionButton $variant="primary">
+                    <ActionButton
+                      $variant="primary"
+                      onClick={() => !isDemoData && joinChallenge(challenge.id)}
+                    >
                       Join Challenge
                       <ChevronRight size={16} />
                     </ActionButton>
