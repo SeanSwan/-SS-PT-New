@@ -420,7 +420,7 @@ const ProfileSection: React.FC = () => {
                         <ListItemButton 
                           sx={{ borderRadius: `${borderRadius}px` }} 
                           selected={selectedIndex === 1}
-                          onClick={() => navigate('/social-profile')}
+                          onClick={() => navigate('/social')}
                           tabIndex={open ? 0 : -1}
                           disabled={!open}
                         >
