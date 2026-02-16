@@ -35,6 +35,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useGamificationData } from '../../hooks/gamification/useGamificationData';
 import SocialFeed from '../../components/Social/Feed/SocialFeed';
 import FriendsList from '../../components/Social/Friends/FriendsList';
+import ChallengesView from '../../components/Social/Challenges/ChallengesView';
 import styled from 'styled-components';
 
 // Styled components
@@ -146,7 +147,7 @@ const SocialPage: React.FC = () => {
   // Handle tab change — update URL so back/forward work
   const handleTabChange = (newTab: SocialTab) => {
     setActiveTab(newTab);
-    navigate(newTab === 'feed' ? '/social' : `/social/${newTab}`, { replace: true });
+    navigate(newTab === 'feed' ? '/social' : `/social/${newTab}`);
   };
   
   // Render content based on active tab
@@ -157,20 +158,7 @@ const SocialPage: React.FC = () => {
       case 'friends':
         return <FriendsList />;
       case 'challenges':
-        return (
-          <Box textAlign="center" py={4}>
-            <Trophy size={64} style={{ opacity: 0.5, marginBottom: '16px' }} />
-            <Typography variant="h5" gutterBottom>
-              Challenges Coming Soon
-            </Typography>
-            <Typography variant="body1" color="text.secondary" paragraph>
-              Join fitness challenges with friends and compete for achievements!
-            </Typography>
-            <Button variant="contained" color="primary" disabled>
-              Stay Tuned
-            </Button>
-          </Box>
-        );
+        return <ChallengesView />;
       default:
         return <SocialFeed />;
     }
