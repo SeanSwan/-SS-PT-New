@@ -69,6 +69,8 @@ import gamificationV1Routes from '../routes/gamificationV1Routes.mjs';
 import badgeRoutes from '../routes/badgeRoutes.mjs';
 import socialRoutes from '../routes/social/index.mjs';
 import goalRoutes from '../routes/goalRoutes.mjs';
+import socialGoalRoutes from '../routes/socialGoalRoutes.mjs';
+import streakRoutes from '../routes/streakRoutes.mjs';
 
 // ===================== ADMIN & MANAGEMENT =====================
 import adminRoutes from '../routes/adminRoutes.mjs';
@@ -247,6 +249,8 @@ export const setupRoutes = async (app) => {
   // Social routes (separate system)
   app.use('/api/social', socialRoutes);
   app.use('/api/goals', goalRoutes);
+  app.use('/api/goals', socialGoalRoutes); // Social features: supporters, comments, likes, milestones
+  app.use('/api/streaks', streakRoutes);
 
   // ===================== ADMIN & MANAGEMENT ROUTES =====================
   app.use('/api/admin', adminRoutes);
