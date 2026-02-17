@@ -1,5 +1,4 @@
 import { useContext } from 'react';
-import { useTheme } from '@mui/material/styles';
 import { ConfigContext } from '../context/ConfigContext';
 
 /**
@@ -8,7 +7,6 @@ import { ConfigContext } from '../context/ConfigContext';
  */
 const useConfig = () => {
   const context = useContext(ConfigContext);
-  const theme = useTheme();
 
   if (!context) {
     throw new Error('useConfig must be used within ConfigProvider');
@@ -24,17 +22,17 @@ const useConfig = () => {
       const useMetric = context.locale !== 'en-US';
       return useMetric ? `${weight} kg` : `${Math.round(weight * 2.20462)} lbs`;
     },
-    
+
     calculateBMI: (heightCm: number, weightKg: number): number => {
       const heightM = heightCm / 100;
       return Number((weightKg / (heightM * heightM)).toFixed(1));
     },
-    
+
     getCalorieTarget: (gender: string, age: number, weightKg: number, heightCm: number, activityLevel: string): number => {
       // Basic BMR calculation (Mifflin-St Jeor Equation)
       let bmr = 10 * weightKg + 6.25 * heightCm - 5 * age;
       bmr = gender === 'male' ? bmr + 5 : bmr - 161;
-      
+
       // Activity multipliers
       const activityMultipliers: {[key: string]: number} = {
         'sedentary': 1.2,
@@ -43,21 +41,21 @@ const useConfig = () => {
         'active': 1.725,
         'very_active': 1.9
       };
-      
+
       const multiplier = activityMultipliers[activityLevel] || 1.2;
       return Math.round(bmr * multiplier);
     },
-    
+
     // Dashboard specific helpers utilizing your context properties
     getChartColorScheme: () => {
       // Use navType instead of themeMode since that's what your context has
       const isDarkMode = context.navType === 'dark';
-      
+
       return isDarkMode
-        ? ['#ff5722', '#ffc107', '#4caf50', '#2196f3', '#9c27b0'] 
+        ? ['#ff5722', '#ffc107', '#4caf50', '#2196f3', '#9c27b0']
         : ['#ff7043', '#ffca28', '#66bb6a', '#42a5f5', '#ab47bc'];
     },
-    
+
     // Add more fitness app specific helpers that utilize your config
     getFitnessTheme: () => {
       // Return color theme based on your presetColor
@@ -78,14 +76,14 @@ const useConfig = () => {
           return 'general';
       }
     },
-    
+
     // Convert between metric and imperial
     convertHeight: (height: number, toMetric: boolean): number => {
-      return toMetric 
+      return toMetric
         ? Math.round(height * 2.54) // inches to cm
         : Math.round(height / 2.54); // cm to inches
     },
-    
+
     convertWeight: (weight: number, toMetric: boolean): number => {
       return toMetric
         ? Number((weight / 2.20462).toFixed(1)) // lbs to kg

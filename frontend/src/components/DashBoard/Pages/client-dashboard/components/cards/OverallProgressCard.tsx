@@ -1,12 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Box, IconButton, Tooltip, Typography } from '@mui/material';
+import styled from 'styled-components';
 import { Trophy, Info } from 'lucide-react';
 
-import { 
-  StyledCard, 
-  CardHeader, 
-  CardTitle, 
+import {
+  StyledCard,
+  CardHeader,
+  CardTitle,
   CardContent,
   LevelBadge,
   LevelInfo,
@@ -26,6 +26,64 @@ import {
 
 import { ProgressLevel, UserStats, ActivitySummary } from '../../types';
 
+const InfoButton = styled.button`
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  border-radius: 50%;
+  min-height: 44px;
+  min-width: 44px;
+  justify-content: center;
+  position: relative;
+
+  &:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.1);
+  }
+`;
+
+const TooltipWrapper = styled.div`
+  position: relative;
+  display: inline-flex;
+`;
+
+const TooltipPopup = styled.div`
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  background: rgba(20, 20, 40, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 8px 12px;
+  min-width: 200px;
+  z-index: 100;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.8);
+  pointer-events: none;
+`;
+
+const FlexRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 16px;
+`;
+
+const SectionLabel = styled.p`
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 8px;
+`;
+
+const HeatmapTooltipWrapper = styled.div`
+  position: relative;
+  display: inline-flex;
+`;
+
 interface OverallProgressCardProps {
   overallLevel: ProgressLevel;
   userStats: UserStats;
@@ -40,10 +98,9 @@ const OverallProgressCard: React.FC<OverallProgressCardProps> = ({
   userStats,
   activitySummary
 }) => {
-  // Calculate progress percentage for next level
+  const [showInfoTooltip, setShowInfoTooltip] = useState(false);
   const overallProgressPercentage = Math.floor((overallLevel.progress / overallLevel.totalNeeded) * 100);
-  
-  // Format date for display (used in tooltip)
+
   const formatDate = (dateString: string): string => {
     const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
     return new Date(dateString).toLocaleDateString('en-US', options);
@@ -56,14 +113,22 @@ const OverallProgressCard: React.FC<OverallProgressCardProps> = ({
           <Trophy size={22} />
           Overall Progress
         </CardTitle>
-        <Tooltip title="Based on your cumulative progress across all exercise categories">
-          <IconButton size="small" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+        <TooltipWrapper
+          onMouseEnter={() => setShowInfoTooltip(true)}
+          onMouseLeave={() => setShowInfoTooltip(false)}
+        >
+          <InfoButton aria-label="Progress info">
             <Info size={18} />
-          </IconButton>
-        </Tooltip>
+          </InfoButton>
+          {showInfoTooltip && (
+            <TooltipPopup>
+              Based on your cumulative progress across all exercise categories
+            </TooltipPopup>
+          )}
+        </TooltipWrapper>
       </CardHeader>
       <CardContent>
-        <Box display="flex" alignItems="flex-start" mb={2}>
+        <FlexRow>
           <LevelBadge level={overallLevel.level}>
             {overallLevel.level}
             <span>LEVEL</span>
@@ -72,9 +137,9 @@ const OverallProgressCard: React.FC<OverallProgressCardProps> = ({
             <LevelName>{overallLevel.name}</LevelName>
             <LevelDescription>{overallLevel.description}</LevelDescription>
             <LevelProgress>
-              <StyledLinearProgress 
-                variant="determinate" 
-                value={overallProgressPercentage} 
+              <StyledLinearProgress
+                variant="determinate"
+                value={overallProgressPercentage}
                 color="primary"
               />
               <NextLevelContainer>
@@ -83,8 +148,8 @@ const OverallProgressCard: React.FC<OverallProgressCardProps> = ({
               </NextLevelContainer>
             </LevelProgress>
           </LevelInfo>
-        </Box>
-        
+        </FlexRow>
+
         {/* Quick Stats */}
         <StatsGrid>
           <StatCard color="primary">
@@ -104,25 +169,24 @@ const OverallProgressCard: React.FC<OverallProgressCardProps> = ({
             <StatLabel>Minutes</StatLabel>
           </StatCard>
         </StatsGrid>
-        
+
         {/* Activity Heatmap - Last 30 Days */}
-        <Box mt={3}>
-          <Typography variant="subtitle2" mb={1}>Activity - Last 30 Days</Typography>
+        <div style={{ marginTop: 24 }}>
+          <SectionLabel>Activity - Last 30 Days</SectionLabel>
           <HeatmapContainer>
-            {activitySummary.map((day, index) => (
-              <Tooltip 
-                key={day.date} 
+            {activitySummary.map((day) => (
+              <HeatmapDay
+                key={day.date}
+                intensity={day.intensity}
                 title={
-                  day.workouts > 0 
+                  day.workouts > 0
                     ? `${formatDate(day.date)}: ${day.workouts} workout${day.workouts > 1 ? 's' : ''}, ${day.exercises} exercise${day.exercises > 1 ? 's' : ''}, ${day.duration} min`
                     : `${formatDate(day.date)}: No activity`
                 }
-              >
-                <HeatmapDay intensity={day.intensity} />
-              </Tooltip>
+              />
             ))}
           </HeatmapContainer>
-        </Box>
+        </div>
       </CardContent>
     </StyledCard>
   );
