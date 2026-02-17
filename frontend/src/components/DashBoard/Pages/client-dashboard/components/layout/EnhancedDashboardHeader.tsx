@@ -1,22 +1,7 @@
-import React, { useState, MouseEvent, useEffect } from 'react';
+import React, { useState, MouseEvent, useEffect, useCallback } from 'react';
 import { useAuth } from '../../../../../../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import {
-  Box,
-  IconButton,
-  Typography,
-  Avatar,
-  Menu,
-  MenuItem,
-  Button,
-  Badge,
-  useMediaQuery,
-  useTheme,
-  ListItemIcon,
-  ListItemText,
-  Container
-} from '@mui/material';
-
+import styled from 'styled-components';
 import {
   ShoppingCart,
   Menu as MenuIcon,
@@ -33,9 +18,264 @@ interface EnhancedDashboardHeaderProps {
   onOpenMobileDrawer?: () => void;
 }
 
+/* ─── styled-components ─── */
+
+const HeaderWrapper = styled.div<{ $scrolled: boolean }>`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: ${({ $scrolled }) => ($scrolled ? 'rgba(10, 10, 26, 0.98)' : '#0a0a1a')};
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: ${({ $scrolled }) => ($scrolled ? '0 5px 20px rgba(0, 0, 0, 0.3)' : 'none')};
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transform: translateZ(0);
+  will-change: background, box-shadow;
+`;
+
+const HeaderContainer = styled.div`
+  width: 100%;
+  padding: 0 16px;
+
+  @media (min-width: 600px) {
+    padding: 0 24px;
+  }
+  @media (min-width: 960px) {
+    padding: 0 32px;
+  }
+`;
+
+const HeaderInner = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 56px;
+`;
+
+const LogoArea = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 44px;
+
+  &:hover .logo-text {
+    color: #10b5f0;
+  }
+`;
+
+const LogoIcon = styled.div<{ $active: boolean }>`
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${({ $active }) => ($active ? 'rgba(0, 160, 227, 0.1)' : 'transparent')};
+  border-radius: 50%;
+  padding: 4px;
+`;
+
+const LogoText = styled.span`
+  font-weight: 500;
+  font-size: 1.15rem;
+  color: #00a0e3;
+  letter-spacing: 0.5px;
+`;
+
+const NavArea = styled.div`
+  display: flex;
+  height: 100%;
+  align-items: center;
+`;
+
+const NavButton = styled.button<{ $active: boolean }>`
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid ${({ $active }) => ($active ? '#00a0e3' : 'transparent')};
+  color: ${({ $active }) => ($active ? '#00a0e3' : 'white')};
+  text-transform: none;
+  padding: 0 9.6px;
+  min-width: auto;
+  min-height: 44px;
+  height: 56px;
+  border-radius: 0;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  font-size: 15px;
+  letter-spacing: 0.2px;
+  margin: 0 2.4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: inherit;
+
+  &:hover {
+    background-color: transparent;
+    color: #00a0e3;
+    border-bottom: 2px solid #00a0e3;
+  }
+`;
+
+const ActionsArea = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  @media (min-width: 960px) {
+    gap: 8px;
+  }
+`;
+
+const ActionButton = styled.button`
+  background: transparent;
+  border: none;
+  color: white;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  position: relative;
+
+  &:hover {
+    color: #00a0e3;
+    background-color: rgba(0, 160, 227, 0.05);
+  }
+`;
+
+const BadgeWrapper = styled.span`
+  position: relative;
+  display: inline-flex;
+`;
+
+const BadgeDot = styled.span`
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background-color: #ec4899;
+  font-size: 0.65rem;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  line-height: 1;
+`;
+
+const UserAvatar = styled.div`
+  width: 36px;
+  height: 36px;
+  background-color: #00a0e3;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-left: 4px;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+
+  &:hover {
+    box-shadow: 0 0 0 2px rgba(0, 160, 227, 0.3);
+  }
+`;
+
+/* ── Dropdown menu ── */
+
+const DropdownOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+`;
+
+const DropdownMenu = styled.div<{ $top: number; $left: number }>`
+  position: fixed;
+  top: ${({ $top }) => $top}px;
+  left: ${({ $left }) => $left}px;
+  z-index: 1200;
+  background: #0a0a1a;
+  color: white;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+  width: 180px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  padding: 4px 0;
+`;
+
+const DropdownItem = styled.button<{ $bordered?: boolean }>`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  border-bottom: ${({ $bordered }) => ($bordered ? '1px solid rgba(255, 255, 255, 0.05)' : 'none')};
+  color: white;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-family: inherit;
+  min-height: 44px;
+  text-align: left;
+
+  &:hover {
+    background-color: rgba(0, 160, 227, 0.05);
+  }
+`;
+
+const DropdownItemIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  color: white;
+`;
+
+const NewBadge = styled.span`
+  margin-left: 8px;
+  font-size: 0.65rem;
+  padding: 1px 5px;
+  background-color: #ec4899;
+  border-radius: 4px;
+  white-space: nowrap;
+  color: white;
+  font-weight: 600;
+`;
+
+/* ─── Hook: simple mobile breakpoint ─── */
+
+function useIsMobile(breakpoint = 960) {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < breakpoint);
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    setIsMobile(mql.matches);
+    return () => mql.removeEventListener('change', handler);
+  }, [breakpoint]);
+
+  return isMobile;
+}
+
 /**
  * EnhancedDashboardHeader - Pixel-perfect implementation for SwanStudios
- * 
+ *
  * This header component is designed to match exactly with the SwanStudios
  * brand design as seen in the screenshots and existing styling patterns.
  * It includes responsive behavior, dropdown menus, and proper active state
@@ -45,63 +285,47 @@ const EnhancedDashboardHeader: React.FC<EnhancedDashboardHeaderProps> = ({
   onOpenMobileDrawer
 }) => {
   const { user } = useAuth();
-  const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+  const isMobile = useIsMobile();
+
   const [storeMenuAnchor, setStoreMenuAnchor] = useState<null | HTMLElement>(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, left: 0 });
   const [scrolled, setScrolled] = useState(false);
-  
+
   // Handle scroll effects
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
     };
-    
+
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-  
+
   // Handle navigation to different pages
   const handleNavigation = (path: string) => {
     navigate(path);
   };
-  
+
   // Handle store menu
   const handleStoreMenuOpen = (event: MouseEvent<HTMLElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setMenuPos({
+      top: rect.bottom + 4,
+      left: rect.left + rect.width / 2 - 90
+    });
     setStoreMenuAnchor(event.currentTarget);
   };
-  
-  const handleStoreMenuClose = () => {
+
+  const handleStoreMenuClose = useCallback(() => {
     setStoreMenuAnchor(null);
-  };
+  }, []);
 
   // Handle navigation to store submenu items
   const handleStoreNavigate = (path: string) => {
     navigate(path);
     handleStoreMenuClose();
-  };
-  
-  // Navigation button styles matching your existing header
-  const navButtonStyle = {
-    color: 'white',
-    textTransform: 'none' as const,
-    px: 1.2,
-    py: 0,
-    minWidth: 'auto',
-    borderRadius: 0,
-    transition: 'all 0.2s ease',
-    fontWeight: 500,
-    fontSize: '15px',
-    letterSpacing: '0.2px',
-    borderBottom: '2px solid transparent',
-    mx: 0.3,
-    '&:hover': {
-      backgroundColor: 'transparent',
-      color: '#00a0e3',
-      borderBottom: '2px solid #00a0e3'
-    }
   };
 
   // Check if a path is active
@@ -113,374 +337,153 @@ const EnhancedDashboardHeader: React.FC<EnhancedDashboardHeaderProps> = ({
   };
 
   return (
-    <Box
-      sx={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1000,
-        /* Solid background - no blur for better mobile scroll performance */
-        background: scrolled ? 'rgba(10, 10, 26, 0.98)' : '#0a0a1a',
-        transition: 'background 0.2s ease, box-shadow 0.2s ease',
-        boxShadow: scrolled ? '0 5px 20px rgba(0, 0, 0, 0.3)' : 'none',
-        borderBottom: '1px solid rgba(255,255,255,0.05)',
-        /* GPU layer promotion */
-        transform: 'translateZ(0)',
-        willChange: 'background, box-shadow'
-      }}
-    >
-      <Container 
-        maxWidth={false} 
-        disableGutters 
-        sx={{ 
-          px: { xs: 2, sm: 3, md: 4 } 
-        }}
-      >
-        <Box
-          sx={{ 
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            height: '56px',
-          }}
-        >
+    <HeaderWrapper $scrolled={scrolled}>
+      <HeaderContainer>
+        <HeaderInner>
           {/* Logo Area */}
-          <Box 
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                '& .logo-text': {
-                  color: '#10b5f0'
-                }
-              }
-            }}
-            onClick={() => handleNavigation('/')}
-          >
-            <Box
-              component="div"
-              sx={{
-                width: 32,
-                height: 32,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: isActive('/home') ? 'rgba(0, 160, 227, 0.1)' : 'transparent',
-                borderRadius: '50%',
-                p: 0.5
-              }}
-            >
-              <img 
-                src="/swan-icon.svg" 
-                alt="Swan Studios" 
-                style={{ 
-                  width: '100%', 
+          <LogoArea onClick={() => handleNavigation('/')}>
+            <LogoIcon $active={isActive('/home')}>
+              <img
+                src="/swan-icon.svg"
+                alt="Swan Studios"
+                style={{
+                  width: '100%',
                   height: '100%'
-                }} 
+                }}
               />
-            </Box>
-            <Typography 
-              variant="h6" 
-              className="logo-text"
-              sx={{
-                fontWeight: 500,
-                fontSize: '1.15rem',
-                color: '#00a0e3',
-                letterSpacing: '0.5px'
-              }}
-            >
+            </LogoIcon>
+            <LogoText className="logo-text">
               SwanStudios
-            </Typography>
-          </Box>
+            </LogoText>
+          </LogoArea>
 
           {/* Navigation Area */}
           {!isMobile && (
-            <Box sx={{ 
-              display: 'flex', 
-              height: '100%',
-              alignItems: 'center',
-              "& .MuiButton-root": {
-                height: '56px',
-                borderRadius: 0
-              }
-            }}>
-              <Button 
-                sx={{
-                  ...navButtonStyle,
-                  color: isActive('/home') ? '#00a0e3' : 'white',
-                  borderBottom: isActive('/home') ? '2px solid #00a0e3' : '2px solid transparent'
-                }}
+            <NavArea>
+              <NavButton
+                $active={isActive('/home')}
                 onClick={() => handleNavigation('/')}
               >
                 Home
-              </Button>
-              
-              <Button 
-                sx={{
-                  ...navButtonStyle,
-                  color: isActive('/store') ? '#00a0e3' : 'white',
-                  borderBottom: isActive('/store') ? '2px solid #00a0e3' : '2px solid transparent'
-                }}
-                endIcon={<ChevronDown size={14} />}
+              </NavButton>
+
+              <NavButton
+                $active={isActive('/store')}
                 onClick={handleStoreMenuOpen}
               >
                 Store
-              </Button>
-              
-              <Button 
-                sx={{
-                  ...navButtonStyle,
-                  color: isActive('/client-dashboard') ? '#00a0e3' : 'white',
-                  borderBottom: isActive('/client-dashboard') ? '2px solid #00a0e3' : '2px solid transparent'
-                }}
+                <ChevronDown size={14} />
+              </NavButton>
+
+              <NavButton
+                $active={isActive('/client-dashboard')}
                 onClick={() => handleNavigation('/client-dashboard')}
               >
                 Client Dashboard
-              </Button>
-              
-              <Button 
-                sx={{
-                  ...navButtonStyle,
-                  color: isActive('/workout-tracker') ? '#00a0e3' : 'white',
-                  borderBottom: isActive('/workout-tracker') ? '2px solid #00a0e3' : '2px solid transparent'
-                }}
+              </NavButton>
+
+              <NavButton
+                $active={isActive('/workout-tracker')}
                 onClick={() => handleNavigation('/workout-tracker')}
               >
                 Workout Tracker
-              </Button>
-              
-              <Button 
-                sx={{
-                  ...navButtonStyle,
-                  color: isActive('/schedule') ? '#00a0e3' : 'white',
-                  borderBottom: isActive('/schedule') ? '2px solid #00a0e3' : '2px solid transparent'
-                }}
+              </NavButton>
+
+              <NavButton
+                $active={isActive('/schedule')}
                 onClick={() => handleNavigation('/schedule')}
               >
                 Schedule
-              </Button>
-              
-              <Button 
-                sx={{
-                  ...navButtonStyle,
-                  color: isActive('/food-scanner') ? '#00a0e3' : 'white',
-                  borderBottom: isActive('/food-scanner') ? '2px solid #00a0e3' : '2px solid transparent'
-                }}
+              </NavButton>
+
+              <NavButton
+                $active={isActive('/food-scanner')}
                 onClick={() => handleNavigation('/food-scanner')}
               >
                 Food Scanner
-              </Button>
-              
-              <Button 
-                sx={{
-                  ...navButtonStyle,
-                  color: isActive('/contact') ? '#00a0e3' : 'white',
-                  borderBottom: isActive('/contact') ? '2px solid #00a0e3' : '2px solid transparent'
-                }}
+              </NavButton>
+
+              <NavButton
+                $active={isActive('/contact')}
                 onClick={() => handleNavigation('/contact')}
               >
                 Contact
-              </Button>
-              
-              <Button 
-                sx={{
-                  ...navButtonStyle,
-                  color: isActive('/about') ? '#00a0e3' : 'white',
-                  borderBottom: isActive('/about') ? '2px solid #00a0e3' : '2px solid transparent'
-                }}
+              </NavButton>
+
+              <NavButton
+                $active={isActive('/about')}
                 onClick={() => handleNavigation('/about-us')}
               >
                 About Us
-              </Button>
-            </Box>
+              </NavButton>
+            </NavArea>
           )}
 
           {/* User Actions Area */}
-          <Box sx={{ 
-            display: 'flex', 
-            alignItems: 'center',
-            gap: { xs: 0.5, md: 1 }
-          }}>
+          <ActionsArea>
             {isMobile ? (
-              <IconButton 
-                onClick={onOpenMobileDrawer}
-                sx={{ 
-                  color: 'white',
-                  width: 40,
-                  height: 40,
-                  '&:hover': {
-                    color: '#00a0e3',
-                    backgroundColor: 'rgba(0, 160, 227, 0.05)'
-                  }
-                }}
-              >
+              <ActionButton onClick={onOpenMobileDrawer}>
                 <MenuIcon size={22} />
-              </IconButton>
+              </ActionButton>
             ) : (
               <>
-                <IconButton
-                  sx={{ 
-                    color: 'white',
-                    width: 40,
-                    height: 40,
-                    '&:hover': {
-                      color: '#00a0e3',
-                      backgroundColor: 'rgba(0, 160, 227, 0.05)'
-                    }
-                  }}
-                >
-                  <Badge 
-                    badgeContent={1} 
-                    color="error"
-                    sx={{ 
-                      '& .MuiBadge-badge': {
-                        backgroundColor: '#ec4899',
-                        fontSize: '0.65rem',
-                        minWidth: '18px',
-                        height: '18px'
-                      }
-                    }}
-                  >
+                <ActionButton>
+                  <BadgeWrapper>
                     <Bell size={20} />
-                  </Badge>
-                </IconButton>
-                
-                <IconButton
-                  sx={{ 
-                    color: 'white',
-                    width: 40,
-                    height: 40,
-                    '&:hover': {
-                      color: '#00a0e3',
-                      backgroundColor: 'rgba(0, 160, 227, 0.05)'
-                    }
-                  }}
-                >
+                    <BadgeDot>1</BadgeDot>
+                  </BadgeWrapper>
+                </ActionButton>
+
+                <ActionButton>
                   <ShoppingCart size={20} />
-                </IconButton>
-                
-                <Avatar 
-                  sx={{ 
-                    width: 36, 
-                    height: 36, 
-                    bgcolor: '#00a0e3',
-                    cursor: 'pointer',
-                    fontSize: '0.9rem',
-                    ml: 0.5,
-                    border: '2px solid transparent',
-                    transition: 'all 0.2s ease',
-                    '&:hover': {
-                      boxShadow: '0 0 0 2px rgba(0, 160, 227, 0.3)'
-                    }
-                  }}
-                >
+                </ActionButton>
+
+                <UserAvatar>
                   {user?.firstName?.[0] || 'U'}
-                </Avatar>
+                </UserAvatar>
               </>
             )}
-          </Box>
-        </Box>
-      </Container>
-      
+          </ActionsArea>
+        </HeaderInner>
+      </HeaderContainer>
+
       {/* Store Menu Dropdown */}
-      <Menu
-        anchorEl={storeMenuAnchor}
-        open={Boolean(storeMenuAnchor)}
-        onClose={handleStoreMenuClose}
-        anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'center',
-        }}
-        transformOrigin={{
-          vertical: 'top',
-          horizontal: 'center',
-        }}
-        PaperProps={{
-          sx: {
-            mt: 0.5,
-            ml: -1,
-            bgcolor: '#0a0a1a',
-            color: 'white',
-            boxShadow: '0 8px 16px rgba(0,0,0,0.3)',
-            width: 180,
-            border: '1px solid rgba(255,255,255,0.05)',
-            '& .MuiMenuItem-root': {
-              px: 2,
-              py: 1.5,
-              '&:hover': {
-                bgcolor: 'rgba(0, 160, 227, 0.05)'
-              }
-            }
-          }
-        }}
-        MenuListProps={{
-          sx: {
-            py: 0.5
-          }
-        }}
-      >
-        <MenuItem 
-          onClick={() => handleStoreNavigate('/store')}
-          sx={{ 
-            borderBottom: '1px solid rgba(255,255,255,0.05)',
-            display: 'flex',
-            alignItems: 'center'
-          }}
-        >
-          <ListItemIcon sx={{ color: 'white', minWidth: 32 }}>
-            <ShoppingCart size={16} />
-          </ListItemIcon>
-          <ListItemText primary="All Products" />
-        </MenuItem>
-        <MenuItem onClick={() => handleStoreNavigate('/training-packages')}>
-          <ListItemIcon sx={{ color: 'white', minWidth: 32 }}>
-            <Dumbbell size={16} />
-          </ListItemIcon>
-          <ListItemText primary="Training Packages" />
-        </MenuItem>
-        <MenuItem onClick={() => handleStoreNavigate('/apparel')}>
-          <ListItemIcon sx={{ color: 'white', minWidth: 32 }}>
-            <ShoppingCart size={16} />
-          </ListItemIcon>
-          <ListItemText primary="Apparel" />
-        </MenuItem>
-        <MenuItem onClick={() => handleStoreNavigate('/supplements')} sx={{
-          '& .MuiListItemText-primary': {
-            display: 'flex',
-            alignItems: 'center'
-          }
-        }}>
-          <ListItemIcon sx={{ color: 'white', minWidth: 32 }}>
-            <ShoppingCart size={16} />
-          </ListItemIcon>
-          <ListItemText 
-            primary={
-              <>
-                Supplements
-                <Box 
-                  component="span" 
-                  sx={{ 
-                    ml: 1, 
-                    fontSize: '0.65rem', 
-                    px: 0.6, 
-                    py: 0.1, 
-                    bgcolor: '#ec4899', 
-                    borderRadius: '4px',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  NEW
-                </Box>
-              </>
-            } 
-          />
-        </MenuItem>
-      </Menu>
-    </Box>
+      {Boolean(storeMenuAnchor) && (
+        <>
+          <DropdownOverlay onClick={handleStoreMenuClose} />
+          <DropdownMenu $top={menuPos.top} $left={menuPos.left}>
+            <DropdownItem
+              $bordered
+              onClick={() => handleStoreNavigate('/store')}
+            >
+              <DropdownItemIcon>
+                <ShoppingCart size={16} />
+              </DropdownItemIcon>
+              All Products
+            </DropdownItem>
+            <DropdownItem onClick={() => handleStoreNavigate('/training-packages')}>
+              <DropdownItemIcon>
+                <Dumbbell size={16} />
+              </DropdownItemIcon>
+              Training Packages
+            </DropdownItem>
+            <DropdownItem onClick={() => handleStoreNavigate('/apparel')}>
+              <DropdownItemIcon>
+                <ShoppingCart size={16} />
+              </DropdownItemIcon>
+              Apparel
+            </DropdownItem>
+            <DropdownItem onClick={() => handleStoreNavigate('/supplements')}>
+              <DropdownItemIcon>
+                <ShoppingCart size={16} />
+              </DropdownItemIcon>
+              Supplements
+              <NewBadge>NEW</NewBadge>
+            </DropdownItem>
+          </DropdownMenu>
+        </>
+      )}
+    </HeaderWrapper>
   );
 };
 
