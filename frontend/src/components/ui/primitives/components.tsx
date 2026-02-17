@@ -908,3 +908,922 @@ export const Snackbar = forwardRef<HTMLDivElement, SnackbarProps>(
   }
 );
 Snackbar.displayName = 'Snackbar';
+
+/* ─── Collapse ─────────────────────────────────────────────────────────────── */
+
+const CollapseRoot = styled.div<{ $in: boolean; $timeout: number }>`
+  overflow: hidden;
+  transition: max-height ${({ $timeout }) => $timeout}ms ease,
+              opacity ${({ $timeout }) => $timeout}ms ease;
+  max-height: ${({ $in }) => ($in ? '2000px' : '0')};
+  opacity: ${({ $in }) => ($in ? 1 : 0)};
+`;
+
+export interface CollapseProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
+  in?: boolean;
+  timeout?: number | 'auto';
+  unmountOnExit?: boolean;
+  collapsedSize?: string | number;
+}
+
+export const Collapse = forwardRef<HTMLDivElement, CollapseProps>(
+  ({ in: isOpen = false, timeout = 300, unmountOnExit = false, sx, style, children, ...rest }, ref) => {
+    const ms = timeout === 'auto' ? 300 : timeout;
+    const [mounted, setMounted] = React.useState(isOpen);
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+
+    React.useEffect(() => {
+      if (isOpen) setMounted(true);
+      else if (unmountOnExit) {
+        const timer = setTimeout(() => setMounted(false), ms);
+        return () => clearTimeout(timer);
+      }
+      return undefined;
+    }, [isOpen, unmountOnExit, ms]);
+
+    if (unmountOnExit && !mounted && !isOpen) return null;
+
+    return (
+      <CollapseRoot ref={ref} $in={isOpen} $timeout={ms} style={mergeStyle(style, sx, system)} {...rest}>
+        {children}
+      </CollapseRoot>
+    );
+  }
+);
+Collapse.displayName = 'Collapse';
+
+/* ─── ClickAwayListener ────────────────────────────────────────────────────── */
+
+export interface ClickAwayListenerProps {
+  onClickAway: (event: MouseEvent | TouchEvent | PointerEvent) => void;
+  children: React.ReactElement;
+  mouseEvent?: 'onClick' | 'onMouseDown' | 'onMouseUp' | false;
+  touchEvent?: 'onTouchStart' | 'onTouchEnd' | false;
+}
+
+export const ClickAwayListener: React.FC<ClickAwayListenerProps> = ({ onClickAway, children }) => {
+  const nodeRef = React.useRef<HTMLElement>(null);
+
+  React.useEffect(() => {
+    const handleClickAway = (event: MouseEvent | TouchEvent | PointerEvent) => {
+      const node = nodeRef.current;
+      if (node && !node.contains(event.target as Node)) {
+        onClickAway(event);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickAway);
+    document.addEventListener('touchstart', handleClickAway);
+    return () => {
+      document.removeEventListener('mousedown', handleClickAway);
+      document.removeEventListener('touchstart', handleClickAway);
+    };
+  }, [onClickAway]);
+
+  return cloneElement(children, { ref: nodeRef });
+};
+
+/* ─── InputAdornment ───────────────────────────────────────────────────────── */
+
+export interface InputAdornmentProps extends React.HTMLAttributes<HTMLDivElement> {
+  position: 'start' | 'end';
+}
+
+export const InputAdornment = forwardRef<HTMLDivElement, InputAdornmentProps>(
+  ({ position, style, children, ...rest }, ref) => (
+    <div
+      ref={ref}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        color: alpha('#FFFFFF', 0.5),
+        ...(position === 'start' ? { marginRight: 8 } : { marginLeft: 8 }),
+        ...style,
+      }}
+      {...rest}
+    >
+      {children}
+    </div>
+  )
+);
+InputAdornment.displayName = 'InputAdornment';
+
+/* ─── OutlinedInput ────────────────────────────────────────────────────────── */
+
+const OutlinedInputRoot = styled.div<{ $focused: boolean; $disabled: boolean }>`
+  display: flex;
+  align-items: center;
+  background: ${alpha('#0a0a1a', 0.6)};
+  border: 1px solid ${({ $focused }) => ($focused ? '#00FFFF' : alpha('#FFFFFF', 0.2))};
+  border-radius: 8px;
+  padding: 8px 12px;
+  transition: border-color 0.2s;
+  opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
+  cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'text')};
+  &:hover:not([aria-disabled='true']) {
+    border-color: ${({ $focused }) => ($focused ? '#00FFFF' : alpha('#FFFFFF', 0.4))};
+  }
+  input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #FFFFFF;
+    font-family: inherit;
+    font-size: 0.875rem;
+    min-width: 0;
+    &::placeholder { color: ${alpha('#FFFFFF', 0.4)}; }
+    &:disabled { cursor: not-allowed; }
+  }
+`;
+
+export interface OutlinedInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'>, StyleSystemProps {
+  startAdornment?: React.ReactNode;
+  endAdornment?: React.ReactNode;
+  fullWidth?: boolean;
+  multiline?: boolean;
+  rows?: number;
+  inputProps?: React.InputHTMLAttributes<HTMLInputElement>;
+  label?: string;
+}
+
+export const OutlinedInput = forwardRef<HTMLInputElement, OutlinedInputProps>(
+  ({ startAdornment, endAdornment, fullWidth = false, multiline = false, rows, inputProps, sx, style, disabled = false, onFocus, onBlur, ...rest }, ref) => {
+    const [focused, setFocused] = React.useState(false);
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    const { className: inputClassName, ...restInputProps } = inputProps ?? {};
+
+    const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+      setFocused(true);
+      onFocus?.(e);
+    };
+    const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+      setFocused(false);
+      onBlur?.(e);
+    };
+
+    return (
+      <OutlinedInputRoot $focused={focused} $disabled={disabled} style={mergeStyle(style, sx, { ...system, ...(fullWidth ? { width: '100%' } : {}) })}>
+        {startAdornment}
+        {multiline ? (
+          <textarea
+            ref={ref as any}
+            rows={rows}
+            disabled={disabled}
+            onFocus={handleFocus as any}
+            onBlur={handleBlur as any}
+            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#FFFFFF', fontFamily: 'inherit', fontSize: '0.875rem', resize: 'vertical' }}
+            {...(restInputProps as any)}
+            {...(rest as any)}
+          />
+        ) : (
+          <input ref={ref} disabled={disabled} onFocus={handleFocus} onBlur={handleBlur} {...restInputProps} {...rest} />
+        )}
+        {endAdornment}
+      </OutlinedInputRoot>
+    );
+  }
+);
+OutlinedInput.displayName = 'OutlinedInput';
+
+/* ─── TextField ────────────────────────────────────────────────────────────── */
+
+export interface TextFieldProps extends Omit<OutlinedInputProps, 'label'> {
+  label?: React.ReactNode;
+  helperText?: React.ReactNode;
+  error?: boolean;
+  variant?: 'outlined' | 'standard' | 'filled';
+}
+
+export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(
+  ({ label, helperText, error = false, variant = 'outlined', sx, style, id, ...rest }, ref) => {
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    const inputId = id || `text-field-${React.useId?.() ?? Math.random().toString(36).slice(2)}`;
+    return (
+      <div style={mergeStyle(style, sx, { ...system, display: 'flex', flexDirection: 'column', gap: '4px' })}>
+        {label && (
+          <label htmlFor={inputId} style={{ fontSize: '0.75rem', fontWeight: 500, color: error ? '#ef4444' : alpha('#FFFFFF', 0.7) }}>
+            {label}
+          </label>
+        )}
+        <OutlinedInput ref={ref} id={inputId} {...rest} />
+        {helperText && (
+          <span style={{ fontSize: '0.75rem', color: error ? '#ef4444' : alpha('#FFFFFF', 0.5) }}>
+            {helperText}
+          </span>
+        )}
+      </div>
+    );
+  }
+);
+TextField.displayName = 'TextField';
+
+/* ─── FormControlLabel ─────────────────────────────────────────────────────── */
+
+export interface FormControlLabelProps extends React.HTMLAttributes<HTMLLabelElement>, StyleSystemProps {
+  control: React.ReactElement;
+  label: React.ReactNode;
+  labelPlacement?: 'end' | 'start' | 'top' | 'bottom';
+  disabled?: boolean;
+  value?: string;
+}
+
+export const FormControlLabel = forwardRef<HTMLLabelElement, FormControlLabelProps>(
+  ({ control, label, labelPlacement = 'end', disabled = false, value, sx, style, ...rest }, ref) => {
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    const isVertical = labelPlacement === 'top' || labelPlacement === 'bottom';
+    const isReversed = labelPlacement === 'start' || labelPlacement === 'top';
+
+    return (
+      <label
+        ref={ref}
+        style={mergeStyle(style, sx, {
+          ...system,
+          display: 'inline-flex',
+          alignItems: 'center',
+          flexDirection: isVertical ? 'column' : isReversed ? 'row-reverse' : 'row',
+          gap: '8px',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          opacity: disabled ? 0.5 : 1,
+        })}
+        {...rest}
+      >
+        {cloneElement(control, { disabled, ...(value !== undefined ? { value } : {}) })}
+        <span style={{ fontSize: '0.875rem', color: '#FFFFFF' }}>{label}</span>
+      </label>
+    );
+  }
+);
+FormControlLabel.displayName = 'FormControlLabel';
+
+/* ─── Radio / RadioGroup ───────────────────────────────────────────────────── */
+
+const RadioContext = React.createContext<{ name?: string; value?: string; onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void }>({});
+
+export interface RadioGroupProps extends React.HTMLAttributes<HTMLDivElement> {
+  name?: string;
+  value?: string;
+  defaultValue?: string;
+  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  row?: boolean;
+  'aria-label'?: string;
+}
+
+export const RadioGroup = forwardRef<HTMLDivElement, RadioGroupProps>(
+  ({ name, value, defaultValue, onChange, row = false, children, style, ...rest }, ref) => {
+    const [internalValue, setInternalValue] = React.useState(defaultValue ?? '');
+    const isControlled = value !== undefined;
+    const resolvedValue = isControlled ? value : internalValue;
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!isControlled) setInternalValue(e.target.value);
+      onChange?.(e);
+    };
+
+    return (
+      <RadioContext.Provider value={{ name, value: resolvedValue, onChange: handleChange }}>
+        <div ref={ref} role="radiogroup" style={{ display: 'flex', flexDirection: row ? 'row' : 'column', gap: '8px', ...style }} {...rest}>
+          {children}
+        </div>
+      </RadioContext.Provider>
+    );
+  }
+);
+RadioGroup.displayName = 'RadioGroup';
+
+const RadioDot = styled.span<{ $checked: boolean; $radioColor: string; $radioSize: number }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: ${({ $radioSize }) => `${$radioSize}px`};
+  height: ${({ $radioSize }) => `${$radioSize}px`};
+  border-radius: 50%;
+  border: 2px solid ${({ $checked, $radioColor }) => ($checked ? $radioColor : alpha('#FFFFFF', 0.4))};
+  transition: border-color 0.2s;
+  flex-shrink: 0;
+  &::after {
+    content: '';
+    width: ${({ $radioSize }) => `${$radioSize * 0.5}px`};
+    height: ${({ $radioSize }) => `${$radioSize * 0.5}px`};
+    border-radius: 50%;
+    background: ${({ $checked, $radioColor }) => ($checked ? $radioColor : 'transparent')};
+    transition: background 0.2s;
+  }
+`;
+
+export interface RadioProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size' | 'type'>, StyleSystemProps {
+  color?: string;
+  size?: 'small' | 'medium';
+}
+
+export const Radio = forwardRef<HTMLInputElement, RadioProps>(
+  ({ color = '#00FFFF', size = 'medium', value, sx, style, checked, onChange, name, disabled, ...rest }, ref) => {
+    const group = React.useContext(RadioContext);
+    const resolvedChecked = checked ?? (group.value !== undefined ? group.value === value : undefined);
+    const resolvedName = name ?? group.name;
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    const radioSize = size === 'small' ? 18 : 22;
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      onChange?.(e);
+      group.onChange?.(e);
+    };
+
+    return (
+      <span style={mergeStyle(style, sx, { ...system, display: 'inline-flex', cursor: disabled ? 'not-allowed' : 'pointer' })}>
+        <input
+          ref={ref}
+          type="radio"
+          value={value}
+          checked={resolvedChecked}
+          onChange={handleChange}
+          name={resolvedName}
+          disabled={disabled}
+          style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+          {...rest}
+        />
+        <RadioDot $checked={!!resolvedChecked} $radioColor={color} $radioSize={radioSize} />
+      </span>
+    );
+  }
+);
+Radio.displayName = 'Radio';
+
+/* ─── Fab (Floating Action Button) ─────────────────────────────────────────── */
+
+const FabRoot = styled.button<{ $fabSize: number; $fabColor: string; $disabled: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: ${({ $fabSize }) => `${$fabSize}px`};
+  height: ${({ $fabSize }) => `${$fabSize}px`};
+  border-radius: 50%;
+  border: none;
+  background: ${({ $fabColor }) => $fabColor};
+  color: #0a0a1a;
+  cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
+  opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s;
+  &:hover:not(:disabled) {
+    filter: brightness(1.1);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    transform: translateY(-1px);
+  }
+`;
+
+export interface FabProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, StyleSystemProps {
+  color?: string;
+  size?: 'small' | 'medium' | 'large';
+  variant?: 'circular' | 'extended';
+}
+
+const fabSizes = { small: 40, medium: 48, large: 56 };
+
+export const Fab = forwardRef<HTMLButtonElement, FabProps>(
+  ({ color = '#7851A9', size = 'medium', variant = 'circular', sx, style, disabled = false, ...rest }, ref) => {
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    const sizeVal = fabSizes[size];
+    const extended = variant === 'extended';
+    return (
+      <FabRoot
+        ref={ref}
+        $fabSize={sizeVal}
+        $fabColor={color}
+        $disabled={disabled}
+        disabled={disabled}
+        style={mergeStyle(style, sx, {
+          ...system,
+          ...(extended ? { width: 'auto', borderRadius: '24px', padding: '0 16px', gap: '8px' } : {}),
+        })}
+        {...rest}
+      />
+    );
+  }
+);
+Fab.displayName = 'Fab';
+
+/* ─── Slider ───────────────────────────────────────────────────────────────── */
+
+const SliderRoot = styled.div<{ $disabled: boolean }>`
+  position: relative;
+  width: 100%;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
+  opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
+  touch-action: none;
+`;
+
+const SliderTrack = styled.div`
+  position: absolute;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: ${alpha('#FFFFFF', 0.15)};
+`;
+
+const SliderFill = styled.div<{ $percent: number; $sliderColor: string }>`
+  position: absolute;
+  height: 4px;
+  border-radius: 2px;
+  width: ${({ $percent }) => `${$percent}%`};
+  background: ${({ $sliderColor }) => $sliderColor};
+  transition: width 0.1s ease;
+`;
+
+const SliderThumb = styled.div<{ $percent: number; $sliderColor: string; $size: number }>`
+  position: absolute;
+  left: ${({ $percent }) => `${$percent}%`};
+  width: ${({ $size }) => `${$size}px`};
+  height: ${({ $size }) => `${$size}px`};
+  border-radius: 50%;
+  background: ${({ $sliderColor }) => $sliderColor};
+  transform: translateX(-50%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: left 0.1s ease, box-shadow 0.2s;
+  &:hover { box-shadow: 0 0 0 8px ${({ $sliderColor }) => alpha($sliderColor, 0.15)}; }
+`;
+
+const SliderValueLabel = styled.div<{ $percent: number; $visible: boolean }>`
+  position: absolute;
+  left: ${({ $percent }) => `${$percent}%`};
+  top: -28px;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: ${({ $visible }) => ($visible ? 1 : 0)};
+  transition: opacity 0.15s;
+`;
+
+export interface SliderProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'>, StyleSystemProps {
+  value?: number;
+  defaultValue?: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  onChange?: (event: Event, value: number) => void;
+  color?: string;
+  size?: 'small' | 'medium';
+  disabled?: boolean;
+  valueLabelDisplay?: 'on' | 'auto' | 'off';
+  getAriaValueText?: (value: number) => string;
+  marks?: boolean | Array<{ value: number; label?: string }>;
+  'aria-labelledby'?: string;
+}
+
+export const Slider = forwardRef<HTMLDivElement, SliderProps>(
+  ({ value: controlledValue, defaultValue = 0, min = 0, max = 100, step = 1, onChange, color = '#00FFFF', size = 'medium', disabled = false, valueLabelDisplay = 'off', getAriaValueText, sx, style, ...rest }, ref) => {
+    const [internalValue, setInternalValue] = React.useState(defaultValue);
+    const [dragging, setDragging] = React.useState(false);
+    const [hovering, setHovering] = React.useState(false);
+    const trackRef = React.useRef<HTMLDivElement>(null);
+    const isControlled = controlledValue !== undefined;
+    const currentValue = isControlled ? controlledValue : internalValue;
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    const thumbSize = size === 'small' ? 14 : 20;
+
+    const percent = ((currentValue - min) / (max - min)) * 100;
+
+    const updateValue = React.useCallback((clientX: number) => {
+      const track = trackRef.current;
+      if (!track || disabled) return;
+      const rect = track.getBoundingClientRect();
+      const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+      const raw = min + ratio * (max - min);
+      const snapped = Math.round(raw / step) * step;
+      const clamped = Math.min(max, Math.max(min, snapped));
+
+      if (!isControlled) setInternalValue(clamped);
+      if (onChange) {
+        const syntheticEvent = new Event('change', { bubbles: true });
+        onChange(syntheticEvent, clamped);
+      }
+    }, [disabled, min, max, step, isControlled, onChange]);
+
+    React.useEffect(() => {
+      if (!dragging) return undefined;
+      const handleMove = (e: PointerEvent) => updateValue(e.clientX);
+      const handleUp = () => setDragging(false);
+      document.addEventListener('pointermove', handleMove);
+      document.addEventListener('pointerup', handleUp);
+      return () => {
+        document.removeEventListener('pointermove', handleMove);
+        document.removeEventListener('pointerup', handleUp);
+      };
+    }, [dragging, updateValue]);
+
+    const showLabel = valueLabelDisplay === 'on' || (valueLabelDisplay === 'auto' && (dragging || hovering));
+
+    return (
+      <SliderRoot
+        ref={ref}
+        $disabled={disabled}
+        onPointerDown={(e) => { if (!disabled) { setDragging(true); updateValue(e.clientX); } }}
+        onMouseEnter={() => setHovering(true)}
+        onMouseLeave={() => setHovering(false)}
+        role="slider"
+        aria-valuemin={min}
+        aria-valuemax={max}
+        aria-valuenow={currentValue}
+        aria-valuetext={getAriaValueText?.(currentValue)}
+        tabIndex={disabled ? -1 : 0}
+        onKeyDown={(e) => {
+          if (disabled) return;
+          let newVal = currentValue;
+          if (e.key === 'ArrowRight' || e.key === 'ArrowUp') newVal = Math.min(max, currentValue + step);
+          else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') newVal = Math.max(min, currentValue - step);
+          else if (e.key === 'Home') newVal = min;
+          else if (e.key === 'End') newVal = max;
+          else return;
+          e.preventDefault();
+          if (!isControlled) setInternalValue(newVal);
+          if (onChange) onChange(new Event('change'), newVal);
+        }}
+        style={mergeStyle(style, sx, system)}
+        {...rest}
+      >
+        <SliderTrack ref={trackRef} />
+        <SliderFill $percent={percent} $sliderColor={color} />
+        <SliderThumb $percent={percent} $sliderColor={color} $size={thumbSize} />
+        <SliderValueLabel $percent={percent} $visible={showLabel}>{currentValue}</SliderValueLabel>
+      </SliderRoot>
+    );
+  }
+);
+Slider.displayName = 'Slider';
+
+/* ─── Popper ───────────────────────────────────────────────────────────────── */
+
+export interface PopperProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
+  open: boolean;
+  anchorEl?: HTMLElement | null;
+  placement?: 'top' | 'top-start' | 'top-end' | 'bottom' | 'bottom-start' | 'bottom-end' | 'left' | 'left-start' | 'left-end' | 'right' | 'right-start' | 'right-end';
+  disablePortal?: boolean;
+  transition?: boolean;
+  modifiers?: Array<{ name: string; options?: Record<string, any> }>;
+  children?: React.ReactNode | ((props: { TransitionProps: { in: boolean } }) => React.ReactNode);
+}
+
+export const Popper = forwardRef<HTMLDivElement, PopperProps>(
+  ({ open, anchorEl, placement = 'bottom', disablePortal = false, transition = false, modifiers, sx, style, children, ...rest }, ref) => {
+    const [pos, setPos] = React.useState<{ top: number; left: number }>({ top: 0, left: 0 });
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+
+    const offsetMod = modifiers?.find((m) => m.name === 'offset');
+    const [offsetX, offsetY] = (offsetMod?.options?.offset as [number, number]) ?? [0, 0];
+
+    React.useEffect(() => {
+      if (!open || !anchorEl) return undefined;
+      const update = () => {
+        const rect = anchorEl.getBoundingClientRect();
+        let top = 0;
+        let left = 0;
+
+        if (placement.startsWith('bottom')) {
+          top = rect.bottom + offsetY;
+          left = placement.includes('start') ? rect.left + offsetX : placement.includes('end') ? rect.right + offsetX : rect.left + rect.width / 2 + offsetX;
+        } else if (placement.startsWith('top')) {
+          top = rect.top - offsetY;
+          left = placement.includes('start') ? rect.left + offsetX : placement.includes('end') ? rect.right + offsetX : rect.left + rect.width / 2 + offsetX;
+        } else if (placement.startsWith('right')) {
+          left = rect.right + offsetX;
+          top = placement.includes('start') ? rect.top + offsetY : placement.includes('end') ? rect.bottom + offsetY : rect.top + rect.height / 2 + offsetY;
+        } else if (placement.startsWith('left')) {
+          left = rect.left - offsetX;
+          top = placement.includes('start') ? rect.top + offsetY : placement.includes('end') ? rect.bottom + offsetY : rect.top + rect.height / 2 + offsetY;
+        }
+
+        setPos({ top: top + window.scrollY, left: left + window.scrollX });
+      };
+      update();
+      window.addEventListener('scroll', update, true);
+      window.addEventListener('resize', update);
+      return () => {
+        window.removeEventListener('scroll', update, true);
+        window.removeEventListener('resize', update);
+      };
+    }, [open, anchorEl, placement, offsetX, offsetY]);
+
+    if (!open) return null;
+
+    const transitionProps = { in: open };
+    const content = typeof children === 'function' ? children({ TransitionProps: transitionProps }) : children;
+
+    return (
+      <div
+        ref={ref}
+        style={mergeStyle(style, sx, {
+          ...system,
+          position: disablePortal ? 'absolute' : 'fixed',
+          top: `${pos.top}px`,
+          left: `${pos.left}px`,
+          zIndex: 1300,
+        })}
+        {...rest}
+      >
+        {content}
+      </div>
+    );
+  }
+);
+Popper.displayName = 'Popper';
+
+/* ─── Drawer ───────────────────────────────────────────────────────────────── */
+
+const DrawerBackdrop = styled.div<{ $open: boolean }>`
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1199;
+  opacity: ${({ $open }) => ($open ? 1 : 0)};
+  visibility: ${({ $open }) => ($open ? 'visible' : 'hidden')};
+  transition: opacity 0.3s, visibility 0.3s;
+`;
+
+const DrawerPanel = styled.div<{
+  $open: boolean;
+  $anchor: 'left' | 'right' | 'top' | 'bottom';
+  $width: string | number;
+  $variant: 'temporary' | 'persistent' | 'permanent';
+}>`
+  position: ${({ $variant }) => ($variant === 'permanent' ? 'relative' : 'fixed')};
+  z-index: 1200;
+  background: ${alpha('#0a0a1a', 0.95)};
+  color: #FFFFFF;
+  overflow-y: auto;
+  transition: transform 0.3s ease;
+
+  ${({ $anchor, $width }) =>
+    ($anchor === 'left' || $anchor === 'right') &&
+    css`
+      top: 0;
+      bottom: 0;
+      width: ${typeof $width === 'number' ? `${$width}px` : $width};
+      ${$anchor}: 0;
+    `}
+
+  ${({ $anchor }) =>
+    ($anchor === 'top' || $anchor === 'bottom') &&
+    css`
+      left: 0;
+      right: 0;
+      ${$anchor}: 0;
+    `}
+
+  ${({ $open, $anchor }) => {
+    if ($open) return css`transform: translate(0, 0);`;
+    switch ($anchor) {
+      case 'left': return css`transform: translateX(-100%);`;
+      case 'right': return css`transform: translateX(100%);`;
+      case 'top': return css`transform: translateY(-100%);`;
+      case 'bottom': return css`transform: translateY(100%);`;
+    }
+  }}
+`;
+
+export interface DrawerProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
+  open?: boolean;
+  onClose?: () => void;
+  anchor?: 'left' | 'right' | 'top' | 'bottom';
+  variant?: 'temporary' | 'persistent' | 'permanent';
+  PaperProps?: { sx?: React.CSSProperties; style?: React.CSSProperties; className?: string };
+  ModalProps?: { keepMounted?: boolean };
+}
+
+export const Drawer = forwardRef<HTMLDivElement, DrawerProps>(
+  ({ open = false, onClose, anchor = 'left', variant = 'temporary', PaperProps, ModalProps, sx, style, children, ...rest }, ref) => {
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    const keepMounted = ModalProps?.keepMounted ?? false;
+    const paperStyle = PaperProps?.sx ?? PaperProps?.style ?? {};
+    const width = (paperStyle as any)?.width ?? 256;
+
+    // For permanent variant, always show without backdrop
+    if (variant === 'permanent') {
+      return (
+        <DrawerPanel
+          ref={ref}
+          $open={true}
+          $anchor={anchor}
+          $width={width}
+          $variant="permanent"
+          style={mergeStyle(style, sx, { ...system, ...paperStyle })}
+          {...rest}
+        >
+          {children}
+        </DrawerPanel>
+      );
+    }
+
+    // Don't render temporary drawer when closed unless keepMounted
+    if (!open && !keepMounted && variant === 'temporary') return null;
+
+    return (
+      <>
+        {variant === 'temporary' && <DrawerBackdrop $open={open} onClick={onClose} />}
+        <DrawerPanel
+          ref={ref}
+          $open={open}
+          $anchor={anchor}
+          $width={width}
+          $variant={variant}
+          style={mergeStyle(style, sx, { ...system, ...paperStyle })}
+          {...rest}
+        >
+          {children}
+        </DrawerPanel>
+      </>
+    );
+  }
+);
+Drawer.displayName = 'Drawer';
+
+/* ─── Skeleton ─────────────────────────────────────────────────────────────── */
+
+const skeletonPulse = keyframes`
+  0% { opacity: 0.4; }
+  50% { opacity: 0.7; }
+  100% { opacity: 0.4; }
+`;
+
+const SkeletonRoot = styled.span<{ $variant: string; $width?: string | number; $height?: string | number }>`
+  display: block;
+  background: ${alpha('#FFFFFF', 0.1)};
+  animation: ${skeletonPulse} 1.5s ease-in-out infinite;
+  ${({ $variant }) =>
+    $variant === 'circular'
+      ? css`border-radius: 50%;`
+      : $variant === 'rounded'
+      ? css`border-radius: 8px;`
+      : css`border-radius: 2px;`}
+  ${({ $width }) => $width !== undefined && css`width: ${typeof $width === 'number' ? `${$width}px` : $width};`}
+  ${({ $height }) => $height !== undefined && css`height: ${typeof $height === 'number' ? `${$height}px` : $height};`}
+  ${({ $variant, $height }) => $variant === 'text' && !$height && css`height: 1em;`}
+`;
+
+export interface SkeletonProps extends React.HTMLAttributes<HTMLSpanElement>, StyleSystemProps {
+  variant?: 'text' | 'rectangular' | 'rounded' | 'circular';
+  width?: string | number;
+  height?: string | number;
+  animation?: 'pulse' | 'wave' | false;
+}
+
+export const Skeleton = forwardRef<HTMLSpanElement, SkeletonProps>(
+  ({ variant = 'text', width, height, sx, style, ...rest }, ref) => {
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    return <SkeletonRoot ref={ref} $variant={variant} $width={width} $height={height} style={mergeStyle(style, sx, system)} {...rest} />;
+  }
+);
+Skeleton.displayName = 'Skeleton';
+
+/* ─── Toolbar ──────────────────────────────────────────────────────────────── */
+
+export interface ToolbarProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
+  variant?: 'regular' | 'dense';
+  disableGutters?: boolean;
+}
+
+export const Toolbar = forwardRef<HTMLDivElement, ToolbarProps>(
+  ({ variant = 'regular', disableGutters = false, sx, style, ...rest }, ref) => {
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    return (
+      <div
+        ref={ref}
+        style={mergeStyle(style, sx, {
+          ...system,
+          display: 'flex',
+          alignItems: 'center',
+          minHeight: variant === 'dense' ? '48px' : '64px',
+          paddingLeft: disableGutters ? undefined : '16px',
+          paddingRight: disableGutters ? undefined : '16px',
+        })}
+        {...rest}
+      />
+    );
+  }
+);
+Toolbar.displayName = 'Toolbar';
+
+/* ─── ButtonBase ───────────────────────────────────────────────────────────── */
+
+const ButtonBaseRoot = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  &:disabled { cursor: not-allowed; opacity: 0.5; }
+`;
+
+export interface ButtonBaseProps extends React.ButtonHTMLAttributes<HTMLButtonElement>, StyleSystemProps {
+  component?: keyof JSX.IntrinsicElements;
+  disableRipple?: boolean;
+}
+
+export const ButtonBase = forwardRef<HTMLButtonElement, ButtonBaseProps>(
+  ({ component, disableRipple, sx, style, ...rest }, ref) => {
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    if (component) {
+      return React.createElement(component, { ref, style: mergeStyle(style, sx, system), ...rest });
+    }
+    return <ButtonBaseRoot ref={ref} style={mergeStyle(style, sx, system)} {...rest} />;
+  }
+);
+ButtonBase.displayName = 'ButtonBase';
+
+/* ─── Menu / MenuItem ──────────────────────────────────────────────────────── */
+
+const MenuBackdrop = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1299;
+`;
+
+const MenuPaper = styled.div<{ $open: boolean }>`
+  position: fixed;
+  z-index: 1300;
+  background: ${alpha('#0f172a', 0.95)};
+  border: 1px solid ${alpha('#00FFFF', 0.15)};
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  min-width: 180px;
+  padding: 4px 0;
+  overflow-y: auto;
+  max-height: 60vh;
+  opacity: ${({ $open }) => ($open ? 1 : 0)};
+  transform: ${({ $open }) => ($open ? 'scale(1)' : 'scale(0.95)')};
+  transition: opacity 0.15s, transform 0.15s;
+`;
+
+export interface MenuProps extends React.HTMLAttributes<HTMLDivElement> {
+  open: boolean;
+  onClose?: () => void;
+  anchorEl?: HTMLElement | null;
+  anchorOrigin?: { vertical: 'top' | 'bottom'; horizontal: 'left' | 'center' | 'right' };
+}
+
+export const Menu = forwardRef<HTMLDivElement, MenuProps>(
+  ({ open, onClose, anchorEl, children, ...rest }, ref) => {
+    const [pos, setPos] = React.useState({ top: 0, left: 0 });
+
+    React.useEffect(() => {
+      if (!open || !anchorEl) return;
+      const rect = anchorEl.getBoundingClientRect();
+      setPos({ top: rect.bottom + 4, left: rect.left });
+    }, [open, anchorEl]);
+
+    if (!open) return null;
+
+    return (
+      <>
+        <MenuBackdrop onClick={onClose} />
+        <MenuPaper ref={ref} $open={open} style={{ top: `${pos.top}px`, left: `${pos.left}px` }} role="menu" {...rest}>
+          {children}
+        </MenuPaper>
+      </>
+    );
+  }
+);
+Menu.displayName = 'Menu';
+
+const MenuItemRoot = styled.div<{ $selected: boolean; $disabled: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  color: ${({ $disabled }) => ($disabled ? alpha('#FFFFFF', 0.3) : '#FFFFFF')};
+  cursor: ${({ $disabled }) => ($disabled ? 'not-allowed' : 'pointer')};
+  background: ${({ $selected }) => ($selected ? alpha('#00FFFF', 0.1) : 'transparent')};
+  transition: background 0.15s;
+  &:hover:not([aria-disabled='true']) { background: ${alpha('#FFFFFF', 0.06)}; }
+`;
+
+export interface MenuItemProps extends React.HTMLAttributes<HTMLDivElement>, StyleSystemProps {
+  selected?: boolean;
+  disabled?: boolean;
+  value?: string | number;
+}
+
+export const MenuItem = forwardRef<HTMLDivElement, MenuItemProps>(
+  ({ selected = false, disabled = false, sx, style, ...rest }, ref) => {
+    const system = getSystemStyles({ ...rest as StyleSystemProps, sx });
+    return <MenuItemRoot ref={ref} $selected={selected} $disabled={disabled} role="menuitem" aria-disabled={disabled} tabIndex={disabled ? -1 : 0} style={mergeStyle(style, sx, system)} {...rest} />;
+  }
+);
+MenuItem.displayName = 'MenuItem';

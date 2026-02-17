@@ -1,59 +1,32 @@
 // src/components/DashBoard/MainLayout/Sidebar/mini-drawer-styled.tsx
-import { styled, Theme } from '@mui/material/styles';
-import Drawer from '@mui/material/Drawer';
-import { DrawerProps } from '@mui/material/Drawer';
+import styled, { css } from 'styled-components';
+import { Drawer } from '../../../ui/primitives';
 
-// You'll need to define the drawerWidth in your constants
-const drawerWidth = 260; // Adjust this value as needed or import from your constants
+const drawerWidth = 260;
 
-// Define the mixins as record objects rather than functions for better type compatibility
-const openedMixin = (theme: Theme) => ({
-  width: drawerWidth,
-  borderRight: 'none',
-  zIndex: 1099,
-  background: theme.palette.background.default,
-  overflowX: 'hidden' as const,
-  boxShadow: 'none',
-  transition: theme.transitions.create('width', {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.enteringScreen + 200
-  })
-});
-
-const closedMixin = (theme: Theme) => ({
-  borderRight: 'none',
-  zIndex: 1099,
-  background: theme.palette.background.default,
-  overflowX: 'hidden' as const,
-  width: 72,
-  transition: theme.transitions.create('width', {
-    easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen + 200
-  })
-});
-
-// ==============================|| DRAWER - MINI STYLED ||============================== //
-
-interface MiniDrawerProps extends DrawerProps {
+interface MiniDrawerStyledProps {
   open?: boolean;
+  variant?: 'temporary' | 'persistent' | 'permanent';
 }
 
-const MiniDrawerStyled = styled(Drawer, {
-  shouldForwardProp: (prop) => prop !== 'open'
-})<MiniDrawerProps>(({ theme, open }) => ({
-  width: drawerWidth,
-  borderRight: '0px',
-  flexShrink: 0,
-  whiteSpace: 'nowrap',
-  boxSizing: 'border-box',
-  ...(open && {
-    ...openedMixin(theme),
-    '& .MuiDrawer-paper': openedMixin(theme)
-  }),
-  ...(!open && {
-    ...closedMixin(theme),
-    '& .MuiDrawer-paper': closedMixin(theme)
-  })
-}));
+const MiniDrawerStyled = styled(Drawer)<MiniDrawerStyledProps>`
+  flex-shrink: 0;
+  white-space: nowrap;
+  box-sizing: border-box;
+  border-right: 0;
+
+  ${({ open }) =>
+    open
+      ? css`
+          width: ${drawerWidth}px;
+          overflow-x: hidden;
+          transition: width 0.4s ease;
+        `
+      : css`
+          width: 72px;
+          overflow-x: hidden;
+          transition: width 0.3s ease;
+        `}
+`;
 
 export default MiniDrawerStyled;

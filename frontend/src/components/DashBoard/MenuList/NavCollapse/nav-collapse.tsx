@@ -1,30 +1,119 @@
 import { useEffect, useRef, useState } from 'react';
 import { matchPath, useLocation } from 'react-router-dom';
+import styled, { css } from 'styled-components';
 
-// material-ui
-import { useTheme } from '@mui/material/styles';
-import ClickAwayListener from '@mui/material/ClickAwayListener';
-import Collapse from '@mui/material/Collapse';
-import List from '@mui/material/List';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-import Paper from '@mui/material/Paper';
-import Popper from '@mui/material/Popper';
-import Tooltip from '@mui/material/Tooltip';
-import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
-import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
+// Swan primitives
+import {
+  ClickAwayListener,
+  Collapse,
+  List,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Paper,
+  Popper,
+  Tooltip,
+  Typography,
+  Box,
+} from '../../../ui/primitives';
+import { alpha } from '../../../../styles/mui-replacements';
 
 // project imports
 import NavItem from '../NavItem/nav-item';
 import Transitions from '../../../../components/ui/Transitions';
 import useConfig from '../../../../hooks/useConfig';
-
 import { useMenuStates } from '../../../../hooks/useMenuState';
 
 // assets
 import { IconChevronDown, IconChevronRight, IconChevronUp } from '@tabler/icons-react';
+
+// Styled nav list item button with complex hover/selected states
+const NavListItemButton = styled(ListItemButton)<{
+  $borderRadius: number;
+  $drawerOpen: boolean;
+  $level: number;
+  $isSelected: boolean;
+}>`
+  z-index: 1201;
+  border-radius: ${({ $borderRadius }) => `${$borderRadius}px`};
+  margin-bottom: 4px;
+
+  ${({ $drawerOpen, $level }) =>
+    $drawerOpen && $level !== 1 &&
+    css`margin-left: ${$level * 18}px;`}
+
+  ${({ $drawerOpen }) =>
+    !$drawerOpen &&
+    css`padding-left: 10px;`}
+
+  ${({ $drawerOpen, $level, $isSelected }) =>
+    $drawerOpen && $level === 1 &&
+    css`
+      &:hover { background: ${alpha('#7851A9', 0.15)}; }
+      ${$isSelected && css`
+        background: ${alpha('#7851A9', 0.15)};
+        color: #7851A9;
+        &:hover { background: ${alpha('#7851A9', 0.15)}; color: #7851A9; }
+      `}
+    `}
+
+  ${({ $drawerOpen, $level }) =>
+    (!$drawerOpen || $level !== 1) &&
+    css`
+      padding-top: ${$level === 1 ? '0' : '8px'};
+      padding-bottom: ${$level === 1 ? '0' : '8px'};
+      &:hover { background: transparent; }
+    `}
+`;
+
+const NavListItemIcon = styled(ListItemIcon)<{
+  $level: number;
+  $isSelected: boolean;
+  $drawerOpen: boolean;
+  $borderRadius: number;
+}>`
+  min-width: ${({ $level }) => ($level === 1 ? '36px' : '18px')};
+  color: ${({ $isSelected }) => ($isSelected ? '#7851A9' : '#FFFFFF')};
+
+  ${({ $drawerOpen, $level, $borderRadius, $isSelected }) =>
+    !$drawerOpen && $level === 1 &&
+    css`
+      border-radius: ${$borderRadius}px;
+      width: 46px;
+      height: 46px;
+      align-items: center;
+      justify-content: center;
+      &:hover { background: ${alpha('#7851A9', 0.15)}; }
+      ${$isSelected && css`
+        background: ${alpha('#7851A9', 0.15)};
+        &:hover { background: ${alpha('#7851A9', 0.15)}; }
+      `}
+    `}
+`;
+
+// Small dot icon replacement for FiberManualRecordIcon
+const DotIcon = styled.span<{ $size: number }>`
+  display: inline-block;
+  width: ${({ $size }) => `${$size}px`};
+  height: ${({ $size }) => `${$size}px`};
+  border-radius: 50%;
+  background: currentColor;
+`;
+
+// Decorative vertical line for nested items
+const NestedList = styled(List)`
+  position: relative;
+  &::after {
+    content: '';
+    position: absolute;
+    left: 25px;
+    top: 0;
+    height: 100%;
+    width: 1px;
+    opacity: 1;
+    background: ${alpha('#00FFFF', 0.3)};
+  }
+`;
 
 interface NavCollapseProps {
   menu: any;
@@ -33,7 +122,6 @@ interface NavCollapseProps {
 }
 
 const NavCollapse = ({ menu, level, parentId }: NavCollapseProps) => {
-  const theme = useTheme();
   const ref = useRef<HTMLDivElement>(null);
 
   const { borderRadius } = useConfig();
@@ -143,13 +231,7 @@ const NavCollapse = ({ menu, level, parentId }: NavCollapseProps) => {
   const menuIcon = menu.icon ? (
     <Icon strokeWidth={1.5} size={drawerOpen ? '20px' : '24px'} />
   ) : (
-    <FiberManualRecordIcon
-      sx={{
-        width: isSelected ? 8 : 6,
-        height: isSelected ? 8 : 6
-      }}
-      fontSize={level > 0 ? 'inherit' : 'medium'}
-    />
+    <DotIcon $size={isSelected ? 8 : 6} />
   );
 
   const collapseIcon = drawerOpen ? (
@@ -158,65 +240,29 @@ const NavCollapse = ({ menu, level, parentId }: NavCollapseProps) => {
     <IconChevronRight stroke={1.5} size="16px" style={{ marginTop: 'auto', marginBottom: 'auto' }} />
   );
 
-  const iconSelectedColor = 'secondary.main';
-
   return (
     <>
-      <ListItemButton
-        sx={{
-          zIndex: 1201,
-          borderRadius: `${borderRadius}px`,
-          mb: 0.5,
-          ...(drawerOpen && level !== 1 && { ml: `${level * 18}px` }),
-          ...(!drawerOpen && { pl: 1.25 }),
-          ...(drawerOpen &&
-            level === 1 && {
-              '&:hover': { bgcolor: 'secondary.light' },
-              '&.Mui-selected': {
-                bgcolor: 'secondary.light',
-                color: iconSelectedColor,
-                '&:hover': { color: iconSelectedColor, bgcolor: 'secondary.light' }
-              }
-            }),
-          ...((!drawerOpen || level !== 1) && {
-            py: level === 1 ? 0 : 1,
-            '&:hover': { bgcolor: 'transparent' },
-            '&.Mui-selected': { '&:hover': { bgcolor: 'transparent' }, bgcolor: 'transparent' }
-          })
-        }}
+      <NavListItemButton
+        $borderRadius={borderRadius}
+        $drawerOpen={drawerOpen}
+        $level={level}
+        $isSelected={isSelected}
         selected={isSelected}
         {...(!drawerOpen && { onMouseEnter: handleClickMini, onMouseLeave: handleClosePopper })}
         onClick={handleClickMini}
       >
         {menuIcon && (
-          <ListItemIcon
-            sx={{
-              minWidth: level === 1 ? 36 : 18,
-              color: isSelected ? iconSelectedColor : 'text.primary',
-              ...(!drawerOpen &&
-                level === 1 && {
-                  borderRadius: `${borderRadius}px`,
-                  width: 46,
-                  height: 46,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  '&:hover': {
-                    bgcolor: 'secondary.light'
-                  },
-                  ...(isSelected && {
-                    bgcolor: 'secondary.light',
-                    '&:hover': {
-                      bgcolor: 'secondary.light'
-                    }
-                  })
-                })
-            }}
+          <NavListItemIcon
+            $level={level}
+            $isSelected={isSelected}
+            $drawerOpen={drawerOpen}
+            $borderRadius={borderRadius}
           >
             {menuIcon}
-          </ListItemIcon>
+          </NavListItemIcon>
         )}
         {(drawerOpen || (!drawerOpen && level !== 1)) && (
-          <Tooltip title={menu.title} disableHoverListener={!hoverStatus}>
+          <Tooltip title={menu.title}>
             <ListItemText
               primary={
                 <Typography
@@ -224,10 +270,10 @@ const NavCollapse = ({ menu, level, parentId }: NavCollapseProps) => {
                   noWrap
                   variant={isSelected ? 'h5' : 'body1'}
                   color="inherit"
-                  sx={{
+                  style={{
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
-                    width: 120
+                    width: 120,
                   }}
                 >
                   {menu.title}
@@ -235,14 +281,14 @@ const NavCollapse = ({ menu, level, parentId }: NavCollapseProps) => {
               }
               secondary={
                 menu.caption && (
-                  <Typography 
-                    variant="caption" 
-                    gutterBottom 
-                    sx={{ 
-                      display: 'block', 
+                  <Typography
+                    variant="caption"
+                    gutterBottom
+                    style={{
+                      display: 'block',
                       fontSize: '0.75rem',
-                      color: 'text.secondary',
-                      fontWeight: 400
+                      color: alpha('#FFFFFF', 0.5),
+                      fontWeight: 400,
                     }}
                   >
                     {menu.caption}
@@ -264,33 +310,24 @@ const NavCollapse = ({ menu, level, parentId }: NavCollapseProps) => {
               {
                 name: 'offset',
                 options: {
-                  offset: [-12, 0]
-                }
-              }
+                  offset: [-12, 0],
+                },
+              },
             ]}
-            sx={{
+            style={{
               overflow: 'visible',
               zIndex: 2001,
               minWidth: 180,
-              '&:before': {
-                content: '""',
-                bgcolor: 'background.paper',
-                transform: 'translateY(-50%) rotate(45deg)',
-                zIndex: 120,
-                borderLeft: `1px solid`,
-                borderBottom: `1px solid`,
-                borderColor: 'divider'
-              }
             }}
           >
             {({ TransitionProps }) => (
               <Transitions in={openMini} {...TransitionProps}>
                 <Paper
-                  sx={{
+                  style={{
                     overflow: 'hidden',
-                    mt: 1.5,
-                    boxShadow: theme.shadows[8],
-                    backgroundImage: 'none'
+                    marginTop: '12px',
+                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.3)',
+                    backgroundImage: 'none',
                   }}
                 >
                   <ClickAwayListener onClickAway={handleClosePopper}>
@@ -301,28 +338,13 @@ const NavCollapse = ({ menu, level, parentId }: NavCollapseProps) => {
             )}
           </Popper>
         )}
-      </ListItemButton>
+      </NavListItemButton>
       {drawerOpen && (
         <Collapse in={open} timeout="auto" unmountOnExit>
           {open && (
-            <List
-              disablePadding
-              sx={{
-                position: 'relative',
-                '&:after': {
-                  content: "''",
-                  position: 'absolute',
-                  left: '25px',
-                  top: 0,
-                  height: '100%',
-                  width: '1px',
-                  opacity: 1,
-                  bgcolor: 'primary.light'
-                }
-              }}
-            >
+            <NestedList disablePadding>
               {menus}
-            </List>
+            </NestedList>
           )}
         </Collapse>
       )}
