@@ -15,52 +15,20 @@ import EditSessionModal from './EditSessionModal';
 import {
   Search,
   Edit,
-  // FileText, // Not used?
   Calendar,
   Clock,
   User,
-  // Filter, // Not used?
   Plus,
   Download,
   Eye,
   CheckCircle,
-  // XCircle, // Not used?
-  // AlarmClock, // Not used?
   RefreshCw,
   Zap,
-  CheckSquare,
   Trash2,
-  // UserPlus // Not used?
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
-
-// Material UI Components
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TablePagination,
-  TableRow,
-  Paper,
-  TextField,
-  InputAdornment,
-  Grid,
-  Stack,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Typography,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Avatar,
-  Chip,
-  // Badge, // Not used?
-  // Tooltip // Not used?
-  Box as MuiBox // Use MUI Box directly if needed
-} from '@mui/material';
 
 // Styled Components
 import {
@@ -76,7 +44,6 @@ import {
   StatsValue,
   StatsLabel,
   FilterContainer,
-  SearchField,
   FilterButtonsContainer,
   FilterButton,
   StyledTableContainer,
@@ -94,6 +61,24 @@ import {
   EmptyStateIcon,
   EmptyStateText,
   StyledDialog,
+  DialogPanel,
+  DialogTitleBar,
+  DialogContentArea,
+  DialogActionsBar,
+  FlexRow,
+  StyledAvatar,
+  SessionCountChip,
+  DateInput,
+  SearchInputWrapper,
+  SearchIconSpan,
+  SearchInput,
+  PaginationContainer,
+  PaginationSelect,
+  PaginationButton,
+  MutedText,
+  BodyText,
+  CaptionText,
+  DeleteDetailBox,
   containerVariants,
   itemVariants,
   staggeredItemVariants
@@ -332,12 +317,16 @@ const EnhancedAdminSessionsView: React.FC = () => {
   }, []); // Assuming authAxios and toast are stable references
 
   // Handle pagination change
-  const handleChangePage = (event: unknown, newPage: number) => {
-    setPage(newPage);
+  const handleChangePage = (_direction: 'prev' | 'next') => {
+    if (_direction === 'prev') {
+      setPage((prev) => Math.max(0, prev - 1));
+    } else {
+      setPage((prev) => prev + 1);
+    }
   };
 
   // Handle rows per page change
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
@@ -624,6 +613,12 @@ const EnhancedAdminSessionsView: React.FC = () => {
     }
   };
 
+  // Pagination computed values
+  const totalPages = Math.ceil(filteredSessions.length / rowsPerPage);
+  const paginatedSessions = filteredSessions.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const startItem = filteredSessions.length === 0 ? 0 : page * rowsPerPage + 1;
+  const endItem = Math.min((page + 1) * rowsPerPage, filteredSessions.length);
+
   return (
     <PageContainer>
       <ContentContainer>
@@ -632,17 +627,17 @@ const EnhancedAdminSessionsView: React.FC = () => {
           animate="visible"
           variants={containerVariants}
         >
-          <StyledCard component={motion.div} variants={itemVariants}>
+          <StyledCard as={motion.div} variants={itemVariants}>
             <CardHeader>
               <CardTitle>
-                <Stack direction="row" spacing={2} alignItems="center">
+                <FlexRow $gap="0.75rem">
                   <Calendar size={28} />
-                  <Typography variant="h5" component="span" sx={{ fontWeight: 300 }}>
+                  <span style={{ fontWeight: 300, fontSize: '1.25rem' }}>
                      Training Sessions Management
-                  </Typography>
-                </Stack>
+                  </span>
+                </FlexRow>
               </CardTitle>
-              <Stack direction="row" spacing={1.5}>
+              <FlexRow $gap="0.75rem">
                 <GlowButton
                   text="Add Sessions"
                   theme="emerald"
@@ -659,97 +654,87 @@ const EnhancedAdminSessionsView: React.FC = () => {
                   onClick={handleRefreshSessions}
                   isLoading={loading} // Show spinner if main sessions are loading
                 />
-              </Stack>
+              </FlexRow>
             </CardHeader>
 
             <CardContent>
               {/* Stats Cards */}
               <StatsGridContainer>
                  {/* Stats Card 1: Today's Sessions */}
-                 <StatsCard variant="primary" as={motion.div} custom={0} variants={staggeredItemVariants}>
-                     <Stack direction="row" alignItems="center" spacing={2}>
-                         <StatsIconContainer variant="primary"><Calendar size={24} /></StatsIconContainer>
-                         <MuiBox>
+                 <StatsCard $variant="primary" custom={0} variants={staggeredItemVariants}>
+                     <FlexRow $gap="1rem">
+                         <StatsIconContainer $variant="primary"><Calendar size={24} /></StatsIconContainer>
+                         <div>
                              <StatsValue>{loading ? '-' : statsData.todaySessions}</StatsValue>
                              <StatsLabel>Sessions Today</StatsLabel>
-                         </MuiBox>
-                     </Stack>
+                         </div>
+                     </FlexRow>
                  </StatsCard>
                  {/* Stats Card 2: Completed Hours */}
-                 <StatsCard variant="success" as={motion.div} custom={1} variants={staggeredItemVariants}>
-                     <Stack direction="row" alignItems="center" spacing={2}>
-                         <StatsIconContainer variant="success"><Clock size={24} /></StatsIconContainer>
-                         <MuiBox>
+                 <StatsCard $variant="success" custom={1} variants={staggeredItemVariants}>
+                     <FlexRow $gap="1rem">
+                         <StatsIconContainer $variant="success"><Clock size={24} /></StatsIconContainer>
+                         <div>
                              <StatsValue>{loading ? '-' : statsData.completedHours}</StatsValue>
                              <StatsLabel>Hours Completed</StatsLabel>
-                         </MuiBox>
-                     </Stack>
+                         </div>
+                     </FlexRow>
                  </StatsCard>
                  {/* Stats Card 3: Active Trainers */}
-                 <StatsCard variant="info" as={motion.div} custom={2} variants={staggeredItemVariants}>
-                     <Stack direction="row" alignItems="center" spacing={2}>
-                         <StatsIconContainer variant="info"><User size={24} /></StatsIconContainer>
-                         <MuiBox>
+                 <StatsCard $variant="info" custom={2} variants={staggeredItemVariants}>
+                     <FlexRow $gap="1rem">
+                         <StatsIconContainer $variant="info"><User size={24} /></StatsIconContainer>
+                         <div>
                              <StatsValue>{loading ? '-' : statsData.activeTrainers}</StatsValue>
                              <StatsLabel>Active Trainers</StatsLabel>
-                         </MuiBox>
-                     </Stack>
+                         </div>
+                     </FlexRow>
                  </StatsCard>
                  {/* Stats Card 4: Completion Rate */}
-                 <StatsCard variant="warning" as={motion.div} custom={3} variants={staggeredItemVariants}>
-                     <Stack direction="row" alignItems="center" spacing={2}>
-                         <StatsIconContainer variant="warning"><CheckCircle size={24} /></StatsIconContainer>
-                         <MuiBox>
+                 <StatsCard $variant="warning" custom={3} variants={staggeredItemVariants}>
+                     <FlexRow $gap="1rem">
+                         <StatsIconContainer $variant="warning"><CheckCircle size={24} /></StatsIconContainer>
+                         <div>
                              <StatsValue>{loading ? '-' : `${statsData.completionRate}%`}</StatsValue>
                              <StatsLabel>Completion Rate</StatsLabel>
-                         </MuiBox>
-                     </Stack>
+                         </div>
+                     </FlexRow>
                  </StatsCard>
               </StatsGridContainer>
 
               {/* Filters and Search */}
-              <FilterContainer as={motion.div} variants={itemVariants}>
-                 <SearchField
-                     size="small"
-                     placeholder="Search client, trainer, status..."
-                     value={searchTerm}
-                     onChange={(e) => setSearchTerm(e.target.value)}
-                     sx={{ minWidth: { xs: '100%', sm: 300 } }}
-                     InputProps={{
-                         startAdornment: (
-                             <InputAdornment position="start">
-                                 <Search size={20} />
-                             </InputAdornment>
-                         )
-                     }}
-                 />
-                 <Stack direction="row" spacing={1} alignItems="center">
-                    <TextField
-                      label="From"
+              <FilterContainer variants={itemVariants}>
+                 <SearchInputWrapper>
+                     <SearchIconSpan>
+                         <Search size={20} />
+                     </SearchIconSpan>
+                     <SearchInput
+                         placeholder="Search client, trainer, status..."
+                         value={searchTerm}
+                         onChange={(e) => setSearchTerm(e.target.value)}
+                     />
+                 </SearchInputWrapper>
+                 <FlexRow $gap="0.5rem">
+                    <DateInput
                       type="date"
-                      size="small"
-                      InputLabelProps={{ shrink: true }}
+                      aria-label="From date"
                       value={startDate}
                       onChange={(e) => setStartDate(e.target.value)}
-                      sx={{ width: 140 }}
                     />
-                    <TextField
-                      label="To"
+                    <DateInput
                       type="date"
-                      size="small"
-                      InputLabelProps={{ shrink: true }}
+                      aria-label="To date"
                       value={endDate}
                       onChange={(e) => setEndDate(e.target.value)}
-                      sx={{ width: 140 }}
                     />
-                 </Stack>
+                 </FlexRow>
                  <FilterButtonsContainer>
                      {/* Filter Buttons */}
                      {(['all', 'available', 'scheduled', 'confirmed', 'completed', 'cancelled'] as const).map((status) => (
                          <FilterButton
                              key={status}
-                             isactive={(statusFilter === status).toString() as "true" | "false"}
-                             buttoncolor={
+                             $isActive={statusFilter === status}
+                             $buttonColor={
                                  status === 'completed' || status === 'confirmed' ? 'success' :
                                  status === 'scheduled' || status === 'available' ? 'primary' :
                                  status === 'cancelled' ? 'error' : undefined
@@ -767,127 +752,116 @@ const EnhancedAdminSessionsView: React.FC = () => {
                 <LoadingContainer><LoadingSpinner /></LoadingContainer>
               ) : error ? (
                  <EmptyStateContainer>
-                    <EmptyStateIcon>⚠️</EmptyStateIcon>
+                    <EmptyStateIcon>&#9888;&#65039;</EmptyStateIcon>
                     <EmptyStateText>Error loading sessions: {error}</EmptyStateText>
                     <GlowButton text="Retry" onClick={fetchSessions} theme="ruby" size="small" />
                  </EmptyStateContainer>
               ) : (
-                <StyledTableContainer component={Paper}>
-                  <Table aria-label="sessions table" size="small">
-                    <TableHead>
+                <StyledTableContainer>
+                  <table aria-label="sessions table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
                       <StyledTableHead>
-                        {/* <StyledTableHeadCell>ID</StyledTableHeadCell> */}
                         <StyledTableHeadCell>Client</StyledTableHeadCell>
                         <StyledTableHeadCell>Trainer</StyledTableHeadCell>
-                        <StyledTableHeadCell>Date & Time</StyledTableHeadCell>
-                        {/* <StyledTableHeadCell>Time</StyledTableHeadCell> */}
+                        <StyledTableHeadCell>Date &amp; Time</StyledTableHeadCell>
                         <StyledTableHeadCell>Location</StyledTableHeadCell>
                         <StyledTableHeadCell>Duration</StyledTableHeadCell>
                         <StyledTableHeadCell>Status</StyledTableHeadCell>
-                        <StyledTableHeadCell align="right">Actions</StyledTableHeadCell>
+                        <StyledTableHeadCell style={{ textAlign: 'right' }}>Actions</StyledTableHeadCell>
                       </StyledTableHead>
-                    </TableHead>
-                    <TableBody>
-                      {filteredSessions.length > 0 ? (
-                        filteredSessions
-                          .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                    </thead>
+                    <tbody>
+                      {paginatedSessions.length > 0 ? (
+                        paginatedSessions
                           .map((session, index) => (
                             <StyledTableRow
                               key={session.id || index} // Use index as fallback key if id is missing
-                              component={motion.tr}
+                              as={motion.tr}
                               custom={index}
                               variants={staggeredItemVariants}
                               initial="hidden"
                               animate="visible"
                               layout // Animate layout changes
                             >
-                              {/* <StyledTableCell>{session.id || 'N/A'}</StyledTableCell> */}
                               {/* Client Cell */}
                                <StyledTableCell>
                                  {session.client ? (
-                                   <Stack direction="row" spacing={1} alignItems="center">
-                                     <Avatar
-                                       src={session.client.photo || undefined} // Pass undefined if no photo
-                                       alt={`${session.client.firstName} ${session.client.lastName}`}
-                                       sx={{ width: 32, height: 32, fontSize: '0.8rem' }}
-                                     >
-                                       {/* Fallback Initials */}
-                                       {session.client.firstName?.[0]}
-                                       {session.client.lastName?.[0]}
-                                     </Avatar>
-                                     <MuiBox>
-                                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                   <FlexRow $gap="0.5rem">
+                                     <StyledAvatar $size={32}>
+                                       {session.client.photo ? (
+                                         <img
+                                           src={session.client.photo}
+                                           alt={`${session.client.firstName} ${session.client.lastName}`}
+                                         />
+                                       ) : (
+                                         <>
+                                           {session.client.firstName?.[0]}
+                                           {session.client.lastName?.[0]}
+                                         </>
+                                       )}
+                                     </StyledAvatar>
+                                     <div>
+                                       <BodyText $weight={500}>
                                             {session.client.firstName} {session.client.lastName}
-                                       </Typography>
-                                       <Chip
-                                         label={`${session.client.availableSessions ?? 0} sessions`}
-                                         size="small"
-                                         variant="outlined" // Use outlined for better contrast
-                                         sx={{
-                                           fontSize: '0.7rem',
-                                           height: '20px',
-                                           mt: 0.5,
-                                           borderColor: (session.client.availableSessions ?? 0) > 0
-                                             ? 'rgba(46, 125, 50, 0.5)'
-                                             : 'rgba(211, 47, 47, 0.5)',
-                                           color: (session.client.availableSessions ?? 0) > 0
-                                              ? 'rgba(46, 125, 50, 1)'
-                                              : 'rgba(211, 47, 47, 1)',
-                                           bgcolor: (session.client.availableSessions ?? 0) > 0
-                                              ? 'rgba(46, 125, 50, 0.1)'
-                                              : 'rgba(211, 47, 47, 0.1)',
-
-                                         }}
-                                       />
-                                     </MuiBox>
-                                   </Stack>
+                                       </BodyText>
+                                       <br />
+                                       <SessionCountChip $hasCredits={(session.client.availableSessions ?? 0) > 0}>
+                                         {session.client.availableSessions ?? 0} sessions
+                                       </SessionCountChip>
+                                     </div>
+                                   </FlexRow>
                                  ) : (
-                                   <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)', fontStyle: 'italic' }}>
+                                   <MutedText>
                                         {session.status === 'available' ? 'Available Slot' : 'No Client'}
-                                   </Typography>
+                                   </MutedText>
                                  )}
                                </StyledTableCell>
 
                                {/* Trainer Cell */}
                                <StyledTableCell>
                                    {session.trainer ? (
-                                     <Stack direction="row" spacing={1} alignItems="center">
-                                       <Avatar
-                                         src={session.trainer.photo || undefined}
-                                         alt={`${session.trainer.firstName} ${session.trainer.lastName}`}
-                                         sx={{ width: 32, height: 32, fontSize: '0.8rem' }}
-                                       >
-                                          {session.trainer.firstName?.[0]}
-                                          {session.trainer.lastName?.[0]}
-                                       </Avatar>
-                                       <Typography variant="body2">
+                                     <FlexRow $gap="0.5rem">
+                                       <StyledAvatar $size={32}>
+                                         {session.trainer.photo ? (
+                                           <img
+                                             src={session.trainer.photo}
+                                             alt={`${session.trainer.firstName} ${session.trainer.lastName}`}
+                                           />
+                                         ) : (
+                                           <>
+                                              {session.trainer.firstName?.[0]}
+                                              {session.trainer.lastName?.[0]}
+                                           </>
+                                         )}
+                                       </StyledAvatar>
+                                       <BodyText>
                                            {session.trainer.firstName} {session.trainer.lastName}
-                                       </Typography>
-                                     </Stack>
+                                       </BodyText>
+                                     </FlexRow>
                                    ) : (
-                                     <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)', fontStyle: 'italic' }}>
+                                     <MutedText>
                                         Unassigned
-                                     </Typography>
+                                     </MutedText>
                                    )}
                                  </StyledTableCell>
 
                               {/* Date & Time Cell */}
                               <StyledTableCell>
-                                 <Typography variant="body2">{formatDate(session.sessionDate)}</Typography>
-                                 <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>{formatTime(session.sessionDate)}</Typography>
+                                 <BodyText>{formatDate(session.sessionDate)}</BodyText>
+                                 <br />
+                                 <CaptionText>{formatTime(session.sessionDate)}</CaptionText>
                               </StyledTableCell>
-                              {/* <StyledTableCell>{formatTime(session.sessionDate)}</StyledTableCell> */}
                               <StyledTableCell>{session.location || 'N/A'}</StyledTableCell>
                               <StyledTableCell>{session.duration || 'N/A'} min</StyledTableCell>
                               <StyledTableCell>
-                                <ChipContainer chipstatus={session.status}>
+                                <ChipContainer $chipStatus={session.status}>
                                   {session.status ? session.status.charAt(0).toUpperCase() + session.status.slice(1) : 'Unknown'}
                                 </ChipContainer>
                               </StyledTableCell>
-                              <StyledTableCell align="right">
+                              <StyledTableCell style={{ textAlign: 'right' }}>
                                 <IconButtonContainer>
                                   <StyledIconButton
-                                    btncolor="primary"
+                                    $btnColor="primary"
                                     onClick={() => handleViewSession(session)}
                                     title="View Details"
                                     whileHover={{ scale: 1.1 }}
@@ -896,7 +870,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
                                     <Eye size={16} />
                                   </StyledIconButton>
                                   <StyledIconButton
-                                    btncolor="secondary" // Use a different color maybe?
+                                    $btnColor="secondary"
                                     onClick={() => handleEditSession(session)}
                                     title="Edit Session"
                                     whileHover={{ scale: 1.1 }}
@@ -905,7 +879,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
                                     <Edit size={16} />
                                   </StyledIconButton>
                                   <StyledIconButton
-                                    btncolor="error"
+                                    $btnColor="error"
                                     onClick={() => handleDeleteClick(session)}
                                     title="Delete Session"
                                     whileHover={{ scale: 1.1 }}
@@ -919,9 +893,9 @@ const EnhancedAdminSessionsView: React.FC = () => {
                           ))
                       ) : (
                         <StyledTableRow>
-                          <StyledTableCell colSpan={9}>
+                          <StyledTableCell colSpan={7}>
                             <EmptyStateContainer>
-                              <EmptyStateIcon>📅</EmptyStateIcon>
+                              <EmptyStateIcon>&#128197;</EmptyStateIcon>
                               <EmptyStateText>
                                 No sessions found matching your criteria.
                               </EmptyStateText>
@@ -929,32 +903,47 @@ const EnhancedAdminSessionsView: React.FC = () => {
                           </StyledTableCell>
                         </StyledTableRow>
                       )}
-                    </TableBody>
-                  </Table>
+                    </tbody>
+                  </table>
                 </StyledTableContainer>
               )}
 
               {/* Pagination */}
               {filteredSessions.length > 0 && (
-                <TablePagination
-                  rowsPerPageOptions={[5, 10, 25, 50]}
-                  component="div"
-                  count={filteredSessions.length}
-                  rowsPerPage={rowsPerPage}
-                  page={page}
-                  onPageChange={handleChangePage}
-                  onRowsPerPageChange={handleChangeRowsPerPage}
-                  sx={{
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-                    mt: 2,
-                    '.MuiTablePagination-selectIcon': { color: 'rgba(255, 255, 255, 0.7)' },
-                    '.MuiTablePagination-displayedRows': { color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.85rem' },
-                    '.MuiTablePagination-select': { color: 'rgba(255, 255, 255, 0.9)' },
-                    '.MuiTablePagination-actions button': { color: 'rgba(255, 255, 255, 0.7)', '&:disabled': { color: 'rgba(255, 255, 255, 0.3)' } },
-                    '.MuiInputBase-root': { color: 'white !important' } // Ensure select dropdown text is white
-                  }}
-                />
+                <PaginationContainer>
+                  <FlexRow $gap="0.5rem">
+                    <span>Rows per page:</span>
+                    <PaginationSelect
+                      value={rowsPerPage}
+                      onChange={handleChangeRowsPerPage}
+                    >
+                      {[5, 10, 25, 50].map((opt) => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </PaginationSelect>
+                  </FlexRow>
+                  <span>
+                    {startItem}-{endItem} of {filteredSessions.length}
+                  </span>
+                  <FlexRow $gap="0.25rem">
+                    <PaginationButton
+                      $disabled={page === 0}
+                      disabled={page === 0}
+                      onClick={() => handleChangePage('prev')}
+                      title="Previous page"
+                    >
+                      <ChevronLeft size={18} />
+                    </PaginationButton>
+                    <PaginationButton
+                      $disabled={page >= totalPages - 1}
+                      disabled={page >= totalPages - 1}
+                      onClick={() => handleChangePage('next')}
+                      title="Next page"
+                    >
+                      <ChevronRight size={18} />
+                    </PaginationButton>
+                  </FlexRow>
+                </PaginationContainer>
               )}
 
               {/* Action Buttons */}
@@ -1033,7 +1022,6 @@ const EnhancedAdminSessionsView: React.FC = () => {
          notes={newSessionNotes}
          onNotesChange={setNewSessionNotes}
          onSubmit={handleCreateNewSession}
-         // isProcessing={isProcessing} // You can add this if you want to show loading state on the button
        />
 
       {/* Add Sessions Dialog */}
@@ -1054,53 +1042,50 @@ const EnhancedAdminSessionsView: React.FC = () => {
 
       {/* Delete Confirmation Dialog */}
       <StyledDialog
-        open={openDeleteDialog}
-        onClose={() => setOpenDeleteDialog(false)}
-        maxWidth="xs"
-        fullWidth
+        $open={openDeleteDialog}
+        onClick={() => setOpenDeleteDialog(false)}
       >
-        <DialogTitle>
-          <Stack direction="row" spacing={1.5} alignItems="center" color="error.main">
-            <AlertCircle />
-            <Typography variant="h6">Confirm Deletion</Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-            Are you sure you want to delete this session? This action cannot be undone.
+        <DialogPanel onClick={(e) => e.stopPropagation()}>
+          <DialogTitleBar>
+            <FlexRow $gap="0.75rem" style={{ color: '#ef4444' }}>
+              <AlertCircle size={22} />
+              <span>Confirm Deletion</span>
+            </FlexRow>
+          </DialogTitleBar>
+          <DialogContentArea>
+            <p style={{ color: 'rgba(255, 255, 255, 0.7)', margin: 0 }}>
+              Are you sure you want to delete this session? This action cannot be undone.
+            </p>
             {sessionToDelete && (
-              <MuiBox sx={{ mt: 2, p: 2, bgcolor: 'rgba(255,0,0,0.1)', borderRadius: 1, border: '1px solid rgba(255,0,0,0.2)' }}>
-                <Typography variant="subtitle2" color="white">
+              <DeleteDetailBox>
+                <BodyText $weight={600} $color="white">
                   {formatDate(sessionToDelete.sessionDate)} at {formatTime(sessionToDelete.sessionDate)}
-                </Typography>
+                </BodyText>
                 {sessionToDelete.client && (
-                  <Typography variant="body2" color="rgba(255,255,255,0.7)">
-                    Client: {sessionToDelete.client.firstName} {sessionToDelete.client.lastName}
-                  </Typography>
+                  <div style={{ marginTop: '0.25rem' }}>
+                    <BodyText $color="rgba(255,255,255,0.7)">
+                      Client: {sessionToDelete.client.firstName} {sessionToDelete.client.lastName}
+                    </BodyText>
+                  </div>
                 )}
-              </MuiBox>
+              </DeleteDetailBox>
             )}
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <GlowButton text="Cancel" theme="cosmic" size="small" onClick={() => setOpenDeleteDialog(false)} />
-          <GlowButton
-            text="Delete"
-            theme="ruby"
-            size="small"
-            onClick={handleConfirmDelete}
-            isLoading={isProcessing}
-          />
-        </DialogActions>
+          </DialogContentArea>
+          <DialogActionsBar>
+            <GlowButton text="Cancel" theme="cosmic" size="small" onClick={() => setOpenDeleteDialog(false)} />
+            <GlowButton
+              text="Delete"
+              theme="ruby"
+              size="small"
+              onClick={handleConfirmDelete}
+              isLoading={isProcessing}
+            />
+          </DialogActionsBar>
+        </DialogPanel>
       </StyledDialog>
 
     </PageContainer>
   );
 };
-
-// Helper component for stats to match Stack styling (Can be removed if MUI Box is used directly)
-// const Box: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-//   return <div>{children}</div>; // Or use <MuiBox>{children}</MuiBox>
-// };
 
 export default EnhancedAdminSessionsView;

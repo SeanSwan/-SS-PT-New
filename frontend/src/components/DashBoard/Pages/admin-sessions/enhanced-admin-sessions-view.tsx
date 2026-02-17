@@ -18,17 +18,13 @@ import UnifiedCalendar from '../../../Schedule/schedule';
 import {
   Search,
   Edit,
-  // FileText, // Not used?
   Calendar,
   Clock,
   User,
-  // Filter, // Not used?
   Plus,
   Download,
   Eye,
   CheckCircle,
-  // XCircle, // Not used?
-  // AlarmClock, // Not used?
   AlertCircle,
   ArrowDown,
   ArrowUp,
@@ -38,40 +34,11 @@ import {
   CheckSquare,
   TableIcon,
   CalendarDays,
-  // UserPlus // Not used?
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
-// Material UI Components
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TablePagination,
-  TableRow,
-  Paper,
-  TextField,
-  InputAdornment,
-  Grid,
-  Stack,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Typography,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Avatar,
-  Chip,
-  Checkbox,
-  // Badge, // Not used?
-  // Tooltip // Not used?
-  Box as MuiBox // Use MUI Box directly if needed
-} from '@mui/material';
-
-// Styled Components
+// Styled Components (shared)
 import {
   PageContainer,
   ContentContainer,
@@ -103,10 +70,16 @@ import {
   EmptyStateIcon,
   EmptyStateText,
   StyledDialog,
+  DialogPanel,
+  DialogTitleBar,
+  DialogContentArea,
+  DialogActionsBar,
   containerVariants,
   itemVariants,
   staggeredItemVariants
 } from './styled-admin-sessions'; // Ensure path is correct
+
+/* ─── Local Styled Components ──────────────────────────────────────────── */
 
 const BulkActionsBar = styled(motion.div)`
   display: flex;
@@ -119,6 +92,573 @@ const BulkActionsBar = styled(motion.div)`
   border-radius: 12px;
   color: white;
   backdrop-filter: blur(5px);
+`;
+
+const FlexRow = styled.div<{ $gap?: string; $align?: string; $justify?: string; $wrap?: boolean }>`
+  display: flex;
+  flex-direction: row;
+  align-items: ${p => p.$align || 'center'};
+  justify-content: ${p => p.$justify || 'flex-start'};
+  gap: ${p => p.$gap || '0.5rem'};
+  flex-wrap: ${p => p.$wrap ? 'wrap' : 'nowrap'};
+`;
+
+const FlexCol = styled.div<{ $gap?: string }>`
+  display: flex;
+  flex-direction: column;
+  gap: ${p => p.$gap || '0.5rem'};
+`;
+
+const ViewToggleContainer = styled.div`
+  background: rgba(30, 58, 138, 0.2);
+  border-radius: 8px;
+  padding: 4px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  display: flex;
+  gap: 4px;
+`;
+
+const TitleText = styled.span`
+  font-weight: 300;
+  font-size: 1.25rem;
+  color: #e2e8f0;
+`;
+
+const SubtitleText = styled.span`
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.7);
+`;
+
+const BulkSelectedText = styled.span`
+  font-size: 1rem;
+  font-weight: 500;
+  color: #e2e8f0;
+`;
+
+const NativeTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const NativeTableHead = styled.thead``;
+
+const NativeTableBody = styled.tbody``;
+
+const SortableHeaderCell = styled(StyledTableHeadCell)`
+  cursor: pointer;
+  user-select: none;
+  &:hover {
+    background: rgba(59, 130, 246, 0.15);
+  }
+`;
+
+const CheckboxCell = styled(StyledTableHeadCell)`
+  width: 48px;
+  min-width: 48px;
+`;
+
+const CheckboxBodyCell = styled(StyledTableCell)`
+  width: 48px;
+  min-width: 48px;
+`;
+
+const ActionsCell = styled(StyledTableHeadCell)`
+  text-align: right;
+`;
+
+const ActionsBodyCell = styled(StyledTableCell)`
+  text-align: right;
+`;
+
+/* Styled Checkbox */
+const HiddenCheckbox = styled.input.attrs({ type: 'checkbox' })`
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+`;
+
+const CheckboxWrapper = styled.label<{ $checked?: boolean; $indeterminate?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  min-width: 44px;
+  min-height: 44px;
+  cursor: pointer;
+  position: relative;
+
+  &::before {
+    content: '';
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 2px solid ${p => (p.$checked || p.$indeterminate) ? '#00ffff' : 'rgba(255,255,255,0.5)'};
+    background: ${p => (p.$checked || p.$indeterminate) ? 'rgba(0, 255, 255, 0.2)' : 'transparent'};
+    transition: all 0.2s ease;
+  }
+
+  &::after {
+    content: '${p => p.$indeterminate ? '\\2014' : p.$checked ? '\\2713' : ''}';
+    position: absolute;
+    color: #00ffff;
+    font-size: ${p => p.$indeterminate ? '14px' : '13px'};
+    font-weight: bold;
+    line-height: 1;
+  }
+`;
+
+/* Avatar */
+const AvatarCircle = styled.div<{ $size?: number }>`
+  width: ${p => p.$size || 32}px;
+  height: ${p => p.$size || 32}px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(14, 165, 233, 0.3));
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: ${p => ((p.$size || 32) * 0.35)}px;
+  font-weight: 600;
+  color: #e2e8f0;
+  overflow: hidden;
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+`;
+
+/* Session count chip inside table */
+const SessionCountChip = styled.span<{ $hasAvailable?: boolean }>`
+  font-size: 0.7rem;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  margin-top: 4px;
+  border-radius: 10px;
+  border: 1px solid ${p => p.$hasAvailable ? 'rgba(46, 125, 50, 0.5)' : 'rgba(211, 47, 47, 0.5)'};
+  color: ${p => p.$hasAvailable ? 'rgba(46, 125, 50, 1)' : 'rgba(211, 47, 47, 1)'};
+  background: ${p => p.$hasAvailable ? 'rgba(46, 125, 50, 0.1)' : 'rgba(211, 47, 47, 0.1)'};
+`;
+
+const CellPrimaryText = styled.span`
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #e2e8f0;
+  display: block;
+`;
+
+const CellSecondaryText = styled.span`
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.7);
+  display: block;
+`;
+
+const MutedText = styled.span`
+  color: rgba(255, 255, 255, 0.5);
+  font-style: italic;
+  font-size: 0.875rem;
+`;
+
+/* Pagination */
+const PaginationContainer = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  color: rgba(255, 255, 255, 0.7);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+
+  select {
+    background: rgba(20, 20, 40, 0.5);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.85rem;
+    outline: none;
+    cursor: pointer;
+    min-height: 44px;
+
+    &:focus {
+      border-color: rgba(0, 255, 255, 0.5);
+    }
+  }
+`;
+
+const PaginationButton = styled.button<{ $disabled?: boolean }>`
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: ${p => p.$disabled ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.7)'};
+  cursor: ${p => p.$disabled ? 'default' : 'pointer'};
+  padding: 4px 8px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(0, 255, 255, 0.4);
+  }
+`;
+
+/* Calendar wrapper */
+const CalendarViewWrapper = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-top: 1rem;
+  background: rgba(30, 58, 138, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  overflow: hidden;
+  min-height: 600px;
+
+  & > div {
+    height: 100%;
+  }
+
+  .rbc-calendar {
+    background: rgba(20, 20, 40, 0.4);
+    color: white;
+  }
+  .rbc-toolbar {
+    background: rgba(30, 58, 138, 0.3);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  .rbc-toolbar-label {
+    color: #e5e7eb;
+    font-size: 1.2rem;
+    font-weight: 500;
+  }
+  .rbc-header {
+    background: rgba(30, 58, 138, 0.2);
+    color: #e5e7eb;
+    font-weight: 500;
+    border-color: rgba(59, 130, 246, 0.15);
+    padding: 0.75rem;
+  }
+  .rbc-event {
+    background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+    border: none;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-weight: 500;
+  }
+  .rbc-event.available {
+    background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  }
+  .rbc-event.confirmed {
+    background: linear-gradient(135deg, #0891b2 0%, #06b6d4 100%);
+  }
+  .rbc-event.cancelled {
+    background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+    opacity: 0.7;
+  }
+  .rbc-event.completed {
+    background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+  }
+  .rbc-today {
+    background: rgba(59, 130, 246, 0.1);
+  }
+  .rbc-off-range-bg {
+    background: rgba(10, 10, 15, 0.3);
+  }
+  .rbc-date-cell {
+    color: #e5e7eb;
+  }
+  .rbc-time-slot {
+    color: #9ca3af;
+    border-color: rgba(59, 130, 246, 0.1);
+  }
+  .rbc-day-bg, .rbc-month-row, .rbc-time-content {
+    border-color: rgba(59, 130, 246, 0.1);
+  }
+  .rbc-btn-group button {
+    background: rgba(30, 58, 138, 0.4);
+    color: white;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    &:hover {
+      background: rgba(59, 130, 246, 0.4);
+    }
+    &.rbc-active {
+      background: linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%);
+      border-color: #3b82f6;
+    }
+  }
+  .rbc-time-view {
+    border-color: rgba(59, 130, 246, 0.1);
+  }
+  .rbc-month-view {
+    border-color: rgba(59, 130, 246, 0.1);
+  }
+  .rbc-agenda-view {
+    color: #e5e7eb;
+  }
+  .rbc-agenda-date-cell, .rbc-agenda-time-cell {
+    color: #9ca3af;
+  }
+  .rbc-agenda-event-cell {
+    color: #e5e7eb;
+  }
+`;
+
+const TestControlsWrapper = styled.div`
+  margin-top: 2rem;
+`;
+
+/* Dialog form helpers */
+const FormGrid = styled.div<{ $columns?: number }>`
+  display: grid;
+  grid-template-columns: repeat(${p => p.$columns || 2}, 1fr);
+  gap: 1rem;
+  margin-top: 0.5rem;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const FormField = styled.div<{ $fullWidth?: boolean }>`
+  grid-column: ${p => p.$fullWidth ? '1 / -1' : 'auto'};
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+`;
+
+const FormLabel = styled.label`
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+`;
+
+const FormInput = styled.input`
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(20, 20, 40, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  outline: none;
+  font-size: 0.95rem;
+  min-height: 44px;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+  }
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+`;
+
+const FormTextarea = styled.textarea`
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(20, 20, 40, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  outline: none;
+  font-size: 0.95rem;
+  min-height: 80px;
+  resize: vertical;
+  font-family: inherit;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+  }
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+`;
+
+const FormSelect = styled.select`
+  color: rgba(255, 255, 255, 0.9);
+  background: rgba(20, 20, 40, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  outline: none;
+  font-size: 0.95rem;
+  min-height: 44px;
+  cursor: pointer;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: rgba(0, 255, 255, 0.5);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.15);
+  }
+
+  option {
+    background: #1a1a2e;
+    color: #e2e8f0;
+  }
+`;
+
+const DialogDescriptionText = styled.p`
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  margin: 0 0 1rem 0;
+`;
+
+const OverlineLabel = styled.span`
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: 0.25rem;
+`;
+
+const DetailValue = styled.span`
+  font-size: 1rem;
+  font-weight: 500;
+  color: #e2e8f0;
+  display: block;
+`;
+
+const NotesBox = styled.div`
+  padding: 0.75rem;
+  margin-top: 0.25rem;
+  border-radius: 8px;
+  min-height: 60px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: pre-wrap;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+`;
+
+const DetailGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const DetailFullRow = styled.div`
+  grid-column: 1 / -1;
+`;
+
+/* Trainer Assignment Section styled components */
+const AssignmentPanel = styled.div<{ $accentColor?: string }>`
+  padding: 1.5rem;
+  background: rgba(30, 30, 60, 0.4);
+  border: 1px solid ${p => p.$accentColor || 'rgba(0, 255, 255, 0.3)'};
+  border-radius: 12px;
+`;
+
+const AssignmentGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const AssignmentStatsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: 430px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const PanelHeading = styled.h3<{ $color?: string }>`
+  margin: 0 0 1rem 0;
+  color: ${p => p.$color || '#00FFFF'};
+  font-size: 1.1rem;
+  font-weight: 600;
+`;
+
+const SessionSelectItem = styled.div<{ $selected?: boolean }>`
+  display: flex;
+  align-items: center;
+  padding: 0.5rem;
+  border: ${p => p.$selected ? '2px solid #00FFFF' : '1px solid rgba(255, 255, 255, 0.2)'};
+  border-radius: 8px;
+  margin: 0.5rem 0;
+  cursor: pointer;
+  background: ${p => p.$selected ? 'rgba(0, 255, 255, 0.1)' : 'transparent'};
+  min-height: 44px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${p => p.$selected ? 'rgba(0, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)'};
+  }
+`;
+
+const ScrollableList = styled.div`
+  max-height: 300px;
+  overflow-y: auto;
+`;
+
+const SearchInputWrapper = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 300px;
+
+  @media (max-width: 600px) {
+    min-width: 100%;
+  }
+
+  svg {
+    position: absolute;
+    left: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    pointer-events: none;
+  }
+`;
+
+const SearchInputField = styled(SearchField)`
+  padding-left: 2.25rem;
+`;
+
+const DateFilterRow = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+`;
+
+const DateInput = styled(FormInput)`
+  width: 140px;
+  font-size: 0.85rem;
 `;
 
 
@@ -203,7 +743,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
   const [sessionsToAdd, setSessionsToAdd] = useState<number>(1);
   const [addSessionsNote, setAddSessionsNote] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
-  
+
   // State for view toggle (table vs calendar)
   const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table');
 
@@ -380,7 +920,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
     if (lastMessage) {
       console.log('Received message in sessions view:', lastMessage);
       // If it's a purchase notification, refresh sessions data
-      if (lastMessage.type === 'purchase' || 
+      if (lastMessage.type === 'purchase' ||
           (lastMessage.type === 'dashboard:update' && lastMessage.data?.type === 'purchase')) {
         toast({
           title: "New Sessions",
@@ -394,12 +934,12 @@ const EnhancedAdminSessionsView: React.FC = () => {
   }, [lastMessage, toast, fetchClients, fetchSessions]);
 
   // Handle pagination change
-  const handleChangePage = (event: unknown, newPage: number) => {
+  const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
 
   // Handle rows per page change
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
@@ -701,7 +1241,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
 
       if (result.success) {
         console.log('[AdminSessions] Sessions added successfully', result.data);
-        
+
         toast({
           title: "Success",
           description: `Added ${sessionsToAdd} session(s) to the client.`,
@@ -746,7 +1286,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
     if (!sessionToDelete) return;
     setIsProcessing(true);
     try {
-      await authAxios.delete(`/api/sessions/${sessionToDelete.id}`);
+      await apiService.delete(`/api/sessions/${sessionToDelete.id}`);
       toast({
         title: "Success",
         description: "Session deleted successfully",
@@ -840,19 +1380,19 @@ const EnhancedAdminSessionsView: React.FC = () => {
   // Refresh sessions data with enhanced logging
   const handleRefreshSessions = async () => {
     toast({ title: "Refreshing...", description: "Fetching latest session data." });
-    
+
     try {
       // Check session allocation service health
       const healthCheck = await services.session.checkAllocationHealth();
       console.log('[AdminSessions] Session allocation service health:', healthCheck);
-      
+
       // Refresh all data
       await Promise.all([
         fetchSessions(),
         fetchClients(),
         fetchTrainers()
       ]);
-      
+
       toast({
         title: "Success",
         description: "Session data refreshed successfully.",
@@ -866,6 +1406,12 @@ const EnhancedAdminSessionsView: React.FC = () => {
     }
   };
 
+  // Compute pagination values
+  const totalPages = Math.ceil(sortedSessions.length / rowsPerPage);
+  const paginatedSessions = sortedSessions.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const displayStart = sortedSessions.length === 0 ? 0 : page * rowsPerPage + 1;
+  const displayEnd = Math.min((page + 1) * rowsPerPage, sortedSessions.length);
+
   return (
     <PageContainer>
       <ContentContainer>
@@ -874,52 +1420,45 @@ const EnhancedAdminSessionsView: React.FC = () => {
           animate="visible"
           variants={containerVariants}
         >
-          <StyledCard component={motion.div} variants={itemVariants}>
+          <StyledCard as={motion.div} variants={itemVariants}>
             <CardHeader>
               <CardTitle>
-                <Stack direction="row" spacing={2} alignItems="center">
+                <FlexRow $gap="0.75rem">
                   <Calendar size={28} />
-                  <Typography variant="h5" component="span" sx={{ fontWeight: 300 }}>
-                     Training Sessions Management
-                  </Typography>
-                </Stack>
+                  <TitleText>Training Sessions Management</TitleText>
+                </FlexRow>
               </CardTitle>
-              <Stack direction="row" spacing={1.5} alignItems="center">
+              <FlexRow $gap="0.75rem">
               {/* View Toggle Buttons */}
-              <Stack direction="row" spacing={0.5} sx={{ 
-              background: 'rgba(30, 58, 138, 0.2)', 
-              borderRadius: '8px', 
-              padding: '4px',
-              border: '1px solid rgba(59, 130, 246, 0.3)'
-              }}>
+              <ViewToggleContainer>
                 <GlowButton
                   text="Table"
-                theme={viewMode === 'table' ? 'cosmic' : 'ruby'}
-                size="small"
-                leftIcon={<TableIcon size={16} />}
-                onClick={() => setViewMode('table')}
-                style={{
-                  background: viewMode === 'table' 
-                      ? 'linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%)' 
+                  theme={viewMode === 'table' ? 'cosmic' : 'ruby'}
+                  size="small"
+                  leftIcon={<TableIcon size={16} />}
+                  onClick={() => setViewMode('table')}
+                  style={{
+                    background: viewMode === 'table'
+                        ? 'linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%)'
                         : 'rgba(30, 58, 138, 0.3)',
-                      border: viewMode === 'table' ? '1px solid #3b82f6' : '1px solid transparent'
-                    }}
-                  />
-                  <GlowButton
-                    text="Calendar"
-                    theme={viewMode === 'calendar' ? 'cosmic' : 'ruby'}
-                    size="small"
-                    leftIcon={<CalendarDays size={16} />}
-                    onClick={() => setViewMode('calendar')}
-                    style={{
-                      background: viewMode === 'calendar' 
-                        ? 'linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%)' 
-                        : 'rgba(30, 58, 138, 0.3)',
-                      border: viewMode === 'calendar' ? '1px solid #3b82f6' : '1px solid transparent'
-                    }}
-                  />
-                </Stack>
-                
+                    border: viewMode === 'table' ? '1px solid #3b82f6' : '1px solid transparent'
+                  }}
+                />
+                <GlowButton
+                  text="Calendar"
+                  theme={viewMode === 'calendar' ? 'cosmic' : 'ruby'}
+                  size="small"
+                  leftIcon={<CalendarDays size={16} />}
+                  onClick={() => setViewMode('calendar')}
+                  style={{
+                    background: viewMode === 'calendar'
+                      ? 'linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%)'
+                      : 'rgba(30, 58, 138, 0.3)',
+                    border: viewMode === 'calendar' ? '1px solid #3b82f6' : '1px solid transparent'
+                  }}
+                />
+              </ViewToggleContainer>
+
                 <GlowButton
                   text="Add Sessions"
                   theme="emerald"
@@ -936,97 +1475,87 @@ const EnhancedAdminSessionsView: React.FC = () => {
                   onClick={handleRefreshSessions}
                   isLoading={loading} // Show spinner if main sessions are loading
                 />
-              </Stack>
+              </FlexRow>
             </CardHeader>
 
             <CardContent>
               {/* Stats Cards */}
               <StatsGridContainer>
                  {/* Stats Card 1: Today's Sessions */}
-                 <StatsCard variant="primary" as={motion.div} custom={0} variants={staggeredItemVariants}>
-                     <Stack direction="row" alignItems="center" spacing={2}>
-                         <StatsIconContainer variant="primary"><Calendar size={24} /></StatsIconContainer>
-                         <MuiBox>
+                 <StatsCard $variant="primary" as={motion.div} custom={0} variants={staggeredItemVariants}>
+                     <FlexRow $gap="1rem">
+                         <StatsIconContainer $variant="primary"><Calendar size={24} /></StatsIconContainer>
+                         <div>
                              <StatsValue>{loading ? '-' : statsData.todaySessions}</StatsValue>
                              <StatsLabel>Sessions Today</StatsLabel>
-                         </MuiBox>
-                     </Stack>
+                         </div>
+                     </FlexRow>
                  </StatsCard>
                  {/* Stats Card 2: Completed Hours */}
-                 <StatsCard variant="success" as={motion.div} custom={1} variants={staggeredItemVariants}>
-                     <Stack direction="row" alignItems="center" spacing={2}>
-                         <StatsIconContainer variant="success"><Clock size={24} /></StatsIconContainer>
-                         <MuiBox>
+                 <StatsCard $variant="success" as={motion.div} custom={1} variants={staggeredItemVariants}>
+                     <FlexRow $gap="1rem">
+                         <StatsIconContainer $variant="success"><Clock size={24} /></StatsIconContainer>
+                         <div>
                              <StatsValue>{loading ? '-' : statsData.completedHours}</StatsValue>
                              <StatsLabel>Hours Completed</StatsLabel>
-                         </MuiBox>
-                     </Stack>
+                         </div>
+                     </FlexRow>
                  </StatsCard>
                  {/* Stats Card 3: Active Trainers */}
-                 <StatsCard variant="info" as={motion.div} custom={2} variants={staggeredItemVariants}>
-                     <Stack direction="row" alignItems="center" spacing={2}>
-                         <StatsIconContainer variant="info"><User size={24} /></StatsIconContainer>
-                         <MuiBox>
+                 <StatsCard $variant="info" as={motion.div} custom={2} variants={staggeredItemVariants}>
+                     <FlexRow $gap="1rem">
+                         <StatsIconContainer $variant="info"><User size={24} /></StatsIconContainer>
+                         <div>
                              <StatsValue>{loading ? '-' : statsData.activeTrainers}</StatsValue>
                              <StatsLabel>Active Trainers</StatsLabel>
-                         </MuiBox>
-                     </Stack>
+                         </div>
+                     </FlexRow>
                  </StatsCard>
                  {/* Stats Card 4: Completion Rate */}
-                 <StatsCard variant="warning" as={motion.div} custom={3} variants={staggeredItemVariants}>
-                     <Stack direction="row" alignItems="center" spacing={2}>
-                         <StatsIconContainer variant="warning"><CheckCircle size={24} /></StatsIconContainer>
-                         <MuiBox>
+                 <StatsCard $variant="warning" as={motion.div} custom={3} variants={staggeredItemVariants}>
+                     <FlexRow $gap="1rem">
+                         <StatsIconContainer $variant="warning"><CheckCircle size={24} /></StatsIconContainer>
+                         <div>
                              <StatsValue>{loading ? '-' : `${statsData.completionRate}%`}</StatsValue>
                              <StatsLabel>Completion Rate</StatsLabel>
-                         </MuiBox>
-                     </Stack>
+                         </div>
+                     </FlexRow>
                  </StatsCard>
               </StatsGridContainer>
 
               {/* Filters and Search */}
               <FilterContainer as={motion.div} variants={itemVariants}>
-                 <SearchField
-                     size="small"
+                 <SearchInputWrapper>
+                   <Search size={20} />
+                   <SearchInputField
                      placeholder="Search client, trainer, status..."
                      value={searchTerm}
-                     onChange={(e) => setSearchTerm(e.target.value)}
-                     sx={{ minWidth: { xs: '100%', sm: 300 } }}
-                     InputProps={{
-                         startAdornment: (
-                             <InputAdornment position="start">
-                                 <Search size={20} />
-                             </InputAdornment>
-                         )
-                     }}
-                 />
-                 <Stack direction="row" spacing={1} alignItems="center">
-                    <TextField
-                      label="From"
+                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                   />
+                 </SearchInputWrapper>
+                 <DateFilterRow>
+                    <DateInput
                       type="date"
-                      size="small"
-                      InputLabelProps={{ shrink: true }}
                       value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      sx={{ width: 140 }}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setStartDate(e.target.value)}
+                      aria-label="From date"
+                      title="From date"
                     />
-                    <TextField
-                      label="To"
+                    <DateInput
                       type="date"
-                      size="small"
-                      InputLabelProps={{ shrink: true }}
                       value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      sx={{ width: 140 }}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEndDate(e.target.value)}
+                      aria-label="To date"
+                      title="To date"
                     />
-                 </Stack>
+                 </DateFilterRow>
                  <FilterButtonsContainer>
                      {/* Filter Buttons */}
                      {(['all', 'available', 'scheduled', 'confirmed', 'completed', 'cancelled'] as const).map((status) => (
                          <FilterButton
                              key={status}
-                             isactive={(statusFilter === status).toString() as "true" | "false"}
-                             buttoncolor={
+                             $isActive={statusFilter === status}
+                             $buttonColor={
                                  status === 'completed' || status === 'confirmed' ? 'success' :
                                  status === 'scheduled' || status === 'available' ? 'primary' :
                                  status === 'cancelled' ? 'error' : undefined
@@ -1049,7 +1578,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -20 }}
                       >
-                        <Typography variant="subtitle1">{selectedIds.length} selected</Typography>
+                        <BulkSelectedText>{selectedIds.length} selected</BulkSelectedText>
                         <GlowButton
                           text="Delete Selected"
                           theme="ruby"
@@ -1065,163 +1594,140 @@ const EnhancedAdminSessionsView: React.FC = () => {
                 <LoadingContainer><LoadingSpinner /></LoadingContainer>
               ) : error ? (
                  <EmptyStateContainer>
-                    <EmptyStateIcon>⚠️</EmptyStateIcon>
+                    <EmptyStateIcon>!</EmptyStateIcon>
                     <EmptyStateText>Error loading sessions: {error}</EmptyStateText>
                     <GlowButton text="Retry" onClick={fetchSessions} theme="ruby" size="small" />
                  </EmptyStateContainer>
               ) : (
-                <StyledTableContainer component={Paper}>
-                  <Table aria-label="sessions table" size="small">
-                    <TableHead>
+                <StyledTableContainer>
+                  <NativeTable aria-label="sessions table">
+                    <NativeTableHead>
                       <StyledTableHead>
-                        <StyledTableHeadCell padding="checkbox">
-                          <Checkbox
-                            indeterminate={selectedIds.length > 0 && selectedIds.length < sortedSessions.length}
-                            checked={sortedSessions.length > 0 && selectedIds.length === sortedSessions.length}
-                            onChange={handleSelectAll}
-                            inputProps={{ 'aria-label': 'select all sessions' }}
-                            sx={{ color: 'rgba(255,255,255,0.7)', '&.Mui-checked': { color: '#00ffff' }, '&.MuiCheckbox-indeterminate': { color: '#00ffff' } }}
-                          />
-                        </StyledTableHeadCell>
-                        {/* <StyledTableHeadCell>ID</StyledTableHeadCell> */}
-                        <StyledTableHeadCell onClick={() => handleSort('client')} sx={{ cursor: 'pointer', userSelect: 'none' }}>
-                          <Stack direction="row" spacing={0.5} alignItems="center">
+                        <CheckboxCell>
+                          <CheckboxWrapper
+                            $indeterminate={selectedIds.length > 0 && selectedIds.length < sortedSessions.length}
+                            $checked={sortedSessions.length > 0 && selectedIds.length === sortedSessions.length}
+                          >
+                            <HiddenCheckbox
+                              checked={sortedSessions.length > 0 && selectedIds.length === sortedSessions.length}
+                              onChange={handleSelectAll}
+                              aria-label="select all sessions"
+                            />
+                          </CheckboxWrapper>
+                        </CheckboxCell>
+                        <SortableHeaderCell onClick={() => handleSort('client')}>
+                          <FlexRow $gap="0.25rem">
                             <span>Client</span>
                             {sortConfig.key === 'client' && (sortConfig.direction === 'ascending' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
-                          </Stack>
-                        </StyledTableHeadCell>
-                        <StyledTableHeadCell onClick={() => handleSort('trainer')} sx={{ cursor: 'pointer', userSelect: 'none' }}>
-                          <Stack direction="row" spacing={0.5} alignItems="center">
+                          </FlexRow>
+                        </SortableHeaderCell>
+                        <SortableHeaderCell onClick={() => handleSort('trainer')}>
+                          <FlexRow $gap="0.25rem">
                             <span>Trainer</span>
                             {sortConfig.key === 'trainer' && (sortConfig.direction === 'ascending' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
-                          </Stack>
-                        </StyledTableHeadCell>
-                        <StyledTableHeadCell onClick={() => handleSort('sessionDate')} sx={{ cursor: 'pointer', userSelect: 'none' }}>
-                          <Stack direction="row" spacing={0.5} alignItems="center">
+                          </FlexRow>
+                        </SortableHeaderCell>
+                        <SortableHeaderCell onClick={() => handleSort('sessionDate')}>
+                          <FlexRow $gap="0.25rem">
                             <span>Date & Time</span>
                             {sortConfig.key === 'sessionDate' && (sortConfig.direction === 'ascending' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
-                          </Stack>
-                        </StyledTableHeadCell>
-                        {/* <StyledTableHeadCell>Time</StyledTableHeadCell> */}
-                        <StyledTableHeadCell onClick={() => handleSort('location')} sx={{ cursor: 'pointer', userSelect: 'none' }}>
-                          <Stack direction="row" spacing={0.5} alignItems="center">
+                          </FlexRow>
+                        </SortableHeaderCell>
+                        <SortableHeaderCell onClick={() => handleSort('location')}>
+                          <FlexRow $gap="0.25rem">
                             <span>Location</span>
                             {sortConfig.key === 'location' && (sortConfig.direction === 'ascending' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
-                          </Stack>
-                        </StyledTableHeadCell>
-                        <StyledTableHeadCell onClick={() => handleSort('duration')} sx={{ cursor: 'pointer', userSelect: 'none' }}>
-                          <Stack direction="row" spacing={0.5} alignItems="center">
+                          </FlexRow>
+                        </SortableHeaderCell>
+                        <SortableHeaderCell onClick={() => handleSort('duration')}>
+                          <FlexRow $gap="0.25rem">
                             <span>Duration</span>
                             {sortConfig.key === 'duration' && (sortConfig.direction === 'ascending' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
-                          </Stack>
-                        </StyledTableHeadCell>
-                        <StyledTableHeadCell onClick={() => handleSort('status')} sx={{ cursor: 'pointer', userSelect: 'none' }}>
-                          <Stack direction="row" spacing={0.5} alignItems="center">
+                          </FlexRow>
+                        </SortableHeaderCell>
+                        <SortableHeaderCell onClick={() => handleSort('status')}>
+                          <FlexRow $gap="0.25rem">
                             <span>Status</span>
                             {sortConfig.key === 'status' && (sortConfig.direction === 'ascending' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
-                          </Stack>
-                        </StyledTableHeadCell>
-                        <StyledTableHeadCell align="right">Actions</StyledTableHeadCell>
+                          </FlexRow>
+                        </SortableHeaderCell>
+                        <ActionsCell>Actions</ActionsCell>
                       </StyledTableHead>
-                    </TableHead>
-                    <TableBody>
-                      {sortedSessions.length > 0 ? (
-                        sortedSessions
-                          .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                    </NativeTableHead>
+                    <NativeTableBody>
+                      {paginatedSessions.length > 0 ? (
+                        paginatedSessions
                           .map((session, index) => (
                             <StyledTableRow
                               key={session.id || index} // Use index as fallback key if id is missing
-                              component={motion.tr}
+                              as={motion.tr}
                               custom={index}
                               variants={staggeredItemVariants}
                               initial="hidden"
                               animate="visible"
                               layout // Animate layout changes
                             >
-                              <StyledTableCell padding="checkbox">
-                                <Checkbox
-                                  checked={selectedIds.indexOf(session.id) !== -1}
-                                  onChange={() => handleSelectOne(session.id)}
-                                  inputProps={{ 'aria-label': `select session ${session.id}` }}
-                                  sx={{ color: 'rgba(255,255,255,0.7)', '&.Mui-checked': { color: '#00ffff' } }}
-                                />
-                              </StyledTableCell>
-                              {/* <StyledTableCell>{session.id || 'N/A'}</StyledTableCell> */}
+                              <CheckboxBodyCell>
+                                <CheckboxWrapper
+                                  $checked={selectedIds.indexOf(session.id) !== -1}
+                                >
+                                  <HiddenCheckbox
+                                    checked={selectedIds.indexOf(session.id) !== -1}
+                                    onChange={() => handleSelectOne(session.id)}
+                                    aria-label={`select session ${session.id}`}
+                                  />
+                                </CheckboxWrapper>
+                              </CheckboxBodyCell>
                               {/* Client Cell */}
                                <StyledTableCell>
                                  {session.client ? (
-                                   <Stack direction="row" spacing={1} alignItems="center">
-                                     <Avatar
-                                       src={session.client.photo || undefined} // Pass undefined if no photo
-                                       alt={`${session.client.firstName} ${session.client.lastName}`}
-                                       sx={{ width: 32, height: 32, fontSize: '0.8rem' }}
-                                     >
-                                       {/* Fallback Initials */}
-                                       {session.client.firstName?.[0]}
-                                       {session.client.lastName?.[0]}
-                                     </Avatar>
-                                     <MuiBox>
-                                       <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                   <FlexRow $gap="0.5rem">
+                                     <AvatarCircle $size={32}>
+                                       {session.client.photo
+                                         ? <img src={session.client.photo} alt={`${session.client.firstName} ${session.client.lastName}`} />
+                                         : <>{session.client.firstName?.[0]}{session.client.lastName?.[0]}</>
+                                       }
+                                     </AvatarCircle>
+                                     <div>
+                                       <CellPrimaryText>
                                             {session.client.firstName} {session.client.lastName}
-                                       </Typography>
-                                       <Chip
-                                         label={`${session.client.availableSessions ?? 0} sessions`}
-                                         size="small"
-                                         variant="outlined" // Use outlined for better contrast
-                                         sx={{
-                                           fontSize: '0.7rem',
-                                           height: '20px',
-                                           mt: 0.5,
-                                           borderColor: (session.client.availableSessions ?? 0) > 0
-                                             ? 'rgba(46, 125, 50, 0.5)'
-                                             : 'rgba(211, 47, 47, 0.5)',
-                                           color: (session.client.availableSessions ?? 0) > 0
-                                              ? 'rgba(46, 125, 50, 1)'
-                                              : 'rgba(211, 47, 47, 1)',
-                                           bgcolor: (session.client.availableSessions ?? 0) > 0
-                                              ? 'rgba(46, 125, 50, 0.1)'
-                                              : 'rgba(211, 47, 47, 0.1)',
-
-                                         }}
-                                       />
-                                     </MuiBox>
-                                   </Stack>
+                                       </CellPrimaryText>
+                                       <SessionCountChip $hasAvailable={(session.client.availableSessions ?? 0) > 0}>
+                                         {session.client.availableSessions ?? 0} sessions
+                                       </SessionCountChip>
+                                     </div>
+                                   </FlexRow>
                                  ) : (
-                                   <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)', fontStyle: 'italic' }}>
+                                   <MutedText>
                                         {session.status === 'available' ? 'Available Slot' : 'No Client'}
-                                   </Typography>
+                                   </MutedText>
                                  )}
                                </StyledTableCell>
 
                                {/* Trainer Cell */}
                                <StyledTableCell>
                                    {session.trainer ? (
-                                     <Stack direction="row" spacing={1} alignItems="center">
-                                       <Avatar
-                                         src={session.trainer.photo || undefined}
-                                         alt={`${session.trainer.firstName} ${session.trainer.lastName}`}
-                                         sx={{ width: 32, height: 32, fontSize: '0.8rem' }}
-                                       >
-                                          {session.trainer.firstName?.[0]}
-                                          {session.trainer.lastName?.[0]}
-                                       </Avatar>
-                                       <Typography variant="body2">
+                                     <FlexRow $gap="0.5rem">
+                                       <AvatarCircle $size={32}>
+                                         {session.trainer.photo
+                                           ? <img src={session.trainer.photo} alt={`${session.trainer.firstName} ${session.trainer.lastName}`} />
+                                           : <>{session.trainer.firstName?.[0]}{session.trainer.lastName?.[0]}</>
+                                         }
+                                       </AvatarCircle>
+                                       <CellPrimaryText>
                                            {session.trainer.firstName} {session.trainer.lastName}
-                                       </Typography>
-                                     </Stack>
+                                       </CellPrimaryText>
+                                     </FlexRow>
                                    ) : (
-                                     <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.5)', fontStyle: 'italic' }}>
-                                        Unassigned
-                                     </Typography>
+                                     <MutedText>Unassigned</MutedText>
                                    )}
                                  </StyledTableCell>
 
                               {/* Date & Time Cell */}
                               <StyledTableCell>
-                                 <Typography variant="body2">{formatDate(session.sessionDate)}</Typography>
-                                 <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.7)' }}>{formatTime(session.sessionDate)}</Typography>
+                                 <CellPrimaryText>{formatDate(session.sessionDate)}</CellPrimaryText>
+                                 <CellSecondaryText>{formatTime(session.sessionDate)}</CellSecondaryText>
                               </StyledTableCell>
-                              {/* <StyledTableCell>{formatTime(session.sessionDate)}</StyledTableCell> */}
                               <StyledTableCell>{session.location || 'N/A'}</StyledTableCell>
                               <StyledTableCell>{session.duration || 'N/A'} min</StyledTableCell>
                               <StyledTableCell>
@@ -1229,7 +1735,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
                                   {session.status ? session.status.charAt(0).toUpperCase() + session.status.slice(1) : 'Unknown'}
                                 </ChipContainer>
                               </StyledTableCell>
-                              <StyledTableCell align="right">
+                              <ActionsBodyCell>
                                 <IconButtonContainer>
                                   <StyledIconButton
                                     btncolor="primary"
@@ -1241,7 +1747,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
                                     <Eye size={16} />
                                   </StyledIconButton>
                                   <StyledIconButton
-                                    btncolor="secondary" // Use a different color maybe?
+                                    btncolor="secondary"
                                     onClick={() => handleEditSession(session)}
                                     title="Edit Session"
                                     whileHover={{ scale: 1.1 }}
@@ -1259,14 +1765,16 @@ const EnhancedAdminSessionsView: React.FC = () => {
                                     <Trash2 size={16} />
                                   </StyledIconButton>
                                 </IconButtonContainer>
-                              </StyledTableCell>
+                              </ActionsBodyCell>
                             </StyledTableRow>
                           ))
                       ) : (
                         <StyledTableRow>
                           <StyledTableCell colSpan={9}>
                             <EmptyStateContainer>
-                              <EmptyStateIcon>📅</EmptyStateIcon>
+                              <EmptyStateIcon>
+                                <Calendar size={48} />
+                              </EmptyStateIcon>
                               <EmptyStateText>
                                 No sessions found matching your criteria.
                               </EmptyStateText>
@@ -1274,32 +1782,44 @@ const EnhancedAdminSessionsView: React.FC = () => {
                           </StyledTableCell>
                         </StyledTableRow>
                       )}
-                    </TableBody>
-                  </Table>
+                    </NativeTableBody>
+                  </NativeTable>
                 </StyledTableContainer>
               )}
 
               {/* Pagination for Table View */}
               {sortedSessions.length > 0 && viewMode === 'table' && (
-                <TablePagination
-                  rowsPerPageOptions={[5, 10, 25, 50]}
-                  component="div"
-                  count={sortedSessions.length}
-                  rowsPerPage={rowsPerPage}
-                  page={page}
-                  onPageChange={handleChangePage}
-                  onRowsPerPageChange={handleChangeRowsPerPage}
-                  sx={{
-                    color: 'rgba(255, 255, 255, 0.7)',
-                    borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-                    mt: 2,
-                    '.MuiTablePagination-selectIcon': { color: 'rgba(255, 255, 255, 0.7)' },
-                    '.MuiTablePagination-displayedRows': { color: 'rgba(255, 255, 255, 0.9)', fontSize: '0.85rem' },
-                    '.MuiTablePagination-select': { color: 'rgba(255, 255, 255, 0.9)' },
-                    '.MuiTablePagination-actions button': { color: 'rgba(255, 255, 255, 0.7)', '&:disabled': { color: 'rgba(255, 255, 255, 0.3)' } },
-                    '.MuiInputBase-root': { color: 'white !important' } // Ensure select dropdown text is white
-                  }}
-                />
+                <PaginationContainer>
+                  <span>Rows per page:</span>
+                  <select
+                    value={rowsPerPage}
+                    onChange={handleChangeRowsPerPage}
+                    aria-label="Rows per page"
+                  >
+                    {[5, 10, 25, 50].map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                  <span>{displayStart}-{displayEnd} of {sortedSessions.length}</span>
+                  <FlexRow $gap="0.25rem">
+                    <PaginationButton
+                      $disabled={page === 0}
+                      disabled={page === 0}
+                      onClick={() => handleChangePage(null, page - 1)}
+                      aria-label="Previous page"
+                    >
+                      <ChevronLeft size={18} />
+                    </PaginationButton>
+                    <PaginationButton
+                      $disabled={page >= totalPages - 1}
+                      disabled={page >= totalPages - 1}
+                      onClick={() => handleChangePage(null, page + 1)}
+                      aria-label="Next page"
+                    >
+                      <ChevronRight size={18} />
+                    </PaginationButton>
+                  </FlexRow>
+                </PaginationContainer>
               )}
 
               {/* Action Buttons for Table View */}
@@ -1324,122 +1844,20 @@ const EnhancedAdminSessionsView: React.FC = () => {
                 </>
               ) : (
                 /* Calendar View */
-                <MuiBox sx={{ 
-                  flex: 1, 
-                  display: 'flex', 
-                  flexDirection: 'column',
-                  mt: 2,
-                  background: 'rgba(30, 58, 138, 0.05)',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(59, 130, 246, 0.2)',
-                  overflow: 'hidden',
-                  minHeight: '600px',
-                  '& > div': {
-                    height: '100%',
-                    '& .rbc-calendar': {
-                      background: 'rgba(20, 20, 40, 0.4)',
-                      color: 'white',
-                    },
-                    '& .rbc-toolbar': {
-                      background: 'rgba(30, 58, 138, 0.3)',
-                      border: '1px solid rgba(59, 130, 246, 0.2)',
-                      borderRadius: '8px',
-                      padding: '1rem',
-                      marginBottom: '1rem',
-                      '& .rbc-toolbar-label': {
-                        color: '#e5e7eb',
-                        fontSize: '1.2rem',
-                        fontWeight: 500,
-                      },
-                    },
-                    '& .rbc-header': {
-                      background: 'rgba(30, 58, 138, 0.2)',
-                      color: '#e5e7eb',
-                      fontWeight: 500,
-                      borderColor: 'rgba(59, 130, 246, 0.15)',
-                      padding: '0.75rem',
-                    },
-                    '& .rbc-event': {
-                      background: 'linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%)',
-                      border: 'none',
-                      boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)',
-                      borderRadius: '6px',
-                      padding: '4px 8px',
-                      fontWeight: 500,
-                    },
-                    '& .rbc-event.available': {
-                      background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)',
-                    },
-                    '& .rbc-event.confirmed': {
-                      background: 'linear-gradient(135deg, #0891b2 0%, #06b6d4 100%)',
-                    },
-                    '& .rbc-event.cancelled': {
-                      background: 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)',
-                      opacity: 0.7,
-                    },
-                    '& .rbc-event.completed': {
-                      background: 'linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%)',
-                    },
-                    '& .rbc-today': {
-                      background: 'rgba(59, 130, 246, 0.1)',
-                    },
-                    '& .rbc-off-range-bg': {
-                      background: 'rgba(10, 10, 15, 0.3)',
-                    },
-                    '& .rbc-date-cell': {
-                      color: '#e5e7eb',
-                    },
-                    '& .rbc-time-slot': {
-                      color: '#9ca3af',
-                      borderColor: 'rgba(59, 130, 246, 0.1)',
-                    },
-                    '& .rbc-day-bg, & .rbc-month-row, & .rbc-time-content': {
-                      borderColor: 'rgba(59, 130, 246, 0.1)',
-                    },
-                    '& .rbc-btn-group button': {
-                      background: 'rgba(30, 58, 138, 0.4)',
-                      color: 'white',
-                      border: '1px solid rgba(59, 130, 246, 0.3)',
-                      padding: '0.5rem 1rem',
-                      fontWeight: 500,
-                      '&:hover': {
-                        background: 'rgba(59, 130, 246, 0.4)',
-                      },
-                      '&.rbc-active': {
-                        background: 'linear-gradient(135deg, #3b82f6 0%, #0ea5e9 100%)',
-                        borderColor: '#3b82f6',
-                      },
-                    },
-                    '& .rbc-time-view': {
-                      borderColor: 'rgba(59, 130, 246, 0.1)',
-                    },
-                    '& .rbc-month-view': {
-                      borderColor: 'rgba(59, 130, 246, 0.1)',
-                    },
-                    '& .rbc-agenda-view': {
-                      color: '#e5e7eb',
-                      '& .rbc-agenda-date-cell, & .rbc-agenda-time-cell': {
-                        color: '#9ca3af',
-                      },
-                      '& .rbc-agenda-event-cell': {
-                        color: '#e5e7eb',
-                      },
-                    },
-                  }
-                }}>
+                <CalendarViewWrapper>
                   <ScheduleInitializer>
                     <ScheduleErrorBoundary>
                       <UnifiedCalendar />
                     </ScheduleErrorBoundary>
                   </ScheduleInitializer>
-                </MuiBox>
+                </CalendarViewWrapper>
               )}
 
               {/* Development Testing Controls */}
               {process.env.NODE_ENV !== 'production' && viewMode === 'table' && (
-                <MuiBox sx={{ mt: 4 }}>
+                <TestControlsWrapper>
                   <SessionTestControls />
-                </MuiBox>
+                </TestControlsWrapper>
               )}
             </CardContent>
           </StyledCard>
@@ -1449,514 +1867,541 @@ const EnhancedAdminSessionsView: React.FC = () => {
       {/* --- DIALOGS --- */}
 
       {/* View Session Dialog */}
-      <StyledDialog
-        open={openViewDialog}
-        onClose={() => setOpenViewDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Calendar />
-            <Typography variant="h6">Session Details</Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers> {/* Add dividers */}
-          {selectedSession ? (
-            <Grid container spacing={2.5} sx={{ mt: 0.5 }}>
-               <Grid item xs={12}>
-                 <Typography variant="overline" color="rgba(255, 255, 255, 0.7)">Session ID</Typography>
-                 <Typography variant="body1" fontWeight="500">
-                    {selectedSession.id || 'N/A'}
-                 </Typography>
-               </Grid>
-               <Grid item xs={12} sm={6}>
-                 <Typography variant="overline" color="rgba(255, 255, 255, 0.7)">Status</Typography>
-                 <ChipContainer chipstatus={selectedSession.status}>
-                     {selectedSession.status ? selectedSession.status.charAt(0).toUpperCase() + selectedSession.status.slice(1) : 'Unknown'}
-                 </ChipContainer>
-               </Grid>
-               <Grid item xs={12} sm={6}>
-                 <Typography variant="overline" color="rgba(255, 255, 255, 0.7)">Date & Time</Typography>
-                 <Typography variant="body1" fontWeight="500">
-                     {formatDate(selectedSession.sessionDate)} at {formatTime(selectedSession.sessionDate)}
-                 </Typography>
-               </Grid>
-               <Grid item xs={12} sm={6}>
-                 <Typography variant="overline" color="rgba(255, 255, 255, 0.7)">Duration</Typography>
-                 <Typography variant="body1" fontWeight="500">
-                     {selectedSession.duration || 'N/A'} minutes
-                 </Typography>
-               </Grid>
-               <Grid item xs={12} sm={6}>
-                 <Typography variant="overline" color="rgba(255, 255, 255, 0.7)">Location</Typography>
-                 <Typography variant="body1" fontWeight="500">
-                     {selectedSession.location || 'N/A'}
-                 </Typography>
-               </Grid>
+      <StyledDialog $open={openViewDialog} onClick={() => setOpenViewDialog(false)}>
+        <DialogPanel onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+          <DialogTitleBar>
+            <FlexRow $gap="0.75rem">
+              <Calendar size={22} />
+              <span>Session Details</span>
+            </FlexRow>
+          </DialogTitleBar>
+          <DialogContentArea>
+            {selectedSession ? (
+              <>
+                <DetailFullRow>
+                  <OverlineLabel>Session ID</OverlineLabel>
+                  <DetailValue>{selectedSession.id || 'N/A'}</DetailValue>
+                </DetailFullRow>
 
-               {/* Client Details */}
-               <Grid item xs={12}> <Typography variant="overline" color="rgba(255, 255, 255, 0.7)">Client</Typography> </Grid>
-               <Grid item xs={12}>
-                 {selectedSession.client ? (
-                   <Stack direction="row" spacing={1.5} alignItems="center">
-                     <Avatar
-                       src={selectedSession.client.photo || undefined}
-                       alt={`${selectedSession.client.firstName} ${selectedSession.client.lastName}`}
-                     >
-                       {selectedSession.client.firstName?.[0]}{selectedSession.client.lastName?.[0]}
-                     </Avatar>
-                     <MuiBox>
-                       <Typography variant="body1" fontWeight="500">
-                         {selectedSession.client.firstName} {selectedSession.client.lastName}
-                       </Typography>
-                       <Typography variant="body2" color="rgba(255, 255, 255, 0.7)">
-                         {selectedSession.client.email}
-                       </Typography>
-                       {/* Link to client profile? */}
-                     </MuiBox>
-                     <Chip
-                         label={`${selectedSession.client.availableSessions ?? 0} sessions`}
-                         size="small" variant="outlined"
-                         sx={{ ml: 'auto', /* styles from table */ }} />
-                   </Stack>
-                 ) : (
-                   <Typography variant="body1" color="rgba(255, 255, 255, 0.5)" fontStyle="italic">
-                     No Client Assigned
-                   </Typography>
-                 )}
-               </Grid>
+                <DetailGrid style={{ marginTop: '1.25rem' }}>
+                  <div>
+                    <OverlineLabel>Status</OverlineLabel>
+                    <ChipContainer chipstatus={selectedSession.status}>
+                        {selectedSession.status ? selectedSession.status.charAt(0).toUpperCase() + selectedSession.status.slice(1) : 'Unknown'}
+                    </ChipContainer>
+                  </div>
+                  <div>
+                    <OverlineLabel>Date & Time</OverlineLabel>
+                    <DetailValue>
+                        {formatDate(selectedSession.sessionDate)} at {formatTime(selectedSession.sessionDate)}
+                    </DetailValue>
+                  </div>
+                  <div>
+                    <OverlineLabel>Duration</OverlineLabel>
+                    <DetailValue>{selectedSession.duration || 'N/A'} minutes</DetailValue>
+                  </div>
+                  <div>
+                    <OverlineLabel>Location</OverlineLabel>
+                    <DetailValue>{selectedSession.location || 'N/A'}</DetailValue>
+                  </div>
+                </DetailGrid>
 
-               {/* Trainer Details */}
-                <Grid item xs={12}> <Typography variant="overline" color="rgba(255, 255, 255, 0.7)">Trainer</Typography> </Grid>
-                <Grid item xs={12}>
-                 {selectedSession.trainer ? (
-                   <Stack direction="row" spacing={1.5} alignItems="center">
-                     <Avatar
-                       src={selectedSession.trainer.photo || undefined}
-                       alt={`${selectedSession.trainer.firstName} ${selectedSession.trainer.lastName}`}
-                     >
-                        {selectedSession.trainer.firstName?.[0]}{selectedSession.trainer.lastName?.[0]}
-                     </Avatar>
-                     <MuiBox>
-                       <Typography variant="body1" fontWeight="500">
-                         {selectedSession.trainer.firstName} {selectedSession.trainer.lastName}
-                       </Typography>
-                       <Typography variant="body2" color="rgba(255, 255, 255, 0.7)">
-                         {selectedSession.trainer.email}
-                       </Typography>
-                       {/* Link to trainer profile? */}
-                     </MuiBox>
-                   </Stack>
-                 ) : (
-                   <Typography variant="body1" color="rgba(255, 255, 255, 0.5)" fontStyle="italic">
-                     No Trainer Assigned
-                   </Typography>
-                 )}
-               </Grid>
+                {/* Client Details */}
+                <DetailFullRow style={{ marginTop: '1.25rem' }}>
+                  <OverlineLabel>Client</OverlineLabel>
+                  {selectedSession.client ? (
+                    <FlexRow $gap="0.75rem" style={{ marginTop: '0.5rem' }}>
+                      <AvatarCircle $size={40}>
+                        {selectedSession.client.photo
+                          ? <img src={selectedSession.client.photo} alt={`${selectedSession.client.firstName} ${selectedSession.client.lastName}`} />
+                          : <>{selectedSession.client.firstName?.[0]}{selectedSession.client.lastName?.[0]}</>
+                        }
+                      </AvatarCircle>
+                      <div style={{ flex: 1 }}>
+                        <DetailValue>{selectedSession.client.firstName} {selectedSession.client.lastName}</DetailValue>
+                        <CellSecondaryText>{selectedSession.client.email}</CellSecondaryText>
+                      </div>
+                      <SessionCountChip $hasAvailable={(selectedSession.client.availableSessions ?? 0) > 0}>
+                        {selectedSession.client.availableSessions ?? 0} sessions
+                      </SessionCountChip>
+                    </FlexRow>
+                  ) : (
+                    <MutedText>No Client Assigned</MutedText>
+                  )}
+                </DetailFullRow>
 
-               {/* Notes */}
-               <Grid item xs={12}>
-                 <Typography variant="overline" color="rgba(255, 255, 255, 0.7)">Notes</Typography>
-                 <Typography
-                   variant="body2" // Use body2 for notes maybe?
-                   sx={{
-                     p: 1.5, mt: 0.5, borderRadius: '8px', minHeight: '60px',
-                     background: 'rgba(255, 255, 255, 0.05)',
-                     border: '1px solid rgba(255, 255, 255, 0.1)',
-                     whiteSpace: 'pre-wrap' // Preserve line breaks
-                   }}
-                 >
-                   {selectedSession.notes || <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontStyle: 'italic' }}>No notes for this session.</span>}
-                 </Typography>
-               </Grid>
-            </Grid>
-          ) : (
-             <Typography>Loading session details...</Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <GlowButton
-            text="Close"
-            theme="cosmic"
-            size="small"
-            onClick={() => setOpenViewDialog(false)}
-          />
-          <GlowButton
-            text="Edit Session"
-            theme="purple"
-            size="small"
-            leftIcon={<Edit size={16} />}
-            onClick={() => {
-              if (selectedSession) {
-                 setOpenViewDialog(false);
-                 handleEditSession(selectedSession); // Reuse edit handler
-              }
-            }}
-             disabled={!selectedSession}
-          />
-        </DialogActions>
+                {/* Trainer Details */}
+                <DetailFullRow style={{ marginTop: '1.25rem' }}>
+                  <OverlineLabel>Trainer</OverlineLabel>
+                  {selectedSession.trainer ? (
+                    <FlexRow $gap="0.75rem" style={{ marginTop: '0.5rem' }}>
+                      <AvatarCircle $size={40}>
+                        {selectedSession.trainer.photo
+                          ? <img src={selectedSession.trainer.photo} alt={`${selectedSession.trainer.firstName} ${selectedSession.trainer.lastName}`} />
+                          : <>{selectedSession.trainer.firstName?.[0]}{selectedSession.trainer.lastName?.[0]}</>
+                        }
+                      </AvatarCircle>
+                      <div>
+                        <DetailValue>{selectedSession.trainer.firstName} {selectedSession.trainer.lastName}</DetailValue>
+                        <CellSecondaryText>{selectedSession.trainer.email}</CellSecondaryText>
+                      </div>
+                    </FlexRow>
+                  ) : (
+                    <MutedText>No Trainer Assigned</MutedText>
+                  )}
+                </DetailFullRow>
+
+                {/* Notes */}
+                <DetailFullRow style={{ marginTop: '1.25rem' }}>
+                  <OverlineLabel>Notes</OverlineLabel>
+                  <NotesBox>
+                    {selectedSession.notes || <MutedText>No notes for this session.</MutedText>}
+                  </NotesBox>
+                </DetailFullRow>
+              </>
+            ) : (
+               <CellPrimaryText>Loading session details...</CellPrimaryText>
+            )}
+          </DialogContentArea>
+          <DialogActionsBar>
+            <GlowButton
+              text="Close"
+              theme="cosmic"
+              size="small"
+              onClick={() => setOpenViewDialog(false)}
+            />
+            <GlowButton
+              text="Edit Session"
+              theme="purple"
+              size="small"
+              leftIcon={<Edit size={16} />}
+              onClick={() => {
+                if (selectedSession) {
+                   setOpenViewDialog(false);
+                   handleEditSession(selectedSession); // Reuse edit handler
+                }
+              }}
+               disabled={!selectedSession}
+            />
+          </DialogActionsBar>
+        </DialogPanel>
       </StyledDialog>
 
       {/* Edit Session Dialog */}
-      <StyledDialog
-        open={openEditDialog}
-        onClose={() => setOpenEditDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Edit />
-            <Typography variant="h6">Edit Session</Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
-          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
-            Update the details for this session.
-          </DialogContentText>
-          <Grid container spacing={2} sx={{ mt: 0.5 }}>
-             {/* Client Select */}
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth variant="outlined" size="small">
-                    <InputLabel id="edit-client-select-label">Client</InputLabel>
-                    <Select
-                        labelId="edit-client-select-label"
-                        value={editSessionClient}
-                        onChange={(e) => setEditSessionClient(e.target.value)}
-                        label="Client"
-                        disabled={loadingClients}
-                    >
-                        <MenuItem value=""><em>Not Assigned</em></MenuItem>
-                        {clients.map(client => (
-                            <MenuItem key={client.id} value={client.id}>
-                                <Stack direction="row" spacing={1} alignItems="center">
-                                    <Avatar src={client.photo || undefined} sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>{client.firstName?.[0]}{client.lastName?.[0]}</Avatar>
-                                    <span>{client.firstName} {client.lastName}</span>
-                                </Stack>
-                            </MenuItem>
-                        ))}
-                    </Select>
-                </FormControl>
-              </Grid>
-              {/* Trainer Select */}
-               <Grid item xs={12} sm={6}>
-                   <FormControl fullWidth variant="outlined" size="small">
-                       <InputLabel id="edit-trainer-select-label">Trainer</InputLabel>
-                       <Select
-                           labelId="edit-trainer-select-label"
-                           value={editSessionTrainer}
-                           onChange={(e) => setEditSessionTrainer(e.target.value)}
-                           label="Trainer"
-                           disabled={loadingTrainers}
-                       >
-                           <MenuItem value=""><em>Not Assigned</em></MenuItem>
-                           {trainers.map(trainer => (
-                               <MenuItem key={trainer.id} value={trainer.id}>
-                                   <Stack direction="row" spacing={1} alignItems="center">
-                                       <Avatar src={trainer.photo || undefined} sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>{trainer.firstName?.[0]}{trainer.lastName?.[0]}</Avatar>
-                                       <span>{trainer.firstName} {trainer.lastName}</span>
-                                   </Stack>
-                               </MenuItem>
-                           ))}
-                       </Select>
-                   </FormControl>
-               </Grid>
-            {/* Date Input */}
-            <Grid item xs={12} sm={6}>
-                <TextField
-                    label="Date" type="date" size="small" fullWidth variant="outlined"
-                    value={editSessionDate}
-                    onChange={(e) => setEditSessionDate(e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                    inputProps={{ min: new Date().toISOString().slice(0, 10) }} // Prevent past dates
+      <StyledDialog $open={openEditDialog} onClick={() => setOpenEditDialog(false)}>
+        <DialogPanel onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+          <DialogTitleBar>
+            <FlexRow $gap="0.75rem">
+              <Edit size={22} />
+              <span>Edit Session</span>
+            </FlexRow>
+          </DialogTitleBar>
+          <DialogContentArea>
+            <DialogDescriptionText>
+              Update the details for this session.
+            </DialogDescriptionText>
+            <FormGrid $columns={2}>
+               {/* Client Select */}
+               <FormField>
+                 <FormLabel htmlFor="edit-client-select">Client</FormLabel>
+                 <FormSelect
+                   id="edit-client-select"
+                   value={editSessionClient}
+                   onChange={(e) => setEditSessionClient(e.target.value)}
+                   disabled={loadingClients}
+                 >
+                   <option value="">Not Assigned</option>
+                   {clients.map(client => (
+                     <option key={client.id} value={client.id}>
+                       {client.firstName} {client.lastName}
+                     </option>
+                   ))}
+                 </FormSelect>
+               </FormField>
+               {/* Trainer Select */}
+               <FormField>
+                 <FormLabel htmlFor="edit-trainer-select">Trainer</FormLabel>
+                 <FormSelect
+                   id="edit-trainer-select"
+                   value={editSessionTrainer}
+                   onChange={(e) => setEditSessionTrainer(e.target.value)}
+                   disabled={loadingTrainers}
+                 >
+                   <option value="">Not Assigned</option>
+                   {trainers.map(trainer => (
+                     <option key={trainer.id} value={trainer.id}>
+                       {trainer.firstName} {trainer.lastName}
+                     </option>
+                   ))}
+                 </FormSelect>
+               </FormField>
+              {/* Date Input */}
+              <FormField>
+                <FormLabel htmlFor="edit-date">Date</FormLabel>
+                <FormInput
+                  id="edit-date"
+                  type="date"
+                  value={editSessionDate}
+                  onChange={(e) => setEditSessionDate(e.target.value)}
+                  min={new Date().toISOString().slice(0, 10)}
                 />
-            </Grid>
-            {/* Time Input */}
-             <Grid item xs={12} sm={6}>
-                 <TextField
-                     label="Time" type="time" size="small" fullWidth variant="outlined"
-                     value={editSessionTime}
-                     onChange={(e) => setEditSessionTime(e.target.value)}
-                     InputLabelProps={{ shrink: true }}
-                 />
-             </Grid>
-            {/* Duration Input */}
-             <Grid item xs={12} sm={6}>
-                 <TextField
-                     label="Duration (min)" type="number" size="small" fullWidth variant="outlined"
-                     value={editSessionDuration}
-                     onChange={(e) => setEditSessionDuration(parseInt(e.target.value, 10) || 0)}
-                     InputProps={{ inputProps: { min: 15, max: 240, step: 15 } }}
-                 />
-             </Grid>
+              </FormField>
+              {/* Time Input */}
+              <FormField>
+                <FormLabel htmlFor="edit-time">Time</FormLabel>
+                <FormInput
+                  id="edit-time"
+                  type="time"
+                  value={editSessionTime}
+                  onChange={(e) => setEditSessionTime(e.target.value)}
+                />
+              </FormField>
+              {/* Duration Input */}
+              <FormField>
+                <FormLabel htmlFor="edit-duration">Duration (min)</FormLabel>
+                <FormInput
+                  id="edit-duration"
+                  type="number"
+                  value={editSessionDuration}
+                  onChange={(e) => setEditSessionDuration(parseInt(e.target.value, 10) || 0)}
+                  min={15}
+                  max={240}
+                  step={15}
+                />
+              </FormField>
               {/* Status Select */}
-               <Grid item xs={12} sm={6}>
-                   <FormControl fullWidth variant="outlined" size="small">
-                       <InputLabel id="edit-status-select-label">Status</InputLabel>
-                       <Select
-                           labelId="edit-status-select-label"
-                           value={editSessionStatus}
-                           onChange={(e) => setEditSessionStatus(e.target.value as Session['status'])}
-                           label="Status"
-                       >
-                           {(['available', 'scheduled', 'confirmed', 'completed', 'cancelled'] as const).map(status => (
-                              <MenuItem key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</MenuItem>
-                           ))}
-                       </Select>
-                   </FormControl>
-               </Grid>
-            {/* Location Input */}
-            <Grid item xs={12}>
-                <TextField
-                    label="Location" size="small" fullWidth variant="outlined"
-                    value={editSessionLocation}
-                    onChange={(e) => setEditSessionLocation(e.target.value)}
-                    placeholder="e.g., Main Studio, Park, Online"
+              <FormField>
+                <FormLabel htmlFor="edit-status-select">Status</FormLabel>
+                <FormSelect
+                  id="edit-status-select"
+                  value={editSessionStatus}
+                  onChange={(e) => setEditSessionStatus(e.target.value as Session['status'])}
+                >
+                  {(['available', 'scheduled', 'confirmed', 'completed', 'cancelled'] as const).map(status => (
+                    <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</option>
+                  ))}
+                </FormSelect>
+              </FormField>
+              {/* Location Input */}
+              <FormField $fullWidth>
+                <FormLabel htmlFor="edit-location">Location</FormLabel>
+                <FormInput
+                  id="edit-location"
+                  value={editSessionLocation}
+                  onChange={(e) => setEditSessionLocation(e.target.value)}
+                  placeholder="e.g., Main Studio, Park, Online"
                 />
-            </Grid>
-            {/* Notes Input */}
-            <Grid item xs={12}>
-              <TextField
-                label="Session Notes" size="small" fullWidth multiline rows={3} variant="outlined"
-                value={editSessionNotes}
-                onChange={(e) => setEditSessionNotes(e.target.value)}
-                placeholder="Add any relevant notes for this session..."
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <GlowButton
-            text="Cancel"
-            theme="cosmic"
-            size="small"
-            onClick={() => setOpenEditDialog(false)}
-          />
-          <GlowButton
-            text="Save Changes"
-            theme="emerald"
-            size="small"
-            leftIcon={<CheckSquare size={16} />}
-            onClick={handleSaveEditedSession}
-            // Optionally disable if saving
-          />
-        </DialogActions>
+              </FormField>
+              {/* Notes Input */}
+              <FormField $fullWidth>
+                <FormLabel htmlFor="edit-notes">Session Notes</FormLabel>
+                <FormTextarea
+                  id="edit-notes"
+                  value={editSessionNotes}
+                  onChange={(e) => setEditSessionNotes(e.target.value)}
+                  placeholder="Add any relevant notes for this session..."
+                  rows={3}
+                />
+              </FormField>
+            </FormGrid>
+          </DialogContentArea>
+          <DialogActionsBar>
+            <GlowButton
+              text="Cancel"
+              theme="cosmic"
+              size="small"
+              onClick={() => setOpenEditDialog(false)}
+            />
+            <GlowButton
+              text="Save Changes"
+              theme="emerald"
+              size="small"
+              leftIcon={<CheckSquare size={16} />}
+              onClick={handleSaveEditedSession}
+            />
+          </DialogActionsBar>
+        </DialogPanel>
       </StyledDialog>
 
        {/* New Session Dialog */}
-       <StyledDialog
-           open={openNewDialog}
-           onClose={() => setOpenNewDialog(false)}
-           maxWidth="sm"
-           fullWidth
-       >
-           <DialogTitle>
-               <Stack direction="row" spacing={1.5} alignItems="center">
-                   <Plus />
-                   <Typography variant="h6">Schedule New Session Slot</Typography>
-               </Stack>
-           </DialogTitle>
-           <DialogContent dividers>
-               <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
-                   Create a new available time slot. You can assign a client or trainer now, or leave it as generally available.
-               </DialogContentText>
-               <Grid container spacing={2} sx={{ mt: 0.5 }}>
-                   {/* Client Select */}
-                   <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth variant="outlined" size="small">
-                          <InputLabel id="new-client-select-label">Assign Client (Optional)</InputLabel>
-                          <Select
-                              labelId="new-client-select-label"
-                              value={newSessionClient}
-                              onChange={(e) => setNewSessionClient(e.target.value)}
-                              label="Assign Client (Optional)"
-                              disabled={loadingClients}
-                          >
-                              <MenuItem value=""><em>Not Assigned</em></MenuItem>
-                              {clients.map(client => (
-                                  <MenuItem key={client.id} value={client.id}>
-                                      <Stack direction="row" spacing={1} alignItems="center">
-                                          <Avatar src={client.photo || undefined} sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>{client.firstName?.[0]}{client.lastName?.[0]}</Avatar>
-                                          <span>{client.firstName} {client.lastName}</span>
-                                      </Stack>
-                                  </MenuItem>
-                              ))}
-                          </Select>
-                      </FormControl>
-                   </Grid>
-                   {/* Trainer Select */}
-                   <Grid item xs={12} sm={6}>
-                      <FormControl fullWidth variant="outlined" size="small">
-                          <InputLabel id="new-trainer-select-label">Assign Trainer (Optional)</InputLabel>
-                          <Select
-                              labelId="new-trainer-select-label"
-                              value={newSessionTrainer}
-                              onChange={(e) => setNewSessionTrainer(e.target.value)}
-                              label="Assign Trainer (Optional)"
-                              disabled={loadingTrainers}
-                          >
-                              <MenuItem value=""><em>Not Assigned</em></MenuItem>
-                              {trainers.map(trainer => (
-                                  <MenuItem key={trainer.id} value={trainer.id}>
-                                      <Stack direction="row" spacing={1} alignItems="center">
-                                          <Avatar src={trainer.photo || undefined} sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>{trainer.firstName?.[0]}{trainer.lastName?.[0]}</Avatar>
-                                          <span>{trainer.firstName} {trainer.lastName}</span>
-                                      </Stack>
-                                  </MenuItem>
-                              ))}
-                          </Select>
-                      </FormControl>
-                   </Grid>
-                   {/* Date Input */}
-                   <Grid item xs={12} sm={6}>
-                       <TextField
-                           label="Date" type="date" size="small" fullWidth variant="outlined"
-                           value={newSessionDate}
-                           onChange={(e) => setNewSessionDate(e.target.value)}
-                           InputLabelProps={{ shrink: true }}
-                           inputProps={{ min: new Date().toISOString().slice(0, 10) }}
-                       />
-                   </Grid>
-                   {/* Time Input */}
-                   <Grid item xs={12} sm={6}>
-                       <TextField
-                           label="Time" type="time" size="small" fullWidth variant="outlined"
-                           value={newSessionTime}
-                           onChange={(e) => setNewSessionTime(e.target.value)}
-                           InputLabelProps={{ shrink: true }}
-                       />
-                   </Grid>
-                   {/* Duration Input */}
-                   <Grid item xs={12} sm={6}>
-                       <TextField
-                           label="Duration (min)" type="number" size="small" fullWidth variant="outlined"
-                           value={newSessionDuration}
-                           onChange={(e) => setNewSessionDuration(parseInt(e.target.value, 10) || 0)}
-                            InputProps={{ inputProps: { min: 15, max: 240, step: 15 } }}
-                       />
-                   </Grid>
-                   {/* Location Input */}
-                   <Grid item xs={12} sm={6}>
-                       <TextField
-                           label="Location" size="small" fullWidth variant="outlined"
-                           value={newSessionLocation}
-                           onChange={(e) => setNewSessionLocation(e.target.value)}
-                            placeholder="e.g., Main Studio"
-                       />
-                   </Grid>
-                   {/* Notes Input */}
-                   <Grid item xs={12}>
-                       <TextField
-                           label="Notes (Optional)" size="small" fullWidth multiline rows={3} variant="outlined"
-                           value={newSessionNotes}
-                           onChange={(e) => setNewSessionNotes(e.target.value)}
-                           placeholder="e.g., Open slot for new clients, Focus on beginners"
-                       />
-                   </Grid>
-               </Grid>
-           </DialogContent>
-           <DialogActions>
-               <GlowButton
-                   text="Cancel"
-                   theme="cosmic"
-                   size="small"
-                   onClick={() => setOpenNewDialog(false)}
-               />
-               <GlowButton
-                   text="Create Session Slot"
-                   theme="emerald"
-                   size="small"
-                   leftIcon={<Plus size={16} />}
-                   onClick={handleCreateNewSession}
-                   // Optionally disable while creating
-               />
-           </DialogActions>
+       <StyledDialog $open={openNewDialog} onClick={() => setOpenNewDialog(false)}>
+         <DialogPanel onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+           <DialogTitleBar>
+             <FlexRow $gap="0.75rem">
+               <Plus size={22} />
+               <span>Schedule New Session Slot</span>
+             </FlexRow>
+           </DialogTitleBar>
+           <DialogContentArea>
+             <DialogDescriptionText>
+               Create a new available time slot. You can assign a client or trainer now, or leave it as generally available.
+             </DialogDescriptionText>
+             <FormGrid $columns={2}>
+               {/* Client Select */}
+               <FormField>
+                 <FormLabel htmlFor="new-client-select">Assign Client (Optional)</FormLabel>
+                 <FormSelect
+                   id="new-client-select"
+                   value={newSessionClient}
+                   onChange={(e) => setNewSessionClient(e.target.value)}
+                   disabled={loadingClients}
+                 >
+                   <option value="">Not Assigned</option>
+                   {clients.map(client => (
+                     <option key={client.id} value={client.id}>
+                       {client.firstName} {client.lastName}
+                     </option>
+                   ))}
+                 </FormSelect>
+               </FormField>
+               {/* Trainer Select */}
+               <FormField>
+                 <FormLabel htmlFor="new-trainer-select">Assign Trainer (Optional)</FormLabel>
+                 <FormSelect
+                   id="new-trainer-select"
+                   value={newSessionTrainer}
+                   onChange={(e) => setNewSessionTrainer(e.target.value)}
+                   disabled={loadingTrainers}
+                 >
+                   <option value="">Not Assigned</option>
+                   {trainers.map(trainer => (
+                     <option key={trainer.id} value={trainer.id}>
+                       {trainer.firstName} {trainer.lastName}
+                     </option>
+                   ))}
+                 </FormSelect>
+               </FormField>
+               {/* Date Input */}
+               <FormField>
+                 <FormLabel htmlFor="new-date">Date</FormLabel>
+                 <FormInput
+                   id="new-date"
+                   type="date"
+                   value={newSessionDate}
+                   onChange={(e) => setNewSessionDate(e.target.value)}
+                   min={new Date().toISOString().slice(0, 10)}
+                 />
+               </FormField>
+               {/* Time Input */}
+               <FormField>
+                 <FormLabel htmlFor="new-time">Time</FormLabel>
+                 <FormInput
+                   id="new-time"
+                   type="time"
+                   value={newSessionTime}
+                   onChange={(e) => setNewSessionTime(e.target.value)}
+                 />
+               </FormField>
+               {/* Duration Input */}
+               <FormField>
+                 <FormLabel htmlFor="new-duration">Duration (min)</FormLabel>
+                 <FormInput
+                   id="new-duration"
+                   type="number"
+                   value={newSessionDuration}
+                   onChange={(e) => setNewSessionDuration(parseInt(e.target.value, 10) || 0)}
+                   min={15}
+                   max={240}
+                   step={15}
+                 />
+               </FormField>
+               {/* Location Input */}
+               <FormField>
+                 <FormLabel htmlFor="new-location">Location</FormLabel>
+                 <FormInput
+                   id="new-location"
+                   value={newSessionLocation}
+                   onChange={(e) => setNewSessionLocation(e.target.value)}
+                   placeholder="e.g., Main Studio"
+                 />
+               </FormField>
+               {/* Notes Input */}
+               <FormField $fullWidth>
+                 <FormLabel htmlFor="new-notes">Notes (Optional)</FormLabel>
+                 <FormTextarea
+                   id="new-notes"
+                   value={newSessionNotes}
+                   onChange={(e) => setNewSessionNotes(e.target.value)}
+                   placeholder="e.g., Open slot for new clients, Focus on beginners"
+                   rows={3}
+                 />
+               </FormField>
+             </FormGrid>
+           </DialogContentArea>
+           <DialogActionsBar>
+             <GlowButton
+               text="Cancel"
+               theme="cosmic"
+               size="small"
+               onClick={() => setOpenNewDialog(false)}
+             />
+             <GlowButton
+               text="Create Session Slot"
+               theme="emerald"
+               size="small"
+               leftIcon={<Plus size={16} />}
+               onClick={handleCreateNewSession}
+             />
+           </DialogActionsBar>
+         </DialogPanel>
        </StyledDialog>
 
       {/* Add Sessions Dialog */}
-      <StyledDialog
-        open={openAddSessionsDialog}
-        onClose={() => setOpenAddSessionsDialog(false)}
-        maxWidth="xs" // Make this dialog smaller
-        fullWidth
-      >
-        <DialogTitle>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Zap />
-            <Typography variant="h6">Add Sessions to Client</Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
-          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2.5 }}>
-            Manually add purchased or complimentary sessions to a client's account.
-          </DialogContentText>
-          <Grid container spacing={2}>
-             {/* Client Select */}
-              <Grid item xs={12}>
-                  <FormControl fullWidth variant="outlined" size="small">
-                      <InputLabel id="add-client-select-label">Select Client</InputLabel>
-                      <Select
-                          labelId="add-client-select-label"
-                          value={selectedClient}
-                          onChange={(e) => setSelectedClient(e.target.value)}
-                          label="Select Client"
-                          disabled={loadingClients}
-                      >
-                          <MenuItem value=""><em>-- Select a Client --</em></MenuItem>
-                          {clients.map(client => (
-                              <MenuItem key={client.id} value={client.id}>
-                                  <Stack direction="row" spacing={1} alignItems="center">
-                                      <Avatar src={client.photo || undefined} sx={{ width: 24, height: 24, fontSize: '0.7rem' }}>{client.firstName?.[0]}{client.lastName?.[0]}</Avatar>
-                                      <MuiBox>
-                                        <Typography variant="body2">{client.firstName} {client.lastName}</Typography>
-                                        <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                                            ({client.availableSessions || 0} current sessions)
-                                        </Typography>
-                                      </MuiBox>
-                                  </Stack>
-                              </MenuItem>
-                          ))}
-                      </Select>
-                  </FormControl>
-              </Grid>
-             {/* Number of Sessions */}
-              <Grid item xs={12}>
-                  <TextField
-                      label="Number of Sessions to Add" type="number" size="small" fullWidth variant="outlined"
-                      value={sessionsToAdd}
-                      onChange={(e) => setSessionsToAdd(Math.max(1, parseInt(e.target.value, 10) || 1))} // Ensure positive number
-                      InputProps={{ inputProps: { min: 1, max: 100 } }}
-                  />
-              </Grid>
-             {/* Admin Notes */}
-              <Grid item xs={12}>
-                  <TextField
-                      label="Admin Notes (Optional)" size="small" fullWidth multiline rows={3} variant="outlined"
-                      value={addSessionsNote}
-                      onChange={(e) => setAddSessionsNote(e.target.value)}
-                      placeholder="Reason for adding sessions (e.g., purchased package, referral bonus)"
-                  />
-              </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-           <GlowButton
-             text="Cancel"
-             theme="cosmic"
-             size="small"
-             onClick={() => setOpenAddSessionsDialog(false)}
-           />
-           <GlowButton
-             text="Add Sessions"
-             theme="emerald"
-             size="small"
-             leftIcon={<Zap size={16} />}
-             onClick={handleAddSessions}
-             disabled={!selectedClient || sessionsToAdd <= 0} // Basic validation
-             // Optionally disable while processing
-           />
-        </DialogActions>
+      <StyledDialog $open={openAddSessionsDialog} onClick={() => setOpenAddSessionsDialog(false)}>
+        <DialogPanel onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+          <DialogTitleBar>
+            <FlexRow $gap="0.75rem">
+              <Zap size={22} />
+              <span>Add Sessions to Client</span>
+            </FlexRow>
+          </DialogTitleBar>
+          <DialogContentArea>
+            <DialogDescriptionText>
+              Manually add purchased or complimentary sessions to a client's account.
+            </DialogDescriptionText>
+            <FormGrid $columns={1}>
+               {/* Client Select */}
+               <FormField>
+                 <FormLabel htmlFor="add-client-select">Select Client</FormLabel>
+                 <FormSelect
+                   id="add-client-select"
+                   value={selectedClient}
+                   onChange={(e) => setSelectedClient(e.target.value)}
+                   disabled={loadingClients}
+                 >
+                   <option value="">-- Select a Client --</option>
+                   {clients.map(client => (
+                     <option key={client.id} value={client.id}>
+                       {client.firstName} {client.lastName} ({client.availableSessions || 0} current sessions)
+                     </option>
+                   ))}
+                 </FormSelect>
+               </FormField>
+               {/* Number of Sessions */}
+               <FormField>
+                 <FormLabel htmlFor="add-sessions-count">Number of Sessions to Add</FormLabel>
+                 <FormInput
+                   id="add-sessions-count"
+                   type="number"
+                   value={sessionsToAdd}
+                   onChange={(e) => setSessionsToAdd(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                   min={1}
+                   max={100}
+                 />
+               </FormField>
+               {/* Admin Notes */}
+               <FormField>
+                 <FormLabel htmlFor="add-sessions-notes">Admin Notes (Optional)</FormLabel>
+                 <FormTextarea
+                   id="add-sessions-notes"
+                   value={addSessionsNote}
+                   onChange={(e) => setAddSessionsNote(e.target.value)}
+                   placeholder="Reason for adding sessions (e.g., purchased package, referral bonus)"
+                   rows={3}
+                 />
+               </FormField>
+            </FormGrid>
+          </DialogContentArea>
+          <DialogActionsBar>
+             <GlowButton
+               text="Cancel"
+               theme="cosmic"
+               size="small"
+               onClick={() => setOpenAddSessionsDialog(false)}
+             />
+             <GlowButton
+               text="Add Sessions"
+               theme="emerald"
+               size="small"
+               leftIcon={<Zap size={16} />}
+               onClick={handleAddSessions}
+               disabled={!selectedClient || sessionsToAdd <= 0} // Basic validation
+             />
+          </DialogActionsBar>
+        </DialogPanel>
+      </StyledDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <StyledDialog $open={openDeleteDialog} onClick={() => setOpenDeleteDialog(false)}>
+        <DialogPanel onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '420px' }}>
+          <DialogTitleBar>
+            <FlexRow $gap="0.75rem">
+              <Trash2 size={22} />
+              <span>Confirm Delete</span>
+            </FlexRow>
+          </DialogTitleBar>
+          <DialogContentArea>
+            <DialogDescriptionText>
+              Are you sure you want to delete this session? This action cannot be undone.
+            </DialogDescriptionText>
+            {sessionToDelete && (
+              <DetailValue style={{ marginTop: '0.5rem' }}>
+                Session {sessionToDelete.id} - {formatDate(sessionToDelete.sessionDate)}
+              </DetailValue>
+            )}
+          </DialogContentArea>
+          <DialogActionsBar>
+            <GlowButton
+              text="Cancel"
+              theme="cosmic"
+              size="small"
+              onClick={() => setOpenDeleteDialog(false)}
+              disabled={isProcessing}
+            />
+            <GlowButton
+              text={isProcessing ? "Deleting..." : "Delete"}
+              theme="ruby"
+              size="small"
+              leftIcon={<Trash2 size={16} />}
+              onClick={handleConfirmDelete}
+              disabled={isProcessing}
+            />
+          </DialogActionsBar>
+        </DialogPanel>
+      </StyledDialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <StyledDialog $open={openBulkDeleteDialog} onClick={() => setOpenBulkDeleteDialog(false)}>
+        <DialogPanel onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+          <DialogTitleBar>
+            <FlexRow $gap="0.75rem">
+              <Trash2 size={22} />
+              <span>Bulk Delete Sessions</span>
+            </FlexRow>
+          </DialogTitleBar>
+          <DialogContentArea>
+            <DialogDescriptionText>
+              Are you sure you want to delete {selectedIds.length} selected sessions? This action cannot be undone.
+            </DialogDescriptionText>
+            <FormField>
+              <FormLabel htmlFor="bulk-delete-reason">Reason (optional)</FormLabel>
+              <FormTextarea
+                id="bulk-delete-reason"
+                value={bulkDeleteReason}
+                onChange={(e) => setBulkDeleteReason(e.target.value)}
+                placeholder="Reason for bulk deletion..."
+                rows={2}
+              />
+            </FormField>
+          </DialogContentArea>
+          <DialogActionsBar>
+            <GlowButton
+              text="Cancel"
+              theme="cosmic"
+              size="small"
+              onClick={() => setOpenBulkDeleteDialog(false)}
+              disabled={isProcessing}
+            />
+            <GlowButton
+              text={isProcessing ? "Deleting..." : `Delete ${selectedIds.length} Sessions`}
+              theme="ruby"
+              size="small"
+              leftIcon={<Trash2 size={16} />}
+              onClick={handleConfirmBulkDelete}
+              disabled={isProcessing}
+            />
+          </DialogActionsBar>
+        </DialogPanel>
       </StyledDialog>
 
       {/* TRAINER ASSIGNMENT SECTION */}
@@ -1992,7 +2437,7 @@ const EnhancedAdminSessionsView: React.FC = () => {
 /**
  * TrainerAssignmentSection Component
  * ==================================
- * 
+ *
  * Comprehensive trainer assignment interface for admin dashboard.
  * Features assignment controls, statistics, and bulk operations.
  */
@@ -2018,16 +2463,16 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
   const [loading, setLoading] = useState(false);
   const [assignmentStats, setAssignmentStats] = useState<any>(null);
   const [openBulkDialog, setOpenBulkDialog] = useState(false);
-  
+
   // Get unassigned sessions for the selected client
   const getUnassignedSessions = () => {
-    return sessions.filter(session => 
-      session.status === 'available' && 
+    return sessions.filter(session =>
+      session.status === 'available' &&
       session.trainerId === null &&
       (!selectedClient || session.userId === selectedClient)
     );
   };
-  
+
   // Get assignment statistics
   useEffect(() => {
     const fetchAssignmentStats = async () => {
@@ -2040,10 +2485,10 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
         console.error('Error fetching assignment statistics:', error);
       }
     };
-    
+
     fetchAssignmentStats();
   }, [sessions]);
-  
+
   // Handle trainer assignment
   const handleAssignTrainer = async () => {
     if (!selectedTrainer || !selectedClient) {
@@ -2054,7 +2499,7 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
       });
       return;
     }
-    
+
     setLoading(true);
     try {
       const sessionIds = assignmentMode === 'bulk' ? selectedSessions : [];
@@ -2063,20 +2508,20 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
         selectedClient,
         sessionIds
       );
-      
+
       if (response.success) {
         toast({
           title: "Assignment Successful",
           description: response.message,
           variant: "default"
         });
-        
+
         // Reset form
         setSelectedTrainer('');
         setSelectedClient('');
         setSelectedSessions([]);
         setOpenBulkDialog(false);
-        
+
         // Refresh data
         onAssignmentSuccess();
       } else {
@@ -2092,15 +2537,15 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
       setLoading(false);
     }
   };
-  
+
   // Handle assignment removal
   const handleRemoveAssignment = async (sessionIds: string[]) => {
     if (sessionIds.length === 0) return;
-    
+
     setLoading(true);
     try {
       const response = await services.sessionService.removeTrainerAssignment(sessionIds);
-      
+
       if (response.success) {
         toast({
           title: "Assignment Removed",
@@ -2121,16 +2566,16 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
       setLoading(false);
     }
   };
-  
+
   const unassignedSessions = getUnassignedSessions();
-  
+
   return (
     <div>
       {/* Assignment Statistics */}
       {assignmentStats && (
-        <Grid container spacing={2} style={{ marginBottom: '2rem' }}>
-          <Grid item xs={12} sm={3}>
-            <StatsCard>
+        <AssignmentStatsGrid>
+          <StatsCard>
+            <FlexRow $gap="1rem">
               <StatsIconContainer>
                 <CheckCircle size={24} />
               </StatsIconContainer>
@@ -2138,10 +2583,10 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
                 <StatsValue>{assignmentStats.sessionSummary?.assigned || 0}</StatsValue>
                 <StatsLabel>Assigned Sessions</StatsLabel>
               </div>
-            </StatsCard>
-          </Grid>
-          <Grid item xs={12} sm={3}>
-            <StatsCard>
+            </FlexRow>
+          </StatsCard>
+          <StatsCard>
+            <FlexRow $gap="1rem">
               <StatsIconContainer>
                 <Clock size={24} />
               </StatsIconContainer>
@@ -2149,10 +2594,10 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
                 <StatsValue>{assignmentStats.sessionSummary?.available || 0}</StatsValue>
                 <StatsLabel>Unassigned Sessions</StatsLabel>
               </div>
-            </StatsCard>
-          </Grid>
-          <Grid item xs={12} sm={3}>
-            <StatsCard>
+            </FlexRow>
+          </StatsCard>
+          <StatsCard>
+            <FlexRow $gap="1rem">
               <StatsIconContainer>
                 <User size={24} />
               </StatsIconContainer>
@@ -2160,10 +2605,10 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
                 <StatsValue>{trainers.length}</StatsValue>
                 <StatsLabel>Active Trainers</StatsLabel>
               </div>
-            </StatsCard>
-          </Grid>
-          <Grid item xs={12} sm={3}>
-            <StatsCard>
+            </FlexRow>
+          </StatsCard>
+          <StatsCard>
+            <FlexRow $gap="1rem">
               <StatsIconContainer>
                 <Zap size={24} />
               </StatsIconContainer>
@@ -2171,289 +2616,231 @@ const TrainerAssignmentSection: React.FC<TrainerAssignmentSectionProps> = ({
                 <StatsValue>{assignmentStats.assignmentRate || 0}%</StatsValue>
                 <StatsLabel>Assignment Rate</StatsLabel>
               </div>
-            </StatsCard>
-          </Grid>
-        </Grid>
+            </FlexRow>
+          </StatsCard>
+        </AssignmentStatsGrid>
       )}
-      
+
       {/* Assignment Controls */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Paper style={{ padding: '1.5rem', background: 'rgba(30, 30, 60, 0.4)', border: '1px solid rgba(0, 255, 255, 0.3)' }}>
-            <Typography variant="h6" style={{ marginBottom: '1rem', color: '#00FFFF' }}>
-              Assign Trainer to Client
-            </Typography>
-            
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Select Client</InputLabel>
-                  <Select
-                    value={selectedClient}
-                    onChange={(e) => setSelectedClient(e.target.value)}
-                    label="Select Client"
-                  >
-                    <MenuItem value="">
-                      <em>Select a client...</em>
-                    </MenuItem>
-                    {clients.map((client) => (
-                      <MenuItem key={client.id} value={client.id}>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <Avatar
-                            src={client.photo}
-                            sx={{ width: 24, height: 24 }}
-                          >
-                            {client.firstName.charAt(0)}
-                          </Avatar>
-                          <div>
-                            <Typography variant="body2">
-                              {client.firstName} {client.lastName}
-                            </Typography>
-                            <Typography variant="caption" color="textSecondary">
-                              {client.availableSessions} sessions available
-                            </Typography>
-                          </div>
-                        </Stack>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              
-              <Grid item xs={12}>
-                <FormControl fullWidth size="small">
-                  <InputLabel>Select Trainer</InputLabel>
-                  <Select
-                    value={selectedTrainer}
-                    onChange={(e) => setSelectedTrainer(e.target.value)}
-                    label="Select Trainer"
-                  >
-                    <MenuItem value="">
-                      <em>Select a trainer...</em>
-                    </MenuItem>
-                    {trainers.map((trainer) => (
-                      <MenuItem key={trainer.id} value={trainer.id}>
-                        <Stack direction="row" alignItems="center" spacing={1}>
-                          <Avatar
-                            src={trainer.photo}
-                            sx={{ width: 24, height: 24 }}
-                          >
-                            {trainer.firstName.charAt(0)}
-                          </Avatar>
-                          <div>
-                            <Typography variant="body2">
-                              {trainer.firstName} {trainer.lastName}
-                            </Typography>
-                            {trainer.specialties && (
-                              <Typography variant="caption" color="textSecondary">
-                                {trainer.specialties}
-                              </Typography>
-                            )}
-                          </div>
-                        </Stack>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              
-              {selectedClient && (
-                <Grid item xs={12}>
-                  <Typography variant="body2" style={{ marginBottom: '0.5rem' }}>
-                    Unassigned Sessions: {unassignedSessions.length}
-                  </Typography>
-                  
-                  <Stack direction="row" spacing={1} style={{ marginBottom: '1rem' }}>
-                    <GlowButton
-                      text="Assign All Available"
-                      theme="cyan"
-                      size="small"
-                      onClick={() => setAssignmentMode('single')}
-                      variant={assignmentMode === 'single' ? 'solid' : 'outline'}
-                    />
-                    <GlowButton
-                      text="Select Specific"
-                      theme="purple"
-                      size="small"
-                      onClick={() => {
-                        setAssignmentMode('bulk');
-                        setOpenBulkDialog(true);
-                      }}
-                      variant={assignmentMode === 'bulk' ? 'solid' : 'outline'}
-                    />
-                  </Stack>
-                </Grid>
-              )}
-              
-              <Grid item xs={12}>
-                <GlowButton
-                  text={loading ? "Assigning..." : "Assign Trainer"}
-                  theme="emerald"
-                  size="medium"
-                  leftIcon={<User size={16} />}
-                  onClick={handleAssignTrainer}
-                  disabled={loading || !selectedTrainer || !selectedClient}
-                  fullWidth
-                />
-              </Grid>
-            </Grid>
-          </Paper>
-        </Grid>
-        
-        <Grid item xs={12} md={6}>
-          <Paper style={{ padding: '1.5rem', background: 'rgba(30, 30, 60, 0.4)', border: '1px solid rgba(255, 215, 0, 0.3)' }}>
-            <Typography variant="h6" style={{ marginBottom: '1rem', color: '#FFD700' }}>
-              Assignment Quick Actions
-            </Typography>
-            
-            <Stack spacing={2}>
-              <GlowButton
-                text="View Assignment Statistics"
-                theme="cosmic"
-                size="small"
-                leftIcon={<Eye size={16} />}
-                onClick={() => {
-                  // Could open a detailed statistics modal
-                  console.log('Assignment stats:', assignmentStats);
-                }}
-                fullWidth
-              />
-              
-              <GlowButton
-                text="Bulk Remove Assignments"
-                theme="red"
-                size="small"
-                leftIcon={<RefreshCw size={16} />}
-                onClick={() => {
-                  const assignedSessionIds = sessions
-                    .filter(session => session.trainerId && session.status === 'assigned')
-                    .map(session => session.id);
-                  
-                  if (assignedSessionIds.length > 0) {
-                    handleRemoveAssignment(assignedSessionIds);
-                  } else {
-                    toast({
-                      title: "No Assignments Found",
-                      description: "No assigned sessions to remove.",
-                      variant: "default"
-                    });
-                  }
-                }}
-                fullWidth
-              />
-              
-              <GlowButton
-                text="Export Assignment Report"
-                theme="purple"
-                size="small"
-                leftIcon={<Download size={16} />}
-                onClick={() => {
-                  // Generate and download assignment report
-                  const reportData = {
-                    assignmentStats,
-                    trainerWorkload: assignmentStats?.trainerWorkload || [],
-                    timestamp: new Date().toISOString()
-                  };
-                  
-                  const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = `trainer-assignments-${new Date().toISOString().split('T')[0]}.json`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
-                fullWidth
-              />
-            </Stack>
-          </Paper>
-        </Grid>
-      </Grid>
-      
-      {/* Bulk Selection Dialog */}
-      <Dialog
-        open={openBulkDialog}
-        onClose={() => setOpenBulkDialog(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Select Sessions to Assign</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" style={{ marginBottom: '1rem' }}>
-            Select specific sessions to assign to the trainer:
-          </Typography>
-          
-          {unassignedSessions.length > 0 ? (
-            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-              {unassignedSessions.map((session) => (
-                <div
-                  key={session.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '0.5rem',
-                    border: selectedSessions.includes(session.id) ? '2px solid #00FFFF' : '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: '8px',
-                    margin: '0.5rem 0',
-                    cursor: 'pointer',
-                    background: selectedSessions.includes(session.id) ? 'rgba(0, 255, 255, 0.1)' : 'transparent'
-                  }}
-                  onClick={() => {
-                    setSelectedSessions(prev => 
-                      prev.includes(session.id)
-                        ? prev.filter(id => id !== session.id)
-                        : [...prev, session.id]
-                    );
-                  }}
-                >
-                  <CheckSquare 
-                    size={20} 
-                    color={selectedSessions.includes(session.id) ? '#00FFFF' : '#666'}
-                    style={{ marginRight: '0.5rem' }}
+      <AssignmentGrid>
+        <AssignmentPanel $accentColor="rgba(0, 255, 255, 0.3)">
+          <PanelHeading $color="#00FFFF">
+            Assign Trainer to Client
+          </PanelHeading>
+
+          <FlexCol $gap="1rem">
+            <FormField>
+              <FormLabel htmlFor="assign-client-select">Select Client</FormLabel>
+              <FormSelect
+                id="assign-client-select"
+                value={selectedClient}
+                onChange={(e) => setSelectedClient(e.target.value)}
+              >
+                <option value="">Select a client...</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.firstName} {client.lastName} - {client.availableSessions} sessions available
+                  </option>
+                ))}
+              </FormSelect>
+            </FormField>
+
+            <FormField>
+              <FormLabel htmlFor="assign-trainer-select">Select Trainer</FormLabel>
+              <FormSelect
+                id="assign-trainer-select"
+                value={selectedTrainer}
+                onChange={(e) => setSelectedTrainer(e.target.value)}
+              >
+                <option value="">Select a trainer...</option>
+                {trainers.map((trainer) => (
+                  <option key={trainer.id} value={trainer.id}>
+                    {trainer.firstName} {trainer.lastName}{trainer.specialties ? ` - ${trainer.specialties}` : ''}
+                  </option>
+                ))}
+              </FormSelect>
+            </FormField>
+
+            {selectedClient && (
+              <div>
+                <CellPrimaryText style={{ marginBottom: '0.5rem' }}>
+                  Unassigned Sessions: {unassignedSessions.length}
+                </CellPrimaryText>
+
+                <FlexRow $gap="0.5rem" style={{ marginBottom: '1rem' }}>
+                  <GlowButton
+                    text="Assign All Available"
+                    theme="cyan"
+                    size="small"
+                    onClick={() => setAssignmentMode('single')}
+                    variant={assignmentMode === 'single' ? 'solid' : 'outline'}
                   />
-                  <div>
-                    <Typography variant="body2">
-                      Session {session.id} - {session.duration} minutes
-                    </Typography>
-                    <Typography variant="caption" color="textSecondary">
-                      Location: {session.location || 'Not specified'}
-                    </Typography>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Typography variant="body2" color="textSecondary">
-              No unassigned sessions available for this client.
-            </Typography>
-          )}
-          
-          <Typography variant="body2" style={{ marginTop: '1rem' }}>
-            Selected: {selectedSessions.length} sessions
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <GlowButton
-            text="Cancel"
-            theme="cosmic"
-            size="small"
-            onClick={() => {
-              setOpenBulkDialog(false);
-              setSelectedSessions([]);
-            }}
-          />
-          <GlowButton
-            text={`Assign ${selectedSessions.length} Sessions`}
-            theme="emerald"
-            size="small"
-            onClick={() => {
-              setAssignmentMode('bulk');
-              setOpenBulkDialog(false);
-            }}
-            disabled={selectedSessions.length === 0}
-          />
-        </DialogActions>
-      </Dialog>
+                  <GlowButton
+                    text="Select Specific"
+                    theme="purple"
+                    size="small"
+                    onClick={() => {
+                      setAssignmentMode('bulk');
+                      setOpenBulkDialog(true);
+                    }}
+                    variant={assignmentMode === 'bulk' ? 'solid' : 'outline'}
+                  />
+                </FlexRow>
+              </div>
+            )}
+
+            <GlowButton
+              text={loading ? "Assigning..." : "Assign Trainer"}
+              theme="emerald"
+              size="medium"
+              leftIcon={<User size={16} />}
+              onClick={handleAssignTrainer}
+              disabled={loading || !selectedTrainer || !selectedClient}
+              fullWidth
+            />
+          </FlexCol>
+        </AssignmentPanel>
+
+        <AssignmentPanel $accentColor="rgba(255, 215, 0, 0.3)">
+          <PanelHeading $color="#FFD700">
+            Assignment Quick Actions
+          </PanelHeading>
+
+          <FlexCol $gap="1rem">
+            <GlowButton
+              text="View Assignment Statistics"
+              theme="cosmic"
+              size="small"
+              leftIcon={<Eye size={16} />}
+              onClick={() => {
+                // Could open a detailed statistics modal
+                console.log('Assignment stats:', assignmentStats);
+              }}
+              fullWidth
+            />
+
+            <GlowButton
+              text="Bulk Remove Assignments"
+              theme="red"
+              size="small"
+              leftIcon={<RefreshCw size={16} />}
+              onClick={() => {
+                const assignedSessionIds = sessions
+                  .filter(session => session.trainerId && session.status === 'assigned')
+                  .map(session => session.id);
+
+                if (assignedSessionIds.length > 0) {
+                  handleRemoveAssignment(assignedSessionIds);
+                } else {
+                  toast({
+                    title: "No Assignments Found",
+                    description: "No assigned sessions to remove.",
+                    variant: "default"
+                  });
+                }
+              }}
+              fullWidth
+            />
+
+            <GlowButton
+              text="Export Assignment Report"
+              theme="purple"
+              size="small"
+              leftIcon={<Download size={16} />}
+              onClick={() => {
+                // Generate and download assignment report
+                const reportData = {
+                  assignmentStats,
+                  trainerWorkload: assignmentStats?.trainerWorkload || [],
+                  timestamp: new Date().toISOString()
+                };
+
+                const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `trainer-assignments-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              fullWidth
+            />
+          </FlexCol>
+        </AssignmentPanel>
+      </AssignmentGrid>
+
+      {/* Bulk Selection Dialog */}
+      <StyledDialog $open={openBulkDialog} onClick={() => setOpenBulkDialog(false)}>
+        <DialogPanel onClick={(e: React.MouseEvent) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+          <DialogTitleBar>Select Sessions to Assign</DialogTitleBar>
+          <DialogContentArea>
+            <CellPrimaryText style={{ marginBottom: '1rem' }}>
+              Select specific sessions to assign to the trainer:
+            </CellPrimaryText>
+
+            {unassignedSessions.length > 0 ? (
+              <ScrollableList>
+                {unassignedSessions.map((session) => (
+                  <SessionSelectItem
+                    key={session.id}
+                    $selected={selectedSessions.includes(session.id)}
+                    onClick={() => {
+                      setSelectedSessions(prev =>
+                        prev.includes(session.id)
+                          ? prev.filter(id => id !== session.id)
+                          : [...prev, session.id]
+                      );
+                    }}
+                  >
+                    <CheckSquare
+                      size={20}
+                      color={selectedSessions.includes(session.id) ? '#00FFFF' : '#666'}
+                      style={{ marginRight: '0.5rem', flexShrink: 0 }}
+                    />
+                    <div>
+                      <CellPrimaryText>
+                        Session {session.id} - {session.duration} minutes
+                      </CellPrimaryText>
+                      <CellSecondaryText>
+                        Location: {session.location || 'Not specified'}
+                      </CellSecondaryText>
+                    </div>
+                  </SessionSelectItem>
+                ))}
+              </ScrollableList>
+            ) : (
+              <MutedText>
+                No unassigned sessions available for this client.
+              </MutedText>
+            )}
+
+            <CellPrimaryText style={{ marginTop: '1rem' }}>
+              Selected: {selectedSessions.length} sessions
+            </CellPrimaryText>
+          </DialogContentArea>
+          <DialogActionsBar>
+            <GlowButton
+              text="Cancel"
+              theme="cosmic"
+              size="small"
+              onClick={() => {
+                setOpenBulkDialog(false);
+                setSelectedSessions([]);
+              }}
+            />
+            <GlowButton
+              text={`Assign ${selectedSessions.length} Sessions`}
+              theme="emerald"
+              size="small"
+              onClick={() => {
+                setAssignmentMode('bulk');
+                setOpenBulkDialog(false);
+              }}
+              disabled={selectedSessions.length === 0}
+            />
+          </DialogActionsBar>
+        </DialogPanel>
+      </StyledDialog>
     </div>
   );
 };
