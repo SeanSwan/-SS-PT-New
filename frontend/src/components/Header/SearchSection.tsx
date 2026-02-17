@@ -1,19 +1,18 @@
 // src/components/Header/SearchSection.tsx
-import React, { forwardRef, useState } from 'react';
+import React, { forwardRef, useRef, useState } from 'react';
 import styled from 'styled-components';
 
-// material-ui
-import { useTheme } from '@mui/material/styles';
-import Avatar from '@mui/material/Avatar';
-import Card from '@mui/material/Card';
-import Grid from '@mui/material/Grid2';
-import InputAdornment from '@mui/material/InputAdornment';
-import OutlinedInput from '@mui/material/OutlinedInput';
-import Popper from '@mui/material/Popper';
-import Box from '@mui/material/Box';
-
-// third party
-import PopupState, { bindPopper, bindToggle } from 'material-ui-popup-state';
+// Swan primitives
+import {
+  Avatar,
+  Card,
+  Grid,
+  InputAdornment,
+  OutlinedInput,
+  Popper,
+  Box,
+} from '../ui/primitives/components';
+import { BREAKPOINT_VALUES } from '../../styles/mui-replacements';
 
 // project imports
 import Transitions from '../ui/Transitions';
@@ -29,10 +28,12 @@ interface HeaderAvatarProps {
 const SearchAvatar = styled(Avatar)`
   cursor: pointer;
   transition: all 0.2s ease-in-out;
-  
+  background: rgba(120, 81, 169, 0.15);
+  color: #7851A9;
+
   &:hover {
-    background-color: ${({ theme }) => theme.palette?.secondary?.dark || '#1565c0'};
-    color: ${({ theme }) => theme.palette?.secondary?.light || '#90caf9'};
+    background: #7851A9;
+    color: rgba(120, 81, 169, 0.15);
   }
 `;
 
@@ -40,10 +41,10 @@ const SearchInputMobile = styled(OutlinedInput)`
   width: 100%;
   margin-left: 4px;
   padding: 0 16px;
-  background-color: ${({ theme }) => theme.palette?.background?.paper || '#ffffff'};
-  
+  background: #0a0a1a;
+
   & input {
-    background-color: transparent;
+    background: transparent;
     padding-left: 4px;
   }
 `;
@@ -52,33 +53,37 @@ const SearchInputDesktop = styled(OutlinedInput)`
   width: 250px;
   margin-left: 16px;
   padding: 0 16px;
-  
-  @media (min-width: 1200px) {
+
+  @media (min-width: ${BREAKPOINT_VALUES.xl}px) {
     width: 434px;
   }
-  
+
   & input {
-    background-color: transparent;
+    background: transparent;
     padding-left: 4px;
+  }
+`;
+
+const MobileSearchBox = styled(Box)`
+  display: block;
+  @media (min-width: ${BREAKPOINT_VALUES.md}px) {
+    display: none;
+  }
+`;
+
+const DesktopSearchBox = styled(Box)`
+  display: none;
+  @media (min-width: ${BREAKPOINT_VALUES.md}px) {
+    display: block;
   }
 `;
 
 const HeaderAvatarComponent = forwardRef<HTMLDivElement, HeaderAvatarProps>(
   ({ children, ...others }, ref) => {
-    const theme = useTheme();
-
     return (
       <SearchAvatar
         ref={ref}
         variant="rounded"
-        sx={{
-          backgroundColor: 'secondary.light',
-          color: 'secondary.dark',
-          '&:hover': {
-            backgroundColor: 'secondary.dark',
-            color: 'secondary.light'
-          }
-        }}
         {...others}
       >
         {children}
@@ -87,14 +92,12 @@ const HeaderAvatarComponent = forwardRef<HTMLDivElement, HeaderAvatarProps>(
   }
 );
 
-// This is used in MobileSearch component
-function MobileSearch({ value, setValue, popupState }: { 
-  value: string, 
-  setValue: React.Dispatch<React.SetStateAction<string>>, 
-  popupState: any 
+// Mobile search component
+function MobileSearch({ value, setValue, onClose }: {
+  value: string,
+  setValue: React.Dispatch<React.SetStateAction<string>>,
+  onClose: () => void
 }) {
-  const theme = useTheme();
-
   return (
     <SearchInputMobile
       id="input-search-header"
@@ -111,18 +114,15 @@ function MobileSearch({ value, setValue, popupState }: {
           <HeaderAvatarComponent>
             <IconAdjustmentsHorizontal stroke={1.5} size="20px" />
           </HeaderAvatarComponent>
-          <Box sx={{ ml: 2 }}>
+          <Box style={{ marginLeft: 16 }}>
             <Avatar
               variant="rounded"
-              sx={{
-                bgcolor: 'orange.light',
-                color: 'orange.dark',
-                '&:hover': {
-                  bgcolor: 'orange.dark',
-                  color: 'orange.light'
-                }
+              style={{
+                background: 'rgba(255, 152, 0, 0.15)',
+                color: '#ff9800',
+                cursor: 'pointer',
               }}
-              {...bindToggle(popupState)}
+              onClick={onClose}
             >
               <IconX stroke={1.5} size="20px" />
             </Avatar>
@@ -130,51 +130,44 @@ function MobileSearch({ value, setValue, popupState }: {
         </InputAdornment>
       }
       aria-describedby="search-helper-text"
-      inputProps={{ 'aria-label': 'weight' }}
     />
   );
 }
 
 const SearchSection: React.FC = () => {
   const [value, setValue] = useState('');
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const anchorRef = useRef<HTMLDivElement>(null);
 
   return (
     <>
-      <Box sx={{ display: { xs: 'block', md: 'none' } }}>
-        <PopupState variant="popper" popupId="demo-popup-popper">
-          {(popupState) => (
-            <>
-              <Box sx={{ ml: 2 }}>
-                <HeaderAvatarComponent {...bindToggle(popupState)}>
-                  <IconSearch stroke={1.5} size="19.2px" />
-                </HeaderAvatarComponent>
-              </Box>
-              <Popper
-                {...bindPopper(popupState)}
-                transition
-                sx={{ zIndex: 1100, width: '99%', top: '-55px !important', px: { xs: 1.25, sm: 1.5 } }}
-              >
-                {({ TransitionProps }) => (
-                  <>
-                    <Transitions type="zoom" {...TransitionProps} sx={{ transformOrigin: 'center left' }}>
-                      <Card sx={{ bgcolor: 'background.default', border: 0, boxShadow: 'none' }}>
-                        <Box sx={{ p: 2 }}>
-                          <Grid container alignItems="center" justifyContent="space-between">
-                            <Grid size="grow">
-                              <MobileSearch value={value} setValue={setValue} popupState={popupState} />
-                            </Grid>
-                          </Grid>
-                        </Box>
-                      </Card>
-                    </Transitions>
-                  </>
-                )}
-              </Popper>
-            </>
+      <MobileSearchBox>
+        <Box style={{ marginLeft: 16 }} ref={anchorRef}>
+          <HeaderAvatarComponent onClick={() => setMobileOpen(!mobileOpen)}>
+            <IconSearch stroke={1.5} size="19.2px" />
+          </HeaderAvatarComponent>
+        </Box>
+        <Popper
+          open={mobileOpen}
+          anchorEl={anchorRef.current}
+          placement="bottom-start"
+        >
+          {() => (
+            <Transitions type="zoom" in={mobileOpen}>
+              <Card style={{ background: '#0a0a1a', border: 0, boxShadow: 'none', width: '95vw' }}>
+                <Box style={{ padding: 16 }}>
+                  <Grid container style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Grid item style={{ flex: 1 }}>
+                      <MobileSearch value={value} setValue={setValue} onClose={() => setMobileOpen(false)} />
+                    </Grid>
+                  </Grid>
+                </Box>
+              </Card>
+            </Transitions>
           )}
-        </PopupState>
-      </Box>
-      <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+        </Popper>
+      </MobileSearchBox>
+      <DesktopSearchBox>
         <SearchInputDesktop
           id="input-search-header"
           value={value}
@@ -193,9 +186,8 @@ const SearchSection: React.FC = () => {
             </InputAdornment>
           }
           aria-describedby="search-helper-text"
-          inputProps={{ 'aria-label': 'weight' }}
         />
-      </Box>
+      </DesktopSearchBox>
     </>
   );
 };
