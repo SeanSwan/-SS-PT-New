@@ -14,7 +14,7 @@
 import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import { motion } from 'framer-motion';
-import { Tooltip } from '@mui/material';
+import { Tooltip } from '../ui/primitives';
 import { 
   Wifi, 
   WifiOff, 

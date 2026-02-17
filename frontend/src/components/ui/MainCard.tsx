@@ -1,5 +1,7 @@
 import React, { ReactNode, forwardRef } from 'react';
-import { Card, CardHeader, CardContent, Typography, Divider } from '@mui/material';
+import styled from 'styled-components';
+import { Card, CardContent, Divider, Typography } from './primitives';
+import { alpha } from '../../styles/mui-replacements';
 
 interface MainCardProps {
   border?: boolean;
@@ -7,17 +9,23 @@ interface MainCardProps {
   children: ReactNode;
   className?: string;
   contentClass?: string;
-  contentSX?: object;
+  contentSX?: React.CSSProperties;
   darkTitle?: boolean;
   elevation?: number;
   secondary?: ReactNode;
   shadow?: string;
-  sx?: object;
+  sx?: React.CSSProperties;
   title?: string | ReactNode;
   codeHighlight?: boolean;
-  // Add this new property to control whether content is wrapped in CardContent
   content?: boolean;
 }
+
+const CardHeaderWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+`;
 
 // Enhanced MainCard component specifically styled for fitness/training context
 const MainCard = forwardRef<HTMLDivElement, MainCardProps>(
@@ -40,66 +48,43 @@ const MainCard = forwardRef<HTMLDivElement, MainCardProps>(
     },
     ref
   ) => {
+    const cardStyle: React.CSSProperties = {
+      position: 'relative',
+      border: border ? `1px solid ${alpha('#90caf9', 0.46)}` : 'none',
+      borderRadius: '8px',
+      boxShadow:
+        boxShadow && !border
+          ? shadow || '0px 2px 14px 0px rgb(32 40 45 / 8%)'
+          : 'inherit',
+      background: 'linear-gradient(to right bottom, #fcfcfc, #f8f9fa)',
+      ...sx,
+    };
+
     return (
-      <Card
-        elevation={elevation}
-        ref={ref}
-        {...others}
-        className={className}
-        sx={{
-          position: 'relative',
-          border: border ? '1px solid rgba(144, 202, 249, 0.46)' : 'none',
-          borderRadius: 2,
-          boxShadow:
-            boxShadow && !border
-              ? shadow || '0px 2px 14px 0px rgb(32 40 45 / 8%)'
-              : 'inherit',
-          ':hover': {
-            boxShadow: boxShadow ? shadow || '0px 2px 14px 0px rgb(32 40 45 / 12%)' : 'inherit'
-          },
-          '& pre': {
-            m: 0,
-            p: '12px !important',
-            fontFamily: 'inherit',
-            fontSize: '0.75rem'
-          },
-          // Training app specific styling 
-          background: 'linear-gradient(to right bottom, #fcfcfc, #f8f9fa)',
-          ...sx
-        }}
-      >
+      <Card elevation={elevation} ref={ref} className={className} style={cardStyle} {...others}>
         {/* card header and action */}
         {!darkTitle && title && (
-          <CardHeader
-            sx={{ p: 2.5 }}
-            title={<Typography variant="h5">{title}</Typography>}
-            action={secondary}
-          />
+          <CardHeaderWrapper>
+            <Typography variant="h5">{title}</Typography>
+            {secondary && <div>{secondary}</div>}
+          </CardHeaderWrapper>
         )}
         {darkTitle && title && (
-          <CardHeader
-            sx={{ p: 2.5 }}
-            title={<Typography variant="h4">{title}</Typography>}
-            action={secondary}
-          />
+          <CardHeaderWrapper>
+            <Typography variant="h4">{title}</Typography>
+            {secondary && <div>{secondary}</div>}
+          </CardHeaderWrapper>
         )}
 
         {/* content & header divider */}
-        {title && <Divider sx={{ opacity: 0.5 }} />}
+        {title && <Divider style={{ opacity: 0.5 }} />}
 
         {/* card content */}
         {content ? (
-          <CardContent
-            sx={{
-              p: 2.5,
-              ...contentSX
-            }}
-            className={contentClass || ''}
-          >
+          <CardContent className={contentClass || ''} style={{ padding: '20px', ...contentSX }}>
             {children}
           </CardContent>
         ) : (
-          // Render children directly without CardContent wrapper
           children
         )}
       </Card>
