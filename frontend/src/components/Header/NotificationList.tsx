@@ -2,7 +2,7 @@
 import React from 'react';
 import styled from 'styled-components';
 
-// Swan primitives (replaces @mui/material)
+// Swan primitives
 import {
   Avatar,
   Box,
