@@ -1,31 +1,15 @@
 /**
  * MCP Monitor Component
- * 
+ *
  * A diagnostic component for monitoring MCP server health
  * and connection status. Useful for admin dashboards.
+ *
+ * Architecture: styled-components + lucide-react (Galaxy-Swan dark theme)
+ * No MUI dependencies.
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import {
-  Box,
-  Paper,
-  Typography,
-  Grid,
-  LinearProgress,
-  Chip,
-  Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Alert,
-  Tooltip
-} from '@mui/material';
+import styled, { css, keyframes } from 'styled-components';
 import {
   Server,
   Trophy,
@@ -34,12 +18,14 @@ import {
   XCircle,
   AlertTriangle,
   Clock,
-  Activity
+  Activity,
+  ChevronDown
 } from 'lucide-react';
 import { MCP_CONFIG } from '../../config/env-config';
 import { checkMcpServersStatus, McpServerStatus } from '../../utils/mcp-utils';
 import { isMcpAuthenticated } from '../../utils/mcp-auth';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+
+// ─── Types / Interfaces ──────────────────────────────────────────────
 
 interface McpServerHealthData {
   status: 'healthy' | 'degraded' | 'offline';
@@ -58,6 +44,313 @@ interface McpMonitorProps {
   onStatusChange?: (status: McpServerStatus) => void;
 }
 
+// ─── Galaxy-Swan Theme Tokens ────────────────────────────────────────
+
+const theme = {
+  bg: 'rgba(15, 23, 42, 0.95)',
+  bgCard: 'rgba(15, 23, 42, 0.8)',
+  border: 'rgba(14, 165, 233, 0.2)',
+  text: '#e2e8f0',
+  muted: '#94a3b8',
+  accent: '#0ea5e9',
+  success: '#00c853',
+  warning: '#ff9800',
+  error: '#f44336',
+  successBg: 'rgba(0, 200, 83, 0.1)',
+  successBorder: 'rgba(0, 200, 83, 0.3)',
+  warningBg: 'rgba(255, 152, 0, 0.1)',
+  warningBorder: 'rgba(255, 152, 0, 0.3)',
+  errorBg: 'rgba(244, 67, 54, 0.1)',
+  errorBorder: 'rgba(244, 67, 54, 0.3)',
+} as const;
+
+// ─── Animations ──────────────────────────────────────────────────────
+
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+// ─── Styled Components ───────────────────────────────────────────────
+
+const PanelWrapper = styled.div`
+  background: ${theme.bg};
+  border: 1px solid ${theme.border};
+  border-radius: 12px;
+  padding: 24px;
+  color: ${theme.text};
+`;
+
+const CompactPanelWrapper = styled(PanelWrapper)`
+  padding: 16px;
+`;
+
+const FlexRow = styled.div<{ $justify?: string; $gap?: string; $mb?: string; $mt?: string }>`
+  display: flex;
+  align-items: center;
+  justify-content: ${({ $justify }) => $justify || 'flex-start'};
+  gap: ${({ $gap }) => $gap || '8px'};
+  ${({ $mb }) => $mb && css`margin-bottom: ${$mb};`}
+  ${({ $mt }) => $mt && css`margin-top: ${$mt};`}
+`;
+
+const GridTwoCol = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const GridTwoColFull = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const Heading5 = styled.h2`
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 0;
+  color: ${theme.text};
+`;
+
+const Heading6 = styled.h3`
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  color: ${theme.text};
+`;
+
+const Subtitle = styled.span`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: ${theme.text};
+`;
+
+const BodyText = styled.p<{ $muted?: boolean }>`
+  font-size: 0.875rem;
+  margin: 0;
+  color: ${({ $muted }) => $muted ? theme.muted : theme.text};
+`;
+
+const CaptionText = styled.span<{ $muted?: boolean }>`
+  font-size: 0.75rem;
+  color: ${({ $muted }) => $muted ? theme.muted : theme.text};
+`;
+
+const ErrorText = styled.span`
+  font-size: 1rem;
+  color: ${theme.error};
+`;
+
+const StyledButton = styled.button<{ $variant?: 'outlined' | 'default'; $small?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: ${({ $small }) => $small ? '6px 16px' : '10px 20px'};
+  border-radius: 8px;
+  font-size: ${({ $small }) => $small ? '0.8125rem' : '0.875rem'};
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: ${theme.accent};
+  background: ${({ $variant }) => $variant === 'outlined' ? 'transparent' : 'rgba(14, 165, 233, 0.1)'};
+  border: 1px solid ${({ $variant }) => $variant === 'outlined' ? theme.accent : 'rgba(14, 165, 233, 0.3)'};
+
+  &:hover:not(:disabled) {
+    background: rgba(14, 165, 233, 0.2);
+    border-color: ${theme.accent};
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  svg.spinning {
+    animation: ${spin} 1s linear infinite;
+  }
+`;
+
+interface StatusChipProps {
+  $status: 'success' | 'error' | 'warning';
+}
+
+const statusChipColors: Record<string, { bg: string; border: string; text: string }> = {
+  success: { bg: theme.successBg, border: theme.successBorder, text: theme.success },
+  error: { bg: theme.errorBg, border: theme.errorBorder, text: theme.error },
+  warning: { bg: theme.warningBg, border: theme.warningBorder, text: theme.warning },
+};
+
+const StatusChip = styled.span<StatusChipProps>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+  background: ${({ $status }) => statusChipColors[$status].bg};
+  border: 1px solid ${({ $status }) => statusChipColors[$status].border};
+  color: ${({ $status }) => statusChipColors[$status].text};
+`;
+
+const ServerCard = styled.div<{ $online?: boolean; $health?: 'healthy' | 'degraded' | 'offline' }>`
+  background: ${({ $online, $health }) => {
+    if (!$online) return theme.errorBg;
+    if ($health === 'healthy') return 'rgba(0, 200, 83, 0.05)';
+    if ($health === 'degraded') return 'rgba(255, 152, 0, 0.05)';
+    return theme.errorBg;
+  }};
+  border: 1px solid ${({ $online, $health }) => {
+    if (!$online) return theme.errorBorder;
+    if ($health === 'healthy') return 'rgba(0, 200, 83, 0.2)';
+    if ($health === 'degraded') return 'rgba(255, 152, 0, 0.2)';
+    return theme.errorBorder;
+  }};
+  border-radius: 8px;
+  padding: 16px;
+  height: 100%;
+`;
+
+const CompactServerCard = styled(ServerCard)`
+  padding: 12px;
+`;
+
+// ─── Table Styled Components ─────────────────────────────────────────
+
+const TableWrapper = styled.div`
+  border: 1px solid ${theme.border};
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+`;
+
+const StyledTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+`;
+
+const Th = styled.th`
+  text-align: left;
+  padding: 10px 16px;
+  color: ${theme.muted};
+  font-weight: 600;
+  font-size: 0.8125rem;
+  background: rgba(15, 23, 42, 0.6);
+  border-bottom: 1px solid ${theme.border};
+`;
+
+const Td = styled.td<{ $width?: string }>`
+  padding: 8px 16px;
+  color: ${theme.text};
+  border-bottom: 1px solid rgba(14, 165, 233, 0.08);
+  ${({ $width }) => $width && css`width: ${$width};`}
+`;
+
+const ThCell = styled(Td)`
+  font-weight: 600;
+  color: ${theme.muted};
+`;
+
+const Tr = styled.tr`
+  &:last-child td {
+    border-bottom: none;
+  }
+`;
+
+// ─── Accordion / Collapsible Styled Components ───────────────────────
+
+const CollapsibleWrapper = styled.div`
+  background: rgba(244, 67, 54, 0.05);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  overflow: hidden;
+`;
+
+const CollapsibleHeader = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: ${theme.error};
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: left;
+
+  &:hover {
+    background: rgba(244, 67, 54, 0.08);
+  }
+`;
+
+const CollapsibleChevron = styled.span<{ $open: boolean }>`
+  display: inline-flex;
+  transition: transform 0.2s ease;
+  transform: rotate(${({ $open }) => ($open ? '180deg' : '0deg')});
+`;
+
+const CollapsibleBody = styled.div<{ $open: boolean }>`
+  max-height: ${({ $open }) => ($open ? '500px' : '0')};
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  padding: ${({ $open }) => ($open ? '0 16px 16px' : '0 16px')};
+`;
+
+// ─── Alert Styled Components ─────────────────────────────────────────
+
+const AlertBox = styled.div<{ $severity: 'error' | 'warning' }>`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  border-left: 4px solid ${({ $severity }) =>
+    $severity === 'error' ? theme.error : theme.warning};
+  background: ${({ $severity }) =>
+    $severity === 'error' ? theme.errorBg : theme.warningBg};
+  color: ${({ $severity }) =>
+    $severity === 'error' ? '#fca5a5' : '#fcd34d'};
+  font-size: 0.875rem;
+  line-height: 1.5;
+`;
+
+// ─── Progress Bar Styled Components ──────────────────────────────────
+
+const ProgressTrack = styled.div`
+  width: 100%;
+  height: 10px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+`;
+
+const ProgressFill = styled.div<{ $value: number; $color: string }>`
+  height: 100%;
+  width: ${({ $value }) => $value}%;
+  border-radius: 5px;
+  background: ${({ $color }) => $color};
+  transition: width 0.4s ease;
+`;
+
+// ─── Component ───────────────────────────────────────────────────────
+
 /**
  * Component for monitoring MCP server health
  */
@@ -72,10 +365,10 @@ const McpMonitor: React.FC<McpMonitorProps> = ({
     workout: false,
     gamification: false
   });
-  
+
   // State for authentication status
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  
+
   // State for health data
   const [workoutHealth, setWorkoutHealth] = useState<McpServerHealthData>({
     status: 'offline',
@@ -85,7 +378,7 @@ const McpMonitor: React.FC<McpMonitorProps> = ({
     errors: [],
     recentRequests: 0
   });
-  
+
   const [gamificationHealth, setGamificationHealth] = useState<McpServerHealthData>({
     status: 'offline',
     latency: 0,
@@ -94,27 +387,31 @@ const McpMonitor: React.FC<McpMonitorProps> = ({
     errors: [],
     recentRequests: 0
   });
-  
+
   // State for refreshing
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  
+
+  // State for collapsible error panels
+  const [workoutErrorsOpen, setWorkoutErrorsOpen] = useState<boolean>(false);
+  const [gamificationErrorsOpen, setGamificationErrorsOpen] = useState<boolean>(false);
+
   // Check MCP status
   const checkStatus = useCallback(async () => {
     setRefreshing(true);
-    
+
     try {
       // Check server status
       const status = await checkMcpServersStatus();
-      
+
       // Update status
       setMcpStatus(status);
-      
+
       // Notify status change
       if (onStatusChange) {
         onStatusChange(status);
       }
-      
+
       // Update health data for workout MCP
       if (status.workout) {
         try {
@@ -127,11 +424,11 @@ const McpMonitor: React.FC<McpMonitorProps> = ({
               'Content-Type': 'application/json'
             },
             timeout: 5000
-          })
+          } as RequestInit)
             .then(async (response) => {
               const latency = Date.now() - startTime;
               const data = await response.json();
-              
+
               setWorkoutHealth({
                 status: 'healthy',
                 latency,
@@ -162,7 +459,7 @@ const McpMonitor: React.FC<McpMonitorProps> = ({
           errors: []
         }));
       }
-      
+
       // Update health data for gamification MCP
       if (status.gamification) {
         try {
@@ -175,11 +472,11 @@ const McpMonitor: React.FC<McpMonitorProps> = ({
               'Content-Type': 'application/json'
             },
             timeout: 5000
-          })
+          } as RequestInit)
             .then(async (response) => {
               const latency = Date.now() - startTime;
               const data = await response.json();
-              
+
               setGamificationHealth({
                 status: 'healthy',
                 latency,
@@ -210,11 +507,11 @@ const McpMonitor: React.FC<McpMonitorProps> = ({
           errors: []
         }));
       }
-      
+
       // Check authentication
       const authStatus = await isMcpAuthenticated();
       setIsAuthenticated(authStatus);
-      
+
       // Update last refresh time
       setLastRefresh(new Date());
     } catch (error) {
@@ -223,19 +520,19 @@ const McpMonitor: React.FC<McpMonitorProps> = ({
       setRefreshing(false);
     }
   }, [onStatusChange]);
-  
+
   // Initial check and set up auto-refresh
   useEffect(() => {
     // Initial check
     checkStatus();
-    
+
     // Set up auto-refresh
     let intervalId: NodeJS.Timeout | null = null;
-    
+
     if (autoRefresh) {
       intervalId = setInterval(checkStatus, refreshInterval);
     }
-    
+
     // Clean up
     return () => {
       if (intervalId) {
@@ -243,7 +540,7 @@ const McpMonitor: React.FC<McpMonitorProps> = ({
       }
     };
   }, [checkStatus, autoRefresh, refreshInterval]);
-  
+
   // Helper functions
   const getStatusColor = (status: 'healthy' | 'degraded' | 'offline') => {
     switch (status) {
@@ -257,7 +554,7 @@ const McpMonitor: React.FC<McpMonitorProps> = ({
         return '#f44336';
     }
   };
-  
+
   const getStatusIcon = (status: 'healthy' | 'degraded' | 'offline') => {
     switch (status) {
       case 'healthy':
@@ -270,549 +567,395 @@ const McpMonitor: React.FC<McpMonitorProps> = ({
         return <XCircle size={16} color={getStatusColor(status)} />;
     }
   };
-  
+
+  const getChipStatus = (online: boolean, health: 'healthy' | 'degraded' | 'offline'): 'success' | 'warning' | 'error' => {
+    if (!online) return 'error';
+    if (health === 'healthy') return 'success';
+    if (health === 'degraded') return 'warning';
+    return 'error';
+  };
+
+  const getLoadValue = (health: McpServerHealthData, workoutDefaults: boolean): number => {
+    if (health.status === 'healthy') return workoutDefaults ? 30 : 25;
+    if (health.status === 'degraded') return workoutDefaults ? 70 : 65;
+    return 100;
+  };
+
+  const getLoadLabel = (health: McpServerHealthData, workoutDefaults: boolean): string => {
+    if (health.status === 'healthy') return workoutDefaults ? '30%' : '25%';
+    if (health.status === 'degraded') return workoutDefaults ? '70%' : '65%';
+    return '100%';
+  };
+
   const formatTimeSinceLastCheck = () => {
     const elapsed = new Date().getTime() - lastRefresh.getTime();
     const seconds = Math.floor(elapsed / 1000);
-    
+
     if (seconds < 60) {
       return `${seconds} second${seconds !== 1 ? 's' : ''} ago`;
     }
-    
+
     const minutes = Math.floor(seconds / 60);
     return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
   };
-  
-  // Render compact variant
+
+  // ─── Compact Variant ─────────────────────────────────────────────
+
   if (variant === 'compact') {
     return (
-      <Paper elevation={2} sx={{ p: 2, borderRadius: 2 }}>
-        <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-          <Typography variant="h6">MCP Server Status</Typography>
-          <Button
-            size="small"
-            startIcon={<RefreshCw size={16} />}
-            onClick={checkStatus}
-            disabled={refreshing}
-          >
+      <CompactPanelWrapper>
+        <FlexRow $justify="space-between" $mb="16px">
+          <Heading6>MCP Server Status</Heading6>
+          <StyledButton $small onClick={checkStatus} disabled={refreshing}>
+            <RefreshCw size={16} className={refreshing ? 'spinning' : ''} />
             Refresh
-          </Button>
-        </Box>
-        
-        <Grid container spacing={2}>
+          </StyledButton>
+        </FlexRow>
+
+        <GridTwoCol>
           {/* Workout MCP */}
-          <Grid item xs={6}>
-            <Paper 
-              variant="outlined" 
-              sx={{ 
-                p: 1.5, 
-                bgcolor: mcpStatus.workout ? 'rgba(0, 200, 83, 0.1)' : 'rgba(244, 67, 54, 0.1)',
-                borderColor: mcpStatus.workout ? 'rgba(0, 200, 83, 0.3)' : 'rgba(244, 67, 54, 0.3)'
-              }}
-            >
-              <Box display="flex" alignItems="center" mb={1}>
-                <Server size={20} color={mcpStatus.workout ? '#00c853' : '#f44336'} />
-                <Typography variant="subtitle2" sx={{ ml: 1 }}>
-                  Workout MCP
-                </Typography>
-                <Chip
-                  label={mcpStatus.workout ? 'Online' : 'Offline'}
-                  size="small"
-                  color={mcpStatus.workout ? 'success' : 'error'}
-                  sx={{ ml: 'auto' }}
-                />
-              </Box>
-              
-              {mcpStatus.workout && (
-                <Box display="flex" alignItems="center" sx={{ mt: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Latency: {workoutHealth.latency}ms
-                  </Typography>
-                </Box>
-              )}
-            </Paper>
-          </Grid>
-          
+          <CompactServerCard $online={mcpStatus.workout}>
+            <FlexRow $mb="8px">
+              <Server size={20} color={mcpStatus.workout ? '#00c853' : '#f44336'} />
+              <Subtitle>Workout MCP</Subtitle>
+              <span style={{ marginLeft: 'auto' }}>
+                <StatusChip $status={mcpStatus.workout ? 'success' : 'error'}>
+                  {mcpStatus.workout ? 'Online' : 'Offline'}
+                </StatusChip>
+              </span>
+            </FlexRow>
+
+            {mcpStatus.workout && (
+              <FlexRow $mt="8px">
+                <CaptionText $muted>
+                  Latency: {workoutHealth.latency}ms
+                </CaptionText>
+              </FlexRow>
+            )}
+          </CompactServerCard>
+
           {/* Gamification MCP */}
-          <Grid item xs={6}>
-            <Paper 
-              variant="outlined" 
-              sx={{ 
-                p: 1.5, 
-                bgcolor: mcpStatus.gamification ? 'rgba(0, 200, 83, 0.1)' : 'rgba(244, 67, 54, 0.1)',
-                borderColor: mcpStatus.gamification ? 'rgba(0, 200, 83, 0.3)' : 'rgba(244, 67, 54, 0.3)'
-              }}
-            >
-              <Box display="flex" alignItems="center" mb={1}>
-                <Trophy size={20} color={mcpStatus.gamification ? '#00c853' : '#f44336'} />
-                <Typography variant="subtitle2" sx={{ ml: 1 }}>
-                  Gamification MCP
-                </Typography>
-                <Chip
-                  label={mcpStatus.gamification ? 'Online' : 'Offline'}
-                  size="small"
-                  color={mcpStatus.gamification ? 'success' : 'error'}
-                  sx={{ ml: 'auto' }}
-                />
-              </Box>
-              
-              {mcpStatus.gamification && (
-                <Box display="flex" alignItems="center" sx={{ mt: 1 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Latency: {gamificationHealth.latency}ms
-                  </Typography>
-                </Box>
-              )}
-            </Paper>
-          </Grid>
-        </Grid>
-        
-        <Box display="flex" alignItems="center" mt={2} justifyContent="space-between">
-          <Box display="flex" alignItems="center">
+          <CompactServerCard $online={mcpStatus.gamification}>
+            <FlexRow $mb="8px">
+              <Trophy size={20} color={mcpStatus.gamification ? '#00c853' : '#f44336'} />
+              <Subtitle>Gamification MCP</Subtitle>
+              <span style={{ marginLeft: 'auto' }}>
+                <StatusChip $status={mcpStatus.gamification ? 'success' : 'error'}>
+                  {mcpStatus.gamification ? 'Online' : 'Offline'}
+                </StatusChip>
+              </span>
+            </FlexRow>
+
+            {mcpStatus.gamification && (
+              <FlexRow $mt="8px">
+                <CaptionText $muted>
+                  Latency: {gamificationHealth.latency}ms
+                </CaptionText>
+              </FlexRow>
+            )}
+          </CompactServerCard>
+        </GridTwoCol>
+
+        <FlexRow $justify="space-between" $mt="16px">
+          <FlexRow $gap="4px">
             <Clock size={14} />
-            <Typography variant="caption" sx={{ ml: 0.5 }}>
-              Last checked: {formatTimeSinceLastCheck()}
-            </Typography>
-          </Box>
-          
-          <Chip
-            label={isAuthenticated ? 'Authenticated' : 'Not Authenticated'}
-            size="small"
-            color={isAuthenticated ? 'success' : 'warning'}
-          />
-        </Box>
-      </Paper>
+            <CaptionText>Last checked: {formatTimeSinceLastCheck()}</CaptionText>
+          </FlexRow>
+
+          <StatusChip $status={isAuthenticated ? 'success' : 'warning'}>
+            {isAuthenticated ? 'Authenticated' : 'Not Authenticated'}
+          </StatusChip>
+        </FlexRow>
+      </CompactPanelWrapper>
     );
   }
-  
-  // Render full variant
+
+  // ─── Full Variant ────────────────────────────────────────────────
+
   return (
-    <Paper elevation={2} sx={{ p: 3, borderRadius: 2 }}>
-      <Box display="flex" alignItems="center" justifyContent="space-between" mb={3}>
-        <Typography variant="h5">MCP Server Monitoring</Typography>
-        <Box>
-          <Chip
-            label={isAuthenticated ? 'Authenticated' : 'Not Authenticated'}
-            size="small"
-            color={isAuthenticated ? 'success' : 'warning'}
-            sx={{ mr: 2 }}
-          />
-          <Button
-            variant="outlined"
-            startIcon={<RefreshCw size={16} />}
-            onClick={checkStatus}
-            disabled={refreshing}
-          >
+    <PanelWrapper>
+      <FlexRow $justify="space-between" $mb="24px">
+        <Heading5>MCP Server Monitoring</Heading5>
+        <FlexRow $gap="16px">
+          <StatusChip $status={isAuthenticated ? 'success' : 'warning'}>
+            {isAuthenticated ? 'Authenticated' : 'Not Authenticated'}
+          </StatusChip>
+          <StyledButton $variant="outlined" onClick={checkStatus} disabled={refreshing}>
+            <RefreshCw size={16} className={refreshing ? 'spinning' : ''} />
             Refresh Status
-          </Button>
-        </Box>
-      </Box>
-      
+          </StyledButton>
+        </FlexRow>
+      </FlexRow>
+
       {/* Warning if both servers are offline */}
       {!mcpStatus.workout && !mcpStatus.gamification && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <AlertBox $severity="error">
+          <XCircle size={20} style={{ flexShrink: 0, marginTop: 2 }} />
           All MCP servers are offline. The application is running in fallback mode with limited functionality.
-        </Alert>
+        </AlertBox>
       )}
-      
+
       {/* Warning if only gamification server is offline */}
       {mcpStatus.workout && !mcpStatus.gamification && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
+        <AlertBox $severity="warning">
+          <AlertTriangle size={20} style={{ flexShrink: 0, marginTop: 2 }} />
           Gamification MCP server is offline. Basic functionality is available, but gamification features are limited.
-        </Alert>
+        </AlertBox>
       )}
-      
-      <Grid container spacing={3}>
+
+      <GridTwoColFull>
         {/* Workout MCP Server */}
-        <Grid item xs={12} md={6}>
-          <Paper 
-            variant="outlined" 
-            sx={{ 
-              p: 2, 
-              height: '100%',
-              bgcolor: mcpStatus.workout ? 
-                workoutHealth.status === 'healthy' ? 'rgba(0, 200, 83, 0.05)' : 
-                workoutHealth.status === 'degraded' ? 'rgba(255, 152, 0, 0.05)' : 'rgba(244, 67, 54, 0.05)'
-                : 'rgba(244, 67, 54, 0.05)',
-              borderColor: mcpStatus.workout ? 
-                workoutHealth.status === 'healthy' ? 'rgba(0, 200, 83, 0.2)' : 
-                workoutHealth.status === 'degraded' ? 'rgba(255, 152, 0, 0.2)' : 'rgba(244, 67, 54, 0.2)'
-                : 'rgba(244, 67, 54, 0.2)'
-            }}
-          >
-            <Box display="flex" alignItems="center" mb={2}>
-              <Server 
-                size={24} 
-                color={mcpStatus.workout ? 
-                  getStatusColor(workoutHealth.status) : '#f44336'
-                } 
-              />
-              <Typography variant="h6" sx={{ ml: 1 }}>
-                Workout MCP Server
-              </Typography>
-              <Chip
-                label={mcpStatus.workout ? workoutHealth.status : 'Offline'}
-                size="small"
-                color={
-                  mcpStatus.workout ? 
-                    workoutHealth.status === 'healthy' ? 'success' : 
-                    workoutHealth.status === 'degraded' ? 'warning' : 'error'
-                    : 'error'
+        <ServerCard $online={mcpStatus.workout} $health={workoutHealth.status}>
+          <FlexRow $mb="16px">
+            <Server
+              size={24}
+              color={mcpStatus.workout ? getStatusColor(workoutHealth.status) : '#f44336'}
+            />
+            <Heading6 style={{ marginLeft: 4 }}>Workout MCP Server</Heading6>
+            <span style={{ marginLeft: 'auto' }}>
+              <StatusChip $status={getChipStatus(mcpStatus.workout, workoutHealth.status)}>
+                {mcpStatus.workout
+                  ? getStatusIcon(workoutHealth.status)
+                  : <XCircle size={16} />
                 }
-                icon={
-                  mcpStatus.workout ? 
-                    getStatusIcon(workoutHealth.status) : 
-                    <XCircle size={16} />
-                }
-                sx={{ ml: 'auto' }}
-              />
-            </Box>
-            
-            <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-              <Table size="small">
-                <TableBody>
-                  <TableRow>
-                    <TableCell component="th" scope="row" sx={{ width: '40%' }}>
-                      Status
-                    </TableCell>
-                    <TableCell>
-                      {mcpStatus.workout ? workoutHealth.status : 'Offline'}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell component="th" scope="row">
-                      URL
-                    </TableCell>
-                    <TableCell>
-                      {MCP_CONFIG.WORKOUT_MCP_URL}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell component="th" scope="row">
-                      Last Check
-                    </TableCell>
-                    <TableCell>
-                      {workoutHealth.lastCheck.toLocaleTimeString()}
-                    </TableCell>
-                  </TableRow>
-                  {mcpStatus.workout && (
-                    <>
-                      <TableRow>
-                        <TableCell component="th" scope="row">
-                          Latency
-                        </TableCell>
-                        <TableCell>
-                          {workoutHealth.latency}ms
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">
-                          API Version
-                        </TableCell>
-                        <TableCell>
-                          {workoutHealth.apiVersion || 'Unknown'}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">
-                          Recent Requests
-                        </TableCell>
-                        <TableCell>
-                          {workoutHealth.recentRequests}
-                        </TableCell>
-                      </TableRow>
-                    </>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            
-            {workoutHealth.errors.length > 0 && (
-              <Accordion 
-                sx={{ 
-                  mb: 2,
-                  bgcolor: 'rgba(244, 67, 54, 0.05)',
-                  '&:before': { display: 'none' }
-                }}
-              >
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography color="error">
-                    {workoutHealth.errors.length} Error{workoutHealth.errors.length !== 1 ? 's' : ''}
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  {workoutHealth.errors.map((error, index) => (
-                    <Typography key={index} variant="body2" sx={{ mb: 1 }}>
-                      {error}
-                    </Typography>
-                  ))}
-                </AccordionDetails>
-              </Accordion>
-            )}
-            
-            {mcpStatus.workout && (
-              <Box>
-                <Typography variant="subtitle2" gutterBottom>
-                  Server Load
-                </Typography>
-                <Box display="flex" alignItems="center">
-                  <Box width="100%" mr={1}>
-                    <LinearProgress
-                      variant="determinate"
-                      value={
-                        workoutHealth.status === 'healthy' ? 30 :
-                        workoutHealth.status === 'degraded' ? 70 : 100
-                      }
-                      color={
-                        workoutHealth.status === 'healthy' ? 'success' :
-                        workoutHealth.status === 'degraded' ? 'warning' : 'error'
-                      }
-                      sx={{ height: 10, borderRadius: 5 }}
+                {mcpStatus.workout ? workoutHealth.status : 'Offline'}
+              </StatusChip>
+            </span>
+          </FlexRow>
+
+          <TableWrapper>
+            <StyledTable>
+              <tbody>
+                <Tr>
+                  <ThCell $width="40%">Status</ThCell>
+                  <Td>{mcpStatus.workout ? workoutHealth.status : 'Offline'}</Td>
+                </Tr>
+                <Tr>
+                  <ThCell>URL</ThCell>
+                  <Td>{MCP_CONFIG.WORKOUT_MCP_URL}</Td>
+                </Tr>
+                <Tr>
+                  <ThCell>Last Check</ThCell>
+                  <Td>{workoutHealth.lastCheck.toLocaleTimeString()}</Td>
+                </Tr>
+                {mcpStatus.workout && (
+                  <>
+                    <Tr>
+                      <ThCell>Latency</ThCell>
+                      <Td>{workoutHealth.latency}ms</Td>
+                    </Tr>
+                    <Tr>
+                      <ThCell>API Version</ThCell>
+                      <Td>{workoutHealth.apiVersion || 'Unknown'}</Td>
+                    </Tr>
+                    <Tr>
+                      <ThCell>Recent Requests</ThCell>
+                      <Td>{workoutHealth.recentRequests}</Td>
+                    </Tr>
+                  </>
+                )}
+              </tbody>
+            </StyledTable>
+          </TableWrapper>
+
+          {workoutHealth.errors.length > 0 && (
+            <CollapsibleWrapper>
+              <CollapsibleHeader onClick={() => setWorkoutErrorsOpen(prev => !prev)}>
+                <ErrorText>
+                  {workoutHealth.errors.length} Error{workoutHealth.errors.length !== 1 ? 's' : ''}
+                </ErrorText>
+                <CollapsibleChevron $open={workoutErrorsOpen}>
+                  <ChevronDown size={20} />
+                </CollapsibleChevron>
+              </CollapsibleHeader>
+              <CollapsibleBody $open={workoutErrorsOpen}>
+                {workoutHealth.errors.map((error, index) => (
+                  <BodyText key={index} style={{ marginBottom: 8 }}>
+                    {error}
+                  </BodyText>
+                ))}
+              </CollapsibleBody>
+            </CollapsibleWrapper>
+          )}
+
+          {mcpStatus.workout && (
+            <div>
+              <Subtitle style={{ display: 'block', marginBottom: 8 }}>Server Load</Subtitle>
+              <FlexRow $gap="8px">
+                <div style={{ flex: 1 }}>
+                  <ProgressTrack>
+                    <ProgressFill
+                      $value={getLoadValue(workoutHealth, true)}
+                      $color={getStatusColor(workoutHealth.status)}
                     />
-                  </Box>
-                  <Tooltip title="Current server load percentage">
-                    <Box minWidth={35}>
-                      <Typography variant="body2" color="text.secondary">
-                        {workoutHealth.status === 'healthy' ? '30%' :
-                        workoutHealth.status === 'degraded' ? '70%' : '100%'}
-                      </Typography>
-                    </Box>
-                  </Tooltip>
-                </Box>
-              </Box>
-            )}
-          </Paper>
-        </Grid>
-        
+                  </ProgressTrack>
+                </div>
+                <span title="Current server load percentage" style={{ minWidth: 35 }}>
+                  <BodyText $muted>{getLoadLabel(workoutHealth, true)}</BodyText>
+                </span>
+              </FlexRow>
+            </div>
+          )}
+        </ServerCard>
+
         {/* Gamification MCP Server */}
-        <Grid item xs={12} md={6}>
-          <Paper 
-            variant="outlined" 
-            sx={{ 
-              p: 2, 
-              height: '100%',
-              bgcolor: mcpStatus.gamification ? 
-                gamificationHealth.status === 'healthy' ? 'rgba(0, 200, 83, 0.05)' : 
-                gamificationHealth.status === 'degraded' ? 'rgba(255, 152, 0, 0.05)' : 'rgba(244, 67, 54, 0.05)'
-                : 'rgba(244, 67, 54, 0.05)',
-              borderColor: mcpStatus.gamification ? 
-                gamificationHealth.status === 'healthy' ? 'rgba(0, 200, 83, 0.2)' : 
-                gamificationHealth.status === 'degraded' ? 'rgba(255, 152, 0, 0.2)' : 'rgba(244, 67, 54, 0.2)'
-                : 'rgba(244, 67, 54, 0.2)'
-            }}
-          >
-            <Box display="flex" alignItems="center" mb={2}>
-              <Trophy 
-                size={24} 
-                color={mcpStatus.gamification ? 
-                  getStatusColor(gamificationHealth.status) : '#f44336'
-                } 
-              />
-              <Typography variant="h6" sx={{ ml: 1 }}>
-                Gamification MCP Server
-              </Typography>
-              <Chip
-                label={mcpStatus.gamification ? gamificationHealth.status : 'Offline'}
-                size="small"
-                color={
-                  mcpStatus.gamification ? 
-                    gamificationHealth.status === 'healthy' ? 'success' : 
-                    gamificationHealth.status === 'degraded' ? 'warning' : 'error'
-                    : 'error'
+        <ServerCard $online={mcpStatus.gamification} $health={gamificationHealth.status}>
+          <FlexRow $mb="16px">
+            <Trophy
+              size={24}
+              color={mcpStatus.gamification ? getStatusColor(gamificationHealth.status) : '#f44336'}
+            />
+            <Heading6 style={{ marginLeft: 4 }}>Gamification MCP Server</Heading6>
+            <span style={{ marginLeft: 'auto' }}>
+              <StatusChip $status={getChipStatus(mcpStatus.gamification, gamificationHealth.status)}>
+                {mcpStatus.gamification
+                  ? getStatusIcon(gamificationHealth.status)
+                  : <XCircle size={16} />
                 }
-                icon={
-                  mcpStatus.gamification ? 
-                    getStatusIcon(gamificationHealth.status) : 
-                    <XCircle size={16} />
-                }
-                sx={{ ml: 'auto' }}
-              />
-            </Box>
-            
-            <TableContainer component={Paper} variant="outlined" sx={{ mb: 2 }}>
-              <Table size="small">
-                <TableBody>
-                  <TableRow>
-                    <TableCell component="th" scope="row" sx={{ width: '40%' }}>
-                      Status
-                    </TableCell>
-                    <TableCell>
-                      {mcpStatus.gamification ? gamificationHealth.status : 'Offline'}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell component="th" scope="row">
-                      URL
-                    </TableCell>
-                    <TableCell>
-                      {MCP_CONFIG.GAMIFICATION_MCP_URL}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell component="th" scope="row">
-                      Last Check
-                    </TableCell>
-                    <TableCell>
-                      {gamificationHealth.lastCheck.toLocaleTimeString()}
-                    </TableCell>
-                  </TableRow>
-                  {mcpStatus.gamification && (
-                    <>
-                      <TableRow>
-                        <TableCell component="th" scope="row">
-                          Latency
-                        </TableCell>
-                        <TableCell>
-                          {gamificationHealth.latency}ms
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">
-                          API Version
-                        </TableCell>
-                        <TableCell>
-                          {gamificationHealth.apiVersion || 'Unknown'}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell component="th" scope="row">
-                          Recent Requests
-                        </TableCell>
-                        <TableCell>
-                          {gamificationHealth.recentRequests}
-                        </TableCell>
-                      </TableRow>
-                    </>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            
-            {gamificationHealth.errors.length > 0 && (
-              <Accordion 
-                sx={{ 
-                  mb: 2,
-                  bgcolor: 'rgba(244, 67, 54, 0.05)',
-                  '&:before': { display: 'none' }
-                }}
-              >
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                  <Typography color="error">
-                    {gamificationHealth.errors.length} Error{gamificationHealth.errors.length !== 1 ? 's' : ''}
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                  {gamificationHealth.errors.map((error, index) => (
-                    <Typography key={index} variant="body2" sx={{ mb: 1 }}>
-                      {error}
-                    </Typography>
-                  ))}
-                </AccordionDetails>
-              </Accordion>
-            )}
-            
-            {mcpStatus.gamification && (
-              <Box>
-                <Typography variant="subtitle2" gutterBottom>
-                  Server Load
-                </Typography>
-                <Box display="flex" alignItems="center">
-                  <Box width="100%" mr={1}>
-                    <LinearProgress
-                      variant="determinate"
-                      value={
-                        gamificationHealth.status === 'healthy' ? 25 :
-                        gamificationHealth.status === 'degraded' ? 65 : 100
-                      }
-                      color={
-                        gamificationHealth.status === 'healthy' ? 'success' :
-                        gamificationHealth.status === 'degraded' ? 'warning' : 'error'
-                      }
-                      sx={{ height: 10, borderRadius: 5 }}
+                {mcpStatus.gamification ? gamificationHealth.status : 'Offline'}
+              </StatusChip>
+            </span>
+          </FlexRow>
+
+          <TableWrapper>
+            <StyledTable>
+              <tbody>
+                <Tr>
+                  <ThCell $width="40%">Status</ThCell>
+                  <Td>{mcpStatus.gamification ? gamificationHealth.status : 'Offline'}</Td>
+                </Tr>
+                <Tr>
+                  <ThCell>URL</ThCell>
+                  <Td>{MCP_CONFIG.GAMIFICATION_MCP_URL}</Td>
+                </Tr>
+                <Tr>
+                  <ThCell>Last Check</ThCell>
+                  <Td>{gamificationHealth.lastCheck.toLocaleTimeString()}</Td>
+                </Tr>
+                {mcpStatus.gamification && (
+                  <>
+                    <Tr>
+                      <ThCell>Latency</ThCell>
+                      <Td>{gamificationHealth.latency}ms</Td>
+                    </Tr>
+                    <Tr>
+                      <ThCell>API Version</ThCell>
+                      <Td>{gamificationHealth.apiVersion || 'Unknown'}</Td>
+                    </Tr>
+                    <Tr>
+                      <ThCell>Recent Requests</ThCell>
+                      <Td>{gamificationHealth.recentRequests}</Td>
+                    </Tr>
+                  </>
+                )}
+              </tbody>
+            </StyledTable>
+          </TableWrapper>
+
+          {gamificationHealth.errors.length > 0 && (
+            <CollapsibleWrapper>
+              <CollapsibleHeader onClick={() => setGamificationErrorsOpen(prev => !prev)}>
+                <ErrorText>
+                  {gamificationHealth.errors.length} Error{gamificationHealth.errors.length !== 1 ? 's' : ''}
+                </ErrorText>
+                <CollapsibleChevron $open={gamificationErrorsOpen}>
+                  <ChevronDown size={20} />
+                </CollapsibleChevron>
+              </CollapsibleHeader>
+              <CollapsibleBody $open={gamificationErrorsOpen}>
+                {gamificationHealth.errors.map((error, index) => (
+                  <BodyText key={index} style={{ marginBottom: 8 }}>
+                    {error}
+                  </BodyText>
+                ))}
+              </CollapsibleBody>
+            </CollapsibleWrapper>
+          )}
+
+          {mcpStatus.gamification && (
+            <div>
+              <Subtitle style={{ display: 'block', marginBottom: 8 }}>Server Load</Subtitle>
+              <FlexRow $gap="8px">
+                <div style={{ flex: 1 }}>
+                  <ProgressTrack>
+                    <ProgressFill
+                      $value={getLoadValue(gamificationHealth, false)}
+                      $color={getStatusColor(gamificationHealth.status)}
                     />
-                  </Box>
-                  <Tooltip title="Current server load percentage">
-                    <Box minWidth={35}>
-                      <Typography variant="body2" color="text.secondary">
-                        {gamificationHealth.status === 'healthy' ? '25%' :
-                        gamificationHealth.status === 'degraded' ? '65%' : '100%'}
-                      </Typography>
-                    </Box>
-                  </Tooltip>
-                </Box>
-              </Box>
-            )}
-          </Paper>
-        </Grid>
-      </Grid>
-      
+                  </ProgressTrack>
+                </div>
+                <span title="Current server load percentage" style={{ minWidth: 35 }}>
+                  <BodyText $muted>{getLoadLabel(gamificationHealth, false)}</BodyText>
+                </span>
+              </FlexRow>
+            </div>
+          )}
+        </ServerCard>
+      </GridTwoColFull>
+
       {/* Activity Monitoring */}
-      <Box mt={3}>
-        <Typography variant="h6" gutterBottom>
-          <Activity size={20} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
+      <div style={{ marginTop: 24 }}>
+        <Heading6 style={{ marginBottom: 12 }}>
+          <Activity size={20} style={{ verticalAlign: 'middle', marginRight: 8 }} />
           Recent Activity
-        </Typography>
-        
-        <TableContainer component={Paper} variant="outlined">
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell>Server</TableCell>
-                <TableCell>Endpoint</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Latency</TableCell>
-                <TableCell>Timestamp</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
+        </Heading6>
+
+        <TableWrapper>
+          <StyledTable>
+            <thead>
+              <tr>
+                <Th>Server</Th>
+                <Th>Endpoint</Th>
+                <Th>Status</Th>
+                <Th>Latency</Th>
+                <Th>Timestamp</Th>
+              </tr>
+            </thead>
+            <tbody>
               {/* Mock activity data */}
-              <TableRow>
-                <TableCell>Workout MCP</TableCell>
-                <TableCell>/tools/GetWorkoutRecommendations</TableCell>
-                <TableCell>
-                  <Chip label="Success" size="small" color="success" />
-                </TableCell>
-                <TableCell>235ms</TableCell>
-                <TableCell>{new Date().toLocaleTimeString()}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Gamification MCP</TableCell>
-                <TableCell>/tools/GetAchievements</TableCell>
-                <TableCell>
-                  <Chip label="Success" size="small" color="success" />
-                </TableCell>
-                <TableCell>187ms</TableCell>
-                <TableCell>{new Date().toLocaleTimeString()}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>Workout MCP</TableCell>
-                <TableCell>/tools/LogWorkoutSession</TableCell>
-                <TableCell>
-                  <Chip label="Success" size="small" color="success" />
-                </TableCell>
-                <TableCell>312ms</TableCell>
-                <TableCell>{new Date(Date.now() - 120000).toLocaleTimeString()}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </Box>
-      
-      <Box display="flex" alignItems="center" justifyContent="space-between" mt={3}>
-        <Box display="flex" alignItems="center">
-          <Clock size={16} style={{ marginRight: '6px' }} />
-          <Typography variant="body2" color="text.secondary">
-            Last checked: {formatTimeSinceLastCheck()}
-          </Typography>
-        </Box>
-        
-        <Box>
-          <Typography variant="body2" color="text.secondary">
-            Auto-refresh: {autoRefresh ? `Every ${refreshInterval / 1000} seconds` : 'Disabled'}
-          </Typography>
-        </Box>
-      </Box>
-    </Paper>
+              <Tr>
+                <Td>Workout MCP</Td>
+                <Td>/tools/GetWorkoutRecommendations</Td>
+                <Td>
+                  <StatusChip $status="success">Success</StatusChip>
+                </Td>
+                <Td>235ms</Td>
+                <Td>{new Date().toLocaleTimeString()}</Td>
+              </Tr>
+              <Tr>
+                <Td>Gamification MCP</Td>
+                <Td>/tools/GetAchievements</Td>
+                <Td>
+                  <StatusChip $status="success">Success</StatusChip>
+                </Td>
+                <Td>187ms</Td>
+                <Td>{new Date().toLocaleTimeString()}</Td>
+              </Tr>
+              <Tr>
+                <Td>Workout MCP</Td>
+                <Td>/tools/LogWorkoutSession</Td>
+                <Td>
+                  <StatusChip $status="success">Success</StatusChip>
+                </Td>
+                <Td>312ms</Td>
+                <Td>{new Date(Date.now() - 120000).toLocaleTimeString()}</Td>
+              </Tr>
+            </tbody>
+          </StyledTable>
+        </TableWrapper>
+      </div>
+
+      <FlexRow $justify="space-between" $mt="24px">
+        <FlexRow $gap="6px">
+          <Clock size={16} />
+          <BodyText $muted>Last checked: {formatTimeSinceLastCheck()}</BodyText>
+        </FlexRow>
+
+        <BodyText $muted>
+          Auto-refresh: {autoRefresh ? `Every ${refreshInterval / 1000} seconds` : 'Disabled'}
+        </BodyText>
+      </FlexRow>
+    </PanelWrapper>
   );
 };
 
