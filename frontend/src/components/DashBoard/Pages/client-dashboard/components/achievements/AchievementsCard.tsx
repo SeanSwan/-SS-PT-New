@@ -93,7 +93,7 @@ const AchievementsCard: React.FC<AchievementsCardProps> = ({ achievements }) => 
   const unlockedCount = achievements.filter(a => a.unlocked).length;
 
   return (
-    <StyledCard component={motion.div} variants={itemVariants}>
+    <StyledCard as={motion.div} variants={itemVariants}>
       <CardHeader>
         <CardTitle>
           <Award size={22} />

@@ -60,7 +60,7 @@ const RecommendedExercises: React.FC<RecommendedExercisesProps> = ({
   onViewAll
 }) => {
   return (
-    <StyledCard component={motion.div} variants={itemVariants}>
+    <StyledCard as={motion.div} variants={itemVariants}>
       <CardHeader>
         <CardTitle>
           <Target size={22} />

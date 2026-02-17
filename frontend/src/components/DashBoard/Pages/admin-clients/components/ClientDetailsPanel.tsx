@@ -1,10 +1,10 @@
 /**
  * Client Details Panel - Comprehensive Client Profile Management
  * ===========================================================
- * 
+ *
  * Complete client profile view and management interface
  * Allows admins to view, edit, and manage all aspects of a client
- * 
+ *
  * FEATURES:
  * - Comprehensive client profile display
  * - Edit client information interface
@@ -18,78 +18,35 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import styled, { css, keyframes } from 'styled-components';
 import {
-  Box,
-  Typography,
-  Button,
-  IconButton,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Tabs,
-  Tab,
-  Grid,
-  Card,
-  CardContent,
-  Avatar,
-  Chip,
-  Divider,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Switch,
-  FormControlLabel,
-  Alert,
-  AlertTitle,
-  LinearProgress,
-  Paper,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  ListItemSecondary,
-  Badge,
-  Tooltip
-} from '@mui/material';
-
-// Icons
-import {
-  Close,
-  Edit,
+  X,
+  Pencil,
   Save,
-  Cancel,
-  Person,
-  FitnessCenter,
-  Schedule,
-  Payment,
-  Message,
+  XCircle,
+  User,
+  Dumbbell,
+  Clock,
+  CreditCard,
+  MessageSquare,
   TrendingUp,
-  Assignment,
+  ClipboardList,
   Phone,
-  Email,
-  Emergency,
-  Add,
-  Remove,
-  Visibility,
+  Mail,
+  ShieldAlert,
+  Plus,
+  Minus,
+  Eye,
   Download,
   Upload,
-  Warning,
+  AlertTriangle,
   CheckCircle,
-  AccessTime,
-  AttachMoney,
-  PhotoCamera,
-  Note,
+  Timer,
+  DollarSign,
+  Camera,
+  StickyNote,
   History
-} from '@mui/icons-material';
+} from 'lucide-react';
 
 // Services
 import { adminClientService } from '../../../../services/adminClientService';
@@ -98,7 +55,583 @@ import { useToast } from '../../../../hooks/use-toast';
 // P0: Billing & Sessions Card
 import BillingSessionsCard from './BillingSessionsCard';
 
+// ============================================================
+// Styled Components - Galaxy-Swan Theme
+// ============================================================
+
+const DialogHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #e2e8f0;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid rgba(14, 165, 233, 0.2);
+  padding: 16px 24px;
+`;
+
+const HeaderLeft = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const HeaderRight = styled.div`
+  display: flex;
+  gap: 8px;
+  align-items: center;
+`;
+
+const AvatarCircle = styled.div<{ $size?: number }>`
+  width: ${({ $size }) => $size || 40}px;
+  height: ${({ $size }) => $size || 40}px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0ea5e9, #7c3aed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: ${({ $size }) => ($size ? $size * 0.35 : 14)}px;
+  overflow: hidden;
+  flex-shrink: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+`;
+
+const HeaderTitle = styled.h6`
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #e2e8f0;
+`;
+
+const HeaderSubtitle = styled.p`
+  margin: 0;
+  font-size: 0.75rem;
+  color: rgba(226, 232, 240, 0.7);
+`;
+
+const ActionButton = styled.button<{ $variant?: 'contained' | 'outlined'; $color?: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  ${({ $variant, $color }) => {
+    if ($variant === 'contained') {
+      return css`
+        background: ${$color || 'linear-gradient(135deg, #0ea5e9, #0284c7)'};
+        color: white;
+        border: none;
+
+        &:hover {
+          opacity: 0.9;
+          transform: translateY(-1px);
+        }
+      `;
+    }
+    return css`
+      background: transparent;
+      color: #e2e8f0;
+      border: 1px solid rgba(14, 165, 233, 0.3);
+
+      &:hover {
+        border-color: rgba(14, 165, 233, 0.6);
+        background: rgba(14, 165, 233, 0.1);
+      }
+    `;
+  }}
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+const IconBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(14, 165, 233, 0.15);
+  }
+`;
+
+const SmallIconBtn = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(14, 165, 233, 0.15);
+  }
+`;
+
+const DialogBody = styled.div`
+  padding: 0;
+  background: rgba(15, 23, 42, 0.95);
+  overflow-y: auto;
+`;
+
+const AlertBox = styled.div<{ $severity?: 'error' | 'warning' | 'success' | 'info' }>`
+  margin: 16px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  ${({ $severity }) => {
+    switch ($severity) {
+      case 'error':
+        return css`
+          background: rgba(239, 68, 68, 0.15);
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          color: #fca5a5;
+        `;
+      case 'warning':
+        return css`
+          background: rgba(245, 158, 11, 0.15);
+          border: 1px solid rgba(245, 158, 11, 0.3);
+          color: #fcd34d;
+        `;
+      case 'success':
+        return css`
+          background: rgba(16, 185, 129, 0.15);
+          border: 1px solid rgba(16, 185, 129, 0.3);
+          color: #6ee7b7;
+        `;
+      default:
+        return css`
+          background: rgba(14, 165, 233, 0.15);
+          border: 1px solid rgba(14, 165, 233, 0.3);
+          color: #7dd3fc;
+        `;
+    }
+  }}
+`;
+
+const AlertTitleText = styled.span`
+  font-weight: 600;
+  font-size: 0.875rem;
+`;
+
+const progressAnimation = keyframes`
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+`;
+
+const ProgressBar = styled.div`
+  width: 100%;
+  height: 4px;
+  background: rgba(14, 165, 233, 0.1);
+  position: relative;
+  overflow: hidden;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, #0ea5e9, transparent);
+    animation: ${progressAnimation} 1.5s ease-in-out infinite;
+  }
+`;
+
+const TabBar = styled.div`
+  display: flex;
+  border-bottom: 1px solid rgba(14, 165, 233, 0.2);
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
+const TabButton = styled.button<{ $active?: boolean }>`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 16px;
+  min-height: 44px;
+  min-width: 44px;
+  border: none;
+  background: transparent;
+  color: ${({ $active }) => ($active ? '#0ea5e9' : 'rgba(226, 232, 240, 0.7)')};
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  font-weight: ${({ $active }) => ($active ? 600 : 400)};
+  transition: all 0.2s ease;
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: ${({ $active }) => ($active ? '#0ea5e9' : 'transparent')};
+    transition: background 0.2s ease;
+  }
+
+  &:hover {
+    color: #0ea5e9;
+    background: rgba(14, 165, 233, 0.05);
+  }
+`;
+
+const TabPanelWrapper = styled.div``;
+
+const SectionPadding = styled.div`
+  padding: 24px;
+`;
+
+const GridContainer = styled.div<{ $columns?: string; $gap?: number }>`
+  display: grid;
+  grid-template-columns: ${({ $columns }) => $columns || '1fr'};
+  gap: ${({ $gap }) => $gap || 24}px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const GridItem = styled.div<{ $span?: number }>`
+  ${({ $span }) =>
+    $span &&
+    css`
+      grid-column: span ${$span};
+
+      @media (max-width: 768px) {
+        grid-column: span 1;
+      }
+    `}
+`;
+
+const GlassCard = styled.div`
+  background: rgba(71, 85, 105, 0.5);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+`;
+
+const CardBody = styled.div`
+  padding: 24px;
+`;
+
+const CenteredCardBody = styled(CardBody)`
+  text-align: center;
+`;
+
+const SectionTitle = styled.h6`
+  margin: 0 0 24px 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #e2e8f0;
+`;
+
+const BodyText = styled.p`
+  margin: 0;
+  font-size: 0.875rem;
+  color: rgba(226, 232, 240, 0.7);
+`;
+
+const HeadingText = styled.h5`
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 4px;
+`;
+
+const StatusChip = styled.span<{ $status?: 'success' | 'error' | 'info' | 'warning' | 'default' }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  min-height: 28px;
+
+  ${({ $status }) => {
+    switch ($status) {
+      case 'success':
+        return css`
+          background: rgba(16, 185, 129, 0.2);
+          color: #6ee7b7;
+          border: 1px solid rgba(16, 185, 129, 0.3);
+        `;
+      case 'error':
+        return css`
+          background: rgba(239, 68, 68, 0.2);
+          color: #fca5a5;
+          border: 1px solid rgba(239, 68, 68, 0.3);
+        `;
+      case 'info':
+        return css`
+          background: rgba(14, 165, 233, 0.2);
+          color: #7dd3fc;
+          border: 1px solid rgba(14, 165, 233, 0.3);
+        `;
+      case 'warning':
+        return css`
+          background: rgba(245, 158, 11, 0.2);
+          color: #fcd34d;
+          border: 1px solid rgba(245, 158, 11, 0.3);
+        `;
+      default:
+        return css`
+          background: rgba(100, 116, 139, 0.3);
+          color: #cbd5e1;
+          border: 1px solid rgba(100, 116, 139, 0.3);
+        `;
+    }
+  }}
+`;
+
+const FormField = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const FieldLabel = styled.label`
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(226, 232, 240, 0.7);
+`;
+
+const TextInput = styled.input`
+  width: 100%;
+  padding: 10px 12px;
+  min-height: 44px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &::placeholder {
+    color: rgba(226, 232, 240, 0.4);
+  }
+`;
+
+const TextArea = styled.textarea`
+  width: 100%;
+  padding: 10px 12px;
+  min-height: 80px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &::placeholder {
+    color: rgba(226, 232, 240, 0.4);
+  }
+`;
+
+const SelectInput = styled.select`
+  width: 100%;
+  padding: 10px 12px;
+  min-height: 44px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+  appearance: auto;
+
+  &:focus {
+    outline: none;
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.15);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  option {
+    background: #0f172a;
+    color: #e2e8f0;
+  }
+`;
+
+const SwitchLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  cursor: pointer;
+  min-height: 44px;
+`;
+
+const HiddenCheckbox = styled.input.attrs({ type: 'checkbox' })`
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+`;
+
+const SwitchTrack = styled.span<{ $checked?: boolean }>`
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: ${({ $checked }) =>
+    $checked ? 'rgba(14, 165, 233, 0.6)' : 'rgba(100, 116, 139, 0.4)'};
+  border-radius: 12px;
+  transition: background 0.2s ease;
+  cursor: pointer;
+  flex-shrink: 0;
+`;
+
+const SwitchThumb = styled.span<{ $checked?: boolean }>`
+  position: absolute;
+  top: 2px;
+  left: ${({ $checked }) => ($checked ? '22px' : '2px')};
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: left 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+`;
+
+const Divider = styled.hr`
+  border: none;
+  border-top: 1px solid rgba(14, 165, 233, 0.15);
+  margin: 16px 0;
+`;
+
+const StyledTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const TableHeader = styled.thead``;
+
+const TableHeaderCell = styled.th`
+  padding: 12px 16px;
+  text-align: left;
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-bottom: 1px solid rgba(14, 165, 233, 0.2);
+`;
+
+const TableBody = styled.tbody``;
+
+const TableRow = styled.tr`
+  &:hover {
+    background: rgba(14, 165, 233, 0.05);
+  }
+`;
+
+const TableCell = styled.td<{ $align?: string }>`
+  padding: 12px 16px;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  border-bottom: 1px solid rgba(14, 165, 233, 0.1);
+  text-align: ${({ $align }) => $align || 'left'};
+`;
+
+const FlexRow = styled.div<{ $gap?: number; $justify?: string; $align?: string; $wrap?: boolean }>`
+  display: flex;
+  gap: ${({ $gap }) => $gap || 8}px;
+  justify-content: ${({ $justify }) => $justify || 'flex-start'};
+  align-items: ${({ $align }) => $align || 'stretch'};
+  flex-wrap: ${({ $wrap }) => ($wrap ? 'wrap' : 'nowrap')};
+`;
+
+const FlexCol = styled.div<{ $gap?: number }>`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ $gap }) => $gap || 8}px;
+`;
+
+const TableWrapper = styled.div`
+  overflow-x: auto;
+`;
+
+// ============================================================
 // Types
+// ============================================================
+
 interface Client {
   id: number;
   firstName: string;
@@ -148,7 +681,7 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index, ...other })
       aria-labelledby={`client-tab-${index}`}
       {...other}
     >
-      {value === index && <Box>{children}</Box>}
+      {value === index && <TabPanelWrapper>{children}</TabPanelWrapper>}
     </div>
   );
 };
@@ -162,7 +695,7 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
   onUpdate
 }) => {
   const { toast } = useToast();
-  
+
   // State Management
   const [activeTab, setActiveTab] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
@@ -173,7 +706,7 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
   const [payments, setPayments] = useState([]);
   const [progress, setProgress] = useState([]);
   const [notes, setNotes] = useState([]);
-  
+
   // Data fetching
   const fetchClientData = useCallback(async () => {
     setLoading(true);
@@ -182,7 +715,7 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
         adminClientService.getClientSessions(client.id),
         adminClientService.getClientPayments(client.id)
       ]);
-      
+
       setSessions(sessionsData || []);
       setPayments(paymentsData || []);
     } catch (err) {
@@ -191,27 +724,27 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
       setLoading(false);
     }
   }, [client.id]);
-  
+
   useEffect(() => {
     fetchClientData();
   }, [fetchClientData]);
-  
+
   // Event Handlers
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (newValue: number) => {
     setActiveTab(newValue);
   };
-  
+
   const handleEditToggle = () => {
     if (isEditing) {
       setEditData(client); // Reset changes
     }
     setIsEditing(!isEditing);
   };
-  
+
   const handleSave = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const updatedClient = await adminClientService.updateClient(client.id, editData);
       onUpdate(updatedClient);
@@ -232,11 +765,11 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
       setLoading(false);
     }
   };
-  
+
   const handleEditDataChange = (field: string, value: any) => {
     setEditData(prev => ({ ...prev, [field]: value }));
   };
-  
+
   const handleAddSessions = async (sessionCount: number) => {
     try {
       await adminClientService.addSessions(client.id, sessionCount);
@@ -255,20 +788,20 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
       });
     }
   };
-  
+
   const calculateAge = (dateOfBirth: string) => {
     const today = new Date();
     const birthDate = new Date(dateOfBirth);
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
-    
+
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age--;
     }
-    
+
     return age;
   };
-  
+
   // Callback for billing card updates
   const handleBillingUpdate = useCallback(() => {
     fetchClientData();
@@ -276,673 +809,533 @@ const ClientDetailsPanel: React.FC<ClientDetailsPanelProps> = ({
 
   // Render Tab Content
   const renderPersonalInfo = () => (
-    <Grid container spacing={3} sx={{ p: 3 }}>
-      {/* P0: Billing & Sessions Card - Prominent at top */}
-      <Grid item xs={12}>
-        <BillingSessionsCard
-          clientId={client.id}
-          clientName={`${client.firstName} ${client.lastName}`}
-          onUpdate={handleBillingUpdate}
-        />
-      </Grid>
+    <SectionPadding>
+      <GridContainer $columns="1fr" $gap={24}>
+        {/* P0: Billing & Sessions Card - Prominent at top */}
+        <GridItem>
+          <BillingSessionsCard
+            clientId={client.id}
+            clientName={`${client.firstName} ${client.lastName}`}
+            onUpdate={handleBillingUpdate}
+          />
+        </GridItem>
+      </GridContainer>
 
-      <Grid item xs={12} md={4}>
-        <Card sx={{ background: 'rgba(71, 85, 105, 0.5)', textAlign: 'center' }}>
-          <CardContent>
-            <Avatar
-              src={editData.photo}
-              sx={{ width: 120, height: 120, margin: '0 auto 16px' }}
-            >
-              {editData.firstName[0]}{editData.lastName[0]}
-            </Avatar>
-            <Typography variant="h5" sx={{ color: 'white', mb: 1 }}>
+      <GridContainer $columns="1fr 2fr" $gap={24} style={{ marginTop: 24 }}>
+        <GlassCard>
+          <CenteredCardBody>
+            <AvatarCircle $size={120} style={{ margin: '0 auto 16px' }}>
+              {editData.photo ? (
+                <img src={editData.photo} alt={`${editData.firstName} ${editData.lastName}`} />
+              ) : (
+                <>{editData.firstName[0]}{editData.lastName[0]}</>
+              )}
+            </AvatarCircle>
+            <HeadingText>
               {editData.firstName} {editData.lastName}
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 2 }}>
+            </HeadingText>
+            <BodyText style={{ marginBottom: 16 }}>
               {editData.dateOfBirth && `Age: ${calculateAge(editData.dateOfBirth)}`}
-            </Typography>
-            <Chip
-              label={editData.isActive ? 'Active' : 'Inactive'}
-              color={editData.isActive ? 'success' : 'error'}
-              sx={{ mb: 2 }}
-            />
+            </BodyText>
+            <div style={{ marginBottom: 16 }}>
+              <StatusChip $status={editData.isActive ? 'success' : 'error'}>
+                {editData.isActive ? 'Active' : 'Inactive'}
+              </StatusChip>
+            </div>
             {isEditing && (
-              <Button
-                variant="outlined"
-                startIcon={<PhotoCamera />}
-                sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.3)' }}
-              >
+              <ActionButton $variant="outlined">
+                <Camera size={16} />
                 Update Photo
-              </Button>
+              </ActionButton>
             )}
-          </CardContent>
-        </Card>
-      </Grid>
-      
-      <Grid item xs={12} md={8}>
-        <Card sx={{ background: 'rgba(71, 85, 105, 0.5)' }}>
-          <CardContent>
-            <Typography variant="h6" sx={{ color: 'white', mb: 3 }}>
-              Personal Information
-            </Typography>
-            
-            <Grid container spacing={3}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="First Name"
+          </CenteredCardBody>
+        </GlassCard>
+
+        <GlassCard>
+          <CardBody>
+            <SectionTitle>Personal Information</SectionTitle>
+
+            <GridContainer $columns="1fr 1fr" $gap={16}>
+              <FormField>
+                <FieldLabel>First Name</FieldLabel>
+                <TextInput
                   value={editData.firstName}
                   onChange={(e) => handleEditDataChange('firstName', e.target.value)}
                   disabled={!isEditing}
-                  sx={{
-                    '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                    '& .MuiOutlinedInput-root': {
-                      color: 'white',
-                      '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' }
-                    }
-                  }}
                 />
-              </Grid>
-              
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Last Name"
+              </FormField>
+
+              <FormField>
+                <FieldLabel>Last Name</FieldLabel>
+                <TextInput
                   value={editData.lastName}
                   onChange={(e) => handleEditDataChange('lastName', e.target.value)}
                   disabled={!isEditing}
-                  sx={{
-                    '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                    '& .MuiOutlinedInput-root': {
-                      color: 'white',
-                      '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' }
-                    }
-                  }}
                 />
-              </Grid>
-              
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Email"
+              </FormField>
+
+              <FormField>
+                <FieldLabel>Email</FieldLabel>
+                <TextInput
                   type="email"
                   value={editData.email}
                   onChange={(e) => handleEditDataChange('email', e.target.value)}
                   disabled={!isEditing}
-                  sx={{
-                    '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                    '& .MuiOutlinedInput-root': {
-                      color: 'white',
-                      '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' }
-                    }
-                  }}
                 />
-              </Grid>
-              
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Phone"
+              </FormField>
+
+              <FormField>
+                <FieldLabel>Phone</FieldLabel>
+                <TextInput
                   value={editData.phone || ''}
                   onChange={(e) => handleEditDataChange('phone', e.target.value)}
                   disabled={!isEditing}
-                  sx={{
-                    '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                    '& .MuiOutlinedInput-root': {
-                      color: 'white',
-                      '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' }
-                    }
-                  }}
                 />
-              </Grid>
-              
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Date of Birth"
+              </FormField>
+
+              <FormField>
+                <FieldLabel>Date of Birth</FieldLabel>
+                <TextInput
                   type="date"
                   value={editData.dateOfBirth || ''}
                   onChange={(e) => handleEditDataChange('dateOfBirth', e.target.value)}
                   disabled={!isEditing}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{
-                    '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                    '& .MuiOutlinedInput-root': {
-                      color: 'white',
-                      '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' }
-                    }
-                  }}
                 />
-              </Grid>
-              
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth disabled={!isEditing}>
-                  <InputLabel sx={{ color: 'rgba(255,255,255,0.7)' }}>Gender</InputLabel>
-                  <Select
-                    value={editData.gender || ''}
-                    onChange={(e) => handleEditDataChange('gender', e.target.value)}
-                    label="Gender"
-                    sx={{
-                      color: 'white',
-                      '& .MuiOutlinedInput-notchedOutline': {
-                        borderColor: 'rgba(255,255,255,0.3)'
-                      }
-                    }}
-                  >
-                    <MenuItem value="male">Male</MenuItem>
-                    <MenuItem value="female">Female</MenuItem>
-                    <MenuItem value="other">Other</MenuItem>
-                    <MenuItem value="prefer-not-to-say">Prefer not to say</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Emergency Contact"
-                  value={editData.emergencyContact || ''}
-                  onChange={(e) => handleEditDataChange('emergencyContact', e.target.value)}
+              </FormField>
+
+              <FormField>
+                <FieldLabel>Gender</FieldLabel>
+                <SelectInput
+                  value={editData.gender || ''}
+                  onChange={(e) => handleEditDataChange('gender', e.target.value)}
                   disabled={!isEditing}
-                  multiline
-                  rows={2}
-                  sx={{
-                    '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                    '& .MuiOutlinedInput-root': {
-                      color: 'white',
-                      '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' }
-                    }
-                  }}
-                />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={editData.isActive}
-                      onChange={(e) => handleEditDataChange('isActive', e.target.checked)}
-                      disabled={!isEditing}
-                    />
-                  }
-                  label="Active Client"
-                  sx={{ color: 'white' }}
-                />
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
+                >
+                  <option value="">Select...</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                  <option value="prefer-not-to-say">Prefer not to say</option>
+                </SelectInput>
+              </FormField>
+
+              <GridItem $span={2}>
+                <FormField>
+                  <FieldLabel>Emergency Contact</FieldLabel>
+                  <TextArea
+                    value={editData.emergencyContact || ''}
+                    onChange={(e) => handleEditDataChange('emergencyContact', e.target.value)}
+                    disabled={!isEditing}
+                    rows={2}
+                  />
+                </FormField>
+              </GridItem>
+
+              <GridItem $span={2}>
+                <SwitchLabel>
+                  <HiddenCheckbox
+                    checked={editData.isActive}
+                    onChange={(e) => handleEditDataChange('isActive', e.target.checked)}
+                    disabled={!isEditing}
+                  />
+                  <SwitchTrack $checked={editData.isActive}>
+                    <SwitchThumb $checked={editData.isActive} />
+                  </SwitchTrack>
+                  Active Client
+                </SwitchLabel>
+              </GridItem>
+            </GridContainer>
+          </CardBody>
+        </GlassCard>
+      </GridContainer>
+    </SectionPadding>
   );
-  
+
   const renderHealthFitness = () => (
-    <Grid container spacing={3} sx={{ p: 3 }}>
-      <Grid item xs={12} md={6}>
-        <Card sx={{ background: 'rgba(71, 85, 105, 0.5)' }}>
-          <CardContent>
-            <Typography variant="h6" sx={{ color: 'white', mb: 3 }}>
-              Physical Measurements
-            </Typography>
-            
-            <Grid container spacing={2}>
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Height (inches)"
+    <SectionPadding>
+      <GridContainer $columns="1fr 1fr" $gap={24}>
+        <GlassCard>
+          <CardBody>
+            <SectionTitle>Physical Measurements</SectionTitle>
+
+            <GridContainer $columns="1fr 1fr" $gap={16}>
+              <FormField>
+                <FieldLabel>Height (inches)</FieldLabel>
+                <TextInput
                   type="number"
                   value={editData.height || ''}
                   onChange={(e) => handleEditDataChange('height', parseFloat(e.target.value))}
                   disabled={!isEditing}
-                  sx={{
-                    '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                    '& .MuiOutlinedInput-root': {
-                      color: 'white',
-                      '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' }
-                    }
-                  }}
                 />
-              </Grid>
-              
-              <Grid item xs={6}>
-                <TextField
-                  fullWidth
-                  label="Weight (lbs)"
+              </FormField>
+
+              <FormField>
+                <FieldLabel>Weight (lbs)</FieldLabel>
+                <TextInput
                   type="number"
                   value={editData.weight || ''}
                   onChange={(e) => handleEditDataChange('weight', parseFloat(e.target.value))}
                   disabled={!isEditing}
-                  sx={{
-                    '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                    '& .MuiOutlinedInput-root': {
-                      color: 'white',
-                      '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' }
-                    }
-                  }}
                 />
-              </Grid>
-              
-              <Grid item xs={12}>
+              </FormField>
+
+              <GridItem $span={2}>
                 {editData.height && editData.weight && (
-                  <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+                  <BodyText>
                     BMI: {(editData.weight / Math.pow(editData.height / 12, 2) * 703).toFixed(1)}
-                  </Typography>
+                  </BodyText>
                 )}
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
-      </Grid>
-      
-      <Grid item xs={12} md={6}>
-        <Card sx={{ background: 'rgba(71, 85, 105, 0.5)' }}>
-          <CardContent>
-            <Typography variant="h6" sx={{ color: 'white', mb: 3 }}>
-              Fitness Goals & Experience
-            </Typography>
-            
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Primary Fitness Goal"
+              </GridItem>
+            </GridContainer>
+          </CardBody>
+        </GlassCard>
+
+        <GlassCard>
+          <CardBody>
+            <SectionTitle>Fitness Goals &amp; Experience</SectionTitle>
+
+            <FlexCol $gap={16}>
+              <FormField>
+                <FieldLabel>Primary Fitness Goal</FieldLabel>
+                <TextInput
                   value={editData.fitnessGoal || ''}
                   onChange={(e) => handleEditDataChange('fitnessGoal', e.target.value)}
                   disabled={!isEditing}
-                  sx={{
-                    '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                    '& .MuiOutlinedInput-root': {
-                      color: 'white',
-                      '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' }
-                    }
-                  }}
                 />
-              </Grid>
-              
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Training Experience"
+              </FormField>
+
+              <FormField>
+                <FieldLabel>Training Experience</FieldLabel>
+                <TextInput
                   value={editData.trainingExperience || ''}
                   onChange={(e) => handleEditDataChange('trainingExperience', e.target.value)}
                   disabled={!isEditing}
-                  sx={{
-                    '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                    '& .MuiOutlinedInput-root': {
-                      color: 'white',
-                      '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' }
-                    }
-                  }}
                 />
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
-      </Grid>
-      
-      <Grid item xs={12}>
-        <Card sx={{ background: 'rgba(71, 85, 105, 0.5)' }}>
-          <CardContent>
-            <Typography variant="h6" sx={{ color: 'white', mb: 3 }}>
-              Health Concerns & Limitations
-            </Typography>
-            
-            <TextField
-              fullWidth
-              label="Health Concerns"
-              value={editData.healthConcerns || ''}
-              onChange={(e) => handleEditDataChange('healthConcerns', e.target.value)}
-              disabled={!isEditing}
-              multiline
-              rows={4}
-              placeholder="Any injuries, medical conditions, or physical limitations..."
-              sx={{
-                '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.7)' },
-                '& .MuiOutlinedInput-root': {
-                  color: 'white',
-                  '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' }
-                }
-              }}
-            />
-          </CardContent>
-        </Card>
-      </Grid>
-    </Grid>
+              </FormField>
+            </FlexCol>
+          </CardBody>
+        </GlassCard>
+      </GridContainer>
+
+      <div style={{ marginTop: 24 }}>
+        <GlassCard>
+          <CardBody>
+            <SectionTitle>Health Concerns &amp; Limitations</SectionTitle>
+
+            <FormField>
+              <FieldLabel>Health Concerns</FieldLabel>
+              <TextArea
+                value={editData.healthConcerns || ''}
+                onChange={(e) => handleEditDataChange('healthConcerns', e.target.value)}
+                disabled={!isEditing}
+                rows={4}
+                placeholder="Any injuries, medical conditions, or physical limitations..."
+              />
+            </FormField>
+          </CardBody>
+        </GlassCard>
+      </div>
+    </SectionPadding>
   );
-  
+
   const renderSessions = () => (
-    <Box sx={{ p: 3 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-        <Typography variant="h6" sx={{ color: 'white' }}>
-          Session Management
-        </Typography>
-        <Box display="flex" gap={2}>
-          <Chip
-            label={`${client.availableSessions} Available`}
-            color={client.availableSessions > 0 ? 'success' : 'error'}
-          />
-          <Button
-            variant="contained"
-            startIcon={<Add />}
+    <SectionPadding>
+      <FlexRow $justify="space-between" $align="center" style={{ marginBottom: 24 }}>
+        <SectionTitle style={{ marginBottom: 0 }}>Session Management</SectionTitle>
+        <FlexRow $gap={12} $align="center">
+          <StatusChip $status={client.availableSessions > 0 ? 'success' : 'error'}>
+            {client.availableSessions} Available
+          </StatusChip>
+          <ActionButton
+            $variant="contained"
+            $color="linear-gradient(135deg, #3b82f6, #1d4ed8)"
             onClick={() => handleAddSessions(1)}
-            sx={{ background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)' }}
           >
+            <Plus size={16} />
             Add Sessions
-          </Button>
-        </Box>
-      </Box>
-      
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <Paper sx={{ background: 'rgba(71, 85, 105, 0.5)' }}>
-            <TableContainer>
-              <Table>
-                <TableHead>
+          </ActionButton>
+        </FlexRow>
+      </FlexRow>
+
+      <GridContainer $columns="2fr 1fr" $gap={24}>
+        <GlassCard>
+          <TableWrapper>
+            <StyledTable>
+              <TableHeader>
+                <tr>
+                  <TableHeaderCell>Date</TableHeaderCell>
+                  <TableHeaderCell>Trainer</TableHeaderCell>
+                  <TableHeaderCell>Status</TableHeaderCell>
+                  <TableHeaderCell>Duration</TableHeaderCell>
+                  <TableHeaderCell>Actions</TableHeaderCell>
+                </tr>
+              </TableHeader>
+              <TableBody>
+                {sessions.length === 0 ? (
                   <TableRow>
-                    <TableCell sx={{ color: 'white', fontWeight: 600 }}>Date</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600 }}>Trainer</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600 }}>Status</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600 }}>Duration</TableCell>
-                    <TableCell sx={{ color: 'white', fontWeight: 600 }}>Actions</TableCell>
+                    <TableCell colSpan={5} $align="center">
+                      <BodyText>No sessions found</BodyText>
+                    </TableCell>
                   </TableRow>
-                </TableHead>
-                <TableBody>
-                  {sessions.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} sx={{ textAlign: 'center', color: 'rgba(255,255,255,0.7)' }}>
-                        No sessions found
+                ) : (
+                  sessions.map((session: any) => (
+                    <TableRow key={session.id}>
+                      <TableCell>
+                        {new Date(session.sessionDate).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        {session.trainer ? `${session.trainer.firstName} ${session.trainer.lastName}` : 'Unassigned'}
+                      </TableCell>
+                      <TableCell>
+                        <StatusChip
+                          $status={
+                            session.status === 'completed' ? 'success' :
+                            session.status === 'scheduled' ? 'info' :
+                            session.status === 'cancelled' ? 'error' : 'default'
+                          }
+                        >
+                          {session.status}
+                        </StatusChip>
+                      </TableCell>
+                      <TableCell>
+                        {session.duration || 60} min
+                      </TableCell>
+                      <TableCell>
+                        <SmallIconBtn>
+                          <Eye size={16} />
+                        </SmallIconBtn>
                       </TableCell>
                     </TableRow>
-                  ) : (
-                    sessions.map((session: any) => (
-                      <TableRow key={session.id}>
-                        <TableCell sx={{ color: 'white' }}>
-                          {new Date(session.sessionDate).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell sx={{ color: 'white' }}>
-                          {session.trainer ? `${session.trainer.firstName} ${session.trainer.lastName}` : 'Unassigned'}
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            label={session.status}
-                            color={
-                              session.status === 'completed' ? 'success' :
-                              session.status === 'scheduled' ? 'info' :
-                              session.status === 'cancelled' ? 'error' : 'default'
-                            }
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell sx={{ color: 'white' }}>
-                          {session.duration || 60} min
-                        </TableCell>
-                        <TableCell>
-                          <IconButton size="small" sx={{ color: 'white' }}>
-                            <Visibility />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-        </Grid>
-        
-        <Grid item xs={12} md={4}>
-          <Card sx={{ background: 'rgba(71, 85, 105, 0.5)' }}>
-            <CardContent>
-              <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
-                Session Statistics
-              </Typography>
-              
-              <Box mb={2}>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                  Total Sessions: {sessions.length}
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                  Completed: {sessions.filter((s: any) => s.status === 'completed').length}
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-                  Upcoming: {sessions.filter((s: any) => s.status === 'scheduled').length}
-                </Typography>
-              </Box>
-              
-              <Divider sx={{ my: 2, backgroundColor: 'rgba(255,255,255,0.1)' }} />
-              
-              <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', mb: 1 }}>
-                Session Package Actions
-              </Typography>
-              
-              <Box display="flex" gap={1} flexDirection="column">
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<Add />}
-                  onClick={() => handleAddSessions(5)}
-                  sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.3)' }}
-                >
-                  Add 5 Sessions
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<Add />}
-                  onClick={() => handleAddSessions(10)}
-                  sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.3)' }}
-                >
-                  Add 10 Sessions
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </Box>
+                  ))
+                )}
+              </TableBody>
+            </StyledTable>
+          </TableWrapper>
+        </GlassCard>
+
+        <GlassCard>
+          <CardBody>
+            <SectionTitle style={{ marginBottom: 16 }}>Session Statistics</SectionTitle>
+
+            <div style={{ marginBottom: 16 }}>
+              <BodyText>Total Sessions: {sessions.length}</BodyText>
+              <BodyText>Completed: {sessions.filter((s: any) => s.status === 'completed').length}</BodyText>
+              <BodyText>Upcoming: {sessions.filter((s: any) => s.status === 'scheduled').length}</BodyText>
+            </div>
+
+            <Divider />
+
+            <BodyText style={{ marginBottom: 8 }}>Session Package Actions</BodyText>
+
+            <FlexCol $gap={8}>
+              <ActionButton
+                $variant="outlined"
+                onClick={() => handleAddSessions(5)}
+              >
+                <Plus size={16} />
+                Add 5 Sessions
+              </ActionButton>
+              <ActionButton
+                $variant="outlined"
+                onClick={() => handleAddSessions(10)}
+              >
+                <Plus size={16} />
+                Add 10 Sessions
+              </ActionButton>
+            </FlexCol>
+          </CardBody>
+        </GlassCard>
+      </GridContainer>
+    </SectionPadding>
   );
-  
+
   const renderPayments = () => (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h6" sx={{ color: 'white', mb: 3 }}>
-        Payment History
-      </Typography>
-      
-      <Paper sx={{ background: 'rgba(71, 85, 105, 0.5)' }}>
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Date</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Amount</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Method</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Package</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ color: 'white', fontWeight: 600 }}>Actions</TableCell>
-              </TableRow>
-            </TableHead>
+    <SectionPadding>
+      <SectionTitle>Payment History</SectionTitle>
+
+      <GlassCard>
+        <TableWrapper>
+          <StyledTable>
+            <TableHeader>
+              <tr>
+                <TableHeaderCell>Date</TableHeaderCell>
+                <TableHeaderCell>Amount</TableHeaderCell>
+                <TableHeaderCell>Method</TableHeaderCell>
+                <TableHeaderCell>Package</TableHeaderCell>
+                <TableHeaderCell>Status</TableHeaderCell>
+                <TableHeaderCell>Actions</TableHeaderCell>
+              </tr>
+            </TableHeader>
             <TableBody>
               {payments.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} sx={{ textAlign: 'center', color: 'rgba(255,255,255,0.7)' }}>
-                    No payment history found
+                  <TableCell colSpan={6} $align="center">
+                    <BodyText>No payment history found</BodyText>
                   </TableCell>
                 </TableRow>
               ) : (
                 payments.map((payment: any) => (
                   <TableRow key={payment.id}>
-                    <TableCell sx={{ color: 'white' }}>
+                    <TableCell>
                       {new Date(payment.createdAt).toLocaleDateString()}
                     </TableCell>
-                    <TableCell sx={{ color: 'white' }}>
+                    <TableCell>
                       ${payment.amount}
                     </TableCell>
-                    <TableCell sx={{ color: 'white' }}>
+                    <TableCell>
                       {payment.paymentMethod || 'Card'}
                     </TableCell>
-                    <TableCell sx={{ color: 'white' }}>
+                    <TableCell>
                       {payment.package?.name || 'Session Package'}
                     </TableCell>
                     <TableCell>
-                      <Chip
-                        label={payment.status || 'completed'}
-                        color={payment.status === 'completed' ? 'success' : 'warning'}
-                        size="small"
-                      />
+                      <StatusChip
+                        $status={payment.status === 'completed' ? 'success' : 'warning'}
+                      >
+                        {payment.status || 'completed'}
+                      </StatusChip>
                     </TableCell>
                     <TableCell>
-                      <IconButton size="small" sx={{ color: 'white' }}>
-                        <Download />
-                      </IconButton>
+                      <SmallIconBtn>
+                        <Download size={16} />
+                      </SmallIconBtn>
                     </TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
-          </Table>
-        </TableContainer>
-      </Paper>
-    </Box>
+          </StyledTable>
+        </TableWrapper>
+      </GlassCard>
+    </SectionPadding>
   );
-  
+
+  // Tab definitions
+  const tabs = [
+    { icon: <User size={18} />, label: 'Personal' },
+    { icon: <Dumbbell size={18} />, label: 'Health & Fitness' },
+    { icon: <Clock size={18} />, label: 'Sessions' },
+    { icon: <CreditCard size={18} />, label: 'Payments' },
+    { icon: <TrendingUp size={18} />, label: 'Progress' },
+    { icon: <MessageSquare size={18} />, label: 'Notes' },
+  ];
+
   // Render Main Component
   return (
     <>
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        color: 'white',
-        background: 'rgba(0,0,0,0.3)',
-        borderBottom: '1px solid rgba(255,255,255,0.1)'
-      }}>
-        <Box display="flex" alignItems="center" gap={2}>
-          <Avatar src={client.photo} sx={{ width: 40, height: 40 }}>
-            {client.firstName[0]}
-          </Avatar>
-          <Box>
-            <Typography variant="h6">
+      <DialogHeader>
+        <HeaderLeft>
+          <AvatarCircle $size={40}>
+            {client.photo ? (
+              <img src={client.photo} alt={`${client.firstName} ${client.lastName}`} />
+            ) : (
+              client.firstName[0]
+            )}
+          </AvatarCircle>
+          <div>
+            <HeaderTitle>
               {client.firstName} {client.lastName}
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
-              Client Details & Management
-            </Typography>
-          </Box>
-        </Box>
-        
-        <Box display="flex" gap={1}>
+            </HeaderTitle>
+            <HeaderSubtitle>
+              Client Details &amp; Management
+            </HeaderSubtitle>
+          </div>
+        </HeaderLeft>
+
+        <HeaderRight>
           {isEditing ? (
             <>
-              <Button
-                variant="contained"
-                startIcon={<Save />}
+              <ActionButton
+                $variant="contained"
+                $color="linear-gradient(135deg, #10b981, #059669)"
                 onClick={handleSave}
                 disabled={loading}
-                sx={{ background: 'linear-gradient(135deg, #10b981, #059669)' }}
               >
+                <Save size={16} />
                 Save
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Cancel />}
+              </ActionButton>
+              <ActionButton
+                $variant="outlined"
                 onClick={handleEditToggle}
-                sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.3)' }}
               >
+                <XCircle size={16} />
                 Cancel
-              </Button>
+              </ActionButton>
             </>
           ) : (
-            <Button
-              variant="outlined"
-              startIcon={<Edit />}
+            <ActionButton
+              $variant="outlined"
               onClick={handleEditToggle}
-              sx={{ color: 'white', borderColor: 'rgba(255,255,255,0.3)' }}
             >
+              <Pencil size={16} />
               Edit
-            </Button>
+            </ActionButton>
           )}
-          
-          <IconButton onClick={onClose} sx={{ color: 'white' }}>
-            <Close />
-          </IconButton>
-        </Box>
-      </DialogTitle>
-      
-      <DialogContent sx={{ p: 0, background: 'rgba(0,0,0,0.5)' }}>
+
+          <IconBtn onClick={onClose}>
+            <X size={20} />
+          </IconBtn>
+        </HeaderRight>
+      </DialogHeader>
+
+      <DialogBody>
         {error && (
-          <Alert severity="error" sx={{ m: 2 }}>
-            <AlertTitle>Error</AlertTitle>
+          <AlertBox $severity="error">
+            <AlertTitleText>Error</AlertTitleText>
             {error}
-          </Alert>
+          </AlertBox>
         )}
-        
-        {loading && (
-          <LinearProgress sx={{ backgroundColor: 'rgba(255,255,255,0.1)' }} />
-        )}
-        
-        <Box sx={{ borderBottom: 1, borderColor: 'rgba(255,255,255,0.1)' }}>
-          <Tabs 
-            value={activeTab} 
-            onChange={handleTabChange}
-            sx={{
-              '& .MuiTab-root': {
-                color: 'rgba(255,255,255,0.7)',
-                '&.Mui-selected': {
-                  color: '#3b82f6'
-                }
-              },
-              '& .MuiTabs-indicator': {
-                backgroundColor: '#3b82f6'
-              }
-            }}
-          >
-            <Tab icon={<Person />} label="Personal" />
-            <Tab icon={<FitnessCenter />} label="Health & Fitness" />
-            <Tab icon={<Schedule />} label="Sessions" />
-            <Tab icon={<Payment />} label="Payments" />
-            <Tab icon={<TrendingUp />} label="Progress" />
-            <Tab icon={<Message />} label="Notes" />
-          </Tabs>
-        </Box>
-        
+
+        {loading && <ProgressBar />}
+
+        <TabBar>
+          {tabs.map((tab, index) => (
+            <TabButton
+              key={index}
+              $active={activeTab === index}
+              onClick={() => handleTabChange(index)}
+              aria-selected={activeTab === index}
+              role="tab"
+            >
+              {tab.icon}
+              {tab.label}
+            </TabButton>
+          ))}
+        </TabBar>
+
         <TabPanel value={activeTab} index={0}>
           {renderPersonalInfo()}
         </TabPanel>
-        
+
         <TabPanel value={activeTab} index={1}>
           {renderHealthFitness()}
         </TabPanel>
-        
+
         <TabPanel value={activeTab} index={2}>
           {renderSessions()}
         </TabPanel>
-        
+
         <TabPanel value={activeTab} index={3}>
           {renderPayments()}
         </TabPanel>
-        
+
         <TabPanel value={activeTab} index={4}>
-          <Box sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
-              Progress Tracking
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+          <SectionPadding>
+            <SectionTitle>Progress Tracking</SectionTitle>
+            <BodyText>
               Progress tracking features will be implemented here.
-            </Typography>
-          </Box>
+            </BodyText>
+          </SectionPadding>
         </TabPanel>
-        
+
         <TabPanel value={activeTab} index={5}>
-          <Box sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ color: 'white', mb: 2 }}>
-              Client Notes
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)' }}>
+          <SectionPadding>
+            <SectionTitle>Client Notes</SectionTitle>
+            <BodyText>
               Notes and communication features will be implemented here.
-            </Typography>
-          </Box>
+            </BodyText>
+          </SectionPadding>
         </TabPanel>
-      </DialogContent>
+      </DialogBody>
     </>
   );
 };

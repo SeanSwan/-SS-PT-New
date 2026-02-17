@@ -122,7 +122,7 @@ const RewardsCard: React.FC<RewardsCardProps> = ({
   onViewAllRewards
 }) => {
   return (
-    <StyledCard component={motion.div} variants={itemVariants}>
+    <StyledCard as={motion.div} variants={itemVariants}>
       <CardHeader>
         <CardTitle>
           <Gift size={22} />
