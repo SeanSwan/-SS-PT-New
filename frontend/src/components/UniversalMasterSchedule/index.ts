@@ -18,7 +18,6 @@ export * from './types';
 // Theme Configuration
 export {
   stellarTheme,
-  CommandCenterTheme,
   calendarTheme,
   stellarColors,
   stellarGradients,

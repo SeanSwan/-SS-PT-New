@@ -1,13 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Typography, 
-  Tabs,
-  Tab,
-  CircularProgress,
-  TextField,
-  InputAdornment,
-} from '@mui/material';
+import styled from 'styled-components';
 
 // Import icons
 import {
@@ -31,37 +23,148 @@ import AchievementGrid from './components/AchievementGrid';
 import AwardPointsDialog from './components/AwardPointsDialog';
 import AwardAchievementDialog from './components/AwardAchievementDialog';
 
+// Styled components replacing MUI
+const Spinner = styled.div`
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(0, 255, 255, 0.15);
+  border-top-color: #00ffff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+`;
+
+const LoadingWrapper = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+`;
+
+const PageTitle = styled.h1`
+  font-size: 2.125rem;
+  font-weight: 600;
+  color: white;
+  margin: 0 0 16px;
+`;
+
+const BodyText = styled.p`
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0 0 8px;
+  line-height: 1.6;
+`;
+
+const DescriptionText = styled.p`
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0 24px;
+  line-height: 1.5;
+`;
+
+const SectionTitle = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+`;
+
+const TabBar = styled.div`
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  margin-bottom: 16px;
+  overflow-x: auto;
+`;
+
+const TabButton = styled.button<{ $active?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  min-height: 44px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid ${({ $active }) => $active ? '#00ffff' : 'transparent'};
+  color: ${({ $active }) => $active ? '#00ffff' : 'rgba(255, 255, 255, 0.6)'};
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    color: ${({ $active }) => $active ? '#00ffff' : 'rgba(255, 255, 255, 0.85)'};
+  }
+`;
+
+const TabContent = styled.div`
+  padding: 24px 0;
+`;
+
+const HeaderRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+`;
+
+const SearchWrapper = styled.div`
+  position: relative;
+  width: 300px;
+
+  @media (max-width: 600px) {
+    width: 100%;
+  }
+`;
+
+const SearchIcon = styled.div`
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: rgba(255, 255, 255, 0.4);
+  display: flex;
+  align-items: center;
+`;
+
+const SearchInput = styled.input`
+  width: 100%;
+  padding: 8px 12px 8px 40px;
+  min-height: 40px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease;
+
+  &::placeholder { color: rgba(255, 255, 255, 0.4); }
+  &:focus { outline: none; border-color: rgba(0, 255, 255, 0.5); }
+`;
+
 interface TabPanelProps {
   children?: React.ReactNode;
   index: number;
   value: number;
 }
 
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
+function TabPanel({ children, value, index }: TabPanelProps) {
+  if (value !== index) return null;
   return (
-    <div
+    <TabContent
       role="tabpanel"
-      hidden={value !== index}
       id={`trainer-gamification-tabpanel-${index}`}
       aria-labelledby={`trainer-gamification-tab-${index}`}
-      {...other}
     >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
-    </div>
+      {children}
+    </TabContent>
   );
-}
-
-function a11yProps(index: number) {
-  return {
-    id: `trainer-gamification-tab-${index}`,
-    'aria-controls': `trainer-gamification-tabpanel-${index}`,
-  };
 }
 
 /**
@@ -99,11 +202,6 @@ const TrainerGamificationView: React.FC = () => {
   useEffect(() => {
     loadInitialData();
   }, []);
-  
-  // Handle tab change
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setTabValue(newValue);
-  };
   
   // Handle awarding points
   const handleAwardPoints = async () => {
@@ -176,68 +274,65 @@ const TrainerGamificationView: React.FC = () => {
   
   if (loading) {
     return (
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center',
-        height: '50vh' 
-      }}>
-        <CircularProgress />
-      </Box>
+      <LoadingWrapper>
+        <Spinner />
+      </LoadingWrapper>
     );
   }
-  
+
   return (
     <PageContainer>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Client Gamification Management
-      </Typography>
-      
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="body1" gutterBottom>
+      <PageTitle>Client Gamification Management</PageTitle>
+
+      <div style={{ marginBottom: '32px' }}>
+        <BodyText>
           Award points and achievements to motivate your clients towards their fitness goals. Track their progress and help them level up.
-        </Typography>
-      </Box>
-      
+        </BodyText>
+      </div>
+
       {/* Tabs */}
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-        <Tabs 
-          value={tabValue} 
-          onChange={handleTabChange} 
-          aria-label="gamification tabs"
-          variant="scrollable"
-          scrollButtons="auto"
+      <TabBar role="tablist" aria-label="gamification tabs">
+        <TabButton
+          role="tab"
+          $active={tabValue === 0}
+          onClick={() => setTabValue(0)}
+          id="trainer-gamification-tab-0"
+          aria-controls="trainer-gamification-tabpanel-0"
+          aria-selected={tabValue === 0}
         >
-          <Tab label="Client Management" icon={<User size={16} />} iconPosition="start" {...a11yProps(0)} />
-          <Tab label="Achievement Management" icon={<Trophy size={16} />} iconPosition="start" {...a11yProps(1)} />
-        </Tabs>
-      </Box>
-      
+          <User size={16} />
+          Client Management
+        </TabButton>
+        <TabButton
+          role="tab"
+          $active={tabValue === 1}
+          onClick={() => setTabValue(1)}
+          id="trainer-gamification-tab-1"
+          aria-controls="trainer-gamification-tabpanel-1"
+          aria-selected={tabValue === 1}
+        >
+          <Trophy size={16} />
+          Achievement Management
+        </TabButton>
+      </TabBar>
+
       {/* Client Management Tab */}
       <TabPanel value={tabValue} index={0}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h6" component="h2">
-            Client Points Management
-          </Typography>
-          
-          <TextField
-            placeholder="Search clients..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            sx={{ width: 300 }}
-            size="small"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search size={18} />
-                </InputAdornment>
-              ),
-            }}
-            data-testid="client-search"
-          />
-        </Box>
-        
-        <ClientTable 
+        <HeaderRow>
+          <SectionTitle>Client Points Management</SectionTitle>
+
+          <SearchWrapper>
+            <SearchIcon><Search size={18} /></SearchIcon>
+            <SearchInput
+              placeholder="Search clients..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              data-testid="client-search"
+            />
+          </SearchWrapper>
+        </HeaderRow>
+
+        <ClientTable
           clients={filteredClients}
           onAwardPoints={(client) => {
             setSelectedClient(client);
@@ -249,24 +344,22 @@ const TrainerGamificationView: React.FC = () => {
           }}
         />
       </TabPanel>
-      
+
       {/* Achievement Management Tab */}
       <TabPanel value={tabValue} index={1}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h6" component="h2">
-            Available Achievements
-          </Typography>
-        </Box>
-        
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+        <HeaderRow>
+          <SectionTitle>Available Achievements</SectionTitle>
+        </HeaderRow>
+
+        <DescriptionText>
           These achievements can be awarded to clients. Each achievement includes a point value that will be credited to the client's account when the achievement is awarded.
-        </Typography>
-        
+        </DescriptionText>
+
         <AchievementGrid achievements={achievements} />
       </TabPanel>
-      
+
       {/* Award Points Dialog */}
-      <AwardPointsDialog 
+      <AwardPointsDialog
         open={awardPointsDialog}
         onClose={() => {
           setAwardPointsDialog(false);
@@ -285,9 +378,9 @@ const TrainerGamificationView: React.FC = () => {
         pointReasons={pointReasons}
         awarding={awardingPoints}
       />
-      
+
       {/* Award Achievement Dialog */}
-      <AwardAchievementDialog 
+      <AwardAchievementDialog
         open={awardAchievementDialog}
         onClose={() => {
           setAwardAchievementDialog(false);

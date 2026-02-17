@@ -8,57 +8,55 @@
  * that affect both the Berry Admin components and custom dashboard components.
  */
 
-import { Theme } from '@mui/material/styles';
-
-// Session status configuration
+// Session status configuration — Galaxy-Swan hardcoded colors (no MUI Theme dependency)
 export const sessionStatusConfig = {
-  'available': { 
-    label: 'Available', 
+  'available': {
+    label: 'Available',
     color: 'success',
-    bgColor: (theme: Theme) => theme.palette.success.light,
-    textColor: (theme: Theme) => theme.palette.success.dark,
+    bgColor: '#66bb6a',
+    textColor: '#1b5e20',
     icon: 'AccessTimeIcon'
   },
-  'requested': { 
-    label: 'Requested', 
+  'requested': {
+    label: 'Requested',
     color: 'warning',
-    bgColor: (theme: Theme) => theme.palette.warning.light,
-    textColor: (theme: Theme) => theme.palette.warning.dark,
+    bgColor: '#ffb74d',
+    textColor: '#e65100',
     icon: 'PendingIcon'
   },
-  'scheduled': { 
-    label: 'Scheduled', 
+  'scheduled': {
+    label: 'Scheduled',
     color: 'primary',
-    bgColor: (theme: Theme) => theme.palette.primary.light,
-    textColor: (theme: Theme) => theme.palette.primary.dark,
+    bgColor: '#64b5f6',
+    textColor: '#1565c0',
     icon: 'ScheduleIcon'
   },
-  'confirmed': { 
-    label: 'Confirmed', 
+  'confirmed': {
+    label: 'Confirmed',
     color: 'secondary',
-    bgColor: (theme: Theme) => theme.palette.secondary.light,
-    textColor: (theme: Theme) => theme.palette.secondary.dark,
+    bgColor: '#ce93d8',
+    textColor: '#7b1fa2',
     icon: 'DoneIcon'
   },
-  'completed': { 
-    label: 'Completed', 
+  'completed': {
+    label: 'Completed',
     color: 'success',
-    bgColor: (theme: Theme) => theme.palette.success.light,
-    textColor: (theme: Theme) => theme.palette.success.dark,
+    bgColor: '#66bb6a',
+    textColor: '#1b5e20',
     icon: 'CheckCircleIcon'
   },
-  'cancelled': { 
-    label: 'Cancelled', 
+  'cancelled': {
+    label: 'Cancelled',
     color: 'error',
-    bgColor: (theme: Theme) => theme.palette.error.light,
-    textColor: (theme: Theme) => theme.palette.error.dark,
+    bgColor: '#ef5350',
+    textColor: '#b71c1c',
     icon: 'CloseIcon'
   },
-  'no-show': { 
-    label: 'No Show', 
+  'no-show': {
+    label: 'No Show',
     color: 'warning',
-    bgColor: (theme: Theme) => theme.palette.warning.light,
-    textColor: (theme: Theme) => theme.palette.warning.dark,
+    bgColor: '#ffb74d',
+    textColor: '#e65100',
     icon: 'CancelIcon'
   }
 };
