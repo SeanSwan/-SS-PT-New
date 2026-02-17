@@ -1,10 +1,10 @@
 /**
  * AdminSessionsDialogs.tsx
  * =========================
- * 
+ *
  * Dialog management component for Admin Sessions (View, Edit, New)
  * Part of the Admin Sessions optimization following proven Trainer Dashboard methodology
- * 
+ *
  * Features:
  * - View session details dialog with full information display
  * - Edit session dialog with form validation
@@ -13,29 +13,14 @@
  * - Responsive dialog layouts
  * - WCAG AA accessibility compliance
  * - Performance-optimized form handling
+ *
+ * Migrated from MUI to styled-components + lucide-react
  */
 
 import React, { memo, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import styled from 'styled-components';
-import {
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Typography,
-  Stack,
-  Grid,
-  TextField,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Avatar,
-  Box as MuiBox
-} from '@mui/material';
-import { Calendar, Edit, Plus, CheckSquare, Eye } from 'lucide-react';
+import styled, { keyframes, css } from 'styled-components';
+import { Calendar, Edit, Plus, CheckSquare, Eye, X } from 'lucide-react';
 import {
   AdminSessionsDialogsProps,
   Session,
@@ -53,153 +38,173 @@ import GlowButton from '../../../../ui/buttons/GlowButton';
 
 // ===== STYLED COMPONENTS =====
 
-const StyledDialog = styled(Dialog)`
-  && {
-    .MuiDialog-paper {
-      background: linear-gradient(135deg, 
-        rgba(30, 58, 138, 0.95) 0%, 
-        rgba(14, 165, 233, 0.85) 50%, 
-        rgba(8, 145, 178, 0.95) 100%
-      );
-      border: 1px solid rgba(59, 130, 246, 0.3);
-      border-radius: 16px;
-      backdrop-filter: blur(20px);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-      color: white;
-      min-width: 400px;
-      
-      @media (max-width: 600px) {
-        margin: 1rem;
-        min-width: auto;
-      }
-    }
-    
-    .MuiDialogTitle-root {
-      background: rgba(30, 58, 138, 0.3);
-      border-bottom: 1px solid rgba(59, 130, 246, 0.2);
-      padding: 1.5rem;
-    }
-    
-    .MuiDialogContent-root {
-      padding: 1.5rem;
-      
-      &.MuiDialogContent-dividers {
-        border-color: rgba(59, 130, 246, 0.2);
-      }
-    }
-    
-    .MuiDialogActions-root {
-      background: rgba(30, 58, 138, 0.3);
-      border-top: 1px solid rgba(59, 130, 246, 0.2);
-      padding: 1rem 1.5rem;
-    }
+const DialogOverlay = styled.div<{ $open: boolean }>`
+  display: ${({ $open }) => ($open ? 'flex' : 'none')};
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1300;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  padding: 1rem;
+`;
+
+const DialogPanel = styled.div`
+  background: linear-gradient(135deg,
+    rgba(30, 58, 138, 0.95) 0%,
+    rgba(14, 165, 233, 0.85) 50%,
+    rgba(8, 145, 178, 0.95) 100%
+  );
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  color: white;
+  min-width: 400px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  @media (max-width: 600px) {
+    min-width: auto;
   }
 `;
 
-const DetailGrid = styled(Grid)`
-  && {
-    .detail-label {
-      color: rgba(255, 255, 255, 0.7);
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: 0.5rem;
-      font-weight: 500;
-    }
-    
-    .detail-value {
-      color: white;
-      font-weight: 500;
-      margin-bottom: 1rem;
-    }
+const DialogHeader = styled.div`
+  background: rgba(30, 58, 138, 0.3);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const DialogHeaderRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const DialogHeaderTitle = styled.h2`
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #fff;
+`;
+
+const DialogBody = styled.div`
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  border-top: 1px solid rgba(59, 130, 246, 0.2);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+`;
+
+const DialogFooter = styled.div`
+  background: rgba(30, 58, 138, 0.3);
+  border-top: 1px solid rgba(59, 130, 246, 0.2);
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+`;
+
+const CloseButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #0ea5e9;
+    outline-offset: 2px;
   }
 `;
 
-const StyledTextField = styled(TextField)`
-  && {
-    .MuiOutlinedInput-root {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      color: white;
-      
-      &:hover {
-        background: rgba(255, 255, 255, 0.15);
-      }
-      
-      &.Mui-focused {
-        background: rgba(255, 255, 255, 0.2);
-      }
-      
-      .MuiOutlinedInput-notchedOutline {
-        border-color: rgba(255, 255, 255, 0.3);
-      }
-      
-      &:hover .MuiOutlinedInput-notchedOutline {
-        border-color: rgba(255, 255, 255, 0.5);
-      }
-      
-      &.Mui-focused .MuiOutlinedInput-notchedOutline {
-        border-color: #3b82f6;
-      }
-    }
-    
-    .MuiInputLabel-root {
-      color: rgba(255, 255, 255, 0.7);
-      
-      &.Mui-focused {
-        color: #3b82f6;
-      }
-    }
+const DetailGridContainer = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
   }
 `;
 
-const StyledFormControl = styled(FormControl)`
-  && {
-    .MuiOutlinedInput-root {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 8px;
-      color: white;
-      
-      &:hover {
-        background: rgba(255, 255, 255, 0.15);
-      }
-      
-      &.Mui-focused {
-        background: rgba(255, 255, 255, 0.2);
-      }
-      
-      .MuiOutlinedInput-notchedOutline {
-        border-color: rgba(255, 255, 255, 0.3);
-      }
-      
-      &:hover .MuiOutlinedInput-notchedOutline {
-        border-color: rgba(255, 255, 255, 0.5);
-      }
-      
-      &.Mui-focused .MuiOutlinedInput-notchedOutline {
-        border-color: #3b82f6;
-      }
-    }
-    
-    .MuiInputLabel-root {
-      color: rgba(255, 255, 255, 0.7);
-      
-      &.Mui-focused {
-        color: #3b82f6;
-      }
-    }
-    
-    .MuiSelect-select {
-      color: white;
-    }
-    
-    .MuiSelect-icon {
-      color: rgba(255, 255, 255, 0.7);
-    }
+const DetailCell = styled.div<{ $fullWidth?: boolean }>`
+  ${({ $fullWidth }) => $fullWidth && css`
+    grid-column: 1 / -1;
+  `}
+`;
+
+const DetailLabel = styled.div`
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+`;
+
+const DetailValue = styled.p`
+  color: white;
+  font-weight: 500;
+  margin: 0 0 0.25rem 0;
+`;
+
+const DetailValueItalic = styled.p`
+  color: white;
+  font-weight: 500;
+  margin: 0;
+  font-style: italic;
+  opacity: 0.7;
+`;
+
+const FormGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
   }
 `;
 
-const NotesContainer = styled.div`
+const FormCell = styled.div<{ $fullWidth?: boolean }>`
+  ${({ $fullWidth }) => $fullWidth && css`
+    grid-column: 1 / -1;
+  `}
+`;
+
+const DialogDescription = styled.p`
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 1rem 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+`;
+
+const NotesContainer = styled.div<{ $empty?: boolean }>`
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
@@ -208,11 +213,8 @@ const NotesContainer = styled.div`
   margin-top: 0.5rem;
   white-space: pre-wrap;
   line-height: 1.5;
-  
-  &.empty {
-    color: rgba(255, 255, 255, 0.5);
-    font-style: italic;
-  }
+  color: ${({ $empty }) => $empty ? 'rgba(255, 255, 255, 0.5)' : 'inherit'};
+  font-style: ${({ $empty }) => $empty ? 'italic' : 'normal'};
 `;
 
 const ClientTrainerDetails = styled.div`
@@ -223,6 +225,147 @@ const ClientTrainerDetails = styled.div`
   background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+`;
+
+// ===== FORM PRIMITIVES =====
+
+const FieldWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+`;
+
+const FieldLabel = styled.label`
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+`;
+
+const StyledInput = styled.input<{ $error?: boolean }>`
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid ${({ $error }) => $error ? '#ef4444' : 'rgba(255, 255, 255, 0.3)'};
+  border-radius: 8px;
+  color: white;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  min-height: 44px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background 0.2s, border-color 0.2s;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  &:focus {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: ${({ $error }) => $error ? '#ef4444' : '#3b82f6'};
+    outline: none;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const StyledTextarea = styled.textarea<{ $error?: boolean }>`
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid ${({ $error }) => $error ? '#ef4444' : 'rgba(255, 255, 255, 0.3)'};
+  border-radius: 8px;
+  color: white;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  min-height: 80px;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  transition: background 0.2s, border-color 0.2s;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+  }
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  &:focus {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: ${({ $error }) => $error ? '#ef4444' : '#3b82f6'};
+    outline: none;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const StyledSelect = styled.select`
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 8px;
+  color: white;
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  min-height: 44px;
+  width: 100%;
+  box-sizing: border-box;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.7)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+  transition: background-color 0.2s, border-color 0.2s;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+
+  &:focus {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: #3b82f6;
+    outline: none;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  option {
+    background: #1e3a8a;
+    color: white;
+  }
+`;
+
+const FieldError = styled.span`
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 0.125rem;
+`;
+
+const MiniAvatar = styled.span<{ $src?: string }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #fff;
+  background: ${({ $src }) => $src ? `url(${$src}) center / cover no-repeat` : 'rgba(14, 165, 233, 0.4)'};
+  flex-shrink: 0;
 `;
 
 // ===== MAIN COMPONENT =====
@@ -281,477 +424,482 @@ const AdminSessionsDialogs: React.FC<AdminSessionsDialogsProps> = ({
   // Get formatted session details for view dialog
   const getSessionDetails = useCallback((session: Session | null) => {
     if (!session) return null;
-    
+
     const { date, time } = formatSessionTime(session.sessionDate);
     return { ...session, formattedDate: date, formattedTime: time };
   }, []);
 
   const sessionDetails = getSessionDetails(dialogStates.selectedSession);
 
+  // Handle overlay click (close on backdrop click)
+  const handleOverlayClick = useCallback((dialog: keyof typeof dialogStates) => (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      handleDialogClose(dialog);
+    }
+  }, [handleDialogClose]);
+
   return (
     <>
       {/* View Session Dialog */}
-      <StyledDialog
-        open={dialogStates.openViewDialog}
-        onClose={() => handleDialogClose('openViewDialog')}
-        maxWidth="sm"
-        fullWidth
+      <DialogOverlay
+        $open={dialogStates.openViewDialog}
+        onClick={handleOverlayClick('openViewDialog')}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Session Details"
       >
-        <DialogTitle>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Eye />
-            <Typography variant="h6">Session Details</Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
-          {sessionDetails && (
-            <DetailGrid container spacing={3}>
-              {/* Session ID and Status */}
-              <Grid item xs={12}>
-                <div className="detail-label">Session ID</div>
-                <Typography className="detail-value">
-                  {sessionDetails.id || 'N/A'}
-                </Typography>
-              </Grid>
-              
-              <Grid item xs={12} sm={6}>
-                <div className="detail-label">Status</div>
-                <StatusChip status={sessionDetails.status} size="medium" />
-              </Grid>
-              
-              <Grid item xs={12} sm={6}>
-                <div className="detail-label">Duration</div>
-                <Typography className="detail-value">
-                  {sessionDetails.duration || 60} minutes
-                </Typography>
-              </Grid>
+        <DialogPanel>
+          <DialogHeader>
+            <DialogHeaderRow>
+              <Eye size={20} />
+              <DialogHeaderTitle>Session Details</DialogHeaderTitle>
+            </DialogHeaderRow>
+            <CloseButton
+              onClick={() => handleDialogClose('openViewDialog')}
+              aria-label="Close dialog"
+            >
+              <X size={20} />
+            </CloseButton>
+          </DialogHeader>
+          <DialogBody>
+            {sessionDetails && (
+              <DetailGridContainer>
+                {/* Session ID and Status */}
+                <DetailCell $fullWidth>
+                  <DetailLabel>Session ID</DetailLabel>
+                  <DetailValue>
+                    {sessionDetails.id || 'N/A'}
+                  </DetailValue>
+                </DetailCell>
 
-              {/* Date and Time */}
-              <Grid item xs={12} sm={6}>
-                <div className="detail-label">Date</div>
-                <Typography className="detail-value">
-                  {sessionDetails.formattedDate}
-                </Typography>
-              </Grid>
-              
-              <Grid item xs={12} sm={6}>
-                <div className="detail-label">Time</div>
-                <Typography className="detail-value">
-                  {sessionDetails.formattedTime}
-                </Typography>
-              </Grid>
+                <DetailCell>
+                  <DetailLabel>Status</DetailLabel>
+                  <StatusChip status={sessionDetails.status} size="medium" />
+                </DetailCell>
 
-              {/* Location */}
-              <Grid item xs={12}>
-                <div className="detail-label">Location</div>
-                <Typography className="detail-value">
-                  {sessionDetails.location || 'Not specified'}
-                </Typography>
-              </Grid>
+                <DetailCell>
+                  <DetailLabel>Duration</DetailLabel>
+                  <DetailValue>
+                    {sessionDetails.duration || 60} minutes
+                  </DetailValue>
+                </DetailCell>
 
-              {/* Client Details */}
-              <Grid item xs={12}>
-                <div className="detail-label">Client</div>
-                {sessionDetails.client ? (
-                  <ClientTrainerDetails>
-                    <ClientDisplay 
-                      client={sessionDetails.client} 
-                      showSessionCount={true}
-                      compact={false}
-                    />
-                  </ClientTrainerDetails>
-                ) : (
-                  <Typography className="detail-value" sx={{ fontStyle: 'italic', opacity: 0.7 }}>
-                    No client assigned
-                  </Typography>
-                )}
-              </Grid>
+                {/* Date and Time */}
+                <DetailCell>
+                  <DetailLabel>Date</DetailLabel>
+                  <DetailValue>
+                    {sessionDetails.formattedDate}
+                  </DetailValue>
+                </DetailCell>
 
-              {/* Trainer Details */}
-              <Grid item xs={12}>
-                <div className="detail-label">Trainer</div>
-                {sessionDetails.trainer ? (
-                  <ClientTrainerDetails>
-                    <TrainerDisplay 
-                      trainer={sessionDetails.trainer}
-                      compact={false}
-                    />
-                  </ClientTrainerDetails>
-                ) : (
-                  <Typography className="detail-value" sx={{ fontStyle: 'italic', opacity: 0.7 }}>
-                    No trainer assigned
-                  </Typography>
-                )}
-              </Grid>
+                <DetailCell>
+                  <DetailLabel>Time</DetailLabel>
+                  <DetailValue>
+                    {sessionDetails.formattedTime}
+                  </DetailValue>
+                </DetailCell>
 
-              {/* Notes */}
-              <Grid item xs={12}>
-                <div className="detail-label">Notes</div>
-                <NotesContainer className={!sessionDetails.notes ? 'empty' : ''}>
-                  {sessionDetails.notes || 'No notes for this session.'}
-                </NotesContainer>
-              </Grid>
-            </DetailGrid>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <GlowButton
-            text="Close"
-            theme="cosmic"
-            size="small"
-            onClick={() => handleDialogClose('openViewDialog')}
-          />
-          <GlowButton
-            text="Edit Session"
-            theme="purple"
-            size="small"
-            leftIcon={<Edit size={16} />}
-            onClick={() => {
-              handleDialogClose('openViewDialog');
-              onDialogChange('openEditDialog', true);
-            }}
-            disabled={!dialogStates.selectedSession}
-          />
-        </DialogActions>
-      </StyledDialog>
+                {/* Location */}
+                <DetailCell $fullWidth>
+                  <DetailLabel>Location</DetailLabel>
+                  <DetailValue>
+                    {sessionDetails.location || 'Not specified'}
+                  </DetailValue>
+                </DetailCell>
+
+                {/* Client Details */}
+                <DetailCell $fullWidth>
+                  <DetailLabel>Client</DetailLabel>
+                  {sessionDetails.client ? (
+                    <ClientTrainerDetails>
+                      <ClientDisplay
+                        client={sessionDetails.client}
+                        showSessionCount={true}
+                        compact={false}
+                      />
+                    </ClientTrainerDetails>
+                  ) : (
+                    <DetailValueItalic>
+                      No client assigned
+                    </DetailValueItalic>
+                  )}
+                </DetailCell>
+
+                {/* Trainer Details */}
+                <DetailCell $fullWidth>
+                  <DetailLabel>Trainer</DetailLabel>
+                  {sessionDetails.trainer ? (
+                    <ClientTrainerDetails>
+                      <TrainerDisplay
+                        trainer={sessionDetails.trainer}
+                        compact={false}
+                      />
+                    </ClientTrainerDetails>
+                  ) : (
+                    <DetailValueItalic>
+                      No trainer assigned
+                    </DetailValueItalic>
+                  )}
+                </DetailCell>
+
+                {/* Notes */}
+                <DetailCell $fullWidth>
+                  <DetailLabel>Notes</DetailLabel>
+                  <NotesContainer $empty={!sessionDetails.notes}>
+                    {sessionDetails.notes || 'No notes for this session.'}
+                  </NotesContainer>
+                </DetailCell>
+              </DetailGridContainer>
+            )}
+          </DialogBody>
+          <DialogFooter>
+            <GlowButton
+              text="Close"
+              theme="cosmic"
+              size="small"
+              onClick={() => handleDialogClose('openViewDialog')}
+            />
+            <GlowButton
+              text="Edit Session"
+              theme="purple"
+              size="small"
+              leftIcon={<Edit size={16} />}
+              onClick={() => {
+                handleDialogClose('openViewDialog');
+                onDialogChange('openEditDialog', true);
+              }}
+              disabled={!dialogStates.selectedSession}
+            />
+          </DialogFooter>
+        </DialogPanel>
+      </DialogOverlay>
 
       {/* Edit Session Dialog */}
-      <StyledDialog
-        open={dialogStates.openEditDialog}
-        onClose={() => handleDialogClose('openEditDialog')}
-        maxWidth="sm"
-        fullWidth
+      <DialogOverlay
+        $open={dialogStates.openEditDialog}
+        onClick={handleOverlayClick('openEditDialog')}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Edit Session"
       >
-        <DialogTitle>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Edit />
-            <Typography variant="h6">Edit Session</Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
-          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
-            Update the details for this session.
-          </DialogContentText>
-          <Grid container spacing={2}>
-            {/* Client Selection */}
-            <Grid item xs={12} sm={6}>
-              <StyledFormControl fullWidth size="small">
-                <InputLabel>Client</InputLabel>
-                <Select
-                  value={editForm.editSessionClient}
-                  onChange={(e) => handleEditFormChange('editSessionClient', e.target.value)}
-                  label="Client"
-                  disabled={loadingClients}
-                >
-                  <MenuItem value=""><em>Not Assigned</em></MenuItem>
-                  {clients.map(client => (
-                    <MenuItem key={client.id} value={client.id}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Avatar 
-                          src={client.photo || undefined} 
-                          sx={{ width: 24, height: 24, fontSize: '0.7rem' }}
-                        >
-                          {client.firstName?.[0]}{client.lastName?.[0]}
-                        </Avatar>
-                        <span>{client.firstName} {client.lastName}</span>
-                      </Stack>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </StyledFormControl>
-            </Grid>
+        <DialogPanel>
+          <DialogHeader>
+            <DialogHeaderRow>
+              <Edit size={20} />
+              <DialogHeaderTitle>Edit Session</DialogHeaderTitle>
+            </DialogHeaderRow>
+            <CloseButton
+              onClick={() => handleDialogClose('openEditDialog')}
+              aria-label="Close dialog"
+            >
+              <X size={20} />
+            </CloseButton>
+          </DialogHeader>
+          <DialogBody>
+            <DialogDescription>
+              Update the details for this session.
+            </DialogDescription>
+            <FormGrid>
+              {/* Client Selection */}
+              <FormCell>
+                <FieldWrapper>
+                  <FieldLabel>Client</FieldLabel>
+                  <StyledSelect
+                    value={editForm.editSessionClient}
+                    onChange={(e) => handleEditFormChange('editSessionClient', e.target.value)}
+                    disabled={loadingClients}
+                  >
+                    <option value="">Not Assigned</option>
+                    {clients.map(client => (
+                      <option key={client.id} value={client.id}>
+                        {client.firstName} {client.lastName}
+                      </option>
+                    ))}
+                  </StyledSelect>
+                </FieldWrapper>
+              </FormCell>
 
-            {/* Trainer Selection */}
-            <Grid item xs={12} sm={6}>
-              <StyledFormControl fullWidth size="small">
-                <InputLabel>Trainer</InputLabel>
-                <Select
-                  value={editForm.editSessionTrainer}
-                  onChange={(e) => handleEditFormChange('editSessionTrainer', e.target.value)}
-                  label="Trainer"
-                  disabled={loadingTrainers}
-                >
-                  <MenuItem value=""><em>Not Assigned</em></MenuItem>
-                  {trainers.map(trainer => (
-                    <MenuItem key={trainer.id} value={trainer.id}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Avatar 
-                          src={trainer.photo || undefined} 
-                          sx={{ width: 24, height: 24, fontSize: '0.7rem' }}
-                        >
-                          {trainer.firstName?.[0]}{trainer.lastName?.[0]}
-                        </Avatar>
-                        <span>{trainer.firstName} {trainer.lastName}</span>
-                      </Stack>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </StyledFormControl>
-            </Grid>
+              {/* Trainer Selection */}
+              <FormCell>
+                <FieldWrapper>
+                  <FieldLabel>Trainer</FieldLabel>
+                  <StyledSelect
+                    value={editForm.editSessionTrainer}
+                    onChange={(e) => handleEditFormChange('editSessionTrainer', e.target.value)}
+                    disabled={loadingTrainers}
+                  >
+                    <option value="">Not Assigned</option>
+                    {trainers.map(trainer => (
+                      <option key={trainer.id} value={trainer.id}>
+                        {trainer.firstName} {trainer.lastName}
+                      </option>
+                    ))}
+                  </StyledSelect>
+                </FieldWrapper>
+              </FormCell>
 
-            {/* Date and Time */}
-            <Grid item xs={12} sm={6}>
-              <StyledTextField
-                label="Date"
-                type="date"
-                size="small"
-                fullWidth
-                value={editForm.editSessionDate}
-                onChange={(e) => handleEditFormChange('editSessionDate', e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                error={!editFormValidation.isValid && !!editFormValidation.errors.date}
-                helperText={editFormValidation.errors.date}
-              />
-            </Grid>
+              {/* Date and Time */}
+              <FormCell>
+                <FieldWrapper>
+                  <FieldLabel>Date</FieldLabel>
+                  <StyledInput
+                    type="date"
+                    value={editForm.editSessionDate}
+                    onChange={(e) => handleEditFormChange('editSessionDate', e.target.value)}
+                    $error={!editFormValidation.isValid && !!editFormValidation.errors.date}
+                  />
+                  {!editFormValidation.isValid && editFormValidation.errors.date && (
+                    <FieldError>{editFormValidation.errors.date}</FieldError>
+                  )}
+                </FieldWrapper>
+              </FormCell>
 
-            <Grid item xs={12} sm={6}>
-              <StyledTextField
-                label="Time"
-                type="time"
-                size="small"
-                fullWidth
-                value={editForm.editSessionTime}
-                onChange={(e) => handleEditFormChange('editSessionTime', e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                error={!editFormValidation.isValid && !!editFormValidation.errors.time}
-                helperText={editFormValidation.errors.time}
-              />
-            </Grid>
+              <FormCell>
+                <FieldWrapper>
+                  <FieldLabel>Time</FieldLabel>
+                  <StyledInput
+                    type="time"
+                    value={editForm.editSessionTime}
+                    onChange={(e) => handleEditFormChange('editSessionTime', e.target.value)}
+                    $error={!editFormValidation.isValid && !!editFormValidation.errors.time}
+                  />
+                  {!editFormValidation.isValid && editFormValidation.errors.time && (
+                    <FieldError>{editFormValidation.errors.time}</FieldError>
+                  )}
+                </FieldWrapper>
+              </FormCell>
 
-            {/* Duration and Status */}
-            <Grid item xs={12} sm={6}>
-              <StyledTextField
-                label="Duration (min)"
-                type="number"
-                size="small"
-                fullWidth
-                value={editForm.editSessionDuration}
-                onChange={(e) => handleEditFormChange('editSessionDuration', parseInt(e.target.value, 10) || DEFAULT_SESSION_DURATION)}
-                InputProps={{ inputProps: { min: 15, max: 240, step: 15 } }}
-              />
-            </Grid>
+              {/* Duration and Status */}
+              <FormCell>
+                <FieldWrapper>
+                  <FieldLabel>Duration (min)</FieldLabel>
+                  <StyledInput
+                    type="number"
+                    value={editForm.editSessionDuration}
+                    onChange={(e) => handleEditFormChange('editSessionDuration', parseInt(e.target.value, 10) || DEFAULT_SESSION_DURATION)}
+                    min={15}
+                    max={240}
+                    step={15}
+                  />
+                </FieldWrapper>
+              </FormCell>
 
-            <Grid item xs={12} sm={6}>
-              <StyledFormControl fullWidth size="small">
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={editForm.editSessionStatus}
-                  onChange={(e) => handleEditFormChange('editSessionStatus', e.target.value)}
-                  label="Status"
-                >
-                  {(['available', 'scheduled', 'confirmed', 'completed', 'cancelled'] as const).map(status => (
-                    <MenuItem key={status} value={status}>
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </StyledFormControl>
-            </Grid>
+              <FormCell>
+                <FieldWrapper>
+                  <FieldLabel>Status</FieldLabel>
+                  <StyledSelect
+                    value={editForm.editSessionStatus}
+                    onChange={(e) => handleEditFormChange('editSessionStatus', e.target.value)}
+                  >
+                    {(['available', 'scheduled', 'confirmed', 'completed', 'cancelled'] as const).map(status => (
+                      <option key={status} value={status}>
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                      </option>
+                    ))}
+                  </StyledSelect>
+                </FieldWrapper>
+              </FormCell>
 
-            {/* Location */}
-            <Grid item xs={12}>
-              <StyledTextField
-                label="Location"
-                size="small"
-                fullWidth
-                value={editForm.editSessionLocation}
-                onChange={(e) => handleEditFormChange('editSessionLocation', e.target.value)}
-                placeholder="e.g., Main Studio, Park, Online"
-              />
-            </Grid>
+              {/* Location */}
+              <FormCell $fullWidth>
+                <FieldWrapper>
+                  <FieldLabel>Location</FieldLabel>
+                  <StyledInput
+                    type="text"
+                    value={editForm.editSessionLocation}
+                    onChange={(e) => handleEditFormChange('editSessionLocation', e.target.value)}
+                    placeholder="e.g., Main Studio, Park, Online"
+                  />
+                </FieldWrapper>
+              </FormCell>
 
-            {/* Notes */}
-            <Grid item xs={12}>
-              <StyledTextField
-                label="Session Notes"
-                size="small"
-                fullWidth
-                multiline
-                rows={3}
-                value={editForm.editSessionNotes}
-                onChange={(e) => handleEditFormChange('editSessionNotes', e.target.value)}
-                placeholder="Add any relevant notes for this session..."
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <GlowButton
-            text="Cancel"
-            theme="cosmic"
-            size="small"
-            onClick={() => handleDialogClose('openEditDialog')}
-          />
-          <GlowButton
-            text="Save Changes"
-            theme="emerald"
-            size="small"
-            leftIcon={<CheckSquare size={16} />}
-            onClick={handleSaveEdit}
-            disabled={!editFormValidation.isValid}
-          />
-        </DialogActions>
-      </StyledDialog>
+              {/* Notes */}
+              <FormCell $fullWidth>
+                <FieldWrapper>
+                  <FieldLabel>Session Notes</FieldLabel>
+                  <StyledTextarea
+                    value={editForm.editSessionNotes}
+                    onChange={(e) => handleEditFormChange('editSessionNotes', e.target.value)}
+                    placeholder="Add any relevant notes for this session..."
+                    rows={3}
+                  />
+                </FieldWrapper>
+              </FormCell>
+            </FormGrid>
+          </DialogBody>
+          <DialogFooter>
+            <GlowButton
+              text="Cancel"
+              theme="cosmic"
+              size="small"
+              onClick={() => handleDialogClose('openEditDialog')}
+            />
+            <GlowButton
+              text="Save Changes"
+              theme="emerald"
+              size="small"
+              leftIcon={<CheckSquare size={16} />}
+              onClick={handleSaveEdit}
+              disabled={!editFormValidation.isValid}
+            />
+          </DialogFooter>
+        </DialogPanel>
+      </DialogOverlay>
 
       {/* New Session Dialog */}
-      <StyledDialog
-        open={dialogStates.openNewDialog}
-        onClose={() => handleDialogClose('openNewDialog')}
-        maxWidth="sm"
-        fullWidth
+      <DialogOverlay
+        $open={dialogStates.openNewDialog}
+        onClick={handleOverlayClick('openNewDialog')}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Schedule New Session Slot"
       >
-        <DialogTitle>
-          <Stack direction="row" spacing={1.5} alignItems="center">
-            <Plus />
-            <Typography variant="h6">Schedule New Session Slot</Typography>
-          </Stack>
-        </DialogTitle>
-        <DialogContent dividers>
-          <DialogContentText sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 2 }}>
-            Create a new available time slot. You can assign a client or trainer now, or leave it as generally available.
-          </DialogContentText>
-          <Grid container spacing={2}>
-            {/* Client and Trainer Selection */}
-            <Grid item xs={12} sm={6}>
-              <StyledFormControl fullWidth size="small">
-                <InputLabel>Assign Client (Optional)</InputLabel>
-                <Select
-                  value={newForm.newSessionClient}
-                  onChange={(e) => handleNewFormChange('newSessionClient', e.target.value)}
-                  label="Assign Client (Optional)"
-                  disabled={loadingClients}
-                >
-                  <MenuItem value=""><em>Not Assigned</em></MenuItem>
-                  {clients.map(client => (
-                    <MenuItem key={client.id} value={client.id}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Avatar 
-                          src={client.photo || undefined} 
-                          sx={{ width: 24, height: 24, fontSize: '0.7rem' }}
-                        >
-                          {client.firstName?.[0]}{client.lastName?.[0]}
-                        </Avatar>
-                        <span>{client.firstName} {client.lastName}</span>
-                      </Stack>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </StyledFormControl>
-            </Grid>
+        <DialogPanel>
+          <DialogHeader>
+            <DialogHeaderRow>
+              <Plus size={20} />
+              <DialogHeaderTitle>Schedule New Session Slot</DialogHeaderTitle>
+            </DialogHeaderRow>
+            <CloseButton
+              onClick={() => handleDialogClose('openNewDialog')}
+              aria-label="Close dialog"
+            >
+              <X size={20} />
+            </CloseButton>
+          </DialogHeader>
+          <DialogBody>
+            <DialogDescription>
+              Create a new available time slot. You can assign a client or trainer now, or leave it as generally available.
+            </DialogDescription>
+            <FormGrid>
+              {/* Client and Trainer Selection */}
+              <FormCell>
+                <FieldWrapper>
+                  <FieldLabel>Assign Client (Optional)</FieldLabel>
+                  <StyledSelect
+                    value={newForm.newSessionClient}
+                    onChange={(e) => handleNewFormChange('newSessionClient', e.target.value)}
+                    disabled={loadingClients}
+                  >
+                    <option value="">Not Assigned</option>
+                    {clients.map(client => (
+                      <option key={client.id} value={client.id}>
+                        {client.firstName} {client.lastName}
+                      </option>
+                    ))}
+                  </StyledSelect>
+                </FieldWrapper>
+              </FormCell>
 
-            <Grid item xs={12} sm={6}>
-              <StyledFormControl fullWidth size="small">
-                <InputLabel>Assign Trainer (Optional)</InputLabel>
-                <Select
-                  value={newForm.newSessionTrainer}
-                  onChange={(e) => handleNewFormChange('newSessionTrainer', e.target.value)}
-                  label="Assign Trainer (Optional)"
-                  disabled={loadingTrainers}
-                >
-                  <MenuItem value=""><em>Not Assigned</em></MenuItem>
-                  {trainers.map(trainer => (
-                    <MenuItem key={trainer.id} value={trainer.id}>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Avatar 
-                          src={trainer.photo || undefined} 
-                          sx={{ width: 24, height: 24, fontSize: '0.7rem' }}
-                        >
-                          {trainer.firstName?.[0]}{trainer.lastName?.[0]}
-                        </Avatar>
-                        <span>{trainer.firstName} {trainer.lastName}</span>
-                      </Stack>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </StyledFormControl>
-            </Grid>
+              <FormCell>
+                <FieldWrapper>
+                  <FieldLabel>Assign Trainer (Optional)</FieldLabel>
+                  <StyledSelect
+                    value={newForm.newSessionTrainer}
+                    onChange={(e) => handleNewFormChange('newSessionTrainer', e.target.value)}
+                    disabled={loadingTrainers}
+                  >
+                    <option value="">Not Assigned</option>
+                    {trainers.map(trainer => (
+                      <option key={trainer.id} value={trainer.id}>
+                        {trainer.firstName} {trainer.lastName}
+                      </option>
+                    ))}
+                  </StyledSelect>
+                </FieldWrapper>
+              </FormCell>
 
-            {/* Date and Time */}
-            <Grid item xs={12} sm={6}>
-              <StyledTextField
-                label="Date"
-                type="date"
-                size="small"
-                fullWidth
-                value={newForm.newSessionDate}
-                onChange={(e) => handleNewFormChange('newSessionDate', e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                inputProps={{ min: new Date().toISOString().slice(0, 10) }}
-                error={!newFormValidation.isValid && !!newFormValidation.errors.date}
-                helperText={newFormValidation.errors.date}
-              />
-            </Grid>
+              {/* Date and Time */}
+              <FormCell>
+                <FieldWrapper>
+                  <FieldLabel>Date</FieldLabel>
+                  <StyledInput
+                    type="date"
+                    value={newForm.newSessionDate}
+                    onChange={(e) => handleNewFormChange('newSessionDate', e.target.value)}
+                    min={new Date().toISOString().slice(0, 10)}
+                    $error={!newFormValidation.isValid && !!newFormValidation.errors.date}
+                  />
+                  {!newFormValidation.isValid && newFormValidation.errors.date && (
+                    <FieldError>{newFormValidation.errors.date}</FieldError>
+                  )}
+                </FieldWrapper>
+              </FormCell>
 
-            <Grid item xs={12} sm={6}>
-              <StyledTextField
-                label="Time"
-                type="time"
-                size="small"
-                fullWidth
-                value={newForm.newSessionTime}
-                onChange={(e) => handleNewFormChange('newSessionTime', e.target.value)}
-                InputLabelProps={{ shrink: true }}
-                error={!newFormValidation.isValid && !!newFormValidation.errors.time}
-                helperText={newFormValidation.errors.time}
-              />
-            </Grid>
+              <FormCell>
+                <FieldWrapper>
+                  <FieldLabel>Time</FieldLabel>
+                  <StyledInput
+                    type="time"
+                    value={newForm.newSessionTime}
+                    onChange={(e) => handleNewFormChange('newSessionTime', e.target.value)}
+                    $error={!newFormValidation.isValid && !!newFormValidation.errors.time}
+                  />
+                  {!newFormValidation.isValid && newFormValidation.errors.time && (
+                    <FieldError>{newFormValidation.errors.time}</FieldError>
+                  )}
+                </FieldWrapper>
+              </FormCell>
 
-            {/* Duration and Location */}
-            <Grid item xs={12} sm={6}>
-              <StyledTextField
-                label="Duration (min)"
-                type="number"
-                size="small"
-                fullWidth
-                value={newForm.newSessionDuration}
-                onChange={(e) => handleNewFormChange('newSessionDuration', parseInt(e.target.value, 10) || DEFAULT_SESSION_DURATION)}
-                InputProps={{ inputProps: { min: 15, max: 240, step: 15 } }}
-              />
-            </Grid>
+              {/* Duration and Location */}
+              <FormCell>
+                <FieldWrapper>
+                  <FieldLabel>Duration (min)</FieldLabel>
+                  <StyledInput
+                    type="number"
+                    value={newForm.newSessionDuration}
+                    onChange={(e) => handleNewFormChange('newSessionDuration', parseInt(e.target.value, 10) || DEFAULT_SESSION_DURATION)}
+                    min={15}
+                    max={240}
+                    step={15}
+                  />
+                </FieldWrapper>
+              </FormCell>
 
-            <Grid item xs={12} sm={6}>
-              <StyledTextField
-                label="Location"
-                size="small"
-                fullWidth
-                value={newForm.newSessionLocation}
-                onChange={(e) => handleNewFormChange('newSessionLocation', e.target.value)}
-                placeholder="e.g., Main Studio"
-              />
-            </Grid>
+              <FormCell>
+                <FieldWrapper>
+                  <FieldLabel>Location</FieldLabel>
+                  <StyledInput
+                    type="text"
+                    value={newForm.newSessionLocation}
+                    onChange={(e) => handleNewFormChange('newSessionLocation', e.target.value)}
+                    placeholder="e.g., Main Studio"
+                  />
+                </FieldWrapper>
+              </FormCell>
 
-            {/* Notes */}
-            <Grid item xs={12}>
-              <StyledTextField
-                label="Notes (Optional)"
-                size="small"
-                fullWidth
-                multiline
-                rows={3}
-                value={newForm.newSessionNotes}
-                onChange={(e) => handleNewFormChange('newSessionNotes', e.target.value)}
-                placeholder="e.g., Open slot for new clients, Focus on beginners"
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <GlowButton
-            text="Cancel"
-            theme="cosmic"
-            size="small"
-            onClick={() => handleDialogClose('openNewDialog')}
-          />
-          <GlowButton
-            text="Create Session Slot"
-            theme="emerald"
-            size="small"
-            leftIcon={<Plus size={16} />}
-            onClick={handleCreateNew}
-            disabled={!newFormValidation.isValid}
-          />
-        </DialogActions>
-      </StyledDialog>
+              {/* Notes */}
+              <FormCell $fullWidth>
+                <FieldWrapper>
+                  <FieldLabel>Notes (Optional)</FieldLabel>
+                  <StyledTextarea
+                    value={newForm.newSessionNotes}
+                    onChange={(e) => handleNewFormChange('newSessionNotes', e.target.value)}
+                    placeholder="e.g., Open slot for new clients, Focus on beginners"
+                    rows={3}
+                  />
+                </FieldWrapper>
+              </FormCell>
+            </FormGrid>
+          </DialogBody>
+          <DialogFooter>
+            <GlowButton
+              text="Cancel"
+              theme="cosmic"
+              size="small"
+              onClick={() => handleDialogClose('openNewDialog')}
+            />
+            <GlowButton
+              text="Create Session Slot"
+              theme="emerald"
+              size="small"
+              leftIcon={<Plus size={16} />}
+              onClick={handleCreateNew}
+              disabled={!newFormValidation.isValid}
+            />
+          </DialogFooter>
+        </DialogPanel>
+      </DialogOverlay>
     </>
   );
 };

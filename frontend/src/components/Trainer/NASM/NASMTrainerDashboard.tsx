@@ -17,59 +17,494 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import styled, { css } from 'styled-components';
 import {
-  Box,
-  Container,
-  Grid,
-  Paper,
-  Typography,
-  Tabs,
-  Tab,
-  Card,
-  CardContent,
-  CardActions,
-  Button,
-  Chip,
-  Alert,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Stack,
-  Divider,
-  IconButton,
-  Checkbox,
-  FormControlLabel,
-  FormGroup,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Stepper,
-  Step,
-  StepLabel,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  Autocomplete,
-} from '@mui/material';
-import {
-  Assessment as AssessmentIcon,
-  FitnessCenter as FitnessCenterIcon,
-  TrendingUp as TrendingUpIcon,
-  PlayCircle as PlayCircleIcon,
-  Add as AddIcon,
-  Message as MessageIcon,
-  Delete as DeleteIcon,
-  Save as SaveIcon,
-  CheckCircle as CheckCircleIcon,
-  Warning as WarningIcon,
-  Lock as LockIcon,
-} from '@mui/icons-material';
+  BarChart3,
+  Dumbbell,
+  TrendingUp,
+  PlayCircle,
+  Plus,
+  MessageSquare,
+  Trash2,
+  Save,
+  CheckCircle,
+  AlertTriangle,
+  Lock,
+} from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import api from '../../../utils/api';
+
+// ========================================
+// THEME TOKENS
+// ========================================
+const theme = {
+  bg: 'rgba(15,23,42,0.95)',
+  bgCard: 'rgba(15,23,42,0.85)',
+  bgHover: 'rgba(14,165,233,0.08)',
+  border: 'rgba(14,165,233,0.2)',
+  borderHover: 'rgba(14,165,233,0.4)',
+  text: '#e2e8f0',
+  textSecondary: '#94a3b8',
+  accent: '#0ea5e9',
+  accentHover: '#38bdf8',
+  success: '#22c55e',
+  warning: '#f59e0b',
+  error: '#ef4444',
+  info: '#3b82f6',
+};
+
+// ========================================
+// STYLED COMPONENTS
+// ========================================
+
+const PageContainer = styled.div`
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 24px;
+
+  @media (max-width: 768px) {
+    padding: 16px 12px;
+  }
+`;
+
+const HeaderRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+`;
+
+const HeaderInfo = styled.div``;
+
+const PageTitle = styled.h2`
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: ${theme.text};
+  margin: 0 0 4px 0;
+`;
+
+const PageSubtitle = styled.p`
+  font-size: 1rem;
+  color: ${theme.textSecondary};
+  margin: 0;
+`;
+
+const ChipRow = styled.div`
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+`;
+
+interface ChipProps {
+  $color?: 'primary' | 'success' | 'warning' | 'error';
+}
+
+const chipColorMap = {
+  primary: theme.accent,
+  success: theme.success,
+  warning: theme.warning,
+  error: theme.error,
+};
+
+const StyledChip = styled.span<ChipProps>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  min-height: 28px;
+  color: ${theme.text};
+  background: ${({ $color }) => {
+    const c = chipColorMap[$color || 'primary'];
+    return `${c}22`;
+  }};
+  border: 1px solid ${({ $color }) => chipColorMap[$color || 'primary']};
+`;
+
+const AlertBox = styled.div<{ $severity: 'success' | 'warning' | 'info' | 'error' }>`
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: ${theme.text};
+  margin-bottom: ${({ $severity }) => ($severity === 'warning' ? '24px' : '0')};
+  background: ${({ $severity }) => {
+    const colors = {
+      success: `${theme.success}15`,
+      warning: `${theme.warning}15`,
+      info: `${theme.info}15`,
+      error: `${theme.error}15`,
+    };
+    return colors[$severity];
+  }};
+  border: 1px solid ${({ $severity }) => {
+    const colors = {
+      success: `${theme.success}40`,
+      warning: `${theme.warning}40`,
+      info: `${theme.info}40`,
+      error: `${theme.error}40`,
+    };
+    return colors[$severity];
+  }};
+
+  svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+`;
+
+const GlassPaper = styled.div`
+  background: ${theme.bgCard};
+  border: 1px solid ${theme.border};
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  margin-bottom: 24px;
+  overflow: hidden;
+`;
+
+const TabBar = styled.div`
+  display: flex;
+  border-bottom: 1px solid ${theme.border};
+`;
+
+const TabButton = styled.button<{ $active?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  min-height: 48px;
+  min-width: 44px;
+  border: none;
+  background: ${({ $active }) => ($active ? `${theme.accent}15` : 'transparent')};
+  color: ${({ $active }) => ($active ? theme.accent : theme.textSecondary)};
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 2px solid ${({ $active }) => ($active ? theme.accent : 'transparent')};
+
+  &:hover {
+    background: ${theme.bgHover};
+    color: ${theme.text};
+  }
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+`;
+
+const ClientGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 24px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const ClientCard = styled.div`
+  background: ${theme.bgCard};
+  border: 1px solid ${theme.border};
+  border-radius: 12px;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    border-color: ${theme.borderHover};
+    box-shadow: 0 4px 24px rgba(14, 165, 233, 0.08);
+  }
+`;
+
+const CardBody = styled.div`
+  padding: 20px;
+`;
+
+const ClientName = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: ${theme.text};
+  margin: 0 0 12px 0;
+`;
+
+const CardDivider = styled.hr`
+  border: none;
+  border-top: 1px solid ${theme.border};
+  margin: 12px 0;
+`;
+
+const InfoStack = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+`;
+
+const InfoRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+`;
+
+const InfoLabel = styled.span`
+  font-size: 0.875rem;
+  color: ${theme.textSecondary};
+`;
+
+const InfoValue = styled.span<{ $bold?: boolean }>`
+  font-size: 0.875rem;
+  color: ${theme.text};
+  font-weight: ${({ $bold }) => ($bold ? '700' : '400')};
+`;
+
+const CardActionsRow = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid ${theme.border};
+`;
+
+const ActionButton = styled.button<{ $variant?: 'primary' | 'success' | 'secondary' | 'outlined' | 'contained' | 'containedSecondary'; disabled?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  min-height: 44px;
+  min-width: 44px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: ${({ disabled }) => (disabled ? 'not-allowed' : 'pointer')};
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  opacity: ${({ disabled }) => (disabled ? 0.5 : 1)};
+
+  ${({ $variant }) => {
+    switch ($variant) {
+      case 'success':
+        return css`
+          background: ${theme.success}22;
+          color: ${theme.success};
+          border-color: ${theme.success}40;
+          &:hover:not(:disabled) {
+            background: ${theme.success}33;
+          }
+        `;
+      case 'outlined':
+        return css`
+          background: transparent;
+          color: ${theme.accent};
+          border-color: ${theme.accent};
+          &:hover:not(:disabled) {
+            background: ${theme.accent}15;
+          }
+        `;
+      case 'contained':
+        return css`
+          background: ${theme.accent};
+          color: #0f172a;
+          &:hover:not(:disabled) {
+            background: ${theme.accentHover};
+          }
+        `;
+      case 'containedSecondary':
+        return css`
+          background: #7c3aed;
+          color: #fff;
+          &:hover:not(:disabled) {
+            background: #8b5cf6;
+          }
+        `;
+      default:
+        return css`
+          background: transparent;
+          color: ${theme.accent};
+          &:hover:not(:disabled) {
+            background: ${theme.bgHover};
+          }
+        `;
+    }
+  }}
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`;
+
+// ========================================
+// DIALOG / MODAL STYLES
+// ========================================
+
+const DialogOverlay = styled.div<{ $open: boolean }>`
+  display: ${({ $open }) => ($open ? 'flex' : 'none')};
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.7);
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+`;
+
+const DialogPanel = styled.div`
+  background: #0f172a;
+  border: 1px solid ${theme.border};
+  border-radius: 16px;
+  width: 100%;
+  max-width: 720px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+`;
+
+const DialogHeader = styled.div`
+  padding: 20px 24px;
+  border-bottom: 1px solid ${theme.border};
+`;
+
+const DialogTitleText = styled.h3`
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: ${theme.text};
+  margin: 0;
+`;
+
+const DialogBody = styled.div`
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
+
+const DialogFooter = styled.div`
+  padding: 16px 24px;
+  border-top: 1px solid ${theme.border};
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+`;
+
+// ========================================
+// FORM FIELD STYLES
+// ========================================
+
+const FormFieldWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const FieldLabel = styled.label`
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: ${theme.textSecondary};
+`;
+
+const StyledSelect = styled.select`
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid ${theme.border};
+  border-radius: 8px;
+  color: ${theme.text};
+  font-size: 0.875rem;
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+    border-color: ${theme.accent};
+    box-shadow: 0 0 0 2px ${theme.accent}33;
+  }
+
+  option {
+    background: #0f172a;
+    color: ${theme.text};
+  }
+`;
+
+const SectionTitle = styled.p`
+  font-size: 1rem;
+  font-weight: 700;
+  color: ${theme.text};
+  margin: 0;
+`;
+
+const CheckboxGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+`;
+
+const CheckboxLabel = styled.label`
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+  color: ${theme.text};
+  cursor: pointer;
+  min-height: 44px;
+  padding: 4px 0;
+`;
+
+const StyledCheckbox = styled.input.attrs({ type: 'checkbox' })`
+  width: 20px;
+  height: 20px;
+  accent-color: ${theme.accent};
+  cursor: pointer;
+  flex-shrink: 0;
+`;
+
+const StyledTextarea = styled.textarea`
+  width: 100%;
+  min-height: 100px;
+  padding: 12px 14px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid ${theme.border};
+  border-radius: 8px;
+  color: ${theme.text};
+  font-size: 0.875rem;
+  font-family: inherit;
+  resize: vertical;
+
+  &:focus {
+    outline: none;
+    border-color: ${theme.accent};
+    box-shadow: 0 0 0 2px ${theme.accent}33;
+  }
+
+  &::placeholder {
+    color: ${theme.textSecondary};
+  }
+`;
+
+// ========================================
+// PHASE COLOR HELPERS
+// ========================================
+
+const getPhaseChipColor = (phase: string): ChipProps['$color'] => {
+  if (phase.includes('1')) return 'primary';
+  if (phase.includes('2')) return 'primary'; // secondary -> primary since we have limited palette
+  if (phase.includes('3')) return 'success';
+  if (phase.includes('4')) return 'warning';
+  return 'error';
+};
+
+// ========================================
+// TYPES
+// ========================================
 
 interface ClientSummary {
   id: string;
@@ -459,311 +894,278 @@ const NASMTrainerDashboard: React.FC = () => {
     return labels[phase] || phase;
   };
 
-  const getPhaseColor = (phase: string): 'primary' | 'secondary' | 'success' | 'warning' | 'error' => {
-    if (phase.includes('1')) return 'primary';
-    if (phase.includes('2')) return 'secondary';
-    if (phase.includes('3')) return 'success';
-    if (phase.includes('4')) return 'warning';
-    return 'error';
-  };
-
   // ========================================
   // TAB 0: MY CLIENTS
   // ========================================
   const renderMyClients = () => (
-    <Grid container spacing={3}>
+    <ClientGrid>
       {clients.map((client) => (
-        <Grid item xs={12} md={6} lg={4} key={client.id}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                {client.full_name}
-              </Typography>
-              <Divider sx={{ my: 2 }} />
+        <ClientCard key={client.id}>
+          <CardBody>
+            <ClientName>{client.full_name}</ClientName>
+            <CardDivider />
 
-              <Stack spacing={2}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                  <Typography variant="body2" color="text.secondary">
-                    Current Phase
-                  </Typography>
-                  <Chip
-                    label={getPhaseLabel(client.current_phase)}
-                    color={getPhaseColor(client.current_phase)}
-                    size="small"
-                  />
-                </Stack>
+            <InfoStack>
+              <InfoRow>
+                <InfoLabel>Current Phase</InfoLabel>
+                <StyledChip $color={getPhaseChipColor(client.current_phase)}>
+                  {getPhaseLabel(client.current_phase)}
+                </StyledChip>
+              </InfoRow>
 
-                <Stack direction="row" justifyContent="space-between">
-                  <Typography variant="body2" color="text.secondary">
-                    Weeks in Phase
-                  </Typography>
-                  <Typography variant="body2">{client.weeks_in_phase} weeks</Typography>
-                </Stack>
+              <InfoRow>
+                <InfoLabel>Weeks in Phase</InfoLabel>
+                <InfoValue>{client.weeks_in_phase} weeks</InfoValue>
+              </InfoRow>
 
-                {client.active_corrective_protocol && (
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography variant="body2" color="text.secondary">
-                      Homework Compliance
-                    </Typography>
-                    <Typography variant="body2" fontWeight="bold">
-                      {client.compliance_rate?.toFixed(0) || 0}%
-                    </Typography>
-                  </Stack>
-                )}
-
-                {client.ready_for_next_phase && (
-                  <Alert severity="success" icon={<CheckCircleIcon />}>
-                    Ready for next phase!
-                  </Alert>
-                )}
-              </Stack>
-            </CardContent>
-
-            <CardActions>
-              <Button
-                size="small"
-                startIcon={<AssessmentIcon />}
-                onClick={() => openAssessmentDialog(client.id)}
-              >
-                Assess
-              </Button>
-              <Button
-                size="small"
-                startIcon={<FitnessCenterIcon />}
-                onClick={() => openWorkoutDialog(client.id, client.current_phase)}
-              >
-                Workout
-              </Button>
-              <Button
-                size="small"
-                startIcon={<MessageIcon />}
-                onClick={() => handleMessageClient(client.id)}
-                disabled={isCreatingConversation}
-              >
-                Message
-              </Button>
-              {client.ready_for_next_phase && (
-                <Button
-                  size="small"
-                  color="success"
-                  startIcon={<TrendingUpIcon />}
-                  onClick={() => advanceClientPhase(client.id)}
-                >
-                  Advance
-                </Button>
+              {client.active_corrective_protocol && (
+                <InfoRow>
+                  <InfoLabel>Homework Compliance</InfoLabel>
+                  <InfoValue $bold>
+                    {client.compliance_rate?.toFixed(0) || 0}%
+                  </InfoValue>
+                </InfoRow>
               )}
-            </CardActions>
-          </Card>
-        </Grid>
+
+              {client.ready_for_next_phase && (
+                <AlertBox $severity="success">
+                  <CheckCircle size={18} color={theme.success} />
+                  <span>Ready for next phase!</span>
+                </AlertBox>
+              )}
+            </InfoStack>
+          </CardBody>
+
+          <CardActionsRow>
+            <ActionButton onClick={() => openAssessmentDialog(client.id)}>
+              <BarChart3 /> Assess
+            </ActionButton>
+            <ActionButton onClick={() => openWorkoutDialog(client.id, client.current_phase)}>
+              <Dumbbell /> Workout
+            </ActionButton>
+            <ActionButton
+              onClick={() => handleMessageClient(client.id)}
+              disabled={isCreatingConversation}
+            >
+              <MessageSquare /> Message
+            </ActionButton>
+            {client.ready_for_next_phase && (
+              <ActionButton $variant="success" onClick={() => advanceClientPhase(client.id)}>
+                <TrendingUp /> Advance
+              </ActionButton>
+            )}
+          </CardActionsRow>
+        </ClientCard>
       ))}
 
       {clients.length === 0 && (
-        <Grid item xs={12}>
-          <Alert severity="info">No clients assigned yet</Alert>
-        </Grid>
+        <AlertBox $severity="info">
+          <span>No clients assigned yet</span>
+        </AlertBox>
       )}
-    </Grid>
+    </ClientGrid>
   );
 
   // ========================================
   // ASSESSMENT DIALOG
   // ========================================
   const renderAssessmentDialog = () => (
-    <Dialog open={assessmentDialogOpen} onClose={() => setAssessmentDialogOpen(false)} maxWidth="md" fullWidth>
-      <DialogTitle>Movement Assessment</DialogTitle>
-      <DialogContent>
-        <Stack spacing={3} sx={{ mt: 2 }}>
-          <FormControl fullWidth>
-            <InputLabel>Assessment Type</InputLabel>
-            <Select
+    <DialogOverlay $open={assessmentDialogOpen} onClick={() => setAssessmentDialogOpen(false)}>
+      <DialogPanel onClick={(e) => e.stopPropagation()}>
+        <DialogHeader>
+          <DialogTitleText>Movement Assessment</DialogTitleText>
+        </DialogHeader>
+        <DialogBody>
+          <FormFieldWrapper>
+            <FieldLabel>Assessment Type</FieldLabel>
+            <StyledSelect
               value={currentAssessment.assessment_type}
               onChange={(e) => setCurrentAssessment({ ...currentAssessment, assessment_type: e.target.value })}
             >
-              <MenuItem value="overhead_squat">Overhead Squat (OHS)</MenuItem>
-              <MenuItem value="single_leg_squat_left">Single-Leg Squat (Left)</MenuItem>
-              <MenuItem value="single_leg_squat_right">Single-Leg Squat (Right)</MenuItem>
-              <MenuItem value="pushing_assessment">Pushing Assessment</MenuItem>
-              <MenuItem value="pulling_assessment">Pulling Assessment</MenuItem>
-            </Select>
-          </FormControl>
+              <option value="overhead_squat">Overhead Squat (OHS)</option>
+              <option value="single_leg_squat_left">Single-Leg Squat (Left)</option>
+              <option value="single_leg_squat_right">Single-Leg Squat (Right)</option>
+              <option value="pushing_assessment">Pushing Assessment</option>
+              <option value="pulling_assessment">Pulling Assessment</option>
+            </StyledSelect>
+          </FormFieldWrapper>
 
-          <Typography variant="subtitle1" fontWeight="bold">
-            Compensations Identified
-          </Typography>
+          <SectionTitle>Compensations Identified</SectionTitle>
 
-          <FormGroup>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={currentAssessment.compensations_identified.knee_valgus || false}
-                  onChange={(e) =>
-                    setCurrentAssessment({
-                      ...currentAssessment,
-                      compensations_identified: {
-                        ...currentAssessment.compensations_identified,
-                        knee_valgus: e.target.checked,
-                      },
-                    })
-                  }
-                />
-              }
-              label="Knee Valgus (knees cave in)"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={currentAssessment.compensations_identified.heels_rise || false}
-                  onChange={(e) =>
-                    setCurrentAssessment({
-                      ...currentAssessment,
-                      compensations_identified: {
-                        ...currentAssessment.compensations_identified,
-                        heels_rise: e.target.checked,
-                      },
-                    })
-                  }
-                />
-              }
-              label="Heels Rise"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={currentAssessment.compensations_identified.forward_head || false}
-                  onChange={(e) =>
-                    setCurrentAssessment({
-                      ...currentAssessment,
-                      compensations_identified: {
-                        ...currentAssessment.compensations_identified,
-                        forward_head: e.target.checked,
-                      },
-                    })
-                  }
-                />
-              }
-              label="Forward Head"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={currentAssessment.compensations_identified.rounded_shoulders || false}
-                  onChange={(e) =>
-                    setCurrentAssessment({
-                      ...currentAssessment,
-                      compensations_identified: {
-                        ...currentAssessment.compensations_identified,
-                        rounded_shoulders: e.target.checked,
-                      },
-                    })
-                  }
-                />
-              }
-              label="Rounded Shoulders"
-            />
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={currentAssessment.compensations_identified.low_back_arches || false}
-                  onChange={(e) =>
-                    setCurrentAssessment({
-                      ...currentAssessment,
-                      compensations_identified: {
-                        ...currentAssessment.compensations_identified,
-                        low_back_arches: e.target.checked,
-                      },
-                    })
-                  }
-                />
-              }
-              label="Low Back Arches"
-            />
-          </FormGroup>
+          <CheckboxGroup>
+            <CheckboxLabel>
+              <StyledCheckbox
+                checked={currentAssessment.compensations_identified.knee_valgus || false}
+                onChange={(e) =>
+                  setCurrentAssessment({
+                    ...currentAssessment,
+                    compensations_identified: {
+                      ...currentAssessment.compensations_identified,
+                      knee_valgus: e.target.checked,
+                    },
+                  })
+                }
+              />
+              Knee Valgus (knees cave in)
+            </CheckboxLabel>
+            <CheckboxLabel>
+              <StyledCheckbox
+                checked={currentAssessment.compensations_identified.heels_rise || false}
+                onChange={(e) =>
+                  setCurrentAssessment({
+                    ...currentAssessment,
+                    compensations_identified: {
+                      ...currentAssessment.compensations_identified,
+                      heels_rise: e.target.checked,
+                    },
+                  })
+                }
+              />
+              Heels Rise
+            </CheckboxLabel>
+            <CheckboxLabel>
+              <StyledCheckbox
+                checked={currentAssessment.compensations_identified.forward_head || false}
+                onChange={(e) =>
+                  setCurrentAssessment({
+                    ...currentAssessment,
+                    compensations_identified: {
+                      ...currentAssessment.compensations_identified,
+                      forward_head: e.target.checked,
+                    },
+                  })
+                }
+              />
+              Forward Head
+            </CheckboxLabel>
+            <CheckboxLabel>
+              <StyledCheckbox
+                checked={currentAssessment.compensations_identified.rounded_shoulders || false}
+                onChange={(e) =>
+                  setCurrentAssessment({
+                    ...currentAssessment,
+                    compensations_identified: {
+                      ...currentAssessment.compensations_identified,
+                      rounded_shoulders: e.target.checked,
+                    },
+                  })
+                }
+              />
+              Rounded Shoulders
+            </CheckboxLabel>
+            <CheckboxLabel>
+              <StyledCheckbox
+                checked={currentAssessment.compensations_identified.low_back_arches || false}
+                onChange={(e) =>
+                  setCurrentAssessment({
+                    ...currentAssessment,
+                    compensations_identified: {
+                      ...currentAssessment.compensations_identified,
+                      low_back_arches: e.target.checked,
+                    },
+                  })
+                }
+              />
+              Low Back Arches
+            </CheckboxLabel>
+          </CheckboxGroup>
 
-          <Button variant="outlined" onClick={detectCompensations}>
+          <ActionButton $variant="outlined" onClick={detectCompensations}>
             AI: Suggest Corrective Protocol
-          </Button>
+          </ActionButton>
 
           {currentAssessment.suggested_protocol && (
-            <Alert severity="info">
-              Suggested: {currentAssessment.suggested_protocol} ({currentAssessment.protocol_confidence}% confidence)
-            </Alert>
+            <AlertBox $severity="info">
+              <span>
+                Suggested: {currentAssessment.suggested_protocol} ({currentAssessment.protocol_confidence}% confidence)
+              </span>
+            </AlertBox>
           )}
 
-          <TextField
-            label="Trainer Notes"
-            multiline
-            rows={4}
-            value={currentAssessment.trainer_notes}
-            onChange={(e) => setCurrentAssessment({ ...currentAssessment, trainer_notes: e.target.value })}
-          />
-        </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setAssessmentDialogOpen(false)}>Cancel</Button>
-        <Button variant="contained" onClick={saveAssessment}>
-          Save Assessment
-        </Button>
-        {currentAssessment.suggested_protocol && (
-          <Button
-            variant="contained"
-            color="secondary"
-            onClick={() => {
-              saveAssessment();
-              openProtocolDialog(currentAssessment.client_id);
-            }}
-          >
-            Save & Create Protocol
-          </Button>
-        )}
-      </DialogActions>
-    </Dialog>
+          <FormFieldWrapper>
+            <FieldLabel>Trainer Notes</FieldLabel>
+            <StyledTextarea
+              value={currentAssessment.trainer_notes}
+              onChange={(e) => setCurrentAssessment({ ...currentAssessment, trainer_notes: e.target.value })}
+              placeholder="Enter assessment notes..."
+            />
+          </FormFieldWrapper>
+        </DialogBody>
+        <DialogFooter>
+          <ActionButton onClick={() => setAssessmentDialogOpen(false)}>Cancel</ActionButton>
+          <ActionButton $variant="contained" onClick={saveAssessment}>
+            Save Assessment
+          </ActionButton>
+          {currentAssessment.suggested_protocol && (
+            <ActionButton
+              $variant="containedSecondary"
+              onClick={() => {
+                saveAssessment();
+                openProtocolDialog(currentAssessment.client_id);
+              }}
+            >
+              Save & Create Protocol
+            </ActionButton>
+          )}
+        </DialogFooter>
+      </DialogPanel>
+    </DialogOverlay>
   );
 
   // ========================================
   // MAIN RENDER
   // ========================================
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" mb={3}>
-        <Box>
-          <Typography variant="h4" fontWeight="bold">
-            NASM Trainer Dashboard
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Client assessments, corrective protocols, and workout planning
-          </Typography>
-        </Box>
+    <PageContainer>
+      <HeaderRow>
+        <HeaderInfo>
+          <PageTitle>NASM Trainer Dashboard</PageTitle>
+          <PageSubtitle>Client assessments, corrective protocols, and workout planning</PageSubtitle>
+        </HeaderInfo>
 
-        <Stack direction="row" spacing={1}>
-          {hasCPT && <Chip label="NASM-CPT" color="primary" />}
-          {hasCES && <Chip label="NASM-CES" color="success" />}
-          {hasPES && <Chip label="NASM-PES" color="warning" />}
-          {!hasCPT && !hasCES && !hasPES && <Chip label="No Certifications" color="error" icon={<LockIcon />} />}
-        </Stack>
-      </Stack>
+        <ChipRow>
+          {hasCPT && <StyledChip $color="primary">NASM-CPT</StyledChip>}
+          {hasCES && <StyledChip $color="success">NASM-CES</StyledChip>}
+          {hasPES && <StyledChip $color="warning">NASM-PES</StyledChip>}
+          {!hasCPT && !hasCES && !hasPES && (
+            <StyledChip $color="error">
+              <Lock size={14} /> No Certifications
+            </StyledChip>
+          )}
+        </ChipRow>
+      </HeaderRow>
 
       {!hasCPT && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          NASM-CPT certification required to access trainer tools. Please upload your certification in Settings.
-        </Alert>
+        <AlertBox $severity="warning">
+          <AlertTriangle size={18} color={theme.warning} />
+          <span>
+            NASM-CPT certification required to access trainer tools. Please upload your certification in Settings.
+          </span>
+        </AlertBox>
       )}
 
       {hasCPT && (
         <>
-          <Paper sx={{ mb: 3 }}>
-            <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
-              <Tab label="My Clients" icon={<FitnessCenterIcon />} />
-              <Tab label="Assessments" icon={<AssessmentIcon />} />
-              <Tab label="Workouts" icon={<PlayCircleIcon />} />
-            </Tabs>
-          </Paper>
+          <GlassPaper>
+            <TabBar>
+              <TabButton $active={activeTab === 0} onClick={() => setActiveTab(0)}>
+                <Dumbbell /> My Clients
+              </TabButton>
+              <TabButton $active={activeTab === 1} onClick={() => setActiveTab(1)}>
+                <BarChart3 /> Assessments
+              </TabButton>
+              <TabButton $active={activeTab === 2} onClick={() => setActiveTab(2)}>
+                <PlayCircle /> Workouts
+              </TabButton>
+            </TabBar>
+          </GlassPaper>
 
-          <Box>{activeTab === 0 && renderMyClients()}</Box>
+          <div>{activeTab === 0 && renderMyClients()}</div>
 
           {renderAssessmentDialog()}
         </>
       )}
-    </Container>
+    </PageContainer>
   );
 };
 

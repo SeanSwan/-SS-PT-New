@@ -1,10 +1,10 @@
 /**
  * Enhanced User Data Management Dashboard
  * =======================================
- * 
+ *
  * BUSINESS-CRITICAL: Comprehensive user data collection and management system
  * Handles ALL user types: general users, potential clients, potential trainers
- * 
+ *
  * FEATURES:
  * - Complete user onboarding workflows
  * - Role conversion management (user → client/trainer)
@@ -13,7 +13,7 @@
  * - Mobile-optimized admin interface
  * - Advanced search and filtering
  * - Bulk operations and data export
- * 
+ *
  * DATA COLLECTION FOCUS:
  * - Personal information and contact details
  * - Interest tracking and conversion potential
@@ -25,99 +25,59 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import styled, { ThemeProvider } from 'styled-components';
+import styled from 'styled-components';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
 
-// Material-UI Components
-import {
-  Box,
-  Typography,
-  Grid,
-  Paper,
-  Card,
-  CardContent,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TablePagination,
-  TextField,
-  Button,
-  IconButton,
-  Fab,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Chip,
-  Avatar,
-  Tooltip,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Tabs,
-  Tab,
-  Switch,
-  FormControlLabel,
-  Badge,
-  LinearProgress,
-  Alert,
-  AlertTitle,
-  Divider
-} from '@mui/material';
-
-// Enhanced icon set for user management
+// Lucide icons
 import {
   Search,
-  Add,
-  Edit,
-  Delete,
-  MoreVert,
-  Refresh,
+  Plus,
+  Pencil,
+  Trash2,
+  MoreVertical,
+  RefreshCw,
   Download,
   Upload,
-  Visibility,
-  PersonAdd,
-  Group,
+  Eye,
+  UserPlus,
+  Users,
   TrendingUp,
-  Timeline,
-  Assessment,
-  FilterList,
-  ClearAll,
+  Activity,
+  BarChart3,
+  Filter,
+  XCircle,
   CheckCircle,
-  Cancel,
-  Warning,
+  X as XIcon,
+  AlertTriangle,
   Info,
   Settings,
-  Close,
-  Email,
+  Mail,
   Phone,
-  LocationOn,
-  CalendarToday,
-  FitnessCenter,
-  School,
-  Work,
+  MapPin,
+  Calendar,
+  Dumbbell,
+  GraduationCap,
+  Briefcase,
   Star,
-  EmojiPeople,
-  Psychology,
-  Favorite,
-  ChatBubbleOutline,
-  NotificationsActive,
-  DataUsage,
-  Speed,
-  Transform
-} from '@mui/icons-material';
+  PersonStanding,
+  Brain,
+  Heart,
+  MessageCircle,
+  Bell,
+  PieChart,
+  Gauge,
+  ArrowRightLeft,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
 
 // === STYLED COMPONENTS ===
 const DashboardContainer = styled.div`
   padding: 1.5rem;
   min-height: 100vh;
   background: transparent;
-  
+
   @media (max-width: 768px) {
     padding: 1rem;
   }
@@ -126,7 +86,7 @@ const DashboardContainer = styled.div`
 const HeaderSection = styled(motion.div)`
   margin-bottom: 2rem;
   text-align: center;
-  
+
   h1 {
     color: #ffffff;
     font-size: 2.5rem;
@@ -136,12 +96,12 @@ const HeaderSection = styled(motion.div)`
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    
+
     @media (max-width: 768px) {
       font-size: 2rem;
     }
   }
-  
+
   p {
     color: rgba(255, 255, 255, 0.8);
     font-size: 1.1rem;
@@ -166,39 +126,41 @@ const StatCard = styled(motion.div)`
   text-align: center;
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
-  
+
   &:hover {
     border-color: #00ffff;
     box-shadow: 0 8px 32px rgba(0, 255, 255, 0.2);
     transform: translateY(-4px);
   }
-  
+
   .stat-icon {
-    font-size: 3rem;
+    width: 3rem;
+    height: 3rem;
     color: #00ffff;
     margin-bottom: 1rem;
   }
-  
+
   .stat-number {
     font-size: 2.5rem;
     font-weight: 700;
     color: #ffffff;
     margin-bottom: 0.5rem;
   }
-  
+
   .stat-label {
     color: rgba(255, 255, 255, 0.8);
     font-size: 1rem;
     margin-bottom: 0.5rem;
   }
-  
+
   .stat-change {
     font-size: 0.875rem;
     padding: 0.25rem 0.75rem;
     border-radius: 20px;
     background: rgba(16, 185, 129, 0.2);
     color: #10b981;
-    
+    display: inline-block;
+
     &.negative {
       background: rgba(239, 68, 68, 0.2);
       color: #ef4444;
@@ -220,7 +182,7 @@ const ControlsGrid = styled.div`
   grid-template-columns: 1fr auto auto;
   gap: 1.5rem;
   align-items: center;
-  
+
   @media (max-width: 768px) {
     grid-template-columns: 1fr;
     gap: 1rem;
@@ -231,10 +193,84 @@ const SearchSection = styled.div`
   display: flex;
   gap: 1rem;
   align-items: center;
-  
+
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: stretch;
+  }
+`;
+
+const SearchInputWrapper = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+
+  svg {
+    position: absolute;
+    left: 0.75rem;
+    color: rgba(255, 255, 255, 0.6);
+    width: 1.25rem;
+    height: 1.25rem;
+    pointer-events: none;
+  }
+`;
+
+const StyledInput = styled.input`
+  width: 100%;
+  min-height: 44px;
+  padding: 0.625rem 0.75rem 0.625rem 2.5rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  &:hover {
+    border-color: #00ffff;
+  }
+
+  &:focus {
+    border-color: #00ffff;
+    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+  }
+`;
+
+const StyledSelect = styled.select`
+  min-height: 44px;
+  min-width: 120px;
+  padding: 0.625rem 2rem 0.625rem 0.75rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.95rem;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  transition: border-color 0.2s ease;
+
+  &:hover {
+    border-color: #00ffff;
+  }
+
+  &:focus {
+    border-color: #00ffff;
+    box-shadow: 0 0 0 2px rgba(0, 255, 255, 0.15);
+  }
+
+  option {
+    background: #1e293b;
+    color: #ffffff;
   }
 `;
 
@@ -244,18 +280,19 @@ const ActionButton = styled(motion.button)`
   border-radius: 12px;
   color: #ffffff;
   padding: 0.75rem 1.5rem;
+  min-height: 44px;
   font-weight: 600;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   transition: all 0.3s ease;
-  
+
   &:hover {
     box-shadow: 0 8px 25px rgba(0, 255, 255, 0.4);
     transform: translateY(-2px);
   }
-  
+
   &:active {
     transform: translateY(0);
   }
@@ -273,12 +310,268 @@ const TableHeader = styled.div`
   background: rgba(30, 58, 138, 0.3);
   padding: 1.5rem 2rem;
   border-bottom: 1px solid rgba(59, 130, 246, 0.3);
-  
+
   h3 {
     color: #ffffff;
     font-size: 1.25rem;
     font-weight: 600;
     margin: 0;
+  }
+`;
+
+const StyledTableContainer = styled.div`
+  overflow-x: auto;
+`;
+
+const StyledTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+`;
+
+const StyledThead = styled.thead`
+  background: rgba(30, 58, 138, 0.2);
+`;
+
+const StyledTh = styled.th`
+  color: #ffffff;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid rgba(59, 130, 246, 0.3);
+  white-space: nowrap;
+`;
+
+const StyledTr = styled.tr`
+  border-bottom: 1px solid rgba(59, 130, 246, 0.15);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+  }
+`;
+
+const StyledTd = styled.td`
+  padding: 0.875rem 1rem;
+  color: #e2e8f0;
+  vertical-align: middle;
+`;
+
+const LoadingBar = styled.div`
+  height: 4px;
+  width: 100%;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 40%;
+    background: #00ffff;
+    border-radius: 2px;
+    animation: loading-slide 1.2s ease-in-out infinite;
+  }
+
+  @keyframes loading-slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(350%); }
+  }
+`;
+
+const UserCell = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+`;
+
+const AvatarCircle = styled.div<{ $bgColor: string }>`
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 50%;
+  background-color: ${({ $bgColor }) => $bgColor};
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 1rem;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+`;
+
+const UserNameBlock = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const UserName = styled.span`
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 0.95rem;
+`;
+
+const UserHandle = styled.span`
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.875rem;
+`;
+
+const ContactBlock = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const ContactEmail = styled.span`
+  color: #ffffff;
+  font-size: 0.875rem;
+`;
+
+const ContactPhone = styled.span`
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.75rem;
+`;
+
+const RoleChip = styled.span<{ $color: string }>`
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  background-color: ${({ $color }) => $color};
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+`;
+
+const StatusChip = styled.span<{ $color: string }>`
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  background-color: ${({ $color }) => $color};
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.75rem;
+  white-space: nowrap;
+`;
+
+const DateText = styled.span`
+  color: #ffffff;
+  font-size: 0.875rem;
+`;
+
+const ActionsCell = styled.div`
+  display: flex;
+  gap: 0.25rem;
+`;
+
+const IconBtn = styled.button<{ $color?: string }>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: ${({ $color }) => $color || '#ffffff'};
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+`;
+
+const EmptyText = styled.span`
+  color: rgba(255, 255, 255, 0.6);
+`;
+
+const PaginationBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid rgba(59, 130, 246, 0.3);
+  color: #ffffff;
+  font-size: 0.875rem;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    justify-content: center;
+  }
+`;
+
+const PaginationLabel = styled.span`
+  color: rgba(255, 255, 255, 0.8);
+`;
+
+const PaginationSelect = styled.select`
+  min-height: 36px;
+  padding: 0.25rem 1.75rem 0.25rem 0.5rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.35rem center;
+  outline: none;
+
+  option {
+    background: #1e293b;
+    color: #ffffff;
+  }
+`;
+
+const PaginationButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 6px;
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover:not(:disabled) {
+    border-color: #00ffff;
+    background: rgba(0, 255, 255, 0.1);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 1rem;
+    height: 1rem;
   }
 `;
 
@@ -357,19 +650,19 @@ const EnhancedUserDataManagement: React.FC = () => {
           'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
         }
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setUsers(data.users || []);
-        
+
         // Calculate stats
         const totalUsers = data.users?.length || 0;
         const currentMonth = new Date().getMonth();
-        const newUsersThisMonth = data.users?.filter((u: User) => 
+        const newUsersThisMonth = data.users?.filter((u: User) =>
           new Date(u.createdAt).getMonth() === currentMonth
         ).length || 0;
         const activeUsers = data.users?.filter((u: User) => u.isActive).length || 0;
-        
+
         setStats({
           totalUsers,
           newUsersThisMonth,
@@ -399,17 +692,17 @@ const EnhancedUserDataManagement: React.FC = () => {
   // Filter users based on search and filters
   const filteredUsers = useMemo(() => {
     return users.filter(user => {
-      const matchesSearch = 
+      const matchesSearch =
         user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         user.username.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       const matchesRole = filterRole === 'all' || user.role === filterRole;
-      const matchesStatus = filterStatus === 'all' || 
+      const matchesStatus = filterStatus === 'all' ||
         (filterStatus === 'active' && user.isActive) ||
         (filterStatus === 'inactive' && !user.isActive);
-      
+
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [users, searchTerm, filterRole, filterStatus]);
@@ -425,7 +718,7 @@ const EnhancedUserDataManagement: React.FC = () => {
         },
         body: JSON.stringify({ role: newRole })
       });
-      
+
       if (response.ok) {
         await fetchUsers();
         toast({
@@ -448,7 +741,7 @@ const EnhancedUserDataManagement: React.FC = () => {
   // Stats cards data
   const statsCards = [
     {
-      icon: <Group className="stat-icon" />,
+      icon: <Users className="stat-icon" />,
       number: stats.totalUsers,
       label: 'Total Users',
       change: `+${stats.newUsersThisMonth} this month`,
@@ -462,14 +755,14 @@ const EnhancedUserDataManagement: React.FC = () => {
       changeType: 'positive'
     },
     {
-      icon: <FitnessCenter className="stat-icon" />,
+      icon: <Dumbbell className="stat-icon" />,
       number: stats.potentialClients,
       label: 'Potential Clients',
       change: 'High conversion probability',
       changeType: 'positive'
     },
     {
-      icon: <School className="stat-icon" />,
+      icon: <GraduationCap className="stat-icon" />,
       number: stats.potentialTrainers,
       label: 'Trainers',
       change: 'Certified professionals',
@@ -490,6 +783,11 @@ const EnhancedUserDataManagement: React.FC = () => {
     return isActive ? '#10b981' : '#ef4444';
   };
 
+  // Pagination helpers
+  const totalPages = Math.ceil(filteredUsers.length / rowsPerPage);
+  const startIndex = page * rowsPerPage;
+  const endIndex = Math.min(startIndex + rowsPerPage, filteredUsers.length);
+
   return (
     <DashboardContainer>
       {/* Header Section */}
@@ -498,9 +796,9 @@ const EnhancedUserDataManagement: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        <h1>🏢 Enhanced User Data Management</h1>
+        <h1>Enhanced User Data Management</h1>
         <p>
-          Comprehensive user data collection and management system. 
+          Comprehensive user data collection and management system.
           Collect, analyze, and convert users across all platform roles.
         </p>
       </HeaderSection>
@@ -537,81 +835,53 @@ const EnhancedUserDataManagement: React.FC = () => {
       >
         <ControlsGrid>
           <SearchSection>
-            <TextField
-              placeholder="Search users..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: <Search style={{ color: 'rgba(255,255,255,0.6)', marginRight: '0.5rem' }} />,
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  color: '#ffffff',
-                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                  '& fieldset': { borderColor: 'rgba(59, 130, 246, 0.3)' },
-                  '&:hover fieldset': { borderColor: '#00ffff' },
-                  '&.Mui-focused fieldset': { borderColor: '#00ffff' }
-                },
-                '& .MuiInputLabel-root': { color: 'rgba(255,255,255,0.8)' }
-              }}
-            />
-            
-            <FormControl sx={{ minWidth: 120 }}>
-              <InputLabel sx={{ color: 'rgba(255,255,255,0.8)' }}>Role</InputLabel>
-              <Select
-                value={filterRole}
-                onChange={(e) => setFilterRole(e.target.value)}
-                sx={{
-                  color: '#ffffff',
-                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(59, 130, 246, 0.3)' },
-                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#00ffff' },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#00ffff' }
-                }}
-              >
-                <MenuItem value="all">All Roles</MenuItem>
-                <MenuItem value="user">Users</MenuItem>
-                <MenuItem value="client">Clients</MenuItem>
-                <MenuItem value="trainer">Trainers</MenuItem>
-                <MenuItem value="admin">Admins</MenuItem>
-              </Select>
-            </FormControl>
-            
-            <FormControl sx={{ minWidth: 120 }}>
-              <InputLabel sx={{ color: 'rgba(255,255,255,0.8)' }}>Status</InputLabel>
-              <Select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                sx={{
-                  color: '#ffffff',
-                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                  '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(59, 130, 246, 0.3)' },
-                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#00ffff' },
-                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#00ffff' }
-                }}
-              >
-                <MenuItem value="all">All Status</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-            </FormControl>
+            <SearchInputWrapper>
+              <Search />
+              <StyledInput
+                placeholder="Search users..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </SearchInputWrapper>
+
+            <StyledSelect
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              aria-label="Filter by role"
+            >
+              <option value="all">All Roles</option>
+              <option value="user">Users</option>
+              <option value="client">Clients</option>
+              <option value="trainer">Trainers</option>
+              <option value="admin">Admins</option>
+            </StyledSelect>
+
+            <StyledSelect
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              aria-label="Filter by status"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </StyledSelect>
           </SearchSection>
-          
+
           <ActionButton
             onClick={() => navigate('/dashboard/admin/user-onboarding')}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <PersonAdd />
+            <UserPlus size={18} />
             Add User
           </ActionButton>
-          
+
           <ActionButton
             onClick={fetchUsers}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <Refresh />
+            <RefreshCw size={18} />
             Refresh
           </ActionButton>
         </ControlsGrid>
@@ -626,182 +896,168 @@ const EnhancedUserDataManagement: React.FC = () => {
         <TableHeader>
           <h3>User Database ({filteredUsers.length} users)</h3>
         </TableHeader>
-        
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 600 }}>User</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 600 }}>Contact</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 600 }}>Role</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 600 }}>Joined</TableCell>
-                <TableCell sx={{ color: '#ffffff', fontWeight: 600 }}>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
+
+        <StyledTableContainer>
+          <StyledTable>
+            <StyledThead>
+              <tr>
+                <StyledTh>User</StyledTh>
+                <StyledTh>Contact</StyledTh>
+                <StyledTh>Role</StyledTh>
+                <StyledTh>Status</StyledTh>
+                <StyledTh>Joined</StyledTh>
+                <StyledTh>Actions</StyledTh>
+              </tr>
+            </StyledThead>
+            <tbody>
               {loading ? (
                 Array.from({ length: 5 }).map((_, index) => (
-                  <TableRow key={index}>
-                    <TableCell colSpan={6}>
-                      <LinearProgress sx={{ 
-                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                        '& .MuiLinearProgress-bar': { backgroundColor: '#00ffff' }
-                      }} />
-                    </TableCell>
-                  </TableRow>
+                  <tr key={index}>
+                    <StyledTd colSpan={6}>
+                      <LoadingBar />
+                    </StyledTd>
+                  </tr>
                 ))
               ) : filteredUsers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} sx={{ textAlign: 'center', padding: '3rem' }}>
-                    <Typography sx={{ color: 'rgba(255,255,255,0.6)' }}>
+                <tr>
+                  <StyledTd colSpan={6} style={{ textAlign: 'center', padding: '3rem' }}>
+                    <EmptyText>
                       No users found matching your criteria
-                    </Typography>
-                  </TableCell>
-                </TableRow>
+                    </EmptyText>
+                  </StyledTd>
+                </tr>
               ) : (
                 filteredUsers
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((user) => (
-                    <TableRow 
+                    <StyledTr
                       key={user.id}
-                      hover
-                      sx={{ 
-                        '&:hover': { backgroundColor: 'rgba(59, 130, 246, 0.1)' },
-                        cursor: 'pointer'
-                      }}
                       onClick={() => {
                         setSelectedUser(user);
                         setUserDetailsModalOpen(true);
                       }}
                     >
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Avatar 
-                            src={user.photo} 
-                            sx={{ 
-                              width: 40, 
-                              height: 40,
-                              backgroundColor: getRoleColor(user.role)
+                      <StyledTd>
+                        <UserCell>
+                          <AvatarCircle $bgColor={getRoleColor(user.role)}>
+                            {user.photo ? (
+                              <img src={user.photo} alt={`${user.firstName} ${user.lastName}`} />
+                            ) : (
+                              user.firstName?.[0]?.toUpperCase()
+                            )}
+                          </AvatarCircle>
+                          <UserNameBlock>
+                            <UserName>
+                              {user.firstName} {user.lastName}
+                            </UserName>
+                            <UserHandle>
+                              @{user.username}
+                            </UserHandle>
+                          </UserNameBlock>
+                        </UserCell>
+                      </StyledTd>
+                      <StyledTd>
+                        <ContactBlock>
+                          <ContactEmail>
+                            {user.email}
+                          </ContactEmail>
+                          {user.phone && (
+                            <ContactPhone>
+                              {user.phone}
+                            </ContactPhone>
+                          )}
+                        </ContactBlock>
+                      </StyledTd>
+                      <StyledTd>
+                        <RoleChip $color={getRoleColor(user.role)}>
+                          {user.role.toUpperCase()}
+                        </RoleChip>
+                      </StyledTd>
+                      <StyledTd>
+                        <StatusChip $color={getStatusColor(user.isActive)}>
+                          {user.isActive ? 'Active' : 'Inactive'}
+                        </StatusChip>
+                      </StyledTd>
+                      <StyledTd>
+                        <DateText>
+                          {new Date(user.createdAt).toLocaleDateString()}
+                        </DateText>
+                      </StyledTd>
+                      <StyledTd>
+                        <ActionsCell>
+                          <IconBtn
+                            $color="#00ffff"
+                            title="View Details"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedUser(user);
+                              setUserDetailsModalOpen(true);
                             }}
                           >
-                            {user.firstName?.[0]?.toUpperCase()}
-                          </Avatar>
-                          <Box>
-                            <Typography sx={{ color: '#ffffff', fontWeight: 500 }}>
-                              {user.firstName} {user.lastName}
-                            </Typography>
-                            <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.875rem' }}>
-                              @{user.username}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Box>
-                          <Typography sx={{ color: '#ffffff', fontSize: '0.875rem' }}>
-                            {user.email}
-                          </Typography>
-                          {user.phone && (
-                            <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem' }}>
-                              {user.phone}
-                            </Typography>
-                          )}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={user.role.toUpperCase()}
-                          sx={{
-                            backgroundColor: getRoleColor(user.role),
-                            color: '#ffffff',
-                            fontWeight: 600,
-                            fontSize: '0.75rem'
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={user.isActive ? 'Active' : 'Inactive'}
-                          sx={{
-                            backgroundColor: getStatusColor(user.isActive),
-                            color: '#ffffff',
-                            fontWeight: 600,
-                            fontSize: '0.75rem'
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography sx={{ color: '#ffffff', fontSize: '0.875rem' }}>
-                          {new Date(user.createdAt).toLocaleDateString()}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', gap: 0.5 }}>
-                          <Tooltip title="View Details">
-                            <IconButton 
-                              size="small"
-                              sx={{ color: '#00ffff' }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedUser(user);
-                                setUserDetailsModalOpen(true);
-                              }}
-                            >
-                              <Visibility />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Edit User">
-                            <IconButton 
-                              size="small"
-                              sx={{ color: '#ffffff' }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                // Handle edit
-                              }}
-                            >
-                              <Edit />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Convert Role">
-                            <IconButton 
-                              size="small"
-                              sx={{ color: '#8b5cf6' }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedUser(user);
-                                setRoleConversionModalOpen(true);
-                              }}
-                            >
-                              <Transform />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
+                            <Eye />
+                          </IconBtn>
+                          <IconBtn
+                            $color="#ffffff"
+                            title="Edit User"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Handle edit
+                            }}
+                          >
+                            <Pencil />
+                          </IconBtn>
+                          <IconBtn
+                            $color="#8b5cf6"
+                            title="Convert Role"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedUser(user);
+                              setRoleConversionModalOpen(true);
+                            }}
+                          >
+                            <ArrowRightLeft />
+                          </IconBtn>
+                        </ActionsCell>
+                      </StyledTd>
+                    </StyledTr>
                   ))
               )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-        
-        <TablePagination
-          component="div"
-          count={filteredUsers.length}
-          page={page}
-          onPageChange={(_, newPage) => setPage(newPage)}
-          rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10));
-            setPage(0);
-          }}
-          sx={{
-            color: '#ffffff',
-            borderTop: '1px solid rgba(59, 130, 246, 0.3)',
-            '& .MuiTablePagination-selectIcon': { color: '#ffffff' },
-            '& .MuiTablePagination-select': { color: '#ffffff' }
-          }}
-        />
+            </tbody>
+          </StyledTable>
+        </StyledTableContainer>
+
+        <PaginationBar>
+          <PaginationLabel>Rows per page:</PaginationLabel>
+          <PaginationSelect
+            value={rowsPerPage}
+            onChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+          </PaginationSelect>
+          <PaginationLabel>
+            {filteredUsers.length === 0 ? '0 of 0' : `${startIndex + 1}-${endIndex} of ${filteredUsers.length}`}
+          </PaginationLabel>
+          <PaginationButton
+            disabled={page === 0}
+            onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+            aria-label="Previous page"
+          >
+            <ChevronLeft />
+          </PaginationButton>
+          <PaginationButton
+            disabled={page >= totalPages - 1}
+            onClick={() => setPage((prev) => prev + 1)}
+            aria-label="Next page"
+          >
+            <ChevronRight />
+          </PaginationButton>
+        </PaginationBar>
       </DataTable>
     </DashboardContainer>
   );
