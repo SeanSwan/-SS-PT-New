@@ -2,63 +2,22 @@
  * Bulk Actions Confirmation Dialog Component
  * =========================================
  * Advanced bulk operations dialog with previews, undo functionality, and progress tracking
- * 
+ *
  * Features:
  * - Action preview with affected sessions
  * - Progress indicators during execution
  * - Undo functionality for reversible actions
  * - Detailed success/failure reporting
  * - Batch processing with error handling
+ *
+ * Architecture: styled-components + lucide-react (Galaxy-Swan theme, no MUI)
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import styled from 'styled-components';
+import styled, { keyframes, css } from 'styled-components';
 
-// Material-UI Components
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Typography,
-  Button,
-  Box,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemIcon,
-  ListItemSecondaryAction,
-  Chip,
-  LinearProgress,
-  CircularProgress,
-  Alert,
-  Stepper,
-  Step,
-  StepLabel,
-  StepContent,
-  Paper,
-  Grid,
-  Divider,
-  Collapse,
-  IconButton,
-  Tooltip,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Switch,
-  FormControlLabel,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem
-} from '@mui/material';
-
-// Icons
+// Icons (lucide-react)
 import {
   CheckCircle,
   XCircle,
@@ -83,7 +42,9 @@ import {
   Move,
   FileSpreadsheet,
   Download,
-  Upload
+  Upload,
+  AlertCircle,
+  X
 } from 'lucide-react';
 
 // Custom Components
@@ -95,6 +56,8 @@ import sessionService from '../../../services/sessionService';
 
 // Types
 import type { SessionEvent, BulkActionType } from '../types';
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface BulkActionResult {
   sessionId: string;
@@ -130,6 +93,523 @@ interface ActionConfig {
   }>;
 }
 
+// ─── Animations ────────────────────────────────────────────────────────────────
+
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to   { opacity: 1; }
+`;
+
+const slideUp = keyframes`
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+`;
+
+const progressStripe = keyframes`
+  0%   { background-position: 0 0; }
+  100% { background-position: 40px 0; }
+`;
+
+// ─── Styled Components ─────────────────────────────────────────────────────────
+
+/* ---------- Modal shell ---------- */
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  animation: ${fadeIn} 0.2s ease-out;
+`;
+
+const ModalPanel = styled.div`
+  position: relative;
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #0a0a0f, #1e1e3f);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  color: #e2e8f0;
+  overflow: hidden;
+  animation: ${slideUp} 0.3s ease-out;
+  margin: 16px;
+`;
+
+const ModalHeader = styled.div<{ $accentColor: string }>`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, ${p => p.$accentColor}20, ${p => p.$accentColor}40);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #e2e8f0;
+`;
+
+const ModalBody = styled.div`
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-thumb { background: rgba(14,165,233,0.3); border-radius: 3px; }
+`;
+
+const ModalFooter = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 20px 24px;
+  border-top: 1px solid rgba(14,165,233,0.15);
+`;
+
+/* ---------- Chip ---------- */
+
+const StyledChip = styled.span<{ $outlined?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 999px;
+  background: ${p => p.$outlined ? 'transparent' : 'rgba(14,165,233,0.15)'};
+  border: 1px solid ${p => p.$outlined ? 'rgba(14,165,233,0.4)' : 'rgba(14,165,233,0.2)'};
+  color: #0ea5e9;
+  white-space: nowrap;
+`;
+
+/* ---------- Typography helpers ---------- */
+
+const SectionTitle = styled.h3`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  margin: 0 0 12px 0;
+`;
+
+const SubTitle = styled.h4`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: rgba(226,232,240,0.85);
+  margin: 0 0 8px 0;
+`;
+
+const BodyText = styled.span<{ $capitalize?: boolean; $muted?: boolean }>`
+  font-size: 0.875rem;
+  color: ${p => p.$muted ? 'rgba(226,232,240,0.6)' : '#e2e8f0'};
+  text-transform: ${p => p.$capitalize ? 'capitalize' : 'none'};
+`;
+
+const BigNumber = styled.div<{ $color: string }>`
+  font-size: 2rem;
+  font-weight: 700;
+  color: ${p => p.$color};
+  text-align: center;
+`;
+
+/* ---------- Grid ---------- */
+
+const GridRow = styled.div<{ $cols?: number; $gap?: number }>`
+  display: grid;
+  grid-template-columns: repeat(${p => p.$cols || 2}, 1fr);
+  gap: ${p => p.$gap || 16}px;
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+/* ---------- Card / Paper ---------- */
+
+const CardSurface = styled.div<{ $bg?: string }>`
+  padding: 16px;
+  border-radius: 12px;
+  background: ${p => p.$bg || 'rgba(255,255,255,0.05)'};
+  border: 1px solid rgba(14,165,233,0.12);
+`;
+
+/* ---------- Flex row ---------- */
+
+const FlexRow = styled.div<{ $justify?: string; $gap?: number; $mb?: number }>`
+  display: flex;
+  align-items: center;
+  justify-content: ${p => p.$justify || 'flex-start'};
+  gap: ${p => p.$gap || 8}px;
+  margin-bottom: ${p => p.$mb || 0}px;
+`;
+
+/* ---------- Buttons ---------- */
+
+const GhostButton = styled.button<{ $disabled?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255,255,255,0.7);
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  cursor: ${p => p.$disabled ? 'not-allowed' : 'pointer'};
+  opacity: ${p => p.$disabled ? 0.45 : 1};
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: rgba(255,255,255,0.06);
+    color: #e2e8f0;
+  }
+`;
+
+const SmallButton = styled.button<{ $disabled?: boolean }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 6px 12px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #e2e8f0;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(14,165,233,0.2);
+  border-radius: 6px;
+  cursor: ${p => p.$disabled ? 'not-allowed' : 'pointer'};
+  opacity: ${p => p.$disabled ? 0.45 : 1};
+  transition: background 0.2s;
+
+  &:hover:not(:disabled) {
+    background: rgba(14,165,233,0.15);
+  }
+`;
+
+const UndoButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 6px;
+  background: transparent;
+  border: 1px solid rgba(14,165,233,0.2);
+  border-radius: 8px;
+  color: rgba(226,232,240,0.7);
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: rgba(14,165,233,0.12);
+    color: #0ea5e9;
+  }
+`;
+
+/* ---------- Toggle switch ---------- */
+
+const ToggleWrapper = styled.label`
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.875rem;
+  color: #e2e8f0;
+`;
+
+const ToggleTrack = styled.span<{ $checked: boolean }>`
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: ${p => p.$checked ? '#0ea5e9' : 'rgba(255,255,255,0.15)'};
+  transition: background 0.25s;
+`;
+
+const ToggleKnob = styled.span<{ $checked: boolean }>`
+  position: absolute;
+  top: 2px;
+  left: ${p => p.$checked ? '22px' : '2px'};
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: left 0.25s;
+`;
+
+const HiddenCheckbox = styled.input`
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+`;
+
+/* ---------- Collapsible ---------- */
+
+const CollapsibleContent = styled.div<{ $open: boolean }>`
+  max-height: ${p => p.$open ? '9999px' : '0'};
+  opacity: ${p => p.$open ? 1 : 0};
+  overflow: hidden;
+  transition: max-height 0.35s ease, opacity 0.25s ease;
+`;
+
+/* ---------- Table ---------- */
+
+const TableWrapper = styled.div`
+  margin-top: 12px;
+  max-height: 300px;
+  overflow: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(14,165,233,0.15);
+
+  &::-webkit-scrollbar { width: 6px; height: 6px; }
+  &::-webkit-scrollbar-thumb { background: rgba(14,165,233,0.3); border-radius: 3px; }
+`;
+
+const StyledTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+`;
+
+const THead = styled.thead`
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(15,23,42,0.95);
+`;
+
+const Th = styled.th`
+  text-align: left;
+  padding: 10px 14px;
+  color: rgba(226,232,240,0.7);
+  font-weight: 600;
+  border-bottom: 1px solid rgba(14,165,233,0.2);
+  white-space: nowrap;
+`;
+
+const Td = styled.td`
+  padding: 8px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: #e2e8f0;
+`;
+
+/* ---------- Form controls ---------- */
+
+const FormGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+`;
+
+const FormLabel = styled.label`
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: rgba(226,232,240,0.7);
+`;
+
+const StyledSelect = styled.select`
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  color: #e2e8f0;
+  background: rgba(15,23,42,0.8);
+  border: 1px solid rgba(14,165,233,0.25);
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+
+  option {
+    background: #0f172a;
+    color: #e2e8f0;
+  }
+
+  &:focus {
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 2px rgba(14,165,233,0.15);
+  }
+`;
+
+const StyledInput = styled.input`
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 0.875rem;
+  color: #e2e8f0;
+  background: rgba(15,23,42,0.8);
+  border: 1px solid rgba(14,165,233,0.25);
+  border-radius: 8px;
+  outline: none;
+
+  &::placeholder { color: rgba(226,232,240,0.35); }
+
+  &:focus {
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 2px rgba(14,165,233,0.15);
+  }
+`;
+
+/* ---------- Alert ---------- */
+
+const alertColorMap = {
+  error:   { bg: 'rgba(239,68,68,0.12)',  border: 'rgba(239,68,68,0.3)',  icon: '#ef4444' },
+  warning: { bg: 'rgba(245,158,11,0.12)', border: 'rgba(245,158,11,0.3)', icon: '#f59e0b' },
+  info:    { bg: 'rgba(14,165,233,0.12)',  border: 'rgba(14,165,233,0.3)', icon: '#0ea5e9' },
+};
+
+const AlertBox = styled.div<{ $severity: 'error' | 'warning' | 'info' }>`
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  color: #e2e8f0;
+  background: ${p => alertColorMap[p.$severity].bg};
+  border: 1px solid ${p => alertColorMap[p.$severity].border};
+  margin-bottom: 16px;
+`;
+
+/* ---------- Progress bar ---------- */
+
+const ProgressBarOuter = styled.div`
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.1);
+  overflow: hidden;
+`;
+
+const ProgressBarInner = styled.div<{ $value: number; $color: string }>`
+  width: ${p => p.$value}%;
+  height: 100%;
+  border-radius: 4px;
+  background: ${p => p.$color};
+  background-image: linear-gradient(
+    45deg,
+    rgba(255,255,255,0.15) 25%, transparent 25%,
+    transparent 50%, rgba(255,255,255,0.15) 50%,
+    rgba(255,255,255,0.15) 75%, transparent 75%
+  );
+  background-size: 40px 40px;
+  animation: ${progressStripe} 1s linear infinite;
+  transition: width 0.3s ease;
+`;
+
+/* ---------- Stepper ---------- */
+
+const StepperContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
+
+const StepRow = styled.div`
+  display: flex;
+  gap: 16px;
+`;
+
+const StepIndicatorColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 32px;
+`;
+
+const StepCircle = styled.div<{ $state: 'active' | 'completed' | 'pending' }>`
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+
+  ${p => p.$state === 'completed' && css`
+    background: #22c55e;
+    color: #fff;
+  `}
+  ${p => p.$state === 'active' && css`
+    background: #0ea5e9;
+    color: #fff;
+  `}
+  ${p => p.$state === 'pending' && css`
+    background: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.5);
+  `}
+`;
+
+const StepLine = styled.div<{ $completed: boolean }>`
+  width: 2px;
+  flex: 1;
+  min-height: 16px;
+  background: ${p => p.$completed ? '#22c55e' : 'rgba(255,255,255,0.12)'};
+`;
+
+const StepLabelText = styled.span<{ $state: 'active' | 'completed' | 'pending' }>`
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding-top: 5px;
+  color: ${p => p.$state === 'active' ? '#fff'
+    : p.$state === 'completed' ? '#22c55e'
+    : 'rgba(255,255,255,0.5)'};
+`;
+
+const StepContentArea = styled.div`
+  padding: 12px 0 24px;
+  flex: 1;
+`;
+
+/* ---------- List ---------- */
+
+const StyledList = styled.ul<{ $maxHeight?: number }>`
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: ${p => p.$maxHeight ? `${p.$maxHeight}px` : 'auto'};
+  overflow-y: auto;
+
+  &::-webkit-scrollbar { width: 5px; }
+  &::-webkit-scrollbar-thumb { background: rgba(14,165,233,0.3); border-radius: 3px; }
+`;
+
+const StyledListItem = styled.li`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+
+  &:last-child { border-bottom: none; }
+`;
+
+const ListItemBody = styled.div`
+  flex: 1;
+  min-width: 0;
+`;
+
+const ListItemPrimary = styled.div`
+  font-size: 0.875rem;
+  color: #e2e8f0;
+`;
+
+const ListItemSecondary = styled.div`
+  font-size: 0.75rem;
+  color: rgba(226,232,240,0.55);
+  margin-top: 2px;
+`;
+
+/* ---------- Tooltip (simple title-based, no MUI Tooltip) ---------- */
+// We use the native `title` attribute for tooltips in the migration.
+
+// ─── Component ─────────────────────────────────────────────────────────────────
+
 const BulkActionsConfirmationDialog: React.FC<BulkActionsConfirmationDialogProps> = ({
   open,
   onClose,
@@ -139,7 +619,7 @@ const BulkActionsConfirmationDialog: React.FC<BulkActionsConfirmationDialogProps
   onUndo
 }) => {
   const { toast } = useToast();
-  
+
   // Component state
   const [activeStep, setActiveStep] = useState(0);
   const [processing, setProcessing] = useState(false);
@@ -149,7 +629,7 @@ const BulkActionsConfirmationDialog: React.FC<BulkActionsConfirmationDialogProps
   const [showDetails, setShowDetails] = useState(false);
   const [actionInputs, setActionInputs] = useState<Record<string, any>>({});
   const [previewExpanded, setPreviewExpanded] = useState(true);
-  
+
   // Action configurations
   const actionConfigs: Record<BulkActionType, ActionConfig> = {
     confirm: {
@@ -330,9 +810,9 @@ const BulkActionsConfirmationDialog: React.FC<BulkActionsConfirmationDialogProps
       ]
     }
   };
-  
+
   const currentConfig = actionConfigs[action];
-  
+
   // Steps for the multi-step process
   const steps = [
     'Review Selection',
@@ -340,25 +820,25 @@ const BulkActionsConfirmationDialog: React.FC<BulkActionsConfirmationDialogProps
     'Confirm & Execute',
     'Results'
   ];
-  
+
   // Calculate session statistics
   const sessionStats = useMemo(() => {
     const byStatus = selectedSessions.reduce((acc, session) => {
       acc[session.status] = (acc[session.status] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
+
     const byTrainer = selectedSessions.reduce((acc, session) => {
-      const trainerName = session.trainer ? 
-        `${session.trainer.firstName} ${session.trainer.lastName}` : 
+      const trainerName = session.trainer ?
+        `${session.trainer.firstName} ${session.trainer.lastName}` :
         'Unassigned';
       acc[trainerName] = (acc[trainerName] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-    
+
     return { byStatus, byTrainer };
   }, [selectedSessions]);
-  
+
   // Reset state when dialog opens
   useEffect(() => {
     if (open) {
@@ -372,11 +852,11 @@ const BulkActionsConfirmationDialog: React.FC<BulkActionsConfirmationDialogProps
       setPreviewExpanded(true);
     }
   }, [open, action]);
-  
+
   // Validate inputs
   const inputsValid = useMemo(() => {
     if (!currentConfig.requiresInput) return true;
-    
+
     return currentConfig.inputFields?.every(field => {
       if (!field.required) return true;
       const value = actionInputs[field.key];
@@ -386,13 +866,13 @@ const BulkActionsConfirmationDialog: React.FC<BulkActionsConfirmationDialogProps
       return value && value.trim() !== '';
     }) || false;
   }, [currentConfig, actionInputs]);
-  
+
   // Execute bulk action
   const executeBulkAction = async () => {
     setProcessing(true);
     setActiveStep(2);
     const newResults: BulkActionResult[] = [];
-    
+
     try {
       for (let i = 0; i < selectedSessions.length; i++) {
         if (paused) {
@@ -404,12 +884,12 @@ const BulkActionsConfirmationDialog: React.FC<BulkActionsConfirmationDialogProps
             checkPause();
           });
         }
-        
+
         const session = selectedSessions[i];
-        
+
         try {
           let result: any;
-          
+
           switch (action) {
             case 'confirm':
               result = await sessionService.updateSession(session.id, { status: 'confirmed' });
@@ -456,13 +936,13 @@ const BulkActionsConfirmationDialog: React.FC<BulkActionsConfirmationDialogProps
             default:
               throw new Error(`Unknown action: ${action}`);
           }
-          
+
           newResults.push({
             sessionId: session.id,
             success: true,
             originalData: session
           });
-          
+
         } catch (error: any) {
           newResults.push({
             sessionId: session.id,
@@ -471,20 +951,20 @@ const BulkActionsConfirmationDialog: React.FC<BulkActionsConfirmationDialogProps
             originalData: session
           });
         }
-        
+
         setProgress(((i + 1) / selectedSessions.length) * 100);
         setResults([...newResults]);
-        
+
         // Small delay for better UX
         await new Promise(resolve => setTimeout(resolve, 100));
       }
-      
+
       setActiveStep(3);
       onActionComplete(newResults);
-      
+
       const successCount = newResults.filter(r => r.success).length;
       const failureCount = newResults.length - successCount;
-      
+
       if (failureCount === 0) {
         toast({
           title: 'Bulk Action Completed',
@@ -498,7 +978,7 @@ const BulkActionsConfirmationDialog: React.FC<BulkActionsConfirmationDialogProps
           variant: 'destructive'
         });
       }
-      
+
     } catch (error: any) {
       console.error('Bulk action failed:', error);
       toast({
@@ -510,427 +990,400 @@ const BulkActionsConfirmationDialog: React.FC<BulkActionsConfirmationDialogProps
       setProcessing(false);
     }
   };
-  
+
   // Handle input changes
   const handleInputChange = (key: string, value: any) => {
     setActionInputs(prev => ({ ...prev, [key]: value }));
   };
-  
+
+  // Alert severity helper
+  const getAlertSeverity = (level: 'low' | 'medium' | 'high'): 'error' | 'warning' | 'info' => {
+    if (level === 'high') return 'error';
+    if (level === 'medium') return 'warning';
+    return 'info';
+  };
+
+  const getAlertIcon = (severity: 'error' | 'warning' | 'info') => {
+    if (severity === 'error') return <AlertCircle size={18} color={alertColorMap.error.icon} />;
+    if (severity === 'warning') return <AlertTriangle size={18} color={alertColorMap.warning.icon} />;
+    return <Info size={18} color={alertColorMap.info.icon} />;
+  };
+
   // Render step content
   const renderStepContent = (step: number) => {
     switch (step) {
       case 0: // Review Selection
         return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
+          <div>
+            <SectionTitle>
               Selected Sessions ({selectedSessions.length})
-            </Typography>
-            
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={12} md={6}>
-                <Paper sx={{ p: 2, backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    By Status
-                  </Typography>
-                  {Object.entries(sessionStats.byStatus).map(([status, count]) => (
-                    <Box key={status} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="body2" sx={{ textTransform: 'capitalize' }}>
-                        {status}
-                      </Typography>
-                      <Chip label={count} size="small" />
-                    </Box>
-                  ))}
-                </Paper>
-              </Grid>
-              
-              <Grid item xs={12} md={6}>
-                <Paper sx={{ p: 2, backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
-                  <Typography variant="subtitle2" gutterBottom>
-                    By Trainer
-                  </Typography>
-                  {Object.entries(sessionStats.byTrainer).map(([trainer, count]) => (
-                    <Box key={trainer} sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                      <Typography variant="body2">
-                        {trainer}
-                      </Typography>
-                      <Chip label={count} size="small" />
-                    </Box>
-                  ))}
-                </Paper>
-              </Grid>
-            </Grid>
-            
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={previewExpanded}
-                  onChange={(e) => setPreviewExpanded(e.target.checked)}
-                />
-              }
-              label="Show session details"
-            />
-            
-            <Collapse in={previewExpanded}>
-              <TableContainer component={Paper} sx={{ mt: 2, maxHeight: 300 }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Date & Time</TableCell>
-                      <TableCell>Client</TableCell>
-                      <TableCell>Trainer</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>Location</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
+            </SectionTitle>
+
+            <GridRow $cols={2} $gap={16} style={{ marginBottom: 16 }}>
+              <CardSurface>
+                <SubTitle>By Status</SubTitle>
+                {Object.entries(sessionStats.byStatus).map(([status, count]) => (
+                  <FlexRow key={status} $justify="space-between" $mb={6}>
+                    <BodyText $capitalize>{status}</BodyText>
+                    <StyledChip>{count}</StyledChip>
+                  </FlexRow>
+                ))}
+              </CardSurface>
+
+              <CardSurface>
+                <SubTitle>By Trainer</SubTitle>
+                {Object.entries(sessionStats.byTrainer).map(([trainer, count]) => (
+                  <FlexRow key={trainer} $justify="space-between" $mb={6}>
+                    <BodyText>{trainer}</BodyText>
+                    <StyledChip>{count}</StyledChip>
+                  </FlexRow>
+                ))}
+              </CardSurface>
+            </GridRow>
+
+            <ToggleWrapper>
+              <HiddenCheckbox
+                type="checkbox"
+                checked={previewExpanded}
+                onChange={(e) => setPreviewExpanded(e.target.checked)}
+              />
+              <ToggleTrack $checked={previewExpanded}>
+                <ToggleKnob $checked={previewExpanded} />
+              </ToggleTrack>
+              Show session details
+            </ToggleWrapper>
+
+            <CollapsibleContent $open={previewExpanded}>
+              <TableWrapper>
+                <StyledTable>
+                  <THead>
+                    <tr>
+                      <Th>Date &amp; Time</Th>
+                      <Th>Client</Th>
+                      <Th>Trainer</Th>
+                      <Th>Status</Th>
+                      <Th>Location</Th>
+                    </tr>
+                  </THead>
+                  <tbody>
                     {selectedSessions.map((session) => (
-                      <TableRow key={session.id}>
-                        <TableCell>
+                      <tr key={session.id}>
+                        <Td>
                           {session.start.toLocaleDateString()} {session.start.toLocaleTimeString()}
-                        </TableCell>
-                        <TableCell>
-                          {session.client ? 
-                            `${session.client.firstName} ${session.client.lastName}` : 
+                        </Td>
+                        <Td>
+                          {session.client ?
+                            `${session.client.firstName} ${session.client.lastName}` :
                             'Available'
                           }
-                        </TableCell>
-                        <TableCell>
-                          {session.trainer ? 
-                            `${session.trainer.firstName} ${session.trainer.lastName}` : 
+                        </Td>
+                        <Td>
+                          {session.trainer ?
+                            `${session.trainer.firstName} ${session.trainer.lastName}` :
                             'Unassigned'
                           }
-                        </TableCell>
-                        <TableCell>
-                          <Chip 
-                            label={session.status} 
-                            size="small" 
-                            variant="outlined"
-                          />
-                        </TableCell>
-                        <TableCell>{session.location}</TableCell>
-                      </TableRow>
+                        </Td>
+                        <Td>
+                          <StyledChip $outlined>
+                            {session.status}
+                          </StyledChip>
+                        </Td>
+                        <Td>{session.location}</Td>
+                      </tr>
                     ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Collapse>
-          </Box>
+                  </tbody>
+                </StyledTable>
+              </TableWrapper>
+            </CollapsibleContent>
+          </div>
         );
-        
+
       case 1: // Configure Action (if needed)
         if (!currentConfig.requiresInput) return null;
-        
+
         return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
+          <div>
+            <SectionTitle>
               Configure {currentConfig.title}
-            </Typography>
-            
-            <Grid container spacing={3}>
+            </SectionTitle>
+
+            <GridRow $cols={2} $gap={20}>
               {currentConfig.inputFields?.map((field) => (
-                <Grid item xs={12} md={6} key={field.key}>
+                <FormGroup key={field.key}>
+                  <FormLabel>{field.label}</FormLabel>
                   {field.type === 'select' ? (
-                    <FormControl fullWidth>
-                      <InputLabel>{field.label}</InputLabel>
-                      <Select
-                        value={actionInputs[field.key] || ''}
-                        onChange={(e) => handleInputChange(field.key, e.target.value)}
-                      >
-                        {field.options?.map((option) => (
-                          <MenuItem key={option.value} value={option.value}>
-                            {option.label}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
+                    <StyledSelect
+                      value={actionInputs[field.key] || ''}
+                      onChange={(e) => handleInputChange(field.key, e.target.value)}
+                    >
+                      <option value="" disabled>Select...</option>
+                      {field.options?.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </StyledSelect>
                   ) : (
-                    <TextField
-                      fullWidth
-                      label={field.label}
+                    <StyledInput
                       type={field.type}
+                      placeholder={field.label}
                       value={actionInputs[field.key] || ''}
                       onChange={(e) => handleInputChange(field.key, e.target.value)}
                       required={field.required}
                     />
                   )}
-                </Grid>
+                </FormGroup>
               ))}
-            </Grid>
-          </Box>
+            </GridRow>
+          </div>
         );
-        
+
       case 2: // Confirm & Execute
+        const severity = getAlertSeverity(currentConfig.warningLevel);
+
         return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
+          <div>
+            <SectionTitle>
               {processing ? 'Processing...' : 'Ready to Execute'}
-            </Typography>
-            
-            <Alert 
-              severity={currentConfig.warningLevel === 'high' ? 'error' : 
-                       currentConfig.warningLevel === 'medium' ? 'warning' : 'info'}
-              sx={{ mb: 3 }}
-            >
-              {currentConfig.confirmationText}
-            </Alert>
-            
+            </SectionTitle>
+
+            <AlertBox $severity={severity}>
+              {getAlertIcon(severity)}
+              <span>{currentConfig.confirmationText}</span>
+            </AlertBox>
+
             {processing && (
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="body2">
+              <div style={{ marginBottom: 20 }}>
+                <FlexRow $justify="space-between" $mb={8}>
+                  <BodyText>
                     Progress: {Math.round(progress)}%
-                  </Typography>
-                  <Typography variant="body2">
+                  </BodyText>
+                  <BodyText>
                     {results.filter(r => r.success).length} / {selectedSessions.length} completed
-                  </Typography>
-                </Box>
-                <LinearProgress 
-                  variant="determinate" 
-                  value={progress}
-                  sx={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    '& .MuiLinearProgress-bar': {
-                      backgroundColor: currentConfig.color
-                    }
-                  }}
-                />
-                
-                <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                  <Button
-                    size="small"
-                    onClick={() => setPaused(!paused)}
-                    startIcon={paused ? <Play size={16} /> : <Pause size={16} />}
-                  >
+                  </BodyText>
+                </FlexRow>
+                <ProgressBarOuter>
+                  <ProgressBarInner $value={progress} $color={currentConfig.color} />
+                </ProgressBarOuter>
+
+                <FlexRow $gap={8} style={{ marginTop: 12 }}>
+                  <SmallButton onClick={() => setPaused(!paused)}>
+                    {paused ? <Play size={16} /> : <Pause size={16} />}
                     {paused ? 'Resume' : 'Pause'}
-                  </Button>
-                  
-                  <Button
-                    size="small"
-                    onClick={() => setProcessing(false)}
-                    startIcon={<Square size={16} />}
-                  >
+                  </SmallButton>
+
+                  <SmallButton onClick={() => setProcessing(false)}>
+                    <Square size={16} />
                     Stop
-                  </Button>
-                </Box>
-              </Box>
+                  </SmallButton>
+                </FlexRow>
+              </div>
             )}
-            
+
             {results.length > 0 && (
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={showDetails}
-                    onChange={(e) => setShowDetails(e.target.checked)}
-                  />
-                }
-                label="Show detailed results"
-              />
+              <ToggleWrapper>
+                <HiddenCheckbox
+                  type="checkbox"
+                  checked={showDetails}
+                  onChange={(e) => setShowDetails(e.target.checked)}
+                />
+                <ToggleTrack $checked={showDetails}>
+                  <ToggleKnob $checked={showDetails} />
+                </ToggleTrack>
+                Show detailed results
+              </ToggleWrapper>
             )}
-            
-            <Collapse in={showDetails}>
-              <List sx={{ maxHeight: 200, overflow: 'auto' }}>
+
+            <CollapsibleContent $open={showDetails}>
+              <StyledList $maxHeight={200}>
                 {results.map((result, index) => {
                   const session = selectedSessions.find(s => s.id === result.sessionId);
                   return (
-                    <ListItem key={result.sessionId}>
-                      <ListItemIcon>
-                        {result.success ? 
-                          <CheckCircle size={20} color="#22c55e" /> : 
-                          <XCircle size={20} color="#ef4444" />
-                        }
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={session?.title || `Session ${index + 1}`}
-                        secondary={result.success ? 'Completed' : result.error}
-                      />
-                    </ListItem>
+                    <StyledListItem key={result.sessionId}>
+                      {result.success ?
+                        <CheckCircle size={20} color="#22c55e" /> :
+                        <XCircle size={20} color="#ef4444" />
+                      }
+                      <ListItemBody>
+                        <ListItemPrimary>{session?.title || `Session ${index + 1}`}</ListItemPrimary>
+                        <ListItemSecondary>{result.success ? 'Completed' : result.error}</ListItemSecondary>
+                      </ListItemBody>
+                    </StyledListItem>
                   );
                 })}
-              </List>
-            </Collapse>
-          </Box>
+              </StyledList>
+            </CollapsibleContent>
+          </div>
         );
-        
+
       case 3: // Results
         const successCount = results.filter(r => r.success).length;
         const failureCount = results.length - successCount;
-        
+
         return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
+          <div>
+            <SectionTitle>
               Action Results
-            </Typography>
-            
-            <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid item xs={6}>
-                <Paper sx={{ p: 2, backgroundColor: 'rgba(34, 197, 94, 0.1)' }}>
-                  <Typography variant="h4" color="#22c55e" align="center">
-                    {successCount}
-                  </Typography>
-                  <Typography variant="body2" align="center">
-                    Successful
-                  </Typography>
-                </Paper>
-              </Grid>
-              
-              <Grid item xs={6}>
-                <Paper sx={{ p: 2, backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
-                  <Typography variant="h4" color="#ef4444" align="center">
-                    {failureCount}
-                  </Typography>
-                  <Typography variant="body2" align="center">
-                    Failed
-                  </Typography>
-                </Paper>
-              </Grid>
-            </Grid>
-            
+            </SectionTitle>
+
+            <GridRow $cols={2} $gap={16} style={{ marginBottom: 20 }}>
+              <CardSurface $bg="rgba(34,197,94,0.1)">
+                <BigNumber $color="#22c55e">{successCount}</BigNumber>
+                <BodyText style={{ display: 'block', textAlign: 'center' }}>Successful</BodyText>
+              </CardSurface>
+
+              <CardSurface $bg="rgba(239,68,68,0.1)">
+                <BigNumber $color="#ef4444">{failureCount}</BigNumber>
+                <BodyText style={{ display: 'block', textAlign: 'center' }}>Failed</BodyText>
+              </CardSurface>
+            </GridRow>
+
             {failureCount > 0 && (
-              <Alert severity="warning" sx={{ mb: 2 }}>
-                Some sessions could not be processed. Review the details below.
-              </Alert>
+              <AlertBox $severity="warning">
+                <AlertTriangle size={18} color={alertColorMap.warning.icon} />
+                <span>Some sessions could not be processed. Review the details below.</span>
+              </AlertBox>
             )}
-            
-            <List sx={{ maxHeight: 300, overflow: 'auto' }}>
+
+            <StyledList $maxHeight={300}>
               {results.map((result, index) => {
                 const session = selectedSessions.find(s => s.id === result.sessionId);
                 return (
-                  <ListItem key={result.sessionId}>
-                    <ListItemIcon>
-                      {result.success ? 
-                        <CheckCircle size={20} color="#22c55e" /> : 
-                        <XCircle size={20} color="#ef4444" />
-                      }
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={session?.title || `Session ${index + 1}`}
-                      secondary={result.success ? 
-                        `Successfully ${action}ed` : 
-                        `Failed: ${result.error}`
-                      }
-                    />
+                  <StyledListItem key={result.sessionId}>
+                    {result.success ?
+                      <CheckCircle size={20} color="#22c55e" /> :
+                      <XCircle size={20} color="#ef4444" />
+                    }
+                    <ListItemBody>
+                      <ListItemPrimary>{session?.title || `Session ${index + 1}`}</ListItemPrimary>
+                      <ListItemSecondary>
+                        {result.success ?
+                          `Successfully ${action}ed` :
+                          `Failed: ${result.error}`
+                        }
+                      </ListItemSecondary>
+                    </ListItemBody>
                     {result.success && currentConfig.reversible && onUndo && (
-                      <ListItemSecondaryAction>
-                        <Tooltip title="Undo this action">
-                          <IconButton
-                            size="small"
-                            onClick={() => onUndo(result.sessionId)}
-                          >
-                            <RotateCcw size={16} />
-                          </IconButton>
-                        </Tooltip>
-                      </ListItemSecondaryAction>
+                      <UndoButton
+                        title="Undo this action"
+                        onClick={() => onUndo(result.sessionId)}
+                      >
+                        <RotateCcw size={16} />
+                      </UndoButton>
                     )}
-                  </ListItem>
+                  </StyledListItem>
                 );
               })}
-            </List>
-          </Box>
+            </StyledList>
+          </div>
         );
-        
+
       default:
         return null;
     }
   };
-  
+
+  // Helper: resolve step state for stepper
+  const getStepState = (index: number): 'active' | 'completed' | 'pending' => {
+    if (index < activeStep) return 'completed';
+    if (index === activeStep) return 'active';
+    return 'pending';
+  };
+
+  if (!open) return null;
+
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          background: 'linear-gradient(135deg, #0a0a0f, #1e1e3f)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          color: 'white'
-        }
-      }}
-    >
-      <DialogTitle sx={{ 
-        background: `linear-gradient(135deg, ${currentConfig.color}20, ${currentConfig.color}40)`,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 1
-      }}>
-        {currentConfig.icon}
-        {currentConfig.title}
-        <Chip 
-          label={`${selectedSessions.length} sessions`}
-          size="small"
-          sx={{ ml: 'auto' }}
-        />
-      </DialogTitle>
-      
-      <DialogContent sx={{ p: 3 }}>
-        <Stepper activeStep={activeStep} orientation="vertical">
-          {steps.map((label, index) => (
-            <Step key={label}>
-              <StepLabel sx={{
-                '& .MuiStepLabel-label': { color: 'rgba(255, 255, 255, 0.7)' },
-                '& .MuiStepLabel-label.Mui-active': { color: 'white' },
-                '& .MuiStepLabel-label.Mui-completed': { color: '#22c55e' }
-              }}>
-                {label}
-              </StepLabel>
-              <StepContent>
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {renderStepContent(index)}
-                  </motion.div>
-                </AnimatePresence>
-              </StepContent>
-            </Step>
-          ))}
-        </Stepper>
-      </DialogContent>
-      
-      <DialogActions sx={{ p: 3, gap: 1 }}>
-        <Button 
-          onClick={onClose}
-          sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
-          disabled={processing}
-        >
-          {activeStep === steps.length - 1 ? 'Close' : 'Cancel'}
-        </Button>
-        
-        {activeStep > 0 && activeStep < steps.length - 1 && (
-          <Button
-            onClick={() => setActiveStep(prev => prev - 1)}
-            sx={{ color: 'white' }}
+    <ModalOverlay onClick={(e) => { if (e.target === e.currentTarget && !processing) onClose(); }}>
+      <ModalPanel>
+        <ModalHeader $accentColor={currentConfig.color}>
+          {currentConfig.icon}
+          {currentConfig.title}
+          <StyledChip style={{ marginLeft: 'auto' }}>
+            {selectedSessions.length} sessions
+          </StyledChip>
+        </ModalHeader>
+
+        <ModalBody>
+          <StepperContainer>
+            {steps.map((label, index) => {
+              const state = getStepState(index);
+              return (
+                <React.Fragment key={label}>
+                  <StepRow>
+                    <StepIndicatorColumn>
+                      <StepCircle $state={state}>
+                        {state === 'completed' ? <CheckCircle size={16} /> : index + 1}
+                      </StepCircle>
+                      {index < steps.length - 1 && (
+                        <StepLine $completed={index < activeStep} />
+                      )}
+                    </StepIndicatorColumn>
+                    <div style={{ flex: 1 }}>
+                      <StepLabelText $state={state}>{label}</StepLabelText>
+                      {index === activeStep && (
+                        <StepContentArea>
+                          <AnimatePresence mode="wait">
+                            <motion.div
+                              key={index}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              {renderStepContent(index)}
+                            </motion.div>
+                          </AnimatePresence>
+                        </StepContentArea>
+                      )}
+                    </div>
+                  </StepRow>
+                </React.Fragment>
+              );
+            })}
+          </StepperContainer>
+        </ModalBody>
+
+        <ModalFooter>
+          <GhostButton
+            onClick={onClose}
+            $disabled={processing}
             disabled={processing}
           >
-            Back
-          </Button>
-        )}
-        
-        {activeStep < steps.length - 2 && (
-          <GlowButton
-            text="Next"
-            variant="primary"
-            onClick={() => setActiveStep(prev => prev + 1)}
-            disabled={processing || (activeStep === 1 && !inputsValid)}
-          />
-        )}
-        
-        {activeStep === steps.length - 2 && !processing && (
-          <GlowButton
-            text={`${currentConfig.title} (${selectedSessions.length})`}
-            variant={currentConfig.warningLevel === 'high' ? 'ruby' : 
-                     currentConfig.warningLevel === 'medium' ? 'cosmic' : 'emerald'}
-            leftIcon={currentConfig.icon}
-            onClick={executeBulkAction}
-            disabled={currentConfig.requiresInput && !inputsValid}
-          />
-        )}
-      </DialogActions>
-    </Dialog>
+            {activeStep === steps.length - 1 ? 'Close' : 'Cancel'}
+          </GhostButton>
+
+          {activeStep > 0 && activeStep < steps.length - 1 && (
+            <GhostButton
+              onClick={() => setActiveStep(prev => prev - 1)}
+              $disabled={processing}
+              disabled={processing}
+            >
+              Back
+            </GhostButton>
+          )}
+
+          {activeStep < steps.length - 2 && (
+            <GlowButton
+              text="Next"
+              variant="primary"
+              onClick={() => setActiveStep(prev => prev + 1)}
+              disabled={processing || (activeStep === 1 && !inputsValid)}
+            />
+          )}
+
+          {activeStep === steps.length - 2 && !processing && (
+            <GlowButton
+              text={`${currentConfig.title} (${selectedSessions.length})`}
+              variant={currentConfig.warningLevel === 'high' ? 'ruby' :
+                       currentConfig.warningLevel === 'medium' ? 'cosmic' : 'emerald'}
+              leftIcon={currentConfig.icon}
+              onClick={executeBulkAction}
+              disabled={currentConfig.requiresInput && !inputsValid}
+            />
+          )}
+        </ModalFooter>
+      </ModalPanel>
+    </ModalOverlay>
   );
 };
 
