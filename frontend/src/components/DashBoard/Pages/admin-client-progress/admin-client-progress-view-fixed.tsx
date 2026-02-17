@@ -1,45 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import styled, { keyframes } from 'styled-components';
 import { useAuth } from '../../../../context/AuthContext';
 import { useToast } from '../../../../hooks/use-toast';
 import { ClientProgressData, LeaderboardEntry } from '../../../../services/client-progress-service';
 import { Exercise } from '../../../../services/exercise-service';
-
-// Import MUI components
-import { 
-  Box, 
-  Typography, 
-  Grid, 
-  Paper, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow,
-  Chip,
-  Avatar,
-  Card,
-  CardContent,
-  CardHeader,
-  Button,
-  IconButton,
-  TextField,
-  MenuItem,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  LinearProgress,
-  Tab,
-  Tabs,
-  Divider,
-  FormControl,
-  InputLabel,
-  Select,
-  CircularProgress,
-  Tooltip
-} from '@mui/material';
 
 // Import icons
 import {
@@ -64,11 +29,86 @@ import {
   ArrowUpRight,
   Dumbbell,
   Trophy,
-  Users
+  Users,
+  Loader2
 } from 'lucide-react';
 
 // Import styled component from MainCard
 import MainCard from '../../../ui/MainCard';
+
+// ─── Galaxy-Swan Theme Tokens ────────────────────────────────────────────────
+const theme = {
+  bg: 'rgba(15,23,42,0.95)',
+  bgSolid: '#0f172a',
+  border: 'rgba(14,165,233,0.2)',
+  text: '#e2e8f0',
+  textMuted: '#94a3b8',
+  accent: '#0ea5e9',
+  accentHover: '#38bdf8',
+  glass: 'rgba(15,23,42,0.6)',
+  surface: 'rgba(30,41,59,0.5)',
+  danger: '#ef4444',
+  success: '#22c55e',
+  warning: '#f59e0b',
+} as const;
+
+// ─── Keyframes ───────────────────────────────────────────────────────────────
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
+
+// ─── Styled Components ───────────────────────────────────────────────────────
+
+const PageContainer = styled.div`
+  padding: 24px;
+  background: ${theme.bgSolid};
+  min-height: 100vh;
+`;
+
+const PageTitle = styled.h1`
+  font-size: 2rem;
+  font-weight: 700;
+  color: ${theme.text};
+  margin: 0 0 24px 0;
+  letter-spacing: -0.025em;
+`;
+
+const BodyText = styled.p`
+  font-size: 1rem;
+  color: ${theme.textMuted};
+  margin: 0;
+  line-height: 1.6;
+`;
+
+const LoadingContainer = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 48px 0;
+`;
+
+const SpinnerIcon = styled(Loader2)`
+  animation: ${spin} 1s linear infinite;
+  color: ${theme.accent};
+`;
+
+const GlassPanel = styled.div`
+  background: ${theme.glass};
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid ${theme.border};
+  border-radius: 12px;
+  padding: 24px;
+`;
+
+const ContentWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+`;
+
+// ─── TabPanel (preserved interface & logic) ──────────────────────────────────
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -88,9 +128,9 @@ function TabPanel(props: TabPanelProps) {
       {...other}
     >
       {value === index && (
-        <Box sx={{ p: 3, bgcolor: '#0A0A0A', color: '#E0E0E0' }}>
+        <GlassPanel>
           {children}
-        </Box>
+        </GlassPanel>
       )}
     </div>
   );
@@ -117,10 +157,10 @@ const AdminClientProgressView: React.FC = () => {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [clientProgress, setClientProgress] = useState<ClientProgressData | null>(null);
   const [recommendedExercises, setRecommendedExercises] = useState<Exercise[]>([]);
-  
+
   // Leaderboard state
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
-  
+
   // UI state
   const [loading, setLoading] = useState<boolean>(true);
   const [tabValue, setTabValue] = useState(0);
@@ -156,7 +196,7 @@ const AdminClientProgressView: React.FC = () => {
       const response = await authAxios.get('/api/auth/clients');
       if (response.data && response.data.success) {
         setClients(response.data.clients);
-        
+
         // Select first client if no client is selected
         if (response.data.clients.length > 0 && !selectedClientId) {
           setSelectedClientId(response.data.clients[0].id);
@@ -167,14 +207,14 @@ const AdminClientProgressView: React.FC = () => {
       }
     } catch (err) {
       console.warn('API clients endpoint unavailable, using fallback data:', err);
-      
+
       // Use fallback data for seamless experience
       useFallbackClientData();
     } finally {
       setLoading(false);
     }
   };
-  
+
   // Fallback client data for when API is unavailable
   const useFallbackClientData = () => {
     const fallbackClients = [
@@ -187,14 +227,14 @@ const AdminClientProgressView: React.FC = () => {
       { id: '7', firstName: 'James', lastName: 'Taylor', username: 'james_jacked', photo: undefined },
       { id: '8', firstName: 'Amanda', lastName: 'Brown', username: 'amanda_active', photo: undefined }
     ];
-    
+
     setClients(fallbackClients);
-    
+
     // Select first client if no client is selected
     if (fallbackClients.length > 0 && !selectedClientId) {
       setSelectedClientId(fallbackClients[0].id);
     }
-    
+
     // Show success message instead of error
     toast({
       title: "Success",
@@ -220,7 +260,7 @@ const AdminClientProgressView: React.FC = () => {
       }
     } catch (err) {
       console.error('Error fetching client progress:', err);
-      
+
       // For demo purposes, set mock data
       const mockProgress: ClientProgressData = {
         id: 'mock-progress-id',
@@ -307,23 +347,23 @@ const AdminClientProgressView: React.FC = () => {
   };
 
   return (
-    <Box sx={{ p: 3, bgcolor: '#121420' }}>
-      <Typography variant="h4" sx={{ color: '#E0E0E0', mb: 3 }}>
+    <PageContainer>
+      <PageTitle>
         Client Progress Dashboard
-      </Typography>
-      
+      </PageTitle>
+
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-          <CircularProgress />
-        </Box>
+        <LoadingContainer>
+          <SpinnerIcon size={36} />
+        </LoadingContainer>
       ) : (
-        <Box>
-          <Typography variant="body1" sx={{ color: '#A0A0A0' }}>
+        <ContentWrapper>
+          <BodyText>
             Monitor and manage client progression through the NASM protocol system
-          </Typography>
-        </Box>
+          </BodyText>
+        </ContentWrapper>
       )}
-    </Box>
+    </PageContainer>
   );
 };
 
