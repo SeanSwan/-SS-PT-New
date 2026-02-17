@@ -762,12 +762,19 @@ const TabNavigation = styled.div`
     background: ${({ theme }) => theme.borders.elegant};
     border-radius: 999px;
   }
+
+  @media (max-width: 768px) {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow-x: visible;
+  }
 `;
 
 const Tab = styled(motion.button)`
   flex: 0 0 auto;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   min-height: 44px;
@@ -783,6 +790,7 @@ const Tab = styled(motion.button)`
   transition: all 0.3s ease;
   white-space: nowrap;
   font-weight: ${({ $active }) => $active ? '600' : '500'};
+  text-align: center;
 
   &:hover {
     background: ${({ $active, theme }) => 
@@ -791,6 +799,14 @@ const Tab = styled(motion.button)`
     color: ${({ $active, theme }) => 
       $active ? 'white' : theme.text.primary
     };
+  }
+
+  @media (max-width: 768px) {
+    flex: initial;
+    width: 100%;
+    padding: 0.625rem 0.5rem;
+    font-size: 0.85rem;
+    gap: 0.35rem;
   }
 `;
 
@@ -1101,6 +1117,7 @@ const PostActions = styled.div`
   
   @media (max-width: 768px) {
     flex-direction: column;
+    align-items: stretch;
     gap: 1rem;
   }
 `;
@@ -1111,8 +1128,9 @@ const PostOptions = styled.div`
   align-items: center;
   
   @media (max-width: 768px) {
-    justify-content: center;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
   }
 `;
 
@@ -1294,6 +1312,10 @@ const PostFooter = styled.div`
   @media (max-width: 768px) {
     flex-direction: column;
     align-items: stretch;
+
+    & > button:last-child {
+      align-self: flex-end;
+    }
   }
 `;
 
@@ -1304,7 +1326,10 @@ const PostInteractions = styled.div`
   align-items: center;
 
   @media (max-width: 768px) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.5rem;
+    width: 100%;
   }
 `;
 
@@ -1342,6 +1367,7 @@ const InteractionButton = styled(motion.button)`
   }
 
   @media (max-width: 768px) {
+    width: 100%;
     font-size: 0.85rem;
     gap: 0.35rem;
     padding: 0.5rem 0.65rem;
