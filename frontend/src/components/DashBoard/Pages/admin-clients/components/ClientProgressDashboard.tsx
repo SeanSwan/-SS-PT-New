@@ -1,109 +1,43 @@
 /**
  * Client Progress Dashboard Component
  * 7-Star AAA Personal Training & Social Media App
- * 
+ *
  * Comprehensive progress tracking with visual indicators, milestone tracking,
  * body composition analysis, and achievement celebration
+ *
+ * Architecture: styled-components + lucide-react (Galaxy-Swan theme, zero MUI)
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
-import {
-  Box,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  LinearProgress,
-  Stepper,
-  Step,
-  StepLabel,
-  StepContent,
-  StepIcon,
-  StepConnector,
-  Avatar,
-  Chip,
-  Button,
-  IconButton,
-  Tooltip,
-  Divider,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  ListItemSecondaryAction,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Rating,
-  Alert,
-  AlertTitle,
-  Badge,
-  Slider,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  CircularProgress as MUICircularProgress
-} from '@mui/material';
+import React, { useState, useMemo } from 'react';
+import styled, { keyframes, css } from 'styled-components';
 import {
   TrendingUp,
   TrendingDown,
-  Timeline,
-  FitnessCenter,
-  MonitorWeight,
-  Height,
-  Speed,
-  Timer,
-  LocalFireDepartment,
-  MyLocation,
-  CheckCircle,
-  RadioButtonUnchecked,
+  Dumbbell,
+  Bike,
+  Scale,
+  Sparkles,
+  CheckCircle2,
+  Circle,
   Star,
-  EmojiEvents,
-  ArrowUpward,
-  ArrowDownward,
-  Remove,
-  ExpandMore,
-  PhotoCamera,
-  Analytics,
-  Assessment,
-  Insights,
-  Compare,
-  Refresh,
+  PartyPopper,
+  ArrowUp,
+  ArrowDown,
+  Minus,
+  Camera,
+  ClipboardList,
+  RefreshCw,
   Download,
-  Share,
-  Info,
-  Warning,
-  Functions,
-  School,
-  DirectionsBike,
-  DirectionsWalk,
-  Pool,
-  SelfImprovement,
-  RestoreFromTrash,
-  RotateRight,
-  Construction,
-  Psychology,
-  ShowChart,
-  CollectionsBookmark,
-  MilitaryTech,
-  Celebration
-} from '@mui/icons-material';
-import { styled } from '@mui/material/styles';
-import { 
-  LineChart, 
-  Line, 
-  ResponsiveContainer, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
+  Plus,
+  Activity
+} from 'lucide-react';
+import {
+  LineChart,
+  Line,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+  CartesianGrid,
   Tooltip as RechartsTooltip,
   AreaChart,
   Area,
@@ -118,7 +52,25 @@ import {
   Scatter
 } from 'recharts';
 
-// Define interfaces
+// ─── Theme tokens ────────────────────────────────────────────────
+const theme = {
+  bg: 'rgba(15,23,42,0.95)',
+  bgCard: 'rgba(15,23,42,0.85)',
+  border: 'rgba(14,165,233,0.2)',
+  text: '#e2e8f0',
+  textMuted: '#94a3b8',
+  accent: '#0ea5e9',
+  cyan: '#00ffff',
+  purple: '#7851a9',
+  green: '#4caf50',
+  orange: '#ff9800',
+  red: '#f44336',
+  gold: '#ffd700',
+  glass: 'rgba(255,255,255,0.03)',
+  glassBorder: 'rgba(255,255,255,0.1)',
+};
+
+// ─── Interfaces ──────────────────────────────────────────────────
 interface MilestoneItem {
   id: string;
   title: string;
@@ -177,81 +129,459 @@ interface BodyMeasurement {
   percentChange: number;
 }
 
-// Styled components
-const ProgressCard = styled(Card)(({ theme }) => ({
-  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.05))',
-  backdropFilter: 'blur(20px)',
-  borderRadius: 16,
-  border: '1px solid rgba(255, 255, 255, 0.1)',
-  position: 'relative',
-  overflow: 'hidden',
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 4,
-    background: 'linear-gradient(90deg, #00ffff, #7851a9, #ff1744)',
-  },
-  '&:hover': {
-    transform: 'translateY(-4px)',
-    boxShadow: '0 12px 40px rgba(0, 255, 255, 0.15)',
-  },
-}));
+// ─── Keyframes ───────────────────────────────────────────────────
+const spin = keyframes`
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+`;
 
-const MilestoneCard = styled(Card)<{ completed?: boolean }>(({ theme, completed }) => ({
-  backgroundColor: completed ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 255, 255, 0.02)',
-  border: completed ? '1px solid rgba(76, 175, 80, 0.5)' : '1px solid rgba(255, 255, 255, 0.1)',
-  borderRadius: 12,
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: '0 8px 24px rgba(0, 255, 255, 0.1)',
-  },
-}));
+const progressFill = keyframes`
+  from { stroke-dashoffset: 283; }
+`;
 
-const MetricDisplay = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  textAlign: 'center',
-  padding: theme.spacing(2),
-  borderRadius: 12,
-  backgroundColor: 'rgba(255, 255, 255, 0.03)',
-  border: '1px solid rgba(255, 255, 255, 0.1)',
-}));
+// ─── Styled Components ──────────────────────────────────────────
+const DashboardWrapper = styled.div`
+  padding: 24px;
+  color: ${theme.text};
+`;
 
-const CustomStepIcon = styled(StepIcon)(({ theme }) => ({
-  '&.Mui-active': {
-    color: '#00ffff',
-  },
-  '&.Mui-completed': {
-    color: '#4caf50',
-  },
-}));
+const SectionHeader = styled.div`
+  margin-bottom: 32px;
+`;
 
-const ProgressButton = styled(Button)(({ theme, variant: buttonVariant }) => ({
-  borderRadius: 8,
-  textTransform: 'none',
-  fontWeight: 600,
-  ...(buttonVariant === 'contained' && {
-    background: 'linear-gradient(135deg, #00ffff, #00c8ff)',
-    color: '#0a0a1a',
-    '&:hover': {
-      background: 'linear-gradient(135deg, #00e6ff, #00b3ff)',
-    },
-  }),
-  ...(buttonVariant === 'outlined' && {
-    borderColor: 'rgba(0, 255, 255, 0.5)',
-    color: '#00ffff',
-    '&:hover': {
-      borderColor: '#00ffff',
-      backgroundColor: 'rgba(0, 255, 255, 0.1)',
-    },
-  }),
-}));
+const PageTitle = styled.h2`
+  color: ${theme.cyan};
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+`;
 
+const PageSubtitle = styled.p`
+  color: ${theme.textMuted};
+  font-size: 1rem;
+  margin: 0;
+`;
+
+const ControlsRow = styled.div`
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+`;
+
+const ControlsRight = styled.div`
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+`;
+
+const NativeSelect = styled.select`
+  background: rgba(255,255,255,0.05);
+  color: ${theme.text};
+  border: 1px solid ${theme.border};
+  border-radius: 8px;
+  padding: 8px 32px 8px 12px;
+  font-size: 0.875rem;
+  min-height: 44px;
+  min-width: 140px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%2394a3b8' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  transition: border-color 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: ${theme.cyan};
+  }
+
+  option {
+    background: #1e293b;
+    color: ${theme.text};
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 0;
+
+  & > button:first-child {
+    border-radius: 8px 0 0 8px;
+  }
+  & > button:last-child {
+    border-radius: 0 8px 8px 0;
+  }
+  & > button:not(:first-child):not(:last-child) {
+    border-radius: 0;
+  }
+  & > button + button {
+    margin-left: -1px;
+  }
+`;
+
+const ActionButton = styled.button<{
+  $variant?: 'contained' | 'outlined';
+  $active?: boolean;
+  $disabled?: boolean;
+  $size?: 'small' | 'medium';
+}>`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: ${({ $size }) => $size === 'small' ? '6px 16px' : '10px 20px'};
+  font-size: ${({ $size }) => $size === 'small' ? '0.8125rem' : '0.875rem'};
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: ${({ $disabled }) => $disabled ? 'not-allowed' : 'pointer'};
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  opacity: ${({ $disabled }) => $disabled ? 0.5 : 1};
+  font-family: inherit;
+
+  ${({ $variant, $active }) => {
+    if ($variant === 'contained' || $active) {
+      return css`
+        background: linear-gradient(135deg, #00ffff, #00c8ff);
+        color: #0a0a1a;
+        border: 1px solid transparent;
+        &:hover:not(:disabled) {
+          background: linear-gradient(135deg, #00e6ff, #00b3ff);
+          box-shadow: 0 4px 16px rgba(0,255,255,0.3);
+        }
+      `;
+    }
+    return css`
+      background: transparent;
+      color: ${theme.cyan};
+      border: 1px solid rgba(0,255,255,0.5);
+      &:hover:not(:disabled) {
+        border-color: ${theme.cyan};
+        background: rgba(0,255,255,0.1);
+      }
+    `;
+  }}
+`;
+
+const GlassPanel = styled.div<{ $noPadding?: boolean }>`
+  background: linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0.05));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  border: 1px solid ${theme.glassBorder};
+  position: relative;
+  overflow: hidden;
+  padding: ${({ $noPadding }) => $noPadding ? '0' : '24px'};
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #00ffff, #7851a9, #ff1744);
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0,255,255,0.15);
+  }
+`;
+
+const CardPanel = styled.div<{ $completed?: boolean }>`
+  background: ${({ $completed }) =>
+    $completed ? 'rgba(76,175,80,0.1)' : 'rgba(255,255,255,0.02)'};
+  border: 1px solid ${({ $completed }) =>
+    $completed ? 'rgba(76,175,80,0.5)' : theme.glassBorder};
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,255,255,0.1);
+  }
+`;
+
+const DarkCard = styled.div`
+  background: #1d1f2b;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid ${theme.glassBorder};
+`;
+
+const MetricBox = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 16px;
+  border-radius: 12px;
+  background: ${theme.glass};
+  border: 1px solid ${theme.glassBorder};
+`;
+
+const GridContainer = styled.div<{ $columns?: string; $gap?: number }>`
+  display: grid;
+  grid-template-columns: ${({ $columns }) => $columns || '1fr'};
+  gap: ${({ $gap }) => $gap ?? 24}px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const GridRow2Col = styled.div<{ $ratio?: string }>`
+  display: grid;
+  grid-template-columns: ${({ $ratio }) => $ratio || '2fr 1fr'};
+  gap: 24px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const Grid3Col = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const Grid4Col = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+`;
+
+const OverviewGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 24px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const SectionTitle = styled.h3`
+  color: ${theme.cyan};
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+`;
+
+const SectionRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+`;
+
+const FlexRow = styled.div<{ $gap?: number; $justify?: string; $align?: string; $wrap?: boolean }>`
+  display: flex;
+  gap: ${({ $gap }) => $gap ?? 8}px;
+  justify-content: ${({ $justify }) => $justify || 'flex-start'};
+  align-items: ${({ $align }) => $align || 'center'};
+  flex-wrap: ${({ $wrap }) => $wrap ? 'wrap' : 'nowrap'};
+`;
+
+const FlexCol = styled.div<{ $gap?: number }>`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ $gap }) => $gap ?? 16}px;
+`;
+
+const StatusAvatar = styled.div<{ $color: string }>`
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  background: ${({ $color }) => $color};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  margin-left: 16px;
+`;
+
+const ChipTag = styled.span<{ $color?: string; $bgColor?: string }>`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: ${({ $bgColor }) => $bgColor || 'rgba(14,165,233,0.15)'};
+  color: ${({ $color }) => $color || theme.accent};
+  white-space: nowrap;
+  min-height: 28px;
+`;
+
+const DifficultyChip = styled.span<{ $difficulty: 'easy' | 'medium' | 'hard' }>`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  min-height: 28px;
+
+  ${({ $difficulty }) => {
+    if ($difficulty === 'easy') return css`background: rgba(76,175,80,0.15); color: ${theme.green};`;
+    if ($difficulty === 'medium') return css`background: rgba(255,152,0,0.15); color: ${theme.orange};`;
+    return css`background: rgba(244,67,54,0.15); color: ${theme.red};`;
+  }}
+`;
+
+const ProgressBarTrack = styled.div`
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.1);
+  overflow: hidden;
+`;
+
+const ProgressBarFill = styled.div<{ $width: number; $color?: string }>`
+  height: 100%;
+  border-radius: 4px;
+  background: ${({ $color }) => $color || theme.cyan};
+  width: ${({ $width }) => Math.min(100, Math.max(0, $width))}%;
+  transition: width 0.6s ease;
+`;
+
+const RewardBox = styled.div`
+  padding: 12px;
+  background: rgba(255,215,0,0.1);
+  border-radius: 8px;
+  margin-bottom: 12px;
+`;
+
+const AchievementPanel = styled.div`
+  padding: 16px;
+  background: rgba(76,175,80,0.1);
+  border: 1px solid rgba(76,175,80,0.3);
+  border-radius: 12px;
+  text-align: center;
+`;
+
+const RewardChip = styled.span`
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  background: rgba(255,215,0,0.2);
+  color: ${theme.gold};
+  margin-top: 8px;
+`;
+
+const ChartBox = styled.div`
+  height: 300px;
+`;
+
+const LabelSmall = styled.span<{ $color?: string }>`
+  font-size: 0.75rem;
+  color: ${({ $color }) => $color || theme.textMuted};
+`;
+
+const LabelBody = styled.p<{ $color?: string }>`
+  font-size: 0.875rem;
+  color: ${({ $color }) => $color || theme.textMuted};
+  margin: 0 0 4px 0;
+`;
+
+const ValueLarge = styled.span<{ $color?: string }>`
+  font-size: 2rem;
+  font-weight: 700;
+  color: ${({ $color }) => $color || theme.cyan};
+`;
+
+const ValueXL = styled.span<{ $color?: string }>`
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: ${({ $color }) => $color || theme.cyan};
+  line-height: 1;
+`;
+
+const ValueMedium = styled.span<{ $color?: string }>`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: ${({ $color }) => $color || theme.text};
+`;
+
+const Heading6 = styled.h4<{ $color?: string; $capitalize?: boolean }>`
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: ${({ $color }) => $color || theme.text};
+  margin: 0 0 8px 0;
+  text-transform: ${({ $capitalize }) => $capitalize ? 'capitalize' : 'none'};
+`;
+
+const BodyText = styled.span<{ $color?: string; $weight?: number; $block?: boolean }>`
+  font-size: 0.875rem;
+  color: ${({ $color }) => $color || theme.text};
+  font-weight: ${({ $weight }) => $weight || 400};
+  display: ${({ $block }) => $block ? 'block' : 'inline'};
+`;
+
+const ProgressRing = styled.svg`
+  transform: rotate(-90deg);
+`;
+
+const ProgressRingBg = styled.circle`
+  fill: none;
+  stroke: rgba(255,255,255,0.1);
+`;
+
+const ProgressRingFill = styled.circle<{ $dashoffset: number }>`
+  fill: none;
+  stroke: ${theme.cyan};
+  stroke-linecap: round;
+  stroke-dasharray: 283;
+  stroke-dashoffset: ${({ $dashoffset }) => $dashoffset};
+  transition: stroke-dashoffset 0.8s ease;
+`;
+
+const ProgressRingWrapper = styled.div`
+  position: relative;
+  display: inline-flex;
+  margin-bottom: 16px;
+`;
+
+const ProgressRingLabel = styled.div`
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+`;
+
+const SpacerV = styled.div<{ $size?: number }>`
+  height: ${({ $size }) => $size ?? 16}px;
+`;
+
+// ─── Component ───────────────────────────────────────────────────
 interface ClientProgressDashboardProps {
   clientId: string;
   onMilestoneUpdate?: (milestoneId: string, completed: boolean) => void;
@@ -450,7 +780,7 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
     const totalMilestones = mockMilestones.length;
     const avgAssessmentScore = mockAssessments.reduce((sum, a) => sum + a.value, 0) / mockAssessments.length;
     const avgImprovement = mockAssessments.reduce((sum, a) => sum + a.improvement, 0) / mockAssessments.length;
-    
+
     return {
       milestoneCompletion: (completedMilestones / totalMilestones) * 100,
       avgAssessmentScore: (avgAssessmentScore / 10) * 100,
@@ -459,557 +789,458 @@ const ClientProgressDashboard: React.FC<ClientProgressDashboardProps> = ({
     };
   }, [mockMilestones, mockAssessments]);
 
+  // Helper: category icon
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'strength': return <Dumbbell size={14} />;
+      case 'endurance': return <Bike size={14} />;
+      case 'weight': return <Scale size={14} />;
+      default: return <Sparkles size={14} />;
+    }
+  };
+
+  // Helper: status icon
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed': return <CheckCircle2 size={22} />;
+      case 'in-progress': return <Activity size={22} />;
+      default: return <Circle size={22} />;
+    }
+  };
+
+  // Helper: status color
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return theme.green;
+      case 'in-progress': return theme.orange;
+      default: return '#666';
+    }
+  };
+
+  // Circular progress ring SVG helper
+  const CircularProgress: React.FC<{ value: number; size?: number }> = ({ value, size = 100 }) => {
+    const radius = 45;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (value / 100) * circumference;
+    return (
+      <ProgressRingWrapper>
+        <ProgressRing width={size} height={size} viewBox="0 0 100 100">
+          <ProgressRingBg cx="50" cy="50" r={radius} strokeWidth="6" />
+          <ProgressRingFill
+            cx="50" cy="50" r={radius}
+            strokeWidth="6"
+            $dashoffset={offset}
+          />
+        </ProgressRing>
+        <ProgressRingLabel>
+          <ValueLarge $color={theme.cyan}>
+            {Math.round(value)}%
+          </ValueLarge>
+        </ProgressRingLabel>
+      </ProgressRingWrapper>
+    );
+  };
+
   // Render milestone section
   const renderMilestones = () => (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h6" sx={{ color: '#00ffff' }}>
-          Current Milestones
-        </Typography>
-        <ProgressButton variant="outlined" startIcon={<Add />}>
+    <div>
+      <SectionRow>
+        <SectionTitle>Current Milestones</SectionTitle>
+        <ActionButton $variant="outlined">
+          <Plus size={16} />
           Add Milestone
-        </ProgressButton>
-      </Box>
+        </ActionButton>
+      </SectionRow>
 
-      <Grid container spacing={2}>
+      <Grid3Col>
         {mockMilestones.map((milestone) => (
-          <Grid item xs={12} md={6} xl={4} key={milestone.id}>
-            <MilestoneCard completed={milestone.status === 'completed'}>
-              <CardContent>
-                <Box sx={{ display: 'flex', justifyContent: 'between', alignItems: 'flex-start', mb: 2 }}>
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="h6" gutterBottom>
-                      {milestone.title}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
-                      {milestone.description}
-                    </Typography>
-                    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                      <Chip 
-                        label={milestone.category} 
-                        size="small" 
-                        icon={
-                          milestone.category === 'strength' ? <FitnessCenter /> :
-                          milestone.category === 'endurance' ? <DirectionsBike /> :
-                          milestone.category === 'weight' ? <MonitorWeight /> :
-                          <SelfImprovement />
-                        }
-                        sx={{ fontSize: '0.75rem' }}
-                      />
-                      <Chip 
-                        label={milestone.difficulty} 
-                        size="small" 
-                        color={
-                          milestone.difficulty === 'easy' ? 'success' :
-                          milestone.difficulty === 'medium' ? 'warning' : 'error'
-                        }
-                        sx={{ fontSize: '0.75rem' }}
-                      />
-                    </Box>
-                  </Box>
-                  <Avatar
-                    sx={{
-                      bgcolor: milestone.status === 'completed' ? '#4caf50' : 
-                               milestone.status === 'in-progress' ? '#ff9800' : '#666',
-                      ml: 2
-                    }}
-                  >
-                    {milestone.status === 'completed' ? <CheckCircle /> :
-                     milestone.status === 'in-progress' ? <Timeline /> :
-                     <RadioButtonUnchecked />}
-                  </Avatar>
-                </Box>
+          <CardPanel $completed={milestone.status === 'completed'} key={milestone.id}>
+            <FlexRow $justify="space-between" $align="flex-start" style={{ marginBottom: 16 }}>
+              <div style={{ flex: 1 }}>
+                <Heading6>{milestone.title}</Heading6>
+                <LabelBody>{milestone.description}</LabelBody>
+                <FlexRow $gap={8} style={{ marginTop: 8 }}>
+                  <ChipTag>
+                    {getCategoryIcon(milestone.category)}
+                    {milestone.category}
+                  </ChipTag>
+                  <DifficultyChip $difficulty={milestone.difficulty}>
+                    {milestone.difficulty}
+                  </DifficultyChip>
+                </FlexRow>
+              </div>
+              <StatusAvatar $color={getStatusColor(milestone.status)}>
+                {getStatusIcon(milestone.status)}
+              </StatusAvatar>
+            </FlexRow>
 
-                <Box sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'between', alignItems: 'center', mb: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Progress
-                    </Typography>
-                    <Typography variant="body2" fontWeight={600}>
-                      {milestone.currentValue}/{milestone.targetValue} {milestone.unit}
-                    </Typography>
-                  </Box>
-                  <LinearProgress
-                    variant="determinate"
-                    value={(milestone.currentValue / milestone.targetValue) * 100}
-                    sx={{
-                      height: 8,
-                      borderRadius: 4,
-                      bgcolor: 'rgba(255, 255, 255, 0.1)',
-                      '& .MuiLinearProgress-bar': {
-                        bgcolor: milestone.status === 'completed' ? '#4caf50' : '#00ffff',
-                        borderRadius: 4
-                      }
-                    }}
-                  />
-                </Box>
+            <div style={{ marginBottom: 16 }}>
+              <FlexRow $justify="space-between" style={{ marginBottom: 8 }}>
+                <LabelBody>Progress</LabelBody>
+                <BodyText $weight={600}>
+                  {milestone.currentValue}/{milestone.targetValue} {milestone.unit}
+                </BodyText>
+              </FlexRow>
+              <ProgressBarTrack>
+                <ProgressBarFill
+                  $width={(milestone.currentValue / milestone.targetValue) * 100}
+                  $color={milestone.status === 'completed' ? theme.green : theme.cyan}
+                />
+              </ProgressBarTrack>
+            </div>
 
-                {milestone.reward && (
-                  <Box sx={{ p: 2, bgcolor: 'rgba(255, 215, 0, 0.1)', borderRadius: 2, mb: 2 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      Reward: {milestone.reward.type}
-                    </Typography>
-                    <Typography variant="body2" fontWeight={600} sx={{ color: '#ffd700' }}>
-                      {milestone.reward.value}
-                    </Typography>
-                  </Box>
-                )}
+            {milestone.reward && (
+              <RewardBox>
+                <LabelSmall>Reward: {milestone.reward.type}</LabelSmall>
+                <BodyText $color={theme.gold} $weight={600} $block>
+                  {milestone.reward.value}
+                </BodyText>
+              </RewardBox>
+            )}
 
-                <Box sx={{ display: 'flex', justifyContent: 'between', alignItems: 'center' }}>
-                  {milestone.status === 'completed' ? (
-                    <Typography variant="caption" color="success.main">
-                      Completed on {new Date(milestone.completedDate!).toLocaleDateString()}
-                    </Typography>
-                  ) : (
-                    <Typography variant="caption" color="text.secondary">
-                      Est. completion: {milestone.estimatedCompletion}
-                    </Typography>
-                  )}
-                  <ProgressButton 
-                    variant="outlined" 
-                    size="small"
-                    disabled={milestone.status === 'completed'}
-                  >
-                    {milestone.status === 'completed' ? 'Completed' : 'Track Progress'}
-                  </ProgressButton>
-                </Box>
-              </CardContent>
-            </MilestoneCard>
-          </Grid>
+            <FlexRow $justify="space-between">
+              {milestone.status === 'completed' ? (
+                <LabelSmall $color={theme.green}>
+                  Completed on {new Date(milestone.completedDate!).toLocaleDateString()}
+                </LabelSmall>
+              ) : (
+                <LabelSmall>
+                  Est. completion: {milestone.estimatedCompletion}
+                </LabelSmall>
+              )}
+              <ActionButton
+                $variant="outlined"
+                $size="small"
+                $disabled={milestone.status === 'completed'}
+                disabled={milestone.status === 'completed'}
+              >
+                {milestone.status === 'completed' ? 'Completed' : 'Track Progress'}
+              </ActionButton>
+            </FlexRow>
+          </CardPanel>
         ))}
-      </Grid>
-    </Box>
+      </Grid3Col>
+    </div>
   );
 
   // Render assessments section
   const renderAssessments = () => (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h6" sx={{ color: '#00ffff' }}>
-          Fitness Assessments
-        </Typography>
-        <ProgressButton variant="outlined" startIcon={<Assessment />} onClick={onAssessmentSchedule}>
+    <div>
+      <SectionRow>
+        <SectionTitle>Fitness Assessments</SectionTitle>
+        <ActionButton $variant="outlined" onClick={onAssessmentSchedule}>
+          <ClipboardList size={16} />
           Schedule Assessment
-        </ProgressButton>
-      </Box>
+        </ActionButton>
+      </SectionRow>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <Card sx={{ bgcolor: '#1d1f2b', borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Assessment Scores Over Time
-              </Typography>
-              <Box sx={{ height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={Array.from({ length: 6 }, (_, i) => ({
-                    month: `Month ${i + 1}`,
-                    overall: 6 + (i * 0.4) + Math.random() * 0.5,
-                    strength: 6.5 + (i * 0.3) + Math.random() * 0.4,
-                    endurance: 5.8 + (i * 0.5) + Math.random() * 0.3,
-                    flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4
-                  }))}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                    <XAxis dataKey="month" stroke="#999" />
-                    <YAxis domain={[5, 10]} stroke="#999" />
-                    <RechartsTooltip
-                      contentStyle={{ 
-                        backgroundColor: '#252742', 
-                        border: '1px solid rgba(0, 255, 255, 0.3)',
-                        borderRadius: 8
-                      }}
-                    />
-                    <Line type="monotone" dataKey="overall" stroke="#00ffff" strokeWidth={3} />
-                    <Line type="monotone" dataKey="strength" stroke="#ff6b6b" strokeWidth={2} />
-                    <Line type="monotone" dataKey="endurance" stroke="#4ecdc4" strokeWidth={2} />
-                    <Line type="monotone" dataKey="flexibility" stroke="#ffe066" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={4}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {mockAssessments.map((assessment) => (
-              <MetricDisplay key={assessment.id}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  <Typography variant="h4" sx={{ color: '#00ffff', fontWeight: 700 }}>
-                    {assessment.value}
-                  </Typography>
-                  <Typography variant="h6" color="text.secondary">
-                    /{assessment.maxValue}
-                  </Typography>
-                </Box>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  {assessment.name}
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                  {assessment.improvement > 0 ? (
-                    <TrendingUp sx={{ color: '#4caf50', fontSize: 16 }} />
-                  ) : (
-                    <TrendingDown sx={{ color: '#f44336', fontSize: 16 }} />
-                  )}
-                  <Typography variant="caption" color={assessment.improvement > 0 ? '#4caf50' : '#f44336'}>
-                    {Math.abs(assessment.improvement)}% improvement
-                  </Typography>
-                </Box>
-                <LinearProgress
-                  variant="determinate"
-                  value={(assessment.value / assessment.maxValue) * 100}
-                  sx={{
-                    width: '100%',
-                    height: 8,
-                    borderRadius: 4,
-                    bgcolor: 'rgba(255, 255, 255, 0.1)',
-                    '& .MuiLinearProgress-bar': {
-                      bgcolor: '#00ffff',
-                      borderRadius: 4
-                    }
+      <GridRow2Col>
+        <DarkCard>
+          <Heading6>Assessment Scores Over Time</Heading6>
+          <ChartBox>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={Array.from({ length: 6 }, (_, i) => ({
+                month: `Month ${i + 1}`,
+                overall: 6 + (i * 0.4) + Math.random() * 0.5,
+                strength: 6.5 + (i * 0.3) + Math.random() * 0.4,
+                endurance: 5.8 + (i * 0.5) + Math.random() * 0.3,
+                flexibility: 6.2 + (i * 0.25) + Math.random() * 0.4
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+                <XAxis dataKey="month" stroke="#999" />
+                <YAxis domain={[5, 10]} stroke="#999" />
+                <RechartsTooltip
+                  contentStyle={{
+                    backgroundColor: '#252742',
+                    border: '1px solid rgba(0, 255, 255, 0.3)',
+                    borderRadius: 8
                   }}
                 />
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-                  {assessment.percentile}th percentile
-                </Typography>
-              </MetricDisplay>
-            ))}
-          </Box>
-        </Grid>
-      </Grid>
-    </Box>
+                <Line type="monotone" dataKey="overall" stroke="#00ffff" strokeWidth={3} />
+                <Line type="monotone" dataKey="strength" stroke="#ff6b6b" strokeWidth={2} />
+                <Line type="monotone" dataKey="endurance" stroke="#4ecdc4" strokeWidth={2} />
+                <Line type="monotone" dataKey="flexibility" stroke="#ffe066" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartBox>
+        </DarkCard>
+
+        <FlexCol $gap={16}>
+          {mockAssessments.map((assessment) => (
+            <MetricBox key={assessment.id}>
+              <FlexRow $gap={8} $justify="center" style={{ marginBottom: 8 }}>
+                <ValueLarge $color={theme.cyan}>
+                  {assessment.value}
+                </ValueLarge>
+                <ValueMedium $color={theme.textMuted}>
+                  /{assessment.maxValue}
+                </ValueMedium>
+              </FlexRow>
+              <LabelBody>{assessment.name}</LabelBody>
+              <FlexRow $gap={6} $justify="center" style={{ marginBottom: 8 }}>
+                {assessment.improvement > 0 ? (
+                  <TrendingUp size={16} color={theme.green} />
+                ) : (
+                  <TrendingDown size={16} color={theme.red} />
+                )}
+                <LabelSmall $color={assessment.improvement > 0 ? theme.green : theme.red}>
+                  {Math.abs(assessment.improvement)}% improvement
+                </LabelSmall>
+              </FlexRow>
+              <ProgressBarTrack>
+                <ProgressBarFill $width={(assessment.value / assessment.maxValue) * 100} />
+              </ProgressBarTrack>
+              <SpacerV $size={8} />
+              <LabelSmall>{assessment.percentile}th percentile</LabelSmall>
+            </MetricBox>
+          ))}
+        </FlexCol>
+      </GridRow2Col>
+    </div>
   );
 
   // Render measurements section
   const renderMeasurements = () => (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h6" sx={{ color: '#00ffff' }}>
-          Body Measurements & Composition
-        </Typography>
-        <ProgressButton variant="outlined" startIcon={<PhotoCamera />}>
+    <div>
+      <SectionRow>
+        <SectionTitle>Body Measurements &amp; Composition</SectionTitle>
+        <ActionButton $variant="outlined">
+          <Camera size={16} />
           Add Measurement
-        </ProgressButton>
-      </Box>
+        </ActionButton>
+      </SectionRow>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <Card sx={{ bgcolor: '#1d1f2b', borderRadius: 2 }}>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Measurement Trends
-              </Typography>
-              <Box sx={{ height: 300 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={Array.from({ length: 12 }, (_, i) => ({
-                    week: `Week ${i + 1}`,
-                    weight: 82 - (i * 0.3) + Math.random() * 0.5,
-                    bodyFat: 16 - (i * 0.2) + Math.random() * 0.3,
-                    muscleMass: 68 + (i * 0.3) + Math.random() * 0.2
-                  }))}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
-                    <XAxis dataKey="week" stroke="#999" />
-                    <YAxis stroke="#999" />
-                    <RechartsTooltip
-                      contentStyle={{ 
-                        backgroundColor: '#252742', 
-                        border: '1px solid rgba(0, 255, 255, 0.3)',
-                        borderRadius: 8
-                      }}
-                    />
-                    <Line type="monotone" dataKey="weight" stroke="#00ffff" strokeWidth={3} name="Weight (kg)" />
-                    <Line type="monotone" dataKey="bodyFat" stroke="#ff6b6b" strokeWidth={2} name="Body Fat (%)" />
-                    <Line type="monotone" dataKey="muscleMass" stroke="#4ecdc4" strokeWidth={2} name="Muscle Mass (kg)" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+      <GridRow2Col>
+        <DarkCard>
+          <Heading6>Measurement Trends</Heading6>
+          <ChartBox>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={Array.from({ length: 12 }, (_, i) => ({
+                week: `Week ${i + 1}`,
+                weight: 82 - (i * 0.3) + Math.random() * 0.5,
+                bodyFat: 16 - (i * 0.2) + Math.random() * 0.3,
+                muscleMass: 68 + (i * 0.3) + Math.random() * 0.2
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.1)" />
+                <XAxis dataKey="week" stroke="#999" />
+                <YAxis stroke="#999" />
+                <RechartsTooltip
+                  contentStyle={{
+                    backgroundColor: '#252742',
+                    border: '1px solid rgba(0, 255, 255, 0.3)',
+                    borderRadius: 8
+                  }}
+                />
+                <Line type="monotone" dataKey="weight" stroke="#00ffff" strokeWidth={3} name="Weight (kg)" />
+                <Line type="monotone" dataKey="bodyFat" stroke="#ff6b6b" strokeWidth={2} name="Body Fat (%)" />
+                <Line type="monotone" dataKey="muscleMass" stroke="#4ecdc4" strokeWidth={2} name="Muscle Mass (kg)" />
+              </LineChart>
+            </ResponsiveContainer>
+          </ChartBox>
+        </DarkCard>
 
-        <Grid item xs={12} md={4}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {mockMeasurements.map((measurement) => (
-              <Card key={measurement.id} sx={{ bgcolor: '#1d1f2b', borderRadius: 2 }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'between', alignItems: 'center', mb: 2 }}>
-                    <Typography variant="h6" sx={{ textTransform: 'capitalize' }}>
-                      {measurement.type.replace('_', ' ')}
-                    </Typography>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {measurement.trend === 'up' ? (
-                        <ArrowUpward sx={{ color: measurement.type === 'muscle_mass' ? '#4caf50' : '#ff9800', fontSize: 20 }} />
-                      ) : measurement.trend === 'down' ? (
-                        <ArrowDownward sx={{ color: measurement.type === 'weight' || measurement.type === 'body_fat' ? '#4caf50' : '#ff9800', fontSize: 20 }} />
-                      ) : (
-                        <Remove sx={{ color: '#999', fontSize: 20 }} />
-                      )}
-                      <Typography 
-                        variant="caption" 
-                        color={
-                          (measurement.trend === 'down' && (measurement.type === 'weight' || measurement.type === 'body_fat')) ||
-                          (measurement.trend === 'up' && measurement.type === 'muscle_mass') 
-                            ? '#4caf50' : '#ff9800'
-                        }
-                      >
-                        {Math.abs(measurement.percentChange)}%
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1 }}>
-                    <Typography variant="h3" sx={{ color: '#00ffff', fontWeight: 700 }}>
-                      {measurement.value}
-                    </Typography>
-                    <Typography variant="h6" color="text.secondary">
-                      {measurement.unit}
-                    </Typography>
-                  </Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Measured on {new Date(measurement.date).toLocaleDateString()}
-                  </Typography>
-                </CardContent>
-              </Card>
-            ))}
-          </Box>
-        </Grid>
-      </Grid>
-    </Box>
+        <FlexCol $gap={16}>
+          {mockMeasurements.map((measurement) => {
+            const isPositiveTrend =
+              (measurement.trend === 'down' && (measurement.type === 'weight' || measurement.type === 'body_fat')) ||
+              (measurement.trend === 'up' && measurement.type === 'muscle_mass');
+            const trendColor = isPositiveTrend ? theme.green : theme.orange;
+
+            return (
+              <DarkCard key={measurement.id}>
+                <FlexRow $justify="space-between" style={{ marginBottom: 12 }}>
+                  <Heading6 $capitalize>
+                    {measurement.type.replace('_', ' ')}
+                  </Heading6>
+                  <FlexRow $gap={6}>
+                    {measurement.trend === 'up' ? (
+                      <ArrowUp size={20} color={measurement.type === 'muscle_mass' ? theme.green : theme.orange} />
+                    ) : measurement.trend === 'down' ? (
+                      <ArrowDown size={20} color={(measurement.type === 'weight' || measurement.type === 'body_fat') ? theme.green : theme.orange} />
+                    ) : (
+                      <Minus size={20} color="#999" />
+                    )}
+                    <LabelSmall $color={trendColor}>
+                      {Math.abs(measurement.percentChange)}%
+                    </LabelSmall>
+                  </FlexRow>
+                </FlexRow>
+                <FlexRow $gap={8} $align="baseline">
+                  <ValueXL $color={theme.cyan}>
+                    {measurement.value}
+                  </ValueXL>
+                  <ValueMedium $color={theme.textMuted}>
+                    {measurement.unit}
+                  </ValueMedium>
+                </FlexRow>
+                <SpacerV $size={4} />
+                <LabelSmall>
+                  Measured on {new Date(measurement.date).toLocaleDateString()}
+                </LabelSmall>
+              </DarkCard>
+            );
+          })}
+        </FlexCol>
+      </GridRow2Col>
+    </div>
   );
 
   // Render overview section
   const renderOverview = () => (
-    <Grid container spacing={3}>
-      {/* Overall Progress Card */}
-      <Grid item xs={12} md={6} lg={4}>
-        <ProgressCard>
-          <CardContent sx={{ textAlign: 'center' }}>
-            <Typography variant="h6" sx={{ color: '#00ffff', mb: 2 }}>
-              Overall Progress
-            </Typography>
-            <Box sx={{ position: 'relative', display: 'inline-flex', mb: 2 }}>
-              <MUICircularProgress
-                variant="determinate"
-                value={overallProgress.overallScore}
-                size={100}
-                thickness={4}
-                sx={{
-                  color: '#00ffff',
-                  '& .MuiCircularProgress-circle': {
-                    strokeLinecap: 'round',
-                  },
-                }}
-              />
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  bottom: 0,
-                  right: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexDirection: 'column'
-                }}
-              >
-                <Typography variant="h4" fontWeight={700} sx={{ color: '#00ffff' }}>
-                  {Math.round(overallProgress.overallScore)}%
-                </Typography>
-              </Box>
-            </Box>
-            <Typography variant="body2" color="text.secondary">
-              Excellent progress! Keep up the great work.
-            </Typography>
-          </CardContent>
-        </ProgressCard>
-      </Grid>
+    <div>
+      <OverviewGrid>
+        {/* Overall Progress Card */}
+        <GlassPanel style={{ textAlign: 'center' }}>
+          <Heading6 $color={theme.cyan} style={{ marginBottom: 16 }}>
+            Overall Progress
+          </Heading6>
+          <CircularProgress value={overallProgress.overallScore} size={100} />
+          <LabelBody>Excellent progress! Keep up the great work.</LabelBody>
+        </GlassPanel>
 
-      {/* Quick Stats */}
-      <Grid item xs={12} md={6} lg={8}>
-        <ProgressCard>
-          <CardContent>
-            <Typography variant="h6" sx={{ color: '#00ffff', mb: 3 }}>
-              Progress Summary
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={6} sm={3}>
-                <MetricDisplay>
-                  <Typography variant="h4" sx={{ color: '#4caf50', fontWeight: 700 }}>
-                    {mockMilestones.filter(m => m.status === 'completed').length}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Milestones Completed
-                  </Typography>
-                </MetricDisplay>
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <MetricDisplay>
-                  <Typography variant="h4" sx={{ color: '#ff9800', fontWeight: 700 }}>
-                    {mockWorkouts.length}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Workouts This Month
-                  </Typography>
-                </MetricDisplay>
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <MetricDisplay>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
-                    <Typography variant="h4" sx={{ color: '#7851a9', fontWeight: 700 }}>
-                      {overallProgress.avgImprovement.toFixed(1)}%
-                    </Typography>
-                    <TrendingUp sx={{ color: '#4caf50' }} />
-                  </Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Avg Improvement
-                  </Typography>
-                </MetricDisplay>
-              </Grid>
-              <Grid item xs={6} sm={3}>
-                <MetricDisplay>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: 'center' }}>
-                    <Star sx={{ color: '#ffd700', fontSize: 32 }} />
-                    <Typography variant="h4" sx={{ color: '#ffd700', fontWeight: 700 }}>
-                      4.8
-                    </Typography>
-                  </Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Average Rating
-                  </Typography>
-                </MetricDisplay>
-              </Grid>
-            </Grid>
-          </CardContent>
-        </ProgressCard>
-      </Grid>
+        {/* Quick Stats */}
+        <GlassPanel>
+          <Heading6 $color={theme.cyan} style={{ marginBottom: 24 }}>
+            Progress Summary
+          </Heading6>
+          <Grid4Col>
+            <MetricBox>
+              <ValueLarge $color={theme.green}>
+                {mockMilestones.filter(m => m.status === 'completed').length}
+              </ValueLarge>
+              <LabelSmall>Milestones Completed</LabelSmall>
+            </MetricBox>
+            <MetricBox>
+              <ValueLarge $color={theme.orange}>
+                {mockWorkouts.length}
+              </ValueLarge>
+              <LabelSmall>Workouts This Month</LabelSmall>
+            </MetricBox>
+            <MetricBox>
+              <FlexRow $gap={8} $justify="center">
+                <ValueLarge $color={theme.purple}>
+                  {overallProgress.avgImprovement.toFixed(1)}%
+                </ValueLarge>
+                <TrendingUp size={20} color={theme.green} />
+              </FlexRow>
+              <LabelSmall>Avg Improvement</LabelSmall>
+            </MetricBox>
+            <MetricBox>
+              <FlexRow $gap={8} $justify="center">
+                <Star size={28} color={theme.gold} fill={theme.gold} />
+                <ValueLarge $color={theme.gold}>4.8</ValueLarge>
+              </FlexRow>
+              <LabelSmall>Average Rating</LabelSmall>
+            </MetricBox>
+          </Grid4Col>
+        </GlassPanel>
+      </OverviewGrid>
+
+      <SpacerV $size={24} />
 
       {/* Recent Achievements */}
-      <Grid item xs={12}>
-        <ProgressCard>
-          <CardContent>
-            <Typography variant="h6" sx={{ color: '#00ffff', mb: 3 }}>
-              Recent Achievements
-            </Typography>
-            <Grid container spacing={2}>
-              {mockMilestones
-                .filter(m => m.status === 'completed')
-                .map((achievement) => (
-                  <Grid item xs={12} sm={6} md={4} key={achievement.id}>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        bgcolor: 'rgba(76, 175, 80, 0.1)',
-                        border: '1px solid rgba(76, 175, 80, 0.3)',
-                        borderRadius: 2,
-                        textAlign: 'center'
-                      }}
-                    >
-                      <Celebration sx={{ fontSize: 40, color: '#ffd700', mb: 1 }} />
-                      <Typography variant="h6" gutterBottom>
-                        {achievement.title}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
-                        {achievement.description}
-                      </Typography>
-                      {achievement.reward && (
-                        <Chip
-                          label={`${achievement.reward.type}: ${achievement.reward.value}`}
-                          sx={{
-                            bgcolor: 'rgba(255, 215, 0, 0.2)',
-                            color: '#ffd700',
-                            mt: 1
-                          }}
-                        />
-                      )}
-                      <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                        Completed on {new Date(achievement.completedDate!).toLocaleDateString()}
-                      </Typography>
-                    </Paper>
-                  </Grid>
-                ))}
-            </Grid>
-          </CardContent>
-        </ProgressCard>
-      </Grid>
-    </Grid>
+      <GlassPanel>
+        <Heading6 $color={theme.cyan} style={{ marginBottom: 24 }}>
+          Recent Achievements
+        </Heading6>
+        <Grid3Col>
+          {mockMilestones
+            .filter(m => m.status === 'completed')
+            .map((achievement) => (
+              <AchievementPanel key={achievement.id}>
+                <PartyPopper size={40} color={theme.gold} style={{ marginBottom: 8 }} />
+                <Heading6>{achievement.title}</Heading6>
+                <LabelBody>{achievement.description}</LabelBody>
+                {achievement.reward && (
+                  <RewardChip>
+                    {achievement.reward.type}: {achievement.reward.value}
+                  </RewardChip>
+                )}
+                <LabelSmall $color={theme.textMuted} style={{ display: 'block', marginTop: 8 }}>
+                  Completed on {new Date(achievement.completedDate!).toLocaleDateString()}
+                </LabelSmall>
+              </AchievementPanel>
+            ))}
+        </Grid3Col>
+      </GlassPanel>
+    </div>
   );
 
   return (
-    <Box sx={{ p: 3 }}>
+    <DashboardWrapper>
       {/* Header */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ color: '#00ffff', mb: 1, fontWeight: 700 }}>
-          Progress Dashboard
-        </Typography>
-        <Typography variant="body1" color="text.secondary">
+      <SectionHeader>
+        <PageTitle>Progress Dashboard</PageTitle>
+        <PageSubtitle>
           Track milestones, monitor improvements, and celebrate achievements
-        </Typography>
-      </Box>
+        </PageSubtitle>
+      </SectionHeader>
 
       {/* Controls */}
-      <Box sx={{ mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
-        <FormControl size="small" sx={{ minWidth: 120 }}>
-          <InputLabel sx={{ color: '#a0a0a0' }}>Timeframe</InputLabel>
-          <Select
-            value={selectedTimeframe}
-            label="Timeframe"
-            onChange={(e) => setSelectedTimeframe(e.target.value as any)}
-            sx={{ color: '#e0e0e0' }}
-          >
-            <MenuItem value="7d">Last 7 Days</MenuItem>
-            <MenuItem value="30d">Last 30 Days</MenuItem>
-            <MenuItem value="90d">Last 90 Days</MenuItem>
-            <MenuItem value="1y">Last Year</MenuItem>
-          </Select>
-        </FormControl>
+      <ControlsRow>
+        <NativeSelect
+          value={selectedTimeframe}
+          onChange={(e) => setSelectedTimeframe(e.target.value as any)}
+          title="Timeframe"
+        >
+          <option value="7d">Last 7 Days</option>
+          <option value="30d">Last 30 Days</option>
+          <option value="90d">Last 90 Days</option>
+          <option value="1y">Last Year</option>
+        </NativeSelect>
 
-        <ButtonGroup variant="outlined" size="small">
-          <ProgressButton 
-            variant={viewMode === 'overview' ? 'contained' : 'outlined'}
+        <ButtonGroup>
+          <ActionButton
+            $active={viewMode === 'overview'}
+            $variant={viewMode === 'overview' ? 'contained' : 'outlined'}
             onClick={() => setViewMode('overview')}
           >
             Overview
-          </ProgressButton>
-          <ProgressButton 
-            variant={viewMode === 'detailed' ? 'contained' : 'outlined'}
+          </ActionButton>
+          <ActionButton
+            $active={viewMode === 'detailed'}
+            $variant={viewMode === 'detailed' ? 'contained' : 'outlined'}
             onClick={() => setViewMode('detailed')}
           >
             Detailed
-          </ProgressButton>
-          <ProgressButton 
-            variant={viewMode === 'measurements' ? 'contained' : 'outlined'}
+          </ActionButton>
+          <ActionButton
+            $active={viewMode === 'measurements'}
+            $variant={viewMode === 'measurements' ? 'contained' : 'outlined'}
             onClick={() => setViewMode('measurements')}
           >
             Measurements
-          </ProgressButton>
+          </ActionButton>
         </ButtonGroup>
 
-        <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
-          <ProgressButton variant="outlined" startIcon={<Refresh />}>
+        <ControlsRight>
+          <ActionButton $variant="outlined">
+            <RefreshCw size={16} />
             Refresh
-          </ProgressButton>
-          <ProgressButton variant="outlined" startIcon={<Download />}>
+          </ActionButton>
+          <ActionButton $variant="outlined">
+            <Download size={16} />
             Export
-          </ProgressButton>
-        </Box>
-      </Box>
+          </ActionButton>
+        </ControlsRight>
+      </ControlsRow>
 
       {/* Content */}
       {viewMode === 'overview' && renderOverview()}
-      
+
       {viewMode === 'detailed' && (
-        <Box>
-          <Box sx={{ mb: 4 }}>
+        <div>
+          <div style={{ marginBottom: 32 }}>
             {renderMilestones()}
-          </Box>
-          <Box sx={{ mb: 4 }}>
+          </div>
+          <div style={{ marginBottom: 32 }}>
             {renderAssessments()}
-          </Box>
-        </Box>
+          </div>
+        </div>
       )}
-      
+
       {viewMode === 'measurements' && renderMeasurements()}
-    </Box>
+    </DashboardWrapper>
   );
 };
 
